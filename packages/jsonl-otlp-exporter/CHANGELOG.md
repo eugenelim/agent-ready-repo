@@ -17,6 +17,13 @@ First release.
   fields that may be sent. Profiles are read as data, never imported or
   evaluated, and none is bundled — without `--profile` the command refuses to
   run rather than guess what may be sent.
+- Resumable runs. `--report-cursor` prints an opaque one-line JSON cursor on
+  stdout; `--from-cursor` takes it back and resumes from it, so a repeated run
+  sends only what is new. The cursor pairs the byte offset with the input's
+  device and inode, so a rotated or truncated file resets to the start instead
+  of seeking into the middle of a record, and an offset that does not land on a
+  record boundary is refused. The caller stores the cursor between runs: this
+  command still writes no durable state of its own.
 - Off by default. With no endpoint resolvable from the two `OTEL_EXPORTER_*`
   variables or `--config`, the command says so on stderr and exits 0 without
   opening a socket.

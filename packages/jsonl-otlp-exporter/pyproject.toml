@@ -41,3 +41,12 @@ include = ["jsonl_otlp_exporter*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# This table SHADOWS the root pyproject's [tool.pytest.ini_options] rather than
+# merging with it, so the root's `pythonpath` does not reach a run invoked as
+# `pytest packages/jsonl-otlp-exporter/` -- pytest picks the nearest configfile
+# and stops. Without this line the whole suite fails collection with
+# `No module named 'jsonl_otlp_exporter'` unless the distribution happens to be
+# installed. `packages/credbroker/pyproject.toml` has the identical table and
+# gets away with it only because credbroker IS pip-installed here; this one is
+# not, so the omission was load-bearing.
+pythonpath = ["."]

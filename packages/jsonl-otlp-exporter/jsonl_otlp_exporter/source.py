@@ -190,24 +190,47 @@ def _report(stream, message: str) -> None:
 def iter_records(
     fd: int,
     *,
+    start_offset: int = 0,
     follow: bool = False,
     for_seconds: int | None = None,
     stream=None,
     poll_interval: float = 0.05,
     clock=time.monotonic,
     on_first_read=None,
-) -> Iterator[dict[str, Any] | _Idle]:
-    """Yield one parsed record per well-formed line, skipping the rest.
+    on_position=None,
+    size_at_open: int | None = None,
+) -> Iterator[tuple[dict[str, Any] | _Idle, int]]:
+    """Yield `(record, end_offset)` per well-formed line, skipping the rest.
 
     Records are yielded, never collected: the caller sees them one at a time and
     the reader holds at most one line plus a partial-line buffer, so the amount
     resident does not grow with the size of the input.
 
+    `size_at_open` lets a caller that already holds the opened descriptor's size
+    supply it, so the one-shot budget is measured against the size at open rather
+    than at the generator's first read. Omitted, the reader takes its own
+    `fstat`, which keeps every direct caller unchanged.
+
     A bad line never ends the run. Size, parseability and top-level shape each
     skip their own line, report it with its number, and leave the rest of the
     file to be sent -- the whole point of a telemetry sender is that one corrupt
     record does not cost you the others.
+
+    Two positions, because one is not enough. `end_offset` rides on each yield
+    and is what the batcher credits to a batch, so a batch that fails does not
+    take a later batch's progress with it. `on_position` fires whenever the
+    position moves at all, which is what the caller needs for a clean run: lines
+    the reader consumed after the last record it yielded -- a trailing
+    unparseable line, an over-length line -- belong to no batch, and a run that
+    leaves the offset before them re-reads and re-skips them forever.
+
+    The position advances ONLY when a newline is consumed. Never on cleared
+    bytes: the reader discards an over-length line's bytes as it reads them, and
+    an accounting that advanced there would report a position inside a line that
+    has no terminator yet, which a later run would resume from mid-record.
     """
+    if start_offset:
+        os.lseek(fd, start_offset, os.SEEK_SET)
     deadline = None if for_seconds is None else clock() + for_seconds
     # One-shot reads the file ONCE (AC-0020). Bounding the pass at the size the
     # descriptor had when it was opened is what makes that true: against a writer
@@ -216,10 +239,34 @@ def iter_records(
     # exits.
     budget = None
     if not follow:
-        with contextlib.suppress(OSError):
-            budget = os.fstat(fd).st_size
+        # `size_at_open` when the caller already has it. This generator is lazy,
+        # so its own `fstat` runs at the first `next()` -- a later instant than
+        # the caller's open. A writer appending in between enlarges the size this
+        # would read, and the bound is specified against the size AT OPEN.
+        if size_at_open is not None:
+            budget = max(0, size_at_open - start_offset)
+        else:
+            with contextlib.suppress(OSError):
+                # Measured from `start_offset`, not from zero. A budget of the
+                # whole file size lets a resumed one-shot run drain an appending
+                # writer forever, because the bytes it is allowed to read exceed
+                # the bytes that were there when it opened.
+                budget = max(0, os.fstat(fd).st_size - start_offset)
     buffer = bytearray()
     line_number = 0
+    position = start_offset
+    # Bytes of an over-length line cleared without its newline in hand. Held
+    # apart from `position` until that newline arrives, so an unterminated
+    # over-length final line never moves the position into itself.
+    discarded_bytes = 0
+
+    def advance(delta: int) -> int:
+        nonlocal position
+        position += delta
+        if on_position is not None:
+            on_position(position)
+        return position
+
     # True while discarding the tail of a line already refused for length. Its
     # own newline ends the discard, and it must NOT be counted again -- counting
     # it would shift every later line number by one and make every subsequent
@@ -251,6 +298,7 @@ def iter_records(
                 index = buffer.find(b"\n")
                 if index < 0:
                     if discarding:
+                        discarded_bytes += len(buffer)
                         buffer.clear()
                     elif len(buffer) > MAX_LINE_BYTES:
                         # Refuse before decoding and stop buffering: the line is
@@ -261,6 +309,7 @@ def iter_records(
                             stream,
                             f"line {line_number}: over {MAX_LINE_BYTES} bytes; skipped",
                         )
+                        discarded_bytes += len(buffer)
                         buffer.clear()
                         discarding = True
                     break
@@ -268,7 +317,11 @@ def iter_records(
                 raw = bytes(buffer[:index])
                 del buffer[: index + 1]
                 if discarding:
+                    # The refused line's own newline. It ends the discard and is
+                    # the first point at which those bytes are safely behind us.
                     discarding = False
+                    advance(discarded_bytes + index + 1)
+                    discarded_bytes = 0
                     continue
 
                 if deadline is not None and clock() >= deadline:
@@ -278,6 +331,7 @@ def iter_records(
                     return
 
                 line_number += 1
+                advance(index + 1)
                 if len(raw) > MAX_LINE_BYTES:
                     _report(stream, f"line {line_number}: over {MAX_LINE_BYTES} bytes; skipped")
                     continue
@@ -305,7 +359,7 @@ def iter_records(
                         f"{type(value).__name__}, not an object; skipped",
                     )
                     continue
-                yield value
+                yield value, position
             continue
 
         # No bytes available right now.
@@ -316,5 +370,5 @@ def iter_records(
         # Tell the consumer we have caught up. Under bare `--follow` there is no
         # deadline and the iterator never ends, so without this a partial batch
         # is held until 512 records arrive and an appended line is never sent.
-        yield IDLE
+        yield IDLE, position
         time.sleep(poll_interval)

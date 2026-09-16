@@ -75,6 +75,15 @@ class _Clock:
         return self.now
 
 
+def _paired(records):
+    """`(record, end_offset)` pairs, as the reader now yields them.
+
+    The offset is synthetic and monotonic: these cases assert batching, not
+    offsets, and `TestAcceptedOffset` owns the offset behaviour.
+    """
+    return [(record, index + 1) for index, record in enumerate(records)]
+
+
 def _dest(url="http://localhost:4318/v1/logs", **kw):
     return tp.resolve_destination(url, resolver=lambda *a, **k: _addrinfo("127.0.0.1"), **kw)
 
@@ -96,7 +105,7 @@ class TestSchemeAndUserInfo:
         """The default SSL context verifies both; an unverified one is the bug."""
         connect_log = []
         tp.send_batches(
-            [([], b"{}")],
+            [([], b"{}", 0)],
             tp.resolve_destination("https://collector.example.com/v1/logs",
                                    resolver=lambda *a, **k: _addrinfo("203.0.113.10")),
             _factory([], [_FakeResponse()], connect_log),
@@ -161,7 +170,7 @@ class TestLoopbackPolicy:
         destination = tp.resolve_destination("http://rebind.example.com:4318/v1/logs",
                                              resolver=rebinding)
         connect_log = []
-        tp.send_batches([([], b"{}")], destination,
+        tp.send_batches([([], b"{}", 0)], destination,
                         _factory([], [_FakeResponse()], connect_log), clock=_Clock())
         assert connect_log[0]["host"] == "127.0.0.1"
         assert connect_log[0]["host"] != "203.0.113.9"
@@ -188,13 +197,13 @@ class TestBatching:
     def test_at_most_512_records_per_request(self):
         def encode(batch, diagnostics=True):
             return json.dumps([dict(r) for r in batch]).encode()
-        batches = list(tp.batch_records([{"i": i} for i in range(1025)], encode))
-        assert [len(records) for records, _ in batches] == [512, 512, 1]
+        batches = list(tp.batch_records(_paired({"i": i} for i in range(1025)), encode))
+        assert [len(records) for records, _, _ in batches] == [512, 512, 1]
 
     def test_record_513_begins_the_next_request(self):
         def encode(batch, diagnostics=True):
             return json.dumps([dict(r) for r in batch]).encode()
-        batches = list(tp.batch_records([{"i": i} for i in range(513)], encode))
+        batches = list(tp.batch_records(_paired({"i": i} for i in range(513)), encode))
         assert batches[0][0][-1]["i"] == 511
         assert batches[1][0][0]["i"] == 512
 
@@ -206,10 +215,10 @@ class TestBatching:
         def encode(batch, diagnostics=True):
             return json.dumps([dict(r) for r in batch]).encode()
         records = [{"i": i, "pad": payload} for i in range(400)]
-        batches = list(tp.batch_records(records, encode))
+        batches = list(tp.batch_records(_paired(records), encode))
         assert len(batches) > 1
-        assert all(len(body) <= tp.MAX_BODY_BYTES for _, body in batches)
-        assert sum(len(r) for r, _ in batches) == 400, "every record still sent"
+        assert all(len(body) <= tp.MAX_BODY_BYTES for _, body, _ in batches)
+        assert sum(len(r) for r, _, _ in batches) == 400, "every record still sent"
 
     def test_no_more_than_one_batch_is_resident_over_a_large_input(self):
         """AC-0063. The generator is fed a 10,000-record iterator that counts how
@@ -224,7 +233,7 @@ class TestBatching:
 
         def encode(batch, diagnostics=True):
             return json.dumps([dict(r) for r in batch]).encode()
-        batches = tp.batch_records(source(), encode)
+        batches = tp.batch_records(((r, i) for i, r in enumerate(source())), encode)
         next(batches)
         assert len(pulled) <= tp.MAX_RECORDS_PER_REQUEST, (
             f"{len(pulled)} records were read before the first batch was ready"
@@ -239,7 +248,7 @@ class TestRetryAndAttempts:
         log = []
         clock = _Clock()
         out = tp.send_batches(
-            [([], b"{}"), ([], b"{}"), ([], b"{}")],
+            [([], b"{}", 0), ([], b"{}", 0), ([], b"{}", 0)],
             _dest(), _factory(log, responses), clock=clock, sleep=lambda s: None,
             stream=io.StringIO(),
         )
@@ -257,7 +266,7 @@ class TestRetryAndAttempts:
             return _FakeConnection([], [_FakeResponse(429, {"Retry-After": "10"}),
                                         _FakeResponse(200)])
 
-        tp.send_batches([([], b"{}")], _dest(), connection_factory,
+        tp.send_batches([([], b"{}", 0)], _dest(), connection_factory,
                         clock=clock, sleep=slept.append, stream=io.StringIO())
         assert slept and abs(slept[0] - 10.0) < 0.001, (
             "the delay must start at receipt; measuring from issue would sleep 6"
@@ -277,7 +286,7 @@ class TestRetryAndAttempts:
         payload = json.dumps({"partialSuccess": {"rejectedLogRecords": 7}}).encode()
         log, err = [], io.StringIO()
         out = tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory(log, [_FakeResponse(200, {}, payload), _FakeResponse(200)]),
             clock=_Clock(), stream=err,
         )
@@ -294,7 +303,7 @@ class TestRedirects:
     def test_a_redirect_is_refused_and_the_run_fails(self, status):
         log, err = [], io.StringIO()
         out = tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory(log, [_FakeResponse(status, {"Location": "https://elsewhere/v1/logs"})]),
             clock=_Clock(), stream=err,
         )
@@ -305,7 +314,7 @@ class TestRedirects:
     def test_a_redirect_target_is_rendered_safely(self):
         log, err = [], io.StringIO()
         tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory(log, [_FakeResponse(302, {"Location": "https://u:p@elsewhere/v1?t=s"})]),
             clock=_Clock(), stream=err,
         )
@@ -317,7 +326,7 @@ class TestTimeBounds:
 
     def test_the_per_request_timeout_is_thirty_seconds(self):
         connect_log = []
-        tp.send_batches([([], b"{}")], _dest(),
+        tp.send_batches([([], b"{}", 0)], _dest(),
                         _factory([], [_FakeResponse()], connect_log), clock=_Clock())
         assert connect_log[0]["timeout"] == tp.REQUEST_TIMEOUT_SECONDS
 
@@ -337,7 +346,7 @@ class TestTimeBounds:
             clock.now += 61.0
             return _FakeConnection([], [_FakeResponse(500)])
 
-        tp.send_batches([([], b"{}") for _ in range(5)], _dest(), factory,
+        tp.send_batches([([], b"{}", 0) for _ in range(5)], _dest(), factory,
                         clock=clock, stream=io.StringIO(),
                         best_effort=best_effort, run_started=0.0)
         assert len(connect_log) == 2, (
@@ -365,7 +374,7 @@ class TestTimeBounds:
             clock.now = 119.0          # the first attempt consumes the run
             return _FakeConnection([], [_FakeResponse(503, {"retry-after": "0"})])
 
-        tp.send_batches([([], b"{}")], _dest(), factory, clock=clock,
+        tp.send_batches([([], b"{}", 0)], _dest(), factory, clock=clock,
                         sleep=lambda s: None, stream=io.StringIO(), run_started=0.0)
         assert len(connect_log) >= 2, "a second request at 119s is still allowed to start"
         assert connect_log[1]["at"] == 119.0
@@ -382,7 +391,7 @@ class TestTimeBounds:
         clock = _Clock()
         clock.now = 29.0               # resolution took 29 seconds
         connect_log = []
-        tp.send_batches([([], b"{}")], _dest(),
+        tp.send_batches([([], b"{}", 0)], _dest(),
                         _factory([], [_FakeResponse()], connect_log),
                         clock=clock, stream=io.StringIO(), run_started=0.0)
         assert connect_log, "a request at 29s still has one second of budget"
@@ -397,7 +406,7 @@ class TestResponseBound:
     def test_an_oversize_response_body_is_refused(self):
         log, err = [], io.StringIO()
         out = tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory(log, [_FakeResponse(200, {}, b"x" * (tp.MAX_RESPONSE_BYTES + 1)) for _ in range(3)]),
             clock=_Clock(), stream=err,
         )
@@ -414,7 +423,7 @@ class TestResponseBound:
         at_limit = head + b"y" * (tp.MAX_RESPONSE_BYTES - len(head) - len(tail)) + tail
         assert len(at_limit) == tp.MAX_RESPONSE_BYTES
         out = tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory([], [_FakeResponse(200, {}, at_limit)]),
             clock=_Clock(), stream=io.StringIO(),
         )
@@ -431,7 +440,7 @@ class TestReviewRegressions:
         "Retry-After" lookup silently ignored the backoff and retried at once."""
         slept = []
         tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory([], [_FakeResponse(503, {name: "10"}), _FakeResponse(200)]),
             clock=_Clock(), sleep=slept.append, stream=io.StringIO(),
         )
@@ -447,7 +456,7 @@ class TestReviewRegressions:
             {"partialSuccess": {"rejectedLogRecords": 0, "errorMessage": "invalid"}}
         ).encode()
         err = io.StringIO()
-        out = tp.send_batches([([], b"{}")], _dest(),
+        out = tp.send_batches([([], b"{}", 0)], _dest(),
                               _factory([], [_FakeResponse(200, {}, payload)]),
                               clock=_Clock(), stream=err)
         assert out.partial_success is True
@@ -456,7 +465,7 @@ class TestReviewRegressions:
 
     def test_an_absent_or_empty_partial_success_is_success(self):
         for payload in (b"{}", b'{"partialSuccess":{}}', b""):
-            out = tp.send_batches([([], b"{}")], _dest(),
+            out = tp.send_batches([([], b"{}", 0)], _dest(),
                                   _factory([], [_FakeResponse(200, {}, payload)]),
                                   clock=_Clock(), stream=io.StringIO())
             assert out.status == 0 and out.partial_success is False, payload
@@ -466,13 +475,13 @@ class TestReviewRegressions:
         HTTP 200 -- and the receiver refused records on their content, which
         AC-0054 makes an unconditional exit 1."""
         payload = json.dumps({"partialSuccess": {"rejectedLogRecords": 3}}).encode()
-        out = tp.send_batches([([], b"{}")], _dest(),
+        out = tp.send_batches([([], b"{}", 0)], _dest(),
                               _factory([], [_FakeResponse(200, {}, payload)]),
                               clock=_Clock(), stream=io.StringIO(), best_effort=True)
         assert out.status == 1
 
     def test_best_effort_still_forgives_an_ordinary_send_failure(self):
-        out = tp.send_batches([([], b"{}")], _dest(),
+        out = tp.send_batches([([], b"{}", 0)], _dest(),
                               _factory([], [_FakeResponse(500) for _ in range(3)]),
                               clock=_Clock(), stream=io.StringIO(), best_effort=True)
         assert out.status == 0
@@ -497,7 +506,7 @@ class TestReviewRegressions:
             return _FakeConnection([], [_Trickle()])
 
         err = io.StringIO()
-        out = tp.send_batches([([], b"{}")], _dest(), factory,
+        out = tp.send_batches([([], b"{}", 0)], _dest(), factory,
                               clock=clock, stream=err, run_started=0.0)
         assert out.status == 1
         assert "deadline" in err.getvalue()
@@ -509,7 +518,8 @@ class TestReviewRegressions:
             return json.dumps([dict(r) for r in batch]).encode()
         seen = []
         batches = list(tp.batch_records(
-            [{"pad": "x" * (tp.MAX_BODY_BYTES + 100)}], encode, on_oversize=seen.append))
+            _paired([{"pad": "x" * (tp.MAX_BODY_BYTES + 100)}]), encode,
+            on_oversize=seen.append))
         assert batches == []
         assert seen and seen[0] > tp.MAX_BODY_BYTES
 
@@ -590,7 +600,7 @@ class TestRound3Regressions:
         )
         started = time.monotonic()
         out = tp.send_batches(
-            [([], b"{}")], destination,
+            [([], b"{}", 0)], destination,
             lambda scheme, host, p, timeout, ctx: http.client.HTTPConnection(
                 host, p, timeout=120),   # far larger than either bound
             stream=io.StringIO(), run_started=started,
@@ -614,7 +624,7 @@ class TestRound3Regressions:
         clock = _Clock()
         slept, connect_log = [], []
         out = tp.send_batches(
-            [([], b"{}")], _dest(),
+            [([], b"{}", 0)], _dest(),
             _factory([], [_FakeResponse(429, {"retry-after": "30"}),
                           _FakeResponse(200)], connect_log),
             clock=clock, sleep=slept.append, stream=io.StringIO(),
@@ -639,7 +649,7 @@ class TestRound4Regressions:
         clock.now = 5.0
         connect_log = []
         tp.send_batches(
-            [([], b"{}")], _dest(), _factory([], [_FakeResponse()], connect_log),
+            [([], b"{}", 0)], _dest(), _factory([], [_FakeResponse()], connect_log),
             clock=clock, stream=io.StringIO(), run_started=0.0, for_seconds=1,
             first_read_at=lambda: 5.0,
         )
@@ -654,7 +664,7 @@ class TestRound4Regressions:
         clock.now = 5.0
         connect_log = []
         out = tp.send_batches(
-            [([], b"{}")], _dest(), _factory([], [_FakeResponse()], connect_log),
+            [([], b"{}", 0)], _dest(), _factory([], [_FakeResponse()], connect_log),
             clock=clock, stream=io.StringIO(), run_started=0.0, for_seconds=1,
             first_read_at=lambda: None,
         )
@@ -740,7 +750,7 @@ class TestWiringSweepGaps:
         record headers and no assertion read them. A request with no
         `Content-Type: application/json` is not an OTLP/JSON request at all."""
         log = []
-        tp.send_batches([([], b'{"x":1}')], _dest(), _factory(log, [_FakeResponse()]),
+        tp.send_batches([([], b'{"x":1}', 0)], _dest(), _factory(log, [_FakeResponse()]),
                         clock=_Clock(), stream=io.StringIO())
         assert log, "no request was recorded"
         headers = log[0]["headers"]
@@ -765,7 +775,7 @@ class TestWiringSweepGaps:
 
         payload = "x" * 40_000
         records = [{"i": i, "pad": payload} for i in range(400)]
-        batches = list(tp.batch_records(records, encode))
+        batches = list(tp.batch_records(_paired(records), encode))
         assert len(batches) > 1, "the fixture must actually split"
         assert len(seen) == 400, f"each record must be counted once, got {len(seen)}"
         assert len(set(seen)) == 400
@@ -783,3 +793,163 @@ class TestWiringSweepGaps:
         watchdog = tp._Watchdog(_Conn(), 300)
         assert watchdog._timer.daemon is True
         watchdog._timer.cancel()
+
+
+# AC-0004 through AC-0007 — which offset a run has earned.
+
+
+class TestAcceptedOffset:
+    """Appended to tests/unit/test_transport.py, which owns `_dest`,
+    `_factory` and `_FakeResponse`."""
+
+    @staticmethod
+    def _batches(*ends):
+        return [([], b"{}", end) for end in ends]
+
+    def test_a_fully_accepted_run_reports_the_last_batch_offset(self):
+        """AC-0004's send half."""
+        out = tp.send_batches(
+            self._batches(100, 200, 300),
+            _dest(),
+            _factory([], [_FakeResponse(), _FakeResponse(), _FakeResponse()]),
+            start_offset=0,
+        )
+        assert out.accepted_offset == 300
+        assert out.all_accepted is True
+
+    def test_an_accepted_batch_after_a_refused_one_is_not_credited(self):
+        """AC-0005, and the reason this task exists.
+
+        `send_batches` continues to the next batch after a non-retryable status,
+        so a high-water mark would credit batch three and lose batch two's
+        records for good. The prefix stops at the first refusal.
+        """
+        out = tp.send_batches(
+            self._batches(100, 200, 300),
+            _dest(),
+            _factory([], [_FakeResponse(), _FakeResponse(status=400), _FakeResponse()]),
+            start_offset=0,
+        )
+        assert out.accepted_offset == 100
+        assert out.all_accepted is False
+
+    def test_a_refused_first_batch_reports_the_start_offset(self):
+        """AC-0006, and the control behind `start_offset=`."""
+        out = tp.send_batches(
+            self._batches(100, 200),
+            _dest(),
+            _factory([], [_FakeResponse(status=400), _FakeResponse()]),
+            start_offset=64,
+        )
+        assert out.accepted_offset == 64
+        assert out.all_accepted is False
+
+    def test_a_run_issuing_no_batch_reports_the_start_offset(self):
+        """A run the reader gave nothing.
+
+        `all_accepted` stays true, so the CLI raises the offset to the reader's
+        consumed position -- which is AC-0004, not AC-0006: AC-0006 needs a first
+        batch to exist. Asserted here because the two read alike and the
+        distinction is what stops a solitary over-ceiling record from stalling.
+        """
+        out = tp.send_batches([], _dest(), _factory([], []), start_offset=64)
+        assert out.accepted_offset == 64
+        assert out.all_accepted is True
+
+    def test_a_produced_batch_never_issued_reports_the_start_offset(self):
+        """AC-0006's "produced and never issued" half.
+
+        The only other no-issue case supplies no batch at all, and every
+        time-bound case starts at offset 0 — so a build that credits a batch when
+        it is PULLED, before any request goes out, passes them both. Here the
+        run clock is already past its deadline, so `send_batches` returns before
+        issuing anything, and the batch carries a nonzero end offset that must
+        not be credited.
+        """
+        clock = _Clock()
+        out = tp.send_batches(
+            [([], b"{}", 400)],
+            _dest(),
+            _factory([], [_FakeResponse()]),
+            clock=clock, run_started=-1000.0, stream=io.StringIO(),
+            start_offset=64,
+        )
+        assert out.attempts == 0, "the fixture must issue nothing"
+        assert out.accepted_offset == 64
+        assert out.all_accepted is False
+
+    def test_a_partial_success_is_not_an_acceptance(self):
+        """AC-0007. HTTP 200 with rejected records must not move the offset."""
+        body = b'{"partialSuccess": {"rejectedLogRecords": 2}}'
+        out = tp.send_batches(
+            self._batches(100, 200),
+            _dest(),
+            _factory([], [_FakeResponse(), _FakeResponse(payload=body)]),
+            start_offset=0,
+        )
+        assert out.accepted_offset == 100
+        assert out.all_accepted is False
+
+    def test_a_zero_count_partial_success_still_blocks_the_offset(self):
+        """AC-0007 keys on the OBJECT being non-empty, not on the count.
+
+        `{"partialSuccess": {"rejectedLogRecords": 0}}` carries no count and no
+        message, and a build rejecting only on `> 0` or a non-empty
+        `errorMessage` accepts it — then advances the offset past records the
+        receiver was reporting on. The existing case pairs the zero with an
+        `errorMessage`, so it cannot separate the two readings.
+        """
+        body = b'{"partialSuccess": {"rejectedLogRecords": 0}}'
+        out = tp.send_batches(
+            [([], b"{}", 100), ([], b"{}", 200)],
+            _dest(),
+            _factory([], [_FakeResponse(), _FakeResponse(payload=body)]),
+            start_offset=0,
+        )
+        assert out.accepted_offset == 100
+        assert out.all_accepted is False
+
+    def test_a_batch_accepted_after_a_retry_advances_the_offset(self):
+        """A retried-then-accepted batch is accepted, and must be credited.
+
+        Every other accepted-offset case answers on the first attempt, so a
+        build updating `accepted_offset` only on an immediate 2xx passes them
+        all — and then re-sends a batch the receiver already took.
+        """
+        clock = _Clock()
+        retry = _FakeResponse(status=429, headers={"retry-after": "0"})
+        out = tp.send_batches(
+            [([], b"{}", 100)],
+            _dest(),
+            _factory([], [retry, _FakeResponse()]),
+            clock=clock, sleep=lambda s: None, stream=io.StringIO(),
+            start_offset=0,
+        )
+        assert out.accepted_offset == 100
+        assert out.all_accepted is True
+        assert out.attempts == 2, "the fixture must actually retry"
+
+    def test_a_split_batch_credits_each_half_separately(self):
+        """AC-0005 at the one place the halves could share a parent's offset."""
+        records = [{"pad": "x" * 4096} for _ in range(4)]
+        positioned = [(record, (index + 1) * 10) for index, record in enumerate(records)]
+
+        def encode(batch, diagnostics=True):
+            return json.dumps(list(batch)).encode("utf-8")
+
+        batches = list(
+            tp.batch_records(positioned, encode, max_bytes=8192)
+        )
+        assert len(batches) > 1, "the fixture did not actually split"
+        # Each batch's end offset must equal ITS OWN last record's offset.
+        # Monotonicity plus a correct final value is also satisfied by a splitter
+        # that gives every batch its successor's offset -- and that
+        # implementation credits unsent records the moment an early batch is
+        # accepted and the next is refused.
+        expected = [offset for _, offset in positioned]
+        for records, _, end in batches:
+            assert end == expected[len(records) - 1], (
+                f"batch of {len(records)} ended at {end}, not its own last record"
+            )
+            expected = expected[len(records):]
+        assert not expected, "every record must belong to exactly one batch"

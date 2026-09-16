@@ -141,7 +141,16 @@ assurance gap this plan carries into EXECUTE.
 
 - [ ] **AC-0001.** With no endpoint resolvable from any source, the command opens
   no socket.
-- [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits 0.
+- [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits
+  0, unless an argument it was given was itself refused. A refused `--config`,
+  `--profile` or `--from-cursor` exits 1 whether or not an endpoint resolves.
+  The carve-out states what the command has always done and what the unqualified
+  criterion forbade: `--config` is read while the endpoint is being resolved, and
+  a supplied `--profile` is validated before the endpoint check so that a run
+  with no endpoint is a usable dry run that reports a broken profile. Without the
+  carve-out this criterion contradicts `cli.py`'s ordering, which shipped in
+  #1293. Off-by-default is unaffected — a refused argument sends nothing, and
+  this criterion was only ever about the exit status.
 - [ ] **AC-0060.** With no endpoint resolvable from any source, the command writes
   a line to stderr naming that no endpoint is configured.
 
@@ -205,7 +214,16 @@ assurance gap this plan carries into EXECUTE.
 - [ ] **AC-0016.** A line that does not parse as JSON is skipped, and the
   remaining lines are still sent.
 - [ ] **AC-0038.** A skipped line is reported on stderr with its line number.
-- [ ] **AC-0039.** A run in which no line yields a valid record exits 1.
+- [ ] **AC-0039.** A run in which no line yields a valid record exits 1, unless
+  it was given no mode flag and read no line because a resume cursor, honoured
+  at a non-zero offset, was already at the end of its input; that one case exits 0 and its criterion lives
+  with the resume contract. The carve-out is stated as an exception rather than
+  by rewriting the rule, because "reads at least one line and finds none valid"
+  would leave an empty input file with no cursor pinned by nothing — and the
+  `### Exit codes` table still claims 1 for it. The exception is needed at all
+  because this criterion's predicate is `emitted == 0`, which cannot tell an
+  all-invalid input from an empty read; the two were nearly the same condition
+  until a run could start part-way through the file.
 - [ ] **AC-0017.** The command opens the path given by `--input` with no-follow
   semantics and sends nothing unless the opened descriptor is a regular file
   whose identity resolves inside the directory given by `--root`, which defaults
