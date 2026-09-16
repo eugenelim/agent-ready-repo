@@ -30,7 +30,19 @@ from pathlib import Path
 import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
-WORK_LOOP = PACK_ROOT / ".apm/skills/work-loop"
+APM_ROOT = PACK_ROOT / ".apm"
+WORK_LOOP_REFS = APM_ROOT / "skills" / "work-loop" / "references"
+
+# Named per file rather than joined from a variable at call time: the
+# pack-test-boundary lint reads path construction statically and cannot tell
+# that a runtime join stays inside the pack.
+SKILL = APM_ROOT / "skills" / "work-loop" / "SKILL.md"
+EVALS = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
+LIFECYCLE = WORK_LOOP_REFS / "delivery-contract-lifecycle.md"
+ADJUDICATION = WORK_LOOP_REFS / "finding-adjudication.md"
+STATE_SCHEMA = WORK_LOOP_REFS / "state-schema.md"
+
+RUNTIME_REFERENCES = (ADJUDICATION, STATE_SCHEMA, LIFECYCLE)
 
 
 def _flat(path: Path) -> str:
@@ -52,48 +64,102 @@ def _flat(path: Path) -> str:
 
 AUTHORITY_STATEMENTS = (
     (
-        "references/delivery-contract-lifecycle.md",
+        LIFECYCLE,
         "session end, retry cap, stasis, or model judgment never invokes this "
         "transition or creates a follow-on",
     ),
     (
-        "references/delivery-contract-lifecycle.md",
+        LIFECYCLE,
         "Retry caps, review stasis, and a clean intermediate unit never complete "
         "intent or create follow-ons",
     ),
     (
-        "SKILL.md",
+        SKILL,
         "an intermediate clean unit, retry cap, or stasis never completes "
         "accepted intent",
     ),
     (
-        "SKILL.md",
+        SKILL,
         "A merged PR, retry cap, or review stasis alone is not completion",
     ),
     (
-        "evals/evals.json",
+        EVALS,
         "Required work, session end, retry caps, stasis, or model judgment "
         "cannot invoke it automatically",
     ),
     (
-        "evals/evals.json",
+        EVALS,
         "Rejects automatic amendment from time, retry, stasis, or model judgment",
     ),
 )
 
 
-@pytest.mark.parametrize(("relpath", "statement"), AUTHORITY_STATEMENTS)
+@pytest.mark.parametrize(("target", "statement"), AUTHORITY_STATEMENTS)
 def test_authority_statement_survives_in_its_own_file(
-    relpath: str, statement: str
+    target: Path, statement: str
 ) -> None:
     """A statement that stasis confers no authority stays true after retirement.
 
     One case per statement rather than one joined assertion, because a joined
     one names only the first surface it loses.
     """
-    target = WORK_LOOP / relpath
-    assert target.is_file(), f"pinned surface is missing: {relpath}"
+    assert target.is_file(), f"pinned surface is missing: {target.name}"
     assert statement in _flat(target), (
-        f"authority statement lost from {relpath}: {statement!r}. "
+        f"authority statement lost from {target.name}: {statement!r}. "
         "Retiring the halt must not reach the statements beside it."
     )
+
+
+# ── AC-0001: the halt is gone, the Surface is not ────────────────────────────
+#
+# Absence alone would be satisfied by deleting the rows outright, which would
+# leave an emitted field undocumented and -- on two of these surfaces -- would
+# delete a Surface disposition ADR-0104 requires. So each surface carries both
+# an absence and a presence case.
+
+HALT_PHRASES = (
+    "do not start another round",
+    "surface immediately; do not run",
+    "stops immediately for human replanning",
+)
+
+
+@pytest.mark.parametrize("target", RUNTIME_REFERENCES)
+@pytest.mark.parametrize("phrase", HALT_PHRASES)
+def test_no_runtime_surface_instructs_a_halt(target: Path, phrase: str) -> None:
+    """One case per surface per phrasing, so a missed surface is named."""
+    assert target.is_file(), f"swept surface is missing: {target.name}"
+    assert phrase not in _flat(target).lower(), (
+        f"retired halt {phrase!r} survives in {target.name}"
+    )
+
+
+@pytest.mark.parametrize(
+    ("target", "surface_disposition"),
+    (
+        (ADJUDICATION, "Surface it, and continue the round sequence"),
+        (STATE_SCHEMA, "Surface it; it starts no transition and stops no loop"),
+    ),
+)
+def test_the_surface_disposition_survives(target: Path, surface_disposition: str) -> None:
+    """ADR-0104 requires the signal to stay reported to the human.
+
+    Both of these shared a sentence with the halt that was removed, which is
+    the way an edit satisfying absence alone loses them.
+    """
+    assert surface_disposition in _flat(target), (
+        f"Surface disposition lost from {target.name}; ADR-0104 requires it and is "
+        "frozen, so restoring it is a spec fix rather than an ADR amendment"
+    )
+
+
+# ── AC-0002: the refuted detection claim ─────────────────────────────────────
+
+@pytest.mark.parametrize("target", RUNTIME_REFERENCES)
+def test_no_surface_claims_a_fingerprint_detects_stasis(target: Path) -> None:
+    """The preimage carries a line and an ordinal, so equality is not detection."""
+    flat = _flat(target).lower()
+    for claim in ("used for stasis detection", "is stasis and stops"):
+        assert claim not in flat, (
+            f"refuted detection claim {claim!r} survives in {target.name}"
+        )

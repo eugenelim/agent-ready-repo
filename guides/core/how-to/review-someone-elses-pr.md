@@ -30,7 +30,7 @@ It resolves the diff and runs `adversarial-reviewer` (plus `security-reviewer` /
 Two things worth saying out loud:
 
 - **No spec? Say so.** An in-flight branch usually has no spec, so the reviewer falls back to the spec-less self-review lens. If the branch *does* carry a `docs/specs/<feature>/spec.md`, name it — the reviewer then checks the diff against the spec instead.
-- **It's a throwaway review.** You want the findings, not a loop run. Don't expect `state.json` or stasis detection; read the severity-tagged output and hand it to the author.
+- **It's a throwaway review.** You want the findings, not a loop run. Don't expect `state.json` or the loop's iteration cap; read the severity-tagged output and hand it to the author.
 
 ## What you have now
 
