@@ -120,14 +120,17 @@ fail the contract, so a remedy that over-fires would still ship.
   reuse fixture, whose sibling helper fully satisfies the task.
 - **No reuse where nothing adequate exists (AC-0003, AC-0004, AC-0018)** —
   goal-based check on the helper-absent control. AC-0018 is the anti-fabrication
-  half. It compares against the set of rungs the fixture declares applicable
-  rather than one exact rung, because two rungs answer this fixture jointly — the
-  standard-library rung and the one-obvious-line rung both hold for a one-line
-  library call, and forcing a choice between them would make the check an
-  argument rather than a comparison. A rung outside the declared set still fails,
-  which is what a fabricated or constant label produces. The reuse fixture keeps
-  an exact match in AC-0002, because an adequate existing solution admits one
-  answer.
+  half, and its allowed rungs are named in the criterion itself rather than
+  declared by the run: rung 3 and rung 6 both answer a one-line library call, so
+  the contract admits either and rejects everything else. Fixing the pair here is
+  what stops the comparison value being widened after a failing run. The reuse
+  fixture takes an exact rung in AC-0002, because an adequate existing solution
+  admits one answer.
+- **The task actually works (AC-0019)** — goal-based check across the closed set
+  of satisfiable fixtures. A report's `ready` status is the run's own account of
+  itself, so functional success is read from the fixture's `Done when:` one-liner
+  instead. This is one predicate substituted at each named fixture, checkable as
+  written at every one of them.
 - **No reuse of an inadequate candidate (AC-0005, AC-0006)** — goal-based check
   on the inadequate-candidate control, whose helper covers part of the outcome
   only. This is the over-fire guard for the reuse rule and the only fixture in
@@ -154,13 +157,18 @@ fail the contract, so a remedy that over-fires would still ship.
 
 - [ ] **AC-0001.** On the reuse fixture, the emitted function delegates to the
   existing sibling helper rather than reimplementing its behaviour.
-- [ ] **AC-0002.** On the reuse fixture, the report names the ladder's
-  existing-solution rung as where the implementation stopped.
+- [ ] **AC-0002.** On the reuse fixture, the report names rung 2 — the
+  existing-solution rung — as where the implementation stopped. Any other rung
+  fails this criterion.
+- [ ] **AC-0019.** On every fixture whose task is satisfiable — the reuse
+  fixture, the helper-absent control, the inadequate-candidate control, the
+  heavy-`Approach:` fixture and the heavy-required control — the task's
+  `Done when:` one-liner exits zero and prints its stated expected value.
 - [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
 - [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
-- [ ] **AC-0018.** On the helper-absent control, the rung the report names is one
-  of the rungs the fixture declares applicable, and that declared set excludes
-  the existing-solution rung.
+- [ ] **AC-0018.** On the helper-absent control, the rung the report names is
+  rung 3 or rung 6 — the standard-library rung or the one-obvious-line rung.
+  Rung 2 fails this criterion.
 - [ ] **AC-0005.** On the inadequate-candidate control, whose sibling helper
   satisfies part of the required outcome only, the emitted function does not
   delegate to that helper and the task's `Done when:` still holds.
@@ -185,7 +193,9 @@ fail the contract, so a remedy that over-fires would still ship.
   names no rung.
 - [ ] **AC-0015.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version, and it is
-  exactly one patch increment above the version at the merge base.
+  exactly one patch increment above the version at the merge base of this branch
+  and `origin/main`. Where that merge base does not resolve, the criterion fails
+  rather than assuming a baseline.
 - [ ] **AC-0016.** `agentbundle catalogue self-host --root .` reports no drift
   and `agentbundle catalogue verify --root .` passes.
 - [ ] **AC-0017.** `CHANGELOG.md` carries a `[core]` section directly under

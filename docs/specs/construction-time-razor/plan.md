@@ -65,13 +65,17 @@ implementer delta lands inside a section one of them slices:
 `packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py` and
 `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
-Each fixture declares, in the runner, the rung or rungs whose condition it
-satisfies. The runner compares the report's named rung against that declaration
-rather than counting labels, which is what lets a constant or fabricated rung
-fail. The declaration lives beside the fixture that fixes it, so the comparison
-value is never supplied by the run being graded. Where two rungs answer a fixture
-jointly the declaration names both, so the check stays a comparison instead of
-becoming an adjudication between two defensible readings.
+The rung each fixture must report is fixed by `spec.md`, not by the runner:
+AC-0002 names rung 2 exactly and AC-0018 names rung 3 or rung 6. The runner
+compares the report's named rung against those constants rather than counting
+labels, so the comparison value cannot be widened after a failing run. Where two
+rungs answer a fixture jointly the contract names both, which keeps the check a
+comparison instead of an adjudication between two defensible readings.
+
+Functional success is read from each fixture's `Done when:` one-liner rather than
+from the report's `ready` status, because a status is the run's own account of
+itself. The runner records the one-liner's exit code and stdout for every
+satisfiable fixture.
 
 Protection, not criteria: T3 adds one pack-local content pin asserting that
 `implementer.md` names the ladder by its heading and states no numbered rung of
@@ -162,9 +166,12 @@ those copies are never edited directly.
   on the pre-change contract — two runs, byte-identical duplication, no rung
   named.
 - Helper-absent control, proving AC-0003, AC-0004 and AC-0018: no new module is
-  emitted, status is `ready`, and the named rung falls in the set the fixture
-  declares applicable — a set that excludes the existing-solution rung. That last
-  check is what fails a constant or fabricated rung label.
+  emitted, status is `ready`, and the named rung is rung 3 or rung 6. That last
+  check is what fails a constant or fabricated rung label, and its allowed values
+  come from the contract rather than from the fixture.
+- Every satisfiable fixture's `Done when:` one-liner is run and its exit code and
+  stdout recorded, proving AC-0019. This is the external functional signal; a
+  `ready` status never stands in for it.
 - Inadequate-candidate control, proving AC-0005 and AC-0006: its sibling helper
   collapses whitespace runs but does not strip, so reuse would break
   `Done when:`. The emitted function must not delegate to it, and the report must
@@ -248,10 +255,11 @@ narration.
 
 **Tests:**
 - Both manifests carry the same version, exactly one patch increment above the
-  merge base's, proving AC-0015. Compute the base rather than restating a literal
-  target: another change may bump the pack first. This is a delivery-time check
-  run once, not a standing test — asserting `base patch + 1` on every branch reds
-  `main`, where the merge base is `HEAD`.
+  version at `git merge-base HEAD origin/main`, proving AC-0015. Compute the base
+  rather than restating a literal target: another change may bump the pack first.
+  Fail closed if that ref does not resolve. This is a delivery-time check run
+  once, not a standing test — asserting `base patch + 1` on every branch reds
+  `main`, where the merge base is `HEAD`, and every branch owing no bump.
 - `agentbundle catalogue self-host --root .` reports no drift and
   `agentbundle catalogue verify --root .` passes, proving AC-0016. Run self-host
   on a clean tree: it refuses a dirty one.
