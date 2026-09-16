@@ -332,16 +332,6 @@ appears in **the seven** as a non-writer and separately owes a read repair.
   `references/agentbundle-layout.md`, `workspace_mcp.py`, the five test fixtures
   carrying the literal, and this repository's own tree.
 
-- Pack maintainer: `packs/experience-design/JOURNEY.md:242` declares stage 5
-  `**State:** confirmed-write`, a write state by `tools/lint-pack-journeys.py:38-44`,
-  while the only actor that stage names — the `experience-reviewer` agent — is
-  read-only by construction (`packs/experience-design/.apm/agents/experience-reviewer.md:154`).
-  Whether that is a defect turns on whether the stage's scope ends at the findings
-  or includes the designer acting on them: the stage's own `**Output:**` is "a
-  review-clean design set", which is a written outcome. An earlier review of this
-  spec described the stage as running `design-review`; it does not — that skill
-  appears in this journey only as a frontmatter roster entry at `:78`. Resolving
-  the question means editing `JOURNEY.md`, which this spec's `Ask first` covers.
 
 ## Assumptions
 
@@ -415,6 +405,26 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 - Technical: this repository's spec corpus holds 467 specs and 7,428 criteria, mean
   15.9, so this spec's count sits near the median
   (source: probe — `grep -c "^- \[[ xX]\]" docs/specs/*/spec.md`, 2026-09-16)
+- Technical: `packs/experience-design/JOURNEY.md:242` marks stage 5
+  `**State:** confirmed-write` although the only actor that stage names, the
+  `experience-reviewer` agent, is read-only by construction
+  (`packs/experience-design/.apm/agents/experience-reviewer.md:154`). This was
+  raised as a defect during review and is **not** one. The catalogue already uses
+  the token this way for an independent-review stage: `frontend-engineering`'s
+  JOURNEY stage 6, "Get an independent frontend review", carries the same
+  `confirmed-write` and runs `frontend-reviewer`, which is read-only in the same
+  way. Both stages describe a net effect — XD's `**Output:**` is "a review-clean
+  design set", FE's `**You decide:**` is "merge after clean review" — rather than
+  the reviewer's own file access. A reading strict enough to condemn one condemns
+  both, and nothing has flagged the frontend stage.
+  The imprecision is in the shared vocabulary, not either journey:
+  `docs/guides/how-to/ui-primitives.md:56` glosses `confirmed-write` as "Human
+  confirmed; agent is writing", which does not describe how review stages use it.
+  Correcting that gloss would touch every pack and is out of this spec's scope.
+  A related review claim — that the stage runs `design-review` — is false: that
+  skill appears in this journey only as a frontmatter roster entry at `:78`
+  (source: read of both journeys, both agent definitions, and a sweep of every
+  `confirmed-write` stage across `packs/*/JOURNEY.md`, 2026-09-16)
 - Process: every non-cosmetic pack-content change bumps matching versions and
   updates that pack's eval harness (source: `packs/AGENTS.md`)
 - Process: each phase ships its guide (source: `docs/CONVENTIONS.md:1130`)
