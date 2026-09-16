@@ -60,6 +60,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.10] — 2026-09-17
+
+### Highlights
+
+- Your loop no longer halts when the same findings come back. It tells you and
+  keeps going, bounded by the iteration cap. The stop it replaced never fired:
+  the signal it read is equality over a fingerprint that carries a finding's
+  position, so any repair that moved a finding made the round look new.
+
+### Changed
+
+- Full mode no longer instructs a halt when review findings repeat. The control
+  was evaluated 302 times across two months of recorded runs and never fired,
+  because its key embeds a line number and an ordinal that every repair moves —
+  so it read as protection while providing none. The signal is still computed,
+  emitted, and surfaced to the human; only the halt is retired, and the
+  iteration cap remains full mode's mechanical bound. Recorded in ADR-0104.
+- Published guidance and the public pack page match that behaviour. The two
+  tool-comparison tables now claim a mechanical iteration cap rather than stasis
+  detection: the cap is real and still absent from both compared tools, while
+  the detection half had become a false capability claim.
+
 ## [core][2.26.9] — 2026-09-17
 
 ### Highlights
@@ -119,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regression would not redden them. Their identifiers carry a `register-`
   prefix to say so.
 
+
 ## [core][2.26.8] — 2026-09-16
 
 ### Highlights
@@ -143,6 +166,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runs first, and continues.
 - `new-spec`: the plan template's `Depends on:` placeholder no longer names `T0`,
   a task ID that can never exist.
+
 
 ## [core][2.26.7] — 2026-09-16
 
