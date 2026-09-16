@@ -41,7 +41,7 @@ spec-stage finding (Proactive Controls 2024 C1; ASVS 5.0 V4.1).
 
 Most repos centralize authz in one place — a policy/guard middleware, a
 `can(actor, action, resource)` helper, a decorator. Resolve the repo's
-sanctioned authorization helper (AGENTS.md blessed list → CONVENTIONS /
+sanctioned authorization helper (AGENTS.md blessed list → AGENTS.md /
 installed context → grep for the de-facto guard) and flag any handler that
 hand-rolls an inline `if user.id == ...` check instead of calling it —
 ad-hoc checks drift out of sync with the policy the helper centralizes.

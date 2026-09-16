@@ -93,7 +93,7 @@ is **"this code rolled its own instead of the repo's blessed helper."** Each
 module names, in generic terms, the *kind* of helper that boundary usually
 has. To resolve the repo's actual helper, the reviewer consults, in
 precedence: the **`AGENTS.md`** "blessed security tools/helpers" list →
-`CONVENTIONS.md` and any context other packs install (steering files, etc.)
+`AGENTS.md` and any context other packs install (steering files, etc.)
 → **inference fallback** (grep the codebase for the de-facto helper). Flag
 code that re-implements a boundary the repo already has a sanctioned helper
 for. This skill carries the *mechanism* only — never any one repo's specific

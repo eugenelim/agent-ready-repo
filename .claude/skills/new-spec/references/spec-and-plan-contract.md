@@ -287,3 +287,27 @@ absent a skill, it is hand-authored into the same conventional location.
 > The repo-root `contracts/` directory is a new top-level directory; proposing
 > it, and any substantive change to this convention, routes through your RFC
 > process (see § 3).
+
+### A spec directory freezes as a unit, when the spec ships
+
+`shipped specs/*` above means the whole directory — `spec.md` **and** `plan.md`.
+This needs saying because the plan template's own contract line reads "Unlike
+the spec, this document is allowed to change as you learn", which sounds like a
+standing exemption and is not one. That licence is **phase-scoped**: it holds
+only while the plan is `Drafting`, and ends when the plan is approved. From
+approval, both `spec.md` and `plan.md` are pinned in substance. Only lifecycle
+bookkeeping — the preamble status token and task-progress checkboxes — may still
+be written. An observation produced by execution belongs in the sibling
+`notes/verification-ledger.md`, never in either approved artifact.
+
+There are therefore **two stages, not one.** At plan approval the pair is
+*pinned in substance*: the contract stops moving so implementation cannot drift
+it, while lifecycle bookkeeping is still written. Once the plan is `Done` and
+the spec is `Shipped`, the work is over, both documents are history, and the
+whole directory is *frozen* — the retention rule the `Frozen` class above
+names. Pinned protects the contract during the build; frozen protects the
+record afterwards.
+
+A plan that stayed substantively editable after approval would be a second,
+unversioned account of what we did, competing with the ADR that records why. A
+genuine error in either approved artifact follows the controlled-amendment path.

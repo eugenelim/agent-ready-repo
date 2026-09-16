@@ -124,7 +124,7 @@ how the receiving platform is expected to re-validate them before the skill exec
 For this boundary, the sanctioned helpers are typically the **skill build pipeline** (the
 `build-self` / `agentbundle build` path that validates the pack before projection) and the
 **distribution integrity check** (hash verification at install time). Resolve in precedence:
-`AGENTS.md` "blessed security tools/helpers" → `CONVENTIONS.md` → inference fallback (grep
+`AGENTS.md` "blessed security tools/helpers" → `AGENTS.md` → inference fallback (grep
 the codebase for the de-facto metadata validator and the install-audit mechanism). Flag a
 change that: (a) parses skill frontmatter with an unsafe deserializer instead of the
 sanctioned load path; (b) installs skills by copying files directly, bypassing the build

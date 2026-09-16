@@ -252,7 +252,7 @@ is sequential too.
 - Tool verb surface: `loop-cohort.py --help` (script at
   [`../scripts/loop-cohort.py`](../scripts/loop-cohort.py)).
 - Rationale, boundary, motivations: see
-  `docs/CONVENTIONS.md § Supervisor mode` (in this repo;
+  this reference's own § Why a separate mode, and its boundary (in this repo;
   in other repos, the adopter's own conventions doc).
 
 ## Why a separate mode, and its boundary

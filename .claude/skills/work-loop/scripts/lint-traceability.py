@@ -72,7 +72,7 @@ Exit codes:
       structural orphan or `UNREACHABLE` node (the convergence-/CI-gate enforcing
       "traceability closed"). `--strict` degrades gracefully where the
       producer `Discovery:` headers / `type:` markers are absent (a separate
-      CONVENTIONS follow-on lands those).
+      the owning artifact's follow-on lands those).
 
 No chain artifacts at all → exit 0 with no diagnostic (the
 `lint-brief-coverage.py` no-brief precedent).

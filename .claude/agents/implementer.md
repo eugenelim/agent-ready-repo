@@ -21,7 +21,8 @@ there is nothing to merge.
 
 In this order:
 
-1. `AGENTS.md` and `docs/CONVENTIONS.md` — project conventions. The
+1. `AGENTS.md` — project conventions, including every scoped `AGENTS.md` on
+   the path to the files you change. The
    verification-mode discipline (TDD / goal-based / visual-manual)
    applies to your task too.
 2. The targeted spec at `docs/specs/<feature>/spec.md`.
