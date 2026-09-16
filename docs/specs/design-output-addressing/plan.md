@@ -26,15 +26,11 @@ discharges, not from a grouping of skills — that grouping is what drifted when
 the spec narrowed twice, and re-deriving from the criteria is why this plan
 replaces its predecessor rather than patching it.
 
-Dependency shape, stated from the `Depends on:` fields rather than described
-loosely: **T1 → T2** is the only hard serialisation in the skill work, because
-the four writes reference a module that must exist first. T2 then forks three
-ways — **T3, T4 and T5** touch different skills and are mutually independent.
-**T6** depends on nothing. **T7** depends on T4. **T8** depends on T2, T5 and T7,
-because a registry can only be checked against declarations that exist.
-**T9** depends on T6, T7 and T8, since its three tests span guides, journeys and
-registries. **T10** depends on T9. **T11** depends on T2. **T12** depends on
-nothing. **T13** depends on everything.
+The `Depends on:` field on each task is the dependency shape; this paragraph does
+not restate it, because a prose summary of those edges has disagreed with them in
+every prior round of this plan. One thing worth saying that the fields cannot:
+**T1 → T2 is the only hard serialisation in the skill work**, because the four
+writes reference a module that must exist before they can cite it.
 
 Review shape is **MIXED**. T2 is uniform across four skills; T1 and T11 are the
 deep tasks, because T1 authors a trust-boundary control and T11 is the only place
@@ -51,7 +47,7 @@ its behaviour is observed.
   a write from a read.
 - A pack test may not read above its owning pack, so the guide-agreement test is
   repository-level and runs on no pull request until T10 wires it.
-- `tools/lint-experience-agnostic.py` rejects nine named token classes — not
+- `tools/lint-experience-agnostic.py` rejects eight named token classes — not
   "every literal". A bare integer and a percentage pass; colour literals,
   digit-plus-unit dimensions, `N:1` ratios and named easing curves do not.
 
@@ -84,7 +80,7 @@ go green at the task that introduces it.
 
 | Durable output | Tasks | Evidence |
 | --- | --- | --- |
-| User-facing promise | T5, T6, T7, T12 | Guide-agreement test; `lint-guidebook-steps.py` |
+| User-facing promise | T5, T6, T7 produce it; T9 authors its test; T10 wires that test | Guide-agreement test green in CI; `lint-guidebook-steps.py` exits 0 |
 | Current product truth | T8 | Registry-agreement test |
 | Interface compatibility (module) | T1 | Module present and byte-identical in all four |
 | Interface compatibility (layout) | T2 | Layout conformance test |
@@ -154,10 +150,14 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
 **Tests:**
 - Goal-based: `references/containment.md` exists in each of the four writes' skill
   directory and all four copies are byte-identical.
-- Goal-based: the module states every one of the seven module criteria — the
-  at-or-beneath approval with its reserved set for both the repository and
-  user-profile branches, its ordering before the first read or write under the
-  directory, and the binding of every later resolution to the approved value;
+- Goal-based: the module states every one of the seven module criteria. For the
+  approval criterion that means every clause it carries, not its heading: the
+  at-or-beneath predicate; the reserved set for the repository branch and for the
+  user-profile branch; refusal rather than confirmation for an inadmissible value;
+  explicit confirmation for a repo-root value resolving outside the repository
+  tree; the approved root recorded with the run on every approval path; approval
+  before the first read or write under the directory; and the binding of every
+  later resolution to the approved value;
   final-target re-canonicalization; confinement re-established at each missing
   intermediate directory as it is created; the slug class and its 64-character
   bound with refusal before path composition; the `type:` check treating absent or
@@ -184,10 +184,14 @@ states all seven module criteria.
 - Goal-based: each of `creative-direction`, `information-architecture`,
   `design-principles` and `design-system` states its target in its own `SKILL.md`
   on a `**Writes:**` line carrying that path in backticks and nothing else.
-- Goal-based: each states a `**Confinement:**` line referencing
-  `references/containment.md`.
+- Goal-based: each states a line of the literal form `**Confinement:** ` followed
+  by `references/containment.md` in backticks, and nothing else on the line.
 - Goal-based: each ships a `references/agentbundle-layout.md`, and
   `python3 -m pytest tests/conformance/test_pack_layout_declared_section.py -q` passes.
+- Goal-based: `information-architecture` and `design-principles` each state the
+  declared `type:` their artifact emits. They ship no template, so the declaration
+  is the only place it can live; `design-system` and `creative-direction` carry
+  theirs in the templates T3 and T4 add.
 
 **Approach:**
 - Targets come from the acceptance criteria, which are the canonical statement —
@@ -227,10 +231,12 @@ skill states its write step.
 - Goal-based: the template emits frontmatter `type: creative-direction`.
 
 **Approach:**
-- The template today opens straight into an H1 with no frontmatter, while three
-  shipped reference documents already claim it emits `type: creative-direction`.
-  Add the frontmatter those documents assume, plus a `surface:` field so the
-  amend-versus-new branch has something to compare.
+- The template today opens straight into an H1 with no frontmatter. Add the
+  frontmatter, plus a `surface:` field so the
+  amend-versus-new branch has something to compare. One shipped reference document
+  already assumes that marker exists —
+  `content-design/references/agentbundle-layout.md:84` — so this makes a claim the
+  pack already publishes true.
 
 **Done when:** the template carries the declared `type:`.
 
@@ -240,7 +246,8 @@ skill states its write step.
 
 **Tests:**
 - Goal-based: `design-principles/SKILL.md` contains no occurrence of the literal
-  `docs/design`.
+  `docs/design`, and still states its declared `type:` — the line carrying the
+  literal is the same line that declares the type, so the rewrite can drop it.
 - Goal-based: `design-review/SKILL.md` resolves that artifact through `output_dir`,
   confirms its canonicalized real path under the approved `output_dir`, validates
   its declared `type:`, extracts only the principle entries while ignoring any
@@ -285,7 +292,7 @@ lint exits 0.
 
 ### T7: Retire `aesthetic/`
 
-**Depends on:** T4
+**Depends on:** T2
 
 **Tests:**
 - Goal-based: no file under `packs/experience-design/` or
@@ -295,6 +302,11 @@ lint exits 0.
 - Goal-based: `web/src/content/journeys/experience-design.md` is byte-equal to a
   fresh `python3 tools/build-site.py --journeys-only` run.
 - Goal-based: the three journey lints exit 0.
+- Goal-based: `tools/lint-guidebook-steps.py` exits 0 after this task's guide
+  edits — it is the last task to touch a guide step, and it rewrites three
+  `**Where it lands:**` lines and their rungs, which is exactly what that lint reads.
+- Goal-based: `establish-design-intent.md` states no hardcoded `docs/design/`
+  prefix where a sibling line uses `<output_dir>`.
 
 **Approach:**
 - Update the two `**Where it lands:**` lines in `establish-design-intent.md` and
@@ -331,7 +343,7 @@ lint exits 0.
 
 ### T9: Author the three construction tests
 
-**Depends on:** T6, T7, T8
+**Depends on:** T3, T4, T5, T6, T7, T8
 
 **Tests:**
 - TDD by mutation: the declaration test red when one write's `**Confinement:**`
@@ -343,8 +355,8 @@ lint exits 0.
 **Approach:**
 - The declaration and registry tests are pack-confined. The guide-agreement test
   reads `guides/` and goes to `tests/roster/`.
-- Authoring after the work is deliberate: all three quantify over state T2-T8
-  create. Red by mutation is a stronger demonstration than the pre-change state.
+- Authoring after the work is deliberate: all three quantify over state T1-T8
+  create, which is why every one of those tasks is named above. Red by mutation is a stronger demonstration than the pre-change state.
 
 **Done when:** all three are green against the tree and red against each named
 mutation, recorded in the ledger.
@@ -367,7 +379,7 @@ mutation, recorded in the ledger.
 
 ### T11: Observe the controls refusing
 
-**Depends on:** T2
+**Depends on:** T2, T3, T4, T5
 
 **Tests:**
 - Visual / manual QA, paired per control: for each of the four writes, a benign run

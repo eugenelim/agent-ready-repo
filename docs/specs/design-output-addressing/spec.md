@@ -65,11 +65,12 @@ line that claimed the file had been written.
 `interaction-design`'s line was **not** part of it. Three further edits were
 attempted and reverted, because each reached into an obligation beyond the
 accepted intent and produced more findings than it closed across two review
-rounds. Only one of the three is owed a follow-on:
+rounds. None of the three is owed a follow-on: one is back in scope under a
+criterion and the other two need no further work.
 
-- **Repointing `interaction-design`'s line** — a follow-on below. The path it
-  publishes is orphaned, and correcting it introduces `<screen>` as a segment the
-  page does not resolve.
+- **Repointing `interaction-design`'s line** — in scope, discharged by a criterion
+  below and implemented by the plan's T6. The path it publishes is orphaned, and
+  correcting it introduces `<screen>` as a segment the page must then resolve.
 - **Giving `information-architecture`'s invented path reader-visible provenance** —
   no follow-on owed. This spec's first criterion gives that skill a declared path,
   which removes the invented one rather than annotating it.
@@ -108,7 +109,7 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Applicable — seven guide steps promise a file that never arrives | `guides/experience-design/how-to/` | Guide author | Each of the nineteen steps states what its skill does | The guide-agreement test passes and `tools/lint-guidebook-steps.py` exits 0 |
 | Current product truth | Applicable — three registries name folders no skill writes | `packs/experience-design/DESIGN.md`, `pack.toml` subdirectory comment, `experience-status`'s folder-naming surfaces | Pack maintainer | No registry names a folder no skill declares | The registry-agreement test passes |
-| Interface compatibility | Applicable — the shared containment module is the artifact the module criteria quantify over | a byte-identical copy in each of the four writes' `references/containment.md` | Pack maintainer | The module states all five controls and every copy matches | T2 authors it before any task references it |
+| Interface compatibility | Applicable — the shared containment module is the artifact the module criteria quantify over | a byte-identical copy in each of the four writes' `references/containment.md` | Pack maintainer | The module states every control its criteria require and every copy matches | The plan's T1 authors it before any task references it |
 | Interface compatibility | Applicable — four declarations must satisfy the layout rule | each write's `references/agentbundle-layout.md` | Pack maintainer | `tests/conformance/test_pack_layout_declared_section.py` passes | Every layout reference states the pack's declared pair |
 | Decision rationale | Applicable — `direction/` is a new folder name | `docs/adr/` plus a reproducible dataset beside it | ADR author | The dataset carries the queries, sampling frame and inclusion rule | ADR accepted and its dataset reproduces the sample |
 | Operations | Applicable — the guide-agreement test is repository-level | `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py` | Maintainer | The test named as a step with a disposition | `tools/lint-ci-parity.py` exits 0 |
@@ -209,7 +210,8 @@ appears in **the seven** as a non-writer and separately owes a read repair.
       predicate testing directory *identity* admits every descendant, so
       `packs/<pack>/.apm/skills/<skill>` and `~/.claude/skills` would both pass; that a
       repo-root value resolving outside the repository tree takes explicit
-      confirmation; that the approved root is recorded with the run on every
+      confirmation; that approval precedes the first read or write under the
+      directory; that the approved root is recorded with the run on every
       approval path, not only that one; that a
       user-profile value is approved against its own declared absolute root; and
       that every later prefix check binds to the approved value.
@@ -237,6 +239,9 @@ appears in **the seven** as a non-writer and separately owes a read repair.
       directory it creates is confined under the approved `output_dir` at the
       component being created, not at a nominal parent that may itself be absent.
 - [ ] `creative-direction`'s template emits frontmatter `type: creative-direction`.
+- [ ] `guides/experience-design/reference/experience-design.md` states no
+      `docs/design/principles` path, since no skill declares one after the
+      relocation.
 - [ ] `packs/experience-design/.apm/skills/design-review/SKILL.md` resolves the
       `design-principles` artifact through `output_dir`, confirms its canonicalized
       real path under the approved `output_dir`, validates its declared `type:`,
