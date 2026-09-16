@@ -20,16 +20,16 @@
 
 ## Approach
 
-Ten tasks. The shape is a chain with one branch: T7 through T9 touch registries,
-journeys and governance and depend only on the declarations landing, so they can
-proceed alongside each other once T4 closes; everything rejoins at T10.
+Ten tasks in one chain with a single fork: T7 depends on T4, and T8 and T9 both
+fork off T7, rejoining at T10. T8 and T9 are the only pair that can run
+alongside each other.
 
 The tests are authored **after** the work they check and proven red by mutating
 the artifact, not by the pre-change state. That is deliberate: a test introduced
-before eleven declarations exist cannot go green at the task that introduces it,
+before the four writes exist cannot go green at the task that introduces it,
 which is the defect that made two earlier drafts unclosable.
 
-Review shape is **MIXED**. T2 is mechanically uniform across ten skills and
+Review shape is **MIXED**. T2 authors one shared module the four writes reference, and
 carries a re-run check; T4 and T5 are the tasks that need reading.
 
 ## Constraints
@@ -52,14 +52,17 @@ carries a re-run check; T4 and T5 are the tasks that need reading.
 Two test files. The first is pack-confined; the second is not, which is what
 obliges T6.
 
-- **Per-skill declaration and containment** (pack suite). For each of the eleven
-  skills the spec names, assert its `SKILL.md` states a write target on a line
-  matching the canonical form, and that the same file states the final-target
-  re-canonicalization step. One parse, two assertions, failing closed on a skill
-  that declares a target without containment.
+- **Per-skill declaration and containment** (pack suite). Subject: **the four
+  writes** the spec's closed set names — `creative-direction`,
+  `information-architecture`, `design-principles`, `design-system`. For each,
+  assert its `SKILL.md` carries a `**Writes:**` line naming its declared target
+  and a `**Confinement:**` line referencing the shared module. The seven
+  declaring writers are out of subject: the spec defers their containment audit
+  to a follow-on and none uses a `**Writes:**` line today, so including them
+  would make the test red against work no task performs.
 - **Guide agreement** (roster suite). For each step in
-  `guides/experience-design/how-to/`, assert both the `**Where it lands:**` and
-  `**What it looks like:**` labels read `**Writes no artifact.**` exactly when the
+  `guides/experience-design/how-to/`, assert its **`artifact_location` obligation
+  only** — the label-agnostic name the guidebook lint uses — resolves when the
   owning `SKILL.md` disclaims a file-per-slug artifact, and otherwise name a path
   that `SKILL.md` declares. This is the check that would have caught the
   `interaction-design` claim.
@@ -149,33 +152,43 @@ spec; this one only gives them addresses.
 
 **Done when:** both labels read the no-artifact form and the guidebook lint exits 0.
 
-### T2: Declare the ten silent writers
+### T2: Author the shared containment module
 
 **Depends on:** T1
 
 **Tests:**
-- Goal-based: each of the ten states its target on a line matching the canonical
-  form and states the re-canonicalization step.
-- Goal-based: the layout conformance test passes with ten new references.
-- Re-run check: the ten edits are mechanically uniform, so regenerating them from
-  the same source produces a zero diff.
+- Goal-based: the module exists at its declared path inside each write's export
+  boundary, and every installed copy is byte-identical.
+- Goal-based: the module states all five controls the spec's criteria require —
+  source-aware approval with its ordering and value binding, final-target
+  re-canonicalization including missing intermediate directories, the slug class
+  and its refusal, the `type:` and blank-template check treating an absent type
+  as a collision, and extract-as-data for any existing target read before amending.
 
 **Approach:**
-- Introduce the canonical declaration form and use it for all ten.
-- Take each path from the guides as corrected by T1.
-- Carry `copy-direction`'s two-part control on each: approve the resolved
-  `output_dir` source-aware, then re-canonicalize the final target or its parent
-  immediately before writing.
+- Author the module once and place a byte-identical copy in each of the four
+  writes' `references/`, because a skill installs standalone and cannot reach a
+  sibling's tree. The equality is what the "one module" claim rests on.
+- Take its content from `copy-direction`'s five controls, not from a subset:
+  approval ordered before the first read or write under the directory, with every
+  later resolution bound to the approved value.
+- Admissibility is decided by containment, not identity — no resolved
+  `output_dir` may be at *or beneath* a reserved tree, and the reserved set is
+  stated for the user-profile branch as well as the repository one.
 
-**Done when:** the conformance test passes, each of the ten carries both the form
-and the containment step, and the re-run produces no diff.
+**Done when:** the module exists at its declared path, its copies are
+byte-identical, and it states all five controls.
 
 ### T3: Repoint `design-principles`'s write and `design-review`'s read
 
 **Depends on:** T2
 
 **Tests:**
-- Goal-based: `design-principles/SKILL.md` contains no `docs/design/principles`.
+- Goal-based: `design-principles/SKILL.md` contains no occurrence of the literal
+  `docs/design` — the criterion's predicate, not the narrower path.
+- Goal-based: no line in `guides/experience-design/` states a `docs/design`
+  literal outside a transcript block; `establish-design-intent.md:55` carries one
+  in its agent-returns line.
 - Goal-based: `design-review/SKILL.md` resolves that artifact through `output_dir`
   and states the canonicalized-real-path check before loading it.
 
@@ -221,8 +234,8 @@ and the containment step, and the re-run produces no diff.
 **Approach:**
 - The declaration test is pack-confined. The guide-agreement test reads `guides/`
   and goes to `tests/roster/`.
-- Authoring after the work is deliberate: both tests quantify over eleven
-  declarations, so neither can go green at a task that precedes them. Red is
+- Authoring after the work is deliberate: both tests quantify over the four
+  writes, so neither can go green at a task that precedes them. Red is
   demonstrated by mutation, which is a stronger demonstration than the pre-change
   state anyway.
 
@@ -321,8 +334,10 @@ named mutation, recorded in the ledger.
   case covering it.
 
 **Approach:**
-- Bump `experience-design` (minor — two new primitives) in `pack.toml` and
-  `plugin.json`; regenerate `marketplace.json` by self-host rather than editing it.
+- Bump `experience-design` **patch** in `pack.toml` and `plugin.json`, per the
+  spec's assumption: `packs/AGENTS.md` reserves minor for new primitives and this
+  change adds no skill, command or agent. Regenerate `marketplace.json` by
+  self-host rather than editing it.
 - Route learnings through the `project-knowledge` seam.
 
 **Done when:** the four checks pass and `git status` is clean.
@@ -340,7 +355,7 @@ guide by hand and used `aesthetic/` keeps files nothing will look for.
 
 - **The token-taxonomy template trips the agnosticism lint.** Mitigated by
   authoring symbolically and running the lint first in T4.
-- **The canonical declaration form does not fit one of the eleven.** Then the form
+- **The canonical declaration form does not fit one of the four writes.** Then the form
   is wrong, not the skill; T2 surfaces it rather than special-casing.
 - **A negative case cannot be staged in T2's manual QA.** That is a blocking
   condition needing a named owner waiver recorded in the spec, per its `Never do`.
