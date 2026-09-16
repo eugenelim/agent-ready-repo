@@ -408,3 +408,72 @@ truncated at 135 characters; the counts caught those. Two matched and should not
 have, producing ungrammatical prose; the projection caught one and a targeted
 search the other. The reliable shape is a script in a file, a before/after
 count, and a read of what changed — not a regex over prose.
+
+## Round 9 — post-implementation review
+
+Ten findings, all sustained, none refuted. Three blockers, six concerns, one
+nit. Every repair is proved by stripping: with the named content removed the
+assertion reds, and it passes again once restored.
+
+### Four controls could not fail, and one hid a live defect
+
+**An exclusion predicate hid a live index.** `docs/product/**` was excluded
+wholesale, where the parallel `docs/specs/*/**` exclusion is deliberately
+scoped one level down so a directory index stays in domain. `docs/product/
+README.md` therefore sat outside AC2, AC2b and AC6 while still linking to the
+deleted document in two places. The lesson generalises past this spec: the
+exclusion was written from the directory's *usual* content, and a record
+directory's index is the exception that lives at its root.
+
+**A pathspec cannot split a file.** `docs/product/changelog.md` mixes a living
+maintenance header with dated entries that name the retired document. Excluding
+the file protected the entries and hid the header, which held a dangling
+pointer. Found by reading the release surface, not by any scan. A file-granular
+exclusion over a file with two lifecycles needs a companion guard over the live
+region, and that guard must name what it does not reach.
+
+**AC6 never opened the consumer.** The resolver checked that the mapped
+destination existed and exposed the written-back heading, which proves the
+content landed and not that anything was re-pointed at it. A diagnostic
+re-pointed at `docs/work-loop/references/model-selection.md` — a path in no
+tree, neither this repository nor an installed adopter one — kept AC6 green.
+Three uses cannot carry an in-tree link and now record why rather than passing
+silently: the content landed in the citing file; the consumer is not Markdown
+and its pointer is pinned as the exact spelling its reader resolves; or the
+guidance is not adopter-facing and the note is deleted.
+
+**A needle that can never match widens every window.** `section_of` collapsed
+whitespace and then searched the result for a newline-anchored `## `, so the
+boundary was never found and every section body ran to end of file. Nothing was
+falsely green, because each asserted rule does sit in its own section today —
+but the placement half of AC17 and AC20 through AC23 was unenforceable, and
+those criteria are stated as "rule X sits under § Y". Proved by relocating a
+section body to the end of the file with every token intact: red after the fix,
+green before it.
+
+**An ordering is not a pin.** AC12 asserted a version greater than 2.26.1,
+which 2.26.2 and 3.0.0 both satisfy, against a criterion that names 2.27.0
+exactly and says so because a patch bump satisfies any looser comparison.
+
+### Two controls this change itself left red, and no wave caught them
+
+Both were introduced by re-pointing a constant, and neither had passed since
+the wave that wrote it.
+
+`test_sequential_implementer_dispatch_contract` pinned its adopter-facing
+surface at the seeded conventions document. Re-pointing that constant at the
+seeded `AGENTS.md` aimed it at a file that never carried the clause: the
+positive assertion failed outright, and the two sibling negatives over the same
+constant went vacuous at the same moment. Supervisor mode is a skill concern
+and an adopter scaffold states no dispatch rule, so the rule has one live home
+and all three assertions read it there.
+
+`test_spec_index_retirement` paired each governance how-to with both record
+indexes, obliging the ADR guide to state the RFC rule. An ADR author does not
+regenerate the RFC index.
+
+The shared cause is scope, not care: per-wave verification ran the suites the
+wave *touched*, and both defects were in suites the wave's edits *reached*. A
+re-pointed constant moves a test's subject without appearing in that test's
+own diff. The full roster run is what surfaced both — 1547 passed after the
+repairs, and the two failures were the only ones in it.
