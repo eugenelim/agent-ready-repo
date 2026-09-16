@@ -22,6 +22,13 @@ sweep lands last because the tracked projections only converge after self-host.
 - The out-of-bounds surfaces are the spec's *Never do*.
 - `packs/AGENTS.md` owns the export boundary, the version-bump file set, and the
   self-host projection rule.
+- **Name the interpreter for any `agentbundle` CLI gate.** The editable install
+  is shared across worktrees and points at whichever one claimed it last; at the
+  time of writing that is not this one. A bare `agentbundle …` or
+  `python -m agentbundle …` therefore runs another worktree's code and returns a
+  verdict about the wrong tree. Every CLI gate in this plan states its
+  `PYTHONPATH` explicitly. Check where it resolves before trusting a green:
+  `python3 -c "import agentbundle, os; print(os.path.dirname(agentbundle.__file__))"`.
 
 ## Construction tests
 
@@ -318,7 +325,16 @@ observed to run.
   old prose until it does.
 
 **Done when:** the sweep is green after self-host, `make lint-ruff lint-mypy` is
-clean, and `agentbundle catalogue verify --root .` returns ok.
+clean, and catalogue verify returns ok **against this tree** —
+
+```
+PYTHONPATH=packages/agentbundle:packages/credbroker \
+  python3 -m agentbundle catalogue verify --root .
+```
+
+not the bare CLI, for the reason in *Constraints*. `make lint-ruff`,
+`lint-mypy`, `lint-spec-status.py` and the alignment lint are repo-local scripts
+and are unaffected.
 
 ## Rollout
 

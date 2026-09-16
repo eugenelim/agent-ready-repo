@@ -149,10 +149,12 @@ statement* says stasis does not by itself complete intent, create follow-on
 work, or authorise an amendment. This spec retires halts, preserves Surfaces,
 and leaves authority statements untouched.
 
-The plan's *Surface inventory* enumerates every occurrence with its file, line,
-class, and action; states the vocabulary command that reproduces it; and names
-that command's residual, which is that a vocabulary search cannot prove a
-concept absent.
+The plan's *Surface inventory* lists each occurrence the vocabulary search found
+with its file, line, class, and action, and states the command that reproduces
+it. It does not claim to list every occurrence that exists: the same section
+records that a vocabulary search cannot prove a concept absent, and names four
+ways this inventory's seed has already been wrong. Read the table as the
+searched set, not the complete one.
 
 ### The runtime instruction
 
