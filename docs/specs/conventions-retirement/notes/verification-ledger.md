@@ -332,3 +332,79 @@ heredoc mangled a Python lambda. In all three cases the command reported success
 and the counts caught it. Writing the script to a file and checking the
 before/after count is the reliable shape; a replacement that does not match is
 indistinguishable from one that had nothing to do.
+
+## T25 — the deletion
+
+`docs/CONVENTIONS.md` and its seed are gone. **AC2 closed**: the recorded scan
+returns nothing, so no live source in the repository names the retired path.
+
+`PROJECTED_README_OVERRIDES` is empty. The retired path was its last entry after
+the 2026-05-25 amendment shrank it from twenty, so classification now comes from
+`EXCLUDED_PATTERNS` alone with no exception. The tuple stays rather than being
+deleted — a future Projected path that an excluded pattern would catch belongs
+there — and the test that pinned its single entry now pins emptiness.
+
+The scaffold link check was reworked, not deleted. Round 5 found that deleting
+it with the file it read would remove the only relative-link check over the
+adopter scaffold. It now scans the Markdown this change touches, narrowed on the
+same ground as AC14.
+
+## T26 — the release
+
+Both manifests at `2.27.0`. A new free-standing `core` changelog entry above
+`2.26.1`, with a `Highlights` block.
+
+The `Highlights` disposition was answered rather than assumed, as
+`packs/AGENTS.local.md` step 4 requires: a pack consumer's capability does
+change, because adopters stop receiving one file and start receiving another,
+and the seeded `AGENTS.md` they install now states the rules instead of pointing
+at a file that no longer ships. The `/now/` projection is a pure parser over
+these bytes, so an unwritten block would have been a release the public page
+never mentions.
+
+AC12 is pinned against `2.26.1`, the version both manifests held before this
+change. "Greater than the previous release" — the phrasing an earlier draft
+used — was already satisfied by `2.26.1 > 2.26.0` with no edit at all.
+
+### What build-check surfaced, in four passes
+
+Each failure was real, and none was caught by the per-task gates:
+
+1. **CAT-V-014, stale `dist/`.** `build-check` verifies the generated plugin
+   tree but does not build it; `make build` does. The `.apm/` edits invalidated
+   it.
+2. **CAT-V-015, stale self-host projection**, from T24's brief edits and T25's
+   deletion. `make build-self` refuses a dirty tree, so this has to be committed
+   first, then regenerated, then committed again.
+3. **Prose the bulk substitution broke.** T24's blanket regex over
+   `governance-extras` produced "an updated the artifact that owns the rule" in
+   `JOURNEY.md` and "no `the owning artifact`" in `DESIGN.md`. The web
+   projection surfaced the first when `build-self` regenerated it.
+4. **Two chain-only flakes**, both passing standalone on this tree and on a
+   clean one: `test_next_ordinal_ignores_git_redirect_environment` and
+   `test_v_forward_without_backward_warns`. A further run died with a sandbox
+   `PermissionError` when a git subprocess timed out and cleanup could not kill
+   the child. Three sessions are contending for git and one editable install.
+
+### Two environment facts worth recording
+
+**A piped gate reports the filter's exit code.** The task notification for the
+first `build-check` said exit 0 when the gate had exited 2; the truth came from
+an explicit `echo "exit=$?"`. Third occurrence this session, and the reason no
+gate here is piped any more.
+
+**The shared editable install was repointed away mid-run.** A session in
+`loop-dependency-missing-fix` pointed `agentbundle` at its worktree, so
+`catalogue verify` ran that tree's code against this one and reported a seed
+declaration that is present here at `catalogue_tooling/lint.py:520`. Every gate
+here now runs with `PYTHONPATH` set. That is contention management, not a fix:
+the split is CLI-versus-repo-local, so `make lint-ruff`, `make lint-mypy` and
+`lint-spec-status.py` were never affected.
+
+### Bulk substitution is not a mechanical edit
+
+Three passes matched nothing, because the needles came from grep output
+truncated at 135 characters; the counts caught those. Two matched and should not
+have, producing ungrammatical prose; the projection caught one and a targeted
+search the other. The reliable shape is a script in a file, a before/after
+count, and a read of what changed — not a regex over prose.
