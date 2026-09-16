@@ -61,6 +61,56 @@ test_..._has_exactly_one_call_site  exit 1
 One deletion, three independent reds: the CLI path, the amendment path, and the
 standing guard on the call-site count itself.
 
+#### Observed failures, one per failing test
+
+Quoted from the retained pytest output of the re-derived run, not reconstructed.
+These are what confirm each red was the *contracted* red rather than a
+collateral error. Only volatile values are elided, marked `…`: per-run temporary
+directory paths, generated run UUIDs, and the unchanged tail of the dispatch
+notice. Every assertion, expected value, and actual value is verbatim.
+
+`test_47_schedule_refuses_single_unknown_dep` and
+`test_48_schedule_refuses_two_unknown_deps_names_both` — expected exit 1, got 0,
+and the captured stdout shows the defect itself reproduced:
+
+```
+AssertionError: 0 != 1 : args=('schedule', '…/spec1', '--expect-run-id', '…')
+stdout=loop-cohort: topological order for spec1 …
+  wave 1: T1, T2
+loop-cohort: schedule persisted for spec1 (1 wave(s), plan_hash=d0135fafea76…)
+stderr=
+```
+
+With the guard removed, the plan whose `T2` names an absent `T7` schedules as
+**one wave containing both tasks**. That is the collapse this change exists to
+prevent, captured in the proof's own output: the dropped edge, the merged wave,
+and — because GATES runs per wave — a single gate run where there should be two.
+
+`test_50_schedule_unknown_dep_beats_cycle_refusal` and
+`test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle` — the cycle refusal
+fires in the guard's place, which is exactly the AC4 precedence claim:
+
+```
+AssertionError: Regex pattern did not match.
+  Expected regex: 'T3->T99'
+  Actual message: 'dependency cycle among unfinished tasks: T1, T2'
+```
+
+`test_schedule_unfinished_plan_raises_for_unknown_dep` — no refusal at all:
+
+```
+Failed: DID NOT RAISE <class 'ValueError'>
+```
+
+`test_detect_unknown_deps_has_exactly_one_call_site` — the standing guard
+observes the deletion directly:
+
+```
+AssertionError: detect_unknown_deps must have exactly one call site; found 0: []
+assert 0 == 1
++  where 0 = len([])
+```
+
 ### GREEN result, after restoring by edit
 
 ```
