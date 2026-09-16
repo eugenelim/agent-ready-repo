@@ -18,6 +18,7 @@ from collections.abc import Sequence
 
 from . import __version__
 from .config import ConfigRefused, resolve_endpoint
+from .cursor import CursorRefused, parse_cursor, render_cursor, resolve_start_offset
 from .encode import encode_records
 from .profile import ProfileRefused, default_service_name, load_profile
 from .source import InputRefused, iter_records, open_input
@@ -56,6 +57,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="end the run this many seconds after the first read")
     parser.add_argument("--best-effort", action="store_true",
                         help="exit 0 even when sending fails")
+    parser.add_argument("--from-cursor", dest="from_cursor", default=None,
+                        help="resume from a cursor a previous --report-cursor run printed")
+    parser.add_argument("--report-cursor", action="store_true",
+                        help="print the cursor the next run should resume from, on stdout")
     return parser
 
 
@@ -65,13 +70,20 @@ def _connection_factory(scheme, connect_host, port, timeout, context):
     return http.client.HTTPConnection(connect_host, port, timeout=timeout)
 
 
-def _run(args, env, stream, connection_factory) -> int:
+def _run(args, env, stream, out, connection_factory) -> int:
     # AC-0033 ("no endpoint -> exit 0") and AC-0052 ("no --profile -> exit 1")
     # are both unconditional and collide when neither is supplied. Off-by-default
     # wins: it is the Boundaries' first "Always do", and AC-0052 exists to stop a
     # *built-in* profile deciding the payload -- a question that does not arise
     # when nothing is being sent. Checking the profile first would demand one
     # from a user who has not enabled sending at all.
+    # Parsed before anything else: a malformed cursor is an argument error, and
+    # an argument error is decided before the run has a shape. The parent
+    # contract's AC-0033 carries the carve-out that makes this exit 1 whether or
+    # not an endpoint resolves, which is what `--config` and `--profile` have
+    # always done.
+    cursor = parse_cursor(args.from_cursor) if args.from_cursor is not None else None
+
     endpoint = resolve_endpoint(env, args.config)
 
     # A profile that WAS supplied is validated even when nothing is configured,
@@ -106,7 +118,15 @@ def _run(args, env, stream, connection_factory) -> int:
     run_started = time.monotonic()
     destination = resolve_destination(endpoint)
     fd = open_input(args.input, args.root)
+    # From the descriptor, never the pathname. A path replaced after the open
+    # would otherwise put another file's identity in the reported cursor.
+    info = os.fstat(fd)
+    begin = resolve_start_offset(cursor, info, stream=stream, fd=fd)
 
+    # The reader's consumed position. Distinct from the accepted prefix: it is
+    # past lines no batch covered -- a skipped line, an over-length line -- and
+    # is only allowed to raise the reported offset when every batch was accepted.
+    consumed = [begin]
     unmapped: dict[object, int] = {}
     dropped_deep: dict[str, int] = {}
     emitted = [0]
@@ -140,8 +160,11 @@ def _run(args, env, stream, connection_factory) -> int:
     try:
         first_read: list[float | None] = [None]
         records = iter_records(
-            fd, follow=args.follow, for_seconds=args.for_seconds, stream=stream,
+            fd, start_offset=begin, follow=args.follow,
+            for_seconds=args.for_seconds, stream=stream,
             on_first_read=lambda at: first_read.__setitem__(0, at),
+            on_position=lambda at: consumed.__setitem__(0, at),
+            size_at_open=info.st_size,
         )
         outcome = send_batches(
             batch_records(records, encode, on_oversize=lambda size: print(
@@ -156,6 +179,7 @@ def _run(args, env, stream, connection_factory) -> int:
             run_started=run_started,
             for_seconds=args.for_seconds,
             first_read_at=lambda: first_read[0],
+            start_offset=begin,
         )
     finally:
         os.close(fd)
@@ -179,7 +203,42 @@ def _run(args, env, stream, connection_factory) -> int:
             file=stream,
         )
 
+    if args.report_cursor:
+        # One place, and only after the reader is drained. The accepted prefix is
+        # the floor; the reader's own position may raise it, but only when every
+        # batch was accepted -- otherwise it would step past records a failure
+        # left unsent.
+        offset = outcome.accepted_offset
+        if outcome.all_accepted:
+            offset = max(offset, consumed[0])
+        print(render_cursor(offset, info.st_dev, info.st_ino), file=out)
+
     if emitted[0] == 0:
+        # AC-0033. Three conditions, and each one is load-bearing:
+        #
+        # `begin` non-zero  -- the cursor was HONOURED at a non-zero offset. A
+        #   reset returns 0 from `resolve_start_offset`, so a reset run falls
+        #   through to the failure below even though a cursor was supplied.
+        # `consumed == begin` -- the reader read no line at all. A run that read
+        #   lines and found none valid is still a failure, whatever its offset.
+        # no mode flag -- the parent contract's AC-0039 exception is scoped to
+        #   one-shot, because a time-bounded run that legitimately sends nothing
+        #   cannot be told from a real failure without a duration floor.
+        #
+        # Without all three, `emitted == 0` reads an empty read as an all-invalid
+        # input -- which is what made every idle poll of a repeated caller exit 1.
+        nothing_past_cursor = (
+            begin
+            and consumed[0] == begin
+            and not args.follow
+            and args.for_seconds is None
+        )
+        if nothing_past_cursor:
+            print(
+                "jsonl-otlp-export: no record lay past the cursor; nothing was sent",
+                file=stream,
+            )
+            return EXIT_OK
         print("jsonl-otlp-export: no line yielded a valid record; nothing was sent",
               file=stream)
         return EXIT_FAILED
@@ -192,8 +251,11 @@ def _run(args, env, stream, connection_factory) -> int:
 
 
 def main(argv: Sequence[str] | None = None, env=None, stream=None,
-         connection_factory=None) -> int:
+         connection_factory=None, out=None) -> int:
     stream = stream if stream is not None else sys.stderr
+    # stdout is the machine channel and carries only the cursor. Every
+    # diagnostic goes to `stream`, which is what keeps the two separable.
+    out = out if out is not None else sys.stdout
     env = os.environ if env is None else env
     try:
         args = build_parser().parse_args(argv)
@@ -205,11 +267,12 @@ def main(argv: Sequence[str] | None = None, env=None, stream=None,
         return EXIT_OK if code == EXIT_OK else EXIT_FAILED
 
     try:
-        return _run(args, env, stream, connection_factory or _connection_factory)
+        return _run(args, env, stream, out, connection_factory or _connection_factory)
     except KeyboardInterrupt:
         print("jsonl-otlp-export: interrupted", file=stream)
         return EXIT_INTERRUPTED
-    except (ConfigRefused, ProfileRefused, InputRefused, DestinationRefused) as exc:
+    except (ConfigRefused, CursorRefused, ProfileRefused, InputRefused,
+            DestinationRefused) as exc:
         print(f"jsonl-otlp-export: {exc}", file=stream)
         return EXIT_FAILED
     except Exception as exc:  # noqa: BLE001 - the table's "unhandled exception" row

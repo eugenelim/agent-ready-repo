@@ -26,9 +26,14 @@ def _write(path, text: str):
 
 
 def _records(path, root, **kwargs):
+    """Plain records, with the reader's `(record, end_offset)` pair unwrapped.
+
+    Unwrapping here is what keeps the resume change small: the cases routed
+    through this helper keep their assertions exactly as they were.
+    """
     fd = src.open_input(path, root)
     try:
-        return list(src.iter_records(fd, **kwargs))
+        return [record for record, _ in src.iter_records(fd, **kwargs)]
     finally:
         os.close(fd)
 
@@ -207,10 +212,10 @@ class TestModes:
             records = src.iter_records(
                 fd, follow=True, for_seconds=10, clock=clock, poll_interval=0
             )
-            assert next(records) == {"a": 1}
+            assert next(records)[0] == {"a": 1}
             with target.open("a", encoding="utf-8") as handle:
                 handle.write('{"b":2}\n')
-            assert next(records) == {"b": 2}
+            assert next(records)[0] == {"b": 2}
             clock.now = 10.0  # jump past the deadline
             with pytest.raises(StopIteration):
                 next(records)
@@ -225,7 +230,7 @@ class TestModes:
             records = src.iter_records(
                 fd, follow=True, for_seconds=5, clock=clock, poll_interval=0
             )
-            assert next(records) == {"a": 1}
+            assert next(records)[0] == {"a": 1}
             clock.now = 5.0
             assert list(records) == []
         finally:
@@ -244,7 +249,7 @@ class TestLifecycle:
         clock = _FakeClock()
         fd, records = self._follow(target, tmp_path, clock)
         try:
-            assert next(records) == {"a": 1}
+            assert next(records)[0] == {"a": 1}
             target.write_text("", encoding="utf-8")  # truncate to zero
             clock.now = 30.0
             assert list(records) == [], "truncation is not a record"
@@ -256,7 +261,7 @@ class TestLifecycle:
         clock = _FakeClock()
         fd, records = self._follow(target, tmp_path, clock)
         try:
-            assert next(records) == {"a": 1}
+            assert next(records)[0] == {"a": 1}
             replacement = _write(tmp_path / "new.jsonl", '{"z":26}\n')
             pathlib.Path(replacement).replace(target)  # same name, new inode
             clock.now = 30.0
@@ -269,14 +274,14 @@ class TestLifecycle:
         clock = _FakeClock()
         fd, records = self._follow(target, tmp_path, clock)
         try:
-            seen = [next(records)]
+            seen = [next(records)[0]]
             target.write_text("", encoding="utf-8")
             replacement = _write(tmp_path / "new.jsonl", '{"z":26}\n')
             pathlib.Path(replacement).replace(target)
             with target.open("a", encoding="utf-8") as handle:
                 handle.write('{"partial":true')  # no newline
             clock.now = 30.0
-            seen.extend(records)
+            seen.extend(record for record, _ in records)
             assert seen == [{"a": 1}], "exactly once, and nothing for the conditions"
         finally:
             os.close(fd)
@@ -328,7 +333,8 @@ class TestDeadlineWhileBytesKeepArriving:
         clock = _FakeClock(step=1.0)
         fd = src.open_input(target, tmp_path)
         try:
-            records = list(src.iter_records(fd, for_seconds=3, clock=clock, poll_interval=0))
+            records = [r for r, _ in
+                       src.iter_records(fd, for_seconds=3, clock=clock, poll_interval=0)]
         finally:
             os.close(fd)
         assert records, "the run must deliver what it read before the deadline"
@@ -343,7 +349,7 @@ class TestDeadlineWhileBytesKeepArriving:
         target = _write(tmp_path / "e.jsonl", line * 4000)
         fd = src.open_input(target, tmp_path)
         try:
-            assert len(list(src.iter_records(fd))) == 4000
+            assert len([r for r, _ in src.iter_records(fd)]) == 4000
         finally:
             os.close(fd)
 
@@ -425,9 +431,207 @@ class TestRound3Regressions:
             return line * 100 if size else b""
 
         monkeypatch.setattr(os, "read", endless_read)
-        records = list(src.iter_records(fd))
+        records = [r for r, _ in src.iter_records(fd)]
         os.close(fd)
         assert records, "the records present at open must still be delivered"
         assert sum(calls) <= target.stat().st_size + 65536, (
             f"read {sum(calls)} bytes from a {target.stat().st_size}-byte file"
         )
+
+
+# AC-0009, AC-0010, AC-0011, AC-0014, AC-0017, AC-0029 — reading from an offset.
+#
+# Appended to tests/unit/test_source.py, which already imports `io`, `os`,
+# `src` and defines `_records`. Adds no import: the budget cases use the
+# `monkeypatch` fixture, which `packages/AGENTS.md` names as the convention.
+
+
+class TestPositionedReader:
+    """Appended to tests/unit/test_source.py, which owns `_records` and the fd
+    fixtures this reuses."""
+
+    @staticmethod
+    def _write(tmp_path, lines):
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b"".join(line.encode("utf-8") + b"\n" for line in lines))
+        return target
+
+    def test_a_start_offset_skips_the_records_before_it(self, tmp_path):
+        """AC-0011."""
+        target = self._write(tmp_path, ['{"i": 0}', '{"i": 1}', '{"i": 2}'])
+        first_line = len(b'{"i": 0}\n')
+        fd = src.open_input(target, tmp_path)
+        try:
+            pairs = list(src.iter_records(fd, start_offset=first_line))
+        finally:
+            os.close(fd)
+        assert [record["i"] for record, _ in pairs] == [1, 2]
+        # The offsets must be ABSOLUTE, not relative to the seek. Discarding
+        # them here let a tally initialised to 0 rather than `start_offset` pass
+        # the whole suite -- measured, 0 of 349 cases noticed. A run reporting a
+        # relative offset makes every later run re-send, which is the failure
+        # resume exists to prevent.
+        assert [offset for _, offset in pairs] == [
+            first_line * 2, first_line * 3,
+        ]
+
+    def test_each_yielded_offset_follows_a_newline(self, tmp_path):
+        """AC-0009, asserted on every yield rather than sampled once."""
+        target = self._write(tmp_path, ['{"i": 0}', '{"i": 1}', '{"i": 2}'])
+        data = target.read_bytes()
+        fd = src.open_input(target, tmp_path)
+        try:
+            offsets = [offset for _, offset in src.iter_records(fd)]
+        finally:
+            os.close(fd)
+        assert offsets, "the reader yielded nothing, so the invariant was not exercised"
+        for offset in offsets:
+            assert data[offset - 1 : offset] == b"\n", offset
+
+    def test_a_skipped_line_still_advances_the_position(self, tmp_path):
+        """A line the reader consumed and declined belongs behind the offset, or
+        every future run re-reads and re-declines it."""
+        lines = ['{"i": 0}', "not json", '{"i": 2}']
+        target = self._write(tmp_path, lines)
+        fd = src.open_input(target, tmp_path)
+        try:
+            pairs = list(src.iter_records(fd, stream=io.StringIO()))
+        finally:
+            os.close(fd)
+        assert pairs[-1][1] == len(target.read_bytes())
+        # The DELTA, not just the final offset. The last record ends at EOF, so
+        # the assertion above is also satisfied by a reader that reports the
+        # descriptor's own position for every record instead of a line-accurate
+        # tally -- which is the bug this case is named for. The delta across the
+        # skipped line can only be right if that line was actually credited.
+        assert pairs[-1][1] - pairs[0][1] == len(lines[1]) + 1 + len(lines[2]) + 1
+
+    def test_a_final_line_with_no_newline_is_not_consumed(self, tmp_path):
+        """AC-0010. The partial line's first byte is the ceiling on the offset."""
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b'{"i": 0}\n{"i": 1}')
+        fd = src.open_input(target, tmp_path)
+        try:
+            positions = []
+            pairs = list(
+                src.iter_records(fd, on_position=positions.append)
+            )
+        finally:
+            os.close(fd)
+        assert [record["i"] for record, _ in pairs] == [0]
+        assert max(positions) == len(b'{"i": 0}\n')
+
+    def test_on_position_reports_past_a_trailing_skipped_line(self, tmp_path):
+        """AC-0004's trailing-skip member: the last yield cannot see past itself."""
+        target = self._write(tmp_path, ['{"i": 0}', "not json"])
+        fd = src.open_input(target, tmp_path)
+        try:
+            positions = []
+            list(
+                src.iter_records(
+                    fd, stream=io.StringIO(), on_position=positions.append
+                )
+            )
+        finally:
+            os.close(fd)
+        assert max(positions) == len(target.read_bytes())
+
+    def test_an_unterminated_over_length_final_line_is_not_consumed(self, tmp_path):
+        """AC-0010 on the path a short partial line never reaches.
+
+        The reader clears an over-length line's bytes as it reads them, so an
+        accounting that advances on the clear reports a position inside a line
+        with no terminator -- and a later run resumes mid-record from it. A short
+        partial line stays in the buffer and never exercises the discard branch,
+        which is why the first draft's single fixture could not see this.
+        """
+        target = tmp_path / "events.jsonl"
+        head = b'{"i": 0}\n'
+        target.write_bytes(head + b"x" * (src.MAX_LINE_BYTES + 10))
+        fd = src.open_input(target, tmp_path)
+        try:
+            positions = []
+            list(
+                src.iter_records(
+                    fd, stream=io.StringIO(), on_position=positions.append
+                )
+            )
+        finally:
+            os.close(fd)
+        assert max(positions) == len(head)
+
+    def test_the_one_shot_budget_is_measured_from_the_start_offset(
+        self, tmp_path, monkeypatch
+    ):
+        """AC-0017. Asserted against a live writer, not against the arithmetic.
+
+        A budget left at the whole file size lets one-shot drain an appending
+        writer forever; a budget of size-minus-offset cannot. The writer appends
+        on every read, so a wrong budget hangs rather than returning a wrong
+        count -- which is why this has a record ceiling and not just an equality.
+        """
+        target = self._write(tmp_path, ['{"i": 0}', '{"i": 1}'])
+        first_line = len(b'{"i": 0}\n')
+        fd = src.open_input(target, tmp_path)
+        appended = [0]
+
+        real_read = os.read  # captured BEFORE the patch: `src.os` IS `os`,
+        # so patching `src.os.read` rebinds the name this function would call
+        # and the replacement recurses into itself.
+
+        def _read(descriptor, size):
+            if appended[0] < 50:
+                appended[0] += 1
+                with pathlib.Path(target).open("ab") as handle:
+                    handle.write(b'{"i": 99}\n')
+            return real_read(descriptor, size)
+
+        try:
+            monkeypatch.setattr(src.os, "read", _read)
+            pairs = list(src.iter_records(fd, start_offset=first_line))
+        finally:
+            os.close(fd)
+        assert len(pairs) == 1
+        assert pairs[0][0] == {"i": 1}
+
+    def test_the_budget_covers_the_whole_file_after_a_reset(self, tmp_path,
+                                                           monkeypatch):
+        """AC-0029. A reset reads from zero, so its ceiling is S, not S - N.
+
+        Driven the same way as AC-0017 and separate from it because the two
+        ceilings come from different starting offsets: a build that subtracts the
+        cursor's offset unconditionally passes AC-0017 and never terminates here.
+        """
+        target = self._write(tmp_path, ['{"i": 0}', '{"i": 1}'])
+        fd = src.open_input(target, tmp_path)
+        appended = [0]
+
+        real_read = os.read  # captured BEFORE the patch: `src.os` IS `os`,
+        # so patching `src.os.read` rebinds the name this function would call
+        # and the replacement recurses into itself.
+
+        def _read(descriptor, size):
+            if appended[0] < 50:
+                appended[0] += 1
+                with pathlib.Path(target).open("ab") as handle:
+                    handle.write(b'{"i": 99}\n')
+            return real_read(descriptor, size)
+
+        try:
+            monkeypatch.setattr(src.os, "read", _read)
+            pairs = list(src.iter_records(fd, start_offset=0))
+        finally:
+            os.close(fd)
+        assert [record["i"] for record, _ in pairs] == [0, 1]
+
+    def test_the_modules_helper_unwraps_the_new_yield_shape(self, tmp_path):
+        """`test_source.py:28`'s `_records(path, root, **kwargs)` still returns
+        plain records, so cases routed through it keep their assertions.
+
+        It takes a path and a root, not a descriptor, and opens the input itself.
+        Pinned because the helper is the one site that hides the pair from a
+        caller; the seven direct `iter_records` calls in that module unwrap at
+        their own call site.
+        """
+        target = self._write(tmp_path, ['{"i": 0}', '{"i": 1}'])
+        assert _records(target, tmp_path) == [{"i": 0}, {"i": 1}]

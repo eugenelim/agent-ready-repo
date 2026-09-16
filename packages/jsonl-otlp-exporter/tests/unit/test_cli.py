@@ -9,12 +9,17 @@ a per-row walk samples each row's first alternative and never exercises the rest
 
 from __future__ import annotations
 
+import ast
+import functools
 import io
 import json
+import pathlib
 import signal
 
+import jsonl_otlp_exporter
 import pytest
 from jsonl_otlp_exporter import cli
+from jsonl_otlp_exporter import transport as tp
 
 REFERENCE_PROFILE = (
     'timestamp_field = "at"\n'
@@ -65,6 +70,91 @@ def _factory(responses=None, sent=None):
         return _Connection(list(responses) if responses else [], store)
 
     return make
+
+
+# --- resume helpers -------------------------------------------------------
+#
+# `_run_against_receiver` drives the assembled command against the recording
+# fake above. `_argv_for` / `_env_for` build one invocation per pre-open exit
+# reason, so AC-0019 is walked rather than sampled.
+
+BAD_PROFILE = 'timestamp_field = "at"\n'  # missing the other five keys (AC-0035)
+
+
+def _run_against_receiver(tmp_path, monkeypatch, *, out=None, stream=None,
+                          sent=None, extra=(), target=None, lines=1,
+                          statuses=(200,)) -> int:
+    """Drive `cli.main` end to end against a recording fake receiver.
+
+    Writes `lines` valid records to `target` (default `tmp_path/events.jsonl`)
+    only when that path does not already exist, so a caller that wrote its own
+    fixture keeps it. `statuses` answers the first requests in order; anything
+    past the list gets a 200. Request bodies are appended to `sent`.
+    """
+    target = pathlib.Path(target) if target is not None else tmp_path / "events.jsonl"
+    profile = tmp_path / "p.toml"
+    if not profile.exists():
+        profile.write_text(REFERENCE_PROFILE, encoding="utf-8")
+    if not target.exists():
+        target.write_bytes(GOOD_LINE.encode("utf-8") * lines)
+    # ONE response queue shared across connections. `_factory` copies its list
+    # per connection (`list(responses)`), and `_post` opens a connection per
+    # request -- so every request popped index 0 and `statuses` past the first
+    # element was silently unreachable. A multi-status case built on `_factory`
+    # is vacuous, which is how `[200, 400]` read as two 200s.
+    queue = [_Response(status=s) for s in statuses]
+    store = sent if sent is not None else []
+
+    def factory(scheme, host, port, timeout, context):
+        return _Connection(queue, store)
+
+    return cli.main(
+        ["--input", str(target), "--root", str(tmp_path),
+         "--profile", str(profile), *extra],
+        env=dict(ENV),
+        stream=stream if stream is not None else io.StringIO(),
+        out=out if out is not None else io.StringIO(),
+        connection_factory=factory,
+    )
+
+
+def _argv_for(kind, tmp_path) -> list[str]:
+    """Argv for one of AC-0019's six pre-open exit reasons.
+
+    Every case carries `--report-cursor`. Without it AC-0002 already requires an
+    empty stdout and the case would prove nothing.
+    """
+    profile = tmp_path / "p.toml"
+    profile.write_text(REFERENCE_PROFILE, encoding="utf-8")
+    events = tmp_path / "events.jsonl"
+    events.write_text(GOOD_LINE, encoding="utf-8")
+    argv = ["--input", str(events), "--root", str(tmp_path),
+            "--profile", str(profile), "--report-cursor"]
+    if kind == "bad-cursor":
+        return argv + ["--from-cursor", "not a cursor"]
+    if kind == "bad-config":
+        # A directory: refused on the opened object, per AC-0062.
+        (tmp_path / "cfg").mkdir(exist_ok=True)
+        return argv + ["--config", str(tmp_path / "cfg")]
+    if kind == "bad-profile":
+        bad = tmp_path / "bad.toml"
+        bad.write_text(BAD_PROFILE, encoding="utf-8")
+        return [a if a != str(profile) else str(bad) for a in argv]
+    if kind == "absent-input":
+        return [a if a != str(events) else str(tmp_path / "gone.jsonl") for a in argv]
+    return argv  # no-endpoint and bad-endpoint differ only in the environment
+
+
+def _env_for(kind) -> dict[str, str]:
+    """The environment paired with `_argv_for(kind, ...)`."""
+    if kind in ("no-endpoint", "bad-config"):
+        # bad-config must be {} as well: AC-0002 resolves the env first, so an
+        # endpoint in the environment means `--config` is never read and the
+        # refusal this case exists for never fires.
+        return {}
+    if kind == "bad-endpoint":
+        return {"OTEL_EXPORTER_OTLP_ENDPOINT": "ftp://example.invalid/v1/logs"}
+    return dict(ENV)
 
 
 @pytest.fixture
@@ -635,4 +725,708 @@ class TestWiringSweepGaps:
         message = capsys.readouterr().err
         assert "--input" in message and "required" in message.lower(), (
             f"expected a usage error naming --input, got: {message!r}"
+        )
+
+# AC-0001, AC-0022, AC-0002, AC-0003, AC-0011, AC-0012, AC-0018 through
+# AC-0030 — the flags end to end.
+#
+# Appended to tests/unit/test_cli.py, which already imports `cli`, `io`,
+# `json` and `pytest`. Adds `import os` and the three module-level helpers
+# the `## New test helpers` section above specifies.
+
+
+class TestReportCursor:
+    """Appended to tests/unit/test_cli.py, which owns the local-receiver
+    fixtures and the connection-factory seam."""
+
+    def test_the_flag_prints_exactly_one_json_object(self, tmp_path, monkeypatch):
+        """AC-0001. The buffer is explicit so dropping `out=` fails this."""
+        out = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, out=out,
+                                     extra=["--report-cursor"])
+        assert code == 0
+        lines = out.getvalue().splitlines()
+        assert len(lines) == 1
+        reported = json.loads(lines[0])              # AC-0022
+        assert set(reported) == {"v", "offset", "device", "inode"}
+        assert reported["v"] == 1
+        assert all(type(reported[k]) is int for k in
+                   ("v", "offset", "device", "inode"))
+
+    def test_without_the_flag_stdout_stays_empty(self, tmp_path, monkeypatch):
+        """AC-0002."""
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out)
+        assert out.getvalue() == ""
+
+    def test_the_identity_is_the_descriptor_not_the_path(self, tmp_path, monkeypatch):
+        """AC-0003. The path is replaced after the open; the cursor must not move."""
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(GOOD_LINE.encode("utf-8"))
+        expected = target.stat()
+        real = cli.open_input
+
+        def swap(path, root):
+            fd = real(path, root)
+            other = tmp_path / "other.jsonl"
+            other.write_bytes(GOOD_LINE.encode("utf-8"))
+            pathlib.Path(other).replace(target)
+            return fd
+
+        monkeypatch.setattr(cli, "open_input", swap)
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out,
+                              extra=["--report-cursor"], target=target)
+        reported = json.loads(out.getvalue())
+        assert (reported["device"], reported["inode"]) == (expected.st_dev,
+                                                           expected.st_ino)
+
+    def test_the_reported_cursor_resumes_the_next_run(self, tmp_path, monkeypatch):
+        """AC-0011 end to end: the whole point, asserted as a round trip."""
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out,
+                              extra=["--report-cursor"], lines=2)
+        cursor = out.getvalue().strip()
+        sent = []
+        second = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=second, sent=sent,
+                              extra=["--report-cursor", "--from-cursor", cursor],
+                              lines=2)
+        assert sent == [], "a second run over an unchanged file must send nothing"
+        assert json.loads(second.getvalue()) == json.loads(cursor)
+
+    def test_an_identity_change_resends_the_new_files_records(self, tmp_path,
+                                                              monkeypatch):
+        """AC-0012 at the command.
+
+        T1 proves `resolve_start_offset` returns zero on an identity change; this
+        proves the zero reaches the reader. A build that computes the reset and
+        then seeks to the stale offset passes T1 and sends nothing here -- or
+        worse, sends from the middle of an unrelated record.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(GOOD_LINE.encode("utf-8") * 3)
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out,
+                              extra=["--report-cursor"], target=target)
+        cursor = out.getvalue().strip()
+        assert json.loads(cursor)["offset"] > 0
+
+        replacement = tmp_path / "rotated.jsonl"
+        replacement.write_bytes(json.dumps(
+            {"at": "2026-02-02T00:00:00Z", "result": "success",
+             "run_id": "r", "seq": 9, "event": "rotated"}
+        ).encode("utf-8") + b"\n")
+        pathlib.Path(replacement).replace(target)
+
+        sent = []
+        stream = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=io.StringIO(), sent=sent,
+                              stream=stream, target=target,
+                              extra=["--report-cursor", "--from-cursor", cursor])
+        assert len(sent) == 1, "the new file's one record must be sent"
+        assert b"rotated" in sent[0], (
+            "assert on an allowlisted attribute: the timestamp is emitted as "
+            "timeUnixNano, so a date substring never appears in the body"
+        )
+        assert "identity" in stream.getvalue()   # AC-0023 at the command
+
+    def test_a_misaligned_cursor_is_refused_at_the_command(self, tmp_path,
+                                                           monkeypatch):
+        """AC-0030 at the command, and the control behind `fd=`.
+
+        T1 proves the boundary check refuses; this proves it is wired, and that
+        the run does not fall through to reading from a mid-record offset. The
+        cursor is the command's own, with its offset moved one byte -- so its
+        identity matches and only the alignment is wrong.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(GOOD_LINE.encode("utf-8") * 2)
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                              extra=["--report-cursor"])
+        cursor = json.loads(out.getvalue())
+        cursor["offset"] -= 1
+
+        sent = []
+        code = _run_against_receiver(tmp_path, monkeypatch, sent=sent,
+                                     target=target,
+                                     extra=["--from-cursor", json.dumps(cursor)])
+        assert code == 1
+        assert sent == []
+
+    def test_resuming_sends_exactly_the_records_appended_since(self, tmp_path,
+                                                               monkeypatch):
+        """AC-0032. The positive assertion the contract was missing.
+
+        The round-trip case above resumes over an UNCHANGED file and asserts
+        nothing is sent, which a build that never sends anything also satisfies.
+        This appends two records after the first run, resumes, and requires
+        exactly those two on the wire -- so a build that honours the cursor by
+        reading nothing fails here and nowhere else.
+        """
+        target = tmp_path / "events.jsonl"
+        first = GOOD_LINE.encode("utf-8")
+        target.write_bytes(first)
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                              extra=["--report-cursor"])
+        cursor = out.getvalue().strip()
+
+        with pathlib.Path(target).open("ab") as handle:
+            for seq in (2, 3):
+                handle.write(json.dumps(
+                    {"at": f"2026-01-01T00:00:0{seq}Z", "result": "success",
+                     "run_id": "r", "seq": seq, "event": "e"}
+                ).encode("utf-8") + b"\n")
+
+        sent = []
+        code = _run_against_receiver(
+            tmp_path, monkeypatch, out=io.StringIO(), sent=sent, target=target,
+            extra=["--report-cursor", "--from-cursor", cursor],
+        )
+        assert code == 0
+        body = b"".join(sent)
+        # `seq` is in the profile's identity set, so it reaches the body as an
+        # attribute. The timestamp does not: it becomes `timeUnixNano`.
+        assert b'"intValue": "2"' in body and b'"intValue": "3"' in body
+        assert b'"intValue": "1"' not in body, "the first record must not be re-sent"
+
+    def test_a_malformed_cursor_exits_one_and_sends_nothing(self, tmp_path,
+                                                            monkeypatch):
+        """AC-0016 at the CLI, with the transport seam proving nothing was sent."""
+        sent = []
+        code = _run_against_receiver(tmp_path, monkeypatch, sent=sent,
+                                     extra=["--from-cursor", "{}"])
+        assert code == 1
+        assert sent == []
+
+    @pytest.mark.parametrize("env", [{}, {"OTEL_EXPORTER_OTLP_ENDPOINT":
+                                          "http://127.0.0.1:4318"}],
+                             ids=["no-endpoint", "endpoint"])
+    def test_a_malformed_cursor_exits_one_at_both_endpoint_states(self, env,
+                                                                  tmp_path):
+        """AC-0026, and the AC-0033 carve-out is what makes one status right.
+
+        A build honouring the unamended AC-0033 returns 0 for the unconfigured
+        case, so parametrising the endpoint state is the whole control.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_text("{}\n", encoding="utf-8")
+        stream = io.StringIO()
+        code = cli.main(
+            ["--input", str(target), "--root", str(tmp_path),
+             "--from-cursor", "nonsense"],
+            env=env, stream=stream, out=io.StringIO(),
+        )
+        assert code == 1
+        assert "cursor" in stream.getvalue()   # AC-0028
+
+
+class TestNoCursorWhenNothingWasRead:
+    @pytest.mark.parametrize(
+        "argv_kind",
+        ["no-endpoint", "bad-cursor", "bad-config", "bad-profile", "absent-input",
+         "bad-endpoint"],
+    )
+    def test_a_run_exiting_before_the_open_prints_nothing(self, argv_kind, tmp_path):
+        """AC-0019, every reason, because they return from six different points.
+
+        `_argv_for` appends `--report-cursor` to every case. Without it AC-0002
+        already requires an empty stdout and none of these would prove anything.
+        `bad-cursor` is here because the cursor is parsed before the endpoint is
+        resolved, making it another pre-open exit -- the reason this case was
+        missing from the first draft.
+        """
+        out = io.StringIO()
+        cli.main(_argv_for(argv_kind, tmp_path), env=_env_for(argv_kind),
+                 stream=io.StringIO(), out=out)
+        assert out.getvalue() == ""
+
+    def test_an_interrupted_run_prints_nothing(self, tmp_path, monkeypatch):
+        """AC-0020. SIGINT arrives in the send loop, so that is where it is raised."""
+        def boom(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(cli, "send_batches", boom)
+        out = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, out=out,
+                                     extra=["--report-cursor"])
+        assert code == 130
+        assert out.getvalue() == ""
+
+
+class TestNoWriteSurface:
+    @staticmethod
+    def _tree(root):
+        """Every regular file under the root, with content and mtime.
+
+        Names alone cannot see a file whose content was rewritten in place, and a
+        single directory cannot see a checkpoint written to a subdirectory.
+        """
+        return {
+            path.relative_to(root).as_posix(): (
+                path.read_bytes(), path.stat().st_mtime_ns
+            )
+            for path in sorted(root.rglob("*"))
+            if path.is_file()
+        }
+
+    def test_no_file_under_the_root_changes_across_a_resume_sequence(
+        self, tmp_path, monkeypatch
+    ):
+        """AC-0018. The baseline is taken before the FIRST run, not between runs.
+
+        Snapshotting after run one puts any checkpoint run one wrote inside the
+        baseline, so the comparison ratifies it. That is how this case was first
+        drafted, and it could not fail.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(GOOD_LINE.encode("utf-8"))
+        # Every fixture the helper would otherwise create lazily, created here:
+        # the baseline must not include a file written after it was taken, and
+        # it must not blame the run for one written by the scaffolding.
+        (tmp_path / "p.toml").write_text(REFERENCE_PROFILE, encoding="utf-8")
+        before = self._tree(tmp_path)
+        assert before, "an empty baseline would make the comparison vacuous"
+
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                              extra=["--report-cursor"])
+        assert self._tree(tmp_path) == before
+
+        _run_against_receiver(tmp_path, monkeypatch, out=io.StringIO(),
+                              target=target,
+                              extra=["--report-cursor",
+                                     "--from-cursor", out.getvalue().strip()])
+        assert self._tree(tmp_path) == before
+
+# AC-0004, AC-0009 and AC-0031 — over the assembled command.
+#
+# Also in tests/unit/test_cli.py. Adds `import ast`, `import functools`,
+# `import pathlib`, `import jsonl_otlp_exporter` and
+# `from jsonl_otlp_exporter import transport as tp` to that module, on top of
+# what T4 adds.
+
+
+class TestOffsetJourney:
+    def test_a_clean_run_advances_past_trailing_skipped_lines(self, tmp_path,
+                                                              monkeypatch):
+        """AC-0004's skipped-line members: the offset is the reader's position,
+        not the last batch's, whenever every batch was accepted."""
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(
+            GOOD_LINE.encode("utf-8")
+            + b"not json\n"
+            + b"also not json\n"
+        )
+        out = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, out=out,
+                                     extra=["--report-cursor"], target=target)
+        assert code == 0
+        assert json.loads(out.getvalue())["offset"] == len(target.read_bytes())
+
+    def test_a_clean_run_advances_past_an_over_ceiling_record(self, tmp_path,
+                                                              monkeypatch):
+        """AC-0004's over-ceiling member, which no other case reaches.
+
+        The ceiling is lowered rather than an 8 MiB fixture built: the criterion
+        is about the offset, not about the number 8388608, and the batcher already
+        takes its ceiling as a value. Without this case a build that holds the
+        cursor before an undeliverable record passes every other check and then
+        re-reads and re-declines it on every future run, re-sending the whole
+        tail behind it each time.
+        """
+        target = tmp_path / "events.jsonl"
+        pad = "x" * 4096
+        target.write_bytes(
+            GOOD_LINE.encode("utf-8")
+            + json.dumps({"at": "2026-01-01T00:00:01Z", "result": "success",
+                          "run_id": "r", "seq": 2, "event": pad}).encode("utf-8")
+            + b"\n"
+        )
+        # The ceiling is injected through the existing `max_bytes` parameter,
+        # NOT by patching `tp.MAX_BODY_BYTES`: `batch_records` binds
+        # that constant as a default at definition time, so rebinding the module
+        # attribute changes nothing and the 4 KiB record stays under the real
+        # 8 MiB bound. Patching the CLI's imported name is the shape
+        # `test_cli.py` already uses for `send_batches` and `iter_records`.
+        monkeypatch.setattr(
+            cli, "batch_records",
+            functools.partial(tp.batch_records, max_bytes=1024),
+        )
+        out = io.StringIO()
+        stream = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, out=out, stream=stream,
+                                     extra=["--report-cursor"], target=target)
+        assert code == 0
+        assert "cannot be split" in stream.getvalue()
+        assert json.loads(out.getvalue())["offset"] == len(target.read_bytes())
+
+    def test_the_distribution_has_no_write_or_lock_surface(self):
+        """AC-0031. The surface, not one run's effect on one directory.
+
+        AC-0018 snapshots a tree after a run, so it cannot see a write to a path
+        outside it or a lock that leaves no file behind. This walks the shipped
+        modules instead, so a write surface fails it whether or not any test
+        exercises the branch that uses it.
+
+        `rglob`, not `glob`: a module in a subpackage is still shipped.
+        Root-qualified for the ambiguous names, because `encode.py:66` calls
+        `str.replace` and a bare-name denylist fails on it -- and rooted rather
+        than taking the immediate receiver, because `Path(p).unlink()` has a Call
+        there. `open`'s mode is read from `mode=` as well as position, and a
+        non-literal mode is an offender in itself.
+        """
+        package = pathlib.Path(jsonl_otlp_exporter.__file__).parent
+        bare = {"write_text", "write_bytes", "mkdir", "makedirs", "touch",
+                "mkstemp", "mkdtemp", "NamedTemporaryFile", "TemporaryFile",
+                "TemporaryDirectory", "lockf", "flock", "locking"}
+        qualified = {"write", "writelines", "pwrite", "rename", "replace",
+                     "remove", "unlink", "rmdir", "truncate", "ftruncate",
+                     "symlink", "link", "chmod", "dup2", "copy", "copyfile",
+                     "copytree", "move"}
+        receivers = {"os", "shutil", "tempfile", "pathlib", "Path"}
+        modules = {"fcntl", "msvcrt", "shutil", "tempfile", "sqlite3", "dbm",
+                   "shelve"}
+        write_flags = {"O_WRONLY", "O_RDWR", "O_CREAT", "O_APPEND", "O_TRUNC"}
+        offenders = []
+
+        def _root(node):
+            """The root name of an attribute chain, through calls and subscripts.
+
+            `Path(p).replace(q)` roots at `Path`; `text.replace(a, b)` roots at
+            `text`. Reading only the immediate receiver misses the first,
+            because there the receiver is itself a Call -- which is how
+            `Path(p).unlink()` passed the previous draft.
+            """
+            while True:
+                if isinstance(node, ast.Attribute):
+                    node = node.value
+                elif isinstance(node, (ast.Call,)):
+                    node = node.func
+                elif isinstance(node, ast.Subscript):
+                    node = node.value
+                else:
+                    return getattr(node, "id", None)
+
+        sources = sorted(package.rglob("*.py"))
+        assert sources, "an empty module set would make this vacuous"
+        for module in sources:
+            tree = ast.parse(module.read_text(encoding="utf-8"))
+            where = f"{module.relative_to(package)}"
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.split(".")[0] in modules:
+                            offenders.append((where, node.lineno, alias.name))
+                elif isinstance(node, ast.ImportFrom):
+                    if (node.module or "").split(".")[0] in modules:
+                        offenders.append((where, node.lineno, node.module))
+                elif isinstance(node, ast.Call):
+                    func = node.func
+                    name = getattr(func, "attr", None) or getattr(func, "id", None)
+                    if name in bare:
+                        offenders.append((where, node.lineno, name))
+                    elif name in qualified and _root(func) in receivers:
+                        offenders.append((where, node.lineno, f"{_root(func)}.{name}"))
+                    elif name == "open" and _root(func) == "os":
+                        # `os.open`'s second argument is FLAGS, not a mode. An
+                        # earlier draft ran the mode rule here and reported every
+                        # `os.open(p, os.O_RDONLY | os.O_NOFOLLOW)` in the
+                        # shipped package as a computed mode -- three false
+                        # positives, which would have made the guard unusable on
+                        # the day it landed.
+                        for arg in list(node.args[1:]) + [
+                            kw.value for kw in node.keywords
+                        ]:
+                            for inner in ast.walk(arg):
+                                flag = (inner.attr if isinstance(inner, ast.Attribute)
+                                        else getattr(inner, "id", None))
+                                if flag in write_flags:
+                                    offenders.append(
+                                        (where, node.lineno, f"os.open {flag}")
+                                    )
+                    elif name == "open":
+                        # `open(path, mode)` puts the mode second; the method
+                        # form `p.open(mode)` puts it FIRST. Reading index 1
+                        # unconditionally let `Path(p).open("w")` through.
+                        index = 1 if isinstance(func, ast.Name) else 0
+                        mode = next(
+                            (kw.value for kw in node.keywords if kw.arg == "mode"),
+                            node.args[index] if len(node.args) > index else None,
+                        )
+                        if mode is not None:
+                            try:
+                                literal = ast.literal_eval(mode)
+                            except ValueError:
+                                # A computed mode is itself a failure: this
+                                # distribution has no reason to build one, and
+                                # admitting it lets `"w" + "b"` through.
+                                offenders.append((where, node.lineno, "computed mode"))
+                            else:
+                                if any(ch in str(literal) for ch in "wax+"):
+                                    offenders.append(
+                                        (where, node.lineno, f"open {literal!r}")
+                                    )
+        assert offenders == []
+
+    def test_every_reported_offset_lands_on_a_record_boundary(self, tmp_path,
+                                                              monkeypatch):
+        """AC-0009 over the assembled command, across accepted and refused runs."""
+        target = tmp_path / "events.jsonl"
+        data = b"".join(
+            json.dumps({"at": f"2026-01-01T00:00:0{i}Z", "result": "success",
+                        "run_id": "r", "seq": i, "event": "e"}).encode("utf-8")
+            + b"\n"
+            for i in range(5)
+        )
+        target.write_bytes(data)
+        for statuses in ([200], [400], [200, 400], [200, 200]):
+            out = io.StringIO()
+            _run_against_receiver(tmp_path, monkeypatch, out=out, statuses=statuses,
+                                  extra=["--report-cursor"], target=target)
+            offset = json.loads(out.getvalue())["offset"]
+            assert offset == 0 or data[offset - 1 : offset] == b"\n", (statuses, offset)
+
+# AC-0033, AC-0034 — the steady state of a repeated run.
+#
+# Appended to tests/unit/test_cli.py, which already has every name this needs.
+
+
+class TestNothingNewPastTheCursor:
+    def test_a_resumed_run_with_nothing_new_exits_zero(self, tmp_path,
+                                                       monkeypatch):
+        """AC-0033. Found by manual QA of the installed wheel, not by the suite.
+
+        This is the normal state of a polling caller, and it exited 1 because
+        the parent contract's `emitted == 0` predicate reads an empty read as an
+        all-invalid input. Nothing in the suite drove a second run against an
+        unchanged file and checked its status -- the round-trip case that
+        existed asserted only that nothing was re-sent.
+        """
+        out = io.StringIO()
+        assert _run_against_receiver(tmp_path, monkeypatch, out=out,
+                                     extra=["--report-cursor"]) == 0
+        cursor = out.getvalue().strip()
+
+        second, stream, sent = io.StringIO(), io.StringIO(), []
+        code = _run_against_receiver(
+            tmp_path, monkeypatch, out=second, stream=stream, sent=sent,
+            extra=["--report-cursor", "--from-cursor", cursor],
+        )
+        assert code == 0
+        assert sent == []
+        assert json.loads(second.getvalue()) == json.loads(cursor)
+
+    def test_that_run_says_no_record_lay_past_the_cursor(self, tmp_path,
+                                                         monkeypatch):
+        """AC-0034. Split from AC-0033: the two fail independently."""
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out,
+                              extra=["--report-cursor"])
+        cursor = out.getvalue().strip()
+
+        stream = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=io.StringIO(),
+                              stream=stream,
+                              extra=["--report-cursor", "--from-cursor", cursor])
+        message = stream.getvalue()
+        assert "past the cursor" in message
+        assert "no line yielded a valid record" not in message, (
+            "the old message described invalid lines when no line was read"
+        )
+
+    def test_an_all_invalid_input_still_exits_one(self, tmp_path, monkeypatch):
+        """The carve-out must not widen to any empty send.
+
+        A build that exits 0 whenever nothing was emitted passes AC-0033 and
+        converts a real failure into success. This is the case that separates
+        "read no line" from "read lines, emitted nothing".
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b"not json\n" * 3)
+        stream = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, target=target,
+                                     stream=stream, out=io.StringIO(),
+                                     extra=["--report-cursor"])
+        assert code == 1
+        assert "no line yielded a valid record" in stream.getvalue()
+
+    def test_a_reset_cursor_against_an_empty_file_exits_one(self, tmp_path,
+                                                            monkeypatch):
+        """The witness against substituting "a cursor was supplied" for the
+        non-zero honoured start.
+
+        A cursor IS supplied and `consumed == begin` holds — both are 0, because
+        the identity mismatch reset the offset and the file is empty. A build
+        testing `from_cursor is not None and consumed == begin and emitted == 0`
+        passes every other case here and exits 0 for this one. Only the
+        *honoured non-zero* reading of `begin` separates them.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b"")
+        stale = json.dumps({"v": 1, "offset": 40, "device": 1, "inode": 2})
+        stream, sent = io.StringIO(), []
+        code = _run_against_receiver(tmp_path, monkeypatch, target=target,
+                                     stream=stream, sent=sent, out=io.StringIO(),
+                                     extra=["--report-cursor",
+                                            "--from-cursor", stale])
+        assert code == 1
+        assert sent == []
+        assert "identity changed" in stream.getvalue()
+        assert "no line yielded a valid record" in stream.getvalue()
+
+    def test_an_empty_input_with_no_cursor_exits_one(self, tmp_path, monkeypatch):
+        """The case that makes the non-zero-begin half load-bearing.
+
+        Every other case here either consumes a line or resumes from a non-zero
+        offset, so a build testing only `emitted == 0 and consumed == begin`
+        passes all of them — and then exits 0 for an empty file with no cursor,
+        where `begin` and `consumed` are both 0. The parent contract's AC-0039
+        and its exit table both claim 1 for that.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b"")
+        stream, sent = io.StringIO(), []
+        code = _run_against_receiver(tmp_path, monkeypatch, target=target,
+                                     stream=stream, sent=sent, out=io.StringIO(),
+                                     extra=["--report-cursor"])
+        assert code == 1
+        assert sent == []
+        assert "no line yielded a valid record" in stream.getvalue()
+
+    def test_an_honoured_cursor_followed_by_invalid_lines_exits_one(
+        self, tmp_path, monkeypatch
+    ):
+        """The case that makes the `consumed == begin` half of the check load-bearing.
+
+        Every other case here starts at byte 0, so a build testing only
+        `begin != 0 and emitted == 0` passes all of them while converting a
+        genuine all-invalid tail into success. This one resumes from an honoured
+        non-zero cursor AND reads lines, so only the consumed-nothing half can
+        separate it from the carve-out.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(GOOD_LINE.encode("utf-8"))
+        out = io.StringIO()
+        assert _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                                     extra=["--report-cursor"]) == 0
+        cursor = out.getvalue().strip()
+        assert json.loads(cursor)["offset"] > 0, "the cursor must be non-zero"
+
+        with pathlib.Path(target).open("ab") as handle:
+            handle.write(b"not json\n")
+
+        stream, sent = io.StringIO(), []
+        code = _run_against_receiver(
+            tmp_path, monkeypatch, out=io.StringIO(), stream=stream, sent=sent,
+            target=target, extra=["--report-cursor", "--from-cursor", cursor],
+        )
+        assert code == 1, "lines were read and none was valid: that is still a failure"
+        assert sent == []
+        assert "no line yielded a valid record" in stream.getvalue()
+
+    def test_a_reset_that_finds_nothing_still_exits_one(self, tmp_path,
+                                                        monkeypatch):
+        """A reset reads from byte 0, so an empty result there is AC-0039's case.
+
+        Distinguishes the carve-out's precondition -- an HONOURED non-zero
+        cursor -- from merely having been given a cursor.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b"not json\n")
+        stale = json.dumps({"v": 1, "offset": 5, "device": 1, "inode": 2})
+        stream = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, target=target,
+                                     stream=stream, out=io.StringIO(),
+                                     extra=["--report-cursor",
+                                            "--from-cursor", stale])
+        assert code == 1
+        assert "identity changed" in stream.getvalue()
+
+# AC-0001's exit-1 half, AC-0035, and four controls review found missing.
+#
+# Appended to tests/unit/test_cli.py and tests/unit/test_cursor.py, both of which
+# already have every name these need.
+
+
+class TestWhichRunsReportACursor:
+    """tests/unit/test_cli.py. AC-0001 and AC-0035."""
+
+    def test_a_run_that_emitted_nothing_still_reports_its_cursor(self, tmp_path,
+                                                                 monkeypatch):
+        """AC-0001's exit-1 half, which no case asserted.
+
+        Only the exit-0 path was checked, and every opened-input exit-1 case
+        discarded its stdout buffer — so a build printing the cursor on success
+        alone passed the whole suite.
+        """
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(b"not json\n" * 2)
+        out = io.StringIO()
+        code = _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                                     extra=["--report-cursor"])
+        assert code == 1
+        assert json.loads(out.getvalue())["offset"] == len(target.read_bytes())
+
+    def test_a_boundary_refusal_reports_no_cursor(self, tmp_path, monkeypatch):
+        """AC-0035. The refusal happens after the open, so AC-0019 cannot own it."""
+        target = tmp_path / "events.jsonl"
+        target.write_bytes(GOOD_LINE.encode("utf-8") * 2)
+        out = io.StringIO()
+        _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                              extra=["--report-cursor"])
+        cursor = json.loads(out.getvalue())
+        cursor["offset"] -= 1
+
+        second, stream = io.StringIO(), io.StringIO()
+        code = _run_against_receiver(
+            tmp_path, monkeypatch, out=second, stream=stream, target=target,
+            extra=["--report-cursor", "--from-cursor", json.dumps(cursor)],
+        )
+        assert code == 1
+        assert second.getvalue() == ""
+        assert "not a record boundary" in stream.getvalue(), (
+            "an automated caller gets exit 1 and needs to know why"
+        )
+
+
+class TestReviewRepairs:
+    """tests/unit/test_cli.py. Controls for cases that could not fail."""
+
+    def test_a_later_batch_refusal_still_lands_on_a_boundary(self, tmp_path,
+                                                             monkeypatch):
+        """The multi-status cases never consumed their second status.
+
+        `MAX_RECORDS_PER_REQUEST` is 512, so five records were one batch and
+        `[200, 400]` exercised only the 200. Batching one record per request is
+        what makes the second status reachable, and with it the accepted-prefix
+        path where a later batch is refused.
+        """
+        target = tmp_path / "events.jsonl"
+        data = b"".join(
+            json.dumps({"at": f"2026-01-01T00:00:0{i}Z", "result": "success",
+                        "run_id": "r", "seq": i, "event": "e"}).encode("utf-8")
+            + b"\n"
+            for i in range(3)
+        )
+        target.write_bytes(data)
+        monkeypatch.setattr(
+            cli, "batch_records",
+            functools.partial(tp.batch_records, max_records=1),
+        )
+        out = io.StringIO()
+        # THREE batches, not four: `MAX_ATTEMPTS_PER_RUN` is 3, so a fourth
+        # batch is never issued and the accepted-after-refused batch this case
+        # exists to catch never happens. Proven -- with four batches the
+        # high-water-mark defect survived this very test.
+        code = _run_against_receiver(tmp_path, monkeypatch, out=out, target=target,
+                                     statuses=[200, 400, 200],
+                                     extra=["--report-cursor"])
+        assert code == 1
+        offset = json.loads(out.getvalue())["offset"]
+        assert data[offset - 1:offset] == b"\n", offset
+        assert offset < len(data), (
+            "a refused third batch must not be credited, nor any batch after it"
         )

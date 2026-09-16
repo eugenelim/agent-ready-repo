@@ -120,7 +120,9 @@ def test_each_field_reaches_the_destination_its_profile_declares():
     _require_export_configured()
     before = EXPORT.stat().st_size if EXPORT.exists() else 0
     destination = resolve_destination(ENDPOINT)
-    outcome = send_batches(batch_records(records, encode), destination, _connection_factory)
+    outcome = send_batches(
+        batch_records(((r, i + 1) for i, r in enumerate(records)), encode),
+        destination, _connection_factory)
     assert outcome.status == 0, f"receiver refused the payload: {outcome.reason}"
     assert outcome.rejected_records == 0
 

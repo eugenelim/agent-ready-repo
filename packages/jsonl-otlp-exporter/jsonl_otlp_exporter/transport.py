@@ -206,15 +206,20 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
 
 def batch_records(
     # The sentinel is part of the accepted input, not an intruder: `records` is
-    # the reader's iterator, which yields IDLE to say it has caught up. It is
-    # filtered out below, so it never reaches a batch or the encoder.
-    records: Iterable[Mapping[str, Any] | _Idle],
+    # the reader's iterator, which yields (IDLE, position) to say it has caught
+    # up. It is filtered out below, so it never reaches a batch or the encoder.
+    records: Iterable[tuple[Mapping[str, Any] | _Idle, int]],
     encode: Callable[[Sequence[Mapping[str, Any]]], bytes],
     max_records: int = MAX_RECORDS_PER_REQUEST,
     max_bytes: int = MAX_BODY_BYTES,
     on_oversize: Callable[[int], None] | None = None,
-) -> Iterator[tuple[list[Mapping[str, Any]], bytes]]:
-    """Yield (records, encoded body) pairs, each inside both bounds.
+) -> Iterator[tuple[list[Mapping[str, Any]], bytes, int]]:
+    """Yield (records, encoded body, end offset) triples, inside both bounds.
+
+    Each triple carries the end offset of its own last line, not the parent
+    batch's. That matters at exactly one place -- the split below -- because
+    giving both halves the parent's offset would credit the second half when
+    only the first was accepted, and the records in between would be lost.
 
     The byte bound is measured on the *encoded* body, because encoding expands
     the payload and an input-side estimate cannot establish an output-side limit.
@@ -225,7 +230,8 @@ def batch_records(
     batch, which is what makes the residency bound true by construction.
     """
     pending: list[Mapping[str, Any]] = []
-    for record in records:
+    offsets: list[int] = []
+    for record, position in records:
         # `isinstance`, not `is IDLE`: `_Idle` has exactly one instance, so the
         # two are equivalent here, and only this form narrows the union for a
         # type checker -- which is what lets `pending.append` below be checked
@@ -237,22 +243,23 @@ def batch_records(
             # is in hand without terminating the reader, and cannot breach the
             # record or byte ceilings because it only ever shrinks a batch.
             if pending:
-                yield from _emit(pending, encode, max_bytes, on_oversize)
-                pending = []
+                yield from _emit(pending, offsets, encode, max_bytes, on_oversize)
+                pending, offsets = [], []
             continue
         pending.append(record)
+        offsets.append(position)
         if len(pending) < max_records:
             continue
-        yield from _emit(pending, encode, max_bytes, on_oversize)
-        pending = []
+        yield from _emit(pending, offsets, encode, max_bytes, on_oversize)
+        pending, offsets = [], []
     if pending:
-        yield from _emit(pending, encode, max_bytes, on_oversize)
+        yield from _emit(pending, offsets, encode, max_bytes, on_oversize)
 
 
-def _emit(batch, encode, max_bytes, on_oversize=None, diagnostics=True):
+def _emit(batch, offsets, encode, max_bytes, on_oversize=None, diagnostics=True):
     body = encode(batch, diagnostics)
     if len(body) <= max_bytes:
-        yield list(batch), body
+        yield list(batch), body, offsets[-1]
         return
     if len(batch) == 1:
         # A single record that alone exceeds the ceiling cannot be split. AC-0019
@@ -270,8 +277,10 @@ def _emit(batch, encode, max_bytes, on_oversize=None, diagnostics=True):
     # these records, so the halves must not fire them again -- double-counting
     # made "400 records affected" report as 800.
     middle = len(batch) // 2
-    yield from _emit(batch[:middle], encode, max_bytes, on_oversize, diagnostics=False)
-    yield from _emit(batch[middle:], encode, max_bytes, on_oversize, diagnostics=False)
+    yield from _emit(batch[:middle], offsets[:middle], encode, max_bytes,
+                     on_oversize, diagnostics=False)
+    yield from _emit(batch[middle:], offsets[middle:], encode, max_bytes,
+                     on_oversize, diagnostics=False)
 
 
 @dataclass
@@ -282,6 +291,12 @@ class SendOutcome:
     rejected_records: int = 0
     reason: str = ""
     partial_success: bool = False
+    # The end offset of the last batch in the unbroken accepted run starting at
+    # the first batch. NOT a high-water mark: this loop continues to the next
+    # batch after a non-retryable status, so a high-water mark would credit a
+    # later batch and lose the records of the one that failed.
+    accepted_offset: int = 0
+    all_accepted: bool = True
 
 
 def _retry_after_seconds(raw: str | None) -> int:
@@ -298,7 +313,7 @@ def _retry_after_seconds(raw: str | None) -> int:
 
 
 def send_batches(
-    batches: Iterable[tuple[list[Mapping[str, Any]], bytes]],
+    batches: Iterable[tuple[list[Mapping[str, Any]], bytes, int]],
     destination: Destination,
     connection_factory: Callable[..., Any],
     clock: Callable[[], float] = time.monotonic,
@@ -308,6 +323,7 @@ def send_batches(
     run_started: float | None = None,
     for_seconds: int | None = None,
     first_read_at: Callable[[], float | None] | None = None,
+    start_offset: int = 0,
 ) -> SendOutcome:
     """POST each batch, honouring the attempt, retry and time bounds.
 
@@ -315,7 +331,7 @@ def send_batches(
     later deadline is measured against it on a monotonic clock so a wall-clock
     step cannot extend or collapse a bound.
     """
-    out = SendOutcome()
+    out = SendOutcome(accepted_offset=start_offset)
     stream = stream if stream is not None else sys.stderr
     # AC-0055 anchors the run bound at the first destination resolution, which
     # already happened by the time this is called. Defaulting to now would
@@ -338,11 +354,12 @@ def send_batches(
         anchor = first_read_at() if first_read_at is not None else None
         return min(run_deadline, (run_started if anchor is None else anchor) + for_seconds)
 
-    for _records, body in batches:
+    for _records, body, end_offset in batches:
         while True:
             if out.attempts >= MAX_ATTEMPTS_PER_RUN:
                 out.status = out.status or 1
                 out.reason = out.reason or "attempt budget exhausted"
+                out.all_accepted = False
                 return out
             # ONE sample for both the bound check and the remaining budget. Two
             # readings can straddle the deadline, admitting an iteration at
@@ -354,6 +371,7 @@ def send_batches(
             if remaining <= 0:
                 out.status = out.status or 1
                 out.reason = out.reason or "run time bound reached"
+                out.all_accepted = False
                 return out
 
             # AC-0040 anchors the request bound at that request's own destination
@@ -366,6 +384,7 @@ def send_batches(
             if timeout <= 0:
                 out.status = out.status or 1
                 out.reason = out.reason or "request bound reached before issue"
+                out.all_accepted = False
                 return out
 
             out.attempts += 1
@@ -382,6 +401,7 @@ def send_batches(
                 if out.attempts >= MAX_ATTEMPTS_PER_RUN:
                     out.status = 1
                     out.reason = "attempt budget exhausted"
+                    out.all_accepted = False
                     return out
                 continue
 
@@ -396,6 +416,7 @@ def send_batches(
                 )
                 out.status = 1
                 out.reason = "redirect refused"
+                out.all_accepted = False
                 return out
 
             if status in _RETRYABLE_STATUSES:
@@ -403,6 +424,7 @@ def send_batches(
                 if out.attempts >= MAX_ATTEMPTS_PER_RUN:
                     out.status = 1
                     out.reason = "attempt budget exhausted"
+                    out.all_accepted = False
                     return out
                 # Measured from when THIS response was received, not from when
                 # the request was issued: the two differ by the request's own
@@ -411,6 +433,7 @@ def send_batches(
                 if wake >= _deadline():
                     out.status = 1
                     out.reason = "retry would exceed the run bound"
+                    out.all_accepted = False
                     return out
                 sleep(max(0.0, wake - clock()))
                 continue
@@ -431,6 +454,12 @@ def send_batches(
                     # same refusal and doubles the traffic.
                     out.status = 1
                     out.reason = "partial success"
+                    out.all_accepted = False
+                elif out.all_accepted:
+                    # Only while the prefix is still unbroken. A batch accepted
+                    # after an earlier refusal must not advance the offset past
+                    # the records that refusal left unsent.
+                    out.accepted_offset = end_offset
                 break
 
             print(
@@ -439,6 +468,7 @@ def send_batches(
             )
             out.status = 1
             out.reason = f"http {status}"
+            out.all_accepted = False
             if out.attempts >= MAX_ATTEMPTS_PER_RUN:
                 out.reason = "attempt budget exhausted"
                 return out

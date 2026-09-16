@@ -61,6 +61,48 @@ does not resolve.
 | `--follow` | keep reading lines appended after start |
 | `--for SECONDS` | end the run this many seconds after the first read |
 | `--best-effort` | exit 0 even when sending fails |
+| `--from-cursor JSON` | resume from a cursor a previous `--report-cursor` run printed |
+| `--report-cursor` | print the cursor the next run should resume from, on stdout |
+
+## Resuming a run
+
+By default every run reads the file from byte zero, so running the command
+twice sends everything twice. `--report-cursor` and `--from-cursor` together let
+a repeated run send only what is new.
+
+`--report-cursor` prints one line of JSON to stdout when the run finishes:
+
+```json
+{"v":1,"offset":4096,"device":16777232,"inode":8394821}
+```
+
+Pass that exact string back as `--from-cursor` on the next run and it picks up
+where the last one stopped. Nothing else about the command changes, and stdout
+stays empty unless you ask for the cursor.
+
+This command writes no file of its own — no checkpoint, no position file, no
+lock — so there is nowhere for it to keep the position between runs, and
+**the caller stores the cursor** instead. Whatever invokes it owns that: a hook, a cron job, a
+wrapper script. Treat the cursor as opaque. Store the string, hand it back, and
+do not parse or construct one yourself; the `v` field exists so a cursor written
+by a newer version is refused rather than misread, and a hand-built one is
+refused if its offset does not land on a record boundary.
+
+The cursor carries the input file's identity as well as a position, because a
+byte offset means nothing once the file has been replaced. If the file is
+rotated or truncated, the run notices, says so on stderr, and reads from the
+start of the new file rather than seeking into the middle of a record.
+
+Delivery is **at-least-once**. A run that is interrupted, or that cannot reach
+the collector, prints no cursor, so the next run repeats from the last cursor
+you stored and re-sends the records in between. Records the receiver rejected by
+content are not skipped either: the cursor stops in front of them and the run
+exits 1, so nothing is lost silently. Every record carries the identity
+attributes your profile declares, which is what lets a consumer deduplicate.
+
+Two callers sharing one stored cursor will both send the same records. This
+command cannot prevent that — it holds no state to lock — so if you run it from
+more than one place, give each its own cursor.
 
 ## Exit codes
 

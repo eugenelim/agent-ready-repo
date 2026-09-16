@@ -33,6 +33,13 @@ def _section(text: str, heading: str) -> str:
 class TestReadme:
     """AC-0030, AC-0032 — what the published page must say, and where."""
 
+    def test_the_resuming_section_exists_and_carries_its_literals(self):
+        """AC-0021. Structural, like its siblings: wording is not asserted."""
+        body = _section(README.read_text(encoding="utf-8"), "\n## Resuming a run")
+        for literal in ("--from-cursor", "--report-cursor",
+                        "the caller stores the cursor", "at-least-once"):
+            assert literal in body, f"{literal!r} must appear under '## Resuming a run'"
+
     def test_the_what_this_sends_section_exists_and_carries_its_literals(self):
         body = _section(README.read_text(encoding="utf-8"), "\n## What this sends")
         for literal in ("OTLP logs", "--config", "sends nothing until an endpoint is configured"):
