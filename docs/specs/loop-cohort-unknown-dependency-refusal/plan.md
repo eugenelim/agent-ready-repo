@@ -1,7 +1,7 @@
 # Plan: loop-cohort unknown dependency refusal
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - Convention source: [`packs/AGENTS.md`](../../../packs/AGENTS.md) — `.apm/` is
     the projection source; never edit adapter copies; every non-cosmetic pack

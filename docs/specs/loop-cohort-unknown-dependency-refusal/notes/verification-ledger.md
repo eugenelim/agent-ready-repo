@@ -153,3 +153,35 @@ No `[backlog].open` entry was added: the test is green at ordinary load, so a
 cold-start reader will not meet it red, and the register already carries the
 same class under `semgrep-registry-ruleset-pinning` (load-induced timeout
 diagnostics on files absent from any diff).
+
+## Acceptance-criteria verification (controller, pre-ship)
+
+Every criterion re-checked mechanically against the shipped tree immediately
+before the status transition, rather than carried forward from a reviewer's
+report. The script drives the real `loop-cohort.py` module, reads the real
+manifests and changelog, and hashes the real projection copies.
+
+    PASS  AC1    T2->T7
+    PASS  AC2    both, sorted
+    PASS  AC3    forward ref not refused
+    PASS  AC4    unknown@29273 < cycles@29617
+    PASS  AC5    both forms inert
+    PASS  AC6    none/ID/range/prose
+    PASS  AC6a   T3->T2
+    PASS  AC7    completed dep counts as met
+    PASS  AC7a   proven by difference
+    PASS  AC8    parse_plan(text: 'str') parse_depends_on(field: 'str', local_task_ids)
+    PASS  AC9    ledger has RED/GREEN; 1 call site
+    PASS  AC10   absent=True; phrase in 3 files
+    PASS  AC11   template unknown=[] cycles=[]
+    PASS  AC12   2.26.8 in all three, Highlights present
+    PASS  AC13   4 files x 3 copies identical
+    PASS  AC14   entry present, 5 assertions
+    
+    16/16 acceptance criteria verified
+
+AC4 is verified structurally: the unknown-dependency call precedes the
+`detect_cycles` call in the module source, which is what gives the refusal its
+precedence at both entry points. AC9 is verified as the conjunction of the
+recorded RED/GREEN mutation result and a single call site, since the proof is
+only meaningful while that count holds.

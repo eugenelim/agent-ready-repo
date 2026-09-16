@@ -1,6 +1,6 @@
 # Spec: loop-cohort unknown dependency refusal
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -92,53 +92,53 @@ a valid acyclic edge that executes correctly once reordered.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Unknown local ID is refused.** `loop-cohort schedule <spec-dir>` on
+- [x] **AC1 — Unknown local ID is refused.** `loop-cohort schedule <spec-dir>` on
   a plan whose unfinished task declares `**Depends on:** T7` where the plan
   contains no `T7` exits non-zero, writes a stderr line naming the pair
   `T<n>->T7`, and does not write `state.json`.
-- [ ] **AC2 — Every offending pair is named in one refusal.** A plan carrying two
+- [x] **AC2 — Every offending pair is named in one refusal.** A plan carrying two
   or more unknown dependencies names all of them, sorted by declaring task then
   dependency, in a single refusal. "All" is bounded by the parenthesis-truncation
   limit recorded in Assumptions: an ID after the first `(` is not a declared
   dependency for any caller, so it is not among the pairs.
-- [ ] **AC3 — Forward reference is still warned, not refused.** A plan whose task
+- [x] **AC3 — Forward reference is still warned, not refused.** A plan whose task
   depends on a task authored later in the file exits zero, warns on stderr, and
   schedules the dependency into an earlier wave than the task declaring it.
   `test_schedule_warns_but_reorders_on_forward_ref` continues to pass unmodified.
-- [ ] **AC4 — Cycle is still refused.** A plan whose only fault is a dependency
+- [x] **AC4 — Cycle is still refused.** A plan whose only fault is a dependency
   cycle exits non-zero with the existing cycle message, unchanged. When a plan
   carries both an unknown dependency and a cycle, the unknown-dependency refusal
   takes precedence, because it is the fault that makes the graph unreadable.
-- [ ] **AC5 — Cross-spec dependencies do not trip the refusal.** A task declaring
+- [x] **AC5 — Cross-spec dependencies do not trip the refusal.** A task declaring
   `spec:<name>/T7` or `` `<name>` T7 `` where the plan contains no `T7` schedules
   normally and exits zero.
-- [ ] **AC6 — Every other legitimate dependency form is unaffected.** `none`,
+- [x] **AC6 — Every other legitimate dependency form is unaffected.** `none`,
   a plain in-plan ID, a letter-suffixed ID (`T1a`), an in-plan range (`T1-T3`),
   and trailing parenthetical prose all schedule exactly as they did before.
-- [ ] **AC6a — A range spanning an absent ID is refused.** A task declaring
+- [x] **AC6a — A range spanning an absent ID is refused.** A task declaring
   `**Depends on:** T1-T3` in a plan containing `T1` and `T3` but no `T2` is
   refused naming the pair `T<n>->T2`. A range names every ID it spans, so an
   absent intermediate is an unknown dependency like any other. No plan in this
   repository uses this form today.
-- [ ] **AC7 — A dependency on a completed task is met, not unknown.** In an
+- [x] **AC7 — A dependency on a completed task is met, not unknown.** In an
   amended plan, an unfinished task depending on a **completed** task schedules
   successfully. The IDs a dependency is resolved against are every task in the
   plan file, not the unfinished remainder.
-- [ ] **AC7a — A completed task's own declaration is out of scope.** In an
+- [x] **AC7a — A completed task's own declaration is out of scope.** In an
   amended plan, a **completed** task whose `Depends on:` names an absent ID does
   not refuse the run; the remaining tasks schedule normally. Only the
   declarations of tasks still to be scheduled are examined.
-- [ ] **AC8 — Published signatures are unchanged.** This is the canonical
+- [x] **AC8 — Published signatures are unchanged.** This is the canonical
   statement of both pins: `parse_plan` returns exactly `(ordered, deps)`, and
   `parse_depends_on` returns exactly `(local, cross)` and still filters to
   in-plan IDs. Neither raises.
-- [ ] **AC9 — Mutation proof recorded.** The refusal has exactly one call site:
+- [x] **AC9 — Mutation proof recorded.** The refusal has exactly one call site:
   inside `schedule_unfinished_plan`, immediately before its `detect_cycles` call.
   Removing that single call turns named tests red on **both** the CLI path and the
   amendment path; the command, the test ids, and the observed failures are
   recorded in `notes/verification-ledger.md`. A second, redundant call site is
   forbidden: it would make this proof pass for a deleted guard.
-- [ ] **AC10 — The documented contract matches the code.** A recursive scan of
+- [x] **AC10 — The documented contract matches the code.** A recursive scan of
   `packs/core/` for the retired claim that an absent dependency is dropped
   without a diagnostic finds no match and exits 0, and `references/supervisor-mode.md`,
   the plan template's `Depends on:` grammar block, and
@@ -147,22 +147,22 @@ a valid acyclic edge that executes correctly once reordered.
   plan and this change makes that list three members, so it ships stale unless it
   is updated; the seed is the owning source and `docs/CONVENTIONS.md` is projected
   from it.
-- [ ] **AC11 — The shipped plan template schedules clean.** Run over
+- [x] **AC11 — The shipped plan template schedules clean.** Run over
   `packs/core/.apm/skills/new-spec/assets/plan.md`, the unknown-dependency
   predicate returns no pairs **and** the cycle check returns no task IDs. The
   `Depends on:` placeholder reads `<none | comma-separated prior task IDs>`,
   which names no task ID at all and so can produce neither an unknown dependency
   nor a self-edge.
-- [ ] **AC12 — Release surface agrees.** `packs/core/pack.toml` and
+- [x] **AC12 — Release surface agrees.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same new patch version, and
   `docs/product/changelog.md` carries a `## [core][<version>] — <date>` section
   at the top level directly beneath `## [Unreleased]`, never nested inside it.
   The entry carries a `### Highlights` subsection, because this change alters what
   a pack consumer can do: a plan that schedules today can start refusing.
-- [ ] **AC13 — Projections are byte-identical.** After `make build-self`, each
+- [x] **AC13 — Projections are byte-identical.** After `make build-self`, each
   edited `.apm/` file and its regenerated adapter copies under `.claude/` and
   `.agents/` match byte-for-byte.
-- [ ] **AC14 — The eval harness reflects the changed behaviour.** The `work-loop`
+- [x] **AC14 — The eval harness reflects the changed behaviour.** The `work-loop`
   skill's `evals/evals.json` contains an entry with
   `"id": "schedule-refuses-unknown-dependency"` whose assertions require the
   answer to say `schedule` refuses rather than warns, and to distinguish the
