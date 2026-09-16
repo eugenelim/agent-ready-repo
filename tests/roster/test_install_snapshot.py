@@ -140,6 +140,26 @@ def _scan_for_leaks(output_root: Path, projected_paths: list[str]) -> list[str]:
     return violations
 
 
+# Out-of-scaffold link targets the core seed tree carried before this change:
+# core's seeds mandate records and guides that core does not itself install.
+# Logged as `core-seeds-mandate-other-packs-content` in `[backlog].open` and
+# deliberately not repaired here. Listed rather than excluded by page, so an
+# edited page stays in domain for any target not on this list.
+DEFERRED_MISSING_TARGETS = frozenset(
+    {
+        "adr/",
+        "../adr/",
+        "rfc/",
+        "../rfc/",
+        "guides/",
+        "../guides/",
+        "GOVERNANCE.md",
+        "personas.md",
+        "release-checklist.md",
+    }
+)
+
+
 def _scan_for_missing_relative_links(path: Path) -> list[str]:
     """Return repository-relative Markdown links whose targets are absent."""
     violations: list[str] = []
@@ -148,6 +168,8 @@ def _scan_for_missing_relative_links(path: Path) -> list[str]:
         for raw_target in MARKDOWN_LINK_RE.findall(line):
             target = raw_target.split("#", 1)[0]
             if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
+                continue
+            if target in DEFERRED_MISSING_TARGETS:
                 continue
             if not (path.parent / target).exists():
                 violations.append(f"{path.name}:{lineno}: missing link target {target!r}")
@@ -201,15 +223,22 @@ def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
 
     Was scoped to one named seed, which this change retires. Deleting the test
     with it would have removed the only relative-link check over the adopter
-    scaffold, so it now scans every Markdown file the scaffold produces.
+    scaffold, so it scans each scaffold page this retirement edits.
 
-    Narrowed to the files this retirement touches: the seed tree already carries
-    out-of-scaffold links to `adr/`, `rfc/`, `guides/`, `GOVERNANCE.md`,
-    `personas.md` and `release-checklist.md` that predate this change and are
-    logged as `core-seeds-mandate-other-packs-content` in `[backlog].open`.
+    The domain is the edited pages rather than every scaffold page: the seed tree
+    already carries out-of-scaffold links to `adr/`, `rfc/`, `guides/`,
+    `GOVERNANCE.md`, `personas.md` and `release-checklist.md` that predate this
+    change and are logged as `core-seeds-mandate-other-packs-content` in
+    `[backlog].open`. Round 9 found two edited pages missing from the tuple.
     """
     output_root = _scaffold_pack("core", tmp_path)
-    touched = ("docs/README.md", "AGENTS.md", "docs/specs/README.md")
+    touched = (
+        "docs/README.md",
+        "AGENTS.md",
+        "docs/specs/README.md",
+        "docs/product/README.md",
+        "docs/CHARTER.md",
+    )
 
     violations: list[str] = []
     for relative in touched:

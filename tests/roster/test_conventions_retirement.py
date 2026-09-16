@@ -27,7 +27,7 @@ ANCHOR_INVENTORY = NOTES / "anchor-inventory.txt"
 # AC2c canary. Pins the approved *form* of the scan predicate, not its
 # pathspecs. A class-by-class check cannot see an exclusion added after it was
 # written, and one added exclusion shrinks every task's discovery domain.
-APPROVED_SCAN_DIGEST = "11d02ca3ede645b7af748da376d3eca5e13d900447b4e0d0bb04af8d3a61052e"
+APPROVED_SCAN_DIGEST = "a8ec4080227bab0b8caa78cb46f1cba91cd1bae4a832f115e827840020723794"
 
 _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 
@@ -113,7 +113,119 @@ def unresolved_uses() -> tuple[str, ...]:
             failures.append(
                 f"{consumer} -> {anchor}: heading {heading!r} absent from {destination}"
             )
+            continue
+        failures.extend(_replacement_failures(consumer, anchor, destination))
     return tuple(failures)
+
+
+_LINK_TARGET_RE = re.compile(r"\]\(([^)\s]+)")
+
+# A seed page's relative links resolve inside the scaffold it becomes, not inside
+# this repository, so a seed twin pointing at its own twin is correct.
+SEED_ROOTS = ("packs/core/seeds/",)
+
+# A use whose replacement cannot be a resolvable in-tree link to the mapped
+# destination. Each disposition is owner-confirmed in the spec's Assumptions and
+# records what to assert instead, because only a human can say what a
+# non-Markdown reader — or a scaffold that never installs `packs/` — resolves.
+#   `deleted` — the guidance is not adopter-facing, so the note is removed.
+#   `literal` — the pointer is adapter-relative, so its exact spelling is pinned.
+#   `local`   — the content landed in the citing file, which now cites a heading
+#               of its own instead of linking out.
+RECORDED_DISPOSITIONS: dict[tuple[str, str], tuple[str, str]] = {
+    ("packs/core/seeds/docs/architecture/README.md", "#pack-source-of-truth-split"): (
+        "deleted",
+        "an adopter scaffold installs no `packs/`, so the note is deleted",
+    ),
+    ("packs/core/seeds/docs/specs/README.md", "#4-specs-and-plans--docsspecsfeature"): (
+        "local",
+        "Spec and plan",
+    ),
+    (
+        "packages/agentbundle/agentbundle/catalogue_tooling/verify.py",
+        "#model-selection",
+    ): (
+        "literal",
+        "the work-loop skill's references/model-selection.md",
+    ),
+    ("tools/lint-agents-md.py", "#supervisor-mode"): (
+        "literal",
+        "work-loop/references/supervisor-mode.md",
+    ),
+    ("tools/test-lint-agents-md-gitignore-probes.py", "#supervisor-mode"): (
+        "literal",
+        "work-loop/references/supervisor-mode.md",
+    ),
+}
+
+
+def _resolves_to_destination(source: Path, consumer: str, destination: str) -> bool:
+    """Whether any Markdown link in the consumer reaches the mapped destination.
+
+    A seed page is also allowed to reach the destination's seed twin: its links
+    resolve inside the scaffold it becomes, where no `packs/` prefix exists.
+    """
+    targets = {(REPO_ROOT / destination).resolve()}
+    for seed_root in SEED_ROOTS:
+        if consumer.startswith(seed_root):
+            targets.add((REPO_ROOT / seed_root / destination).resolve())
+    text = source.read_text(encoding="utf-8")
+    for raw in _LINK_TARGET_RE.findall(text):
+        path_part = raw.split("#", 1)[0]
+        if not path_part:
+            continue
+        if (source.parent / path_part).resolve() in targets:
+            return True
+    return False
+
+
+def _replacement_failures(
+    consumer: str, anchor: str, destination: str
+) -> tuple[str, ...]:
+    """Return a diagnostic when the consumer holds no working replacement.
+
+    The mapped destination existing proves the content landed; it does not prove
+    the consumer was re-pointed at it. Round 9 found a diagnostic re-pointed at a
+    path that exists in no tree while AC6 stayed green, because the resolver read
+    only the destination and never opened the consumer.
+    """
+    source = REPO_ROOT / consumer
+    if not source.is_file():
+        return (f"{consumer} -> {anchor}: recorded consumer is missing",)
+    if consumer == destination:
+        # The content landed in the citing file, so the heading check above is
+        # already the proof: there is nothing left to link to.
+        return ()
+    text = source.read_text(encoding="utf-8")
+    disposition = RECORDED_DISPOSITIONS.get((consumer, anchor))
+    if disposition is not None:
+        kind, value = disposition
+        if kind == "deleted":
+            if RETIRED_TOKEN in text:
+                return (
+                    f"{consumer} -> {anchor}: recorded as deleted ({value}) but the "
+                    f"retired document is still named here",
+                )
+            return ()
+        if kind == "local":
+            if _slug(value) not in anchors_in(source):
+                return (
+                    f"{consumer} -> {anchor}: content was recorded as landing here "
+                    f"under heading {value!r}, which this file does not expose",
+                )
+            return ()
+        if value not in text:
+            return (
+                f"{consumer} -> {anchor}: pinned replacement {value!r} is absent; "
+                f"the pointer must resolve for a reader of an installed tree",
+            )
+        return ()
+    if _resolves_to_destination(source, consumer, destination):
+        return ()
+    return (
+        f"{consumer} -> {anchor}: no link here resolves to {destination}; the use "
+        f"has no replacement pointer (or needs a recorded disposition)",
+    )
 
 
 def run_scan(pattern: str | None = None) -> tuple[str, ...]:
@@ -286,15 +398,20 @@ def installed_paths() -> frozenset[str]:
 
 
 def section_of(text: str, heading: str) -> str:
-    """Return one `##` section's body, or an empty string when absent."""
-    body = visible_prose(text)
-    marker = f"## {heading}"
-    if marker not in body:
+    """Return one `##` section's body, or an empty string when absent.
+
+    The boundary is found on the raw text, because `visible_prose` collapses
+    newlines and a newline-anchored `## ` needle can never match once it has.
+    Round 9 found every window running to end of file, which made the
+    placement half of each "rule X sits under § Y" criterion unenforceable.
+    """
+    marker = f"\n## {heading}"
+    if marker not in text:
         return ""
-    start = body.index(marker)
-    rest = body[start + len(marker) :]
+    start = text.index(marker) + len(marker)
+    rest = text[start:]
     nxt = rest.find("\n## ")
-    return rest if nxt == -1 else rest[:nxt]
+    return visible_prose(rest if nxt == -1 else rest[:nxt])
 
 
 # --------------------------------------------------------------------------
@@ -531,7 +648,16 @@ SEED_PRODUCT_README = REPO_ROOT / "packs/core/seeds/docs/product/README.md"
 
 # § 5b's ownership list. Round 8 found the living-docs rule this section also
 # carries is already in the seed, so the assertion names content the seed lacks.
-PRODUCT_AREAS = ("roadmap", "changelog", "intents", "briefs")
+PRODUCT_AREAS = (
+    "roadmap",
+    "changelog",
+    "intents",
+    "briefs",
+    "shaping",
+    "findings",
+    "initiatives",
+    "research",
+)
 
 
 def test_product_readme_states_the_area_ownership() -> None:
@@ -603,6 +729,13 @@ SPEC_CONTRACT_RULES = (
     "Low-level design lives in the plan",
     "construction tests",
     "contracts/<type>/",
+    # Round 9 found § Spec metadata contract pointing at this subsection while no
+    # live artifact carried it. These four tokens are its operative rules, not
+    # its title, so the assertion cannot pass on a heading alone.
+    "Superseding a frozen document",
+    "superseded in part by ADR-NNNN",
+    "meaning-preserving mechanical rewrites are allowed",
+    "not a supersession",
 )
 
 
@@ -647,10 +780,13 @@ CHANGELOG = REPO_ROOT / "docs/product/changelog.md"
 PACK_TOML = REPO_ROOT / "packs/core/pack.toml"
 PLUGIN_JSON = REPO_ROOT / "packs/core/.claude-plugin/plugin.json"
 
-# The version both manifests held before this change. AC12 is pinned against it
-# rather than against "greater than the previous release", which 2.26.1 already
-# satisfied with no edit at all.
+# The version both manifests held before this change, kept for the diagnostic.
 PRE_CHANGE_VERSION = "2.26.1"
+
+# AC12 names one version, so the control asserts that value rather than an
+# ordering. Round 9 found `> 2.26.1` accepted 2.26.2 and 3.0.0 alike, which is
+# the whole substance of the minor-bump decision.
+RELEASE_VERSION = "2.27.0"
 
 _CORE_HEADING_RE = re.compile(r"^## \[core\]\[(?P<version>[^\]]+)\] — ", re.MULTILINE)
 
@@ -683,8 +819,10 @@ def test_both_manifests_carry_the_same_bumped_version() -> None:
     assert pack.group(1) == plugin.group(1), (
         f"manifests disagree: pack.toml={pack.group(1)} plugin.json={plugin.group(1)}"
     )
-    assert _version_tuple(pack.group(1)) > _version_tuple(PRE_CHANGE_VERSION), (
-        f"core is still at or below {PRE_CHANGE_VERSION}, which it held before this change"
+    assert pack.group(1) == RELEASE_VERSION, (
+        f"AC12 names {RELEASE_VERSION} exactly; found {pack.group(1)}. "
+        f"Core held {PRE_CHANGE_VERSION} before this change, and a patch or "
+        f"major bump satisfies any looser comparison."
     )
 
 

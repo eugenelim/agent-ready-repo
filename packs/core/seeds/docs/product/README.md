@@ -45,6 +45,10 @@ answer to "what is the product up to right now?"
 | `changelog.md` | User-visible changes by release | One section per release, naming every artifact it covers. |
 | `intents/<slug>.md` | One admitted outcome, recorded before a solution is chosen | Optional. |
 | `briefs/<slug>.md` | One delivery outcome and the specs that deliver it | Optional, for work too large to be one spec. |
+| `shaping/<slug>.md` | One outcome still being framed, before it is admitted | Optional. Closes by becoming an intent or being dropped. |
+| `findings/<slug>.md` | One observation from real use, with its evidence | Optional. A finding is evidence, not a commitment to act. |
+| `initiatives/<slug>.md` | One multi-spec push and the briefs under it | Optional, above the brief layer. |
+| `research/<slug>.md` | One answered question and the sources that answered it | Optional. Frozen once answered; supersede rather than edit. |
 
 The changelog's heading level is load-bearing. A section carrying a version and
 a date is released, so it sits at the top level directly beneath

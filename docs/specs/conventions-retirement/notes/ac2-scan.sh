@@ -10,13 +10,20 @@
 # Two exclusion classes:
 #   historical records  — never edited to repair a reference
 #   projection targets  — regenerated from their source, never hand-edited
-# `docs/specs/README.md` is a directory index, NOT a historical record, so the
-# spec-directory exclusion is scoped to `docs/specs/*/` and leaves it in.
+# A directory index is NOT a historical record, so each exclusion over a
+# record directory is scoped one level down and leaves the index itself in:
+# `docs/specs/*/**` keeps `docs/specs/README.md`, and `docs/product/*/**` keeps
+# `docs/product/README.md`. Round 9 found the unscoped `docs/product/**` form
+# hiding a live index that still linked to the retired document. The one
+# top-level product file that IS a historical record — the release changelog —
+# is named directly, because `**/CHANGELOG.md` above matches only the uppercase
+# spelling.
 git grep -ln "${1:-CONVENTIONS}" -- . \
   ':(glob,exclude)docs/specs/*/**' \
   ':(glob,exclude)docs/rfc/**' \
   ':(glob,exclude)docs/adr/**' \
-  ':(glob,exclude)docs/product/**' \
+  ':(glob,exclude)docs/product/*/**' \
+  ':(exclude)docs/product/changelog.md' \
   ':(glob,exclude)docs/knowledge/observations/**' \
   ':(glob,exclude)docs/knowledge/topics/**' \
   ':(glob,exclude)**/CHANGELOG.md' \

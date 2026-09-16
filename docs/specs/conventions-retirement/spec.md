@@ -76,10 +76,11 @@ resolves in the destination recorded in
 - Introduce a generated `REPO_MAP.md` or any new projection.
 - Edit a historical record to repair a reference. The predicate is: a spec, plan,
   note or adjudication under `docs/specs/<feature>/`; a record under `docs/rfc/`,
-  `docs/adr/`, `docs/product/`, `docs/knowledge/observations/` or
+  `docs/adr/`, `docs/product/<record>/`, `docs/product/changelog.md`,
+  `docs/knowledge/observations/` or
   `docs/knowledge/topics/`; a package `CHANGELOG.md`; or a file under a
-  `work-loop` fixture corpus. A directory index such as `docs/specs/README.md` is
-  not a historical record and is repaired normally. The 2026-09-14 members are
+  `work-loop` fixture corpus. A directory index such as `docs/specs/README.md` or
+  `docs/product/README.md` is not a historical record and is repaired normally. The 2026-09-14 members are
   listed in [`notes/consumer-inventory.txt`](notes/consumer-inventory.txt).
 - Delete a test rather than re-point it, or let a control survive as a negative
   assertion over a source that no longer exists.
@@ -127,9 +128,14 @@ resolves in the destination recorded in
 - [ ] AC6 — Every one of the 30 anchor uses recorded in
   [`notes/anchor-inventory.txt`](notes/anchor-inventory.txt) has a replacement link
   that resolves to an existing heading in the file its anchor is mapped to in
-  [`notes/anchor-map.txt`](notes/anchor-map.txt). The check ranges over the
-  recorded pre-relocation uses, because the live set empties as the work lands and
-  a criterion over an empty set cannot fail.
+  [`notes/anchor-map.txt`](notes/anchor-map.txt). The check opens each recorded
+  consumer, because a destination that exists proves the content landed and not
+  that the consumer was re-pointed at it. Three uses resolve otherwise and each
+  records why: the content landed in the citing file itself; the consumer is not
+  Markdown and its pointer is pinned as the exact spelling an adopter resolves;
+  or the guidance is not adopter-facing and the note is deleted. The check ranges
+  over the recorded pre-relocation uses, because the live set empties as the work
+  lands and a criterion over an empty set cannot fail.
 - [ ] AC6b — `sh notes/ac2-scan.sh 'CONVENTIONS\.md#'` returns no file, so no live
   anchor still addresses the retired path.
 - [ ] AC7 — `tests/roster/test_credential_broker_contract_docs.py` asserts the

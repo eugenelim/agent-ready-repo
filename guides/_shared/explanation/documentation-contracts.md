@@ -37,4 +37,4 @@ updated.
 in a way that makes the description wrong. Keep them short — the goal is
 to *orient* a reader, not to duplicate the code or the spec.
 
-**Phase-slice doctrine applies here.** When a feature phase ships, its guides ship with it — not in a terminal documentation wave. A phase whose tooling is shipped but whose guides are absent is not a complete slice. See [§ Phase-slice planning](#phase-slice-planning) in *How we do non-trivial work*.
+**Phase-slice doctrine applies here.** When a feature phase ships, its guides ship with it — not in a terminal documentation wave. A phase whose tooling is shipped but whose guides are absent is not a complete slice. See [§ Enforcement](../../core/how-to/plan-and-execute-non-trivial-work.md#enforcement) in *How to plan and execute non-trivial work*.
