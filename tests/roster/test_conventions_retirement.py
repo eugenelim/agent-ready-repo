@@ -114,7 +114,9 @@ def unresolved_uses() -> tuple[str, ...]:
                 f"{consumer} -> {anchor}: heading {heading!r} absent from {destination}"
             )
             continue
-        failures.extend(_replacement_failures(consumer, anchor, destination))
+        failures.extend(
+            _replacement_failures(consumer, anchor, destination, heading)
+        )
     return tuple(failures)
 
 
@@ -159,20 +161,33 @@ RECORDED_DISPOSITIONS: dict[tuple[str, str], tuple[str, str]] = {
 }
 
 
-def _resolves_to_destination(source: Path, consumer: str, destination: str) -> bool:
-    """Whether any Markdown link in the consumer reaches the mapped destination.
+def _resolves_to_destination(
+    source: Path, consumer: str, destination: str, heading: str
+) -> bool:
+    """Whether a link in the consumer reaches the mapped destination *heading*.
+
+    The fragment is load-bearing. Comparing paths alone passes whenever the
+    consumer happens to hold any bare link to the destination file, and several
+    consumers do — so the fragment-bearing replacement could be deleted or
+    pointed at a heading that does not exist and this would stay green. AC6
+    requires a link that resolves to the heading the anchor maps to, and
+    `anchor-map.txt` records that heading, so it is available and unambiguous.
 
     A seed page is also allowed to reach the destination's seed twin: its links
     resolve inside the scaffold it becomes, where no `packs/` prefix exists.
+    The twin must exist — an unresolvable candidate proves nothing.
     """
     targets = {(REPO_ROOT / destination).resolve()}
     for seed_root in SEED_ROOTS:
         if consumer.startswith(seed_root):
-            targets.add((REPO_ROOT / seed_root / destination).resolve())
+            twin = REPO_ROOT / seed_root / destination
+            if twin.is_file():
+                targets.add(twin.resolve())
+    wanted = _slug(heading)
     text = source.read_text(encoding="utf-8")
     for raw in _LINK_TARGET_RE.findall(text):
-        path_part = raw.split("#", 1)[0]
-        if not path_part:
+        path_part, _, fragment = raw.partition("#")
+        if not path_part or _slug(fragment) != wanted:
             continue
         if (source.parent / path_part).resolve() in targets:
             return True
@@ -180,7 +195,7 @@ def _resolves_to_destination(source: Path, consumer: str, destination: str) -> b
 
 
 def _replacement_failures(
-    consumer: str, anchor: str, destination: str
+    consumer: str, anchor: str, destination: str, heading: str
 ) -> tuple[str, ...]:
     """Return a diagnostic when the consumer holds no working replacement.
 
@@ -220,11 +235,12 @@ def _replacement_failures(
                 f"the pointer must resolve for a reader of an installed tree",
             )
         return ()
-    if _resolves_to_destination(source, consumer, destination):
+    if _resolves_to_destination(source, consumer, destination, heading):
         return ()
     return (
-        f"{consumer} -> {anchor}: no link here resolves to {destination}; the use "
-        f"has no replacement pointer (or needs a recorded disposition)",
+        f"{consumer} -> {anchor}: no link here resolves to {destination} "
+        f"# {_slug(heading)}; the use has no replacement pointer at the mapped "
+        f"heading (or needs a recorded disposition)",
     )
 
 
@@ -426,11 +442,11 @@ def section_of(text: str, heading: str) -> str:
     Round 9 found every window running to end of file, which made the
     placement half of each "rule X sits under § Y" criterion unenforceable.
     """
-    marker = f"\n## {heading}"
-    if marker not in text:
+    marker = re.compile(rf"^## {re.escape(heading)}$", re.MULTILINE)
+    found = marker.search(text)
+    if found is None:
         return ""
-    start = text.index(marker) + len(marker)
-    rest = text[start:]
+    rest = text[found.end():]
     nxt = rest.find("\n## ")
     return visible_prose(rest if nxt == -1 else rest[:nxt])
 

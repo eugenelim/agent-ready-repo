@@ -143,25 +143,36 @@ def _scan_for_leaks(output_root: Path, projected_paths: list[str]) -> list[str]:
 # Out-of-scaffold link targets the core seed tree carried before this change:
 # core's seeds mandate records and guides that core does not itself install.
 # Logged as `core-seeds-mandate-other-packs-content` in `[backlog].open` and
-# deliberately not repaired here. Listed rather than excluded by page, so an
-# edited page stays in domain for any target not on this list.
-DEFERRED_MISSING_TARGETS = frozenset(
+# deliberately not repaired here.
+#
+# Keyed by (scaffold page, target), not by target alone. A target-wide set
+# exempts the same string on a page that never carried it, so a newly added
+# `[guide](../guides/)` anywhere in the domain would be silently allowed —
+# the deferral covers the occurrences that already existed, nothing more.
+DEFERRED_MISSING_LINKS = frozenset(
     {
-        "adr/",
-        "../adr/",
-        "rfc/",
-        "../rfc/",
-        "guides/",
-        "../guides/",
-        "GOVERNANCE.md",
-        "personas.md",
-        "release-checklist.md",
+        ("docs/README.md", "adr/"),
+        ("docs/README.md", "rfc/"),
+        ("docs/README.md", "guides/"),
+        ("docs/product/README.md", "personas.md"),
+        ("docs/product/README.md", "release-checklist.md"),
+        ("docs/product/README.md", "../adr/"),
+        ("docs/product/README.md", "../rfc/"),
+        ("docs/product/README.md", "../guides/"),
+        ("docs/CHARTER.md", "adr/"),
+        ("docs/CHARTER.md", "GOVERNANCE.md"),
+        ("docs/architecture/README.md", "../adr/"),
+        ("docs/architecture/README.md", "../rfc/"),
     }
 )
 
 
-def _scan_for_missing_relative_links(path: Path) -> list[str]:
-    """Return repository-relative Markdown links whose targets are absent."""
+def _scan_for_missing_relative_links(path: Path, relative: str) -> list[str]:
+    """Return repository-relative Markdown links whose targets are absent.
+
+    `relative` is the page's scaffold-relative path, which keys its deferred
+    exceptions; `path` is where that page was written for this run.
+    """
     violations: list[str] = []
     content = path.read_text(encoding="utf-8")
     for lineno, line in enumerate(content.splitlines(), start=1):
@@ -169,10 +180,10 @@ def _scan_for_missing_relative_links(path: Path) -> list[str]:
             target = raw_target.split("#", 1)[0]
             if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
                 continue
-            if target in DEFERRED_MISSING_TARGETS:
+            if (relative, target) in DEFERRED_MISSING_LINKS:
                 continue
             if not (path.parent / target).exists():
-                violations.append(f"{path.name}:{lineno}: missing link target {target!r}")
+                violations.append(f"{relative}:{lineno}: missing link target {target!r}")
     return violations
 
 
@@ -238,13 +249,14 @@ def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
         "docs/specs/README.md",
         "docs/product/README.md",
         "docs/CHARTER.md",
+        "docs/architecture/README.md",
     )
 
     violations: list[str] = []
     for relative in touched:
         page = output_root / relative
         assert page.is_file(), f"scaffold is missing {relative}"
-        violations.extend(_scan_for_missing_relative_links(page))
+        violations.extend(_scan_for_missing_relative_links(page, relative))
 
     assert not violations, (
         "scaffold pages contain links unavailable to adopters:\n  " + "\n  ".join(violations)

@@ -532,3 +532,58 @@ earlier wave had edited. Neither is reachable by running the suite that owns
 the changed file, because neither failure lives in a suite — one lives in build
 output and one in a pin held by a different tool. The chain is the only place
 they surface.
+
+## Round 10 — review of the round-9 repairs
+
+Six findings over the repair commits alone. Four sustained, two refuted.
+
+**Correction to round 9 above.** That entry says "Three uses resolve
+otherwise". Three is the number of disposition *kinds*; the counts are five
+recorded dispositions and eight same-file uses, both measured from
+`RECORDED_DISPOSITIONS` and from `anchor-inventory.txt` against
+`anchor-map.txt`. The round-9 text stands as written and this entry is the
+correction, because the sentence was true of the code when it was written and
+became wrong when two more dispositions were added in the same commit.
+
+**A repair left the control half-blind, and the reviewer found the same class
+twice in a row.** Round 9 fixed AC6 by opening the consumer; round 10 found
+that the resolver then split each link on `#` and compared only the path. So
+the check passed whenever the consumer happened to hold *any* bare link to the
+mapped destination, and several do — `CONTRIBUTING.md:29`,
+`guides/core/how-to/bug-fix.md:20`, `token-economy.md:95`. The
+fragment-bearing replacement could be deleted outright, or pointed at a
+heading that does not exist, and AC6 stayed green. The heading was available
+the whole time: `anchor-map.txt` records it in its fourth column, and
+`unresolved_uses` had already proved it exists in the destination — the one
+thing never checked was whether the consumer's own link pointed at it. Proved
+by all three mutations: fragment re-pointed at a nonexistent heading, fragment
+deleted with a bare link left behind, and both mapped fragments broken at once.
+
+The general shape: a control that reads two artifacts can be tightened on one
+and stay loose on the other, and the loose half is invisible because the tight
+half is what the repair commit is about.
+
+**A prefix match is not a heading match.** Round 9 anchored `section_of` to a
+line boundary at the start but tested it with `in`, so `## Documentation
+extras` still satisfied a lookup for `Documentation`. Renaming a heading is
+exactly how the placement half of AC17 and AC20 would be lost. Now an anchored
+`^## <heading>$` regex; renaming the seed's `## Documentation` reds three
+assertions.
+
+**A target-wide exception exempts pages that never earned it.** The deferred
+out-of-scaffold links were listed by target alone, so a newly added
+`[guide](../guides/)` on any scanned page would have been silently allowed.
+Now keyed by `(page, target)`, which is the occurrence the deferral was granted
+for. `docs/architecture/README.md` — a core-installed scaffold page this change
+edited — was also missing from the scanned set and is now in it.
+
+**Two refuted.** The claim that the four relocated product-area rows replaced
+§ 5b's obligations with different contracts: the original descriptions name
+this catalogue's own packs, skills, config files and register filenames, and
+shipped pack content may not cite those, so portable rows are the required
+outcome rather than a loss. Checked against the deleted revision directly, not
+inferred. Its one tree-testable sub-claim runs the other way — `research/` here
+holds 39 flat `<slug>.md` files, so the row states current reality. The second
+refuted finding claimed the same-file short-circuit returns before the consumer
+is read; when consumer and destination are the same file, the consumer is
+precisely the file whose headings were already verified.
