@@ -82,8 +82,10 @@ Two owning suites, and the registration that decides whether one of them runs.
 - **`packs/core/tests/pack/`** — the pack-local assertions for the three
   `references/` files and the authority statements.
 - **`tools/test_stasis_retirement_claims.py`** — the assertions over `guides/`
-  and `web/src/content/`. They cannot live in the pack suite: a pack test may not
-  read above its own pack.
+  and `web/src/content/`, **and AC-0006's absence sweep**. All three cannot live
+  in the pack suite: a pack test may not read above its own pack, and the sweep's
+  corpus spans `guides/`, `web/src/content/` and the tracked projections as well
+  as pack content.
 
 **The `tools/` suite needs two registrations, and only one of them makes it
 gate-backed.** `tools/lint-pack-test-boundary.py` fails any suite no runner
