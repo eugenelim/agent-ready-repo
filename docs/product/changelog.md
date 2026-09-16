@@ -60,6 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.7] — 2026-09-16
+
+### Added
+
+- `work-loop`'s mutation-proof reference names the four shapes that make a test
+  unable to fail: a fixture that puts the asserted path out of reach, an absence
+  the test harness itself guarantees, two independently sufficient mechanisms
+  where no single removal changes an outcome, and an assertion naming a message
+  the code under test never emits. It already said a test that passes under its
+  mutation is not proof; it now says how to recognise one before mutating.
+
 ## [core][2.26.6] — 2026-09-15
 
 ### Fixed
