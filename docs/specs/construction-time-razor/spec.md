@@ -30,8 +30,9 @@ adequate hit, and stops at the first rung that satisfies the task's `Done when:`
 — including when the task body's `Approach:` names a heavier construction than
 that rung. It records which rung it stopped at, so a supervisor reading the
 report can see the decision rather than infer it. A supervisor writing the
-declination register names the rung that killed each temptation, so a declined
-addition is graded against the ladder instead of against an ad-hoc reason.
+declination register names the rung that killed each temptation, so a reader can
+see a declined addition against the ladder instead of against an ad-hoc reason.
+Both recordings are working material: they are read, not graded.
 
 The user is anyone who installs the core pack and runs its delivery loop. Success
 is that a reusable helper is reused, an unnecessary abstraction is not built, and
@@ -41,7 +42,8 @@ both outcomes are legible in the report.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Current product truth | Applicable — the shipped agent and skill contracts are the behaviour | `packs/core/.apm/agents/implementer.md`, `packs/core/.apm/skills/work-loop/SKILL.md` | pack maintainer | Scored probe runs recorded in the verification ledger | Both files carry the rules and self-host is clean |
+| Current product truth, gated | Applicable — the implementer's reuse and lighter-route rules are the gated behaviour | `packs/core/.apm/agents/implementer.md` | pack maintainer | Scored probe runs recorded in the verification ledger | The file carries the rules, its criteria hold, and self-host is clean |
+| Current product truth, recorded | Applicable — the rung-recording rules survive as working material | `packs/core/.apm/agents/implementer.md`, `packs/core/.apm/skills/work-loop/SKILL.md` | pack maintainer | Recorded, unscored probe observations in the verification ledger, plus the content pins | Both files carry the rules, each pin fails on its own obligation's removal, and self-host is clean |
 | Interface compatibility | Applicable — pack content changed, so installed copies must be re-derivable | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | pack maintainer | Matching patch version in both manifests | Versions match and `agentbundle catalogue verify` passes |
 | Release history | Applicable — adopters read the changelog to decide whether to re-install | `CHANGELOG.md` `[core]` under `[Unreleased]` | pack maintainer | A `[core]` entry naming the behaviour change | Entry sits directly under `[Unreleased]` |
 | Behaviour register | Applicable — the pack owes an eval-harness update on non-cosmetic change | `packs/core/.apm/skills/work-loop/evals/evals.json` | pack maintainer | Frozen cases for the reuse, lighter-route and declination rules | Cases present and labelled as register entries, not detection |
