@@ -311,3 +311,71 @@ record afterwards.
 A plan that stayed substantively editable after approval would be a second,
 unversioned account of what we did, competing with the ADR that records why. A
 genuine error in either approved artifact follows the controlled-amendment path.
+
+### Superseding a frozen document
+
+A later decision often reverses part of an earlier one. The earlier document
+still describes what was true when it shipped, so it is not wrong — but a
+reader who starts there must not be left following a rule you no longer keep.
+
+**The pointer goes in the `Status` field, and only there.** That is the one
+field a frozen document already makes mutable, so no new exemption is needed.
+Form:
+
+```
+- **Status:** Shipped (superseded in part by ADR-NNNN — <what changed>; everything else stands)
+- **Status:** Done (superseded in part by ADR-NNNN — <what changed>; everything else stands)   # plan.md
+```
+
+Four rules, each earning its place:
+
+1. **Say "in part" and say which part.** A bare "superseded" invites a reader
+   to discard a document that is mostly still correct.
+2. **Point at the ADR, not at the spec that implemented it.** The ADR is the
+   decision record and is where the reasoning lives.
+3. **Annotate both ends — between ADRs.** The superseding ADR names what it
+   supersedes; the superseded ADR points forward. A one-way pointer only helps
+   readers who already arrived from the right side.
+
+   The **spec end is deliberately one-way**: ADRs do not cite specs (see
+   § *Cite upward, never downward* above), so a superseded spec points at the
+   ADR and the ADR does not point back. That is the intended asymmetry, not a
+   gap to close.
+4. **Do not change the body's meaning — including "just adding a line".** An
+   append is a body edit. The residue is real and accepted: someone who greps
+   mid-file still lands on the old rule with no pointer in view. The mitigation
+   is that the *operative* instruction lives in a living file at the point of
+   use — a config header, a linter's message — not that the frozen record is
+   patched.
+
+   **Carve-out: meaning-preserving mechanical rewrites are allowed** — a path
+   or link rename, a moved file's reference, a repository-wide identifier
+   change. What freezes is the *record of the decision*, not the spelling of a
+   path that has since moved; a frozen document with dangling links is a worse
+   record, not a purer one. The test is whether a reader's understanding of
+   what was decided changes. If it does, it is not mechanical.
+
+These four rules are **convention-enforced, not machine-enforced**: a status
+linter checks the token's vocabulary and nothing else. A reviewer is the only
+thing standing between a supersession and a one-way, unscoped, or body-editing
+annotation.
+
+**The same carrier, for a pointer that is not a supersession.** A frozen
+document sometimes names an open backlog anchor — "Deferred as `<slug>`",
+"recorded as `<slug>`" — and the change that works the entry deletes the slug,
+leaving the prose pointing at nothing. A reader then cannot tell whether the
+work was done or lost, and a deferral-marker check does not catch it: it reads
+`(deferred: <slug>)` markers only. Record it on the `Status` line, in the same
+form and under the same carrier. **Rules 3 and 4 hold unchanged** — the pointer
+is one-way and no body line moves. **Rules 1 and 2 do not apply**: nothing was
+superseded, so there is no part to scope and no ADR to point at; name the spec
+that closed the anchor, which is the only record there is. Say plainly that it
+is not a supersession, so a later reader does not discount a document that is
+entirely still correct. Form:
+
+```
+- **Status:** Shipped (§ <section>'s register anchor `<slug>` was closed by
+  <spec>; not a supersession — every decision here stands)
+```
+
+Link the closing spec, the way the supersession form links its ADR.
