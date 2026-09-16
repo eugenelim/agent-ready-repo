@@ -188,12 +188,13 @@ after the status token on the status line.
 **Repeated findings.** `review inspect --json` returns
 `matches_previous_round: true` when a round's fingerprint set equals the
 previous round's exactly. Surface it; it starts no transition and stops no
-loop. It is not a stasis detector: the fingerprint carries a line number and
-an ordinal, so a repair that moves a finding gives it a new fingerprint, and
-a repair that shifts a line gives an otherwise-identical finding a new
-fingerprint, so the flag reads false through most real recurrence. It misses
-what it was built to catch, which is why the halt it once carried is retired.
-A false reading is not evidence that the round made progress.
+loop. It is not a stasis detector: the preimage carries the finding's
+position, so a repair that shifts a line gives an otherwise-identical finding
+a new fingerprint and the flag reads false through most real recurrence. It
+still fires on a round that edited nothing at all, which is the one stall it
+does catch and the reason it is worth Surfacing. A false reading is not
+evidence that the round made progress, which is why the halt it once carried
+is retired.
 
 **Atomic writes.** Both tools update their JSON files through
 `tempfile.mkstemp` + `os.replace`. A partial-write cannot present as malformed

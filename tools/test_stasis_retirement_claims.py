@@ -104,8 +104,12 @@ def test_no_retired_claim_matches_preserved_published_text(claim: str) -> None:
 @pytest.mark.parametrize(
     "paragraph",
     (
-        "The extra five steps — gates, adversarial review, specialist reviewers, "
-        "reporting repeated findings, learning capture",
+        # Two requirements pulled against each other here: the enumeration must
+        # match the numbered list it introduces, and AC-0005 requires the prose
+        # to claim the cap. The pin covers both halves.
+        "reporting repeated findings, learning capture — are the ones that catch "
+        "the failures spec-shape alone can't, and a mechanical iteration cap "
+        "bounds the loop around them",
         "reviewer findings send you back to FIX, and the iteration cap sends you "
         "to a human",
     ),

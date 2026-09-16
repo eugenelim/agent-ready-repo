@@ -240,7 +240,7 @@ full mode, or pass `--report <raw-report-path>`.
 | `invalid` | Surface and stop without state change or mutation, except the exact machine-checkable evidence route above. |
 | `clean` | Raw classifier accepted the closed sentinel/footer grammar; run remaining reviewers. |
 | `findings` | Use only sustained entries and returned fingerprints. |
-| `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Read it as a weak signal: it is equality over a fingerprint whose preimage carries the finding's position, so a repair that shifts a line gives an otherwise-identical finding a new fingerprint. The flag therefore reads false through most real recurrence, and a false reading is not evidence of progress. Full mode only — light mode holds no prior-round fingerprints. |
+| `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Read it as a weak signal: it is equality over a fingerprint whose preimage carries the finding's position, so a repair that shifts a line gives an otherwise-identical finding a new fingerprint. The flag therefore reads false through most real recurrence; it still fires on a round that edited nothing at all, and a false reading is not evidence of progress. Full mode only — light mode holds no prior-round fingerprints. |
 
 For sustained findings, transition before recording so the retry guard sees the
 pre-increment count. **Do not record if the transition exits non-zero.** The

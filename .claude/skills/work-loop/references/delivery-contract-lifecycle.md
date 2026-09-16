@@ -129,9 +129,10 @@ Stop the current iteration when any of these is true:
    identify their condition. A repeated finding fingerprint from `review inspect`
    is Surfaced, not a stop. Its preimage carries the finding's position, so a
    repair that shifts a line gives an otherwise-identical finding a new
-   fingerprint: the comparison reads false through most real recurrence and
-   misses what it was built to catch. The halt it once triggered is retired for
-   that reason.
+   fingerprint and the comparison reads false through most real recurrence. It
+   still fires on a round that edited nothing at all, which is worth seeing;
+   what it cannot do is bound the loop, so the halt it once triggered is
+   retired.
 3. The diff is shrinking but findings are not. Stop spot-fixing and return to the
    plan/root cause.
 

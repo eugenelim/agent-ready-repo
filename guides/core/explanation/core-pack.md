@@ -161,7 +161,7 @@ Two well-known spec-driven workflows exist; the core pack overlaps with both but
 | Supervisor-mode parallelism for independent tasks | — | ✓ |
 | Cross-harness reach | partial (multiple agent harnesses supported) | ✓ (direct adapters for Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro — plus APM's `HookIntegrator` for the targets it covers) |
 
-Spec Kit's spec-driven loop terminates at `/implement` — there's no state-machine loop around it that re-fires until an adversarial reviewer returns clean. The core pack treats `/implement` as step 5 of 10. The extra five steps — gates, adversarial review, specialist reviewers, reporting repeated findings, learning capture — are the ones that catch the failures spec-shape alone can't.
+Spec Kit's spec-driven loop terminates at `/implement` — there's no state-machine loop around it that re-fires until an adversarial reviewer returns clean. The core pack treats `/implement` as step 5 of 10. The extra five steps — gates, adversarial review, specialist reviewers, reporting repeated findings, learning capture — are the ones that catch the failures spec-shape alone can't, and a mechanical iteration cap bounds the loop around them.
 
 ### vs. Kiro IDE's spec-driven mode
 
