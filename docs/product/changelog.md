@@ -96,7 +96,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the code under test never emits. It already said a test that passes under its
   mutation is not proof; it now says how to recognise one before mutating.
 
-
 ## [core][2.26.6] — 2026-09-15
 
 ### Fixed
