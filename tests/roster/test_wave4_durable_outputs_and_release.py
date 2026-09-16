@@ -34,7 +34,7 @@ def test_every_planned_durable_output_exists_at_its_owner() -> None:
         "guides/core/how-to/close-and-disposition-work.md",
         "guides/core/reference/work-intake-routing-and-lifecycle.md",
         "guides/core/reference/spec-shape-and-lld.md",
-        "docs/CONVENTIONS.md",
+        "docs/README.md",
         "guides/core/reference/workspace-toml-schema.md",
         "packs/core/README.md",
         "packs/core/JOURNEY.md",

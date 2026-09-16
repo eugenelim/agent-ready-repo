@@ -6,9 +6,11 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CORE_CONVENTIONS_SEED = REPO_ROOT / "packs/core/seeds/docs/CONVENTIONS.md"
-ROOT_CONVENTIONS = REPO_ROOT / "docs/CONVENTIONS.md"
+CORE_DOCS_MAP_SEED = REPO_ROOT / "packs/core/seeds/docs/README.md"
 
+# Seven documents, not eight. The retired conventions document was the eighth;
+# the review-lens distinction it carried moved into core-pack.md § Why the loop,
+# which is already in this set, so the entry drops rather than being replaced.
 SHAPING_REVIEW_DOCUMENTS = (
     REPO_ROOT / "guides/_shared/explanation/the-three-loops.md",
     REPO_ROOT / "guides/core/explanation/core-pack.md",
@@ -17,7 +19,6 @@ SHAPING_REVIEW_DOCUMENTS = (
     REPO_ROOT / "packs/core/DESIGN.md",
     REPO_ROOT / "packs/core/docs/index.md",
     REPO_ROOT / "packs/core/JOURNEY.md",
-    CORE_CONVENTIONS_SEED,
 )
 
 
@@ -48,8 +49,12 @@ def test_core_index_keeps_shaping_reviewer_outside_code_review_subagent_list() -
     assert "shaping-reviewer" not in subagents_line
 
 
-def test_core_conventions_projection_matches_its_seed() -> None:
-    """Require scaffold sync after a portable Core conventions change."""
-    assert ROOT_CONVENTIONS.read_text(encoding="utf-8") == CORE_CONVENTIONS_SEED.read_text(
-        encoding="utf-8"
-    )
+def test_core_docs_map_seed_is_shipped() -> None:
+    """The scaffold's entry point into its own documentation must exist.
+
+    This replaced a byte-parity assertion between the retired conventions
+    document and its seed. `docs/README.md` deliberately diverges — the seed
+    carries a placeholder row and the repository's copy names areas no pack
+    seeds — so parity is the wrong relation and presence is the right one.
+    """
+    assert CORE_DOCS_MAP_SEED.is_file()

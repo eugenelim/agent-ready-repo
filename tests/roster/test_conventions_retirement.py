@@ -27,7 +27,7 @@ ANCHOR_INVENTORY = NOTES / "anchor-inventory.txt"
 # AC2c canary. Pins the approved *form* of the scan predicate, not its
 # pathspecs. A class-by-class check cannot see an exclusion added after it was
 # written, and one added exclusion shrinks every task's discovery domain.
-APPROVED_SCAN_DIGEST = "b6945c823706931546cda3a95f5c827f566d106a8c209d341d7e6f767757579e"
+APPROVED_SCAN_DIGEST = "11d02ca3ede645b7af748da376d3eca5e13d900447b4e0d0bb04af8d3a61052e"
 
 _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 

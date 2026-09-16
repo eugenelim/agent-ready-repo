@@ -14,7 +14,7 @@ def test_new_spec_consumes_mapped_sources_before_name_based_fallback() -> None:
     assert "When no usable map exists" in text
     assert "common names and repository references" in text
     assert "docs/architecture/reference.md" not in text
-    assert "docs/CONVENTIONS.md" not in text
+    assert "AGENTS.md" not in text
 
 
 def test_new_spec_bounds_structural_example_discovery_and_asks_on_absence() -> None:

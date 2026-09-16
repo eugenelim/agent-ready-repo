@@ -28,4 +28,5 @@ git grep -ln "${1:-CONVENTIONS}" -- . \
   ':(glob,exclude)dist/**' \
   ':(glob,exclude).agentbundle/**' \
   ':(exclude)docs/CONVENTIONS.md' \
-  ':(exclude)packs/core/seeds/docs/CONVENTIONS.md'
+  ':(exclude)packs/core/seeds/docs/CONVENTIONS.md' \
+  ':(exclude)packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py'

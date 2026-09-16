@@ -127,7 +127,7 @@ def _flat(text: str) -> str:
 #: `relative path`, bounded anchor, pinned clauses, routing clauses.
 SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
-        "packs/core/seeds/docs/CONVENTIONS.md",
+        "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
         "### A spec directory freezes as a unit, when the spec ships",
         (
             "only while the plan is `Drafting`, and ends when the plan is approved",
@@ -136,7 +136,7 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         ("An observation produced by execution belongs in the sibling `notes/verification-ledger.md`",),
     ),
     (
-        "packs/core/seeds/docs/CONVENTIONS.md",
+        "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
         "**`plan.md` is the implementation strategy.**",
         (
             "It may change substantively only while `Drafting`; once approved, both it and `spec.md` are pinned except for lifecycle bookkeeping",
@@ -144,7 +144,7 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         (),
     ),
     (
-        "packs/core/seeds/docs/CONVENTIONS.md",
+        "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
         "**Lifecycle:** specs are",
         (
             "from approval onward the correction is the controlled-amendment path, not an in-flight edit",
@@ -400,15 +400,15 @@ def test_the_core_release_surfaces_agree() -> None:
 
 #: Every guarded region, as `(path, anchor)`, pinned independently of `SOURCES`.
 #: Path membership alone is not enough once one path owns several regions: two
-#: rows of `CONVENTIONS.md` can become one and leave the distinct-path tuple
+#: rows of one source can become one and leave the distinct-path tuple
 #: unchanged, so the deleted region's clauses stop being asserted while every
 #: test stays green. That is the round-2 defect — a table that both defines and
 #: drives its own assertions — recurring one level down, so the regions are
 #: enumerated here too.
 AC3_REQUIRED_REGIONS = (
-    ("packs/core/seeds/docs/CONVENTIONS.md", "### A spec directory freezes as a unit, when the spec ships"),
-    ("packs/core/seeds/docs/CONVENTIONS.md", "**`plan.md` is the implementation strategy.**"),
-    ("packs/core/seeds/docs/CONVENTIONS.md", "**Lifecycle:** specs are"),
+    ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "### A spec directory freezes as a unit, when the spec ships"),
+    ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "**`plan.md` is the implementation strategy.**"),
+    ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "**Lifecycle:** specs are"),
     ("packs/core/.apm/skills/new-spec/assets/plan.md", "> **Plan contract:**"),
     ("packs/core/.apm/skills/new-spec/assets/plan.md", "**Done when:** <name a concrete observable"),
     ("packs/core/.apm/skills/new-spec/assets/plan.md", "## Changelog"),
@@ -421,7 +421,7 @@ AC3_REQUIRED_REGIONS = (
 #: AC3's closed set, pinned independently of `SOURCES` so deleting a row from
 #: one cannot silently shrink the other.
 AC3_REQUIRED_SOURCES = (
-    "packs/core/seeds/docs/CONVENTIONS.md",
+    "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
     "packs/core/.apm/skills/new-spec/assets/plan.md",
     "packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md",
     "guides/core/explanation/why-the-plan-owns-the-lld.md",

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SUPERVISOR = ROOT / "packs/core/.apm/skills/work-loop/references/supervisor-mode.md"
 EVALS = ROOT / "packs/core/.apm/skills/work-loop/evals/evals.json"
-SEED = ROOT / "packs/core/seeds/docs/CONVENTIONS.md"
+SEED = ROOT / "packs/core/seeds/AGENTS.md"
 IMPLEMENTER = ROOT / "packs/core/.apm/agents/implementer.md"
 GUIDE = ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
 

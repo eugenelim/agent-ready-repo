@@ -1530,7 +1530,7 @@ _WORK_LOOP_CONTRACT_HASH = (
 # (3) That same rewrite initially dropped the spec-vocabulary parenthetical it
 # inherited from `main`; it is restored here, scoped to `spec.md`, because the
 # `lint-spec-status.py` failure warning has no other home —
-# `docs/CONVENTIONS.md` owns the vocabularies but not that warning.
+# the spec-and-plan contract reference owns the vocabularies but not that warning.
 # (4) The Direct-light handoff bullet inside the same window now reads
 # "non-goals and independently scoped follow-ons" instead of "non-goals and
 # deferrals" — this wave's AC3 wording, pinned by

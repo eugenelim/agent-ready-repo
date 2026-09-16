@@ -321,7 +321,7 @@ def test_path_form_backlink_joins_to_brief() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # The canonical `Brief:` spelling is the brief's repository-relative
-        # path — the form the spec template, `docs/CONVENTIONS.md`, and
+        # path — the form the spec template, the owning guide, and
         # workspace-status provenance all require. It must resolve to the same
         # brief as the bare slug, or untracked detection silently stops firing
         # for every path-form spec.

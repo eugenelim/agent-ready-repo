@@ -11,7 +11,7 @@ Two kinds of assertion, deliberately:
 
 No `xfail`. An unconditionally-raising body under `xfail(strict=True)` exits 0,
 can never XPASS, and stays green after the feature ships — the shape
-docs/CONVENTIONS.md forbids.
+the pack-layout contract forbids.
 
 Traces to docs/specs/claude-plugin-route-scope/spec.md.
 """

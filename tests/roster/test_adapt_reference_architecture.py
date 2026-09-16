@@ -1,7 +1,7 @@
 """Roster checks spanning core's reference-architecture assets and guides.
 
 Every pack subject is core's `adapt-to-project` skill — its
-`assets/reference.md` template, its SKILL.md, and the CONVENTIONS seed. The four
+`assets/reference.md` template, its SKILL.md, and the seeded docs map. The four
 guides are repository documentation; `guides/architect/` is a guide-tree path,
 not a dependency on the architect pack.
 
@@ -10,7 +10,7 @@ Covers, per the spec's Testing Strategy:
     carries the fill-only guidance, and is adopter-clean.
   - T3: the `adapt-to-project` SKILL.md documents the Class-3 optional
     reference-architecture enrichment, and that subsection is adopter-clean.
-  - T4: the CONVENTIONS seed seats `reference.md` in the document-hierarchy
+  - T4: the seeded docs map seats `reference.md` in the document-hierarchy
     diagram, and the lines this feature added are adopter-clean.
   - T5: the four user guides exist, every intra-repo relative link in them
     resolves on disk (file + anchor), the reference guide states all four
@@ -158,7 +158,7 @@ def test_harvest_subsection_is_adopter_clean() -> None:
 
 # --- T4: the seeded docs map ---------------------------------------------
 #
-# This slice moved from the retired `docs/CONVENTIONS.md` § Document hierarchy
+# This slice moved from the retired conventions document's § Document hierarchy
 # to `packs/core/seeds/docs/README.md`. The operative content is the
 # descriptive-versus-normative distinction between the two architecture
 # documents; the ASCII diagram that carried it was presentation, so the
