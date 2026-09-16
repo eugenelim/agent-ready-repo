@@ -290,7 +290,7 @@ def main() -> int:
     link_re = re.compile(r"\]\(([^)]+)\)")
     link_files = [
         f for f in active_agents if not _is_vendored(f) and not _is_fixture(f)
-    ] + [Path("docs/CONVENTIONS.md")]
+    ]
     for f in link_files:
         f_str = f.as_posix()
         if not f.is_file():
@@ -331,7 +331,7 @@ def main() -> int:
     if Path("docs/constitution").is_dir():
         note(
             "docs/constitution/ exists. This was replaced by docs/CHARTER.md"
-            " — see docs/CONVENTIONS.md."
+            " — see the owning guide or skill."
         )
     else:
         ok("No legacy docs/constitution/ directory.")
@@ -411,7 +411,6 @@ def main() -> int:
         [
             ".claude/skills/work-loop/SKILL.md",
             "AGENTS.md",
-            "docs/CONVENTIONS.md",
         ],
     )
 
@@ -422,7 +421,6 @@ def main() -> int:
         [
             ".claude/skills/work-loop/SKILL.md",
             "AGENTS.md",
-            "docs/CONVENTIONS.md",
         ],
     )
 
@@ -430,12 +428,12 @@ def main() -> int:
     drift_check(
         r"\*\*Goal-based check\*\*",
         ".claude/skills/work-loop/SKILL.md",
-        ["AGENTS.md", "docs/CONVENTIONS.md"],
+        ["AGENTS.md"],
     )
 
     # 10d — Vendor-specific UX tokens belong under .claude/ only.
     vendor_re = re.compile(r"\bultrathink\b|Plan Mode \(Shift\+Tab")
-    for f_str in ("AGENTS.md", "docs/CONVENTIONS.md", "docs/CHARTER.md"):
+    for f_str in ("AGENTS.md", "docs/CHARTER.md"):
         f = Path(f_str)
         if not f.is_file():
             continue

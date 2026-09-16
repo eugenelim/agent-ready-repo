@@ -18,7 +18,7 @@ Before construction, callers may use the internal `shaping-reviewer` to test a c
 
 **Hooks:** `pre-pr` (pre-commit gate runner), `session-start` (orient on wakeup), `work-loop-check` (iteration-cap enforcement).
 
-**Seeds:** `AGENTS.md`, `CLAUDE.md`, `CHARTER.md`, `CONVENTIONS.md`, `docs/architecture/`, `docs/knowledge/`, `docs/product/` (including the minimal-intent template), `docs/specs/`, `workspace.toml` — the full repo scaffold installed on first install.
+**Seeds:** `AGENTS.md`, `CLAUDE.md`, `CHARTER.md`, `docs/README.md`, `docs/architecture/`, `docs/knowledge/`, `docs/product/` (including the minimal-intent template), `docs/specs/`, `workspace.toml` — the full repo scaffold installed on first install.
 
 See the README for the complete manifest table.
 

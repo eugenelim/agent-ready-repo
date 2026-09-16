@@ -60,7 +60,6 @@
 .codex/hooks.json                                         merge=regen
 /AGENT_RULES.md                                           merge=regen
 docs/AGENTS.md                                            merge=regen
-docs/CONVENTIONS.md                                       merge=regen
 governance/manifest.example.yaml                          merge=regen
 packages/agentbundle/agentbundle/_data/close_work.py      merge=regen
 packages/agentbundle/agentbundle/_data/cooling.py         merge=regen

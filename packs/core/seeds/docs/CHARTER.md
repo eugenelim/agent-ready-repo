@@ -56,7 +56,7 @@ To keep this file from becoming everything-and-the-kitchen-sink:
 - **Current product state** lives in [`product/`](product/). The charter
   is direction; product/ is where we are.
 - **Current architecture state** lives in [`architecture/`](architecture/).
-- **Conventions for how we work** live in [`CONVENTIONS.md`](CONVENTIONS.md).
+- **Conventions for how we work** live in [`../AGENTS.md`](../AGENTS.md).
 - **Governance** (roles, decision-making processes, voting) lives in
   [`GOVERNANCE.md`](GOVERNANCE.md) if and when the project is large
   enough to need it. Most small/medium projects don't — a single

@@ -36,7 +36,7 @@ try:  # Python 3.11+ stdlib; the package targets 3.11+.
 except ModuleNotFoundError:  # pragma: no cover - 3.10 fallback if ever needed
     import tomli as tomllib  # type: ignore[no-redef]
 
-# Same grammar as pack names (docs/CONVENTIONS.md) and ``install._PACK_NAME_RE``.
+# Same grammar as pack names and ``install._PACK_NAME_RE``.
 PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 _HERE = Path(__file__).resolve().parent

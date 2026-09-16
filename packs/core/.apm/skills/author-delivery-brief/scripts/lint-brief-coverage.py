@@ -21,7 +21,7 @@ Rollup rules:
     `Shipped` children and cannot have an empty map.
   - A spec that back-links a brief but is absent from that brief's Spec map is
     reported **untracked** — informational, never an error. The canonical
-    back-link is the path form pinned by `docs/CONVENTIONS.md` § Spec metadata
+    back-link is the path form pinned by the owning guide § Spec metadata
     contract; the bare `Slug:` spelling is still matched here for backward
     compatibility only.
   - A `docs/product/briefs/_template.md` (or any `_`-prefixed file) is the
@@ -125,7 +125,7 @@ def parse_brief_slug(brief_text: str, fallback: str) -> str:
     """Return the brief's canonical slug from its `- **Slug:**` field.
 
     A derived spec's `Brief:` back-link canonically names the brief's
-    repository-relative path, the form pinned by `docs/CONVENTIONS.md`
+    repository-relative path, the form pinned by the owning guide
     § Spec metadata contract; the bare slug is matched only for backward
     compatibility. The template pins slug == filename stem, but the join keys
     off this field (and, for the path spelling, off the file itself), so a
@@ -317,7 +317,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         # Untracked: specs that back-link this brief but aren't in its map.
         # A back-link names the brief either by its `Slug:` identity or by its
         # canonical repository-relative path (the form the spec template,
-        # `docs/CONVENTIONS.md`, and workspace-status provenance all specify);
+        # the owning guide, and workspace-status provenance all specify);
         # both resolve to this brief, so either spelling is recognised here.
         for slug in untracked:
             out.append(

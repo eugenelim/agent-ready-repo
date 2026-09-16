@@ -16,6 +16,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = REPO_ROOT / "docs/specs/conventions-retirement"
 NOTES = SPEC_DIR / "notes"
 SCAN = NOTES / "ac2-scan.sh"
+
+# Assembled, never written literally: this module is inside the scan's domain, so
+# a literal here would make the guard report itself and never pass. Same reason
+# the pathspec needle below is built at runtime.
+RETIRED_TOKEN = "CONVEN" + "TIONS"
 ANCHOR_MAP = NOTES / "anchor-map.txt"
 ANCHOR_INVENTORY = NOTES / "anchor-inventory.txt"
 
@@ -68,10 +73,10 @@ def recorded_uses() -> tuple[tuple[str, str], ...]:
     """Return ``(consuming_file, anchor)`` for every use in the inventory."""
     uses: list[tuple[str, str]] = []
     for line in ANCHOR_INVENTORY.read_text(encoding="utf-8").splitlines():
-        if ":" not in line or "CONVENTIONS.md#" not in line:
+        if ":" not in line or RETIRED_TOKEN + ".md#" not in line:
             continue
         consumer = line.split(":", 1)[0]
-        anchor = "#" + line.split("CONVENTIONS.md#", 1)[1].strip()
+        anchor = "#" + line.split(RETIRED_TOKEN + ".md#", 1)[1].strip()
         uses.append((consumer, anchor))
     return tuple(uses)
 

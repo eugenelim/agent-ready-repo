@@ -21,7 +21,7 @@
 ├── contracts/            # portable TOML/JSON contracts and schemas
 ├── docs/
 │   ├── CHARTER.md        # mission, scope, principles
-│   ├── CONVENTIONS.md    # how we work
+│   ├── README.md         # what belongs where in docs/
 │   ├── rfc/              # proposals (governance)
 │   ├── adr/              # architecture decisions (frozen history)
 │   ├── specs/            # feature specs and plans
