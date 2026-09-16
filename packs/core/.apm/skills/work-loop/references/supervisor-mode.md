@@ -14,7 +14,10 @@ stops the run on a dependency cycle. It reports a forward reference (a task
 whose declared dependency is authored later) on stderr, corrects the wave order
 so the dependency runs first, and continues. A `Depends on:` entry that
 names no task in the plan is refused: `schedule` exits non-zero and names every
-offending task→dependency pair without persisting any state.
+offending task→dependency pair without persisting any state. The field is read
+up to its first `(`, so an ID written inside or after parenthetical prose is
+commentary rather than a declared dependency — it is neither scheduled as an
+edge nor reported as unknown.
 
 This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the

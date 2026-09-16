@@ -693,3 +693,29 @@ def test_merge_abort_backstop_free_of_auto_parallel():
     import inspect
     # The merge-abort backstop cannot be influenced by the flag.
     assert "auto_parallel" not in inspect.getsource(lc.cmd_worktree_merge)
+
+
+def test_detect_unknown_deps_has_exactly_one_call_site():
+    """The unknown-dependency refusal must keep exactly one call site.
+
+    Its mutation proof works by deleting that call and watching both the CLI and
+    the amendment suites go red. A second, defensive call anywhere else would
+    still refuse on its own, so the deletion would leave every test green and the
+    proof would pass for a guard that is no longer there. This check is what
+    stops that happening silently: it reads the shipped module source and counts
+    calls outside the definition.
+    """
+    source = LC_PATH.read_text(encoding="utf-8")
+    call_lines = [
+        line.strip()
+        for line in source.splitlines()
+        if "detect_unknown_deps(" in line and not line.lstrip().startswith("def ")
+    ]
+    assert len(call_lines) == 1, (
+        "detect_unknown_deps must have exactly one call site; found "
+        f"{len(call_lines)}: {call_lines}"
+    )
+    assert "scan_task_ids=" in call_lines[0], (
+        "the scan set must be passed by keyword, so it cannot be mistaken for "
+        f"the resolution set: {call_lines[0]}"
+    )

@@ -516,7 +516,15 @@ MAX_AMENDMENT_STATE_BYTES = 1024 * 1024
 
 
 def _local_dep_ids(field: str) -> set[str]:
-    """Every local task ID a `Depends on:` field names, before plan membership filters it."""
+    """Local task IDs a `Depends on:` field names ahead of its first `(`.
+
+    Trailing parenthetical prose is authored commentary, not declaration, so the
+    field is truncated there. An ID written after that `(` is therefore not a
+    declared dependency for any caller: it is neither scheduled as an edge nor
+    reported as unknown. That is deliberate — widening it would change what
+    counts as a dependency for every caller of this helper, not just the
+    unknown-dependency check.
+    """
     head = field.split("(")[0]
     cleaned = _CROSS_MARKER_RE.sub("", head)
     cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
@@ -636,11 +644,16 @@ def schedule_unfinished_plan(plan_text: str, state: dict) -> list[list[str]]:
         task_id: dependencies.get(task_id, set()) & remaining_set
         for task_id in remaining
     }
+    # Keyword argument, never positional: the set in scope here is the scan set,
+    # and resolving against it instead of the whole plan would refuse every
+    # amended plan whose dependency is already completed.
     unknown = detect_unknown_deps(plan_text, scan_task_ids=remaining_set)
     if unknown:
         raise ValueError(
             "dependency names no task in the plan: "
             + ", ".join(f"{a}->{b}" for a, b in unknown)
+            + " — correct the ID in plan.md, or drop it from that task's"
+            " `Depends on:` line"
         )
     cycles = detect_cycles(remaining, remaining_dependencies)
     if cycles:

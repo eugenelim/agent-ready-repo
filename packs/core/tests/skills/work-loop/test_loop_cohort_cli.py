@@ -1021,11 +1021,16 @@ class LoopCohortCliTest(unittest.TestCase):
         self.assertEqual(state_path.read_bytes(), before)
 
     def test_49_schedule_corrected_plan_exits_zero_and_writes_waves(self) -> None:
-        """AC6 control: the same two-task fixture with the dependency corrected succeeds."""
+        """AC6 control: the same two-task fixture with the dependency corrected succeeds.
+
+        Asserts the exact wave partition, not merely that waves exist. The defect
+        this spec fixes drops the edge and collapses both tasks into one wave, so
+        a truthiness check would stay green against it.
+        """
         # PLAN_BODY has T2 -> T1 (valid), the corrected form of PLAN_UNKNOWN_SINGLE.
         spec_dir, run_id = self._approved()
         self._assert_cli(0, "schedule", str(spec_dir), "--expect-run-id", run_id)
-        self.assertTrue(self._state(spec_dir)["schedule_waves"])
+        self.assertEqual(self._state(spec_dir)["schedule_waves"], [["T1"], ["T2"]])
 
     def test_50_schedule_unknown_dep_beats_cycle_refusal(self) -> None:
         """AC4: when a plan has both an unknown dep and a cycle, the unknown-dep

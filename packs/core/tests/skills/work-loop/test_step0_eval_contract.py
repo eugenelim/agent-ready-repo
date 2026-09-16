@@ -34,10 +34,14 @@ def test_step0_evals_follow_canonical_workspace_preflight() -> None:
 
 
 def test_schedule_refuses_unknown_dependency_eval_contract() -> None:
-    """Eval entry for unknown-dependency refusal must pin the two distinguishing assertions.
+    """Eval entry for unknown-dependency refusal must name both topics in its assertions.
 
-    The catalogue lint only checks assertions are non-empty strings; it cannot
-    carry the refusal / forward-reference distinction.  This standing check does.
+    The catalogue lint only checks assertions are non-empty strings, so nothing
+    else notices if the entry stops mentioning refusal or the forward-reference
+    contrast at all.  This check pins that both topics are mentioned; it is a
+    substring search, so it does not observe polarity — an assertion could name
+    refusal and still say the wrong thing about it, and that is the eval run's
+    job to catch, not this one's.
     """
     import re
 
