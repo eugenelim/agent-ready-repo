@@ -1,23 +1,23 @@
 # Verification ledger — loop-cohort unknown dependency refusal
 
-## Mutation proof (T3, AC9) — re-derived against the shipped guard
+## Mutation proof (T3, AC9)
 
-The first run of this proof was taken before the refusal message gained its
-remedy clause, so its recorded line range and snippet described a guard that no
-longer shipped. Replaying it would have deleted unrelated control flow. It has
-been re-derived against the form that ships, and the record below is the
-re-derivation, not the original.
+Re-derived twice. The first run predated the refusal message's remedy clause, so
+its recorded line range described a guard that no longer shipped. The second was
+taken against the tree as it now stands, and everything below — line range,
+snippet, commands, counts and observed failures — comes from that single run, so
+no two parts of this section describe different runs.
 
 ### What was mutated
 
 **File:** `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`
 
-**Revision mutated:** `946370f8b` (the tree as it ships)
+**Revision mutated:** `44010e3ce`
 
 **Lines removed:** 650–657 — the single `detect_unknown_deps` call site inside
-`schedule_unfinished_plan`, immediately before its `detect_cycles` call. The
-three explanatory comment lines above it (647–649) were left in place, so the
-deletion is exactly the guard and nothing else.
+`schedule_unfinished_plan`, immediately before its `detect_cycles` call (line
+658 after removal). The three explanatory comment lines above it (647–649) were
+left in place, so the deletion is exactly the guard and nothing else.
 
 **Exact 8 lines deleted:**
 
@@ -37,25 +37,15 @@ deletion is exactly the guard and nothing else.
 ```
 python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q
 python3 -m pytest packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py -q
-python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py::test_detect_unknown_deps_has_exactly_one_call_site -q
+python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py -q
 ```
 
-### RED result, re-derived (guard deleted from the shipped form)
+### RED result (guard deleted)
 
 ```
-test_loop_cohort_cli.py            exit 1
-  FAILED ...::LoopCohortCliTest::test_47_schedule_refuses_single_unknown_dep
-  FAILED ...::LoopCohortCliTest::test_48_schedule_refuses_two_unknown_deps_names_both
-  FAILED ...::LoopCohortCliTest::test_50_schedule_unknown_dep_beats_cycle_refusal
-  3 failed, 59 passed, 22 subtests passed in 94.72s
-
-test_contract_amendment_wave4.py   exit 1
-  FAILED ...::test_schedule_unfinished_plan_raises_for_unknown_dep
-  FAILED ...::test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle
-  2 failed, 25 passed in 0.64s
-
-test_..._has_exactly_one_call_site  exit 1
-  1 failed in 0.26s   (0 call sites, not 1)
+test_loop_cohort_cli.py           exit 1   3 failed, 59 passed, 22 subtests passed in 88.78s
+test_contract_amendment_wave4.py  exit 1   2 failed, 25 passed in 0.54s
+test_loop_cohort_schedule.py      exit 1   1 failed, 76 passed in 13.82s
 ```
 
 One deletion, three independent reds: the CLI path, the amendment path, and the
@@ -63,47 +53,55 @@ standing guard on the call-site count itself.
 
 #### Observed failures, one per failing test
 
-Quoted from the retained pytest output of the re-derived run, not reconstructed.
-These are what confirm each red was the *contracted* red rather than a
-collateral error. Only volatile values are elided, marked `…`: per-run temporary
-directory paths, generated run UUIDs, and the unchanged tail of the dispatch
-notice. Every assertion, expected value, and actual value is verbatim.
+Transcribed mechanically from the raw pytest output of the re-derived run by a
+script that keys each failure body to the test id pytest printed above it. No
+message is hand-assigned to a test, which is what previously let one test's
+assertion be recorded under another's name.
 
-`test_47_schedule_refuses_single_unknown_dep` and
-`test_48_schedule_refuses_two_unknown_deps_names_both` — expected exit 1, got 0,
-and the captured stdout shows the defect itself reproduced:
+Normalised: run UUID, temporary directory — the only values that differ between runs. Every other value is
+passed through verbatim, including each fixture's own `plan_hash`, which differs
+between `test_47` and `test_48` because the two plan bodies differ.
+
+
+`LoopCohortCliTest.test_47_schedule_refuses_single_unknown_dep`
 
 ```
-AssertionError: 0 != 1 : args=('schedule', '…/spec1', '--expect-run-id', '…')
-stdout=loop-cohort: topological order for spec1 …
-  wave 1: T1, T2
+AssertionError: 0 != 1 : args=('schedule', '<tmpdir>/spec1', '--expect-run-id', '<run-uuid>')
+stdout=loop-cohort: topological order for spec1 (run sequentially by default; waves mark what *could* parallelize):
+wave 1: T1, T2
+predicted-disjoint: unknown  (Touches: screen — serialize-only, never a greenlight)
 loop-cohort: schedule persisted for spec1 (1 wave(s), plan_hash=d0135fafea76…)
+loop-cohort: dispatch — send each task above to one implementer subagent, one
+at a time, when that agent is installed; otherwise run them yourself and note
+the degradation in the final summary. Scheduling, gates, review and state
+stay with you.
+
 stderr=
 ```
 
-With the guard removed, the plan whose `T2` names an absent `T7` schedules as
-**one wave containing both tasks**. That is the collapse this change exists to
-prevent, captured in the proof's own output: the dropped edge, the merged wave,
-and — because GATES runs per wave — a single gate run where there should be two.
-
-`test_50_schedule_unknown_dep_beats_cycle_refusal` and
-`test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle` — the cycle refusal
-fires in the guard's place, which is exactly the AC4 precedence claim:
+`LoopCohortCliTest.test_48_schedule_refuses_two_unknown_deps_names_both`
 
 ```
-AssertionError: Regex pattern did not match.
-  Expected regex: 'T3->T99'
-  Actual message: 'dependency cycle among unfinished tasks: T1, T2'
+AssertionError: 0 != 1 : args=('schedule', '<tmpdir>/spec1', '--expect-run-id', '<run-uuid>')
+stdout=loop-cohort: topological order for spec1 (run sequentially by default; waves mark what *could* parallelize):
+wave 1: T1, T2
+predicted-disjoint: unknown  (Touches: screen — serialize-only, never a greenlight)
+loop-cohort: schedule persisted for spec1 (1 wave(s), plan_hash=dde19c7f0f2a…)
+loop-cohort: dispatch — send each task above to one implementer subagent, one
+at a time, when that agent is installed; otherwise run them yourself and note
+the degradation in the final summary. Scheduling, gates, review and state
+stay with you.
+
+stderr=
 ```
 
-`test_schedule_unfinished_plan_raises_for_unknown_dep` — no refusal at all:
+`LoopCohortCliTest.test_50_schedule_unknown_dep_beats_cycle_refusal`
 
 ```
-Failed: DID NOT RAISE <class 'ValueError'>
+AssertionError: 'T3->T99' not found in 'loop-cohort: stop — schedule: dependency cycle among unfinished tasks: T1, T2\n'
 ```
 
-`test_detect_unknown_deps_has_exactly_one_call_site` — the standing guard
-observes the deletion directly:
+`test_detect_unknown_deps_has_exactly_one_call_site`
 
 ```
 AssertionError: detect_unknown_deps must have exactly one call site; found 0: []
@@ -111,18 +109,48 @@ assert 0 == 1
 +  where 0 = len([])
 ```
 
+`test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle`
+
+```
+ValueError: dependency cycle among unfinished tasks: T1, T2
+AssertionError: Regex pattern did not match.
+Expected regex: 'T3->T99'
+Actual message: 'dependency cycle among unfinished tasks: T1, T2'
+```
+
+`test_schedule_unfinished_plan_raises_for_unknown_dep`
+
+```
+Failed: DID NOT RAISE <class 'ValueError'>
+```
+
+What these show, beyond the fact of failing:
+
+- `test_47` and `test_48` capture the defect itself. With the guard removed, a
+  plan whose task names an absent ID schedules as **one wave containing both
+  tasks** (`wave 1: T1, T2`, `1 wave(s)`). That is the dropped edge, the merged
+  wave, and — because the gate run is keyed to the wave — a single gate run
+  where there should be two.
+- `test_50` and `test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle` show
+  the cycle refusal firing in the guard's place, which is the AC4 precedence
+  claim. They fail differently because they assert differently: the CLI test
+  through `assertIn` on stderr, the amendment test through `pytest.raises(match=)`.
+- `test_schedule_unfinished_plan_raises_for_unknown_dep` shows no refusal at all.
+- `test_detect_unknown_deps_has_exactly_one_call_site` observes the deletion
+  directly, reporting zero call sites where the contract requires one.
+
 ### GREEN result, after restoring by edit
 
 ```
-test_contract_amendment_wave4.py    27 passed in 0.51s
-test_..._has_exactly_one_call_site   1 passed in 0.35s
-test_loop_cohort_cli.py             62 passed, 22 subtests passed in 92.79s (exit 0)
+test_loop_cohort_cli.py           exit 0   62 passed, 22 subtests passed in 83.99s
+test_contract_amendment_wave4.py  exit 0   27 passed in 0.38s
+test_loop_cohort_schedule.py      exit 0   77 passed in 14.09s
 ```
 
 ### Restoration verification
 
-`git diff --stat packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` is
-empty: the file is byte-identical to its committed state at `946370f8b`. The
+`git diff --quiet -- packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`
+exits 0: the file is byte-identical to its committed state at `44010e3ce`. The
 guard was restored by editing the lines back, never by `git checkout`, which the
 mutation-proof method forbids.
 
