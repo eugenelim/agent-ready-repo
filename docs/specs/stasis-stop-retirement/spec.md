@@ -24,10 +24,11 @@ condition is destroyed by ordinary editing, so it reads as protection while
 providing none. This spec carries that decision out.
 
 The signal itself survives. `matches_previous_round` is still computed, still
-emitted, and still **Surfaced** — ADR-0104 requires that, and today the only
-shipped instruction to Surface it sits in the same sentence as the halt being
-removed. Removing the halt without preserving the Surface would leave the
-accepted decision with no shipped home.
+emitted, and still **Surfaced** — ADR-0104 requires that. Two shipped surfaces
+instruct Surfacing, and on both the instruction shares a sentence with the halt
+being removed. Removing the halt without preserving them would leave the
+accepted decision with no shipped home, and since ADR-0104 is frozen the repair
+for that would be a superseding ADR rather than a spec edit.
 
 After this, full mode's only mechanical bound is its retry cap. That is
 ADR-0104's accepted tradeoff, not an oversight.
@@ -50,9 +51,10 @@ attempt at this work went wrong.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | Applicable — the runtime instruction changes | `packs/core/.apm/skills/work-loop/references/` (three files) | Spec owner | Each describes the signal, preserves the Surface, and states no halt | AC-0001, AC-0002, AC-0003 |
-| User-facing promise | Applicable — published guides describe the stop as live behaviour | `guides/core/explanation/`, `guides/core/how-to/` | Spec owner | No guide asserts a halt on repeated findings | AC-0006 |
-| Current product truth | Applicable — the public pack page and two comparison tables claim the capability | `web/src/content/packs/core.md`, `guides/core/explanation/core-pack.md` comparison tables | Spec owner + the owner of the positioning call | Claims match shipped behaviour, or are withdrawn | AC-0007 |
-| Interface compatibility | Applicable — an adopter-projected seed states the rule | `packs/core/seeds/docs/CONVENTIONS.md` | Spec owner | The clause is split so its authority half survives and its stop half goes | AC-0004 |
+| User-facing promise | Applicable — published guides describe the stop as live behaviour | `guides/core/explanation/`, `guides/core/how-to/`, `guides/README.md` | Spec owner | No guide asserts a halt on repeated findings | AC-0007 |
+| Current product truth | Applicable — the public pack page and two comparison tables claim the capability | `web/src/content/packs/core.md`, `guides/core/explanation/core-pack.md` comparison tables | Spec owner + the owner of the positioning call | Claims match shipped behaviour, or are withdrawn | AC-0008, AC-0009 |
+| Interface compatibility | Applicable — an adopter-projected seed states the rule | `packs/core/seeds/docs/CONVENTIONS.md`, `docs/CONVENTIONS.md` | Spec owner | The clause is split so its authority half survives and its stop half goes, and the twin does not diverge silently | AC-0004, AC-0005 |
+| Eval harness | Applicable — `packs/AGENTS.md` requires a non-cosmetic pack update to update the pack's eval harness | `packs/core/.apm/skills/work-loop/evals/evals.json` | Spec owner | The disposition is recorded: the two matching eval cases assert amendment authority, which this change does not alter, so no case changes | Stated in the plan's inventory rows 13 and 14; no edit |
 | Decision rationale | Applicable | `docs/adr/0104-...md` | Decision-maker | Accepted, in tree | Satisfied before this plan; no further write |
 | Release history | Applicable — core pack content changes | `docs/product/changelog.md` | Spec owner | Entry naming the core bump | Entry present, version matches the manifests |
 | Reusable learning | Applicable — a retired control ships on more surfaces than its owning module | `project-knowledge --capture` | Spec owner | A topic recording the four-audience split and the seed's dual-purpose clause | Captured at a semantic gate after ship |
@@ -96,29 +98,43 @@ attempt at this work went wrong.
 - **The runtime instruction (AC-0001, AC-0002, AC-0003)** — Goal-based check.
   One absence and one presence assertion per reference file. Presence matters as
   much as absence: deleting a row outright would leave an emitted field
-  undocumented, which is a different defect from the one being fixed.
-- **The projected seed (AC-0004)** — Goal-based check. The clause carries two
-  obligations in one sentence, so the assertion has to see both halves: the stop
-  gone, the authority statement intact.
-- **The authority statements (AC-0005)** — Goal-based check. One positive
-  assertion per surviving statement. Two are already asserted by
-  `test_contract_amendment_wave4.py`; the plan names which, so this criterion
-  adds cases rather than duplicating them.
-- **The published guides and public claims (AC-0006, AC-0007)** — Goal-based
-  check. Absence assertions over the guide corpus, and for the comparison tables
-  an assertion that matches whichever resolution the owner picks.
-- **The retired phrasing stays retired (AC-0008)** — TDD. A parametrized,
-  whitespace-normalized absence sweep with an explicit corpus path list and an
-  explicit retired-phrase list, asserting its corpus paths exist before walking
-  them. Same shape as the sweep ADR-0104's Confirmation already ships.
-- **The refuted mechanism claim (AC-0009)** — Goal-based check. Distinct from
-  the halt: one surface asserts that a repeated fingerprint *detects* stasis,
-  which the measurement refutes independently of what the detection then does.
+  undocumented, and on two of these rows it would delete a Surface disposition
+  ADR-0104 requires.
+- **The projected seed and its twin (AC-0004, AC-0005)** — Goal-based check. The
+  clause carries two obligations in one sentence, so the assertion has to see
+  both halves. AC-0005 is a divergence check, not an equality check, so it holds
+  whichever way the *Ask first* question resolves.
+- **The authority statements (AC-0006)** — Goal-based check. One normalized
+  substring assertion per statement, against literals in the test source. One
+  row is covered by an existing suite; five are not, including one previously
+  recorded as covered whose existing assertion does not contain the token being
+  guarded. The plan's inventory records which is which and the rule used to
+  decide.
+- **The published guides and public page (AC-0007, AC-0008)** — Goal-based
+  check, in a repository-level suite because a pack test may not read above its
+  own pack. The plan names the Makefile runner line the suite joins; without
+  that registration the boundary lint fails it and nothing executes it.
+- **The competitive claims (AC-0009)** — Goal-based check, and the one criterion
+  whose assertion text cannot be written until the owner answers. It is carried
+  as a criterion rather than a follow-on because leaving it out would let a false
+  published comparison ship silently.
+- **The retired phrasing stays retired (AC-0010)** — TDD. A parametrized,
+  whitespace-normalized absence sweep over the plan's two literal lists,
+  asserting its corpus paths exist before walking them. Same shape as the sweep
+  ADR-0104's Confirmation already ships.
+- **The refuted mechanism claim (AC-0011)** — Goal-based check. Distinct from
+  the halt: several surfaces assert that a repeated fingerprint *detects*
+  stasis, which the measurement refutes independently of what detection then
+  triggers.
 
-**What is not mechanically protected.** The comparison tables state a
-competitive claim. No assertion can decide whether the replacement claim is
-*honest*, only whether it matches an agreed string. That judgement is the
-owner's, recorded once in the plan.
+**What is not mechanically protected.** Two things. The comparison tables state a
+competitive claim, and no assertion can decide whether the replacement claim is
+*honest* — only whether it matches an agreed string. And the inventory is a
+vocabulary search over a concept: a surface stating the halt in words none of
+the patterns match is not in the table, and AC-0010 cannot pin the absence of a
+paraphrase nobody has written yet. Three earlier attempts at this inventory each
+missed a different class, which is why the method and its limit are recorded
+rather than the result alone.
 
 ## Acceptance Criteria
 
@@ -129,14 +145,18 @@ work, or authorise an amendment. This spec retires halts, preserves Surfaces,
 and leaves authority statements untouched.
 
 The plan's *Surface inventory* enumerates every occurrence with its file, line,
-class, and action, and states the command that reproduces it.
+class, and action; states the vocabulary command that reproduces it; and names
+that command's residual, which is that a vocabulary search cannot prove a
+concept absent.
 
 ### The runtime instruction
 
 - [ ] **AC-0001.** `references/finding-adjudication.md`'s route-and-record entry
   for the signal instructs no halt and retains a Surface disposition.
 - [ ] **AC-0002.** `references/state-schema.md`'s stasis paragraph instructs no
-  halt and no skipped check, and still describes what the field is.
+  halt and no skipped check, **retains its Surface disposition**, and still
+  describes what the field is. Two shipped surfaces instruct Surfacing, not one;
+  this is the second.
 - [ ] **AC-0003.** `references/delivery-contract-lifecycle.md`'s numbered stop
   conditions no longer list repeated findings as a condition that stops
   immediately for replanning.
@@ -146,24 +166,34 @@ class, and action, and states the command that reproduces it.
 - [ ] **AC-0004.** `packs/core/seeds/docs/CONVENTIONS.md`'s clause instructs no
   pause for replanning, and its statement that retry caps and stasis neither
   complete intent nor create backlog work survives intact.
+- [ ] **AC-0005.** `docs/CONVENTIONS.md`'s twin of that clause either carries the
+  same split, or the repository records why the two deliberately diverge. The
+  criterion holds under either resolution and fails only on silent divergence.
 
 ### What must not move
 
-- [ ] **AC-0005.** Every authority statement the plan's inventory marks `keep`
-  is unchanged, compared against its pre-change text under whitespace
-  normalization.
-- [ ] **AC-0006.** No file under `guides/` asserts that repeated findings stop
+- [ ] **AC-0006.** Every authority statement the plan's inventory marks `keep` is
+  present, asserted as a normalized substring against literal text held in the
+  test source — not read from the surface under test, which would compare a file
+  to itself and could never fail. The plan names which rows an existing suite
+  already covers and which need new cases.
+- [ ] **AC-0007.** No file under `guides/` asserts that repeated findings stop
   the loop.
-- [ ] **AC-0007.** The public pack page and the two comparison tables state only
-  capabilities the tree has after this change.
+- [ ] **AC-0008.** The public pack page states only capabilities the tree has
+  after this change.
+- [ ] **AC-0009.** The two competitive comparison tables state only capabilities
+  the tree has after this change, under whichever resolution the owner picks per
+  *Ask first*.
 
 ### Staying retired
 
-- [ ] **AC-0008.** A whitespace-normalized absence sweep fails when any retired
-  phrasing named in the plan's inventory reappears on any path in the plan's
-  sweep corpus, and asserts every corpus path exists before walking it.
-- [ ] **AC-0009.** No shipped surface states that a repeated finding fingerprint
-  detects stasis.
+- [ ] **AC-0010.** A whitespace-normalized absence sweep fails when any phrase in
+  the plan's *retired phrases* list reappears on any path in the plan's *sweep
+  corpus* list, and asserts every corpus path exists before walking it. Both
+  lists are literal in the plan.
+- [ ] **AC-0011.** No surface this spec is permitted to edit states that a
+  repeated finding fingerprint detects stasis. Code comments, docstrings, and
+  the payload key are out of scope by Boundaries and out of scope here.
 
 ## Follow-ons
 
