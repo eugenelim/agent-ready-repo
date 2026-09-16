@@ -60,6 +60,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.27.0] — 2026-09-15
+
+### Highlights
+
+- **Your agent now reads one conventions file instead of two.** The seeded
+  `AGENTS.md` was a short file that pointed at a much longer
+  `docs/CONVENTIONS.md` for the rules that actually govern work. Two subagents
+  loaded that longer file in full on every dispatch — roughly 21,900 tokens of
+  context spent before either had read your code. `AGENTS.md` now states the
+  rules an agent needs to start work: the commit format, the four pull-request
+  questions, the privacy rule, how changes get scoped, when to confirm before a
+  destructive step, and what to do when documented guidance and code disagree.
+  Nothing was dropped to make it fit — the rest moved to whichever artifact
+  already owned it, so the answer is in the guide, skill or architecture
+  document you would have reached for anyway.
+
+- **A new `docs/README.md` tells you what belongs where.** Installing the pack
+  gave you four documentation directories and nothing explaining which one a
+  new document goes in. The map names each area, what belongs there, and its
+  lifecycle class — living, frozen, or governance — and it carries a row for you
+  to extend when you add an area of your own. The seeded `AGENTS.md` routes to
+  it, so an agent entering your repository has a way into your documentation
+  rather than a dead link.
+
+- **The seed stopped offering you sections it already has.** Its trailing
+  comment listed `Documentation`, `Security considerations` and
+  `Scoped instructions` as guidance to add once you had a reason. All three are
+  now real sections, so the comment no longer suggests adding what you have.
+  `Repository structure` is still offered, because the seed still does not
+  carry it.
+
+### Changed
+
+- `docs/CONVENTIONS.md` is retired and is no longer seeded. An existing
+  adopter's copy is left in place untouched — a withdrawn seed is never
+  delivered again, and nothing deletes what you already have. Its content lives
+  in `AGENTS.md`, `docs/README.md`, the directory READMEs, and the `new-spec`
+  and `work-loop` skills.
+- `docs/README.md` is seeded once and then yours, the same way `docs/CHARTER.md`
+  already was. Rebuilding never overwrites your edits to it.
+
 ## [core][2.26.1] — 2026-09-14
 
 ### Highlights

@@ -643,6 +643,66 @@ def test_relocated_sections_landed_with_their_operative_content() -> None:
         assert not absent, f"{rel} omits: {absent}"
 
 
+CHANGELOG = REPO_ROOT / "docs/product/changelog.md"
+PACK_TOML = REPO_ROOT / "packs/core/pack.toml"
+PLUGIN_JSON = REPO_ROOT / "packs/core/.claude-plugin/plugin.json"
+
+# The version both manifests held before this change. AC12 is pinned against it
+# rather than against "greater than the previous release", which 2.26.1 already
+# satisfied with no edit at all.
+PRE_CHANGE_VERSION = "2.26.1"
+
+_CORE_HEADING_RE = re.compile(r"^## \[core\]\[(?P<version>[^\]]+)\] — ", re.MULTILINE)
+
+
+def _version_tuple(text: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in text.split("."))
+
+
+# --------------------------------------------------------------------------
+# AC11, AC12 — the release
+# --------------------------------------------------------------------------
+
+def test_changelog_names_the_seed_withdrawal() -> None:
+    """AC11. A heading check cannot observe this; the body is read."""
+    body = CHANGELOG.read_text(encoding="utf-8")
+    match = _CORE_HEADING_RE.search(body)
+    assert match, "the changelog carries no free-standing `core` entry"
+    start = match.end()
+    end = _CORE_HEADING_RE.search(body, start)
+    entry = body[start : end.start() if end else len(body)]
+    for needle in ("retired", "no longer seeded"):
+        assert needle in entry, f"the topmost core entry does not name the withdrawal: {needle!r}"
+
+
+def test_both_manifests_carry_the_same_bumped_version() -> None:
+    """AC12, pinned against the version this change started from."""
+    pack = re.search(r'version = "([^"]+)"', PACK_TOML.read_text(encoding="utf-8"))
+    plugin = re.search(r'"version": "([^"]+)"', PLUGIN_JSON.read_text(encoding="utf-8"))
+    assert pack and plugin, "a manifest carries no version"
+    assert pack.group(1) == plugin.group(1), (
+        f"manifests disagree: pack.toml={pack.group(1)} plugin.json={plugin.group(1)}"
+    )
+    assert _version_tuple(pack.group(1)) > _version_tuple(PRE_CHANGE_VERSION), (
+        f"core is still at or below {PRE_CHANGE_VERSION}, which it held before this change"
+    )
+
+
+def test_changelog_version_matches_the_manifests() -> None:
+    """The repository's own coupling check lives outside `build-check`.
+
+    Without this, an entry headed with any other version satisfies AC11 and
+    AC12 together while nothing in the required gate notices.
+    """
+    match = _CORE_HEADING_RE.search(CHANGELOG.read_text(encoding="utf-8"))
+    assert match, "the changelog carries no free-standing `core` entry"
+    pack = re.search(r'version = "([^"]+)"', PACK_TOML.read_text(encoding="utf-8"))
+    assert pack and match.group("version") == pack.group(1), (
+        f"changelog heading is {match.group('version')!r} but pack.toml is "
+        f"{pack.group(1) if pack else None!r}"
+    )
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
