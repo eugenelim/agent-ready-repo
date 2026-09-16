@@ -525,7 +525,6 @@ _SEEDS_REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/product/changelog.md": ("pack-name][version",),
     "docs/product/briefs/_template.md": ("<slug>", "<one-line outcome>"),
     "workspace.toml": ("[backlog]",),
-    "docs/CONVENTIONS.md": (),
     "AGENTS.md": ("<project-name>",),
     "AGENT_RULES.md": (),
     "docs/AGENTS.md": (),

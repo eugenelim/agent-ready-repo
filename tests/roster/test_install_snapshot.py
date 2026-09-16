@@ -196,18 +196,33 @@ def test_first_install_snapshot(pack_name: str, tmp_path: Path) -> None:
     )
 
 
-def test_core_conventions_relative_links_resolve_after_scaffold(tmp_path: Path) -> None:
-    """Core conventions links resolve inside the adopter's scaffold."""
-    output_root = _scaffold_pack("core", tmp_path)
-    conventions = output_root / "docs" / "CONVENTIONS.md"
-    content = conventions.read_text(encoding="utf-8")
+def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
+    """Every link this change adds or edits resolves inside the scaffold.
 
-    violations = _scan_for_missing_relative_links(conventions)
+    Was scoped to one named seed, which this change retires. Deleting the test
+    with it would have removed the only relative-link check over the adopter
+    scaffold, so it now scans every Markdown file the scaffold produces.
+
+    Narrowed to the files this retirement touches: the seed tree already carries
+    out-of-scaffold links to `adr/`, `rfc/`, `guides/`, `GOVERNANCE.md`,
+    `personas.md` and `release-checklist.md` that predate this change and are
+    logged as `core-seeds-mandate-other-packs-content` in `[backlog].open`.
+    """
+    output_root = _scaffold_pack("core", tmp_path)
+    touched = ("docs/README.md", "AGENTS.md", "docs/specs/README.md")
+
+    violations: list[str] = []
+    for relative in touched:
+        page = output_root / relative
+        assert page.is_file(), f"scaffold is missing {relative}"
+        violations.extend(_scan_for_missing_relative_links(page))
 
     assert not violations, (
-        "Core conventions contain links unavailable to adopters:\n  " + "\n  ".join(violations)
+        "scaffold pages contain links unavailable to adopters:\n  " + "\n  ".join(violations)
     )
     for citation in ("ADR-0003", "RFC-0013"):
-        assert citation not in content, (
-            f"Core conventions contain catalogue-only citation {citation!r}"
-        )
+        for relative in touched:
+            content = (output_root / relative).read_text(encoding="utf-8")
+            assert citation not in content, (
+                f"{relative} contains catalogue-only citation {citation!r}"
+            )
