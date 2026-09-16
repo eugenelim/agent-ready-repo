@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
 import re
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is sys.executable or "git"
@@ -11,17 +10,16 @@ import sys
 import tempfile
 from pathlib import Path
 
+import selftest_harness
+
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 _HERE = Path(__file__).resolve().parent
 _LINTER = _HERE / "lint-nosemgrep-form.py"
-_SPEC = importlib.util.spec_from_file_location("lint_nosemgrep_form", _LINTER)
-assert _SPEC and _SPEC.loader
-_MOD = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(_MOD)
+_MOD = selftest_harness.load("lint-nosemgrep-form.py", module_name="lint_nosemgrep_form")
 
-FAILURES: list[str] = []
+_CHECKS = selftest_harness.CaseFailures("lint-nosemgrep-form self-test")
 _TOKEN = "no" + "semgrep"
 _ALIAS = "no" + "sem"
 
@@ -31,8 +29,8 @@ def check(label: str, condition: bool, detail: str = "") -> None:
     if condition:
         print(f"  ok   {label}")
     else:
-        FAILURES.append(f"{label}{': ' + detail if detail else ''}")
         print(f"  FAIL {label} {detail}")
+    _CHECKS.check(label, condition, detail)
 
 
 def kinds(source: str, path: str) -> list[str]:
@@ -59,7 +57,20 @@ def run(
 
 
 def git_repo(tmp: Path, files: dict[str, str | bytes]) -> Path:
-    """Create and track a small throwaway repository."""
+    """Create and track a small throwaway repository.
+
+    When the sandbox carries a copy of the linter, it also gets a copy of
+    ``tools/lint_harness.py``. The linter imports the shared driver, and a
+    sandbox holding only the linter would raise ``ModuleNotFoundError`` there
+    rather than exercising the behaviour the case is about.
+    """
+    if any(key.startswith("tools/") for key in files):
+        files = {
+            **files,
+            "tools/lint_harness.py": (_HERE / "lint_harness.py").read_text(
+                encoding="utf-8"
+            ),
+        }
     for name, body in files.items():
         target = tmp / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -78,10 +89,15 @@ def report() -> int:
     The only exit path. The forced-failure child below reaches this same
     function, so a mutation here is caught rather than shadowed by a second
     hardcoded return.
+
+    The verdict stays here rather than moving to
+    ``selftest_harness.CaseFailures.report``: the "N case(s) failed." wording is
+    asserted by this file's own forced-failure case, so the shared verdict line
+    would break the control. The failure *accumulation* is the harness's.
     """
     print()
-    if FAILURES:
-        print(f"lint-nosemgrep-form self-test: {len(FAILURES)} case(s) failed.")
+    if _CHECKS.failures:
+        print(f"lint-nosemgrep-form self-test: {len(_CHECKS.failures)} case(s) failed.")
         return 1
     print("lint-nosemgrep-form self-test: all cases passed.")
     return 0

@@ -16,34 +16,26 @@ if you convert this to pytest, convert `check()` to a bare `assert` first.
 """
 from __future__ import annotations
 
-import importlib.util
-import sys
 import tempfile
 from pathlib import Path
+
+import selftest_harness
 
 TOOLS = Path(__file__).parent
 REPO_ROOT = TOOLS.parent
 
+lint = selftest_harness.load("lint-guide-titles.py", module_name="lint_guide_titles")
+build_site = selftest_harness.load("build-site.py", module_name="build_site")
 
-def _load(name: str, filename: str):
-    spec = importlib.util.spec_from_file_location(name, TOOLS / filename)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-lint = _load("lint_guide_titles", "lint-guide-titles.py")
-build_site = _load("build_site", "build-site.py")
-
-FAILURES: list[str] = []
+_CHECKS = selftest_harness.CaseFailures("test-lint-guide-titles")
 
 
 def check(name: str, condition: bool, detail: str = "") -> None:
     if condition:
         print(f"  ok   {name}")
     else:
-        FAILURES.append(f"{name}{': ' + detail if detail else ''}")
         print(f"  FAIL {name}{': ' + detail if detail else ''}")
+    _CHECKS.check(name, condition, detail)
 
 
 def write(tmp: Path, filename: str, text: str) -> Path:
@@ -280,11 +272,7 @@ def main() -> int:
     _run_strip_guide_metadata()
     _run_lint()
     print()
-    if FAILURES:
-        print(f"test-lint-guide-titles: {len(FAILURES)} failure(s)", file=sys.stderr)
-        return 1
-    print("test-lint-guide-titles: all passed")
-    return 0
+    return _CHECKS.report()
 
 
 if __name__ == "__main__":

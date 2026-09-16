@@ -7,19 +7,15 @@ a pass line and exits 0, or raises on the first failure.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import sys
 import tempfile
 from pathlib import Path
 
+import selftest_harness
+
 _HERE = Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location(
-    "lint_pack_descriptions", _HERE / "lint-pack-descriptions.py"
-)
-assert _spec and _spec.loader
-lint = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(lint)
+lint = selftest_harness.load("lint-pack-descriptions.py")
 
 CEILING = lint.MAX_DESCRIPTION
 
@@ -155,8 +151,4 @@ def test_exit_codes() -> None:
 
 
 if __name__ == "__main__":
-    for name, fn in sorted(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            fn()
-    print("test-lint-pack-descriptions: all cases passed.")
-    sys.exit(0)
+    sys.exit(selftest_harness.run_cases(globals(), "test-lint-pack-descriptions"))

@@ -495,6 +495,7 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {slug = "pre-existing-local-ci-shared-test-dedup-drift", source = "pre-flight/2026-09-16"},  # 3 cases in tools/test_local_ci_shared_test_deduplication.py fail on a clean tree: test_real_make_root_tool_groups_match_the_approved_profiles, test_sast_sca_and_terminal_verdict_surfaces_match_approved_bytes, test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation. Pinned Makefile digests no longer match the Makefile on disk. Proven pre-existing by differential: the same 3 fail with this branch's new tools/ files removed, and the Makefile is unmodified in the diff.
   # Two corrections to `loop-telemetry-export`'s contract that were found by doing
   # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
   # a completed task's section, and both corrections land inside T2 and T4, which

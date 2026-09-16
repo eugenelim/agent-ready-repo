@@ -17,6 +17,8 @@ import tempfile
 import textwrap
 from pathlib import Path
 
+import selftest_harness
+
 _LINT = Path(__file__).resolve().parent / "lint-sso-config.py"
 
 _VALID = """
@@ -167,6 +169,12 @@ _DUPLICATED_TESTS = (
 
 
 def _load_module(path: Path, name: str):
+    """Load a module from an arbitrary path outside ``tools/``.
+
+    ``selftest_harness.load`` covers the subject, which is a ``tools/``
+    sibling. This stays for the shipped skill loader under ``packs/``, which is
+    not a sibling and must be in ``sys.modules`` before it executes.
+    """
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(name, path)
@@ -195,7 +203,7 @@ def _parity_failures() -> list[str]:
     # The lint's schema set must equal the loader's (the triplicated [sso] key set
     # must not drift between the lint that pins it and the loader that enforces it).
     try:
-        lint_mod = _load_module(_LINT, "lint_sso_config")
+        lint_mod = selftest_harness.load(_LINT.name, module_name="lint_sso_config")
         loader_mod = _load_module(_JIRA / "_sso_config.py", "sso_loader")
         if lint_mod._ALLOWED_SSO_KEYS != loader_mod._ALLOWED_SSO_KEYS:
             fails.append(
@@ -223,7 +231,7 @@ def _profile_grammar_drift() -> list[str]:
     except Exception:  # noqa: BLE001 — absent credbroker is an expected environment
         return []
 
-    lint = _load_module(_LINT, "lint_sso_config_under_test")
+    lint = selftest_harness.load(_LINT.name, module_name="lint_sso_config_under_test")
     fails: list[str] = []
     if lint._SSO_PROFILE_PATTERN != engine._SSO_PROFILE_PATTERN:
         fails.append(
@@ -241,28 +249,21 @@ def _profile_grammar_drift() -> list[str]:
 
 
 def main() -> int:
-    failures: list[str] = []
+    checks = selftest_harness.CaseFailures("test-lint-sso-config")
     for label, body, expected in CASES:
         got = _run(body)
-        if got != expected:
-            failures.append(f"{label}: expected exit {expected}, got {got}")
+        checks.check(label, got == expected, f"expected exit {expected}, got {got}")
 
-    failures.extend(_parity_failures())
-    failures.extend(_profile_grammar_drift())
+    for failure in (*_parity_failures(), *_profile_grammar_drift()):
+        checks.check(failure, False)
 
     # The real shipped files must pass (no-arg invocation scans the repo).
     repo_scan = subprocess.run(
         [sys.executable, str(_LINT)], capture_output=True, text=True
     ).returncode
-    if repo_scan != 0:
-        failures.append(f"repo scan: expected exit 0, got {repo_scan}")
+    checks.check(f"repo scan: expected exit 0, got {repo_scan}", repo_scan == 0)
 
-    for f in failures:
-        sys.stderr.write(f"FAIL {f}\n")
-    if failures:
-        return 1
-    sys.stderr.write(f"ok — {len(CASES)} cases + repo scan passed\n")
-    return 0
+    return checks.report()
 
 
 if __name__ == "__main__":

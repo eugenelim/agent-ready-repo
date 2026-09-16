@@ -51,6 +51,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import lint_harness
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GUIDES_ROOT = REPO_ROOT / "guides"
 OK_MESSAGE = "OK — no repo-only governance references in guides/"
@@ -312,6 +314,43 @@ def _line_reasons(line: str, real_spec_slugs: set[str]) -> list[str]:
     return list(dict.fromkeys(reasons))
 
 
+# A guide is scanned through its resolved path but reported under its display
+# path, and both the repository root and the real spec-slug set are derived
+# once per run. The driver hands the predicate one path, so `_files` parks the
+# rest here.
+_STATE: dict[str, object] = {}
+
+
+def _file_violations(
+    display_path: Path,
+    resolved_path: Path,
+    repo_root: Path,
+    real_spec_slugs: set[str],
+) -> list[Violation]:
+    """Return every actionable violation in one guide file."""
+    try:
+        lines = resolved_path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise LintUsageError(f"cannot read guide file {display_path}: {exc}") from exc
+    try:
+        diagnostic_path = display_path.relative_to(repo_root)
+    except ValueError:
+        diagnostic_path = display_path
+
+    violations: list[Violation] = []
+    for line_number, line in enumerate(lines, start=1):
+        allowed = bool(ALLOW_RE.search(line))
+        if line_number > 1:
+            allowed = allowed or bool(ALLOW_RE.search(lines[line_number - 2]))
+        if allowed:
+            continue
+        violations.extend(
+            Violation(diagnostic_path, line_number, reason)
+            for reason in _line_reasons(line, real_spec_slugs)
+        )
+    return violations
+
+
 def lint_guides(guides_argument: str) -> list[Violation]:
     """Scan one guide tree and return all actionable violations."""
 
@@ -320,31 +359,13 @@ def lint_guides(guides_argument: str) -> list[Violation]:
     violations: list[Violation] = []
 
     for display_path, resolved_path in _markdown_files(guides_root):
-        try:
-            lines = resolved_path.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeError) as exc:
-            raise LintUsageError(f"cannot read guide file {display_path}: {exc}") from exc
-        try:
-            diagnostic_path = display_path.relative_to(repo_root)
-        except ValueError:
-            diagnostic_path = display_path
-
-        for line_number, line in enumerate(lines, start=1):
-            allowed = bool(ALLOW_RE.search(line))
-            if line_number > 1:
-                allowed = allowed or bool(ALLOW_RE.search(lines[line_number - 2]))
-            if allowed:
-                continue
-            violations.extend(
-                Violation(diagnostic_path, line_number, reason)
-                for reason in _line_reasons(line, real_spec_slugs)
-            )
+        violations.extend(
+            _file_violations(display_path, resolved_path, repo_root, real_spec_slugs)
+        )
     return violations
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Run the guide lint command."""
-
+def _parse(argv: list[str] | None) -> str:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -354,21 +375,75 @@ def main(argv: list[str] | None = None) -> int:
         default=str(DEFAULT_GUIDES_ROOT),
         help="Guide tree to scan (default: guides/).",
     )
-    args = parser.parse_args(argv)
+    return str(parser.parse_args(argv).guides_root)
 
+
+def _guides(guides_argument: str) -> list[Path]:
+    """Return the display paths of every guide to scan.
+
+    Never ``None``: a guides root that does not exist, a `docs/specs/` that
+    does not exist, and anything else the confined walk refuses are all usage
+    errors here, reported as exit 2 from inside this call rather than as an
+    absent root. Only an existing-but-empty tree reaches the driver's
+    empty-scan branch.
+    """
     try:
-        violations = lint_guides(args.guides_root)
+        repo_root, guides_root, specs_root = _runtime_roots(guides_argument)
+        real_spec_slugs = _real_spec_slugs(specs_root)
+        pairs = _markdown_files(guides_root)
     except LintUsageError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+        raise lint_harness.RuleAbort(
+            lint_harness.Outcome(f"error: {exc}", 2)
+        ) from exc
+    _STATE["repo_root"] = repo_root
+    _STATE["slugs"] = real_spec_slugs
+    _STATE["resolved"] = dict(pairs)
+    return [display for display, _resolved in pairs]
 
-    if violations:
-        for violation in violations:
-            print(f"{violation.path}:{violation.line}: {violation.reason}")
-        return 1
 
-    print(OK_MESSAGE)
-    return 0
+def _references(display_path: Path) -> list[str]:
+    """Return one rendered diagnostic per violation in one guide."""
+    repo_root = _STATE["repo_root"]
+    slugs = _STATE["slugs"]
+    resolved = _STATE["resolved"]
+    assert isinstance(repo_root, Path) and isinstance(slugs, set)
+    assert isinstance(resolved, dict)
+    try:
+        violations = _file_violations(
+            display_path, resolved[display_path], repo_root, slugs
+        )
+    except LintUsageError as exc:
+        raise lint_harness.RuleAbort(
+            lint_harness.Outcome(f"error: {exc}", 2)
+        ) from exc
+    return [f"{v.path}:{v.line}: {v.reason}" for v in violations]
+
+
+def _report(violations: list[str]) -> None:
+    """Print the diagnostics on stdout, which is where this lint reports."""
+    for violation in violations:
+        print(violation)
+
+
+_OK = lint_harness.Outcome(OK_MESSAGE, 0, "stdout")
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_guides,
+    predicate=_references,
+    pass_line=lambda guides_argument, n: OK_MESSAGE,
+    empty_scan=lambda guides_argument: _OK,
+    # Unreachable: `_guides` never returns None, because an absent guides root
+    # is a usage error raised there. Present because the record requires it.
+    absent_root=lambda guides_argument: _OK,
+    report=_report,
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the guide lint command."""
+
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":

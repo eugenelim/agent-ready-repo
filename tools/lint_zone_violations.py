@@ -82,6 +82,8 @@ import re
 import sys
 from pathlib import Path
 
+import lint_harness
+
 FILE_EXTS = {".astro", ".css"}
 
 HEX_RE = re.compile(r"#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b")
@@ -282,29 +284,72 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
     return violations
 
 
+_STATE: dict[str, object] = {}
+
+
+def _parse(argv: list[str] | None) -> Path:
+    args = list(sys.argv[1:] if argv is None else argv)
+    return Path(args[0]) if args else Path("web/src")
+
+
+def _files(root: Path) -> list[Path] | None:
+    """Return the scannable files, or ``None`` when the scan root is absent.
+
+    The original refused a missing root and a non-directory with one message,
+    so both map onto ``absent_root`` rather than onto an empty scan.
+    """
+    if not root.exists() or not root.is_dir():
+        return None
+    _STATE["canonical"] = root / "styles" / "tokens.css"
+    return [
+        path for path in sorted(root.rglob("*"))
+        if path.is_file() and path.suffix in FILE_EXTS
+    ]
+
+
+def _violations(path: Path) -> list[str]:
+    """Print this file's raw colour values and return them.
+
+    Printing here rather than letting the driver report is deliberate and is
+    the one thing this rule does that the default emission cannot reproduce:
+    the original streams each violation to stdout *as it walks*, so a file it
+    cannot read part-way through leaves the earlier lines on stdout and then
+    exits 2. Collecting silently and reporting at the end would discard them.
+    """
+    canonical = _STATE["canonical"]
+    try:
+        found = list(scan_file(path, is_token_file=(path == canonical)))
+    except OSError as exc:
+        raise lint_harness.RuleAbort(
+            lint_harness.Outcome(f"error: cannot read {path}: {exc}", 2)
+        ) from exc
+    messages = []
+    for lineno, value in found:
+        message = f"{path}:{lineno}: {value}"
+        print(message)
+        messages.append(message)
+    return messages
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_files,
+    predicate=_violations,
+    # Silent on success: this lint prints nothing at all on a clean scan, and
+    # an empty string would still emit a newline.
+    pass_line=lambda root, n: None,
+    empty_scan=lambda root: lint_harness.Outcome("", 0, "stdout"),
+    absent_root=lambda root: lint_harness.Outcome(
+        f"error: scan root does not exist or is not a directory: {root}", 2
+    ),
+    # Violations are already on stdout by the time the walk ends.
+    report=lambda violations: None,
+)
+
+
 def main() -> None:
     """Walk the scan root and report raw color values outside the canonical token file."""
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("web/src")
-
-    if not root.exists() or not root.is_dir():
-        print(f"error: scan root does not exist or is not a directory: {root}", file=sys.stderr)
-        sys.exit(2)
-
-    # Only the canonical token file may define raw color values in :root blocks.
-    canonical_token = root / "styles" / "tokens.css"
-
-    violations_found = False
-    for path in sorted(root.rglob("*")):
-        if path.is_file() and path.suffix in FILE_EXTS:
-            try:
-                for lineno, value in scan_file(path, is_token_file=(path == canonical_token)):
-                    print(f"{path}:{lineno}: {value}")
-                    violations_found = True
-            except OSError as exc:
-                print(f"error: cannot read {path}: {exc}", file=sys.stderr)
-                sys.exit(2)
-
-    sys.exit(1 if violations_found else 0)
+    sys.exit(lint_harness.run(RULE))
 
 
 if __name__ == "__main__":

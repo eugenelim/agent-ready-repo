@@ -25,10 +25,10 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import re
-import sys
 import unicodedata
 from pathlib import Path
 
+import lint_harness
 import yaml
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
@@ -199,7 +199,13 @@ def collect(paths: list[str], root: Path) -> list[Path]:
     return sorted(root.rglob("*.md"))
 
 
-def main(argv: list[str] | None = None) -> int:
+# The failure summary names the number of files scanned as well as the number
+# of divergences, and `summary` is handed only the latter, so `_files` parks
+# the count here.
+_SCANNED: list[int] = []
+
+
+def _parse(argv: list[str] | None) -> tuple[Path, list[str]]:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--root",
@@ -208,24 +214,52 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("paths", nargs="*", help="specific files to check")
     args = parser.parse_args(argv)
+    return Path(args.root).resolve(), args.paths
 
-    root = Path(args.root).resolve()
-    files = collect(args.paths, root)
-    errors = [msg for f in files if (msg := check_file(f))]
 
-    for msg in errors:
-        print(msg, file=sys.stderr)
+def _files(selection: tuple[Path, list[str]]) -> list[Path] | None:
+    """Return the guides to check, or ``None`` when the walked root is absent.
 
-    if errors:
-        print(
-            f"\nlint-guide-titles: {len(errors)} divergent title(s) "
-            f"in {len(files)} file(s)",
-            file=sys.stderr,
-        )
-        return 1
+    Both answers print the same success line over zero files, which is what
+    this lint did before the move onto the driver: an absent `--root` is not an
+    error here, only an empty walk.
+    """
+    root, paths = selection
+    if not paths and not root.is_dir():
+        _SCANNED[:] = [0]
+        return None
+    files = collect(paths, root)
+    _SCANNED[:] = [len(files)]
+    return files
 
-    print(f"lint-guide-titles: OK ({len(files)} file(s))")
-    return 0
+
+def _divergence(path: Path) -> list[str]:
+    """Return the message for one guide whose two titles disagree, if any."""
+    message = check_file(path)
+    return [message] if message else []
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_files,
+    predicate=_divergence,
+    pass_line=lambda selection, n: f"lint-guide-titles: OK ({n} file(s))",
+    empty_scan=lambda selection: lint_harness.Outcome(
+        "lint-guide-titles: OK (0 file(s))", 0, "stdout"
+    ),
+    absent_root=lambda selection: lint_harness.Outcome(
+        "lint-guide-titles: OK (0 file(s))", 0, "stdout"
+    ),
+    summary=lambda n: (
+        f"\nlint-guide-titles: {n} divergent title(s) "
+        f"in {_SCANNED[0]} file(s)"
+    ),
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the title lint and return its process exit status."""
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ import subprocess
 import sys
 import tempfile
 
+import selftest_harness
+
 _HERE = pathlib.Path(__file__).resolve().parent
 _TOOL = _HERE / "lint-pack-journeys.py"
 
@@ -579,30 +581,7 @@ packUrl: /packs/test/
 
 
 def main() -> int:
-    tests = [
-        test_valid_journey_exits_0,
-        test_journey_id_differs_from_pack_name_valid,
-        test_missing_journey_id,
-        test_invalid_state_in_stage,
-        test_invalid_start_state,
-        test_invalid_end_state,
-        test_nonexistent_skill,
-        test_skill_count_mismatch,
-        test_journey_may_omit_pack_skills,
-        test_duplicate_journey_id,
-        test_dual_ownership_same_slug,
-        test_dual_ownership_same_pack_diff_slug,
-        test_generated_central_not_dual,
-        test_write_stage_missing_decide,
-        test_decision_required_missing_decide,
-        test_missing_output_label,
-        test_missing_state_label,
-        test_pack_field_mismatch,
-    ]
-    for t in tests:
-        t()
-    print(f"\ntest-lint-pack-journeys: all {len(tests)} tests passed")
-    return 0
+    return selftest_harness.run_cases(globals(), "test-lint-pack-journeys")
 
 
 if __name__ == "__main__":

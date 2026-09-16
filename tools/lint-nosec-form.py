@@ -38,8 +38,11 @@ import re
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is the literal "git"
 import sys
 import tokenize
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Callable
+
+import lint_harness
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -272,85 +275,126 @@ def tracked_python_files(roots: list[str], root: Path | None = None) -> list[Pat
     return sorted(Path(name) for name in completed.stdout.split("\0") if name.endswith(".py"))
 
 
-def main(argv: list[str]) -> int:
+# Per-run counters the walk accumulates. Module-level because the driver hands
+# a predicate one path at a time and has no place to thread a run's own state;
+# `scanned` is genuinely accumulated during the walk rather than derived from
+# the parsed root, so no amount of argument-passing would remove it.
+_STATE: dict[str, object] = {}
+
+
+def _parse(argv: list[str] | None) -> list[str]:
+    return list(sys.argv[1:] if argv is None else argv)
+
+
+def _files(explicit: list[str]) -> list[Path]:
+    """Return the tracked ``*.py`` under the requested roots.
+
+    A failure to resolve the roots at all is not an empty scan — it is a
+    refusal — so it aborts with this lint's own message rather than falling
+    through to the empty-scan guard.
+    """
     base = REPO_ROOT
     try:
-        roots = argv[1:] or sast_dirs(base)
+        roots = explicit or sast_dirs(base)
         files = tracked_python_files(roots, base)
     except (LintError, OSError, UnicodeDecodeError) as exc:
-        print(f"lint-nosec-form: {exc}", file=sys.stderr)
-        return 2
-
-    if not files:
-        # A scan that reads nothing must not look like a scan that found
-        # nothing: a typo'd or renamed root is the cheapest way to turn this
-        # gate into a silent no-op.
-        print(
-            f"lint-nosec-form: no tracked *.py under {' '.join(roots)} — "
-            "refusing to report success on an empty scan",
-            file=sys.stderr,
-        )
-        return 2
-
+        raise lint_harness.RuleAbort(
+            lint_harness.Outcome(f"lint-nosec-form: {exc}", 2)
+        ) from exc
     known_ids = id_checker()
-    caveat = "" if known_ids is not None else " (bandit absent: IDs not resolved)"
-    violations: list[Violation] = []
-    scanned = 0
-    for relative in files:
-        absolute = base / relative
-        if not absolute.exists():
-            # Tracked in the index but absent from the worktree (mid-rebase,
-            # partial checkout). Skipping beats aborting the whole gate.
-            continue
-        try:
-            # tokenize.open honours the BOM and PEP 263 coding cookies, as
-            # bandit's own reader does; read_text(encoding="utf-8") would
-            # reject a file bandit scans cleanly.
-            with tokenize.open(absolute) as handle:
-                source = handle.read()
-        except (OSError, UnicodeDecodeError, SyntaxError) as exc:
-            print(f"lint-nosec-form: could not read {relative}: {exc}", file=sys.stderr)
-            return 2
-        try:
-            violations.extend(scan_source(source, relative.as_posix(), known_ids))
-        except (tokenize.TokenError, IndentationError, SyntaxError) as exc:
-            print(f"lint-nosec-form: could not tokenise {relative}: {exc}", file=sys.stderr)
-            return 2
-        scanned += 1
-
-    if scanned == 0:
-        # `files` being non-empty is not enough: every listed file can be absent
-        # from the worktree, and the skip below would then report a clean scan
-        # of nothing. This guard and the `not files` one above look redundant
-        # and are not — the skip re-opened exactly the hole that one closes.
-        print(
-            f"lint-nosec-form: {len(files)} file(s) tracked under "
-            f"{' '.join(roots)} but none present on disk — refusing to report "
-            "success on an empty scan",
-            file=sys.stderr,
-        )
-        return 2
-
-    if violations:
-        print(
-            f"lint-nosec-form: FAIL — {len(violations)} malformed suppression(s) "
-            f"in {scanned} tracked file(s){caveat}:",
-            file=sys.stderr,
-        )
-        for violation in violations:
-            print(violation.render(), file=sys.stderr)
-        print(
-            "\nThe ID is mandatory and any reason goes after a second `#`.\n"
-            "See bandit.yaml's header comment and ADR-0084.",
-            file=sys.stderr,
-        )
-        return 1
-
-    print(
-        f"lint-nosec-form: OK — every suppression in {scanned} tracked file(s) "
-        f"carries a test ID, with any reason behind a second `#`{caveat}."
+    _STATE.update(
+        roots=roots, base=base, files=files, scanned=0, known_ids=known_ids,
+        caveat="" if known_ids is not None else " (bandit absent: IDs not resolved)",
     )
-    return 0
+    return files
+
+
+def _suppressions(relative: Path) -> list[str]:
+    """Return the malformed suppressions in one tracked file."""
+    base = _STATE["base"]
+    absolute = base / relative
+    if not absolute.exists():
+        # Tracked in the index but absent from the worktree (mid-rebase,
+        # partial checkout). Skipping beats aborting the whole gate.
+        return []
+    try:
+        # tokenize.open honours the BOM and PEP 263 coding cookies, as
+        # bandit's own reader does; read_text(encoding="utf-8") would
+        # reject a file bandit scans cleanly.
+        with tokenize.open(absolute) as handle:
+            source = handle.read()
+    except (OSError, UnicodeDecodeError, SyntaxError) as exc:
+        raise lint_harness.RuleAbort(lint_harness.Outcome(
+            f"lint-nosec-form: could not read {relative}: {exc}", 2)) from exc
+    try:
+        found = list(scan_source(source, relative.as_posix(), _STATE["known_ids"]))
+    except (tokenize.TokenError, IndentationError, SyntaxError) as exc:
+        raise lint_harness.RuleAbort(lint_harness.Outcome(
+            f"lint-nosec-form: could not tokenise {relative}: {exc}", 2)) from exc
+    _STATE["scanned"] = _STATE["scanned"] + 1
+    return [violation.render() for violation in found]
+
+
+def _empty_scan(explicit: list[str]) -> lint_harness.Outcome:
+    # A scan that reads nothing must not look like a scan that found
+    # nothing: a typo'd or renamed root is the cheapest way to turn this
+    # gate into a silent no-op.
+    roots = _STATE.get("roots", explicit)
+    return lint_harness.Outcome(
+        f"lint-nosec-form: no tracked *.py under {' '.join(roots)} — "
+        "refusing to report success on an empty scan", 2)
+
+
+def _clean(explicit: list[str], n: int) -> lint_harness.Outcome:
+    """Answer a walk that found no violations.
+
+    `files` being non-empty is not enough: every listed file can be absent
+    from the worktree, and the skip in the predicate would then report a clean
+    scan of nothing. This guard and the empty-scan one look redundant and are
+    not — the skip re-opened exactly the hole that one closes.
+    """
+    scanned = _STATE["scanned"]
+    if scanned == 0:
+        return lint_harness.Outcome(
+            f"lint-nosec-form: {len(_STATE['files'])} file(s) tracked under "
+            f"{' '.join(_STATE['roots'])} but none present on disk — refusing "
+            "to report success on an empty scan", 2)
+    return lint_harness.Outcome(
+        f"lint-nosec-form: OK — every suppression in {scanned} tracked file(s) "
+        f"carries a test ID, with any reason behind a second `#`"
+        f"{_STATE['caveat']}.", 0, "stdout")
+
+
+def _report(violations: Sequence[str]) -> None:
+    """Header, then the findings, then the trailer — all on stderr."""
+    print(
+        f"lint-nosec-form: FAIL — {len(violations)} malformed suppression(s) "
+        f"in {_STATE['scanned']} tracked file(s){_STATE['caveat']}:",
+        file=sys.stderr,
+    )
+    for violation in violations:
+        print(violation, file=sys.stderr)
+    print(
+        "\nThe ID is mandatory and any reason goes after a second `#`.\n"
+        "See bandit.yaml's header comment and ADR-0084.",
+        file=sys.stderr,
+    )
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_files,
+    predicate=_suppressions,
+    pass_line=_clean,
+    empty_scan=_empty_scan,
+    absent_root=_empty_scan,
+    report=_report,
+)
+
+
+def main(argv: list[str]) -> int:
+    """Run the repository form lint and return its documented exit status."""
+    return lint_harness.run(RULE, list(argv[1:]))
 
 
 if __name__ == "__main__":

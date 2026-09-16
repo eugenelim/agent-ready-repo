@@ -59,6 +59,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+import lint_harness
+
 # Hosts whose addresses cannot identify a person no matter the local part.
 # This is an allowlist, not a pattern, and that is the point -- see the module
 # docstring's § "Why a host allowlist and not a no-reply pattern". Adding a host
@@ -114,79 +116,107 @@ def _is_allowed_address(email: str) -> bool:
     return host in ALLOWED_HOSTS
 
 
+def _parse(argv: list[str] | None) -> Path:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--root", default=".", help="repository root to lint (default: .)"
+    )
+    return Path(parser.parse_args(argv).root)
+
+
+def _manifests(root: Path) -> list[Path] | None:
+    """Return each pack's ``pack.toml``, or ``None`` when ``packs/`` is absent.
+
+    Fail closed: a run that gated nothing must not read identically to a run
+    that gated everything, so finding no manifest is an error here and not a
+    pass. See the module docstring's § "Why exit 2 exists".
+    """
+    packs_dir = root / "packs"
+    if not packs_dir.is_dir():
+        return None
+    return sorted(
+        pack / "pack.toml" for pack in packs_dir.iterdir()
+        if (pack / "pack.toml").is_file()
+    )
+
+
+def _nothing_scanned(root: Path) -> lint_harness.Outcome:
+    return lint_harness.Outcome(
+        f"lint-pack-maintainer-emails: no pack.toml found under {root / 'packs'} "
+        "— scanned nothing, so this is not a pass. Check --root.",
+        2,
+    )
+
+
 def find_violations(packs_dir: Path) -> list[str]:
     """Return one message per maintainer email outside the allowed forms.
 
     Missing maintainer data and malformed manifests are left to schema
     validation. This is only the address-class control, so duplicating those
     failures would make its output noisier without adding coverage.
+
+    Kept as a public function over a directory: the self-test drives it
+    directly, and it stays pure — the fail-closed decision lives in the driver.
     """
-    violations: list[str] = []
     if not packs_dir.is_dir():
-        return violations
+        return []
+    violations: list[str] = []
     for pack_dir in sorted(packs_dir.iterdir()):
         manifest = pack_dir / "pack.toml"
-        if not manifest.is_file():
-            continue
-        try:
-            parsed = tomllib.loads(manifest.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):
-            continue
-        maintainers = parsed.get("pack", {}).get("maintainers")
-        if not isinstance(maintainers, list):
-            continue
-        for maintainer in maintainers:
-            if not isinstance(maintainer, dict):
-                continue
-            email = maintainer.get("email")
-            if not isinstance(email, str):
-                continue
-            if _is_allowed_address(email):
-                continue
-            violations.append(
-                f"lint-pack-maintainer-emails: {pack_dir.name}: "
-                f"[[pack.maintainers]].email {email!r} is not on a reviewed "
-                "host and is not a reviewed address. Publish from one of "
-                f"{sorted(ALLOWED_HOSTS)}, or add the host to ALLOWED_HOSTS "
-                "(or the exact address to ALLOWED_EMAILS) with its reason."
-            )
+        if manifest.is_file():
+            violations.extend(_unreviewed_addresses(manifest))
     return violations
+
+
+def _unreviewed_addresses(manifest: Path) -> list[str]:
+    """Return one message per unreviewed maintainer address in one manifest."""
+    pack_dir = manifest.parent
+    try:
+        parsed = tomllib.loads(manifest.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):
+        return []
+    maintainers = parsed.get("pack", {}).get("maintainers")
+    if not isinstance(maintainers, list):
+        return []
+    violations: list[str] = []
+    for maintainer in maintainers:
+        if not isinstance(maintainer, dict):
+            continue
+        email = maintainer.get("email")
+        if not isinstance(email, str):
+            continue
+        if _is_allowed_address(email):
+            continue
+        violations.append(
+            f"lint-pack-maintainer-emails: {pack_dir.name}: "
+            f"[[pack.maintainers]].email {email!r} is not on a reviewed "
+            "host and is not a reviewed address. Publish from one of "
+            f"{sorted(ALLOWED_HOSTS)}, or add the host to ALLOWED_HOSTS "
+            "(or the exact address to ALLOWED_EMAILS) with its reason."
+        )
+    return violations
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_manifests,
+    predicate=_unreviewed_addresses,
+    pass_line=lambda root, n: (
+        "lint-pack-maintainer-emails: every maintainer email is on a reviewed "
+        "host or is a reviewed address."
+    ),
+    empty_scan=_nothing_scanned,
+    absent_root=_nothing_scanned,
+    summary=lambda n: (
+        f"lint-pack-maintainer-emails: {n} maintainer email(s) "
+        "outside the repository privacy policy."
+    ),
+)
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the policy lint and return its process exit status."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "--root", default=".", help="repository root to lint (default: .)"
-    )
-    args = parser.parse_args(argv)
-
-    packs_dir = Path(args.root) / "packs"
-    # Fail closed before reporting anything: see the module docstring. A pass
-    # line printed over zero scanned manifests is the defect, not the absence.
-    if not packs_dir.is_dir() or not any(packs_dir.glob("*/pack.toml")):
-        print(
-            f"lint-pack-maintainer-emails: no pack.toml found under {packs_dir} "
-            "— scanned nothing, so this is not a pass. Check --root.",
-            file=sys.stderr,
-        )
-        return 2
-
-    violations = find_violations(packs_dir)
-    for violation in violations:
-        print(violation, file=sys.stderr)
-    if violations:
-        print(
-            f"lint-pack-maintainer-emails: {len(violations)} maintainer email(s) "
-            "outside the repository privacy policy.",
-            file=sys.stderr,
-        )
-        return 1
-    print(
-        "lint-pack-maintainer-emails: every maintainer email is on a reviewed "
-        "host or is a reviewed address."
-    )
-    return 0
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":
