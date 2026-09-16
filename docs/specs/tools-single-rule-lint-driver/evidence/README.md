@@ -18,15 +18,25 @@ status against `corpus-before.json`.
 
 ## Expected result
 
-One case differs, and it is not the refactor:
+`IDENTICAL`, exit 0, with zero behavioural differences. It will also report one
+or two `count-only:` lines, and those are expected:
 
-    lint-nosec-form [clean] stdout:  "... in 1216 tracked file(s) ..."
-                                  -> "... in 1219 tracked file(s) ..."
+    count-only: lint-nosec-form [clean] stdout: 1216 tracked file(s) -> 1221 tracked file(s)
+    count-only: lint-nosemgrep-form [clean] stdout: 2986 UTF-8 text file(s) -> 2988 UTF-8 text file(s)
 
-Both SAST-form lints print a repo-wide count of the files they scanned, so any
-commit that adds a tracked file moves that number; this change adds three. With
-those three untracked the replay reports IDENTICAL for all 48. `BASELINES.md`
-records that differential and why there are two baselines.
+Both SAST-form lints end a clean run with a repo-wide count of the files they
+scanned, so *any* commit anywhere that adds a tracked file moves that number —
+including rebasing onto a moved `main`. The replay therefore reports a
+difference that is only that integer separately from a behavioural one, rather
+than pinning integers that go stale on the next rebase.
+
+The substitution is deliberately narrow — it rewrites the digits in that one
+phrase and nothing else — so it cannot excuse a real change. Verified by
+mutation: renaming that line's `OK` to `FINE` is reported as a behavioural
+difference and exits 1, even while the count is also moving; restoring it exits
+0. Re-run that check before trusting this instrument after changing it.
+
+`BASELINES.md` records why there are two baselines.
 
 ## Files
 
