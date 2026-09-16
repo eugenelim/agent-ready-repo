@@ -52,6 +52,12 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 7. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-review/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
 8. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-system` to derive the tokens and scales that express them.
 
+## Output
+
+**Writes:** `<output_dir>/direction/<slug>.md`
+
+**Confinement:** `references/containment.md`
+
 ## Genre canonical reference tier
 
 When grounding creative direction for a surface with a declared genre (from the per-screen brief's `surface-genre:` field), use the genre canonical reference tier below as the starting set for the **precedent** referent in step 3 (Grounding). These are **study subjects, not prescriptive tools** — internalize the structural philosophy, the spatial grammar, the aesthetic philosophy each site embodies. Do not copy the surface treatment; do not name any of these as required implementation tools; do not reproduce their values.

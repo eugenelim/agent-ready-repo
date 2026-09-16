@@ -105,6 +105,14 @@ judging an existing screen, `design-review`.
    the disclosure stages, the navigation shape, the wayfinding plan, and
    the per-state layout notes. Reasoning and rationale, no layout code.
 
+## Output
+
+**Writes:** `<output_dir>/screens/<slug>-ia.md`
+
+**Confinement:** `references/containment.md`
+
+Artifact frontmatter declares `type: information-architecture`.
+
 ## Anti-patterns to refuse
 
 - **Reaching for markup or styling code.** This skill outputs concepts and

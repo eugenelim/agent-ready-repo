@@ -72,6 +72,12 @@ Before drafting, confirm:
    interchange shape so it travels across tools. Pointer in
    `references/token-taxonomy-derivation.md`.
 
+## Output
+
+**Writes:** `<output_dir>/tokens/<slug>.md`
+
+**Confinement:** `references/containment.md`
+
 ## Anti-patterns to refuse
 
 - **Reprinting a values table instead of deriving one.** A fixed palette,

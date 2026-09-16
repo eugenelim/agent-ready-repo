@@ -88,6 +88,10 @@ An assumption-based principle is not a defect — it is honest about its epistem
 
 ## Output
 
+**Writes:** `<output_dir>/principles/<slug>.md`
+
+**Confinement:** `references/containment.md`
+
 A principles doc at `docs/design/principles/<slug>.md` with frontmatter `type: design-principles`. Each principle entry:
 
 ```markdown
