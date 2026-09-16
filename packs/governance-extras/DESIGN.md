@@ -137,9 +137,9 @@ Installing governance-extras at user scope would make every skill write to a use
 
 `governance-extras` writes RFCs to the repository RFC surface, ADRs to the
 resolved `decision-record` destination, and conventions to
-the owning artifact; the catalogue seed paths are only fallbacks. These
+whichever artifact owns each rule; the catalogue seed paths are only fallbacks. These
 surfaces only have meaning after `core` has scaffolded the repo structure. An
-RFC in a repo with no governance surface, no `the owning artifact`, and no
+RFC in a repo with no governance surface, no agreed conventions, and no
 established work loop is documentation in search of a process.
 
 The dependency is version-pinned at `^0.1` — a soft floor that allows `core` to evolve without blocking governance-extras updates, while ensuring the basic scaffold is in place. The dependency is enforced at install time.
