@@ -60,6 +60,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.8] — 2026-09-16
+
+### Highlights
+
+- **A plan that names a task you never wrote no longer runs in the wrong order.**
+  `loop-cohort schedule` used to drop a `Depends on:` entry pointing at a task
+  the plan did not contain — no warning, no error. The dependency edge vanished,
+  the tasks collapsed into one wave, and because gates run per wave, the gate run
+  collapsed with them. `schedule` now stops, names every offending
+  `task->dependency` pair, and writes no state, so you fix the plan instead of
+  discovering the wrong order later.
+
+### Fixed
+
+- `work-loop`: a `Depends on:` entry that names no task in the plan is refused.
+  Only the declarations of tasks still to be scheduled are examined, and every
+  task in the plan counts as a valid target, so a dependency on completed work
+  still resolves and an amended plan is not refused for a line it can no longer
+  edit. A range that spans an absent ID is refused too, naming the absent member.
+- `work-loop`: cross-spec dependencies are unaffected, a dependency cycle still
+  stops the run, and a forward reference still warns, reorders so the dependency
+  runs first, and continues.
+- `new-spec`: the plan template's `Depends on:` placeholder no longer names `T0`,
+  a task ID that can never exist.
+
 ## [core][2.26.7] — 2026-09-16
 
 ### Added

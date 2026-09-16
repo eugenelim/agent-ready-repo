@@ -105,6 +105,52 @@ PLAN_BODY_WITHOUT_STATUS = """# Plan
 
 **Depends on:** T1
 """
+# Fixture: one unfinished task (T2) declares a dependency on T7, which is not
+# in the plan. Used by test_47.
+PLAN_UNKNOWN_SINGLE = """# Plan
+
+- **Status:** Approved
+
+### T1
+
+**Depends on:** none
+
+### T2
+
+**Depends on:** T7
+"""
+# Fixture: two tasks each declare an unknown dependency (T1->T7, T2->T9).
+# Used by test_48.
+PLAN_UNKNOWN_TWO = """# Plan
+
+- **Status:** Approved
+
+### T1
+
+**Depends on:** T7
+
+### T2
+
+**Depends on:** T9
+"""
+# Fixture: T1 and T2 form a cycle, T3 names an unknown dep (T99).
+# Used by test_50 to confirm unknown-dep refusal beats cycle refusal (AC4).
+PLAN_UNKNOWN_AND_CYCLE = """# Plan
+
+- **Status:** Approved
+
+### T1
+
+**Depends on:** T2
+
+### T2
+
+**Depends on:** T1
+
+### T3
+
+**Depends on:** T99
+"""
 FINDINGS_REPORT = """## Blockers
 
 **1. Missing null check.** `src/foo.py:42`. Value not validated. Fix: add guard.
@@ -936,3 +982,69 @@ class LoopCohortCliTest(unittest.TestCase):
         spec_dir, _ = self._initialized()
         self._assert_cli(0, "reset", str(spec_dir))
         self._assert_cli(0, "reset", str(spec_dir))
+
+    def test_47_schedule_refuses_single_unknown_dep(self) -> None:
+        """AC1: non-zero exit, stderr names T2->T7, state.json bytes unchanged."""
+        spec_dir, run_id = self._initialized()
+        (spec_dir / "spec.md").write_text(SPEC_BODY, encoding="utf-8")
+        (spec_dir / "plan.md").write_text(PLAN_UNKNOWN_SINGLE, encoding="utf-8")
+        self._assert_cli(0, "approve-plan", str(spec_dir), "--expect-run-id", run_id)
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        self._assert_cli(
+            1,
+            "schedule",
+            str(spec_dir),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="T2->T7",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
+
+    def test_48_schedule_refuses_two_unknown_deps_names_both(self) -> None:
+        """AC2: one refusal listing both offending pairs."""
+        spec_dir, run_id = self._initialized()
+        (spec_dir / "spec.md").write_text(SPEC_BODY, encoding="utf-8")
+        (spec_dir / "plan.md").write_text(PLAN_UNKNOWN_TWO, encoding="utf-8")
+        self._assert_cli(0, "approve-plan", str(spec_dir), "--expect-run-id", run_id)
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        result = self._assert_cli(
+            1,
+            "schedule",
+            str(spec_dir),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="T1->T7",
+        )
+        self.assertIn("T2->T9", result.stderr)
+        self.assertEqual(state_path.read_bytes(), before)
+
+    def test_49_schedule_corrected_plan_exits_zero_and_writes_waves(self) -> None:
+        """AC6 control: the same two-task fixture with the dependency corrected succeeds.
+
+        Asserts the exact wave partition, not merely that waves exist. The defect
+        this spec fixes drops the edge and collapses both tasks into one wave, so
+        a truthiness check would stay green against it.
+        """
+        # PLAN_BODY has T2 -> T1 (valid), the corrected form of PLAN_UNKNOWN_SINGLE.
+        spec_dir, run_id = self._approved()
+        self._assert_cli(0, "schedule", str(spec_dir), "--expect-run-id", run_id)
+        self.assertEqual(self._state(spec_dir)["schedule_waves"], [["T1"], ["T2"]])
+
+    def test_50_schedule_unknown_dep_beats_cycle_refusal(self) -> None:
+        """AC4: when a plan has both an unknown dep and a cycle, the unknown-dep
+        refusal takes precedence over the cycle refusal."""
+        spec_dir, run_id = self._initialized()
+        (spec_dir / "spec.md").write_text(SPEC_BODY, encoding="utf-8")
+        (spec_dir / "plan.md").write_text(PLAN_UNKNOWN_AND_CYCLE, encoding="utf-8")
+        self._assert_cli(0, "approve-plan", str(spec_dir), "--expect-run-id", run_id)
+        result = self._assert_cli(
+            1,
+            "schedule",
+            str(spec_dir),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="T3->T99",
+        )
+        self.assertNotIn("cycle", result.stderr)

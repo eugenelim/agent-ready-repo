@@ -1169,7 +1169,9 @@ future maintainer would ask "why", surface it in the PR description.
 **Supervisor mode is wave-scheduled and sequential in Phase 1.** The
 work-loop builds the plan's full `Depends on:` DAG (`loop-cohort schedule`) and
 dispatches plan tasks in topological order with one `implementer` at a time —
-failing loud on a cycle and warning on a forward-reference. Parallel
+failing loud on a cycle and warning on a forward-reference. A `Depends on:`
+entry that names no task in the plan is refused: the run exits non-zero, every
+offending task→dep pair is named, and nothing is persisted. Parallel
 `implementer` fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is
 **disabled in Phase 1** — those verbs exit non-zero without touching
 `state.json`. The design intent for opt-in parallel fan-out and the step-by-step
