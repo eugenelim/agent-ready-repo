@@ -74,13 +74,11 @@ attempt at this work went wrong.
 
 ### Ask first
 
-- Withdrawing a comparison-table row rather than re-pointing it at the retry
-  cap. That is a positioning call, not a documentation fix.
-- Editing `docs/CONVENTIONS.md`, whose line 1093 is byte-identical to the
-  projected seed. Whether the repository copy moves with the seed is a
-  convention-ownership question.
 - Any change to `scripts/_loop_guards.py`'s reset message, which is byte-pinned
   by a golden-stream fixture.
+- Withdrawing a comparison-table row, rather than re-pointing it at the retry
+  cap as AC-0009 now requires. Re-pointing is the owner's answer; withdrawing
+  would be a different positioning call.
 
 ### Never do
 
@@ -102,8 +100,9 @@ attempt at this work went wrong.
   ADR-0104 requires.
 - **The projected seed and its twin (AC-0004, AC-0005)** — Goal-based check. The
   clause carries two obligations in one sentence, so the assertion has to see
-  both halves. AC-0005 is a divergence check, not an equality check, so it holds
-  whichever way the *Ask first* question resolves.
+  both halves. AC-0005 asserts the repository copy is untouched, which reads
+  backwards until you know why: that file is being removed by another worktree,
+  so the two deliberately diverge for as long as it survives.
 - **The authority statements (AC-0006)** — Goal-based check. One normalized
   substring assertion per statement, against literals in the test source. One
   row is covered by an existing suite; five are not, including one previously
@@ -114,10 +113,10 @@ attempt at this work went wrong.
   check, in a repository-level suite because a pack test may not read above its
   own pack. The plan names the Makefile runner line the suite joins; without
   that registration the boundary lint fails it and nothing executes it.
-- **The competitive claims (AC-0009)** — Goal-based check, and the one criterion
-  whose assertion text cannot be written until the owner answers. It is carried
-  as a criterion rather than a follow-on because leaving it out would let a false
-  published comparison ship silently.
+- **The competitive claims (AC-0009)** — Goal-based check. The owner's answer is
+  to re-point the rows at the iteration cap rather than withdraw them, so the
+  assertion has a fixed target: both tables and both prose passages claim a cap
+  and no detection.
 - **The retired phrasing stays retired (AC-0010)** — TDD. A parametrized,
   whitespace-normalized absence sweep over the plan's two literal lists,
   asserting its corpus paths exist before walking them. Same shape as the sweep
@@ -127,9 +126,12 @@ attempt at this work went wrong.
   stasis, which the measurement refutes independently of what detection then
   triggers.
 
-**What is not mechanically protected.** Two things. The comparison tables state a
-competitive claim, and no assertion can decide whether the replacement claim is
-*honest* — only whether it matches an agreed string. And the inventory is a
+**What is not mechanically protected.** Three things. The comparison tables state
+a competitive claim, and no assertion can decide whether the replacement claim is
+*honest* — only whether it matches an agreed string. AC-0005 rests on another
+worktree removing `docs/CONVENTIONS.md`; if that does not happen, the repository
+copy keeps a retired halt and the criterion asserts the opposite. And the
+inventory is a
 vocabulary search over a concept: a surface stating the halt in words none of
 the patterns match is not in the table, and AC-0010 cannot pin the absence of a
 paraphrase nobody has written yet. Three earlier attempts at this inventory each
@@ -166,9 +168,11 @@ concept absent.
 - [ ] **AC-0004.** `packs/core/seeds/docs/CONVENTIONS.md`'s clause instructs no
   pause for replanning, and its statement that retry caps and stasis neither
   complete intent nor create backlog work survives intact.
-- [ ] **AC-0005.** `docs/CONVENTIONS.md`'s twin of that clause either carries the
-  same split, or the repository records why the two deliberately diverge. The
-  criterion holds under either resolution and fails only on silent divergence.
+- [ ] **AC-0005.** `docs/CONVENTIONS.md` is unchanged by this work. Its copy of
+  the clause is byte-identical to the seed's today, and divergence here is
+  deliberate: the `dispatch-agent-context` worktree is removing that file. Both
+  of its sessions have been told the clause carries a retired halt and a
+  surviving authority statement, so a relocation inherits both halves.
 
 ### What must not move
 
@@ -181,9 +185,10 @@ concept absent.
   the loop.
 - [ ] **AC-0008.** The public pack page states only capabilities the tree has
   after this change.
-- [ ] **AC-0009.** The two competitive comparison tables state only capabilities
-  the tree has after this change, under whichever resolution the owner picks per
-  *Ask first*.
+- [ ] **AC-0009.** The two competitive comparison tables, and the prose beside
+  each, claim an iteration cap and not stasis detection. The cap is real,
+  survives this change untouched, and is still absent from both compared tools;
+  the detection half is what becomes false.
 
 ### Staying retired
 

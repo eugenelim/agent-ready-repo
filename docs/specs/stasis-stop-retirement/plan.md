@@ -88,7 +88,7 @@ behaviour to a reader.
 | 5 | `references/delivery-contract-lifecycle.md` | 129 | mechanism | rewrite — a repeated fingerprint does not detect it |
 | 6 | `references/delivery-contract-lifecycle.md` | 130 | halt | rewrite — drop the immediate replan |
 | 7 | `packs/core/seeds/docs/CONVENTIONS.md` | 1093 | halt **and** authority | split — drop the pause, keep the rest |
-| 8 | `docs/CONVENTIONS.md` | 1093 | halt **and** authority | byte-identical twin of 7; see spec *Ask first* |
+| 8 | `docs/CONVENTIONS.md` | 1093 | halt **and** authority | no action — the file is being removed by the `dispatch-agent-context` worktree; both its sessions were told the clause carries both halves |
 | 9 | `references/delivery-contract-lifecycle.md` | 63 | authority | keep — asserted today |
 | 10 | `references/delivery-contract-lifecycle.md` | 136 | authority | keep — **not** asserted today |
 | 11 | `SKILL.md` | 759 | authority | keep — **not** asserted today |
@@ -108,10 +108,10 @@ behaviour to a reader.
 | 25 | `guides/core/explanation/core-pack.md` | 66 | claim — capability | rewrite |
 | 26 | `guides/core/explanation/core-pack.md` | 121 | claim — halt | rewrite |
 | 27 | `guides/core/explanation/core-pack.md` | 135 | claim — halt | rewrite |
-| 28 | `guides/core/explanation/core-pack.md` | 154 | competitive claim | owner call |
-| 29 | `guides/core/explanation/core-pack.md` | 159 | competitive claim | owner call |
-| 30 | `guides/core/explanation/core-pack.md` | 170 | competitive claim | owner call |
-| 31 | `guides/core/explanation/core-pack.md` | 175 | competitive claim | owner call |
+| 28 | `guides/core/explanation/core-pack.md` | 154 | competitive claim | rewrite — "iteration cap", drop stasis detection |
+| 29 | `guides/core/explanation/core-pack.md` | 159 | competitive claim | rewrite — same, in prose |
+| 30 | `guides/core/explanation/core-pack.md` | 170 | competitive claim | rewrite — "iteration cap", drop stasis detection |
+| 31 | `guides/core/explanation/core-pack.md` | 175 | competitive claim | rewrite — same, in prose |
 | 32 | `guides/core/explanation/token-economy.md` | 79 | claim — halt | rewrite |
 | 33 | `guides/core/how-to/bug-fix.md` | 107 | claim — capability | rewrite |
 | 34 | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | 123 | claim — capability | rewrite |
@@ -197,12 +197,14 @@ literal phrases and compares them as normalized substrings; AC-0006 follows that
 form rather than whole-statement equality, which is not assertable across the
 line break in row 9.
 
-**The comparison tables need an owner decision, not a default.** Rows 28 to 31
-mark "iteration cap and stasis detection" present for this pack and absent for
-two named competitors. Retiring the stop makes half that claim false.
-Re-pointing it at the retry cap keeps a true claim; withdrawing the rows concedes
-a differentiator. The plan does not pick; the spec's *Ask first* routes it, so
-silence blocks rather than shipping a false comparison.
+**The comparison claims re-point at the cap.** Rows 28 to 31 mark "iteration cap
+and stasis detection" present for this pack and absent for two named
+competitors. Retiring the stop makes the second half false; the first half is
+true, survives this change untouched, and is still absent from both compared
+tools. The owner's answer is to keep the row and drop the stasis clause rather
+than withdraw the differentiator. Note the honest reading of what is being
+dropped: the detection was never observed to work, so this corrects a claim
+rather than conceding a capability.
 
 **No script changes.** Rows 15 to 21 are comments, docstrings, payload keys and
 a message. Row 21 is byte-pinned by a golden-stream fixture, so touching it
@@ -252,23 +254,25 @@ they can fail in T2 and T3 if an edit reaches too far.
 **Done when:** the three reference files instruct no halt, both Surfaces remain,
 and T1's assertions are still green.
 
-### T3: Split the projected seed and settle its twin
+### T3: Split the projected seed
 
 **Depends on:** T1
 
 **Tests:**
 - AC-0004 — the pause is gone and the authority half is intact, asserted as two
   conditions on one sentence.
-- AC-0005 — the twin carries the same split, or a divergence record exists.
+- AC-0005 — `docs/CONVENTIONS.md` is untouched by this change.
 
 **Approach:**
-- Inventory rows 7 and 8. Get the *Ask first* answer before editing either; they
-  are byte-identical today and a one-sided edit makes them diverge silently.
-- If they diverge deliberately, the record goes in `docs/CONVENTIONS.md` beside
-  the clause, since that is the surface a reader lands on.
+- Inventory row 7 only. Row 8 is out of scope: the `dispatch-agent-context`
+  worktree is removing that file, and both its sessions have been told the
+  clause carries a retired halt and a surviving authority statement, so a
+  relocation inherits both.
+- The two are byte-identical today and will diverge. That is deliberate and
+  short-lived; do not "fix" it.
 
 **Done when:** the seed carries the authority statement and no pause, and the
-twin is either edited in step or carries the divergence record.
+repository copy is untouched.
 
 ### T4: Correct the published guides and public claims
 
@@ -326,11 +330,12 @@ clean, and `agentbundle catalogue verify --root .` returns ok.
 - **A Surface disposition is deleted with its halt.** Two rows carry both in one
   sentence, and ADR-0104 is frozen, so the repair for losing them is a
   superseding ADR rather than a spec edit.
-- **The seed and its twin diverge silently.** Byte-identical today with nothing
-  asserting it. AC-0005 forces the decision either way.
-- **The competitive claim resolves by default.** If nobody answers rows 28 to 31,
-  the likeliest outcome is that they are left alone and the published comparison
-  becomes false.
+- **The removal of `docs/CONVENTIONS.md` does not happen, or relocates the
+  clause intact.** This plan stops touching row 8 on the strength of another
+  worktree's intent. If that worktree changes course, the repository copy keeps
+  a retired halt and nothing here catches it — AC-0005 asserts the file is
+  untouched, which is the opposite check. The mitigation is the message sent to
+  both of its sessions, which is a notification, not a guarantee.
 - **The inventory is incomplete in a way no re-run finds.** Named in *Method*
   above. Three attempts have each missed a different class; a fourth class is
   possible and no command in this plan would surface it.
