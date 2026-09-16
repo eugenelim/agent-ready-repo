@@ -69,6 +69,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the signal it read is equality over a fingerprint that carries a finding's
   position, so any repair that moved a finding made the round look new.
 
+### Highlights
+
+- Your loop no longer halts when the same findings come back. It tells you and
+  keeps going, bounded by the iteration cap. The stop it replaced never fired:
+  the signal it read is equality over a fingerprint that carries a finding's
+  position, so any repair that moved a finding made the round look new.
+
 ### Changed
 
 - Full mode no longer instructs a halt when review findings repeat. The control

@@ -50,6 +50,11 @@ def _flat(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").split())
 
 
+def _rel(path: Path) -> str:
+    """Pack-relative path, so a failure names the file a reader can open."""
+    return str(path.relative_to(PACK_ROOT))
+
+
 # ── AC-0003: what must not move ──────────────────────────────────────────────
 #
 # Captured from the tree before any edit task ran, so these literals describe
@@ -103,9 +108,9 @@ def test_authority_statement_survives_in_its_own_file(
     One case per statement rather than one joined assertion, because a joined
     one names only the first surface it loses.
     """
-    assert target.is_file(), f"pinned surface is missing: {target.name}"
+    assert target.is_file(), f"pinned surface is missing: {_rel(target)}"
     assert statement in _flat(target), (
-        f"authority statement lost from {target.name}: {statement!r}. "
+        f"authority statement lost from {_rel(target)}: {statement!r}. "
         "Retiring the halt must not reach the statements beside it."
     )
 
@@ -128,9 +133,9 @@ HALT_PHRASES = (
 @pytest.mark.parametrize("phrase", HALT_PHRASES)
 def test_no_runtime_surface_instructs_a_halt(target: Path, phrase: str) -> None:
     """One case per surface per phrasing, so a missed surface is named."""
-    assert target.is_file(), f"swept surface is missing: {target.name}"
+    assert target.is_file(), f"swept surface is missing: {_rel(target)}"
     assert phrase not in _flat(target).lower(), (
-        f"retired halt {phrase!r} survives in {target.name}"
+        f"retired halt {phrase!r} survives in {_rel(target)}"
     )
 
 
@@ -139,6 +144,11 @@ def test_no_runtime_surface_instructs_a_halt(target: Path, phrase: str) -> None:
     (
         (ADJUDICATION, "Surface it, and continue the round sequence"),
         (STATE_SCHEMA, "Surface it; it starts no transition and stops no loop"),
+        # The lifecycle file carries no Surface disposition, but its rewritten
+        # stop-condition clause still needs a presence half: absence cases alone
+        # are satisfied by deleting the clause, which would leave the numbered
+        # stop conditions silent about a signal the loop still emits.
+        (LIFECYCLE, "is Surfaced, not a stop"),
     ),
 )
 def test_the_surface_disposition_survives(target: Path, surface_disposition: str) -> None:
@@ -148,7 +158,7 @@ def test_the_surface_disposition_survives(target: Path, surface_disposition: str
     the way an edit satisfying absence alone loses them.
     """
     assert surface_disposition in _flat(target), (
-        f"Surface disposition lost from {target.name}; ADR-0104 requires it and is "
+        f"Surface disposition lost from {_rel(target)}; the accepted decision requires it and is "
         "frozen, so restoring it is a spec fix rather than an ADR amendment"
     )
 
@@ -161,5 +171,5 @@ def test_no_surface_claims_a_fingerprint_detects_stasis(target: Path) -> None:
     flat = _flat(target).lower()
     for claim in ("used for stasis detection", "is stasis and stops"):
         assert claim not in flat, (
-            f"refuted detection claim {claim!r} survives in {target.name}"
+            f"refuted detection claim {claim!r} survives in {_rel(target)}"
         )

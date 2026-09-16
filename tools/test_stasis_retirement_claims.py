@@ -41,6 +41,10 @@ RETIRED_CLAIMS = (
     "refuses to self-certify past a red gate or a repeated finding",
     "it stops at plan approval, unresolved boundaries, repeated findings",
     "stasis detection",
+    # The vocabulary two surviving claims used. Their absence from this list is
+    # why both suites were green on a tree that violated two criteria: the
+    # assertion named strings the non-compliant text never contained.
+    "fingerprint stasis",
 )
 
 PUBLISHED_TREES = ("guides", "web/src/content")
@@ -54,6 +58,44 @@ def _published_markdown() -> list[Path]:
         files.extend(sorted(base.rglob("*.md")))
     assert files, "published corpus resolved to nothing — the sweep would pass vacuously"
     return files
+
+
+# Preserved published text. `new-rfc.md` illustrates amending a cap through an
+# RFC and is deliberately untouched; it says "stasis-detection data", which the
+# hyphen is all that keeps out of `RETIRED_CLAIMS`'s reach.
+PRESERVED_PUBLISHED = (
+    "use the new-rfc skill to amend the work-loop iteration cap from 5 to 7 "
+    "based on six months of stasis-detection data",
+)
+
+
+@pytest.mark.parametrize("claim", RETIRED_CLAIMS)
+def test_no_retired_claim_matches_preserved_published_text(claim: str) -> None:
+    """A published-claim sweep must not be able to red on prose kept on purpose."""
+    collisions = [s for s in PRESERVED_PUBLISHED if claim in s.lower()]
+    assert not collisions, (
+        f"retired claim {claim!r} matches preserved published text: {collisions}"
+    )
+
+
+@pytest.mark.parametrize(
+    "paragraph",
+    (
+        "The extra five steps — gates, adversarial review, a mechanical iteration "
+        "cap, specialist reviewers, learning capture",
+        "reviewer findings send you back to FIX, and the iteration cap sends you "
+        "to a human",
+    ),
+)
+def test_the_prose_beside_each_comparison_table_claims_the_cap(paragraph: str) -> None:
+    """AC-0005 names the prose as well as the rows.
+
+    Editing only the rows left both paragraphs selling the retired capability,
+    and one of them stating the halt outright.
+    """
+    assert paragraph in _flat(CORE_PACK_GUIDE), (
+        f"prose beside a comparison table no longer reads as expected: {paragraph!r}"
+    )
 
 
 @pytest.mark.parametrize("claim", RETIRED_CLAIMS)
