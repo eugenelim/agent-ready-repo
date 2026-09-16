@@ -1,15 +1,25 @@
 # Verification ledger — loop-cohort unknown dependency refusal
 
-## Mutation proof (T3, AC9)
+## Mutation proof (T3, AC9) — re-derived against the shipped guard
+
+The first run of this proof was taken before the refusal message gained its
+remedy clause, so its recorded line range and snippet described a guard that no
+longer shipped. Replaying it would have deleted unrelated control flow. It has
+been re-derived against the form that ships, and the record below is the
+re-derivation, not the original.
 
 ### What was mutated
 
 **File:** `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`
 
-**Lines removed:** 639–644 (the single `detect_unknown_deps` call site inside
-`schedule_unfinished_plan`, immediately before the `detect_cycles` call)
+**Revision mutated:** `946370f8b` (the tree as it ships)
 
-**Exact 6 lines deleted:**
+**Lines removed:** 650–657 — the single `detect_unknown_deps` call site inside
+`schedule_unfinished_plan`, immediately before its `detect_cycles` call. The
+three explanatory comment lines above it (647–649) were left in place, so the
+deletion is exactly the guard and nothing else.
+
+**Exact 8 lines deleted:**
 
 ```python
     unknown = detect_unknown_deps(plan_text, scan_task_ids=remaining_set)
@@ -17,6 +27,8 @@
         raise ValueError(
             "dependency names no task in the plan: "
             + ", ".join(f"{a}->{b}" for a, b in unknown)
+            + " — correct the ID in plan.md, or drop it from that task's"
+            " `Depends on:` line"
         )
 ```
 
@@ -25,90 +37,73 @@
 ```
 python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q
 python3 -m pytest packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py -q
+python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py::test_detect_unknown_deps_has_exactly_one_call_site -q
 ```
 
-### RED result (call site deleted)
+### RED result, re-derived (guard deleted from the shipped form)
 
-**`test_loop_cohort_cli.py`** — 3 failed, 59 passed, 22 subtests passed in 80.79s
+```
+test_loop_cohort_cli.py            exit 1
+  FAILED ...::LoopCohortCliTest::test_47_schedule_refuses_single_unknown_dep
+  FAILED ...::LoopCohortCliTest::test_48_schedule_refuses_two_unknown_deps_names_both
+  FAILED ...::LoopCohortCliTest::test_50_schedule_unknown_dep_beats_cycle_refusal
+  3 failed, 59 passed, 22 subtests passed in 94.72s
 
-Failing test IDs:
-- `packs/core/tests/skills/work-loop/test_loop_cohort_cli.py::LoopCohortCliTest::test_47_schedule_refuses_single_unknown_dep`
-- `packs/core/tests/skills/work-loop/test_loop_cohort_cli.py::LoopCohortCliTest::test_48_schedule_refuses_two_unknown_deps_names_both`
-- `packs/core/tests/skills/work-loop/test_loop_cohort_cli.py::LoopCohortCliTest::test_50_schedule_unknown_dep_beats_cycle_refusal`
+test_contract_amendment_wave4.py   exit 1
+  FAILED ...::test_schedule_unfinished_plan_raises_for_unknown_dep
+  FAILED ...::test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle
+  2 failed, 25 passed in 0.64s
 
-Observed failure messages (one per test):
+test_..._has_exactly_one_call_site  exit 1
+  1 failed in 0.26s   (0 call sites, not 1)
+```
 
-- `test_47`: `AssertionError: 0 != 1 : args=('schedule', …)` — the CLI exited 0 instead of 1; `stderr=` (empty). The command scheduled waves when it should have refused.
-- `test_48`: `AssertionError: 0 != 1 : args=('schedule', …)` — same: exit 0, empty stderr, waves written.
-- `test_50`: `AssertionError: 'T3->T99' not found in 'loop-cohort: stop — schedule: dependency cycle among unfinished tasks: T1, T2\n'` — the cycle refusal fired instead of the unknown-dep refusal, proving the precedence guarantee was gone.
+One deletion, three independent reds: the CLI path, the amendment path, and the
+standing guard on the call-site count itself.
 
-**`test_contract_amendment_wave4.py`** — 2 failed, 25 passed in 0.73s
+### GREEN result, after restoring by edit
 
-Failing test IDs:
-- `packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py::test_schedule_unfinished_plan_raises_for_unknown_dep`
-- `packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py::test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle`
-
-Observed failure messages:
-
-- `test_schedule_unfinished_plan_raises_for_unknown_dep`: `Failed: DID NOT RAISE <class 'ValueError'>` — `schedule_unfinished_plan` returned normally instead of raising on an unknown dependency.
-- `test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle`: `AssertionError: Regex pattern did not match. Expected regex: 'T3->T99', Actual message: 'dependency cycle among unfinished tasks: T1, T2'` — again, cycle refusal fired instead of unknown-dep refusal.
-
-### GREEN result (call site restored)
-
-**`test_loop_cohort_cli.py`** — 62 passed, 22 subtests passed in 83.03s
-
-**`test_contract_amendment_wave4.py`** — 27 passed in 0.73s
+```
+test_contract_amendment_wave4.py    27 passed in 0.51s
+test_..._has_exactly_one_call_site   1 passed in 0.35s
+test_loop_cohort_cli.py             62 passed, 22 subtests passed in 92.79s (exit 0)
+```
 
 ### Restoration verification
 
-The call site was restored by editing the file back to its original 6 lines
-(identical to commit `99ae37e25`). After restoration:
+`git diff --stat packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` is
+empty: the file is byte-identical to its committed state at `946370f8b`. The
+guard was restored by editing the lines back, never by `git checkout`, which the
+mutation-proof method forbids.
 
-```
-git status
-```
+## Manual CLI verification (controller-run) — re-run against the shipped build
 
-Output:
-```
-On branch eugenelim/loop-dependency-missing-fix
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	docs/specs/loop-cohort-unknown-dependency-refusal/
+Observed by driving the real `loop-cohort.py` CLI with `cwd` inside a temporary
+git repo. Re-run after the refusal message gained its remedy clause, so the
+stderr below is what the shipped build prints, not an edited quote of an earlier
+run.
 
-nothing added to commit but untracked files present (use "git add" to track)
-```
-
-```
-git diff packs/core/.apm/skills/work-loop/scripts/loop-cohort.py
-```
-
-Output: (empty — no diff)
-
-The mutation did not survive. `loop-cohort.py` is byte-identical to its
-committed state at `99ae37e25`.
-
----
-
-## Manual CLI verification (controller-run, T2)
-
-The following matrix was observed by running the real `loop-cohort.py` CLI with
-`cwd` inside a temporary git repo after T2 was committed. An earlier run of the
-same matrix from the repository root failed all nine cases identically on the
-spec-dir confinement guard; the CONTROL row was what revealed the broken
-instrument, because a broken instrument would hide that failure silently if the
-CONTROL had not been included.
+An earlier attempt at this same matrix, run from the repository root, failed all
+nine cases identically on the spec-dir confinement guard. The CONTROL row is what
+revealed that: nine identical refusals read exactly like "the new guard fires on
+everything", and without a row that must succeed there was nothing to
+distinguish a broken instrument from a broken guard.
 
 | case | exit | waves | stderr |
 |---|---|---|---|
 | CONTROL correct | 0 | `[['T1'], ['T2']]` | (none) |
-| unknown dep | 1 | `[]` | `stop — schedule: dependency names no task in the plan: T2->T7` |
-| two unknown deps | 1 | `[]` | `stop — schedule: dependency names no task in the plan: T1->T8, T2->T7` |
-| forward ref | 0 | `[['T2'], ['T1']]` | `warning — forward-reference(s) ... reordered below: T1->T2` |
+| unknown dep | 1 | `[]` | `stop — schedule: dependency names no task in the plan: T2->T7 — correct the ID in plan.md, or drop it from that task's` `` `Depends on:` `` `line` |
+| two unknown deps | 1 | `[]` | same form, naming `T1->T8, T2->T7` |
+| forward ref | 0 | `[['T2'], ['T1']]` | `warning — forward-reference(s) in <spec-dir> (dep authored later; reordered below): T1->T2` |
 | cycle | 1 | `[]` | `stop — schedule: dependency cycle among unfinished tasks: T1, T2` |
-| both faults | 1 | `[]` | `stop — schedule: dependency names no task in the plan: T1->T9` |
+| both faults | 1 | `[]` | the unknown-dependency refusal, naming `T1->T9` — not the cycle message |
 | cross-spec `spec:other/T7` | 0 | `[['T1'], ['T2']]` | (none) |
 | cross legacy `` `other` T7 `` | 0 | `[['T1'], ['T2']]` | (none) |
-| range absent mid (T1-T3, no T2) | 1 | `[]` | `stop — schedule: dependency names no task in the plan: T3->T2` |
+| range absent mid (`T1-T3`, no `T2`) | 1 | `[]` | the unknown-dependency refusal, naming `T3->T2` |
+
+The forward-reference row is the one to read twice: exit 0 with waves
+`[['T2'], ['T1']]` means the dependency was reordered ahead of the task that
+declared it, which is the contract this change was required to leave alone.
 
 ## Final GATES — one load-induced failure, investigated and cleared (controller)
 
