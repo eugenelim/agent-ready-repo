@@ -474,8 +474,10 @@ def _atomic_write(dest: Path, content: bytes) -> None:
     # at 0644 before this change, because `Path.write_bytes` requests 0o666; the
     # dangerous half, world-WRITE under a null umask, is exactly what asking for
     # 0o664 instead removes. Owner-only would break a catalogue that is served,
-    # shared with a group, or read by another service account.
-    # codeql[py/overly-permissive-file]
+    # shared with a group, or read by another service account. CodeQL's
+    # py/overly-permissive-file objects to the read bit too and is dismissed for
+    # this alert in the repository's security settings; an in-source
+    # `codeql[...]` marker was tried first and GitHub ignores those.
     fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o664)
     try:
         # os.fdopen owns the descriptor only once it returns; if it raises

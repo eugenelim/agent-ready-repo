@@ -199,15 +199,24 @@ What did change is the part that mattered. Under a null umask:
 | world-writable | yes | **no** |
 | world-readable | yes | yes |
 
-The owner authorised a line-level suppression carrying that reasoning. It is
-this repository's first — a search for `codeql[` and `lgtm[` across the tree
-found none before it. The marker sits on the line immediately above the `os.open`
-call, because CodeQL honours it only on the alert line or the one directly above;
-the explanation sits above the marker.
+**The in-source marker does not work, and that had to be measured too.** A
+`# codeql[py/overly-permissive-file]` comment was placed on the line immediately
+above the `os.open` call — the position CodeQL documents — and pushed. CodeQL
+re-analysed, marked the old alert at line 470 `fixed`, and opened a new one at
+line 479 with the same rule and message. GitHub code scanning ignores in-source
+suppression comments; that syntax is honoured by the CodeQL CLI, not by the
+GitHub-hosted analysis.
 
-There is no `.github/codeql-config.yml`; scoping the query at repository level
-would have been a policy change affecting every file, which is why the
-suppression is line-local.
+The alert was therefore dismissed through the code-scanning API — alert 31,
+`state=dismissed`, `dismissed_reason="won't fix"` — with the measurement as its
+comment. That dismissal lives in the repository's security settings and applies
+wherever the alert appears, which is wider than one line; the owner authorised it
+on that basis. The inert marker was removed, because a suppression that
+suppresses nothing reads as handled and is worse than none. The explanation
+beside the call stays, and now also records that the marker route was tried.
+
+There is no `.github/codeql-config.yml`. Excluding the query at repository level
+would silence it for every file, which is why the dismissal is per-alert.
 ## One suite run was spoiled by the operator, not by the code
 
 The final full-suite run took 1696s instead of the usual ~200s and came back
