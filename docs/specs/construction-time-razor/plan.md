@@ -34,10 +34,12 @@ slices only as far as the first `<!--`, and the declination delta sits at the
 PLAN step, outside both sha256-pinned windows.
 
 The riskiest part is not the prose — it is proving the prose moved behaviour
-without over-firing. Every criterion is therefore scored against a fixture pair
-that differs only in the rule's trigger. One committed script materialises all
-six fixtures into a temporary directory so the evidence regenerates rather than
-being hand-curated; the fixtures are not loose repository files because
+without over-firing. Each rule is therefore scored against fixtures differing
+only in its trigger, and every control's outcome is its own acceptance
+criterion rather than plan detail. One committed script materialises the whole
+fixture set into a temporary directory so the evidence regenerates rather than
+being hand-curated; the script enumerates the fixtures so no count is restated
+here to decay. The fixtures are not loose repository files because
 `tools/lint-ruff.py` checks the whole repository root and would lint them.
 
 ## Constraints
@@ -62,6 +64,12 @@ Two existing suites are the regression floor and must stay green because the
 implementer delta lands inside a section one of them slices:
 `packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py` and
 `tests/roster/test_sequential_implementer_dispatch_contract.py`.
+
+Each fixture carries, in the runner, the one rung whose condition it satisfies.
+The runner compares the report's named rung against that value rather than
+counting labels, which is what lets a constant or fabricated rung fail. The
+expected rung is recorded beside the fixture that fixes it, so the comparison
+value is never supplied by the run being graded.
 
 Protection, not criteria: T3 adds one pack-local content pin asserting that
 `implementer.md` names the ladder by its heading and states no numbered rung of
@@ -135,7 +143,7 @@ those copies are never edited directly.
 
 ## Tasks
 
-### T1: the implementer reuses an available solution and may take a lighter route
+### T1: the implementer reuses an adequate solution and may take a lighter route
 
 **Depends on:** none
 
@@ -144,34 +152,40 @@ those copies are never edited directly.
 **Verification mode:** goal-based check
 
 **Tests:**
-- `docs/specs/construction-time-razor/notes/probes/run-probe.sh` materialises the
-  fixture pairs and drives one scored run each. It is the generator for every
-  figure in the ledger; no fixture is hand-placed in the tree.
-- Reuse pair for AC-0001 and AC-0002: the helper-present arm asserts the
-  emitted target module imports the sibling helper and contains no second
-  whitespace-collapse implementation; the helper-absent control asserts no new
-  module appears and the status is `ready`. The helper-present arm is proven red
-  on the pre-change contract (two runs, byte-identical duplication).
-- Report-content checks for AC-0003 and AC-0004 read the run's
-  returned report for the named rung and, on the helper-present arm, for the
-  rejected candidate and its reason.
-- Lighter-route pair for AC-0005 and AC-0006: the heavy-`Approach:`
-  arm asserts no new module is emitted and the substitution is recorded under
-  `Deviations from the task body`; its control names a heavy construction two
-  callers genuinely require and asserts the construction is still built. The
-  heavy arm is proven red on the pre-change contract (two runs, the named class
-  and module created both times).
-- `failed`-status control for AC-0007: a task no route
-  satisfies still returns `failed`.
+- `docs/specs/construction-time-razor/notes/probes/run-probe.sh` materialises
+  every fixture and drives two scored runs each. It is the generator for every
+  figure in the ledger, and it holds each fixture's expected rung.
+- Reuse fixture, proving AC-0001 and AC-0002: the emitted function delegates to
+  the sibling helper, and the report names the existing-solution rung. Proven red
+  on the pre-change contract — two runs, byte-identical duplication, no rung
+  named.
+- Helper-absent control, proving AC-0003 and AC-0004: the task is solved in the
+  existing module with status `ready`, and the named rung is not the
+  existing-solution rung. The second half is what fails a constant rung label.
+- Inadequate-candidate control, proving AC-0005 and AC-0006: its sibling helper
+  collapses whitespace runs but does not strip, so reuse would break
+  `Done when:`. The emitted function must not delegate to it, and the report must
+  name it as a found-and-rejected candidate with the reason. This is the only
+  fixture in which a rejected candidate exists, and it is the over-fire guard for
+  the reuse rule.
+- Heavy-`Approach:` fixture, proving AC-0007, AC-0008 and AC-0009: no new module
+  is emitted, status is `ready`, and the substitution is recorded under
+  `Deviations from the task body`. Proven red on the pre-change contract — two
+  runs, the named class and module built both times.
+- Heavy-required control, proving AC-0010 and AC-0011: two callers need different
+  configurations, so the named construction is genuinely warranted. It must still
+  be built, and the report must not claim a lighter substitution.
+- No-route control, proving AC-0012: a `Done when:` no route satisfies still
+  returns `failed`.
 - Regression floor: `python3 -m pytest packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py -q` and the roster sibling stay green. The bullet's placement below the first `<!--` is what keeps the envelope slice at two bullets.
 - `no stub (goal-based)`
 
 **Approach:**
 - Add one operating-envelope bullet below the bundled-fixes comment and above
   `- **Gates:**`, naming the ladder's heading in `AGENTS.md`, the single bounded
-  search, reuse of an adequate hit, the recorded stopping rung, and the
-  authority to take a lighter route than `Approach:` with the swap recorded as a
-  deviation.
+  search, reuse of an adequate hit, the recorded stopping rung, the named
+  rejected candidate, and the authority to take a lighter route than `Approach:`
+  with the swap recorded as a deviation.
 - Reword the `failed` status so it turns on no available route satisfying
   `Done when:` rather than on the task body's approach not working.
 - Keep the phrase "execution root" out of any bullet placed above the first
@@ -191,22 +205,25 @@ over two consecutive runs.
 **Verification mode:** goal-based check
 
 **Tests:**
-- Declination pair driven by the same runner. The main arm asserts every entry
-  in the emitted register names a `Cut before adding` rung, proving AC-0008; it
-  is proven red on
-  the pre-change contract (one frozen request produced six entries and no rung).
-- The control arm's frozen request carries one temptation declined by an explicit
-  accepted requirement rather than by any rung, and asserts that entry records
-  its non-rung reason and names no rung, proving AC-0009. This is the over-fire guard: it fails if
-  the rule forces a fabricated rung label onto every line.
+- Declination fixture, proving AC-0013. Its frozen request plants two temptations
+  whose ladder answers are unambiguous and different: one addition the request
+  never asks for, whose answer is the not-genuinely-needed rung, and one hand-written
+  routine the language's own library already provides, whose answer is the
+  standard-library rung. Each entry must name its own rung, and the two must
+  differ. Proven red on the pre-change contract — one frozen request produced six
+  entries and named no rung.
+- Non-rung control, proving AC-0014: the request carries one temptation declined
+  by an explicit accepted requirement rather than by any rung. That entry must
+  record the requirement as its reason and name no rung. This fails if the rule
+  forces a fabricated rung onto every line.
 - Body-length floor: `work-loop/SKILL.md`'s body stays under 1,000 lines,
   measured as `skill_spec_lint.py` measures it.
 - `no stub (goal-based)`
 
 **Approach:**
-- Extend the PLAN-step declination instruction so each line carries the rung
-  that killed the temptation alongside the temptation and the reason, and admits
-  a non-rung reason where no rung applies.
+- Extend the PLAN-step declination instruction so each line carries the rung that
+  killed the temptation alongside the temptation and the reason, and admits a
+  stated non-rung reason where no rung applies.
 - Disambiguate the word: the line says `Cut before adding` rung explicitly,
   because this file already uses "rung" for recovery rungs, the intent ladder,
   and the fidelity ladder.
@@ -227,15 +244,18 @@ narration.
 **Verification mode:** goal-based check
 
 **Tests:**
-- Both manifests carry the same version, one patch above 2.26.8, proving AC-0010.
-- The `[core]` changelog entry sits directly under `[Unreleased]`, proving
-  AC-0011.
+- Both manifests carry the same version and it is higher than the merge base's,
+  proving AC-0015. Do not restate a literal target version: another change may
+  bump the pack first.
 - `agentbundle catalogue self-host --root .` reports no drift and
-  `agentbundle catalogue verify --root .` passes, proving AC-0012. Run
-  self-host on a clean tree: it refuses a dirty one.
-- `evals.json` validates against its schema and carries one case per rule,
-  proving AC-0013. Each case's own text records that the set is a
-  behaviour register, because this skill is outside the eval allowlist.
+  `agentbundle catalogue verify --root .` passes, proving AC-0016. Run self-host
+  on a clean tree: it refuses a dirty one.
+- The `[core]` section sits directly under `[Unreleased]` with nothing between,
+  proving AC-0017.
+- `evals.json` validates against its schema, and carries one case per rule as the
+  Behaviour register durable output rather than as a criterion. Each case's own
+  text records that the set is a register, because this skill sits outside the
+  eval allowlist and a case here cannot detect a regression.
 - One new pack-local content pin asserts `implementer.md` names the ladder
   heading and contains no numbered rung of its own — the protection recorded
   under Construction tests, anchored at `parents[2]` so it never reads above its
@@ -249,8 +269,8 @@ narration.
 
 **Done when:** every check in this task's `Tests:` holds.
 
-**Grounding:** `packs/AGENTS.md` version-bump, self-host and eval-harness
-rules.
+**Grounding:** AC-0015 through AC-0017; `packs/AGENTS.md` version-bump,
+self-host and eval-harness rules.
 
 ## Rollout
 

@@ -88,78 +88,100 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 Every behavioural outcome is verified by **goal-based check**: a scored run of
 the shipped contract against a frozen fixture, whose result is read by a
-mechanical predicate over the emitted artifact — which file exists, which symbol
-the emitted module imports, which status the report carries. The mode is
-goal-based rather than TDD because the subject is a prose contract consumed by a
-model session, so no in-process invariant is compressible; and it is not manual
-QA because each outcome is decided by a predicate over emitted bytes rather than
-by a reader's judgement.
+mechanical predicate over what the run emits — which symbol the emitted module
+imports, whether a named module exists, which rung the report names, which
+status it carries. The mode is goal-based rather than TDD because the subject is
+a prose contract consumed by a model session, so no in-process invariant is
+compressible; and it is not manual QA because each outcome is decided by a
+predicate over emitted bytes rather than by a reader's judgement.
 
-Each behavioural criterion is scored over two consecutive runs of the same
-fixture and must hold in both. Two runs is the bar because the three pre-change
-fixtures each produced byte-identical output across their runs, so a single
-divergence is signal rather than noise.
+Each criterion is scored over two consecutive runs of its fixture and must hold
+in both. Two runs is the bar because the pre-change fixtures each produced
+byte-identical output across their runs, so a single divergence is signal.
 
-Each behavioural group carries a **paired control** — a fixture differing only in
-the rule's trigger, whose outcome must not move. A remedy that changes a control
-has over-fired, and the criterion alone would not detect it.
+**A code-shape outcome and a report-content outcome are separate criteria.** They
+have separate failure modes and separate remedies: an implementation can reuse
+the right helper and misreport what it did, or report correctly and build the
+wrong thing. Bundling them lets a half-met item read as met.
 
-No criterion is discharged by a grep for a sentence in a contract file. A content
-pin protecting a rule from silent deletion is recorded in the plan as protection,
-not offered here as a criterion.
+**The rung a report names is decided against its fixture, never accepted as
+given.** Each fixture has one rung whose condition it satisfies, and the
+fixtures disagree about which: the reuse fixture's answer is the existing-solution
+rung, the helper-absent fixture's is not. A report that stamps one constant rung
+on every run therefore fails at least one criterion, which is what makes the
+check falsifiable rather than a label count.
 
-- **Reuse of an available solution (AC-0001, AC-0002)** — goal-based check. The
-  emitted module either imports the sibling helper or duplicates it, which a
-  predicate over the file decides; AC-0002 is the helper-absent control and must
-  not move.
-- **The stopping rung recorded in the report (AC-0003, AC-0004)** — goal-based
-  check. Both outcomes are read from the returned report, so the check is a
-  predicate over text the run emits rather than over the contract's own wording.
-- **The lighter route (AC-0005, AC-0006, AC-0007)** — goal-based check. Whether a
-  new module appears decides AC-0005 and the report's deviation section decides
-  AC-0006; AC-0007 is the control that keeps `failed` reachable, so the rule
-  cannot make every task succeed by relaxing its own bar.
-- **The declination register (AC-0008, AC-0009)** — goal-based check over an
-  emitted register. AC-0009 is the over-fire control: it fails if the rule
-  forces a fabricated rung onto a declination no rung explains.
-- **Release surface (AC-0010, AC-0011, AC-0012, AC-0013)** — goal-based check.
-  Two version strings, one heading position, two catalogue commands, and one
-  schema validation, each a one-liner with an exit code.
+**Controls are criteria, not plan detail.** Each behavioural rule carries a
+control fixture differing only in the rule's trigger, and the control's outcome
+is its own acceptance criterion. A control recorded only in the plan can never
+fail the contract, so a remedy that over-fires would still ship.
+
+- **Reuse of an adequate solution (AC-0001, AC-0002)** — goal-based check on the
+  reuse fixture, whose sibling helper fully satisfies the task.
+- **No reuse where nothing adequate exists (AC-0003, AC-0004)** — goal-based
+  check on the helper-absent control. AC-0004 is the anti-fabrication half: this
+  fixture's rung is not the existing-solution rung.
+- **No reuse of an inadequate candidate (AC-0005, AC-0006)** — goal-based check
+  on the inadequate-candidate control, whose helper covers part of the outcome
+  only. This is the over-fire guard for the reuse rule and the only fixture in
+  which a rejected candidate exists to be named.
+- **The lighter route (AC-0007, AC-0008, AC-0009)** — goal-based check on the
+  heavy-`Approach:` fixture, whose `Done when:` one function in the existing
+  module satisfies.
+- **A required construction survives (AC-0010, AC-0011)** — goal-based check on
+  the heavy-required control, whose two callers need different configurations.
+  AC-0011 keeps the report honest: the rule must not teach a run to claim a
+  lighter substitution it did not make.
+- **`failed` stays reachable (AC-0012)** — goal-based check on the no-route
+  control. Without it the lighter-route rule could pass by relaxing its own bar.
+- **The declination register (AC-0013)** — goal-based check on a frozen request
+  carrying two temptations whose ladder answers are unambiguous and different.
+- **A non-rung declination stays honest (AC-0014)** — goal-based check on the
+  control whose temptation is declined by an explicit accepted requirement. It
+  fails if the rule forces a fabricated rung onto every line.
+- **Release surface (AC-0015, AC-0016, AC-0017)** — goal-based check: two version
+  strings compared to each other and to the merge base, one heading position,
+  two catalogue commands, one schema validation, each with an exit code.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Given a frozen task whose minimal solution is a helper the fixture already
-  imports from a sibling module, the emitted target file imports that helper and
-  contains no second implementation of its behaviour.
-- [ ] **AC-0002.** Given that same frozen task in a fixture with the helper absent, the
-  emitted target file solves the task inline, adds no new module, and the report
-  status is `ready`.
-- [ ] **AC-0003.** The report names the `Cut before adding` rung the implementation stopped
-  at.
-- [ ] **AC-0004.** When the bounded search found a candidate the implementation did not use,
-  the report names that candidate and the reason it was not used.
-- [ ] **AC-0005.** Given a frozen task whose `Approach:` names a class-and-new-module
-  construction and whose `Done when:` is satisfied by a single function in the
-  existing module, no new module is emitted and the report status is `ready`.
-- [ ] **AC-0006.** That same report records the substitution under `Deviations from the task
-  body`.
-- [ ] **AC-0007.** Given a frozen task whose `Done when:` no available route satisfies, the
-  report status is `failed`.
-- [ ] **AC-0008.** Given a frozen non-trivial work request, every entry in the emitted
-  declination register names the `Cut before adding` rung that killed its
-  temptation.
-- [ ] **AC-0009.** Given a frozen work request carrying one temptation declined by an
-  explicit accepted requirement rather than by any rung, that entry records its
-  non-rung reason and names no rung.
-- [ ] **AC-0010.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry
-  the same version, one patch above 2.26.8.
-- [ ] **AC-0011.** `CHANGELOG.md` carries a `[core]` entry directly under `[Unreleased]`
-  naming the reuse, lighter-route, and declination rules.
-- [ ] **AC-0012.** `agentbundle catalogue self-host --root .` reports no drift, and
-  `agentbundle catalogue verify --root .` passes.
-- [ ] **AC-0013.** `packs/core/.apm/skills/work-loop/evals/evals.json` validates against its
-  schema and carries a frozen case for each of the reuse, lighter-route, and
-  declination rules.
+- [ ] **AC-0001.** On the reuse fixture, the emitted function delegates to the
+  existing sibling helper rather than reimplementing its behaviour.
+- [ ] **AC-0002.** On the reuse fixture, the report names the ladder's
+  existing-solution rung as where the implementation stopped.
+- [ ] **AC-0003.** On the helper-absent control, the task is solved within the
+  existing module and the report status is `ready`.
+- [ ] **AC-0004.** On the helper-absent control, the rung the report names is not
+  the existing-solution rung.
+- [ ] **AC-0005.** On the inadequate-candidate control, whose sibling helper
+  satisfies part of the required outcome only, the emitted function does not
+  delegate to that helper and the task's `Done when:` still holds.
+- [ ] **AC-0006.** On the inadequate-candidate control, the report names that
+  helper as a candidate the search found and did not use, and why.
+- [ ] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
+- [ ] **AC-0008.** On the heavy-`Approach:` fixture, the report status is
+  `ready`.
+- [ ] **AC-0009.** On the heavy-`Approach:` fixture, the report records the
+  substitution under `Deviations from the task body`.
+- [ ] **AC-0010.** On the heavy-required control, whose two callers need
+  different configurations, the named construction is still built.
+- [ ] **AC-0011.** On the heavy-required control, the report claims no lighter
+  substitution.
+- [ ] **AC-0012.** On the no-route control, whose `Done when:` no available route
+  satisfies, the report status is `failed`.
+- [ ] **AC-0013.** On the declination fixture, the entry for each planted
+  temptation names the ladder rung whose condition that temptation meets, and the
+  two entries name different rungs.
+- [ ] **AC-0014.** On the non-rung declination control, the entry for the
+  temptation declined by an explicit accepted requirement records that reason and
+  names no rung.
+- [ ] **AC-0015.** `packs/core/pack.toml` and
+  `packs/core/.claude-plugin/plugin.json` carry the same version, and it is
+  higher than the version at the merge base.
+- [ ] **AC-0016.** `agentbundle catalogue self-host --root .` reports no drift
+  and `agentbundle catalogue verify --root .` passes.
+- [ ] **AC-0017.** `CHANGELOG.md` carries a `[core]` section directly under
+  `[Unreleased]`, with no other section between them.
 
 ## Follow-ons
 
