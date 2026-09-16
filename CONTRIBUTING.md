@@ -26,7 +26,7 @@ The chain is proportional, not ceremonial: small fixes can go straight to a PR, 
 Two reads will save you time:
 
 - [`AGENTS.md`](AGENTS.md) — how this repo expects agents and contributors to work (the plan → execute → verify → review loop, what's in scope vs out, the non-negotiables).
-- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) — the single source of truth for *how we work in this repo*: document hierarchy, commit format, PR shape, and the [pack source-of-truth split](docs/architecture/pack-layout.md#the-source-of-truth-split) that every code change in this repo lives under.
+- [`AGENTS.md`](AGENTS.md) — how we work in this repo: commit format, PR shape, and the [pack source-of-truth split](docs/architecture/pack-layout.md#the-source-of-truth-split) that every code change in this repo lives under.
 
 One install: the artifact and skill-spec linters parse YAML via PyYAML. Run `pip install -r tools/requirements.txt` once. The linters also print an actionable install hint with exit code 2 if the import fails, so the first lint run will remind you.
 
@@ -153,7 +153,7 @@ The **one-time** PyPI Trusted Publisher — a Pending Publisher matching `releas
 | Mission, scope, principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
 | Public product behavior and task guidance | [Technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) and their source in [`guides/`](guides/) |
 | Current repository architecture | [`docs/architecture/overview.md`](docs/architecture/overview.md) |
-| How we work, document hierarchy | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) |
+| How we work | [`AGENTS.md`](AGENTS.md) |
 | Evidence informing a product direction | [`docs/product/research/`](docs/product/research/) |
 | Why we chose X over Y | [`docs/adr/`](docs/adr/) |
 | In-flight proposals | [`docs/rfc/`](docs/rfc/) |
@@ -194,7 +194,7 @@ something forces them to fill.
 | --- | --- |
 | `AGENTS.md`, `CLAUDE.md` (symlink) | `packages/`, `apps/` (no monorepo split) |
 | `docs/CHARTER.md` (a few lines is fine) | `rfc/` (almost never fires at this size) |
-| `docs/CONVENTIONS.md` (trim aggressively) | `docs/architecture/` (the README is enough) |
+| `AGENTS.md` (trim aggressively) | `docs/architecture/` (the README is enough) |
 | `docs/adr/` (write when you make a real tradeoff) | `docs/product/personas.md` |
 | `docs/specs/` (one spec at a time, or none) | Per-package `AGENTS.md` (no packages) |
 | `docs/product/changelog.md` | the `adversarial-reviewer` subagent (overhead at this size) |

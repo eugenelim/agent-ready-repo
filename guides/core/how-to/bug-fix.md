@@ -166,7 +166,7 @@ the reviewed PR.
 - [The core pack as a system](../explanation/core-pack.md) — why the discipline exists and how the parts compose.
 - [`bug-fix` skill](../../../packs/core/.apm/skills/bug-fix/SKILL.md) — authoritative procedure.
 - [How to plan and execute non-trivial work](plan-and-execute-non-trivial-work.md) — the loop discipline that `bug-fix` hands off to for multi-file fixes.
-- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale.
+- [`core-pack.md` § Why the loop](../../core/explanation/core-pack.md#why-the-loop) — the contributor-side rationale.
 - [`AGENTS.md` § Coding conventions](../../../AGENTS.md#coding-conventions) — Conventional Commits format and the body conventions the skill follows.
 - [How to write a new RFC](../../governance-extras/how-to/new-rfc.md) — when a "bug" turns out to be a cross-cutting design question.
 - [How to record a new ADR](../../governance-extras/how-to/new-adr.md) — when the root-cause analysis surfaces a decision worth pinning.

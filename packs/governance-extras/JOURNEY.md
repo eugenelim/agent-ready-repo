@@ -11,7 +11,7 @@ contract:
   useItWhen: "A cross-cutting change, architectural decision, or working-convention update needs a structured paper trail that survives personnel changes."
   youType: "Propose a change to how we handle this."
   youProvide: "The change or decision to document, plus any objections or alternatives already under consideration."
-  youReceive: "A completed RFC, a merged ADR, or an updated CONVENTIONS.md — with structured rationale the next person can follow."
+  youReceive: "A completed RFC, a merged ADR, or an updated the artifact that owns the rule — with structured rationale the next person can follow."
   yourDecisions:
     - "Review the RFC draft before circulation"
     - "Accept, reject, or defer the RFC"
@@ -20,7 +20,7 @@ contract:
     - review-rfc-draft
     - decide-rfc
     - merge-accepted-adr
-whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. Before an ADR receives an ordinal or index, new-adr resolves the portable decision-record role through compatible Core so adopter policy and established custom or external destinations win; older or absent capability produces confirmation or a portable handoff rather than simulated resolution. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
+whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. Before an ADR receives an ordinal or index, new-adr resolves the portable decision-record role through compatible Core so adopter policy and established custom or external destinations win; older or absent capability produces confirmation or a portable handoff rather than simulated resolution. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. Conventions evolve through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
     description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives, with optional supporting-practice capture only after the written draft passes every mandatory check."

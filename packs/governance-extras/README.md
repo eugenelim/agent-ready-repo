@@ -114,7 +114,7 @@ The agent previews each draft before writing. Approve — RFC first, then ADR.
 
 **Optional handoff — `project-knowledge`:** At the `rfc-handoff-ready` and `adr-accepted` gates, the producer can submit the public typed captured-observation request through core's progressive skill. The authoring skill owns transient scratch and timing; it never accesses private journals, persists scratch automatically, or creates alternate storage.
 
-**Downstream — `work-loop`:** When an RFC is accepted, a `work-loop` run implements it. The RFC's follow-on artifacts (specs, CONVENTIONS.md edits) become queue entries in `workspace.toml`.
+**Downstream — `work-loop`:** When an RFC is accepted, a `work-loop` run implements it. The RFC's follow-on artifacts (specs, convention edits) become queue entries in `workspace.toml`.
 
 **Downstream — `architect`:** ADRs record why the architecture is the way it is. Architect consumes the resolved `decision-record` surface as settled-decision context; it does not assume `docs/adr/` or re-debate what the ADRs already closed.
 

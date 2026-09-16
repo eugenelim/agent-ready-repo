@@ -79,7 +79,7 @@ then goes through plan, execute, gate, review, and decide.
 - **Hard gates.** Lint, typecheck, and tests run as mechanical gates. No path through the loop lets the agent claim success on a red gate.
 - **Cold-eyed review.** Three specialist reviewers — adversarial (spec/plan/impl drift), security (OWASP 2025 + ASVS + STRIDE), quality (testability, observability, reliability) — each read every diff in a fresh context with no sunk cost in the design. The loop iterates on findings until reviewers say `Clean — ready to commit.`
 - **Progressive disclosure.** The security checklist pulls only the depth relevant to the boundaries a change crosses — current without bloating the prompt. Depth is added on demand per security boundary type (auth, secrets, user input, deserialization, file I/O, LLM code).
-- **Capture what was learned.** Gaps in project conventions discovered during a run land as proposed `CONVENTIONS.md` edits — mistakes become the project's memory instead of evaporating between sessions.
+- **Capture what was learned.** Gaps in project conventions discovered during a run land as proposed edits to whichever artifact owns the rule — mistakes become the project's memory instead of evaporating between sessions.
 
 **Two human approvals in full mode, and one at the exit.** Full mode runs the G-plan sequence: you approve the spec, then you approve the plan, before any implementation write. The merge decision at the end is yours too. Direct-light mode persists no spec and so has no approval pair. Beyond those gates the loop is autonomous: blockers surface to the human, and the agent routes concerns and nits by whether they're mechanical.
 

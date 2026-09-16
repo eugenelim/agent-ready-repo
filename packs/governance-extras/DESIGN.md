@@ -8,7 +8,7 @@ This pack provides the RFC mechanism itself, so it has no upstream RFC of its ow
 
 ## TL;DR
 
-`governance-extras` installs the governance layer on top of `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and CONVENTIONS.md edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and the dependency on `core` is required. ADRs resolve the portable `decision-record` role through Core before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains the catalogue fallback. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
+`governance-extras` installs the governance layer on top of `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and convention edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and the dependency on `core` is required. ADRs resolve the portable `decision-record` role through Core before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains the catalogue fallback. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
 
 ---
 
@@ -18,7 +18,7 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 - **Live governance dashboards.** `rfc-status` is a read-only point-in-time scan of `docs/rfc/`. It does not maintain a live dashboard, send notifications, or integrate with an issue tracker. It reads what's in the repo and reports it.
 - **RFC comment thread management.** Responding to reviewer comments, threading replies, and tracking per-reviewer objections are a wiki or issue tracker's job. This pack writes structured RFC documents; comment threads live outside the repo.
-- **Automated decision enforcement.** CONVENTIONS.md is documentation — a shared understanding of how the project works. It is not a validator, a lint rule, or a CI gate. The pack writes the document; enforcement is the team's job.
+- **Automated decision enforcement.** A shared convention is documentation — a shared understanding of how the project works. It is not a validator, a lint rule, or a CI gate. The pack writes the document; enforcement is the team's job.
 - **Team approval workflows.** This pack writes RFC and ADR files. It does not create GitHub review requests, post to Slack, or orchestrate multi-person sign-off. The human gates (G-draft, G-accept, G-merge) are the adopter's checkpoints — the pack cannot substitute for the human work of circulating a document and getting a decision.
 
 ---
@@ -129,7 +129,7 @@ This mirrors the `adversarial-reviewer`'s role in core's build loop: the value o
 
 `governance-extras` installs at repo scope only. This is not a configuration option — `allowed-scopes = ["repo"]` is declared in `pack.toml`.
 
-The reason is structural: governance records are inherently project-specific. An ADR recording why this project uses Postgres is not useful in a different project. An RFC proposing a change to this project's CONVENTIONS.md governs only this project. Unlike `architect` (whose method is portable across projects) or `desk-research` (whose methodology applies regardless of project), governance records carry the context of a specific project's history, constraints, and team decisions.
+The reason is structural: governance records are inherently project-specific. An ADR recording why this project uses Postgres is not useful in a different project. An RFC proposing a change to this project's A shared convention governs only this project. Unlike `architect` (whose method is portable across projects) or `desk-research` (whose methodology applies regardless of project), governance records carry the context of a specific project's history, constraints, and team decisions.
 
 Installing governance-extras at user scope would make every skill write to a user-global location — which is the wrong place for records whose meaning depends on the project they govern.
 
@@ -137,9 +137,9 @@ Installing governance-extras at user scope would make every skill write to a use
 
 `governance-extras` writes RFCs to the repository RFC surface, ADRs to the
 resolved `decision-record` destination, and conventions to
-`docs/CONVENTIONS.md`; the catalogue seed paths are only fallbacks. These
+the owning artifact; the catalogue seed paths are only fallbacks. These
 surfaces only have meaning after `core` has scaffolded the repo structure. An
-RFC in a repo with no governance surface, no `CONVENTIONS.md`, and no
+RFC in a repo with no governance surface, no `the owning artifact`, and no
 established work loop is documentation in search of a process.
 
 The dependency is version-pinned at `^0.1` — a soft floor that allows `core` to evolve without blocking governance-extras updates, while ensuring the basic scaffold is in place. The dependency is enforced at install time.

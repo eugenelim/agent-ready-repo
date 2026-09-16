@@ -33,7 +33,7 @@ and irreversible, resolves when internal and cheap.
 An example that stops holding earns a **new entry citing the old one** — never an
 in-place edit, never a deletion — so the calibration history stays auditable. (Same
 discipline as `docs/knowledge/patterns.jsonl`, cited as precedent, not a contract this
-file depends on; it needs no `docs/CONVENTIONS.md` edit to ship.) Each entry is one
+file depends on; it needs no shared-convention edit to ship.) Each entry is one
 read: the question, the routing (**resolve** / **surface**), the referent or trigger,
 and the **tell** — the cue that should have fired.
 

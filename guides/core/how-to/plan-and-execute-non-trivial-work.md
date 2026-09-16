@@ -23,7 +23,7 @@ For the *why* behind this discipline, read [the core pack as a system](../explan
 
 - The `core` pack installed in your target repo.
 - A working directory where you can edit, commit, and run gates (lint / typecheck / test).
-- Familiarity with the four mandatory spec sections (Objective, Boundaries, Testing Strategy, Acceptance Criteria) — see [`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md).
+- Familiarity with the four mandatory spec sections (Objective, Boundaries, Testing Strategy, Acceptance Criteria) — see the `new-spec` skill's spec-and-plan contract reference.
 
 ## Pick your entry point
 
@@ -129,7 +129,7 @@ The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/
 - **PLAN** — reads `spec.md` and `plan.md`, picks verification modes if not already set, and designs construction tests up front. For a TDD task, it stores the exact stub code in `plan.md` and validates syntax plus the intended red from disposable scratch; it does not create a repository test file. A `spec-plan` run can therefore stop after approval with clean gates. PLAN also asks you to name the **declined-pattern register**: one to three things you were tempted to add (a layer, a flag, a defensive wrapper) and explicitly declined. The register pairs with the spec's Boundaries section so REVIEW can catch drift toward declined temptations as self-contradiction in the diff. Pre-EXECUTE adversarial review fires automatically on spec amendments or on any of the four structural triggers (new module, new dependency, new abstraction, new top-level directory).
 - **EXECUTE** — implements task by task. Once full mode enters `CODE-IMPLEMENTATION`, a TDD task copies the approved plan block unchanged into the real test path, verifies byte identity, proves the intended red, and continues through green and refactor. Goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
 - **GATES** — lint, typecheck, tests. Mechanical, ordered, no editing the gate to make it pass.
-- **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `CONVENTIONS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. The loop records each pass's finding fingerprints to `state.json` via `loop-cohort review record`, which is what enables stasis detection in the next phase. Pass `--operation-id <run-id>:<transition-sequence>` — read the sequence from `loop-engine status` after the transition that opened the round — and the round is named on disk. Re-issuing the identical recording under that same id is then a no-op rather than a second round, so a session that dies before it knows whether the write landed can simply repeat it. A different payload under a used id is refused rather than silently accepted. Specialist reviewers (`security-reviewer`, `quality-engineer`) run when the diff warrants.
+- **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. The loop records each pass's finding fingerprints to `state.json` via `loop-cohort review record`, which is what enables stasis detection in the next phase. Pass `--operation-id <run-id>:<transition-sequence>` — read the sequence from `loop-engine status` after the transition that opened the round — and the round is named on disk. Re-issuing the identical recording under that same id is then a no-op rather than a second round, so a session that dies before it knows whether the write landed can simply repeat it. A different payload under a used id is refused rather than silently accepted. Specialist reviewers (`security-reviewer`, `quality-engineer`) run when the diff warrants.
 - **DECIDE** — intent fit decides each finding: in-intent work that cannot share this unit becomes the next review unit in the same session; excluded work is acknowledged in the PR and captured only if its owner asks. Stasis detection fires if the same findings come back two iterations in a row — stop and surface to a human rather than spinning a third pass.
 
 Two no-stub records are closed exceptions. Use `no stub (mode)` when the chosen
@@ -218,7 +218,7 @@ For bug-shaped work that crosses multiple files, see [how to fix a bug](bug-fix.
 ## Related
 
 - [The core pack as a system](../explanation/core-pack.md) — why the loop exists and how the parts compose.
-- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale.
+- [`core-pack.md` § Why the loop](../../core/explanation/core-pack.md#why-the-loop) — the contributor-side rationale.
 - [`new-spec` skill](../../../packs/core/.apm/skills/new-spec/SKILL.md) — authoritative procedure for the planning skill.
 - [`work-loop` skill](../../../packs/core/.apm/skills/work-loop/SKILL.md) — authoritative procedure for the loop itself.
 - [How to fix a bug](bug-fix.md) — `bug-fix` is the entry point for bug-shaped work.

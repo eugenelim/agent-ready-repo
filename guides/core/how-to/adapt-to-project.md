@@ -80,7 +80,7 @@ an optional starting point.
 
 ## Greenfield repo
 
-A fresh repo has nothing to merge against, so adaptation is mostly **substitution** into the seed `AGENTS.md`, `docs/CHARTER.md`, and `docs/CONVENTIONS.md`. Have these answers ready before you start:
+A fresh repo has nothing to merge against, so adaptation is mostly **substitution** into the seed `AGENTS.md`, `docs/CHARTER.md`, `docs/README.md`. Have these answers ready before you start:
 
 - Project name and a one-line description of what it does and for whom
 - `install`, `test`, `lint`, `build`, and `run` commands for your stack
