@@ -604,12 +604,20 @@ every required channel**:
 A **channel** is a band of viewport widths. The channels a surface has come from
 the breakpoints you declare for it: the bands those breakpoints bound, one below
 the lowest, one above the highest, and one between each adjacent pair, with each
-boundary value belonging to the wider band. Declare none and two apply —
-`narrow` at ≤480 CSS px and `wide` at ≥1024 CSS px. Record which of the two you
-used.
+boundary value belonging to the wider band. Declare none and two apply, where
+no declared minimum narrows them — `narrow` at ≤480 CSS px and `wide` at ≥1024
+CSS px. Record which of the two you used.
 
-That makes eight captures per route with the default bands, and four times
-*n + 1* where you declare *n* breakpoints. Take each channel's captures at the
+A surface may declare a supported minimum width: the narrowest viewport it is
+built for, as a positive whole number of CSS pixels. Bands lying wholly below it
+stop being required, and the lowest band that survives starts at the minimum
+instead of below it, so a surface supporting only 1280 and up is asked for one
+channel rather than two. Declare it and record it beside the basis, along with
+any breakpoint the minimum discarded.
+
+With the default bands and no declared minimum, that makes eight captures per
+route. It is four times *n + 1* where you declare *n* breakpoints above the declared
+minimum, and fewer where a minimum discards one. Take each channel's captures at the
 width its band's lower bound names, or where it has none, the largest width its
 upper bound admits — so breakpoints at `1152` are captured at `1151` and `1152`.
 A rule scoped to one side of a breakpoint does nothing on the other side, so a
@@ -638,8 +646,9 @@ covers only half the set. Drive the browser directly for the rest — any driver
 works, and this is the shape whatever you use has to produce:
 
 ```js
-// The channels for this surface. Two here because no breakpoints were declared;
-// derive them from your own breakpoints when you have them.
+// The channels for this surface. Two here because no breakpoints were declared
+// and no declared minimum narrows them; derive them from your own breakpoints
+// when you have them, and drop the bands that fall below a minimum you declare.
 const channels = [{ name: 'narrow', width: 480 }, { name: 'wide', width: 1024 }];
 
 // One capture. Repeat for each channel AND each row of the table above.
@@ -810,7 +819,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | Field | What to record |
 |---|---|
 | routes | List of routes/URLs or file paths tested |
-| viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands |
+| viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands, the supported minimum width in force or none-declared, and any declared breakpoints the minimum discarded. Record the last two as plain numbers, never as predicates; the example above declares no minimum (worked example: minimum none-declared), so it records none-declared and discards nothing |
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
