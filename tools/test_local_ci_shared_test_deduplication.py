@@ -2535,6 +2535,82 @@ endef
 test-unleased:
 \t+echo observable
 """,
+        # `make -n test-unleased` walks the whole prerequisite closure and
+        # expands each recipe it reaches, so a `$(MAKE)` in a PREREQUISITE runs
+        # for real during expansion. PR #1330 left these three unrefused: the
+        # walk read only the define body and the root's own recipe.
+        "recursive-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard:
+\t$(MAKE) observable
+""",
+        "recursive-braced-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard:
+\t${MAKE} observable
+""",
+        # Two hops, because the closure is transitive: a one-level widening
+        # would pass this while still executing the hazard.
+        "recursive-transitive-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard: deeper-guard
+\techo safe
+
+deeper-guard:
+\t$(MAKE) observable
+""",
+        # A CONTINUED prerequisite list. Make joins the backslash-newline and
+        # reads `deeper-guard` as a prerequisite; a physical-line scan reads
+        # that tab-indented line as test-unleased's recipe instead and never
+        # queues the target, so the hazard two hops away escapes.
+        "recursive-continued-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard \\
+\tdeeper-guard
+\t$(call run-test-suite)
+
+guard:
+\techo safe
+
+deeper-guard:
+\t$(MAKE) observable
+""",
+        # An INLINE recipe. `make -n` executes `; +cmd` exactly as it executes a
+        # forced tab-indented line, and a tail parsed wholly as prerequisites
+        # yields no recipe at all for the hazard check to see.
+        "recursive-inline-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard: ; $(MAKE) observable
+""",
+        # `#` inside an inline recipe is NOT a comment -- Make hands the line to
+        # the shell. Measured on GNU Make 3.81: this fixture ran `$(MAKE)` for
+        # real under `-n`. A tail that strips comments before finding the
+        # recipe separator truncates the hazard away and lets the subprocess go.
+        "recursive-behind-a-quoted-hash": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard: ; @echo "#"; $(MAKE) observable
+""",
     }
     for name, makefile_text in fixtures.items():
         make_run = mock.Mock()
@@ -2922,24 +2998,97 @@ def test_shard_expansion_passes_no_print_directory() -> None:
 def test_shard_refuses_combined_force_recipe_prefixes() -> None:
     """`@+cmd` forces execution under -n exactly as `+cmd` does."""
     shard = _shard_module()
-    for prefix in ("+", "@+", "-+", "+@", "@-+"):
-        makefile_text = (
+    # The modelled places `make -n test-unleased` reaches a forced recipe. All
+    # but the first are PREREQUISITE shapes: `make -n` walks the prerequisite
+    # closure and expands each recipe it finds there, so each executed for real
+    # and unrefused before this change. `shard_test_roster` states which Make
+    # constructs it does not model, and those are deliberately absent here.
+    # Measured on GNU Make 3.81: `guard:` + `\t+echo x`, `guard: ; +echo x`,
+    # and a continued prerequisite list each printed `x` under `-n`.
+    hazard_sites = {
+        "root recipe": (
             "override define run-test-suite\necho safe\nendef\n"
-            f"test-unleased:\n\t{prefix}echo observable\n"
-        )
-        make_run = mock.Mock()
-        with (
-            mock.patch.object(shard.subprocess, "run", make_run),
-            unittest.TestCase().assertRaises(shard.RosterError),
-        ):
-            shard.roster_lines(makefile_text)
-        assert make_run.call_args_list == [], prefix
+            "test-unleased:\n\t{prefix}echo observable\n"
+        ),
+        "prerequisite recipe": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\nguard:\n\t{prefix}echo observable\n"
+        ),
+        "inline prerequisite recipe": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\nguard: ; {prefix}echo observable\n"
+        ),
+        # `deeper-guard` is named only on the continued line, which is
+        # tab-indented: read physically it is test-unleased's recipe, and the
+        # target never enters the closure.
+        "continued prerequisite list": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard \\\n\tdeeper-guard\n\t$(call run-test-suite)\n"
+            "\nguard:\n\techo safe\n"
+            "\ndeeper-guard:\n\t{prefix}echo observable\n"
+        ),
+        # Make accepts a SPACE-indented rule (a tab would make it a recipe), so
+        # a column-zero-only match skips a prerequisite that does have a rule.
+        "space-indented prerequisite rule": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\n  guard:\n\t{prefix}echo observable\n"
+        ),
+        # Make ignores blank and comment-only lines and still attaches the
+        # tab-indented lines that follow, so a collector that stops at one
+        # never sees the rest of the recipe.
+        "recipe after an ignored line": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\nguard:\n\techo safe\n\n# an interposed note\n"
+            "\t{prefix}echo observable\n"
+        ),
+        # An escaped space makes ONE prerequisite name. Split on plain
+        # whitespace it becomes two, neither of which resolves to the rule that
+        # exists, so its recipe never enters the closure.
+        "escaped space in a prerequisite name": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\\ target\n\t$(call run-test-suite)\n"
+            "\nguard\\ target:\n\t{prefix}echo observable\n"
+        ),
+    }
+    for site, template in hazard_sites.items():
+        for prefix in ("+", "@+", "-+", "+@", "@-+"):
+            make_run = mock.Mock()
+            with (
+                mock.patch.object(shard.subprocess, "run", make_run),
+                unittest.TestCase().assertRaises(shard.RosterError),
+            ):
+                shard.roster_lines(template.format(prefix=prefix))
+            assert make_run.call_args_list == [], (site, prefix)
 
     # `@` and `-` alone do NOT force execution and must stay allowed, or the
-    # refusal would reject the roster's own silenced guard lines.
+    # refusal would reject the roster's own silenced guard lines. The benign
+    # prerequisites prove the closure walk permits the safe forms rather than
+    # refusing every Makefile that uses them: one continued onto a second line,
+    # one with an inline recipe, and two whose COMMENT contains both `;` and
+    # `+`. Make runs nothing forced for those -- measured,
+    # `guard: dep # note; +echo observable` printed only its real recipe under
+    # `-n` -- so refusing them would abort roster acquisition for a valid file.
+    # `fourth-guard` is the backslash-PARITY case: the run before `#` is even,
+    # so it does not escape it and Make reads a comment. Measured: Make asked
+    # for the prerequisite `dep\\` and ignored the apparent inline recipe.
+    #
+    # The trailing macro is the control on `define`-body masking: its
+    # tab-indented `+echo observable` sits under a column-zero `guard:` that is
+    # NOT a rule. Read the body as Makefile text and `guard` resolves to a
+    # forced recipe and this call refuses.
     allowed = (
         "override define run-test-suite\n@echo safe\n-echo safe\nendef\n"
-        "test-unleased:\n\t$(call run-test-suite)\n"
+        "test-unleased: guard \\\n\tsecond-guard third-guard fourth-guard\n"
+        "\t$(call run-test-suite)\n"
+        "\nguard:\n\t@echo safe\n\t-echo safe\n"
+        "\nsecond-guard: ; @echo safe\n"
+        "\nthird-guard: # note; +echo observable\n\t@echo safe\n"
+        "\nfourth-guard: dep\\\\# note; +echo observable\n\t@echo safe\n"
+        "\ndefine documented-shape\nguard:\n\t+echo observable\nendef\n"
     )
     with mock.patch.object(
         shard.subprocess,
