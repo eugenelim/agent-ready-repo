@@ -42,8 +42,8 @@ Choose `information-architecture` for the general structure pass, or one genre-s
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
-this pack is configured to write to, and `<slug>` is the short name you give
-this piece of work.
+this pack is configured to write to, `<slug>` is the short name you give
+this piece of work, and `<screen>` is the screen name as the per-screen brief names it.
 
 <!-- rung: packs/experience-design/JOURNEY.md -->
 
@@ -399,7 +399,7 @@ Design the behavior for <screen>, including feedback, validation, recovery, and 
 **Agent returns:**
 <!-- rung: JOURNEY stage 4 -->
 
-> **Agent:** Done — I've written the per-screen brief enriched with an in-component state machine, feedback timing, validation flow, motion rationale, and accessibility constraints to `<output_dir>/screens/<slug>.md`.
+> **Agent:** Done — I've written the per-screen brief enriched with an in-component state machine, feedback timing, validation flow, motion rationale, and accessibility constraints to `<output_dir>/screens/<slug>/<screen>.md`.
 
 **You push back:**
 <!-- rung: interaction-design SKILL.md -->
@@ -420,20 +420,20 @@ Design the behavior for <screen>, including feedback, validation, recovery, and 
 **Watch out for:** Motion and state-library details can make a draft look specific while leaving behavior unresolved. Notice durations, easing values, library APIs, or cross-screen routes; remove them and restate the in-component behavior and still alternative.
 <!-- rung: interaction-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>.md`.
-<!-- rung: authored; interaction-design SKILL.md declares the behavior enrichment but not its output path -->
+**Where it lands:** `<output_dir>/screens/<slug>/<screen>.md` — it fills the brief's `## Interaction & behavior` section and produces no file of its own.
+<!-- rung: user-flow SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/experience-design/.apm/skills/user-flow/assets/screen-brief-template.md -->
 
 ```markdown
-# States and transitions
-## Feedback and validation
-## Motion and reduced-motion
-## Navigation behavior
+## Interaction & behavior  (from interaction-design — referenced, enriched there)
+- <feedback & timing · input/validation flow · the component state machine
+  (mermaid stateDiagram-v2) · motion purpose + reduced-motion · gesture — or:
+  see interaction-design enrichment>
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*The section this skill enriches, excerpted from the per-screen brief template. Confirm the surrounding brief against what `user-flow` produced.*
 
 ## Where this leads
 

@@ -33,3 +33,23 @@ that class rather than as a new defect class.
 **Owner decision.** The owner approved the spec and plan and instructed
 implementation to begin, having been shown the trend, the absent sentinel, and
 the option to run a ninth round.
+
+## Execution observation — T6, 2026-09-16
+
+`guides/experience-design/how-to/design-each-screen.md:374` carries the rung
+`authored; information-architecture SKILL.md declares the record but not its
+path`. T2 gives that skill a declared path, at which point the rung's second
+clause is false. No task owns rewriting it: T7's rung work is scoped to
+`establish-design-intent.md`, and the guide-agreement test asserts that an
+`artifact_location` resolves to a declared path, not that its rung is accurate.
+
+This is the companion-staleness class that produced the majority of findings in
+review rounds four through eight, now appearing in implementation: an edit to a
+thing leaves a statement about that thing behind.
+
+**Disposition.** Carried into T7 as a bundled fix under the carve-out's Tier 3 —
+same area (a guide rung), same concern (a guide claim matching its skill),
+visibly smaller than the task, and mechanical. It is not a design call. T7
+depends on T2, so the declaration exists by then. Recorded here rather than
+amending the approved plan for a one-line correction, and listed under
+`Bundled fixes:` when T7 is committed.
