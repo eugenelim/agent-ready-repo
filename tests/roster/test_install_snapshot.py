@@ -149,11 +149,13 @@ def _scan_for_leaks(output_root: Path, projected_paths: list[str]) -> list[str]:
 # exempts the same string on a page that never carried it, so a newly added
 # `[guide](../guides/)` anywhere in the domain would be silently allowed —
 # the deferral covers the occurrences that already existed, nothing more.
+# `docs/README.md` carries no Markdown links at all and so appears nowhere
+# here. It was listed once, in error: the pre-repair diagnostic printed only
+# `path.name`, so violations from `docs/product/README.md` read as a bare
+# `README.md:` and were attributed to the wrong page. The diagnostic now
+# prints the scaffold-relative path, and the guard below fails a dead entry.
 DEFERRED_MISSING_LINKS = frozenset(
     {
-        ("docs/README.md", "adr/"),
-        ("docs/README.md", "rfc/"),
-        ("docs/README.md", "guides/"),
         ("docs/product/README.md", "personas.md"),
         ("docs/product/README.md", "release-checklist.md"),
         ("docs/product/README.md", "../adr/"),
@@ -165,6 +167,23 @@ DEFERRED_MISSING_LINKS = frozenset(
         ("docs/architecture/README.md", "../rfc/"),
     }
 )
+
+
+def _missing_relative_targets(path: Path) -> set[str]:
+    """Return every relative link target on the page that does not resolve.
+
+    Deferral-blind on purpose: the caller applies exceptions, and the dead-entry
+    guard needs the unfiltered set to tell a live exemption from a stale one.
+    """
+    missing: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        for raw_target in MARKDOWN_LINK_RE.findall(line):
+            target = raw_target.split("#", 1)[0]
+            if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
+                continue
+            if not (path.parent / target).exists():
+                missing.add(target)
+    return missing
 
 
 def _scan_for_missing_relative_links(path: Path, relative: str) -> list[str]:
@@ -261,6 +280,22 @@ def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
     assert not violations, (
         "scaffold pages contain links unavailable to adopters:\n  " + "\n  ".join(violations)
     )
+    # A deferral covers occurrences that exist. An entry matching nothing is
+    # either stale or was recorded against the wrong page, and either way it
+    # silently widens the exemption for whatever is added later.
+    live = {
+        (relative, target)
+        for relative in touched
+        for target in _missing_relative_targets(output_root / relative)
+    }
+    dead = sorted(
+        pair for pair in DEFERRED_MISSING_LINKS if pair[0] in touched and pair not in live
+    )
+    assert not dead, (
+        "deferred link exceptions matching no occurrence on a scanned page:\n  "
+        + "\n  ".join(f"{page} -> {target!r}" for page, target in dead)
+    )
+
     for citation in ("ADR-0003", "RFC-0013"):
         for relative in touched:
             content = (output_root / relative).read_text(encoding="utf-8")

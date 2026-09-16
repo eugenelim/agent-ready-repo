@@ -587,3 +587,52 @@ holds 39 flat `<slug>.md` files, so the row states current reality. The second
 refuted finding claimed the same-file short-circuit returns before the consumer
 is read; when consumer and destination are the same file, the consumer is
 precisely the file whose headings were already verified.
+
+## Round 11 — review of the round-10 repairs
+
+Five findings over one commit. All five sustained as Concerns, none refuted,
+no blockers. Three were live gaps in a guard; two were control weaknesses with
+no false pass in today's tree.
+
+**A deferral list built from an ambiguous diagnostic.** Round 10 replaced a
+target-wide link exemption with `(page, target)` pairs. Three of the twelve
+pairs named `docs/README.md`, which carries no Markdown links at all. The
+cause is the diagnostic the same commit replaced: it printed `path.name`, so
+violations from `docs/product/README.md` read as a bare `README.md:` and were
+attributed to the wrong page when the list was written. A tightening built on
+the output of the thing it was tightening. The guard now fails any deferred
+pair that matches no occurrence, so a dead exemption cannot sit there widening
+silently.
+
+**AC6, tightened a third time.** Round 9 opened the consumer, round 10 added
+the fragment, and round 11 found three remaining holes in the same function:
+the mapped heading was proved in the repository copy while a seed page's link
+resolves to its *twin*, a different file; `_slug(fragment)` normalised
+punctuation so `#the-source-of-truth-split!` compared equal to the real slug;
+and links inside comments and fences counted, in a module whose own
+`visible_prose` exists to say they govern nothing. The heading is now verified
+in whichever target the link actually reached, the fragment is compared
+exactly, and inert spans are removed first.
+
+**One anchor cited twice needs two replacements.** The inventory is one line
+per use, and AC6 says every one of the 30. The resolver returned a boolean on
+first match, so with two `#pack-source-of-truth-split` uses in
+`CONTRIBUTING.md`, deleting either left both green. It now counts occurrences
+against the recorded count.
+
+**A commented heading is not a section.** The anchored `^## <heading>$` match
+ran before comments and fences were stripped, so wrapping `## Documentation`
+in a comment still satisfied AC17 and AC20 — the slice discarded the comment
+opener, leaving the body to read as ordinary prose. Masking now blanks inert
+spans in place, preserving offsets so the match still indexes the original.
+
+### The pattern across rounds 9, 10 and 11
+
+Every round found its defects in the *previous round's repair*, not in the
+original work. A control that reads two artifacts gets tightened on the one
+the finding named and stays loose on the other, and the loose half is hard to
+see precisely because the tight half is what the commit is about. AC6 took
+three rounds: consumer, then fragment, then the target the fragment resolves
+against. The discipline that caught each one is the same each time — strip the
+named content and confirm the assertion reds, against every branch the control
+has, not just the branch the finding described.

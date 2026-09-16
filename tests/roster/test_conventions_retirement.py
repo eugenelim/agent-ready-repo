@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import re
 import subprocess
+from collections import Counter
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -89,8 +90,11 @@ def unresolved_uses() -> tuple[str, ...]:
     under, and that heading exists in the file.
     """
     mapping = anchor_map()
+    # One inventory line is one use, so a consumer citing an anchor twice owes
+    # two replacements. Iterate the distinct pairs and carry the count.
+    use_counts = Counter(recorded_uses())
     failures: list[str] = []
-    for consumer, anchor in recorded_uses():
+    for consumer, anchor in use_counts:
         row = mapping.get(anchor)
         if row is None:
             failures.append(f"{consumer} -> {anchor}: no anchor-map row")
@@ -115,7 +119,9 @@ def unresolved_uses() -> tuple[str, ...]:
             )
             continue
         failures.extend(
-            _replacement_failures(consumer, anchor, destination, heading)
+            _replacement_failures(
+                consumer, anchor, destination, heading, use_counts[(consumer, anchor)]
+            )
         )
     return tuple(failures)
 
@@ -161,41 +167,58 @@ RECORDED_DISPOSITIONS: dict[tuple[str, str], tuple[str, str]] = {
 }
 
 
-def _resolves_to_destination(
+def _matching_link_count(
     source: Path, consumer: str, destination: str, heading: str
-) -> bool:
-    """Whether a link in the consumer reaches the mapped destination *heading*.
+) -> int:
+    """Count the consumer's links that reach the mapped destination *heading*.
 
-    The fragment is load-bearing. Comparing paths alone passes whenever the
+    Three things this proves that a path comparison does not.
+
+    The fragment is load-bearing: comparing paths alone passes whenever the
     consumer happens to hold any bare link to the destination file, and several
-    consumers do — so the fragment-bearing replacement could be deleted or
-    pointed at a heading that does not exist and this would stay green. AC6
-    requires a link that resolves to the heading the anchor maps to, and
-    `anchor-map.txt` records that heading, so it is available and unambiguous.
+    consumers do, so the fragment-bearing replacement could be deleted outright
+    and the check would stay green. The fragment is compared exactly rather
+    than through `_slug`, because slugging the fragment normalises punctuation
+    away and `#the-source-of-truth-split!` would compare equal to a heading it
+    does not address.
 
-    A seed page is also allowed to reach the destination's seed twin: its links
-    resolve inside the scaffold it becomes, where no `packs/` prefix exists.
-    The twin must exist — an unresolvable candidate proves nothing.
+    The heading is verified in whichever target the link actually reached. A
+    seed page may reach the destination's seed twin — its links resolve inside
+    the scaffold it becomes, where no `packs/` prefix exists — and the twin is
+    a different file, so proving the heading in the repository copy says
+    nothing about the adopter's link.
+
+    Comments and fences are removed first, for the reason `visible_prose`
+    gives: a link parked in either governs nothing a reader can follow.
+
+    Returns a count rather than a boolean so a consumer citing one anchor
+    twice must carry two replacements. The inventory is one line per use.
     """
-    targets = {(REPO_ROOT / destination).resolve()}
+    candidates = [REPO_ROOT / destination]
     for seed_root in SEED_ROOTS:
         if consumer.startswith(seed_root):
-            twin = REPO_ROOT / seed_root / destination
-            if twin.is_file():
-                targets.add(twin.resolve())
+            candidates.append(REPO_ROOT / seed_root / destination)
     wanted = _slug(heading)
-    text = source.read_text(encoding="utf-8")
-    for raw in _LINK_TARGET_RE.findall(text):
+    targets = {
+        path.resolve()
+        for path in candidates
+        if path.is_file() and wanted in anchors_in(path)
+    }
+    if not targets:
+        return 0
+    body = _FENCE_RE.sub("", _COMMENT_RE.sub("", source.read_text(encoding="utf-8")))
+    hits = 0
+    for raw in _LINK_TARGET_RE.findall(body):
         path_part, _, fragment = raw.partition("#")
-        if not path_part or _slug(fragment) != wanted:
+        if not path_part or fragment != wanted:
             continue
         if (source.parent / path_part).resolve() in targets:
-            return True
-    return False
+            hits += 1
+    return hits
 
 
 def _replacement_failures(
-    consumer: str, anchor: str, destination: str, heading: str
+    consumer: str, anchor: str, destination: str, heading: str, required: int
 ) -> tuple[str, ...]:
     """Return a diagnostic when the consumer holds no working replacement.
 
@@ -235,12 +258,14 @@ def _replacement_failures(
                 f"the pointer must resolve for a reader of an installed tree",
             )
         return ()
-    if _resolves_to_destination(source, consumer, destination, heading):
+    found = _matching_link_count(source, consumer, destination, heading)
+    if found >= required:
         return ()
     return (
-        f"{consumer} -> {anchor}: no link here resolves to {destination} "
-        f"# {_slug(heading)}; the use has no replacement pointer at the mapped "
-        f"heading (or needs a recorded disposition)",
+        f"{consumer} -> {anchor}: the inventory records {required} use(s) but "
+        f"only {found} link(s) here resolve to {destination}#{_slug(heading)}; "
+        f"each recorded use needs its own replacement pointer (or a recorded "
+        f"disposition)",
     )
 
 
@@ -434,16 +459,40 @@ def installed_paths() -> frozenset[str]:
     )
 
 
+def _mask_inert(text: str) -> str:
+    """Blank out comment and fence spans, preserving every offset and newline.
+
+    Searching for a heading has to happen on text that still has its line
+    breaks, but a heading inside a comment or a fenced example is not a section
+    a reader ever sees. Masking in place rather than deleting keeps offsets
+    aligned, so a match found here indexes the original text unchanged.
+    """
+    masked = list(text)
+    for pattern in (_COMMENT_RE, _FENCE_RE):
+        for span in pattern.finditer(text):
+            for i in range(*span.span()):
+                if masked[i] != "\n":
+                    masked[i] = " "
+    return "".join(masked)
+
+
 def section_of(text: str, heading: str) -> str:
     """Return one `##` section's body, or an empty string when absent.
 
-    The boundary is found on the raw text, because `visible_prose` collapses
-    newlines and a newline-anchored `## ` needle can never match once it has.
-    Round 9 found every window running to end of file, which made the
-    placement half of each "rule X sits under § Y" criterion unenforceable.
+    The boundary is found on text that keeps its line breaks, because
+    `visible_prose` collapses newlines and a newline-anchored `## ` needle can
+    never match once it has. Round 9 found every window running to end of file,
+    which made the placement half of each "rule X sits under § Y" criterion
+    unenforceable.
+
+    The heading match is anchored to a whole line, so `## Documentation extras`
+    does not answer a lookup for `Documentation`, and it runs on masked text,
+    so a heading commented out or shown inside a fenced example does not
+    either. Both were live weaknesses: the first let a rename keep the
+    assertion green, the second let a section no reader renders satisfy it.
     """
     marker = re.compile(rf"^## {re.escape(heading)}$", re.MULTILINE)
-    found = marker.search(text)
+    found = marker.search(_mask_inert(text))
     if found is None:
         return ""
     rest = text[found.end():]
