@@ -150,7 +150,9 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
 **Tests:**
 - Goal-based: `references/containment.md` exists in each of the four writes' skill
   directory and all four copies are byte-identical.
-- Goal-based: the module states every one of the seven module criteria. For the
+- Goal-based: the module states every criterion in `spec.md` that begins "The
+  shared containment module states" — the set, not a count, because this task's
+  count has gone stale each time a criterion was added. For the
   approval criterion that means every clause it carries, not its heading: the
   at-or-beneath predicate; the reserved set for the repository branch and for the
   user-profile branch; refusal rather than confirmation for an inadmissible value;
@@ -159,7 +161,13 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
   which fixes the admissible root and is not the same clause as the reserved set
   that fixes the inadmissible one; the approved root recorded with the run on
   every approval path; approval before the first read or write under the
-  directory; and the binding of every later resolution to the approved value;
+  directory; and the binding of every later resolution to the approved value.
+  Separately enumerated because each is its own criterion: final-target
+  re-canonicalization; confinement at each missing intermediate directory; the
+  slug class and its 64-character bound; the `type:` mismatch, absent or
+  unparseable check with its blank-template refusal; **a matching `type:`
+  surfaced before replacement**; user-profile product belonging; and
+  extract-as-data for an existing target read before amending;
   final-target re-canonicalization; confinement re-established at each missing
   intermediate directory as it is created; the slug class and its 64-character
   bound with refusal before path composition; the `type:` check treating absent or
@@ -175,8 +183,8 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
   the branch without the binding lets a skill re-resolve from configuration at its
   write step.
 
-**Done when:** the module is present and byte-identical in all four skills and
-states all seven module criteria.
+**Done when:** every check in this task's Tests block passes, and the module
+exists in all four skills as one body.
 
 ### T2: Declare all four writes
 
@@ -190,8 +198,9 @@ states all seven module criteria.
   by `references/containment.md` in backticks, and nothing else on the line.
 - Goal-based: each ships a `references/agentbundle-layout.md`, and
   `python3 -m pytest tests/conformance/test_pack_layout_declared_section.py -q` passes.
-- Goal-based: `information-architecture` and `design-principles` each state the
-  declared `type:` their artifact emits. They ship no template, so the declaration
+- Goal-based: `information-architecture` states `type: information-architecture`
+  and `design-principles` states `type: design-principles` — the literals the
+  criteria fix, not whichever marker an implementer would otherwise invent. They ship no template, so the declaration
   is the only place it can live; `design-system` and `creative-direction` carry
   theirs in the templates T3 and T4 add.
 
@@ -201,8 +210,8 @@ states all seven module criteria.
 - All four, including `information-architecture`, which the criteria name among the
   four writes and which the previous plan left without an implementer.
 
-**Done when:** the conformance test passes and all four carry both lines and a
-layout reference.
+**Done when:** every check in this task's Tests block passes, and all four writes
+declare a target a reader can resolve.
 
 ### T3: `design-system`'s write step and token-taxonomy template
 
@@ -222,8 +231,8 @@ layout reference.
   reader, so a value-free artifact is its natural shape — but the lint is the
   binding check, not that reasoning.
 
-**Done when:** the agnosticism lint exits 0 with the template present and the
-skill states its write step.
+**Done when:** every check in this task's Tests block passes, and `design-system`
+produces a durable taxonomy where it previously produced none.
 
 ### T4: `creative-direction`'s template frontmatter
 
@@ -269,7 +278,8 @@ skill states its write step.
   every `references/agentbundle-layout.md` must carry it, and the reference page
   legitimately names it as the pack default.
 
-**Done when:** all three checks pass.
+**Done when:** every check in this task's Tests block passes, and no reader of the
+relocated artifact still names the literal path.
 
 ### T6: Name the artifact `interaction-design` enriches
 
@@ -293,8 +303,8 @@ skill states its write step.
   it to that template's repository-relative path; a higher rung than `authored`
   exists once the block names a template-backed artifact.
 
-**Done when:** the step names the brief, `<screen>` is resolved, and the guidebook
-lint exits 0.
+**Done when:** every check in this task's Tests block passes, and the step no
+longer publishes a path no skill writes.
 
 ### T7: Retire `aesthetic/`
 
@@ -371,8 +381,8 @@ lint exits 0.
 - Authoring after the work is deliberate: all three quantify over state T1-T8
   create, which is why every one of those tasks is named above. Red by mutation is a stronger demonstration than the pre-change state.
 
-**Done when:** all three are green against the tree and red against each named
-mutation, recorded in the ledger.
+**Done when:** every check in this task's Tests block passes, with each test's red
+state recorded in the ledger alongside the mutation that produced it.
 
 ### T10: Wire the roster test into CI
 
@@ -455,7 +465,8 @@ recorded in the spec with its owner.
   command or agent. Regenerate `marketplace.json` by self-host rather than editing it.
 - Route learnings through the `project-knowledge` seam.
 
-**Done when:** the four checks pass and `git status` is clean.
+**Done when:** every check in this task's Tests block passes and `git status` is
+clean.
 
 ## Rollout
 
