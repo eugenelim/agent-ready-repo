@@ -43,14 +43,23 @@ def installed_pack(
     catalogue = tmp_path / "catalogue"
     (catalogue / "packs").mkdir(parents=True)
     shutil.copytree(PACK, catalogue / "packs" / "credential-brokers")
-    args = argparse.Namespace(
-        pack="credential-brokers",
-        catalogue=str(catalogue),
-        output=str(output),
-        scope="user",
-        force=False,
-        force_merge=False,
-    )
+    # Parsed rather than hand-built: `install.run` reads every dest the
+    # `install` subparser declares, so a namespace assembled by hand omits
+    # whichever ones this fixture did not think about and fails where no
+    # adopter can. Built through the installed `agentbundle` package, so this
+    # stays inside the pack's own reach.
+    from agentbundle.cli import _build_parser
+
+    args = _build_parser().parse_args([
+        "install",
+        str(catalogue),
+        "--pack",
+        "credential-brokers",
+        "--output",
+        str(output),
+        "--scope",
+        "user",
+    ])
     rc, stdout, stderr = _run_install(args)
     assert rc == 0, f"stdout={stdout!r} stderr={stderr!r}"
     return home, output
