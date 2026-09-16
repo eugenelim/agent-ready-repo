@@ -97,7 +97,7 @@ compressible; and it is not manual QA because each outcome is decided by a
 predicate over emitted bytes rather than by a reader's judgement.
 
 Each criterion is scored over two consecutive runs of its fixture and must hold
-in both. Two runs is the bar because the pre-change fixtures each produced
+in both. Recorded, ungraded observations are collected on the same runs. Two runs is the bar because the pre-change fixtures each produced
 byte-identical output across their runs, so a single divergence is signal.
 
 **A code-shape outcome and a report-content outcome are separate criteria.** They
@@ -105,12 +105,11 @@ have separate failure modes and separate remedies: an implementation can reuse
 the right helper and misreport what it did, or report correctly and build the
 wrong thing. Bundling them lets a half-met item read as met.
 
-**The rung a report names is decided against its fixture, never accepted as
-given.** Each fixture has one rung whose condition it satisfies, and the
-fixtures disagree about which: the reuse fixture's answer is the existing-solution
-rung, the helper-absent fixture's is not. A report that stamps one constant rung
-on every run therefore fails at least one criterion, which is what makes the
-check falsifiable rather than a label count.
+**The rung a report names is recorded, never graded.** The runner records it
+for the ledger, and no criterion decides whether it is the right rung. A constant
+or fabricated rung is therefore visible to a reader but has no completion effect,
+which is the cost the owner accepted rather than putting a judgement in the
+completion path.
 
 **A gated rule's control is a criterion, not plan detail.** Each gated rule
 carries a control fixture differing only in the rule's trigger, and that
@@ -203,8 +202,8 @@ These criteria were demoted to working material and their identifiers are not
 reused. Destination: the rung-recording rules in
 `packs/core/.apm/agents/implementer.md` and
 `packs/core/.apm/skills/work-loop/SKILL.md`, which still carry the obligation.
-Pin: the content pin recorded in the plan's Construction tests, which fails if
-either rule is deleted. Owner authority: user confirmation 2026-09-16, after four
+Pin: the four content pins enumerated in the plan's Construction tests, each of
+which fails on the removal of its own obligation. Owner authority: user confirmation 2026-09-16, after four
 review rounds located the non-mechanizable property.
 
 Retired: the reuse fixture's report naming rung 2; each planted temptation's

@@ -10,8 +10,9 @@
   and `tests/roster/test_sequential_implementer_dispatch_contract.py` as their
   existing construction checks; `packs/core/tests/pack/test_razor_guidance.py`
   as the analogous pinned-prose suite. Named uncertainty: no gate executes
-  either changed file's behaviour, so every behavioural criterion is scored at
-  delivery rather than by a standing suite.
+  either changed file's behaviour, so every gated behavioural criterion is
+  scored at delivery rather than by a standing suite, and the demoted
+  obligations are recorded rather than scored at all.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -91,15 +92,19 @@ one of them disappears rather than only if a heading does:
 
 A fourth pin asserts `implementer.md` names the ladder by its heading and states
 no numbered rung of its own, which is what catches a future third copy. Pin 2 and
-pin 3 together are the whole protection for T2, whose rule carries no criterion. Its purpose is to catch silent deletion of the delta and to catch a
-future third copy; it is recorded here rather than in the spec because a check
-that a sentence exists cannot decide whether the behaviour holds.
+pin 3 together are the whole protection for T2, whose rule carries no criterion.
+
+These pins are recorded here rather than in the spec because a check that a
+sentence exists cannot decide whether the behaviour holds. Their job is to catch
+silent deletion of an obligation and to catch a future third copy of the ladder,
+not to prove the behaviour.
 
 ## Durable-output map
 
 | Spec durable output | Task | Evidence the task produces |
 | --- | --- | --- |
-| Current product truth | T1, T2 | Scored fixture-pair results in `notes/verification-ledger.md` |
+| Current product truth | T1 | Scored fixture-pair results in `notes/verification-ledger.md` |
+| Current product truth | T2 | Recorded, unscored probe observations in `notes/verification-ledger.md`, plus the pins that protect the rule |
 | Interface compatibility | T3 | Matching version in both manifests; `catalogue verify` clean |
 | Release history | T3 | `[core]` entry directly under `[Unreleased]` |
 | Behaviour register | T3 | Three labelled cases in `work-loop/evals/evals.json` |
@@ -150,8 +155,10 @@ measured cause of the abstraction the probe produced. The correction reframes
 
 The over-fire case is the one to guard: a rule that makes the implementer hunt
 indefinitely, refuse to write new code, or fabricate a rung label for a
-declination no rung explains. Each of those has a paired control fixture whose
-outcome must not move.
+declination no rung explains. The first two have gated control fixtures whose
+outcomes must not move. The third is observation-only: the non-rung control is
+run and recorded, and a fabricated label there is a prompt for a reader to look,
+not a failed gate.
 
 ### Dependencies & integration
 
@@ -171,8 +178,10 @@ those copies are never edited directly.
 
 **Tests:**
 - `docs/specs/construction-time-razor/notes/probes/run-probe.sh` materialises
-  every fixture and drives two scored runs each. It is the generator for every
-  figure in the ledger, and it holds each fixture's expected rung.
+  every fixture and drives two runs each. It is the generator for every figure in
+  the ledger. It scores only the gated outcomes; the rung each report names is
+  collected alongside them as recorded evidence and never decides completion, so
+  the runner holds no expected rung.
 - Reuse fixture, proving AC-0001: the emitted function delegates to the sibling
   helper. Proven red on the pre-change contract — two runs, byte-identical
   duplication, and no report mentioned a search, a candidate or a rung.
@@ -226,7 +235,7 @@ over two consecutive runs.
 
 This task carries no acceptance criterion. Which rung a declination names is not
 mechanically decidable from the ladder, so the rule ships as working material
-protected by the content pin in T3 rather than as contract. The spec's Retired
+protected by the T3 content pins rather than as contract. The spec's Retired
 identifiers section records the demotion, its destination, its pin and the owner
 authority for it. The probes below are recorded evidence, not gates.
 
@@ -256,7 +265,8 @@ authority for it. The probes below are recorded evidence, not gates.
 - Edit only at the PLAN step, outside both sha256-pinned windows.
 
 **Done when:** the body-length floor holds, both probes are run and recorded in
-the ledger, and the T3 content pin covers this rule.
+the ledger, and the T3 pins for this rule and its non-rung exception exist and
+each fails on its own obligation's removal.
 
 **Grounding:** the register's disposition that a recorded rung is not ladder
 narration.
@@ -294,7 +304,8 @@ narration.
 
 **Approach:**
 - Bump both manifests, add the changelog entry, add the three register cases,
-  add the content pin, then run self-host last so it projects the final bytes.
+  add all four independent content pins, then run self-host last so it projects
+  the final bytes.
 
 **Done when:** every check in this task's `Tests:` holds.
 
