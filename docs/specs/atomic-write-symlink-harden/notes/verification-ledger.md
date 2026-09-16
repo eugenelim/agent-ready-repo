@@ -127,8 +127,8 @@ CodeQL could not see it because the literal lives inside CPython. It was,
 however, a true statement about the idiom: under a null umask both the old and
 the new code produce a world-writable file.
 
-The owner chose to tighten rather than suppress. No CodeQL suppression was
-added, and the repository still has none.
+The owner chose to tighten first. That closed the world-**write** half and then
+moved the alert rather than clearing it.
 
 **The first attempt, `0o644`, was wrong, and a review round caught it.** It
 closes the alert, but it also drops the group-write bit — so under umask `002`,
@@ -176,3 +176,55 @@ restore `Status: Approved` in both files, `loop-cohort reset`, `init`,
 `approve-plan`, `schedule`, restore the statuses — and the wave pointer walked
 forward again. The canonical hash was confirmed to exclude the `Status:` line,
 so restoring the statuses afterwards does not disturb the new pin.
+
+
+## The alert moved, and had to be suppressed after all
+
+Requesting `0o664` changed CodeQL's message from "sets file to world writable"
+to "**sets file to world readable**", same rule, same line. The rule objects to
+the other-read bit as well as other-write, so the only modes that clear it are
+owner-only — which is the `0o600` regression already rejected for breaking a
+catalogue that is served, group-shared, or read by another service account.
+
+The remaining alert is true about the literal and false about this code. A
+catalogue is a published artifact: its files were world-readable at `0644`
+before this change too, because `Path.write_bytes` requests `0o666`. Nothing
+about readability changed here.
+
+What did change is the part that mattered. Under a null umask:
+
+| | old | shipped |
+| --- | --- | --- |
+| mode | `0o666` | `0o664` |
+| world-writable | yes | **no** |
+| world-readable | yes | yes |
+
+The owner authorised a line-level suppression carrying that reasoning. It is
+this repository's first — a search for `codeql[` and `lgtm[` across the tree
+found none before it. The marker sits on the line immediately above the `os.open`
+call, because CodeQL honours it only on the alert line or the one directly above;
+the explanation sits above the marker.
+
+There is no `.github/codeql-config.yml`; scoping the query at repository level
+would have been a policy change affecting every file, which is why the
+suppression is line-local.
+## One suite run was spoiled by the operator, not by the code
+
+The final full-suite run took 1696s instead of the usual ~200s and came back
+`1 failed, 3016 passed, 3 skipped, 31 subtests`. The failure was
+`test_local_exclude_git_cache.py::test_distinct_questions_are_not_conflated`.
+
+Cause: a `git rev-parse --git-common-dir` inside that test's temporary repo hung
+for 51 minutes. It was a child of this run's own pytest (`ppid` matched), not a
+peer session. I killed the hung `git` to let the suite continue, which is what
+failed the test around it.
+
+Re-run in isolation immediately afterwards: `3 passed in 0.88s`. The file is not
+in this change's diff, and the two preceding full runs of the same suite passed
+at 164s and 254s. So the failing run is an artifact of the intervention, and the
+isolated re-run is evidence about a different question — whether that test passes
+— not a re-roll of the run that failed.
+
+Standing evidence for the suite is therefore the `0o664` run recorded above:
+`3017 passed, 3 skipped, 31 subtests, 164.38s, exit 0`. The only change since is
+a comment.

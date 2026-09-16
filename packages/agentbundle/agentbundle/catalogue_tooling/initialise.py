@@ -470,6 +470,12 @@ def _atomic_write(dest: Path, content: bytes) -> None:
     # Not derived from ``dest.name``: a long-but-valid destination plus a fixed
     # suffix can exceed NAME_MAX, which the old 6-byte ".abtmp" stayed inside.
     tmp = dest.parent / f".abtmp-{os.urandom(8).hex()}"
+    # A catalogue is a published artifact. Its files were already world-readable
+    # at 0644 before this change, because `Path.write_bytes` requests 0o666; the
+    # dangerous half, world-WRITE under a null umask, is exactly what asking for
+    # 0o664 instead removes. Owner-only would break a catalogue that is served,
+    # shared with a group, or read by another service account.
+    # codeql[py/overly-permissive-file]
     fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o664)
     try:
         # os.fdopen owns the descriptor only once it returns; if it raises

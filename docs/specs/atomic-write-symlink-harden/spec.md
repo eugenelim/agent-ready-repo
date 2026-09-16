@@ -198,6 +198,12 @@ answer rather than as a durable follow-on.
   `Path.write_bytes` had been hiding inside CPython). `0o644` was rejected: it
   also drops the group-write bit, which under umask `002` is what a
   group-shared catalogue tree relies on.
+- Technical: `py/overly-permissive-file` objects to the other-read bit as well
+  as other-write, so no mode a published catalogue can use satisfies it. The
+  residual alert is suppressed on the line, with the reasoning beside it
+  (source: the alert text changed from "world writable" at `0o666` to "world
+  readable" at `0o664`, same rule and line, on PR #1327; owner authorised the
+  suppression 2026-09-15).
 - Technical: the package's two existing atomic writers
   (`build/projections/merge_into_agent_json.py:236` and
   `build/projections/user_merge_json.py:283`) stage into the target's parent and
