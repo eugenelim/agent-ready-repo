@@ -2825,14 +2825,29 @@ def test_shard_workflow_run_scalars_enumerate_no_suite() -> None:
 
 
 def test_shard_workflow_roster_leak_detector_catches_each_shape() -> None:
-    """Each forbidden enumeration shape is actually detected."""
+    """Each forbidden enumeration shape is detected; the shipped steps are not.
+
+    The last two leak rows carry no trailing slash. `make check packs/core/tests`
+    names a suite just as `tests/` does, and an earlier detector that required
+    the slash let both through. The two clean rows are the shape of the
+    workflow's real provisioning steps: installing pytest is not invoking it, so
+    a detector that fired on the bare word would report the shipped file.
+    """
     for leaked in (
         "python -m pytest tools/test_build_gate_chain.py -q",
         "pytest packs/core/tests/pack/ -q",
         "make check tools/test_check_artifact_contents.py",
         "make test tests/",
+        "make check packs/core/tests",
+        "make check tests",
     ):
         assert _shard_roster_leaks([leaked]), leaked
+
+    for clean in (
+        "python -m pip install pytest -r tools/requirements.txt",
+        "npm ci --prefix docs-site",
+    ):
+        assert _shard_roster_leaks([clean]) == [], clean
 
 
 def test_shard_workflow_runs_one_test_step_on_the_exact_runner() -> None:
@@ -2957,15 +2972,6 @@ def test_shard_matrix_check_reads_only_the_make_test_scalar() -> None:
     ).replace("make test SHARD=${{ matrix.shard }} SHARDS=4", "make test SHARD=${{ matrix.shard }} SHARDS=3", 1)
     assert decoyed != text
     assert _shard_matrix_errors(decoyed) != []
-
-
-def test_shard_roster_leak_detector_catches_slashless_suite_paths() -> None:
-    """A suite directory named without a trailing slash is still a leak."""
-    assert _shard_roster_leaks(["make check packs/core/tests"])
-    assert _shard_roster_leaks(["make check tests"])
-    # And the legitimate shipped steps still read clean.
-    assert _shard_roster_leaks(["python -m pip install pytest -r tools/requirements.txt"]) == []
-    assert _shard_roster_leaks(["npm ci --prefix docs-site"]) == []
 
 
 def test_shard_child_environment_cannot_reselect_a_shard() -> None:

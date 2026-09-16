@@ -81,6 +81,13 @@ REENTRY_MARKER = "SHARD_TEST_ROSTER_ACTIVE"
 # Stable, greppable prefix for the per-unit durations that refresh WEIGHTS.
 TIMING_PREFIX = "shard-timing"
 
+# One definition, because `classify` and `unit_key` must agree on it. The first
+# decides that a line is work; the second derives the WEIGHTS key for that same
+# line. Two copies of this pattern that drifted apart would classify a unit as
+# work and then key it under a name no WEIGHTS entry carries -- a silent
+# fall-through to DEFAULT_WEIGHT that degrades balance without failing anything.
+INTERPRETER = re.compile(r"python(?:\d+(?:\.\d+)*)?")
+
 
 def child_environment() -> dict[str, str]:
     """Return an environment that cannot re-select a shard.
@@ -143,13 +150,12 @@ def unit_key(line: str) -> str:
     different unit when comparing a local roster against a harvested one.
     """
     tokens = line.split()
-    interpreter = re.compile(r"python(?:\d+(?:\.\d+)*)?")
     for index, token in enumerate(tokens):
-        if index == 0 and interpreter.fullmatch(Path(token).name):
+        if index == 0 and INTERPRETER.fullmatch(Path(token).name):
             continue
         if "/" in token and not token.startswith("-"):
             return token
-    if tokens and interpreter.fullmatch(Path(tokens[0]).name):
+    if tokens and INTERPRETER.fullmatch(Path(tokens[0]).name):
         return " ".join(["python", *tokens[1:]])
     return " ".join(tokens)
 
@@ -172,7 +178,7 @@ def classify(line: str) -> str:
     tokens = stripped.split()
     if (
         len(tokens) >= 2
-        and re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", Path(tokens[0]).name)
+        and INTERPRETER.fullmatch(Path(tokens[0]).name)
         and tokens[1].endswith(".py")
     ):
         return "work"
