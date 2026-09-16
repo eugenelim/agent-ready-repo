@@ -18,6 +18,8 @@ from pathlib import Path
 
 from agentbundle.build.self_host import (
     _RUNTIME_SIBLING_EXEMPTIONS,
+    _library_mirrors,
+    _mirrored_pack_sources,
     _runtime_projections,
     _runtime_sibling_reaches,
 )
@@ -92,3 +94,56 @@ def test_packaged_runtime_sibling_exemptions_are_live() -> None:
     assert not stale, f"exemptions no longer reached: {sorted(stale)}"
     for key, reason in _RUNTIME_SIBLING_EXEMPTIONS.items():
         assert reason.strip(), f"{key} is exempted without a reason"
+
+
+def test_library_mirrors_are_declared_and_identical() -> None:
+    """Every hand-written mirror of a pack script is written by build-self.
+
+    `catalogue_tooling/file_safety.py` sat outside the declared pairs and so was
+    maintained by hand: two tests compared it after the fact, but nothing wrote
+    it. Asserting the pair is declared — not merely that the bytes match today —
+    is what keeps it on the `make build-self` path.
+    """
+    mirrors = _library_mirrors(ROOT)
+    assert mirrors, "no declared library mirrors; this case has no floor"
+
+    for source, mirror in mirrors:
+        assert source.is_file(), f"mirror source missing: {source}"
+        assert mirror.is_file(), f"mirror destination missing: {mirror}"
+        assert mirror.read_bytes() == source.read_bytes(), (
+            f"{mirror.relative_to(ROOT)} must be byte-identical to "
+            f"{source.relative_to(ROOT)}; run `make build-self`"
+        )
+
+    assert (
+        ROOT / "packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py"
+    ) in {mirror for _, mirror in mirrors}
+
+
+def test_mirrored_pack_sources_is_the_union_the_gate_walks() -> None:
+    """The writer and the drift gate see every pair, runtime and mirror alike.
+
+    A mirror declared in its own list but left out of the union would be written
+    by nothing and gated by nothing, which is the state this change removes.
+    """
+    union = _mirrored_pack_sources(ROOT)
+    assert set(union) == set(_runtime_projections(ROOT)) | set(_library_mirrors(ROOT))
+    assert len(union) == len(_runtime_projections(ROOT)) + len(_library_mirrors(ROOT))
+
+
+def test_library_mirrors_stay_out_of_the_flat_data_layout() -> None:
+    """A mirror is not a `_data/` sibling, so it carries no closure obligation.
+
+    Pinned because the split is the claim: putting one of these in
+    `_runtime_projections` would make the sibling-closure derivation reason about
+    a module that is reached by import, not by path.
+    """
+    data_dir = ROOT / "packages/agentbundle/agentbundle/_data"
+    for _, mirror in _library_mirrors(ROOT):
+        assert mirror.parent != data_dir, (
+            f"{mirror.relative_to(ROOT)} belongs in `_runtime_projections`"
+        )
+    for _, bundled in _runtime_projections(ROOT):
+        assert bundled.parent == data_dir, (
+            f"{bundled.relative_to(ROOT)} belongs in `_library_mirrors`"
+        )
