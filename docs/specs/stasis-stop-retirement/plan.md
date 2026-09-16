@@ -39,7 +39,7 @@ suite that no runner names and that is not in its `_NO_RUNNER` table, so an
 unregistered file both fails the lint and executes nowhere. T4 owns that edit.
 
 **What runs in the always-on PR chain, stated plainly.** `build-check` runs no
-pytest, and the full suite is dispatch-only. So AC-0007, AC-0008 and AC-0009 are
+pytest, and the full suite is dispatch-only. So AC-0006, AC-0007 and AC-0008 are
 **dispatch-only evidence** unless the runner line they join is itself in the
 always-run chain — T4's first step is to determine which and record the answer
 here. Do not let them read as gate-backed when they are not.
@@ -49,21 +49,27 @@ here. Do not let them read as gate-backed when they are not.
 ### Method, and what it does not prove
 
 The halt is a **concept** — the loop stops when findings repeat — and no single
-token finds a concept. Three earlier attempts each missed a different class: one
-searched only `packs/core/.apm/`; one searched case-sensitively and missed
-`**Stasis.**` in its own target file; one searched the token `stasis` and missed
-two halt claims that never use the word, one of them on the public pack page.
+token finds a concept. Four earlier attempts each missed a different class:
+
+1. searched only `packs/core/.apm/`, missing the seed, the guides and the web page;
+2. searched case-sensitively, missing `**Stasis.**` in its own target file;
+3. searched the token `stasis`, missing two halt claims that never use the word,
+   one of them on the public pack page;
+4. searched a path list omitting `docs/rfc/` and `docs/product/`, missing a
+   reworded variant in an Accepted RFC — found by a peer session, not by this
+   plan's own command.
 
 Reproduced from the repository root:
 
 ```
 grep -rinE "stasis|matches_previous_round|repeated finding|same findings|findings[^.]{0,30}repeat|repeat[^.]{0,20}finding" \
   packs/core/.apm packs/core/seeds packs/core/DESIGN.md \
-  guides web/src/content docs/CONVENTIONS.md tools/hooks \
+  guides web/src/content docs tools/hooks \
   | grep -v __pycache__
 ```
 
-41 occurrences at the revision this plan was written against.
+43 rows. Row 43 has no line number because it was reported rather than derived
+from this command; re-deriving it is a task step, not an approval blocker.
 
 **Explicit residual.** This is a vocabulary search, not a proof of completeness.
 A surface stating the halt in words none of these patterns match is not in this
@@ -87,8 +93,8 @@ behaviour to a reader.
 | 4 | `references/state-schema.md` | 189 | halt + Surface | rewrite — drop halt and skipped check, keep Surface |
 | 5 | `references/delivery-contract-lifecycle.md` | 129 | mechanism | rewrite — a repeated fingerprint does not detect it |
 | 6 | `references/delivery-contract-lifecycle.md` | 130 | halt | rewrite — drop the immediate replan |
-| 7 | `packs/core/seeds/docs/CONVENTIONS.md` | 1093 | halt **and** authority | split — drop the pause, keep the rest |
-| 8 | `docs/CONVENTIONS.md` | 1093 | halt **and** authority | no action — the file is being removed by the `dispatch-agent-context` worktree; both its sessions were told the clause carries both halves |
+| 7 | `packs/core/seeds/docs/CONVENTIONS.md` | 1093 | halt **and** authority | no action — deleted by `dispatch-agent-context`; verified absent in that worktree |
+| 8 | `docs/CONVENTIONS.md` | 1093 | halt **and** authority | no action — deleted by the same branch; confirmed deleted, not relocated |
 | 9 | `references/delivery-contract-lifecycle.md` | 63 | authority | keep — asserted today |
 | 10 | `references/delivery-contract-lifecycle.md` | 136 | authority | keep — **not** asserted today |
 | 11 | `SKILL.md` | 759 | authority | keep — **not** asserted today |
@@ -122,10 +128,12 @@ behaviour to a reader.
 | 39 | `web/src/content/packs/core.md` | 19 | claim — capability | rewrite |
 | 40 | `web/src/content/packs/core.md` | 21 | claim — halt, no `stasis` token | rewrite |
 | 41 | `guides/governance-extras/how-to/new-rfc.md` | 131 | unrelated domain | no action — RFC round caps |
+| 42 | `docs/rfc/0093-intent-scoped-completion.md` | 114 | halt, reworded variant | no action — `Status: Accepted`, frozen as filed; a historical record, not a live instruction |
+| 43 | `docs/product/changelog.md` | — | names the retired section | no action — release history, frozen for the same reason |
 
 **Row 7 is the one to read twice.** Its single sentence says stasis *pauses for
 human replanning* (a halt) and that retry caps and stasis *neither complete
-intent nor create backlog work* (authority). Deleting the sentence fails AC-0006;
+intent nor create backlog work* (authority). Deleting the sentence fails AC-0005;
 keeping it fails AC-0004.
 
 **Rows 1 and 4 are both Surfaces.** An earlier draft claimed row 1 was the only
@@ -148,7 +156,7 @@ when the existing assertion's literal text contains the token whose deletion the
 criterion is guarding against. Check each claim against the assertion's text,
 not against the file it reads.
 
-### Retired phrases — AC-0010's literal list
+### Retired phrases — AC-0009's literal list
 
 Whitespace-normalized, case-insensitive:
 
@@ -162,7 +170,7 @@ Whitespace-normalized, case-insensitive:
 - `refuses to self-certify past a red gate or a repeated finding`
 - `it stops at plan approval, unresolved boundaries, repeated findings`
 
-### Sweep corpus — AC-0010's literal path list
+### Sweep corpus — AC-0009's literal path list
 
 Each asserted to exist before it is walked:
 
@@ -190,10 +198,10 @@ assert that a repeated fingerprint *detects* stasis. That is false independently
 of what detection then triggers, so it gets its own criterion rather than riding
 along with the halt removal.
 
-**The baseline for AC-0006 lives in the test source.** An assertion that reads
+**The baseline for AC-0005 lives in the test source.** An assertion that reads
 the `keep` rows from the tree at run time compares a file to itself and can
 never fail. The existing precedent in `test_contract_amendment_wave4.py` holds
-literal phrases and compares them as normalized substrings; AC-0006 follows that
+literal phrases and compares them as normalized substrings; AC-0005 follows that
 form rather than whole-statement equality, which is not assertable across the
 line break in row 9.
 
@@ -212,7 +220,7 @@ breaks a stream for no gain.
 
 ### Failure, edge cases & resilience
 
-The likeliest failure is an over-broad edit reaching rows 9 to 14. AC-0006 is the
+The likeliest failure is an over-broad edit reaching rows 9 to 14. AC-0005 is the
 guard, and its literals must be captured before T2 and T3 edit anything.
 
 The second is a sweep that reds on the tracked projections before self-host runs.
@@ -228,7 +236,7 @@ which chain runs it.
 **Depends on:** none
 
 **Tests:**
-- AC-0006 — one normalized-substring assertion per `keep` row, against literals
+- AC-0005 — one normalized-substring assertion per `keep` row, against literals
   held in the test source. Reuse row 9's existing case; add cases for rows 10,
   11, 12, 13 and 14. Verify each reuse claim against the existing assertion's
   text before relying on it.
@@ -246,7 +254,7 @@ they can fail in T2 and T3 if an edit reaches too far.
 **Tests:**
 - AC-0001, AC-0002, AC-0003 — one absence and one presence assertion per file.
   The presence half on rows 1 and 4 is the Surface.
-- AC-0011 — the refuted mechanism claim is absent from rows 2, 3 and 5.
+- AC-0010 — the refuted mechanism claim is absent from rows 2, 3 and 5.
 
 **Approach:**
 - Work inventory rows 1 to 6.
@@ -254,34 +262,33 @@ they can fail in T2 and T3 if an edit reaches too far.
 **Done when:** the three reference files instruct no halt, both Surfaces remain,
 and T1's assertions are still green.
 
-### T3: Split the projected seed
+### T3: Confirm the CONVENTIONS.md copies stay out of scope
 
-**Depends on:** T1
+**Depends on:** none
 
 **Tests:**
-- AC-0004 — the pause is gone and the authority half is intact, asserted as two
-  conditions on one sentence.
-- AC-0005 — `docs/CONVENTIONS.md` is untouched by this change.
+- AC-0004 — neither copy is changed by this work.
 
 **Approach:**
-- Inventory row 7 only. Row 8 is out of scope: the `dispatch-agent-context`
-  worktree is removing that file, and both its sessions have been told the
-  clause carries a retired halt and a surviving authority statement, so a
-  relocation inherits both.
-- The two are byte-identical today and will diverge. That is deliberate and
-  short-lived; do not "fix" it.
+- Inventory rows 7 and 8. Both files are deleted by `dispatch-agent-context`;
+  the seed's absence in that worktree was verified directly, and a session on
+  that branch confirmed the clause is deleted rather than re-homed.
+- Do nothing to either file. This task exists so the decision is recorded and
+  asserted rather than looking like an omission.
+- If that branch lands without the deletions, escalate rather than editing:
+  the clause would then need an owner, and this spec deliberately is not it.
 
-**Done when:** the seed carries the authority statement and no pause, and the
-repository copy is untouched.
+**Done when:** AC-0004 is green and the deletion's status is re-checked against
+that branch at execution time.
 
 ### T4: Correct the published guides and public claims
 
 **Depends on:** T2
 
 **Tests:**
-- AC-0007, AC-0008 — absence and content assertions in
+- AC-0006, AC-0007 — absence and content assertions in
   `tools/test_stasis_retirement_claims.py`.
-- AC-0009 — the comparison tables match the owner's resolution.
+- AC-0008 — the comparison tables match the owner's resolution.
 
 **Approach:**
 - Determine which Makefile runner line the new suite joins and whether that line
@@ -301,7 +308,7 @@ observed to run.
 **Depends on:** T3, T4
 
 **Tests:**
-- AC-0010 — the parametrized sweep over the two literal lists above, one case per
+- AC-0009 — the parametrized sweep over the two literal lists above, one case per
   retired phrase, asserting each corpus path exists before walking it.
 
 **Approach:**
@@ -330,12 +337,18 @@ clean, and `agentbundle catalogue verify --root .` returns ok.
 - **A Surface disposition is deleted with its halt.** Two rows carry both in one
   sentence, and ADR-0104 is frozen, so the repair for losing them is a
   superseding ADR rather than a spec edit.
-- **The removal of `docs/CONVENTIONS.md` does not happen, or relocates the
-  clause intact.** This plan stops touching row 8 on the strength of another
-  worktree's intent. If that worktree changes course, the repository copy keeps
-  a retired halt and nothing here catches it — AC-0005 asserts the file is
-  untouched, which is the opposite check. The mitigation is the message sent to
-  both of its sessions, which is a notification, not a guarantee.
+- **The `dispatch-agent-context` deletions do not land.** This plan stops
+  touching rows 7 and 8 on the strength of another branch's uncommitted working
+  tree. If that branch changes course, both copies keep a retired halt and
+  nothing here catches it: AC-0004 asserts the files are *untouched*, which is
+  the opposite check. T3 re-checks at execution time, and both of that
+  worktree's sessions were messaged — but a notification is not a guarantee, and
+  the seed copy was a collision this plan originally missed entirely.
+- **The authority clause disappears with the seed.** This spec's *Never do*
+  protects statements that stasis confers no completion authority, and the
+  seed's copy is one of them. Deleting the file removes it. That is the other
+  branch's call on its own section and this plan does not contest it, but the
+  protection AC-0005 offers does not extend to a file someone else removes.
 - **The inventory is incomplete in a way no re-run finds.** Named in *Method*
   above. Three attempts have each missed a different class; a fourth class is
   possible and no command in this plan would surface it.
@@ -344,6 +357,14 @@ clean, and `agentbundle catalogue verify --root .` returns ok.
 
 - 2026-09-15 — Drafted, cut out of `review-recurrence-family-key` after a third
   adversarial round put every blocker in the retirement half.
+- 2026-09-15 — Both owner decisions folded in, and a cross-branch collision
+  resolved. The comparison tables re-point at the iteration cap rather than
+  withdraw. Both `CONVENTIONS.md` copies left the scope: a peer session on
+  `dispatch-agent-context` reported that branch deletes the seed as well as the
+  repository copy, which this plan had recorded as safely its own — verified by
+  reading that worktree. Two further occurrences entered as no-action rows, in
+  an Accepted RFC and the changelog, exposing a fourth class the search seed had
+  missed.
 - 2026-09-15 — Repaired after this spec's own first round. The inventory moved
   from a token search to a vocabulary search and from 27 rows to 41, after the
   token search was shown to miss two halt claims that never use the word

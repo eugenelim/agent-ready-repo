@@ -42,18 +42,21 @@ attempt at this work went wrong.
 | Audience | Surfaces | What a wrong edit costs |
 | --- | --- | --- |
 | The agent, at runtime | three `references/` files | the loop behaves against its own instructions |
-| An adopter repository | one projected seed | other people's repositories carry the stale rule |
-| A reader of the published guides | four guide files | documented behaviour does not match shipped behaviour |
+| A reader of the published guides | six guide files | documented behaviour does not match shipped behaviour |
 | A prospective adopter | the public pack page, and two comparison tables | a capability claim against named competitors becomes false |
+
+The adopter-facing seed was a fifth audience until the `dispatch-agent-context`
+branch was found to delete `packs/core/seeds/docs/CONVENTIONS.md` along with its
+repository twin. Both are now out of scope; see AC-0004.
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | Applicable — the runtime instruction changes | `packs/core/.apm/skills/work-loop/references/` (three files) | Spec owner | Each describes the signal, preserves the Surface, and states no halt | AC-0001, AC-0002, AC-0003 |
-| User-facing promise | Applicable — published guides describe the stop as live behaviour | `guides/core/explanation/`, `guides/core/how-to/`, `guides/README.md` | Spec owner | No guide asserts a halt on repeated findings | AC-0007 |
-| Current product truth | Applicable — the public pack page and two comparison tables claim the capability | `web/src/content/packs/core.md`, `guides/core/explanation/core-pack.md` comparison tables | Spec owner + the owner of the positioning call | Claims match shipped behaviour, or are withdrawn | AC-0008, AC-0009 |
-| Interface compatibility | Applicable — an adopter-projected seed states the rule | `packs/core/seeds/docs/CONVENTIONS.md`, `docs/CONVENTIONS.md` | Spec owner | The clause is split so its authority half survives and its stop half goes, and the twin does not diverge silently | AC-0004, AC-0005 |
+| User-facing promise | Applicable — published guides describe the stop as live behaviour | `guides/core/explanation/`, `guides/core/how-to/`, `guides/README.md` | Spec owner | No guide asserts a halt on repeated findings | AC-0006 |
+| Current product truth | Applicable — the public pack page and two comparison tables claim the capability | `web/src/content/packs/core.md`, `guides/core/explanation/core-pack.md` comparison tables | Spec owner | The tables and prose claim an iteration cap, not stasis detection | AC-0007, AC-0008 |
+| Interface compatibility | Not applicable — the adopter-projected seed stating this rule is deleted by another branch, along with its repository twin | — | `dispatch-agent-context` | Both files absent, or both unchanged by this work | AC-0004 |
 | Eval harness | Applicable — `packs/AGENTS.md` requires a non-cosmetic pack update to update the pack's eval harness | `packs/core/.apm/skills/work-loop/evals/evals.json` | Spec owner | The disposition is recorded: the two matching eval cases assert amendment authority, which this change does not alter, so no case changes | Stated in the plan's inventory rows 13 and 14; no edit |
 | Decision rationale | Applicable | `docs/adr/0104-...md` | Decision-maker | Accepted, in tree | Satisfied before this plan; no further write |
 | Release history | Applicable — core pack content changes | `docs/product/changelog.md` | Spec owner | Entry naming the core bump | Entry present, version matches the manifests |
@@ -77,7 +80,7 @@ attempt at this work went wrong.
 - Any change to `scripts/_loop_guards.py`'s reset message, which is byte-pinned
   by a golden-stream fixture.
 - Withdrawing a comparison-table row, rather than re-pointing it at the retry
-  cap as AC-0009 now requires. Re-pointing is the owner's answer; withdrawing
+  cap as AC-0008 now requires. Re-pointing is the owner's answer; withdrawing
   would be a different positioning call.
 
 ### Never do
@@ -98,30 +101,30 @@ attempt at this work went wrong.
   much as absence: deleting a row outright would leave an emitted field
   undocumented, and on two of these rows it would delete a Surface disposition
   ADR-0104 requires.
-- **The projected seed and its twin (AC-0004, AC-0005)** — Goal-based check. The
-  clause carries two obligations in one sentence, so the assertion has to see
-  both halves. AC-0005 asserts the repository copy is untouched, which reads
-  backwards until you know why: that file is being removed by another worktree,
-  so the two deliberately diverge for as long as it survives.
-- **The authority statements (AC-0006)** — Goal-based check. One normalized
+- **The two CONVENTIONS.md copies (AC-0004)** — Goal-based check, and an unusual
+  one: it asserts that two files are *unchanged*. That reads backwards until you
+  know why. Both are deleted by the `dispatch-agent-context` branch, so editing
+  either would put this change in conflict with a deletion, and the halt goes
+  with the file regardless.
+- **The authority statements (AC-0005)** — Goal-based check. One normalized
   substring assertion per statement, against literals in the test source. One
   row is covered by an existing suite; five are not, including one previously
   recorded as covered whose existing assertion does not contain the token being
   guarded. The plan's inventory records which is which and the rule used to
   decide.
-- **The published guides and public page (AC-0007, AC-0008)** — Goal-based
+- **The published guides and public page (AC-0006, AC-0007)** — Goal-based
   check, in a repository-level suite because a pack test may not read above its
   own pack. The plan names the Makefile runner line the suite joins; without
   that registration the boundary lint fails it and nothing executes it.
-- **The competitive claims (AC-0009)** — Goal-based check. The owner's answer is
+- **The competitive claims (AC-0008)** — Goal-based check. The owner's answer is
   to re-point the rows at the iteration cap rather than withdraw them, so the
   assertion has a fixed target: both tables and both prose passages claim a cap
   and no detection.
-- **The retired phrasing stays retired (AC-0010)** — TDD. A parametrized,
+- **The retired phrasing stays retired (AC-0009)** — TDD. A parametrized,
   whitespace-normalized absence sweep over the plan's two literal lists,
   asserting its corpus paths exist before walking them. Same shape as the sweep
   ADR-0104's Confirmation already ships.
-- **The refuted mechanism claim (AC-0011)** — Goal-based check. Distinct from
+- **The refuted mechanism claim (AC-0010)** — Goal-based check. Distinct from
   the halt: several surfaces assert that a repeated fingerprint *detects*
   stasis, which the measurement refutes independently of what detection then
   triggers.
@@ -133,7 +136,7 @@ worktree removing `docs/CONVENTIONS.md`; if that does not happen, the repository
 copy keeps a retired halt and the criterion asserts the opposite. And the
 inventory is a
 vocabulary search over a concept: a surface stating the halt in words none of
-the patterns match is not in the table, and AC-0010 cannot pin the absence of a
+the patterns match is not in the table, and AC-0009 cannot pin the absence of a
 paraphrase nobody has written yet. Three earlier attempts at this inventory each
 missed a different class, which is why the method and its limit are recorded
 rather than the result alone.
@@ -163,40 +166,38 @@ concept absent.
   conditions no longer list repeated findings as a condition that stops
   immediately for replanning.
 
-### The adopter-projected seed
+### The two CONVENTIONS.md copies
 
-- [ ] **AC-0004.** `packs/core/seeds/docs/CONVENTIONS.md`'s clause instructs no
-  pause for replanning, and its statement that retry caps and stasis neither
-  complete intent nor create backlog work survives intact.
-- [ ] **AC-0005.** `docs/CONVENTIONS.md` is unchanged by this work. Its copy of
-  the clause is byte-identical to the seed's today, and divergence here is
-  deliberate: the `dispatch-agent-context` worktree is removing that file. Both
-  of its sessions have been told the clause carries a retired halt and a
-  surviving authority statement, so a relocation inherits both halves.
+- [ ] **AC-0004.** Neither `docs/CONVENTIONS.md` nor
+  `packs/core/seeds/docs/CONVENTIONS.md` is changed by this work. Both carry the
+  clause byte-identically today and the `dispatch-agent-context` branch deletes
+  both files, so editing either would put this change in conflict with a
+  deletion. The halt goes with the file, which is the outcome this spec wanted;
+  the authority clause goes too, which is that branch's call on its own section.
 
 ### What must not move
 
-- [ ] **AC-0006.** Every authority statement the plan's inventory marks `keep` is
+- [ ] **AC-0005.** Every authority statement the plan's inventory marks `keep` is
   present, asserted as a normalized substring against literal text held in the
   test source — not read from the surface under test, which would compare a file
   to itself and could never fail. The plan names which rows an existing suite
   already covers and which need new cases.
-- [ ] **AC-0007.** No file under `guides/` asserts that repeated findings stop
+- [ ] **AC-0006.** No file under `guides/` asserts that repeated findings stop
   the loop.
-- [ ] **AC-0008.** The public pack page states only capabilities the tree has
+- [ ] **AC-0007.** The public pack page states only capabilities the tree has
   after this change.
-- [ ] **AC-0009.** The two competitive comparison tables, and the prose beside
+- [ ] **AC-0008.** The two competitive comparison tables, and the prose beside
   each, claim an iteration cap and not stasis detection. The cap is real,
   survives this change untouched, and is still absent from both compared tools;
   the detection half is what becomes false.
 
 ### Staying retired
 
-- [ ] **AC-0010.** A whitespace-normalized absence sweep fails when any phrase in
+- [ ] **AC-0009.** A whitespace-normalized absence sweep fails when any phrase in
   the plan's *retired phrases* list reappears on any path in the plan's *sweep
   corpus* list, and asserts every corpus path exists before walking it. Both
   lists are literal in the plan.
-- [ ] **AC-0011.** No surface this spec is permitted to edit states that a
+- [ ] **AC-0010.** No surface this spec is permitted to edit states that a
   repeated finding fingerprint detects stasis. Code comments, docstrings, and
   the payload key are out of scope by Boundaries and out of scope here.
 
@@ -226,7 +227,7 @@ concept absent.
 - Technical: `.claude/skills/work-loop/` and `.agents/skills/work-loop/` carry
   the same prose as `.apm/` and are tracked. They are regenerated by self-host
   rather than edited, so they converge only after the projection step — which is
-  why AC-0008's corpus is stated explicitly rather than left as "shipped
+  why AC-0007's corpus is stated explicitly rather than left as "shipped
   surfaces".
 - Technical: `docs/CONVENTIONS.md:1093` is byte-identical to the projected seed.
   Whether it moves with the seed is open; see Boundaries.
