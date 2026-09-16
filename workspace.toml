@@ -1061,20 +1061,24 @@ open = [
   # own chat-only provenance lives in its Source block, not here -- the same
   # shape the other chat-only intents use. Unblocks now; no dependency.
   {path = "docs/product/intents/skill-sequence-wayfinding.md", kind = "intent", source = {mode = "repo-origin"}, summary = "A practitioner knows what to run next and where they are in the sequence, from the surface they are already on, agreeing with the sequence their pack declares", needs = []},
-  # Found 2026-09-15 while correcting `supervisor-mode.md`, which claimed
-  # `schedule` fails loud on an ill-formed plan. Two of the three plan shapes are
-  # already right: a dependency cycle stops the run, and a forward reference warns
-  # on stderr and is reordered so the dependency runs first -- that contract is
-  # pinned by test_schedule_warns_but_reorders_on_forward_ref, so it is settled and
-  # not in scope here. The third shape is the gap: an ID naming no task in the plan
-  # disappears, which is the case that actually runs work out of order.
-  # NOT mechanical -- an owner decision, because refusing reds any adopter plan that
-  # currently carries a stale ID. Whoever takes it: the predicate must key off the
-  # whole plan's task set, NOT `remaining_set`. `schedule_unfinished_plan`
-  # intersects with `remaining_set` on purpose so a completed dependency counts as
-  # met; keying the new check there instead reds every amended plan.
-  {path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/references/supervisor-mode.md"}, summary = "`loop-cohort schedule` silently drops a `Depends on:` entry naming a task the plan does not contain: only IDs present in the plan's own task set are kept, so the edge is lost with no warning and no error, the tasks collapse into one wave, and the per-wave GATES run collapses with them. Cross-spec dependency forms are unaffected. Refusing is a breaking change for any plan carrying a stale ID, so it needs an owner decision and an acceptance criterion.", needs = []},
 
+  # Found 2026-09-15 by the quality-engineer pass on the unknown-dependency
+  # refusal (core 2.26.8). Four functions in `loop-cohort.py` run the same
+  # `TASK_HEADING_RE.finditer` / `matches[i+1].start()` / `DEPENDS_LINE_RE.search`
+  # section-boundary walk: `detect_unknown_deps` (new in 2.26.8), `parse_plan`,
+  # `_task_sections`, and `parse_touches_by_task`. Three predate that change.
+  # The narrow risk, confirmed by adjudication: the heading and depends-line
+  # grammars are already single-homed as module constants, so a grammar change
+  # cannot desynchronise the copies -- what can drift is the two-line boundary
+  # idiom itself. That matters because the refusal's whole point is that it
+  # agrees with the graph `parse_plan` builds; if the two ever disagree about
+  # which task owns a `Depends on:` line, the scheduler refuses a plan it would
+  # then schedule differently. NOT folded into 2.26.8: the repair edits three
+  # pre-existing functions, which the root AGENTS.md "Cut before adding" and
+  # "keep unrelated discoveries out of the current change" rules place outside
+  # that change's accepted scope, and the extraction shape is not determined.
+  # Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
@@ -1193,21 +1197,4 @@ shipped = [
   { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-corpus/spec.md" }] },
   { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },
   { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
-  # Found 2026-09-15 by the quality-engineer pass on the unknown-dependency
-  # refusal (core 2.26.8). Four functions in `loop-cohort.py` run the same
-  # `TASK_HEADING_RE.finditer` / `matches[i+1].start()` / `DEPENDS_LINE_RE.search`
-  # section-boundary walk: `detect_unknown_deps` (new in 2.26.8), `parse_plan`,
-  # `_task_sections`, and `parse_touches_by_task`. Three predate that change.
-  # The narrow risk, confirmed by adjudication: the heading and depends-line
-  # grammars are already single-homed as module constants, so a grammar change
-  # cannot desynchronise the copies -- what can drift is the two-line boundary
-  # idiom itself. That matters because the refusal's whole point is that it
-  # agrees with the graph `parse_plan` builds; if the two ever disagree about
-  # which task owns a `Depends on:` line, the scheduler refuses a plan it would
-  # then schedule differently. NOT folded into 2.26.8: the repair edits three
-  # pre-existing functions, which the root AGENTS.md "Cut before adding" and
-  # "keep unrelated discoveries out of the current change" rules place outside
-  # that change's accepted scope, and the extraction shape is not determined.
-  # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
 ]
