@@ -109,3 +109,47 @@ CONTROL had not been included.
 | cross-spec `spec:other/T7` | 0 | `[['T1'], ['T2']]` | (none) |
 | cross legacy `` `other` T7 `` | 0 | `[['T1'], ['T2']]` | (none) |
 | range absent mid (T1-T3, no T2) | 1 | `[]` | `stop — schedule: dependency names no task in the plan: T3->T2` |
+
+## Final GATES — one load-induced failure, investigated and cleared (controller)
+
+The final full-suite run of `packs/core/tests/skills/work-loop/` reported
+`1 failed, 1082 passed, 5 skipped, 46 subtests passed in 1644.56s`. The failure
+was `test_loop_engine.py::test_wave_passed_window_a_advance_before_crash`.
+
+It is not caused by this change. Evidence, in the order it was gathered:
+
+1. **The failure is a subprocess timeout, not an assertion.** The message is
+   `spec-dir confinement check failed: could not determine repo root: Command
+   ['git', 'rev-parse', '--show-toplevel'] timed out after 20.0 seconds`.
+2. **The failing call cannot reach this change.** It fires at the `plan-approved`
+   engine transition, before any `schedule` call. This change adds one call
+   inside `schedule_unfinished_plan`, on the schedule path only.
+3. **The fixture holds no unknown dependency.** Its plan is `T1` (`none`) and
+   `T2` (`T1`), so the new predicate returns `[]` for it however it is reached.
+4. **Differential run.** A detached worktree at the merge base
+   (`c1d4fbf1614c4ac4e173e06a7a623b54d2422343`, confirmed pre-change: zero
+   occurrences of `detect_unknown_deps`) passed the same test.
+5. **Paired re-runs settle it as load-sensitive, not a regression.** Failures
+   occurred only at long wall times; passes were fast, on both trees:
+
+   | tree | run | wall time | result |
+   | --- | --- | --- | --- |
+   | changed | in full suite | 1644s total | fail |
+   | changed | isolated 1 | 113.95s | fail |
+   | merge base | isolated 1 | 37.76s | pass |
+   | changed | isolated 2 | 36.02s | pass |
+   | changed | isolated 3 | 7.92s | pass |
+   | merge base | isolated 2 | 5.77s | pass |
+
+6. **Machine conditions.** Load average 33 with 39 users and 33 concurrent
+   `claude`/`git` processes, while a lone `git rev-parse --show-toplevel`
+   measured 0.06-0.11s. The 20-second timeout starves under contention.
+
+The verdict rests on points 2 and 3 — an unreachable code path — with the
+re-runs as corroboration. Three green re-runs alone would not settle it, because
+a re-run can launder a real failure into green.
+
+No `[backlog].open` entry was added: the test is green at ordinary load, so a
+cold-start reader will not meet it red, and the register already carries the
+same class under `semgrep-registry-ruleset-pinning` (load-induced timeout
+diagnostics on files absent from any diff).
