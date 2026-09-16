@@ -137,6 +137,7 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
 | Target's parent absent | confinement re-established at each intermediate component as it is created |
 | Slug non-conforming or over 64 characters | refused before any path is composed |
 | Existing target with a foreign, absent or unparseable `type:` | surfaced as a collision; never overwritten, never a blank template copied over it |
+| Existing target with a **matching** `type:` | surfaced before replacement — for a skill with no amend branch this is the ordinary second run, and the mismatch check cannot see it |
 | User-profile `output_dir`, target from another product | belonging confirmed before replacement; mismatch surfaced |
 | Existing target read before amendment | treated as structured data; embedded directives ignored |
 
@@ -310,13 +311,21 @@ lint exits 0.
 - Goal-based: `tools/lint-guidebook-steps.py` exits 0 after this task's guide
   edits — it is the last task to touch a guide step, and it rewrites three
   `**Where it lands:**` lines and their rungs, which is exactly what that lint reads.
+- Goal-based: the agent-returns lines at `establish-design-intent.md:102` and
+  `:172` name the destination their step's `**Where it lands:**` line names after
+  this task's edit — byte-for-byte the same path, not merely a path free of
+  `aesthetic/`. The literal ban alone passes a wrong destination: it admits
+  `<output_dir>/tokens/<slug>-tokens.md` where the declared target is
+  `<output_dir>/tokens/<slug>.md`.
 - Goal-based: `establish-design-intent.md` states no hardcoded `docs/design/`
   prefix where a sibling line uses `<output_dir>`.
 
 **Approach:**
 - Update all three `**Where it lands:**` lines in `establish-design-intent.md` —
   `:76`, `:123` and `:193` — and rewrite the rung annotations on the latter two,
-  whose second halves become false once T2 lands.
+  whose second halves become false once T2 lands. Update each step's
+  agent-returns line in the same edit: four steps in this change publish a moved
+  path, and a line left behind promises a destination no skill writes.
 - Edit the transcript lines in `JOURNEY.md`, including the `screen-flows/` one that
   names a folder the pack does not ship, then regenerate the web copy here rather
   than at release — no lint compares the two.
@@ -392,9 +401,12 @@ mutation, recorded in the ledger.
   a foreign `type:`, and a foreign-product target under user-profile config.
 - Visual / manual QA, paired: the blank-template-over-artifact case for the two
   writes that ship a template — `creative-direction` and `design-system`. The
-  other two ship none, so the case is unstageable by construction rather than by
-  circumstance, and an exemption is the honest disposition where a waiver would
-  imply a gap.
+  other two ship none, so that case is unstageable by construction.
+- Visual / manual QA, paired: the matching-`type:` replacement case for all four,
+  and for `information-architecture` and `design-principles` especially. Those two
+  state no amend branch, so a second run on the same slug is the destructive path
+  the blank-template case stands in for elsewhere; scoping the template case out
+  without staging this one would exempt the loss rather than the mechanism.
 - Visual / manual QA: a `design-review` load under a non-default `output_dir`.
 
 **Approach:**

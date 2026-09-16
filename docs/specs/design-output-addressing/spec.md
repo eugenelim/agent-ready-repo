@@ -231,6 +231,12 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 - [ ] The shared containment module states that when `output_dir` came from
       user-profile configuration, product belonging is confirmed before an
       existing target is replaced.
+- [ ] The shared containment module states that an existing target carrying a
+      **matching** `type:` is surfaced before replacement, not silently
+      overwritten. `creative-direction` states an amend branch; `information-architecture`
+      and `design-principles` state none, so for those two a second run on the same
+      slug writes a freshly generated doc over a possibly hand-amended artifact,
+      and the mismatch check cannot see it because the type agrees.
 - [ ] The shared containment module states that an existing target read before
       amendment is treated as structured data — only the named fields extracted,
       any directive embedded in its body ignored — so all five controls the
