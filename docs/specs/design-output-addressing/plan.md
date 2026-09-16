@@ -52,10 +52,11 @@ its behaviour is observed.
 
 ## Construction tests
 
-Three test files, authored in T9 **after** the work they check and proven red by
-mutating the artifact. Authoring them earlier cannot work: each quantifies over
-state that T2-T8 create, so a test introduced before its subject exists can never
-go green at the task that introduces it.
+Three test files, authored in T9 **after** the work they check. Authoring them
+earlier cannot work: each quantifies over state that T2-T8 create, so a test
+introduced before its subject exists can never go green at the task that
+introduces it. T9's Tests block states what proves each one; this section does
+not restate it.
 
 - **Declaration and containment** (pack suite). Subject: the four writes named at
   `spec.md`'s closed set — `creative-direction`, `information-architecture`,
@@ -386,7 +387,9 @@ longer publishes a path no skill writes.
 - The declaration and registry tests are pack-confined. The guide-agreement test
   reads `guides/` and goes to `tests/roster/`.
 - Authoring after the work is deliberate: all three quantify over state T1-T8
-  create, which is why every one of those tasks is named above. Red by mutation is a stronger demonstration than the pre-change state.
+  create, which is why every one of those tasks is named above. Each test is
+  proven as a pair — green against the tree, red under its named mutation —
+  because either half alone is satisfiable by a test that proves nothing.
 
 **Done when:** every check in this task's Tests block passes, with each test's red
 state recorded in the ledger alongside the mutation that produced it.
