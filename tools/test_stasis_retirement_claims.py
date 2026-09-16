@@ -106,7 +106,9 @@ def test_no_retired_claim_matches_preserved_published_text(claim: str) -> None:
     (
         # Two requirements pulled against each other here: the enumeration must
         # match the numbered list it introduces, and AC-0005 requires the prose
-        # to claim the cap. The pin covers both halves.
+        # to claim the cap. The pin spans the whole sentence so it holds both --
+        # an earlier version started mid-enumeration and guarded only the cap.
+        "The extra five steps — gates, adversarial review, specialist reviewers, "
         "reporting repeated findings, learning capture — are the ones that catch "
         "the failures spec-shape alone can't, and a mechanical iteration cap "
         "bounds the loop around them",
@@ -266,4 +268,53 @@ def test_no_retired_phrase_matches_preserved_text(phrase: str) -> None:
     assert not collisions, (
         f"retired phrase {phrase!r} matches preserved text: {collisions}. "
         "A sweep that fires on the compliant tree is unusable; narrow the phrase."
+    )
+
+
+# ── The mechanism is described consistently wherever it is described ─────────
+#
+# This claim was corrected three times, and each pass left one surface behind:
+# the guide, twice. Checking four files by hand after every edit is how the
+# fourth miss happened, so the invariant is asserted instead.
+#
+# Both halves matter and they fail differently. Without the false-negative
+# property a reader trusts a flag that reads false through most real
+# recurrence. Without the residual, the same reader has no reason why a signal
+# that "misses what it was built to catch" is still worth surfacing — and the
+# retained Surface disposition looks like an oversight.
+
+# `web/src/content/packs/core.md` describes the same flag and is deliberately
+# outside this list: it is a marketing page, where the full caveat would not
+# earn its space. Its sentence is conditioned on an exact repeat and promises
+# only surfacing, and `test_the_public_pack_page_states_no_retired_capability`
+# guards it separately. Naming the exclusion because an unstated one is a blind
+# spot the next editor cannot see.
+MECHANISM_SURFACES = (
+    "packs/core/.apm/skills/work-loop/references/finding-adjudication.md",
+    "packs/core/.apm/skills/work-loop/references/state-schema.md",
+    "packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md",
+    "guides/core/explanation/core-pack.md",
+)
+
+MECHANISM_HALVES = (
+    ("false-negative property", "reads false through most real recurrence"),
+    # Stated with its condition, not as a guarantee. The set is parsed from the
+    # reviewer's report rather than from the tree, so an unchanged tree can
+    # still yield a different title or sustained subset -- a no-edit round makes
+    # a fire possible, it does not make one certain.
+    ("conditioned residual", "fires only when the sustained set is exactly the previous round's"),
+)
+
+
+@pytest.mark.parametrize("relpath", MECHANISM_SURFACES)
+@pytest.mark.parametrize(("half", "claim"), MECHANISM_HALVES)
+def test_every_surface_describing_the_signal_states_both_halves(
+    relpath: str, half: str, claim: str
+) -> None:
+    target = ROOT / relpath
+    assert target.is_file(), f"mechanism surface is missing: {relpath}"
+    assert claim in _flat(target), (
+        f"{relpath} describes the signal without its {half}. "
+        "Every surface that explains this flag states both, or a reader takes "
+        "away half a mechanism."
     )

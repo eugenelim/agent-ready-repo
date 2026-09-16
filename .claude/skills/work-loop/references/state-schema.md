@@ -191,10 +191,13 @@ previous round's exactly. Surface it; it starts no transition and stops no
 loop. It is not a stasis detector: the preimage carries the finding's
 position, so a repair that shifts a line gives an otherwise-identical finding
 a new fingerprint and the flag reads false through most real recurrence. It
-still fires on a round that edited nothing at all, which is the one stall it
-does catch and the reason it is worth Surfacing. A false reading is not
-evidence that the round made progress, which is why the halt it once carried
-is retired.
+fires only when the sustained set is exactly the previous round's, which a
+round that changed nothing makes possible but does not guarantee: the set is
+parsed from the reviewer's report, not from the tree, so an unchanged tree can
+still yield a different title or a different sustained subset. That narrow
+case is the reason it is worth Surfacing. What it cannot do is bound the loop,
+so the halt it once carried is retired. Separately, a false reading is not
+evidence that the round made progress.
 
 **Atomic writes.** Both tools update their JSON files through
 `tempfile.mkstemp` + `os.replace`. A partial-write cannot present as malformed
