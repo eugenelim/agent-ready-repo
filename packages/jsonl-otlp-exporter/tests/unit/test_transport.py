@@ -463,6 +463,19 @@ class TestReviewRegressions:
         assert out.status == 1
         assert "partial success" in err.getvalue()
 
+    @pytest.mark.parametrize("payload", [b"1", b"[1]", b'"s"', b"true"])
+    def test_a_non_object_partial_success_body_is_ignored(self, payload):
+        """A valid-JSON non-object 2xx body reports no partialSuccess.
+
+        It is full success, rather than an error. Reading `.get` from such a
+        body used to raise AttributeError and surface as an unexplained exit 1.
+        """
+        out = tp.send_batches([([], b"{}", 0)], _dest(),
+                              _factory([], [_FakeResponse(200, {}, payload)]),
+                              clock=_Clock(), stream=io.StringIO())
+        assert out.status == 0
+        assert out.partial_success is False
+
     def test_an_absent_or_empty_partial_success_is_success(self):
         for payload in (b"{}", b'{"partialSuccess":{}}', b""):
             out = tp.send_batches([([], b"{}", 0)], _dest(),
