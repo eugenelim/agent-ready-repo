@@ -4,18 +4,17 @@
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`packs/AGENTS.md`](../../../packs/AGENTS.md),
   [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md),
-  [`docs/CONVENTIONS.md`](../../CONVENTIONS.md),
   [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md)
 
 ## Approach
 
-Edit prose on four audiences, in dependency order, then pin the result.
+Delete a halt from the surfaces that state it, in four tasks, then pin it out.
 
-The work is small per surface and the risk is entirely in scope selection: every
-surface that must change sits next to one that must not, and in two cases both
-obligations share a sentence. So the inventory comes first and carries its own
-method, the edit tasks work from it rather than from a fresh search, and the
-sweep lands last because the tracked projections only converge after self-host.
+Each task names its own surfaces. An earlier draft kept a numbered inventory that
+the criteria, the tasks, the testing strategy and the risks all cited by row
+number; two review rounds then spent most of their findings on pointers that had
+gone stale rather than on the work. Surfaces live inside the task that edits
+them now, and nothing is addressed by number.
 
 ## Constraints
 
@@ -23,153 +22,113 @@ sweep lands last because the tracked projections only converge after self-host.
 - `packs/AGENTS.md` owns the export boundary, the version-bump file set, and the
   self-host projection rule.
 - **Name the interpreter for any `agentbundle` CLI gate.** The editable install
-  is shared across worktrees and points at whichever one claimed it last; at the
-  time of writing that is not this one. A bare `agentbundle …` or
-  `python -m agentbundle …` therefore runs another worktree's code and returns a
-  verdict about the wrong tree. Every CLI gate in this plan states its
-  `PYTHONPATH` explicitly. Check where it resolves before trusting a green:
+  is shared across worktrees and points at whichever claimed it last; at the time
+  of writing that is not this one, so a bare `agentbundle …` returns a verdict
+  about another tree. Check before trusting a green:
   `python3 -c "import agentbundle, os; print(os.path.dirname(agentbundle.__file__))"`.
+  Repo-local scripts — ruff, mypy, `lint-spec-status.py`, the alignment lint —
+  are unaffected.
+
+## How to classify a surface
+
+Four classes, and the distinction is what a clause **obliges**, never whether it
+contains the word *stasis*. Pattern-matching on the token is how this change's
+surface search went wrong five separate times.
+
+- **halt** — instructs stopping, skipping a check, or replanning. Retire it.
+- **Surface** — instructs reporting to the human. Keep it. Two halts share a
+  sentence with one.
+- **authority** — says stasis does not by itself complete intent, create
+  follow-on work, or authorise an amendment. Keep it, unchanged.
+- **mechanism** — describes how the signal is computed. Correct it only where it
+  claims a repeated fingerprint *detects* stasis, which the measurement refutes.
+
+A code comment, a docstring, a payload key and a print line all describe the
+mechanism without instructing anything. None is edited.
+
+## Deliberately untouched
+
+Each with the reason, because an unexplained omission reads the same as an
+oversight.
+
+- **`docs/CONVENTIONS.md` and `packs/core/seeds/docs/CONVENTIONS.md`** — both
+  state the halt; both are deleted by `dispatch-agent-context`, committed
+  `8b286d51a`, verified absent in that worktree. Editing either conflicts with a
+  deletion, and the halt goes with the files. The authority half of that sentence
+  is not lost with them: `SKILL.md` states it independently, and T1 pins it
+  there. **If that branch does not merge**, both copies keep a retired halt and
+  nothing here catches it — escalate rather than widening this spec, because the
+  clause would then need an owner.
+- **`scripts/loop-cohort.py`, `scripts/_loop_guards.py`** — mechanism only. The
+  guards' reset message is byte-pinned by a golden-stream fixture.
+- **`packs/core/.apm/hooks/pre-pr.py`, `tools/hooks/pre-pr.py`** — already wrong
+  before this change; spec *Follow-ons*.
+- **`docs/rfc/0093-intent-scoped-completion.md`** — carries a reworded variant of
+  the halt. `Status: Accepted`, frozen as filed; a historical record, not a live
+  instruction.
+- **`docs/product/changelog.md`** — release history, frozen for the same reason.
+- **`guides/governance-extras/how-to/new-rfc.md`** — names the work-loop
+  iteration cap and stasis-detection data while illustrating how to amend a cap
+  through an RFC. It asserts no halt, and the cap it discusses survives this
+  change.
+- **`evals/evals.json`** — the two cases mentioning stasis assert amendment
+  authority. T1 pins them; no case changes. Recorded as a deviation in the spec's
+  Durable Outputs, not as compliance.
 
 ## Construction tests
 
-Two owning suites, and one registration step that is easy to miss.
+Two owning suites, and the registration that decides whether one of them runs.
 
 - **`packs/core/tests/pack/`** — the pack-local assertions for the three
-  `references/` files, the seed, and the authority statements.
-- **`tools/test_stasis_retirement_claims.py`** — the repository-level assertions
-  for `guides/`, `guides/README.md`, and `web/src/content/`. They cannot live in
-  the pack suite: a pack test may not read above its own pack.
+  `references/` files and the authority statements.
+- **`tools/test_stasis_retirement_claims.py`** — the assertions over `guides/`
+  and `web/src/content/`. They cannot live in the pack suite: a pack test may not
+  read above its own pack.
 
-**The new `tools/` suite must be added to the `tools/test_*.py` enumeration in
-`Makefile`'s repo-test target.** `tools/lint-pack-test-boundary.py` fails any
-suite that no runner names and that is not in its `_NO_RUNNER` table, so an
-unregistered file both fails the lint and executes nowhere. T4 owns that edit.
+**The `tools/` suite needs two registrations, and only one of them makes it
+gate-backed.** `tools/lint-pack-test-boundary.py` fails any suite no runner
+names, so it must join the `tools/test_*.py` enumeration in the `Makefile`
+repo-test target or the lint reds. Separately, `build-check.yml` names
+`tools/test_*.py` suites **individually** as their own steps, and that workflow
+runs on every PR. So the suite is dispatch-only until it has a `build-check.yml`
+step of its own, and always-run once it does. T3 adds both.
 
-**What runs in the always-on PR chain, stated plainly.** `build-check` runs no
-pytest, and the full suite is dispatch-only. So AC-0006, AC-0007 and AC-0008 are
-**dispatch-only evidence** unless the runner line they join is itself in the
-always-run chain — T4's first step is to determine which and record the answer
-here. Do not let them read as gate-backed when they are not.
+## Design (LLD)
 
-## Surface inventory
+### Design decisions
 
-### Method, and what it does not prove
+**The Surface survives the halt.** Two surfaces state both in one sentence. Each
+rewrite splits the sentence; neither deletes the row. ADR-0104 is Accepted and
+frozen, so losing a Surface would need a superseding ADR.
 
-The halt is a **concept** — the loop stops when findings repeat — and no single
-token finds a concept. Four earlier attempts each missed a different class:
+**The refuted mechanism is a separate claim from the halt.** Several surfaces say
+a repeated fingerprint *detects* stasis. That is false independently of what
+detection triggers — the fingerprint carries position — so AC-0002 is its own
+criterion rather than riding along with the halt removal.
 
-1. searched only `packs/core/.apm/`, missing the seed, the guides and the web page;
-2. searched case-sensitively, missing `**Stasis.**` in its own target file;
-3. searched the token `stasis`, missing two halt claims that never use the word,
-   one of them on the public pack page;
-4. searched a path list omitting `docs/rfc/` and `docs/product/`, missing a
-   reworded variant in an Accepted RFC — found by a peer session, not by this
-   plan's own command.
+**Authority assertions read the file, not a union.** The existing precedent in
+`test_contract_amendment_wave4.py` asserts its phrase against `SKILL.md`
+concatenated with `delivery-contract-lifecycle.md`. That proves the statement
+exists somewhere in the union — an over-broad edit deleting it from one file
+while it survives in the other leaves the suite green. T1's assertions read each
+file separately.
 
-Reproduced from the repository root:
+**Comparison claims re-point at the cap.** The tables mark "iteration cap and
+stasis detection" present here and absent for two named tools. The cap half is
+true and survives untouched; the detection half becomes false. Keeping the row
+and dropping the stasis clause is the owner's decision of 2026-09-16. Note what
+is being dropped: the detection was never observed to work, so this corrects a
+claim rather than conceding a capability.
 
-```
-grep -rinE "stasis|matches_previous_round|repeated finding|same findings|findings[^.]{0,30}repeat|repeat[^.]{0,20}finding" \
-  packs/core/.apm packs/core/seeds packs/core/DESIGN.md \
-  guides web/src/content docs tools/hooks \
-  | grep -v __pycache__
-```
+**No script changes.** Nothing branches on the disposition, so retiring it moves
+no runtime behaviour.
 
-43 rows. Row 43 has no line number because it was reported rather than derived
-from this command; re-deriving it is a task step, not an approval blocker.
-
-**Explicit residual.** This is a vocabulary search, not a proof of completeness.
-A surface stating the halt in words none of these patterns match is not in this
-table and will not be found by re-running the command. The table is a judgement
-recorded with its method, and the method's limit is named here rather than
-implied away.
-
-### Classes
-
-**halt** instructs stopping, skipping a check, or replanning. **Surface**
-instructs reporting to the human. **authority** says stasis does not by itself
-complete intent, create follow-on work, or authorise an amendment. **mechanism**
-describes how the signal is computed. **claim** is published prose asserting the
-behaviour to a reader.
-
-| # | File | Line | Class | Action |
-| --- | --- | ---: | --- | --- |
-| 1 | `references/finding-adjudication.md` | 243 | halt + Surface | rewrite — drop halt, keep Surface |
-| 2 | `references/state-schema.md` | 70 | mechanism | rewrite — not a stasis detector |
-| 3 | `references/state-schema.md` | 188 | mechanism | rewrite — not a stasis detector |
-| 4 | `references/state-schema.md` | 189 | halt + Surface | rewrite — drop halt and skipped check, keep Surface |
-| 5 | `references/delivery-contract-lifecycle.md` | 129 | mechanism | rewrite — a repeated fingerprint does not detect it |
-| 6 | `references/delivery-contract-lifecycle.md` | 130 | halt | rewrite — drop the immediate replan |
-| 7 | `packs/core/seeds/docs/CONVENTIONS.md` | 1093 | halt **and** authority | no action — deleted by `dispatch-agent-context`; verified absent in that worktree |
-| 8 | `docs/CONVENTIONS.md` | 1093 | halt **and** authority | no action — deleted by the same branch; confirmed deleted, not relocated |
-| 9 | `references/delivery-contract-lifecycle.md` | 63 | authority | keep — asserted today |
-| 10 | `references/delivery-contract-lifecycle.md` | 136 | authority | keep — **not** asserted today |
-| 11 | `SKILL.md` | 759 | authority | keep — **not** asserted today |
-| 12 | `SKILL.md` | 780 | authority | keep — **not** asserted today |
-| 13 | `evals/evals.json` | 581 | authority | keep — **not** asserted today; see below |
-| 14 | `evals/evals.json` | 588 | authority | keep — **not** asserted today |
-| 15 | `scripts/loop-cohort.py` | 81 | mechanism | no action — comment |
-| 16 | `scripts/loop-cohort.py` | 1730 | mechanism | no action — the `invalid` payload key |
-| 17 | `scripts/loop-cohort.py` | 1940 | mechanism | no action — docstring |
-| 18 | `scripts/loop-cohort.py` | 1995 | mechanism | no action — comment |
-| 19 | `scripts/loop-cohort.py` | 2001 | mechanism | no action — the classified payload key |
-| 20 | `scripts/loop-cohort.py` | 2013 | mechanism | no action — the print line |
-| 21 | `scripts/_loop_guards.py` | 734 | mechanism | no action — byte-pinned by a golden-stream fixture |
-| 22 | `packs/core/.apm/hooks/pre-pr.py` | 18 | wrong before this change | no action — spec *Follow-ons* |
-| 23 | `tools/hooks/pre-pr.py` | 18 | wrong before this change | no action — spec *Follow-ons* |
-| 24 | `guides/core/explanation/core-pack.md` | 35 | claim — halt, no `stasis` token | rewrite |
-| 25 | `guides/core/explanation/core-pack.md` | 66 | claim — capability | rewrite |
-| 26 | `guides/core/explanation/core-pack.md` | 121 | claim — halt | rewrite |
-| 27 | `guides/core/explanation/core-pack.md` | 135 | claim — halt | rewrite |
-| 28 | `guides/core/explanation/core-pack.md` | 154 | competitive claim | rewrite — "iteration cap", drop stasis detection |
-| 29 | `guides/core/explanation/core-pack.md` | 159 | competitive claim | rewrite — same, in prose |
-| 30 | `guides/core/explanation/core-pack.md` | 170 | competitive claim | rewrite — "iteration cap", drop stasis detection |
-| 31 | `guides/core/explanation/core-pack.md` | 175 | competitive claim | rewrite — same, in prose |
-| 32 | `guides/core/explanation/token-economy.md` | 79 | claim — halt | rewrite |
-| 33 | `guides/core/how-to/bug-fix.md` | 107 | claim — capability | rewrite |
-| 34 | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | 123 | claim — capability | rewrite |
-| 35 | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | 132 | mechanism | rewrite |
-| 36 | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | 133 | claim — halt | rewrite |
-| 37 | `guides/core/how-to/review-someone-elses-pr.md` | 33 | claim — capability | rewrite |
-| 38 | `guides/README.md` | 188 | claim — capability | rewrite |
-| 39 | `web/src/content/packs/core.md` | 19 | claim — capability | rewrite |
-| 40 | `web/src/content/packs/core.md` | 21 | claim — halt, no `stasis` token | rewrite |
-| 41 | `guides/governance-extras/how-to/new-rfc.md` | 131 | unrelated domain | no action — RFC round caps |
-| 42 | `docs/rfc/0093-intent-scoped-completion.md` | 114 | halt, reworded variant | no action — `Status: Accepted`, frozen as filed; a historical record, not a live instruction |
-| 43 | `docs/product/changelog.md` | — | names the retired section | no action — release history, frozen for the same reason |
-
-**Row 7 is the one to read twice.** Its single sentence says stasis *pauses for
-human replanning* (a halt) and that retry caps and stasis *neither complete
-intent nor create backlog work* (authority). Deleting the sentence fails AC-0005;
-keeping it fails AC-0004.
-
-**Rows 1 and 4 are both Surfaces.** An earlier draft claimed row 1 was the only
-one. It is not, and an edit satisfying a halt-only reading of row 4 would delete
-a disposition ADR-0104 requires.
-
-### Which `keep` rows an existing suite already covers
-
-Only **row 9**. `packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py`
-asserts `"session end, retry cap, stasis, or model judgment never invokes"`,
-which contains the distinguishing token.
-
-Row 13 was previously recorded as covered and is not. That same suite asserts
-`"stable owner-authority reference"`, `"ordinary plan-locked edge"` and
-`"cannot invoke it automatically"` against `evals.json:581` — none contains
-`stasis`, so deleting `stasis,` from that enumeration leaves the suite green.
-
-Rows 10, 11, 12, 13 and 14 need new cases. **The rule:** a reuse claim holds only
-when the existing assertion's literal text contains the token whose deletion the
-criterion is guarding against. Check each claim against the assertion's text,
-not against the file it reads.
-
-### Retired phrases — AC-0009's literal list
+### Retired phrases — AC-0006's list
 
 Whitespace-normalized, case-insensitive:
 
 - `do not start another round`
 - `stops immediately for human replanning`
-- `pause for human replanning`
 - `surface immediately; do not run`
 - `same findings twice = stop`
 - `the loop stops and surfaces`
@@ -177,64 +136,34 @@ Whitespace-normalized, case-insensitive:
 - `refuses to self-certify past a red gate or a repeated finding`
 - `it stops at plan approval, unresolved boundaries, repeated findings`
 
-### Sweep corpus — AC-0009's literal path list
+`pause for human replanning` was a candidate and is excluded. It matches
+iteration-cap prose the spec preserves, in a file the spec does not edit — the
+collision AC-0006's third clause exists to catch. Adding a phrase means checking
+it against preserved text first.
 
-Each asserted to exist before it is walked:
+### Sweep corpus — AC-0006's path list
+
+Each asserted to exist before it is walked. No path here is one another branch
+deletes.
 
 - `packs/core/.apm/skills/work-loop/SKILL.md`
 - `packs/core/.apm/skills/work-loop/references/*.md`
 - `packs/core/.apm/skills/work-loop/evals/evals.json`
-- `packs/core/seeds/docs/CONVENTIONS.md`
 - `packs/core/DESIGN.md`
-- `.claude/skills/work-loop/` and `.agents/skills/work-loop/` — tracked
-  projections carrying the old prose until self-host runs, which is why T5
-  projects before it sweeps
+- `.claude/skills/work-loop/`, `.agents/skills/work-loop/` — tracked projections
+  carrying the old prose until self-host runs, which is why T4 projects before it
+  sweeps
 - `guides/core/`, `guides/README.md`
 - `web/src/content/packs/core.md`
 
-## Design (LLD)
-
-### Design decisions
-
-**Two Surfaces survive the halt.** ADR-0104 is Accepted and requires the signal
-to be reported and Surfaced. Rows 1 and 4 each state a Surface in the same
-sentence as a halt. Both rewrites split the sentence rather than deleting it.
-
-**The refuted mechanism is a separate claim from the halt.** Rows 2, 3, 5 and 35
-assert that a repeated fingerprint *detects* stasis. That is false independently
-of what detection then triggers, so it gets its own criterion rather than riding
-along with the halt removal.
-
-**The baseline for AC-0005 lives in the test source.** An assertion that reads
-the `keep` rows from the tree at run time compares a file to itself and can
-never fail. The existing precedent in `test_contract_amendment_wave4.py` holds
-literal phrases and compares them as normalized substrings; AC-0005 follows that
-form rather than whole-statement equality, which is not assertable across the
-line break in row 9.
-
-**The comparison claims re-point at the cap.** Rows 28 to 31 mark "iteration cap
-and stasis detection" present for this pack and absent for two named
-competitors. Retiring the stop makes the second half false; the first half is
-true, survives this change untouched, and is still absent from both compared
-tools. The owner's answer is to keep the row and drop the stasis clause rather
-than withdraw the differentiator. Note the honest reading of what is being
-dropped: the detection was never observed to work, so this corrects a claim
-rather than conceding a capability.
-
-**No script changes.** Rows 15 to 21 are comments, docstrings, payload keys and
-a message. Row 21 is byte-pinned by a golden-stream fixture, so touching it
-breaks a stream for no gain.
-
 ### Failure, edge cases & resilience
 
-The likeliest failure is an over-broad edit reaching rows 9 to 14. AC-0005 is the
-guard, and its literals must be captured before T2 and T3 edit anything.
+The likeliest failure is an over-broad edit reaching an authority statement. T1
+captures their literals before any edit task runs, so the failure reds rather
+than passing silently.
 
-The second is a sweep that reds on the tracked projections before self-host runs.
-T5 sequences around it.
-
-The third is the new `tools/` suite never executing. T4 registers it and records
-which chain runs it.
+The second is a sweep that fires on the tracked projections before self-host. T4
+sequences around it.
 
 ## Tasks
 
@@ -243,151 +172,142 @@ which chain runs it.
 **Depends on:** none
 
 **Tests:**
-- AC-0005 — one normalized-substring assertion per `keep` row, against literals
-  held in the test source. Reuse row 9's existing case; add cases for rows 10,
-  11, 12, 13 and 14. Verify each reuse claim against the existing assertion's
-  text before relying on it.
+- AC-0003 — one normalized-substring assertion per authority statement, each read
+  from its own file, not a concatenation.
+
+**Surfaces, all `keep`:**
+- `references/delivery-contract-lifecycle.md` — the transition-scope statement
+  and the completion statement.
+- `SKILL.md` — the termination statement and the finish-checklist statement.
+- `evals/evals.json` — the amendment expectation and the amendment rejection.
+
+Only the first has any existing coverage, and that coverage reads a
+concatenation, so treat all six as needing their own case.
 
 **Approach:**
 - Capture the literals from the current tree before any edit task runs.
 
-**Done when:** the authority assertions are green against the unedited tree, so
-they can fail in T2 and T3 if an edit reaches too far.
+**Done when:** all six assertions are green against the unedited tree, so they
+can fail in T2 and T3 if an edit reaches too far.
 
 ### T2: Retire the halt in the runtime references
 
 **Depends on:** T1
 
 **Tests:**
-- AC-0001, AC-0002, AC-0003 — one absence and one presence assertion per file.
-  The presence half on rows 1 and 4 is the Surface.
-- AC-0010 — the refuted mechanism claim is absent from rows 2, 3 and 5.
+- AC-0001 — one absence and one presence assertion per file. The presence half is
+  the Surface.
+- AC-0002 — the refuted detection claim is gone from every surface below.
 
-**Approach:**
-- Work inventory rows 1 to 6.
+**Surfaces:**
+- `references/finding-adjudication.md` — the route-and-record entry: halt +
+  Surface. Drop the halt, keep the Surface.
+- `references/state-schema.md` — the stasis paragraph: halt + Surface, same
+  treatment. Its `finding_fingerprints` row and the paragraph's first sentence
+  both claim the field detects stasis; correct both.
+- `references/delivery-contract-lifecycle.md` — the numbered stop conditions:
+  drop repeated findings as a condition that stops immediately for replanning,
+  and drop the claim that a repeated fingerprint identifies it.
 
-**Done when:** the three reference files instruct no halt, both Surfaces remain,
-and T1's assertions are still green.
+**Done when:** no file instructs a halt, both Surfaces remain, and T1's
+assertions are still green.
 
-### T3: Confirm the CONVENTIONS.md copies stay out of scope
-
-**Depends on:** none
-
-**Tests:**
-- AC-0004 — neither copy is changed by this work.
-
-**Approach:**
-- Inventory rows 7 and 8. Both files are deleted by `dispatch-agent-context`;
-  the seed's absence in that worktree was verified directly, and a session on
-  that branch confirmed the clause is deleted rather than re-homed.
-- Do nothing to either file. This task exists so the decision is recorded and
-  asserted rather than looking like an omission.
-- If that branch lands without the deletions, escalate rather than editing:
-  the clause would then need an owner, and this spec deliberately is not it.
-
-**Done when:** AC-0004 is green and the deletion's status is re-checked against
-that branch at execution time.
-
-### T4: Correct the published guides and public claims
+### T3: Correct the published claims
 
 **Depends on:** T2
 
 **Tests:**
-- AC-0006, AC-0007 — absence and content assertions in
-  `tools/test_stasis_retirement_claims.py`.
-- AC-0008 — the comparison tables match the owner's resolution.
+- AC-0004 — absence assertions over the guide corpus and the public page.
+- AC-0005 — the two tables and their prose claim a cap.
+- AC-0002 — the guide that claims a recorded fingerprint enables detection.
+
+**Surfaces:**
+- `guides/core/explanation/core-pack.md` — the loop description; the numbered
+  stasis item; the failure-mode row; the two comparison tables and the prose
+  beside each. One of these states the halt without using the word *stasis*.
+- `guides/core/explanation/token-economy.md` — the third-pass claim.
+- `guides/core/how-to/bug-fix.md`, `.../review-someone-elses-pr.md` — capability
+  mentions.
+- `guides/core/how-to/plan-and-execute-non-trivial-work.md` — a capability
+  mention, a detection-mechanism claim, and a halt claim.
+- `guides/README.md` — the flagship description.
+- `web/src/content/packs/core.md` — a capability claim, and a halt claim that
+  does not use the word *stasis*.
 
 **Approach:**
-- Determine which Makefile runner line the new suite joins and whether that line
-  runs in the always-on PR chain. Record the answer in *Construction tests*
-  above, replacing the open question there.
-- Register the suite in that line. Without it the boundary lint fails and
-  nothing executes the file.
-- Work inventory rows 24 to 27 and 32 to 40. Rows 28 to 31 need the owner's
-  answer first.
+- Register the new suite in the `Makefile` `tools/test_*.py` enumeration, and add
+  its own step to `build-check.yml` so the criteria are always-run rather than
+  dispatch-only.
+- Depends on T2 so the guides describe what the references now say.
 
-**Done when:** no guide asserts a halt, the public page matches the tree, the
-comparison tables carry a supported claim, and the new suite is registered and
-observed to run.
+**Done when:** no published surface asserts a halt, the tables claim a cap, and
+the suite is observed running in a PR check.
 
-### T5: Pin the retirement, then version and project
+### T4: Pin the retirement, then version and project
 
-**Depends on:** T3, T4
+**Depends on:** T3
 
 **Tests:**
-- AC-0009 — the parametrized sweep over the two literal lists above, one case per
-  retired phrase, asserting each corpus path exists before walking it.
+- AC-0006 — the parametrized sweep over the two lists above, one case per retired
+  phrase, each corpus path asserted to exist, and a case fixing that no phrase
+  matches preserved text.
 
 **Approach:**
-- Bump both pack manifests by one patch above whatever they hold at execution
-  time and add the changelog entry in the same commit.
-- Run `FORCE=1 make build-self` **before** the sweep. The projections carry the
+- Bump both pack manifests one patch above whatever they hold at execution time,
+  and add the changelog entry in the same commit.
+- Run `FORCE=1 make build-self` **before** the sweep; the projections carry the
   old prose until it does.
 
 **Done when:** the sweep is green after self-host, `make lint-ruff lint-mypy` is
-clean, and catalogue verify returns ok **against this tree** —
+clean, and catalogue verify returns ok against **this** tree —
 
 ```
 PYTHONPATH=packages/agentbundle:packages/credbroker \
   python3 -m agentbundle catalogue verify --root .
 ```
 
-not the bare CLI, for the reason in *Constraints*. `make lint-ruff`,
-`lint-mypy`, `lint-spec-status.py` and the alignment lint are repo-local scripts
-and are unaffected.
-
 ## Rollout
 
-- **Delivery:** prose only; no runtime behaviour changes because nothing branched
+- **Delivery:** prose only; no runtime behaviour changes, because nothing branched
   on the disposition. Reversible by reverting the commit.
-- **Infrastructure:** none.
-- **External-system integration:** none.
+- **Infrastructure, external systems:** none.
 - **Deployment sequencing:** self-host runs after the version bump and before the
   sweep.
 
 ## Risks
 
-- **An over-broad edit deletes a true statement.** Six authority statements sit
-  adjacent to the halts and one shares a sentence with one. Five of the six are
-  unasserted today. T1 exists to make that failure red rather than silent.
-- **A Surface disposition is deleted with its halt.** Two rows carry both in one
-  sentence, and ADR-0104 is frozen, so the repair for losing them is a
-  superseding ADR rather than a spec edit.
-- **The `dispatch-agent-context` deletions are committed but not merged.** Both
-  copies were deleted in `8b286d51a` on that branch, so rows 7 and 8 are no
-  longer resting on working-tree state. The residual is the merge: if that branch
-  never lands, both copies keep a retired halt and nothing here catches it,
-  because AC-0004 asserts the files are *untouched* rather than absent. T3
-  re-checks at execution time. Note AC-0004 holds either way — under both
-  outcomes this change does not modify those files — so the criterion is sound
-  and the gap is in coverage, not in the assertion.
-- **Not a risk, recorded because an earlier draft called it one.** Deleting the
-  seed does not cost the authority obligation. `SKILL.md` states it
-  independently at rows 11 and 12 of this inventory, both marked `keep` and both
-  protected by AC-0005. What dies with the file is the halt, which is the point.
-  A duplicate was lost, not an obligation.
-- **The inventory is incomplete in a way no re-run finds.** Named in *Method*
-  above. Three attempts have each missed a different class; a fourth class is
-  possible and no command in this plan would surface it.
+- **An over-broad edit deletes an authority statement.** Six of them sit next to
+  the halts, and the one with existing coverage is covered by an assertion that
+  reads a union of two files and so cannot localise a deletion. T1 is the guard.
+- **A Surface is deleted with the halt it shares a sentence with.** Two of them,
+  and ADR-0104 is frozen, so the repair would be a superseding ADR.
+- **A phrase added to the sweep later collides with preserved prose.** Already
+  happened once. AC-0006's third clause makes it a criterion failure rather than
+  a discovery.
+- **The `CONVENTIONS.md` deletions never merge.** Committed on that branch, not
+  merged. *Deliberately untouched* says what to do: escalate, do not widen.
+- **A sixth class of surface exists that no search here finds.** Five have been
+  found by five different searches. The spec's Testing Strategy states this as an
+  unprotected residual rather than implying the list is complete.
 
 ## Changelog
 
+- 2026-09-16 — Collapsed. The numbered 43-row inventory is gone; surfaces live in
+  the task that edits them, and a *Deliberately untouched* list carries the rest
+  with reasons. Criteria went 10 to 6 and tasks 5 to 4. Two review rounds had
+  spent most of their findings on stale cross-references between the table, the
+  criteria, the tasks and the risks — roughly two thirds of the second round's
+  were defects in the first round's repairs. The substance did not change; the
+  addressing did.
+  Fixed in the same pass: a retired phrase matching preserved iteration-cap
+  prose; a sweep corpus containing a path another branch deletes; an instruction
+  to edit the approved plan in flight, which the loop refuses; and a false claim
+  that `build-check` runs no pytest, which turned the registration question from
+  a deferral into an answer.
+- 2026-09-15 — Two review rounds, two owner decisions, and a cross-branch
+  collision with `dispatch-agent-context`, which deletes both `CONVENTIONS.md`
+  copies including the seed this plan had recorded as its own. The surface search
+  moved from a token to a vocabulary; a second Surface disposition was found; one
+  "already asserted" reuse claim was refuted against the assertion's own text.
 - 2026-09-15 — Drafted, cut out of `review-recurrence-family-key` after a third
-  adversarial round put every blocker in the retirement half.
-- 2026-09-15 — Both owner decisions folded in, and a cross-branch collision
-  resolved. The comparison tables re-point at the iteration cap rather than
-  withdraw. Both `CONVENTIONS.md` copies left the scope: a peer session on
-  `dispatch-agent-context` reported that branch deletes the seed as well as the
-  repository copy, which this plan had recorded as safely its own — verified by
-  reading that worktree. Two further occurrences entered as no-action rows, in
-  an Accepted RFC and the changelog, exposing a fourth class the search seed had
-  missed.
-- 2026-09-15 — Repaired after this spec's own first round. The inventory moved
-  from a token search to a vocabulary search and from 27 rows to 41, after the
-  token search was shown to miss two halt claims that never use the word
-  including one on the public pack page; a second Surface disposition was found
-  and the "only shipped Surface instruction" claim corrected in two places; one
-  "already asserted" reuse claim was refuted against the assertion's own text;
-  the retired-phrase and sweep-corpus lists became literal; the `tools/` suite
-  gained a registration step and an honest statement that it may be dispatch-only
-  evidence; and the eval-harness obligation got a recorded disposition.
+  adversarial round there put every blocker in this half.
