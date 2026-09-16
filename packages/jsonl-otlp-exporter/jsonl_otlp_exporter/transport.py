@@ -497,7 +497,7 @@ def _partial_success(payload: bytes) -> tuple[bool, int]:
         parsed = json.loads(payload.decode("utf-8")) if payload else {}
     except (UnicodeDecodeError, json.JSONDecodeError):
         return False, 0
-    partial = (parsed or {}).get("partialSuccess")
+    partial = parsed.get("partialSuccess") if isinstance(parsed, dict) else None
     if not isinstance(partial, dict) or not partial:
         return False, 0
     try:
