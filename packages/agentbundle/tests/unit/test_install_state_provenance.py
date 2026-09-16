@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 _CONVERTERS_MANIFEST = """\
 [pack]
@@ -56,29 +56,14 @@ def _run_upgrade(args: argparse.Namespace) -> tuple[int, str, str]:
 
 
 def _install_args(cat: Path, repo: Path, *, scope: str = "repo") -> argparse.Namespace:
-    return argparse.Namespace(
-        pack="converters",
-        catalogue=str(cat),
-        output=str(repo),
-        scope=scope,
-        force=False,
-        force_merge=False,
-        adapter=None,
+    return cli_namespace(
+        "install", str(cat), "--pack", "converters", "--output", str(repo), "--scope", scope
     )
 
 
 def _upgrade_args(catalogue: str, repo: Path) -> argparse.Namespace:
-    return argparse.Namespace(
-        pack="converters",
-        catalogue=catalogue,
-        root=str(repo),
-        scope="repo",
-        yes=True,
-        skill=None,
-        agent=None,
-        hook=None,
-        seed=None,
-        command=None,
+    return cli_namespace(
+        "upgrade", catalogue, "--pack", "converters", "--root", str(repo), "--scope", "repo", "--yes"
     )
 
 
@@ -121,14 +106,12 @@ class InstallHTTPSProvenanceTests(unittest.TestCase):
             "agentbundle.https_catalogue.fetch_catalogue_archive_with_provenance",
             return_value=fake_result,
         ):
-            args = argparse.Namespace(
-                pack="converters",
-                catalogue="catalogue+https://example.com/channel.json",
-                output=str(self.repo),
-                scope="repo",
-                force=False,
-                force_merge=False,
-                adapter=None,
+            args = cli_namespace(
+                "install",
+                "catalogue+https://example.com/channel.json",
+                "--pack", "converters",
+                "--output", str(self.repo),
+                "--scope", "repo",
             )
             rc, _stdout, _stderr = _run_install(args)
 

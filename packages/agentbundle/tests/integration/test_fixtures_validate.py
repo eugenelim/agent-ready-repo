@@ -32,6 +32,8 @@ import os
 import unittest
 from pathlib import Path
 
+from tests._support import cli_namespace
+
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 
@@ -46,11 +48,10 @@ MALFORMED = (
 
 def _run_validate(pack_path: Path) -> tuple[int, str]:
     """Invoke ``agentbundle validate`` against *pack_path* and return (rc, stderr)."""
-    import argparse
 
     from agentbundle.commands import validate as cmd
 
-    args = argparse.Namespace(pack_path=str(pack_path), strict=False)
+    args = cli_namespace("validate", str(pack_path))
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
         rc = cmd.run(args)
@@ -62,11 +63,10 @@ def _run_validate_with_stdout(pack_path: Path) -> tuple[int, str, str]:
 
     Used by tests that need to assert on both streams.
     """
-    import argparse
 
     from agentbundle.commands import validate as cmd
 
-    args = argparse.Namespace(pack_path=str(pack_path), strict=False)
+    args = cli_namespace("validate", str(pack_path))
     out_buf = io.StringIO()
     err_buf = io.StringIO()
     with contextlib.redirect_stdout(out_buf), contextlib.redirect_stderr(err_buf):

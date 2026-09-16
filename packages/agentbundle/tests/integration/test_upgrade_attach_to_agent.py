@@ -10,7 +10,6 @@ orphans after the upgrade.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import json
@@ -20,6 +19,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+from tests._support import cli_namespace
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
@@ -43,7 +44,7 @@ def _run_reconcile():
     from agentbundle.commands import reconcile
     stdout = io.StringIO()
     with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(io.StringIO()):
-        rc = reconcile.run(argparse.Namespace(scope="user"))
+        rc = reconcile.run(cli_namespace("reconcile"))
     return rc, stdout.getvalue()
 
 
@@ -73,9 +74,9 @@ class AttachToAgentRenameTests(unittest.TestCase):
     def test_upgrade_renames_attach_to_agent(self):
         # Install kiro-user-hooks (attach-to-agent = "reviewer").
         _copy_fixture(FIXTURES / "kiro-user-hooks", self.cat / "packs" / "kiro-user-hooks")
-        self.assertEqual(_run_install(argparse.Namespace(
-            pack="kiro-user-hooks", catalogue=str(self.cat), output=str(self.repo),
-            scope="user", force=False, force_merge=False, adapter="kiro-cli",
+        self.assertEqual(_run_install(cli_namespace(
+            "install", str(self.cat), "--pack", "kiro-user-hooks",
+            "--output", str(self.repo), "--scope", "user", "--adapter", "kiro-cli",
         )), 0)
 
         old_agent = self.home / ".kiro" / "agents" / "reviewer.json"
@@ -97,10 +98,9 @@ class AttachToAgentRenameTests(unittest.TestCase):
             newline="\n",
         )
 
-        rc, err = _run_upgrade(argparse.Namespace(
-            pack="kiro-user-hooks", catalogue=str(self.cat),
-            root=str(self.repo), scope="user", yes=True,
-            skill=None, agent=None, hook=None, seed=None, command=None,
+        rc, err = _run_upgrade(cli_namespace(
+            "upgrade", str(self.cat), "--pack", "kiro-user-hooks",
+            "--root", str(self.repo), "--scope", "user", "--yes",
         ))
         self.assertEqual(rc, 0, f"upgrade failed: {err}")
 

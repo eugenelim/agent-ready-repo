@@ -20,6 +20,8 @@ from unittest import mock
 
 import pytest
 
+from tests._support import cli_namespace
+
 # The version-gate fixtures are staged into a temp directory, never into the
 # shipped tests/ tree. A committed symlink materialises platform-dependently in
 # the sdist — dereferenced on Linux, dropped on macOS — which breaks the engine
@@ -57,13 +59,12 @@ version = "99.0"
     yield
 
 
-def _run(module_name: str, **kwargs) -> tuple[int, str]:
+def _run(module_name: str, args: argparse.Namespace) -> tuple[int, str]:
     """Run a command module's `run()` with mocked stderr and return (rc, stderr_text)."""
     import importlib
 
     mod = importlib.import_module(f"agentbundle.commands.{module_name}")
     captured = io.StringIO()
-    args = argparse.Namespace(**kwargs)
     with mock.patch("sys.stderr", captured):
         rc = mod.run(args)
     return rc, captured.getvalue()
@@ -87,16 +88,19 @@ def _assert_refused(rc: int, stderr: str):
 
 
 def test_validate_refuses_incompatible(tmp_path):
-    rc, stderr = _run("validate", pack_path=str(FIXTURE_PACK), strict=False)
+    rc, stderr = _run("validate", cli_namespace("validate", str(FIXTURE_PACK)))
     _assert_refused(rc, stderr)
 
 
 def test_scaffold_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "scaffold",
-        pack="incompatible",
-        packs_dir=str(FIXTURE_PACK.parent / "packs"),
-        output=str(tmp_path),
+        cli_namespace(
+            "scaffold",
+            "--pack", "incompatible",
+            "--packs-dir", str(FIXTURE_PACK.parent / "packs"),
+            "--output", str(tmp_path),
+        ),
     )
     _assert_refused(rc, stderr)
 
@@ -104,9 +108,7 @@ def test_scaffold_refuses_incompatible(tmp_path):
 def test_render_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "render",
-        pack_path=str(FIXTURE_PACK),
-        output=str(tmp_path),
-        target=None,
+        cli_namespace("render", str(FIXTURE_PACK), "--output", str(tmp_path)),
     )
     _assert_refused(rc, stderr)
 
@@ -114,8 +116,7 @@ def test_render_refuses_incompatible(tmp_path):
 def test_diff_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "diff",
-        pack_path=str(FIXTURE_PACK),
-        root=str(tmp_path),
+        cli_namespace("diff", str(FIXTURE_PACK), "--root", str(tmp_path)),
     )
     _assert_refused(rc, stderr)
 
@@ -123,9 +124,12 @@ def test_diff_refuses_incompatible(tmp_path):
 def test_init_state_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "init_state",
-        pack="incompatible",
-        packs_dir=str(FIXTURE_PACK.parent / "packs"),
-        root=str(tmp_path),
+        cli_namespace(
+            "init-state",
+            "--pack", "incompatible",
+            "--packs-dir", str(FIXTURE_PACK.parent / "packs"),
+            "--root", str(tmp_path),
+        ),
     )
     _assert_refused(rc, stderr)
 
@@ -133,9 +137,12 @@ def test_init_state_refuses_incompatible(tmp_path):
 def test_install_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "install",
-        pack="incompatible",
-        catalogue=str(FIXTURE_PACK.parent),
-        output=str(tmp_path),
+        cli_namespace(
+            "install",
+            str(FIXTURE_PACK.parent),
+            "--pack", "incompatible",
+            "--output", str(tmp_path),
+        ),
     )
     _assert_refused(rc, stderr)
 
@@ -143,7 +150,7 @@ def test_install_refuses_incompatible(tmp_path):
 def test_list_packs_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "list_packs",
-        catalogue=str(FIXTURE_PACK.parent),
+        cli_namespace("list-packs", str(FIXTURE_PACK.parent)),
     )
     _assert_refused(rc, stderr)
 
@@ -151,13 +158,11 @@ def test_list_packs_refuses_incompatible(tmp_path):
 def test_upgrade_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "upgrade",
-        pack="incompatible",
-        skill=None,
-        agent=None,
-        hook=None,
-        seed=None,
-        command=None,
-        catalogue=str(FIXTURE_PACK.parent),
-        root=str(tmp_path),
+        cli_namespace(
+            "upgrade",
+            str(FIXTURE_PACK.parent),
+            "--pack", "incompatible",
+            "--root", str(tmp_path),
+        ),
     )
     _assert_refused(rc, stderr)

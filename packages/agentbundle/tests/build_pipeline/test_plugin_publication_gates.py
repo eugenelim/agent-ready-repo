@@ -10,13 +10,14 @@ silently, which is what the criteria actually ask for.
 
 from __future__ import annotations
 
-import argparse
 import io
 import json
 from pathlib import Path
 from unittest import mock
 
 from agentbundle.build.lint_packs import lint_pack
+
+from tests._support import cli_namespace
 
 # The command surface AC20 partitions. Six derive the per-pack-claude-plugin
 # recipe through `render_pack` and change by design; the rest must not.
@@ -122,9 +123,7 @@ def test_a_raise_does_not_abort_the_sweep(tmp_path: Path) -> None:
 def _validate(pack_path: Path) -> tuple[int, str]:
     from agentbundle.commands import validate as validate_mod
 
-    ns = argparse.Namespace()
-    ns.pack_path = str(pack_path)
-    ns.strict = False
+    ns = cli_namespace("validate", str(pack_path))
     captured = io.StringIO()
     with mock.patch("sys.stderr", captured):
         rc = validate_mod.run(ns)

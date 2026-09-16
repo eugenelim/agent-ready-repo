@@ -15,9 +15,9 @@ if TYPE_CHECKING:
 def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.defaults import check_defaults, write_defaults
 
-    root = Path(getattr(args, "root", ".")).resolve()
-    do_write = getattr(args, "write", False)
-    do_check = getattr(args, "check", False)
+    root = Path(args.root).resolve()
+    do_write = args.write
+    do_check = args.check
     getattr(args, "format", "json")
 
     if not do_check and not do_write:

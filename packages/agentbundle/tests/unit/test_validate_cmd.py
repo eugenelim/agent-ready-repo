@@ -17,6 +17,8 @@ import io
 from pathlib import Path
 from unittest import mock
 
+from tests._support import cli_namespace
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -25,10 +27,10 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "validate"
 
 
 def _args(pack_path: Path, strict: bool = False) -> argparse.Namespace:
-    ns = argparse.Namespace()
-    ns.pack_path = str(pack_path)
-    ns.strict = strict
-    return ns
+    argv = [str(pack_path)]
+    if strict:
+        argv.append("--strict")
+    return cli_namespace("validate", *argv)
 
 
 def _run(pack_path: Path, strict: bool = False):

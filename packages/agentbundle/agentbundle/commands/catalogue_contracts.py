@@ -90,7 +90,7 @@ def _run_export(args: argparse.Namespace) -> int:
 
 def run(args: argparse.Namespace) -> int:
     """Dispatch a bundled-contract operation."""
-    subcommand = getattr(args, "contracts_sub", None)
+    subcommand = args.contracts_sub
     if subcommand == "list":
         return _run_list(args)
     if subcommand == "show":

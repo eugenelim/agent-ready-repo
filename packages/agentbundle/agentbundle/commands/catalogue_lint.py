@@ -13,10 +13,10 @@ if TYPE_CHECKING:
 def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.lint import lint_catalogue, render_json, render_table
 
-    root = Path(getattr(args, "root", ".")).resolve()
-    pack = getattr(args, "pack", None)
-    fmt = getattr(args, "format", "table")
-    deep = getattr(args, "deep", False)
+    root = Path(args.root).resolve()
+    pack = args.pack
+    fmt = args.format
+    deep = args.deep
 
     try:
         result = lint_catalogue(root, pack=pack, deep=deep)

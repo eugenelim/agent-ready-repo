@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack, stage_primitives
+from tests._support import cli_namespace, stage_installable_pack, stage_primitives
 
 SKILL_NAMES = ("file-to-markdown", "markdown-to-html", "msg-to-markdown")
 
@@ -91,13 +91,9 @@ allowed-scopes = ["user", "repo"]
         stage_primitives(pack, skills=SKILL_NAMES)
 
     def test_install_then_uninstall_round_trip(self) -> None:
-        install_args = argparse.Namespace(
-            pack="converters",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            force=False,
-            force_merge=False,
+        install_args = cli_namespace(
+            "install", str(self.cat), "--pack", "converters",
+            "--output", str(self.repo), "--scope", "user",
         )
         rc, stdout, stderr = _run_install(install_args)
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
@@ -160,11 +156,9 @@ allowed-scopes = ["user", "repo"]
                 f"expected SKILL.md inside {skill_dir}",
             )
 
-        uninstall_args = argparse.Namespace(
-            pack="converters",
-            root=str(self.repo),
-            scope="user",
-            yes=True,
+        uninstall_args = cli_namespace(
+            "uninstall", "--pack", "converters",
+            "--root", str(self.repo), "--scope", "user", "--yes",
         )
         rc, stdout, stderr = _run_uninstall(uninstall_args)
         self.assertEqual(rc, 0, f"uninstall failed: stdout={stdout!r} stderr={stderr!r}")

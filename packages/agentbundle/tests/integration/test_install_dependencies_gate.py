@@ -16,12 +16,13 @@ Dependency-gate tests, TDD-first:
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 from pathlib import Path
 
 import pytest
+
+from tests._support import cli_namespace
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -43,7 +44,12 @@ def _install(args_dict) -> tuple[int, str, str]:
     """Run install with redirected stdout/stderr; return (rc, stdout, stderr)."""
     from agentbundle.commands.install import run
 
-    args = argparse.Namespace(**args_dict)
+    argv = [args_dict["catalogue"], "--pack", args_dict["pack"], "--output", args_dict["output"]]
+    if args_dict.get("scope") is not None:
+        argv.extend(["--scope", args_dict["scope"]])
+    if args_dict.get("force"):
+        argv.append("--force")
+    args = cli_namespace("install", *argv)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = run(args)

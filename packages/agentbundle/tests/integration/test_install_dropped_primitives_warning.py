@@ -28,7 +28,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from tests._support import materialize_catalogue
+from tests._support import cli_namespace, materialize_catalogue
 
 REPO_ROOT = Path()
 PACKS_DIR = Path()
@@ -309,7 +309,6 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
         return pack
 
     def _install(self, **kwargs) -> tuple[int, str, str]:
-        import argparse
         import contextlib
 
         from agentbundle.commands import install
@@ -317,7 +316,16 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
         install._clear_dropped_warning_seen()
         install._clear_inband_detection_seen()
 
-        args = argparse.Namespace(**kwargs)
+        argv = [kwargs["catalogue"], "--pack", kwargs["pack"], "--output", kwargs["output"]]
+        if kwargs.get("scope"):
+            argv += ["--scope", kwargs["scope"]]
+        if kwargs.get("force"):
+            argv.append("--force")
+        if kwargs.get("adapter"):
+            argv += ["--adapter", kwargs["adapter"]]
+        # emit_install_routes defaults to False in the real parser (per-IDE);
+        # _common_args passes it explicitly as False so no flag is needed.
+        args = cli_namespace("install", *argv)
         out_buf, err_buf = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out_buf), contextlib.redirect_stderr(
             err_buf

@@ -153,21 +153,21 @@ def _usage_error(args: argparse.Namespace, message: str) -> None:
 def _validate_route_grammar(args: argparse.Namespace) -> bool:
     """Validate upgrade selector combinations and identify standalone skills."""
 
-    pack = getattr(args, "pack", None)
-    all_packs = bool(getattr(args, "all", False))
-    skill = getattr(args, "skill", None)
+    pack = args.pack
+    all_packs = bool(args.all)
+    skill = args.skill
     primitive_selected = any(
         getattr(args, flag, None) is not None for flag in _PRIMITIVE_FLAG_MAP
     )
     standalone_skill = pack is None and not all_packs and skill is not None
 
-    if getattr(args, "source", None) is not None and not standalone_skill:
+    if args.source is not None and not standalone_skill:
         _usage_error(args, "--source requires standalone --skill")
     if all_packs and primitive_selected:
         _usage_error(args, "--all cannot be combined with a primitive selector")
     if pack is None and not all_packs and not standalone_skill:
         _usage_error(args, "one of --pack, --all, or standalone --skill is required")
-    if standalone_skill and getattr(args, "catalogue", None) is not None:
+    if standalone_skill and args.catalogue is not None:
         _usage_error(args, "a catalogue cannot be used with standalone --skill")
     return standalone_skill
 
@@ -531,7 +531,7 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
     from agentbundle.direct_install import run_direct_install
 
     name = str(args.skill)
-    requested_scope = getattr(args, "scope", None)
+    requested_scope = args.scope
     repo_state = State()
     if requested_scope != "user":
         try:
@@ -566,7 +566,7 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
         selection = _select_direct_skill_row(
             name,
             requested_scope=requested_scope,
-            requested_adapter=getattr(args, "adapter", None),
+            requested_adapter=args.adapter,
             repo_state=repo_state,
             repo_root=root,
             user_state=user_state,
@@ -576,10 +576,8 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
         _print_direct_upgrade_refusal(refusal)
         return 1
 
-    needs_consent = not getattr(args, "yes", False) and not getattr(
-        args, "dry_run", False
-    )
-    requested_source = getattr(args, "source", None)
+    needs_consent = not args.yes and not args.dry_run
+    requested_source = args.source
     consent_source = requested_source if requested_source is not None else selection.row.source
     if (
         isinstance(consent_source, str)
@@ -1303,12 +1301,12 @@ def _build_json_doc(
 def _print_plan_table(
     rows: list,
     fmt: str,
-    args: object,
+    args: argparse.Namespace,
     source_resolution_map: dict,
 ) -> None:
     """Render the plan.  JSON mode: emit JSON to stdout.  Table mode: print table."""
     scope = getattr(args, "scope", "repo") or "repo"
-    dry_run = getattr(args, "dry_run", False)
+    dry_run = args.dry_run
 
     if fmt == "json":
         doc = _build_json_doc(rows, scope, dry_run, source_resolution_map)
@@ -1359,11 +1357,11 @@ def _confirm_or_abort(rows: list) -> None:
 
 def _finalize(
     rows_sorted: list,
-    args: object,
+    args: argparse.Namespace,
     source_resolution_map: dict,
 ) -> int:
     """Emit final results table/JSON and return exit code."""
-    fmt = getattr(args, "format", "table")
+    fmt = args.format
     _print_plan_table(rows_sorted, fmt, args, source_resolution_map)
     candidates = [r for r in rows_sorted if r.status == "upgrade-available"]
     if not candidates:
@@ -1378,7 +1376,7 @@ def _apply_all(
     state: object,
     state_path: Path,
     root: Path,
-    args: object,
+    args: argparse.Namespace,
     source_resolution_map: dict,
 ) -> int:
     """Apply upgrades in order; stop on first failure."""
@@ -1402,7 +1400,7 @@ def _apply_all(
     return _finalize(rows_sorted, args, source_resolution_map)
 
 
-def _run_all(args: object, root: Path, *, _rows_out: list | None = None) -> int:
+def _run_all(args: argparse.Namespace, root: Path, *, _rows_out: list | None = None) -> int:
     """Main bulk-upgrade dispatcher.  Returns int exit code.
 
     ``_rows_out``: optional test-only side channel.  If provided, ``_run_all``
@@ -1415,28 +1413,28 @@ def _run_all(args: object, root: Path, *, _rows_out: list | None = None) -> int:
         return code
 
     # Gate: --adapter rejected with --all
-    if getattr(args, "adapter", None):
+    if args.adapter:
         _print_err("--adapter is not compatible with --all")
         return _return(2)
 
     # Gate: positional catalogue rejected with --all
-    if getattr(args, "catalogue", None):
+    if args.catalogue:
         _print_err("positional <catalogue> is not compatible with --all")
         return _return(2)
 
     # Gate: --scope required with --all
-    if not getattr(args, "scope", None):
+    if not args.scope:
         _print_err("--scope repo|user is required with --all")
         return _return(2)
 
     stdin_is_tty = sys.stdin.isatty()
 
     # Gate: --format json without --yes (non-dry-run)
-    fmt = getattr(args, "format", "table")
+    fmt = args.format
     if (
         fmt == "json"
-        and not getattr(args, "yes", False)
-        and not getattr(args, "dry_run", False)
+        and not args.yes
+        and not args.dry_run
     ):
         _print_err("--yes is required for --format json (use --dry-run to preview)")
         return _return(2)
@@ -1470,12 +1468,12 @@ def _run_all(args: object, root: Path, *, _rows_out: list | None = None) -> int:
     rows, source_resolution_map = _run_preflight(state, args.scope, root, user_config)  # type: ignore[attr-defined]
 
     rows_sorted = sorted(rows, key=lambda r: (r.canonical_source or "", r.pack, r.adapter))
-    _assign_pre_apply_outcomes(rows_sorted, dry_run=getattr(args, "dry_run", False))
+    _assign_pre_apply_outcomes(rows_sorted, dry_run=args.dry_run)
 
     blocked = [r for r in rows_sorted if r.status == "unknown"]
     candidates = [r for r in rows_sorted if r.status == "upgrade-available"]
 
-    if getattr(args, "dry_run", False):
+    if args.dry_run:
         _print_plan_table(rows_sorted, fmt, args, source_resolution_map)
         return _return(1 if blocked else 0, rows_sorted)
 
@@ -1493,7 +1491,7 @@ def _run_all(args: object, root: Path, *, _rows_out: list | None = None) -> int:
     # Table mode only: show pre-apply plan and prompt
     if fmt == "table":
         _print_plan_table(rows_sorted, "table", args, source_resolution_map)
-        if not getattr(args, "yes", False) and stdin_is_tty:
+        if not args.yes and stdin_is_tty:
             _confirm_or_abort(rows_sorted)
 
     rc = _apply_all(rows_sorted, state, state_path, root, args, source_resolution_map)
@@ -1522,7 +1520,7 @@ def run(args: argparse.Namespace) -> int:
     standalone_skill = _validate_route_grammar(args)
 
     if standalone_skill:
-        if getattr(args, "format", "table") == "json":
+        if args.format == "json":
             refusal = _refuse_direct_upgrade(
                 DiagnosticCode.CAT_D034,
                 "--format json is not supported for standalone --skill; use --format table",
@@ -1533,7 +1531,7 @@ def run(args: argparse.Namespace) -> int:
         return _run_direct_skill(args, Path(args.root).resolve())
 
     # --format json with --pack is not yet supported
-    if getattr(args, "format", "table") == "json" and not getattr(args, "all", False):
+    if args.format == "json" and not args.all:
         _print_err(
             "upgrade: --format json is not yet supported with --pack; "
             "use --format table or use --all"
@@ -1541,13 +1539,13 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     # Dispatch to bulk mode
-    if getattr(args, "all", False):
+    if args.all:
         root = Path(args.root).resolve()
         return _run_all(args, root)
 
     pack_name: str = args.pack
-    cli_scope: str | None = getattr(args, "scope", None)
-    cli_adapter: str | None = getattr(args, "adapter", None)
+    cli_scope: str | None = args.scope
+    cli_adapter: str | None = args.adapter
     # User-config attached by `cli.py:main()` via args._user_config.
     # The pre-flight in `_resolve_target_adapter` no-ops when
     # `state_adapter` is set (upgrades preserve their existing-install
@@ -1884,7 +1882,7 @@ def run(args: argparse.Namespace) -> int:
     # nothing and already names companion actions in its plan). Gated to the
     # whole-pack case: a per-primitive upgrade re-applies only that primitive's
     # files, so a whole-pack count would mislead.
-    if not is_per_primitive and not getattr(args, "dry_run", False):
+    if not is_per_primitive and not args.dry_run:
         from agentbundle.commands._common import count_drifted_files
 
         _drifted = count_drifted_files(pack_state, root)
@@ -1901,7 +1899,7 @@ def run(args: argparse.Namespace) -> int:
     # refuse and explain rather than block on ``input()``. ``--dry-run``
     # short-circuits the refusal: a dry run never writes, so it is safe
     # non-interactively without ``--yes``.
-    if not getattr(args, "yes", False) and not getattr(args, "dry_run", False):
+    if not args.yes and not args.dry_run:
         if already_current:
             question = (
                 f"{confirm_label} is already at {to_version} at "
@@ -1928,7 +1926,7 @@ def run(args: argparse.Namespace) -> int:
     elif already_current:
         # --yes / --dry-run skipped the prompt, but still state the situation.
         # A dry run previews only, so don't claim a re-apply it won't perform.
-        suffix = "" if getattr(args, "dry_run", False) else "; re-applying"
+        suffix = "" if args.dry_run else "; re-applying"
         print(
             f"upgrade: {confirm_label} is already at {to_version}{suffix}",
             file=sys.stderr,
@@ -2079,7 +2077,7 @@ def run(args: argparse.Namespace) -> int:
     # Tier-3→Tier-1 coercion for new paths — print the per-file plan to stdout,
     # and return before the walk: no companion, no state write, no hook-wiring
     # reconciliation, no `upgraded:` recap.
-    if getattr(args, "dry_run", False):
+    if args.dry_run:
         # Path-jail pre-flight. Unlike install (which probes every file in
         # its standalone Step 8 before any write), upgrade enforces the jail
         # *inside* its write loop via `write_jailed`, so a real upgrade over a

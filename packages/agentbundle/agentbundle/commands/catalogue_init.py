@@ -30,7 +30,7 @@ _SELF_HOSTED_ONLY_FLAGS: tuple[tuple[str, str], ...] = (
 
 
 def run(args: argparse.Namespace) -> int:
-    preset: str | None = getattr(args, "preset", None)
+    preset: str | None = args.preset
     if preset == "self-hosted":
         return _run_self_hosted(args)
     # Reject self-hosted-only flags when not in self-hosted mode.
@@ -47,7 +47,7 @@ def run(args: argparse.Namespace) -> int:
 def _run_plain(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.initialise import init_catalogue
 
-    target_raw = getattr(args, "target", ".")
+    target_raw = args.target
     target_path = Path(target_raw)
     if target_path.is_symlink():
         print(
@@ -57,13 +57,13 @@ def _run_plain(args: argparse.Namespace) -> int:
         return 2
     target = target_path.resolve()
 
-    dry_run: bool = getattr(args, "dry_run", False)
-    name: str | None = getattr(args, "name", None) or None
-    display_name: str | None = getattr(args, "display_name", None) or None
-    description: str | None = getattr(args, "description", None) or None
-    owner_name: str | None = getattr(args, "owner_name", None) or None
-    preferred_adapter: str | None = getattr(args, "preferred_adapter", None) or None
-    fmt: str = getattr(args, "format", "table")
+    dry_run: bool = args.dry_run
+    name: str | None = args.name or None
+    display_name: str | None = args.display_name or None
+    description: str | None = args.description or None
+    owner_name: str | None = args.owner_name or None
+    preferred_adapter: str | None = args.preferred_adapter or None
+    fmt: str = args.format
 
     result = init_catalogue(
         target=target,
@@ -162,7 +162,7 @@ def _run_self_hosted(args: argparse.Namespace) -> int:
         init_self_hosted,
     )
 
-    target_raw = getattr(args, "target", ".")
+    target_raw = args.target
     target_path = Path(target_raw)
     if target_path.is_symlink():
         print(
@@ -171,7 +171,7 @@ def _run_self_hosted(args: argparse.Namespace) -> int:
         )
         return 2
 
-    source_raw = getattr(args, "source", None)
+    source_raw = args.source
     if not source_raw:
         print(
             "error: --source is required with --preset self-hosted",
@@ -179,12 +179,12 @@ def _run_self_hosted(args: argparse.Namespace) -> int:
         )
         return 2
 
-    tooling: str = getattr(args, "tooling", None) or "external"
+    tooling: str = args.tooling or "external"
     if tooling not in ("external", "vendored"):
         print("error: --tooling must be 'external' or 'vendored'", file=sys.stderr)
         return 2
 
-    attribution: str = getattr(args, "attribution", None) or "white-label"
+    attribution: str = args.attribution or "white-label"
     if attribution not in ("white-label", "attributed"):
         print(
             "error: --attribution must be 'white-label' or 'attributed'",
@@ -192,7 +192,7 @@ def _run_self_hosted(args: argparse.Namespace) -> int:
         )
         return 2
 
-    guides: str = getattr(args, "guides", None) or "selected"
+    guides: str = args.guides or "selected"
     if guides not in ("none", "selected"):
         print("error: --guides must be 'none' or 'selected'", file=sys.stderr)
         return 2
@@ -201,22 +201,22 @@ def _run_self_hosted(args: argparse.Namespace) -> int:
         target=target_path.resolve(),
         source=Path(source_raw).resolve(),
         tooling=tooling,
-        name=getattr(args, "name", None) or None,
-        display_name=getattr(args, "display_name", None) or None,
-        description=getattr(args, "description", None) or None,
-        owner_name=getattr(args, "owner_name", None) or None,
-        owner_email=getattr(args, "owner_email", None) or None,
-        preferred_adapter=getattr(args, "preferred_adapter", None) or None,
-        repository_url=getattr(args, "repository_url", None) or None,
-        packs=getattr(args, "packs", None) or None,
-        adapters=getattr(args, "adapters", None) or None,
-        profiles=getattr(args, "profiles", None) or None,
+        name=args.name or None,
+        display_name=args.display_name or None,
+        description=args.description or None,
+        owner_name=args.owner_name or None,
+        owner_email=args.owner_email or None,
+        preferred_adapter=args.preferred_adapter or None,
+        repository_url=args.repository_url or None,
+        packs=args.packs or None,
+        adapters=args.adapters or None,
+        profiles=args.profiles or None,
         guides=guides,
         attribution=attribution,
-        dry_run=bool(getattr(args, "dry_run", False)),
+        dry_run=bool(args.dry_run),
     )
 
-    fmt: str = getattr(args, "format", "table")
+    fmt: str = args.format
     result = init_self_hosted(cfg)
 
     if fmt == "json":

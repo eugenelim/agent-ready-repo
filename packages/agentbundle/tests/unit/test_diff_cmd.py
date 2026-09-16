@@ -10,18 +10,20 @@ Three scenarios:
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
-from types import SimpleNamespace
 
 from agentbundle import render
 from agentbundle.commands import diff
+
+from tests._support import cli_namespace
 
 PACKS_DIR = Path(__file__).resolve().parents[1] / "build_pipeline" / "fixtures" / "packs"
 CORE_PACK = PACKS_DIR / "core"
 
 
-def _make_args(*, pack_path: str, root: str) -> SimpleNamespace:
-    return SimpleNamespace(pack_path=pack_path, root=root)
+def _make_args(*, pack_path: str, root: str) -> argparse.Namespace:
+    return cli_namespace("diff", pack_path, "--root", root)
 
 
 def _project_pack_into(pack_path: Path, root: Path) -> dict[str, bytes]:

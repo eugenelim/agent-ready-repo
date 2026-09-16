@@ -479,12 +479,12 @@ def run(args: argparse.Namespace) -> int:
     from agentbundle.config import ConfigError, canonicalize_source, load_state
 
     # Read format/filter args at the very top -- before the empty-result check
-    fmt = getattr(args, "format", "table")
-    updates_only = getattr(args, "updates_only", False)
-    scope_val = getattr(args, "scope", None) or "all"
+    fmt = args.format
+    updates_only = args.updates_only
+    scope_val = args.scope or "all"
 
     # Deprecation warning for the (now-ignored) catalogue positional
-    if getattr(args, "catalogue", None) is not None:
+    if args.catalogue is not None:
         print(
             "agentbundle list-installed: the catalogue positional is ignored; "
             "rows are resolved against their recorded provenance. "
@@ -492,13 +492,13 @@ def run(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
 
-    requested_scope = getattr(args, "scope", None)
+    requested_scope = args.scope
     scopes = [requested_scope] if requested_scope else ["user", "repo", "local"]
-    check = not getattr(args, "no_check", False)
-    want_drift = getattr(args, "check_drift", False)
+    check = not args.no_check
+    want_drift = args.check_drift
 
     # Gather (scope, root, State) read-only
-    repo_root = Path(getattr(args, "root", ".")).resolve()
+    repo_root = Path(args.root).resolve()
     scope_states: list[tuple[str, Path, State]] = []
     for sc in scopes:
         if sc == "repo":

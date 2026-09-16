@@ -19,8 +19,9 @@ Fixture shape:
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
+
+from tests._support import cli_namespace
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 CATALOGUE_V1 = (
@@ -44,29 +45,29 @@ def _stage_brownfield(root: Path) -> None:
 def _install(root: Path) -> int:
     from agentbundle.commands.install import run
 
-    return run(argparse.Namespace(
-        pack="core",
-        catalogue=str(CATALOGUE_V1),
-        output=str(root),
+    # `install.py:493` branches on whether `emit_install_routes` is *present*,
+    # not on its value: absent meant "dist-tree at repo scope", which is the
+    # route this round trip exercised. A parsed namespace always carries the
+    # attribute, so the flag is what preserves it.
+    return run(cli_namespace(
+        "install", str(CATALOGUE_V1), "--pack", "core", "--output", str(root),
+        "--emit-install-routes",
     ))
 
 
 def _adapt(root: Path) -> int:
     from agentbundle.commands.adapt import run
 
-    return run(argparse.Namespace(
-        values_from=str(VALUES_FILE),
-        ci=False,
-        root=str(root),
+    return run(cli_namespace(
+        "adapt", "--values-from", str(VALUES_FILE), "--root", str(root),
     ))
 
 
 def _diff(root: Path) -> int:
     from agentbundle.commands.diff import run
 
-    return run(argparse.Namespace(
-        pack_path=str(CATALOGUE_V1 / "packs" / "core"),
-        root=str(root),
+    return run(cli_namespace(
+        "diff", str(CATALOGUE_V1 / "packs" / "core"), "--root", str(root),
     ))
 
 
@@ -124,10 +125,10 @@ def test_brownfield_ci_mode_signals_pending_companions(tmp_path: Path):
     assert companion.exists()
 
     # Pre-removal: --ci flags it.
-    rc = adapt_run(argparse.Namespace(values_from=None, ci=True, root=str(tmp_path)))
+    rc = adapt_run(cli_namespace("adapt", "--ci", "--root", str(tmp_path)))
     assert rc == 1
 
     # Adopter resolves: remove the companion.
     companion.unlink()
-    rc = adapt_run(argparse.Namespace(values_from=None, ci=True, root=str(tmp_path)))
+    rc = adapt_run(cli_namespace("adapt", "--ci", "--root", str(tmp_path)))
     assert rc == 0

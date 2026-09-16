@@ -24,6 +24,7 @@ from agentbundle.direct_install import (
 from agentbundle.direct_source import admit_direct_source
 
 from tests._direct_acquisition import GitHttpsAcquisitionFake
+from tests._support import cli_namespace
 
 
 def _write_skill(path: Path, name: str, *, description: str | None = None) -> None:
@@ -1229,21 +1230,21 @@ def test_the_sentinel_never_reaches_list_installed(tmp_path: Path, capsys):
     assert run_direct_install(_direct_args(source, target), source) == 0
     capsys.readouterr()
 
-    class _Args:
-        root = str(target)
-        scope = "repo"
-        format = "text"
-        no_check = True
-        updates_only = False
-        adapter = pack = None
+    def _listing_args(fmt: str):
+        # The fixture pinned `format="text"`, which `--format` rejects
+        # (`choices=table,json`) — it only ever behaved as the table branch.
+        # "table" is that same branch, spelled the way a run can reach it.
+        return cli_namespace(
+            "list-installed", "--root", str(target), "--scope", "repo",
+            "--no-check", "--format", fmt,
+        )
 
-    assert list_installed_cmd.run(_Args()) == 0
+    assert list_installed_cmd.run(_listing_args("table")) == 0
     table = capsys.readouterr().out
     assert "alpha" in table, "the direct row is missing from the listing"
     assert "0.0.0" not in table, "the manifestless sentinel reached the table"
 
-    _Args.format = "json"
-    assert list_installed_cmd.run(_Args()) == 0
+    assert list_installed_cmd.run(_listing_args("json")) == 0
     payload = capsys.readouterr().out
     assert "0.0.0" not in payload, "the manifestless sentinel reached the JSON"
     rows = [r for r in _json.loads(payload)["rows"] if r["pack"] == "alpha"]

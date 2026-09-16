@@ -20,7 +20,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 # ---------------------------------------------------------------------------
 # Part 1: _emit_first_value_handoff unit tests
@@ -269,20 +269,17 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
     def _install(
         self, pack: str, *, extra: dict | None = None
     ) -> tuple[int, str, str]:
-        kwargs = {
-            "pack": pack,
-            "catalogue": str(self.cat),
-            "output": str(self.repo),
-            "scope": "repo",
-            "force": False,
-            "force_merge": False,
-            "adapter": None,
-            "dry_run": False,
-            "yes": False,
-        }
-        if extra:
-            kwargs.update(extra)
-        return _run_install(argparse.Namespace(**kwargs))
+        argv = [str(self.cat), "--pack", pack, "--output", str(self.repo), "--scope", "repo"]
+        for key, value in (extra or {}).items():
+            if key == "dry_run" and value:
+                argv.append("--dry-run")
+            elif key == "force" and value:
+                argv.append("--force")
+            elif key == "force_merge" and value:
+                argv.append("--force-merge")
+            elif key == "yes" and value:
+                argv.append("--yes")
+        return _run_install(cli_namespace("install", *argv))
 
     # Level B (converters) shows full handoff.
     def test_level_b_install_shows_full_handoff(self) -> None:
@@ -383,20 +380,11 @@ class InstallFirstValueHandoffDualScopeTests(unittest.TestCase):
 
         stdout = io.StringIO()
         stderr = io.StringIO()
+        argv = [str(self.cat), "--pack", "converters", "--output", str(self.repo), "--scope", scope]
+        if force:
+            argv.append("--force")
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-            rc = install.run(
-                argparse.Namespace(
-                    pack="converters",
-                    catalogue=str(self.cat),
-                    output=str(self.repo),
-                    scope=scope,
-                    force=force,
-                    force_merge=False,
-                    adapter=None,
-                    dry_run=False,
-                    yes=False,
-                )
-            )
+            rc = install.run(cli_namespace("install", *argv))
         return rc, stdout.getvalue(), stderr.getvalue()
 
     def test_dual_scope_handoff_appears_once(self) -> None:

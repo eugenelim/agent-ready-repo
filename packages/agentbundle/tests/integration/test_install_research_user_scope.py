@@ -20,7 +20,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack, stage_primitives
+from tests._support import cli_namespace, stage_installable_pack, stage_primitives
 
 SKILL_NAMES = (
     "identify-perspectives",
@@ -97,13 +97,9 @@ allowed-scopes = ["user", "repo"]
         stage_primitives(pack, skills=SKILL_NAMES, agents=AGENT_NAMES)
 
     def test_install_then_uninstall_round_trip(self) -> None:
-        install_args = argparse.Namespace(
-            pack="desk-research",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            force=False,
-            force_merge=False,
+        install_args = cli_namespace(
+            "install", str(self.cat), "--pack", "desk-research",
+            "--output", str(self.repo), "--scope", "user",
         )
         rc, stdout, stderr = _run_install(install_args)
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
@@ -165,11 +161,9 @@ allowed-scopes = ["user", "repo"]
                 f"expected projected agent file at {agent_file}",
             )
 
-        uninstall_args = argparse.Namespace(
-            pack="desk-research",
-            root=str(self.repo),
-            scope="user",
-            yes=True,
+        uninstall_args = cli_namespace(
+            "uninstall", "--pack", "desk-research",
+            "--root", str(self.repo), "--scope", "user", "--yes",
         )
         rc, stdout, stderr = _run_uninstall(uninstall_args)
         self.assertEqual(rc, 0, f"uninstall failed: stdout={stdout!r} stderr={stderr!r}")

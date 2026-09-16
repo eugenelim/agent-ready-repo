@@ -83,7 +83,7 @@ def run(args) -> int:
     # from the directory the adopter is standing in rather than from the empty
     # last segment of ".".
     pack_path = direct_source_root(args.pack_path)
-    strict: bool = getattr(args, "strict", False)
+    strict: bool = args.strict
 
     # ── 1. Locate and load pack.toml ──────────────────────────────────────
     pack_toml_path = pack_path / "pack.toml"
@@ -94,7 +94,7 @@ def run(args) -> int:
     # earlier rule made the same directory take the catalogue route in text and
     # the direct route in JSON — the route is a property of the source, not of
     # how the caller wants it printed.
-    output_format = getattr(args, "format", "text")
+    output_format = args.format
     # `_has_direct_marker` probes the source, so it can refuse: the entry bound
     # and the marker probe both raise `DirectAdmissionError`. Uncaught, that
     # reached the terminal as a stack trace carrying internal paths instead of
@@ -115,7 +115,7 @@ def run(args) -> int:
         # a shape refusal that would send the reader after the wrong cause.
         if not pack_toml_path.exists() and _has_direct_marker(pack_path):
             return _run_direct(
-                pack_path, getattr(args, "format", "text"), pack_toml=manifest
+                pack_path, args.format, pack_toml=manifest
             )
     except DirectAdmissionError as exc:
         return _render_marker_refusal(exc, pack_path, output_format)

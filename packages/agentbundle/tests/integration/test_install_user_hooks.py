@@ -19,6 +19,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests._support import cli_namespace
+
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 
@@ -45,15 +47,16 @@ def _install_args(
     adapter: str | None = None,
 ) -> argparse.Namespace:
     """Build the install command's namespace shape, matching cli.py."""
-    return argparse.Namespace(
-        pack=pack,
-        catalogue=catalogue,
-        output=output,
-        scope=scope,
-        force=force,
-        force_merge=force_merge,
-        adapter=adapter,
-    )
+    argv = [catalogue, "--pack", pack, "--output", output]
+    if scope is not None:
+        argv.extend(["--scope", scope])
+    if force:
+        argv.append("--force")
+    if force_merge:
+        argv.append("--force-merge")
+    if adapter is not None:
+        argv.extend(["--adapter", adapter])
+    return cli_namespace("install", *argv)
 
 
 class _UserScopeInstallBase(unittest.TestCase):

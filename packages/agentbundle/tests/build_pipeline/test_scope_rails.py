@@ -17,6 +17,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests._support import cli_namespace
+
 PACK_TOML_USER_OK = """
 [pack]
 name = "demo-user"
@@ -323,7 +325,6 @@ class CliValidateSpecNamedStderrTests(unittest.TestCase):
     """`validate` emits the spec-named text on the cross-field invariant."""
 
     def test_default_scope_not_in_allowed_scopes_emits_spec_text(self) -> None:
-        import argparse
         import contextlib
         import io
 
@@ -348,7 +349,7 @@ allowed-scopes = ["repo"]
                 encoding="utf-8",
                 newline="\n",
             )
-            args = argparse.Namespace(pack_path=str(pack), strict=False)
+            args = cli_namespace("validate", str(pack))
             buf = io.StringIO()
             with contextlib.redirect_stderr(buf):
                 rc = validate_cmd.run(args)
@@ -365,7 +366,6 @@ class CliValidateWiringTests(unittest.TestCase):
     """The CLI's `validate` subcommand surfaces rail refusals to stderr."""
 
     def test_validate_refuses_user_scope_pack_with_hooks(self) -> None:
-        import argparse
         import contextlib
         import io
 
@@ -376,7 +376,7 @@ class CliValidateWiringTests(unittest.TestCase):
             (pack / ".apm" / "hooks").mkdir(parents=True)
             (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
 
-            args = argparse.Namespace(pack_path=str(pack), strict=False)
+            args = cli_namespace("validate", str(pack))
             buf = io.StringIO()
             with contextlib.redirect_stderr(buf):
                 rc = validate_cmd.run(args)
@@ -385,13 +385,12 @@ class CliValidateWiringTests(unittest.TestCase):
             self.assertIn(".apm/hooks/pre-pr.sh", buf.getvalue())
 
     def test_validate_accepts_user_scope_pack_with_no_offenders(self) -> None:
-        import argparse
 
         from agentbundle.commands import validate as validate_cmd
 
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
-            args = argparse.Namespace(pack_path=str(pack), strict=False)
+            args = cli_namespace("validate", str(pack))
             self.assertEqual(validate_cmd.run(args), 0)
 
 

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle pack-config``."""
-    sub: str | None = getattr(args, "pack_config_sub", None)
+    sub: str | None = args.pack_config_sub
     if sub is None:
         print("pack-config: specify a subcommand (get, set, unset, show)", file=sys.stderr)
         return 1

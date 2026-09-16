@@ -35,8 +35,8 @@ def run(args: argparse.Namespace) -> int:
     from agentbundle.commands.show import _find_pack_dir
 
     pack_name: str = args.pack
-    file_stem: str | None = getattr(args, "file", None)
-    list_mode: bool = getattr(args, "list_docs", False)
+    file_stem: str | None = args.file
+    list_mode: bool = args.list_docs
 
     try:
         catalogue_dir = resolve_catalogue(resolve_catalogue_uri(args))

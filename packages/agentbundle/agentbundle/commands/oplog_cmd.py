@@ -20,7 +20,7 @@ _DEFAULT_TAIL = 50
 
 def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle oplog``."""
-    sub: str | None = getattr(args, "oplog_sub", None)
+    sub: str | None = args.oplog_sub
     if sub is None:
         print("oplog: specify a subcommand (show, clear)", file=sys.stderr)
         return 1
