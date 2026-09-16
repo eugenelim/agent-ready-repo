@@ -65,11 +65,13 @@ implementer delta lands inside a section one of them slices:
 `packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py` and
 `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
-Each fixture carries, in the runner, the one rung whose condition it satisfies.
-The runner compares the report's named rung against that value rather than
-counting labels, which is what lets a constant or fabricated rung fail. The
-expected rung is recorded beside the fixture that fixes it, so the comparison
-value is never supplied by the run being graded.
+Each fixture declares, in the runner, the rung or rungs whose condition it
+satisfies. The runner compares the report's named rung against that declaration
+rather than counting labels, which is what lets a constant or fabricated rung
+fail. The declaration lives beside the fixture that fixes it, so the comparison
+value is never supplied by the run being graded. Where two rungs answer a fixture
+jointly the declaration names both, so the check stays a comparison instead of
+becoming an adjudication between two defensible readings.
 
 Protection, not criteria: T3 adds one pack-local content pin asserting that
 `implementer.md` names the ladder by its heading and states no numbered rung of
@@ -159,9 +161,10 @@ those copies are never edited directly.
   the sibling helper, and the report names the existing-solution rung. Proven red
   on the pre-change contract — two runs, byte-identical duplication, no rung
   named.
-- Helper-absent control, proving AC-0003 and AC-0004: the task is solved in the
-  existing module with status `ready`, and the named rung is not the
-  existing-solution rung. The second half is what fails a constant rung label.
+- Helper-absent control, proving AC-0003, AC-0004 and AC-0018: no new module is
+  emitted, status is `ready`, and the named rung falls in the set the fixture
+  declares applicable — a set that excludes the existing-solution rung. That last
+  check is what fails a constant or fabricated rung label.
 - Inadequate-candidate control, proving AC-0005 and AC-0006: its sibling helper
   collapses whitespace runs but does not strip, so reuse would break
   `Done when:`. The emitted function must not delegate to it, and the report must
@@ -244,9 +247,11 @@ narration.
 **Verification mode:** goal-based check
 
 **Tests:**
-- Both manifests carry the same version and it is higher than the merge base's,
-  proving AC-0015. Do not restate a literal target version: another change may
-  bump the pack first.
+- Both manifests carry the same version, exactly one patch increment above the
+  merge base's, proving AC-0015. Compute the base rather than restating a literal
+  target: another change may bump the pack first. This is a delivery-time check
+  run once, not a standing test — asserting `base patch + 1` on every branch reds
+  `main`, where the merge base is `HEAD`.
 - `agentbundle catalogue self-host --root .` reports no drift and
   `agentbundle catalogue verify --root .` passes, proving AC-0016. Run self-host
   on a clean tree: it refuses a dirty one.

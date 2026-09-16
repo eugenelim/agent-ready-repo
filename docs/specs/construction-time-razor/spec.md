@@ -118,9 +118,16 @@ fail the contract, so a remedy that over-fires would still ship.
 
 - **Reuse of an adequate solution (AC-0001, AC-0002)** — goal-based check on the
   reuse fixture, whose sibling helper fully satisfies the task.
-- **No reuse where nothing adequate exists (AC-0003, AC-0004)** — goal-based
-  check on the helper-absent control. AC-0004 is the anti-fabrication half: this
-  fixture's rung is not the existing-solution rung.
+- **No reuse where nothing adequate exists (AC-0003, AC-0004, AC-0018)** —
+  goal-based check on the helper-absent control. AC-0018 is the anti-fabrication
+  half. It compares against the set of rungs the fixture declares applicable
+  rather than one exact rung, because two rungs answer this fixture jointly — the
+  standard-library rung and the one-obvious-line rung both hold for a one-line
+  library call, and forcing a choice between them would make the check an
+  argument rather than a comparison. A rung outside the declared set still fails,
+  which is what a fabricated or constant label produces. The reuse fixture keeps
+  an exact match in AC-0002, because an adequate existing solution admits one
+  answer.
 - **No reuse of an inadequate candidate (AC-0005, AC-0006)** — goal-based check
   on the inadequate-candidate control, whose helper covers part of the outcome
   only. This is the over-fire guard for the reuse rule and the only fixture in
@@ -149,9 +156,10 @@ fail the contract, so a remedy that over-fires would still ship.
   existing sibling helper rather than reimplementing its behaviour.
 - [ ] **AC-0002.** On the reuse fixture, the report names the ladder's
   existing-solution rung as where the implementation stopped.
-- [ ] **AC-0003.** On the helper-absent control, the task is solved within the
-  existing module and the report status is `ready`.
-- [ ] **AC-0004.** On the helper-absent control, the rung the report names is not
+- [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
+- [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
+- [ ] **AC-0018.** On the helper-absent control, the rung the report names is one
+  of the rungs the fixture declares applicable, and that declared set excludes
   the existing-solution rung.
 - [ ] **AC-0005.** On the inadequate-candidate control, whose sibling helper
   satisfies part of the required outcome only, the emitted function does not
@@ -177,7 +185,7 @@ fail the contract, so a remedy that over-fires would still ship.
   names no rung.
 - [ ] **AC-0015.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version, and it is
-  higher than the version at the merge base.
+  exactly one patch increment above the version at the merge base.
 - [ ] **AC-0016.** `agentbundle catalogue self-host --root .` reports no drift
   and `agentbundle catalogue verify --root .` passes.
 - [ ] **AC-0017.** `CHANGELOG.md` carries a `[core]` section directly under
