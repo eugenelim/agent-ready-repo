@@ -337,18 +337,19 @@ clean, and `agentbundle catalogue verify --root .` returns ok.
 - **A Surface disposition is deleted with its halt.** Two rows carry both in one
   sentence, and ADR-0104 is frozen, so the repair for losing them is a
   superseding ADR rather than a spec edit.
-- **The `dispatch-agent-context` deletions do not land.** This plan stops
-  touching rows 7 and 8 on the strength of another branch's uncommitted working
-  tree. If that branch changes course, both copies keep a retired halt and
-  nothing here catches it: AC-0004 asserts the files are *untouched*, which is
-  the opposite check. T3 re-checks at execution time, and both of that
-  worktree's sessions were messaged — but a notification is not a guarantee, and
-  the seed copy was a collision this plan originally missed entirely.
-- **The authority clause disappears with the seed.** This spec's *Never do*
-  protects statements that stasis confers no completion authority, and the
-  seed's copy is one of them. Deleting the file removes it. That is the other
-  branch's call on its own section and this plan does not contest it, but the
-  protection AC-0005 offers does not extend to a file someone else removes.
+- **The `dispatch-agent-context` deletions are committed but not merged.** Both
+  copies were deleted in `8b286d51a` on that branch, so rows 7 and 8 are no
+  longer resting on working-tree state. The residual is the merge: if that branch
+  never lands, both copies keep a retired halt and nothing here catches it,
+  because AC-0004 asserts the files are *untouched* rather than absent. T3
+  re-checks at execution time. Note AC-0004 holds either way — under both
+  outcomes this change does not modify those files — so the criterion is sound
+  and the gap is in coverage, not in the assertion.
+- **Not a risk, recorded because an earlier draft called it one.** Deleting the
+  seed does not cost the authority obligation. `SKILL.md` states it
+  independently at rows 11 and 12 of this inventory, both marked `keep` and both
+  protected by AC-0005. What dies with the file is the halt, which is the point.
+  A duplicate was lost, not an obligation.
 - **The inventory is incomplete in a way no re-run finds.** Named in *Method*
   above. Three attempts have each missed a different class; a fourth class is
   possible and no command in this plan would surface it.
