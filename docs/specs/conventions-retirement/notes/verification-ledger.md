@@ -477,3 +477,58 @@ wave *touched*, and both defects were in suites the wave's edits *reached*. A
 re-pointed constant moves a test's subject without appearing in that test's
 own diff. The full roster run is what surfaced both — 1547 passed after the
 repairs, and the two failures were the only ones in it.
+
+### The gate chain, and two real failures it found
+
+`build-check` cleared two genuine failures across successive runs, then hit one
+environmental wall.
+
+**`catalogue-verify` failed on a poisoned `dist/`.** CAT-V-014 reported a
+missing generated output at
+`dist/apm/governance-extras/.apm/skills/new-adr/scripts/__pycache__/index-records.cpython-313.pyc`.
+The per-skill pack sweep had imported that generator through `importlib`, which
+wrote a `.pyc` beside it, and the build copied the `__pycache__` into `dist/`.
+Running pytest before the gate is what creates this; the fix is to delete
+`dist/`, `build/` and every `__pycache__` so the chain builds them itself, not
+to touch the verifier.
+
+**`test-workspace-status` failed on a content pin.** The work-loop
+finish-checklist window is hashed, and an earlier wave added one bullet inside
+it: a shipped feature's user-facing documentation is updated, routed to the
+guides by Diataxis quadrant. That is the phase-slice doctrine the retired
+document carried. The pin's protocol is to review the change and decide whether
+the engine needs an edit before re-pinning — it does not: the bullet writes no
+`spec.md` field, mutates no `workspace.toml` array, and adds no invariant the
+engine evaluates. The engine states the same boundary in its own comment, that
+its finish checklist only sets `spec.md Status: Shipped`.
+
+**The SAST leg is blocked by machine load, and said so itself.** Two semgrep
+*timeout* diagnostics — not findings — on
+`packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`, at a one-minute load
+average of 112 on 10 CPUs. `--strict` turns a diagnostic into a non-zero exit.
+The gate prints the discriminating procedure, and both halves clear it: the
+named file is not in this change's diff at all, and the same invocation against
+that file alone exits 0 with no diagnostics. Three peer sessions are competing
+for this machine; load was still 95 when the single-file run was taken. The
+correct disposition is a clean-runner re-run, not a new `SEMGREP_EXCLUDE` entry
+— ADR-0102 would require a stated residual and a retirement trigger for an
+exclusion, and there is no defect here to state.
+
+The clean-runner re-run the gate asked for came from the same machine at a
+lower load, and it is the report the gate's wording requires rather than a bare
+"a later run passed": at a starting one-minute load average of 51 on 10 CPUs,
+over the identical file set (`tools packs packages tests`) and the identical
+invocation, semgrep produced **zero** timeout diagnostics where the load-112
+run produced two. `make build-check` then exited 0 with every leg invoked, SAST
+and SCA included — one semgrep run, all four `pip-audit` legs and the npm SCA
+leg. The timeout count tracks load, not content, which is the discriminator the
+gate names.
+
+### What the gate chain caught that no targeted run did
+
+Both real failures came from state the targeted suites cannot see: a `dist/`
+tree poisoned by an earlier pytest, and a content hash over a skill window an
+earlier wave had edited. Neither is reachable by running the suite that owns
+the changed file, because neither failure lives in a suite — one lives in build
+output and one in a pin held by a different tool. The chain is the only place
+they surface.
