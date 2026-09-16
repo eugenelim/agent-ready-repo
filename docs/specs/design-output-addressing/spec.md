@@ -108,7 +108,7 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Applicable — seven guide steps promise a file that never arrives | `guides/experience-design/how-to/` | Guide author | Each of the nineteen steps states what its skill does | The guide-agreement test passes and `tools/lint-guidebook-steps.py` exits 0 |
 | Current product truth | Applicable — three registries name folders no skill writes | `packs/experience-design/DESIGN.md`, `pack.toml` subdirectory comment, `experience-status`'s folder-naming surfaces | Pack maintainer | No registry names a folder no skill declares | The registry-agreement test passes |
-| Interface compatibility | Applicable — the shared containment module is the artifact six criteria quantify over | a byte-identical copy in each of the four writes' `references/containment.md` | Pack maintainer | The module states all five controls and every copy matches | T2 authors it before any task references it |
+| Interface compatibility | Applicable — the shared containment module is the artifact the module criteria quantify over | a byte-identical copy in each of the four writes' `references/containment.md` | Pack maintainer | The module states all five controls and every copy matches | T2 authors it before any task references it |
 | Interface compatibility | Applicable — four declarations must satisfy the layout rule | each write's `references/agentbundle-layout.md` | Pack maintainer | `tests/conformance/test_pack_layout_declared_section.py` passes | Every layout reference states the pack's declared pair |
 | Decision rationale | Applicable — `direction/` is a new folder name | `docs/adr/` plus a reproducible dataset beside it | ADR author | The dataset carries the queries, sampling frame and inclusion rule | ADR accepted and its dataset reproduces the sample |
 | Operations | Applicable — the guide-agreement test is repository-level | `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py` | Maintainer | The test named as a step with a disposition | `tools/lint-ci-parity.py` exits 0 |
@@ -198,6 +198,8 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 - [ ] `packs/experience-design/.apm/skills/design-principles/SKILL.md` contains no
       occurrence of the literal `docs/design`.
 - [ ] Each of the four writes ships a `references/agentbundle-layout.md`.
+- [ ] The shared containment module exists at `references/containment.md` inside
+      each of the four writes' skill directory, and every copy is byte-identical.
 - [ ] Each of the four writes states a line of the literal form `**Confinement:** ` followed
       by a reference to the shared containment module in backticks.
 - [ ] The shared containment module states that an `output_dir` is approved only
@@ -311,24 +313,28 @@ appears in **the seven** as a non-writer and separately owes a read repair.
   carrying the literal, and this repository's own tree.
 
 - Pack maintainer: `packs/experience-design/JOURNEY.md:242` declares stage 5
-  `**State:** confirmed-write`, a write state by `tools/lint-pack-journeys.py:130`,
-  while `design-review` — the skill that stage runs — writes no file. The conflict
-  is pre-existing and was exposed rather than caused by the carve-out; resolving it
-  means editing `JOURNEY.md`, which this spec's `Ask first` covers.
-- Pack maintainer: `guides/experience-design/how-to/design-each-screen.md:423` gives
-  `interaction-design` the path `<output_dir>/screens/<slug>.md`, which no skill
-  writes and `experience-status` does not scan. Correcting it to the brief it
-  enriches introduces `<screen>` as a path segment the page does not resolve, so the
-  repair owes a segment-resolution edit under the guidebook step contract.
+  `**State:** confirmed-write`, a write state by `tools/lint-pack-journeys.py:38-44`,
+  while the only actor that stage names — the `experience-reviewer` agent — is
+  read-only by construction (`packs/experience-design/.apm/agents/experience-reviewer.md:154`).
+  Whether that is a defect turns on whether the stage's scope ends at the findings
+  or includes the designer acting on them: the stage's own `**Output:**` is "a
+  review-clean design set", which is a written outcome. An earlier review of this
+  spec described the stage as running `design-review`; it does not — that skill
+  appears in this journey only as a frontmatter roster entry at `:78`. Resolving
+  the question means editing `JOURNEY.md`, which this spec's `Ask first` covers.
 
 ## Assumptions
 
-- Technical: eight of the eleven skills whose guide steps publish a path state no
-  write step at all — `design-system`'s procedure ends at "Serialize portably",
-  `design-principles`' at "Draft collaboratively", and `analytical-design`,
+- Technical: eight of the nineteen path-publishing guide steps name a skill that
+  states no write step at all — `design-system`, whose procedure ends at
+  "Serialize portably", and the seven with no output step: `analytical-design`,
   `conversion-design`, `documentation-design`, `informational-design`,
-  `marketplace-design`, `workspace-design` and `design-review` have no output step
-  (source: probe — enumerated every numbered procedure step in each, 2026-09-16)
+  `marketplace-design`, `workspace-design`, and `design-review`, which only reads.
+  `design-principles` is **not** among them: it states a write, to the literal
+  `docs/design/principles/<slug>.md`, which is why it sits in the three and why a
+  criterion removes that literal
+  (source: probe — enumerated every numbered procedure step in each, 2026-09-16;
+  `design-principles/SKILL.md:91`)
 - Technical: `interaction-design` writes into the per-screen brief `user-flow`
   owns — "Commit the state machine diagram … into the brief's interaction/behavior
   section" — so its `:8` disclaimer means it emits no artifact of its own, not that
