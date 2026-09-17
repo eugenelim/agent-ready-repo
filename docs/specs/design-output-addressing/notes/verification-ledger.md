@@ -385,3 +385,31 @@ acquires a rule nobody can maintain.
 **Explicitly not claimed.** With these limits documented rather than closed,
 the module must not be read as deciding approval for every input. It decides the
 cases it names.
+
+## Execution observation — the spec's provenance citations outlived their source, 2026-09-17
+
+`origin/main` #1345 retired `docs/CONVENTIONS.md` and re-homed its obligations.
+Two citations in this spec and one in its plan name that file as the source of a
+verified assumption:
+
+- `spec.md:430` — "each phase ships its guide (source: `docs/CONVENTIONS.md:1130`)"
+- `spec.md:433` — "(source: `docs/CONVENTIONS.md:717-726`)"
+- `plan.md:6` — "`docs/CONVENTIONS.md` § Phase-slice"
+
+**Left as they stand, deliberately.** These are provenance records: they say
+where an assumption was checked when the spec was authored, and the file existed
+and said that then. Rewriting them to point at the re-homed text would claim a
+verification that was never performed against the new location. Both artifacts
+are also hash-pinned by the cohort, so editing them breaks the approved-hash
+seal for a citation that is historically accurate.
+
+Recorded here so the next reader is not left guessing: a citation in this spec
+resolving to nothing means the source was retired after the spec froze, not that
+the assumption was invented. No gate objects — `lint-guides-no-repo-only-refs`,
+`validate_guides` and `lint-spec-status` all pass, because none of them resolves
+a provenance citation inside a spec body.
+
+That last clause is the residual risk worth naming: nothing mechanical would
+have told us. The citation was found by grepping this branch's own files for the
+retired path after the rebase, which is a step a reader should repeat whenever a
+cited artifact is retired upstream.
