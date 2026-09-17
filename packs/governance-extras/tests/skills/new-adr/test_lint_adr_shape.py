@@ -1083,3 +1083,45 @@ def test_path_outside_scan_root_is_refused_by_helper(
     # read_confined must refuse because outside is not relative_to(root).
     with pytest.raises(rp.EntryRefused, match="outside"):
         rp.read_confined(root, outside)
+
+
+def test_streams_are_reconfigured_with_a_handler_that_survives_a_surrogate() -> None:
+    """Naming an entry must never be the thing that aborts the scan.
+
+    The hostile-directory case above cannot observe this. It builds a real
+    file with a non-UTF-8 name, which macOS/APFS refuses outright, and it runs
+    the lint through `redirect_stdout` onto a StringIO — which has no
+    `reconfigure` at all and accepts surrogates regardless. So that case passes
+    on every platform whether or not the handler is set.
+
+    This one reads the arguments the lint actually passes, then proves the
+    chosen handler survives the input it exists for: a filename Python has
+    surfaced with surrogate escapes.
+    """
+    lint = _load_lint()
+    recorded: dict[str, object] = {}
+
+    class _Recorder:
+        def reconfigure(self, **kwargs: object) -> None:
+            recorded.update(kwargs)
+
+        def write(self, _text: str) -> int:
+            return 0
+
+        def flush(self) -> None:
+            return None
+
+    rec = _Recorder()
+    with contextlib.redirect_stdout(rec), contextlib.redirect_stderr(rec):
+        lint.main([])          # argv error path: reconfigures, then returns
+    assert recorded.get("encoding") == "utf-8", recorded
+    handler = recorded.get("errors")
+    assert handler not in (None, "strict"), (
+        "streams reconfigured with the strict default; a surrogate filename "
+        f"will raise from the print that names it. got {handler!r}"
+    )
+
+    probe = io.TextIOWrapper(io.BytesIO(), encoding="ascii")
+    probe.reconfigure(encoding="utf-8", errors=str(handler))
+    probe.write("warning: 0117-x\udcff.md: refused\n")
+    probe.flush()

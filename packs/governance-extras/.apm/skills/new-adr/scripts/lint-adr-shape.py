@@ -669,11 +669,17 @@ def _is_candidate(name: str) -> bool:
 def main(argv: list[str] | None = None) -> int:  # noqa: C901
     """Entry point. Returns 0 on clean scan, 1 otherwise."""
     # Reconfigure streams to UTF-8 before the first print (packs/AGENTS.md).
+    # `errors` is load-bearing, not decoration: a directory entry's name is
+    # arbitrary bytes on Linux, and Python surfaces undecodable ones as
+    # surrogates.  Under the default strict handler, naming such an entry
+    # raises UnicodeEncodeError from the print itself — so the scan aborts on
+    # the very path that exists to report it, accounting for no entry at all
+    # and failing AC-0005's partition and AC-0031's controlled non-zero exit.
     # Guard the call: a redirected StringIO (used in tests) has no reconfigure.
     for _stream in (sys.stdout, sys.stderr):
         _r = getattr(_stream, "reconfigure", None)
         if _r is not None:
-            _r(encoding="utf-8")
+            _r(encoding="utf-8", errors="backslashreplace")
 
     if argv is None:
         argv = sys.argv[1:]
