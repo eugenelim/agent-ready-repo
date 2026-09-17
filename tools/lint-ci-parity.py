@@ -393,6 +393,11 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # run: steps — locally gated, remotely not.
     "pytest guides + catalogue navigation":
         LOCAL("test-after-build-check"),
+    # Its own step rather than an append to the guides step: that step's body is
+    # pinned whole by `site-guides-body-exact`, and this suite is neither a guides
+    # nor a navigation check.
+    "pytest stasis-stop retirement claims":
+        LOCAL("test-after-build-check"),
     "pytest site build + link rewriting":
         LOCAL("test-after-build-check"),
     # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from

@@ -1,10 +1,20 @@
 # ADR-0009: A product-brief layer sits between roadmap and spec; the low-level design lives in the plan with a derived (never baked) stack
 
-- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — Decision 1's spec-only coverage map; brief altitude and plan-owned low-level design stand) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-01
-- **Deciders:** eugenelim
+- **Areas:** shaping, documentation
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0019 (product-brief intake + LLD-aware spec/plan — the accepted proposal these decisions record); RFC-0020 (reference-architecture foundation — the LLD reads `reference.md` when present); RFC-0021 (greenfield inception — produces the first brief); `product-brief-intake` spec; `lld-aware-spec-plan` spec; ADR-0008 (contract authoring seam — the prior "agnostic, convention-first core seam" precedent); `docs/CHARTER.md` §Principles
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0098 D2
+- **Related:** RFC-0019 (product-brief intake + LLD-aware spec/plan — the accepted proposal
+  these decisions record); RFC-0020 (reference-architecture foundation — the
+  LLD reads `reference.md` when present); RFC-0021 (greenfield inception —
+  produces the first brief); ADR-0008 (contract authoring seam — the prior
+  "agnostic, convention-first core seam" precedent); `docs/CHARTER.md`
+  §Principles
 
 ## Context
 
@@ -46,6 +56,15 @@ self-host projection, so even an additive change touches everyone. (c) The
 > pipeline; and we locate the **low-level design in `plan.md`** (a stack-neutral
 > `## Design (LLD)` section), with stack-specific content **derived** at
 > authoring time and **never baked** into the template.
+
+- **D1:** A `brief` artifact at `docs/product/briefs/<slug>.md` ships in `core` at a new altitude between roadmap and spec, holding the received outcome, success metrics, scope and non-goals, and appetite.
+- **D2:** A brief's coverage map status is auto-rolled-up from its child specs by a lint, never hand-maintained.
+- **D3:** A brief ingests only this repo's slice and points upward to an external coordinator through an optional `Epic:` pointer; no cross-repo coordination hub is built.
+- **D4:** A derived spec references its brief by a `Brief:` front-matter field with an optional `Satisfies: US-n` marker; specs stay flat under `docs/specs/<feature>/` and are never nested under a brief.
+- **D5:** The low-level design lives in `plan.md`'s stack-neutral `## Design (LLD)` section, built from ten shape-selected optional categories, and `## Rollout` expands to cover infra, external-system integration, and deployment sequencing.
+- **D6:** `spec.md` gains only a stack-neutral `Shape:` field and AC guidance; no LLD body migrates into the spec, and no separate `design.md` tier is created.
+- **D7:** The LLD's stack-specific content is derived at authoring time — from `docs/architecture/reference.md` when present, otherwise from established-repo detection or brief-intake context — and never baked into the shipped template.
+- **D8:** Both capabilities ship in `core`, and every `spec.md` / `plan.md` change is additive-only, with nothing removed or renamed.
 
 Specifically:
 
@@ -118,6 +137,12 @@ Specifically:
 - The auto-rollup lint runs in `make build-check` (fail-closed local gate) per
   the `product-brief-intake` spec's resolution of RFC-0019 Open Q1; it must no-op
   cleanly where no brief exists.
+
+**Revisit if:** the frequency bet recorded as an open product call fails — too
+few adopters receive externally-authored multi-feature briefs to earn a `core`
+primitive under Charter Principle 4 (D1, D8); or delta-expressed / always-living
+specs are pursued after all, which would reshape `spec.md` for every adopter and
+reopen D6.
 
 ## Alternatives considered
 

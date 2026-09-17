@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-22
+- **Areas:** tooling, testing
+- **Reversibility:** high
 - **Decision-makers:** repository maintainers
 - **Supersedes:** none
-- **Related:** `docs/specs/repo-tests-worktree-source/spec.md`; `docs/specs/worktree-runtime-hygiene/spec.md` (Shipped); ADR-0036
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0036
 
 ## Decision summary
 
@@ -57,6 +62,16 @@ the Python installation.
 **We will not introduce a per-worktree virtual environment**, and this
 repository's gates and tests will import `agentbundle` and `credbroker` from
 source.
+
+- **D1:** This repository introduces no per-worktree virtual environment.
+- **D2:** This repository's own gates and tests import `agentbundle` and
+  `credbroker` from source, not from an installed distribution.
+- **D3:** Source resolution has exactly two mechanisms and no third —
+  `PYTHONPATH` for `make` targets and `[tool.pytest.ini_options] pythonpath` for
+  a bare `pytest` — and neither installs anything.
+- **D4:** The decision governs this repository's own invocations only; adopter
+  installs and CI runner provisioning are untouched, and an installed copy on a
+  maintainer's machine stays legitimate.
 
 Source resolution has two mechanisms and no third: `PYTHONPATH` for `make`
 targets (`Makefile:7`), and `[tool.pytest.ini_options] pythonpath` for a bare
@@ -123,6 +138,7 @@ ability to run `pip install` without leaving unremovable litter.
   than the one being worked in — the state in which this decision has already
   been violated by someone. `test-unleased` depends on it, so the gates cannot
   pass in that state.
+- **Owner:** repository maintainers
 - **Residual:** the guard describes installs; it cannot prevent one being made.
   A plain wheel install and an editable install pointing at the current worktree
   are both deliberately allowed, so a maintainer can still reach the harm state

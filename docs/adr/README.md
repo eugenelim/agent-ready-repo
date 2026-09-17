@@ -105,7 +105,7 @@
 | 0101 | [Pack tests are isolated by default, grouped only by a declared compatibility class](0101-pack-test-isolation-by-default-with-declared-compatibility-classes.md) | Accepted | 2026-08-28 |
 | 0102 | [A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) | Accepted | 2026-08-29 |
 | 0103 | [The completion receipt carries a delivery outcome, not an artifact disposition, and rides on the citing dependency edge](0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | Accepted | 2026-09-02 |
-| 0104 | [Light mode's review stops on divergence, not on a round budget](0104-light-mode-review-stops-on-divergence.md) | Proposed | 2026-09-04 |
+| 0104 | [A review loop stops on divergence, not on a round budget — and a signal that cannot be calibrated advises rather than gates](0104-light-mode-review-stops-on-divergence.md) | Accepted | 2026-09-04 |
 | 0105 | [Retained lifecycle records may terminate as Reclassified](0105-retained-lifecycle-records-may-terminate-as-reclassified.md) | Accepted | 2026-09-04 |
 | 0106 | [Direct skill identity and upgrade revision route](0106-direct-skill-identity-and-upgrade-revision-route.md) | Accepted | 2026-09-08 |
 | 0107 | [The Claude-plugin route serves non-technical adopters, as individual per-pack plugins](0107-claude-plugin-route-serves-non-technical-adopters.md) | Accepted | 2026-09-10 |

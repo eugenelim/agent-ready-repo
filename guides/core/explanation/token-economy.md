@@ -76,7 +76,7 @@ The loop guards rounds directly:
 
 - **Plan-first** — direct-light records a bounded plan in the active session, while durable work records a spec and plan — spends a little context up front so the agent doesn't burn a round building the wrong thing. The durable spec survives the context turning over.
 - **Mechanical gates** (lint, typecheck, tests) fail before review, so no round is spent reviewing code that doesn't run.
-- **Iteration and token-budget caps** stop full mode loud instead of letting it spiral — and stasis detection stops a third pass on findings that already repeated. Light mode reads a divergence checkpoint instead. Runaway rounds are a stop condition, not a silent bill.
+- **Iteration and token-budget caps** stop full mode loud instead of letting it spiral. Light mode reads a divergence checkpoint instead. Runaway rounds are a stop condition, not a silent bill.
 
 Anti-drift alignment is the thing being bought here. Fresh context and the spec are how it's paid for, and not wasting rounds is how the investment pays back.
 

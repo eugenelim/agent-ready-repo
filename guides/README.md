@@ -185,7 +185,7 @@ This release and reporting stage takes the build through its human ship gate.
 | **Document what ships** | [`product-documentation`](product-documentation/) | [`converters`](converters/) and the guide for the pack whose behavior you are documenting |
 | **Build and govern a catalogue** | [`catalogue-curation`](catalogue-curation/) | [`governance-extras`](governance-extras/), [`product-documentation`](product-documentation/), and the [catalogue authoring standards](_shared/reference/catalogue-authoring-standards.md) |
 
-The [`core`](core/) build loop is the catalogue's flagship and its strongest standalone product: a spec-driven implementation loop with mechanical gates, cold independent review, stasis detection, and a human merge decision. Start there when you want the most rigorous coding-agent workflow; the rest of the catalogue applies the same supervised-work principle to other jobs.
+The [`core`](core/) build loop is the catalogue's flagship and its strongest standalone product: a spec-driven implementation loop with mechanical gates, cold independent review, a mechanical iteration cap, and a human merge decision. Start there when you want the most rigorous coding-agent workflow; the rest of the catalogue applies the same supervised-work principle to other jobs.
 
 ## Choose by role
 

@@ -2,9 +2,19 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-25
+- **Areas:** experience, packaging
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level), RFC-0050 (the `experience`-pack child RFC that models it), RFC-0033 + ADR-0024 (created the `design-craft` pack and its posture — **frozen, bridged here**), RFC-0100 § Errata 2026-06-25 (the `infra-contract-acquisition → contract-acquisition` skill rename — the precedent this follows), `docs/specs/design-craft-pack/` (Shipped — **frozen, bridged here**)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level); RFC-0050
+  (the `experience`-pack child RFC that models it); RFC-0033 + ADR-0024
+  (created the `design-craft` pack and its posture — **frozen, bridged
+  here**); RFC-0100 § Errata 2026-06-25 (the
+  `infra-contract-acquisition → contract-acquisition` skill rename — the
+  precedent this follows)
 
 ## Decision summary
 
@@ -45,6 +55,29 @@ and shipped **no install-time alias**.
 > We will rename the `design-craft` pack to `experience`, renaming the live
 > surface and bridging frozen governance, with no install-time alias —
 > following the `contract-acquisition` precedent.
+
+- **D1:** The pack is renamed `design-craft` → `experience`, moving
+  `packs/design-craft/` to `packs/experience/`.
+- **D2:** Every live surface carrying the name is renamed with it — `pack.toml`
+  `name`/`display_name`/`description`, `.claude-plugin/plugin.json`, the
+  aggregated `.claude-plugin/marketplace.json` entry, `guides/design-craft/` and
+  the `[pack.links].documentation` URL, the README, and the pack's skill
+  cross-links.
+- **D3:** The agnosticism lint and its self-test are renamed to
+  `lint-experience-agnostic.py` and `test-lint-experience-agnostic.py`, the scan
+  root retargeted to `packs/experience/`, the `DESIGN_CRAFT_ROOT` override
+  renamed `EXPERIENCE_ROOT`, and the two CI steps updated.
+- **D4:** Two provenance pointers stay pinned to their frozen sources — the
+  RFC-0033 citation in the lint docstring and the `(design-craft-pack AC8)` tag
+  in the CI step name.
+- **D5:** The pack version moves `0.1.1 → 0.2.0`.
+- **D6:** Frozen governance is not edited — RFC-0033, ADR-0024, the Shipped
+  `docs/specs/design-craft-pack/` spec, and the `docs/rfc` / `docs/specs` README
+  index rows keep the `design-craft` name, bridged by this ADR.
+- **D7:** No install-time alias is added; an installed `design-craft` is
+  uninstalled and reinstalled as `experience` by the adopter.
+- **D8:** The pack's posture is unchanged — ADR-0024's framework-agnosticism and
+  all-skills-zero-agents commitments carry forward to `experience` verbatim.
 
 Specifically:
 
@@ -93,6 +126,8 @@ all-skills-zero-agents commitments carry forward to `experience` verbatim.
   (`contract-acquisition`); not inventing a second one.
 - **Governance immutability** — frozen ADRs/RFCs/specs are bridged, never
   edited.
+- **Scope discipline** — inventing a pack-alias field is a distribution-mechanism
+  RFC, not this decision's to make.
 
 ## Consequences
 
@@ -123,9 +158,9 @@ all-skills-zero-agents commitments carry forward to `experience` verbatim.
 - **Grow `design-craft` in place, keep the name** — rejected against *name
   legibility*: the seat outgrows the name, and the cheap-rename window
   (pre-stable) is forfeited (RFC-0050 Option B).
-- **Ship an install-time pack alias** — rejected against *precedent reuse* and
-  *scope*: no alias field exists; adding one is a distribution-mechanism RFC,
-  and the `contract-acquisition` precedent shipped no alias.
+- **Ship an install-time pack alias** — rejected against *scope discipline*: no
+  alias field exists, adding one is a distribution-mechanism RFC, and the
+  `contract-acquisition` precedent shipped no alias.
 - **Edit frozen RFC-0033 / ADR-0024 to the new name** — rejected against
   *governance immutability*: frozen bodies are bridged, not edited.
 

@@ -1,11 +1,24 @@
 # ADR-0019: Product shaping is a recursive level-tagged `intent` tree; a brief is a feature-intent projected onto one repo; contracts mature by stage
 
-- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — Decision 2's feature-intent-only brief projection and universal `receive-brief` receiver; the recursive ontology and staged contract maturity stand) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-13
-- **Deciders:** eugenelim
+- **Areas:** shaping
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Refined by:** ADR-0033 refines part 1 (`Level` is an open recognized set, decoupled from `Scale`); ADR-0076 refines part 2 (briefs may persist and selected delivery dispatches only from spec/plan pairs); ADR-0077 further refines part 2 by gating feature projection on shippability/coordination and replacing universal one-way tracker projection with lifecycle authority modes. Part 3 and the remainder of part 2 stand. ADR-0019 stays Accepted; these are metadata back-pointers, not body edits.
-- **Related:** RFC-0030 (the product-engineering pack — the decision this records) · ADR-0009 (the brief layer this reframes) · ADR-0008 + RFC-0017 + RFC-0018 (the contract-authoring seam this stages) · RFC-0019 (receive-brief)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0098 D6,D7
+- **Related:** RFC-0030 (the product-engineering pack — the decision this records);
+  ADR-0009 (the brief layer this reframes); ADR-0008 + RFC-0017 + RFC-0018
+  (the contract-authoring seam this stages); RFC-0019 (receive-brief);
+  ADR-0033 refines part 1 (`Level` is an open recognized set, decoupled from
+  `Scale`); ADR-0076 refines part 2 (briefs may persist and selected
+  delivery dispatches only from spec/plan pairs); ADR-0077 further refines
+  part 2 by gating feature projection on shippability/coordination and
+  replacing universal one-way tracker projection with lifecycle authority
+  modes. Part 3 and the remainder of part 2 stand. ADR-0019 stays Accepted;
+  these are metadata back-pointers, not body edits.
 
 ## Context
 
@@ -20,6 +33,19 @@ RFC-0030 (Accepted 2026-06-13) introduces an opt-in `product-engineering` pack �
 ## Decision
 
 **We model product shaping as a recursive, level-tagged `intent` tree whose leaf is a shippable spec/slice; a brief is a feature-level intent projected onto a single repo; and the integration contract matures by SDLC stage rather than being pinned up front.**
+
+- **D1:** Product shaping is modelled as a recursive `intent` tree whose nodes carry a `level` tag and whose leaf is a shippable spec or slice.
+- **D2:** An `intent` holds `{outcome, opportunity, assumptions}` as fields, and its children are either lower-level intents or, at the leaf, specs/slices.
+- **D3:** A capability intent, a feature intent, and a PRD are the same artifact at different levels, not three artifact types.
+- **D4:** Decomposition proceeds recursively, one level down at a time, and assumptions are de-risked per intent at that intent's own level.
+- **D5:** The tree projects **one-way** to trackers through per-mode profiles; a tracker is a render, never the source, and there is no round-trip sync.
+- **D6:** A brief is a feature-level intent projected onto a single repo — identity at app scale, one brief per component repo at BU scale.
+- **D7:** `receive-brief` stays in `core` as the universal receiver, and `core` imports nothing from the product-engineering pack.
+- **D8:** A brief carries no `level:` field, because `receive-brief` is level-agnostic by construction — it always receives a brief for its own repo.
+- **D9:** The only addition to the brief is an optional `parent-intent:` provenance back-pointer at BU scale, carried like the existing `Epic:` coordinator pointer and never interpreted by `receive-brief`.
+- **D10:** The integration contract matures by SDLC stage: behavioral intent @intent, interaction/consumer-expectation contract @brief, detailed wire contract @spec, verify @build.
+- **D11:** The detailed wire contract is pinned at the spec stage, reusing the ADR-0008 / RFC-0017/0018 `Contract:` seam at `new-spec` step 4b, and is never pinned at intent.
+- **D12:** The business-unit, cross-component value-stream layer is deferred to a phase-2 spec; this record commits only to the projection and reference shape, not to an authority location.
 
 Three parts:
 
@@ -49,6 +75,8 @@ This ADR records the decisions; the v1 spec (`docs/specs/product-engineering-pac
 **Neutral / to revisit:**
 - The BU-scale cross-component meta-repo (and the canonical home for a cross-repo shared contract) is deferred to phase 2; this ADR commits only to the projection/reference shape, not the authority location.
 - The contract-authority home (meta-repo vs dedicated contracts repo vs schema registry) is org-specific and intentionally left open.
+
+**Revisit if:** the BU-scale cross-component layer deferred to phase 2 is taken up, which has to settle the authority location that D12 deliberately leaves open; or an org fixes a contract-authority home — meta-repo, dedicated contracts repo, or schema registry — that the staged maturity (D10, D11) then has to name.
 
 ## Alternatives considered
 

@@ -2,10 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-30
+- **Areas:** work-loop, infrastructure
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0049 (parent), RFC-0048 (foundation), RFC-0041 (infra-aware work-loop), the release-loop spec + its spec-stage adversarial and security reviews
 - **Supersedes:** none
-- **Related:** [RFC-0049](../rfc/0049-the-release-loop-and-company-os.md) · [RFC-0048](../rfc/0048-autonomous-product-team-operating-model.md) · [RFC-0041](../rfc/0041-infra-aware-work-loop.md) · [ADR-0031](0031-infra-support-is-doctrine-on-existing-reviewers-not-a-new-reviewer-or-runtime.md) · [ADR-0043](0043-the-discovery-coordinator-is-an-agent-plus-skill-plus-carried-sidecar-no-engine.md) · [release-loop spec](../specs/release-loop/spec.md)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0049; RFC-0048; RFC-0041; ADR-0031; ADR-0043
 
 ## Decision summary
 
@@ -49,6 +54,13 @@ one-way door into a two-way door — which is the same logic RFC-0048 already us
 for tests-as-verifier, applied to deploy.
 
 ## Decision
+
+- **D1:** `work-loop` is the inner loop and a new `release-loop`, run by a distinct `release-lead` agent, is the deployed-validation outer loop.
+- **D2:** `release-lead` is a peer of `work-loop`'s supervisor and `discovery-lead`, never a `work-loop` mode.
+- **D3:** The agent runs the inner and outer loops unwatched on ephemeral environments, and the human is present only at the irreversible exits — first real users or data, data migrations, spend over a pre-agreed threshold, security/auth-boundary changes, anything irreversible beyond MTTR, and the G5 prod ship.
+- **D4:** "Reversible" is conditioned on environment isolation, so a deploy target that cannot be proven isolated is itself a consent-gate crossing.
+- **D5:** Promotion up to the human gate is judged by automated policy — canary metric analysis, e2e coverage of the changed surface, and flake under 2% — not by a human, and DORA is a health signal rather than a per-promotion gate.
+- **D6:** The outer loop reuses `core`'s `operational-safety` modules via `quality-engineer` plus `security-reviewer` and consumes the RFC-0053 discovery sidecar by convention, shipping no new runtime engine and no new reviewer agent.
 
 1. **The inner/outer split.** `work-loop` is the **inner loop** (local build +
    verification via the fidelity ladder). A new `release-loop`, run by a distinct
@@ -105,6 +117,10 @@ for tests-as-verifier, applied to deploy.
 
 ## Confirmation
 
+- **Mode:** spec acceptance criteria at the implementing PR, then reviewer-checked.
+- **Signal:** the release-loop spec's acceptance criteria pass — the inner/outer split and peer-not-mode framing (AC1), the two carve zones (AC3/AC4), convergence-by-policy (AC6), the reuse-no-engine posture (AC9), the security and integrity controls (AC10), and the no-engine worked-example trace (AC12).
+- **Owner:** eugenelim
+
 The carve and the split are realized as **`release-loop` skill doctrine + the
 `release-lead` agent** (not a CONVENTIONS edit — RFC-0048 § Amendments
 2026-06-29), verified by the release-loop spec's acceptance criteria: the
@@ -117,10 +133,12 @@ leaving it implicit in the skill.
 
 ## Alternatives considered
 
-- **Do nothing (stop at G4).** Humans relay deployed findings — the RFC-0041 relay
-  anti-pattern. Rejected.
-- **Deploy as a flavor inside `work-loop` (RFC-0041 as-is).** Conflates fast/local
-  with slow/stateful/deployed; no ephemeral-env iterate-until-converge.
-  Insufficient — this ADR graduates that flavor into a proper outer loop.
-- **Full autonomous prod deploy.** The agent ships to prod unwatched. Crosses the
-  irreversible line; violates the minimum-regret carve. Rejected.
+- **Do nothing (stop at G4)** — rejected against *no-relay*: humans keep relaying
+  deployed findings, which is the RFC-0041 anti-pattern this decision removes.
+- **Deploy as a flavor inside `work-loop` (RFC-0041 as-is)** — rejected against
+  *shift-right is irreducible*: it conflates fast/local with slow/stateful/deployed
+  and has no ephemeral-env iterate-until-converge, so D1 graduates that flavor into
+  a proper outer loop.
+- **Full autonomous prod deploy** — rejected against *reversibility unlocks
+  autonomy*: shipping to prod unwatched crosses the irreversible line and violates
+  the minimum-regret carve (D3).

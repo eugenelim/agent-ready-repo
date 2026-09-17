@@ -240,7 +240,7 @@ full mode, or pass `--report <raw-report-path>`.
 | `invalid` | Surface and stop without state change or mutation, except the exact machine-checkable evidence route above. |
 | `clean` | Raw classifier accepted the closed sentinel/footer grammar; run remaining reviewers. |
 | `findings` | Use only sustained entries and returned fingerprints. |
-| `matches_previous_round=true` | Surface stasis; do not start another round. Full mode only — light mode holds no prior-round fingerprints, so this never fires there and its divergence checkpoint is the only stop. |
+| `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Full mode only — light mode holds no prior-round fingerprints. |
 
 For sustained findings, transition before recording so the retry guard sees the
 pre-increment count. **Do not record if the transition exits non-zero.** The

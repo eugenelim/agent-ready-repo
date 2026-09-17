@@ -2,9 +2,18 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-19
+- **Areas:** shaping, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0063 (driving RFC — D1–D10); RFC-0030 (product-engineering pack); RFC-0050 (experience-design pack); RFC-0062 (content-design and copy-direction — deferred content strategy to this pack); RFC-0004 (Rail A user-scope); ADR-0024 (pure-markdown guardrail extended by analogy); ADR-0030 (consolidated-pack-layout)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0063 (driving RFC — D1–D10); RFC-0030 (product-engineering pack);
+  RFC-0050 (experience-design pack); RFC-0062 (content-design and
+  copy-direction — deferred content strategy to this pack); RFC-0004 (Rail A
+  user-scope); ADR-0024 (pure-markdown guardrail extended by analogy);
+  ADR-0030 (consolidated-pack-layout)
 
 ## Decision summary
 
@@ -18,27 +27,27 @@
 
 RFC-0063 (opened 2026-07-18, accepted 2026-07-19) identified a catalogue gap: the experience-design pack starts at journey mapping, and the product-engineering pack starts at product-vision intent, but neither covers the upstream strategy work that precedes both. Building the platform site (2026-07-01) and drafting RFC-0062 (content strategy deferred) both surfaced this gap. The resolution is a dedicated pack for strategist-role disciplines.
 
-## The ten decisions (D1–D10)
+## Decision
 
-**D1 — Create a `product-strategy` pack.** The disciplines are strategist-role work distinct from designer and engineer roles; a separate pack keeps the existing packs coherent. Confirmed: the name `product-strategy` shadows the PE intent level but is clearer to practitioners than alternatives.
+- **D1:** **Create a `product-strategy` pack.** The disciplines are strategist-role work distinct from designer and engineer roles; a separate pack keeps the existing packs coherent. Confirmed: the name `product-strategy` shadows the PE intent level but is clearer to practitioners than alternatives.
 
-**D2 — Market strategy and UX strategy as the two foundational pillars.** Both sit clearly upstream of product-engineering and experience-design; both have canonical discipline definitions and artifact chains.
+- **D2:** **Market strategy and UX strategy as the two foundational pillars.** Both sit clearly upstream of product-engineering and experience-design; both have canonical discipline definitions and artifact chains.
 
-**D3 — Content strategy as a third pillar.** Content strategy (Halvorson quad: Purpose + Process + Structure + Governance) is a planning/governance discipline distinct from content-design (per-surface design work). RFC-0062 explicitly deferred content strategy to this pack.
+- **D3:** **Content strategy as a third pillar.** Content strategy (Halvorson quad: Purpose + Process + Structure + Governance) is a planning/governance discipline distinct from content-design (per-surface design work). RFC-0062 explicitly deferred content strategy to this pack.
 
-**D4 — Growth strategy deferred (OQ1 resolved as deferred).** Growth strategy (AARRR, PLG, PMF testing) has a distinct operational character — measurement, experimentation, activation loops — that warrants a separate `growth` pack. V1 excludes it.
+- **D4:** **Growth strategy deferred (OQ1 resolved as deferred).** Growth strategy (AARRR, PLG, PMF testing) has a distinct operational character — measurement, experimentation, activation loops — that warrants a separate `growth` pack. V1 excludes it.
 
-**D5 — Seven Pillar-1 skills in v1.** `run-swot`, `run-porters-five-forces`, `run-pestle-analysis`, `run-bcg-matrix`, `run-okr-cascade`, `write-prfaq`, `synthesize-stakeholder-research`. All are canonical frameworks with clear artifact types and distinct elicitation triggers.
+- **D5:** **Seven Pillar-1 skills in v1.** `run-swot`, `run-porters-five-forces`, `run-pestle-analysis`, `run-bcg-matrix`, `run-okr-cascade`, `write-prfaq`, `synthesize-stakeholder-research`. All are canonical frameworks with clear artifact types and distinct elicitation triggers.
 
-**D6 — UX strategy as a single compositing skill (`define-ux-strategy`).** The NN/g three-layer model, Jaime Levy's four-tenets framework, and Gothelf/Seiden OKR-linked UX framing are complementary lenses on one artifact (`ux-strategy.md`), not competing skills.
+- **D6:** **UX strategy as a single compositing skill (`define-ux-strategy`).** The NN/g three-layer model, Jaime Levy's four-tenets framework, and Gothelf/Seiden OKR-linked UX framing are complementary lenses on one artifact (`ux-strategy.md`), not competing skills.
 
-**D7 — Content strategy as a single skill (`define-content-strategy`).** The Halvorson quad is the canonical framework; one skill produces the organizational governance artifact that content-design and experience-design consume downstream.
+- **D7:** **Content strategy as a single skill (`define-content-strategy`).** The Halvorson quad is the canonical framework; one skill produces the organizational governance artifact that content-design and experience-design consume downstream.
 
-**D8 — `synthesize-stakeholder-research` as a Pillar-1 capstone.** Stakeholder perspectives (executive, user, regulator) are market intelligence inputs; their synthesis produces strategic direction artifacts. The skill consumes desk-research pack outputs and does not produce primary research.
+- **D8:** **`synthesize-stakeholder-research` as a Pillar-1 capstone.** Stakeholder perspectives (executive, user, regulator) are market intelligence inputs; their synthesis produces strategic direction artifacts. The skill consumes desk-research pack outputs and does not produce primary research.
 
-**D9 — OKR cascade → `frame-situation` routing contract: agent-mediated, shaping queue as handoff.** No mechanical cross-pack call avoids tight coupling; the shaping queue survives session boundaries. Gaps are written as `{slug = "<gap-slug>", type = "strategy"}` entries (no `needs` field) to the active initiative's `["ini-NNN".shaping_queue].backlog` in `workspace.toml`. `check-workspace` routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `frame-intent` as interim.
+- **D9:** **OKR cascade → `frame-situation` routing contract: agent-mediated, shaping queue as handoff.** No mechanical cross-pack call avoids tight coupling; the shaping queue survives session boundaries. Gaps are written as `{slug = "<gap-slug>", type = "strategy"}` entries (no `needs` field) to the active initiative's `["ini-NNN".shaping_queue].backlog` in `workspace.toml`. `check-workspace` routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `frame-intent` as interim.
 
-**D10 — Market intelligence as a named concept, not a separate skill.** The accumulated committed outputs of `run-pestle-analysis` + `run-porters-five-forces` + `synthesize-stakeholder-research` constitute "market intelligence" in `docs/product/shaping/`. A separate skill would duplicate the three analysis skills.
+- **D10:** **Market intelligence as a named concept, not a separate skill.** The accumulated committed outputs of `run-pestle-analysis` + `run-porters-five-forces` + `synthesize-stakeholder-research` constitute "market intelligence" in `docs/product/shaping/`. A separate skill would duplicate the three analysis skills.
 
 ## Cross-pack routing contract
 
@@ -60,3 +69,5 @@ Experience mapping is closer in character to journey-mapping (experience-design 
 - The existing `product-engineering` and `experience-design` packs receive cross-reference notes but no functional change.
 - `check-workspace` (core pack) receives a two-line routing update.
 - `docs/backlog.md` receives two new open entries (growth-strategy-pack, experience-mapping-extension) and one resolved thread (content-strategy in content-strategy-and-marketing-copy-lens).
+
+**Revisit if:** the `growth-strategy-pack` (OQ1) or `experience-mapping-extension` (OQ2) backlog entries come up for resolution, which would reopen D4's v1 exclusion and the pack's discipline boundary; or the `product-strategy` intent level in `product-engineering` is renamed, which ends the vocabulary shadowing D1 accepted.

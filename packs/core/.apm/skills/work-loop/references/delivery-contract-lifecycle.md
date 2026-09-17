@@ -127,8 +127,7 @@ Stop the current iteration when any of these is true:
 2. `loop-cohort.py check` exits non-zero, other than the expected pending plan
    review that triggers pre-EXECUTE reviewers. Implementation/review retry caps
    identify their condition. A repeated finding fingerprint from `review inspect`
-   is stasis and stops immediately for human replanning; it is not another review
-   round.
+   is Surfaced, not a stop; it bounds nothing.
 3. The diff is shrinking but findings are not. Stop spot-fixing and return to the
    plan/root cause.
 

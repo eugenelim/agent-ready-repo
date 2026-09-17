@@ -2,10 +2,25 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-24
+- **Areas:** architecture, knowledge
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0045 (the accepted decision this records, incl. its two-build scrubbed field report and the D1–D6 decision set); its external prior-art set (the AWS Well-Architected Serverless Applications Lens design principles; AWS Prescriptive Guidance's 29 s ceiling + 202-accept-then-poll pattern; Azure Functions WAF service guide; Google Cloud Run functions best practices; the Neptune Serverless / DynamoDB on-demand / OpenSearch Serverless / SQS at-least-once anchors confirming the lens spans the serverless *class*); the spec-stage adversarial + design review of this ADR and the implementing spec
 - **Supersedes:** none
-- **Related:** RFC-0045 (the accepted decision this ADR records); RFC-0044 + ADR-0034 (the *build*-loop companion this mirrors one inner-loop stage earlier — same memory-vs-ground-truth thesis, design-time adaptation carved explicitly); RFC-0042 + ADR-0032 (built the dual-consumed workload-class routing axis at design Stage 0 *and* `architect-review` WA mode, and **explicitly deferred ML/SaaS/serverless** — ADR-0032 §"Neutral / to revisit": *"A future RFC that backs any of them reopens this scope"*; this is that future RFC for serverless); `docs/specs/well-architected-cloud/` (Shipped/frozen — origin of the pillar spine + the concern × workload-class lens-axis model); `docs/specs/agentic-well-architected-overlay/` (the sibling lens whose dual-consumed shape this mirrors); the repo's 3-tier dependency policy (T2's detect-and-recommend, which the K decision reuses); CHARTER Principles 1 (no per-vendor enumeration), 2 (no duplication), 3 (habit, not infrastructure)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0045 (the accepted decision this ADR records); RFC-0044 + ADR-0034 (the
+  *build*-loop companion this mirrors one inner-loop stage earlier — same
+  memory-vs-ground-truth thesis, design-time adaptation carved explicitly);
+  RFC-0042 + ADR-0032 (built the dual-consumed workload-class routing axis
+  at design Stage 0 *and* `architect-review` WA mode, and **explicitly
+  deferred ML/SaaS/serverless** — ADR-0032 §"Neutral / to revisit": *"A
+  future RFC that backs any of them reopens this scope"*; this is that
+  future RFC for serverless); the repo's 3-tier dependency policy (T2's
+  detect-and-recommend, which the K decision reuses); CHARTER Principles 1
+  (no per-vendor enumeration), 2 (no duplication), 3 (habit, not
+  infrastructure)
 
 ## Context
 
@@ -32,6 +47,37 @@ Constraints in force when deciding:
 ## Decision
 
 > We will ground the `architect` pack's **design phase** in the platform's real contract by **backing the deferred serverless workload-class lens** (`lens-serverless.md`, cloud-agnostic, spanning the whole serverless class) and adding a **dual-consumed platform-contract grounding discipline** and a **dual-consumed synchronous-path viability check** — each consumed *by construction* at `architect-design` and *independently re-checked* at `architect-review` — as **prose only on the existing RFC-0042 routing axis**, with **no new skill, reviewer, or executable tooling**. It is the **design-time companion to RFC-0044**: same ground-in-reality thesis, evidence drawn from authoritative prose rather than toolchain oracles, because at design time neither IaC nor a deployable artifact exists.
+
+- **D1:** Everything ships as reference prose plus `SKILL.md` / rubric edits on
+  the existing `architect` pack — no executable code, no new skill, no new
+  reviewer.
+- **D2:** Serverless becomes the second backed value on the already-shipped
+  RFC-0042 routing axis; the axis itself is unchanged and is not re-authored.
+- **D3:** The platform-contract grounding discipline and the synchronous-path
+  viability check are each consumed by construction at `architect-design` *and*
+  independently re-checked at `architect-review`.
+- **D4:** `architect-review` re-derives rather than trusting the design's
+  assertion: an ungrounded load-bearing managed-service claim, or an unbudgeted
+  synchronous long-operation path, is a finding.
+- **D5:** At design time the binding contract is grounded in authoritative prose
+  — a curated platform skill if present, else official docs, else `research` —
+  never model memory, and never a toolchain oracle.
+- **D6:** A grounded claim carries source and confidence, and a load-bearing
+  claim that cannot be grounded is flagged at lowered confidence rather than
+  asserted.
+- **D7:** `lens-serverless.md` is cloud-agnostic, converged from all three
+  hyperscalers' guidance, concern-grouped rather than flat or pillar-keyed, and
+  spans the whole serverless class rather than functions alone.
+- **D8:** The lens carries durable rules only; version-specific binding numbers
+  live in curated platform skills that the grounding discipline recommends
+  installing when absent, and no per-vendor data is bundled into the lens.
+- **D9:** Scope is serverless only; ML and SaaS stay named-but-unbacked, with the
+  deferral recorded in `docs/backlog.md`.
+- **D10:** The viability check has one home — the serverless lens owns the
+  mechanics and the agentic lens carries a one-line cross-reference to the
+  trigger, never a copy.
+- **D11:** The grounding discipline is scoped to load-bearing critical-path
+  claims, not every managed-service mention.
 
 Five sub-decisions, each expensive to reverse (cross-references to "Decision N" below are to **RFC-0045's** six-decision numbering, not this ADR's bullet order; RFC-0045's **Decision 6** — the serverless-only scope and the backlog deferral of ML / SaaS — is recorded under *Boundaries*, so all six are accounted for):
 
@@ -81,8 +127,26 @@ Boundaries on the decision:
 - **On an unfamiliar managed surface with no curated platform skill installed, the *number-bearing* half of grounding is mitigated, not guaranteed — but the *rule-bearing* half still fires.** The discipline splits cleanly: the durable rule (sum the latency across the hops, compare it to *the* front-door's binding timeout, flag a synchronous long-operation; for a contract claim, demand a source + confidence and flag what can't be grounded) fires **without any platform skill**, forcing the *question* into view — which is exactly the design-time check the field report shows was missing. What the absent skill withholds is the *specific number* (the ~29 s ceiling, the capacity-unit floor) that turns the flagged question into a settled answer; that falls back to docs-retrieval / `research`, and the binding figure is mitigated, not guaranteed. So the headline two-day failure's *precondition* — the question never being asked — is closed even with no skill; what a skill adds is the authoritative figure that resolves it faster. This is the design-time mirror of ADR-0034's accepted residual of choosing Principle 1 over a bundled KB; the detect-and-recommend step makes the number-gap visible and routes it to a decision rather than eliminating it.
 - **ML / SaaS stay deferred**, named-but-unbacked. A future RFC that backs either reopens this scope (the ADR-0032 pattern, now with serverless removed from the deferred set).
 
+**Revisit if:** a post-ship serverless or agentic design still ships a
+structurally-impossible synchronous long-operation path, or an ungrounded
+load-bearing contract claim, with the serverless lens and the grounding clause
+loaded — that is the recorded falsification trigger and it reopens D3–D6; or a
+future RFC backs ML or SaaS and reopens D9's scope.
+
 ## Confirmation
 
+- **Mode:** review-time, deliberately not a standing CI gate — matching ADR-0032
+  and ADR-0034 and CHARTER Principle 3.
+- **Signal:** the implementing spec's acceptance criteria pass —
+  `lens-serverless.md` byte-identical in both skill copies, the rubric's
+  serverless route resolving to it, the grounding clause in `architect-design`
+  plus the WA-mode independent re-check, the synchronous-path viability check and
+  its rubric Performance check, the one-line agentic-lens cross-reference, the
+  platform-skill routing note, the backlog update, and a dogfood run — and the
+  spec-stage and diff review passes (adversarial + design, security where a
+  boundary is crossed) report no new skill, reviewer, or executable tooling, a
+  cloud-agnostic lens, and genuinely dual-consumed disciplines.
+- **Owner:** eugenelim
 - The implementing spec's acceptance criteria encode the decision — `lens-serverless.md` (cloud-agnostic, five concerns, whole-class) in **both** skill copies kept byte-identical; the rubric's serverless route now resolving to it; the platform-contract grounding clause in `architect-design` + the WA-mode independent re-check; the synchronous-path viability check in design + the rubric Performance check + the one-line agentic-lens cross-reference; the K routing-to-platform-skill note; the backlog update; and a dogfood run — so conformance is checkable against the spec.
 - The spec-stage and diff review passes (adversarial + design, security where a boundary is crossed) confirm that **no new skill, reviewer, or executable tooling creeps in** (the standing scope-inflation risk), that the lens **stays cloud-agnostic with version-specific facts routed out** (Principle 1), that the grounding / viability disciplines **stay at design altitude** and are **genuinely dual-consumed** (not author-only), and that the **two lens copies stay byte-identical** modulo the duplication note.
 - **Enforcement is deliberately review-time, not a standing CI gate** — matching ADR-0032 / ADR-0034 and Principle 3 (the bar that forecloses a code gate is the one that keeps the lens prose). An optional later governance lint (asserting the two `lens-serverless.md` copies are byte-identical modulo the duplication note, or that the agentic↔serverless cross-reference link resolves) could harden it without reversing this ADR, and is recorded as a possible follow-up, not a requirement.

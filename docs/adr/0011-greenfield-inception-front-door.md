@@ -1,10 +1,22 @@
 # ADR-0011: Greenfield inception is a new `init-project` flow that composes existing skills — a value gate over fed-in discovery, a recorded foundation, then a walking skeleton; not an autonomous generator
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-01
-- **Deciders:** eugenelim
+- **Areas:** shaping, architecture
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0021 (greenfield inception — the accepted proposal these decisions record); RFC-0019 + ADR-0009 (the brief and the plan-owned LLD — `init-project` emits the first brief and hands off to this loop); RFC-0020 + ADR-0010 (the normative `reference.md` — `init-project`'s foundation step is the greenfield population path that authors it); the `adapt-to-project` skill (the brownfield front-door this mirrors); the `research` pack (applied-mode discovery, fed *in*); `greenfield-inception` spec; `docs/CHARTER.md` §Principles
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0021 (greenfield inception — the accepted proposal these decisions
+  record); RFC-0019 + ADR-0009 (the brief and the plan-owned LLD —
+  `init-project` emits the first brief and hands off to this loop); RFC-0020
+  + ADR-0010 (the normative `reference.md` — `init-project`'s foundation
+  step is the greenfield population path that authors it); the
+  `adapt-to-project` skill (the brownfield front-door this mirrors); the
+  `research` pack (applied-mode discovery, fed *in*); `docs/CHARTER.md`
+  §Principles
 
 ## Context
 
@@ -47,6 +59,27 @@ front-door**. The forces at play when an adopter starts from a brand-new repo:
 > foundation; then it **hands off** to the normal `brief → spec → LLD →
 > work-loop` build. It is the greenfield twin of `adapt-to-project`, not an
 > extension of it, and it is **not** an autonomous code generator.
+
+- **D1:** Greenfield inception is a new `core` skill, `init-project`, not an
+  extension of `adapt-to-project`.
+- **D2:** Its flow is trigger gate → value gate over fed-in discovery →
+  foundation (ADR + `reference.md`) → walking skeleton → handoff to `brief →
+  spec → LLD → work-loop`.
+- **D3:** The flow's steps are revisitable phases with scoped handoffs — each
+  step receives only the artifacts the next step needs, not the accreted
+  history.
+- **D4:** Throwaway, single-script, and spike repos skip the flow and scaffold
+  directly; it fires only when real tech-stack, structure, or tooling decisions
+  exist.
+- **D5:** The engine is composition of existing single-purpose skills with the
+  human in the loop; an autonomous multi-agent generator is declined as the
+  engine.
+- **D6:** `init-project` consumes a discovery shape it is given and never
+  performs market or technical research itself.
+- **D7:** `init-project` authors the walking-skeleton spec through `new-spec`
+  and hands the build to `work-loop`; it does not execute the build.
+- **D8:** The walking skeleton is held to the same contract as any feature —
+  kept and minimal, never a throwaway.
 
 Specifically, recording RFC-0021's four decisions plus its resolved open question:
 
@@ -116,6 +149,11 @@ Specifically, recording RFC-0021's four decisions plus its resolved open questio
   part not yet proven and worth watching.
 - The value-gate trigger ("real decisions ahead?") is a judgment, not a flag;
   whether agents apply it consistently is observable in practice.
+
+**Revisit if:** greenfield-with-real-decisions turns out to be rare enough among
+adopters that D4's gate sends almost everything to yolo, or the walking-skeleton
+claim (D8) fails to hold for agent-built repos — both are recorded as falsifiable
+assumptions to watch.
 
 ## Alternatives considered
 

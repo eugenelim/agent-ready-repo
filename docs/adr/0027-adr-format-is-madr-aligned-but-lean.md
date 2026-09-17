@@ -2,9 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-21
+- **Areas:** governance, documentation
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0038](../rfc/0038-align-adr-template-with-madr.md); [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md) — adopted the ADR format without recording its rationale; this ADR records it but does not supersede 0001
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0038; ADR-0001 — adopted the ADR format without recording its rationale;
+  this ADR records it but does not supersede 0001
 
 ## Context
 
@@ -28,6 +34,18 @@ The choice in front of us was *how far to track MADR*.
 ## Decision
 
 We adopt a Nygard-based, MADR-4.0-aligned-but-lean ADR format.
+
+- **D1:** The ADR format is Nygard-based and tracks MADR 4.0 only where MADR adds
+  value, never MADR-full.
+- **D2:** The format carries MADR 4.0's `Rejected` status, its
+  `Decision-makers`/`Consulted`/`Informed` frontmatter, and its optional
+  `Decision drivers` and `Confirmation` sections.
+- **D3:** The format excludes per-option pros/cons tables and options-first
+  ordering; the decision stays answer-first in the body.
+- **D4:** The optional sections are deletable per ADR; the only non-optional
+  changes are the status enum and the `Deciders` → `Decision-makers` rename.
+- **D5:** Migration is forward-only — existing ADRs keep `Deciders` and are not
+  rewritten.
 
 That format **includes**, from MADR 4.0:
 
@@ -81,7 +99,17 @@ existing ADRs keep `Deciders` and are not rewritten, because ADRs are immutable.
 - If adopters report that the optional sections rot or that answer-first
   ordering hurts, revisit toward (or away from) MADR-full in a new ADR.
 
+**Revisit if:** adopters report that the optional `Decision drivers` and
+`Confirmation` sections rot unfilled, or that the answer-first ordering (D3) hurts
+— either reopens the lean-vs-full line in a new ADR.
+
 ## Confirmation
+
+- **Mode:** reviewer-checked — there is no mechanical ADR-status lint today.
+- **Signal:** every new ADR is scaffolded from the `new-adr` skill and its
+  `assets/adr.md` template, carries a status from the enum and the
+  `Decision-makers` field, and reaches review without hand-wavy sections.
+- **Owner:** eugenelim
 
 The `new-adr` skill and its `assets/adr.md` template are the enforcement
 surface — every new ADR is scaffolded from them, and the skill pushes back on

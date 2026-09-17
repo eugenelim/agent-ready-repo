@@ -2,9 +2,16 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-28
+- **Areas:** governance, documentation
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [ADR-0027](0027-adr-format-is-madr-aligned-but-lean.md) — the lean-vs-full thesis this *extends* (read the two together; not superseded); [RFC-0056](../rfc/0056-right-size-adr-template-decision-summary-revisit-confirmation.md) — the proposal this records; [RFC-0038](../rfc/0038-align-adr-template-with-madr.md) — the template decision ADR-0027 recorded, now amended by RFC-0056
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0027 — the lean-vs-full thesis this *extends* (read the two together;
+  not superseded); RFC-0056 — the proposal this records; RFC-0038 — the
+  template decision ADR-0027 recorded, now amended by RFC-0056
 
 ## Decision summary
 
@@ -27,6 +34,12 @@ RFC-0056 (Accepted, heavy, Approver-signed) decided to close all three as option
 ## Decision
 
 We will extend the `new-adr` template with three fields, all on the lean side of the line ADR-0027 drew:
+
+- **D1:** The template gains an optional-deletable `## Decision summary` first-screen block carrying Decision / Because / Applies to / Tradeoff accepted / Revisit if.
+- **D2:** The template gains a named `Revisit if:` trigger whose canonical home is Consequences, mirrored verbatim into the summary block when that block is present, with `stable — no foreseeable trigger` as a valid explicit value.
+- **D3:** The optional Confirmation section gains a `Mode / Signal / Owner` sub-structure, and an explicit `Mode: none` with a reason is preferred over silent deletion where a reader would expect a check.
+- **D4:** None of the three fields is mandatory, and none introduces per-option pros/cons or options-first ordering.
+- **D5:** This extends ADR-0027 and does not supersede it; its MADR-aligned-but-lean thesis stands unchanged.
 
 - A `## Decision summary` first-screen block (Decision / Because / Applies to / Tradeoff accepted / Revisit if), **optional-deletable**, included once an ADR is long enough that the decision isn't visible on the first screen and deleted on a short one.
 - A named `Revisit if:` trigger whose **canonical home is Consequences** (always present, so it survives deletion of the optional summary), mirrored verbatim into the summary when that block is present, with `stable — no foreseeable trigger` as a valid explicit value.
@@ -64,7 +77,7 @@ This **extends** ADR-0027 — it adds lean-compatible fields on the same side of
 
 - **Do nothing** — keep ADR-0027's format unchanged. Rejected against the *close the deferred-but-high-value gaps* driver: the three gaps persist and the foreclosed evals stay un-wireable, leaving track 1 visibly half-finished.
 - **Add the fields as mandatory** — required on every ADR. Rejected against *don't tax the short ADR* and *stay strictly lean*: five redundant lines on every short ADR is the exact ceremony the lean position and the conciseness evidence both argue against — the boundary case ADR-0027 was drawn to avoid.
-- **Supersede ADR-0027** rather than extend it. Rejected: ADR-0027's thesis is unchanged, so superseding would misrepresent the relationship; these are lean-compatible additions on the same side of the line (the ADR-0037-extends-ADR-0034 precedent).
+- **Supersede ADR-0027** rather than extend it. Rejected against the *preserve ADR-0027's thesis* driver: ADR-0027's thesis is unchanged, so superseding would misrepresent the relationship; these are lean-compatible additions on the same side of the line (the ADR-0037-extends-ADR-0034 precedent).
 
 ## References
 

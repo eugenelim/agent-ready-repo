@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-21
+- **Areas:** knowledge, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0087; ADR-0071
 
 ## Decision summary
@@ -39,6 +44,15 @@ executable Playbooks, or a new adapter primitive.
 **We will keep each reference-only OKF corpus as a governed canonical authoring
 source inside its owning pack and compile it at build time into ordinary
 same-pack Skill references.**
+
+- **D1:** Canonical concepts and indexes live under the owning pack's `okf/<bundle>/` tree.
+- **D2:** The pack manifest declares the bundle and its generated router ownership.
+- **D3:** The catalogue compiler produces the router, hierarchical indexes, reference copies, and a managed-output manifest under that same pack.
+- **D4:** Workflow Skills consume the generated same-pack reference surface through bounded progressive routing rather than loading the whole corpus.
+- **D5:** Generated output is replaceable build output and is never edited directly.
+- **D6:** Installed workflows use the compiled Skill references and require no runtime compiler, OKF loader, core-pack lookup, or cross-pack knowledge resolution.
+- **D7:** Reference corpora stay inert: they may inform reasoning but may not declare tools, executors, attesters, remotes, or Playbook authority.
+- **D8:** `agentbundle-okf/v1` stays a governed catalogue authoring profile; this decision creates no public runtime API, no general remote-discovery contract, and no automatic right to publish other OKF content types.
 
 For each admitted corpus:
 
@@ -103,21 +117,23 @@ other OKF content types.
 
 ## Alternatives considered
 
-**Place reusable reference corpora in `core`.** Rejected because an
-architect-only user-scope installation cannot rely on core content and the
-result would introduce a cross-pack delivery dependency.
-
-**Resolve OKF bundles dynamically at runtime.** Rejected because it adds a new
-runtime, versioning, failure, and trust boundary when static build-time
-projection already satisfies the accepted use cases.
-
-**Keep hand-authored copies in every workflow.** Rejected because duplicated
-concepts drift, weaken progressive routing, and make provenance and lifecycle
-maintenance inconsistent across consumers.
-
-**Project executable Playbooks alongside references.** Rejected because the
-pilots prove inert knowledge routing, not execution authority. Playbook
-projection would require its own security and governance decision.
+- **Place reusable reference corpora in `core`** — rejected against *keep a
+  user-scope pack install self-contained*: an architect-only user-scope
+  installation cannot rely on core content, and the result would introduce a
+  cross-pack delivery dependency.
+- **Resolve OKF bundles dynamically at runtime** — rejected against *avoid adding
+  runtime dependencies, network retrieval, or adapter behavior for an
+  authoring-time concern*: it adds a new runtime, versioning, failure, and trust
+  boundary when static build-time projection already satisfies the accepted use
+  cases.
+- **Keep hand-authored copies in every workflow** — rejected against *give
+  multiple same-pack workflows one maintained knowledge source*: duplicated
+  concepts drift, weaken progressive routing, and make provenance and lifecycle
+  maintenance inconsistent across consumers.
+- **Project executable Playbooks alongside references** — rejected against
+  *without giving knowledge content workflow authority*: the pilots prove inert
+  knowledge routing, not execution authority, and Playbook projection would
+  require its own security and governance decision.
 
 ## References
 

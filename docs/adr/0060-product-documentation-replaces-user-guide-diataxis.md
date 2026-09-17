@@ -2,8 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-28
+- **Areas:** documentation, packaging
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Related:** `docs/specs/product-documentation-pack/spec.md`, `docs/specs/product-documentation-pack/plan.md`
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** 
 
 ## Decision summary
 
@@ -32,8 +38,19 @@ The new `product-documentation` pack:
 
 Replace `user-guide-diataxis` as the canonical documentation pack with `product-documentation`. Keep `user-guide-diataxis` as a deprecated shim for backwards compatibility. The shim has no seeds and no evals; its only purpose is to provide the legacy `new-guide` redirect skill for adopters who have not yet migrated.
 
+- **D1:** `product-documentation` is the canonical documentation pack and ships the `author-product-docs` skill.
+- **D2:** `user-guide-diataxis` remains only as a deprecated shim with no seeds and no evals, carrying the legacy `new-guide` redirect skill and nothing else.
+- **D3:** The shim's only `[[pack.dependencies.required]]` entry is `product-documentation ^0.1`, and installing the shim without `product-documentation` present errors rather than auto-installing it.
+- **D4:** `product-documentation` ships no seeds, so installing it scaffolds no Diátaxis quadrant directories.
+- **D5:** `author-product-docs` routes external user content to `guides/<pack>/` and internal maintainer content to `docs/guides/`, inspecting the host repo's layout rather than imposing catalogue-specific paths.
+- **D6:** `product-documentation` installs at user and repo scope and takes no `core` dependency.
+
 Migration path for adopters:
 
 1. `agentbundle install --pack product-documentation <catalogue>`
 2. `agentbundle install --pack user-guide-diataxis <catalogue>` (optional — only if the legacy `new-guide` redirect is needed during transition)
 3. Update skill references from `new-guide` to `author-product-docs`.
+
+## Consequences
+
+**Revisit if:** agentbundle gains a native alias or supersession mechanism, which would let the `user-guide-diataxis` shim be retired and a catalogue redirect registered in its place (D2, D3).

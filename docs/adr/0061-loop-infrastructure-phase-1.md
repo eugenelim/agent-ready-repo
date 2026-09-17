@@ -2,7 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-30
+- **Areas:** orchestration, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Decision summary
 
@@ -31,7 +38,24 @@ The Phase-1 design splits the loop infrastructure into two scripts with a hard b
 
 **Supersedes:** the mixed A/B design explored in PR #816.
 
-## Alternatives rejected
+## Decision
+
+Phase 1 of the loop infrastructure uses Option A, the pure phase tracker.
+
+- **D1:** `loop-engine.py` owns legal phase ordering and read-only guard enforcement.
+- **D2:** `loop-cohort.py` owns execution state, counters, fingerprints, and waves.
+- **D3:** The engine never writes cohort state, and reads it only through the designated read-only verbs (`identity`, `plan check-current`, `schedule check-current`, `wave check`, `check --phase`).
+- **D4:** Every cohort mutation is invoked explicitly by the skill.
+- **D5:** Phase 1 covers `code` and `spec-plan` modes only; `doc` mode and parallel-wave orchestration are deferred.
+- **D6:** Convergence is tracked by separate counters (`review_round_count`, `review_retry_count`, `implementation_retry_count`), never one shared `iteration_count`.
+- **D7:** The retry cap is guarded at `gates-failed`, before repair begins, rather than at `wave-complete`.
+- **D8:** Option B's durable side-effect semantics stay deferred until both a `pending_transition` schema and `review record` idempotency keys exist.
+
+## Consequences
+
+**Revisit if:** the remaining Option B prerequisite lands — a `pending_transition` schema alongside the now-available `review record --operation-id` — making durable side-effect semantics reachable (D8); or unattended `spec-plan` runs require a bounded round or token cap (D5).
+
+## Alternatives considered
 
 **Option B now** — Requires `pending_transition` schema and `review record` idempotency keys. The additional surface adds risk without solving the immediate ordering and resumption gap.
 

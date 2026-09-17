@@ -1,10 +1,15 @@
 # ADR-0006: Doc drift — prevented by construction + judgment for adopters; mechanically gated only as catalogue governance
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-05-29
-- **Deciders:** eugenelim
+- **Areas:** documentation, governance
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0016; `docs/specs/doc-drift-prevention/`; `docs/CONVENTIONS.md` § 4
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0016; `docs/CONVENTIONS.md` § 4
 
 ## Context
 
@@ -40,6 +45,19 @@ project — skills (all 4 adapters), agents (3 of 4), and seeds (all 4).
 > We prevent doc drift for adopters through **construction + judgment**, and
 > keep a hard **mechanical gate only as catalogue governance** — inside this
 > repo, where Python and CI both exist.
+
+- **D1:** Doc-drift prevention for adopters ships only through the surfaces that
+  project — skills, agents, and seeds — as construction plus judgment, never as a
+  fail-closed mechanical gate.
+- **D2:** `tools/lint-spec-status.py` is catalogue-only: invoked from the Makefile
+  `build-check` target, given no `packs/` source, and not wired into the projected
+  `tools/hooks/pre-pr.py`.
+- **D3:** The lint and the pinned contract govern metadata shape only — the status
+  vocabulary, the `- [ ]` acceptance-criterion notation, and the
+  `(deferred: <anchor>)` hatch — never whether a spec matches the code.
+- **D4:** Deferred work is recorded in the version-controlled `docs/backlog.md`
+  register that `(deferred: <anchor>)` markers point into, replacing the rule that
+  the PR is the durable record.
 
 Specifically:
 
@@ -85,6 +103,11 @@ Specifically:
   reviewer to 4/4) — deferred to a separate follow-up.
 - Invariant (iii) (dangling references) covers doc-refs only in v1; code paths
   are deferred to v1.1 once the warn-only rate is observed.
+
+**Revisit if:** copilot's `agent` projection is flipped to enabled, extending the
+sharpened reviewer to 4 of 4 adapters; or the observed warn-only rate justifies
+widening invariant (iii) from doc-refs to code paths, which would change what the
+metadata-only contract (D3) covers.
 
 ## Alternatives considered
 

@@ -1,10 +1,18 @@
 # ADR-0025: Pack profiles are single-scope, catalogue-owned CLI manifests — not meta-packs
 
-- **Status:** Accepted (superseded in part by [ADR-0107](0107-claude-plugin-route-serves-non-technical-adopters.md) — the **"CLI-route only" clause**, insofar as it deferred *pack* distribution on the Claude-plugin route: that route is now a supported surface for non-technical adopters, as individually installed per-pack plugins. Profiles themselves remain CLI-only and are still not surfaced as meta-plugins, so this ADR's actual decision — a profile is a single-scope, catalogue-owned, CLI-expanded manifest and **not** a meta-pack — and everything else stands) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-14
-- **Deciders:** eugenelim
+- **Areas:** packaging, distribution
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0034](../rfc/0034-pack-profiles.md) (accepted proposal — full rationale, options, and prior art); [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md) (catalogue model, "Common adoption patterns"); [RFC-0004](../rfc/0004-install-scope-per-pack.md) (install scope); [RFC-0031](../rfc/0031-catalogue-package-manager-posture.md) (catalogue posture: hygiene not infrastructure); [ADR-0003](0003-credential-broker-contract.md) (meta-pack option F, rejected); spec: [`docs/specs/pack-profiles/`](../specs/pack-profiles/spec.md).
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0107 D4
+- **Related:** RFC-0034 (accepted proposal — full rationale, options, and prior art);
+  RFC-0001 (catalogue model, "Common adoption patterns"); RFC-0004 (install
+  scope); RFC-0031 (catalogue posture: hygiene not infrastructure); ADR-0003
+  (meta-pack option F, rejected)
 
 ## Context
 
@@ -20,6 +28,15 @@ Forces constraining the shape:
 ## Decision
 
 > A pack profile is a first-party-curated, **single-scope** (repo-only *or* user-only, never mixed), **catalogue-owned** `profiles/<name>.toml` manifest, expanded by the `agentbundle` CLI into ordered per-pack installs — it is **not** a pack, a tracked entity, or a meta-pack.
+
+- **D1:** A pack profile is a first-party-curated `profiles/<name>.toml` manifest expanded by the `agentbundle` CLI into ordered per-pack installs, and is not a pack, a tracked entity, or a meta-pack.
+- **D2:** Each profile declares `scope = "user" | "repo"`, every pack in it must allow that scope, and a profile may never mix the two scopes.
+- **D3:** Profiles are catalogue-owned and live in a top-level `profiles/` directory, one file per profile with the id as the filename stem; `pack.toml` cannot own a cross-pack set.
+- **D4:** Profiles are reachable only from the CLI route — `agentbundle install --profile <name>` and `agentbundle list-profiles`, both reading the catalogue tree directly.
+- **D5:** No change is made to `.claude-plugin/marketplace.json`, the build pipeline, or self-host, and plugin/APM-route surfacing is deferred.
+- **D6:** A profile expands to ordered, deps-first per-pack installs with all pre-flight checks before any write, one adapter pinned for the whole batch, and already-installed packs skipped.
+- **D7:** The only `install.py` change is a batch-aware parameter on the required-dependency gate.
+- **D8:** No profile membership is recorded in state; `upgrade` and `uninstall` stay strictly per-pack, with no state-schema bump and no adapter-contract bump.
 
 Specifically:
 
@@ -51,6 +68,8 @@ The concrete schema, CLI surface, dep-gate change, and lint are specified in [`d
 
 - Adopter-authored profiles and plugin/APM-route parity are deferred (RFC-0034 OQ1/OQ2), demand-driven.
 - A repo-scope "set up this repo" bundle and a user-scope role toolkit are both first-class; a *mixed* bundle remains out of scope by design.
+
+**Revisit if:** demand arrives for adopter-authored profiles (RFC-0034 OQ1), which the first-party-curated manifest in D1 does not admit; or demand arrives for plugin/APM-route parity (RFC-0034 OQ2), which costs the meta-plugin coupling D1 and D5 rule out.
 
 ## Alternatives considered
 

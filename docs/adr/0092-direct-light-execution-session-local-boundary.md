@@ -2,9 +2,19 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-20
+- **Areas:** work-loop, workspace
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** ADR-0014 (in part — light mode's persisted inline-spec obligation; its trigger set, light/full selection, and no-new-executable-code, skill, or artifact-type boundary stand); ADR-0076 (in part — its dispatch-only wording; workspace dispatch remains spec-and-plan based); ADR-0078 (in part — its start-route materialization rule and its "every executable work item has a reviewable canonical contract and plan" consequence, both narrowed to workspace-indexed items; workspace-entry dispatchability stands)
-- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0014 D3; ADR-0076 D7; ADR-0078
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088. The ADR-0078 entry above
+  carries no D-ID because this record narrows two things there: its
+  start-route materialization rule (ADR-0078 D1) and its "every executable
+  work item has a reviewable canonical contract and plan" **consequence**,
+  which is prose in `## Consequences` and so has no constraint address.
+  ADR-0078's workspace-entry dispatchability rule stands unchanged
 
 ## Decision summary
 
@@ -23,6 +33,17 @@ This is one boundary decision. It preserves the durable contract where a reposit
 ## Decision
 
 **We will require persisted spec-and-plan contracts for workspace-indexed, queued, or resumable work, and permit only an explicit direct-light request to execute session-locally without creating or indexing a durable planning artifact.**
+
+- **D1:** Workspace-indexed, queued, or resumable work requires a persisted spec and sibling plan.
+- **D2:** An explicit direct-light request executes session-locally and creates or indexes no durable planning artifact.
+- **D3:** A direct-light request is authorized by the invocation itself and is never workspace dispatch.
+- **D4:** Direct-light work is never eligible for argless dispatch or fresh-session resumption.
+- **D5:** Direct-light execution does not weaken the workspace reader's fail-closed behavior.
+- **D6:** Light mode keeps its objective, acceptance checks, and bounded task list in the session and persists no artifact.
+- **D7:** ADR-0014's risk-trigger set, light/full selection, and no-new-executable-code, skill, or artifact-type boundary stand unchanged.
+- **D8:** Mode selection is fixed as an explicit request to start, discharging ADR-0014's deferred auto-classify-versus-flag choice.
+- **D9:** ADR-0078's "every executable work item has a reviewable canonical contract and plan" consequence holds only for workspace-indexed items.
+- **D10:** A workspace entry is dispatchable only when it names an existing Approved spec and sibling plan.
 
 The explicit request is not workspace dispatch. It is authorized by the invocation itself, remains unavailable to argless dispatch and fresh-session resumption, and does not weaken the workspace reader's fail-closed behavior.
 

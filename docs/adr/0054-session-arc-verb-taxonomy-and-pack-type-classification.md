@@ -2,9 +2,19 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-20
+- **Areas:** packaging, governance
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0067 (driving RFC — all decisions); RFC-0025 (work-loop light mode — no-new-skill precedent for Change C); RFC-0050 (clean-retire rename precedent: design-craft → experience-design rename with no install-time alias); ADR-0051 (workspace-toml format — check-workspace named as historical record); ADR-0053 (product-strategy pack — check-workspace routing record)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0067 (driving RFC — all decisions); RFC-0025 (work-loop light mode —
+  no-new-skill precedent for Change C); RFC-0050 (clean-retire rename
+  precedent: design-craft → experience-design rename with no install-time
+  alias); ADR-0051 (workspace-toml format — check-workspace named as
+  historical record); ADR-0053 (product-strategy pack — check-workspace
+  routing record)
 
 ## Decision summary
 
@@ -23,6 +33,15 @@ The session-arc vocabulary (Arrive → Orient → Work → Persist → Collabora
 ## Decision
 
 We will maintain the following as authoritative conventions for session-arc skill naming and pack design across the catalogue:
+
+- **D1:** Session-arc skill names use the five-verb taxonomy — `status`, `start`, `check`, `init`, `resume`.
+- **D2:** `arrive`, `orient`, `onboard`, `return`, and `onboarding` are banned as skill names.
+- **D3:** Every catalogue pack is classified as episodic, sustained-project, sustained-derived, or stateless.
+- **D4:** Episodic packs do not require a `*-status` skill.
+- **D5:** `check-workspace` is renamed `workspace-status` as a clean retire — every operative reference swept in one PR, with no alias maintained.
+- **D6:** Historical-record files (frozen ADR bodies, changelog entries, shipped spec bodies) are left as-is by that rename, which requires no superseding ADR or erratum.
+- **D7:** Argless `work-loop` begins on the single active spec when exactly one exists, reports none when zero exist, and lists all active paths and asks the user to pick when more than one exists.
+- **D8:** That argless-resume change is a description and body edit to `work-loop` SKILL.md, not a new skill.
 
 ### Verb taxonomy (operative skill names)
 
@@ -92,13 +111,10 @@ This replaces the existing "auto-pick the first path" behavior. The change is a 
 
 ## Alternatives considered
 
-**Alias `check-workspace` → `workspace-status` (two names permanently):** Zero breaking change; permanently maintains two names and undermines the taxonomy. Rejected — alias never cleanly removes itself; RFC-0050 established clean retire as the catalogue's rename convention.
-
-**New `workspace-resume` skill for argless work-loop:** Creates a second activation surface; duplicates work-loop triggers; "resume" becomes ambiguous between two skills. Rejected per RFC-0025 no-new-skill precedent: a description + body change to work-loop is sufficient when no new activation surface is needed.
-
-**Separate guide per pack archetype (four guides instead of one):** Zero staleness per pack; high maintenance N-way duplication. Rejected — archetype membership changes slowly; one shared framework at archetype level is the stable shape.
-
-**Status skills for episodic packs:** Episodic packs have no persistent thread state to orient to. A `*-status` skill on an episodic pack would have nothing to read. Rejected — the pack-type classification is the principled boundary.
+- **Alias `check-workspace` → `workspace-status` (two names permanently)** — rejected against *no alias debt*: it buys zero breaking change but permanently maintains two names, never cleanly removes itself, and undermines the taxonomy RFC-0050 established clean retire to protect.
+- **New `workspace-resume` skill for argless work-loop** — rejected against *naming consistency*: it creates a second activation surface, duplicates work-loop's triggers, and makes "resume" ambiguous between two skills, where the RFC-0025 no-new-skill precedent says a description and body change to work-loop suffices.
+- **Separate guide per pack archetype (four guides instead of one)** — rejected against *pack-author framework*: it trades zero per-pack staleness for high-maintenance N-way duplication, while archetype membership changes slowly and one shared framework is the stable shape.
+- **Status skills for episodic packs** — rejected against *pack-author framework*: an episodic pack has no persistent thread state, so a `*-status` skill would have nothing to read, and the pack-type classification is the principled boundary.
 
 ## References
 

@@ -1,10 +1,17 @@
 # ADR-0014: Rigor scales with risk — `work-loop` light/full modes
 
-- **Status:** Accepted (superseded in part by ADR-0088 — the risk-trigger block's documentation homes; and by ADR-0104 — light mode's review bound; its trigger set and light/full mode selection stand) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-05
-- **Deciders:** eugenelim
+- **Areas:** work-loop, review
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0025 (the proposal this records); ADR-0005 (supervisor-mode scheduling — orthogonal); ADR-0007 (doc-drift lint shipped as a `work-loop` skill script)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0088 D8; ADR-0104 D4; ADR-0092 D3
+- **Related:** RFC-0025 (the proposal this records); ADR-0005 (supervisor-mode scheduling —
+  orthogonal); ADR-0007 (doc-drift lint shipped as a `work-loop` skill
+  script)
 
 ## Context
 
@@ -34,6 +41,15 @@ records it; it is not a fresh tradeoff debate.
 
 **`work-loop` has two modes, and which one runs is chosen by the risk of the
 work, not its file count.**
+
+- **D1:** `work-loop` has exactly two modes, light and full, and which one runs is chosen by the risk of the work rather than its file count.
+- **D2:** Light mode is the default for low-risk work and is scoped to a single logical task, which may touch a few files but carries no inter-task dependencies.
+- **D3:** A light-mode spec is written inline as Objective plus Acceptance Criteria plus a short task list, with the other `new-spec` sections optional.
+- **D4:** Light mode runs a single bounded `adversarial-reviewer` pass; a Blocker earns exactly one re-review of the fix and then escalates to full mode rather than iterating.
+- **D5:** Light mode runs no default `quality-engineer` pass and no `loop-cohort` state machine.
+- **D6:** Full mode is reached whenever the work trips any risk trigger: unfamiliar territory; more than one person builds or reviews it; it decomposes a multi-feature brief or has dependent tasks; it touches a compliance/governance surface or a security boundary; it changes structure or a public/published interface; it performs a destructive or irreversible operation; or it adds a dependency.
+- **D7:** The risk-trigger set replaces the `">1 file → new-spec"` rule.
+- **D8:** The vehicle is a `work-loop` SKILL.md mode branch plus optional `new-spec` template sections — no new executable code, skill, or artifact type, and `loop-cohort.py` and `lint-spec-status.py` stay unchanged.
 
 - **Light mode (the default for low-risk work).** A lean spec written inline —
   Objective + Acceptance Criteria + a short task list (other `new-spec` sections
@@ -86,6 +102,11 @@ by *not invoking* them.
   light-mode escapes show up in practice.
 - Whether light multi-task work ever needs a bare iteration cap — by definition
   such work has crossed into full mode, so this stays unbuilt unless observed.
+
+**Revisit if:** light-mode escapes show up in practice, which would mean the
+single bounded adversarial pass (D4) is not a sufficient floor once the
+`quality-engineer` lens is dropped (D5); or mode misclassification proves common
+enough to need a mechanical check on the trigger set (D6).
 
 ## Alternatives considered
 

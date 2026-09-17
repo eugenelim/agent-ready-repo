@@ -2,10 +2,16 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-04
+- **Areas:** install, concurrency
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer (25 passes on RFC-0080)
 - **Supersedes:** none
-- **Related:** RFC-0080, ADR-0002 (install scope per pack), ADR-0039 (install identity and footprint)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0080; ADR-0002 (install scope per pack); ADR-0039 (install identity and
+  footprint)
 
 ## Decision summary
 
@@ -50,6 +56,34 @@ Key constraints that shaped all four decisions:
   source worktree would be ambiguous and impossible to strip correctly on uninstall.
 
 ## Decision
+
+- **D1:** Local-scope git exclusion is written to the path resolved by `git
+  rev-parse --git-path info/exclude`, never to `.gitignore`.
+- **D2:** The exclude file is created on first write if absent, and every write is
+  atomic — read, modify in memory, write a temp file in the same directory, then
+  `os.replace`.
+- **D3:** Every target file is checked for git-tracked status in a pre-flight step
+  using `git --literal-pathspecs ls-files --error-unmatch`, before any file is
+  written.
+- **D4:** If any target file is tracked, the whole install aborts with no partial
+  writes, and the refusal names every tracked file rather than only the first.
+- **D5:** Exclude blocks are delimited by the structured key
+  `# agentbundle:local:<pack>:<worktree-id>:{begin,end}`, and that key is the only
+  identity mechanism — no registry, no state-file field, no cross-file reference.
+- **D6:** The worktree-id is derived by comparing `git rev-parse --git-dir` with
+  `--git-common-dir`: equal yields a stable sentinel hashed from the common-dir
+  path, unequal yields the last component of `--git-dir`; any `:` is replaced with
+  `_`.
+- **D7:** Block patterns are anchored with a leading `/` and each path is
+  gitignore-metacharacter-escaped before writing.
+- **D8:** An existing block for the same `(pack, worktree-id)` is replaced in
+  place, and blocks from different worktrees coexist, each stripped only by its
+  own uninstall.
+- **D9:** Pruning of stale blocks from deleted worktrees is deferred to a
+  follow-on `agentbundle local prune` CLI, and the risk is documented in the
+  `write_exclude_block` docstring.
+- **D10:** No file lock ships in v1; concurrent writes rely on whole-file atomic
+  replacement, and the lost-update race is documented and accepted.
 
 ### D1 — Use `.git/info/exclude`, not `.gitignore`, for per-file git exclusion
 

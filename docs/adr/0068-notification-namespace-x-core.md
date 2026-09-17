@@ -1,8 +1,15 @@
 # ADR-0068: Notification namespace — _agentbundle.core/
 
-- **Status:** Accepted (updated 2026-08-03 from Stage 0 spike (b) result)
+- **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** orchestration, telemetry
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** updated 2026-08-03 from Stage 0 spike (b) result
 
 ## Decision summary
 
@@ -20,7 +27,20 @@ ACP v1 defines an extension-naming rule for custom notification types. The rule 
 
 Not using a namespace at all — emitting bare names like `skill-state-change` — risks collision with future standard ACP notification types and with other MCP server notifications in a multi-server session.
 
-## Alternatives rejected
+## Decision
+
+Custom ACP notifications emitted by workspace-mcp carry the `_agentbundle.core/` prefix.
+
+- **D1:** Custom (extension) ACP notifications emitted by workspace-mcp use the `_agentbundle.core/` prefix, following the observed ACP `_<namespace>/method` convention.
+- **D2:** No notification is emitted under a bare, un-namespaced name.
+- **D3:** The placeholder `x-core/` is retired, and the rename to `_agentbundle.core/` is applied across every in-tree artifact before Stage 1 — all emission points in `packages/agentbundle/agentbundle/workspace_mcp.py`, control-plane subscriber code, design.md, `docs/rfc/0078-workspace-mcp.md`, the spec, and the plan.
+- **D4:** Every custom notification shares that one prefix, so the control plane can subscribe with the single pattern `_agentbundle.core/*` rather than per event type.
+
+## Consequences
+
+**Revisit if:** the ACP v1 specification defines an extension-naming convention other than `_<namespace>/method` (D1); or the agentbundle ecosystem adopts a different namespace, which re-runs the tree-wide rename D3 accepted.
+
+## Alternatives considered
 
 **Bare notification names (no namespace).** `skill-state-change`, `human-gate-pending`, etc. Rejected because collision with standard ACP types is plausible as the ACP specification evolves, and collision with other MCP servers in a multi-server session is possible.
 

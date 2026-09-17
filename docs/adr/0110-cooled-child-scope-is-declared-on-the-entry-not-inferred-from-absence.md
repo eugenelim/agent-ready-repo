@@ -2,9 +2,16 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-03
-- **Renumbered:** issued as ADR-0106 and moved to ADR-0110 on 2026-09-12. Two records had been accepted under 0106 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its decision text is unaltered.
+- **Areas:** workspace, state
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §6 and §7 and its 2026-09-03 Errata (Wave 7b's mechanism half). This record supersedes in part the `status-projection-and-context-exclusion` spec's AC59, and is governed by the `workspace-routing-invariants` spec's § *Ask first* and § *Canonical findings*; both are named rather than linked, because `docs/CONVENTIONS.md` § *Cite upward, never downward* holds that ADRs do not link to specs.
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0096 §6 and §7 and its 2026-09-03 Errata (Wave 7b's mechanism
+  half)
+- **Renumbered:** issued as ADR-0106 and moved to ADR-0110 on 2026-09-12. Two records had been accepted under 0106 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its decision text is unaltered.
 
 ## Decision summary
 
@@ -60,6 +67,21 @@ it. Three facts measured on 2026-09-03 (recorded in the closing spec's
 
 So the refusal is now **escapable and attributed** rather than unconditional and
 anonymous, which is what the earlier cost measurement was really objecting to.
+
+## Decision
+
+A cooled spec's parent scope is declared on its workspace entry, and an unestablished scope fails closed.
+
+- **D1:** For a cooled `kind = "spec"` entry, `source.parent` answers one of three ways rather than two.
+- **D2:** A declared value resolving to a `kind = "brief"` membership attributes the child to that brief, and that brief's local `kind = "brief"` dependencies refuse.
+- **D3:** A declared empty value attributes nothing, and dependants dispatch.
+- **D4:** An absent key, or a declared value resolving to no brief membership, leaves the child's scope unknown.
+- **D5:** An unknown scope names the entry in a `cooled_child_scope_unknown` finding and refuses every local `kind = "brief"` dependency until a resolving or empty value is declared.
+- **D6:** A `cross-repo` brief dependency is decided by its four-field receipt, a precedence that runs before this refusal and is left in place.
+- **D7:** A brief membership is any workspace entry whose `kind` is `brief`, resolved by entry kind and never by collection name.
+- **D8:** Reading a legacy bare-string entry decides attribution only and dispatches nothing.
+- **D9:** A declared value is resolved against a brief membership rather than trusted as a string, reading `workspace.toml` only and opening no body.
+- **D10:** AC59's first two sentences are superseded; its third sentence is discharged rather than superseded, and the rest of AC59 stands unchanged.
 
 ## The decision, stated as the three answers
 
@@ -193,3 +215,8 @@ refusal that names its entry and lifts on one token.
   must preserve its code, repository-relative path, dispatchability, and next
   action. Admitting it was reviewed under `workspace-routing-invariants`
   § *Ask first* on 2026-09-03.
+
+**Revisit if:** `close-work` gains the ability to stamp the parent link at
+closeout, making a hand-declared value unnecessary (D1); or a read-free
+brief→child index appears, allowing exact attribution instead of the floor (D5);
+or the refusal is observed to fire on work whose entry cannot be corrected (D5).

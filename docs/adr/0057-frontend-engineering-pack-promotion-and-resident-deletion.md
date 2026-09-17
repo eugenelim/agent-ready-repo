@@ -2,8 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-27
+- **Areas:** experience, packaging, install
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Related:** [`guides/frontend-engineering/`](../../guides/frontend-engineering/), [`docs/specs/frontend-engineering-core-delegation/`](../specs/frontend-engineering-core-delegation/)
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** `guides/frontend-engineering/`
 
 ## Decision summary
 
@@ -20,6 +26,15 @@ The resident `.claude/skills/frontend-engineering/SKILL.md` (443 lines) covered 
 The pack's skill (660 lines) adds four explicit modes (create/retrofit/audit/verify), an 18-state matrix (vs. 6 in the resident), a 12-field page contract, an evidence manifest, Core Web Vitals targets, a brownfield checklist, and an updated WCAG baseline (2.2 AA vs. 2.1 AA). The eight atomic skills partition the main skill's concerns; the `frontend-reviewer` agent provides a diff-level reviewer.
 
 The initial plan assumed the resident could remain as a fallback for users without the pack. That assumption was invalidated by the footprint gate: the gate's `REFUSE` verdict on any cross-pack path collision made it impossible to install the pack's skill alongside core's identically-named resident.
+
+## Decision
+
+- **D1:** `frontend-engineering` ships as a first-class pack at `packs/frontend-engineering/`, carrying 9 skills, the `frontend-reviewer` agent, a guide tree, and a catalogue page.
+- **D2:** The core resident skill `packs/core/.apm/skills/frontend-engineering/SKILL.md` is deleted, so `core` claims no `frontend-engineering` relpath.
+- **D3:** The committed projected copies at `.claude/skills/frontend-engineering/` and `.agents/skills/frontend-engineering/` are removed from git tracking.
+- **D4:** The DXC template lives at `packs/frontend-engineering/.apm/skills/frontend-engineering/references/`.
+- **D5:** `work-loop` names the `frontend-engineering` pack as a requirement and takes a named-skip fallback when the pack is absent.
+- **D6:** The pack's `frontend-engineering` skill declares a co-install dependency on the `experience-design` pack for genre routing.
 
 ## Why ADR, not RFC
 
@@ -54,7 +69,11 @@ The deletion is a sub-decision of the same promotion — it resolves a mechanica
 - `work-loop`'s four `frontend-engineering` pack references (atomic skills, `frontend-reviewer`) — already gated on pack presence.
 - The `experience-design` co-install requirement (genre routing) — unchanged; the pack formalizes what was already a T2 gate.
 
-## Options considered
+## Consequences
+
+**Revisit if:** agentbundle gains a conflict verdict that lets a pack supersede a core resident rather than refusing it (Option E), which would let a thin named-skip stub return to `core` and restore the fallback D2 removes.
+
+## Alternatives considered
 
 **Option A — RFC first, then ship:** Open an RFC, gather feedback, accept, then implement. Rejected: `packs/` exists; the promotion pattern is established.
 

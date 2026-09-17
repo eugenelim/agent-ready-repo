@@ -1,10 +1,17 @@
 # ADR-0013: Copilot is a full-parity, user-scope-capable adapter
 
-- **Status:** Accepted — **partially amended:** the **skill-home sub-decision** (Copilot skills projected to its native `.github/` / `~/.copilot/` tree) is **superseded by [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md)** (cohort skills route to the shared `.agents/skills/`, 2026-06-26); the agent / hook-wiring / hook-body / command projection decisions in this ADR stand.
+- **Status:** Accepted
 - **Date:** 2026-06-04
-- **Deciders:** eugenelim
+- **Areas:** adapters, install
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0024](../rfc/0024-copilot-subagent-projection.md) (the decision; supersedes-in-part RFC-0012), [ADR-0004](0004-repo-scope-per-adapter-projection.md) (per-adapter projection model this extends), [RFC-0009](../rfc/0009-codex-native-skills.md) + [`dropped-primitives-coverage` spec](../specs/dropped-primitives-coverage/spec.md) (the codex `dropped`→first-class precedent), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md) (scope dimension)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0040 D5
+- **Related:** RFC-0024 (the decision; supersedes-in-part RFC-0012); ADR-0004 (per-adapter
+  projection model this extends); RFC-0009 (the codex `dropped`→first-class
+  precedent); ADR-0002 (scope dimension)
 
 ## Context
 
@@ -21,6 +28,16 @@ The constraint that remains: custom **slash commands / prompt files are not yet 
 ## Decision
 
 **We treat `copilot` as a full-parity, user-scope-capable adapter: it projects every primitive Copilot supports (skill, agent, hook-wiring, hook-body) at both repo and user scope, against the GitHub Copilot app + CLI's `.github/` and `~/.copilot/` layout.**
+
+- **D1:** `copilot` projects every primitive Copilot supports — `skill`, `agent`, `hook-wiring`, `hook-body` — at both repo and user scope.
+- **D2:** `agent` projects through a new `copilot-agent-md` mode to `.github/agents/<n>.agent.md` (repo) and `~/.copilot/agents/<n>.agent.md` (user).
+- **D3:** `hook-wiring` projects through a new per-file `copilot-hooks-json` mode — one self-contained `<n>.json` per wiring file — and not through `merge-json`.
+- **D4:** `[adapter.copilot.scope].user` is declared, so the install resolver no longer refuses copilot at user scope.
+- **D5:** `skill` gains the user-scope home `~/.copilot/instructions/<n>.instructions.md` under the existing `instruction-file` mode, mirroring the repo `.github/instructions/` projection.
+- **D6:** `hook-body` moves from the legacy `tools/hooks/` to `.github/hooks/` and `~/.copilot/hooks/`, alongside the `<n>.json` wiring that references it.
+- **D7:** `command` stays `dropped` while the Copilot CLI does not load custom slash commands, with the contract-driven warning rail keeping the drop visible.
+- **D8:** Agent frontmatter maps `tools` through an explicit Claude→Copilot alias table where an unmapped name fails the build, drops `model`, and omits `target`.
+- **D9:** The guaranteed projection target is the Copilot app + CLI (`~/.copilot/` + `.github/`); the VS Code extension's user-profile location is not a projection target.
 
 Concretely (contract **v0.9 → v0.10**):
 
@@ -53,6 +70,11 @@ This decision was gated on a live smoke and verified: RFC-0024 § Acceptance ver
 - `command` remains dropped until copilot-cli#618/#1113 land; a follow-on RFC flips it.
 - Copilot's full hook event vocabulary fires today (verified), but the live set is CLI-version-sensitive (preview); the implementing spec re-checks against the then-current CLI.
 - **Tool-alias coverage:** `WebFetch`/`WebSearch` did not surface as Copilot tools in the 1.0.59 app (Run 4); the spec must map web retrieval explicitly or document that `research`'s retrieval subagents are degraded (read/search only) on Copilot. Tracked as RFC-0024 Open Q4.
+
+**Revisit if:** copilot-cli#618 / #1113 land and the CLI loads custom slash
+commands, which flips `command` out of `dropped` (D7); or Copilot's hook event
+vocabulary shifts with a CLI version, invalidating the event-name map the
+`copilot-hooks-json` mode carries (D3).
 
 ## Alternatives considered
 

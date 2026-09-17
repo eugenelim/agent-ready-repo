@@ -2,10 +2,22 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-18
+- **Areas:** workspace, contracts
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Supersedes:** none (supersedes the umbrella-branch coordination pattern adopted in the 2026-07-18 workspace.toml design session — that session settled the artifact's existence and three-queue schema; this ADR records the format and branching decisions resolved in the same RFC)
-- **Refined by:** ADR-0078 makes comments non-semantic and constrains `workspace.toml` to a deterministic index of canonical artifacts and lifecycle facts; the TOML format and main-branch coordination decisions stand.
-- **Related:** [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md) — governing RFC; decisions D2 and D4
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0064 — governing RFC; decisions D2 and D4; refined by ADR-0078, which
+  makes comments non-semantic and constrains `workspace.toml` to a
+  deterministic index of canonical artifacts and lifecycle facts; the TOML
+  format and main-branch coordination decisions stand. This ADR also
+  supersedes the umbrella-branch coordination pattern adopted in the
+  2026-07-18 `workspace.toml` design session — that session settled the
+  artifact's existence and three-queue schema, and this ADR records the
+  format and branching decisions resolved in the same RFC; recorded here
+  because that pattern is not a decision record.
 
 ## Decision summary
 
@@ -28,6 +40,12 @@ Two decisions gated implementation:
 ## Decision
 
 **D2 — Format: `workspace.toml` uses TOML.**
+
+- **D1:** `workspace.toml` is a TOML file whose schema uses named tables per initiative, arrays for queue entries, and inline tables for dependency-bearing entries.
+- **D2:** Markdown+frontmatter is not used for this artifact, despite being the convention for every other `docs/product/` artifact.
+- **D3:** `workspace.toml` lives on `main` as a repo-level artifact.
+- **D4:** Spec branches target `main` directly, and no initiative umbrella branch is used for coordination.
+- **D5:** Each spec PR carries its own `workspace.toml` queue-state edit in the same diff.
 
 `workspace.toml` is a TOML file. Its schema uses TOML named tables for per-initiative sections (`["ini-002"]`, `["ini-002".work]`, etc.), TOML arrays for queue entries, and TOML inline tables for dependency-bearing entries (`{path = "spec/m1-workspace-core", needs = "..."}`). The full schema is defined in RFC-0064 § Proposed design.
 

@@ -1,8 +1,15 @@
 # ADR-0069: Threading model — daemon threads and bounded worker pool
 
-- **Status:** Accepted (pending validation from Stage 0 spike (e))
+- **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** concurrency, orchestration
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** pending validation from Stage 0 spike (e)
 
 ## Decision summary
 
@@ -26,7 +33,23 @@ The bounded pool (size 4) is sufficient for per-session spawn: each workspace-mc
 
 The `{request_id: Event/queue}` map in the main loop routes incoming MCP messages (including `elicitation/create` responses) to the correct waiting worker by matching `request_id` fields. The main loop posts the response to the worker's Event/queue; the worker unblocks and completes the `elicit()` tool call.
 
-## Alternatives rejected
+## Decision
+
+workspace-mcp uses Python stdlib threading throughout: daemon threads for background polling and a bounded worker pool for blocking tool calls.
+
+- **D1:** workspace-mcp's concurrency is pure Python stdlib threading and adds no new dependency; asyncio is not adopted for the initial implementation.
+- **D2:** The event bridge and the artifact watcher each run on a daemon thread that polls independently, without blocking the main stdio handler.
+- **D3:** `elicit()` tool calls are dispatched to a bounded worker-thread pool of size 4.
+- **D4:** The main stdio loop stays non-blocking: it reads incoming MCP messages and dispatches each to the daemon threads or to the worker pool, never handling a blocking call itself.
+- **D5:** Shared stdout is guarded by a single write lock, so concurrently written MCP frames never interleave.
+- **D6:** The main loop maintains a `{request_id: Event/queue}` map and routes each incoming `elicitation/create` response to the worker waiting on that `request_id`.
+- **D7:** If Stage 0 spike (e) shows stdlib threading cannot handle nested `elicitation/create` re-entrancy, an asyncio rewrite is required before Stage 1.
+
+## Consequences
+
+**Revisit if:** Stage 0 spike (e) shows stdlib threading cannot carry nested `elicitation/create` re-entrancy, which triggers the asyncio rewrite D7 names; or workspace-mcp is extended to serve more than one client per instance, which changes the pool-size basis for D3; or a per-interpreter GIL in Python 3.13+ shifts the threading performance profile enough to reconsider D1.
+
+## Alternatives considered
 
 **asyncio throughout.** The entire server is async-native: the main loop is an asyncio event loop, tool handlers are coroutines, background polling runs as asyncio tasks. This is the most idiomatic Python 3.11+ concurrency model and eliminates the threading complexity. Rejected for the initial implementation because: (a) converting a blocking subprocess-based git tool to fully async requires `asyncio.create_subprocess_exec`, increasing code complexity; (b) pure-stdlib asyncio MCP stdio server is a non-trivial pattern that requires careful framing to avoid mixing async and sync code; (c) the daemon-thread model delivers the same functional outcome (non-blocking main loop, concurrent polling and blocking calls) with simpler code. If spike (e) shows the threading model is insufficient, asyncio is the designated fallback.
 

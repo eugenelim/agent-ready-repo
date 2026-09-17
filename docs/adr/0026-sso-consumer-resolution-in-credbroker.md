@@ -1,10 +1,19 @@
 # ADR-0026: SSO-cookie consumer resolution lives in the `credbroker` library, platform-agnostic
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-16
-- **Deciders:** eugenelim
+- **Areas:** credentials, security
+- **Reversibility:** low
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0035](../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) (SSO-cookie auth for the atlassian pack — the proposal this resolution serves); [RFC-0013](../rfc/0013-credential-broker-contract.md) (the four-broker contract + § Errata recording this consumer-surface addition); [RFC-0023](../rfc/0023-credential-manager-broker.md) (made `credbroker` the pip-installable consumer-resolution library and retired in-pack shared-module projection); [ADR-0003](0003-credential-broker-contract.md) (broker contract); spec: [`docs/specs/atlassian-sso-cookie/`](../specs/atlassian-sso-cookie/spec.md).
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0035 (SSO-cookie auth for the atlassian pack — the proposal this
+  resolution serves); RFC-0013 (the four-broker contract + § Errata
+  recording this consumer-surface addition); RFC-0023 (made `credbroker` the
+  pip-installable consumer-resolution library and retired in-pack
+  shared-module projection); ADR-0003 (broker contract)
 
 ## Context
 
@@ -48,6 +57,27 @@ Forces constraining where this logic lives:
 > resolver plus reusable validation/confinement primitives that subprocess-invoke
 > the **unchanged** `sso-broker.py` engine. It is **not** placed in the individual
 > clients, and **not** a new user-lib.
+
+- **D1:** SSO-cookie consumer resolution lives in the `credbroker` library as a
+  second credential family, not in the individual clients and not in a new
+  user-lib.
+- **D2:** `credbroker` exposes `load_sso_cookies(profile)` from `__all__`
+  alongside `load_credentials`, plus pure validation primitives — the https-only
+  scheme guard over `login_url`/`success_url_pattern`/`base_url`, the
+  root-relative `validation_endpoint` check, and cookie-domain membership.
+- **D3:** `credbroker`'s base import graph stays stdlib-only; Playwright stays in
+  the broker engine.
+- **D4:** `sso-broker.py` is unchanged and is invoked as `get-cookies` through
+  `subprocess.run`, preserving its storage tiers, argv ban, and never-logged /
+  path-not-value guarantees.
+- **D5:** `filter_jar_to_domains` confines the loaded jar to the declared
+  `cookie_domains` at load time, so the cookies that leave the process are a
+  subset of the declared domains.
+- **D6:** The consumer owns its config schema — the `references/sso-config.toml`
+  shape and the `auth_default` selector stay in the skills, and `credbroker` owns
+  only the generic resolver and primitives.
+- **D7:** The capability rides the existing pip-installable library at version
+  0.2.0; no new user-lib and no new top-level structure are created.
 
 Specifically:
 
@@ -98,6 +128,10 @@ Specifically:
   responsibility beyond pure token resolution. Mitigated by keeping the engine
   (capture/storage) out of it — `credbroker` only *resolves and confines*, it does
   not capture.
+
+**Revisit if:** a consumer needs capture or storage behaviour inside
+`credbroker`, which would breach the resolve-and-confine-only boundary D4 keeps
+and reopen where this logic lives.
 
 ## Alternatives considered
 

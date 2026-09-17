@@ -2,10 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-10
+- **Areas:** distribution, security, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** security-reviewer, adversarial-reviewer
 - **Supersedes:** none
-- **Related:** [ADR-0072](0072-derived-plugin-manifest-mirrors-upstream-schema.md), [`docs/specs/claude-plugin-hook-parity/`](../specs/claude-plugin-hook-parity/)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0072
 
 ## Decision summary
 
@@ -39,6 +44,22 @@ short-lived installation tokens with repository-scoped permissions.
 
 We will make a dedicated publisher GitHub App the sole bypass actor for an
 exact-branch ruleset protecting `refs/heads/claude-plugins-dist`.
+
+- **D1:** A dedicated publisher GitHub App is the sole bypass actor for an
+  exact-branch ruleset protecting `refs/heads/claude-plugins-dist`.
+- **D2:** That app is installed only on this repository and holds Contents
+  read/write with no other write permission.
+- **D3:** The app's app ID and private key live only in the
+  `claude-plugin-publish` environment, which accepts `main`, requires owner
+  approval, and disallows protection-rule bypass.
+- **D4:** The publishing workflow's ordinary `GITHUB_TOKEN` is read-only, and
+  checkout persists no credential.
+- **D5:** Every external action in that workflow is pinned to a full commit SHA.
+- **D6:** The short-lived app token is minted only after environment approval and
+  is supplied only to the final publisher step, through a non-logged subprocess
+  environment.
+- **D7:** Desired settings and sanitized live evidence are independently
+  represented and checked by a pure-stdlib repository lint.
 
 The app is installed only on this repository and has Contents read/write with
 no other write permission. Its app ID and private key live only in the
@@ -90,16 +111,20 @@ moves to immutable commit SHAs.
 
 ## Alternatives considered
 
-- **Bypass the generic GitHub Actions app.** Rejected because all workflow
-  `GITHUB_TOKEN`s represent that app; it cannot distinguish one workflow.
-- **Require pull requests on the generated dist branch.** Rejected because it
-  replaces deterministic machine publication with a second review/merge
+- **Bypass the generic GitHub Actions app** — rejected against *prevent direct or
+  unrelated-workflow updates to executable plugin content*: all workflow
+  `GITHUB_TOKEN`s represent that app, so it cannot distinguish one workflow.
+- **Require pull requests on the generated dist branch** — rejected against
+  *preserve the existing machine-generated dist branch and marketplace topology*:
+  it replaces deterministic machine publication with a second review/merge
   lifecycle.
-- **Use a personal token or deploy key.** Rejected because it is long-lived or
-  user-bound and has a weaker approval boundary.
-- **Pin marketplace entries to immutable SHAs.** Desirable follow-on, but the
-  current marketplace/dist publishing cycle cannot know its own resulting
-  commit before publication without changing topology.
+- **Use a personal token or deploy key** — rejected against *avoid user-bound,
+  long-lived credentials*: it is long-lived or user-bound and has a weaker
+  approval boundary.
+- **Pin marketplace entries to immutable SHAs** — deferred against *preserve the
+  existing machine-generated dist branch and marketplace topology*: a desirable
+  follow-on, but the current marketplace/dist publishing cycle cannot know its
+  own resulting commit before publication without changing topology.
 
 ## References
 
