@@ -2,7 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-28
+- **Areas:** state, packaging
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0101](../rfc/0101-pack-config-and-oplog.md), [RFC-0046 convenient-install-defaults](../rfc/0046-convenient-install-defaults.md), [ADR-0036 install-source precedence chain](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md)
 
 ## Decision summary
@@ -28,6 +34,14 @@ The three sources in precedence order (lowest to highest):
 Sources 1 and 2 are merged by `compile_defaults` at catalogue build time and written as a single `[pack-defaults.<pack>]` section in `_data/install-defaults.toml`. This is the "baked layer". Source 3 is the "user layer". `load_pack_config` performs the final two-layer merge at runtime.
 
 ## Decision
+
+- **D1:** Pack-source defaults and catalogue operator overrides are merged at catalogue build time, and the operator override wins on key collision.
+- **D2:** The merged result is baked into `_data/install-defaults.toml` as `[pack-defaults.<pack>]` sections.
+- **D3:** `compile_defaults` emits pack names and keys in alphabetical order, so `check_defaults` can compare bytes deterministically.
+- **D4:** `load_pack_config` performs the runtime merge of the baked layer and `<pack_dir>/config.toml`, shallow, with the user layer winning on key collision.
+- **D5:** `load_pack_config` is the single callsite for that merge; pack scripts do not read the baked file through `importlib.resources` themselves.
+- **D6:** `load_pack_config` returns `{}` when both layers are absent, and on a malformed `config.toml` logs a warning to stderr and returns the baked layer only.
+- **D7:** `catalogue.toml` carries `[pack-defaults.<pack>]` as a top-level section, not nested under `[distribution.agentbundle]`.
 
 `compile_defaults` is extended to:
 
@@ -62,3 +76,5 @@ Shallow merge: layer 2 wins on key collision. Returns `{}` when both are absent.
 - `load_pack_config` is the single callsite for the two-layer merge — pack scripts do not call `importlib.resources` directly.
 - The "baked default" label in `pack-config show` deliberately conflates pack-source and operator-override origins; this is an accepted consequence of build-time merging. Any future need to distinguish them requires a new RFC.
 - Future catalogue-configurable capabilities follow this same pattern: declare `[capability-defaults.*]` in `catalogue.toml`, bake via `compile_defaults`, read via a dedicated load function.
+
+**Revisit if:** a use case needs the baked layer to distinguish a pack-source default from a catalogue-operator override at runtime — an "undo operator override" operation, for instance — which would require storing the two sources as separate sections rather than the single merged section D2 bakes.

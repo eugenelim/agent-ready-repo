@@ -2,7 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-28
+- **Areas:** state, install
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0101](../rfc/0101-pack-config-and-oplog.md), [ADR-0039 footprint co-ownership and install identity](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md)
 
 ## Decision summary
@@ -28,6 +34,24 @@ The field is optional: absent rows default to `"~/.agentbundle"`. No schema-vers
 
 ## Decision
 
+- **D1:** `user-root` is an optional field on each
+  `[pack.<name>.adapters.<adapter>]` row in user-scope
+  `~/.agentbundle/state.toml`, defaulting to `"~/.agentbundle"` when absent, and
+  requires no schema-version bump.
+- **D2:** `agentbundle install` writes `user-root` from the catalogue's
+  `user-dir` setting to every row that install writes, and leaves rows from other
+  catalogues untouched.
+- **D3:** `agentbundle uninstall` clears `user-root` when the last adapter row for
+  a pack is removed.
+- **D4:** Both writes go through `persist_state_locked` atomically.
+- **D5:** `pack_dir()` resolves in order: the `home=` kwarg, then the distinct
+  `user-root` values across all rows for the pack slug, then
+  `user_state_path(home).parent` as the fallback when no rows exist.
+- **D6:** `pack_dir()` raises `PackRootConflict` when rows for one pack slug carry
+  disagreeing `user-root` values.
+- **D7:** Any capability needing a pack's user-scope directory calls `pack_dir()`
+  and does not re-derive the resolution logic.
+
 `user-root` is stored on each `[pack.<name>.adapters.<adapter>]` row in user-scope `~/.agentbundle/state.toml`. `agentbundle install` writes the value from the catalogue's `user-dir` setting (default `"~/.agentbundle"`); `agentbundle uninstall` clears it when the last adapter row for a pack is removed.
 
 `pack_dir(pack_name, *, home=None)` resolution order:
@@ -50,3 +74,7 @@ The field is optional: absent rows default to `"~/.agentbundle"`. No schema-vers
 - `pack_dir()` introduces `PackRootConflict` — a new exception type, documented in `pack-config-api.md`.
 - `agentbundle install` and `agentbundle uninstall` must write/clear `user-root` atomically via `persist_state_locked`.
 - Future pack capabilities that need the user-scope directory call `pack_dir()` — they do not re-derive the root resolution logic.
+
+**Revisit if:** `PackRootConflict` (D6) starts firing during ordinary
+multi-catalogue use rather than signalling a genuine same-slug clash, which would
+mean the per-row placement of `user-root` is carrying conflicts it should not.

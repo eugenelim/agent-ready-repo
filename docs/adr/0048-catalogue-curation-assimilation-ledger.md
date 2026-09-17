@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-02
+- **Areas:** state, tooling
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0059 (the catalogue-curation pack — this ADR is its named ledger follow-on); ADR-0002 (per-pack install scope); the `adapt-to-project` / credbroker `~/.agentbundle/` user-scope precedent
 
 ## Decision summary
@@ -29,6 +34,24 @@ We will store assimilation state in a **user-scope scratch** rooted at `~/.agent
 1. **Per-run ledger** — `~/.agentbundle/catalogue-curation/<run-id>/ledger.toml`, where `<run-id>` is a **deterministic** hash of the source URL/path + a per-installation salt, **with no per-invocation stamp**. Determinism is load-bearing: a resumed run and a sibling git worktree must derive the *same* `<run-id>` to share one ledger — a per-invocation stamp would defeat both resume and worktree-sharing. (One assimilation of a source = one run-id; a later re-sync of the same source reuses it, then purges again on completion.) **Append-only**, per-candidate entries: `path`, `name`, `content-hash`, `verdict` (`assimilate` | `reject` | `needs-new-pack`), `status` (`pending` | `done`), `destination`. Concurrent worktrees append their own candidate entries without clobbering. **Purged** on run completion (with a documented stale-run sweep); never committed; never travels in an export.
 
 2. **Per-source durable marker** — `~/.agentbundle/catalogue-curation/sources/<source-hash>/last-synced.toml`, holding *only* a content baseline (the set of candidate content-hashes last synced) plus dated sync entries. Written as **dated append entries, never overwritten**; **exempt from the per-run purge**; scoped per source, not per run. This is what the next re-sync diffs against.
+
+- **D1:** Assimilation state lives in a user-scope scratch rooted at
+  `~/.agentbundle/catalogue-curation/`, never in a repository tree.
+- **D2:** The per-run ledger is `<run-id>/ledger.toml`, append-only, carrying
+  `path`, `name`, `content-hash`, `verdict`, `status`, and `destination` per
+  candidate.
+- **D3:** `<run-id>` is a deterministic hash of the source URL/path plus a
+  per-installation salt, with no per-invocation stamp.
+- **D4:** The per-run ledger is purged on run completion, is never committed, and
+  never travels in an export.
+- **D5:** The per-source durable marker `sources/<source-hash>/last-synced.toml`
+  is scoped per source and is exempt from the per-run purge.
+- **D6:** The marker holds only content-hashes and dated sync entries, written as
+  dated append entries and never overwritten.
+- **D7:** State is keyed on source-relative `path` + `name` + `content-hash`,
+  never on commit SHAs.
+- **D8:** `<run-id>` and `<source-hash>` are salted with one per-installation
+  salt applied deterministically.
 
 State is keyed on **stable identity** — source-relative `path` + `name` + `content-hash` — never on commit SHAs, so a rebased or re-cloned source does not duplicate work.
 
