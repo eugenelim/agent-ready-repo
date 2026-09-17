@@ -1,9 +1,14 @@
 # ADR-0004: Per-IDE direct writes are the repo-scope install default; dist-tree is opt-in
 
-- **Status:** Accepted — rejected alternative (2) partially superseded by [ADR-0091](0091-kiro-power-route-supersedes-rejection.md); the decision itself stands
+- **Status:** Accepted
 - **Date:** 2026-05-26
-- **Deciders:** eugenelim
+- **Areas:** install, adapters
+- **Reversibility:** low
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0091
 - **Related:** [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md), [RFC-0011](../rfc/0011-pack-allowed-adapters.md), [RFC-0004](../rfc/0004-install-scope-per-pack.md), [`repo-scope-per-adapter-projection` spec](../specs/repo-scope-per-adapter-projection/spec.md), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md)
 
 ## Context
@@ -28,6 +33,15 @@ The forces at play:
 We will make **per-IDE direct writes the repo-scope install default** and treat the dist-tree producer as an **explicit opt-in via `--emit-install-routes`** for catalogue-publishing workflows.
 
 > `agentbundle install --pack <name> --scope repo --adapter <ide> .` lands the pack at `<repo>/.<ide>/skills/` (or `.agents/skills/` for codex, `.github/instructions/` for copilot). With no `--adapter` flag the install falls back to `DEFAULT_ADAPTER` (today `"claude-code"`). Passing `--emit-install-routes` restores the legacy dist-tree producer.
+
+- **D1:** Per-IDE direct writes are the repo-scope install default, and the legacy dist-tree producer is reachable only through the explicit `--emit-install-routes` opt-in.
+- **D2:** `--adapter` is accepted at both scopes; RFC-0011's `install: --adapter is bound to --scope user` refusal is removed.
+- **D3:** `_resolve_user_scope_target_adapter` becomes `_resolve_target_adapter` with a `scope` kwarg, and its six-step lookup branches on scope at steps 0, 4 and 5 only.
+- **D4:** Repo scope does not probe `<repo>/.<ide>/` and returns `DEFAULT_ADAPTER` instead.
+- **D5:** Contract v0.6 → v0.7 adds `allowed-prefixes.repo` per adapter, every shipped adapter declares its repo-scope prefix list (Copilot gaining a `[adapter.copilot.scope]` table), and the path-jail consults that list at safety-layer time.
+- **D6:** `DEFAULT_USER_SCOPE_ADAPTER` renames to `DEFAULT_ADAPTER` with a one-release deprecation alias, so one constant covers both scopes.
+- **D7:** `--adapter X --emit-install-routes` at repo scope refuses with a pinned handler-level message, and refusals fire in the order `scope.resolve()` → handler-level flag refusals → resolver-internal refusals.
+- **D8:** All eight shipped packs — the four user-scope-capable and the four repo-only — bump to v0.7 in the implementation PR, per RFC-0004 atomicity.
 
 Four derived rules pin the model concretely:
 
@@ -62,6 +76,12 @@ The decision applies to the four user-scope-capable packs (`atlassian`, `figma`,
 - `--emit-install-routes` carries a `DeprecationWarning` from day one; if telemetry shows zero adoption across one transitional release, a future RFC drops it and `make build` becomes the sole dist-tree producer.
 - Per-pack cross-pack adapter consistency at repo scope is not enforced — pack A can resolve to kiro and pack B to claude-code in the same repo, leaving `<repo>/.kiro/` next to `<repo>/.claude/`. Matches user-scope behaviour; revisit if adopters report it as a footgun.
 - `state.adapter` carried `"claude-code"` as a dataclass default for every repo-scope install between RFC-0011 and RFC-0012's ship date. AC24 in-band detection (triggers (a) adapter-disagreement and (b) shape-mismatch) carries affected adopters through; the population is bounded (only `--scope repo` against the four user-scope-capable packs in that window) but unknown without telemetry.
+
+**Revisit if:** one transitional release of the `--emit-install-routes`
+`DeprecationWarning` shows zero adoption, which retires the opt-in and leaves
+`make build` the sole dist-tree producer (D1); or adopters report cross-pack
+adapter inconsistency at repo scope — `<repo>/.kiro/` beside `<repo>/.claude/` —
+as a footgun.
 
 ## Alternatives considered
 
