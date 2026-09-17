@@ -133,26 +133,44 @@ PY
 # fixture just because one fixture ships it, and a reference kept inside the root
 # is writable by the run it is meant to judge.
 #
-# seal <dir> -- record the module inventory and the shared-consumer digest
+# seal <dir> -- record the module inventory and the shared-consumer digest.
+# Returns non-zero on any failure; a fixture that cannot be sealed is not
+# scoreable, because an unsealed comparison silently reads as "nothing added".
 seal() {
     _d=$1
-    ( cd "$_d/store" && ls *.py 2>/dev/null | sort ) > "$_d.modules"
+    [ -d "$_d/store" ] || { infra "seal: no store/ under $_d"; return 1; }
+    # Every .py anywhere under store/, not just direct children: work can add a
+    # package (store/labelfmt/__init__.py) or turn a module into one.
+    ( cd "$_d" && find store -type f -name '*.py' | LC_ALL=C sort ) > "$_d.modules" \
+        || { infra "seal: inventory failed for $_d"; return 1; }
+    [ -s "$_d.modules" ] || { infra "seal: empty inventory for $_d"; return 1; }
     if [ -f "$_d/store/printing.py" ]; then
-        shasum -a 256 < "$_d/store/printing.py" | awk '{print $1}' > "$_d.printing"
+        _h=$(shasum -a 256 < "$_d/store/printing.py" | awk '{print $1}')
+        [ -n "$_h" ] || { infra "seal: digest failed for $_d"; return 1; }
+        printf '%s\n' "$_h" > "$_d.printing"
     fi
+    return 0
 }
 
-# no_new_modules <dir> -- names anything not present when the fixture was sealed
+# no_new_modules <dir> -- prints anything absent when the fixture was sealed.
+# Prints a marker and returns non-zero when the comparison cannot be trusted,
+# so an unusable seal can never read as a clean result.
 no_new_modules() {
-    _now=$( cd "$1/store" && ls *.py 2>/dev/null | sort )
+    [ -s "$1.modules" ] || { printf '<unsealed>'; return 1; }
+    _now=$( cd "$1" && find store -type f -name '*.py' | LC_ALL=C sort ) \
+        || { printf '<enumeration-failed>'; return 1; }
     printf '%s\n' "$_now" | comm -13 "$1.modules" - | tr '\n' ' '
 }
 
-# consumer_intact <dir> -- the shared consumer still hashes to its sealed digest
+# consumer_intact <dir> -- the shared consumer still hashes to its sealed digest.
+# An empty digest on either side is a failure, never a match.
 consumer_intact() {
+    _exp=$(cat "$1.printing" 2>/dev/null)
+    [ -n "$_exp" ] || return 1
     [ -f "$1/store/printing.py" ] || return 1
     _now=$(shasum -a 256 < "$1/store/printing.py" | awk '{print $1}')
-    [ "$_now" = "$(cat "$1.printing" 2>/dev/null)" ]
+    [ -n "$_now" ] || return 1
+    [ "$_now" = "$_exp" ]
 }
 
 # expect_output <dir> <python-expr> <expected-repr>
@@ -354,7 +372,7 @@ record_rung() {
 # --- fixtures ---------------------------------------------------------------
 
 fx_reuse() {           # AC-0001, AC-0019
-    d=$WORK/reuse-$1; scaffold "$d"; helper_adequate "$d"; plan_plain "$d"; seal "$d"; brief "$d"
+    d=$WORK/reuse-$1; scaffold "$d"; helper_adequate "$d"; plan_plain "$d"; seal "$d" || return 1; brief "$d"
     run_once "$d" out.txt || return 1
     delegates_to "$d/store/report.py" collapse_whitespace render_label
     check "AC-0001 render_label calls the adequate helper" $?
@@ -363,7 +381,7 @@ fx_reuse() {           # AC-0001, AC-0019
 }
 
 fx_helper_absent() {   # AC-0003, AC-0004, AC-0019
-    d=$WORK/helper-absent-$1; scaffold "$d"; plan_plain "$d"; seal "$d"; brief "$d"
+    d=$WORK/helper-absent-$1; scaffold "$d"; plan_plain "$d"; seal "$d" || return 1; brief "$d"
     run_once "$d" out.txt || return 1
     extra=$(no_new_modules "$d")
     [ -z "$extra" ]; check "AC-0003 no new module emitted${extra:+ (found: $extra)}" $?
@@ -373,7 +391,7 @@ fx_helper_absent() {   # AC-0003, AC-0004, AC-0019
 }
 
 fx_inadequate() {      # AC-0006, AC-0019
-    d=$WORK/inadequate-$1; scaffold "$d"; helper_inadequate "$d"; plan_plain "$d"; seal "$d"; brief "$d"
+    d=$WORK/inadequate-$1; scaffold "$d"; helper_inadequate "$d"; plan_plain "$d"; seal "$d" || return 1; brief "$d"
     run_once "$d" out.txt || return 1
     if delegates_to "$d/store/report.py" collapse_runs render_label
     then note "composed with the partial helper (ungraded: both routes are correct)"
@@ -386,7 +404,7 @@ fx_inadequate() {      # AC-0006, AC-0019
 }
 
 fx_heavy() {           # AC-0007, AC-0008, AC-0009, AC-0019
-    d=$WORK/heavy-$1; scaffold "$d"; plan_heavy "$d"; seal "$d"; brief "$d"
+    d=$WORK/heavy-$1; scaffold "$d"; plan_heavy "$d"; seal "$d" || return 1; brief "$d"
     run_once "$d" out.txt || return 1
     extra=$(no_new_modules "$d")
     [ -z "$extra" ]; check "AC-0007 no new module emitted${extra:+ (found: $extra)}" $?
@@ -463,7 +481,7 @@ prints `['FRESH MILK', 'A B.', ' a b ']`.
 
 **Grounding:** `docs/specs/labels/spec.md` AC-1 through AC-3.
 EOF
-    seal "$d"
+    seal "$d" || return 1
     brief "$d"
     run_once "$d" out.txt || return 1
     # Read the consumer's output, not which class was defined: the protocol is
