@@ -682,10 +682,11 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
 # the same way `STEP_DISPOSITION` above was built. The lint checks that a reason
 # is *present*; whether it is *true* is a human-review control.
 # The source strings and conditions that many entries share. Written once
-# because they were written 21 and 27 times, and a renamed job or step then
-# meant that many synchronised edits plus a flood of identical violations. The
-# KEYS stay explicit per suite — a roster whose keys were also derived would
-# stop being a declaration.
+# because the roster wrote them out 21, 6 and 21 times respectively, and a
+# renamed job or step then meant that many synchronised edits plus a flood of
+# identical violations. The KEYS stay explicit per suite — a roster whose keys
+# were also derived would stop being a declaration, which is the property the
+# whole design rests on.
 _PACK_HOOK_LINUX = (
     "catalogue-tooling-ci-gates.yml / pack-hook-tests / "
     "Run repo/pack hook suites (Linux)"
