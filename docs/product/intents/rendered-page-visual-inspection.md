@@ -220,7 +220,8 @@ blurs, reads the resting style, restores focus, and requires the element to *gai
 an indicator rather than merely differ (`quality-assertions.ts:235-284`), plus
 ring contrast across real Tab stops (`:619-730`). That coverage is partial — the
 contrast helper skips box-shadow rings and approximates image backdrops (`:677`,
-`:711`), and SC 2.4.11's area and non-obscuration parts are not measured at all.
+`:711`), and SC 2.4.13's area (Focus Appearance) and SC 2.4.11's non-obscuration
+(Focus Not Obscured) are not measured at all.
 The narrow, correct claim: **parts of these criteria are demonstrably measurable
 by an executing agent.** What blocks the pack's reviewer is not the criteria's
 nature — it is that a reader of a diff executes nothing. Attributing the gap to

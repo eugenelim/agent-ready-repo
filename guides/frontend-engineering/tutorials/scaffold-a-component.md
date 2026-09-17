@@ -267,7 +267,7 @@ Key rules from the token block and craft rules:
   }
 }
 
-/* Focus styles — WCAG 2.2 AA */
+/* Focus styles — verified below as WCAG 2.2 SC 2.4.13 Focus Appearance (AAA enhancement) */
 .notif-card__retry:focus-visible,
 .notif-card__link:focus-visible,
 .notif-card__cta:focus-visible {
@@ -293,10 +293,11 @@ npx pa11y "file:///$(pwd)/notification-card.html" --standard WCAG2AA --reporter 
 ```
 
 Then manually verify:
-- WCAG 2.4.11: the `.notif-card__retry` and `.notif-card__link` focus rings are
-  at least 2px, with 3:1 contrast against the adjacent surface.
-- WCAG 2.5.8: `.notif-card__retry` button is at least 24×24 CSS px
-  (add `min-height: 32px; min-width: 32px` if needed).
+- WCAG 2.5.8 Target Size (Minimum), AA: `.notif-card__retry` button is at
+  least 24×24 CSS px (add `min-height: 32px; min-width: 32px` if needed).
+- WCAG 2.4.13 Focus Appearance, AAA enhancement: the `.notif-card__retry`
+  and `.notif-card__link` focus rings are at least 2px, with 3:1 contrast
+  against the adjacent surface.
 
 **Gate 3 — CSS token enforcement:**
 ```bash
@@ -331,8 +332,9 @@ inspection observations: completed / pass — nothing reader-visible wrong acros
   the four required captures at 390x600 and 1280x900, at rest and scrolled
 a11y result:
   pa11y wcag21aa: 0 errors, 0 warnings
-  manual 2.4.11 Focus Appearance: pass — 2px outline at 4.8:1 contrast
-  manual 2.5.8 Target Size Minimum: pass — retry button 32×40px, link 32×24px
+  manual 2.5.8 Target Size (Minimum) (AA): pass — retry button 32×40px, link 32×24px
+  manual 2.4.13 Focus Appearance (AAA enhancement): pass — 2px outline at 4.8:1 contrast
+  WCAG 2.2 AA gap: 2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8 not yet checked
 perf result: component-level; no CWV measurement for isolated component
 console/network result: no console errors; fetch mock active during review
 analytics events: notification_card_viewed fires on content state render
@@ -346,11 +348,11 @@ unverified items: none
 
 A notification card component that:
 - Implements all 4 applicable states
-- Passes HTML validation, pa11y WCAG2AA, and the two WCAG 2.2 manual checks
+- Passes HTML validation, pa11y WCAG2AA, and the two named WCAG 2.2 manual checks
 - Has no hardcoded values — all colour and spacing through tokens
 - Has a skeleton that matches the content layout
 - Has guarded animations (respects `prefers-reduced-motion`)
-- Has visible focus styles meeting WCAG 2.4.11
+- Has visible focus styles meeting WCAG 2.4.13 Focus Appearance (AAA enhancement)
 - Has a completed evidence manifest
 
 This is the workflow for every component and surface built with the

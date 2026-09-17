@@ -36,7 +36,7 @@ Runs a brownfield inspection (what-to-preserve, a11y debt, token drift, responsi
 
 **Deep accessibility audit**
 Say "audit the accessibility of this surface" or describe a specific interaction pattern (combobox, data grid, drag-and-drop).
-Returns structured findings against WCAG 2.2 with severity (blocker / concern / suggestion) — including the two manual-verification items (Focus Appearance, Target Size) that automated tools miss. No changes are made unless you ask.
+Returns structured findings against a WCAG 2.2 AA target with severity (blocker / concern / suggestion) — including the two named manual checks (2.5.8 Target Size (Minimum), AA; 2.4.13 Focus Appearance, AAA enhancement), plus a stated gap against the WCAG 2.2 AA baseline. No changes are made unless you ask.
 
 **Verify a surface before shipping**
 Say "verify this surface before the release."

@@ -96,7 +96,7 @@ humanGates:
     trigger: "After gates and manifest are ready, before merge or handoff"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance, WCAG 2.2 Target Size Minimum, Core Web Vitals regression signals, and reader-visible layout failure read from the rendered captures were reviewed."
+      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Target Size (Minimum) (AA) and Focus Appearance (AAA enhancement), Core Web Vitals regression signals, and reader-visible layout failure read from the rendered captures were reviewed."
       - "Security, reliability, or product-design concerns were routed to the appropriate reviewer instead of claimed as covered here."
     whatGoodLooksLike: "The reviewer finds no blocking frontend regressions, or the findings are fixed and rerun."
     whatBadLooksLike: "The same author judges their own UI diff complete without an independent read."
