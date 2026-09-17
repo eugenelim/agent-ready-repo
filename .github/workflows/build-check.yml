@@ -470,6 +470,36 @@ jobs:
       - name: pytest pack-test compatibility class characterization (ADR-0101)
         run: python -m pytest tools/test_pack_test_class_characterization.py -q
 
+      # spec/pr-gate-suite-disposition: the two suites the SUITE_DISPOSITION
+      # roster showed were reachable only through `make test`. Both are named
+      # here so `lint-ci-parity`'s suite arm can corroborate their PR_GATED
+      # entries; drop a step and that entry reddens rather than going stale.
+      #
+      # The pack suite is the instance the workspace register recorded: its own
+      # guards shipped PR-ungated because no workflow named the tree they live
+      # in. 337 tests, ~1.5s.
+      # The path is spelled EXACTLY as the Makefile's run-test-suite line
+      # spells it, not as the shorter `packs/frontend-engineering/tests/`, which
+      # collects the same 337 tests. Both of this linter's directions compare
+      # written paths: the forward arm asks whether `make ci` reaches this
+      # step's target, and the suite arm looks the target up by key. A parent
+      # directory matches neither, so the shorter form reported a true gate as
+      # absent in both.
+      - name: pytest frontend-engineering pack suite (pr-gate-suite-disposition)
+        run: >-
+          python -m pytest
+          packs/frontend-engineering/tests/skills/frontend-engineering/ -q
+      # The dedup guard is the second instance, and the more expensive one:
+      # ~65s, because it shells out to `make -n` repeatedly to compare the
+      # Makefile's expansion against pinned plan digests. It earns the budget by
+      # having been RED on `main` from PR #1313 to PR #1339 with no pull request
+      # noticing — PR #1336 merged green with three of its pins stale. Its whole
+      # job is to catch the run-test-suite expansion moving, which is the defect
+      # class this spec exists to close, so leaving it ungated left the
+      # guard-of-the-guard unguarded.
+      - name: pytest shared-test dedup guard (pr-gate-suite-disposition)
+        run: python -m pytest tools/test_local_ci_shared_test_deduplication.py -q
+
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
       # drift-gated. `make build-check` exercises the live drift gate, but the

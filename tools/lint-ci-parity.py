@@ -474,6 +474,10 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         ),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
+    "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
+    "pytest shared-test dedup guard (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
     "pytest pack-test compatibility class characterization (ADR-0101)":
         CI_ONLY(
             "deliberately not local: proving isolated-vs-grouped collection "
@@ -754,10 +758,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/frontend-engineering/tests/skills/frontend-engineering/':
-        NO_PR_GATE(
-            "337 tests in 1.5s, and named nowhere in build-check.yml — the instance the "
-            "workspace register recorded. T5 of this spec adds its step; until then the honest "
-            "reading is ungated."
+        PR_GATED(
+            "build-check.yml / gate-main / pytest frontend-engineering pack "
+            "suite (pr-gate-suite-disposition)"
         ),
     'packs/architect/tests/pack/':
         PR_GATED(
@@ -969,10 +972,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest site build + link rewriting"
         ),
     'tools/test_local_ci_shared_test_deduplication.py':
-        NO_PR_GATE(
-            "51 tests in 65s, shelling out to `make -n` repeatedly. Three of its pins were stale "
-            "on main from PR #1313 to PR #1339 with no PR noticing. T5 of this spec adds its "
-            "step; until then the honest reading is ungated."
+        PR_GATED(
+            "build-check.yml / gate-main / pytest shared-test dedup guard "
+            "(pr-gate-suite-disposition)"
         ),
     'tools/test_gitattributes_merge_driver.py':
         PR_GATED(

@@ -828,6 +828,47 @@ composed:
         )
         _check("missing-workflow-dir-exits-2", res.returncode, 2)
 
+    # ── the suite arm is WIRED INTO main(), asserted end-to-end ────────────
+    #
+    # Every other suite case drives `check_suites` directly, so deleting its
+    # call from `main()` leaves all of them green while the gate is dead — the
+    # one failure mode a per-function test cannot see. This case goes through
+    # the command entry point instead, against a fixture whose define carries an
+    # undispositioned line.
+    #
+    # It asserts the suite-specific message, not merely a non-zero exit. A
+    # fixture root also fails the forward gate (its workflows are unclassified),
+    # so exit 1 alone would pass whether or not the suite arm ran at all.
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "on:\n  pull_request:\n"
+            "jobs:\n  gate-main:\n    steps:\n      - name: a gate\n"
+            "        run: python3 tools/nobody-runs-this.py\n", encoding="utf-8")
+        (fake / "Makefile").write_text(
+            "override define run-test-suite\n"
+            "\t$(PYTHON) -m pytest fixture/undispositioned/ -q\n"
+            "endef\n\n"
+            "test-unleased:\n"
+            "\t$(call run-test-suite,,,)\n",
+            encoding="utf-8")
+        (fake / "tools" / "repo").mkdir(parents=True)
+        (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+        for rel in M.AGGREGATORS:
+            (fake / rel).parent.mkdir(parents=True, exist_ok=True)
+            (fake / rel).write_text("# no _run calls\n", encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("suites-arm-is-wired-into-main-exit", res.returncode, 1)
+        _check_in("suites-arm-is-wired-into-main-reports-the-suite",
+                  "fixture/undispositioned/", out)
+        _check_in("suites-arm-is-wired-into-main-names-the-roster",
+                  "SUITE_DISPOSITION", out)
+
     # ── live: the wiring this spec added is load-bearing, asserted A/B ──────
     # Both sides go through the linter's own local_targets(), so a future third
     # coverage source cannot make this case quietly diverge from main().

@@ -275,3 +275,61 @@ files reference them. All run green:
   `test-pages-concurrency.py`, `test-lint-ci-parity.py` — each exit 0.
 - `tools/test_local_ci_shared_test_deduplication.py` — **51 passed, 59s**,
   confirming a tools-only change moves neither plan digest.
+
+## T3 — the entry-point case (2026-09-17)
+
+`suites-arm-is-wired-into-main-*` drives the command entry point against a
+fixture whose define carries an undispositioned line. Void-probed: deleting the
+`check_suites(...)` call from `main()` reddens
+`suites-arm-is-wired-into-main-reports-the-suite` and
+`...-names-the-roster`, closing probe A.
+
+**The exit-code assertion alone would not have closed it.** A fixture root also
+fails the forward gate — its workflows are unclassified — so `exit 1` holds
+whether or not the suite arm ran. `suites-arm-is-wired-into-main-exit` stayed
+green under the mutation; only the two content assertions caught it. That is why
+the case asserts the suite-specific message rather than the status.
+
+169 cases.
+
+## T5 — the two suites are PR-gated (2026-09-17)
+
+Two `gate-main` steps added, each with a `STEP_DISPOSITION` entry as
+`LOCAL("test-after-build-check")`, and both `SUITE_DISPOSITION` entries flipped
+to `PR_GATED` naming their step. The roster now reads **58 PR-gated, 6
+conditionally gated, 54 with no pull-request gate**.
+
+### A parent directory matches neither direction
+
+The pack step first read `python -m pytest packs/frontend-engineering/tests/ -q`,
+which collects the same 337 tests as the deeper path. The lint refused it twice:
+the forward arm because `make ci` reaches
+`packs/frontend-engineering/tests/skills/frontend-engineering/` and not its
+parent, and the suite arm because it looks a target up by key and the parent is a
+different key. Both directions compare *written* paths, so the step now spells
+the path exactly as the define spells it. Recorded because the failure mode is
+invisible from either surface alone: the shorter path runs the same tests and
+reports a real gate as absent.
+
+### Both steps are load-bearing
+
+| Step removed | Exit | Entry that reddened |
+| --- | ---: | --- |
+| `pytest frontend-engineering pack suite` | 1 | `packs/frontend-engineering/tests/skills/frontend-engineering/` |
+| `pytest shared-test dedup guard` | 1 | `tools/test_local_ci_shared_test_deduplication.py` |
+
+### No plan digest moved
+
+`tools/test_local_ci_shared_test_deduplication.py`: **51 passed, 60.8s** after
+the workflow edit, so the plan's claim holds — the digests are taken over the
+Makefile, which this change does not touch, and no re-pin is owed.
+`tools/test-build-check-workflow.py` exits 0.
+
+## T6 — the obligation pair (2026-09-17)
+
+`tools/AGENTS.md` now states both directions as one pair rather than a second
+caveat: a new `build-check.yml` step owes a `STEP_DISPOSITION` entry, and a new
+or moved `run-test-suite` line owes a `SUITE_DISPOSITION` entry per target. It
+also carries the path-spelling rule T5 discovered, and states that reasons are
+checked for presence and not for truth. The four `lint_agents_md_*` suites stay
+green (16 passed, 10 subtests).
