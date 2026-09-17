@@ -35,9 +35,11 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib.util
 import io
 import os
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -169,14 +171,25 @@ DEFERRED_MISSING_LINKS = frozenset(
 )
 
 
-_COMMENT_SPAN_RE = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
-_FENCE_SPAN_RE = re.compile(
-    r"^ {0,3}(```|~~~)[^\n]*$.*?(?:^ {0,3}\1|\Z)", re.DOTALL | re.MULTILINE
-)
-# Requires content between the delimiters. `[^`\\n]*` matches a bare ``` fence
-# line as an empty code span, which blanks the delimiter and stops the fence
-# pattern below from ever seeing its own opener.
-_INLINE_CODE_SPAN_RE = re.compile(r"`+[^`\n]+`+")
+def _inert_masked(text: str) -> str:
+    """The guard module's inert-span scanner, loaded under an explicit name.
+
+    Imported rather than re-implemented. A second copy of the construct
+    precedence is how the two drift, and getting it right took three attempts.
+    The unique module name follows this repository's rule against binding a
+    test helper by bare name.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "roster_conventions_retirement_guard",
+        Path(__file__).resolve().parent / "test_conventions_retirement.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = sys.modules.get(spec.name)
+    if module is None:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+    return str(module._inert_masked(text))
 
 
 def _operative_lines(path: Path) -> list[tuple[int, str]]:
@@ -185,24 +198,14 @@ def _operative_lines(path: Path) -> list[tuple[int, str]]:
     A link inside inline code, an HTML comment or a fenced sample is not one an
     adopter can follow. Both the violation scan and the dead-entry guard read
     this, so a spelling that survives only inside a fence cannot keep a
-    deferral alive while the violation half stays suppressed. Inline code is
-    blanked first so a quoted `<!--` cannot open a comment.
+    deferral alive while the violation half stays suppressed.
+
+    The scanner is the guard module's, imported rather than re-implemented: a
+    second copy of this logic is how the two drift, and it took three attempts
+    to get the construct precedence right the first time.
     """
-    text = path.read_text(encoding="utf-8")
-    masked = list(text)
-
-    def blank(source: str, *patterns: re.Pattern[str]) -> str:
-        for pattern in patterns:
-            for span in pattern.finditer(source):
-                for i in range(*span.span()):
-                    if masked[i] != "\n":
-                        masked[i] = " "
-        return "".join(masked)
-
-    fenced = blank(text, _FENCE_SPAN_RE)
-    coded = blank(fenced, _INLINE_CODE_SPAN_RE)
-    final = blank(coded, _COMMENT_SPAN_RE)
-    return list(enumerate(final.splitlines(), start=1))
+    masked = _inert_masked(path.read_text(encoding="utf-8"))
+    return list(enumerate(masked.splitlines(), start=1))
 
 
 def _unresolved(path: Path, target: str, output_root: Path) -> bool:

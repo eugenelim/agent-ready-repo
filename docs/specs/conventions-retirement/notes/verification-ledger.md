@@ -688,3 +688,51 @@ malformed row reds instead of shrinking the domain. The scaffold link check
 requires confinement beneath the scaffold root before testing existence. Link
 liveness and link violations read the same masked text. A deferral naming an
 unscanned page now fails outright.
+
+## Round 13 — review of the round-12 repairs
+
+Seven findings. The two that matter were about the *verification*, not the
+code, and both were mine.
+
+**Correction to round 12 above.** That entry says "Eleven behaviours are now
+pinned directly against the helpers". That was false when written. The eleven
+checks were run as an ad-hoc script and never committed, so nothing was
+pinned; and they called `_inert_masked` directly while `_matching_link_count`
+took a different path entirely — a fence-and-comment substitution that never
+saw the inline-code mask. The proof ratified the intent rather than the code,
+which is the failure it was supposed to rule out. Seventeen parameterized
+cases are now committed, and they run through the real readers.
+
+**A third wrong fix, as predicted.** Round 12's commit was written expecting
+one, and the reviewer brief said so. It was the fence delimiter: a fixed
+three-character backreference closes a four-backtick fence on the first inner
+three-backtick line. Live at `guides/_shared/how-to/author-a-skill.md:116`,
+where a ````markdown fence wraps four ```bash examples — the guard was reading
+those examples as operative prose.
+
+**The sequential regexes were the wrong shape, and three rounds of patching
+them was the evidence.** Every ordering has a construct that breaks it. Inline
+code first blanks bare fence delimiters. Fences first lets a fence marker
+inside a comment eat that comment's `-->`, so the comment pass swallows the
+file. Comments first lets a quoted `<!--` do the same. There is no order that
+is right, because the constructs are mutually exclusive at a position and a
+sequence of independent passes cannot express that. One left-to-right scan
+can: whichever construct opens first at the current position wins, and the
+scan resumes after it closes. That replaced four regexes and closed findings 3,
+4 and 5 together.
+
+**Two smaller ones.** `anchors_in` slugged the masked heading, so
+`## Use `foo`` anchored as `use` rather than `use-foo` — masking is for
+locating a heading, not for reading it, and the slug now comes from the
+original line. And `test_install_snapshot` imports the scanner instead of
+carrying a second copy, under an explicit unique module name.
+
+### What the three rounds of AC6 repair actually cost
+
+AC6 was repaired in rounds 9, 10, 11, 12 and 13. Each round fixed the branch
+the finding named and left another loose: the consumer, then the fragment,
+then the target the fragment resolves against, then the text the links are
+read from. The recurring error is narrower than "incomplete fix" — it is
+proving the repair against the helper the fix *introduced* rather than the
+call path the assertion *takes*. A differential test that imports a helper and
+exercises it directly will pass whether or not any caller uses it.

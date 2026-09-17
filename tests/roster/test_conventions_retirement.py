@@ -13,6 +13,8 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = REPO_ROOT / "docs/specs/conventions-retirement"
 NOTES = SPEC_DIR / "notes"
@@ -32,52 +34,107 @@ APPROVED_SCAN_DIGEST = "a8ec4080227bab0b8caa78cb46f1cba91cd1bae4a832f115e8278400
 
 _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 
-# Inert spans: text a reader never follows. Each block pattern also matches its
-# unterminated form, because a block left open swallows the rest of the file for
-# a reader and must do the same here. CommonMark allows `~~~` as a fence
-# delimiter and up to three leading spaces on either side, so both are
-# recognised; a narrower pattern leaves a link or heading visible to this module
-# while invisible to every renderer.
-_COMMENT_RE = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
-_FENCE_RE = re.compile(
-    r"^ {0,3}(```|~~~)[^\n]*$.*?(?:^ {0,3}\1|\Z)", re.DOTALL | re.MULTILINE
-)
-# Requires content between the delimiters. `[^`\\n]*` matches a bare ``` fence
-# line as an empty code span, which blanks the delimiter and stops the fence
-# pattern below from ever seeing its own opener.
-_INLINE_CODE_RE = re.compile(r"`+[^`\n]+`+")
+# Inert spans: text no reader follows, and so text no assertion in this module
+# should read. Three constructs qualify — a fenced block, an HTML comment, and
+# an inline code span — and they are found by one left-to-right scan rather
+# than by three regexes run in sequence.
+#
+# The scan exists because the sequential version was wrong three times, each
+# time in a way a passing suite did not show. Masking inline code first blanked
+# bare ``` fence delimiters, because a delimiter line reads as an empty code
+# span, so the fence pattern lost its opener. Masking fences first let a fence
+# marker *inside* a comment consume that comment's `-->`, leaving the comment
+# pass to swallow the file. And a fixed three-character delimiter closed a
+# four-backtick fence on the first inner three-backtick line — live in this
+# repository at `guides/_shared/how-to/author-a-skill.md`, where a ````markdown
+# fence wraps ```bash examples.
+#
+# One pass has no ordering to get wrong: whichever construct opens first at the
+# current position wins, and the scan resumes after it closes. A construct left
+# unterminated runs to end of file, which is what a renderer does with it.
+_FENCE_OPEN_RE = re.compile(r"^(?P<indent> {0,3})(?P<delim>`{3,}|~{3,})[^\n]*$")
+
+_BLOCK, _CODE = "block", "code"
 
 
-def _blank_spans(text: str, masked: list[str], *patterns: re.Pattern[str]) -> str:
-    """Overwrite each pattern's matches in `masked` with spaces; return it."""
-    for pattern in patterns:
-        for span in pattern.finditer(text):
-            for i in range(*span.span()):
-                if masked[i] != "\n":
-                    masked[i] = " "
+def _fence_close(text: str, search_from: int, delim: str, run: int) -> int:
+    """Offset just past the line that closes this fence, or end of text.
+
+    CommonMark closes a fence with the same character, at least as long as the
+    opener, alone on its line. "At least as long" is what keeps a ````
+    fence open across the ``` lines it is quoting.
+    """
+    closer = re.compile(rf"^ {{0,3}}{re.escape(delim)}{{{run},}}\s*$")
+    position = search_from
+    while position < len(text):
+        line_end = text.find("\n", position)
+        line_end = len(text) if line_end == -1 else line_end
+        if closer.match(text[position:line_end]):
+            return min(line_end + 1, len(text))
+        position = line_end + 1
+    return len(text)
+
+
+def _inert_spans(text: str) -> list[tuple[int, int, str]]:
+    """Return `(start, end, kind)` for every inert span, in document order."""
+    spans: list[tuple[int, int, str]] = []
+    position, length = 0, len(text)
+    at_line_start = True
+    while position < length:
+        if at_line_start:
+            line_end = text.find("\n", position)
+            line_end = length if line_end == -1 else line_end
+            opener = _FENCE_OPEN_RE.match(text[position:line_end])
+            if opener is not None:
+                delim = opener.group("delim")
+                close = _fence_close(
+                    text, min(line_end + 1, length), delim[0], len(delim)
+                )
+                spans.append((position, close, _BLOCK))
+                position, at_line_start = close, True
+                continue
+        if text.startswith("<!--", position):
+            close = text.find("-->", position + 4)
+            close = length if close == -1 else close + 3
+            spans.append((position, close, _BLOCK))
+            position, at_line_start = close, False
+            continue
+        if text[position] == "`":
+            run = len(text) - len(text.lstrip("`")) if False else 0
+            run = 0
+            while position + run < length and text[position + run] == "`":
+                run += 1
+            closer = re.compile(rf"(?<!`){'`' * run}(?!`)")
+            found = closer.search(text, position + run)
+            if found is not None:
+                spans.append((position, found.end(), _CODE))
+                position, at_line_start = found.end(), False
+                continue
+        at_line_start = text[position] == "\n"
+        position += 1
+    return spans
+
+
+def _blank(text: str, kinds: tuple[str, ...]) -> str:
+    """Blank the named span kinds, preserving every offset and newline."""
+    masked = list(text)
+    for begin, finish, kind in _inert_spans(text):
+        if kind not in kinds:
+            continue
+        for i in range(begin, finish):
+            if masked[i] != "\n":
+                masked[i] = " "
     return "".join(masked)
 
 
 def _inert_masked(text: str) -> str:
-    """Return `text` with inert spans blanked, offsets and newlines preserved.
-
-    Order is load-bearing, and both halves were found by testing. Fences go
-    first, because a bare ``` delimiter line otherwise reads as an empty inline
-    code span, gets blanked, and leaves the fence pattern with no opener to
-    match. Comments go last, because this repository's prose quotes `<!--` as
-    inline code and an unterminated-comment rule applied before that span is
-    blanked treats the sample as an opener and swallows the rest of the file.
-    Masking in place rather than deleting keeps offsets aligned, so a match
-    found here indexes the original text unchanged.
-    """
-    masked = list(text)
-    fenced = _blank_spans(text, masked, _FENCE_RE)
-    coded = _blank_spans(fenced, masked, _INLINE_CODE_RE)
-    return _blank_spans(coded, masked, _COMMENT_RE)
+    """Blank every inert span. Offsets are preserved, so a match here indexes
+    the original text unchanged."""
+    return _blank(text, (_BLOCK, _CODE))
 
 
 def _mask_inert(text: str) -> str:
-    """Alias kept for the section and link readers, which want full masking."""
+    """Alias for the section and link readers, which want full masking."""
     return _inert_masked(text)
 
 
@@ -92,10 +149,18 @@ def anchors_in(path: Path) -> frozenset[str]:
     """Return every anchor slug a Markdown file exposes."""
     if not path.is_file():
         return frozenset()
-    # Masked, for the same reason every other read in this module is: a heading
-    # inside a comment or a fenced example exposes no anchor a link can reach.
-    body = _mask_inert(path.read_text(encoding="utf-8"))
-    return frozenset(_slug(m.group("text")) for m in _HEADING_RE.finditer(body))
+    body = path.read_text(encoding="utf-8")
+    # Headings are *located* on masked text, because one inside a comment or a
+    # fenced example exposes no anchor a link can reach. Each is then slugged
+    # from the original line: a heading like `## Use \`foo\`` anchors as
+    # `use-foo`, and slugging the masked line drops the blanked code span —
+    # and trailing blanks fall to `\s*$` — leaving `use`, which nothing links to.
+    masked_lines = _mask_inert(body).splitlines()
+    return frozenset(
+        _slug(raw_line[m.start("text"):])
+        for raw_line, masked_line in zip(body.splitlines(), masked_lines, strict=True)
+        if (m := _HEADING_RE.match(masked_line)) is not None
+    )
 
 
 def anchor_map() -> dict[str, dict[str, str]]:
@@ -293,7 +358,7 @@ def _matching_link_count(
     }
     if not targets:
         return 0
-    body = _FENCE_RE.sub("", _COMMENT_RE.sub("", source.read_text(encoding="utf-8")))
+    body = _inert_masked(source.read_text(encoding="utf-8"))
     hits = 0
     for raw in _LINK_TARGET_RE.findall(body):
         path_part, _, fragment = raw.partition("#")
@@ -401,13 +466,11 @@ def visible_prose(text: str) -> str:
     missing rule that is present. Found in T19: the Finish-checklist obligation
     wrapped between "not done" and "until those are updated".
     """
-    # Spans are located on inline-code-masked text so a quoted `<!--` cannot
-    # open a comment, but they are cut from the original, because a backticked
-    # token is ordinary content here and several assertions name one.
-    fence_spans = [m.span() for m in _FENCE_RE.finditer(text)]
-    located = _blank_spans(text, list(text), _FENCE_RE, _INLINE_CODE_RE)
+    # Only the block spans are cut. A backticked token is ordinary content
+    # here — several assertions name one — so inline code stays, while the
+    # single scan still prevents a quoted `<!--` from opening a comment.
     keep, cursor = [], 0
-    spans = sorted(fence_spans + [m.span() for m in _COMMENT_RE.finditer(located)])
+    spans = [(b, e) for b, e, kind in _inert_spans(text) if kind == _BLOCK]
     for start, end in spans:
         if start >= cursor:
             keep.append(text[cursor:start])
@@ -1085,3 +1148,90 @@ def test_every_recorded_anchor_use_resolves() -> None:
     """
     failures = unresolved_uses()
     assert not failures, "unresolved anchor uses:\n" + "\n".join(failures)
+
+
+# --------------------------------------------------------------------------
+# The inert-span scanner, pinned case by case
+#
+# Round 13 found the previous round's "eleven behaviours verified" claim was
+# false: those checks were run ad hoc and never committed, and worse, they
+# called `_mask_inert` directly while `_matching_link_count` took a different
+# path entirely — so the proof ratified the intent rather than the code. These
+# cases run against the real readers wherever one exists.
+# --------------------------------------------------------------------------
+
+_DEST = "docs/README.md"
+_FRAG = "#the-three-lifecycle-classes"
+
+
+@pytest.mark.parametrize(
+    ("label", "markup", "operative"),
+    [
+        ("plain link", f"[x]({_DEST}{_FRAG})", True),
+        ("image", f"![x]({_DEST}{_FRAG})", False),
+        ("escaped bracket", f"\\[x]({_DEST}{_FRAG})", False),
+        ("inline code", f"`[x]({_DEST}{_FRAG})`", False),
+        ("backtick fence", f"```\n[x]({_DEST}{_FRAG})\n```", False),
+        ("tilde fence", f"~~~\n[x]({_DEST}{_FRAG})\n~~~", False),
+        ("indented fence", f"   ```\n   [x]({_DEST}{_FRAG})\n   ```", False),
+        ("html comment", f"<!--\n[x]({_DEST}{_FRAG})\n-->", False),
+        ("unterminated comment", f"<!--\n[x]({_DEST}{_FRAG})\n", False),
+        # A four-backtick fence stays open across the three-backtick lines it
+        # quotes. Live in this repository at `guides/_shared/how-to/
+        # author-a-skill.md`, where a ````markdown fence wraps ```bash.
+        ("nested fence", f"````\n```\n[x]({_DEST}{_FRAG})\n```\n````", False),
+        # A `<!--` shown as inline code is a sample, not an opener. Live at
+        # `spec-and-plan-contract.md`, which quotes it with no closing `-->`.
+        ("quoted comment opener", f"a `<!--` b\n[x]({_DEST}{_FRAG})", True),
+    ],
+)
+def test_only_an_operative_link_counts(label: str, markup: str, operative: bool) -> None:
+    """A link a reader cannot follow must not satisfy AC6."""
+    found = _LINK_TARGET_RE.findall(_inert_masked(markup))
+    assert bool(found) == operative, f"{label}: expected operative={operative}"
+
+
+@pytest.mark.parametrize(
+    ("label", "body", "reaches"),
+    [
+        ("plain body", "## D\nkeep\n\n## Next\ntail\n", True),
+        ("fenced fake heading", "## D\nkeep\n```\n## Fake\n```\nkeep2\n\n## Next\ntail\n", True),
+        ("commented fake heading", "## D\nkeep\n<!--\n## Fake\n-->\nkeep2\n\n## Next\ntail\n", True),
+    ],
+)
+def test_an_inert_heading_does_not_end_a_section(label: str, body: str, reaches: bool) -> None:
+    """A commented or fenced `## Fake` must not truncate the section.
+
+    Truncation is a false green: content after the fake boundary — a dangling
+    link included — is never examined by the placement assertions.
+    """
+    section = section_of(body, "D")
+    assert ("keep" in section) is reaches, label
+    assert "tail" not in section, f"{label}: a real heading must still end it"
+
+
+def test_an_inert_heading_exposes_no_anchor(tmp_path: Path) -> None:
+    """`anchors_in` must ignore a heading no reader renders."""
+    page = tmp_path / "page.md"
+    page.write_text("# Real\n\n<!--\n## Commented\n-->\n\n```\n## Fenced\n```\n", encoding="utf-8")
+    assert anchors_in(page) == frozenset({"real"})
+
+
+def test_a_heading_keeps_its_inline_code_in_the_anchor(tmp_path: Path) -> None:
+    """Masking locates a heading; the slug still comes from the real text.
+
+    `## Use \\`foo\\`` anchors as `use-foo`. Slugging the masked line would
+    blank the code span and yield `use`, so every link to it would miss.
+    """
+    page = tmp_path / "page.md"
+    page.write_text("## Use `foo`\n", encoding="utf-8")
+    assert anchors_in(page) == frozenset({"use-foo"})
+
+
+def test_visible_prose_keeps_backticked_tokens_and_drops_blocks() -> None:
+    """Inline code is content here; several assertions name a backticked token."""
+    text = "a `kept-token` b\n\n```\nfenced-out\n```\n\n<!-- commented-out -->\n"
+    prose = visible_prose(text)
+    assert "kept-token" in prose
+    assert "fenced-out" not in prose
+    assert "commented-out" not in prose
