@@ -223,3 +223,156 @@ the filename and title did.
 no generator case). `tests/roster/test_lint_adr_shape_corpus.py`: 2 passed —
 its partition assertion is computed from the live directory listing at run
 time, so the new record is absorbed without a code or fixture change.
+
+## T11 — release 0.11.0, changelog, and evals, run 2026-09-17
+
+**Path note.** T11's `Touches` does not admit this file, but its `Tests`
+name it as the home for the live-model record (AC-0030). Recorded here per
+that instruction; flagging the mismatch rather than silently reaching outside
+`Touches`.
+
+### AC-0027 — version strings
+
+    grep -rn "0\.10\.7" --include="*.toml" --include="*.json" --include="*.md" --include="*.yml" . \
+      --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=build --exclude-dir=dist
+
+Three hits before the edit: `packs/governance-extras/pack.toml:3`,
+`packs/governance-extras/.claude-plugin/plugin.json:3`, and the changelog's
+previous release heading (a fourth home would be a discovery, not a
+justification to skip it — the search came back exactly three). Both
+non-changelog files now read `0.11.0`; the changelog's own heading for this
+release also reads `0.11.0` (that's AC-0028, not a fourth version-string
+home). Minor: the shipped shape lint and the shared confinement helper are
+new primitives, not a content-only patch.
+
+### AC-0028 — heading pattern and placement
+
+New heading `## [governance-extras][0.11.0] — 2026-09-17` sits immediately
+after the `[Unreleased]` block's HTML comment and before `## [core][2.26.11]`
+— free-standing, at top level, not nested. `python3 -m pytest
+tools/test_build_site_routing.py -q`: **94 passed, 1 skipped, 4.40s.** That
+suite checks heading level (free-standing vs. nested-under-Unreleased),
+exactly-one-blank-line separation above and below every heading, and that
+every `### Highlights` child projects into the real `/now/` payload with
+matching date and bullet text. It does **not** read whether a released entry
+without Highlights recorded a reason — that's AC-0029, checked directly below
+because the suite is silent on it by design (per the spec's own note on this
+AC).
+
+### AC-0029 — the Highlights decision
+
+Recorded as "yes" — a `### Highlights` subsection is present, four bullets. I
+judged by the nature of the change per `packs/AGENTS.local.md`'s question
+("does this change what a consumer of the pack can do?"): yes — the template
+now requires `Areas` and `Reversibility`, coining an `Areas` token needs
+explicit confirmation, superseding a decision is now a two-field pointer
+instead of a `Status` edit, and `## Errata` is a new, load-bearing authoring
+convention. All four bullets are outcome-led (what an adopter can now do),
+none names a plan, a queue, a commit, or a PR, matching the public `/now/`
+constraint in `docs/product/AGENTS.md`.
+
+### AC-0030 — eval content
+
+Added eval `id: 15` to `evals.json` (a decision-reversal prompt) and its
+matching query to `eval_queries.json` (`should_trigger: true`), per
+`packs/AGENTS.md`'s "a non-cosmetic pack update also updates that pack's
+eval harness."
+
+**Areas / Reversibility / the mirrored half.** Eval 15's `expected_output`
+and `assertions` name `Areas` (the write-gate confirmation check),
+`Reversibility` (recorded as a judgement at authoring time), and
+`Supersedes:` — read from `new-adr/SKILL.md`'s "Reversing a decision" bullet
+(`:315-319`) as the field a *newly authored* record sets on itself. The
+mirrored field, `Superseded by:`, lands on the *pre-existing* record being
+superseded — an edit to a different file, not something authoring a new
+record does — so `Supersedes:` is the half a single authored record can
+carry, and eval 15 says so explicitly rather than asserting both halves.
+
+**No eval asserts body immutability — the search and its blind spot.**
+Predicate used: case-insensitive substring search over the JSON-serialized
+text of both files for `immutab`, `frozen`, `never edited`, `never edit`,
+`status-only`, `only edit`, `body is`, `cannot be changed/edited/modified`,
+`read-only`/`readonly`, `no edits`, `never rewritten`, `never changed`,
+`edit permitted`, `sole normative`, and `rewrite an accepted`. Zero hits
+before this task's edit (confirmed by parsing the JSON and counting, not by
+reading prose) and zero after — eval 15 uses `frozen` only to describe the
+correct, narrower claim (prose freezes except `## Errata`; `Status`,
+supersession fields, and `Areas` stay writable), never the retired blanket
+claim. Before this task, `git log -p` on `evals.json` located the actual
+retired sentence T6 removed: `"After Accepted the body is immutable — a
+reversal is a new superseding ADR, never an edit."` (commit `e8e6548de`) —
+confirming the concept this AC forbids is exactly that sentence, not merely
+its literal words. **What the predicate would miss:** a paraphrase using none
+of the listed phrasings and no morphological variant of them — e.g. "the
+decision text is settled the moment it's accepted" or "nothing in an accepted
+record moves again" — would not match any listed term and would need a human
+read or a different predicate to catch. The phrase list is drawn from the
+concept's known real phrasing (the retired sentence itself, RFC-0102's own
+zone vocabulary, and this delivery's other governing-surface edits in T6/T7),
+not from an exhaustive grammar of ways to say "immutable."
+
+**JSON validity:**
+
+    python3 -c "import json; json.load(open('packs/governance-extras/.apm/skills/new-adr/evals/evals.json'))"
+    python3 -c "import json; json.load(open('packs/governance-extras/.apm/skills/new-adr/evals/eval_queries.json'))"
+
+Both exit 0. No suite under `packages/agentbundle/tests/` or
+`packs/governance-extras/tests/` reads this skill's eval content directly
+(searched `eval_queries\|evals.json` across both trees); `make lint-packs`
+is the structural oracle that does (see below).
+
+### The live-model run (advisory)
+
+The pinned `Tests` do not make this a gate; recorded here as the spec
+requires. `claude` is on `PATH` (2.1.274) and authenticated in this
+environment, so a live model **is** reachable from here — this is not the
+"cannot run" case.
+
+Ran exactly one bounded, real live-model call, scoped to the query this task
+added, rather than the full `agentbundle pack evals run --pack
+governance-extras` pipeline (which would run all three of the pack's covered
+skills' full `eval_queries.json` sets at the default 3 runs each — dozens of
+live calls, minutes of wall time, real API spend — and which the pack's own
+`pack.toml` and `pack-evals.yml` commit to a scheduled/dispatch-only,
+`continue-on-error` workflow precisely so it never runs ad hoc on the PR
+path). Running that full pipeline was outside what this task should spend
+without separate authorization; the bounded single-query run below is honest
+evidence of capability and of this task's specific addition, not a
+substitute for the harness's own scheduled run.
+
+Command, from the repo root (the self-hosted `.claude/skills/new-adr/`
+projection makes the skill discoverable here):
+
+    claude -p "We're reversing an earlier architecture decision — record the new choice as a new ADR that supersedes the old one" \
+      --output-format stream-json --verbose --allowed-tools Skill
+
+Result: the model's first tool call was `Skill` with `input: {"skill":
+"new-adr"}` — the query fired the skill, matching this eval's
+`should_trigger: true`. `total_cost_usd: 0.2300236`, `num_turns: 4`,
+`duration_ms: 32466`. Full transcript saved at
+`/Users/eu.gene.lim/.claude/projects/-Users-eu-gene-lim-orca-workspaces-agent-ready-repo-decisions/9e4d45ee-a142-421c-96e7-c5ba934922c2/tool-results/bmfhgtk9t.txt`.
+
+**Out-of-scope observation, not fixed here.** After the `Skill` activation,
+the transcript shows a second tool call, `Bash` (`ls docs/adr/`), which
+executed and returned real output despite `--allowed-tools Skill`. The
+runner's own docstring
+(`packages/agentbundle/agentbundle/commands/pack_evals.py:27-30`) states that
+restricting `--allowed-tools` to `Skill` keeps the activated skill's body
+tools ungranted, "so author-influenced query strings cannot drive side
+effects." This single run contradicts that claim on this CLI version
+(2.1.274) — worth a follow-on look at the harness's trust boundary, but nested
+inside a different, already-shipped file this task's `Touches` does not
+admit, and orthogonal to what T11 is scored on.
+
+### Gates
+
+- `make lint-ruff lint-mypy`: both clean (148 source files, no findings).
+- `make lint-packs` (`agentbundle catalogue lint --root .`): 1 finding, the
+  pre-existing `CAT-L032` INFO on `packs/core` named in this task's brief as
+  not this delivery's; nothing new from `governance-extras`.
+- `python3 -m pytest tools/test_build_site_routing.py -q`: 94 passed, 1
+  skipped, 4.40s.
+- `make build-self`, run from the committed T11 content-change state: synced
+  the `evals.json`/`eval_queries.json` edits into `.claude/skills/new-adr/
+  evals/` and `.agents/skills/new-adr/evals/`; `cmp` confirms both
+  projections are byte-identical to the `packs/` source after the sync.
