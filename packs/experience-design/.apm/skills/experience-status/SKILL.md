@@ -63,17 +63,25 @@ Read from the following paths under `output_dir` — create no directories or fi
 | Path pattern | Expected frontmatter / marker | Artifact type |
 |---|---|---|
 | `<output_dir>/journeys/*.md` | `type: customer-journey` | Journey map |
+| `<output_dir>/content/*.md` | `type: content-brief` | Content brief |
+| `<output_dir>/copy/brand-register.md` | `type: tone-of-voice` **and** `scope: brand-level` | Brand register |
+| `<output_dir>/copy/*.md` (every slug except `brand-register`) | `type: copy-direction` | Copy direction |
 | `<output_dir>/screens/*-flow.md` | `type: screen-flow` | Screen flow |
+| `<output_dir>/screens/*-ia.md` | `type: information-architecture` | Information architecture |
 | `<output_dir>/screens/<slug>/*.md` | bold-body marker `- **Type:** screen-brief` | Per-screen brief |
 | `<output_dir>/blueprints/*.md` | `type: service-blueprint` | Service blueprint |
+| `<output_dir>/processes/*.md` | `type: process-flow` | Process flow |
+| `<output_dir>/principles/*.md` | `type: design-principles` | Design principles |
+| `<output_dir>/direction/*.md` | `type: creative-direction` | Creative direction |
+| `<output_dir>/tokens/*.md` | `type: token-taxonomy` | Token taxonomy |
 
-For each path pattern, glob the files and read enough of each file to extract the relevant field or marker. Treat a missing directory as zero files (not an error).
+These nine subdirectories are every folder the pack's skills write to. For each path pattern, glob the files and read enough of each file to extract the relevant field or marker. Treat a missing directory as zero files (not an error). A file whose frontmatter `type:` does not match the pattern's expected value is not that artifact — skip it rather than counting it.
 
 **Per-screen briefs:** the `- **Type:** screen-brief` marker appears in the body (not frontmatter) of brief files written by `user-flow`. A file under `screens/<slug>/` that does NOT contain this marker is not a brief (it may be a handover file or draft — skip it for counting purposes).
 
 ### 3. No-artifacts branch
 
-If no files match any pattern across all four paths: surface
+If no files match any pattern in the scan table: surface
 
 > No design artifacts found — run `journey-mapping` to start the design thread.
 
@@ -89,6 +97,9 @@ The minimal viable design thread runs: **journey map → screen flow → per-scr
 | **Screen flow exists** | At least one `screens/*-flow.md` with `type: screen-flow` | Report missing: suggest `user-flow` |
 | **Per-screen briefs exist** | At least one `screens/<slug>/*.md` with `- **Type:** screen-brief` marker | Report missing: suggest `user-flow` |
 | **Journey stage → brief coverage** | All frontstage actions in the journey map have a corresponding screen brief | **Manual check required** — cross-referencing journey stage actions against screen brief slugs requires reading both artifacts; surface as "manual check required — compare `journeys/*.md` frontstage actions against `screens/<slug>/` brief files." |
+| **Supporting artifacts** | Always passes — informational, never a gap | Report which of `content/`, `copy/`, `processes/`, `principles/`, `direction/`, `screens/*-ia.md` and `tokens/` are present. State absence as "not started", never as missing or blocking |
+
+Only the first three rows decide whether the thread is complete. Everything the last row names enriches a complete thread; a thread with none of it is still complete, and this skill never reports it as a gap.
 
 ### 5. Surface results
 
@@ -110,21 +121,43 @@ Format output with the following sections (omit sections with zero entries):
 **Service blueprints** (`blueprints/`): N found
 <list each: `<slug>.md`>
 
+**Process flows** (`processes/`): N found
+<list each: `<slug>.md`>
+
+**Content briefs** (`content/`): N found
+<list each: `<slug>.md`>
+
+**Copy direction** (`copy/`): N found
+<list the brand register if present, then each `<surface-slug>.md`>
+
+**Information architecture** (`screens/`): N found
+<list each: `<slug>-ia.md`>
+
+**Design principles** (`principles/`): N found
+<list each: `<slug>.md`>
+
+**Creative direction** (`direction/`): N found
+<list each: `<slug>.md`>
+
+**Token taxonomies** (`tokens/`): N found
+<list each: `<slug>.md`>
+
 **Steel-thread check:**
 - Journey map: ✓ exists / ✗ missing — run `journey-mapping`
 - Screen flow: ✓ exists / ✗ missing — run `user-flow`
 - Per-screen briefs: ✓ exist / ✗ missing — run `user-flow`
 - Journey stage → brief coverage: manual check required — compare `journeys/*.md` frontstage actions against `screens/<slug>/` brief files.
+- Supporting artifacts (not part of the thread check): <name any of `content/`, `copy/`, `processes/`, `principles/`, `direction/`, `screens/*-ia.md` and `tokens/` with zero files, as "not started">
 
 **What to run next:** <one of the following, in order of priority>
 - If journey map is missing: run `journey-mapping`
 - If screen flow is missing (but journey map exists): run `user-flow`
 - If per-screen briefs are missing (but flow exists): run `user-flow`
-- If all three exist: thread is complete — run `service-blueprint` if backstage mapping is needed, or `creative-direction` / `design-system` / `interaction-design` to enrich the screen briefs.
+- If all three exist: the thread is complete. Suggest, without calling any of it missing: `service-blueprint` for backstage mapping, `process-mapping` for the internal workflow, `content-design` and `tone-of-voice` / `copy-direction` for what the surfaces say, `design-principles` for arbitration rules, `information-architecture` for per-screen structure, and `creative-direction` / `design-system` / `interaction-design` to enrich the screen briefs.
 
 ---
 
-If `output_dir` exists but all four paths have zero files: fall through to the no-artifacts branch (step 3).
+If `output_dir` exists but every pattern in the scan table has zero files: fall through to the no-artifacts branch (step 3).
 
 ## What this skill is not
 

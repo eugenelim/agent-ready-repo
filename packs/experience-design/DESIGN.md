@@ -233,7 +233,7 @@ Artifact-writing skills resolve their output path through the `[design]` table o
 
 ```toml
 [design]
-output_dir = "docs/design"   # resolves to: docs/design/{journeys,screens,briefs,...}/
+output_dir = "docs/design"   # base path; the subdirectories are the ones listed below
 ```
 
 Each skill writes under a subdirectory of `output_dir`:
@@ -242,12 +242,13 @@ Each skill writes under a subdirectory of `output_dir`:
 |---|---|
 | `journeys/` | journey-mapping |
 | `content/` | content-design |
-| `screen-flows/` | user-flow |
+| `copy/` | tone-of-voice (the brand-level register), copy-direction (per surface) |
+| `screens/` | user-flow (the screen flow and the per-screen briefs), information-architecture (the IA doc). `interaction-design` and the craft/genre skills enrich a brief `user-flow` owns; they write no file of their own |
 | `blueprints/` | service-blueprint |
 | `processes/` | process-mapping |
+| `principles/` | design-principles |
 | `direction/` | creative-direction |
 | `tokens/` | design-system |
-| `screens/` | interaction-design, and the craft/genre skills |
 
 The path is elicited once per repo, written to `agentbundle-layout.toml`, and reused by every subsequent skill. `experience-status` reads from this directory to orient.
 
