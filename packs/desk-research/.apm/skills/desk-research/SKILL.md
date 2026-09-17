@@ -91,10 +91,10 @@ cue is also present — see Cue precedence above). Produces
 `<topic-slug>-survey.md` in the working directory. Every finding carries a confidence tag from
 the closed set `[high]` / `[moderate]` / `[low]` / `[uncertain]`.
 Material claims (those tagged `[high]` or `[moderate]`) require ≥3
-independent sources — triangulation per OSINT, GIJN, ACH, PRISMA,
-STORM, GRADE convergence. Findings tagged `[low]` or `[uncertain]` name
-the downgrade reason. Confidence schema is the base GRADE set in
-`references/confidence-schema.md`.
+independent sources (triangulation). Findings tagged `[low]` or
+`[uncertain]` name the downgrade reason. Confidence schema is the base
+GRADE set in `references/confidence-schema.md`. Sources: see the pack
+README.
 
 ### Applied mode
 
@@ -302,7 +302,7 @@ This applies in every retrieval mode (quick / standard / applied / deep) and to 
    session context for the synthesis step.
 4. **Synthesise** — write findings to `<topic-slug>-survey.md` (standard/deep)
    or inline (quick). Cite every factual claim or mark it `[synthesis]` /
-   `[inference]` per Wikipedia V/RS and GRADE convergence.
+   `[inference]`. Sources: see the pack README.
 5. **Rate** — apply the confidence schema in
    `references/confidence-schema.md` to every finding.
 6. **Name the gaps** — before the moderator pass, write the
@@ -312,7 +312,7 @@ This applies in every retrieval mode (quick / standard / applied / deep) and to 
    answered everything the question raised, which is almost never true.
 7. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited material and consider one more query from the highest-signal
-   unused snippet (Co-STORM contribution). Skip in quick mode.
+   unused snippet. Skip in quick mode.
 8. **Adversarial review (deep mode only)** — auto-invoke
    `/devils-advocate` on `<topic-slug>-survey.md`; emit
    `<topic-slug>-counterpoints.md`.
@@ -526,8 +526,8 @@ one chases the second-order ones too.
 
 Before declaring the artifact done, scan retrieved-but-uncited
 material. If the highest-signal unused snippet would change a rating
-or fill a gap, issue one more targeted query. This is the Co-STORM
-contribution — it catches the trail you almost left on the table.
+or fill a gap, issue one more targeted query — it catches the trail
+you almost left on the table. Sources: see the pack README.
 
 ## What this skill is not
 

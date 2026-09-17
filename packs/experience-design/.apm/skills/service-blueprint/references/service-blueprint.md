@@ -2,8 +2,12 @@
 
 A service blueprint is a cross-functional diagram that maps every step in a
 customer journey to the employee actions, system calls, and internal support
-that make it happen. The method is defined and maintained by Nielsen Norman
-Group: https://www.nngroup.com/articles/service-blueprints-definition/
+that make it happen. The row layout below is informed by but not identical to
+Nielsen Norman Group's service-blueprinting model
+(https://www.nngroup.com/articles/service-blueprints-definition/). Note that
+this file describes four rows while `SKILL.md` declares five; that discrepancy
+is unresolved. See the pack README's `## Where these methods come from` section for how they
+compare.
 
 ## Why a blueprint
 

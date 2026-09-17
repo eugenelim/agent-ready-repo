@@ -84,17 +84,7 @@ Honest gaps are better than false confidence. A synthesis that names its limits 
 
 ## 4. The seven convergent disciplines
 
-The methodology grounds the pack's behaviour in seven disciplines that each contribute a distinct structural obligation:
-
-| Discipline | Contribution |
-|---|---|
-| STORM | Co-STORM moderator pass — scan retrieved-but-uncited material before declaring done |
-| PRISMA | Systematic inclusion/exclusion criteria; population-level claim discipline |
-| ACH (Analysis of Competing Hypotheses) | Inconsistency-weighted hypothesis adjudication |
-| Wikipedia V/RS/NPOV | Verifiability, Reliable Sources, Neutral Point of View — citation-forcing and source-tier discipline |
-| OSINT | Source enumeration before retrieval; triangulation from independent primaries |
-| GIJN | Practitioner investigative methodology; anti-patterns and survivorship bias detection |
-| GRADE | Confidence grading keyed to evidence quality |
+The methodology grounds the pack's behaviour in seven disciplines that each contribute a distinct structural obligation. The full per-discipline attribution and which skill each one grounds lives in [`references/methodologies.md`](.apm/skills/desk-research/references/methodologies.md); this section is not repeated here to avoid the two copies drifting apart.
 
 These are convergent: each one closes a gap the others leave open. No single discipline covers all seven obligations. The pack's synthesis procedure is the convergence point — it does not pick one discipline and ignore the rest.
 

@@ -1,6 +1,6 @@
 ---
 name: build-outline
-description: Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/desk-research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
+description: Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/desk-research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PICO (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
 ---
 
 # /build-outline

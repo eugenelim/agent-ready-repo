@@ -125,6 +125,7 @@ Framework names are the procedure; the following is provenance only — who publ
 
 - **`build-outline`'s PICO axes** — PICO (Population, Intervention, Comparison, Outcome) comes from evidence-based medicine: Richardson, Wilson, Nishikawa & Hayward, "The Well-Built Clinical Question", *ACP Journal Club*, 1995. PRISMA (Page et al., 2021) is a separate reporting checklist for writing up systematic reviews — it neither defines nor owns PICO.
 - **`source-map`'s survey-by-adjacency finding** — Shao et al., 2024 (NAACL, "Assisting in Writing Wikipedia-like Articles From Scratch with LLMs"): directly-prompted LLMs produce basic "What/When/Where" questions addressing only surface-level facts. STORM instead grounds its perspectives in the tables of contents of related Wikipedia articles rather than asking an LLM to name authorities, and its ablations show the ungrounded variants underperform.
+- **The seven convergent disciplines** (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE) that `desk-research`'s triangulation and citation rules, `devils-advocate`'s evidence-against column and moderator pass, and the rest of the pack draw on — the full per-discipline attribution, and which skill each discipline grounds, lives in [`references/methodologies.md`](.apm/skills/desk-research/references/methodologies.md) rather than being duplicated here.
 
 ---
 

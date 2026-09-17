@@ -13,8 +13,12 @@ back it and the internal support that enables those. The five rows are:
 and employee actions), and **support** (infrastructure and vendors). The backstage
 column is the **slicing instrument**: each backstage service is a candidate
 component; its hand-off to `architect` and `contracts` is by-reference (a named
-service), never an import. The method is grounded in the NN/g definition of service
-blueprinting; see `references/service-blueprint.md`.
+service), never an import. This five-row layout is not NN/g's own anatomy, and it
+does not match this skill's own `references/service-blueprint.md`, which
+describes four rows and says the line of visibility is not a row to fill in.
+That discrepancy is unresolved; see the pack README's `## Where these methods
+come from` section. Sources: see
+the pack README.
 
 **Inputs (declared):** a customer journey map or journey stages (from
 `journey-mapping` or elicited inline); a screen flow or screen inventory
