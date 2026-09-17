@@ -247,8 +247,10 @@ fx_heavy() {           # AC-0007, AC-0008, AC-0009 gated; AC-0019 gated
     run_once "$d" out.txt
     [ ! -f "$d/store/labelfmt.py" ]; check "AC-0007 no new module emitted" $?
     grep -qE '^\*\*Status:\*\* ready' "$d/out.txt"; check "AC-0008 status is ready" $?
+    # Anchor on the fixture's own abandoned names, not on a guess at wording:
+    # a keyword list missed a report that said "add indirection without benefit".
     sed -n '/Deviations from the task body/,/^\*\*/p' "$d/out.txt" \
-        | grep -qiE 'lighter|instead of|without the|simpler|rather than'
+        | grep -qiE 'labelfmt|LabelFormatter'
     check "AC-0009 substitution recorded under Deviations" $?
     done_when_holds "$d"; check "AC-0019 Done when holds" $?
     record_rung "$d/out.txt"

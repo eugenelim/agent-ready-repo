@@ -63,14 +63,16 @@ body, execution root, spec path, plan path, or verification mode.
 - **Reuse before you add.** The `Cut before adding` ladder in `AGENTS.md`
   governs this task. Before writing a helper, a module, an abstraction, or a
   configuration point, take that ladder's search rung once across the root you
-  were assigned, and reuse a hit that satisfies the outcome. Under `Summary`,
-  name the rung your implementation stopped at; if the search found a candidate
-  you did not use, name it and why it did not fit. A route lighter than the
-  task's `Approach:` is yours to take — `Approach:` is working material an
-  implementer corrects in place, not contract — provided the task's `Done when:`
-  still holds; record the substitution under "Deviations from the task body".
-  None of this overrides an explicit requirement, a recorded decision, or a
-  trust-boundary control.
+  were assigned, and reuse a hit that satisfies the outcome. **Report the search
+  every time**, in one line under `Summary`: the hit you reused, or each
+  candidate you found and why it did not fit, or that the search found nothing.
+  A silent search is indistinguishable from none. Name the rung your
+  implementation stopped at. Where the ladder's first sufficient rung is lighter
+  than the task's `Approach:`, **implement the lighter rung** — `Approach:` is
+  working material an implementer corrects in place, not contract — provided the
+  task's `Done when:` still holds, and record the substitution under
+  "Deviations from the task body". None of this overrides an explicit
+  requirement, a recorded decision, or a trust-boundary control.
 - **Gates:** run the project's lint, typecheck, and test commands as
   documented in `AGENTS.md` and the project's root README. Capture
   pass/fail and any failing output. Your gate results are **advisory**
