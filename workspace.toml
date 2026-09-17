@@ -1276,9 +1276,41 @@ open = [
   # includes Makefile, workspace.toml and work-loop/SKILL.md, so the gate would
   # fire on most pull requests.
   #
-  # Not repaired when found: this was discovered while landing core 2.26.12,
-  # whose own topic hit the same defect, and 24 topics plus a contract decision
-  # is its own change. Class B is one row and could go first on its own.
+  # Owner disposition 2026-09-17: B drop, C drop the pin, D re-verify.
+  # Executed: B is done -- no topic references the deleted path any more. D's
+  # five claims were all re-verified against live code: D1 (build-site blob
+  # rewrite) and D4 (Starlight wrapper walk) still hold verbatim; D3's parser
+  # and pinning order hold but it quoted a paraphrase of the refusal rather
+  # than the emitted string and the pattern has gained an optional letter
+  # suffix; D5's eight-pack list is still exact but its denominator drifted
+  # 22 -> 24 and it cited the deleted docs/CONVENTIONS.md; D2's instance is
+  # REPAIRED -- loop-cohort.py now carries the retry cap in the verb and its
+  # comment records the `&&` history -- while its audit question generalises.
+  # D2, D3 and D5 were rewritten accordingly. Two Class C topics whose only
+  # stale pin was a supporting one had it dropped.
+  #
+  # BLOCKED, and this is the finding: the sanctioned write path cannot drop an
+  # owning pin. `validate_topic` accepts `owning_source: null` and 63 topics
+  # carry it, but `_validate_mutation_proposal` and `complete_mutation_proposal`
+  # both call `_validate_source(..., digest_required=True)`, so every proposal
+  # must name an owning source WITH a digest. Verified by executing both routes
+  # against a real topic: `owning_source: null` and omitting the key are each
+  # refused `strict_parse`. The store can therefore represent a state its only
+  # sanctioned writer cannot produce, and the 63 topics in that state are all
+  # legacy imports that never went through the writer.
+  #
+  # A second consequence follows from the same constraint: any mutation
+  # refreshes the owning digest as a side effect, so on a topic whose owning
+  # AND supporting pins are both stale, dropping the supporting pin silently
+  # refreshes the owning one -- the opposite of the disposition. That is why
+  # only the two topics with an already-exact owning pin were touched.
+  #
+  # Remaining: 28 stale pins across 19 topics -- 3 retired (Class A, correctly
+  # no action) and 16 active, every one carrying a stale OWNING pin. All 16 are
+  # blocked until the writer can express a null owning source. That change is
+  # two small edits mirroring validate_topic's own `is not None` guard, plus
+  # tests, on a published skill's public seam -- so it is its own change with
+  # its own review, not a ride-along here.
   { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
 ]
 
