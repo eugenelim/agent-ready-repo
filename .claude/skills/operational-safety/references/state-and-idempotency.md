@@ -5,8 +5,7 @@
 > anything where the *write path* may be re-run after a failure.
 > **Grounded in:** F1.2 (declarative + idempotent re-apply is what makes retry
 > safe; imperative scripts collide), F1.3 (shared state needs a single-writer
-> lock). Operational taxonomy: AWS Well-Architected Change Management; the
-> Terraform/Pulumi declarative-convergence model.
+> lock).
 > **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
 > surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
 
