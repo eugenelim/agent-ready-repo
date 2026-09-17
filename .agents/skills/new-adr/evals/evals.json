@@ -162,6 +162,19 @@
         "On a moved number, updates the bare ordinal column in the index as well as the link and the filename",
         "Does not claim the helper reserves or holds a number"
       ]
+    },
+    {
+      "id": 15,
+      "prompt": "Reverse an earlier decision recorded as ADR-NNNN: record the new choice as a new ADR that supersedes it.",
+      "expected_output": "The skill writes a brand-new ADR for the new decision rather than rewriting the old one's prose. Before the write gate, it drafts an `Areas` value and checks it against the tokens already in use in the target directory, requiring an explicit answer before coining an unused one. Frontmatter records `Reversibility` as a judgement made at authoring time. The new record's `Supersedes:` field names the superseded ordinal — the half of the mirrored supersession pair a single newly authored record can carry, because the mirror's other half, setting the old record's `Status:` to the bare token `Superseded` and its `Superseded by:` to the new ordinal, is a separate edit to a pre-existing file, not something authoring a new record does. The old record's prose is left untouched as history; after acceptance its `Status` and supersession fields stay open to the Live-zone edit that names the new ordinal, while its prose sections freeze and `## Errata` stays append-only — the four zones, not one blanket rule for the whole record.",
+      "assertions": [
+        "Authors a new ADR for the reversed decision rather than rewriting the superseded record's prose",
+        "The write gate checks the drafted Areas value against tokens already in use in the target directory before creating the file",
+        "Frontmatter names Reversibility as a judgement recorded at authoring time",
+        "The new record's Supersedes: field names the superseded ordinal — the half of the mirrored supersession pair one newly authored record can carry",
+        "Setting the old record's Status to Superseded and its Superseded by: field is described as a separate edit to the pre-existing record, not part of authoring the new one",
+        "Describes the old record's post-acceptance state as four distinct zones — frozen prose, an append-only Errata section, and a still-writable Status/supersession/Areas set — rather than one rule for the whole record"
+      ]
     }
   ]
 }
