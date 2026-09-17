@@ -345,6 +345,26 @@ def main() -> int:
         f"tasks; got {matching_rows(empty_wave)}"
     )
 
+    # ACQUISITION_REFUSALS was an inert constant a review caught: the read axis
+    # is two-valued, so nothing read the vocabulary and its presence read as
+    # coverage it did not provide. It now carries the row-1 scope claim as an
+    # assertion — every kind the reader can refuse with must land on row 1 and
+    # nowhere else. This is what makes the two-valued axis legitimate rather
+    # than a collapse that loses cases.
+    assert ACQUISITION_REFUSALS, "the acquisition vocabulary is empty"
+    assert "ok" not in ACQUISITION_REFUSALS, (
+        "'ok' is the success value; listing it as a refusal kind would make "
+        "readable() true for a state row 1 must claim"
+    )
+    for kind in ACQUISITION_REFUSALS:
+        refused = {"read": kind, "sw": live_sw, "idx": 0,
+                   "schema": SUPPORTED_SCHEMA,
+                   "cont": keyed_container(live_sw, 0, live_sw[0])}
+        assert matching_rows(refused) == ["R1-read-refuses"], (
+            f"acquisition refusal {kind!r} must classify to the read-refusal "
+            f"row alone; got {matching_rows(refused)}"
+        )
+
     hits = [(state, matching_rows(state)) for state in domain]
     overlapping = [(s, r) for s, r in hits if len(r) > 1]
     uncovered = [s for s, r in hits if not r]

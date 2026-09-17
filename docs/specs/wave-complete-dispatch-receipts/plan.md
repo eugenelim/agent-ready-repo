@@ -219,7 +219,8 @@ verified and returns to T2 or T3.
   Rejected alternative: a fresh predicate, which would be a second authority on
   one field.
 - **The notice prints from `check --phase wave-exit`, run immediately before the
-  transition at each firing site.** Traces to: the absent-container row and the firing-site criteria.
+  transition at each firing site.** Traces to: the absent-container row and the
+  firing-site criteria.
   `cmd_check` emits a passing guard's `message`; the engine's adapter discards
   it, and no existing step invokes this verb, so without the pre-transition run the
   notice would be contract with no caller.
@@ -264,8 +265,10 @@ validated before anything is written, and a refusal that names what it
 rejected. Receipt and decline are mutually exclusive on one invocation. The verb
 takes the wave index explicitly and accepts a non-negative integer up to and
 including the current wave index — a wave already left can be recorded against,
-because `wave advance` is not coupled to this guard and the record would
-otherwise be unobtainable; a wave not yet reached cannot, because `schedule`
+because the verb-mediated advance is coupled to this guard only on the branch
+that moves the pointer — a wave left by the already-applied branch, or by a
+direct `state.json` write, still needs its record to be obtainable; a wave not
+yet reached cannot, because `schedule`
 prints the whole partition, so a forward index would let one pre-run batch
 discharge every exit. An unusable partition — empty, or a pointer that is not a
 valid index into it — is refused by name rather than indexed into.
@@ -290,9 +293,13 @@ the byte-equality criteria.
   byte-identical and its digest therefore unchanged.
 - **Re-schedule without amendment.** A partition-preserving re-schedule keeps
   records; a partition-changing one removes the stale ones.
-- **A wave advanced past without its exit check.** `wave advance` can move the
-  pointer before the exit fires. Not closed here — a follow-on — but a record
-  stays writable for it so the record is not also lost.
+- **A wave advanced past without its exit check.** `wave advance` moving the
+  pointer before the exit fires is closed for the verb-mediated path: the
+  advancing branch applies the same accounting predicate. A record stays
+  writable for an already-left wave regardless, so a record is not lost on the
+  already-applied branch. What remains open is a pointer moved by a direct
+  `state.json` write, disclosed in the spec's Boundaries at the same strength
+  as forgery and container deletion.
 - **A repair round.** `gates-failed`, `findings-remain`, and `blocker-applied`
   re-enter `CODE-IMPLEMENTATION` without moving the pointer, so the first pass's
   records satisfy every later exit for that wave. Disclosed and registered.
@@ -401,7 +408,8 @@ read, task and field refined. Never edit an existing entry. -->
   accounting in `implement`, because (i) would widen the change into a shipped
   hook every adopter has wired. The exemption alone was not sufficient: it buys
   totality, not verdict preservation, so the table additionally passes an
-  unsupported-schema state on its own row before any shape is read. Refined: none — this was settled before approval, so it is
+  unsupported-schema state on its own row before any shape is read. Refined:
+  none — this was settled before approval, so it is
   a revision of the Draft spec through the pre-EXECUTE review loop, not a
   discovery-time refinement of an unstarted task, and no amendment machinery
   applies. Recorded here because the channel's kill condition is what surfaced
@@ -463,9 +471,12 @@ the exhaustive per-clause sweep, not the first time an arm is tested.
   the spec cites it rather than repeating the figures.
 - Read-only task: it writes only the ledger.
 
-**Done when:** the ledger answers every question this task predeclared, each naming the
-surfaces read rather than a grep pattern; records the golden confirmation; and
-records one run of the dispatch-rate generator.
+**Done when:** the ledger answers every question this task predeclared, each
+naming the surfaces read rather than a grep pattern; records the pinning survey,
+naming for each of `test_golden_fixtures.py`, `test_loop_guards_parity.py`,
+`test_loop_cohort_cli.py`, and `test_loop_cohort_schedule.py` what it pins and
+what T2 or T3 owes it; records the golden confirmation; and records one run of
+the dispatch-rate generator.
 
 **Inline proof — the dispatch-rate generator is an extractor.**
 - Positive: the tight pattern matches a real `loop-cohort.py schedule
@@ -509,6 +520,10 @@ records one run of the dispatch-rate generator.
   drives the verb's largest state-derived refusal; the verb's own stderr is
   bounded, discloses truncation, and contains only whole identifiers.
 - A non-matching `--expect-run-id` exits non-zero.
+- A state whose `schema_version` is not the supported value exits non-zero and
+  the message names the schema. Separate from the run-identifier case because
+  `_validate_run_id` emits a distinct message for the schema branch, so the
+  run-id case cannot stand in for it.
 - One case per refusal above asserts `state.json` is byte-identical to its
   pre-invocation content, and one case asserts it for a refusal raised by the
   state read itself, so the property covers the verb's whole refusal set.
@@ -591,9 +606,12 @@ covers the state lock a new mutation takes.
 - One case per verdict row, asserting the exit code and the content of both
   streams.
 - A partition-property case over **every** axis the spec's domain criterion
-  enumerates — the state-read outcome across its refusal vocabulary,
-  `schedule_waves`, its element at the pointer, the container, a record's
-  `kind`, `schema_version`, and `current_wave_index`. That criterion is the
+  enumerates — the state-read outcome as returned-or-refused, `schedule_waves`,
+  its element at the pointer, the container, a record's `kind`,
+  `schema_version`, and `current_wave_index` — plus a separate case asserting
+  that every kind in the reader's refusal vocabulary classifies to the
+  read-refusal row and nowhere else, which is what licenses the two-valued
+  axis. That criterion is the
   canonical list and this entry cites it rather than restating a subset, because
   restating it is how three axes went missing while the walk stayed green.
   Container values are generated from the declared key path — a correct instance
@@ -649,7 +667,10 @@ covers the state lock a new mutation takes.
 - Every existing call site that drives `wave advance` through the real CLI still
   behaves as it does today. Enumerate the call sites by globbing the suite
   tree rather than by naming files from memory — a hand-picked file list
-  undercounted this set once — then enumerate which of them reach the
+  undercounted this set once; `test_loop_cohort_cli.py` was the file that
+  earlier tally missed, and its `_scheduled()` fixture drives
+  `wave advance --from-index 0` asserting exit zero with no receipts written,
+  so that fixture needs records. Then enumerate which of the sites reach the
   advancing branch — the others refuse before the accounting
   check and are unaffected — and give each of those a record in its fixture.
   Pinned because the failure is otherwise discovered rather than planned.
@@ -754,7 +775,8 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   specialist-adjudication sites; `references/finding-adjudication.md` carries
   its post-GATES re-entry and its FIX re-entry; `references/supervisor-mode.md`
   and `references/session-resumption.md` each carry one. Name them by what they
-  are, not by how many: a stored count decays the moment a site is added. Do not put the check in GATES: GATES runs after that transition.
+  are, not by how many: a stored count decays the moment a site is added. Do
+  not put the check in GATES: GATES runs after that transition.
 - The checked region differs by surface shape, so state it per shape rather than
   assuming a fenced block: `SKILL.md` uses fenced command blocks for the
   changes-requested and specialist-adjudication sites, and running prose inside
@@ -787,7 +809,8 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   that vocabulary rather than a second phrasing. A roster test requires the
   section to carry the verification-ledger pointer verbatim and forbids three
   retired plan-mutability phrasings in it; the new sentence must not reintroduce
-  any of them. All three of SKILL.md's firing sites sit after Step 3's heading, so the pre-transition runs land outside the sliced EXECUTE region.
+  any of them. All of SKILL.md's firing sites sit inside `## Step 4. REVIEW`,
+  so the pre-transition runs land outside the sliced EXECUTE region.
 - Run `FORCE=1 make build-self` and verify the three copies of each edited
   `.apm/` file are byte-identical, trusting the parity check rather than the
   exit code. Projections are never edited directly.
@@ -798,7 +821,12 @@ instructs firing `wave-complete` also instructs
 `loop-cohort check --phase wave-exit` immediately before the fire instruction
 at that site; a check scoped to
 `## Single-agent fallback` finds both reason codes; a check scoped to the
-state-schema field table finds the absence rule; `evals/evals.json` parses and
+state-schema field table finds the absence rule; a check scoped to
+`references/session-resumption.md` finds a row naming `amendment_pending` with
+`approve-plan` and `schedule` as its route; every surface that instructs
+`wave advance` states the accounting precondition, and no surface still
+describes the call as unconditionally safe to replay; `evals/evals.json` parses
+and
 contains a case naming both calls, the authorship, and both codes; the three
 copies of each edited file hash equal; and `python3 -m pytest
 packs/core/tests/skills/work-loop/test_reference_routing.py
@@ -875,7 +903,10 @@ tools/test_build_site_routing.py -q` passes.
   dependency chain enforces that order.
 - **Mixed-version behaviour:** cohort state written by an earlier core version
   has no container, and the guard passes on it with a stdout notice. Such a run
-  acquires the container at its next `schedule`, which bounds the class rather
+  acquires the container at its next `schedule` — but a run mid-schedule
+  advances rather than re-scheduling, which is why the advancing branch carries
+  its own absent-container pass rather than relying on that. What bounds the
+  class rather
   than leaving it open-ended. A run that starts on the new version and is
   finished by an older one ignores the field, which is why the Durable Outputs
   row calls it additive-and-ignored rather than jointly read.
@@ -884,9 +915,11 @@ tools/test_build_site_routing.py -q` passes.
 ## Risks
 
 - **The refusal strands a legitimate run.** The guard sits on a mandatory
-  transition, so a false refusal blocks the loop rather than degrading it. Four
-  passing rows carry this — recorded decline, empty partition, absent container,
-  and a record for an already-left wave — and the transition-level assertion
+  transition, so a false refusal blocks the loop rather than degrading it. The
+  passing rows carry this — a recorded decline, an absent container, and a
+  record for an already-left wave. An empty partition is **not** among them:
+  round 8 made it malformed, and the amendment crash window is handled by
+  naming the recovery rather than by passing. The transition-level assertion
   proves the refusal fires where intended. Keeping the accounting out of
   `--phase implement` is the other half: that phase is a push gate, not a wave
   gate. This is the risk that decides whether the change is safe to ship.
@@ -990,3 +1023,27 @@ tools/test_build_site_routing.py -q` passes.
   carry their template tier declarations, the measurement has one home, each
   task now regenerates the projections it invalidates, and the four accepted
   limits are disclosed in the spec's Objective rather than only in these Risks.
+- 2026-09-17: revised from review round 9 on both lanes, then swept for decaying
+  structural counts. Both lanes independently opened on the same state: the
+  round-8 rewrite made an empty partition malformed while a Boundaries rail
+  still required the guard to pass "no schedule persisted", and those are one
+  state because an absent `schedule_waves` reads as `[]`. The verdict is now
+  refuse in both places, and the justification changed too: the claim that an
+  empty partition could only come from a hand-write was false, because
+  `begin_contract_amendment` writes `schedule_waves: []` and the engine applies
+  that cohort mutation before its own state write, leaving a crash window. The
+  spec now names that window and its recovery — `amendment_pending`,
+  `approve-plan`, then `schedule` — and requires
+  `references/session-resumption.md` to carry a row for it, since it has none.
+  `current_wave_index` gained one declared reading for both the branch selector
+  and the accounting predicate, because `cmd_wave_advance` reads it through
+  `int()` while the predicate uses the guard layer's validation, and the two
+  disagree on `"1"`, `1.9`, `True` and `None`. The advancing branch gained an
+  absent-container pass, without which every in-flight pre-receipts run would
+  strand at its next boundary with no migration step to repair it. The
+  forward-pointer route is now disclosed in Boundaries at the same strength as
+  forgery and container deletion. The verb's refusal enumeration went from four
+  to all of them, and its third branch is named. The partition walk's
+  acquisition vocabulary was an inert constant; it now carries the
+  read-refusal row's scope as an assertion that reddens under a widened
+  `readable`.

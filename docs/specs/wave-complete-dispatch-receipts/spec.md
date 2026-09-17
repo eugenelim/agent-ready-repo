@@ -89,6 +89,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `schedule_waves` held in the same file as the records it partitions, so anyone
   who can write a record can compute the current digest. It discriminates a
   stale partition from the live one; it is not evidence of who wrote a record.
+- Disclose the forward pointer at the same strength. Every accounting statement
+  here is scoped to the *current* wave, so an actor who can write `state.json`
+  and sets `current_wave_index` from `n` to `n+1` in one field edit skips wave
+  `n`'s exit entirely, and `wave advance --from-index n` then exits zero on the
+  already-applied branch. Against the other two routes this is the cheapest and
+  the quietest: a forged record still leaves a per-task record to read, a
+  deleted container flips `status` to not-enforced and triggers the exit's
+  notice, and a forward pointer leaves a populated container, an enforced
+  `status`, and a silent exit. Nothing in this spec detects it, because
+  detecting a wave below the pointer needs a per-wave completion record that
+  ADR-0061 Option A cannot write. It is disclosed rather than closed.
 - Give every guard verdict a precondition that no other verdict's precondition
   can also satisfy, and make the verdicts jointly cover every cohort state. The
   verdict table below is the contract; branch order in the implementation is
@@ -97,10 +108,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `current_wave_index` rather than introducing a second integer predicate. The
   existing one rejects `bool` and owns its message shape, and two predicates on
   one field is how they drift.
-- Let the guard pass whenever it cannot account for a wave for a reason that is
-  not the controller's fault — no schedule persisted, or cohort state written
-  before receipts existed — so a run already in flight when this ships still
-  completes.
+- Let the guard pass when the receipts container is absent, which is cohort
+  state written before receipts existed, so a run already in flight when this
+  ships still completes. That is the only such exemption. An absent or empty
+  `schedule_waves` is *not* one: the two are indistinguishable to a reader that
+  supplies `[]` as the default, and the well-formedness rule below classifies
+  that state malformed. A run at this exit has a persisted schedule by
+  construction, so exempting the schedule-less state would buy nothing and
+  would contradict that rule.
+- Carry the absent-container exemption inside the shared accounting predicate,
+  not beside it, so every consumer of that predicate inherits it rather than
+  restating it.
 - Name every task the guard could not account for in its refusal, not a count.
 
 ### Ask first
@@ -182,8 +200,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   wave whose unaccounted-task list exceeds the interpolation bound and asserts
   the refusal states the list is partial and cuts at an identifier boundary; one
   case drives a state-derived value longer than the bound and asserts the
-  refusal does not carry it whole. These are named here because a bounding
-  obligation with no case is the shape this repository has already paid for.
+  refusal does not carry it whole. Both cases run against **every** refusal
+  this change adds, including `wave advance`'s new unaccounted-task refusal,
+  which emits through `loop-cohort`'s own diagnostic helper — a channel the
+  ledger measures as applying no length bound at all. Naming the verb here
+  because a criterion that says "the guard or the verb" and cases that drive
+  only the guard is the exact shape this repository has already paid for.
 - **Mutation proof: manual QA.** Each guard and verb clause is removed in turn,
   the suite is re-run, and the observed red is recorded. A clause whose removal
   leaves the suite green is not yet verified, whatever its tests are named.
@@ -283,12 +305,46 @@ crash-recovery replay into a dead end.
       and a refusal there would strand the run.
 - [ ] The accounting predicate `wave advance` applies is the same one
       `check --phase wave-exit` applies, from one declaration, so the two
-      cannot disagree about whether a wave is accounted for.
-- [ ] The verb's existing refusals — an empty partition, a negative or
-      out-of-range `--from-index`, the final wave, and a non-matching run
-      identifier — keep their current verdicts and are decided before the
-      accounting check, so no state that refuses today refuses with a different
-      reason after this change.
+      cannot disagree about whether a wave is accounted for. The absent-
+      container exemption is part of that declaration, not a separate guard-
+      side rule. This criterion rests on single-sourcing and is not
+      independently falsifiable by a test: two copies of a predicate agree on
+      the day they are written. What is falsifiable is the absence of a second
+      copy, so the mutation record carries the removal of the shared
+      declaration and names the cases in both consumers that redden together.
+- [ ] `loop-cohort wave advance --from-index n`, on the branch where the pointer
+      moves and the receipts container is absent, exits zero and advances, so a
+      run whose cohort state predates receipts is not stranded mid-schedule.
+      Without this the coupling would refuse every in-flight run at its next
+      wave boundary, which no migration step exists to repair.
+- [ ] The branch selector and the accounting predicate read
+      `current_wave_index` through one declared reading: the guard layer's
+      existing non-negative-integer validation. `cmd_wave_advance` today reads
+      it as `int(state.get("current_wave_index", 0))`, which accepts `"1"`,
+      `1.9` and `True` and raises on `None`, while the predicate's validation
+      rejects all four — so which branch runs and whether the wave can be
+      accounted for are currently decided by different readings of one field.
+- [ ] When that reading rejects the stored `current_wave_index`, the verb exits
+      non-zero and names the field, and the pointer does not move. Denying
+      rather than advancing is required because the alternative launders: the
+      exit refuses on the pointer row, one advance rewrites the pointer to a
+      clean integer, and the skipped wave is then permanently unaccounted with
+      the container intact, so `status` still reports the guard enforced.
+- [ ] Every position the advancing branch reads — `schedule_waves`, the wave
+      element at the index, `current_wave_index`, and the receipts container —
+      refuses by name rather than raising, and the refusal names `reset` as the
+      recovery when the unusable value is in cohort state the verbs cannot
+      rewrite. The container is included because the advancing branch now reads
+      it to apply the accounting predicate, which makes it a position the verb
+      can raise on.
+- [ ] The verb's existing refusals — a non-matching run identifier, an empty
+      partition, a negative `--from-index`, a `--from-index` at or past the end
+      of the partition, the final wave, and a `current_wave_index` matching
+      neither `n` nor `n + 1` — keep their current verdicts and are decided
+      before the accounting check, so no state that refuses today refuses with
+      a different reason after this change. The last of these is a third
+      branch: the verb has an advancing branch, an already-applied branch, and
+      a mismatch refusal, and only the first gains the accounting check.
 
 ### The verb and the unsupported-schema class
 
@@ -300,9 +356,16 @@ cannot write.
 - [ ] `loop-cohort dispatch-receipt` refuses a state whose `schema_version` is
       not the supported value, as every other cohort mutation does, and names
       the schema as the reason.
-- [ ] That asymmetry is stated where the fallback is documented: the exit
+- [ ] That asymmetry is stated in `references/state-schema.md`, on the
+      `schema_version` field row, and in `references/supervisor-mode.md`
+      § Single-agent fallback beside the decline codes: the exit
       tolerates the class and the verb refuses it, so on the oldest state the
-      exit passes without a record and no controller action is owed.
+      exit passes without a record and no controller action is owed at the
+      exit. State the end-to-end outcome too: `_validate_run_id` refuses an
+      unsupported `schema_version` for every cohort mutation, so that same
+      state's next `wave advance` refuses on schema regardless, and the run
+      cannot progress past the wave boundary without a schema migration. The
+      exit's tolerance buys the transition, not the run.
 
 ### The `check --phase wave-exit` verdict
 
@@ -331,21 +394,38 @@ readability, and a readable state has parsed, so a parse clause could decide no
 state.
 
 An empty partition is malformed rather than a passing state, and so is an empty
-current wave. Neither is reachable through the engine: `topological_waves` never
-emits an empty wave, and the guard on the `plan-locked` edge into
-`CODE-IMPLEMENTATION` already refuses an empty `schedule_waves`. At this exit,
-then, either can only come from a write to `state.json`, and treating either as
-a pass would make the quietest off-switch in the design quieter than the ones
-the exceptions disclose — an empty current wave in particular satisfies "every
-task in the current wave is accounted for" vacuously over zero tasks and would
-exit silent. An
+current wave. That is the single verdict for the state Boundaries calls "no
+schedule persisted": an absent `schedule_waves` reads as `[]` through the
+default, so the two are one state and get one answer.
+
+It is reachable, and a claim that it is not would be wrong. `topological_waves`
+never emits an empty wave, but `begin_contract_amendment` writes
+`schedule_waves: []` directly, and the engine applies that cohort mutation
+before its own state write — so a crash between the two leaves cohort state
+holding an empty partition while engine state still names
+`CODE-IMPLEMENTATION`. A session resuming there and firing the pre-transition
+check gets a hard refusal.
+
+The refusal is the correct signal in that window rather than a dead end: the
+same state carries `amendment_pending`, `loop-cohort status` reports that field,
+and `approve-plan` consumes it by completing the amendment's re-approval — after
+which `schedule` repopulates the partition. `references/session-resumption.md`
+carries no row for this field, so the route exists in the verbs but is not
+written down; naming it is the recovery this design owes, not a new mechanism.
+Passing instead would be worse in exactly the
+way the exceptions below disclose — an empty current wave satisfies "every task
+in the current wave is accounted for" vacuously over zero tasks and would exit
+silent. A refusal that points a resuming controller at the amendment it is
+already in the middle of costs one read; a silent pass costs the guarantee. Away
+from that window, either state can only come from a write to `state.json`. An
 empty mapping at any level is well-formed: it holds no records, which is not a
 defect. The predicate is total over every value any position can hold, so
 accounting never meets a shape it cannot classify.
 
 A state is **readable** when the guard's state acquisition returns a state
 rather than refusing — the spec-directory resolution and the state read
-together, since the guard invokes them as one step. Readability is not the same as the file parsing: a non-object JSON
+together, since the guard invokes them as one step. Readability is not the same
+as the file parsing: a non-object JSON
 root parses and the read still refuses it, so a row worded around parsing would
 fire alongside the read-refusal row. Every row below the read-refusal row
 requires readability.
@@ -381,29 +461,27 @@ negations, and two rows then covered the same state with opposite verdicts.
       otherwise land on a refusing row below, on the shape of a field an
       unsupported schema leaves unspecified — which is the breakage this design
       exists to prevent.
-- [ ] The state is readable, the schema is supported but the state is not well-formed:
-      exits non-zero and names the malformed field on stderr, rather than
-      surfacing an exception type.
-- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
-      non-empty, and
-      the receipts container is absent: exits zero and names the absent
+- [ ] The state is readable, the schema is supported but the state is not
+      well-formed: exits non-zero and names the malformed field on stderr,
+      rather than surfacing an exception type.
+- [ ] The state is readable, the schema is supported, the state is well-formed,
+      and the receipts container is absent: exits zero and names the absent
       container on stdout.
-- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
-      non-empty, the container is present, and the pointer is not valid: exits
-      non-zero and names the invalid pointer on stderr.
-- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
-      non-empty, the container is present, the pointer is valid, and the
-      current wave is not well-formed: exits non-zero and names the malformed
-      wave on stderr.
-- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
-      non-empty, the container is present, the pointer is valid, the current
-      wave is well-formed, and every task in the current wave is accounted for:
-      exits zero and prints nothing to stdout or stderr.
-- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
-      non-empty, the container is present, the pointer is valid, the current
-      wave is well-formed, and at least one task in the current wave is not
-      accounted for: exits non-zero and names on stderr every such task, and no
-      accounted task, subject to the identifier-list property below.
+- [ ] The state is readable, the schema is supported, the state is well-formed,
+      the container is present, and the pointer is not valid: exits non-zero
+      and names the invalid pointer on stderr.
+- [ ] The state is readable, the schema is supported, the state is well-formed,
+      the container is present, the pointer is valid, and the current wave is
+      not well-formed: exits non-zero and names the malformed wave on stderr.
+- [ ] The state is readable, the schema is supported, the state is well-formed,
+      the container is present, the pointer is valid, the current wave is
+      well-formed, and every task in the current wave is accounted for: exits
+      zero and prints nothing to stdout or stderr.
+- [ ] The state is readable, the schema is supported, the state is well-formed,
+      the container is present, the pointer is valid, the current wave is
+      well-formed, and at least one task in the current wave is not accounted
+      for: exits non-zero and names on stderr every such task, and no accounted
+      task, subject to the identifier-list property below.
 - [ ] Any state-derived list of identifiers in a refusal, from either the guard
       or the verb, names identifiers up to the guard layer's per-value
       interpolation bound — the tighter of the two bounds in play, and
@@ -421,12 +499,18 @@ negations, and two rows then covered the same state with opposite verdicts.
       above.
 - [ ] Every verdict row above is satisfied by some cohort state.
 - [ ] The states the three preceding criteria are checked over are constructed by
-      varying the outcome of the cohort state read across its refusal
-      vocabulary, and the presence, type, and value of `schedule_waves`, of its
+      varying the outcome of the cohort state read across **whether it returned
+      a state or refused**, and the presence, type, and value of
+      `schedule_waves`, of its
       element at the pointer, of the receipts container, of a record's `kind`
       and `reason`, of `schema_version`, and of `current_wave_index`. This list
       is the single canonical enumeration of the axes; a task's `Tests` field
-      cites it rather than restating a subset.
+      cites it rather than restating a subset. The read axis is two-valued on
+      purpose: no verdict row discriminates among the reader's refusal kinds,
+      so enumerating them multiplies the domain without adding a distinction
+      any predicate makes. The vocabulary is still listed in the instrument as
+      the evidence that the read-refusal row's wording covers every kind — it
+      is documentation of that row's scope, not an axis.
 - [ ] The container values in that domain are generated from the declared key
       path — a correctly nested instance built from the declaration, then
       mutated at each depth with each hostile value — rather than hand-built at
@@ -494,6 +578,20 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
       precondition.
 - [ ] `references/state-schema.md` names the receipts container and states that
       an absent container means the guard does not enforce.
+- [ ] Every controller-facing surface that instructs `loop-cohort wave advance`
+      states the accounting precondition: the advance refuses a wave whose
+      tasks are not accounted for. Required because `evals/evals.json` answers
+      that the call "is idempotent and safe to replay" and
+      `references/session-resumption.md` re-issues it marked "(idempotent)" —
+      both true of the already-applied branch and both misleading about the
+      advancing branch after this change. The eval answers that describe the
+      call are updated in the same task.
+- [ ] `references/session-resumption.md` carries a row for a resume that finds
+      `amendment_pending` set, routing to `approve-plan` and then `schedule`.
+      Required because the wave-exit check hard-refuses an empty partition and
+      that field is the only state distinguishing the amendment crash window
+      from a hand-written one; without the row the refusal names a recovery
+      no document describes.
 
 ### Proof
 
@@ -599,11 +697,12 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
   only `wave-passed` is paired with a cohort wave advance, so a repair round
   re-exits through this guard with the wave pointer unmoved (source: the
   transition table in `loop-engine.py`, probe 2026-09-17)
-- Technical: `loop-cohort wave advance` is authorized by `--expect-run-id` alone
-  and is not coupled to this guard, so advancing early moves the guard's
-  denominator; that is why a record stays writable for an already-left wave
-  (source: `cmd_wave_advance` in `loop-cohort.py` and `check_wave` in
-  `_loop_guards.py`, probe 2026-09-17)
+- Technical: `loop-cohort wave advance` is authorized by `--expect-run-id`
+  alone. As shipped it is not coupled to this guard, which is why a record
+  stays writable for an already-left wave; § Leaving a wave couples the
+  advancing branch, so the uncoupled reading describes the pre-change code and
+  is not the target state (source: `cmd_wave_advance` in `loop-cohort.py` and
+  `check_wave` in `_loop_guards.py`, probe 2026-09-17)
 - Technical: `cmd_status` refuses when `schema_version` is not the supported
   value and prints a flat mapping in both its default and `--json` forms
   (source: `cmd_status` in `loop-cohort.py`, probe 2026-09-17)

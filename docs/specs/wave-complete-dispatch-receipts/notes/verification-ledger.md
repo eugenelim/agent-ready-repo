@@ -296,7 +296,8 @@ python3 docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.
 ```
 
 **Recorded run — 2026-09-17, superseded (see the post-rebuild run below):**
-94,080 states, 0 overlapping, 0 uncovered, all nine rows reached. Exit 0 asserts all three; it does not print them for a reader
+94,080 states, 0 overlapping, 0 uncovered, all nine rows reached. Exit 0
+asserts all three; it does not print them for a reader
 to check.
 
 **Why it replaced seven ad-hoc scripts.** The pass verdict is "no state matched
@@ -352,6 +353,24 @@ accounting lookup reversing digest and wave, the container predicate bounded one
 key short, and the domain generator returning nothing. The first attempt at that
 last one was a `SyntaxError` rather than the assertion — exit 1 for the wrong
 reason — and was redone with an early `return []` before being counted.
+
+**Mutation proof of the round-9 addition.** Round 9's adversarial lane found
+`ACQUISITION_REFUSALS` inert: the read axis is two-valued, so nothing in the
+script read the vocabulary and its presence read as coverage it did not provide.
+The script now walks every kind in it through `matching_rows` and asserts each
+lands on the read-refusal row alone. Mutating `readable` from
+`state["read"] == "ok"` to `isinstance(state["read"], str)` reddens it:
+
+```
+AssertionError: acquisition refusal 'spec-dir cannot be examined' must
+classify to the read-refusal row alone; got ['R7-accounted']
+```
+
+That is the evidence for the two-valued axis. The collapse loses no case only
+because every kind provably classifies to one row, and that is now asserted
+rather than argued in prose. The spec's canonical-axis criterion and T3's
+pinned `Tests` entry were reworded to the two-valued axis plus this assertion,
+so the instrument no longer contradicts a pinned criterion.
 
 **Mutation proof of the instrument's first version.** Five mutations, each caught by a
 named assertion:

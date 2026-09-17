@@ -1335,18 +1335,13 @@ open = [
   { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
 
   # Found 2026-09-17 by the pre-EXECUTE review of
-  # docs/specs/wave-complete-dispatch-receipts. All three are limits that spec
-  # discloses and deliberately does not close, each recorded there under
-  # Follow-ons with the reasoning. They are registered here so the spec's
-  # references resolve to real entries rather than to an intention.
+  # docs/specs/wave-complete-dispatch-receipts. The entries below are limits
+  # that spec discloses and deliberately does not close, each recorded there
+  # under Follow-ons with the reasoning. They are registered here so the spec's
+  # references resolve to real entries rather than to an intention. A fourth
+  # limit -- the uncoupled `wave advance` -- was folded into the spec instead
+  # and sits in `closed`.
   #
-  # `wave advance` is authorized by --expect-run-id alone and is not coupled to
-  # the wave-exit check, so a controller that advances before firing
-  # wave-complete takes the skipped wave out of the guard's view entirely. The
-  # receipts spec keeps a record writable for an already-left wave so the record
-  # is not lost too, but closing the skip changes wave advance's refusal set.
-  # Unblocks now; no dependency.
-
   # gates-failed, findings-remain and blocker-applied all re-enter
   # CODE-IMPLEMENTATION without moving current_wave_index, so the first pass's
   # records satisfy every later exit for that wave -- and a repair round is
@@ -1388,7 +1383,11 @@ closed = [
   # not on the branch that recognises the move as already applied, because the
   # skill documents the verb as idempotent and session-resumption re-issues it
   # on a wave-passed resume -- refusing there would turn crash recovery into a
-  # dead end. That residual window is disclosed in the spec's Risks.
+  # dead end. That residual window is disclosed in the spec's Boundaries and in
+  # its Acceptance Criteria under "Leaving a wave", which state the
+  # already-applied branch's pass verdict at contract strength. Disposition:
+  # contracted, not shipped -- the spec is Draft, so what closed is this
+  # entry's status as a deferred follow-on, not the code.
   { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Pair leaving a wave index with that wave being accounted for: loop-cohort wave advance is not coupled to the wave-exit check, so advancing before the exit fires moves the guard's denominator and the skipped wave is never checked", needs = [] },
   # Closed 2026-09-17 in core 2.26.11. `walk_task_sections` is now the sole
   # owner of the task-section boundary walk and `section_depends_field` the sole
