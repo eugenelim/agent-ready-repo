@@ -1088,11 +1088,14 @@ PLUGIN_JSON = REPO_ROOT / "packs/core/.claude-plugin/plugin.json"
 # AC12 names one version, so the control asserts that value rather than an
 # ordering. Round 9 found a `greater than the predecessor` comparison accepted
 # both a patch and a major bump, which is the whole substance of the decision
-# to take a minor. Pinning the target also survives the baseline moving: core
-# released several patches on `main` while this change was in flight, and an
-# ordering expressed against a predecessor would have silently re-based on
-# each one.
-RELEASE_VERSION = "2.27.0"
+# about which bump this change takes. Pinning the target also survives the
+# baseline moving: core released several patches on `main` while this change
+# was in flight, and an ordering expressed against a predecessor would have
+# silently re-based on each one.
+#
+# The value is a patch. `test_two_sided_prune_closure_invariant` permits only
+# `base_patch + 1` for a core bump, so a minor reds a standing gate.
+RELEASE_VERSION = "2.26.11"
 
 _CORE_HEADING_RE = re.compile(r"^## \[core\]\[(?P<version>[^\]]+)\] — ", re.MULTILINE)
 

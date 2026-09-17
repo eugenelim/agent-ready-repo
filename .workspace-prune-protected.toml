@@ -31,6 +31,7 @@ protected = [
   "docs/specs/chosen",
   "docs/specs/claude-plugins-install-route",
   "docs/specs/close-work-extraction-and-immediate-disposition",
+  "docs/specs/conventions-retirement",
   "docs/specs/cooling-brief-child-scope-closure",
   "docs/specs/cooling-untrusted-input-refusals",
   "docs/specs/decision-record-ordinal-uniqueness",

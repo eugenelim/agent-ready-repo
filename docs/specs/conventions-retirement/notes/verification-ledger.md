@@ -979,3 +979,38 @@ written stays wrong for the rest of the run unless the cohort is re-sealed. A
 plan should therefore carry pointers to the things that own its measurements,
 not the measurements — which is the same conclusion the count corrections
 reached from the other direction.
+
+### CI overturned the version size
+
+`test_two_sided_prune_closure_invariant` asserts a core bump is exactly
+`base_patch + 1`, so the minor this change carried reddened a standing gate.
+The release is `2.26.11`.
+
+The gate and `packs/AGENTS.md` disagree, and the gate's own comment says so
+while asserting otherwise: it reads "this pack reserves minor for new
+primitives and major for removals" and then admits only a patch. By the written
+rule this change earns a minor — it adds `docs/README.md` as a new seeded
+primitive. By the gate, it cannot have one. A peer reached the same conclusion
+independently: `docs/specs/loop-telemetry-export/notes/verification-ledger.md`
+records a renumber to 2.27.0 and then its correction, on the ground that
+nothing in that change was a new primitive either.
+
+Taking the patch rather than arguing the gate is the smaller move at this
+point, and it matches the owner's instruction to pick the next `2.x`. What the
+gate actually decides is worth stating plainly, because the written rule now
+describes a bump the gate will not accept: a core change can never take a
+minor while that assertion stands. That is a contradiction in the repository's
+own release contract, not in this change, and it belongs to whoever owns the
+gate.
+
+The plan no longer names the target value. The released baseline moves while a
+change is in flight — core went from 2.26.1 to 2.26.10 during this one — so the
+plan says "the next patch" and the criterion pins the value it resolved to.
+
+### And a protected-manifest entry
+
+`.workspace-prune-protected.toml` must list every spec directory a roster test
+names by a literal path, and this change's guard names its own. Added. The
+manifest is defense in depth rather than what makes a deletion safe, and its
+construction test is what keeps it honest — it re-derives the literals rather
+than trusting the file.

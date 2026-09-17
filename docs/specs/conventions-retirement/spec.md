@@ -157,12 +157,15 @@ resolves in the destination recorded in
   withdrawal. Appending a sentence to an already-released entry does not
   satisfy this.
 - [x] AC12 — `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
-  both carry `2.27.0`, and the criterion names that value rather than an
-  ordering: a patch bump satisfies any looser comparison, and the only machine
-  check is that the two files agree with each other
-  (`catalogue_tooling/lint.py:1748`). The released baseline moved while this
-  change was in flight — core shipped several patches on `main` — which is why
-  the target is pinned to a value and not expressed relative to a predecessor.
+  both carry `2.26.11`, and the criterion names that value rather than an
+  ordering: a looser comparison is satisfied by a bump of any size, and the only
+  machine check between the manifests is that the two files agree with each
+  other (`catalogue_tooling/lint.py:1748`). The released baseline moved while
+  this change was in flight — core shipped several patches on `main` — which is
+  why the target is pinned to a value and not expressed relative to a
+  predecessor. The size is a patch: `test_two_sided_prune_closure_invariant`
+  admits only `base_patch + 1` for a core bump, so a minor reds a standing gate
+  whatever `packs/AGENTS.md` reserves minor for.
 - [x] AC13 — `CONTRIBUTING.md` states the scaling-profile names and their
   contributor ranges.
 - [x] AC14 — No link **this change adds or edits** in a file under
@@ -254,10 +257,10 @@ resolves in the destination recorded in
   the claim was false (owner decision 2026-09-15).
 - Process: a core pack release needs a matching version bump and a free-standing
   changelog entry (`packs/AGENTS.local.md:28-30`).
-- Process: the release is a minor bump to `2.27.0`, not a major. `packs/AGENTS.md`
+- Process: the release is a patch bump to `2.26.11`, not a major. `packs/AGENTS.md`
   § Version bump rule gives minor for new primitives and major for removals, and
   this change is both: it adds `docs/README.md` as a new seed and withdraws
-  `docs/CONVENTIONS.md`. The owner decided minor on 2026-09-15, on the ground that
+  `docs/CONVENTIONS.md`. The owner declined major on 2026-09-15, on the ground that
   the withdrawal takes no capability from anyone — `_classify_seeds`
   (`packages/agentbundle/agentbundle/commands/_common.py:138-167`) leaves an
   existing adopter's copy in place, and the content is re-homed into files every

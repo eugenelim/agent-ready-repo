@@ -925,7 +925,10 @@ completion sentence and an unmapped remainder is deleted rather than disposed.
 
 **Approach:**
 - Bump `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to
-  `2.27.0`.
+  the next patch. Not a value written here: the released baseline moves while
+  this runs, and `test_two_sided_prune_closure_invariant` admits only
+  `base_patch + 1` for a core bump, so the target is whatever that is at
+  release time.
 - Decide the `Highlights` disposition in this step, as `packs/AGENTS.local.md:30-42`
   step 4 requires: read the release diff, answer whether a pack consumer's
   capability changes, and either write the `### Highlights` bullets or record the
