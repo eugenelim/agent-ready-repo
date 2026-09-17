@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-20
+- **Areas:** distribution, adapters, contracts
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (independent, three rounds to convergence), security review, fresh-reader review
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0092](../rfc/0092-first-class-distribution-routes.md) (the accepted proposal this records), [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md) (the adapter contract this extends), [RFC-0008](../rfc/0008-claude-plugins-install-route-parity.md), [RFC-0010](../rfc/0010-apm-install-route-parity.md), [ADR-0021](0021-pack-manifest-source-of-truth-and-scoped-identity.md), [ADR-0072](0072-derived-plugin-manifest-mirrors-upstream-schema.md), [ADR-0079](0079-executable-plugin-branch-publisher-identity.md)
 
 ## Decision summary
@@ -36,6 +41,12 @@ The constraint that forced the decision now rather than later: three further pac
 
 **A distribution route is a first-class concept, declared in its own canonical contract, and a runtime adapter is a separate concept; both consume the same normalized pack model and neither depends on the other.**
 
+- **D1:** A distribution route is a first-class concept declared in its own canonical contract, and a runtime adapter is a separate concept; both consume the same normalized pack model and neither depends on the other.
+- **D2:** Routes are declared in `contracts/distribution-routes.toml` with six fields: identity, package layout, manifest projector, component-capability map, marketplace projector, and lifecycle trigger.
+- **D3:** `install-routes` moves out of `[adapter."claude-code"]` into the route contract; a route may name an adapter projector but is never owned by one.
+- **D4:** The route contract and the generic route registry are separate deliverables in separate phases — a minimal route resolver suffices at first, and route rendering stays named, route-specific code until three real routes exist.
+- **D5:** Published output does not change across the contract move.
+
 - A route is declared in `contracts/distribution-routes.toml` with six fields: identity, package layout, manifest projector, component-capability map, marketplace projector, and lifecycle trigger.
 - `install-routes` moves there from `[adapter."claude-code"]`. A route may *name* an adapter projector, but is no longer owned by one.
 - The **route contract** (data) and the **route registry** (generic dispatch code) are separate deliverables in separate phases. Declaring routes in a contract does not require a generic engine to consume them; a minimal route resolver suffices at first, and route rendering stays named, route-specific code until three real routes exist.
@@ -58,10 +69,10 @@ The constraint that forced the decision now rather than later: three further pac
 
 ## Alternatives considered
 
-1. **Do nothing — keep adding route branches inside the Claude adapter.** Cheapest today. *Rejected:* the cost is per-route and recurring, and three routes are now buildable; `apm` stays mis-parented and every new route re-touches `main.py:669` and `:741`.
-2. **Build the full generic route registry now.** The intuitive design, and RFC-0092's original brief. *Rejected on spike evidence:* a drafted six-field registry was stress-tested against all six candidate routes and argued against itself — for `agent-plugin`, `codex-plugin`, `kiro-power`, and `copilot-plugin` it would hold placeholders, and a registry that encodes `unknown` as a named field obscures missing contract acquisition instead of removing special cases.
-3. **Model package formats as a second kind of adapter.** *Rejected:* "adapter" already means a runtime target with scope and projection rules in this repository; reusing the word for a thing with a different lifecycle would make both harder to reason about.
-4. **Make portable Agent Plugins the only output, with extensions for everything else.** *Rejected on the specification's own direction:* portable v1 excludes hooks, agents, commands, rules, and LSP, and its 1.1.0 working draft explicitly keeps excluding them pending format convergence. Claude users would lose eight of the nine canonical component kinds.
+1. **Do nothing — keep adding route branches inside the Claude adapter** — rejected against *cost of the next route*: cheapest today, but the cost is per-route and recurring, and three routes are now buildable; `apm` stays mis-parented and every new route re-touches `main.py:669` and `:741`.
+2. **Build the full generic route registry now** — rejected against *no premature abstraction*: a drafted six-field registry was stress-tested against all six candidate routes and argued against itself — for `agent-plugin`, `codex-plugin`, `kiro-power`, and `copilot-plugin` it would hold placeholders, and a registry that encodes `unknown` as a named field obscures missing contract acquisition instead of removing special cases (D4).
+3. **Model package formats as a second kind of adapter** — rejected against *ownership correctness*: "adapter" already means a runtime target with scope and projection rules in this repository, and reusing the word for a thing with a different lifecycle would make both harder to reason about.
+4. **Make portable Agent Plugins the only output, with extensions for everything else** — rejected against *published-output stability*: portable v1 excludes hooks, agents, commands, rules, and LSP, and its 1.1.0 working draft explicitly keeps excluding them pending format convergence, so Claude users would lose eight of the nine canonical component kinds.
 
 ## References
 

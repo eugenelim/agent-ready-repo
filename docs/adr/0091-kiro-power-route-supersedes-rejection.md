@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-20
+- **Areas:** distribution, adapters
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (independent, three rounds to convergence)
-- **Supersedes:** **rejected alternative (2) only** of [ADR-0004](0004-repo-scope-per-adapter-projection.md) — its rejection of a per-IDE plugin install route for Kiro. Every other part of ADR-0004, including its actual decision that per-IDE direct writes are the repo-scope install default, stands unchanged.
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0004
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0092](../rfc/0092-first-class-distribution-routes.md) D3 (the accepted proposal this records), [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md) alternative 2 (the same rejection in its originating RFC, corrected there by Errata), [ADR-0090](0090-distribution-routes-separate-from-runtime-adapters.md) (the route layer this route lives in), [RFC-0022](../rfc/0022-kiro-adapter-split.md) (the Kiro IDE/CLI adapter split, intact)
 
 ## Decision summary
@@ -39,6 +44,13 @@ Kiro also **rewrites MCP server names on install** (`supabase-local` becomes `po
 
 **Kiro is supported as a `kiro-power` route profile over the portable `agent-plugin` artifact, and the rejection of a Kiro route in ADR-0004 alternative (2) is superseded — that clause only.**
 
+- **D1:** Kiro is supported as a `kiro-power` route profile over the portable `agent-plugin` artifact, sharing that package's bytes rather than emitting a package of its own.
+- **D2:** Only ADR-0004 alternative (2)'s rejection of a Kiro route is superseded; every other part of ADR-0004, including its decision that per-IDE direct writes are the repo-scope install default, stands unchanged.
+- **D3:** The profile owns admission validation against Kiro's stricter required-field set — `version`, `description`, `author`, and `keywords` all mandatory — plus `keywords`-driven activation, its marketplace and submission projection, the `dev.kiro/` extension directory, and its own runtime-verification record.
+- **D4:** The route is published as `components-only`, with project adaptation and seed installation stated as `unsupported` rather than as a caveat.
+- **D5:** The `dev.kiro/` extension point ships empty with no invented steering content, because `.apm/` carries no canonical source for it.
+- **D6:** Nothing may depend on a canonical MCP server name surviving installation, because Kiro rewrites server names on install.
+
 The profile shares the portable package's bytes and owns everything genuinely its own: admission validation against Kiro's stricter required-field set (`version`, `description`, `author`, and `keywords` all mandatory, against portable v1's `$schema` and `name`), `keywords`-driven activation semantics, its marketplace and submission projection, the `dev.kiro/` extension directory, and its own runtime-verification record. A route profile is a first-class route with a shared package layout, not a lesser one.
 
 The route is published as **`components-only`**: no project adaptation, no seed installation, stated as `unsupported` rather than as a caveat.
@@ -59,9 +71,9 @@ The route is published as **`components-only`**: no project adaptation, no seed 
 
 ## Alternatives considered
 
-1. **Keep the rejection — no Kiro Power route at all.** The status quo, and a real governance option rather than a straw one; ADR-0004 and RFC-0012 chose it once already. *Rejected:* its stated premise has expired, and the package a Kiro route needs is a byproduct of the portable route being built regardless.
-2. **Emit a separate `dist/kiro-powers/` package.** *Rejected:* a Power is a conforming Agent Plugin plus `dev.kiro/`, so this duplicates the whole package to gain one directory — one output per product, which [RFC-0092](../rfc/0092-first-class-distribution-routes.md) rejects as a justification.
-3. **Treat Kiro as fully supported once the package loads.** *Rejected:* it would claim adaptation and seed behaviour the route provably cannot deliver, which is the specific dishonesty the route/claim separation exists to prevent.
+1. **Keep the rejection — no Kiro Power route at all** — rejected against *is the rejection's premise still true?*: the status quo is a real governance option that ADR-0004 and RFC-0012 chose once already, but its stated premise has expired, and the package a Kiro route needs is a byproduct of the portable route being built regardless.
+2. **Emit a separate `dist/kiro-powers/` package** — rejected against *bytes duplicated per directory gained*: a Power is a conforming Agent Plugin plus `dev.kiro/`, so this duplicates the whole package to gain one directory — one output per product, which [RFC-0092](../rfc/0092-first-class-distribution-routes.md) rejects as a justification.
+3. **Treat Kiro as fully supported once the package loads** — rejected against *can the route honestly claim the repository's differentiating capability?*: it would claim adaptation and seed behaviour the route provably cannot deliver, which is the specific dishonesty the route/claim separation exists to prevent.
 
 ## References
 
