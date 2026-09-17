@@ -64,6 +64,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.13] — 2026-09-17
+
+### Highlights
+
+- **Your agent decides where an unsettled assumption belongs.** While drafting a
+  spec, it surfaces the assumptions it is making and checks each one before
+  filing it. Some cannot be settled at that point — what an existing helper
+  really does, what a generated file actually contains, what a check truly
+  proves. Each of those is now placed by a rule rather than written down as-is.
+  The rule lives in the `new-spec` skill's assumptions step, under the anchor
+  `load-bearing-claim-routing`; it has one home, and this entry does not
+  restate it.
+
+### Changed
+
+- `new-spec`'s assumptions step carries the routing rule under a stable anchor,
+  and both surfaces that need it — `work-loop`'s plan-stage self-coverage step
+  and the how-to guide for planning non-trivial work — point at that anchor
+  rather than restating its destinations, so the three cannot drift apart.
+
 ## [core][2.26.12] — 2026-09-17
 
 ### Highlights

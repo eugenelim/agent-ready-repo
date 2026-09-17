@@ -69,12 +69,33 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    `assets/` folder lives next to this `SKILL.md` wherever your
    installer placed the skill.)
 
-3. **Surface assumptions before writing any spec body — and run one
-   targeted verification check per candidate first.** With the
-   directory scaffolded, stop. The load-bearing rule: **one targeted
-   check per candidate assumption — a repo read, a web lookup, or a
-   read-only probe script — not a sweep.** Then split the result into
-   what you confirmed and what still needs the user.
+3. **Surface assumptions before writing any spec body — and verify each
+   candidate first.** With the directory scaffolded, stop. The
+   load-bearing rule: **verify a candidate assumption before you file it
+   — a repo read, a web lookup, or a read-only probe script — not a
+   sweep.** Then split the result into what you confirmed and what still
+   needs the user.
+
+   <a id="load-bearing-claim-routing"></a>
+   **Route a claim you cannot settle by what its falsehood would cost.**
+   This applies across all three categories below; it adds none. It fires
+   only on a **load-bearing claim**, which is one whose falsehood could
+   change any of exactly six things: an acceptance criterion, a boundary,
+   the task graph, the verification strategy, the consequential failure
+   direction, or the chosen mechanism. A candidate that moves none of
+   those six is an ordinary fact — verify it as above and file it; this
+   rule does not reach it, and nothing here asks you to probe it.
+
+   For a load-bearing claim you cannot settle now, the routing input is
+   the largest thing its falsehood could move. Exactly one row applies: the
+   two exceptions are mutually exclusive on whether a test can decide the
+   claim, and the first row takes everything else.
+
+   | Routing input | Destination |
+   | --- | --- |
+   | `reaches-the-contract` — any of the six above, unless a row below applies. This is the residual route, so no load-bearing claim is unrouted | Settle it **before approval**, by a bounded spike under the side-effect-free probe constraint above. After approval the contract is pinned, and a correction the work discovers may not be applicable to it at all. |
+   | `unstarted-task-method` — it could change only the local method of a task that has not started, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. |
+   | `cheap-with-an-oracle` — it is a cheap, reversible detail and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
 
    **Resolve repository anchors before generating candidates.** Read the
    effective root and scoped `AGENTS.md` for the affected area and follow any
@@ -714,9 +735,9 @@ advisory: it informs the next round, and nothing else reads it.
   revised the Unverified entries, even if the original prompt sounded
   definitive.
 - Classifying a Technical or Process assumption as Unverified
-  without recording the one check you attempted (path read, URL
+  without recording the check you attempted (path read, URL
   fetched, or read-only probe command + output) → attempt and cite
-  the check. An attempted check that came back ambiguous is fine; a
+  it. An attempted check that came back ambiguous is fine; a
   skipped check is not. The user's time is the scarce resource;
   burning a round-trip on a fact a single command would have answered
   is a tax on every spec.

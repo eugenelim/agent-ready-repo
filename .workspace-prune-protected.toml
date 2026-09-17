@@ -61,6 +61,7 @@ protected = [
   "docs/specs/legacy-backlog",
   "docs/specs/legacy-queue",
   "docs/specs/legacy-shipped",
+  "docs/specs/load-bearing-claim-grounding",
   "docs/specs/login",
   "docs/specs/loop-telemetry-export",
   "docs/specs/loop-tooling-mandated-writes",

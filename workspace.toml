@@ -241,6 +241,12 @@ active  = [
   {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
 ]
 shipped = [
+  # S1 of the agent-authoring-input-quality brief, authored 2026-09-17. It
+  # routes a claim the author cannot settle by what its falsehood would cost,
+  # in the `new-spec` assumptions step only. A seven-delivery replay in the
+  # spec's notes cut every evidence-shape obligation the intent proposed and
+  # kept the consequence routing; the pre-review probe step stays with slice A4.
+  {path = "docs/specs/load-bearing-claim-grounding/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:43eaca63c9a81b094b5bcb2f91e42ae113fcbaafce0a4a3a003c334e85c7c115", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Route an unresolved load-bearing claim by what its falsehood would cost, in the new-spec assumptions step", needs = []},
   # Shipped 2026-09-13. The routed cognitive-load rule was skipped for a whole
   # session and breached throughout, so it is inline in both `AGENTS.md` files
   # and the routed topic file is retired. `AGENT_RULES.md` survives as a
