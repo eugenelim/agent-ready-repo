@@ -62,6 +62,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.26.9] — 2026-09-16
 
+### Highlights
+
+- **Your implementer looks for what you already have before it writes something
+  new.** Hand it a task whose best answer is a helper sitting elsewhere in your
+  repository and it now finds that helper and uses it, instead of writing a
+  second copy of the same logic a module away. It also tells you what the search
+  turned up every time — the thing it reused, anything it found and passed over
+  and why that did not fit, or that it found nothing worth using.
+- **A plan that asks for more structure than the job needs no longer gets built
+  as written.** Where a lighter route satisfies the task's own "done" check, the
+  implementer takes it and records the swap for you to see, rather than
+  faithfully building a configuration class and a new module to do the work of
+  one function. Structure you genuinely need survives: when several callers
+  really do need different settings, it still builds the shared piece.
+- **Every addition the loop talks itself out of now cites the rule that ruled it
+  out.** Each line of its "tempted to add, chose against" note names the
+  "Cut before adding" step that settled it, so you can see the reasoning against
+  a stated rule rather than a one-off justification. Where no step covers the
+  call — an accepted requirement or a safety control forbids it — it says that
+  instead of inventing a rule after the fact.
+
 ### Changed
 
 - **An implementer now looks for an existing solution before it writes a new

@@ -6,10 +6,20 @@ execute: the spec verifies it with scored probe runs at delivery instead. What
 these pins do is fail when an obligation is deleted, so a silent removal cannot
 pass as a cosmetic edit.
 
-Four obligations, four independent pins. A single pin over a shared heading
-would pass after any one of the four disappeared, which is the failure these are
-shaped to avoid. Two of them -- the declination rung and its non-rung exception
--- are the whole protection for a rule the contract carries no criterion for.
+Six tests, each failing on the removal of its own obligation. A single pin over
+a shared heading would pass after any one obligation disappeared, which is the
+failure these are shaped to avoid.
+
+Four of them carry the obligations the plan enumerates: the implementer records
+the rung it stopped at; the declination names the rung that killed it; that rule
+still admits a stated non-rung reason; and this file references the ladder
+without restating a rung of its own. The remaining two -- the bounded search with
+its unconditional receipt, and the lighter-rung direction with the `failed`
+reframing -- protect clauses of the same rule that measurement showed were the
+ones that actually moved behaviour, so they are pinned too.
+
+The declination pair is the whole protection for a rule the contract carries no
+criterion for: its acceptance criteria were retired as non-mechanizable.
 
 Pack-local by construction: both files live inside this pack, and the anchor
 never climbs above it.
