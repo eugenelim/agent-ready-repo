@@ -234,119 +234,119 @@ disagreeing home for them. What is new here is the code set itself.
 | `ADR-S014` | a present `## Alternatives considered` | present and non-empty | this spec |
 | `ADR-S015` | a correction section | heading is exactly `## Errata`, entries are top-level `- ` | RFC-0102 § 5 |
 
-- [ ] **AC-0001.** For a fixture record mutated to violate one check class, the
+- [x] **AC-0001.** For a fixture record mutated to violate one check class, the
   distinct class codes reported equal the set that case declares. A case declares
   more than its own class only where RFC-0102 § 3's field-specific mirroring makes
   a second class unavoidable — mutating `ADR-S008` adds an unmirrored entry and so
   also reports `ADR-S010` — and the unmutated record reports none.
-- [ ] **AC-0002.** The lint exits 1 when it reports any finding, and 0 only
+- [x] **AC-0002.** The lint exits 1 when it reports any finding, and 0 only
   when it reports no finding and every non-read bucket is empty. AC-0031 owns
   the bucket half of the exit contract; this criterion owns the finding half,
   and the two never require opposite codes for one scan.
-- [ ] **AC-0003.** The lint exits 1, prints no finding stream, and names which
+- [x] **AC-0003.** The lint exits 1, prints no finding stream, and names which
   case occurred, when its target directory is absent and when the directory's
   candidate listing is empty. "Holds no decision record" means the listing
   produced no candidate, not that every candidate was refused or undecodable —
   that input is AC-0031's.
-- [ ] **AC-0004.** A missing counterpart in a mirrored supersession pair is
+- [x] **AC-0004.** A missing counterpart in a mirrored supersession pair is
   reported against both the record that names the target and the record that
   omits the mirror.
-- [ ] **AC-0005.** Run over `docs/adr/`, every `*.md` directory entry less
+- [x] **AC-0005.** Run over `docs/adr/`, every `*.md` directory entry less
   `README.md` — whatever its file type — is accounted for in exactly one of the
   lint's three outcomes: read, refused, or unreadable. Those three are
   exhaustive of every outcome an entry can have, including a classification
   that raised, so no entry can be enumerated and then counted nowhere.
   Membership is derived from the directory listing at run time.
-- [ ] **AC-0006.** A refused entry and an unreadable entry are reported under
+- [x] **AC-0006.** A refused entry and an unreadable entry are reported under
   distinct labels, so neither can be read as the other.
-- [ ] **AC-0008.** A `**Key:**` metadata value written on the lines following
+- [x] **AC-0008.** A `**Key:**` metadata value written on the lines following
   the key is read as that key's value, in both forms the corpus uses: an
   indented block, and a blank line followed by an unindented list. A record
   whose `Signal` is a nested list and a record whose `Revisit if:` is a
   column-0 list after a blank line are both conformant rather than empty.
-- [ ] **AC-0009.** The `check-adr-shape` chain step, running the projected
+- [x] **AC-0009.** The `check-adr-shape` chain step, running the projected
   script over `docs/adr` on a pull request, exits 0.
-- [ ] **AC-0010.** `tools/repo/build_gate_chain.py` carries a `check-adr-shape`
+- [x] **AC-0010.** `tools/repo/build_gate_chain.py` carries a `check-adr-shape`
   step invoking `.claude/skills/new-adr/scripts/lint-adr-shape.py` against
   `docs/adr`, and a `test-lint-adr-shape` step running the pack fixture suite;
   `tools/test_build_gate_chain.py` asserts both steps' argv, on the mechanism it
   already uses for `lint-spec-status.py`, and passes.
-- [ ] **AC-0011.** `tests/roster/test_index_records.py` and
+- [x] **AC-0011.** `tests/roster/test_index_records.py` and
   `tests/roster/test_lint_adr_shape_corpus.py` are each enumerated in
   `.github/workflows/build-check.yml` with their matching `STEP_DISPOSITION`
   entries in `tools/lint-ci-parity.py`, and that lint passes.
-- [ ] **AC-0012.** `docs/adr/0023-*.md` and `docs/adr/0050-*.md` each carry a
+- [x] **AC-0012.** `docs/adr/0023-*.md` and `docs/adr/0050-*.md` each carry a
   bare-token `Status` and a `Superseded by:` field naming the record that
   supersedes them.
-- [ ] **AC-0013.** `docs/adr/README.md` renders a supersession pointer for both
+- [x] **AC-0013.** `docs/adr/README.md` renders a supersession pointer for both
   of those records after their `Status` values become bare tokens.
-- [ ] **AC-0014.** `docs/adr/README.md` regenerates from its records with no
+- [x] **AC-0014.** `docs/adr/README.md` regenerates from its records with no
   diff under `index-records.py --check docs/adr`.
-- [ ] **AC-0015.** The one new-format decision record this delivery ships exists
+- [x] **AC-0015.** The one new-format decision record this delivery ships exists
   under `docs/adr/`, records the ADR format decision, is `Accepted`, and passes
   the lint.
-- [ ] **AC-0016.** `docs/adr/0027-*.md` carries one dated `## Errata` entry
+- [x] **AC-0016.** `docs/adr/0027-*.md` carries one dated `## Errata` entry
   recording both that the mechanical status lint its Confirmation deferred has
   shipped, and that its `D5` forward-only migration clause is overridden, the
   corpus having been migrated.
-- [ ] **AC-0017.** `packs/governance-extras/.apm/skills/new-adr/assets/adr.md`
+- [x] **AC-0017.** `packs/governance-extras/.apm/skills/new-adr/assets/adr.md`
   pre-declares `Areas`, `Reversibility`, and all four supersession fields, each
   supersession field carrying the `none` sentinel.
-- [ ] **AC-0018.** That template states the four parse tiers RFC-0102 § 1
+- [x] **AC-0018.** That template states the four parse tiers RFC-0102 § 1
   names — tier T1, tier T1-unchecked, tier T2, tier T3 — and which fields belong
   to each. "Tier" is written out wherever a tier is named, because this plan's
   task identifiers share the `T<n>` shape.
-- [ ] **AC-0019.** That template states the transformation an author performs to
+- [x] **AC-0019.** That template states the transformation an author performs to
   produce a record from it: substitute every placeholder, and delete the
   guidance comments.
-- [ ] **AC-0020.** That template states the suggested shape for `Related:`,
+- [x] **AC-0020.** That template states the suggested shape for `Related:`,
   marked as suggested and not checked: entries separated by `;`, each a bare
   ordinal or a `/`-joined pair and never a Markdown link, each followed by a
   parenthetical gloss naming the relationship with an em dash before a secondary
   clause, and no trailing period. Every ordinal in its worked example is the
   literal placeholder form the template uses elsewhere.
-- [ ] **AC-0021.** `guides/governance-extras/how-to/new-adr.md` states the same
+- [x] **AC-0021.** `guides/governance-extras/how-to/new-adr.md` states the same
   suggested `Related:` shape, with a worked example whose ordinals are all
   placeholders.
-- [ ] **AC-0022.** A record produced from that template by the transformation
+- [x] **AC-0022.** A record produced from that template by the transformation
   AC-0019 requires it to state passes the lint.
-- [ ] **AC-0023.** None of these surfaces states that a status-only change is
+- [x] **AC-0023.** None of these surfaces states that a status-only change is
   the only edit permitted on an accepted ADR:
   `packs/governance-extras/.apm/skills/new-adr/assets/adr.md`,
   `packs/governance-extras/.apm/skills/new-adr/SKILL.md`,
   `packs/governance-extras/.apm/skills/new-adr/evals/evals.json`,
   and `guides/governance-extras/how-to/new-adr.md`. Surviving statements
   outside this set are listed under Follow-ons.
-- [ ] **AC-0024.** Each of those surfaces except `evals.json` describes the four
+- [x] **AC-0024.** Each of those surfaces except `evals.json` describes the four
   mutability zones — Live, Attested, Frozen, Append-only — in place of the
   retired rule.
-- [ ] **AC-0025.** `new-adr`'s SKILL.md write gate surfaces the `Areas` tokens
+- [x] **AC-0025.** `new-adr`'s SKILL.md write gate surfaces the `Areas` tokens
   already in use in the target directory and requires an explicit answer before
   a record introduces a token none of them uses.
-- [ ] **AC-0026.** `new-adr`'s SKILL.md and template define `## Errata` as
+- [x] **AC-0026.** `new-adr`'s SKILL.md and template define `## Errata` as
   append-only dated entries that clarify meaning and never alter what was
   decided, and `new-rfc`'s sole-home sentence names RFCs rather than all record
   types.
-- [ ] **AC-0027.** `packs/governance-extras/pack.toml` and
+- [x] **AC-0027.** `packs/governance-extras/pack.toml` and
   `packs/governance-extras/.claude-plugin/plugin.json` both read `0.11.0`.
-- [ ] **AC-0028.** `docs/product/changelog.md` carries a heading matching
+- [x] **AC-0028.** `docs/product/changelog.md` carries a heading matching
   `## [governance-extras][0.11.0] — <ISO date>` at top level, directly beneath
   the `[Unreleased]` section and not nested inside it.
-- [ ] **AC-0029.** That release entry records its Highlights decision, either as
+- [x] **AC-0029.** That release entry records its Highlights decision, either as
   a `Highlights` subsection one level below the entry or as a stated
   none-with-reason.
-- [ ] **AC-0030.** `packs/governance-extras/.apm/skills/new-adr/evals/evals.json`
+- [x] **AC-0030.** `packs/governance-extras/.apm/skills/new-adr/evals/evals.json`
   and `eval_queries.json` carry at least one eval whose expected output and
   assertions name `Areas`, `Reversibility`, and the half of a mirrored
   supersession pair a single authored record can carry; and no eval asserts that
   an accepted record's body is immutable.
-- [ ] **AC-0031.** Any accounted entry the lint did not read makes it exit
+- [x] **AC-0031.** Any accounted entry the lint did not read makes it exit
   non-zero — not only the two named buckets, so an outcome landing in neither
   cannot exit 0. An entry the lint could not confine, could not classify, or
   could not decode must fail the run rather than be reported and passed over:
   under a blocking gate, being reported without failing is how a record joins
   the corpus without ever being shape-checked.
-- [ ] **AC-0032.** A supersession value reaching the generated index passes the
+- [x] **AC-0032.** A supersession value reaching the generated index passes the
   same cell or destination escaping every other record-controlled cell in
   `index-records.py` already uses, chosen by where the pointer lands, and the
   generator reads `Superseded by:` as same-line text only. The same-line pin is
@@ -356,7 +356,7 @@ disagreeing home for them. What is new here is the code set itself.
   byte-sibling indexes `docs/rfc` where no shape lint validates the field, so it
   cannot assume the value was validated upstream.
 
-- [ ] **AC-0033.** `docs/README.md`'s `adr/` entry does not assert that a
+- [x] **AC-0033.** `docs/README.md`'s `adr/` entry does not assert that a
   decision record is never edited. Its `frozen` class means the prose is
   immutable and a correction supersedes rather than rewrites, stated in terms
   that admit the metadata block RFC-0102 § 4 makes writable, and worded so a
