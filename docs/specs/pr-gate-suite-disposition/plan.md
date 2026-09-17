@@ -1,7 +1,7 @@
 # Plan: PR-gate suite disposition
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/lint-ci-parity.py` (the forward gate this extends,
   and the source of the roster-anchor/extraction-corroboration pattern);
   `tools/test-lint-ci-parity.py` (the self-test route, 143 existing cases run from

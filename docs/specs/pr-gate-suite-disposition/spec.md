@@ -1,6 +1,6 @@
 # Spec: PR-gate suite disposition
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -213,21 +213,21 @@ eight take the modes named below.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `tools/lint-ci-parity.py` exits 1, naming the target, when any
+- [x] **AC-0001.** `tools/lint-ci-parity.py` exits 1, naming the target, when any
   target on a recipe line of the `run-test-suite` define carries no
   `SUITE_DISPOSITION` entry, so a suite added beside dispositioned siblings on
   one line does not inherit their entries.
-- [ ] **AC-0002.** `tools/lint-ci-parity.py` exits 1, naming the line, when a
+- [x] **AC-0002.** `tools/lint-ci-parity.py` exits 1, naming the line, when a
   recipe line of the define gives pytest a suite the module cannot resolve to a
   literal path — a line with no path operand at all, or one passing a variable
   expansion — and no literal-substring entry covers that line.
-- [ ] **AC-0003.** `tools/lint-ci-parity.py` exits 1, naming the entry, when a
+- [x] **AC-0003.** `tools/lint-ci-parity.py` exits 1, naming the entry, when a
   `SUITE_DISPOSITION` entry is resolved by no recipe line of the define.
-- [ ] **AC-0004.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a workflow
+- [x] **AC-0004.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a workflow
   whose `pull_request` trigger carries a `paths` allowlist or a `paths-ignore` list.
-- [ ] **AC-0005.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a step or job
+- [x] **AC-0005.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a step or job
   carrying `continue-on-error` or an `if:` condition.
-- [ ] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
+- [x] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
   `PR_GATED` entry names a suite that no step of any workflow under
   `.github/workflows/` with an unfiltered `pull_request` trigger reaches. A step
   reaches a suite through one of four sources. Two are read from the step's own
@@ -240,31 +240,31 @@ eight take the modes named below.
   shape they do not recognise makes corroboration fail a true `PR_GATED` claim —
   a false alarm, never a false pass. The fourth *can* grant coverage the workflow
   does not provide, which is its stated cost; AC-0007 bounds it.
-- [ ] **AC-0007.** A declared exception applies only to a step whose name is
+- [x] **AC-0007.** A declared exception applies only to a step whose name is
   unique in its workflow, every suite it lists appears in that step's own `run`
   text, and that step's `run` body is pinned, so any edit to it fails a test and
   obliges a human to re-check the declaration.
-- [ ] **AC-0008.** `tools/lint-ci-parity.py` exits 1, naming the covering step,
+- [x] **AC-0008.** `tools/lint-ci-parity.py` exits 1, naming the covering step,
   when a `NO_PR_GATE` entry names a suite that a workflow with an unfiltered
   `pull_request` trigger does reach.
-- [ ] **AC-0009.** `tools/lint-ci-parity.py` exits 1 when a `NO_PR_GATE` or `PR_GATED_IF` entry
+- [x] **AC-0009.** `tools/lint-ci-parity.py` exits 1 when a `NO_PR_GATE` or `PR_GATED_IF` entry
   carries an empty or whitespace-only reason.
-- [ ] **AC-0010.** `python3 tools/lint-ci-parity.py` invoked against a fixture root
+- [x] **AC-0010.** `python3 tools/lint-ci-parity.py` invoked against a fixture root
   whose `run-test-suite` define carries an undispositioned recipe line exits 1.
-- [ ] **AC-0011.** A step of `.github/workflows/build-check.yml` invokes pytest on
+- [x] **AC-0011.** A step of `.github/workflows/build-check.yml` invokes pytest on
   `packs/frontend-engineering/tests/`.
-- [ ] **AC-0012.** `packs/frontend-engineering/tests/`'s `SUITE_DISPOSITION` entry
+- [x] **AC-0012.** `packs/frontend-engineering/tests/`'s `SUITE_DISPOSITION` entry
   reads `PR_GATED` naming that step.
-- [ ] **AC-0013.** A step of `.github/workflows/build-check.yml` invokes pytest on
+- [x] **AC-0013.** A step of `.github/workflows/build-check.yml` invokes pytest on
   `tools/test_local_ci_shared_test_deduplication.py`.
-- [ ] **AC-0014.** `tools/test_local_ci_shared_test_deduplication.py`'s
+- [x] **AC-0014.** `tools/test_local_ci_shared_test_deduplication.py`'s
   `SUITE_DISPOSITION` entry reads `PR_GATED` naming that step.
-- [ ] **AC-0015.** `python3 tools/lint-ci-parity.py` exits 0 against the repository, with every
+- [x] **AC-0015.** `python3 tools/lint-ci-parity.py` exits 0 against the repository, with every
   recipe line of the `run-test-suite` define dispositioned.
-- [ ] **AC-0016.** For each check arm named in AC-0001 through AC-0010, removing
+- [x] **AC-0016.** For each check arm named in AC-0001 through AC-0010, removing
   that arm from `tools/lint-ci-parity.py` makes `python3 tools/test-lint-ci-parity.py`
   exit non-zero; and so does removing the entry-point call AC-0010 exercises.
-- [ ] **AC-0017.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
+- [x] **AC-0017.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
   and whose `kind` is `defect` appears once, under `[backlog].closed`, and no
   `[backlog].open` entry restates it.
 
