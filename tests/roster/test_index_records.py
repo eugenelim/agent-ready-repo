@@ -517,3 +517,50 @@ def test_the_two_shipped_confinement_helpers_stay_byte_identical():
     """
     first, second = (path.read_bytes() for path in _SHIPPED_HELPERS)
     assert first == second
+
+
+def _render_one(tmp_path, field_line: str, newline: str = "\n") -> str:
+    """Render a one-record directory and return its status cell."""
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        f"{field_line}\n", encoding="utf-8", newline=newline)
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    return rows[0].split(" | ")[2]
+
+
+def test_an_embedded_carriage_return_does_not_reach_the_status_cell(tmp_path):
+    """AC-0032's same-line pin, against the character that actually breaks it.
+
+    `_escape_cell` neutralizes no line break, and CommonMark treats a bare CR
+    as a line ending -- so a CR reaching the cell terminates the table row and
+    everything after it renders as page text. `.` under `re.MULTILINE` excludes
+    LF but *matches* CR, so the same-line read was not same-line for CR.
+
+    The value is refused rather than sanitised: a field carrying a control
+    character is malformed, and rendering a bare `Superseded` is the
+    fail-closed outcome.
+    """
+    cell = _render_one(tmp_path, "- **Superseded by:** ADR-0109\rINJECTED")
+    assert "\r" not in cell
+    assert "INJECTED" not in cell
+    assert cell == "Superseded"
+
+
+def test_a_crlf_record_still_reads_its_superseded_by_field(tmp_path):
+    """The discriminating negative for the test above.
+
+    Refusing every value with a CR in it would also refuse every field in a
+    CRLF checkout, which this repository supports. A trailing CR is a line
+    ending; only an embedded one is an injection.
+    """
+    cell = _render_one(
+        tmp_path, "- **Superseded by:** ADR-0109", newline="\r\n")
+    assert cell == "Superseded by ADR-0109"
+
+
+def test_an_empty_superseded_by_field_leaves_the_bare_token(tmp_path):
+    """A present-but-empty field composed a dangling `Superseded by ` pointer."""
+    cell = _render_one(tmp_path, "- **Superseded by:**")
+    assert cell == "Superseded"

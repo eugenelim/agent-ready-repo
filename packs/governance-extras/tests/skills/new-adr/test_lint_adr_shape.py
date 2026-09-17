@@ -1333,3 +1333,73 @@ def test_template_supersession_examples_parse_under_the_lints_grammar(
             f"the template's {field!r} example {raw!r} is malformed under "
             f"the lint's own grammar: {codes}"
         )
+
+
+def _partial_pair(a_entry: str, b_entry: str) -> dict[str, str]:
+    """Two records forming a partial-supersession pair, each side given verbatim.
+
+    Both halves cite D-IDs defined by the *superseded* record, so a conforming
+    pair names the same D-ID set on both sides.
+    """
+    def rec(num: str, title: str, sip: str, sup_ip: str) -> str:
+        return (
+            f"# ADR-{num}: {title}\n\n"
+            "- **Status:** Accepted\n"
+            "- **Date:** 2026-09-17\n"
+            "- **Areas:** governance\n"
+            "- **Reversibility:** high\n"
+            "- **Decision-makers:** someone\n"
+            "- **Supersedes:** none\n"
+            f"- **Supersedes in part:** {sip}\n"
+            "- **Superseded by:** none\n"
+            f"- **Superseded in part:** {sup_ip}\n\n"
+            "## Decision\n\n"
+            "- **D1:** first\n"
+            "- **D2:** second\n"
+        )
+    return {
+        "0001-a.md": rec("0001", "A", a_entry, "none"),
+        "0002-b.md": rec("0002", "B", "none", b_entry),
+    }
+
+
+def test_s010_rejects_a_partial_mirror_whose_d_ids_disagree(tmp_path):
+    """A present counterpart naming different D-IDs is not a mirror.
+
+    The ordinals match, so an ordinal-only comparison passes this pair. The
+    D-ID sets do not, and both halves cite D-IDs owned by the superseded
+    record, so the sets must be equal rather than merely both non-empty.
+    """
+    d = _write_dir(tmp_path, _partial_pair("ADR-0002 D1", "ADR-0001 D2"))
+    code, out, err = _run(d)
+    combined = out + err
+    assert code == 1, combined
+    assert "ADR-S010" in _extract_codes(combined)
+    # Attributed to both records: a broken pair is a defect in the pair, and
+    # reporting one side only makes the finding depend on scan order.
+    assert "0001-a.md" in combined and "0002-b.md" in combined, combined
+
+
+def test_s010_accepts_a_partial_mirror_whose_d_ids_agree(tmp_path):
+    """The discriminating negative: same pair, matching D-IDs, reports nothing.
+
+    Without this the test above would also pass against a lint that rejected
+    every partial pair.
+    """
+    d = _write_dir(tmp_path, _partial_pair("ADR-0002 D1", "ADR-0001 D1"))
+    code, out, err = _run(d)
+    assert "ADR-S010" not in _extract_codes(out + err), out + err
+
+
+def test_s010_reverse_only_partial_entry_names_both_records(tmp_path):
+    """A `Superseded in part` with no counterpart reports against both records.
+
+    The forward direction already did this; the reverse direction attributed
+    the finding to the scanned record only.
+    """
+    d = _write_dir(tmp_path, _partial_pair("none", "ADR-0001 D1"))
+    code, out, err = _run(d)
+    combined = out + err
+    assert code == 1, combined
+    assert "ADR-S010" in _extract_codes(combined)
+    assert "0001-a.md" in combined and "0002-b.md" in combined, combined

@@ -632,6 +632,19 @@ def _check_cross(records: dict[str, _Record]) -> list[Finding]:
                 add(str(target.path), "ADR-S010",
                     f"Missing 'Superseded in part: {this_key} ...' "
                     f"mirroring {this_key}'s 'Supersedes in part: {entry}'")
+            elif set(_entry_d_ids(entry)) != set(
+                    _entry_d_ids(target_sip[this_key])):
+                # A present counterpart naming different D-IDs is not a mirror.
+                # Both halves cite D-IDs defined by the superseded record, so
+                # the two sets must be equal, not merely both non-empty.
+                add(p, "ADR-S010",
+                    f"Supersedes in part: {entry!r} but {target_key}'s "
+                    f"counterpart {target_sip[this_key]!r} names different "
+                    "D-IDs")
+                add(str(target.path), "ADR-S010",
+                    f"Superseded in part: {target_sip[this_key]!r} but "
+                    f"{this_key}'s counterpart {entry!r} names different "
+                    "D-IDs")
 
         # Superseded in part: ADR-X D1  ↔  ADR-X Supersedes in part: this D1
         for entry in _parse_entry_list(rec.superseded_in_part):
@@ -653,6 +666,12 @@ def _check_cross(records: dict[str, _Record]) -> list[Finding]:
                 add(p, "ADR-S010",
                     f"Superseded in part: {entry!r} but {target_key} "
                     f"has no 'Supersedes in part: {this_key} ...' entry")
+                # Attribute to both records, as the forward branch does: a
+                # broken pair is a defect in the pair, and reporting one side
+                # only makes the finding depend on which record was scanned.
+                add(str(target.path), "ADR-S010",
+                    f"Missing 'Supersedes in part: {this_key} ...' "
+                    f"mirroring {this_key}'s 'Superseded in part: {entry}'")
 
     return findings
 
