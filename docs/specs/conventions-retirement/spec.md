@@ -230,8 +230,9 @@ resolves in the destination recorded in
   [`notes/anchor-inventory.txt`](notes/anchor-inventory.txt) and mapped to their
   destinations in [`notes/anchor-map.txt`](notes/anchor-map.txt), each with the
   command that regenerates it.
-- Technical: `docs/CONVENTIONS.md` is the sole entry in
-  `PROJECTED_README_OVERRIDES` (`self_host.py:573-575`).
+- Technical: before this change, `docs/CONVENTIONS.md` was the sole entry in
+  `PROJECTED_README_OVERRIDES`. AC3 empties the tuple, so the live value is
+  what `self_host.py` defines, not what this dated assumption records.
 - Technical: `_classify_seeds` walks only what exists under `seeds_dir`
   (`packages/agentbundle/agentbundle/commands/_common.py:138-167`), and seeds
   land outside the adapter projection prefixes so they never interact with the

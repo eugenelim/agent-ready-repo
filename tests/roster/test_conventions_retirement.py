@@ -118,18 +118,28 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
             run = 0
             while position + run < length and text[position + run] == "`":
                 run += 1
+            if position > 0 and text[position - 1] == "`":
+                # Inside a run whose start was handled earlier — or whose first
+                # delimiter was escaped, which is the path that makes this
+                # reachable: the escape check skips that delimiter and the scan
+                # arrives here on the next one. Round 15 removed this as
+                # unreachable and that was wrong; `\\`` followed by a later
+                # single backtick paired the run's suffix with it and masked the
+                # link between them.
+                position += run
+                at_line_start = False
+                continue
             closer = re.compile(rf"(?<!`){'`' * run}(?!`)")
             found = closer.search(text, position + run)
             if found is not None:
                 spans.append((position, found.end(), _CODE))
                 position, at_line_start = found.end(), False
                 continue
-            # No exact closer: CommonMark leaves the run as literal prose, so
-            # skip the whole run. This is also what keeps the scan from ever
-            # landing inside a run — every path either consumes through a
-            # closer or steps past the run entire — so no separate mid-run
-            # guard is needed. Advancing one code point would re-open on the
-            # run's own suffix and mask the operative text that follows.
+            # No exact closer: CommonMark leaves the run as literal prose.
+            # Skipping the whole run is equivalent in outcome to advancing one
+            # code point, because the guard above would skip the remainder
+            # anyway — that guard is the load-bearing one, and this is the
+            # clearer and cheaper spelling of the same result.
             position += run
             at_line_start = False
             continue
@@ -1224,6 +1234,10 @@ _FRAG = "#the-three-lifecycle-classes"
         # An escaped backtick opens nothing. The unescaped one after the link
         # would otherwise close a span that starts before it.
         ("escaped backtick", f"\\` [x]({_DEST}{_FRAG}) `", True),
+        # An escaped delimiter followed by more of the same run: the escape
+        # check skips the first, so the scan arrives mid-run on the second.
+        # Round 16 found this is what makes the mid-run guard reachable.
+        ("escaped run prefix", f"\\`` [x]({_DEST}{_FRAG}) `", True),
         # A backtick fence's info string may not hold a backtick, so this is
         # not a fence and the link after it stays operative.
         ("invalid fence info", f"```bad`info\n[x]({_DEST}{_FRAG})", True),

@@ -815,3 +815,52 @@ measurement into a durable record at all.
 **One wording correction.** `_blank` preserves Python string indices, which are
 code points; "byte" overstated the contract, even though every caller indexes
 back into the same `str` and none is affected.
+
+## Round 16 — the previous round's removal was a regression
+
+One blocker, two concerns.
+
+**Correction to round 15 above.** That entry claims the mid-run guard was
+unreachable. It is not, and removing it was a regression with live effect. The
+escape check skips an escaped delimiter, and the scan then arrives on the *next*
+delimiter of the same run — that is the path. Input `\`` followed by a later
+single backtick paired the run's suffix with it and masked the operative link
+between them. Measured over the tree: masking differs on seven files with the
+guard present versus absent, `docs/guides/guidebook-step-contract.md` among
+them. The guard is restored and the exact input is now a committed case.
+
+**What round 15 got right and what it got wrong.** Its finding was that two
+guards where one suffices is a smell, and that a mutation failing to red points
+at redundancy. Both true. The error was choosing which to remove: the mid-run
+guard is the load-bearing one, and the whole-run skip is an equivalent-outcome
+simplification — with mid-run present, skipping the run and advancing one code
+point reach the same state. The comment now says which is which, so the next
+reader does not repeat the removal.
+
+The deeper lesson is about the reasoning, not the code. "Every path either
+consumes through a closer or steps past the run entire" was asserted from
+reading the branch, not from enumerating entries *into* it. A reachability claim
+needs the set of ways control arrives at a point, and the escape check was
+creating an entry the claim did not consider. Asserting unreachability is a
+proof obligation, and the cheap discharge is a mutation: delete the code and
+look for a red. Round 15 ran that mutation, saw green, and drew the wrong
+conclusion because no case exercised the path — a green mutation is evidence
+about the test set first and the code second.
+
+### Plan coverage, checked rather than rewritten
+
+Every task in `plan.md` was swept against the tree at close: the guard module
+and canary exist, the seed cap was raised, the priming rules sit in both
+`AGENTS.md` files, `docs/README.md` exists in both copies, each promoted
+section is present under its named heading in the seed, each re-homed section
+resolves at its destination, both retired files are gone, the projection
+allow-list is empty, both manifests carry the release, the changelog entry is
+topmost, and the scan returns nothing. Nothing is uncovered.
+
+The plan is not rewritten to match. It is the strategy that was approved and
+executed, and editing it now would replace a record of what was planned with a
+description of what happened — which the spec and this ledger already hold. Two
+measurements inside it (the seed-file list and the seed line cap) were
+corrected only because they were *wrong*, not to bring the plan up to date; the
+remaining installed-path figure is left as authored, being true when written
+and owned elsewhere.
