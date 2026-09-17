@@ -17,7 +17,7 @@ Eleven skills ship in the pack — seven episodic skills (below) and the four `r
 
 **name:** `identify-perspectives`.
 
-**description:** Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+**description:** Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Fairly represents every significant view in proportion to its prominence, and surfaces every viable explanation before evaluating any of them. Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 
 ### build-outline
 
@@ -275,7 +275,7 @@ nothing in the wild held the old name.)
 ### Source provenance axes (optional)
 
 Per-source frontmatter in `sources/` may carry two optional, independent
-Admiralty-style axes: `reliability` (source track record, A–F) and `credibility`
+axes: `reliability` (source track record, A–F) and `credibility`
 (corroboration of the specific claim, 1–6). They inform the analysis; the
 claim-level rail stays GRADE confidence + ≥3-source triangulation.
 
