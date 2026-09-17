@@ -2,7 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-16
+- **Areas:** packaging, documentation
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [`docs/specs/design-output-addressing/spec.md`](../specs/design-output-addressing/spec.md) — the spec this ADR satisfies; [`0116-notes/direction-folder-name-dataset.md`](0116-notes/direction-folder-name-dataset.md) — the reproducible dataset this ADR cites
 
 ## Decision summary
