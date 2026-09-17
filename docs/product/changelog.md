@@ -141,7 +141,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regression would not redden them. Their identifiers carry a `register-`
   prefix to say so.
 
-
 ## [core][2.26.8] — 2026-09-16
 
 ### Highlights
@@ -166,7 +165,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runs first, and continues.
 - `new-spec`: the plan template's `Depends on:` placeholder no longer names `T0`,
   a task ID that can never exist.
-
 
 ## [core][2.26.7] — 2026-09-16
 
