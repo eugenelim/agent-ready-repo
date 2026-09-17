@@ -25,8 +25,10 @@ immediately whether a pull request will run it. `tools/lint-ci-parity.py` holds 
 second roster, `SUITE_DISPOSITION`, carrying a disposition for every command the
 define runs: either the PR check that gates the suite, or the stated reason no PR
 check does. Completeness is measured against the define's own recipe lines, read
-lexically, so a command the module cannot parse demands a disposition rather than
-escaping the roster. A claim that a PR check gates a suite is then corroborated
+lexically, so a line the module cannot parse demands a disposition rather than
+escaping the roster. That guarantee is line-level: which *targets* a line carries
+is still read by the extractor, and an operand it does not recognise is caught
+only by the arm that looks for one. A claim that a PR check gates a suite is then corroborated
 against the workflows rather than taken on the author's word.
 
 Two suites that were reachable only through `make test` now run on every pull
@@ -48,11 +50,17 @@ those suites were red.
 Measured over the define as `test-unleased` expands it — the standalone `make test`
 route, which is the superset, because the composed
 `test-after-build-check-unleased` route only adds `--ignore=` operands and drops
-the third macro argument: of 114 gate targets, 56 are reached by
-a workflow whose `pull_request` trigger carries no path filter, 6 only conditionally
-(four behind `catalogue-tooling-ci-gates.yml`'s `paths-ignore`, one behind
-`build-check-windows.yml`'s `paths-ignore`, one behind `docs.yml`'s `paths`), and
-52 by no pull-request workflow at all.
+the third macro argument. **63 recipe lines carry 114 distinct gate targets, and
+the roster holds 118 keys: those targets plus four literal-substring keys for the
+lines with no path operand.** Of the 118: **59 are reached by a workflow whose
+`pull_request` trigger carries no path filter, 27 only conditionally, and 32 by no
+pull-request workflow at all.**
+
+The first reading of this gap put the ungated count at 52. That was wrong, and
+how it was wrong is the delivery's most useful finding: the roster was authored
+from the extractor, `catalogue-tooling-ci-gates.yml` runs 24 pack suites through a
+shell loop no static scan can attribute, and 21 entries therefore shipped a reason
+asserting that no workflow named them. The ledger records the correction.
 
 `tools/lint-pack-test-boundary.py`'s `every-suite-dir-has-a-runner` rule answers a
 neighbouring but different question — whether *anything* runs a pack suite, where
@@ -111,8 +119,11 @@ from it.
   literal-substring entry, and every entry is resolved by at least one line.
   "At least one entry per line" is the weaker rule, and it lets a suite added
   beside dispositioned siblings inherit theirs.
-- Keep the roster's completeness independent of shell parsing, so a command the
-  extractor cannot read fails the lint rather than leaving the roster.
+- Keep the roster's line-level completeness independent of shell parsing, so a
+  recipe line the extractor cannot read fails the lint rather than leaving the
+  roster. Target-level completeness is not independent of it — an unrecognised
+  pytest operand is caught by the opaque-operand arm, which is extraction — so do
+  not state or rely on a stronger guarantee than that.
 - Give every `NO_PR_GATE` entry a reason naming the route that does run the suite
   (a make target, a dispatch-only workflow) or the missing precondition that stops
   one. The lint checks that a reason is present; whether it is *true* is a
@@ -219,16 +230,16 @@ eight take the modes named below.
 - [ ] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
   `PR_GATED` entry names a suite that no step of any workflow under
   `.github/workflows/` with an unfiltered `pull_request` trigger reaches. A step
-  reaches a suite through one of four sources: the suite is a pytest operand of
-  that step; the suite is a script path at a command position in that step; the
-  suite is a target `tools/repo/build_gate_chain.py` runs and the step invokes
-  `make build-check`; or the step is named in a declared exception that lists the
-  suite. The first three are read from the workflow, and an invocation shape they
-  do not recognise makes corroboration fail a true `PR_GATED` claim — a false
-  alarm, never a false pass. The fourth is asserted by hand for a step whose
-  invocation no static scan can attribute, so it *can* grant coverage the
-  workflow does not provide; that is its stated cost, and what bounds it is
-  AC-0007.
+  reaches a suite through one of four sources. Two are read from the step's own
+  command text: the suite is a pytest operand of that step, or a script path at a
+  command position in it. A third is derived — the step invokes `make build-check`
+  and the suite is a target `tools/repo/build_gate_chain.py` runs, so membership
+  comes from the chain rather than from the workflow. The fourth is asserted by
+  hand: the step is named in a declared exception listing the suite, for an
+  invocation no static scan can attribute. For the first three, an invocation
+  shape they do not recognise makes corroboration fail a true `PR_GATED` claim —
+  a false alarm, never a false pass. The fourth *can* grant coverage the workflow
+  does not provide, which is its stated cost; AC-0007 bounds it.
 - [ ] **AC-0007.** A declared exception applies only to a step whose name is
   unique in its workflow, every suite it lists appears in that step's own `run`
   text, and that step's `run` body is pinned, so any edit to it fails a test and

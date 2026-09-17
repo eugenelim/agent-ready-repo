@@ -1998,9 +1998,13 @@ def is_covered(target: str, local: set[str]) -> bool:
 # carries `_UNRESOLVABLE_RUNNER_EXCEPTIONS` keyed the same way for this same
 # loop, which is the precedent this follows. The residual is stated rather than
 # parsed: these suites' coverage rests on a hand declaration, and the docstring
-# says so. A path listed here that the step no longer runs is a stale
-# declaration no check can catch — which is the honest cost of the trade, and
-# strictly smaller than a parser that invents coverage.
+# says so. What IS checked: the named step's name is unique in its workflow,
+# every listed path appears in that step's own `run`, and both that body and this
+# declared tuple are digest-pinned, so any edit to either reddens a test and
+# sends a human back to re-check. What is NOT checked is whether the step
+# actually executes the listed suites — only that the workflow text still says
+# what it said when a human last looked. That residual is the honest cost of the
+# trade, and strictly smaller than a parser that invents coverage.
 _SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
     (
         "catalogue-tooling-ci-gates.yml",

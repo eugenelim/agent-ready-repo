@@ -56,7 +56,7 @@ globals.
 
 | Durable output | Task |
 | --- | --- |
-| `tools/lint-ci-parity.py` module docstring — suite-roster contract and its four residuals | T4 |
+| `tools/lint-ci-parity.py` module docstring — suite-roster contract and its six residuals | T4 |
 | `tools/AGENTS.md` — the `SUITE_DISPOSITION` obligation | T6 |
 | `notes/verification-ledger.md` — baseline counts, timings, per-arm void-probes | T1, T3, T7 |
 
@@ -122,7 +122,9 @@ need a substring key each: the two `@` shell guards, `npm run test:plugins`, and
 `$(PYTHON) -c "import httpx"`.
 
 **What each layer proves, stated without overclaiming.** Completeness is
-extraction-independent and fails closed. Corroboration is best-effort in *both*
+extraction-independent **at the line level** and fails closed there; which
+targets a line carries is still extraction, so an unrecognised pytest operand is
+caught only by the arm that looks for one. Corroboration is best-effort in *both*
 directions: a false-positive extraction can satisfy a wrong `PR_GATED` claim, and a
 false-negative one can let a stale `NO_PR_GATE` claim stand. Neither can make a line
 escape the roster, which is the property that matters, and the docstring says
@@ -164,16 +166,19 @@ counterparts:
   `_strip_inline_comment`, `_strip_shell_noise` and `_pytest_path_args`. Corroboration
   only.
 - `pr_gate_sources(root)` — target → list of (workflow, trigger kind, step,
-  conditional?). Unions three coverage shapes it can recognise, because T1 measured
-  that an enumeration of two rejected five correct entries: a pytest operand of a step, a script path at a command position
+  conditional?). Unions three coverage of the four coverage sources it recognises, because T1
+  measured that an enumeration of two rejected five correct entries: a pytest operand of a step, a script path at a command position
   in a step, and — for a step invoking `make build-check` — every
   `script_step_targets` entry of the gate chain. The first two both fall out of
   `extract_ci_targets`, which already reads paths at invocation positions; the third
-  mirrors `local_targets()`. A fourth shape exists and is deliberately not read: the
-  `run_with_floor` shell function at `build-check.yml:827` passes a suite directory
-  to a subshell that `cd`s and runs bare `pytest`. Not reading it costs nothing
-  because an unrecognised shape fails a true claim rather than passing a false one,
-  and reading it would widen the amendment past its authority.
+  mirrors `local_targets()`. The fourth source is `_SUITE_SOURCE_EXCEPTIONS`, a
+  hand declaration for a step whose invocation no static scan can attribute; it is
+  the one source that can grant coverage the workflow does not provide, and
+  AC-0007 bounds it. Separately, `run_with_floor` at `build-check.yml:827` passes a
+  suite directory to a subshell that `cd`s and runs bare `pytest`; neither of its
+  directories is a `run-test-suite` target, so nothing depends on it, and were one
+  added the unrecognised shape would fail a true claim rather than pass a false
+  one.
 - a `check_suites(...)` arm called from `main()` alongside `check(...)`, taking its
   tables as keyword parameters so each self-test case supplies its own.
 
@@ -293,7 +298,7 @@ ledger.
 **Touches:** `tools/lint-ci-parity.py`
 
 **Tests:** goal-based check — `python3 tools/test-lint-ci-parity.py` stays green,
-and the docstring names all five residuals below. Traces to no criterion, for the
+and the docstring names all six residuals below. Traces to no criterion, for the
 same round-1 finding-8 reason as T6.
 
 **Approach:** extend the module docstring's two-layer section to cover both rosters,

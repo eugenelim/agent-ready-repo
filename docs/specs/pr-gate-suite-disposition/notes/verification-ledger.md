@@ -728,7 +728,69 @@ a pytest operand that is neither a literal path nor a recognised expansion would
 escape — caught only by the opaque-operand arm, which is itself extraction. Now
 stated at that precision.
 
-Every other guarantee-shaped claim in the docstring, spec and plan was checked
-against the code and holds. One nuance verified rather than assumed: `suite_lines`
-does interpret Make's `$(call …)`, and a failed expansion returns the line
-unchanged, which then carries no path operand and demands an entry — fail-closed.
+One nuance verified rather than assumed: `suite_lines` does interpret Make's
+`$(call …)`, and a failed expansion returns the line unchanged, which then
+carries no path operand and demands an entry — fail-closed.
+
+**The sweep's own conclusion was an instance of the class it swept for, and round
+5 caught it.** It was written as "every other guarantee-shaped claim in the
+docstring, spec and plan was checked against the code and holds". Only the
+**docstring** was swept. The spec's Objective and its `Always do` boundary still
+promised that a command the extractor cannot read cannot escape the roster — the
+target-level overclaim the docstring had just been corrected for — and the plan
+still described completeness as extraction-independent and listed three coverage
+shapes with `run_with_floor` as the fourth, omitting the declaration entirely.
+
+So the sweep found two instances, fixed them in one file, and then asserted a
+result over three. That is the fifth instance of this class in the delivery,
+committed in the act of sweeping for it, which says something the four earlier
+instances did not: the failure is not inattention to a particular claim but a
+habit of stating a conclusion at a wider scope than the work performed. A sweep's
+conclusion has to name the surface it actually covered.
+
+## Post-gates review round 5 — eight findings, and the sweep's own overclaim
+
+Round 5 reviewed round 4's repairs and the self-initiated class sweep. **Eight
+findings, all sustained.** Two were code, six were consistency between the code
+and what the delivery says about it.
+
+**The declaration's bounds were pinned to the one exception that exists.** The
+path-membership and digest assertions hard-coded the single current key, so a
+second `_SUITE_SOURCE_EXCEPTIONS` entry would have taken coverage on the generic
+name-uniqueness check alone — no path agreement, no pinned body. The declared
+tuple itself was also unpinned, so an entry could gain a path without reddening
+anything. Both are now driven from an `_EXCEPTION_PINS` manifest asserted to
+cover exactly the declaration's keys, with a pin for the step body *and* for the
+declared tuple.
+
+**The uniqueness case duplicated the name inside one job.** The implementation
+counts names across the whole workflow, which is right because the key carries no
+job name — but a change to per-job counting would have left the case green while
+restoring cross-job phantom coverage. The fixture now spans two jobs.
+
+The six consistency findings: the spec still promised target-level extraction
+independence in both its Objective and its `Always do` boundary; AC-0006 called
+the gate-chain source "read from the workflow" when its membership comes from
+`build_gate_chain.py`; the plan still described the superseded mechanism and
+counted four and five residuals; the spec's figures still read 114 / 56 / 6 / 52;
+the declaration's own comment denied checks that now exist; and the sweep's
+conclusion was disproven by the first two.
+
+Figures now stated once and measured: **63 recipe lines, 114 distinct targets,
+118 roster keys, 59 / 27 / 32.**
+
+198 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.
+
+### Review totals
+
+Five post-gates rounds, **29 findings, every one sustained, none refuted.** Four
+of my own claims were refuted by them:
+
+1. that a stronger implementation than the criterion needed no amendment;
+2. that the derived loop reader could not go stale;
+3. that corroboration recognised every shape that mattered;
+4. that the class sweep had covered the docstring, spec and plan.
+
+Every one was a claim about scope or guarantee stated wider than the work
+supported. The reviews did not find much wrong with the mechanism I built; they
+found a great deal wrong with what I said about it.

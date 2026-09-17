@@ -30,6 +30,19 @@ import yaml
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 LINTER = REPO_ROOT / "tools" / "lint-ci-parity.py"
 
+# Pins for every `_SUITE_SOURCE_EXCEPTIONS` entry: the declared step's
+# `run` body, and the declared path tuple itself. A declaration is the one
+# coverage source that can grant what the workflow does not provide, so an
+# edit to either side must redden and send a human back to re-check it.
+# Subset agreement alone catches a removed path and never an added one.
+_EXCEPTION_PINS: dict[tuple[str, str], dict[str, str]] = {
+    ('catalogue-tooling-ci-gates.yml',
+     'Run repo/pack hook suites (Linux)'): {
+        "step_body": '0e1de37f2c7545b96ad37338cb62e872ad6e9b4b379e9d1a02f94c817685e42b',
+        "declared": 'fd5c11e868c1ec5f12798599526f776beceb74e9312ee0071a1468cc93d6ee24',
+    },
+}
+
 _FAILURES: list[str] = []
 _CASES = 0
 
@@ -1121,73 +1134,75 @@ composed:
     # disposition, and every one was invisible from reading the code.
 
     # F1. A suite named only inside `for d in <paths>; do pytest "$d"; done`.
-    # One workflow runs 24 pack suites that way, and the operand pytest receives
-    # is `"$d"`, so no static scan attributes it. A reader for that shape was
-    # built and removed after seven defects in three rounds, two of them phantom
-    # coverage; the roster carries a DECLARATION instead, as
-    # `lint-pack-test-boundary.py` does for the same loop.
-    _exception_key = (
-        "catalogue-tooling-ci-gates.yml", "Run repo/pack hook suites (Linux)")
-    _check_true("suite-source-exception-is-declared",
-                _exception_key in M._SUITE_SOURCE_EXCEPTIONS)
-    _reason, _declared = M._SUITE_SOURCE_EXCEPTIONS[_exception_key]
-    _check_true("suite-source-exception-states-a-reason", bool(_reason.strip()))
-    # The declaration is only as good as its agreement with the step it names.
-    # Nothing can prove a listed path is still run, so the next best thing is
-    # asserted: every declared path appears verbatim in that step's own `run`.
-    _wf = yaml.safe_load(
-        (REPO_ROOT / ".github" / "workflows" / _exception_key[0]).read_text(
-            encoding="utf-8"))
-    _step_run = next(
-        str(step.get("run") or "")
-        for job in (_wf.get("jobs") or {}).values()
-        for step in (job.get("steps") or [])
-        if step.get("name") == _exception_key[1]
-    )
-    _absent = [path for path in _declared if path not in _step_run]
-    _check("suite-source-exception-paths-are-in-the-step", _absent, [])
-    _check_true("suite-source-exception-covers-the-loop",
-                len(_declared) >= 20)
+    # The operand pytest receives is `"$d"`, so no static scan attributes it. A
+    # reader for that shape was built and removed after seven defects in three
+    # rounds, two of them phantom coverage; the roster carries a DECLARATION
+    # instead, as `lint-pack-test-boundary.py` does for the same loop.
+    #
+    # Every bound below iterates EVERY exception. Pinning only the one that
+    # exists today would let a second entry take coverage on the generic
+    # name-uniqueness check alone, with no path agreement and no pinned body —
+    # and a declaration is the one source here that can grant coverage the
+    # workflow does not provide.
+    _check_true("suite-source-exceptions-exist", bool(M._SUITE_SOURCE_EXCEPTIONS))
+    _check("suite-source-exception-pins-cover-every-entry",
+           sorted(_EXCEPTION_PINS), sorted(M._SUITE_SOURCE_EXCEPTIONS))
+    for _key, (_reason, _declared) in sorted(M._SUITE_SOURCE_EXCEPTIONS.items()):
+        _wf_name, _step_name = _key
+        _check_true(f"suite-source-exception-states-a-reason[{_step_name}]",
+                    bool(_reason.strip()))
+        _wf = yaml.safe_load(
+            (REPO_ROOT / ".github" / "workflows" / _wf_name).read_text(
+                encoding="utf-8"))
+        _steps = [step for job in (_wf.get("jobs") or {}).values()
+                  for step in (job.get("steps") or [])]
+        _named = [step for step in _steps if step.get("name") == _step_name]
+        # The key carries no job name, so the name must be unique across the
+        # WHOLE workflow, not merely within one job.
+        _check(f"suite-source-exception-step-is-unique[{_step_name}]",
+               len(_named), 1)
+        _step_run = str(_named[0].get("run") or "")
+        _check(f"suite-source-exception-paths-are-in-the-step[{_step_name}]",
+               [path for path in _declared if path not in _step_run], [])
+        # Subset agreement catches a REMOVED path and never an added one, and an
+        # added loop path is invisible to extraction by definition. So the body
+        # is pinned, and so is the declared tuple: an edit to either reddens and
+        # a human re-checks. Recompute from this case's failure message.
+        _check(f"suite-source-exception-step-body-is-pinned[{_step_name}]",
+               hashlib.sha256(_step_run.encode("utf-8")).hexdigest(),
+               _EXCEPTION_PINS[_key]["step_body"])
+        _check(f"suite-source-exception-declaration-is-pinned[{_step_name}]",
+               hashlib.sha256("\n".join(_declared).encode("utf-8")).hexdigest(),
+               _EXCEPTION_PINS[_key]["declared"])
 
-    # The declaration is keyed on a step NAME, so it must apply only when that
-    # name is unique in the workflow. A duplicate would otherwise receive all 24
-    # declared targets although it runs none, and attach its own `if:` state to
-    # that phantom coverage — the cross-crediting this module fixed once,
-    # returning through the declaration instead of through extraction.
-    def _declared_sources(steps_yaml: str) -> list[dict]:
+    # A declaration applies only to a uniquely named step. A duplicate would
+    # otherwise receive every declared target although it runs none, and attach
+    # its own `if:` state to that phantom coverage. The duplicate is placed in a
+    # SECOND JOB, because the key carries no job name: a per-job count would
+    # leave this green while restoring cross-job phantom coverage.
+    _first_key = sorted(M._SUITE_SOURCE_EXCEPTIONS)[0]
+    _first_declared = M._SUITE_SOURCE_EXCEPTIONS[_first_key][1]
+
+    def _declared_sources(jobs_yaml: str) -> list[dict]:
         with tempfile.TemporaryDirectory() as td:
             fake = pathlib.Path(td)
             (fake / ".github" / "workflows").mkdir(parents=True)
-            (fake / ".github" / "workflows" / _exception_key[0]).write_text(
-                "on:\n  pull_request:\njobs:\n  j:\n    steps:\n" + steps_yaml,
-                encoding="utf-8")
+            (fake / ".github" / "workflows" / _first_key[0]).write_text(
+                "on:\n  pull_request:\njobs:\n" + jobs_yaml, encoding="utf-8")
             (fake / "tools" / "repo").mkdir(parents=True)
             (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
-            return M.pr_gate_sources(fake).get(_declared[0], [])
+            return M.pr_gate_sources(fake).get(_first_declared[0], [])
 
-    _unique = _declared_sources(
-        f"      - name: {_exception_key[1]}\n        run: echo opaque\n")
-    _check_true("suite-source-exception-applies-to-a-unique-step",
-                len(_unique) == 1)
-    _duplicated = _declared_sources(
-        f"      - name: {_exception_key[1]}\n        run: echo opaque\n"
-        f"      - name: {_exception_key[1]}\n        run: echo also\n")
-    _check("suite-source-exception-does-not-apply-to-a-duplicated-step",
-           _duplicated, [])
-    # Subset is not enough, and this is the direction that matters. Asserting
-    # only that each DECLARED path is still in the step catches a removal but
-    # not an addition — a 25th suite added to the loop stays invisible to
-    # extraction, so its entry could sit at `NO_PR_GATE` and pass. The step's
-    # body is therefore PINNED: any edit to it reddens here and a human
-    # re-checks the declaration, which is the only fail-closed answer available
-    # when the invocation cannot be parsed. Recompute with the digest printed by
-    # this case's failure message.
-    _step_digest = hashlib.sha256(_step_run.encode("utf-8")).hexdigest()
-    _check(
-        "suite-source-exception-step-body-is-pinned",
-        _step_digest,
-        "0e1de37f2c7545b96ad37338cb62e872ad6e9b4b379e9d1a02f94c817685e42b",
-    )
+    _check("suite-source-exception-applies-to-a-unique-step",
+           len(_declared_sources(
+               f"  a:\n    steps:\n      - name: {_first_key[1]}\n"
+               f"        run: echo opaque\n")), 1)
+    _check("suite-source-exception-does-not-apply-across-duplicated-jobs",
+           _declared_sources(
+               f"  a:\n    steps:\n      - name: {_first_key[1]}\n"
+               f"        run: echo opaque\n"
+               f"  b:\n    steps:\n      - name: {_first_key[1]}\n"
+               f"        run: echo also\n"), [])
 
     # F2. An opaque operand riding free on a literate neighbour's entry.
     _opaque = "$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q"
