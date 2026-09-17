@@ -24,12 +24,81 @@ does not, and `12345-foo.md` parses as 12345 (not 1234) so 5-digit
 prefixes don't silently collide with 4-digit ones.
 """
 import argparse
+import importlib.util
 import os
 import re
 import stat
 import subprocess
 import sys
 from pathlib import Path
+
+# ── Shared confinement helper ─────────────────────────────────────────────────
+# Loaded by path so skills/scripts/ is never put on sys.path (packs/AGENTS.md).
+
+_SCRIPT_DIR: Path = Path(__file__).resolve().parent
+
+
+class _HelperUnavailable(RuntimeError):
+    """`_record_paths.py` could not be loaded; every check must refuse."""
+
+
+_helper_module: object = None
+
+
+def _load_helper() -> object:
+    """Load the sibling ``_record_paths.py`` by path, once per process.
+
+    Refuses and raises ``_HelperUnavailable`` for every failure mode: a path
+    that does not resolve, an ``exec_module`` that raises, a ``None`` spec or
+    loader, and a module missing an expected entry point.
+    """
+    global _helper_module
+    if _helper_module is not None:
+        return _helper_module
+    path = _SCRIPT_DIR / "_record_paths.py"
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise _HelperUnavailable(
+            f"cannot load {path}: {exc}. Restore the file or re-run "
+            "`make build-self`."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise _HelperUnavailable(
+            f"cannot load {path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
+        )
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(
+            "new_adr_record_paths_no", str(path)
+        )
+        if spec is None or spec.loader is None:
+            raise _HelperUnavailable(
+                f"cannot load {path}: no import spec. Restore the file or "
+                "re-run `make build-self`."
+            )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+    except _HelperUnavailable:
+        raise
+    except BaseException as exc:
+        raise _HelperUnavailable(
+            f"cannot load {path}: {type(exc).__name__}: {exc}. Restore the "
+            "file or re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous
+    for name in ("list_candidate_entries", "classify_entry", "read_confined"):
+        if not hasattr(module, name):
+            raise _HelperUnavailable(
+                f"cannot load {path}: missing entry point {name!r}. Restore "
+                "the file or re-run `make build-self`."
+            )
+    _helper_module = module
+    return module
+
 
 _PREFIX = re.compile(r"^(\d{4,})[-.]")
 _GIT_TIMEOUT_SECONDS = 5
@@ -149,28 +218,33 @@ def duplicate_ordinals(dirpath: str | Path) -> dict[int, list[str]]:
     if not directory.is_dir():
         raise ValueError(f"not a directory: {directory}")
 
+    rp = _load_helper()
     records: dict[int, list[str]] = {}
     try:
-        entries = list(directory.iterdir())
+        dir_entries = rp.list_candidate_entries(directory)  # type: ignore[union-attr]
+    except rp.EntryRefused as error:  # type: ignore[union-attr]
+        raise ValueError(str(error)) from error
     except OSError as error:
         raise OSError(f"cannot enumerate directory {directory}: {error}") from error
 
-    for entry in entries:
+    for dir_entry in dir_entries:
+        entry = Path(dir_entry.path)
         ordinal = _record_ordinal(entry)
         if ordinal is None:
             continue
-        # One lstat, not is_symlink()/is_file(): those return False on any
-        # OSError, so an entry removed between listing and classification is
-        # silently dropped and the scan reports clean without having seen it.
+        # classify_entry uses stat(follow_symlinks=False), not is_symlink()/
+        # is_file(): those return False on any OSError, so an entry removed
+        # between listing and classification is silently dropped and the scan
+        # reports clean without having seen it.
         try:
-            mode = entry.lstat().st_mode
+            kind = rp.classify_entry(dir_entry)  # type: ignore[union-attr]
         except OSError as error:
             raise OSError(f"cannot classify entry {entry}: {error}") from error
-        if stat.S_ISLNK(mode):
+        if kind == "symlink":
             raise ValueError(f"record-looking symlink: {entry}")
-        if not stat.S_ISREG(mode):
+        if kind != "regular":
             continue
-        records.setdefault(ordinal, []).append(entry.name)
+        records.setdefault(ordinal, []).append(dir_entry.name)
 
     return {
         ordinal: sorted(names)
@@ -203,6 +277,12 @@ def main(argv: list[str] | None = None) -> int:
     if not args.check:
         print(f"{next_ordinal(args.dir):04d}")
         return 0
+
+    try:
+        _load_helper()
+    except _HelperUnavailable as error:
+        print(str(error), file=sys.stderr)
+        return 1
 
     try:
         duplicates = duplicate_ordinals(args.dir)
