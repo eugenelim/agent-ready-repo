@@ -2,10 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-13
+- **Areas:** workspace, tooling
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Renumbered:** issued as ADR-0112 and moved to ADR-0114 on 2026-09-13. Another record reached the default branch under 0112 first and keeps the ordinal. Only this record's identifier changed; its decision text is unaltered.
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) § *Wave 7 — Historical migration and pruning* and 2026-09-13 Errata; `reclassified-lifecycle-result`; `loop-cohort-state-lock`
+- **Renumbered:** issued as ADR-0112 and moved to ADR-0114 on 2026-09-13. Another record reached the default branch under 0112 first and keeps the ordinal. Only this record's identifier changed; its decision text is unaltered.
 
 ## Decision summary
 
@@ -63,6 +68,22 @@ contract. A conforming prune:
    artifact is absent**; and
 3. returns failure if either side remains or the coherent observation cannot
    be established.
+
+- **D1:** Prune success is established by a two-sided post-mutation invariant
+  inside the prune operation's own completion contract, not by an atomic prune.
+- **D2:** The prune fixes an immutable, non-empty selection before mutation and
+  records both the selected artifacts and their memberships as present.
+- **D3:** Before reporting success the prune establishes, in one coherent closure
+  observation, that every selected artifact and every membership resolving to it
+  is absent.
+- **D4:** The prune returns failure if either side remains or the coherent
+  observation cannot be established.
+- **D5:** A later status, reconciliation, or audit command never satisfies the
+  invariant.
+- **D6:** Reuse of the global Type 1 reconciliation scan is limited to the
+  prune's selected pairs, and default reconciliation behavior is unchanged.
+- **D7:** The closure observation's protocol is left to the Wave 7c spec, which
+  must carry the named obligations as acceptance criteria.
 
 A one-sided check does not conform. Neither does a predicate that can pass
 when nothing was removed. A later status, reconciliation, or audit command

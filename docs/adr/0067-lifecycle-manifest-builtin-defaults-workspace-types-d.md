@@ -2,7 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** workspace, packaging
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Decision summary
 
@@ -25,7 +32,20 @@ The `workspace-types.d/` directory pattern is used elsewhere in the repo (e.g., 
 
 pack.toml cannot carry the manifest because it is source-only: it is not projected to adopters. A single `workspace-types.toml` file projected by the core pack would be clobbered by any other pack that also projects the same file.
 
-## Alternatives rejected
+## Decision
+
+- **D1:** The lifecycle manifest is stored in two layers: built-in defaults embedded in workspace-mcp, and third-party extension files projected to `workspace-types.d/`.
+- **D2:** Built-in defaults are authoritative for the known type taxonomy — work, research, shape/signal/design/strategy, brief.
+- **D3:** A pack that adds custom types projects its own `workspace-types.d/<pack-name>.toml` file rather than writing to a shared manifest file.
+- **D4:** workspace-mcp merges every `workspace-types.d/` file additively at startup.
+- **D5:** A type key defined in two files is logged and resolved last-writer-wins.
+- **D6:** pack.toml does not carry the lifecycle manifest, because it is source-only and is not projected to adopters.
+
+## Consequences
+
+**Revisit if:** duplicate type keys across packs become a recurring adopter problem, since D5's outcome varies with pack install order; or a canonical manifest location becomes available that carries the mapping without the clobber D3 exists to avoid.
+
+## Alternatives considered
 
 **Single `workspace-types.toml` projected by core.** One canonical file, all types in one place. Rejected because a second pack that also projects `workspace-types.toml` clobbers the core file, losing all core types. The clobber problem is fundamental to single-file shared registration.
 
