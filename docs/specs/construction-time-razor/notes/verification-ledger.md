@@ -313,3 +313,60 @@ does not retroactively cover the rounds whose findings were adopted. Adopted
 findings carry less risk from a missing adjudicator, since the controller acted
 on the reviewer's claim rather than overriding it, but the gap is real and is
 carried as a blind spot in the verdict record rather than omitted.
+
+## Final scoring, 2026-09-17 — the amended contract on the hardened instrument
+
+`claude-opus-5`, Claude Code 2.1.274, two runs per arm, 900s bound, fixtures
+sealed before dispatch with the seal held outside the execution root.
+
+**28 gated checks passed, 0 failed, 0 infrastructure failures.**
+
+| Criterion | Runs | Result |
+| --- | --- | --- |
+| AC-0001 reuse fires, proved by AST | 2/2 | pass |
+| AC-0003, AC-0004 helper-absent control | 2/2 | pass |
+| AC-0006 partial candidate named | 2/2 | pass |
+| AC-0007, AC-0008, AC-0009 lighter route | 2/2 | pass |
+| AC-0010, AC-0011 required construction survives | 2/2 | pass |
+| AC-0012 refusal reachable | 2/2 | pass |
+| AC-0019 every satisfiable fixture, every condition | 2/2 | pass |
+
+### The required-construction control, and why the amendment was right
+
+The rebuilt fixture is the one to read. Run 1 built `store/labelfmt.py` with the
+class the task's `Approach:` named. Run 2 built no new module at all and reported
+rung 7. **Both satisfied the pre-existing consumer's `render` protocol and both
+passed.** The retired criterion named the class, so it would have failed run 2
+for doing correct work — the same alternation that retired AC-0005 and narrowed
+AC-0012. The criterion now reads the consumer's output and whether the consumer
+was rewritten, so every correct route passes and a refusal to supply the protocol
+does not.
+
+### Recorded, ungraded observations
+
+Rung named per fixture, which no criterion grades:
+
+| Fixture | Run 1 | Run 2 |
+| --- | --- | --- |
+| reuse | rung 2 | rung 2 |
+| helper-absent | rung 3 | rung 2 |
+| inadequate candidate | rung 2 | rung 2 |
+| heavy `Approach:` | rung 2 | rung 2 |
+| required construction | rung 3 | rung 7 |
+
+Across all scorings the same one-line expression has been reported as rung 2,
+rung 3, rung 6 and rung 7, and twice as no rung at all. Which rung applies is not
+stable across runs of an unchanged fixture. That is the measured basis for
+retiring the rung-grading criteria rather than gating on them.
+
+Declination register, against a baseline of six entries and zero rungs named:
+
+| Fixture | Run 1 | Run 2 |
+| --- | --- | --- |
+| declination | 11 entries, 7 named a rung | 10 entries, 9 named a rung |
+| non-rung control | 6 rungs, 4 requirement citations | 7 rungs, 5 requirement citations |
+
+The rule moved the register from naming no rung at all to naming one on most
+entries, and the non-rung exception is exercised rather than ignored. Neither is
+a detection claim: no criterion grades this register, and the counts are a
+reader's signal, not a gate.
