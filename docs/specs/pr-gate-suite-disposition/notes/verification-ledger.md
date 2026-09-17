@@ -826,3 +826,47 @@ amendment history, completed-task state and retry counters. The owner had just
 approved the amended spec and plan, so the re-approval is substantively
 authorised rather than assumed — but the discarded history is a real loss, and
 the amendment record survives only here and in `notes/owner-decisions.md`.
+
+## The quality-engineer pass — five Concerns, all applied (2026-09-17)
+
+A separate reviewer on the cost-to-live-with lens, not correctness. Five
+Concerns, none refuted.
+
+**A maintenance failure crashed instead of diagnosing.** The per-exception loop
+recorded a missing or renamed step and then dereferenced `_named[0]` anyway, and
+an unpinned exception reached `_EXCEPTION_PINS[_key]` and raised `KeyError`. Both
+now stop after reporting. The digest mismatch also emits the replacement value
+*and* names the manifest key and field to set, so a maintainer who trips it does
+not have to read the test to act.
+
+**One rename cost 21 synchronised edits.** The Linux pack-hook source string and
+its condition were written out in 21 roster entries each. Both are now single
+constants. The roster *keys* stay explicit per suite — a roster whose keys were
+derived would stop being a declaration, which is the property the design rests
+on. Net effect on the module: **−10 lines**, despite adding the constants.
+
+**A filter classification was tested behind the boundary that produces it.** The
+filtered-source cases inject `filtered=True` into a source record, which exercises
+`check_suites` and not `pr_gate_sources`. Three fixture cases now drive
+`pr_gate_sources` over a real `paths` trigger, a real `paths-ignore` trigger and
+an unfiltered one. This matters more than it looks: **`paths-ignore` carries all
+27 conditional entries**, so reading only `paths` would have reported every one of
+them as unconditionally gated. Probed — narrowing the check to `paths` reddens
+`pr-gate-sources-reads-a-paths-ignore-filter` by name.
+
+**The success line reported roster keys as recipe lines.** It printed
+`len(SUITE_DISPOSITION)` — 118 — labelled "suite line(s)", where there are 63
+lines and 114 targets. Another instance of the delivery's recurring class, this
+time in the telemetry: a count presented as a different count. It now reports all
+three: *63 recipe line(s) … carrying 114 target(s) … across 118 roster key(s)*.
+
+A vacuous case went with it: `len(roster) >= len(lines)` passes with unrelated or
+dead entries and added nothing to the behavioural completeness check beside it.
+
+**PyYAML is not stdlib.** A bare top-level `import yaml` in the self-test
+contradicted `tools/AGENTS.md`'s stdlib rule for `tools/` additions and turned a
+missing dependency into a traceback, bypassing the install hint the linter itself
+gives. Now guarded, exiting 2 with the same hint.
+
+200 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0,
+`lint-contract-item-alignment` 0, dedup guard 51 passed in 61s.

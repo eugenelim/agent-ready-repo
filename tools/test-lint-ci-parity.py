@@ -25,7 +25,16 @@ import subprocess
 import sys
 import tempfile
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover — matches the linter's own path
+    # PyYAML is the one non-stdlib dependency, shared with the linter, which
+    # exits 2 with an install hint rather than a traceback. A bare top-level
+    # import here contradicted `tools/AGENTS.md`'s stdlib rule and turned a
+    # missing dependency into a stack trace.
+    print("test-lint-ci-parity: PyYAML not installed — "
+          "run: pip install -r tools/requirements.txt", file=sys.stderr)
+    raise SystemExit(2) from None
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 LINTER = REPO_ROOT / "tools" / "lint-ci-parity.py"
@@ -1144,6 +1153,7 @@ composed:
     # name-uniqueness check alone, with no path agreement and no pinned body —
     # and a declaration is the one source here that can grant coverage the
     # workflow does not provide.
+    global _CASES
     _check_true("suite-source-exceptions-exist", bool(M._SUITE_SOURCE_EXCEPTIONS))
     _check("suite-source-exception-pins-cover-every-entry",
            sorted(_EXCEPTION_PINS), sorted(M._SUITE_SOURCE_EXCEPTIONS))
@@ -1161,6 +1171,11 @@ composed:
         # WHOLE workflow, not merely within one job.
         _check(f"suite-source-exception-step-is-unique[{_step_name}]",
                len(_named), 1)
+        if len(_named) != 1:
+            # Stop here rather than dereference. A renamed or removed step is a
+            # maintenance event, and the dependent checks below would turn its
+            # diagnosis into an IndexError.
+            continue
         _step_run = str(_named[0].get("run") or "")
         _check(f"suite-source-exception-paths-are-in-the-step[{_step_name}]",
                [path for path in _declared if path not in _step_run], [])
@@ -1168,12 +1183,26 @@ composed:
         # added loop path is invisible to extraction by definition. So the body
         # is pinned, and so is the declared tuple: an edit to either reddens and
         # a human re-checks. Recompute from this case's failure message.
-        _check(f"suite-source-exception-step-body-is-pinned[{_step_name}]",
-               hashlib.sha256(_step_run.encode("utf-8")).hexdigest(),
-               _EXCEPTION_PINS[_key]["step_body"])
-        _check(f"suite-source-exception-declaration-is-pinned[{_step_name}]",
-               hashlib.sha256("\n".join(_declared).encode("utf-8")).hexdigest(),
-               _EXCEPTION_PINS[_key]["declared"])
+        # The manifest-coverage case above already reports a missing pin; look
+        # it up defensively so that report is what a maintainer reads instead of
+        # a KeyError from here.
+        _pins = _EXCEPTION_PINS.get(_key)
+        if _pins is None:
+            continue
+        for _field, _value in (
+            ("step_body", _step_run),
+            ("declared", "\n".join(_declared)),
+        ):
+            _got = hashlib.sha256(_value.encode("utf-8")).hexdigest()
+            if _got != _pins[_field]:
+                _FAILURES.append(
+                    f"suite-source-exception-{_field}-is-pinned[{_step_name}]: "
+                    f"got {_got}, want {_pins[_field]}. Re-read the step and the "
+                    f"declaration, then set _EXCEPTION_PINS[{_key!r}]"
+                    f'["{_field}"] = "{_got}" — the pin exists so a change here '
+                    "is reviewed, not absorbed."
+                )
+            _CASES += 1
 
     # A declaration applies only to a uniquely named step. A duplicate would
     # otherwise receive every declared target although it runs none, and attach
@@ -1197,6 +1226,34 @@ composed:
            len(_declared_sources(
                f"  a:\n    steps:\n      - name: {_first_key[1]}\n"
                f"        run: echo opaque\n")), 1)
+    # The filtered-source cases below inject `filtered=True` into a source
+    # record, which tests `check_suites` and not the boundary that produces it.
+    # `pr_gate_sources` is what must recognise a filter, and BOTH forms: it is
+    # `paths-ignore` that carries the 27 conditional entries, and reading only
+    # `paths` would have reported every one of them as unconditionally gated.
+
+    def _filter_kind_sources(trigger_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / "w.yml").write_text(
+                "on:\n  pull_request:\n" + trigger_yaml
+                + "jobs:\n  j:\n    steps:\n      - name: s\n"
+                  "        run: python -m pytest a/tests/ -q\n",
+                encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get("a/tests/", [])
+
+    _check("pr-gate-sources-reads-a-paths-filter",
+           _filter_kind_sources("    paths:\n      - 'packs/**'\n")[0]["filtered"],
+           True)
+    _check("pr-gate-sources-reads-a-paths-ignore-filter",
+           _filter_kind_sources("    paths-ignore:\n      - 'docs/**'\n")[0]["filtered"],
+           True)
+    _check("pr-gate-sources-reads-an-unfiltered-trigger",
+           _filter_kind_sources("")[0]["filtered"], False)
+
     _check("suite-source-exception-does-not-apply-across-duplicated-jobs",
            _declared_sources(
                f"  a:\n    steps:\n      - name: {_first_key[1]}\n"
@@ -1340,9 +1397,10 @@ composed:
     # to close it.
     _check_true("suites-shipped-roster-is-complete-in-both-directions",
                 M.check_suites(_ROOT) == [])
-    _check_true("suites-shipped-roster-covers-every-define-line",
-                len(M.SUITE_DISPOSITION) >= len(M.suite_lines(
-                    (_ROOT / "Makefile").read_text(encoding="utf-8"))))
+    # A cardinality comparison was here and is deliberately gone: `len(roster)
+    # >= len(lines)` passes with unrelated or dead entries and adds nothing to
+    # `suites-shipped-roster-is-complete-in-both-directions` above, which checks
+    # the actual property.
 
     if _FAILURES:
         print(f"✖ {len(_FAILURES)}/{_CASES} cases failed:")

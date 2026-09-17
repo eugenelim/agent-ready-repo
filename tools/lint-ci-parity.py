@@ -681,6 +681,25 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
 # Authored from what `pr_gate_sources` concluded, then reviewed entry by entry —
 # the same way `STEP_DISPOSITION` above was built. The lint checks that a reason
 # is *present*; whether it is *true* is a human-review control.
+# The source strings and conditions that many entries share. Written once
+# because they were written 21 and 27 times, and a renamed job or step then
+# meant that many synchronised edits plus a flood of identical violations. The
+# KEYS stay explicit per suite — a roster whose keys were also derived would
+# stop being a declaration.
+_PACK_HOOK_LINUX = (
+    "catalogue-tooling-ci-gates.yml / pack-hook-tests / "
+    "Run repo/pack hook suites (Linux)"
+)
+_WHY_PATH_FILTERED = (
+    "its workflow's pull_request trigger carries a path filter, so a pull "
+    "request outside that filter does not run it"
+)
+_WHY_FILTERED_AND_CONDITIONAL = (
+    "its workflow's pull_request trigger carries a path filter and its step or "
+    "job is conditional, so a pull request outside that filter does not run it"
+)
+
+
 SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packages/agentbundle/tests/':
         PR_GATED_IF(
@@ -740,10 +759,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/core/tests/skills/adapt-to-project/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/author-brief/':
         NO_PR_GATE(
@@ -757,24 +774,18 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/core/tests/skills/bug-fix/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/capture-work/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/close-work/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/contract-acquisition/':
         NO_PR_GATE(
@@ -793,31 +804,23 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/core/tests/skills/project-knowledge/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/receive-brief/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/work-loop/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/core/tests/skills/workspace-status/':
         PR_GATED(
@@ -836,10 +839,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/product-documentation/tests/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/frontend-engineering/tests/skills/frontend-engineering/':
         PR_GATED(
@@ -908,31 +909,23 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/agent-skill-engineering/tests/pack/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/agent-skill-engineering/tests/integration/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/agent-skill-engineering/tests/skills/author_or_update/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/agent-skill-engineering/tests/skills/review_or_optimize/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/linear/tests/skills/linear/':
         PR_GATED(
@@ -956,59 +949,43 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/desk-research/tests/skills/desk-research/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/skills/desk-research-project-start/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/pack/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/skills/desk-research-project-check/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/skills/desk-research-project-digest/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/skills/desk-research-project-status/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/skills/desk-research-project-synthesize/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'packs/desk-research/tests/skills/devils-advocate/':
         PR_GATED_IF(
-            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
-            "(Linux)",
-            "its workflow's pull_request trigger carries a path filter and its step or job is "
-            "conditional, so a pull request outside that filter does not run it",
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
         ),
     'tools/test_build_gate_chain.py':
         PR_GATED(
@@ -1974,6 +1951,8 @@ def is_covered(target: str, local: set[str]) -> bool:
 # package names, or one whose body only echoes, would contribute phantom
 # coverage. Coverage is the direction where a false positive is consequential, so
 # this reads one shape exactly rather than guessing at shell semantics.
+
+
 # Steps whose pytest invocation no static scan can attribute, with the literal
 # suites each one runs. A DECLARATION, not a parse.
 #
@@ -2524,10 +2503,21 @@ def main(argv: list[str] | None = None) -> int:
         f"{sum(len(v) for v in classified['by_step'].values())} extracted target(s) "
         "corroborated."
     )
+    # Three distinct counts, because they are three distinct things and
+    # reporting one as another is a claim about what ran. `SUITE_DISPOSITION`
+    # holds a key per target PLUS a key per line with no path operand, so it is
+    # larger than either the line count or the target count.
+    suite_line_count = len(suite_lines(makefile))
+    target_count = len({
+        target for line in suite_lines(makefile)
+        for target in (line_targets(line) or [])
+    })
     print(
-        f"lint-ci-parity: ok — {len(SUITE_DISPOSITION)} suite line(s) of "
-        f"`run-test-suite` dispositioned ({gated} PR-gated, {gated_if} "
-        f"conditionally gated, {ungated} with no pull-request gate)."
+        f"lint-ci-parity: ok — {suite_line_count} recipe line(s) of "
+        f"`run-test-suite` carrying {target_count} target(s), all "
+        f"dispositioned across {len(SUITE_DISPOSITION)} roster key(s) "
+        f"({gated} PR-gated, {gated_if} conditionally gated, {ungated} with no "
+        "pull-request gate)."
     )
     return 0
 
