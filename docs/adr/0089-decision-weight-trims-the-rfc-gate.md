@@ -2,16 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-19
+- **Areas:** governance, review
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (independent, three rounds to clean)
-- **Supersedes:** **AC5 and AC6 only** of
-  [`docs/specs/new-rfc-two-humans/`](../specs/new-rfc-two-humans/spec.md) — their
-  rule that "No tier drops or weakens a gate check"; every other acceptance
-  criterion in that spec stands. Also supersedes the **all-tier scope** of
-  refinement 3 in [`docs/specs/new-rfc-fresh-context/`](../specs/new-rfc-fresh-context/spec.md)
-  — the no-context readability check itself stands, but it is now
-  property-triggered rather than mandatory at every tier; that spec's other
-  three refinements stand.
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0091](../rfc/0091-right-size-rfc-governance.md) D3 (the
   accepted proposal this records); RFC-0054 (the frozen RFC whose D1 text wins);
   RFC-0014 (the frozen RFC that mandated the five gate checks)
@@ -72,6 +70,22 @@ proportional form:
 | `standard` | full argument, proportionate research, decision-by-decision backing, the completeness checklist, adversarial review re-run until clean |
 | `heavy` | `standard`, plus applicable reversal / compatibility / trust-model analysis, a security review when a security boundary or trust model is involved, and validation planning where the uncertainty is empirical |
 
+- **D1:** The RFC `Decision weight` changes what the pre-handoff gate obliges,
+  not only how long the draft is.
+- **D2:** Citation-integrity and verify-before-you-assert apply at every tier,
+  scoped to the citations and checkable claims the proposal actually makes.
+- **D3:** A `light` RFC runs the completeness checklist and one adversarial pass,
+  and runs neither an iterative adversarial loop nor an automatic fresh-reader
+  readability review.
+- **D4:** A `standard` RFC re-runs adversarial review until clean, and a `heavy`
+  RFC adds applicable reversal / compatibility / trust-model analysis, a security
+  review where a security boundary or trust model is involved, and validation
+  planning where the uncertainty is empirical.
+- **D5:** The fresh-reader readability review is property-triggered, not mandatory
+  at every tier.
+- **D6:** The weight vocabulary stays exactly `light | standard | heavy`, and
+  historical RFC metadata is not rewritten.
+
 The fresh-reader readability review runs only when the proposal coins
 vocabulary of its own, relies on cross-references to sibling proposals a reader
 may not have read, or is written for adopters or contributors who did not take
@@ -116,6 +130,10 @@ lands on the old all-tier rule with no pointer in view; per
 not patched. The operative instruction lives in the Living skill file at the
 point of use.
 
+**Revisit if:** `light` RFCs start reaching reviewers with defects that an
+iterative pass would plainly have caught (D3), or the share of `light` RFCs stays
+near zero after this ships.
+
 ## Confirmation
 
 - **Mode:** lint/CI — the pack's LLM-judge eval rubric.
@@ -131,17 +149,21 @@ point of use.
 
 - **Leave the all-tier gate in place** (do nothing). Preserves every check at
   every tier and needs no supersession — but leaves `light` unusable, which is
-  the problem. Rejected on the 3-of-91 evidence.
+  the problem. Rejected against the *a tier that changes nothing is not a tier*
+  driver, on the 3-of-91 evidence.
 - **Trim only the two spec-level rules**, leaving RFC-0014's five intact at
   every tier. Lowest burden: no RFC-level resolution needed at all. Rejected
-  because `light` would still run adversarial-review-until-clean, so the tier
+  against the *a tier that changes nothing is not a tier* driver: `light` would
+  still run adversarial-review-until-clean, so the tier
   stays close to `standard` and the usage problem persists.
 - **Drop the adversarial pass entirely at `light`**, closer to Rust's and Go's
-  posture where a light proposal is just an issue. Rejected: it reverses
+  posture where a light proposal is just an issue. Rejected against the
+  *RFC-0054 is the later authority and already said this* driver: it reverses
   RFC-0014's mandatory-reviewer check outright with no supporting accepted
   text, and one pass is the smallest change that makes the tier real.
 - **Remove the weight tiers** and route ceremony from the proposal's shape
-  instead. Rejected: it discards an accepted vocabulary that 40 RFCs already
+  instead. Rejected against the *RFC-0054 is the later authority and already said
+  this* driver: it discards an accepted vocabulary that 40 RFCs already
   carry, for no gain this decision needs.
 
 ## References
