@@ -327,7 +327,13 @@ both well-formed and both exited zero and silent — the empty wave because "eve
 task in the current wave is accounted for" is vacuously true over zero tasks. A
 partition walk cannot catch either: a wrong verdict is neither an overlap nor a
 gap. Only a declared expected verdict reddens, so the instrument now carries
-verdict anchors for both. Neither state is reachable through the engine —
+verdict anchors for both. Round 10 refuted the reachability half of this
+entry's original reasoning: `begin_contract_amendment` writes
+`schedule_waves: []` itself, and the engine applies that cohort mutation before
+its own state write, so an empty partition is reachable in that crash window.
+The malformed verdict stands on the silent-pass argument instead, and the spec
+now names the recovery. The rest of this paragraph is the superseded reasoning,
+kept because the correction is the finding —
 `topological_waves` never emits an empty wave and the `plan-locked` guard
 refuses an empty `schedule_waves` — so the spec now classifies both as malformed
 rather than passing, and the verdict table lost its empty-partition pass row.
@@ -338,7 +344,9 @@ is a separate lookup that still fails, and not the empty *wave*, where the
 denominator collapses.
 
 **Recorded run — 2026-09-17, after both rebuilds; this is the current result:**
-25,872 states, 0 overlapping, 0 uncovered, all eight rows reached. The state count fell from
+25,872 states, 0 overlapping, 0 uncovered, all eight rows reached. Superseded
+by the round-10 run recorded below, which is the current result. The state count
+fell from
 94,080 because the read-outcome axis was collapsed to two values: the rows do
 not discriminate among refusal kinds, so enumerating fourteen of them inflated
 the domain without adding a distinction any predicate makes. The acquisition
@@ -391,7 +399,8 @@ raise **falsified the criterion**, not just the script. Fixed with an
 `isinstance(reason, str)` guard — a non-string reason is not in the closed set,
 which is an answer rather than an error. Reverting the guard reproduces the
 `TypeError`, so the fix is load-bearing. The domain grew from 25,872 states to
-35,728, still 0 overlapping and 0 uncovered with every row reached.
+35,728, still 0 overlapping and 0 uncovered with every row reached. **This is
+the current result**; every earlier run in this section is superseded.
 
 This is the fourth time widening the walk's domain found a defect the previous
 domain could not express, and the second time the defect was in a predicate

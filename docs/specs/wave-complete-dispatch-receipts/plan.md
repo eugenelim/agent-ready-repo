@@ -531,10 +531,15 @@ the dispatch-rate generator.
   drives the verb's largest state-derived refusal; the verb's own stderr is
   bounded, discloses truncation, and contains only whole identifiers.
 - A non-matching `--expect-run-id` exits non-zero.
-- `schedule_waves` a non-list, its element at the named index a non-list, and
-  the receipts container malformed at each declared depth in turn: each exits
-  non-zero and names the malformed position rather than surfacing an exception
-  type, and each leaves `state.json` byte-identical. Derived from the same
+- Every shape the well-formedness declaration calls malformed, derived from
+  that declaration rather than sampled: `schedule_waves` a non-list; the wave
+  element at the named index a non-list, an **empty** list, and a list
+  containing a **non-string**; and the receipts container malformed at each
+  declared depth in turn. Each exits non-zero and names the malformed position
+  rather than surfacing an exception type, and each leaves `state.json`
+  byte-identical. Three wave shapes rather than one because the declaration
+  requires a non-empty list of strings, so a single non-list case leaves the
+  other two conjuncts unexercised. Derived from the same
   key-path and well-formedness declarations the guard's rows use, so the two
   cannot disagree about which shapes are hostile.
 - A state whose `schema_version` is not the supported value exits non-zero and
@@ -675,14 +680,23 @@ covers the state lock a new mutation takes.
   leaves `state.json` byte-identical. Four cases rather than one because the
   reading this replaces — `int(...)` — accepts the first three and raises on
   the fourth, so a single case cannot show the change.
-- `wave advance --from-index n` with `schedule_waves` a non-list, its element
-  at `n` a non-list, and the container malformed at each declared depth in
-  turn: each refuses by name rather than raising, and names `reset` where the
-  unusable value is in cohort state.
+- `wave advance --from-index n` against every shape the well-formedness
+  declaration calls malformed, derived from it rather than sampled:
+  `schedule_waves` a non-list; the element at `n` a non-list, an empty list,
+  and a list containing a non-string; and the container malformed at each
+  declared depth in turn. Each refuses by name rather than raising, and names
+  `reset` where the unusable value is in cohort state.
 - `wave advance --from-index n` with `current_wave_index` matching neither `n`
   nor `n + 1`: keeps its existing mismatch refusal, unchanged by the accounting
   check. This is the third branch, and without a case the sweep in T5 cannot
   tell it apart from the advancing branch.
+- A bounded survey of the state reader's refusal vocabulary, read from
+  `_loop_guards.py` rather than from the walk's own constant, asserting that the
+  constant names every kind the reader can refuse with. The walk proves each
+  listed kind lands on the read-refusal row; only this survey closes the other
+  half. It belongs here rather than in T1 because T1's question set is closed
+  and does not contain it, and because it is a property of the row this task
+  implements.
 - The bounding pair driven through the verb, not only the guard: a wave whose
   unaccounted-task list exceeds the per-value interpolation bound, and a
   state-derived value longer than the bound, each asserted on `wave advance`'s
@@ -843,6 +857,13 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   precondition.
 - In `state-schema.md`, document the container and state that an absent
   container means the guard does not enforce.
+- State the unsupported-schema asymmetry on both surfaces the criterion names:
+  on `state-schema.md`'s `schema_version` field row, and in
+  `supervisor-mode.md` § Single-agent fallback beside the decline codes. Both
+  halves each time — the exit tolerates the class and the verb refuses it, and
+  the end-to-end outcome is that the run cannot pass the next wave boundary
+  without a schema migration. Stating only the exit half is what the criterion
+  was written to prevent.
 - Add an eval case covering both calls, the authorship, and both decline codes.
 - The EXECUTE section is pinned from two directions. A pack test slices it
   between `## Step 2. EXECUTE` and `## Step 3. GATES` and requires the literals
@@ -862,7 +883,10 @@ instructs firing `wave-complete` also instructs
 `loop-cohort check --phase wave-exit` immediately before the fire instruction
 at that site; a check scoped to
 `## Single-agent fallback` finds both reason codes; a check scoped to the
-state-schema field table finds the absence rule; a check scoped to
+state-schema field table finds the absence rule; a check scoped to the
+`schema_version` field row and one scoped to `## Single-agent fallback` each
+find the asymmetry's exit half, verb half, and end-to-end outcome; a check
+scoped to
 `references/session-resumption.md` finds a row naming `amendment_pending` with
 `approve-plan` and `schedule` as its route; every surface that instructs
 `wave advance` states the accounting precondition, and no surface still
@@ -967,9 +991,12 @@ tools/test_build_site_routing.py -q` passes.
 - **The refusal strands a legitimate run.** The guard sits on a mandatory
   transition, so a false refusal blocks the loop rather than degrading it. The
   passing rows carry this — a recorded decline, an absent container, and a
-  record for an already-left wave. An empty partition is **not** among them:
-  round 8 made it malformed, and the amendment crash window is handled by
-  naming the recovery rather than by passing. The transition-level assertion
+  record for an already-left wave. An empty partition is **not** among them on a
+  supported schema: round 8 made it malformed there, and the amendment crash
+  window is handled by naming the recovery rather than by passing. On an
+  unsupported schema it passes, because that row decides before any shape is
+  read — which is the compatibility guarantee, not a second verdict. The
+  transition-level assertion
   proves the refusal fires where intended. Keeping the accounting out of
   `--phase implement` is the other half: that phase is a push gate, not a wave
   gate. This is the risk that decides whether the change is safe to ship.

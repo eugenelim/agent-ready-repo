@@ -51,8 +51,10 @@ some let a record be written by a party or for a reason the guard cannot check
 precondition); some let an exit pass without a fresh assertion (a repair round
 re-enters implementation without moving the wave pointer); and some leave no
 trace
-that enforcement was off (removing the container disables it for the run, and an
-enforcement-off exit writes nothing an after-the-fact reader can find). The
+that enforcement was off (removing the container disables enforcement for as
+long as the key is absent, and the contents can be restored afterwards, so the
+window leaves no durable trace; and an enforcement-off exit writes nothing an
+after-the-fact reader can find). The
 plan's Risks section carries each, and the register holds the ones with owners.
 
 ## Durable Outputs
@@ -96,16 +98,18 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   durable records that the exit passed unchecked. While the mismatch stands the
   run is not free — `loop-cohort status` refuses, and every run-scoped mutation
   that reads existing cohort state refuses — but those refusals constrain only
-  the window, not what happened inside it. This is the cheapest of the four
-  routes in effort and the quietest in evidence, and it exists because
+  the window, not what happened inside it. Of the four routes this is the
+  cheapest in effort and the quietest in evidence — one field set and reset, no
+  durable trace — and it exists because
   preserving `check --phase implement`'s verdict for old state was chosen over
   closing it. Disclosed rather than closed.
 - Disclose the forward pointer at the same strength. Every accounting statement
   here is scoped to the *current* wave, so an actor who can write `state.json`
   and sets `current_wave_index` from `n` to `n+1` in one field edit skips wave
   `n`'s exit entirely, and `wave advance --from-index n` then exits zero on the
-  already-applied branch. Against the other two routes this is the cheapest and
-  the quietest: a forged record still leaves a per-task record to read, a
+  already-applied branch. It is quieter than forgery and than container
+  deletion, and louder only than the schema toggle above: a forged record still
+  leaves a per-task record to read, a
   deleted container flips `status` to not-enforced and triggers the exit's
   notice — though only while it is absent: an actor who removes the key, fires
   the exit and the advance, then restores the saved contents leaves `status`
@@ -419,10 +423,14 @@ parse is not a conjunct here: every row that reads well-formedness also requires
 readability, and a readable state has parsed, so a parse clause could decide no
 state.
 
-An empty partition is malformed rather than a passing state, and so is an empty
-current wave. That is the single verdict for the state Boundaries calls "no
-schedule persisted": an absent `schedule_waves` reads as `[]` through the
-default, so the two are one state and get one answer.
+On a state whose schema is supported, an empty partition is malformed rather
+than a passing state, and so is an empty current wave. The scope is load-bearing
+and matches the rail in Boundaries: the unsupported-schema row decides before
+any shape is read, so an unsupported-schema state with an empty partition passes
+on that row and never reaches this rule. Within the supported-schema case this
+is the single verdict for the state Boundaries calls "no schedule persisted":
+an absent `schedule_waves` reads as `[]` through the default, so the two are one
+state and get one answer.
 
 It is reachable, and a claim that it is not would be wrong. `topological_waves`
 never emits an empty wave, but `begin_contract_amendment` writes

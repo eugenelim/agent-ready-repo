@@ -146,9 +146,11 @@ def schema_supported(state) -> bool:
 def state_well_formed(state) -> bool:
     """Non-empty partition, and a container that is absent or correctly shaped.
 
-    The partition must be non-empty: an empty one is unreachable through the
-    engine (the `plan-locked` guard refuses it), so at this exit it is malformed
-    state rather than a passing case.
+    The partition must be non-empty. An empty one IS reachable — the amendment
+    verb writes `schedule_waves: []` and the engine applies that cohort mutation
+    before its own state write — so the verdict is not justified by
+    unreachability. It is malformed because the pass direction is silent, and
+    the spec names the resumption route that recovers from it.
     """
     part = partition_of(state)
     if not isinstance(part, list) or not part:
@@ -373,8 +375,10 @@ def main() -> int:
     # What is proved is that the two-valued collapse loses no case AMONG THE
     # LISTED KINDS — not that the list is the reader's whole vocabulary. Closing
     # that would mean deriving the vocabulary from `_loop_guards` itself, which
-    # a notes script under `docs/` should not import; the completeness half is
-    # T1's survey obligation instead.
+    # a notes script under `docs/` should not import. The completeness half is
+    # T3's: it carries a bounded survey reading the reader's vocabulary from
+    # `_loop_guards.py` and asserting this constant names every kind. Not T1 —
+    # its predeclared question set is closed and does not contain this.
     assert ACQUISITION_REFUSALS, "the acquisition vocabulary is empty"
     assert "ok" not in ACQUISITION_REFUSALS, (
         "'ok' is the success value; listing it as a refusal kind would make "
