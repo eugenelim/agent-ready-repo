@@ -1,6 +1,6 @@
 # Spec: conventions-retirement
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none — see Assumptions for the waived RFC gate
@@ -106,26 +106,26 @@ resolves in the destination recorded in
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `docs/CONVENTIONS.md` and `packs/core/seeds/docs/CONVENTIONS.md` are
+- [x] AC1 — `docs/CONVENTIONS.md` and `packs/core/seeds/docs/CONVENTIONS.md` are
   absent from the working tree.
-- [ ] AC2 — Every file recorded in
+- [x] AC2 — Every file recorded in
   [`notes/consumer-inventory.txt`](notes/consumer-inventory.txt) no longer cites
   the conventions document. The check ranges over that fixed baseline, because
   `notes/ac2-scan.sh` is an editable file and a criterion reading only its live
   output is discharged by widening one exclusion.
-- [ ] AC2b — `sh notes/ac2-scan.sh` returns no file outside the AC2 baseline, so a
+- [x] AC2b — `sh notes/ac2-scan.sh` returns no file outside the AC2 baseline, so a
   consumer introduced during the work is not left behind.
-- [ ] AC2c — A canary asserts the live `notes/ac2-scan.sh` matches the approved
+- [x] AC2c — A canary asserts the live `notes/ac2-scan.sh` matches the approved
   form recorded outside it, by digest. Checking only that named exclusion classes
   still exclude is blind to a class added later: one extra pathspec shrinks every
   task's discovery domain with the canary green. Pinning the form satisfies this
   without restating the pathspecs anywhere.
-- [ ] AC3 — `PROJECTED_README_OVERRIDES` in
+- [x] AC3 — `PROJECTED_README_OVERRIDES` in
   `packages/agentbundle/agentbundle/build/self_host.py` is the empty tuple.
-- [ ] AC4 — `packs/core/seeds/AGENTS.md` states the Conventional Commits type
+- [x] AC4 — `packs/core/seeds/AGENTS.md` states the Conventional Commits type
   list, the four pull-request questions, and the privacy rule.
-- [ ] AC5 — Root `AGENTS.md` states those same three rules.
-- [ ] AC6 — Every one of the 30 anchor uses recorded in
+- [x] AC5 — Root `AGENTS.md` states those same three rules.
+- [x] AC6 — Every one of the 30 anchor uses recorded in
   [`notes/anchor-inventory.txt`](notes/anchor-inventory.txt) has a replacement link
   that resolves to an existing heading in the file its anchor is mapped to in
   [`notes/anchor-map.txt`](notes/anchor-map.txt). The check opens each recorded
@@ -139,79 +139,79 @@ resolves in the destination recorded in
   guidance is not adopter-facing and the note is deleted. The check ranges
   over the recorded pre-relocation uses, because the live set empties as the work
   lands and a criterion over an empty set cannot fail.
-- [ ] AC6b — `sh notes/ac2-scan.sh 'CONVENTIONS\.md#'` returns no file, so no live
+- [x] AC6b — `sh notes/ac2-scan.sh 'CONVENTIONS\.md#'` returns no file, so no live
   anchor still addresses the retired path.
-- [ ] AC7 — `tests/roster/test_credential_broker_contract_docs.py` asserts the
+- [x] AC7 — `tests/roster/test_credential_broker_contract_docs.py` asserts the
   four broker ids and `metadata.auth` against
   `guides/credential-brokers/how-to/add-a-credentialed-skill.md`.
-- [ ] AC8 — That assertion fails when the broker list is stripped from
+- [x] AC8 — That assertion fails when the broker list is stripped from
   `guides/credential-brokers/how-to/add-a-credentialed-skill.md`.
-- [ ] AC9 — `tests/roster/test_tdd_stub_lifecycle_contract.py` asserts every
+- [x] AC9 — `tests/roster/test_tdd_stub_lifecycle_contract.py` asserts every
   member of its `live_sources` tuple exists before reading it.
-- [ ] AC10 — `tests/roster/test_install_snapshot.py` checks that the relative
+- [x] AC10 — `tests/roster/test_install_snapshot.py` checks that the relative
   links **this change adds or edits** resolve across the Markdown the core scaffold
   produces, rather than reading one named seed file. Narrowed on the same ground as
   AC14 and against the same backlog entry.
-- [ ] AC11 — `docs/product/changelog.md` carries a **new** free-standing `core`
+- [x] AC11 — `docs/product/changelog.md` carries a **new** free-standing `core`
   entry, topmost among the `core` sections, whose body names the seed
   withdrawal. Appending a sentence to an already-released entry does not
   satisfy this.
-- [ ] AC12 — `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+- [x] AC12 — `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both carry `2.27.0`, and the criterion names that value rather than an
   ordering: a patch bump satisfies any looser comparison, and the only machine
   check is that the two files agree with each other
   (`catalogue_tooling/lint.py:1748`). The released baseline moved while this
   change was in flight — core shipped several patches on `main` — which is why
   the target is pinned to a value and not expressed relative to a predecessor.
-- [ ] AC13 — `CONTRIBUTING.md` states the scaling-profile names and their
+- [x] AC13 — `CONTRIBUTING.md` states the scaling-profile names and their
   contributor ranges.
-- [ ] AC14 — No link **this change adds or edits** in a file under
+- [x] AC14 — No link **this change adds or edits** in a file under
   `packs/core/seeds/` points outside the installed paths listed in
   `tests/fixtures/install_snapshot/core.paths.txt`. Narrowed to the links this
   retirement touches: the seed tree already carries out-of-scaffold links to
   `adr/`, `rfc/`, `guides/`, `GOVERNANCE.md`, `personas.md` and
   `release-checklist.md` that predate this change and are logged as
   `core-seeds-mandate-other-packs-content` in `[backlog].open`.
-- [ ] AC15 — `packs/core/seeds/docs/README.md` exists and states the document
+- [x] AC15 — `packs/core/seeds/docs/README.md` exists and states the document
   hierarchy and the living / frozen / governance lifecycle classes.
-- [ ] AC17 — `packs/core/seeds/AGENTS.md` carries a `## Documentation` section
+- [x] AC17 — `packs/core/seeds/AGENTS.md` carries a `## Documentation` section
   routing to `docs/README.md`. Its only reference to anything under `docs/` today
   is the pointer to the retired file, so without this an adopter's root
   `AGENTS.md` names no entry into the doc tree.
-- [ ] AC20 — That `## Documentation` table names no path absent from
+- [x] AC20 — That `## Documentation` table names no path absent from
   `tests/fixtures/install_snapshot/core.paths.txt`. The repo's own table lists
   `docs/adr/`, `docs/rfc/`, `guides/` and `ARCHITECTURE.md`, none of which core
   installs, so copying it verbatim would ship the dangling references this change
   exists to remove. Its universal rows — a repeating agent workflow lives in its
   own `SKILL.md`, and a mechanically knowable fact lives in code, schema,
   manifest, test or linter — carry over unchanged.
-- [ ] AC21 — `packs/core/seeds/AGENTS.md` states, under § Development workflow,
+- [x] AC21 — `packs/core/seeds/AGENTS.md` states, under § Development workflow,
   that changes are scoped precisely with assumptions and conflicts surfaced before
   building, that destructive or irreversible operations need confirmation, that a
   new top-level directory goes through the repository decision process, and that
   unrelated discoveries stay out of the current change.
-- [ ] AC22 — `packs/core/seeds/AGENTS.md` states, under § Coding conventions, that
+- [x] AC22 — `packs/core/seeds/AGENTS.md` states, under § Coding conventions, that
   changed code gets types and docstrings with crossed boundaries validated, that a
   new dependency is recorded in the owning package instructions or an ADR before
   it is added, and that a conflict between documented guidance and code is never
   silently resolved — the evidence and trade-off are stated and the owning source
   updated rather than a generated projection.
-- [ ] AC23 — `packs/core/seeds/AGENTS.md` states that credentials and personal
+- [x] AC23 — `packs/core/seeds/AGENTS.md` states that credentials and personal
   information are never committed, with generic placeholders used in repository
   artifacts, and that stale or conflicting instructions are reported rather than
   worked around.
-- [ ] AC24 — The recommended-additional-guidance comment in
+- [x] AC24 — The recommended-additional-guidance comment in
   `packs/core/seeds/AGENTS.md` no longer offers `Documentation`,
   `Security considerations` or `Scoped instructions`, because this change promotes
   all three into the file; `Repository structure` remains offered.
-- [ ] AC18 — Seeded `docs/README.md` names every docs area core seeds, with what
+- [x] AC18 — Seeded `docs/README.md` names every docs area core seeds, with what
   belongs there and its lifecycle class, and carries a placeholder row an adopter
   extends when a pack adds an area core does not seed.
-- [ ] AC19 — `_SEEDS_REQUIRED_PLACEHOLDERS` in
+- [x] AC19 — `_SEEDS_REQUIRED_PLACEHOLDERS` in
   `packages/agentbundle/agentbundle/catalogue_tooling/lint.py` declares
   `docs/README.md`, and the catalogue seed lint accepts it. A seed with no declared
   shape is rejected as unknown, fail-loud.
-- [ ] AC16 — `docs/README.md` appears in
+- [x] AC16 — `docs/README.md` appears in
   `tests/fixtures/install_snapshot/core.paths.txt`, and the install snapshot suite
   passes with it present.
 

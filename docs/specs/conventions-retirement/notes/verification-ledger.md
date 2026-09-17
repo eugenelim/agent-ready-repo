@@ -952,3 +952,30 @@ with the link *after* the candidate closer, and the matched-pair direction has
 to be asserted too, so that "never closes" cannot masquerade as correct. That
 is the third time in this loop a case was written that could not fail; the
 tell each time was a mutation that stayed green.
+
+### The cohort was re-sealed at close, and why
+
+`reviewers-clean` refused: `schedule check-current` found `plan.md` no longer
+matching its scheduled baseline. Round 15 had corrected two false figures in
+the plan — a seed-file list that had emptied as the work landed, and a
+`MAX_SEED_LINES` value this change itself raised — and the schedule pins the
+plan the moment it persists, so any edit after that blocks every `CODE-*`
+transition.
+
+Recovered by the documented path the tool itself prints: restore `Approved` in
+both artifacts, `reset`, `init` with the same `run_id`, `approve-plan`,
+`schedule`, then advance the cohort to the last wave. The cost is real and
+worth naming: the reset clears the retry counters and the stasis baseline, and
+`approve-plan` re-pins whatever is on disk, so it is a re-approval in
+substance. At close that costs little — there are no further retries, and the
+plan on disk is the approved plan plus two factual corrections — but it does
+mean the cohort's own record of nineteen review rounds is gone from
+`state.json`. The durable trail is this ledger and the `.context/reviews/`
+artifacts, which is why the account lives here rather than in engine state.
+
+The general lesson is about *when* a factual error in a plan can be fixed. The
+schedule freezes the plan at approval, and a figure that was already wrong when
+written stays wrong for the rest of the run unless the cohort is re-sealed. A
+plan should therefore carry pointers to the things that own its measurements,
+not the measurements — which is the same conclusion the count corrections
+reached from the other direction.

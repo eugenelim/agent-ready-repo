@@ -1,6 +1,6 @@
 # Plan: conventions-retirement
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 - **Repository anchors:** `packages/agentbundle/agentbundle/build/self_host.py:465-580`
   (projection classification), `packs/AGENTS.local.md:10-14` (projections are
