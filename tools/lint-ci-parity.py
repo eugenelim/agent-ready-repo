@@ -242,9 +242,16 @@ def PR_GATED(where: str) -> tuple[str, str]:
     return ("pr-gated", where)
 
 
-def PR_GATED_IF(where: str, condition: str) -> tuple[str, str]:
-    """Declare a suite reached only when *condition* holds."""
-    return ("pr-gated-if", f"{where} — {condition}")
+def PR_GATED_IF(where: str, condition: str) -> tuple[str, str, str]:
+    """Declare a suite reached only when *condition* holds.
+
+    `where` and `condition` stay SEPARATE fields. Joining them into one string
+    broke both checks that read this entry: corroboration compares a source's
+    `where` for equality, which a joined value never matches, so every
+    conditional claim went unverified; and the empty-reason check reads the same
+    value, which a blank condition leaves non-empty, so it could not fire.
+    """
+    return ("pr-gated-if", where, condition)
 
 
 def NO_PR_GATE(reason: str) -> tuple[str, str]:
@@ -604,7 +611,7 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
 # Authored from what `pr_gate_sources` concluded, then reviewed entry by entry —
 # the same way `STEP_DISPOSITION` above was built. The lint checks that a reason
 # is *present*; whether it is *true* is a human-review control.
-SUITE_DISPOSITION: dict[str, tuple[str, str]] = {
+SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packages/agentbundle/tests/':
         PR_GATED_IF(
             "catalogue-tooling-ci-gates.yml / agentbundle-tests / Run full agentbundle test "
@@ -1832,7 +1839,7 @@ def check_suites(
     root: Path,
     *,
     makefile_text: str | None = None,
-    dispositions: dict[str, tuple[str, str]] | None = None,
+    dispositions: dict[str, tuple[str, ...]] | None = None,
     sources: dict[str, list[dict[str, str | bool]]] | None = None,
 ) -> list[str]:
     """Check suite-roster completeness and pull-request coverage claims."""
@@ -1881,21 +1888,33 @@ def check_suites(
             f"suite {entry!r} — dead SUITE_DISPOSITION entry: no run-test-suite "
             "line resolves it. Remove it or add the suite to the define."
         )
-    for suite, (kind, value) in sorted(dispositions.items()):
+    for suite, entry in sorted(dispositions.items()):
+        kind, value, *extra = entry
+        condition = extra[0] if extra else ""
         suite_sources = sources.get(suite, [])
         named = [source for source in suite_sources if source["where"] == value]
         if kind == "pr-gated":
-            if any(source["filtered"] for source in named):
+            # One defect, one message. The specific diagnoses below and the
+            # generic one are the same failure seen at different resolutions, so
+            # emitting both makes an author read two lines to learn one thing —
+            # and made a self-test case that asserts a single violation fail for
+            # the wrong reason.
+            if any(
+                not source["filtered"] and not source["conditional"]
+                for source in named
+            ):
+                pass  # corroborated
+            elif any(source["filtered"] for source in named):
                 violations.append(
                     f"suite {suite!r} — PR_GATED names filtered source {value!r}. "
                     "Use PR_GATED_IF with its path condition."
                 )
-            if any(source["conditional"] for source in named):
+            elif any(source["conditional"] for source in named):
                 violations.append(
                     f"suite {suite!r} — PR_GATED names conditional source {value!r}. "
                     "Use PR_GATED_IF with the step or job condition."
                 )
-            if not any(not source["filtered"] and not source["conditional"] for source in named):
+            else:
                 violations.append(
                     f"suite {suite!r} — PR_GATED source {value!r} does not reach it "
                     "through a required pull-request check. Correct the source "
@@ -1921,10 +1940,28 @@ def check_suites(
                     "route that runs it or the missing precondition."
                 )
         elif kind == "pr-gated-if":
-            if not value.strip():
+            # Corroborated like PR_GATED, but inverted: the named source must
+            # exist AND must actually be conditional. Without this the claim was
+            # unverifiable, so a conditional entry could name a workflow or step
+            # that does not exist.
+            if not named:
                 violations.append(
-                    f"suite {suite!r} — PR_GATED_IF has an empty reason; state the "
-                    "conditional route."
+                    f"suite {suite!r} — PR_GATED_IF source {value!r} names no "
+                    "step of any pull-request workflow. Correct the source or "
+                    "re-disposition it."
+                )
+            elif not any(
+                source["filtered"] or source["conditional"] for source in named
+            ):
+                violations.append(
+                    f"suite {suite!r} — PR_GATED_IF names {value!r}, which is "
+                    "unfiltered and unconditional, so the coverage is not in "
+                    "fact conditional. Use PR_GATED."
+                )
+            if not condition.strip():
+                violations.append(
+                    f"suite {suite!r} — PR_GATED_IF has an empty condition; "
+                    "state what makes the coverage conditional."
                 )
         else:
             violations.append(f"suite {suite!r} — unknown disposition kind {kind!r}.")
@@ -2123,9 +2160,10 @@ def main(argv: list[str] | None = None) -> int:
     # actually ran. A silently deleted arm would otherwise leave this line
     # unchanged, which is the shape that makes a dead gate look like a passing
     # one.
-    gated = sum(1 for k, _ in SUITE_DISPOSITION.values() if k == "pr-gated")
-    gated_if = sum(1 for k, _ in SUITE_DISPOSITION.values() if k == "pr-gated-if")
-    ungated = sum(1 for k, _ in SUITE_DISPOSITION.values() if k == "no-pr-gate")
+    kinds = [entry[0] for entry in SUITE_DISPOSITION.values()]
+    gated = kinds.count("pr-gated")
+    gated_if = kinds.count("pr-gated-if")
+    ungated = kinds.count("no-pr-gate")
     print(
         f"lint-ci-parity: ok — {len(classified['steps'])} step(s) across "
         f"{len(in_scope)} in-scope workflow(s), all dispositioned "

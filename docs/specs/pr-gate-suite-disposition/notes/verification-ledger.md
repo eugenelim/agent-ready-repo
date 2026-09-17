@@ -207,3 +207,71 @@ the roster with `textwrap.wrap` at its defaults split
 immediately — a `PR_GATED` source naming no real step — which is the inversion
 working as designed. Fixed with `break_on_hyphens=False, break_long_words=False`;
 verified zero literals split at a hyphen before re-splicing.
+
+### T2's standing cases, and the two defects writing them found
+
+`tools/test-lint-ci-parity.py` goes from 143 to **166 cases**. Each new case
+supplies its own Makefile text, roster and source map as keyword arguments, so
+none touches module state.
+
+Writing them surfaced two defects the probe matrix had not, both in
+`PR_GATED_IF`, and both of the same shape — a check that could not fail:
+
+**1. `PR_GATED_IF` collapsed `where` and `condition` into one string.**
+`("pr-gated-if", f"{where} — {condition}")` broke both checks that read the
+entry. Corroboration compares a source's `where` for equality, and a joined
+value never matches one, so **every conditional claim went entirely
+unverified** — an entry could name a workflow or step that does not exist. The
+empty-reason check read the same joined value, which a blank condition leaves
+non-empty, so it could not fire either. The constructor now returns
+`("pr-gated-if", where, condition)`, `SUITE_DISPOSITION` is typed
+`dict[str, tuple[str, ...]]`, and a conditional claim is corroborated in both
+directions: the named source must exist, and it must actually be filtered or
+conditional.
+
+**2. One defect emitted two messages.** A `PR_GATED` entry naming a filtered
+source produced the specific diagnosis *and* the generic "does not reach it",
+which is the same failure at two resolutions. The branch is now mutually
+exclusive.
+
+### Mutation proof — every arm reddens a named case
+
+Each row deletes or neutralises one arm of `tools/lint-ci-parity.py`, runs
+`python3 tools/test-lint-ci-parity.py`, records which named case failed, and
+restores. An arm whose removal left the suite green would be a control that
+cannot fail.
+
+| Arm removed | Exit | Case that reddened |
+| --- | ---: | --- |
+| all-targets completeness | 1 | `suites-partial-line-fires-on-the-missing-target` |
+| no-path-operand completeness | 1 | `suites-no-path-operand-line-needs-a-substring-key` |
+| dead entry | 1 | `suites-dead-entry-fires` |
+| `PR_GATED` on a filtered source | 1 | `suites-pr-gated-naming-a-filtered-workflow-fires` |
+| `PR_GATED` on a conditional source | 1 | `suites-pr-gated-naming-a-conditional-step-fires` |
+| `PR_GATED` uncorroborated | 1 | `suites-pr-gated-with-no-covering-step-fires` |
+| stale `NO_PR_GATE` | 1 | `suites-no-pr-gate-contradicted-by-a-covering-step-fires` |
+| empty `NO_PR_GATE` reason | 1 | `suites-no-pr-gate-empty-reason-fires` |
+| `PR_GATED_IF` uncorroborated | 1 | `suites-pr-gated-if-with-no-source-fires` |
+| `PR_GATED_IF` empty condition | 1 | `suites-pr-gated-if-empty-condition-fires` |
+| `suite_lines` keeping `@`-prefixed lines | 1 | `suite-lines-keeps-an-at-prefixed-command` |
+| `suite_lines` keeping expanding comments | 1 | `suite-lines-keeps-a-comment-carrying-an-expansion` |
+
+Twelve for twelve. The one hole that remains is the wiring itself: every case
+above passes its own tables, so all of them stay green if `check_suites` is never
+called from `main()`. `suites-shipped-roster-is-complete-in-both-directions`
+reads the shipped roster but calls `check_suites` directly, so it does not close
+that hole either — it exists to say so. AC-0008 and T3 own it.
+
+### Suites referencing the edited files
+
+Anchor-test sweep found no hash or count pin on either edited file, but nine
+files reference them. All run green:
+
+- `tools/test_check_artifact_contents.py`, `tools/test_build_gate_chain.py`,
+  `tools/test_catalogue_tooling_rewire.py`, `tools/test_gate_enumeration.py` —
+  **154 passed, 28 subtests, 620s**.
+- the four standalone hyphenated entry points a directory sweep never collects —
+  `test-build-check-workflow.py`, `test-pages-workflow.py`,
+  `test-pages-concurrency.py`, `test-lint-ci-parity.py` — each exit 0.
+- `tools/test_local_ci_shared_test_deduplication.py` — **51 passed, 59s**,
+  confirming a tools-only change moves neither plan digest.

@@ -940,6 +940,145 @@ composed:
     else:  # pragma: no cover — Windows contributor path
         print("… verdict polarity cases skipped: no `sh` on PATH")
 
+    # ── suite_lines: the completeness anchor ────────────────────────────────
+    #
+    # Every case below supplies its own Makefile text and its own roster, so
+    # none touches module state. The anchor is what makes the suite roster
+    # extraction-independent, and each of these is a shape that defeated an
+    # earlier implementation.
+    def _mk(body: str, third: str = "") -> str:
+        """A Makefile whose run-test-suite define holds *body*.
+
+        *third* is the macro's third argument, empty by default so a case's
+        roster only has to cover what its own body names.
+        """
+        return (
+            "override define run-test-suite\n"
+            + body
+            + "\nendef\n\n"
+            "test-unleased:\n"
+            f"\t$(call run-test-suite,,,{third})\n"
+        )
+
+    # The define body carries `$(3)` literally. Reading the body verbatim would
+    # leave whatever arrives through that argument with no roster key at all,
+    # which is why the enumeration expands the call site instead.
+    _check("suite-lines-expands-the-call-site-not-the-body",
+           M.suite_lines(_mk("\t$(PYTHON) -m pytest a/ -q\n\t$(3)",
+                             "$(PYTHON) -m pytest tools/test_third.py -q")),
+           ["$(PYTHON) -m pytest a/ -q",
+            "$(PYTHON) -m pytest tools/test_third.py -q"])
+    # A `@` suppresses echo; it does not stop execution. Dropping `@` lines as
+    # "guards" hid a suite behind `@test -d x && pytest y`.
+    _check("suite-lines-keeps-an-at-prefixed-command",
+           M.suite_lines(_mk("\t@test -d x && $(PYTHON) -m pytest x/tests/ -q")),
+           ["test -d x && $(PYTHON) -m pytest x/tests/ -q"])
+    # GNU Make expands a function in a recipe comment before the shell sees it,
+    # so this line RUNS. Measured on GNU Make 3.81 under `make` and `make -n`.
+    _check("suite-lines-keeps-a-comment-carrying-an-expansion",
+           M.suite_lines(_mk("\t# $(shell $(PYTHON) -m pytest sneaky/ -q)")),
+           ["# $(shell $(PYTHON) -m pytest sneaky/ -q)"])
+    # An inert comment cannot execute, so dropping it is safe and must not
+    # become a false alarm.
+    _check("suite-lines-drops-an-inert-comment",
+           M.suite_lines(_mk("\t# a note mentioning pytest a/tests/ inertly\n"
+                             "\t$(PYTHON) -m pytest a/tests/ -q")),
+           ["$(PYTHON) -m pytest a/tests/ -q"])
+
+    # ── check_suites: completeness, both directions ─────────────────────────
+    _ROOT = M.Path(".")
+
+    def _suites(makefile: str, roster: dict, sources: dict | None = None) -> list[str]:
+        return M.check_suites(_ROOT, makefile_text=makefile,
+                              dispositions=roster, sources=sources or {})
+
+    one_line = _mk("\t$(PYTHON) -m pytest a/tests/ b/tests/ -q")
+    full = {"a/tests/": M.NO_PR_GATE("nothing runs it"),
+            "b/tests/": M.NO_PR_GATE("nothing runs it")}
+    _check("suites-complete-roster-is-clean", _suites(one_line, full), [])
+    # EVERY target of a line needs an entry, not merely one. `run-test-suite`
+    # batches nineteen modules onto one continued line, so an "at least one"
+    # rule let a twentieth inherit its siblings' dispositions and demand none —
+    # the original defect one layer down.
+    partial = dict(full)
+    del partial["b/tests/"]
+    _check_fires("suites-partial-line-fires-on-the-missing-target",
+                 _suites(one_line, partial), "b/tests/")
+    _check_fires("suites-missing-entry-names-the-line",
+                 _suites(one_line, partial), "no SUITE_DISPOSITION")
+    # A line with no path operand still needs a key, and only a DECLARED
+    # substring key may resolve it. Letting any key match by substring meant the
+    # repo-root key `tests/` resolved every line containing that fragment.
+    no_operand = _mk("\tnpm run test:plugins --prefix docs-site")
+    _check_fires("suites-no-path-operand-line-needs-a-substring-key",
+                 _suites(no_operand, {}), "no path operand")
+    _check("suites-declared-substring-key-resolves-its-line",
+           _suites(no_operand, {"npm run test:plugins": M.NO_PR_GATE("node --test")}),
+           [])
+    # The dead-entry direction: an entry no line resolves.
+    dead = dict(full)
+    dead["c/tests/"] = M.NO_PR_GATE("nothing runs it")
+    _check_fires("suites-dead-entry-fires", _suites(one_line, dead), "dead SUITE_DISPOSITION")
+
+    # ── check_suites: corroboration of a coverage claim ─────────────────────
+    _WHERE = "build-check.yml / gate-main / pytest a"
+
+    def _src(**kw) -> dict:
+        rec = {"workflow": "build-check.yml", "where": _WHERE,
+               "filtered": False, "conditional": False}
+        rec.update(kw)
+        return {"a/tests/": [rec]}
+
+    gated = dict(full)
+    gated["a/tests/"] = M.PR_GATED(_WHERE)
+    _check("suites-pr-gated-corroborated-by-an-unfiltered-step",
+           _suites(one_line, gated, _src()), [])
+    # The consequential direction: a gate claimed where none exists.
+    _check_fires("suites-pr-gated-with-no-covering-step-fires",
+                 _suites(one_line, gated, {}), "does not reach it")
+    _check_fires("suites-pr-gated-naming-a-filtered-workflow-fires",
+                 _suites(one_line, gated, _src(filtered=True)), "filtered source")
+    # A step can name a suite and not block the pull request.
+    _check_fires("suites-pr-gated-naming-a-conditional-step-fires",
+                 _suites(one_line, gated, _src(conditional=True)), "conditional source")
+    # The stale-declaration direction: ungated declared where a gate exists.
+    _check_fires("suites-no-pr-gate-contradicted-by-a-covering-step-fires",
+                 _suites(one_line, full, _src()), "contradicted")
+    # A conditional source does NOT contradict NO_PR_GATE, because it does not
+    # run on every pull request.
+    _check("suites-no-pr-gate-not-contradicted-by-a-conditional-source",
+           _suites(one_line, full, _src(filtered=True)), [])
+    # A reason is required. Whether it is TRUE is a human-review control.
+    blank = dict(full)
+    blank["a/tests/"] = M.NO_PR_GATE("   ")
+    _check_fires("suites-no-pr-gate-empty-reason-fires", _suites(one_line, blank), "empty reason")
+    blank_if = dict(full)
+    blank_if["a/tests/"] = M.PR_GATED_IF(_WHERE, "  ")
+    _check_fires("suites-pr-gated-if-empty-condition-fires",
+                 _suites(one_line, blank_if, _src(filtered=True)), "empty condition")
+    good_if = dict(full)
+    good_if["a/tests/"] = M.PR_GATED_IF(_WHERE, "a path filter")
+    _check("suites-pr-gated-if-corroborated-by-a-filtered-source",
+           _suites(one_line, good_if, _src(filtered=True)), [])
+    # A conditional claim must name a real source, and that source must really
+    # be conditional -- otherwise the entry understates coverage unverifiably.
+    _check_fires("suites-pr-gated-if-with-no-source-fires",
+                 _suites(one_line, good_if, {}), "names no step")
+    _check_fires("suites-pr-gated-if-on-an-unconditional-source-fires",
+                 _suites(one_line, good_if, _src()), "not in fact conditional")
+
+    # ── the roster this repository actually ships ───────────────────────────
+    # Wiring, not rule: every other case passes its own tables, so all of them
+    # stay green if `check_suites` is never called from `main()`. This one reads
+    # the shipped roster, so a disconnected arm still leaves it green — AC-0008
+    # and its own task own that hole, and this case exists to say so rather than
+    # to close it.
+    _check_true("suites-shipped-roster-is-complete-in-both-directions",
+                M.check_suites(_ROOT) == [])
+    _check_true("suites-shipped-roster-covers-every-define-line",
+                len(M.SUITE_DISPOSITION) >= len(M.suite_lines(
+                    (_ROOT / "Makefile").read_text(encoding="utf-8"))))
+
     if _FAILURES:
         print(f"✖ {len(_FAILURES)}/{_CASES} cases failed:")
         for f in _FAILURES:
