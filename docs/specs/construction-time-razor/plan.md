@@ -193,10 +193,11 @@ those copies are never edited directly.
   `ready` status never stands in for it.
 - Inadequate-candidate control, proving AC-0006: its sibling helper collapses
   whitespace runs but does not strip, so reusing it alone breaks `Done when:`.
-  The report must name it as a candidate the search found and record what it did
-  with it, with the reason; both reusing it in part and declining it satisfy the
-  criterion. The predicate reads the candidate's name in the report, which is
-  what went missing 0 of 2 times before the rule repair. Whether the implementation composes with it or
+  The report must name it as a candidate the search found; both reusing it in
+  part and declining it satisfy the criterion. The predicate reads the
+  candidate's name in the report, and AC-0006 is scoped to exactly that, because
+  no check over free prose decides whether a stated reason is a real one. The
+  name went missing on both pre-repair runs, which is the failure this catches. Whether the implementation composes with it or
   declines it is recorded but not graded — measured runs took one route each and
   both satisfied the outcome. AC-0019 is the over-fire guard on this fixture.
 - Heavy-`Approach:` fixture, proving AC-0007, AC-0008 and AC-0009: no new module
@@ -216,8 +217,9 @@ those copies are never edited directly.
 **Approach:**
 - Add one operating-envelope bullet below the bundled-fixes comment and above
   `- **Gates:**`, naming the ladder's heading in `AGENTS.md`, the single bounded
-  search, reuse of an adequate hit, the recorded stopping rung, the named
-  rejected candidate, and the authority to take a lighter route than `Approach:`
+  search, reuse of an adequate hit, the recorded stopping rung, each candidate
+  found and what became of it, and the authority to take a lighter route than
+  `Approach:`
   with the swap recorded as a deviation.
 - Reword the `failed` status so it turns on no available route satisfying
   `Done when:` rather than on the task body's approach not working.

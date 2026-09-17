@@ -233,7 +233,9 @@ fx_helper_absent() {   # AC-0003, AC-0004 gated; AC-0019 gated
     record_rung "$d/out.txt"
 }
 
-fx_inadequate() {      # AC-0005, AC-0006 gated; AC-0019 gated
+fx_inadequate() {      # AC-0006 gated; AC-0019 gated. AC-0005 was retired:
+                       # composing with the partial helper and declining it are
+                       # both correct, so the route is recorded, never graded.
     d=$WORK/inadequate-$1; scaffold "$d"; helper_inadequate "$d"; plan_plain "$d"; brief "$d"
     run_once "$d" out.txt
     # Whether the run composes with the partial helper or declines it is recorded,
@@ -244,7 +246,8 @@ fx_inadequate() {      # AC-0005, AC-0006 gated; AC-0019 gated
     then note "composed with the partial helper (ungraded)"
     else note "declined the partial helper (ungraded)"
     fi
-    grep -q 'collapse_runs' "$d/out.txt"; check "AC-0006 report names the rejected candidate" $?
+    grep -q 'collapse_runs' "$d/out.txt"
+    check "AC-0006 report names the candidate the search found" $?
     done_when_holds "$d"; check "AC-0019 Done when holds" $?
     record_rung "$d/out.txt"
 }

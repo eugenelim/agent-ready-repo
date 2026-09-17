@@ -124,11 +124,11 @@ which is the cost the owner accepted for it.
   fixture, whose sibling helper fully satisfies the task.
 - **No reuse where nothing adequate exists (AC-0003, AC-0004)** — goal-based
   check on the helper-absent control.
-- **No reuse of an inadequate candidate (AC-0006)** — goal-based check on the
+- **A partial candidate is accounted for (AC-0006)** — goal-based check on the
   inadequate-candidate control, whose helper covers part of the outcome only. It
-  is the only fixture in which a rejected candidate exists to be named. Whether
-  the implementation composes with the partial helper or declines it is not
-  graded: both satisfy the outcome, and a criterion that picked one graded a
+  is the only fixture in which a candidate exists for the report to name. Whether
+  the implementation composes with that helper or declines it is recorded and not
+  graded: both satisfy the outcome, and a criterion that picked one would grade a
   preference. AC-0019 is the over-fire guard here — reusing a hit that genuinely
   does not fit breaks `Done when:`.
 - **The lighter route (AC-0007, AC-0008, AC-0009)** — goal-based check on the
@@ -179,9 +179,12 @@ prompt to look, not a failed gate.
 - [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
 - [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
 - [ ] **AC-0006.** On the inadequate-candidate control, the report names that
-  helper as a candidate the search found, and records what it did with it —
-  reused in part, or not used at all — with the reason. Both dispositions
-  satisfy this criterion; saying nothing about the candidate does not.
+  helper as a candidate the search found. Saying nothing about it fails; both
+  reusing it in part and declining it pass. The shipped rule additionally
+  requires the disposition and the reason, and both are recorded, but this
+  criterion reads only that the candidate is named — no check over free prose
+  decides whether a stated reason is a real one, and naming the candidate at all
+  is what went missing on every pre-repair run.
 - [ ] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
 - [ ] **AC-0008.** On the heavy-`Approach:` fixture, the report status is
   `ready`.
