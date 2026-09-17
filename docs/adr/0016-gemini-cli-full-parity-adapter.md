@@ -1,9 +1,14 @@
 # ADR-0016: Gemini CLI is a full-parity distribution adapter
 
-- **Status:** Accepted — **partially amended:** the **skill-home sub-decision** (`skill` → `.gemini/skills/<name>/`, with "the `.agents/skills/` alias is not relied on") is **superseded by [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md)** (cohort skills route to the shared `.agents/skills/`, which Gemini now prefers, 2026-06-26); the agent / hook / command / context-bridge projection decisions in this ADR stand.
+- **Status:** Accepted
 - **Date:** 2026-06-11
-- **Deciders:** eugenelim
+- **Areas:** adapters, distribution
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0040 D2
 - **Related:** [RFC-0027](../rfc/0027-gemini-cli-full-parity-adapter.md) (the decision), [RFC-0026](../rfc/0026-cursor-full-parity-adapter.md) / ADR-0015 (Cursor full-parity adapter — the immediate precedent and template), [RFC-0024](../rfc/0024-copilot-subagent-projection.md) / [ADR-0013](0013-copilot-full-parity-user-scope-adapter.md) (Copilot full-parity, scope-agnostic emission + user-scope rewrite), [ADR-0004](0004-repo-scope-per-adapter-projection.md) (per-adapter projection model), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md) (scope dimension)
 
 > **Numbering note.** Confirmed: the Cursor adapter (RFC-0026) merged first (#273), taking **ADR-0015**; this record is **ADR-0016**.
@@ -22,6 +27,18 @@ So a Gemini adopter today gets **nothing** under `.gemini/`, and — unlike Curs
 ## Decision
 
 **We treat `gemini` as a full-parity distribution adapter: it projects every primitive Gemini CLI supports (skill, agent, hook-body, hook-wiring, command) to Gemini's native `.gemini/*` layout at both repo and user scope, and bridges the canonical `AGENTS.md` into Gemini's context discovery.** It follows the scope-agnostic-emission + install-time prefix-rewrite pattern established for Copilot (ADR-0013) and Cursor (ADR-0015).
+
+- **D1:** `gemini` is a full-parity distribution adapter that projects every primitive Gemini CLI supports — skill, agent, hook-body, hook-wiring, command — at both repo and user scope.
+- **D2:** `skill` projects `direct-directory` to `.gemini/skills/<name>/` (and `~/.gemini/skills/`), the precedence-winning native path; the `.agents/skills/` alias is not relied on.
+- **D3:** `agent` projects `direct-file` with a `gemini-agent-frontmatter` mapping to `.gemini/agents/<name>.md` (and `~/.gemini/agents/`), the body becoming the system prompt.
+- **D4:** `hook-body` projects `direct-file`, and `hook-wiring` projects `merge-json` under the managed `hooks` key in `.gemini/settings.json` (and `~/.gemini/settings.json`).
+- **D5:** `command` projects through a new `gemini-command-toml` mode that renders the Markdown body to TOML `prompt`/`description` at `.gemini/commands/<name>.toml` (and user scope).
+- **D6:** A managed `context.fileName = ["AGENTS.md", "GEMINI.md"]` entry is written into `.gemini/settings.json`, so the canonical `AGENTS.md` universal layer is honoured rather than silently dropped.
+- **D7:** An agent's `tools:` allowlist is kept and name-mapped to Gemini's tool names, and an unmapped tool is dropped with a build-time log line rather than silently truncated.
+- **D8:** An agent's `model` is mapped tier-preservingly (`opus→gemini-2.5-pro`, `sonnet→gemini-2.5-flash`, `haiku→gemini-2.5-flash-lite`), and nothing is emitted when the source omits `model`.
+- **D9:** Hook events are keyed on the Claude-Code PascalCase source events and map to Gemini's lifecycle events with zero drops, failing closed on an unrecognised event.
+- **D10:** The adapter is distribution-only: `gemini` is not added to `SELF_HOST_ADAPTERS`, and a pack opts in by adding `"gemini"` to `allowed-adapters`.
+- **D11:** The adapter ships as contract bump v0.11 → v0.12.
 
 Concretely (contract bump **v0.11 → v0.12**, post-Cursor):
 
@@ -56,6 +73,8 @@ Concretely (contract bump **v0.11 → v0.12**, post-Cursor):
 - The alias map targets the stable Gemini 2.5 line, not `gemini-3-*-preview` (preview IDs churn); a re-point when Gemini 3 reaches GA is a one-line contract bump.
 - `gemini-2.5-flash-lite` is sourced from the Gemini API models page (the CLI model-selection page names "Flash-Lite" without the ID); the implementing spike verifies it first.
 - This record models on RFC-0026 (Cursor), now **merged** at v0.11 (#273); the spec was rebased onto it and inherits its proven scope-agnostic-emission + prefix-rewrite pattern and its hand-maintained-site touch-list.
+
+**Revisit if:** Gemini 3 reaches GA, which re-points the tier-preserving model map (D8) as a one-line contract bump; or the implementing spike cannot verify the `gemini-2.5-flash-lite` model ID that same map depends on.
 
 ## Alternatives considered
 

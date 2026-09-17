@@ -1,9 +1,14 @@
 # ADR-0015: Cursor is a full-parity distribution adapter
 
-- **Status:** Accepted — **partially amended:** the **skill-home sub-decision** (`skill` → `.cursor/skills/<name>/`) is **superseded by [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md)** (cohort skills route to the shared `.agents/skills/`, 2026-06-26); the agent / hook / command projection decisions in this ADR stand.
+- **Status:** Accepted
 - **Date:** 2026-06-11
-- **Deciders:** eugenelim
+- **Areas:** adapters, distribution
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0040 D1
 - **Related:** [RFC-0026](../rfc/0026-cursor-full-parity-adapter.md) (the decision), [ADR-0013](0013-copilot-full-parity-user-scope-adapter.md) (the full-parity user-scope template this follows), [ADR-0012](0012-kiro-adapter-split.md) (the `.md`-agent + frontmatter-mapping shape Cursor's agent projection reuses), [ADR-0004](0004-repo-scope-per-adapter-projection.md) (the per-adapter projection model this extends), [spec `apm-install-route-parity`](../specs/apm-install-route-parity/spec.md) (already treats Cursor as an install target via `${CURSOR_PLUGIN_ROOT}`)
 
 ## Context
@@ -27,6 +32,14 @@ Constraints that shaped the projection mappings:
 ## Decision
 
 **We treat `cursor` as a full-parity distribution adapter: it projects every catalogue primitive to Cursor's native `.cursor/*` discovery paths at both repo and user scope, reusing only existing projection modes, with documented degradation for the one primitive (agent tools) Cursor cannot represent.**
+
+- **D1:** `cursor` projects all five catalogue primitives to `.cursor/*` at repo scope and `~/.cursor/*` at user scope — `skill`→`.cursor/skills/<name>/`, `agent`→`.cursor/agents/<name>.md`, `hook-body`→`.cursor/hooks/<name>.{sh,py}`, `hook-wiring`→`.cursor/hooks.json`, `command`→`.cursor/commands/<name>.md`.
+- **D2:** The adapter reuses only the existing `direct-directory`, `direct-file`, `merge-json` and `dropped` projection modes and adds no projection-mode enum value; the Kiro-only `kiro-ide-hook` primitive is `dropped`.
+- **D3:** Contract v0.10 → v0.11 adds an `[adapter.cursor]` block mirrored byte-for-byte to `contracts/adapter.toml`.
+- **D4:** The agent `tools:` allowlist is dropped on projection, and `readonly: true` is emitted for an agent whose declared tool set contains no mutating tool.
+- **D5:** `command` projects first-class to `.cursor/commands/<name>.md` (repo) and `~/.cursor/commands/<name>.md` (user).
+- **D6:** A contract-declared table maps our hook-wiring events to Cursor's `sessionStart` / `beforeSubmitPrompt` / `preToolUse` / `postToolUse` / `stop`, and a source event with no Cursor target is dropped with a build-time log line rather than silently truncated.
+- **D7:** `cursor` is not added to `SELF_HOST_ADAPTERS`; the adapter ships for adopters only, and this repo keeps self-hosting onto Claude Code and Codex.
 
 Concretely (contract **v0.10 → v0.11**, a new `[adapter.cursor]` block mirrored byte-for-byte to `contracts/adapter.toml`, **no projection-mode-enum change**):
 
@@ -57,6 +70,11 @@ Concretely (contract **v0.10 → v0.11**, a new `[adapter.cursor]` block mirrore
 - `.cursor/rules/*.mdc` and `.cursor/mcp.json` are deliberately **not** projection targets — the always-apply-context need is met by Cursor reading root `AGENTS.md`, and the catalogue has no MCP primitive for any adapter. Adding either is a separate cross-adapter RFC.
 - The hook-event map is version-sensitive (Cursor's event vocabulary may shift); a layout or event change is a contract bump, not a code rewrite — the same exposure as every other adapter.
 - The agent `model` field is passed through verbatim rather than alias-translated (Cursor resolves a known id or falls back to inherit); the spec records the rationale and a follow-on to add a Cursor model-id map if a shipped model proves unresolvable.
+
+**Revisit if:** Cursor's hook event vocabulary or `.cursor/` layout shifts, which
+is a contract bump to the event map (D6); or the derived `readonly` predicate
+mis-classifies a shipped agent — a writing agent made read-only, or a reviewer
+left inheriting all tools (D4).
 
 ## Alternatives considered
 
