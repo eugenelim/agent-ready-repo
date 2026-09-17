@@ -314,3 +314,74 @@ occurrences under `packs/experience-design/` and `guides/experience-design/`.
 and the reason is worth keeping: "no test covers it" is not the same as "not
 this change's defect". The ownership question is whether the change made the
 sentence false, and it had.
+
+## Owner waiver — T11's four plan-only case families, 2026-09-17
+
+**Owner:** eugenelim. **Recorded:** 2026-09-17, after review round 1 sustained
+finding F7.
+
+`plan.md:442` sets T11's completion condition as "every control has both halves
+recorded in the ledger, or a waiver recorded in the spec with its owner", and
+`plan.md:439` / `spec.md:155` make an unstageable case a blocking condition
+needing a named owner waiver rather than an unverified pass.
+
+**Waived — four case families the plan's Tests block names and the spec's
+acceptance criterion never contracted:**
+
+1. an existing target carrying a foreign `type:`
+2. a foreign-product target under user-profile configuration
+3. blank-template-over-artifact, for the two skills that ship a template
+4. matching-`type:` replacement, for all four writes
+
+**Basis.** The owner was shown the measured cost — roughly 28 further agent
+runs — against the alternative of measuring only family 4, which is the
+data-loss path (`information-architecture` and `design-principles` declare no
+amend branch, so a second run on a slug replaces a hand-amended artifact). The
+owner chose the waiver for all four.
+
+**What this waiver does not cover.** The spec's own acceptance criterion at
+`spec.md:287-291` — a refusal observed, for each of the four writes, against an
+inadmissible `output_dir`, a symlinked target and a non-conforming slug, plus
+the `design-review` load — is unaffected and is separately evidenced in
+`notes/t11-refusal-runs.md`.
+
+**Correction to the record.** This waiver was granted when the owner chose the
+25-run population, before implementation began. It was not written down then.
+Review round 1 found the omission as F7, correctly: a decision an owner made and
+an implementer failed to persist is indistinguishable, in the artifact, from a
+control that shipped unmeasured.
+
+## Owner decision — F1 and F3 documented as limits, design deferred, 2026-09-17
+
+**Owner:** eugenelim. Review round 1 sustained two control-design gaps that the
+adjudicator ruled advisory, because nothing in the spec or its authority decides
+the remedy.
+
+**F1 — the reserved-tree set is not closed.** The module says reserved trees
+"include" paths at or beneath `.apm/` for the repo-root branch and gives
+`~/.claude/skills` as an example for the user-profile branch. Neither closes the
+set nor states a discovery rule, so a realpath inside the repository but outside
+`.apm/` — `.git/`, for instance — satisfies every named check. The
+user-profile branch's positive test is also circular: it approves `output_dir`
+against the root the user-profile config names for design output, which is
+`output_dir` itself.
+
+**F3 — product belonging has no discriminator.** The control requires
+confirming an existing artifact belongs to the current product and states that a
+matching slug cannot distinguish products sharing a user-profile `output_dir`,
+but supplies no replacement test. The frontmatter contract carries `type`,
+`slug` and `date` only, so a shared user-profile directory plus a common slug
+such as `mobile-app` yields a foreign artifact that passes every executable
+check.
+
+**Decision.** Both are stated as known limits in the containment module, the way
+that module already states the confinement limit, and the design is deferred to
+a follow-on. Closing F1 means choosing which trees are reserved; closing F3
+means adding a frontmatter field, which needs a migration story for artifacts
+already written under 2.0.4 and earlier. Neither choice is fixed by the target
+or its authority, and inventing one under review pressure is how a control
+acquires a rule nobody can maintain.
+
+**Explicitly not claimed.** With these limits documented rather than closed,
+the module must not be read as deciding approval for every input. It decides the
+cases it names.
