@@ -276,6 +276,18 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "new-adr", "scripts", "index-records.py",
             args=("--check", "docs/adr"),
         ),
+        # AC-0010: the ADR shape lint and its fixture suite run on every PR.
+        # Runs the projected copy so the built artifact is what the gate exercises.
+        _pytest_step(
+            "test-lint-adr-shape",
+            "packs", "governance-extras", "tests", "skills", "new-adr",
+            "test_lint_adr_shape.py",
+        ),
+        _script_step(
+            "check-adr-shape",
+            ".claude", "skills", "new-adr", "scripts", "lint-adr-shape.py",
+            args=("docs/adr",),
+        ),
         _script_step(
             "check-rfc-index",
             ".claude", "skills", "new-rfc", "scripts", "index-records.py",
