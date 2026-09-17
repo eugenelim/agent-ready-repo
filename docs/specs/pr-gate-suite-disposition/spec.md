@@ -1,6 +1,6 @@
 # Spec: PR-gate suite disposition
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -198,11 +198,13 @@ eight take the modes named below.
   whose `pull_request` trigger carries a `paths` allowlist or a `paths-ignore` list.
 - [ ] **AC-0004.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a step or job
   carrying `continue-on-error` or an `if:` condition.
-- [ ] **AC-0005.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a `PR_GATED` entry
-  names a suite that no step of any workflow under `.github/workflows/` with an
-  unfiltered `pull_request` trigger reaches, where "reaches" counts a pytest operand
-  of that step and any target `tools/repo/build_gate_chain.py` runs when the step
-  invokes `make build-check`.
+- [ ] **AC-0005.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
+  `PR_GATED` entry names a suite that no step of any workflow under
+  `.github/workflows/` with an unfiltered `pull_request` trigger reaches. A step
+  reaches a suite in exactly three shapes: the suite is a pytest operand of that
+  step; the suite is a script path at a command position in that step; or the suite
+  is a target `tools/repo/build_gate_chain.py` runs and the step invokes
+  `make build-check`.
 - [ ] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the covering step, when a
   `NO_PR_GATE` entry names a suite that a workflow with an unfiltered
   `pull_request` trigger does reach.

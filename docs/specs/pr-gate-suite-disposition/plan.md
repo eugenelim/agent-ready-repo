@@ -1,7 +1,7 @@
 # Plan: PR-gate suite disposition
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/lint-ci-parity.py` (the forward gate this extends,
   and the source of the roster-anchor/extraction-corroboration pattern);
   `tools/test-lint-ci-parity.py` (the self-test route, 143 existing cases run from
@@ -159,9 +159,13 @@ counterparts:
   `_strip_inline_comment`, `_strip_shell_noise` and `_pytest_path_args`. Corroboration
   only.
 - `pr_gate_sources(root)` — target → list of (workflow, trigger kind, step,
-  conditional?), unioning per-workflow `extract_ci_targets` with
-  `script_step_targets` for a workflow step that invokes `make build-check`,
-  mirroring `local_targets()`.
+  conditional?). Unions three coverage shapes, because T1 measured that coverage
+  arrives in three and an earlier enumeration of two would have rejected five
+  correct entries: a pytest operand of a step, a script path at a command position
+  in a step, and — for a step invoking `make build-check` — every
+  `script_step_targets` entry of the gate chain. The first two both fall out of
+  `extract_ci_targets`, which already reads paths at invocation positions; the third
+  mirrors `local_targets()`.
 - a `check_suites(...)` arm called from `main()` alongside `check(...)`, taking its
   tables as keyword parameters so each self-test case supplies its own.
 
@@ -229,7 +233,11 @@ Makefile text and workflow mapping as keyword arguments:
   carrying `if:` (AC-0004)
 - `PR_GATED` whose suite no extracted step reaches (AC-0005)
 - `PR_GATED` satisfied *only* through `build_gate_chain.py` coverage, which fails if
-  the union is dropped (AC-0005)
+  that arm of the union is dropped (AC-0005)
+- `PR_GATED` satisfied *only* through a script invoked at a command position —
+  `python3 tools/test-pages-workflow.py` is the live shape — which fails if
+  corroboration demands a pytest operand (AC-0005). Five real entries depend on
+  this arm; T1 found the approved criterion had omitted it.
 - `NO_PR_GATE` whose suite an unfiltered workflow does reach (AC-0006)
 - `NO_PR_GATE` and `PR_GATED_IF` with whitespace-only reasons (AC-0007)
 
@@ -423,6 +431,14 @@ entry before committing.
   execution became its own criterion. That last repair reinstates round 2's original
   remedy: splitting the two gating criteria, which this plan had overridden with a
   route-to-owner that silently dropped the execution obligation.
+- 2026-09-17: Contract amendment, owner-authorised. T1's probe found AC-0005
+  enumerated two coverage shapes where three exist: five `run-test-suite` targets
+  are gated only by a script invoked at a command position, so the criterion as
+  approved rejected five correct `PR_GATED` entries and made AC-0013
+  unsatisfiable. The criterion now names all three shapes and T2 gains a case for
+  the third. Five review rounds missed this because none separated *how* each
+  target was matched; only running the extractor per shape exposed it. Authority:
+  `notes/owner-decisions.md`; evidence: `notes/verification-ledger.md`.
 - 2026-09-16: Deletion pass before approval cut one criterion. The rejected-
   `PR_GATED_IF`-on-an-unfiltered-workflow check enforced precision in the harmless
   direction — an over-cautious entry understates coverage and gates nothing wrongly
