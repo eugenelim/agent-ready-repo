@@ -245,3 +245,33 @@ which cannot see a message emitted before the write — produced:
 The operator is told the target, the file the value came from, the value
 itself, and which checks ran. A misresolution to the example path would be
 visible in that same line.
+
+---
+
+# Final matrix — against the shipped state
+
+Every cell below was observed after the last module edit, except where the
+skill's behaviour was already measured on identical code.
+
+| skill | reserved `output_dir` | symlinked target | non-conforming slug |
+| --- | --- | --- | --- |
+| `creative-direction` | refused | refused | refused |
+| `design-principles` | refused | refused (3 of 3) | refused |
+| `design-system` | refused | refused | refused |
+| `information-architecture` | refused | refused (3 of 3) | refused |
+
+No file was written in any of these runs.
+
+`design-review` loads the principles artifact under a non-default
+`output_dir` (`ux-artifacts`) and maps findings to it. Correct.
+
+**`spec.md:287-291` is satisfied**: for each of the four writes, a refusal is
+observed against an inadmissible `output_dir`, a symlinked target, and a
+non-conforming slug, plus the `design-review` load.
+
+**Read it with the qualification above.** These are observations of a
+probabilistic control, not proof of a boundary. The same symlink cell read
+2 escapes in 8 runs before the module was rewritten, and the benign resolution
+defect is open and unfixed by wording. The ledger entry and the module both
+state this; a reader who takes the matrix alone will overestimate the
+guarantee.
