@@ -131,7 +131,7 @@ agentbundle install --pack product-strategy --scope user
 | `run-okr-cascade` | OKR cascade | Cascading company OKRs to team level; exposing gaps |
 | `synthesize-stakeholder-research` | Research synthesis | Converting desk-research output into strategic narrative |
 | `define-ux-strategy` | Experience vision + goals/measures + plan | Upstream anchor for `journey-mapping` and `content-design` |
-| `define-content-strategy` | Halvorson Purpose · Process · Structure · Governance | Governance layer for content above per-surface design |
+| `define-content-strategy` | Purpose · Process · Structure · Governance (this pack's composite) | Governance layer for content above per-surface design |
 
 ---
 

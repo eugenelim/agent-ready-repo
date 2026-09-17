@@ -267,7 +267,7 @@ This is the same scope decision as `architect` and `desk-research`. Compare with
 The `product-strategy` pack is the strategic anchor this pack builds on. Before `journey-mapping` runs, a strategist may have committed:
 
 - `ux-strategy.md` (vision → goals + measures → plan) — read by `journey-mapping` as the stated rationale for the journey.
-- `content-strategy.md` (Halvorson quad: Purpose + Process + Structure + Governance) — read by `content-design` for organizational governance intent.
+- `content-strategy.md` (Purpose + Process + Structure + Governance — the product-strategy pack's own composite, informed by the content-strategy quad but not identical to either published version) — read by `content-design` for organizational governance intent.
 
 Both inputs are optional; the skills degrade gracefully when absent. With them, the design thread has explicit strategic grounding; without them, it must infer intent from the stated user and outcome.
 

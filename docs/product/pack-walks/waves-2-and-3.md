@@ -16,8 +16,42 @@ walk found was designed out rather than discovered. What remained is below.
 | 2 | Human vs agent | guide | `desk-research` showed `set-research-scope-and-depth` twice, reading as two decisions | Fixed — the two are alternative routes, and the second now says so |
 | 3 | Orientation | guide | `core` walks 10 of its 18 skills and `desk-research` 11 of 12, with the omissions unmentioned. A reader who knows the pack has eighteen assumes the walk lost eight | Fixed — both entry pages name what is off the path and why |
 | 4 | Handover | guide | Four guidebooks ended by pointing at the guides hub and saying the work "is picked up by" the next pack, naming no page | Fixed — ten cross-pack edges, each stated at both ends |
-| 5 | Artifact | skill | `define-content-strategy` cited "the Halvorson content strategy quad (Brain Traffic, 2018 revision)" for sections that appear in neither published quad | Fixed in the pack — the citation was wrong, the sections are unchanged |
+| 5 | Artifact | skill | `define-content-strategy` cited "the Halvorson content strategy quad (Brain Traffic, 2018 revision)" for sections that appear in neither published quad | Fixed in the skill, but only there — see the rewalk below |
 | 6 | Artifact | guide | 21 of 45 skills ship no output template, so their previews were section lists | Partly fixed — three now excerpt a real artifact produced by running the skill; the rest remain shape-only |
+
+## Rewalk — 2026-09-17, finding 5
+
+Finding 5 was recorded as fixed because the cited line was repaired. Walking the
+same claim outwards instead of reading the repaired line found it live on **nine
+further surfaces** and in **two decision records**, all saying the pack's own
+four parts are Halvorson's quad:
+
+| Owner | Surfaces |
+| --- | --- |
+| `skill` | `define-content-strategy`'s `evals/evals.json` (3 assertions) |
+| `journey` | `packs/product-strategy/JOURNEY.md`, its generated projection `web/src/content/journeys/product-strategy.md`, and `docs/product/journeys/product-strategist-sets-direction.md` |
+| `guide` | `packs/product-strategy/README.md`, both pack `DESIGN.md` files, and three `guides/product-strategy/` pages |
+| `contract` | RFC-0063 § Evidence & prior art and ADR-0053 D3/D7 — the records the pack was built from |
+
+All are repaired; the two decision records carry errata rather than edits. Two
+lessons, both about the walk rather than the pack:
+
+**A citation repair is a class, not a line.** The original fix changed the
+sentence the walk cited. Nothing checked whether the same sentence had been
+paraphrased elsewhere, and it had been — into a table cell, a Mermaid node
+description, a JSON eval assertion, and a generated web page, none of which share
+enough text for a literal search seeded from the repaired wording to reach them.
+
+**The record was the source of the wrong answer.** RFC-0063 carried the
+misattribution in its own prior-art section, so every projection of it was
+faithful to a false source. Routing a citation finding to `skill` and stopping
+there leaves the generator intact; this row should have routed to `contract`
+first.
+
+The same walk found a third instance of the class — `define-ux-strategy` cited
+Levy's fourth tenet by its superseded first-edition name (*killer UX design*)
+while RFC-0063's own source note already gave the second edition's (*frictionless
+UX*). Same generator, same shape.
 
 ## What the method caught that authoring did not
 

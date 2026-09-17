@@ -162,7 +162,7 @@ type: ux-strategy
 | Business strategy | <strong | weak> | <gap> |
 | Value innovation | | |
 | Validated user research | | |
-| Killer UX design | | |
+| Frictionless UX | | |
 
 ## Goals and measures
 
@@ -173,7 +173,7 @@ type: ux-strategy
 1. <Initiative> — closes <measure>, hands off to `journey-mapping`.
 ```
 
-*Section shape only. The vision / goals / plan spine is the common UX-strategy layering; the four tenets are Levy's **definition** of UX strategy rather than a document structure, which is why they appear here as a quality check and not as four sections. This pack ships no template — confirm the shape against what you get back.*
+*Section shape only. The vision / goals / plan spine is the common UX-strategy layering; the four tenets are Levy's definition of UX strategy rather than a document structure, which is why they appear here as a quality check and not as four sections. The fourth tenet is named frictionless UX in the 2021 second edition of UX Strategy and killer UX design in the 2015 first edition; this pack follows the second. This pack ships no template — confirm the shape against what you get back.*
 
 ## Run `define-content-strategy` — the content anchor
 
