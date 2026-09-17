@@ -59,6 +59,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from typing import NamedTuple
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -544,56 +545,97 @@ def parse_depends_on(field: str, local_task_ids):
     return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
 
 
+class _TaskSection(NamedTuple):
+    """One plan task's boundaries, as offsets into the plan text.
+
+    `start` opens the heading; `body_start` is just past it; `end` is where the
+    next task heading begins, or the end of the text for the final task.
+    """
+
+    task_id: str
+    start: int
+    body_start: int
+    end: int
+
+
+def walk_task_sections(text: str) -> list[_TaskSection]:
+    """Sole owner of the plan's task-section boundaries.
+
+    Every caller that needs to know which task owns a line resolves it here.
+    That is the point of the function rather than a convenience: the
+    unknown-dependency refusal in `detect_unknown_deps` must attribute a
+    `Depends on:` line to exactly the task `parse_plan` attributes it to. Were
+    the two to walk the boundaries separately and ever disagree, `schedule`
+    would refuse a plan it would otherwise have scheduled, or accept one whose
+    edges it then reads differently. Sharing the walk makes that agreement
+    structural instead of a coincidence maintained by hand.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    return [
+        _TaskSection(
+            task_id=m.group(1),
+            start=m.start(),
+            body_start=m.end(),
+            end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
+        )
+        for i, m in enumerate(matches)
+    ]
+
+
+def section_depends_field(text: str, section: _TaskSection) -> str | None:
+    """The raw `Depends on:` field value a task declares, or None.
+
+    Single-homed for the same reason as the walk above: the refusal and the
+    graph must read the same field text for the same task.
+    """
+    dm = DEPENDS_LINE_RE.search(text[section.body_start:section.end])
+    return dm.group(1) if dm else None
+
+
 def detect_unknown_deps(text: str, scan_task_ids: set[str] | None = None) -> list[tuple[str, str]]:
     """Return (task, dep) pairs naming an ID the plan does not contain.
 
     Dependencies always resolve against every task in `text`. `scan_task_ids`
     restricts which tasks' declarations are read; None reads all of them.
     """
-    matches = list(TASK_HEADING_RE.finditer(text))
+    sections = walk_task_sections(text)
     # Resolution set: ALL task IDs in the plan — never narrowed by the caller.
-    resolution_set = {m.group(1) for m in matches}
+    resolution_set = {s.task_id for s in sections}
     result: list[tuple[str, str]] = []
-    for i, m in enumerate(matches):
-        task_id = m.group(1)
-        if scan_task_ids is not None and task_id not in scan_task_ids:
+    for section in sections:
+        if scan_task_ids is not None and section.task_id not in scan_task_ids:
             continue
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        dm = DEPENDS_LINE_RE.search(text[m.end():end])
-        if not dm:
+        field = section_depends_field(text, section)
+        if field is None:
             continue
-        unknown = _local_dep_ids(dm.group(1)) - resolution_set
+        unknown = _local_dep_ids(field) - resolution_set
         for dep in sorted(unknown):
-            result.append((task_id, dep))
+            result.append((section.task_id, dep))
     return sorted(result)
 
 
 def parse_plan(text: str):
     """Extract ordered task IDs and dependency map from plan.md text."""
-    matches = list(TASK_HEADING_RE.finditer(text))
-    ordered = [m.group(1) for m in matches]
+    sections = walk_task_sections(text)
+    ordered = [s.task_id for s in sections]
     taskset = set(ordered)
     deps: dict[str, set] = {}
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        dm = DEPENDS_LINE_RE.search(text[m.end():end])
-        local, _ = parse_depends_on(dm.group(1), taskset) if dm else (set(), [])
-        deps[m.group(1)] = local
+    for section in sections:
+        field = section_depends_field(text, section)
+        local, _ = parse_depends_on(field, taskset) if field is not None else (set(), [])
+        deps[section.task_id] = local
     return ordered, deps
 
 
 def _task_sections(text: str) -> dict[str, str]:
     """Return exact authored task sections keyed by unique task ID."""
-    matches = list(TASK_HEADING_RE.finditer(text))
     sections: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        task_id = match.group(1)
-        if task_id in sections:
-            raise ValueError(f"duplicate task section {task_id}")
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        raw = text[match.start():end].replace("\r\n", "\n").replace("\r", "\n")
+    for section in walk_task_sections(text):
+        if section.task_id in sections:
+            raise ValueError(f"duplicate task section {section.task_id}")
+        raw = text[section.start:section.end].replace("\r\n", "\n").replace("\r", "\n")
         canonical = "\n".join(line.rstrip() for line in raw.split("\n")).rstrip() + "\n"
-        sections[task_id] = canonical
+        sections[section.task_id] = canonical
     return sections
 
 
@@ -996,15 +1038,13 @@ def parse_touches(field: str):
 
 
 def parse_touches_by_task(text: str):
-    matches = list(TASK_HEADING_RE.finditer(text))
     out: dict[str, set] = {}
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        tm = TOUCHES_LINE_RE.search(text[m.end():end])
+    for section in walk_task_sections(text):
+        tm = TOUCHES_LINE_RE.search(text[section.body_start:section.end])
         if tm:
             globs = parse_touches(tm.group(1))
             if globs:
-                out[m.group(1)] = globs
+                out[section.task_id] = globs
     return out
 
 

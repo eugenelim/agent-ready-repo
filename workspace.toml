@@ -1165,8 +1165,30 @@ open = [
   # pre-existing functions, which the root AGENTS.md "Cut before adding" and
   # "keep unrelated discoveries out of the current change" rules place outside
   # that change's accepted scope, and the extraction shape is not determined.
-  # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
+  # Found 2026-09-17 by the agreement property written to close the
+  # boundary-walk consolidation above (core 2.26.11). Not a regression from that
+  # change: the property was run against all 423 `docs/specs/*/plan.md` files
+  # and the before/after comparison on the same corpus showed zero behavioural
+  # differences, so this predates the consolidation and the consolidation simply
+  # made it visible. `parse_plan` keys its dependency map by task ID, so when a
+  # plan heads two sections with the same ID the later section overwrites the
+  # earlier one's edges. In `local-gate-ci-parity/plan.md` a `## T6 evidence
+  # (observed output)` section collides with `### T6`, which declares
+  # `T1, T2, T3`; T6 therefore schedules with no dependencies at all, in wave 0
+  # beside the T1 and T2 it needs and ahead of T3. Two of 423 plans carry a
+  # duplicate heading (`local-gate-ci-parity` T6, `sequential-implementer-dispatch`
+  # T0). Nothing refuses it on a fresh `schedule`: `_task_sections` does raise
+  # `duplicate task section`, but only `validate_completed_task_sections` calls
+  # it and that returns early unless the run already carries completed-task
+  # pins, so the refusal exists and is unreachable in the case that needs it.
+  # Today's behaviour is pinned by
+  # `test_duplicate_task_heading_drops_the_earlier_sections_edges`, so a change
+  # is deliberate rather than silent. NOT folded into the consolidation: adding
+  # a refusal widens a published guard's refusal set, which is a behaviour
+  # change owing its own specification and acceptance criterion, and the root
+  # AGENTS.md rule on keeping unrelated discoveries out of the current change
+  # places it outside a consolidation chore. Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Refuse or disambiguate a duplicate plan task heading: parse_plan keys deps by task ID so a second section with the same ID silently drops the first section's declared edges and the task schedules as if it depended on nothing, and the duplicate-section refusal that would catch it is only reachable once completed-task pins exist", needs = [] },
   # The 22-of-67 convention-obligation cost measured by the review-economics
   # spike has no owner. Of 67 findings sustained across its six paired cases, 22
   # were unmet repository obligations rather than defects in the logic the change
@@ -1325,6 +1347,21 @@ open = [
 # docs/specs/pr-gate-suite-disposition/notes/verification-ledger.md; settling the
 # convention is its own decision.
 closed = [
+  # Closed 2026-09-17 in core 2.26.11. `walk_task_sections` is now the sole
+  # owner of the task-section boundary walk and `section_depends_field` the sole
+  # owner of the `Depends on:` field lookup; `detect_unknown_deps`, `parse_plan`,
+  # `_task_sections`, and `parse_touches_by_task` all consume them, so the
+  # refusal and the graph cannot disagree about which task owns a line. Agreement
+  # is proved rather than asserted: a property check over a fixture corpus
+  # asserts that each task's declared IDs are exactly the edges the graph carries
+  # plus the IDs the refusal reports unknown, and it reddens when either
+  # consumer's boundary is perturbed independently. The deliberate asymmetry is
+  # preserved and separately pinned -- the field is still read only up to its
+  # first `(`, so a parenthetical ID is neither scheduled as an edge nor reported
+  # as unknown. Before/after comparison over all 423 repository plans showed zero
+  # behavioural differences. The duplicate-heading hazard the property surfaced
+  # is registered as its own open defect above.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -64,6 +64,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.16] — 2026-09-17
+
+### Changed
+
+- The work-loop scheduler now resolves which plan task owns a `Depends on:`
+  line in exactly one place. Four functions used to walk the plan's task-section
+  boundaries separately, including the unknown-dependency refusal and the
+  dependency graph the refusal has to agree with; if those two walks had ever
+  drifted apart, `schedule` would have refused a plan it would otherwise have
+  scheduled, or accepted one whose edges it then read differently. They now
+  share one owner, so that agreement is structural. A `Depends on:` field is
+  still read only up to its first `(`, so an ID inside parenthetical prose stays
+  commentary — neither scheduled as an edge nor reported as unknown. Behaviour
+  is unchanged: compared across every plan in this repository, the consolidated
+  walk produces identical output.
+
+## [core][2.26.13] — 2026-09-17
 ## [core][2.26.15] — 2026-09-17
 
 ### Fixed

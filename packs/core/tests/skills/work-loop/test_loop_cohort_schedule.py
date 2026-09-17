@@ -719,3 +719,317 @@ def test_detect_unknown_deps_has_exactly_one_call_site():
         "the scan set must be passed by keyword, so it cannot be mistaken for "
         f"the resolution set: {call_lines[0]}"
     )
+
+
+# ── one owner for the task-section boundary walk ────────────────────────────
+
+# Plans exercising every way the boundary walk can be got wrong: both heading
+# levels, a task with no `Depends on:` line, the field on the final task, a
+# `Depends on:` line in the preamble that belongs to no task, CRLF line
+# endings, ranges, cross-spec markers, and parenthetical prose naming both a
+# present and an absent ID.
+AGREEMENT_PLANS = {
+    "level-2 headings": """\
+# Plan
+
+## T1
+**Depends on:** none
+
+## T2
+**Depends on:** T1
+
+## T3
+**Depends on:** T1, T2
+""",
+    "level-3 headings": """\
+# Plan
+
+### T1
+**Depends on:** none
+
+### T2
+**Depends on:** T1
+""",
+    "task with no depends line": """\
+# Plan
+
+## T1
+Some prose and no declaration at all.
+
+## T2
+**Depends on:** T1
+""",
+    # The case that makes a divergent boundary observable at all. T1 declares
+    # nothing and T2 names an ID the plan does not contain, so a walk that
+    # searched past T1's section end would hand T2's `Depends on:` line to T1
+    # and report an unknown dependency against the wrong task. Without an
+    # absent ID here the misattribution resolves to a known task and stays
+    # invisible to the agreement property.
+    "no depends line, next task names an absent id": """\
+# Plan
+
+## T1
+Some prose and no declaration at all.
+
+## T2
+**Depends on:** T99
+""",
+    "field on the final task": """\
+# Plan
+
+## T1
+**Depends on:** none
+
+## T2
+**Depends on:** T1
+""",
+    "preamble depends line owned by no task": """\
+# Plan
+
+**Depends on:** T99
+
+## T1
+**Depends on:** none
+""",
+    "crlf line endings": "# Plan\r\n\r\n## T1\r\n**Depends on:** none\r\n\r\n## T2\r\n**Depends on:** T1\r\n",
+    "range and cross-spec marker": """\
+# Plan
+
+## T1
+**Depends on:** none
+
+## T2
+**Depends on:** none
+
+## T3
+**Depends on:** T1-T2, spec:other-spec/T4
+""",
+    "parenthetical names a present id": """\
+# Plan
+
+## T1
+**Depends on:** none
+
+## T2
+**Depends on:** none
+
+## T3
+**Depends on:** T1 (deliberately not ordered against T2)
+""",
+    "parenthetical names an absent id": """\
+# Plan
+
+## T1
+**Depends on:** none
+
+## T2
+**Depends on:** T1 (supersedes the T77 approach)
+""",
+    "unknown dependency": """\
+# Plan
+
+## T1
+**Depends on:** T42
+""",
+    "no tasks at all": "# Plan\n\nProse only.\n",
+}
+
+
+def test_boundary_walk_has_exactly_one_owner():
+    """Only `walk_task_sections` may walk the task-heading matches.
+
+    The registered defect was four functions each re-deriving which task owns a
+    `Depends on:` line. Consolidation alone does not stay consolidated — the
+    next caller that needs section boundaries can quietly add a fifth walk, and
+    every behavioural test would still pass. This reads the shipped source and
+    refuses a second `finditer` on the heading grammar.
+    """
+    source = LC_PATH.read_text(encoding="utf-8")
+    walk_lines = [
+        line.strip()
+        for line in source.splitlines()
+        if "TASK_HEADING_RE.finditer" in line
+    ]
+    assert len(walk_lines) == 1, (
+        "TASK_HEADING_RE.finditer must appear exactly once, inside "
+        f"walk_task_sections; found {len(walk_lines)}: {walk_lines}"
+    )
+    owner = source.split("def walk_task_sections")[1].split("\ndef ")[0]
+    assert "TASK_HEADING_RE.finditer" in owner, (
+        "the single heading walk moved out of walk_task_sections"
+    )
+    # The `Depends on:` field lookup is single-homed for the same reason.
+    depends_lines = [
+        line.strip()
+        for line in source.splitlines()
+        if "DEPENDS_LINE_RE.search" in line
+    ]
+    assert len(depends_lines) == 1, (
+        "DEPENDS_LINE_RE.search must appear exactly once, inside "
+        f"section_depends_field; found {len(depends_lines)}: {depends_lines}"
+    )
+
+
+def test_refusal_and_graph_agree_on_every_declared_id():
+    """`detect_unknown_deps` and `parse_plan` partition the same field.
+
+    This is the agreement the register entry asks for, stated as a property
+    rather than an assertion about the code's shape: for each task, the IDs the
+    field declares are exactly the edges the graph carries plus the IDs the
+    refusal reports unknown. A boundary walk that attributed a line to the
+    wrong task would move an ID out of one side without moving it into the
+    other, and this fails.
+
+    Scope: plans whose task IDs are unique. The property does not hold when a
+    plan repeats a heading ID, because `parse_plan` keys its dependency map by
+    task ID and the later section overwrites the earlier one. That is a real
+    hazard rather than an artefact of this test — see
+    `test_duplicate_task_heading_drops_the_earlier_sections_edges`.
+    """
+    for label, text in AGREEMENT_PLANS.items():
+        ordered, deps = lc.parse_plan(text)
+        unknown_by_task: dict[str, set[str]] = {}
+        for task, dep in lc.detect_unknown_deps(text):
+            unknown_by_task.setdefault(task, set()).add(dep)
+
+        # Every task the refusal talks about is a task the graph knows.
+        assert set(unknown_by_task) <= set(ordered), label
+
+        for section in lc.walk_task_sections(text):
+            field = lc.section_depends_field(text, section)
+            declared = lc._local_dep_ids(field) if field is not None else set()
+            carried = deps[section.task_id]
+            reported = unknown_by_task.get(section.task_id, set())
+            assert carried | reported == declared, (
+                f"{label}: {section.task_id} declares {sorted(declared)} but the "
+                f"graph carries {sorted(carried)} and the refusal reports "
+                f"{sorted(reported)}"
+            )
+            # The two halves are disjoint: an ID is an edge or unknown, never both.
+            assert not (carried & reported), f"{label}: {section.task_id}"
+
+
+def test_every_boundary_consumer_agrees_on_the_task_set():
+    """The four former walkers still see the same tasks in the same order."""
+    for label, text in AGREEMENT_PLANS.items():
+        ordered, _ = lc.parse_plan(text)
+        walked = [s.task_id for s in lc.walk_task_sections(text)]
+        assert walked == ordered, label
+        assert list(lc._task_sections(text)) == ordered, label
+        assert set(lc.parse_touches_by_task(text)) <= set(ordered), label
+
+
+def test_preamble_depends_line_belongs_to_no_task():
+    """A declaration above the first heading is owned by nobody.
+
+    `T99` is in no task's section, so it is neither an edge nor an unknown-dep
+    refusal. The field that carries this is `body_start`: a walk that opened the
+    first task's body at the top of the file instead of just past its heading
+    would hand this line to T1 and refuse the plan. (Rewinding `body_start` to
+    the heading's own start is *not* enough to break it — the preamble sits
+    above the heading either way, so only the first-section-opens-at-zero error
+    shows up here.)
+    """
+    text = AGREEMENT_PLANS["preamble depends line owned by no task"]
+    ordered, deps = lc.parse_plan(text)
+    assert ordered == ["T1"]
+    assert deps["T1"] == set()
+    assert lc.detect_unknown_deps(text) == []
+
+
+def test_parenthetical_ids_stay_commentary_after_consolidation():
+    """The deliberate asymmetry survives: the field is read up to its first `(`.
+
+    Both directions matter. An ID in parenthetical prose that names a real task
+    must not become an edge, and one that names no task must not become an
+    unknown-dependency refusal. Consolidating the walk must not widen either.
+    """
+    present = AGREEMENT_PLANS["parenthetical names a present id"]
+    _, deps = lc.parse_plan(present)
+    assert deps["T3"] == {"T1"}, "T2 sits after the '(' and is not an edge"
+    assert lc.detect_unknown_deps(present) == []
+
+    absent = AGREEMENT_PLANS["parenthetical names an absent id"]
+    _, deps = lc.parse_plan(absent)
+    assert deps["T2"] == {"T1"}
+    assert lc.detect_unknown_deps(absent) == [], (
+        "T77 sits after the '(' — commentary, so not reported unknown"
+    )
+
+
+def test_unknown_dependency_is_still_reported():
+    """The refusal has not been widened away by the consolidation."""
+    text = AGREEMENT_PLANS["unknown dependency"]
+    assert lc.detect_unknown_deps(text) == [("T1", "T42")]
+
+
+def test_task_section_text_opens_at_its_own_heading():
+    """Each canonical section begins with its own heading, not the file's top.
+
+    `_task_sections` feeds the amendment pins, so the section text is
+    hash-sensitive. The `start` offset is what makes it exact, and nothing else
+    in the suite reads it: with `start` forced to 0 for the first task, the
+    whole pack suite stayed green while T1's pinned text silently absorbed the
+    plan's preamble. This is the check that fails instead.
+    """
+    text = AGREEMENT_PLANS["preamble depends line owned by no task"]
+    sections = lc._task_sections(text)
+    assert set(sections) == {"T1"}
+    assert sections["T1"].startswith("## T1"), sections["T1"]
+    assert "# Plan" not in sections["T1"], "the preamble leaked into T1's section"
+
+    multi = lc._task_sections(AGREEMENT_PLANS["level-2 headings"])
+    for task_id, body in multi.items():
+        assert body.startswith(f"## {task_id}"), (task_id, body)
+
+
+_DUPLICATE_HEADING_PLAN = """\
+# Plan
+
+## T1
+**Depends on:** none
+
+## T2
+**Depends on:** T1
+
+## T2 evidence (observed output)
+
+Prose recording what T2 produced. No declaration of its own.
+"""
+
+
+def test_duplicate_task_heading_drops_the_earlier_sections_edges():
+    """Pins today's behaviour when one ID heads two sections: last section wins.
+
+    `parse_plan` keys its dependency map by task ID, so the second `## T2`
+    section — an evidence write-up with no `Depends on:` line — overwrites the
+    real T2 section's edges, and T2 schedules as if it depended on nothing.
+    Nothing refuses this on a fresh `schedule`: `_task_sections` does raise on
+    the duplicate, but only `validate_completed_task_sections` calls it, and
+    that returns early unless the run already has completed-task pins.
+
+    This is pinned, not fixed. Making `schedule` refuse a duplicate heading
+    changes a published guard's refusal set and needs its own specification;
+    the check exists so the behaviour is visible and any change to it is
+    deliberate.
+    """
+    ordered, deps = lc.parse_plan(_DUPLICATE_HEADING_PLAN)
+    assert ordered == ["T1", "T2", "T2"]
+    assert deps["T2"] == set(), "the evidence section's empty edge set wins"
+
+    waves, _ = lc.topological_waves(ordered, deps)
+    assert "T2" in waves[0], "T2 schedules beside the T1 it declared it needs"
+
+    # The refusal path does catch it, but only once pins exist.
+    with pytest.raises(ValueError, match="duplicate task section T2"):
+        lc._task_sections(_DUPLICATE_HEADING_PLAN)
+    assert lc.validate_completed_task_sections(_DUPLICATE_HEADING_PLAN, {}) is None
+
+
+def test_agreement_property_holds_when_ids_are_unique():
+    """The duplicate case is the only exception to the agreement property."""
+    ordered, _ = lc.parse_plan(_DUPLICATE_HEADING_PLAN)
+    assert len(ordered) != len(set(ordered)), "fixture must repeat an ID"
+    for label, text in AGREEMENT_PLANS.items():
+        ids = [s.task_id for s in lc.walk_task_sections(text)]
+        assert len(ids) == len(set(ids)), f"{label}: corpus must keep IDs unique"
