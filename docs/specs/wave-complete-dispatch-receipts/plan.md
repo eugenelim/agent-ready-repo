@@ -280,9 +280,85 @@ the byte-equality criteria.
   for every row whose state has a file, make the no-write rule falsifiable on
   the paths where a write would be tempting.
 
+## Discovery channel
+
+T1 is a **declared discovery task**. Exact helper names, fixture shapes, and
+local construction details for an unstarted task may remain unresolved until it
+runs; T1 may then refine those details in named, unstarted tasks only. A task
+section locks when its execution begins, and a completed section is immutable.
+
+- **Discovery predicate, predeclared.** T1 resolves exactly six questions, each
+  with a stated form of answer: which surfaces execute `check --phase implement`
+  and whether each consumes the exit code; which sites fire `wave-complete` and
+  whether each runs before or after GATES; what `check_phase` does with an
+  unsupported `schema_version` for a phase other than `implement`; which
+  statements in the tree assert that `implement` guards `wave-complete`; which
+  surfaces enumerate the phase list; and what length bound each refusal channel
+  applies. Anything outside those six is not discovery.
+- **Kill condition.** If the `schema_version` answer is that a new phase refuses
+  where `implement` passes, the separate-phase approach is killed, because it
+  would change the transition's verdict for in-flight pre-Phase-1 runs — the
+  breakage the design exists to prevent. Bounded alternatives, in preference
+  order: (i) keep the accounting in `implement` and scope the pre-PR hook's
+  `implement` leg to the engine state, which widens the change into a shipped
+  hook; (ii) add the accounting as a second, `implement`-exempt branch sharing
+  `implement`'s schema exemption; (iii) leave the guard a stub and close the gap
+  at a different transition. Selecting any alternative is a contract amendment,
+  not discovery.
+- **Refinable tasks.** T1 may refine only T2 and T3, and only their `Approach`
+  bullets and the helper, fixture, and path details inside their `Tests`
+  entries. It may not change a task's stated outcome, its `Done when`, its
+  `Depends on:` edge, or any acceptance criterion.
+- **Decision record.** Every refinement appends one dated entry to
+  § Discovery decisions below, naming the question, the evidence, the surfaces
+  read, and the task and field refined. Entries are append-only; a superseded
+  entry is answered by a later entry, never edited.
+- **Scoped review.** A refinement re-reviews the changed task and every task
+  whose `Depends on:` edge reaches it — for a T2 refinement that is T2 and T3;
+  for a T3 refinement, T3 alone. Not the whole plan.
+- **Preserved.** Discovery writes nothing to `amendment_history` and nothing to
+  `completed_task_ids` or `completed_task_section_hashes`; a refinement of an
+  unstarted task leaves both untouched, which is what keeps it distinct from an
+  amendment.
+
+Any change outside those bounds — an acceptance criterion, a task's outcome, a
+dependency edge, a verification obligation, or any started task — uses the
+controlled amendment path in
+[`delivery-contract-lifecycle.md`](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md).
+
+## Discovery decisions
+
+<!-- Append-only. One entry per refinement: date, question, evidence, surfaces
+read, task and field refined. Never edit an existing entry. -->
+
+- none yet.
+
+## Inline proof obligation
+
+Three mechanisms in this change have a consequential false-pass direction: the
+verdict table and the accounting predicate are classifiers whose wrong answer is
+a wave exiting unaccounted; the verb's validation chain is a gate whose wrong
+answer is a record written under a key the guard never reads; and the partition
+walk is a negative control whose wrong answer is a green suite over an
+unexplored domain. The dispatch-rate generator is an extractor whose wrong
+answer is a motivating figure that overstates the gap.
+
+Each of those arms proves itself in the task that introduces it, and each proof
+carries four parts:
+
+1. a discriminating positive case and a consequential negative case;
+2. a demonstration that removing or neutralising the arm reddens a **named**
+   case;
+3. exercise of the real entry path — the CLI verb or the transition — not only
+   the helper it calls;
+4. the condition that retires the approach.
+
+`Done when` entries below carry these; they are not deferred to T5. T5 remains
+the exhaustive per-clause sweep, not the first time an arm is tested.
+
 ## Tasks
 
-### T1: What the pinned files require is settled and recorded
+### T1 (discovery): The guard surface is mapped and the pinned files are settled
 
 **Depends on:** none
 
@@ -309,9 +385,23 @@ the byte-equality criteria.
   the spec cites it rather than repeating the figures.
 - Read-only task: it writes only the ledger.
 
-**Done when:** the ledger records what each of the four files pins and the
-action it implies, the hook and golden confirmations, and the dispatch-rate
-measurement with its method.
+**Done when:** the ledger answers all six predeclared questions, each naming the
+surfaces read rather than a grep pattern; records the golden confirmation; and
+records one run of the dispatch-rate generator.
+
+**Inline proof — the dispatch-rate generator is an extractor.**
+- Positive: the tight pattern matches a real `loop-cohort.py schedule
+  docs/specs/<slug>` invocation. Negative: it does not match a command that
+  mentions `loop-cohort` without the subcommand and an argument, which is the
+  over-count direction; the generator reports that loose count alongside so the
+  gap is visible.
+- Neutralising proof: replacing the tight pattern with the loose one changes the
+  reported engine-driven count on the recorded corpus. The ledger records both
+  numbers from one run, so the substitution is falsifiable from the artifact.
+- Real entry path: the generator is run as a committed script from the
+  repository root, not imported; the ledger cites the command.
+- Retires when: the loop records dispatch in cohort state, at which point the
+  rate is a query over `state.json` and transcript scanning is obsolete.
 
 ### T2: The record mutation and the record lifecycle behave as specified
 
@@ -368,6 +458,21 @@ measurement with its method.
 - Apply whatever T1 recorded about verb-set and `PHASES` pinning.
 - Run `FORCE=1 make build-self` and verify the three copies of each edited
   `.apm/` file are byte-identical before finishing.
+
+**Inline proof — the verb's validation chain is a gate.**
+- Positive: a receipt for a task in the current wave with a matching run
+  identifier is accepted and reads as accounted for. Negative, consequential in
+  the false-pass direction: a wave index one above `current_wave_index` is
+  refused, because accepting it lets one pre-run batch discharge every later
+  exit.
+- Neutralising proof: deleting the upper-bound comparison reddens the named case
+  `a wave index above the current wave index exits non-zero`; deleting the
+  reason-code membership check reddens the named closed-set case.
+- Real entry path: both are asserted through the CLI verb by subprocess, not
+  only against the validation helper, because the parser is what a controller
+  reaches.
+- Retires when: caller identity becomes establishable, at which point the
+  index bound stops being the thing that limits a forged batch.
 
 **Approach note:** the digest helper is single-sourced deliberately. A test that
 the verb and guard name the same container key cannot be written once the key
@@ -431,6 +536,29 @@ covers the state lock a new mutation takes.
 - Carry the absent-container notice in the passing result's `message`, which
   `cmd_check` prints on stdout.
 - Add the `status` enforcement key to both output forms.
+- Re-probe the projected tree, not only the edited source: after `build-self`,
+  run the wave-exit check and the `status` verb from the projected
+  `.claude/skills/work-loop/scripts/` copy and confirm the verdict and the
+  enforcement key match the ones asserted against `.apm/`. Regeneration and
+  re-measurement both stay inside this task.
+
+**Inline proof — the verdict table and the accounting predicate are
+classifiers; the partition walk is a negative control.**
+- Positive: a wave whose every task carries a record exits zero silently.
+  Negative, consequential: a wave with one unaccounted task exits non-zero and
+  names that task, and a record whose `kind` or shape is outside the accepted
+  set does **not** account for its task.
+- Neutralising proof: replacing the accounting predicate with `True` reddens the
+  named case `one task carrying neither → refuses`; deleting the record-shape
+  check reddens the named malformed-record case; and replacing the partition
+  walk's generated domain with one example per row leaves the suite green, which
+  is itself recorded as the demonstration that the domain — not the predicate —
+  is what the control rests on.
+- Real entry path: the refusal is asserted through the `wave-complete`
+  transition via `loop-engine`, and the notice through the `check` CLI verb, not
+  only against `check_phase`.
+- Retires when: the engine records per-task state of its own, at which point the
+  guard reads engine state and the cohort-side table is redundant.
 - Run `FORCE=1 make build-self` and verify the three copies of each edited
   `.apm/` file are byte-identical before finishing.
 
