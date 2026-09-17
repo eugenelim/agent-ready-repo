@@ -6,8 +6,9 @@ repository path: a conversation is not a reference.
 
 ## 2026-09-16 — Contract amendment approved: AC-0005 omits a coverage shape
 
-**Decision.** Amend AC-0005 so its definition of "reaches" enumerates all three
-shapes in which pull-request coverage arrives. Owner authorised the controlled
+**Decision.** Amend AC-0005 so its definition of "reaches" enumerates the three
+shapes corroboration recognises for pull-request coverage, stated as recognised
+rather than exhaustive. Owner authorised the controlled
 amendment explicitly ("contract amendment approved").
 
 **Defect.** AC-0005 as approved counts two shapes — a pytest operand of the step,
