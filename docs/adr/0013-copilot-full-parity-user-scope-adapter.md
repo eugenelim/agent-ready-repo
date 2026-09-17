@@ -10,9 +10,8 @@
 - **Superseded by:** none
 - **Superseded in part:** ADR-0040 D5
 - **Related:** RFC-0024 (the decision; supersedes-in-part RFC-0012); ADR-0004 (per-adapter
-  projection model this extends); RFC-0009 + `dropped-primitives-coverage`
-  spec (the codex `dropped`→first-class precedent); ADR-0002 (scope
-  dimension)
+  projection model this extends); RFC-0009 (the codex `dropped`→first-class
+  precedent); ADR-0002 (scope dimension)
 
 ## Context
 
