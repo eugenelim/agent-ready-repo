@@ -1,6 +1,6 @@
 # Spec: construction-time razor
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099
@@ -135,9 +135,14 @@ which is the cost the owner accepted for it.
   heavy-`Approach:` fixture, whose `Done when:` one function in the existing
   module satisfies.
 - **A required construction survives (AC-0010, AC-0011)** — goal-based check on
-  the heavy-required control, whose two callers need different configurations.
-  AC-0011 keeps the report honest: the rule must not teach a run to claim a
-  lighter substitution it did not make.
+  the required-construction control. The fixture ships a consumer that renders
+  through an object protocol, so a bare parameterised function cannot satisfy it
+  and the structure is genuinely required rather than merely named. Neither
+  criterion names a class, a module or a call sequence: AC-0010 reads the
+  consumer's output and AC-0011 reads whether the consumer itself was rewritten.
+  An earlier version of this control demanded a specific class and failed two
+  runs that were correct, because a shared settings-parameterised helper
+  satisfied the fixture's stated requirement completely.
 - **A refusal stays reachable (AC-0012)** — goal-based check on the no-route
   control. Without it the lighter-route rule could pass by relaxing its own bar.
   The criterion reads the refusal, not which refusal: a task no route satisfies
@@ -190,10 +195,14 @@ prompt to look, not a failed gate.
   `ready`.
 - [ ] **AC-0009.** On the heavy-`Approach:` fixture, the report records the
   substitution under `Deviations from the task body`.
-- [ ] **AC-0010.** On the heavy-required control, whose two callers need
-  different configurations, the named construction is still built.
-- [ ] **AC-0011.** On the heavy-required control, the report claims no lighter
-  substitution.
+- [ ] **AC-0010.** On the required-construction control, whose pre-existing
+  shared consumer renders through an object protocol its own callers depend on,
+  that consumer produces its three expected outputs — so the implementation
+  supplied objects satisfying the protocol rather than refusing the structure it
+  requires.
+- [ ] **AC-0011.** On that control, the pre-existing shared consumer is
+  byte-identical to the fixture's: the implementation satisfies the protocol
+  rather than rewriting the consumer to avoid needing it.
 - [ ] **AC-0012.** On the no-route control, whose `Done when:` no available route
   satisfies, the report does not claim `ready`; it refuses, with either `failed`
   or `blocked`.

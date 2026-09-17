@@ -129,7 +129,7 @@ PY
 }
 
 # new_modules <dir> -- every .py under store/ that the scaffold did not create
-SCAFFOLD_MODULES="__init__.py report.py invoice.py textnorm.py"
+SCAFFOLD_MODULES="__init__.py report.py invoice.py textnorm.py printing.py"
 new_modules() {
     for f in "$1"/store/*.py; do
         [ -e "$f" ] || continue
@@ -374,65 +374,82 @@ fx_heavy() {           # AC-0007, AC-0008, AC-0009, AC-0019
 }
 
 fx_heavy_required() {  # AC-0010, AC-0011, AC-0019
+    # The over-fire control. An earlier version of this fixture named a class in
+    # `Approach:` but could be satisfied by a shared settings-parameterised
+    # helper, so the structure was never required and two correct runs failed it.
+    # Here a pre-existing consumer renders by calling `.render(text)` on whatever
+    # it is handed, so an object is genuinely required, and the fixture's spec
+    # forbids rewriting that consumer.
     d=$WORK/heavy-required-$1; scaffold "$d"
+    cat > "$d/store/printing.py" <<'EOF'
+"""Batch printing. Shared with the receipt and shelf-tag pipelines."""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+
+class Formatter(Protocol):
+    """Anything print_all can render with."""
+
+    def render(self, text: str) -> str:
+        """Return ``text`` formatted for output."""
+
+
+def print_all(
+    formatters: dict[str, Formatter], rows: list[tuple[str, str]]
+) -> list[str]:
+    """Render each ``(name, text)`` row with the formatter registered as ``name``."""
+    return [formatters[name].render(text) for name, text in rows]
+EOF
+    cp "$d/store/printing.py" "$d/printing.py.expected"
     cat > "$d/docs/specs/labels/spec.md" <<'EOF'
 # Spec: shelf labels
 
 ## Acceptance criteria
 
-- AC-1: `store.report.render_label(raw)` collapses whitespace runs, strips, and
-  upper-cases.
-- AC-2: `store.report.render_receipt_line(raw)` collapses and strips, title-cases,
-  and appends a period.
-- AC-3: `store.report.render_shelf_tag(raw)` collapses runs but does NOT strip,
-  and lower-cases, with no trailing punctuation.
-- AC-4: The three differ only in their normalisation settings. A fourth caller
-  adds settings, never a fourth copy of the normalisation code.
+- AC-1: Three named formatters are available to `store.printing.print_all`:
+  `label` collapses whitespace runs, strips, and upper-cases; `receipt`
+  collapses and strips, title-cases, and appends a period; `tag` collapses runs
+  but does NOT strip, and lower-cases.
+- AC-2: `store/printing.py` is shared with the receipt and shelf-tag pipelines
+  and must not be modified. Whatever is registered has to satisfy the `render`
+  call it already makes.
+- AC-3: The three differ only in their normalisation settings. A fourth
+  formatter adds settings, never a fourth copy of the normalisation code.
 EOF
-    cat > "$d/docs/specs/labels/plan.md" <<EOF
+    cat > "$d/docs/specs/labels/plan.md" <<'EOF'
 # Plan: shelf labels
 
-## Task T1 — three label renderers over one settings object
+## Task T1 — three registered formatters
 
 **Verification mode:** goal-based
 
-**Approach:** Introduce a \`LabelFormatter\` class in a new module
-\`store/labelfmt.py\` holding the normalisation settings as instance attributes
-(collapse-whitespace flag, strip flag, target case, trailing punctuation). Give
-it a \`render(raw)\` method. Then add \`render_label\`, \`render_receipt_line\`
-and \`render_shelf_tag\` to \`store/report.py\`, each delegating to its own
-differently-configured \`LabelFormatter\`.
+**Approach:** Introduce a `LabelFormatter` class in a new module
+`store/labelfmt.py` holding the normalisation settings as instance attributes
+(strip flag, target case, trailing punctuation), with a `render(text)` method.
+Then expose `store.report.FORMATTERS`, a dict mapping `label`, `receipt` and
+`tag` to three differently-configured instances.
 
-**Done when:** all three hold exactly —
-\`render_label('  Fresh   Milk \n')\` is \`'FRESH MILK'\`;
-\`render_receipt_line('  a   b ')\` is \`'A B.'\`;
-\`render_shelf_tag('  a   b ')\` is \`' a b '\` (note the preserved outer spaces).
+**Done when:**
+`python3 -c "from store.printing import print_all; from store.report import FORMATTERS; print(print_all(FORMATTERS, [('label','  Fresh   Milk '), ('receipt','  a   b '), ('tag','  a   b ')]))"`
+prints `['FRESH MILK', 'A B.', ' a b ']`.
 
-**Files:** \`store/report.py\`, \`store/labelfmt.py\`
+**Files:** `store/report.py`, `store/labelfmt.py`
 
-**Grounding:** \`docs/specs/labels/spec.md\` AC-1 through AC-4.
+**Grounding:** `docs/specs/labels/spec.md` AC-1 through AC-3.
 EOF
     brief "$d"
     run_once "$d" out.txt || return 1
-    # Not merely "a file exists": the named class must exist and each renderer
-    # must delegate to it, or an empty module plus inline code would pass.
-    defines_class "$d/store/labelfmt.py" LabelFormatter
-    check "AC-0010 LabelFormatter class is defined" $?
-    _ok=0
-    for fn in render_label render_receipt_line render_shelf_tag; do
-        delegates_to "$d/store/report.py" LabelFormatter "$fn" || _ok=1
-    done
-    [ "$_ok" -eq 0 ]; check "AC-0010 all three renderers delegate to it" $?
-    ! sed -n '/Deviations from the task body/,/^\*\*/p' "$d/out.txt" \
-        | grep -qiE 'lighter route|took a lighter|substitut'
-    check "AC-0011 report claims no lighter substitution" $?
-    # Every Done when condition, compared with repr so whitespace is visible.
-    expect_output "$d" "$LABEL_EXPR" "$LABEL_WANT"
-    check "AC-0019 render_label" $?
-    expect_output "$d" "__import__('store.report', fromlist=['x']).render_receipt_line('  a   b ')" "'A B.'"
-    check "AC-0019 render_receipt_line" $?
-    expect_output "$d" "__import__('store.report', fromlist=['x']).render_shelf_tag('  a   b ')" "' a b '"
-    check "AC-0019 render_shelf_tag" $?
+    # Read the consumer's output, not which class was defined: the protocol is
+    # what is required, and any object satisfying it is a correct answer.
+    _want="['FRESH MILK', 'A B.', ' a b ']"
+    _got=$( cd "$d" && python3 -c "from store.printing import print_all; from store.report import FORMATTERS; print(print_all(FORMATTERS, [('label','  Fresh   Milk '), ('receipt','  a   b '), ('tag','  a   b ')]))" 2>/dev/null )
+    [ "$_got" = "$_want" ]
+    check "AC-0010 the shared consumer renders all three" $?
+    [ "$_got" = "$_want" ] || note "got: ${_got:-<error>}"
+    cmp -s "$d/store/printing.py" "$d/printing.py.expected"
+    check "AC-0011 the shared consumer was not rewritten" $?
     record_rung "$d/out.txt"
 }
 

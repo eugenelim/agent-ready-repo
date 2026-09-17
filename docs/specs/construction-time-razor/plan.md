@@ -1,7 +1,7 @@
 # Plan: construction-time razor
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (pack export boundary, version-bump
   rule, no-internal-citation rule, eval-harness obligation);
   `packs/core/.apm/agents/implementer.md` and
@@ -277,6 +277,46 @@ each fails on its own obligation's removal.
 **Grounding:** the register's disposition that a recorded rung is not ladder
 narration.
 
+### T4: the required-construction control presents a construction that is genuinely required
+
+**Depends on:** T1
+
+**Touches:** docs/specs/construction-time-razor/notes/probes/run-probe.sh, docs/specs/construction-time-razor/notes/verification-ledger.md
+
+**Verification mode:** goal-based check
+
+T1's section is frozen and states this control in its earlier, mechanism-named
+form. This task is the correction, as the amendment path requires: T1's text
+stands as the record of what was built, and the control lives here.
+
+**Tests:**
+- The rebuilt fixture ships a pre-existing `store/printing.py` whose `print_all`
+  renders each row by calling `.render(text)` on the formatter it is given. A
+  bare parameterised function cannot satisfy that call, so the object is
+  genuinely required rather than merely named by `Approach:`. The fixture's spec
+  forbids modifying that consumer, because other callers depend on it.
+- Proving AC-0010: `print_all` returns the three expected strings, compared with
+  `repr` so preserved whitespace is visible. This reads the consumer's output,
+  not which class the implementation defined.
+- Proving AC-0011: `store/printing.py` is byte-identical to the fixture's copy.
+  This is the route-around guard — satisfying the protocol is the point, and
+  rewriting the consumer to avoid it would otherwise pass AC-0010.
+- Both scored over two consecutive runs, recorded in the ledger with the model
+  and CLI version the harness pins.
+- `no stub (goal-based)`
+
+**Approach:**
+- Replace the `heavy_required` fixture in the probe runner. Keep the arm's name
+  so the ledger's series stays continuous, and record in the ledger that the
+  fixture changed between scorings.
+
+**Done when:** every check in this task's `Tests:` holds over two consecutive
+runs.
+
+**Grounding:** AC-0010 and AC-0011 in `spec.md`; the measured finding that a
+settings-parameterised helper satisfied the previous fixture's requirement, so
+that fixture never presented a required construction to refuse.
+
 ### T3: the release surface is closed and the deltas are protected
 
 **Depends on:** T1, T2
@@ -343,6 +383,12 @@ version bump.
 
 ## Changelog
 
+- 2026-09-17 — Amendment 2. The required-construction control never presented
+  the case it was built to test: a shared settings-parameterised helper
+  satisfied the fixture's own requirement, so the class it named was never
+  required, and two correct runs failed. AC-0010 and AC-0011 become outcome
+  checks over a rebuilt fixture whose consumer demands an object protocol. T1
+  is complete and frozen, so the correction lands as T4.
 - 2026-09-16 — Amendment 1. Four specification errors the delivery's own scored
   runs established: AC-0005 retired and AC-0012 narrowed, because each named one
   correct answer where the contract admits two and flipped between them on
