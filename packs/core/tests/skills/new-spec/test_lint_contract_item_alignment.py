@@ -82,7 +82,7 @@ PLAN = """\
 def _tree(root: Path, spec: str = SPEC, plan: str | None = PLAN) -> Path:
     """Write one fixture spec directory and return the repository root."""
     spec_dir = root / "docs" / "specs" / "fixture"
-    spec_dir.mkdir(parents=True)
+    spec_dir.mkdir(parents=True, exist_ok=True)
     (spec_dir / "spec.md").write_text(spec, encoding="utf-8")
     if plan is not None:
         (spec_dir / "plan.md").write_text(plan, encoding="utf-8")
@@ -115,7 +115,14 @@ def _git(root: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(root), *args], capture_output=True, check=True)
 
 
-def _repo(root: Path, spec: str = SPEC, plan: str = PLAN) -> Path:
+def _git_init_bare(path: Path) -> None:
+    """A repository with no work tree, which `--show-toplevel` also refuses."""
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q", "--bare", str(path)],
+                   capture_output=True, check=True)
+
+
+def _repo(root: Path, spec: str = SPEC, plan: str | None = PLAN) -> Path:
     """A fixture repository with one commit, so `--since` has a real base.
 
     Built here rather than pointed at this repository: the rule reads git
@@ -123,7 +130,11 @@ def _repo(root: Path, spec: str = SPEC, plan: str = PLAN) -> Path:
     a tree that changes under it every commit.
     """
     _tree(root, spec=spec, plan=plan)
-    _git(root, "init", "-q")
+    # The branch name is pinned rather than inherited: rule 9's default base is
+    # the merge-base with the default branch, so a host whose
+    # `init.defaultBranch` is neither `main` nor `master` would otherwise make
+    # the default-resolution cases pass or fail on the runner's git config.
+    _git(root, "init", "-q", "-b", "main")
     _git(root, "add", "-A")
     _git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=Fixture",
          "commit", "-q", "-m", "base", "--no-gpg-sign")
@@ -312,6 +323,331 @@ def test_a_reworded_criterion_whose_assertion_did_not_follow_is_reported(root):
         f"a reporting rule must not raise the failing count:\n{result.stdout}"
 
 
+def _reworded_branch(root: Path) -> Path:
+    """A branch whose tip reworded AC-0001 without moving its plan assertion.
+
+    Committed on a branch off `main` rather than left in the working tree: the
+    default base is the merge-base with the default branch, so an uncommitted
+    edit would be invisible to it and every default-resolution case below would
+    pass for the wrong reason.
+    """
+    _repo(root)
+    _git(root, "checkout", "-q", "-b", "topic")
+    spec_path = root / "docs" / "specs" / "fixture" / "spec.md"
+    spec_path.write_text(SPEC.replace("The first thing holds.",
+                                      "The first thing holds, and so does a new clause."),
+                         encoding="utf-8")
+    _git(root, "add", "-A")
+    _git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=Fixture",
+         "commit", "-q", "-m", "reword", "--no-gpg-sign")
+    return root
+
+
+def test_the_rule_runs_with_no_since_supplied(root):
+    """The case that made rule 9 dead in practice.
+
+    With no default, every invocation printed "0 finding(s) ... 1 partial
+    (rules with no input: stale-assertion (no --since))" and exited 0, which
+    scans as a pass. The rule was read past repeatedly while the defect it
+    detects was found by hand. A rule whose input is optional is a rule that
+    does not run.
+    """
+    _reworded_branch(root)
+    result = _run(root)
+    assert "AC-0001 was reworded with no changed assertion in plan.md" in result.stdout, \
+        f"the rule must run without --since:\n{result.stdout}"
+    assert "stale-assertion" not in _partial_clause(result.stdout), \
+        f"a rule that ran must not also be listed as having no input:\n{result.stdout}"
+    assert result.returncode == 0, \
+        f"rule 9 reports without failing, so the default must not change the exit code:" \
+        f"\n{result.stdout}"
+
+
+def test_no_since_declines_the_default_and_says_so(root):
+    """The opt-out must be distinguishable from a default that could not resolve.
+
+    Both leave the rule un-run, but only one of them is a caller's choice, and
+    reporting them under one label is the conflation this module exists to
+    detect in other artifacts.
+    """
+    _reworded_branch(root)
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root), "--no-since"],
+        capture_output=True, text=True, check=False,
+    )
+    assert "reworded" not in result.stdout, \
+        f"--no-since must not run the rule:\n{result.stdout}"
+    assert "stale-assertion (--no-since)" in _partial_clause(result.stdout), \
+        f"the no-input line must name the opt-out as the cause:\n{result.stdout}"
+
+
+def _break_default_resolution(root: Path, how: str) -> None:
+    """Leave a reworded branch in place but make the default base unresolvable.
+
+    Applied *after* `_reworded_branch`, so rule 9 would report AC-0001 if it
+    ran. That is what makes the suppression observable: asserting "reworded" is
+    absent over a pristine fixture holds whether or not the rule was suppressed,
+    so it cannot red and proves nothing.
+    """
+    if how == "no default branch":
+        _git(root, "branch", "-m", "main", "detached-trunk")
+    elif how == "no merge-base":
+        # An orphan branch shares no history with `main`, so `main` resolves and
+        # `merge-base` fails -- the state that was reported as "no default
+        # branch among ..." while a default branch was plainly present.
+        _git(root, "checkout", "-q", "--orphan", "unrelated")
+        _git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=Fixture",
+             "commit", "-q", "-m", "orphan", "--no-gpg-sign")
+    else:                                          # pragma: no cover - guard
+        raise AssertionError(f"unknown break: {how}")
+
+
+@pytest.mark.parametrize(
+    ("label", "how", "cause"),
+    [("a repository with no default branch", "no default branch",
+      "no default branch among"),
+     ("a default branch sharing no history with HEAD", "no merge-base",
+      "no merge-base with")],
+)
+def test_an_unresolvable_default_names_the_state_it_observed(root, label, how, cause):
+    """Cannot-resolve is an un-run rule, and it must name the right cause.
+
+    Reporting "no default branch" for a branch that resolved but had no
+    merge-base is the same defect this rule reports in other artifacts: a
+    no-input line whose stated cause sends the reader to repair something that
+    is not broken. Each arm carries a reworded criterion, so the absence of a
+    finding is evidence the rule was suppressed rather than evidence there was
+    nothing to find.
+    """
+    _reworded_branch(root)
+    _break_default_resolution(root, how)
+    result = _run(root)
+    assert f"stale-assertion ({cause}" in _partial_clause(result.stdout), \
+        f"{label} must name its own cause on the no-input list:\n{result.stdout}"
+    assert "reworded" not in result.stdout, \
+        f"{label} must suppress the rule, and this fixture would report:\n{result.stdout}"
+
+
+def test_a_root_nested_inside_another_repository_declines(root):
+    """No repository is its own state, and it must not borrow an enclosing one.
+
+    `git -C` discovers upward, so before base resolution was bounded to
+    `--root` this case passed only because `tempfile` happens to place the tree
+    outside a repository. Nested inside one, the checker resolved a base from
+    that repository and emitted no no-input entry at all. The fixture now
+    plants the tree inside a real repository whose root is not `--root`, so
+    the assertion rests on the bound rather than on the host.
+    """
+    outer = _repo(root / "outer")
+    nested = outer / "nested"
+    _tree(nested)
+    result = _run(nested)
+    assert "stale-assertion (root is not a repository root)" in _partial_clause(result.stdout), \
+        f"a root inside another repository must decline, not borrow it:\n{result.stdout}"
+
+
+def test_a_root_that_is_no_repository_at_all_says_so(root):
+    """Distinct from a root that sits inside one: nothing was discovered."""
+    _tree(root)
+    result = _run(root)
+    assert "stale-assertion (no git repository)" in _partial_clause(result.stdout), \
+        f"a tree in no repository must say so:\n{result.stdout}"
+
+
+def test_a_bare_repository_is_not_reported_as_no_repository(root):
+    """`--show-toplevel` fails in both states, so one branch cannot serve both.
+
+    A bare repository is a repository; reporting it as "no git repository"
+    would name a state the caller is not in.
+    """
+    bare = root / "bare.git"
+    _git_init_bare(bare)
+    _tree(bare)
+    result = _run(bare)
+    assert "stale-assertion (repository has no work tree)" in _partial_clause(result.stdout), \
+        f"a bare repository must say so:\n{result.stdout}"
+
+
+def test_an_inherited_git_dir_does_not_answer_for_another_repository(root):
+    """`GIT_DIR` beats `-C`, so the --root bound must scrub it.
+
+    Without scrubbing, `--show-toplevel` answers with `--root` -- passing the
+    bound -- while `HEAD`, the ref lookups and `merge-base` all come from the
+    repository `GIT_DIR` names. The bound then reports success having resolved
+    a base the caller never pointed at. Normal inside a git hook,
+    `git rebase --exec` and `git bisect run`.
+
+    Asserted on the resolved object id rather than on the summary line: both
+    repositories produce the same summary here, so the output cannot tell them
+    apart and a test reading it would pass either way.
+    """
+    import importlib.util
+    import os
+
+    elsewhere = _repo(root / "elsewhere")
+    here = _repo(root / "here")
+    _git(here, "-c", "user.email=t@example.invalid", "-c", "user.name=Fixture",
+         "commit", "-q", "--allow-empty", "-m", "second", "--no-gpg-sign")
+    here_head = subprocess.run(["git", "-C", str(here), "rev-parse", "HEAD"],
+                               capture_output=True, text=True, check=True).stdout.strip()
+    elsewhere_head = subprocess.run(["git", "-C", str(elsewhere), "rev-parse", "HEAD"],
+                                    capture_output=True, text=True, check=True).stdout.strip()
+    assert here_head != elsewhere_head, "the fixture cannot tell the two apart"
+
+    spec = importlib.util.spec_from_file_location("pk_subject_gitdir", CHECKER)
+    subject = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(subject)
+    previous = os.environ.get("GIT_DIR")
+    os.environ["GIT_DIR"] = str(elsewhere / ".git")
+    try:
+        resolved, reason = subject._default_since(here)
+    finally:
+        if previous is None:
+            os.environ.pop("GIT_DIR", None)
+        else:
+            os.environ["GIT_DIR"] = previous
+    assert reason == "", f"the bound must still resolve for a real root: {reason!r}"
+    assert resolved == here_head, (
+        f"an inherited GIT_DIR answered for another repository: got {resolved}, "
+        f"expected {here_head} (GIT_DIR's HEAD is {elsewhere_head})"
+    )
+
+
+def test_an_inherited_git_dir_does_not_answer_for_the_diff_either(root):
+    """The second scrub site. Its absence deletes findings, silently.
+
+    `_default_since` and `_changed_lines` both shell out, and scrubbing only
+    the first leaves the diff reading another repository: rule 9 resolves the
+    right base, diffs it against the wrong history, finds nothing changed, and
+    prints a clean summary with no no-input entry to show anything was wrong.
+
+    Asserted on the reported finding rather than the summary, because the
+    summary of a silently-empty run is the summary of a genuinely clean one.
+    """
+    import os
+
+    elsewhere = _repo(root / "elsewhere")
+    here = _reworded_branch(root / "here")
+    assert elsewhere.exists()
+
+    previous = os.environ.get("GIT_DIR")
+    env = {**os.environ, "GIT_DIR": str(elsewhere / ".git")}
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(here)],
+        capture_output=True, text=True, check=False, env=env,
+    )
+    assert previous == os.environ.get("GIT_DIR"), "the fixture leaked GIT_DIR"
+    assert "AC-0001 was reworded with no changed assertion in plan.md" in result.stdout, (
+        f"an inherited GIT_DIR sent the diff to another repository and the "
+        f"finding disappeared into a clean summary:\n{result.stdout}"
+    )
+
+
+def test_a_root_that_is_not_a_directory_says_so(root):
+    """Checked before git is consulted, so git never answers about a file."""
+    target = root / "a-file"
+    target.write_text("not a tree\n", encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(target)],
+        capture_output=True, text=True, check=False,
+    )
+    assert "Traceback" not in result.stderr, result.stderr
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("pk_subject_notdir", CHECKER)
+    subject = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(subject)
+    assert subject._default_since(target) == (None, "root is not a directory"), \
+        "a non-directory root must be its own state, decided before git is asked"
+
+
+def test_a_repository_with_no_commit_says_so(root):
+    """An unborn HEAD is not the same as no repository, and reports separately."""
+    _tree(root)
+    _git(root, "init", "-q", "-b", "main")
+    result = _run(root)
+    assert "stale-assertion (no commit on HEAD)" in _partial_clause(result.stdout), \
+        f"an unborn HEAD must say so:\n{result.stdout}"
+
+
+def test_an_empty_since_is_refused_not_reported_as_absent(root):
+    """`--since "$BASE"` with BASE unset is a mistake, not a choice.
+
+    Reporting it as "no --since" would name a state the caller was not in.
+    """
+    _repo(root)
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root), "--since", ""],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 2, f"an empty revision must be refused:\n{result.stderr}"
+    assert "empty revision" in result.stderr, result.stderr
+
+
+def test_git_being_uninvokable_is_not_reported_as_missing_history(root):
+    """The third state, and the one with no repository condition to read.
+
+    git failing to start and git answering "no" are different, and the helper
+    reports them separately. Driven by emptying PATH so the `git` lookup raises
+    -- the interpreter is still reached by absolute path -- because there is no
+    tree shape that produces this state.
+    """
+    import os
+
+    _repo(root)
+    empty = root / "no-tools"
+    empty.mkdir()
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root)],
+        capture_output=True, text=True, check=False,
+        env={**os.environ, "PATH": str(empty)},
+    )
+    assert "Traceback" not in result.stderr, result.stderr
+    assert "stale-assertion (git could not be consulted)" in _partial_clause(result.stdout), \
+        f"an uninvokable git must say so, not claim the repository has no history:" \
+        f"\n{result.stdout}"
+
+
+def test_a_resolvable_base_with_no_plan_names_the_missing_plan(root):
+    """The path a default base made reachable.
+
+    With `--since` required, this landed on the no-`--since` line. Now that a
+    base resolves by default, a spec with no plan.md reaches the plan-gated
+    branch instead, and it emitted a bare `stale-assertion` with no cause until
+    this case pinned one.
+    """
+    _repo(root, plan=None)
+    result = _run(root)
+    assert "stale-assertion (no plan.md)" in _partial_clause(result.stdout), \
+        f"a resolvable base with no plan must name the missing plan:\n{result.stdout}"
+
+
+def test_naming_a_base_and_refusing_one_is_refused(root):
+    """Contradictory flags are rejected, not silently ordered.
+
+    Letting one win would make the rule's input depend on argument order.
+    """
+    _repo(root)
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root), "--since", "HEAD", "--no-since"],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 2, \
+        f"argparse must refuse the pair:\n{result.stdout}\n{result.stderr}"
+    assert "not allowed with" in result.stderr, result.stderr
+
+
+def _partial_clause(stdout: str) -> str:
+    """The summary's no-input clause alone, or "" when there is none.
+
+    Scoped so an assertion about what had no input cannot be satisfied or
+    defeated by the same rule name appearing in a printed finding.
+    """
+    marker = "partial (rules with no input: "
+    if marker not in stdout:
+        return ""
+    return stdout.split(marker, 1)[1]
+
+
 def test_an_assertion_added_as_an_indented_constraint_counts_as_following(root):
     """The normal shape of a new assertion, and the rule's worst false alarm.
 
@@ -357,9 +693,15 @@ def test_a_rule_that_cannot_run_is_skipped_not_reported_clean(root, label, ref, 
         _tree(root)
     result = _since(root, ref)
     assert "reworded" not in result.stdout, f"{label} produced a finding:\n{result.stdout}"
-    assert "stale-assertion" in result.stdout, \
+    assert "stale-assertion" in _partial_clause(result.stdout), \
         f"{label} must be counted as a rule with no input:\n{result.stdout}"
     assert "partial" in result.stdout, f"{label} must report a partial check:\n{result.stdout}"
+    # The cause, not just the rule name: a supplied ref that git cannot diff is
+    # the only route to this label, and it was the last reason string in the
+    # module with no case naming it.
+    if with_history:
+        assert f"stale-assertion (git could not diff since {ref})" in result.stdout, \
+            f"{label} must name the ref it could not diff:\n{result.stdout}"
 
 
 def test_a_failing_and_a_reported_finding_coexist_at_exit_one(root):

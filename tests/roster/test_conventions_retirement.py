@@ -1108,30 +1108,73 @@ def _version_tuple(text: str) -> tuple[int, ...]:
 # AC11, AC12 — the release
 # --------------------------------------------------------------------------
 
+# AC11 and AC12 were delivery-time criteria: at this change's delivery its
+# changelog entry was the topmost `core` section and both manifests read
+# `2.26.11`. Frozen as standing tests, "topmost" and "equals RELEASE_VERSION"
+# come to mean that core may never be released again -- core 2.26.12 red both
+# while changing nothing either criterion was about.
+#
+# Re-anchored to the artifacts the criteria named, keeping every clause that
+# outlives delivery. AC11 asked for a *new free-standing* entry, topmost among
+# the `core` sections, and said appending a sentence to an already-released
+# entry would not satisfy it. "Topmost" was how "new rather than appended" was
+# expressed on the day; what makes it new is that it is its own top-level
+# `## [core][2.26.11]` heading, which is checkable forever and is what the
+# no-append clause was protecting. Both are asserted below. AC12's equality
+# was a value chosen so a bump of any size could not satisfy it at delivery;
+# what survives is that the release happened and has not been rolled back.
+#
+# The spec is Shipped and its criteria are not amended. "Topmost" is the one
+# phrase these tests no longer read literally, because a later release makes it
+# false without anything AC11 cared about having changed.
+
+
+def _core_entry(body: str, version: str) -> str | None:
+    """The body of the `core` entry for `version`, or None when absent."""
+    for match in _CORE_HEADING_RE.finditer(body):
+        if match.group("version") != version:
+            continue
+        end = _CORE_HEADING_RE.search(body, match.end())
+        return body[match.end() : end.start() if end else len(body)]
+    return None
+
+
 def test_changelog_names_the_seed_withdrawal() -> None:
     """AC11. A heading check cannot observe this; the body is read."""
     body = CHANGELOG.read_text(encoding="utf-8")
-    match = _CORE_HEADING_RE.search(body)
-    assert match, "the changelog carries no free-standing `core` entry"
-    start = match.end()
-    end = _CORE_HEADING_RE.search(body, start)
-    entry = body[start : end.start() if end else len(body)]
+    # The free-standing check is the no-append clause: `_CORE_HEADING_RE` is
+    # anchored to `^## `, so a sentence appended under another release's
+    # heading is not matched and the entry reads as absent.
+    assert re.search(rf"^## \[core\]\[{re.escape(RELEASE_VERSION)}\] — ", body, re.MULTILINE), (
+        f"AC11 required a NEW free-standing `## [core][{RELEASE_VERSION}]` entry; "
+        f"appending to an already-released entry does not satisfy it"
+    )
+    entry = _core_entry(body, RELEASE_VERSION)
+    assert entry is not None, f"the {RELEASE_VERSION} entry has no body"
     for needle in ("retired", "no longer seeded"):
-        assert needle in entry, f"the topmost core entry does not name the withdrawal: {needle!r}"
+        assert needle in entry, (
+            f"the {RELEASE_VERSION} core entry does not name the withdrawal: {needle!r}"
+        )
 
 
 def test_both_manifests_carry_the_same_bumped_version() -> None:
-    """AC12, pinned against the version this change started from."""
+    """AC12, pinned against the version this change released."""
     pack = re.search(r'version = "([^"]+)"', PACK_TOML.read_text(encoding="utf-8"))
     plugin = re.search(r'"version": "([^"]+)"', PLUGIN_JSON.read_text(encoding="utf-8"))
     assert pack and plugin, "a manifest carries no version"
     assert pack.group(1) == plugin.group(1), (
         f"manifests disagree: pack.toml={pack.group(1)} plugin.json={plugin.group(1)}"
     )
-    assert pack.group(1) == RELEASE_VERSION, (
-        f"AC12 names {RELEASE_VERSION} exactly; found {pack.group(1)}. "
-        f"A patch or major bump satisfies any looser comparison, so the "
-        f"criterion pins the value."
+    # The criterion named a value rather than an ordering so that a bump of any
+    # size could not satisfy it at delivery. What survives delivery is that the
+    # release happened and has not been rolled back: an equality against the
+    # live manifest would block every later core release.
+    assert _version_tuple(pack.group(1)) >= _version_tuple(RELEASE_VERSION), (
+        f"AC12 released {RELEASE_VERSION}; the manifests now read "
+        f"{pack.group(1)}, which is behind it."
+    )
+    assert _core_entry(CHANGELOG.read_text(encoding="utf-8"), RELEASE_VERSION) is not None, (
+        f"the {RELEASE_VERSION} release AC12 names has no changelog entry"
     )
 
 
