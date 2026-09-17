@@ -210,6 +210,19 @@ RETAINED_TOOL_SINGLETONS = (
     "tools/test_worktree_lease_interlock.py",
     "tools/test_worktree_import_resolution.py",
     "tools/test_editable_install_guard.py",
+    # Added 2026-09-16, registering the runner line `2b1574e19` (PR #1313) put
+    # in `run-test-suite`. It is a singleton rather than a batch member because
+    # the Makefile gives it its own `-m pytest` invocation, at Makefile:651,
+    # directly after `test_editable_install_guard.py` — which is why it sits
+    # there here too. That is the only Makefile adjacency this position
+    # reproduces, and it reproduces nothing load-bearing:
+    # EXPECTED_ROOT_TOOL_PATHS is a frozenset, so placement is for the reader.
+    # It is the only membership delta between this worktree's
+    # Makefile and `16611c21e:Makefile`: `_root_tool_pytest_groups` over the new
+    # Makefile reports exactly one path extra against the prior
+    # EXPECTED_ROOT_TOOL_PATHS and none missing, and over `16611c21e:Makefile`
+    # the prior set matched exactly, so that set was current before this edit.
+    "tools/test_gate_enumeration.py",
     "tools/test_run_slot.py",
     "tools/test_with_lease_cli.py",
     "tools/test_playwright_evidence_lifecycle.py",
@@ -565,11 +578,56 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # the pre-change Makefile with the superseded digests still in place reports no
 # drift at all, reproducing `7fadaf20…` and `e48c8b01…` exactly, so this re-pin
 # is not sitting on a move someone else already made.
+#
+# Re-pinned 2026-09-16 for `2b1574e19` (PR #1313), which registered
+# `packages/jsonl-otlp-exporter` and added its two runner lines to
+# `run-test-suite`. That PR did not touch this file at all — `git diff
+# 2b1574e19~1 2b1574e19 -- tools/test_local_ci_shared_test_deduplication.py`
+# is empty — so nothing here moved with it and these two digests have been red
+# on `main` ever since. They surface only under `make test` and
+# `test-after-build-check-unleased`, neither of which a PR runs, which is why
+# the gap lasted. This entry re-pins to the true current values; it does not
+# weaken the check. Dispositioned through `_effective_composition_errors`
+# itself, both ways the block above requires.
+#
+# Two provenance traps cost three review rounds here; both are worth the lines.
+#
+# Do not take #1313's commit message for what #1313 did to this file. That
+# message says the Makefile edit drifted MAKE_BASELINE_DIGESTS["SEMGREP_EXCLUDE"]
+# and that the pin was recomputed. This file has no such edit in it. `fefa18aa…`
+# was pinned earlier by `87a3c8045` (PR #1293), an ancestor of the baseline
+# below, and that variable is byte-identical across this whole window.
+#
+# Do not read `git diff <baseline> 2b1574e19 -- <a file>` as #1313's own diff.
+# That range spans other PRs, and for this file it shows only their work: the
+# workspace-status CLI count moves 162 -> 166 inside it, from `003709805`
+# (#1304), `e119bac45` (#1311), and `2fabbbc64` (#1315). Use `2b1574e19~1` when
+# the question is what one commit did; the range baseline below is for the
+# Makefile only, where the range and the commit happen to agree.
+#
+# That baseline is `16611c21e` (PR #1299), the last Makefile-touching commit
+# before #1313, NOT #1313's parent — that is `21dac81a9` (PR #1322), which left
+# the Makefile untouched. `git diff 16611c21e 21dac81a9 -- Makefile` is empty,
+# so the two are interchangeable as a Makefile baseline, and `16611c21e` is the
+# one worth naming, being the revision a replay can reason about.
+#
+# (1) Sole cause: the same path against this worktree's Makefile and against
+# `16611c21e:Makefile` moves each plan by exactly two lines —
+# standalone 63 -> 65, composed 62 -> 64 — inserting
+# `<PYTHON> -m pytest packages/jsonl-otlp-exporter/ -q` at index 3 in both, and
+# `<PYTHON> -m pytest tools/test_gate_enumeration.py -q` at index 55 standalone
+# and 54 composed. Every other differing index differs only by that shift:
+# deleting those two lines from the new plan reproduces the old plan element
+# for element, and each appears exactly once, so nothing else moved, was
+# reordered, or was dropped. (2) Prior pins were current: with the superseded
+# `8f32abf2…` and `de0cadbf…` still in place, `_effective_composition_errors`
+# over `16611c21e:Makefile` returns an empty error list — zero drift — so this
+# supersedes live values rather than stacking on a move someone else left.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "8f32abf234db484ed12269e7b4182a34e5db5ea21764556e852e4d96f17c7583"
+    "8130fdecfb24f06d64fa41359745163ec68aaf88eedd439ef13e0587846f408f"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "de0cadbf5e920afe80eb4ffb024474afa59af915b26e5ab014fdb008bb1c5390"
+    "88c37c693fb15da7071027e261d0833ea5c6c7587072997732d6e886507e60a0"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -1456,7 +1514,7 @@ def test_real_make_root_tool_groups_match_the_approved_profiles() -> None:
 
 
 def test_root_tool_topology_mutations_fail_closed() -> None:
-    """Removal, duplication, broad discovery, and stale ownership all redden."""
+    """Removal, duplication, regrouping, broad discovery, stale ownership redden."""
     makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
     grouped_member = f"\t{PROVEN_COMPATIBLE_FILES[1]} \\\n"
     assert grouped_member in makefile
@@ -1470,6 +1528,31 @@ def test_root_tool_topology_mutations_fail_closed() -> None:
     assert "standalone root/tool membership drift" in _root_tool_topology_errors(
         duplicated
     )
+
+    # The control for the two hardcoded process counts, added 2026-09-16 with
+    # the 15/14 -> 16/15 re-pin. The four cases around it all move membership,
+    # so every one of them reddens through the Counter comparison and none of
+    # them can tell whether the counts still work. This mutation merges two
+    # singleton invocations into one: every path still runs exactly once, so
+    # membership is untouched by construction, and the only thing that moves is
+    # how many pytest processes the profile starts. A wrong count literal is
+    # already caught by
+    # test_real_make_root_tool_groups_match_the_approved_profiles,
+    # which asserts no errors against the real Makefile; what is caught only
+    # here is the count assertions being DELETED or weakened while membership
+    # still passes, which is the failure a re-pin invites.
+    regrouped = makefile.replace(
+        "$(PYTHON) -m pytest tools/test_run_slot.py -q\n"
+        "$(PYTHON) -m pytest tools/test_with_lease_cli.py -q\n",
+        "$(PYTHON) -m pytest tools/test_run_slot.py tools/test_with_lease_cli.py -q\n",
+        1,
+    )
+    assert regrouped != makefile
+    regrouped_errors = _root_tool_topology_errors(regrouped)
+    assert regrouped_errors == [
+        "standalone root/tool process count drift",
+        "composed root/tool process count drift",
+    ]
 
     broad = makefile.replace(
         "$(PYTHON) -m pytest \\\n\ttools/test_import_time_path_leaks.py \\\n",
@@ -1925,9 +2008,29 @@ def _root_tool_topology_errors(makefile_text: str | None = None) -> list[str]:
 
     standalone_groups = _root_tool_pytest_groups(standalone.stdout)
     composed_groups = _root_tool_pytest_groups(composed.stdout)
-    if len(standalone_groups) != 15:
+    # Process counts, not path counts: they catch a regrouping that keeps every
+    # path and still changes how many pytest processes run, which the membership
+    # comparison below cannot see. Re-pinned 2026-09-16 from 15/14 for
+    # `2b1574e19` (PR #1313), whose `tools/test_gate_enumeration.py` runner line
+    # is its own invocation and so adds one group to each profile. Its sibling
+    # `packages/jsonl-otlp-exporter/` line adds none: `_root_tool_pytest_groups`
+    # keeps only root/tool targets, and that path is neither. Dispositioned by
+    # running this function against both Makefiles. (1) Sole cause: against
+    # `16611c21e:Makefile` (the pre-#1313 Makefile baseline named in the
+    # APPROVED_*_PLAN_DIGEST block above) the counts are 15 and 14, against
+    # this worktree's Makefile 16 and 15 — one added group each, matching the
+    # one added qualifying runner line. (2) Prior pins were current: this
+    # function returns an empty error list over `16611c21e:Makefile` with the
+    # WHOLE prior pin set restored — 15/14 here AND
+    # `tools/test_gate_enumeration.py` dropped back out of
+    # RETAINED_TOOL_SINGLETONS. Reverting only the counts does not reproduce
+    # it: this function checks counts and membership against the same two
+    # expansions, so a half-revert reports membership drift instead. The
+    # plan-digest entry above is the other shape — there a digest-only revert
+    # is the whole prior state — so do not copy its replay recipe here.
+    if len(standalone_groups) != 16:
         errors.append("standalone root/tool process count drift")
-    if len(composed_groups) != 14:
+    if len(composed_groups) != 15:
         errors.append("composed root/tool process count drift")
 
     standalone_paths = [path for group in standalone_groups for path in group]
