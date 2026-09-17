@@ -245,7 +245,8 @@ Each skill writes under a subdirectory of `output_dir`:
 | `screen-flows/` | user-flow |
 | `blueprints/` | service-blueprint |
 | `processes/` | process-mapping |
-| `aesthetic/` | creative-direction, design-system, design-principles |
+| `direction/` | creative-direction |
+| `tokens/` | design-system |
 | `screens/` | interaction-design, and the craft/genre skills |
 
 The path is elicited once per repo, written to `agentbundle-layout.toml`, and reused by every subsequent skill. `experience-status` reads from this directory to orient.

@@ -371,7 +371,7 @@ Organize this screen around its primary task, content rank, recovery paths, and 
 <!-- rung: information-architecture SKILL.md -->
 
 **Where it lands:** `<output_dir>/screens/<slug>-ia.md`.
-<!-- rung: authored; information-architecture SKILL.md declares the record but not its path -->
+<!-- rung: information-architecture SKILL.md -->
 
 **What it looks like:**
 <!-- rung: authored -->
