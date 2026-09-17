@@ -864,3 +864,35 @@ measurements inside it (the seed-file list and the seed line cap) were
 corrected only because they were *wrong*, not to bring the plan up to date; the
 remaining installed-path figure is left as authored, being true when written
 and owned elsewhere.
+
+## Round 17 — the guard settled against the spec, not against consistency
+
+One blocker. **Correction to round 16 above, which was itself a correction to
+round 15.** Round 15 removed the mid-run guard, round 16 restored it as a
+regression, and round 17 removed it again. The third answer is the right one
+and it is grounded differently from the first two.
+
+Rounds 15 and 16 both argued from *internal* consistency — whether the scan
+could reach a branch — and neither settled what the branch should do. The
+deciding evidence is CommonMark's ordering, traceable in cmark's inline loop:
+`handle_backslash` consumes an escaped character before `handle_backticks` ever
+scans delimiters. So in `` \`` ``, the escaped backtick never becomes a
+delimiter and the one after it opens a **fresh** run of length one — it does not
+extend the escaped one. A trailing backtick then closes that run, and the text
+between is a code span. The mid-run guard blocked the fresh run from opening,
+so the scanner reported operative text where a reader sees code.
+
+Round 16's supporting measurement was real but misread. Masking does differ on
+seven files, `docs/guides/guidebook-step-contract.md` among them, whose real
+content is `` `## Run \`<skill>\`` ``. Differing is not being wrong: with the
+guard gone those spans mask as the code they are. A measurement showing that
+behaviour changes says nothing about which behaviour is correct, and round 16
+treated the difference as proof of regression.
+
+**What to take from three rounds on one guard.** Two were spent reasoning about
+reachability, which was the wrong question — the right one was what the format
+being approximated actually specifies, and that was answerable from the spec and
+a named implementation the whole time. When a control approximates an external
+standard, the standard settles disputes about it; internal consistency can only
+show the code disagrees with itself. Each guard now reds its own mutation
+individually, including a mutation that re-adds the removed one.
