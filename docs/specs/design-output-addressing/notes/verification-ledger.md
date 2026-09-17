@@ -315,7 +315,7 @@ and the reason is worth keeping: "no test covers it" is not the same as "not
 this change's defect". The ownership question is whether the change made the
 sentence false, and it had.
 
-## Owner waiver — T11's four plan-only case families, 2026-09-17
+## Owner scope decision — T11's four plan-only case families, 2026-09-17
 
 **Owner:** eugenelim. **Recorded:** 2026-09-17, after review round 1 sustained
 finding F7.
@@ -413,3 +413,38 @@ That last clause is the residual risk worth naming: nothing mechanical would
 have told us. The citation was found by grepping this branch's own files for the
 retired path after the rebase, which is a step a reader should repeat whenever a
 cited artifact is retired upstream.
+
+## Which rule this decision runs under, 2026-09-17
+
+Review round 2 raised, and the adjudicator left indeterminate, whether the entry
+above discharges the condition it cites. Resolving it exposed that the entry was
+filed under the wrong rule, and the distinction matters.
+
+`spec.md` § Boundaries § Never do admits a named owner waiver for a negative case
+that **cannot be staged**. The four families here are stageable — `plan.md`'s
+own approach says the absolute-`output_dir` fixture is what makes the
+foreign-product case stageable — and the owner scoped them out on cost, roughly
+28 further agent runs. So the spec's unstageability waiver is not the rule in
+play and was never the right home for this.
+
+The rule in play is `plan.md`'s completion condition, whose second branch is
+worded without the unstageability restriction. This is a scope decision under
+that branch, not a waiver under the spec's Never-do rule. The entry above is
+retitled accordingly.
+
+**Owner decision on the location.** The owner chose a Status-line pointer in
+`spec.md` naming this entry, rather than amending the spec body or performing the
+28 runs. `spec.md` is hash-pinned by the cohort and the repository's convention is
+that a frozen spec takes Status-line pointers only; the pointer states the owner,
+the date, the branch relied on, and — explicitly — that this is not an
+unstageability waiver.
+
+**What is still true either way.** The spec's own refusal criterion is
+unaffected and separately evidenced: twelve cells, twelve refusals, on one frozen
+module revision, recorded in `notes/t11-refusal-runs.md`.
+
+**The residual.** Under the stricter reading — that a waiver is admissible only
+for an unstageable case — no waiver covers these four families and they ship
+unmeasured. The owner has read that reading and chosen this route. It is recorded
+here so the choice is visible rather than implied, and so a later reader can
+reopen it without reconstructing the argument.

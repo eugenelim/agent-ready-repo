@@ -1,6 +1,13 @@
 # Spec: design-output-addressing
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **T11 scope decision:** the four case families the plan's T11 names beyond
+  this spec's own refusal criterion are scoped out by the owner, eugenelim,
+  2026-09-17, under `plan.md`'s second completion branch. Recorded in
+  [`notes/verification-ledger.md`](notes/verification-ledger.md) § Owner waiver.
+  This is **not** an unstageability waiver under § Boundaries § Never do: those
+  four cases are stageable, and the decision was taken on cost. The refusal
+  criterion in § Acceptance Criteria is unaffected and is separately evidenced.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0033 — it declares Guardrails A and B, which
