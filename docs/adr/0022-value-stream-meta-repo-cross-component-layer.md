@@ -1,9 +1,14 @@
 # ADR-0022: The business-unit cross-component layer — a value-stream meta-repo, per-component brief slicing with `parent-intent` provenance, and a referenced (never forked) shared contract
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-13
-- **Deciders:** eugenelim
+- **Areas:** shaping, contracts, architecture
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0030 (the product-engineering pack — decision #9 + Appendix A, which accepted this layer) · ADR-0019 (the v1 `intent` ontology / brief-as-projection / contract-maturity, which deferred these decisions to phase 2) · ADR-0008 + RFC-0017 + RFC-0018 (the contract-authoring seam this reuses) · RFC-0020 (`reference.md` golden-path — the `architect` seam) · RFC-0016 (the doc-drift discipline this layer's currency relies on) · RFC-0019 + ADR-0009 (`receive-brief` and its per-repo coverage rollup, which this aggregates above)
 
 ## Context
@@ -21,6 +26,35 @@ Several forces constrain the design:
 ## Decision
 
 **The cross-component layer is a value-stream meta-repo — a coordinating *repo*, not a service — that holds the artifacts no single component repo can own; a feature intent is sliced per component into one brief per repo carrying a `parent-intent:` provenance pointer; and the cross-repo shared contract is referenced by version (with a read-only courier snapshot), never forked.**
+
+- **D1:** At `business-unit` Scale the cross-component layer is a coordinating
+  repo with no application code, anchored to Backstage's Domain → System →
+  Component → API ontology, and never a running service.
+- **D2:** The meta-repo's catalog is federated — it references each component
+  repo's own `catalog-info.yaml` rather than re-authoring it.
+- **D3:** At BU scale a de-risked feature intent is sliced into one brief per
+  affected component, each carrying an optional `parent-intent:` back-pointer.
+- **D4:** `parent-intent:` is an additive, optional, never-interpreted field on
+  `core`'s brief template, distinct in role from `Epic:`; `core` imports nothing
+  from the pack.
+- **D5:** A cross-repo shared contract is referenced by `contract@version` with a
+  read-only courier snapshot, and is never attached as authority or forked.
+- **D6:** Provider/consumer roles mirror Backstage's `providesApi`/`consumesApi`
+  relations, and each relationship carries a compatibility/upgrade direction.
+- **D7:** The default is provider-contract-first, with a per-relationship
+  override to consumer-driven contracts.
+- **D8:** The contract-authority location is org-specific and elicited at use
+  time; only the reference-by-version plus courier-snapshot shape is fixed.
+- **D9:** The cross-component delivery rollup is a markdown table of snapshots
+  pointing at each component repo's own coverage — no YAML schema, no validator,
+  and no live feed that polls component repos.
+- **D10:** At BU scale the C4 / bounded-context system architecture lives in the
+  meta-repo, and each component repo's `reference.md` links to and conforms to it.
+- **D11:** Contract maturity stays staged as in v1 (behavioral @intent →
+  interaction @brief → wire contract @spec → verify @build); this layer adds no
+  contract machinery.
+- **D12:** The monorepo-vs-polyrepo structuring decision stays in
+  `monorepo-extras`; the two packs meet only at where the shared contract lives.
 
 Six parts:
 
@@ -53,6 +87,10 @@ Six parts:
 **Neutral / to revisit:**
 - The contract-authority **location** is intentionally left org-specific (elicited per value stream); only the reference + courier shape is fixed.
 - **Live** tracker/coverage API integration remains deferred to a separate, later pack; this layer ships the one-way mapping and the snapshot discipline only.
+
+**Revisit if:** the hand-maintained rollup (D9) drifts in practice despite the
+currency discipline, or the later live-integration pack lands and makes a live
+tracker/coverage feed available in charter.
 
 ## Alternatives considered
 

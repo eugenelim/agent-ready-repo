@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-30
+- **Areas:** shaping, orchestration
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0053 (the accepted decision this records) and its Decision-7 spike (`docs/rfc/0053-notes/spike/` — the worked example walked G0→G2 as one reasoning context, with the connectedness lint as the only executable); the spec-stage adversarial + secure-design review of RFC-0053 and the `discovery-loop` implementing spec
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0053 (the discovery loop — the decision this records); RFC-0041 + ADR-0031 (the doctrine + reference-library + reuse, no-engine idiom this applies one altitude up — the sibling ADR this mirrors); RFC-0048 (the operating model this is child 5 of; D7/D8 spike-confirmed); RFC-0049 (the sibling downstream release-loop coordinator, whose coordinator ADR is the third member of this family); RFC-0051 (the self-coverage gate `discovery-loop` is the full-battery home of); ADR-0042 (reviewer additions keyed to loop + work type — the policy under which the loop-scoped discovery roster is admitted; the CHARTER reviewer ceiling stays a `work-loop`/code-review cap); ADR-0030 / RFC-0040 (the three-tier layout the sidecar paths obey); ADR-0022 (the cross-repo reference-by-version the stable-id traceability reuses)
 
 ## Decision summary
@@ -33,6 +38,17 @@ Constraints in force when deciding:
 ## Decision
 
 > We will ship the upstream discovery coordinator as **content — a `discovery-lead` agent + a `discovery-loop` skill + a carried, versioned sidecar-schema contract — never a runtime engine**, with the typed sidecar as the **connectedness verifier**.
+
+- **D1:** The discovery coordinator ships as content — a `discovery-lead` agent definition plus a `discovery-loop` skill — in the `product-engineering` pack.
+- **D2:** The sidecar-schema definition is a `references/` file carried in the `discovery-loop` skill, and the plan-tree is a carried `assets/` template.
+- **D3:** No runtime engine, scheduler, service, message bus, daemon, or convergence solver is introduced.
+- **D4:** Recursion is `parent_id` nesting walked depth-first by one controller, and the outer cap plus cost budget are data counters that controller increments.
+- **D5:** A typed verdict is a status edit plus a recorded decision-log row, never an engine transition.
+- **D6:** Every produced sidecar instance carries a `schema_version` stamp, and downstream consumers read `_state/` instances by slot-name plus that stamp rather than importing the definition.
+- **D7:** A schema bump moves the definition and its producing skill atomically.
+- **D8:** `core` is not bumped for the sidecar schema and carries no copy of it.
+- **D9:** The inter-loop mesh and its scheduling layer stay out of scope; this contract ships only the stable-id substrate such a mesh would consume.
+- **D10:** Running validation activities stays out of charter — `plan-validation` scaffolds instruments and synthesizes transcripts, and a human runs the interviews and pilots.
 
 Three sub-decisions, each expensive to reverse:
 
