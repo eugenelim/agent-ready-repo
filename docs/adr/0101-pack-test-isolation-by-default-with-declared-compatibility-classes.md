@@ -1,10 +1,15 @@
 # ADR-0101: Pack tests are isolated by default, grouped only by a declared compatibility class
 
-- **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-08-28
+- **Areas:** testing, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer, quality-engineer
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** ADR-0071 (the pack is the ownership and test-execution boundary —
   unchanged by this ADR), RFC-0082 (test ownership boundaries),
   `docs/specs/lint-performance-p0/` (whose golden-baseline pin this ADR amends),
@@ -62,6 +67,28 @@ Isolation is the default and needs no declaration. Grouping is the exception and
 must be declared in `tools/pack_test_compatibility.py` as typed data carrying
 its own evidence: owning pack, exact member paths, required import mode, how
 duplicate basenames are resolved, and the subject-import disposition.
+
+- **D1:** A pack test suite runs in its own pytest process unless it is a member
+  of a declared compatibility class.
+- **D2:** Every compatibility class is declared in
+  `tools/pack_test_compatibility.py` as typed data carrying owning pack, exact
+  member paths, required import mode, duplicate-basename resolution, and the
+  subject-import disposition.
+- **D3:** A fail-closed gate re-derives each class's safety from source on every
+  run rather than trusting the declaration.
+- **D4:** A class fails when a member's import set mutates `sys.path`, when a
+  duplicate basename is not covered by the declared resolution, or when a
+  subject-module name cannot be statically resolved.
+- **D5:** A member's import set includes every `conftest.py` from the repository
+  root down to that member's own directory.
+- **D6:** The subject invariant is one name mapping to one path, not
+  name-uniqueness.
+- **D7:** A compatibility class never spans packs.
+- **D8:** A floor-bearing suite is never grouped.
+- **D9:** A grouped command lists its members explicitly, and an
+  ancestor-shaped invocation is rejected.
+- **D10:** `--import-mode=importlib` stays class-scoped and never becomes a
+  repository default.
 
 The gate re-derives safety from source rather than trusting the declaration. A
 class fails when a member's import set — its test modules, **every `conftest.py`
@@ -140,3 +167,8 @@ carrying the new lint and the baseline is regenerated from that pinned subject.
 This is a recorded amendment with its reason, not a rebaseline to make a failing
 comparison pass — the distinction that spec's rail draws. The baseline resumes
 its anti-regression role from the new pin.
+
+**Revisit if:** a sixth compatibility class is proposed, in which case the
+characterization gate's own 30 collect-only processes must be weighed against the
+launches the class removes; or `catalogue-curation` or `atlassian` takes the
+bounded migration that would stop its import set mutating `sys.path` (D4).
