@@ -106,8 +106,10 @@ def test_no_retired_claim_matches_preserved_published_text(claim: str) -> None:
     (
         # Two requirements pulled against each other here: the enumeration must
         # match the numbered list it introduces, and AC-0005 requires the prose
-        # to claim the cap. The pin spans the whole sentence so it holds both --
-        # an earlier version started mid-enumeration and guarded only the cap.
+        # to claim the cap. The pin holds the second and the sentence's own
+        # wording; it does not hold the correspondence. That runs through "step
+        # 5 of 10" and the word "five", both outside this span, so adding an
+        # eleventh step leaves the sentence byte-identical and wrong.
         "The extra five steps — gates, adversarial review, specialist reviewers, "
         "reporting repeated findings, learning capture — are the ones that catch "
         "the failures spec-shape alone can't, and a mechanical iteration cap "
@@ -275,13 +277,21 @@ def test_no_retired_phrase_matches_preserved_text(phrase: str) -> None:
 #
 # This claim was corrected three times, and each pass left one surface behind:
 # the guide, twice. Checking four files by hand after every edit is how the
-# fourth miss happened, so the invariant is asserted instead.
+# fourth miss happened, so the drift is asserted instead.
 #
-# Both halves matter and they fail differently. Without the false-negative
-# property a reader trusts a flag that reads false through most real
-# recurrence. Without the residual, the same reader has no reason why a signal
-# that "misses what it was built to catch" is still worth surfacing — and the
-# retained Surface disposition looks like an oversight.
+# What each half holds, stated precisely because the names invite more. The
+# first is the false-negative property: without it a reader trusts a flag that
+# reads false through most real recurrence. The second is the *condition* under
+# which the flag is true — not a reason the Surface is retained, which is prose
+# no substring can hold. It is pinned because it was stated three ways across
+# four surfaces (backwards, then over-corrected, then as a guarantee), and
+# consistency is the part a check can enforce.
+#
+# The list is hand-maintained, and a fifth surface describing the flag is
+# invisible to it. That is not the shape used for the published sweep, which
+# walks its trees — a derivation is not available here: the field name appears
+# in only two of these four files, and the guide vocabulary that would catch
+# the other two also matches six files that do not describe this flag.
 
 # `web/src/content/packs/core.md` describes the same flag and is deliberately
 # outside this list: it is a marketing page, where the full caveat would not
@@ -311,6 +321,16 @@ MECHANISM_HALVES = (
 def test_every_surface_describing_the_signal_states_both_halves(
     relpath: str, half: str, claim: str
 ) -> None:
+    """Holds a consistency property, not a completeness one.
+
+    This asserts that where these four files state the mechanism, they state
+    both halves of it. It does not assert that any of them still explains the
+    signal at all: a file reduced to these two phrases and nothing else would
+    satisfy it. That gap is covered from the other side -- `_preserved()`
+    requires each Surface disposition to survive in its own file, and gutting a
+    surface reds there instead. Recorded because a name like this one invites
+    a reader to expect more than it delivers.
+    """
     target = ROOT / relpath
     assert target.is_file(), f"mechanism surface is missing: {relpath}"
     assert claim in _flat(target), (

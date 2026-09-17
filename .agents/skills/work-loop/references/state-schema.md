@@ -194,9 +194,11 @@ a new fingerprint and the flag reads false through most real recurrence. It
 fires only when the sustained set is exactly the previous round's, which a
 round that changed nothing makes possible but does not guarantee: the set is
 parsed from the reviewer's report, not from the tree, so an unchanged tree can
-still yield a different title or a different sustained subset. That narrow
-case is the reason it is worth Surfacing. What it cannot do is bound the loop,
-so the halt it once carried is retired. Separately, a false reading is not
+still yield a different title or a different sustained subset. A fire reports
+an exact repeat of the sustained set and nothing beyond that — it does not
+identify a round that made no edits, since a round that edited heavily below
+every cited line fires identically. What it cannot do is bound the loop, so
+the halt it once carried is retired. Separately, a false reading is not
 evidence that the round made progress.
 
 **Atomic writes.** Both tools update their JSON files through
