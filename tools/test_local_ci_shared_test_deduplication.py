@@ -593,7 +593,16 @@ MAKE_BASELINE_DIGESTS = {
     # digest exists to pin are byte-identical.
     "build-check-unleased": "4299c65f68880e4f2e67e4cbf4ac6103154340ccd25ab98c8fca5e574a92b3b9",
     "sast": "6e3046497a9f9ed10e559865ecd9e330d88e37417ccfc35af20bc610616ef0b4",
-    "sast-unleased": "cb4177f36bd64773812db97f879ad7e49e197370ecb9934ecb8a133318d4b1e5",
+    # Bumped 2026-09-16 for the jsonl-otlp-exporter packaging addition
+    # (2b1574e19), which appended `packages/jsonl-otlp-exporter/pyproject.toml`
+    # to the recipe's `audit-requirements.py --build-system` call. Verified
+    # before the bump the same way the SEMGREP_EXCLUDE entry above was:
+    # `sast-unleased` was the SOLE surface to move, every other one of the
+    # eight reproduced byte-identically, and the value being replaced was
+    # recomputed from `2b1574e19~1` and matched exactly — so this supersedes a
+    # live pin, not a stale one, and the move is confined to the one line that
+    # commit deliberately added.
+    "sast-unleased": "9b2decb9e6baf12f75074c508590272b3052fa0a367a437bab290c2bca6e3dff",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
     "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
     # Bumped 2026-09-13 for the httpsconnection-detected exclusion. Verified

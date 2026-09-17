@@ -23,11 +23,12 @@ import subprocess
 import sys
 import tempfile
 
+import selftest_harness
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 LINTER = REPO_ROOT / "tools" / "lint-experience-agnostic.py"
 
-_FAILURES: list[str] = []
-_CASES = 0
+_CHECKS = selftest_harness.CaseFailures("test-lint-experience-agnostic")
 
 CLEAN = """# Direction
 
@@ -51,17 +52,17 @@ def _run(root: pathlib.Path) -> subprocess.CompletedProcess[str]:
 
 
 def _check(name: str, root: pathlib.Path, want_code: int, want_sub: str = "") -> None:
-    global _CASES
-    _CASES += 1
     res = _run(root)
     out = res.stdout + res.stderr
     if res.returncode != want_code:
-        _FAILURES.append(
-            f"{name}: exit {res.returncode}, want {want_code}\n  output: {out!r}"
+        _CHECKS.check(
+            name, False, f"exit {res.returncode}, want {want_code}\n  output: {out!r}"
         )
         return
-    if want_sub and want_sub not in out:
-        _FAILURES.append(f"{name}: missing {want_sub!r} in output\n  output: {out!r}")
+    _CHECKS.check(
+        name, not want_sub or want_sub in out,
+        f"missing {want_sub!r} in output\n  output: {out!r}",
+    )
 
 
 def _write(tmp: pathlib.Path, body: str) -> pathlib.Path:
@@ -101,13 +102,7 @@ def main() -> int:
         # Missing scan root is a tool error, not a traceback.
         _check("missing-root", tmp / "does-not-exist", 2, "does not exist")
 
-    if _FAILURES:
-        print(f"✖ {len(_FAILURES)}/{_CASES} cases failed:")
-        for f in _FAILURES:
-            print(f"  - {f}")
-        return 1
-    print(f"✓ all {_CASES} cases passed")
-    return 0
+    return _CHECKS.report()
 
 
 if __name__ == "__main__":

@@ -15,6 +15,8 @@ import subprocess
 import sys
 import tempfile
 
+import selftest_harness
+
 _SCRIPT = pathlib.Path(__file__).parent / "lint-journey-contract.py"
 
 _VALID = """\
@@ -216,23 +218,9 @@ def test_surviving_old_heading() -> None:
         _assert("old-format" in r.stderr.lower(), f"expected old-format message; got:\n{r.stderr}")
 
 
-def main() -> None:
-    tests = [
-        test_valid_passes,
-        test_missing_contract_key,
-        test_generated_contract_with_decision_gate_ids_passes,
-        test_generated_requires_decision_gate_ids,
-        test_generated_requires_display_decisions_too,
-        test_hand_authored_requires_display_decisions,
-        test_stage_missing_output,
-        test_unknown_actor,
-        test_surviving_old_heading,
-    ]
-    for t in tests:
-        t()
-        print(f"  ok: {t.__name__}")
-    print(f"test-lint-journey-contract: all {len(tests)} tests passed")
+def main() -> int:
+    return selftest_harness.run_cases(globals(), "test-lint-journey-contract")
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -495,6 +495,7 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {slug = "pre-existing-local-ci-shared-test-dedup-drift", source = "pre-flight/2026-09-16"},  # 2 cases in tools/test_local_ci_shared_test_deduplication.py fail on a clean tree: test_real_make_root_tool_groups_match_the_approved_profiles (4 errors - standalone/composed process-count and membership drift; needs a decision on which of FIRST_TOOL_BATCH / RETAINED_TOOL_SINGLETONS / FINAL_TOOL_BATCH owns the two pytest commands 2b1574e19 added) and test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation (APPROVED_STANDALONE_PLAN_DIGEST / APPROVED_COMPOSED_PLAN_DIGEST; the 133 reported items are a printout of the computed plan, not 133 defects). Both trace to 2b1574e19 adding packages/jsonl-otlp-exporter to the Makefile. The third case, the sast-unleased byte pin, was re-pinned 2026-09-16. Proven pre-existing by differential: they fail with this branch's new tools/ files removed, and the Makefile is unmodified in the diff. NOTE: this file is in make test (Makefile:643), so make test is red on main until these land.
   # Two corrections to `loop-telemetry-export`'s contract that were found by doing
   # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
   # a completed task's section, and both corrections land inside T2 and T4, which

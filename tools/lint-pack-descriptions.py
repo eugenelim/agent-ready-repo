@@ -62,6 +62,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+import lint_harness
+
 # The backstop, deliberately set ABOVE the observed range of good copy rather
 # than at the edge of it. The marketplace this catalogue is listed alongside
 # runs to a 177-character median and a 665-character maximum across 280 plugin
@@ -72,6 +74,39 @@ from pathlib import Path
 MAX_DESCRIPTION = 800
 
 
+def _parse(argv: list[str] | None) -> Path:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--root", default=".", help="repository root to lint (default: .)"
+    )
+    return Path(parser.parse_args(argv).root)
+
+
+def _manifests(root: Path) -> list[Path] | None:
+    """Return each pack's ``pack.toml``, or ``None`` when ``packs/`` is absent.
+
+    Fail closed before reporting anything: a pass line printed over zero
+    scanned manifests is the defect, not the absence. Both the absent and the
+    empty case answer with the same refusal, so the operator's unmet intent —
+    "lint this root" — is what the message names either way.
+    """
+    packs_dir = root / "packs"
+    if not packs_dir.is_dir():
+        return None
+    return sorted(
+        pack / "pack.toml" for pack in packs_dir.iterdir()
+        if (pack / "pack.toml").is_file()
+    )
+
+
+def _nothing_scanned(root: Path) -> lint_harness.Outcome:
+    return lint_harness.Outcome(
+        f"lint-pack-descriptions: no pack.toml found under {root / 'packs'} "
+        "— scanned nothing, so this is not a pass. Check --root.",
+        2,
+    )
+
+
 def find_violations(packs_dir: Path) -> list[str]:
     """Return one message per pack whose description passes the drift backstop.
 
@@ -79,70 +114,62 @@ def find_violations(packs_dir: Path) -> list[str]:
     `pack.toml` is not this lint's business — the first two are legitimate and
     the third is already reported by schema validation, so re-reporting it here
     would double-count the same defect.
+
+    Kept as a public function over a directory: the self-test drives it
+    directly, and callers predate the move onto the shared driver.
     """
-    violations: list[str] = []
     if not packs_dir.is_dir():
-        return violations
+        return []
+    violations: list[str] = []
     for pack_dir in sorted(packs_dir.iterdir()):
         manifest = pack_dir / "pack.toml"
-        if not manifest.is_file():
-            continue
-        try:
-            parsed = tomllib.loads(manifest.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):
-            continue
-        description = parsed.get("pack", {}).get("description")
-        if not isinstance(description, str):
-            continue
-        if len(description) > MAX_DESCRIPTION:
-            violations.append(
-                f"lint-pack-descriptions: {pack_dir.name}: [pack].description has "
-                f"run away — {len(description)} chars, past the "
-                f"{MAX_DESCRIPTION}-char drift backstop. This is display copy a "
-                f"person reads while deciding whether to install, so rewrite it "
-                f"against catalogue-authoring-standards.md § 2 (lead with the "
-                f"adopter outcome; the component list belongs in "
-                f"{pack_dir.name}/README.md). Passing this check is not a sign "
-                f"the copy is good — only that it is not runaway."
-            )
+        if manifest.is_file():
+            violations.extend(_runaway(manifest))
     return violations
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "--root", default=".", help="repository root to lint (default: .)"
-    )
-    args = parser.parse_args(argv)
+def _runaway(manifest: Path) -> list[str]:
+    """Return the message for one manifest whose description ran away."""
+    pack_dir = manifest.parent
+    try:
+        parsed = tomllib.loads(manifest.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):
+        return []
+    description = parsed.get("pack", {}).get("description")
+    if not isinstance(description, str) or len(description) <= MAX_DESCRIPTION:
+        return []
+    return [
+        f"lint-pack-descriptions: {pack_dir.name}: [pack].description has "
+        f"run away — {len(description)} chars, past the "
+        f"{MAX_DESCRIPTION}-char drift backstop. This is display copy a "
+        f"person reads while deciding whether to install, so rewrite it "
+        f"against catalogue-authoring-standards.md § 2 (lead with the "
+        f"adopter outcome; the component list belongs in "
+        f"{pack_dir.name}/README.md). Passing this check is not a sign "
+        f"the copy is good — only that it is not runaway."
+    ]
 
-    packs_dir = Path(args.root) / "packs"
-    # Fail closed before reporting anything: see the module docstring. A pass
-    # line printed over zero scanned manifests is the defect, not the absence.
-    # `find_violations` stays a pure function returning []; the decision lives
-    # here, where the operator's unmet intent -- "lint this root" -- is visible.
-    if not packs_dir.is_dir() or not any(packs_dir.glob("*/pack.toml")):
-        print(
-            f"lint-pack-descriptions: no pack.toml found under {packs_dir} "
-            "— scanned nothing, so this is not a pass. Check --root.",
-            file=sys.stderr,
-        )
-        return 2
 
-    violations = find_violations(packs_dir)
-    for violation in violations:
-        print(violation, file=sys.stderr)
-    if violations:
-        print(
-            f"lint-pack-descriptions: {len(violations)} pack(s) past the "
-            f"{MAX_DESCRIPTION}-char drift backstop.",
-            file=sys.stderr,
-        )
-        return 1
-    print(
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_manifests,
+    predicate=_runaway,
+    pass_line=lambda root, n: (
         "lint-pack-descriptions: no pack description has run away (drift backstop "
         "only — the quality bar is catalogue-authoring-standards.md § 2)."
-    )
-    return 0
+    ),
+    empty_scan=_nothing_scanned,
+    absent_root=_nothing_scanned,
+    summary=lambda n: (
+        f"lint-pack-descriptions: {n} pack(s) past the "
+        f"{MAX_DESCRIPTION}-char drift backstop."
+    ),
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the drift backstop and return its process exit status."""
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":
