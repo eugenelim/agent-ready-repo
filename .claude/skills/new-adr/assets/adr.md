@@ -54,18 +54,24 @@ Parse tiers — fields the shape lint checks:
   recoverable by splitting on ; alone — this is why Related is not linted. -->
 
 <!--
-Lifecycle zones:
+Mutability zones. These divide one record by content, not by lifecycle: all four
+apply to every ADR at once, and acceptance freezes the prose, not the metadata.
 
-  Live — Status is Proposed: the decision is open for discussion.
+  Live — Status, the supersession fields, and Areas. Lists take new entries and
+    keep every entry they already had; Status is replaced in place, because it
+    is a state rather than a list.
 
-  Attested — Status is Accepted or Rejected: the call is made; body is frozen;
-    Status and supersession fields may still change.
+  Attested — Date, Decision-makers, and Reversibility. Frozen: they record who
+    decided what, when, and how they judged it at the time, so rewriting them
+    falsifies the record instead of correcting it.
 
-  Frozen — Status is Deprecated or Superseded: body and metadata are stable; a
-    meaning-preserving correction may be appended as a dated entry in ## Errata.
+  Frozen — every prose section except ## Errata.
 
-  Append-only — ## Errata is present: only new dated entries may be appended;
-    no other text changes.
+  Append-only — ## Errata. Entries may be added; an entry already present may
+    not be removed or rewritten.
+
+  Consulted and Informed sit in no zone: they may be deleted when empty, and a
+    field that may be absent cannot be append-only.
 -->
 
 ## Decision summary
