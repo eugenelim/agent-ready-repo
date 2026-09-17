@@ -69,12 +69,17 @@ contract changed, so every assertion about the old one is void. Between them,
 the container bound the stored set to one live partition, which is why no
 explicit size cap is needed where the sibling collections in this file have one.
 
-**The notice needs a caller.** `cmd_check` emits a passing guard's `message`, so
-a passing guard can print — but the engine's adapter discards it, and nothing in
-the skill invokes `check` for this phase at all. Without a documented caller the
-notice would be contract with no invoker, so GATES gains the pre-exit check
-before `wave-complete` is fired. That is also the right place: it surfaces a
-refusal before the transition rather than as a transition failure.
+**The notice needs a caller, and GATES is not it.** `cmd_check` emits a passing
+guard's `message`, so a passing guard can print — but the engine's adapter
+discards it, and nothing in the skill invokes `check` for this phase at all.
+Without a documented caller the notice would be contract with no invoker. The
+caller cannot be GATES: GATES fires `wave-passed`, `gates-clean` and
+`gates-failed`, and every documented firing of `wave-complete` reads "fire
+`wave-complete`, then run GATES" — so GATES runs *after* the transition it would
+have to precede. The check therefore goes immediately before the transition at
+each of the four surfaces that instruct firing it:
+`references/supervisor-mode.md`, `references/session-resumption.md`,
+`references/finding-adjudication.md`, and the two repair paths in `SKILL.md`.
 
 **The guard is an eight-row verdict table over two named well-formedness
 predicates.** Four rounds produced criteria that overlapped or left gaps, and
@@ -331,7 +336,28 @@ controlled amendment path in
 <!-- Append-only. One entry per refinement: date, question, evidence, surfaces
 read, task and field refined. Never edit an existing entry. -->
 
-- none yet.
+- **2026-09-17 — the kill condition fired before T1 ran, and an alternative was
+  taken.** Question: what does `check_phase` do with an unsupported
+  `schema_version` for a phase other than `implement`? Evidence:
+  `_loop_guards.py` refuses when `phase != "implement" and
+  state.get("schema_version") != SCHEMA_VERSION`, before any phase dispatch —
+  so a new `wave-exit` phase would refuse where `implement` passes, changing the
+  `wave-complete` verdict for in-flight pre-Phase-1 runs. That is the
+  predeclared kill condition for the separate-phase approach. Surfaces read:
+  `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` (the shared
+  preamble in `check_phase`) and
+  `packs/core/tests/skills/work-loop/test_loop_guards.py`, whose assertions pin
+  only that `implement` passes and `review` refuses on `schema_version: 99` —
+  they say nothing about a third exempt phase. Alternative taken: (ii), share
+  `implement`'s exemption, widening the exempt set rather than keeping the
+  accounting in `implement`, because (i) would widen the change into a shipped
+  hook every adopter has wired. Safe because the verdict table validates shape
+  rather than trusting the schema, so it is total regardless of
+  `schema_version`. Refined: none — this was settled before approval, so it is
+  a revision of the Draft spec through the pre-EXECUTE review loop, not a
+  discovery-time refinement of an unstarted task, and no amendment machinery
+  applies. Recorded here because the channel's kill condition is what surfaced
+  it.
 
 ## Inline proof obligation
 
@@ -515,6 +541,10 @@ covers the state lock a new mutation takes.
   byte-identical before and after the guard invocation.
 - `check --phase implement` returns the same exit code and streams as before
   this change, asserted over the states the new rows distinguish.
+- `check --phase wave-exit` on a state with `schema_version: 99` reaches the
+  verdict table rather than refusing on the schema, and `--phase review` and
+  `--phase gates-failed` on the same state still refuse — the discriminating
+  pair for the widened exemption.
 - `loop-cohort status` reports receipts not enforced when the container is
   absent and enforced when present, in both the default and `--json` forms.
 - Integration, in `test_loop_engine.py`: the real `wave-complete` transition out
@@ -526,6 +556,12 @@ covers the state lock a new mutation takes.
 **Approach:**
 - Add `wave-exit` to `PHASES` and a `wave-exit` branch to `check_phase`
   carrying the verdict table. Leave the `implement` branch exactly as it is.
+- Widen `check_phase`'s schema-validation exemption from the single `implement`
+  phase to a named set containing `implement` and `wave-exit`, so a run in
+  flight from before this change reaches the rows instead of being refused on
+  its schema. This is the alternative the kill condition selected; the existing
+  test pins only `implement` passing and `review` refusing, so it constrains
+  neither direction of this change and must still pass unaltered.
 - Point the engine's `("code", "wave-complete")` guard-table entry at a new
   adapter over the `wave-exit` phase. This adds a table entry and a function; it
   does not change `_guard_reason`'s contract.
@@ -574,7 +610,7 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
 
 **Depends on:** T3
 
-**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/evals/evals.json, .claude/skills/work-loop/SKILL.md, .agents/skills/work-loop/SKILL.md, .claude/skills/work-loop/references/supervisor-mode.md, .agents/skills/work-loop/references/supervisor-mode.md, .claude/skills/work-loop/references/state-schema.md, .agents/skills/work-loop/references/state-schema.md, .claude/skills/work-loop/evals/evals.json, .agents/skills/work-loop/evals/evals.json
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/references/session-resumption.md, packs/core/.apm/skills/work-loop/references/finding-adjudication.md, packs/core/.apm/skills/work-loop/evals/evals.json, .claude/skills/work-loop/SKILL.md, .agents/skills/work-loop/SKILL.md, .claude/skills/work-loop/references/supervisor-mode.md, .agents/skills/work-loop/references/supervisor-mode.md, .claude/skills/work-loop/references/state-schema.md, .agents/skills/work-loop/references/state-schema.md, .claude/skills/work-loop/evals/evals.json, .agents/skills/work-loop/evals/evals.json
 
 **Tests:**
 - `no stub (mode)` — goal-based.
@@ -585,9 +621,13 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   vocabulary, and state that the controller records it and an `implementer` does
   not record its own. The section already declares what the controller retains,
   so this extends that sentence rather than adding a trust mechanism.
-- In `SKILL.md` § Step 3. GATES, require `loop-cohort check --phase wave-exit`
-  before the `wave-complete` transition is fired. This is what gives the
-  absent-container notice a caller and surfaces a refusal before the transition.
+- At each of the four surfaces that instruct firing `wave-complete` — the two
+  repair paths in `SKILL.md`, `references/supervisor-mode.md`,
+  `references/session-resumption.md`, and
+  `references/finding-adjudication.md` — require
+  `loop-cohort check --phase wave-exit` immediately before the transition. Do
+  not put it in GATES: GATES runs after that transition, so a check placed
+  there could never precede it.
 - In `supervisor-mode.md` § Single-agent fallback, name
   `no-implementer-installed` as what the controller records, and name
   `human-directed` as recording a human instruction with no testable
@@ -607,8 +647,9 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   exit code. Projections are never edited directly.
 
 **Done when:** a check scoped to `## Step 2. EXECUTE` finds
-`loop-cohort dispatch-receipt` and the authorship sentence; a check scoped to
-`## Step 3. GATES` finds `--phase wave-exit`; a check scoped to
+`loop-cohort dispatch-receipt` and the authorship sentence; every one of the
+four `wave-complete` firing surfaces carries `--phase wave-exit` within the
+instruction block that fires the transition; a check scoped to
 `## Single-agent fallback` finds both reason codes; a check scoped to the
 state-schema field table finds the absence rule; `evals/evals.json` parses and
 contains a case naming both calls, the authorship, and both codes; the three

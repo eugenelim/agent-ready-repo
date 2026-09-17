@@ -130,9 +130,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   generated once, before the guard extraction, and deliberately never
   regenerated; a hand-written capture is a comparison value this change supplies
   for itself.
-- Remove a record by any path other than the two this spec names: a `schedule`
-  run whose partition differs from the one a record was written under, and a
-  contract amendment.
+- Remove a record by any path other than the three this spec names: a
+  `schedule` run whose partition differs from the one a record was written
+  under, a contract amendment, and `loop-cohort reset`, which unlinks
+  `state.json` and so removes every record with it.
 - Accept a record for a task the named wave does not contain, or for a wave the
   run has not yet reached.
 
@@ -242,42 +243,59 @@ identifier current when it was written.
 ### The `check --phase wave-exit` verdict
 
 Exactly one row applies to any cohort state, and the rows together cover every
-cohort state. A state is **well-formed at the top level** when `state.json`
-parses, `schedule_waves` read with its default is a list, and the receipts
-container is either absent or a mapping. A **current wave** is well-formed when
-it is a list whose every element is a string. A pointer is **valid** when
-`current_wave_index` is a non-negative integer by the guard layer's existing
-validation, which rejects `bool`, and is less than the number of waves in the
-partition. Naming the shared preconditions
+cohort state.
+
+A **record** is a mapping whose `kind` is `receipt` or `decline`, and which, when
+its `kind` is `decline`, carries a `reason` from the closed set
+`no-implementer-installed` and `human-directed`. Nothing else is a record.
+
+A state is **well-formed** when `state.json` parses, `schedule_waves` read with
+its default is a list, and the receipts container is either absent or a mapping
+each of whose values is a mapping each of whose values is a record. The
+container's interior belongs in this definition on purpose: bounding it at the
+top level while the accounting predicate reads its leaves is what produced four
+successive versions of one gap, a level deeper each time. The predicate is total
+over every value a record position can hold, so accounting never meets a shape
+it cannot classify.
+
+A **current wave** is well-formed when it is a list whose every element is a
+string. A pointer is **valid** when `current_wave_index` is a non-negative
+integer by the guard layer's existing validation, which rejects `bool`, and is
+less than the number of waves in the partition. Naming the shared preconditions
 once is deliberate: an earlier draft asserted that each row negated the rows
 above it without writing those negations, and two rows then covered the same
 state with opposite verdicts.
 
 - [ ] `state.json` is missing or cannot be parsed: exits non-zero and names the
       state defect on stderr.
-- [ ] `state.json` parses but the state is not well-formed at the top level:
+- [ ] `state.json` parses but the state is not well-formed:
       exits non-zero and names the malformed field on stderr, rather than
       surfacing an exception type.
-- [ ] The state is well-formed at the top level and the partition is empty:
+- [ ] The state is well-formed and the partition is empty:
       exits zero and prints nothing to stdout or stderr.
-- [ ] The state is well-formed at the top level, the partition is non-empty, and
+- [ ] The state is well-formed, the partition is non-empty, and
       the receipts container is absent: exits zero and names the absent
       container on stdout.
-- [ ] The state is well-formed at the top level, the partition is non-empty, the
+- [ ] The state is well-formed, the partition is non-empty, the
       container is present, and the pointer is not valid: exits non-zero and
       names the invalid pointer on stderr.
-- [ ] The state is well-formed at the top level, the partition is non-empty, the
+- [ ] The state is well-formed, the partition is non-empty, the
       container is present, the pointer is valid, and the current wave is not
       well-formed: exits non-zero and names the malformed wave on stderr.
-- [ ] The state is well-formed at the top level, the partition is non-empty, the
+- [ ] The state is well-formed, the partition is non-empty, the
       container is present, the pointer is valid, the current wave is
       well-formed, and every task in the current wave is accounted for: exits
       zero and prints nothing to stdout or stderr.
-- [ ] The state is well-formed at the top level, the partition is non-empty, the
+- [ ] The state is well-formed, the partition is non-empty, the
       container is present, the pointer is valid, the current wave is
       well-formed, and at least one task in the current wave is not accounted
-      for: exits non-zero and names every such task, and no accounted task, on
-      stderr.
+      for: exits non-zero and names on stderr every such task, and no accounted
+      task, up to the guard layer's reason-length bound; where that bound
+      truncates the list, the refusal says so rather than presenting a
+      shortened list as complete.
+- [ ] Every state-derived value the guard or the verb interpolates into a
+      refusal passes through the guard layer's existing length-bounding helper,
+      so no refusal carries an unbounded value read from `state.json`.
 - [ ] No cohort state satisfies the preconditions of two of the eight rows
       above.
 - [ ] No cohort state satisfies the preconditions of none of the eight rows
@@ -285,12 +303,20 @@ state with opposite verdicts.
 - [ ] Each of the eight rows above is satisfied by some cohort state.
 - [ ] The states the three criteria above are checked over are constructed by
       varying the type and value of `schedule_waves`, of its element at the
-      pointer, of the receipts container, and of `current_wave_index` — not by
-      instantiating one example per row, which cannot exhibit a gap.
+      pointer, of the receipts container, of a value held inside that container,
+      of a record's `kind`, of `schema_version`, and of `current_wave_index` —
+      not by instantiating one example per row, which cannot exhibit a gap.
 - [ ] For every row above whose state has a `state.json`, that file is
       byte-identical before and after a `check --phase wave-exit` invocation.
 - [ ] The `wave-complete` transition out of `CODE-IMPLEMENTATION` is refused
       when the guard refuses.
+- [ ] `check --phase wave-exit` reaches the verdict table for a state whose
+      `schema_version` is not the supported value, rather than refusing before
+      the table — sharing the exemption `check --phase implement` already has,
+      so a run in flight from before this change is judged by the rows rather
+      than by its schema.
+- [ ] `check --phase review` and `check --phase gates-failed` still refuse a
+      state whose `schema_version` is not the supported value.
 - [ ] `check --phase implement` returns the same exit code and the same streams
       as it does before this change, for the golden parity replay of that phase
       and for one state per row of the table above — the states the new rows
@@ -298,11 +324,16 @@ state with opposite verdicts.
 
 ### Reporting and reaching the check
 
-- [ ] `SKILL.md` § Step 3. GATES requires `loop-cohort check --phase wave-exit`
-      to be run before the `wave-complete` transition is fired, which is what
-      gives the absent-container notice a caller — the engine's guard adapter
-      discards a passing guard's text, so the transition alone cannot surface
-      it.
+- [ ] Every surface that instructs firing the `wave-complete` transition also
+      instructs running `loop-cohort check --phase wave-exit` immediately
+      before it. Those surfaces are `references/supervisor-mode.md`,
+      `references/session-resumption.md`, `references/finding-adjudication.md`,
+      and the two repair paths in `SKILL.md`. GATES is not among them: GATES
+      fires `wave-passed`, `gates-clean` and `gates-failed`, and it runs after
+      the `wave-complete` transition rather than before it.
+- [ ] That pre-transition run is what gives the absent-container notice a
+      caller, because the engine's guard adapter discards a passing guard's text
+      and the transition alone therefore cannot surface it.
 - [ ] `loop-cohort status` reports whether dispatch receipts are enforced for
       the run, in both its default output and its `--json` output.
 - [ ] A record written by `loop-cohort dispatch-receipt` is counted by

@@ -198,6 +198,17 @@ which is the contract. None of the three varies a record's own type or `kind`,
 which is why both review lanes independently found that gap after the third
 walk.
 
+| 7,128 states | the same, plus container **interiors**: valid records, a bad decline reason, a non-mapping leaf, a non-mapping wave map, a missing `kind`, a non-string `kind`; plus `schema_version` | the rows as the spec words them, with well-formedness total over the container | 0 overlapping, 0 uncovered, all 8 rows reachable |
+
+**The fourth walk's discriminating results.** A record with reason `made-up`
+classifies to the malformed-state row, not to "accounted for". A record leaf that
+is the string `"receipt"` classifies there too. Both were fail-open or
+raise-into-`@contained` before well-formedness was made total over the
+container's interior, and both were reported independently by the two review
+lanes. `schema_version` is inert across `1`, `99` and absent — the same row in
+all three — which is the intended consequence of `wave-exit` sharing
+`implement`'s exemption.
+
 **The reusable conclusion.** A domain sourced from the predicates under test can
 exhibit an overlap but never a gap. The domain has to be generated over
 arbitrary values at every position the predicate reads, and the predicate has to
