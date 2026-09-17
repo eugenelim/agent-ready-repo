@@ -6,7 +6,7 @@
 - **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Supersedes in part:** ADR-0014
+- **Supersedes in part:** ADR-0014 D8
 - **Superseded by:** none
 - **Superseded in part:** none
 - **Related:** RFC-0025

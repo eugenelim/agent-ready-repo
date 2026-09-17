@@ -7,7 +7,7 @@
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (Codex, read-only)
 - **Supersedes:** none
-- **Supersedes in part:** ADR-0017
+- **Supersedes in part:** ADR-0017 D4
 - **Superseded by:** none
 - **Superseded in part:** none
 - **Related:** [ADR-0086](0086-split-the-sast-gate-into-its-own-ci-job.md), [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md), PR #1285

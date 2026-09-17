@@ -6,7 +6,7 @@
 - **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Supersedes in part:** ADR-0013; ADR-0015; ADR-0016
+- **Supersedes in part:** ADR-0013 D5; ADR-0015 D1; ADR-0016 D2
 - **Superseded by:** none
 - **Superseded in part:** none
 - **Related:** [RFC-0052](../rfc/0052-shared-prefix-aware-multi-adapter-install.md) Decision 3 (the call this records — the one RFC-0052 decision that required an explicit Approver yes), [ADR-0039](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) (the `shared` prefix class + co-ownership model this routing relies on), [RFC-0009](../rfc/0009-codex-native-skills.md) (codex's existing `.agents/skills/` native home, the precedent)

@@ -7,7 +7,7 @@
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review, security review (eight pre-EXECUTE rounds)
 - **Supersedes:** none
-- **Supersedes in part:** ADR-0017
+- **Supersedes in part:** ADR-0017 D3
 - **Superseded by:** none
 - **Superseded in part:** none
 - **Related:** the implementing spec `docs/specs/ci-gate-parallelization/`; `tools/assert-sast-chain-reachable.py` carries the operative guarantee; [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) extends the same gate to npm and travels with it

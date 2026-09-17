@@ -6,18 +6,15 @@
 - **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Supersedes in part:** ADR-0014; ADR-0076; ADR-0078
+- **Supersedes in part:** ADR-0014 D3; ADR-0076 D7; ADR-0078
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088. The clause scope
-  of the partial supersessions above, pending D-IDs on those records: ADR-0014 —
-  light mode's persisted inline-spec obligation; its trigger set, light/full
-  selection, and no-new-executable-code, skill, or artifact-type boundary stand.
-  ADR-0076 — its dispatch-only wording; workspace dispatch remains spec-and-plan
-  based. ADR-0078 — its start-route materialization rule and its "every
-  executable work item has a reviewable canonical contract and plan"
-  consequence, both narrowed to workspace-indexed items; workspace-entry
-  dispatchability stands
+- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088. The ADR-0078
+  entry above carries no D-ID because this record narrows two things there: its
+  start-route materialization rule (ADR-0078 D1) and its "every executable work
+  item has a reviewable canonical contract and plan" **consequence**, which is
+  prose in `## Consequences` and so has no constraint address. ADR-0078's
+  workspace-entry dispatchability rule stands unchanged
 
 ## Decision summary
 
