@@ -1085,10 +1085,14 @@ composed:
     # The stale-declaration direction: ungated declared where a gate exists.
     _check_fires("suites-no-pr-gate-contradicted-by-a-covering-step-fires",
                  _suites(one_line, full, _src()), "contradicted")
-    # A conditional source does NOT contradict NO_PR_GATE, because it does not
-    # run on every pull request.
-    _check("suites-no-pr-gate-not-contradicted-by-a-conditional-source",
-           _suites(one_line, full, _src(filtered=True)), [])
+    # A conditional source DOES contradict NO_PR_GATE. This case asserted the
+    # opposite, and that wrong assumption is why 21 entries shipped a reason
+    # saying no workflow named them while a path-filtered workflow ran every
+    # one. `NO_PR_GATE` means no pull-request check reaches the suite at all;
+    # `PR_GATED_IF` is what the conditional case is for.
+    _check_fires("suites-no-pr-gate-contradicted-by-a-conditional-source",
+                 _suites(one_line, full, _src(filtered=True)),
+                 "reaches it conditionally")
     # A reason is required. Whether it is TRUE is a human-review control.
     blank = dict(full)
     blank["a/tests/"] = M.NO_PR_GATE("   ")
@@ -1107,6 +1111,120 @@ composed:
                  _suites(one_line, good_if, {}), "names no step")
     _check_fires("suites-pr-gated-if-on-an-unconditional-source-fires",
                  _suites(one_line, good_if, _src()), "not in fact conditional")
+
+    # ── the six defects the post-gates review found ─────────────────────────
+    #
+    # Every one was a way a suite escaped the roster or carried a false
+    # disposition, and every one was invisible from reading the code.
+
+    # F1. A suite named only inside `for d in <paths>; do pytest "$d"; done`.
+    # One workflow runs 24 pack suites that way. The roster was authored from
+    # this extractor, so all 24 inherited its blind spot and 21 shipped a reason
+    # asserting no workflow named them.
+    _loop_run = (
+        'for d in \\\n  packs/a/tests/ \\\n  packs/b/tests/; do\n'
+        '  python -m pytest "$d" -q\ndone\n'
+    )
+    _check("loop-targets-reads-a-literal-for-loop",
+           sorted(M.loop_targets(_loop_run)),
+           ["packs/a/tests/", "packs/b/tests/"])
+    # Narrow on purpose: coverage is the direction where a false positive is
+    # consequential, so a loop whose body never runs pytest on the variable
+    # contributes nothing.
+    _check("loop-targets-ignores-a-loop-that-does-not-run-pytest",
+           M.loop_targets('for d in packs/a/tests/; do\n  echo "$d"\ndone\n'), [])
+    # The item must be a LITERAL path. `$(SUITE_DIR)/tests/` is the
+    # discriminating shape: it contains a slash, so a guard keyed only on path
+    # shape admits it and the roster gains a key that is not a path at all. A
+    # bare `$(SUITES)` cannot show this, because the path-shape filter excludes
+    # it for an unrelated reason.
+    _check("loop-targets-ignores-a-non-literal-item",
+           M.loop_targets(
+               'for d in $(SUITE_DIR)/tests/; do\n  python -m pytest "$d" -q\ndone\n'),
+           [])
+
+    # F2. An opaque operand riding free on a literate neighbour's entry.
+    _opaque = "$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q"
+    _check("opaque-operand-is-detected", M.opaque_operands(_opaque), ["$(EXTRA_SUITE)"])
+    _check_fires("suites-opaque-operand-demands-its-own-key",
+                 _suites(_mk("\t" + _opaque), {"known/tests/": M.NO_PR_GATE("x")}),
+                 "names no literal path")
+    # `$(PYTHON)` is the interpreter, not an operand, so every real line in the
+    # define would false-alarm if the command position counted.
+    _check("opaque-operand-ignores-the-command-position",
+           M.opaque_operands("$(PYTHON) -m pytest known/tests/ -q"), [])
+
+    # F3. GNU Make expands `${...}` in a recipe comment as readily as `$(...)`.
+    _check("suite-lines-keeps-a-comment-with-a-brace-expansion",
+           M.suite_lines(_mk("\t# ${shell ${PYTHON} -m pytest sneaky/ -q}")),
+           ["# ${shell ${PYTHON} -m pytest sneaky/ -q}"])
+
+    # F4. A substring key must match a complete command phrase, or a new suite
+    # inherits an existing entry by raw containment.
+    _check_true("substring-key-matches-its-own-line",
+                M._matches_at_boundary("npm run test:plugins",
+                                       "npm run test:plugins --prefix docs-site"))
+    _check("substring-key-does-not-match-a-longer-command",
+           M._matches_at_boundary("npm run test:plugins",
+                                  "npm run test:plugins-extra --prefix docs-site"),
+           False)
+
+    # F5 and F6 read a fixture workflow tree, because both are properties of
+    # `pr_gate_sources` rather than of a single string.
+    def _sources_for(step_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / "w.yml").write_text(
+                "on:\n  pull_request:\njobs:\n  j:\n    steps:\n" + step_yaml,
+                encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get("a/tests/", [])
+
+    # F5. `if: false` loads as Boolean False, so a truthiness test read a step
+    # that never runs as unconditional and let it corroborate PR_GATED.
+    _false_if = _sources_for(
+        "      - name: s\n        if: false\n"
+        "        run: python -m pytest a/tests/ -q\n")
+    _check_true("if-false-is-conditional-by-presence",
+                bool(_false_if) and bool(_false_if[0]["conditional"]))
+    _check("no-if-is-unconditional",
+           _sources_for("      - name: s\n        run: python -m pytest a/tests/ -q\n"
+                        )[0]["conditional"], False)
+
+    # The same presence rule has to hold on the JOB. A job-level `if: false`
+    # stops every step in it, and the step itself carries no condition to see.
+    def _job_sources(job_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / "w.yml").write_text(
+                "on:\n  pull_request:\njobs:\n" + job_yaml, encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get("a/tests/", [])
+
+    _job_false = _job_sources(
+        "  j:\n    if: false\n    steps:\n      - name: s\n"
+        "        run: python -m pytest a/tests/ -q\n")
+    _check_true("job-if-false-is-conditional-by-presence",
+                bool(_job_false) and bool(_job_false[0]["conditional"]))
+    _check("job-continue-on-error-is-conditional",
+           _job_sources(
+               "  j:\n    continue-on-error: true\n    steps:\n      - name: s\n"
+               "        run: python -m pytest a/tests/ -q\n")[0]["conditional"], True)
+
+    # F6. Targets attributed per step, not per step NAME: two steps sharing a
+    # name shared the merged list, so a step running nothing lent its standing
+    # to another step's suite.
+    _dupes = _sources_for(
+        "      - name: same\n        if: false\n"
+        "        run: python -m pytest a/tests/ -q\n"
+        "      - name: same\n        run: echo nothing\n")
+    _check("duplicate-step-names-do-not-cross-credit", len(_dupes), 1)
+    _check_true("duplicate-step-names-keep-the-real-step-conditional",
+                bool(_dupes) and bool(_dupes[0]["conditional"]))
 
     # ── the roster this repository actually ships ───────────────────────────
     # Wiring, not rule: every other case passes its own tables, so all of them

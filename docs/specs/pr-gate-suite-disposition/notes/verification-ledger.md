@@ -431,3 +431,94 @@ Entry corrected to `PR_GATED` naming the covering step. The roster now reads
 Re-run on the rebased tree: `lint-ruff` 0, `lint-mypy` 0, `lint-ci-parity` 0,
 `test-lint-ci-parity` 0 (169 cases), and the dedup guard green against #1342's
 own re-pinned digests.
+
+## Post-gates review round 1 — seven findings, all sustained (2026-09-17)
+
+The adversarial round on the finished diff returned seven findings. Six were
+confirmed by direct test against the code, not by reading; the seventh is a
+contract reading. **None was refuted.**
+
+### Finding 1 was the serious one, and its cause was my method
+
+`catalogue-tooling-ci-gates.yml` lists 24 suite paths literally inside
+`for d in <paths>; do python -m pytest "$d" -q; done`. The extractor sees
+`pytest "$d"` — no literal operand — so `pr_gate_sources` recorded nothing for
+them. **21 of the 24 therefore carried a `NO_PR_GATE` reason asserting that no
+workflow named them, while that workflow ran every one.**
+
+The cause is not a typo. The roster was authored *from* `pr_gate_sources`, so
+wherever the extractor is blind the roster is confidently wrong in exactly those
+places. The comment above the loop even says it is statically unresolvable and
+that `lint-pack-test-boundary.py` carries a declared exception for it; that file
+had been read during shaping. The "then reviewed" half of *authored from
+measurement, then reviewed* was performed thematically — checking that reasons
+read sensibly by category — not per entry against the workflows, which is the
+only reading that could have caught this.
+
+A second half of the same finding: the stale-declaration arm ignored
+**conditional** sources, so even a correct source map would not have contradicted
+those 21. `NO_PR_GATE` now means "no pull-request check reaches this at all", and
+any source contradicts it — `PR_GATED_IF` is what the conditional case is for.
+The self-test case that asserted the opposite,
+`suites-no-pr-gate-not-contradicted-by-a-conditional-source`, encoded the wrong
+assumption and is inverted.
+
+Corrected split: **59 PR-gated, 27 conditionally gated, 32 with no pull-request
+gate.** The figure the delivery reported before this round, 59 / 6 / 53, was
+wrong.
+
+### All seven, and how each was confirmed
+
+| # | Defect | Confirmed by |
+| --- | --- | --- |
+| 1 | 21 false `NO_PR_GATE` entries; shell-loop invocation invisible | measured — exact count, independently and by the lint |
+| 2 | `pytest known/tests/ $(EXTRA_SUITE)` — the opaque operand demanded no entry | `line_targets` returned only the literal |
+| 3 | `# ${shell … pytest …}` dropped; only `$(` was retained | brace kept `False`, paren kept `True` |
+| 4 | `npm run test:plugins-extra` inherited the `npm run test:plugins` entry | 0 violations for a different suite |
+| 5 | `if: false` loads as Boolean false, so a step that never runs read unconditional | `bool(False)` is `False` |
+| 6 | Duplicate step names cross-credited targets between steps | both steps shared `['a/tests/']` |
+| 7 | AC-0001 permits the weaker "at least one" rule | contract reading; owner amended |
+
+Findings 2, 3 and 4 are the original defect class — a suite escaping the roster
+silently — arriving through three doors the recipe-line anchor did not close.
+Finding 1 is worse: an entry present and false.
+
+### Finding 7 corrects my own earlier reasoning
+
+The T2 ledger recorded the all-targets rule as a deviation needing no amendment,
+on the grounds that stronger behaviour satisfies AC-0001. That was right about
+**conformance** and wrong about **durability**: nothing stopped a later
+implementation restoring the weaker rule while still passing AC-0001 and
+AC-0014. The owner authorised a second controlled amendment.
+
+### Mutation proof of the fixes, and three weak cases it exposed
+
+The first pass left three arms with no reddening case — the literal-item guard,
+the substring boundary, and the job-level `if` presence. **All three were gaps in
+the cases, not the code**, which is the whole purpose of probing rather than
+asserting:
+
+- `loop-targets-ignores-a-non-literal-item` used `for d in $(SUITES)`, which the
+  path-shape filter excludes for an unrelated reason. `$(SUITE_DIR)/tests/` is
+  the discriminating shape, because it contains a slash.
+- the substring-boundary probe reported a false negative of its own: the
+  mutation's anchor did not match, so it never applied. Re-run by locating the
+  guard in the file itself.
+- the `if`-presence cases put `if: false` on the step only, leaving the job-level
+  branch untested.
+
+After strengthening, every arm reddens a named case:
+
+| Arm removed | Exit | Case |
+| --- | ---: | --- |
+| loop body must run pytest on `$VAR` | 1 | `loop-targets-ignores-a-loop-that-does-not-run-pytest` |
+| loop item must be literal | 1 | `loop-targets-ignores-a-non-literal-item` |
+| the loop reader itself | 1 | `live-clean` |
+| opaque operand demands a key | 1 | `suites-opaque-operand-demands-its-own-key` |
+| brace-form comment retained | 1 | `suite-lines-keeps-a-comment-with-a-brace-expansion` |
+| substring boundary | 1 | `substring-key-does-not-match-a-longer-command` |
+| job `if` presence | 1 | `job-if-false-is-conditional-by-presence` |
+| step `if` presence | 1 | `if-false-is-conditional-by-presence` |
+| conditional source contradicts `NO_PR_GATE` | 1 | `suites-no-pr-gate-contradicted-by-a-conditional-source` |
+
+184 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.

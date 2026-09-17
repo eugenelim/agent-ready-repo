@@ -726,9 +726,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(RFC-0082)"
         ),
     'packs/core/tests/skills/adapt-to-project/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/author-brief/':
         NO_PR_GATE(
@@ -741,19 +743,25 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/core/tests/skills/bug-fix/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/capture-work/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/close-work/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/contract-acquisition/':
         NO_PR_GATE(
@@ -771,24 +779,32 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/core/tests/skills/project-knowledge/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/receive-brief/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/work-intake/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/work-loop/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/core/tests/skills/workspace-status/':
         PR_GATED(
@@ -806,9 +822,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "names it, so it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/product-documentation/tests/':
-        NO_PR_GATE(
-            "Pack suite for product-documentation. `make test` runs it; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/frontend-engineering/tests/skills/frontend-engineering/':
         PR_GATED(
@@ -876,24 +894,32 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(RFC-0082)"
         ),
     'packs/agent-skill-engineering/tests/pack/':
-        NO_PR_GATE(
-            "Pack suite for agent-skill-engineering. `make test` runs it; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/agent-skill-engineering/tests/integration/':
-        NO_PR_GATE(
-            "Pack suite for agent-skill-engineering. `make test` runs it; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/agent-skill-engineering/tests/skills/author_or_update/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the agent-skill-engineering batch; no "
-            "workflow names it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/agent-skill-engineering/tests/skills/review_or_optimize/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the agent-skill-engineering batch; no "
-            "workflow names it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/linear/tests/skills/linear/':
         PR_GATED(
@@ -916,44 +942,60 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "contract"
         ),
     'packs/desk-research/tests/skills/desk-research/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/skills/desk-research-project-start/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/pack/':
-        NO_PR_GATE(
-            "Pack suite for desk-research. `make test` runs it; no workflow names it, so it "
-            "reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/skills/desk-research-project-check/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/skills/desk-research-project-digest/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/skills/desk-research-project-status/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/skills/desk-research-project-synthesize/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'packs/desk-research/tests/skills/devils-advocate/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the desk-research batch; no workflow names "
-            "it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run repo/pack hook suites "
+            "(Linux)",
+            "its workflow's pull_request trigger carries a path filter and its step or job is "
+            "conditional, so a pull request outside that filter does not run it",
         ),
     'tools/test_build_gate_chain.py':
         PR_GATED(
@@ -1423,12 +1465,70 @@ def suite_lines(makefile_text: str) -> list[str]:
     lines: list[str] = []
     for line in _join_continuations(expanded):
         stripped = line.lstrip()
-        if not stripped or (stripped.startswith("#") and "$(" not in stripped):
+        # A recipe comment is dropped ONLY when it can carry no expansion at
+        # all. GNU Make accepts `${...}` as readily as `$(...)`, and expands
+        # either inside a recipe comment before the shell sees it, so a rule
+        # keyed on `$(` alone still dropped `# ${shell ... pytest ...}` — the
+        # same hatch through the other brace. Any `$` keeps the line.
+        if not stripped or (stripped.startswith("#") and "$" not in stripped):
             continue
         if stripped.startswith("@"):
             stripped = stripped[1:]
         lines.append(stripped)
     return lines
+
+
+# A pytest operand that is a variable expansion rather than a literal path.
+# `$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q` yields one target, and an
+# all-targets rule keyed only on what extraction SEES then let the opaque operand
+# ride free on its literate neighbour's entry.
+_OPAQUE_OPERAND = re.compile(r"\$[({][^)}]*[)}]")
+
+
+def opaque_operands(line: str) -> list[str]:
+    """Variable-expansion operands of a pytest invocation on *line*.
+
+    The command position is excluded: every recipe line in the define is written
+    `$(PYTHON) -m pytest …`, so the interpreter itself is an expansion and is not
+    an operand. Only tokens *after* the `pytest` token count.
+    """
+    found: list[str] = []
+    for segment in _segments(_strip_inline_comment(line)):
+        # Deliberately NOT `_strip_shell_noise`: it replaces parentheses with
+        # spaces, so `$(EXTRA_SUITE)` arrives as `$ EXTRA_SUITE` and the
+        # expansion this function exists to find is already gone. The raw
+        # segment is the only place it survives.
+        match = _PYTEST_ARGS.search(segment)
+        if match is None:
+            continue
+        skip_next = False
+        for token in match.group(1).split():
+            if skip_next:
+                skip_next = False
+                continue
+            if token in _PYTEST_VALUE_FLAGS:
+                skip_next = True
+                continue
+            if token.startswith("-"):
+                continue
+            if _OPAQUE_OPERAND.fullmatch(token):
+                found.append(token)
+    return found
+
+
+def _matches_at_boundary(key: str, line: str) -> bool:
+    """Whether *key* occurs in *line* as a complete command phrase.
+
+    Raw containment let a key resolve a DIFFERENT command:
+    `npm run test:plugins-extra` contains `npm run test:plugins`, so a newly
+    added suite inherited an existing entry's disposition and demanded none of
+    its own. The character after the match must therefore end the phrase.
+    """
+    for match in re.finditer(re.escape(key), line):
+        tail = line[match.end():match.end() + 1]
+        if tail == "" or tail in " \t\"'<>|&;)":
+            return True
+    return False
 
 
 def line_targets(line: str) -> list[str]:
@@ -1838,6 +1938,50 @@ def is_covered(target: str, local: set[str]) -> bool:
     return any(entry.endswith("/") and target.startswith(entry) for entry in local)
 
 
+# `for d in <literal paths>; do … pytest "$d" …; done`. One workflow runs 24 pack
+# suites this way, and the operand pytest receives is `"$d"`, so a scan for
+# literal operands sees none of them. That is not hypothetical laxity: the roster
+# was first authored FROM this extractor, so all 24 inherited its blind spot and
+# 21 shipped a `NO_PR_GATE` reason asserting that no workflow named them, while
+# `catalogue-tooling-ci-gates.yml` named every one.
+#
+# The shape is read deliberately narrowly. The loop's list must be literal, and
+# the body must invoke pytest on that same variable — otherwise a loop over
+# package names, or one whose body only echoes, would contribute phantom
+# coverage. Coverage is the direction where a false positive is consequential, so
+# this reads one shape exactly rather than guessing at shell semantics.
+_FOR_LOOP = re.compile(
+    r"for\s+(?P<var>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+(?P<items>[^;]*?);\s*do"
+    r"(?P<body>.*?)\bdone\b",
+    re.S,
+)
+
+
+def loop_targets(run: str, working_directory: str = "") -> list[str]:
+    """Literal suite paths a `for … in … ; do … pytest "$VAR" … ; done` runs.
+
+    Returns nothing unless the body actually invokes pytest on the loop
+    variable, so a loop that iterates for any other purpose contributes no
+    coverage.
+    """
+    found: list[str] = []
+    for match in _FOR_LOOP.finditer(run):
+        var = match.group("var")
+        body = match.group("body")
+        uses_var = re.search(
+            rf"(?:^|\s)(?:-m\s+)?pytest(?=\s)[^\n]*\$\{{?{re.escape(var)}\}}?",
+            body,
+        )
+        if not uses_var:
+            continue
+        for token in match.group("items").replace("\\", " ").split():
+            if token.startswith("-") or "$" in token:
+                continue
+            if "/" in token or token.endswith((".py", ".sh")):
+                found.append(_prefixed(token.strip('"\''), working_directory))
+    return found
+
+
 def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
     """Map recognised suite targets to their pull-request workflow sources."""
     import yaml
@@ -1856,22 +2000,39 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
         filtered = isinstance(trigger, dict) and (
             "paths" in trigger or "paths-ignore" in trigger
         )
-        extracted = extract_ci_targets(doc, path.name)
         jobs = doc.get("jobs") or {}
+        job_defaults = (doc.get("defaults") or {}).get("run") or {}
         for job_name, job in jobs.items():
             if not isinstance(job, dict):
                 continue
-            job_conditional = bool(job.get("if") or job.get("continue-on-error"))
+            # PRESENCE, not truth. `if: false` loads as Python False, so a
+            # truthiness test read a step that never runs as unconditional and
+            # let it corroborate a PR_GATED claim. Any `if` at all makes the
+            # coverage conditional; that is what the disposition has to say.
+            job_conditional = "if" in job or bool(job.get("continue-on-error"))
+            job_wd = (
+                (job.get("defaults") or {}).get("run") or job_defaults
+            ).get("working-directory", "") or ""
             for step in job.get("steps") or []:
                 if not isinstance(step, dict):
                     continue
                 step_name = str(step.get("name") or "<unnamed step>")
                 where = f"{path.name} / {job_name} / {step_name}"
-                conditional = job_conditional or bool(
-                    step.get("if") or step.get("continue-on-error")
+                conditional = job_conditional or "if" in step or bool(
+                    step.get("continue-on-error")
                 )
-                targets = extracted["by_step"].get(step_name, [])
                 run = str(step.get("run") or "")
+                # Attributed per STEP, not per step NAME. `extract_ci_targets`
+                # groups by name, and two steps sharing one name then share the
+                # merged target list — so an unconditional step that runs
+                # nothing could lend its standing to a conditional step's suite.
+                working_directory = str(
+                    step.get("working-directory", job_wd) or ""
+                )
+                targets = [
+                    *extract_step_targets(run, working_directory),
+                    *loop_targets(run, working_directory),
+                ]
                 if re.search(r"(?:^|\s)make\s+build-check(?:\s|$)", run):
                     if chain_targets is None:
                         chain_targets = script_step_targets(
@@ -1917,6 +2078,22 @@ def check_suites(
             # original defect one layer down.
             resolved = set(targets) & set(dispositions)
             missing = [target for target in targets if target not in dispositions]
+            # An opaque operand is a suite the roster cannot name, so the line
+            # needs a declared substring key of its own. Without this, a known
+            # target beside `$(EXTRA_SUITE)` satisfied the line and the opaque
+            # one demanded nothing — the escape the recipe-line anchor exists to
+            # prevent, reopened by keying the check on extracted targets.
+            opaque = opaque_operands(line)
+            if opaque and not (_SUBSTRING_KEYS & set(dispositions) & {
+                key for key in _SUBSTRING_KEYS if key in line
+            }):
+                violations.append(
+                    f"suite line {line!r} passes "
+                    f"{', '.join(sorted(opaque))} to pytest, which names no "
+                    "literal path. Add a literal-substring key for this line: "
+                    "an operand the roster cannot resolve is a suite it cannot "
+                    "disposition."
+                )
             if missing:
                 violations.append(
                     f"suite line {line!r} runs "
@@ -1928,7 +2105,7 @@ def check_suites(
             resolved = {
                 key
                 for key in _SUBSTRING_KEYS & set(dispositions)
-                if key in line
+                if _matches_at_boundary(key, line)
             }
             if not resolved:
                 violations.append(
@@ -1976,7 +2153,13 @@ def check_suites(
                     "or re-disposition it."
                 )
         elif kind == "no-pr-gate":
-            covering = next(
+            # ANY pull-request workflow that names the suite contradicts this,
+            # not only an unconditional one. Ignoring conditional sources let 21
+            # entries ship a reason asserting that no workflow named them while
+            # a path-filtered workflow ran every one — `NO_PR_GATE` has to mean
+            # "no pull-request check reaches this at all", because
+            # `PR_GATED_IF` is what the conditional case is for.
+            unconditional = next(
                 (
                     source
                     for source in suite_sources
@@ -1984,10 +2167,18 @@ def check_suites(
                 ),
                 None,
             )
-            if covering:
+            if unconditional:
                 violations.append(
                     f"suite {suite!r} — NO_PR_GATE is contradicted by covering step "
-                    f"{covering['where']!r}. Change it to PR_GATED."
+                    f"{unconditional['where']!r}. Change it to PR_GATED."
+                )
+            elif suite_sources:
+                conditional_source = suite_sources[0]
+                violations.append(
+                    f"suite {suite!r} — NO_PR_GATE is contradicted by "
+                    f"{conditional_source['where']!r}, which reaches it "
+                    "conditionally. Change it to PR_GATED_IF stating the "
+                    "condition."
                 )
             if not value.strip():
                 violations.append(
