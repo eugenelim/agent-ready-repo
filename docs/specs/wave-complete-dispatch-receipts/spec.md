@@ -242,10 +242,14 @@ identifier current when it was written.
 - [ ] Recording when the current partition is empty, or when the current wave
       index is not a valid index into it, exits non-zero and names the unusable
       partition rather than raising.
-- [ ] Whenever `schedule_waves` or the wave element at the named index holds a
-      value outside the declared well-formed shape, the verb refuses by name
-      rather than raising. The hostile values are derived from the same key-path
-      and well-formedness declarations that generate the guard's predicate.
+- [ ] Whenever `schedule_waves`, the wave element at the named index, or the
+      receipts container holds a value outside the declared well-formed shape,
+      the verb refuses by name rather than raising. The container is included
+      because the verb reads and writes it, so it is a position the verb can
+      raise on and one the guard's predicate is already total over. The hostile
+      values are derived from the same key-path and well-formedness declarations
+      that generate the guard's predicate, so neither side's coverage can be
+      generated without the other's.
 - [ ] Requesting a receipt and a decline in one invocation exits non-zero.
 - [ ] A decline reason outside the closed set exits non-zero and names the
       accepted set.
@@ -276,36 +280,54 @@ previous version of this section came to require two keys while the data model
 declared three, which classified every correctly shaped container as malformed
 and would have refused every valid wave exit.
 
-A state is **well-formed** when `state.json` parses, `schedule_waves` read with
-its default is a list, and the receipts container is either absent or a mapping
-nested to exactly the declared key-path depth whose every leaf is a record. An
+A state is **well-formed** when `schedule_waves` read with its default is a
+**non-empty** list, and the receipts container is either absent or a mapping
+nested to exactly the declared key-path depth whose every leaf is a record. The
+parse is not a conjunct here: every row that reads well-formedness also requires
+readability, and a readable state has parsed, so a parse clause could decide no
+state.
+
+An empty partition is malformed rather than a passing state, and so is an empty
+current wave. Neither is reachable through the engine: `topological_waves` never
+emits an empty wave, and the guard on the `plan-locked` edge into
+`CODE-IMPLEMENTATION` already refuses an empty `schedule_waves`. At this exit,
+then, either can only come from a write to `state.json`, and treating either as
+a pass would make the quietest off-switch in the design quieter than the ones
+the exceptions disclose — an empty current wave in particular satisfies "every
+task in the current wave is accounted for" vacuously over zero tasks and would
+exit silent. An
 empty mapping at any level is well-formed: it holds no records, which is not a
 defect. The predicate is total over every value any position can hold, so
 accounting never meets a shape it cannot classify.
 
-A state is **readable** when the cohort state read returns a state rather than
-refusing. Readability is not the same as the file parsing: a non-object JSON
+A state is **readable** when the guard's state acquisition returns a state
+rather than refusing — the spec-directory resolution and the state read
+together, since the guard invokes them as one step. Readability is not the same as the file parsing: a non-object JSON
 root parses and the read still refuses it, so a row worded around parsing would
 fire alongside the read-refusal row. Every row below the read-refusal row
 requires readability.
 
 A schema is **supported** when `schema_version` has the supported value.
 
-A **current wave** is well-formed when it is a list whose every element is a
-string. A pointer is **valid** when `current_wave_index`, read as zero when the
+A **current wave** is well-formed when it is a **non-empty** list whose every
+element is a string. A pointer is **valid** when `current_wave_index`, read as zero when the
 key is absent, is a non-negative integer by the guard layer's existing
 validation, which rejects `bool`, and is less than the number of waves in the
 partition. Naming the shared preconditions once is deliberate: an earlier draft
 asserted that each row negated the rows above it without writing those
 negations, and two rows then covered the same state with opposite verdicts.
 
-- [ ] The cohort state read refuses, for any reason in its own refusal
-      vocabulary: exits non-zero and names that reason on stderr. The read
-      refuses for more than absence and unparseability — a non-object JSON root,
-      a non-regular file, a file that changed while being opened or read, a
-      document over the size bound, and a non-finite number are each refusals,
-      and a non-object root in particular *parses*, so a row worded around
-      parsing alone would leave it satisfying no row at all.
+- [ ] The guard's state acquisition refuses, for any reason in the refusal
+      vocabulary of the surface the guard actually invokes: exits non-zero and
+      names that reason on stderr. That surface is wider than the state read it
+      wraps — it first resolves the spec directory, which refuses when the
+      directory cannot be examined or is not a directory, before any read
+      happens. The read then refuses for more than absence and unparseability:
+      a non-object JSON root, a non-regular file, a file that changed while
+      being opened or read, a document over the size bound, and a non-finite
+      number are each refusals. A non-object root in particular *parses*, and a
+      spec-directory refusal precedes parsing entirely, so a row worded around
+      either parsing or the read alone leaves states satisfying no row at all.
 - [ ] The state is readable and its `schema_version` is not the supported
       value:
       exits zero and prints nothing to stdout or stderr. This row exists so the
@@ -319,9 +341,6 @@ negations, and two rows then covered the same state with opposite verdicts.
 - [ ] The state is readable, the schema is supported but the state is not well-formed:
       exits non-zero and names the malformed field on stderr, rather than
       surfacing an exception type.
-- [ ] The state is readable, the schema is supported, the state is well-formed, and the partition is
-      empty:
-      exits zero and prints nothing to stdout or stderr.
 - [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
       non-empty, and
       the receipts container is absent: exits zero and names the absent
@@ -353,11 +372,11 @@ negations, and two rows then covered the same state with opposite verdicts.
       guard layer's existing length-bounding helper, so no refusal carries an
       unbounded value. `loop-cohort`'s own diagnostic helper neutralises control
       characters but applies no length bound.
-- [ ] No cohort state satisfies the preconditions of two of the nine rows
+- [ ] No cohort state satisfies the preconditions of two of the eight rows
       above.
-- [ ] No cohort state satisfies the preconditions of none of the nine rows
+- [ ] No cohort state satisfies the preconditions of none of the eight rows
       above.
-- [ ] Each of the nine rows above is satisfied by some cohort state.
+- [ ] Each of the eight rows above is satisfied by some cohort state.
 - [ ] The states the three criteria above are checked over are constructed by
       varying the outcome of the cohort state read across its refusal
       vocabulary, and the presence, type, and value of `schedule_waves`, of its

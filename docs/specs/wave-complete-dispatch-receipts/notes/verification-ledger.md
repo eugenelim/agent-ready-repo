@@ -306,7 +306,53 @@ was printed and read by eye, never asserted. The dispatch-rate measurement in
 § 1 was given a committed generator for exactly this reason and the partition
 walks were not; that was one standard applied unevenly, and this closes it.
 
-**Mutation proof of the instrument itself.** Five mutations, each caught by a
+**Round 8 rebuilt the instrument twice, and both times it had been unable to
+catch the class it was built for.**
+
+First: accounting was a free boolean and `nest()` wrote the placeholder key
+`"k"` at every level, so no state in the 94,080 held a record at
+`container[digest][decimal index][task]` — the path the guard reads. The
+accounted/unaccounted split rested on a variable no predicate computed, which
+left a lookup with the keys in the wrong **form** (integer index rather than its
+decimal string) or the wrong **order** green with every row reachable. All five
+of the earlier self-mutations varied depth, never keys, because they were
+generated from the same model as the instrument. Containers are now built by
+`keyed_container`, keyed by the declared path, and accounting is computed from
+the container against the current wave's task list.
+
+Second: two vacuous passes. An empty partition, and an empty current wave, were
+both well-formed and both exited zero and silent — the empty wave because "every
+task in the current wave is accounted for" is vacuously true over zero tasks. A
+partition walk cannot catch either: a wrong verdict is neither an overlap nor a
+gap. Only a declared expected verdict reddens, so the instrument now carries
+verdict anchors for both. Neither state is reachable through the engine —
+`topological_waves` never emits an empty wave and the `plan-locked` guard
+refuses an empty `schedule_waves` — so the spec now classifies both as malformed
+rather than passing, and the verdict table lost its empty-partition pass row.
+
+An earlier probe of mine reported that vacuous well-formedness "does not leak",
+which was false reassurance: it tested the empty *container*, where accounting
+is a separate lookup that still fails, and not the empty *wave*, where the
+denominator collapses.
+
+**Recorded run — 2026-09-17, after both rebuilds:** 25,872 states, 0
+overlapping, 0 uncovered, all eight rows reached. The state count fell from
+94,080 because the read-outcome axis was collapsed to two values: the rows do
+not discriminate among refusal kinds, so enumerating fourteen of them inflated
+the domain without adding a distinction any predicate makes. The acquisition
+vocabulary is listed in the script for the row-1 wording it must cover, and it
+now includes the two spec-directory refusals that precede the read entirely —
+a class round 8 found outside the previous axis.
+
+**Mutation proof of the rebuilt instrument.** Six mutations, each caught by a
+named assertion: an empty partition allowed to pass, an empty current wave
+allowed to pass, the accounting lookup using the integer wave key, the
+accounting lookup reversing digest and wave, the container predicate bounded one
+key short, and the domain generator returning nothing. The first attempt at that
+last one was a `SyntaxError` rather than the assertion — exit 1 for the wrong
+reason — and was redone with an early `return []` before being counted.
+
+**Mutation proof of the instrument's first version.** Five mutations, each caught by a
 named assertion:
 
 | Mutation | Assertion that fires |
