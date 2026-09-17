@@ -35,12 +35,15 @@ WORK_LOOP = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
 
 
 def flat(path: Path) -> str:
-    """Return ``path``'s text with whitespace collapsed to single spaces.
+    """Return ``path``'s text with whitespace collapsed and emphasis removed.
 
     The sources wrap these rules across lines, so a raw substring match would
-    pin the line-break position rather than the obligation.
+    pin the line-break position rather than the obligation. Markdown emphasis is
+    stripped for the same reason: un-bolding a sentence leaves the obligation
+    intact, and a pin that failed on it would report that the rule had been
+    deleted when only its formatting moved.
     """
-    return " ".join(path.read_text(encoding="utf-8").split())
+    return " ".join(path.read_text(encoding="utf-8").split()).replace("**", "")
 
 
 # The seed's razor pin identifies a ladder by these rung markers. Reuse that
@@ -79,7 +82,7 @@ def test_implementer_searches_before_it_writes() -> None:
     assert "reuse a hit that satisfies the outcome" in text, (
         "implementer.md no longer requires reusing an adequate hit"
     )
-    assert "**Report the search every time**" in text, (
+    assert "Report the search every time" in text, (
         "the search receipt is no longer unconditional; a run that skips the "
         "search can satisfy a conditional receipt by saying nothing, which is "
         "the measured failure this wording replaced"
@@ -89,7 +92,7 @@ def test_implementer_searches_before_it_writes() -> None:
 def test_implementer_may_take_a_lighter_route_than_approach() -> None:
     """Pin 1c: `Approach:` is working material, and `failed` turns on `Done when:`."""
     text = flat(IMPLEMENTER)
-    assert "**implement the lighter rung**" in text, (
+    assert "implement the lighter rung" in text, (
         "implementer.md no longer directs the lighter rung; a permissive "
         "phrasing measured 1 of 2 runs and missed the two-run bar"
     )
