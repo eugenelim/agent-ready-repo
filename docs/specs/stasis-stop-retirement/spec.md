@@ -1,6 +1,6 @@
 # Spec: stasis-stop-retirement
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md)
@@ -128,19 +128,19 @@ amendment. This spec retires halts, preserves Surfaces, and leaves authority
 statements untouched. Classify by what a clause obliges, never by whether it
 contains the word.
 
-- [ ] **AC-0001.** Each of the three runtime reference surfaces the plan names
+- [x] **AC-0001.** Each of the three runtime reference surfaces the plan names
   instructs no halt on `matches_previous_round`, and each retains every Surface
   disposition it carries today.
-- [ ] **AC-0002.** No surface this spec edits states that a repeated finding
+- [x] **AC-0002.** No surface this spec edits states that a repeated finding
   fingerprint detects stasis.
-- [ ] **AC-0003.** Each authority statement the plan names is present in the file
+- [x] **AC-0003.** Each authority statement the plan names is present in the file
   the plan names it in.
-- [ ] **AC-0004.** No file under `guides/` and no page under `web/src/content/`
+- [x] **AC-0004.** No file under `guides/` and no page under `web/src/content/`
   asserts that repeated findings stop the loop.
-- [ ] **AC-0005.** The two comparison tables in
+- [x] **AC-0005.** The two comparison tables in
   `guides/core/explanation/core-pack.md`, and the prose beside each, claim an
   iteration cap and not stasis detection.
-- [ ] **AC-0006.** A whitespace-normalized absence sweep fails when any phrase in
+- [x] **AC-0006.** A whitespace-normalized absence sweep fails when any phrase in
   the plan's retired-phrase list appears on any path in the plan's sweep corpus;
   asserts each corpus path exists before walking it; and its phrase list matches
   no text this spec preserves.

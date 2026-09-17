@@ -239,17 +239,6 @@ active  = [
   # earlier, narrower draft registered as `four-discipline-walk-execution`, which
   # never reached main. It remains Draft and requires human approval.
   {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
-  # Carries out ADR-0104's full-mode half. The stasis stop was evaluated 302
-  # times across two months of recorded runs and returned false every time,
-  # because its key embeds a line number and an ordinal that every repair moves.
-  # Prose-only: nothing branches on the disposition, so no runtime behaviour
-  # moves. The halt is stated on four audiences with different failure modes,
-  # and two of those sentences also carry a Surface disposition ADR-0104
-  # requires, so the edit is not a sweep. Both `CONVENTIONS.md` copies are
-  # deliberately out of scope — another branch deletes them, and the plan says
-  # escalate rather than widen if that merge does not land. Approved with a
-  # clean adjudicated review round.
-  {path = "docs/specs/stasis-stop-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Retire full mode's stasis stop disposition across the work-loop references, the published guides, and the public pack page, preserving the Surface dispositions and the authority statements, and pin it with an absence sweep", needs = []},
 ]
 shipped = [
   # Shipped 2026-09-13. The routed cognitive-load rule was skipped for a whole
@@ -271,6 +260,17 @@ shipped = [
   # Two answers added on owner authority, filling the axis that let a contract
   # shrink. Naming the answers stays a deferred criterion, so the ladder ships as
   # guidance pinned by tests and carries no acceptance criterion.
+  # Shipped 2026-09-16 as core 2.26.8. Carried out ADR-0104's full-mode half:
+  # the stasis halt is gone from three work-loop references, six guide files and
+  # the public pack page, the Surface dispositions and six authority statements
+  # survive, and an absence sweep pins eight retired phrasings. Prose-only --
+  # nothing branched on the disposition, so no runtime behaviour moved. Eight
+  # review rounds; the explanatory rationale was cut on owner decision after five
+  # successive corrections each introduced a new precision error, and now lives
+  # only in the ADR and this spec. Both `CONVENTIONS.md` copies stayed out of
+  # scope because another branch deletes them; if that merge does not land, both
+  # keep a retired halt and nothing here catches it.
+  {path = "docs/specs/stasis-stop-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Retire full mode's stasis stop disposition across the work-loop references, the published guides, and the public pack page, preserving the Surface dispositions and the authority statements, and pin it with an absence sweep", needs = []},
   {path = "docs/specs/finding-response-receptacle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md"}, summary = "Optional response and reason on a review-verdict finding, and the answers to a sustained finding stated in DECIDE as an ordered four-axis ladder with a stop rule and a per-axis surface walk", needs = []},
   # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
   # criteria over the three checks the skill runs on its own artifacts; the

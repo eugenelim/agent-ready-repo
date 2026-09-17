@@ -1,7 +1,7 @@
 # Plan: stasis-stop-retirement
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`packs/AGENTS.md`](../../../packs/AGENTS.md),
   [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md),
   [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md)
