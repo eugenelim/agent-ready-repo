@@ -21,10 +21,9 @@
   **minor** `governance-extras` bump in both `pack.toml` and `.claude-plugin/plugin.json`
   because the shipped lint script is a new primitive;
   `guides/governance-extras/how-to/new-adr.md`; the lint in both its adopter-shipped and
-  `tools/` copies, plus the gate-chain entry that invokes it; the index generator, which
-  must read the new supersession field before any record carries a bare-token status; and
-  the migration of all 115 records under `docs/adr/`, which regenerates
-  `docs/adr/README.md`.
+  `tools/` copies, plus the gate-chain entry that invokes it; and the index generator,
+  which must read the new supersession field before any record carries a bare-token
+  status.
 - **Stakes:** costly. Forward-only, and it changes a rule shipped to adopters in three places.
 - **Review focus:** whether the prose/metadata line is the right place to cut the freeze; whether `Areas` earns a field given a curated index already exists.
 - **Not in scope, and deliberately carved out:** the `check-adr-immutability` rewrite; dependency edges; file, path, glob or time scope selectors; the spec and RFC freeze rules; the agent-routing consumer.
@@ -40,7 +39,7 @@ is deferred". This is that convention.
 
 ## Problem & goals
 
-**115 ADRs exist and nothing reads them during work.** `AGENT_RULES.md` — the table built
+**A body of ADRs accumulates and nothing reads it during work.** `AGENT_RULES.md` — the table built
 for "when X, read Y" and read every session — ships empty. Root `AGENTS.md:64` names
 `docs/adr/` once, as a row in a documentation index. Two skills in the `iac-terraform`
 pack read decision records, both routed through a governance index, both scoped to
@@ -49,10 +48,9 @@ infrastructure. Nothing else does.
 A decision no future session reads is an archive, not a control. Making one readable
 requires that it first be parseable, and the metadata block is not:
 
-- **`Status` is not an enum.** 18 of 115 values are not one of the bare lifecycle
-  tokens: 17 carry qualifying content after a lifecycle word, and 1 is a bare
-  `Superseded by [ADR-NNNN](…)` link. ADR-0017 holds four separate "superseded in part
-  by" clauses plus an HTML comment explaining its own grammar.
+- **`Status` is not an enum.** A field that admits a qualifying clause accumulates them.
+  Once the lifecycle token can be followed by prose, a record can carry several
+  "superseded in part by" clauses, and the token stops being comparable.
 - **A reader launders the field to cope.**
   `packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py:64` truncates the
   status at `. `, or at whitespace followed by `—`, `--`, `(` or `<!--`, so the generated
@@ -61,9 +59,9 @@ requires that it first be parseable, and the metadata block is not:
   field needed it.
 - **The constraint has no address.** The decision is prose inside `## Decision`, so a
   partial supersession has nothing to point at and must be narrated.
-- **Corrections have no legal home.** 8 of 115 records improvised an `## Errata` or
-  `## Amendments` section. `new-adr` defines no such convention — zero mentions in its
-  SKILL.md or template.
+- **Corrections have no legal home.** `new-adr` defines no correction convention — zero
+  mentions in its SKILL.md or template — so authors improvise a section, in whichever
+  spelling occurs to them.
 
 Goals: make every metadata field either validated or deliberately unvalidated; give each
 constraint a permanent address; give supersession a parseable, two-sided representation;
@@ -207,12 +205,11 @@ Superseded`. The template today offers four bare tokens plus the compound `Super
 ADR-NNNN`; this replaces the compound with a bare `Superseded` and moves the pointer to
 its own field.
 
-**`Confirmation`'s `Mode`** loses its value enum. 14 of 42 values (33%) are already
-off-enum, and roughly ten fail structurally rather than lexically: arity
+**`Confirmation`'s `Mode`** loses its value enum, because the enum fails structurally
+rather than lexically: arity
 (`reviewer-checked + lint/CI`), time (`reviewer-checked, escalating to lint/CI when the
 route ships`), and scope (``reviewer-checked, with a `none` residual on the retirement
-half``). The other four are an on-enum token plus punctuation, which a trim would fix. A
-larger enum still fails the structural cases, because one value cannot hold a compound, a
+half``). A larger enum fails the same way, because one value cannot hold a compound, a
 trajectory, or a per-constraint variation. The lint checks that `Mode`, `Signal` and
 `Owner` are present and non-empty, and reserves one token — `none` — as the declared
 *deliberately unpoliced* value so that state stays countable. The token leads the value —
@@ -259,9 +256,10 @@ entries, `,` divides D-IDs within an entry, so § 4's append predicate reads
 semicolon-separated entries for these fields and comma-separated tokens for `Areas`, whose
 values contain neither.
 
-The corpus already needs the multi-target form: ADR-0098 carries five semicolon-separated
-targets today, in prose. The value domain is restricted to decision-record ordinals, which
-is what preserves rule 3's spec-end asymmetry — no ADR field can name a spec.
+One decision superseding parts of several earlier ones is an ordinary case, not an edge
+one, so the grammar admits a list rather than a single target. The value domain is
+restricted to decision-record ordinals, which is what preserves the spec-end asymmetry —
+no ADR field can name a spec.
 
 `none` is the empty value, not an entry, so replacing it with a target is not a deletion.
 
@@ -325,8 +323,8 @@ both ways — it asks that a lasting rule live "in one place that is easy to fin
 each skill "stand whole on its own". The tiebreak is **reader attention, not path
 resolution**: both skills ship in `governance-extras` and install together, so the file is
 on disk either way, but an author invoking `new-adr` has no reason to open `new-rfc`'s
-SKILL.md, and a convention they never read is one they will reinvent — as 8 records
-already did. The duplication is one short section and is stated as deliberate.
+SKILL.md, and a convention they never read is one they will reinvent, in whichever
+spelling occurs to them. The duplication is one short section and is stated as deliberate.
 
 ### 6. Enforcement: one lint, warned then enforced
 
@@ -350,36 +348,28 @@ a worklist rather than a control; that is the honest failure mode, recorded in R
 work, and it owns two problems this RFC does not solve: the job runs `tail -n +12` on
 `git diff` output rather than on the file and always exits 0
 (`.github/workflows/docs.yml:341-360`); and it requires a `- ` bullet on the status line
-(`:352`), so it silently skips ADR-0055 and ADR-0056, which write `**Status:** Accepted`
-unbulleted. It also cannot block a merge where it sits — `docs.yml` is not a required
+(`:352`), so it silently skips any record that writes `**Status:** Accepted` unbulleted —
+a shape the index generator accepts by design, which is how the two readers diverged. It also cannot block a merge where it sits — `docs.yml` is not a required
 context, a finding this repository already recorded for `pages.yml`
 (`.github/workflows/build-check.yml:375`) — so rehoming it belongs to that work.
 
 ### 7. Migration
 
-All 115 records are migrated to the new format. Measured with the prototype over the real
-corpus: **559 findings across 115 of 115 records**, none clean. By class:
+A repository adopting this format migrates its existing records to it. Most of that is
+metadata, which § 4 makes writable after acceptance, so it needs no exemption: assign
+`Areas` and `Reversibility`, rename a legacy attribution key without touching its value,
+and pre-declare the supersession fields with their sentinel. The rest is prose structure —
+numbered constraints, a `Revisit if:` line, an alternatives shape — which is a body edit,
+so it is licensed here as a one-time conversion rather than left to accrue as drift.
 
-| Finding | Records | Work |
-| --- | --- | --- |
-| `Areas` absent | 115 | assign one to three tokens |
-| `Reversibility` absent | 115 | assess `high` or `low` |
-| `## Decision` has no `D1..Dn` | 115 | restructure the decision into numbered constraints |
-| No `Revisit if:` in `## Consequences` | 80 | author the trigger |
-| `Alternatives considered` off-shape | 64 | rewrite to cite a declared driver |
-| `Confirmation` missing a line | 32 / 15 | author `Signal` / `Owner`, or `Mode` |
-| `Status` not a bare token | 20 | move the pointer to its field |
-| `Date` malformed | 3 | reformat |
+Two ordering constraints hold wherever this is done. The index generator must read
+`Superseded by:` **before** any record carries a bare-token status, or the generated index
+loses its supersession pointers. And the guidance surfaces named in *What this changes*
+should land with or before the conversion, so a migrated record does not contradict the
+instructions a reader is following.
 
-Two of these author new content rather than reformatting existing content: the
-`Reversibility` assessment and the 80 `Revisit if:` triggers. That is legitimate here
-because 113 of the 115 records name the same decision-maker, so the migration completes
-the author's own records rather than putting words in someone else's mouth. Both are
-dated by the migration, so a reader can see they are later assessments.
-
-Sequencing: the index generator must read `Superseded by:` **before** the 20 bare-token
-status migrations land, or the generated index loses its supersession pointers. The
-generator change therefore ships first, within this RFC's affected surface.
+Sizing the conversion is a local matter for whoever adopts the format, and the lint in § 6
+produces the worklist.
 
 ## Options considered
 
@@ -447,36 +437,34 @@ most failures are structural (see Evidence) and no enum size fixes them.
   ADR, so no checker breaks; the cost is a reader learning two conventions.
 - **D-ID discipline is human.** The lint catches gaps and duplicates but not a renumber
   that stays dense. A mirrored pointer breaks on renumber, covering the cases that matter.
-- **The lint never leaves warn-only.** This is the likeliest way the RFC fails. 559
-  findings is real work, and an advisory check that nobody clears is the inert-gate pattern
-  this RFC exists to remove. The mitigation is that the flip is a tracked follow-on with
-  the migration as its stated precondition — not that anyone has promised to do it.
+- **The lint never leaves warn-only.** This is the likeliest way the RFC fails. Clearing
+  an existing corpus is real work, and an advisory check that nobody clears is the
+  inert-gate pattern this RFC exists to remove. The mitigation is that the flip is a
+  tracked follow-on with the conversion as its stated precondition — not that anyone has
+  promised to do it.
 - **This would be wrong if** the classification never narrows anything in practice — if
   authors file everything under two or three broad areas, the field costs upkeep and
   returns nothing.
 
 ## Evidence & prior art
 
-**Measured in this repository** (115 ADRs, 101 RFCs, as of 2026-09-16).
+**Grounded in mechanism, not in one corpus.** Each failure above is checkable against the
+code rather than against a record count, which is what makes it portable:
 
-| Claim | Figure |
-| --- | --- |
-| `Status` values that are not one of the bare lifecycle tokens | 18 of 115 — counting rule: strip the template's trailing HTML comment, then require an exact match. Of the 18, 17 carry qualifying content and 1 is a bare `Superseded by [ADR-NNNN](…)` link. Without stripping the comment the figure is 35. |
-| `Confirmation` `Mode` values off-enum | 14 of 42 — roughly 10 structural, 4 trimmable at a delimiter |
-| `## Confirmation` sections with no `Mode` line | 15 of 57 |
-| `Applies to:` values resolving wholly to a path or glob | 0 of 69 — though 21 of 69 contain a path token inside prose |
-| ADRs with an improvised `## Errata` / `## Amendments` | 8 of 115 |
-| RFCs carrying `## Errata`, `## Amendments`, or `## Erratum (<date>)` | 51 of 101 — `## Errata` 42, `## Amendments` 10, `## Erratum` 2; the first two spellings alone give 49 |
-| Records carrying the legacy `Deciders` key | 29 |
-| Keys the corpus carries that the template does not define | 5 — `Deciders`, `Renumbered`, `Refined by`, `Extended by`, `Carried forward by` |
-| Prototype lint run over the whole corpus | 559 findings across 115 of 115 records; none clean |
-
-`Applies to:` is the field `Areas` complements rather than replaces. Its values carry
-**exclusions and conditions** — "not the CLI, the adapter contract, or other packs"; "this
-repo's own web surface only — **not** a primitive, template, or framework prescribed to
-adopters"; "forward-only, no existing ADR is converted". A token list can say which areas
-a decision is in; it cannot say what a decision deliberately excludes. `Areas` narrows the
-candidate set and `Applies to` decides applicability; neither is derivable from the other.
+- A qualifying clause in `Status` forces a downstream reader to truncate. The generated
+  index does exactly that today —
+  `packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py:64` cuts the value
+  at `. `, or at whitespace followed by `—`, `--`, `(` or `<!--`. The behaviour is
+  deliberate and pinned by a test. It exists because the field needed it.
+- `Mode`'s enum fails on arity, time and scope, shown by the three value shapes quoted in
+  § 2. None of them is a typo; each is a real conformance story one value cannot hold.
+- `Applies to` carries exclusions and conditions a token list cannot express — "not the
+  CLI, the adapter contract, or other packs"; "this repo's own web surface only — **not** a
+  primitive, template, or framework prescribed to adopters"; "forward-only, no existing ADR
+  is converted". `Areas` narrows the candidate set and `Applies to` decides applicability;
+  neither is derivable from the other.
+- A `## Decision` written as prose gives a partial supersession nothing to point at, which
+  is why the pointer ends up narrated in `Status` rather than recorded in a field.
 
 **Prior art in repo.** `tests/roster/test_decision_record_ordinal_uniqueness.py` is the
 precedent for a control that walks the real corpus and asserts a non-empty floor first.
@@ -525,7 +513,6 @@ record was converted, consistent with the forward-only migration.
 | Void test — 4 mutations to clean records | all 4 caught |
 | Void test — 4 mutations to each half of a mirrored pair | all 4 caught, reported from both sides |
 | Void test — over-cap, duplicate, bad token, absent `Areas` | all 4 caught |
-| Real corpus, all 115 records in scope | 559 findings across 115 of 115 — the migration worklist |
 
 A fixture modelled on ADR-0017's four narrative clauses was re-expressed as mirrored pairs
 and validated in both directions, including that each cited D-ID exists in the record that
@@ -533,11 +520,10 @@ defines it.
 
 **The void test refuted two earlier designs, which is why neither survives.** Scoping the
 lint on the presence of the classification field is fail-open — deleting the field silently
-removed a record from the scan. Replacing that with an ordinal threshold then had the lint
-exit 0 on the real corpus having checked nothing, a control that cannot fail. Migrating the
-corpus and reading every record removes both failure modes by construction: there is no
-scope key to subvert and nothing to exclude, so the lint cannot report success on an empty
-scan.
+removed a record from the scan. Replacing that with a format threshold then let the lint
+report success having checked nothing, a control that cannot fail. Reading every record
+removes both by construction: there is no scope key to subvert and nothing to exclude, so
+an empty scan cannot pass.
 
 Validation plan on acceptance: port the prototype to `tools/`, walk it against the real
 corpus for the floor, and land it in the same change as the first new-format ADR, which is
@@ -571,8 +557,8 @@ Every item below is either in the affected surface above or explicitly carved ou
 
 **Carved out, each needing its own artifact:**
 
-- **The corpus migration** — 559 findings across all 115 records, sized in § 7. It is the
-  stated precondition for the item below.
+- **The record conversion** described in § 7, which is the stated precondition for the
+  item below. Sizing and sequencing it is local work, not part of this decision.
 - **The enforcement flip** — moving the lint from advisory to blocking in the gate chain
   once the migration is clean. Tracked separately so that an advisory check cannot quietly
   become permanent.
