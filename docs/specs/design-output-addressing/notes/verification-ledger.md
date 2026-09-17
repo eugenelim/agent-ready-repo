@@ -157,3 +157,41 @@ skill set", which became false the moment a read-only skill held a copy, and
 half its controls — intermediate-directory creation, replacing an artifact
 already at the target — have no read counterpart. T5 created that falsehood by
 adding the fifth copy, so T5 repaired it. Equality is unaffected.
+
+## Execution observation — T7's two undispositioned bundled fixes, 2026-09-16
+
+Two repairs landed in T7 that no prior ledger entry had dispositioned.
+
+**`JOURNEY.md:218`.** The transcript read `screen  docs/design/screens/welcome.md`.
+Both `user-flow/SKILL.md:128` and `design-each-screen.md:423` declare the
+per-screen brief as `<output_dir>/screens/<slug>/<screen>.md`, so the line
+omitted the `<slug>` segment and named a path no skill writes. It sits inside
+the fenced block T7's own criterion governs, in a file T7 owns, and the fix is
+one path segment. A transcript is what a reader copies, so this is not cosmetic.
+
+**The `design-system` preview at `establish-design-intent.md:197-208`.** It was
+rung `authored` and captioned "This skill ships no output template", and showed
+five headings — `# Token taxonomy`, `## Semantic roles`, `## Scale rationale`,
+`## Accessibility constraints`, `## Composition rules` — that the shipped
+template does not have. T3 created both falsehoods by shipping
+`assets/token-taxonomy-template.md`. `tools/lint-guidebook-steps.py` cannot
+catch it: an `authored` rung disables the excerpt comparison, so the guide can
+claim anything.
+
+The preview is re-taken verbatim from the template's opening and rung to its
+path. That is mechanical rather than a judgment call **because T4 already made
+the identical repair** for `creative-direction` earlier in this same change —
+the excerpt boundary, the rung form, and the caption wording are all copied from
+it rather than chosen here.
+
+The other twenty-four instances of that caption in `guides/` belong to skills
+that genuinely ship no template, including `establish-design-intent.md:88` for
+`design-principles`, which has no `assets/` directory. All were left alone.
+
+**Standing observation.** Three of the four wave-3 tasks found a falsehood that
+an earlier task in this same change had created — T4's caption, T5's module
+opening, T7's preview. Each was repaired by the task that created it rather than
+deferred. This is the companion-staleness class the spec's review rounds
+diagnosed, now reproducing inside implementation at roughly one instance per
+task. A reviewer should expect more of it and treat each as residue of the known
+class, not as a new defect class.
