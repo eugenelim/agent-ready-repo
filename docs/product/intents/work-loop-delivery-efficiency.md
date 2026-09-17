@@ -55,9 +55,17 @@ moved it.
 
 1. **Deterministic repair-provability audit.** Pinned to first place by the
    2026-09-10 owner decision recorded below, which this refresh does not
-   revisit. **Still unstarted:** the audit has not run, its
-   [design](../research/repair-provability-audit-design.md) is byte-identical to
-   the state in which it merged, and it appears in no workspace collection.
+   revisit. **Started 2026-09-17 and blocked at its own instrumentation gate.**
+   The [first run](../research/repair-provability-audit-run.md) reached the
+   10-case gate the design requires and failed it: the population criterion
+   admitted 10 of 10 cases under one reading and 1 of 10 under another, and the
+   strict reading rejects three of the four cases the design names as its
+   selection method. The population total roughly reproduces (104 against 113)
+   but `source + test` — the audit's headline "39 cases with an executable
+   oracle" — reproduces at 21. No repair was reverted and no oracle ran, so the
+   audit's question is still unanswered. It remains first because it is still
+   the measurement everything below it waits on; what it now needs is a
+   determinate population predicate, not execution.
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then
@@ -314,12 +322,16 @@ The audit covers 113 natural repair commits with provable bases, costs zero mode
 this run's ~70M tokens for two observations, and yields 39 cases with an executable oracle plus
 three further strata with their own.
 
-**It is still unstarted.** Nothing since 2026-09-10 has displaced it from first
-place, and nothing has advanced it: the audit has not run, its
-[design](../research/repair-provability-audit-design.md) is byte-identical to the
-state in which it merged, and it is registered in no workspace collection.
-Whether it should get a queue presence is an open owner decision
-(§ Unresolved questions).
+**Run 2026-09-17; stopped at the instrumentation gate.** Nothing since
+2026-09-10 has displaced it from first place. The
+[run record](../research/repair-provability-audit-run.md) holds the findings; the
+load-bearing one is that the design's own population criterion is indeterminate,
+so the 113 and the 39 above are unreproduced rather than confirmed. Three
+corrections are required before a re-run: a determinate repair-event predicate,
+a stated source/test/docs path rule, and a base rule for squash-merged changes —
+73.8% of this repository's first-parent history landed with no merge commit,
+which the inherited `merge-base M^1 M^2` rule cannot address. It is still
+registered in no workspace collection (§ Unresolved questions).
 
 ### Gate and context economics, measured during the child validations
 
