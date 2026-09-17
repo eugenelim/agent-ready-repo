@@ -1153,11 +1153,12 @@ def test_every_recorded_anchor_use_resolves() -> None:
 # --------------------------------------------------------------------------
 # The inert-span scanner, pinned case by case
 #
-# Round 13 found the previous round's "eleven behaviours verified" claim was
-# false: those checks were run ad hoc and never committed, and worse, they
+# Round 13 found the previous round's "behaviours verified" claim was false:
+# those checks were run ad hoc and never committed, and worse, they
 # called `_mask_inert` directly while `_matching_link_count` took a different
 # path entirely — so the proof ratified the intent rather than the code. These
-# cases run against the real readers wherever one exists.
+# cases run against the real readers wherever one exists. Add to them freely;
+# nothing states how many there are.
 # --------------------------------------------------------------------------
 
 _DEST = "docs/README.md"

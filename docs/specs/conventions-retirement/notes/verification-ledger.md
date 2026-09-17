@@ -538,12 +538,14 @@ they surface.
 Six findings over the repair commits alone. Four sustained, two refuted.
 
 **Correction to round 9 above.** That entry says "Three uses resolve
-otherwise". Three is the number of disposition *kinds*; the counts are five
-recorded dispositions and eight same-file uses, both measured from
+otherwise", counting disposition *kinds* as though they were uses. The
+dispositions and the same-file uses are separate sets, both derivable from
 `RECORDED_DISPOSITIONS` and from `anchor-inventory.txt` against
-`anchor-map.txt`. The round-9 text stands as written and this entry is the
-correction, because the sentence was true of the code when it was written and
-became wrong when two more dispositions were added in the same commit.
+`anchor-map.txt`; restating their sizes here would only decay again the next
+time one is added, which is exactly how the round-9 sentence went wrong. The
+round-9 text stands as written and this entry is the correction, because the
+sentence was true of the code at the time and became false within the same
+commit.
 
 **A repair left the control half-blind, and the reviewer found the same class
 twice in a row.** Round 9 fixed AC6 by opening the consumer; round 10 found
@@ -673,11 +675,10 @@ swallow the file. That last case is live: `spec-and-plan-contract.md:97` quotes
 unterminated-comment rule ate the rest of that file and reddened five
 assertions.
 
-Eleven behaviours are now pinned directly against the helpers — visible link
-counted; image, escaped bracket, inline-code link, and links in ```, `~~~` and
-indented fences all ignored; unterminated comment swallows; quoted `<!--` does
-not; fenced and commented `## Fake` do not truncate a section; a real next
-heading still ends one.
+The scanner's behaviour is pinned case by case in the guard module: which
+markup yields an operative link and which does not, whether an inert heading
+ends a section, and what an anchor slug keeps. The cases live beside the code
+so the set grows with it.
 
 **The rest.** `anchors_in` now reads masked text, so a heading that exists only
 inside a comment exposes no anchor. A seed consumer's links resolve in the
@@ -694,14 +695,14 @@ unscanned page now fails outright.
 Seven findings. The two that matter were about the *verification*, not the
 code, and both were mine.
 
-**Correction to round 12 above.** That entry says "Eleven behaviours are now
-pinned directly against the helpers". That was false when written. The eleven
+**Correction to round 12 above.** That entry claims the scanner's behaviours
+were "pinned directly against the helpers". That was false when written. Those
 checks were run as an ad-hoc script and never committed, so nothing was
 pinned; and they called `_inert_masked` directly while `_matching_link_count`
 took a different path entirely — a fence-and-comment substitution that never
 saw the inline-code mask. The proof ratified the intent rather than the code,
-which is the failure it was supposed to rule out. Seventeen parameterized
-cases are now committed, and they run through the real readers.
+which is the failure it was supposed to rule out. Those cases are now
+committed, and they run through the real readers rather than the helper.
 
 **A third wrong fix, as predicted.** Round 12's commit was written expecting
 one, and the reviewer brief said so. It was the fence delimiter: a fixed

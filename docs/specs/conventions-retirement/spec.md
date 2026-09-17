@@ -132,11 +132,11 @@ resolves in the destination recorded in
   consumer, because a destination that exists proves the content landed and not
   that the consumer was re-pointed at it, and the link must carry the mapped
   heading's fragment, because comparing paths alone passes on any bare link the
-  consumer already holds. Three disposition kinds resolve otherwise and each
-  records why: the content landed in the citing file itself (eight uses); the
-  consumer is not Markdown and its pointer is pinned as the exact spelling its
-  reader resolves; or the guidance is not adopter-facing and the note is
-  deleted. Five uses carry a recorded disposition. The check ranges
+  consumer already holds. A use that cannot carry such a link
+  resolves through a recorded disposition instead, and the record says which:
+  the content landed in the citing file itself; the consumer is not Markdown
+  and its pointer is pinned as the exact spelling its reader resolves; or the
+  guidance is not adopter-facing and the note is deleted. The check ranges
   over the recorded pre-relocation uses, because the live set empties as the work
   lands and a criterion over an empty set cannot fail.
 - [ ] AC6b — `sh notes/ac2-scan.sh 'CONVENTIONS\.md#'` returns no file, so no live
