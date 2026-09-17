@@ -45,7 +45,7 @@ both outcomes are legible in the report.
 | Current product truth, gated | Applicable — the implementer's reuse and lighter-route rules are the gated behaviour | `packs/core/.apm/agents/implementer.md` | pack maintainer | Scored probe runs recorded in the verification ledger | The file carries the rules, its criteria hold, and self-host is clean |
 | Current product truth, recorded | Applicable — the rung-recording rules survive as working material | `packs/core/.apm/agents/implementer.md`, `packs/core/.apm/skills/work-loop/SKILL.md` | pack maintainer | Recorded, unscored probe observations in the verification ledger, plus the content pins | Both files carry the rules, each pin fails on its own obligation's removal, and self-host is clean |
 | Interface compatibility | Applicable — pack content changed, so installed copies must be re-derivable | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | pack maintainer | Matching patch version in both manifests | Versions match and `agentbundle catalogue verify` passes |
-| Release history | Applicable — adopters read the changelog to decide whether to re-install | `CHANGELOG.md` `[core]` under `[Unreleased]` | pack maintainer | A `[core]` entry naming the behaviour change | Entry sits directly under `[Unreleased]` |
+| Release history | Applicable — adopters read the changelog to decide whether to re-install | `docs/product/changelog.md` | pack maintainer | A `## [core][<version>]` section naming the behaviour change | That section sits directly beneath `## [Unreleased]` with nothing between |
 | Behaviour register | Applicable — the pack owes an eval-harness update on non-cosmetic change | `packs/core/.apm/skills/work-loop/evals/evals.json` | pack maintainer | Frozen cases for the reuse, lighter-route and declination rules | Cases present and labelled as register entries, not detection |
 | Reusable learning | Applicable — the measurement method generalises beyond this delivery | `project-knowledge` public seam | work-loop DECIDE | Distilled observation on differential probing of inherited prose rules | Routed or explicitly discarded at the terminal gate |
 | Decision rationale | Not applicable — the governing RFC already carries the decision and its § 4 authorises a referencing delta | — | — | — | — |
@@ -179,7 +179,9 @@ prompt to look, not a failed gate.
 - [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
 - [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
 - [ ] **AC-0006.** On the inadequate-candidate control, the report names that
-  helper as a candidate the search found and did not use, and why.
+  helper as a candidate the search found, and records what it did with it —
+  reused in part, or not used at all — with the reason. Both dispositions
+  satisfy this criterion; saying nothing about the candidate does not.
 - [ ] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
 - [ ] **AC-0008.** On the heavy-`Approach:` fixture, the report status is
   `ready`.
@@ -205,25 +207,27 @@ prompt to look, not a failed gate.
 
 ## Retired identifiers
 
-These criteria were demoted to working material and their identifiers are not
-reused. Destination: the rung-recording rules in
+No identifier listed here is reused. Two different moves are recorded, and they
+differ in whether an obligation survived.
+
+**Demoted to working material** — AC-0002, AC-0013, AC-0014 and AC-0018. The
+obligation survives in the shipped contracts: the rung-recording rules in
 `packs/core/.apm/agents/implementer.md` and
-`packs/core/.apm/skills/work-loop/SKILL.md`, which still carry the obligation.
-Pin: the four content pins enumerated in the plan's Construction tests, each of
-which fails on the removal of its own obligation. Owner authority: user confirmation 2026-09-16, after four
-review rounds located the non-mechanizable property.
+`packs/core/.apm/skills/work-loop/SKILL.md`. Its protection is the four content
+pins enumerated in the plan's Construction tests, each failing on the removal of
+its own obligation. What was retired is the grading of *which* rung is named: the
+reuse fixture's report naming rung 2, each planted temptation's entry naming its
+rung, a non-rung declination naming no rung, and the helper-absent control's
+report naming the standard-library or one-obvious-line rung. Owner authority:
+user confirmation 2026-09-16, after four review rounds located the
+non-mechanizable property.
 
-Retired: the reuse fixture's report naming rung 2; each planted temptation's
-entry naming its rung; a non-rung declination naming no rung; and the
-helper-absent control's report naming the standard-library or one-obvious-line
-rung.
-
-AC-0005 joins them under Amendment 1. It required the inadequate-candidate
-control to decline the partial helper, but composing with it and declining it are
-both correct, and consecutive runs of the unchanged fixture took one route each.
-Destination: AC-0006 keeps the reporting obligation and AC-0019 keeps the
-functional one, so no obligation is lost and no pin is owed. Owner authority:
-the amendment recorded in `notes/verification-ledger.md`.
+**Retired outright** — AC-0005, under Amendment 1. It required the
+inadequate-candidate control to decline the partial helper, but composing with it
+and declining it are both correct, and consecutive runs of the unchanged fixture
+took one route each. No obligation survives it and no pin is owed, because
+AC-0006 already carries the reporting obligation and AC-0019 the functional one.
+Owner authority: the amendment recorded in `notes/verification-ledger.md`.
 
 - AC-0002
 - AC-0005

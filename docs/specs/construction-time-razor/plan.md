@@ -193,8 +193,10 @@ those copies are never edited directly.
   `ready` status never stands in for it.
 - Inadequate-candidate control, proving AC-0006: its sibling helper collapses
   whitespace runs but does not strip, so reusing it alone breaks `Done when:`.
-  The report must name it as a candidate the search found and did not use
-  outright, with the reason. Whether the implementation composes with it or
+  The report must name it as a candidate the search found and record what it did
+  with it, with the reason; both reusing it in part and declining it satisfy the
+  criterion. The predicate reads the candidate's name in the report, which is
+  what went missing 0 of 2 times before the rule repair. Whether the implementation composes with it or
   declines it is recorded but not graded — measured runs took one route each and
   both satisfied the outcome. AC-0019 is the over-fire guard on this fixture.
 - Heavy-`Approach:` fixture, proving AC-0007, AC-0008 and AC-0009: no new module
@@ -277,7 +279,7 @@ narration.
 
 **Depends on:** T1, T2
 
-**Touches:** packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, CHANGELOG.md, packs/core/.apm/skills/work-loop/evals/evals.json, packs/core/tests/pack/*, .claude/**, .agents/**
+**Touches:** packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md, packs/core/.apm/skills/work-loop/evals/evals.json, packs/core/tests/pack/*, .claude/**, .agents/**
 
 **Verification mode:** goal-based check
 
