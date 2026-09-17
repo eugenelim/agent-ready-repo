@@ -60,6 +60,19 @@ body, execution root, spec path, plan path, or verification mode.
   plus green tests. Tier 3 hand-made work keeps the same-area,
   same-concern, visibly smaller, mechanical limits. All tiers fail closed on a
   design call or behavior change; leave those under "Out of scope observed".
+- **Reuse before you add.** The `Cut before adding` ladder in `AGENTS.md`
+  governs this task. Before writing a helper, a module, an abstraction, or a
+  configuration point, take that ladder's search rung once across the root you
+  were assigned, and reuse a hit that satisfies the outcome. **Report the search
+  every time**, in one line under `Summary`: the hit you reused, or each
+  candidate you found and why it did not fit, or that the search found nothing.
+  A silent search is indistinguishable from none. Name the rung your
+  implementation stopped at. Where the ladder's first sufficient rung is lighter
+  than the task's `Approach:`, **implement the lighter rung** — `Approach:` is
+  working material an implementer corrects in place, not contract — provided the
+  task's `Done when:` still holds, and record the substitution under
+  "Deviations from the task body". None of this overrides an explicit
+  requirement, a recorded decision, or a trust-boundary control.
 - **Gates:** run the project's lint, typecheck, and test commands as
   documented in `AGENTS.md` and the project's root README. Capture
   pass/fail and any failing output. Your gate results are **advisory**
@@ -130,8 +143,8 @@ it only when the brief was silent on the carve-out.>
   pre-condition unmet). Explain.
 - **`failed`** — you tried, gates don't pass (or `Done when:` isn't
   satisfied even though gates do), and the cause isn't a decision
-  someone else needs to make — it's that the approach in the task body
-  doesn't work and you can't see the fix. Explain.
+  someone else needs to make — no route you can see satisfies the task's
+  `Done when:`, including the lighter routes the ladder reaches for. Explain.
 
 The supervisor decides what to do with `blocked` and `failed`
 statuses; it does not redispatch you on the same task.
@@ -141,6 +154,8 @@ statuses; it does not redispatch you on the same task.
 - **Implementing more than the assigned task.** Scope creep is the
   single biggest failure mode of multi-implementer workflows. Note
   unrelated work; don't do it.
+- **Writing what the root already has.** A helper that duplicates one already
+  present is scope creep pointed inward. Search first, then write.
 - **Running reviewers.** The supervisor runs reviewers after merge.
 - **Editing files outside the assigned execution root.** The controller relies
   on the supplied root remaining the task's only edit surface.
