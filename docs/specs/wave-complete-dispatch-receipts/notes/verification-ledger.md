@@ -131,6 +131,18 @@ have gated is a required check rather than an optional local one. Recorded as a
 correction because T1's `Done when` requires the answer for every surface, and
 scoping a surface away is not answering it.
 
+**Independent count of the firing sites, since the roster was adopted from a
+review rather than measured.** Seven sites across four files, confirmed by
+reading each: `SKILL.md` three (changes-requested, further-in-intent-unit,
+specialist-adjudication), `references/supervisor-mode.md` one,
+`references/session-resumption.md` one, `references/finding-adjudication.md`
+two. A mention count gives the wrong answer — `SKILL.md` mentions
+`wave-complete` seven times across three sites, and
+`session-resumption.md` mentions it twice of which only one is an instruction to
+fire it: the `reviewers-clean` row's cell. The other is a resumption row keyed
+*by* `wave-complete` as the last event, describing what to do after it fired. My
+first tally said six sites for exactly that reason.
+
 **Sweep method, stated because a grep missed it.** `grep -rn -- "--phase"` piped
 through a filter for `implement` does **not** find this hook: the phase reaches
 the argument list through a loop variable, so no single line carries both
@@ -191,8 +203,9 @@ class `_loop_guards.py` records this repository already paying for.
 
 ## 4. The verdict-table partition — what each walk's oracle compared
 
-Three walks were run across rounds 4 and 5. Recording all three, because the
-progression is the finding.
+Every walk run from round 4 onward is recorded below, one row per walk in the
+order it ran, because the progression is the finding. Append a row rather than
+replacing one.
 
 | Walk | Domain | Oracle | Result |
 | --- | --- | --- | --- |
@@ -203,9 +216,9 @@ progression is the finding.
 **What these oracles compare:** each encodes the row preconditions as Python
 predicates and asserts that every constructed state satisfies exactly one. The
 first two encode what I *meant*; only the third encodes what the spec *says*,
-which is the contract. None of the three varies a record's own type or `kind`,
-which is why both review lanes independently found that gap after the third
-walk.
+which is the contract. None of the walks above this line varies a record's own
+type or `kind`, which is why both review lanes independently found that gap
+after the third walk.
 
 | 7,128 states | the same, plus container **interiors**: valid records, a bad decline reason, a non-mapping leaf, a non-mapping wave map, a missing `kind`, a non-string `kind`; plus `schema_version` | the rows as the spec words them, with well-formedness total over the container | 0 overlapping, 0 uncovered, all 8 rows reachable |
 
@@ -229,18 +242,6 @@ undefined on a list root. It now classifies to row 1, because that row takes the
 read's own refusal vocabulary rather than enumerating two of its cases. The gap
 sat one level *above* the container, and the fifth walk could not exhibit it
 because its domain varied the parsed value and never the read outcome.
-
-**Independent count of the firing sites, since the roster was adopted from a
-review rather than measured.** Seven sites across four files, confirmed by
-reading each: `SKILL.md` three (changes-requested, further-in-intent-unit,
-specialist-adjudication), `references/supervisor-mode.md` one,
-`references/session-resumption.md` one, `references/finding-adjudication.md`
-two. A mention count gives the wrong answer — `SKILL.md` mentions
-`wave-complete` seven times across three sites, and
-`session-resumption.md` mentions it twice of which only one is an instruction to
-fire it: the `reviewers-clean` row's cell. The other is a resumption row keyed
-*by* `wave-complete` as the last event, describing what to do after it fired. My
-first tally said six sites for exactly that reason.
 
 | 41,664 states | the sixth walk's axes plus an absent `current_wave_index`, over the rows as reworded with the **readable** and **supported** predicates | the nine rows as the spec words them, encoded with no precondition the text does not state | 0 overlapping, 0 uncovered, all 9 rows reachable |
 
@@ -294,8 +295,8 @@ all three — which is the intended consequence of `wave-exit` sharing
 python3 docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py
 ```
 
-**Recorded run — 2026-09-17:** 94,080 states, 0 overlapping, 0 uncovered, all
-nine rows reached. Exit 0 asserts all three; it does not print them for a reader
+**Recorded run — 2026-09-17, superseded (see the post-rebuild run below):**
+94,080 states, 0 overlapping, 0 uncovered, all nine rows reached. Exit 0 asserts all three; it does not print them for a reader
 to check.
 
 **Why it replaced seven ad-hoc scripts.** The pass verdict is "no state matched
@@ -335,8 +336,8 @@ which was false reassurance: it tested the empty *container*, where accounting
 is a separate lookup that still fails, and not the empty *wave*, where the
 denominator collapses.
 
-**Recorded run — 2026-09-17, after both rebuilds:** 25,872 states, 0
-overlapping, 0 uncovered, all eight rows reached. The state count fell from
+**Recorded run — 2026-09-17, after both rebuilds; this is the current result:**
+25,872 states, 0 overlapping, 0 uncovered, all eight rows reached. The state count fell from
 94,080 because the read-outcome axis was collapsed to two values: the rows do
 not discriminate among refusal kinds, so enumerating fourteen of them inflated
 the domain without adding a distinction any predicate makes. The acquisition

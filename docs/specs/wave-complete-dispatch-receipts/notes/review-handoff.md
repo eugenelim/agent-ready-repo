@@ -4,12 +4,17 @@ Run `2fbae32e-0dc7-4e27-b80e-d9c34451a693`. Engine left at `SPEC-PLAN-REVIEW`
 with sustained findings open, which is the correct resumable state: a resuming
 session fires `findings-remain` before revising.
 
-## Status: the design is not settled, and the next step is a spike, not a round
+## Status: a snapshot taken at the round below the table's last row
 
-Five pre-EXECUTE review rounds ran on both lanes (`adversarial-reviewer` and
-`security-reviewer`, spec-stage secure-design mode). Round 1's findings were
-adjudicated by `finding-adjudicator`; rounds 2–5 were verified against code
-directly.
+This file is the state at the point it was written, not the current state. Later
+rounds are recorded in the plan's revision history, which is the live home. The
+conclusion recorded here — that the next step was a spike rather than another
+round — was acted on; the open blockers below are the ones that were open then.
+
+The table records one row per pre-EXECUTE review round on both lanes
+(`adversarial-reviewer` and `security-reviewer`, spec-stage secure-design mode).
+Round 1's findings were adjudicated by `finding-adjudicator`; the rounds after
+it were verified against code directly.
 
 | Round | Adversarial | Security | Where the blockers sat |
 | --- | --- | --- | --- |
@@ -95,8 +100,9 @@ its own.
 ## The verification lesson, which is the reusable part
 
 The recurring gap was not in the predicates but in the **domain they were
-checked over**. Three successive walks each drew their domain from the
-predicates under test, so each could find overlaps and never gaps:
+checked over**. Each successive walk drew its domain from the predicates under
+test, so each could find overlaps and never gaps. Verification ledger § 4 owns
+the full roster; the progression that matters here is:
 
 - 480 states over my own row conditions — found the row-2/row-3 overlap, missed
   the malformed wave element.
@@ -113,8 +119,9 @@ level at a time.
 ## Open blockers at the point of stopping
 
 1. The pre-exit check is specified in GATES, which runs after `wave-complete`.
-   It belongs at every site that fires the transition; three of the four are in
-   no task's `Touches`.
+   It belongs at every site that fires the transition, and most of those sites
+   were in no task's `Touches`. Verification ledger § 2 owns the measured site
+   set.
 2. The `wave-exit` phase inherits `check_phase`'s `schema_version` refusal,
    which `implement` is exempt from, so the retarget silently changes the
    transition's verdict for pre-Phase-1 state. The rows do not model the axis

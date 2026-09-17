@@ -415,12 +415,12 @@ negations, and two rows then covered the same state with opposite verdicts.
       guard layer's existing length-bounding helper, so no refusal carries an
       unbounded value. `loop-cohort`'s own diagnostic helper neutralises control
       characters but applies no length bound.
-- [ ] No cohort state satisfies the preconditions of two of the eight rows
+- [ ] No cohort state satisfies the preconditions of two of the verdict rows
       above.
-- [ ] No cohort state satisfies the preconditions of none of the eight rows
+- [ ] No cohort state satisfies the preconditions of none of the verdict rows
       above.
-- [ ] Each of the eight rows above is satisfied by some cohort state.
-- [ ] The states the three criteria above are checked over are constructed by
+- [ ] Every verdict row above is satisfied by some cohort state.
+- [ ] The states the three preceding criteria are checked over are constructed by
       varying the outcome of the cohort state read across its refusal
       vocabulary, and the presence, type, and value of `schedule_waves`, of its
       element at the pointer, of the receipts container, of a record's `kind`
@@ -432,8 +432,8 @@ negations, and two rows then covered the same state with opposite verdicts.
       mutated at each depth with each hostile value — rather than hand-built at
       a literal depth. A hand-built container makes the walk's oracle ratify the
       shape its author constructed instead of the shape the declaration states,
-      which is how a green walk over 7,128 states coexisted with a predicate
-      that rejected every valid container.
+      which is how a green walk coexisted with a predicate that rejected every
+      valid container.
 - [ ] For every row above whose state has a `state.json`, that file is
       byte-identical before and after a `check --phase wave-exit` invocation.
 - [ ] The `wave-complete` transition out of `CODE-IMPLEMENTATION` is refused
@@ -455,10 +455,11 @@ negations, and two rows then covered the same state with opposite verdicts.
 
 - [ ] Every *site* that instructs firing the `wave-complete` transition also
       instructs running `loop-cohort check --phase wave-exit` immediately
-      before it, counted per site rather than per file — `SKILL.md` carries
-      three such sites and `references/finding-adjudication.md` two, so a
-      file-level check would let an uninstrumented site be absorbed by a
-      covered sibling in the same file.
+      before it, counted per site rather than per file. Some of these files
+      carry more than one firing site, so a file-level check would let an
+      uninstrumented site be absorbed by a covered sibling in the same file.
+      The count is not stored here: the criterion below compares two counts
+      both measured from the tree, which is what survives a site being added.
 - [ ] The count of instrumented sites equals the count of firing sites, so
       adding a firing site later without its check fails rather than passing
       silently.

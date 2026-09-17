@@ -77,11 +77,12 @@ caller cannot be GATES: GATES fires `wave-passed`, `gates-clean` and
 `gates-failed`, and every documented firing of `wave-complete` reads "fire
 `wave-complete`, then run GATES" — so GATES runs *after* the transition it would
 have to precede. The check therefore goes immediately before the transition at
-each of the seven sites that instruct firing it, across four files: three in
-`SKILL.md`, two in `references/finding-adjudication.md`, and one each in
-`references/supervisor-mode.md` and `references/session-resumption.md`.
+every site that instructs firing it. Some of those files carry more than one
+such site, which is why the obligation is per site rather than per file; the set
+is measured from the tree in § 2 of the verification ledger (“Which surfaces
+execute the wave-exit guard's sibling phase”) rather than stored here.
 
-**The guard is an eight-row verdict table whose predicates derive from one
+**The guard is a verdict table whose predicates derive from one
 declaration.** Four rounds produced criteria that overlapped or left gaps, and
 this table then did it twice more. Its first draft let an empty partition with a
 non-mapping container satisfy two rows with opposite verdicts, and a malformed
@@ -89,7 +90,7 @@ wave element such as `[123]` satisfy none, falling through to the opaque
 `@contained` refusal. Its third draft bounded container well-formedness at two
 key levels while the data model declared three, so every correctly shaped
 container classified as malformed and the exit would have refused every valid
-wave — and a walk over 7,128 states stayed green, because the container values
+wave — and that round's walk stayed green, because the container values
 were hand-built at the same two levels the predicate expected. The oracle
 ratified the author's construction rather than the declaration.
 
@@ -205,7 +206,7 @@ verified and returns to T2 or T3.
   the point. `init` refuses an existing `state.json` and `reset` deletes it, so
   a record cannot outlive its run and a stored run identifier would be a field
   no reachable state could falsify.
-- **Eight verdict rows whose predicates derive from one key-path declaration.** Traces to:
+- **Verdict rows whose predicates derive from one key-path declaration.** Traces to:
   the verdict rows and the two partition criteria. Branch order is an
   optimisation; the preconditions decide behaviour. The predicates are named
   once rather than repeated per row, because repeating them informally is how
@@ -278,7 +279,7 @@ both its default and `--json` forms.
 
 ### Failure, edge cases & resilience
 
-Traces to: the eight verdict rows, the verb's unusable-partition refusal, and
+Traces to: the verdict rows, the verb's unusable-partition refusal, and
 the byte-equality criteria.
 
 - **Interrupted dispatch.** Best-effort by decision. A controller that crashes
@@ -322,8 +323,8 @@ Three tiers, and a claim belongs to exactly one:
   a fixture's internal shape.
 
 **The discovery channel below is spent, and that is recorded rather than
-quietly dropped.** T1 predeclared six questions. All six are now answered, in
-§ 2 and § 3 of the verification ledger, and four of them turned out to be tier
+quietly dropped.** T1 predeclared a set of questions, all now answered, in
+§ 2 and § 3 of the verification ledger, and several turned out to be tier
 one rather than tier two — the `schema_version` behaviour is a verification
 mechanism *and* a security boundary, the pre-PR chain decides which surface the
 change gates, the firing-site set decides the task graph, and the length bounds
@@ -441,7 +442,7 @@ the exhaustive per-clause sweep, not the first time an arm is tested.
 - `no stub (mode)` — goal-based.
 
 **Approach:**
-- The six questions this task predeclared are settled; § 2 and § 3 of the
+- The questions this task predeclared are settled; § 2 and § 3 of the
   verification ledger hold the answers with the surfaces read. Re-verify none of
   them here: a settled tier-one claim is read from the ledger, not rediscovered.
 - Confirm the pre-PR hook's `implement` leg is still ungated by the engine state
@@ -462,7 +463,7 @@ the exhaustive per-clause sweep, not the first time an arm is tested.
   the spec cites it rather than repeating the figures.
 - Read-only task: it writes only the ledger.
 
-**Done when:** the ledger answers all six predeclared questions, each naming the
+**Done when:** the ledger answers every question this task predeclared, each naming the
 surfaces read rather than a grep pattern; records the golden confirmation; and
 records one run of the dispatch-rate generator.
 
@@ -646,9 +647,10 @@ covers the state lock a new mutation takes.
   assert that it names the unaccounted task in the current wave and not a task
   in the next wave.
 - Every existing call site that drives `wave advance` through the real CLI still
-  behaves as it does today. There are fifteen: seven in `test_loop_engine.py`,
-  seven in `test_loop_cohort.py`, one in `test_loop_concurrency.py`. Enumerate
-  which reach the advancing branch — the others refuse before the accounting
+  behaves as it does today. Enumerate the call sites by globbing the suite
+  tree rather than by naming files from memory — a hand-picked file list
+  undercounted this set once — then enumerate which of them reach the
+  advancing branch — the others refuse before the accounting
   check and are unaffected — and give each of those a record in its fixture.
   Pinned because the failure is otherwise discovered rather than planned.
 - Every existing path that drives `init` → `schedule` → `wave-complete` through
@@ -748,10 +750,11 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   not record its own. The section already declares what the controller retains,
   so this extends that sentence rather than adding a trust mechanism.
 - Instrument every *site* that instructs firing `wave-complete`, not every
-  file: `SKILL.md` has three (changes-requested, further-in-intent-unit, and
-  specialist-adjudication), `references/finding-adjudication.md` has two, and
-  `references/supervisor-mode.md` and `references/session-resumption.md` one
-  each. Do not put the check in GATES: GATES runs after that transition.
+  file. `SKILL.md` carries the changes-requested, further-in-intent-unit and
+  specialist-adjudication sites; `references/finding-adjudication.md` carries
+  its post-GATES re-entry and its FIX re-entry; `references/supervisor-mode.md`
+  and `references/session-resumption.md` each carry one. Name them by what they
+  are, not by how many: a stored count decays the moment a site is added. Do not put the check in GATES: GATES runs after that transition.
 - The checked region differs by surface shape, so state it per shape rather than
   assuming a fenced block: `SKILL.md` uses fenced command blocks for the
   changes-requested and specialist-adjudication sites, and running prose inside
@@ -790,8 +793,8 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   exit code. Projections are never edited directly.
 
 **Done when:** a check scoped to `## Step 2. EXECUTE` finds
-`loop-cohort dispatch-receipt` and the authorship sentence; all seven
-`wave-complete` firing sites across the four files instruct
+`loop-cohort dispatch-receipt` and the authorship sentence; every site that
+instructs firing `wave-complete` also instructs
 `loop-cohort check --phase wave-exit` immediately before the fire instruction
 at that site; a check scoped to
 `## Single-agent fallback` finds both reason codes; a check scoped to the
@@ -816,7 +819,7 @@ tests/roster/test_verification_ledger_contract.py -q` passes.
   mutual-exclusivity check, the verb's reason-code check, the index type check,
   each end of the index range check, the usable-partition check, the
   task-membership check, the partition-digest match, the guard's reason-code
-  check, each of the eight verdict rows, the accounting check on `wave
+  check, every verdict row, the accounting check on `wave
   advance`'s advancing branch, its absence from the already-applied branch, the
   precedence of the verb's existing refusals over it, the `schedule` container
   creation, the
@@ -948,7 +951,7 @@ tools/test_build_site_routing.py -q` passes.
   repairs) and restructured rather than patched. Round 3 showed the cause was
   not any individual criterion but the order of derivation, so every decision
   here was taken from a code read first. The guard's criteria became a
-  seven-row verdict table with disjoint preconditions, and a test asserts the
+  verdict table with disjoint preconditions, and a test asserts the
   partition — round 3's blockers were criteria that overlapped with opposite
   consequents, which that form cannot express. The discriminator changed from
   `plan_hash` to a digest of `schedule_waves`, because `canonical_contract`
@@ -977,10 +980,10 @@ tools/test_build_site_routing.py -q` passes.
   clears the container, which additionally bounds the stored set to one live
   partition and removes the need for a size cap. The notice was given a caller:
   the engine discards a passing guard's text and no step invoked `check` for it,
-  so GATES now runs the pre-exit check. The verdict table grew an eighth row for
-  a malformed current wave, found by widening the partition walk's domain from
-  1,152 states over field types rather than over the rows — the earlier walk
-  could only find overlaps, never gaps. The verb gained an unusable-partition
+  so GATES now runs the pre-exit check. The verdict table gained a row for a
+  malformed current wave, found by widening the partition walk's domain over
+  field types rather than over the rows — the earlier walk could only find
+  overlaps, never gaps. The verb gained an unusable-partition
   refusal, the guard layer's existing non-negative-integer helper replaced an
   invented predicate, the no-write property now binds the verb's whole refusal
   set, the accepted lower index bound got its own criterion, both artifacts
