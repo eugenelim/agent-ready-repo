@@ -1,12 +1,13 @@
 # ADR-0050: Astro for the marketing site, co-deployed with MkDocs in one GitHub Pages origin
 
-- **Status:** Superseded by [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md)
+- **Status:** Superseded
 - **Date:** 2026-07-16
 - **Areas:** experience, documentation
 - **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
 - **Supersedes in part:** none
+- **Superseded by:** ADR-0109
 - **Superseded in part:** none
 - **Related:** RFC-0061; `web/AGENTS.md`
 
