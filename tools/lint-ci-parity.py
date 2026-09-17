@@ -81,27 +81,40 @@ produce no key, demand no entry, and leave the gap silent one layer down.
 
 ## What the suite roster does not prove — the residual, stated plainly
 
-Five limits, none of which a clean run rules out:
+Six limits, none of which a clean run rules out.
 
+* **Completeness is extraction-independent at the LINE level, not at the target
+  level.** `suite_lines` interprets no command, so no parser failure removes a
+  recipe line from the roster. But which *targets* a line carries is read by
+  `line_targets`, and a suite the extractor cannot see is caught only by the
+  opaque-operand arm — which is itself extraction. A pytest operand that is
+  neither a literal path nor a recognised expansion would escape.
 * **Corroboration is best-effort in *both* directions**, unlike the forward
   gate's one-way claim. A false-positive extraction can satisfy a wrong
-  `PR_GATED`; a false-negative one can let a stale `NO_PR_GATE` stand. What is
-  *not* at risk is completeness: no extraction failure removes a recipe line
-  from the roster.
+  `PR_GATED`; a false-negative one can let a stale `NO_PR_GATE` stand.
 * **Corroboration proves a step names a suite, not that it runs it.**
   `echo "python -m pytest <suite>"` yields the same operand as a real
   invocation. A bare `echo <dir>` yields nothing, so a passing mention is
   excluded, but execution is not established.
 * **`PR_GATED_IF` records a condition nobody evaluates.** A conditionally gated
   suite may simply not run on a given pull request.
-* **A fourth invocation shape exists and is deliberately unread.**
-  `run_with_floor` in `build-check.yml` passes a suite directory to a subshell
-  that `cd`s and runs bare `pytest`. Its directories are not `run-test-suite`
-  targets, so nothing depends on it; an unrecognised shape fails a *true* claim
-  rather than passing a false one.
+* **A declared exception (`_SUITE_SOURCE_EXCEPTIONS`) asserts coverage rather
+  than reading it,** and is the one source here that can grant coverage the
+  workflow does not provide. Three things bound it: the named step's name must
+  be unique in its workflow, every listed suite must appear in that step's own
+  `run`, and that body is digest-pinned so any edit reddens a test and obliges a
+  human to re-check. What none of that establishes is that the step *executes*
+  the listed suites — only that the workflow text still says what it said when a
+  human last looked. A parse was built for this shape instead and removed after
+  seven defects in three review rounds, two of them phantom coverage.
 * **A reason is checked for presence, never for truth.** `NO_PR_GATE("todo")`
   passes the lint. Whether a reason is accurate is a human-review control, and
   so is whether a `PR_GATED` step's command really executes the suite.
+
+Separately, and not a limit of the roster: `run_with_floor` in `build-check.yml`
+runs two suites through a subshell that `cd`s and runs bare `pytest`. Neither is
+a `run-test-suite` target, so no entry depends on it; were one added, the
+unrecognised shape would fail a *true* claim rather than pass a false one.
 
 Both rosters compare *written* paths. Spell a path in a workflow exactly as the
 define spells it: a parent directory matches neither direction and reports a real

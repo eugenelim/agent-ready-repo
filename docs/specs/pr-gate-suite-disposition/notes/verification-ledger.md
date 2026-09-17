@@ -708,3 +708,27 @@ Four post-gates rounds, **21 findings, every one sustained.** Three of my own
 claims were refuted by them: that a stronger implementation needed no amendment,
 that the loop reader could not go stale, and that corroboration recognised every
 shape that mattered.
+
+### The class sweep I should have run two rounds earlier
+
+Round 4's third finding was the fourth instance of one class, so the class was
+swept directly instead of waiting for round 5 to find instance five. Two results:
+
+**A stale companion the round-4 fix missed.** AC-0006 was corrected in the spec,
+but the module docstring's residual list still named five limits and did not
+mention `_SUITE_SOURCE_EXCEPTIONS` at all — the very source whose cost the
+amendment existed to state. Now six limits, with the declaration named and its
+three bounds and its one unbounded part spelled out.
+
+**One surviving overclaim of my own.** The list said "no extraction failure
+removes a recipe line from the roster", which is true and was doing duty for a
+stronger claim it does not support: completeness is extraction-independent at the
+**line** level only. Which *targets* a line carries is read by `line_targets`, so
+a pytest operand that is neither a literal path nor a recognised expansion would
+escape — caught only by the opaque-operand arm, which is itself extraction. Now
+stated at that precision.
+
+Every other guarantee-shaped claim in the docstring, spec and plan was checked
+against the code and holds. One nuance verified rather than assumed: `suite_lines`
+does interpret Make's `$(call …)`, and a failed expansion returns the line
+unchanged, which then carries no path operand and demands an entry — fail-closed.
