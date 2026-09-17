@@ -1053,6 +1053,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED(
             "build-check.yml / gate-main / pytest site build + link rewriting"
         ),
+    'tools/test_stasis_retirement_claims.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest stasis-stop retirement claims"
+        ),
     'tools/test_local_ci_shared_test_deduplication.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest shared-test dedup guard "

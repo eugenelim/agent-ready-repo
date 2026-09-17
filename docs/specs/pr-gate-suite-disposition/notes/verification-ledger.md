@@ -903,3 +903,44 @@ diverge whenever the change is partial. What catches it is a reviewer re-reading
 the claim against the artifact — which is exactly what these rounds did, 32 times.
 
 200 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.
+
+## The gate caught the exact defect class, in production, twice (2026-09-17)
+
+Two peers' merges landed during this delivery, and the gate caught both before a
+human looked. Neither is a synthetic probe.
+
+**PR #1342** folded `tools/test_gate_enumeration.py` out of its own recipe line
+into the batched one, by hand, specifically so a pull request would gate it. The
+roster still said `NO_PR_GATE`; the stale-declaration arm named it.
+
+**PR #1343** added `tools/test_stasis_retirement_claims.py` to the 20-target
+`tools/` batch line and gave it a `build-check.yml` step. The completeness arm
+named it:
+
+```
+✖ suite line '$(PYTHON) -m pytest … tools/test_stasis_retirement_claims.py …'
+  runs tools/test_stasis_retirement_claims.py with no SUITE_DISPOSITION entry.
+```
+
+**That is probe B, run by someone else on real work.** It is also the case the
+first implementation would have passed in silence: under "at least one entry per
+line" the nineteen dispositioned siblings satisfied the line, and the twentieth
+target inherited their entries. The post-gates review found that rule too weak,
+the owner amended AC-0001 to require an entry per target, and eight days of
+nothing would have looked identical to a working gate. Instead the gate failed
+and named the file.
+
+Both entries are now dispositioned `PR_GATED` against their real steps. Final
+figures: **63 recipe lines carrying 115 targets across 119 roster keys — 60
+PR-gated, 27 conditionally gated, 32 with no pull-request gate.**
+
+What these two merges establish that no probe of mine could:
+
+1. The arms fire on **real repository movement by other authors**, not only on
+   mutations written to trip them.
+2. **Completeness survives both shapes of churn** — a target relocated between
+   lines (#1342) and a target added to an existing line (#1343).
+3. The manual practice the roster replaces was **actively happening**: #1342's
+   title is "so it gates a PR", which is one maintainer hand-auditing one suite's
+   pull-request coverage. That is the recall this defect asked to eliminate,
+   observed in the wild mid-delivery.
