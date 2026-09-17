@@ -1,7 +1,7 @@
 # `agentbundle-layout.toml` — the `[design]` section
 
-`agentbundle-layout.toml` is a single, **adopter-owned** file that controls
-where output-producing packs write their durable work. It is never shipped
+`agentbundle-layout.toml` is a single, **adopter-owned** file that declares
+where output-producing packs are instructed to write their durable work. It is never shipped
 into a projected path; you create it by hand (or an `agentbundle install`
 step appends a default section to one you already have — **append-if-exists
 / never-create / never-overwrite**). On the append of a *missing* section, the installer adds that one table and
@@ -27,7 +27,7 @@ output_dir = "docs/design"   # a base directory; output files go *under* it
 
 ## Repo-root first, then user-profile
 
-The skill resolves `output_dir` in two steps before elicitation:
+Resolve `output_dir` in two steps before elicitation:
 
 1. **Repo-root config** — read `./agentbundle-layout.toml` `[design] output_dir`
    if the file exists and the key is present. Repo-scope takes priority so that
@@ -55,10 +55,19 @@ default:
   (`~`-anchored is fine). A relative value there is an *Ask-first* deviation —
   never silently resolved against the ambient working directory.
 
-Regardless of anchor, the skill resolves `output_dir` to its full absolute path
-(realpath-resolved, `~`-expanded, `..` rejected) and **surfaces that path before
-the first write**. A repo-root-sourced `output_dir` that resolves outside the
-repo tree is treated as untrusted-origin and confirmed before writing.
+Regardless of anchor, resolve `output_dir` to its full absolute path
+(realpath-resolved, `~`-expanded, `..` rejected) and **state that path, and the
+file you read it from, before the first write**. A repo-root-sourced
+`output_dir` that resolves outside the repo tree is treated as untrusted-origin
+and confirmed before writing.
+
+**This is an instruction, not an enforced boundary.** It holds only on the runs
+where the resolution is actually executed, and a skipped resolution leaves no
+trace: the write succeeds and looks ordinary. Observed runs show the value is
+sometimes recalled from the example above instead of read from the adopter's
+file. Do not describe a write as confined, or a path as surfaced, unless you
+ran the resolution and read its result. `references/containment.md` states the
+full control set and the same limitation.
 
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml

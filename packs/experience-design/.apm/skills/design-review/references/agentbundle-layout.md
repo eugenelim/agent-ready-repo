@@ -1,7 +1,7 @@
 # `agentbundle-layout.toml` — the `[design]` section
 
-`agentbundle-layout.toml` is a single, **adopter-owned** file that controls
-where output-producing packs write their durable work. It is never shipped
+`agentbundle-layout.toml` is a single, **adopter-owned** file that declares
+where output-producing packs are instructed to write their durable work. It is never shipped
 into a projected path; you create it by hand (or an `agentbundle install`
 step appends a default section to one you already have — **append-if-exists
 / never-create / never-overwrite**). On the append of a *missing* section, the installer adds that one table and
@@ -55,6 +55,11 @@ Regardless of anchor, resolve `output_dir` to its full absolute path
 `references/containment.md` **before the first read**. The same module states
 the final-target confinement, `type:` validation, product-belonging, and
 extract-as-data controls that apply to the read itself.
+
+**This is an instruction, not an enforced boundary.** It holds only on the runs
+where the resolution is actually executed, and a skipped resolution leaves no
+trace. Do not describe a read as confined unless you ran the resolution and
+read its result.
 
 ## Frontmatter contract
 

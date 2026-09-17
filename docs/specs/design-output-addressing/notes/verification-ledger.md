@@ -107,7 +107,7 @@ have landed a red lint. No plan task's Tests block covers re-excerpting this
 preview: T6 re-excerpted `design-each-screen.md` only, and T7's guide work is
 the three `**Where it lands:**` lines and their rungs.
 
-## Unowned defect — the `creative-direction.md` filename, 2026-09-16
+## Unowned defect — the `creative-direction.md` filename, 2026-09-16 — **REPAIRED, see below**
 
 Two shipped surfaces name this skill's artifact `creative-direction.md`:
 
@@ -294,3 +294,23 @@ never had one either, so T10 now closes the gap for three files rather than one.
 **One companion the move broke and this commit fixes.** ADR 0116 cited "the
 declaration test in `packs/experience-design/tests/`", a directory the move
 deletes. It now names the file's real path.
+
+## The `creative-direction.md` filename is repaired, not deferred, 2026-09-17
+
+The entry above deferred this to a follow-on on the reasoning that no task's
+Tests block covered either line. Review round 1 sustained it as **F9**, and the
+adjudicator refuted the premise that made it out of scope: this branch changed
+that target, and the changelog claims the guides now give either the path the
+skill writes or a statement that it writes none, so the two lines are stale
+companions of this change rather than pre-existing prose.
+
+Repaired in all three places — `creative-direction/SKILL.md:3`, the same file's
+body sentence, and `guides/experience-design/reference/experience-design.md`'s
+`creative-direction` **Returns:** line, which now matches the `design-principles`
+sibling shape. `creative-direction.md` as an artifact name now has zero
+occurrences under `packs/experience-design/` and `guides/experience-design/`.
+
+**What this corrects about the earlier entry.** Deferring was the wrong call,
+and the reason is worth keeping: "no test covers it" is not the same as "not
+this change's defect". The ownership question is whether the change made the
+sentence false, and it had.

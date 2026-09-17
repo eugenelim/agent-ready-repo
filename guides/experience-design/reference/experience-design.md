@@ -30,8 +30,10 @@ the `[design]` layout described below.
 **Reads:** supplied context and existing design artifacts. `experience-status`
 also reads the configured design output to report what exists.
 
-**Writes:** only when the selected skill's contract names an artifact. The
-resolved path is surfaced before the first write. `experience-status` and the
+**Writes:** only when the selected skill's contract names an artifact. Each
+skill is instructed to state the resolved path before the first write — an
+instruction it carries out, not a guarantee the pack enforces, so read the
+stated path rather than assuming it. `experience-status` and the
 `experience-reviewer` agent are read-only.
 
 **Limits:** the pack does not choose product strategy, frame or commit the
@@ -152,7 +154,8 @@ goals, `design-system` for token taxonomy, and `design-review` for critique.
 direction the team can use.”
 
 **Returns:** ranked aesthetic goals grounded in stable referents, plus rules for
-which goal wins when goals conflict, recorded in `creative-direction.md`.
+which goal wins when goals conflict. Writes `<output_dir>/direction/<slug>.md`,
+resolved through the `[design]` layout contract below.
 
 **Routes away:** product positioning, framing or scoping the bet, and
 implementing colors, type, or components. Use `design-system` after the
@@ -351,8 +354,11 @@ diffs or architecture documents.
 Layout-aware artifact-writing skills resolve `<output_dir>` in three tiers: the
 adopter-owned `[design] output_dir` in `agentbundle-layout.toml` (repository
 setting before user setting), then the pack default `docs/design`, then
-discovery by existing artifact markers. Each skill surfaces the resolved path
-before its first write and creates its subdirectory only when needed.
+discovery by existing artifact markers. Each skill is instructed to state the
+resolved path before its first write and to create its subdirectory only when
+needed. Resolution and confinement are instructions rather than enforced
+boundaries: a skipped one leaves no trace, so an adopter who needs a guarantee
+enforces it outside the agent. See any writer's `references/containment.md`.
 
 `design-principles` writes its doc to `<output_dir>/principles/<slug>.md`
 through this contract, and `design-review` resolves the same path when it loads

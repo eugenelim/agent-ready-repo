@@ -77,11 +77,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `creative-direction` named none at all, and `design-system` produced no file —
   it now writes a token taxonomy your frontend work can read instead of
   re-deriving tokens every session.
-- **Treat the pack's confinement as a strong default, not a boundary.** Before
-  writing, each of the four states the approved output directory, the file it
-  read that value from, and the target path it composed. The check that keeps a
-  write inside that directory is an instruction the agent has to carry out, not
-  something the pack enforces. Against a target reached through a symlink it was
+- **Treat the pack's confinement as a strong default, not a boundary.** Each of
+  the four is instructed, before writing, to state the approved output
+  directory, the file it read that value from, and the target path it composed.
+  One full run was captured against the shipped wording — `creative-direction`,
+  which stated all three — so this is a measured instruction for that skill and
+  an unobserved one for the other three. The check that keeps a write inside
+  that directory is an instruction the agent has to carry out, not something
+  the pack enforces. Against a target reached through a symlink it was
   skipped in 2 of 8 observed runs, and every skip wrote outside the approved
   directory. The step was rewritten to require an executed real-path resolution
   and has refused on every run observed since, but a skipped check still leaves

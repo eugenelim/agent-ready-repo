@@ -1,11 +1,11 @@
 ---
 name: creative-direction
-description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `creative-direction.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\"."
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\"."
 ---
 
 # Skill: creative-direction
 
-Turns a vague "vibe" into a small set of **named, ranked emotional and brand goals**, each grounded in a stable referent, and records them in an creative-direction doc the rest of the build references. The doc is the durable artifact: it lets every later choice point back to a goal and its referent, not a fresh opinion.
+Turns a vague "vibe" into a small set of **named, ranked emotional and brand goals**, each grounded in a stable referent, and records them in the direction doc at `<output_dir>/direction/<slug>.md` that the rest of the build references. The doc is the durable artifact: it lets every later choice point back to a goal and its referent, not a fresh opinion.
 
 ## Output rendering
 
