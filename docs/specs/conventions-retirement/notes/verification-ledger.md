@@ -785,3 +785,33 @@ base. Nothing on this branch would have caught it. It surfaced only because the
 scan was re-run against the post-merge tree rather than the pre-merge result
 being carried forward, which is the practice worth keeping: a consumer sweep's
 result expires when the base moves.
+
+## Round 15 — two guards where one sufficed, and the counts again
+
+Three findings, no blockers.
+
+**A redundant guard hid its own redundancy.** The scanner carried both a
+mid-run check and a whole-run skip. Neither mutation reddened alone, which the
+previous round's entry recorded as "two mutually-masking guards" — the truer
+reading is that one of them was unreachable. Every path through the inline-code
+branch either consumes through a closer or steps past the run entire, so the
+scan never lands inside a run and the mid-run check could not fire. Removing it
+made each remaining guard discriminate on its own mutation, which is the
+evidence the previous round could not produce.
+
+The generalisable form: when a mutation fails to red, the first hypothesis
+should be that the code is redundant, not that the test is weak. A guard that
+cannot be shown necessary usually is not.
+
+**The count class had a third home.** `plan.md` still listed the seed files
+citing the retired path and named `MAX_SEED_LINES = 150` — a value this change
+itself raised, so the figure was wrong in the commit that wrote it, and the
+file list had emptied as the work landed. Both replaced by pointers to the
+things that own them: the dated inventory note, the live scan, and the linter.
+That makes three separate places this shape appeared — an acceptance criterion,
+a verification entry, and a plan — which is the argument for not writing a
+measurement into a durable record at all.
+
+**One wording correction.** `_blank` preserves Python string indices, which are
+code points; "byte" overstated the contract, even though every caller indexes
+back into the same `str` and none is affected.

@@ -176,15 +176,16 @@ seed that governs it or by deleting a catalogue-authoring note — never by link
 out of the scaffold.
 
 
-Six seed files cite the retired path and are what an adopter would see break:
-`seeds/AGENTS.md:64`, `seeds/docs/CHARTER.md:59`,
-`seeds/docs/architecture/README.md:22,24`, `seeds/docs/knowledge/README.md:164`,
-`seeds/docs/product/README.md:34`, `seeds/docs/specs/README.md:4`. Every one is
-resolved by inlining the rule in the seed that governs it or by deleting a
-maintainer-only note — never by linking out of the scaffold.
+The seed files citing the retired path are what an adopter would see break.
+`notes/consumer-inventory.txt` is the dated inventory; the live set is whatever
+`notes/ac2-scan.sh` reports, because a list written here goes stale as the work
+lands. Every one is resolved by inlining the rule in the seed that governs it
+or by deleting a maintainer-only note — never by linking out of the scaffold.
 
-`MAX_SEED_LINES = 150` binds on the seed file and rises by the measured increment
-the relocated rules need; `tools/lint-agents-md.py` reports the result.
+`tools/lint-agents-md.py` owns the seed line cap, and the cap rises by whatever
+the relocated rules need. The linter is the statement of what fits; naming the
+value here would date it inside this very change, which is what happened to the
+figure this sentence replaced.
 
 ## Durable-output map
 

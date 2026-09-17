@@ -118,12 +118,6 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
             run = 0
             while position + run < length and text[position + run] == "`":
                 run += 1
-            if position > 0 and text[position - 1] == "`":
-                # Mid-run: the maximal run started earlier and was handled
-                # there. Never let a run's own suffix open a span.
-                position += run
-                at_line_start = False
-                continue
             closer = re.compile(rf"(?<!`){'`' * run}(?!`)")
             found = closer.search(text, position + run)
             if found is not None:
@@ -131,8 +125,11 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
                 position, at_line_start = found.end(), False
                 continue
             # No exact closer: CommonMark leaves the run as literal prose, so
-            # skip the whole run. Advancing one byte would re-open on its
-            # suffix and mask the operative text that follows.
+            # skip the whole run. This is also what keeps the scan from ever
+            # landing inside a run — every path either consumes through a
+            # closer or steps past the run entire — so no separate mid-run
+            # guard is needed. Advancing one code point would re-open on the
+            # run's own suffix and mask the operative text that follows.
             position += run
             at_line_start = False
             continue
@@ -142,7 +139,12 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
 
 
 def _blank(text: str, kinds: tuple[str, ...]) -> str:
-    """Blank the named span kinds, preserving every offset and newline."""
+    """Blank the named span kinds, preserving string indices and newlines.
+
+    Indices are Python string indices — code points, not UTF-8 bytes. That is
+    the contract every caller here needs, because each one indexes back into
+    the same `str`.
+    """
     masked = list(text)
     for begin, finish, kind in _inert_spans(text):
         if kind not in kinds:
@@ -154,8 +156,11 @@ def _blank(text: str, kinds: tuple[str, ...]) -> str:
 
 
 def _inert_masked(text: str) -> str:
-    """Blank every inert span. Offsets are preserved, so a match here indexes
-    the original text unchanged."""
+    """Blank every inert span.
+
+    String indices are preserved, so a match found here indexes the original
+    text unchanged.
+    """
     return _blank(text, (_BLOCK, _CODE))
 
 
