@@ -286,6 +286,16 @@ the current plan looks different from yesterday's plan. After approval this
 section is pinned like the rest of the plan: an execution observation goes to
 the verification ledger, not to a new changelog entry.
 
+**Each approval is an entry.** Write
+`- YYYY-MM-DD: spec approved by <handle>` and
+`- YYYY-MM-DD: plan approved by <handle>` — one per gate, real date, the
+approver's own handle. Both live here because the plan carries the only dated
+history in the spec directory. Without them nothing in the artifacts says when
+the contract froze or on whose authority, so a later reader cannot tell which
+claims were in it at approval and which arrived afterwards. `work-loop`'s
+G-plan sequence owns *when* each is written and why the order matters; this
+template owns only the form.
+
 - YYYY-MM-DD: initial plan
 - YYYY-MM-DD: switched from approach A to B because <reason>
 -->

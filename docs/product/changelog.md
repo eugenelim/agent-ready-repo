@@ -64,6 +64,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.14] — 2026-09-17
+
+### Highlights
+
+- **A plan now records who approved it, and when.** Approving a spec and plan
+  froze the contract and left no trace in the artifacts of when that happened or
+  on whose authority. Reading a shipped delivery months later, you could not
+  tell which claims were in the contract at approval and which arrived during
+  the work — the plan's own history started at drafting and resumed at
+  execution, with the gate itself unmarked. Each approval is now a dated entry
+  in the plan's changelog, written by the approver in the same edit that sets
+  the status.
+
+### Changed
+
+- The plan template fixes the entry's form; `work-loop`'s G-plan sequence owns
+  when each is written. The plan entry lands in the same edit as
+  `Status: Approved`, because the next step pins the plan's content and splices
+  out only the status token — an entry added afterwards invalidates the
+  baseline.
+
 ## [core][2.26.13] — 2026-09-17
 
 ### Highlights
