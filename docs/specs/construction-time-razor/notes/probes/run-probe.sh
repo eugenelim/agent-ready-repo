@@ -128,20 +128,45 @@ sys.exit(0 if any(isinstance(n, ast.ClassDef) and n.name == sys.argv[2]
 PY
 }
 
-# new_modules <dir> -- every .py under store/ that the scaffold did not create
-SCAFFOLD_MODULES="__init__.py report.py invoice.py textnorm.py printing.py"
-new_modules() {
-    for f in "$1"/store/*.py; do
-        [ -e "$f" ] || continue
-        b=$(basename "$f")
-        case " $SCAFFOLD_MODULES " in *" $b "*) ;; *) printf '%s ' "$b" ;; esac
-    done
+# Per-fixture inventory, captured before dispatch and stored OUTSIDE the
+# execution root. A single global allowlist would exempt a module in every
+# fixture just because one fixture ships it, and a reference kept inside the root
+# is writable by the run it is meant to judge.
+#
+# seal <dir> -- record the module inventory and the shared-consumer digest
+seal() {
+    _d=$1
+    ( cd "$_d/store" && ls *.py 2>/dev/null | sort ) > "$_d.modules"
+    if [ -f "$_d/store/printing.py" ]; then
+        shasum -a 256 < "$_d/store/printing.py" | awk '{print $1}' > "$_d.printing"
+    fi
+}
+
+# no_new_modules <dir> -- names anything not present when the fixture was sealed
+no_new_modules() {
+    _now=$( cd "$1/store" && ls *.py 2>/dev/null | sort )
+    printf '%s\n' "$_now" | comm -13 "$1.modules" - | tr '\n' ' '
+}
+
+# consumer_intact <dir> -- the shared consumer still hashes to its sealed digest
+consumer_intact() {
+    [ -f "$1/store/printing.py" ] || return 1
+    _now=$(shasum -a 256 < "$1/store/printing.py" | awk '{print $1}')
+    [ "$_now" = "$(cat "$1.printing" 2>/dev/null)" ]
 }
 
 # expect_output <dir> <python-expr> <expected-repr>
+# Requires BOTH the exact value and a zero exit: a process that prints the right
+# answer and then fails has not satisfied `Done when:`.
 expect_output() {
-    _got=$( cd "$1" && python3 -c "print(repr($2))" 2>/dev/null )
-    [ "$_got" = "$3" ]
+    _got=$( cd "$1" && python3 -c "print(repr($2))" 2>/dev/null ); _rc=$?
+    [ "$_rc" -eq 0 ] && [ "$_got" = "$3" ]
+}
+
+# expect_stdout <dir> <python-stmt> <expected-stdout>
+expect_stdout() {
+    _got=$( cd "$1" && python3 -c "$2" 2>/dev/null ); _rc=$?
+    [ "$_rc" -eq 0 ] && [ "$_got" = "$3" ]
 }
 
 # --- scaffolding ------------------------------------------------------------
@@ -329,7 +354,7 @@ record_rung() {
 # --- fixtures ---------------------------------------------------------------
 
 fx_reuse() {           # AC-0001, AC-0019
-    d=$WORK/reuse-$1; scaffold "$d"; helper_adequate "$d"; plan_plain "$d"; brief "$d"
+    d=$WORK/reuse-$1; scaffold "$d"; helper_adequate "$d"; plan_plain "$d"; seal "$d"; brief "$d"
     run_once "$d" out.txt || return 1
     delegates_to "$d/store/report.py" collapse_whitespace render_label
     check "AC-0001 render_label calls the adequate helper" $?
@@ -338,9 +363,9 @@ fx_reuse() {           # AC-0001, AC-0019
 }
 
 fx_helper_absent() {   # AC-0003, AC-0004, AC-0019
-    d=$WORK/helper-absent-$1; scaffold "$d"; plan_plain "$d"; brief "$d"
+    d=$WORK/helper-absent-$1; scaffold "$d"; plan_plain "$d"; seal "$d"; brief "$d"
     run_once "$d" out.txt || return 1
-    extra=$(new_modules "$d")
+    extra=$(no_new_modules "$d")
     [ -z "$extra" ]; check "AC-0003 no new module emitted${extra:+ (found: $extra)}" $?
     grep -qE '^\*\*Status:\*\* ready' "$d/out.txt"; check "AC-0004 status is ready" $?
     expect_output "$d" "$LABEL_EXPR" "$LABEL_WANT"; check "AC-0019 Done when holds" $?
@@ -348,7 +373,7 @@ fx_helper_absent() {   # AC-0003, AC-0004, AC-0019
 }
 
 fx_inadequate() {      # AC-0006, AC-0019
-    d=$WORK/inadequate-$1; scaffold "$d"; helper_inadequate "$d"; plan_plain "$d"; brief "$d"
+    d=$WORK/inadequate-$1; scaffold "$d"; helper_inadequate "$d"; plan_plain "$d"; seal "$d"; brief "$d"
     run_once "$d" out.txt || return 1
     if delegates_to "$d/store/report.py" collapse_runs render_label
     then note "composed with the partial helper (ungraded: both routes are correct)"
@@ -361,9 +386,9 @@ fx_inadequate() {      # AC-0006, AC-0019
 }
 
 fx_heavy() {           # AC-0007, AC-0008, AC-0009, AC-0019
-    d=$WORK/heavy-$1; scaffold "$d"; plan_heavy "$d"; brief "$d"
+    d=$WORK/heavy-$1; scaffold "$d"; plan_heavy "$d"; seal "$d"; brief "$d"
     run_once "$d" out.txt || return 1
-    extra=$(new_modules "$d")
+    extra=$(no_new_modules "$d")
     [ -z "$extra" ]; check "AC-0007 no new module emitted${extra:+ (found: $extra)}" $?
     grep -qE '^\*\*Status:\*\* ready' "$d/out.txt"; check "AC-0008 status is ready" $?
     sed -n '/Deviations from the task body/,/^\*\*/p' "$d/out.txt" \
@@ -402,7 +427,6 @@ def print_all(
     """Render each ``(name, text)`` row with the formatter registered as ``name``."""
     return [formatters[name].render(text) for name, text in rows]
 EOF
-    cp "$d/store/printing.py" "$d/printing.py.expected"
     cat > "$d/docs/specs/labels/spec.md" <<'EOF'
 # Spec: shelf labels
 
@@ -439,17 +463,19 @@ prints `['FRESH MILK', 'A B.', ' a b ']`.
 
 **Grounding:** `docs/specs/labels/spec.md` AC-1 through AC-3.
 EOF
+    seal "$d"
     brief "$d"
     run_once "$d" out.txt || return 1
     # Read the consumer's output, not which class was defined: the protocol is
     # what is required, and any object satisfying it is a correct answer.
-    _want="['FRESH MILK', 'A B.', ' a b ']"
-    _got=$( cd "$d" && python3 -c "from store.printing import print_all; from store.report import FORMATTERS; print(print_all(FORMATTERS, [('label','  Fresh   Milk '), ('receipt','  a   b '), ('tag','  a   b ')]))" 2>/dev/null )
-    [ "$_got" = "$_want" ]
+    expect_stdout "$d" \
+        "from store.printing import print_all; from store.report import FORMATTERS; print(print_all(FORMATTERS, [('label','  Fresh   Milk '), ('receipt','  a   b '), ('tag','  a   b ')]))" \
+        "['FRESH MILK', 'A B.', ' a b ']"
     check "AC-0010 the shared consumer renders all three" $?
-    [ "$_got" = "$_want" ] || note "got: ${_got:-<error>}"
-    cmp -s "$d/store/printing.py" "$d/printing.py.expected"
+    consumer_intact "$d"
     check "AC-0011 the shared consumer was not rewritten" $?
+    extra=$(no_new_modules "$d")
+    [ -n "$extra" ] && note "new modules (expected here): $extra"
     record_rung "$d/out.txt"
 }
 
