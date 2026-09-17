@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-27
+- **Areas:** install, security, state
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0098](../rfc/0098-direct-skill-repository-installation.md) (direct-source contract and Errata); [RFC-0085](../rfc/0085-catalogue-source-identity.md) (catalogue identity); [ADR-0036](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md) (source precedence and its 2026-08-11 Erratum handing catalogue identity to RFC-0085); [ADR-0039](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) (pack/adapter identity and rollback posture)
 
 ## Decision summary
@@ -23,6 +28,60 @@ The durable limit is **admissible, not safe**: deterministic checks establish a 
 ## Decision
 
 > Direct sources classify after resolution, normalize into the canonical pack pipeline, and preserve pack-keyed lifecycle semantics with explicit direct provenance.
+
+- **D1:** A source is classified only after the resolver returns a confined
+  directory.
+- **D2:** A source is a catalogue only when both `catalogue.toml` and `packs/`
+  exist; a `catalogue.toml` without `packs/` is a partial catalogue marker and
+  refuses.
+- **D3:** Root `SKILL.md + skills/`, root `pack.toml + SKILL.md`, unsupported
+  nested roots, and other shape overlaps refuse; collection and direct-pack child
+  names must equal frontmatter names, while root-single frontmatter is
+  authoritative.
+- **D4:** `direct_source.admit_and_normalize`, or its final explicitly named
+  equivalent, is the single entry point through which both `validate` and install
+  preflight reach direct classification, enforced by an import-boundary
+  construction test; canonical `pack.toml + .apm/` paths keep their existing
+  route.
+- **D5:** Normalization copies into a temporary canonical pack only the byte
+  string returned by the single confined read of each admitted regular file,
+  never symlinks or reopened source content, and the temporary path is never
+  provenance or receipt content.
+- **D6:** Family-2 inventory is single-traversal, and
+  `catalogue_tooling/file_safety.py` raises `BoundExceeded` — an
+  `UnsafeContentError` subclass carrying the breached budget — so direct
+  admission maps a bound to its registered diagnostic without message parsing.
+- **D7:** A direct pack is one named, versioned, indivisible lifecycle, and a
+  manifestless selected skill becomes one synthetic pack whose identity is its
+  validated skill name, with the internal sentinel never rendered, compared, or
+  publisher-claimable.
+- **D8:** A same-name direct/other source collision at one adapter refuses in
+  either direction; recovery is removal or rename/re-source followed by a normal
+  install, never `--force`.
+- **D9:** State stays keyed by `(pack name, adapter)`, direct identity is
+  `(source-kind, canonical source, source-path)`, and digest and revision are
+  explicitly excluded from identity.
+- **D10:** Readers accept state schema-versions 0.4 and 0.5, and every direct
+  state mutation goes through `agentbundle.statelock.persist_state_locked` and
+  computes `max(existing, 0.5 if it adds or updates a direct row else 0.4)`
+  against the state re-read inside that lock, never a pre-lock snapshot.
+- **D11:** RFC-0098 D4 as corrected by Erratum E2 is the sole normative digest
+  algorithm owner; the digest is content-only and version-prefixed
+  `sha256-1:<hex>`, and executable mode is reported at report time but never
+  persisted.
+- **D12:** A new direct `pack.toml` must declare `schema = 1`; omission fails
+  closed, and unsupported majors fail closed.
+- **D13:** Within a supported major, existing field meanings are not removed,
+  repurposed, or newly required; supported majors are N and N−1 for one named
+  release deprecation window.
+- **D14:** Only explicit local paths and GitHub-only non-credentialed `git+https`
+  may carry direct content; `catalogue+https` and arbitrary archives are excluded
+  from direct classification and no direct credentials are sent.
+- **D15:** Direct remote intake validates and encodes archive components, refuses
+  bare or defaulted `main`, resolves an explicit ref to a full commit SHA and
+  records it, applies the shared credential-free `git+https` acquisition resource
+  caps, deadline, and E11-defined GitHub/codeload redirect equivalence, and
+  applies direct-only post-extraction link and special-entry refusal.
 
 ### 1. Classify after resolution
 
@@ -89,6 +148,13 @@ The shared resolver inherits numeric bounds by reference to RFC-0098/its impleme
 **Positive:** Existing source precedence, adapter projection, ownership, and lifecycle remain the authority; direct authors get a small, explicit contract; and direct remote provenance is commit-pinned.
 
 **Negative:** Direct support deliberately excludes recursive discovery, private auth, arbitrary archives, non-GitHub VCS, dependencies, recipes, and non-skill primitives. Normalization copies/hashes first, and direct state makes the affected installation incompatible with old readers.
+
+**Revisit if:** one of the per-decision revisit triggers above fires — a
+classification fixture needs a new precedence rule (D1–D3), the import-boundary
+test fails or parity requires a direct-only downstream branch (D4), a direct row
+cannot be represented without changing the pack/adapter key or a new digest
+version is proposed (D9–D11), the release policy cannot sustain the N/N−1 window
+(D13), or a new direct carrier or redirect host is requested (D14–D15).
 
 ## Confirmation
 

@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-26
+- **Areas:** install, state
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0052](../rfc/0052-shared-prefix-aware-multi-adapter-install.md) (the decision this records), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md) (install scope is a per-pack default + allowance — this ADR pairs with it as the *identity* half of the install model), [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md) (the sibling decision that routes cohort skills to the shared prefix this ADR introduces), [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md) (Alternative #7 — the rejected one-install-one-adapter fan-out, reversed here)
 
 ## Context
@@ -22,6 +27,31 @@ The question this ADR answers: **what is the right identity for an install, and 
 ## Decision
 
 > **The identity of an install is its footprint — the set of relpaths, each with its content SHA, that a `(pack, adapter, scope)` install writes — and "already installed" is resolved per-file by content, not by pack name. Ownership of a path is *derived* by scanning installed rows' footprints, not stored. A path is co-owned when more than one adapter row *of the same pack* claims it at identical content; it is removed only when its last owner is uninstalled. A genuine collision — same path at different content, or any cross-pack claim on one path even at equal content — is refused.**
+
+- **D1:** An install's identity is its footprint — the set of relpaths, each with
+  its content SHA, that a `(pack, adapter, scope)` install writes.
+- **D2:** "Already installed" is resolved per file by content, never by pack name.
+- **D3:** A relpath's owner set is derived by scanning installed rows' footprints
+  and is never stored.
+- **D4:** Two adapter rows co-own a path only when they belong to the same pack
+  and the content SHA matches; SHA equality across packs is not sufficient.
+- **D5:** Same path at different content, or any cross-pack claim on one path even
+  at equal content, is refused with the conflicting relpaths named.
+- **D6:** `--force` routes through the existing Tier-2 `.upstream` companion
+  writer (`safety.write_companion`); no new override surface is invented.
+- **D7:** Uninstall removes a path only when the removed row is its last owner,
+  and the last-owner decision is computed once against the persisted union of
+  rows, then acted on without re-derivation.
+- **D8:** Every per-file reader — `State.projected_paths`, `PackState.file_sha`,
+  and `safety.classify` — resolves ownership across all adapter rows, and the
+  orphan scan is keyed by pack across its adapter rows.
+- **D9:** Each prefix in an adapter's `allowed-prefixes` carries a class,
+  `private` or `shared`, and a `shared` prefix declares its reader cohort.
+- **D10:** The state schema bumps v0.3 → v0.4, re-keyed
+  `[pack.<name>.adapters.<adapter>]` so one pack can carry multiple adapter rows
+  at one scope.
+- **D11:** A v0.4 reader refuses any unrecognised `schema-version` on both read
+  and write, and a v0.4 file is structurally non-mis-parseable by a v0.3 reader.
 
 This rests on a contract addition: each prefix in an adapter's `allowed-prefixes` gains a **class** — `private` (adapter-exclusive) or `shared` (a path more than one adapter reads) — and a `shared` prefix declares its **reader cohort** (the shipped adapters that read it) so install-time disclosure can name them.
 
@@ -64,7 +94,24 @@ The reported bug is fixed independently of the routing decision in ADR-0040: cla
 - Migration is greenfield (RFC-0052 Decision 8) — existing v0.3 installs re-install rather than auto-convert. If field reports show that hurts, an auto-converter is a later, separable decision.
 - Ownership is derived today; if the O(rows × files) scan ever bites at scale, switching to a stored owner-set is a contained change behind the same gate.
 
+**Revisit if:** field reports show that greenfield migration hurts existing v0.3
+installs enough to justify an auto-converter, or the O(rows × files) derived-
+ownership scan (D3) bites at scale and a stored owner set becomes worth its
+migration cost.
+
 ## Confirmation
+
+- **Mode:** architecture fitness test via the implementing spec's construction
+  tests, plus reviewer-checked conformance. There is no separate mechanical
+  ADR-status lint, per ADR-0027.
+- **Signal:** the construction tests in
+  `docs/specs/shared-prefix-aware-multi-adapter-install/` pass — a v0.4 file
+  round-tripped through a v0.3 reader raises; installing one pack for two
+  same-pack adapter rows then uninstalling one leaves the shared skill in place
+  and uninstalling the second removes it; an orphan scan during the second cohort
+  install does not sweep the first row's shared files; and a cross-pack same-path
+  claim refuses.
+- **Owner:** eugenelim
 
 The model is enforced by the implementing spec's acceptance criteria and their construction tests in `docs/specs/shared-prefix-aware-multi-adapter-install/` — in particular: a v0.4 file round-tripped through a v0.3 reader must raise; install of one pack for two same-pack adapter rows followed by uninstall of one must leave the shared skill in place, and uninstall of the second must remove it; an orphan scan during the second cohort install must not sweep the first row's shared files; and a cross-pack same-path claim must refuse. There is no separate mechanical ADR-status lint (per ADR-0027); conformance is otherwise reviewer-checked against this ADR.
 
