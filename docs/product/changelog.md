@@ -184,7 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   escapes in 6 symlink runs before, 0 in 6 after, with no new refusals on benign
   input. Across all four writes, measured against the shipped module, the
   current state refuses an inadmissible `output_dir`, a symlinked target, and a
-  non-conforming slug — twelve runs, twelve refusals, no file written in any of
+  non-conforming slug — twelve cells, twelve refusals, no file written in any of
   them.
 - **A non-conforming slug was being silently rewritten rather than refused.**
   Given a slug carrying path-traversal segments, `creative-direction` derived a

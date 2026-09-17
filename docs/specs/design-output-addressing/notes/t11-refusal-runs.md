@@ -280,7 +280,11 @@ edit between the first and last run.
 | `design-system` | refused | refused | refused |
 | `information-architecture` | refused | refused | refused |
 
-Twelve cells, twelve refusals, no file written in any run. `creative-direction`'s
+Twelve cells, twelve refusals, no file written in any run. **Cells, not
+runs:** eleven cells rest on one run each and `creative-direction`'s slug cell on
+three, so the matrix covers fourteen runs. The cell count is the coverage claim;
+it is not a run denominator, and this file states denominators with their
+arithmetic. `creative-direction`'s
 slug cell carries its count because it is the one that changed: it refused 1 of
 3 before the fix and 3 of 3 after.
 
