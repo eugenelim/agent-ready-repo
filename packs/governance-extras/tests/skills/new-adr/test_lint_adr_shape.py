@@ -1,4 +1,4 @@
-"""Pack-local tests for the confinement helper (T1) and the ADR shape lint (T2).
+"""Pack-local tests for the confinement helper (T1) and the ADR shape lint (T2, T3).
 
 This suite is gated by name in the gate chain (T8 adds the build-check.yml
 step).  It may not read above its own pack — lint-pack-test-boundary.py
@@ -25,6 +25,16 @@ T2 cases cover lint-adr-shape.py against synthetic fixtures:
 - ADR-S010 mutation: findings attributed to both record paths (AC-0004)
 - refused + unreadable entries exit non-zero without a finding (AC-0031)
 - Signal as indented block and Revisit if as blank-line+list: no finding (AC-0008)
+
+T3 cases cover lint-adr-shape.py against hostile fixture trees built in
+tmp_path (symlinks and FIFOs cannot be committed to the repository):
+- symlinked .md, FIFO, binary file, and a conforming anchor: each lands in
+  exactly one bucket; "refused" and "unreadable" are distinct labels and the
+  conforming record is still read and checked (AC-0006)
+- hard link to a record outside the scan directory: refused and named in the
+  output; retains a behavioural owner for the helper guarantee (AC-0006, AC-0031)
+- path outside the scan root refused directly by read_confined: retains a
+  behavioural owner for the helper's containment guarantee (AC-0006, AC-0031)
 """
 from __future__ import annotations
 
@@ -835,3 +845,241 @@ def test_s009_resolves_the_d_id_owner_by_field_direction(
         "a `Superseded in part` entry citing the citing record's own D-ID is "
         f"conformant, but S009 fired: {codes}"
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# T3: hostile fixture trees — correct label attribution (AC-0006, AC-0031)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+#: Minimal standalone conforming ADR for use as an anchor in T3 hostile-directory
+#: tests.  All supersession fields are "none" so no other record is required.
+#: Must pass all fifteen check classes on its own.
+_T3_ANCHOR = """\
+# ADR-0050: conforming anchor for hostile-directory tests
+
+- **Status:** Accepted
+- **Date:** 2026-09-01
+- **Areas:** testing
+- **Reversibility:** low
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+
+## Context
+
+Anchor record for T3 hostile-fixture tests.  Proves the lint continues
+scanning past refused and unreadable entries and still checks conforming
+records.
+
+## Decision
+
+We include a standalone conforming record alongside hostile entries.
+
+- **D1:** The lint must continue past refused and unreadable entries and
+  check all conforming records it can read.
+
+## Consequences
+
+The scan continues and conforming records are checked.
+
+**Revisit if:** The lint changes its scan order or early-exit behaviour.
+
+## Confirmation
+
+- **Mode:** reviewer-checked
+- **Signal:** read count is positive in the scan summary.
+- **Owner:** test-author
+
+## Alternatives considered
+
+- **Abort on first bad entry:** Rejected; the lint must be exhaustive.
+"""
+
+
+def _parse_summary_counts(combined: str) -> dict[str, int]:
+    """Return {'read': N, 'refused': N, 'unreadable': N} from a scan summary.
+
+    The lint emits one summary line:  read: N  refused: N  unreadable: N
+    Parses every (label, count) pair found anywhere in the combined output.
+    """
+    result: dict[str, int] = {}
+    for m in re.finditer(r"(read|refused|unreadable):\s*(\d+)", combined):
+        result[m.group(1)] = int(m.group(2))
+    return result
+
+
+def test_hostile_directory_labels_refused_and_unreadable_distinctly(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A symlinked .md, a FIFO, a binary file, and a conforming anchor each land
+    in exactly one bucket; "refused" and "unreadable" are distinct labels and
+    the conforming anchor is still read and checked.
+
+    Also attempts to create a file with a non-UTF-8 filename; when that
+    succeeds (Linux only) asserts the scan completes without aborting and
+    accounts for the entry in a bucket.  macOS/APFS enforces UTF-8 filenames
+    so that sub-case is skipped silently on that platform.
+
+    Verifies AC-0006.
+    """
+    scan_dir = tmp_path / "adr"
+    scan_dir.mkdir()
+
+    # Conforming anchor — proves the scan continues past hostile entries.
+    (scan_dir / "0050-conforming.md").write_text(_T3_ANCHOR, encoding="utf-8")
+
+    # Entry 1: symlinked .md → refused (classify_entry returns "symlink").
+    sym_target = tmp_path / "target.md"
+    sym_target.write_text("target content\n", encoding="utf-8")
+    sym_path = scan_dir / "0060-symlink.md"
+    try:
+        sym_path.symlink_to(sym_target)
+    except OSError:
+        pytest.skip("symlinks unavailable on this filesystem")
+
+    # Entry 2: FIFO named like a record → refused (classify_entry returns "other").
+    fifo_path = scan_dir / "0061-fifo.md"
+    has_fifo = False
+    if hasattr(os, "mkfifo"):
+        try:
+            os.mkfifo(fifo_path)
+            has_fifo = True
+        except OSError:
+            pass  # some tmpfs variants refuse FIFOs; not a platform skip
+
+    # Entry 3: file with non-UTF-8 bytes → unreadable (UTF-8 decode raises).
+    (scan_dir / "0062-binary.md").write_bytes(b"\xff\xfe\x00\x01 non-utf-8")
+
+    # Entry 4 (optional): file with a non-UTF-8 filename.
+    # macOS/APFS enforces UTF-8 filenames; creation fails there.  On Linux
+    # this entry will be read, refused, or unreadable depending on its content
+    # (non-UTF-8 bytes → unreadable).  The key assertion is that the scan
+    # completes without aborting and the entry is accounted for in a bucket.
+    has_bad_name = False
+    try:
+        bad_name_b = os.fsencode(str(scan_dir)) + b"/0063-bad\xff.md"
+        fd = os.open(bad_name_b, os.O_CREAT | os.O_WRONLY, 0o644)
+        os.write(fd, b"\xff\xfe non-utf-8 content")  # non-UTF-8 → unreadable
+        os.close(fd)
+        has_bad_name = True
+    except (OSError, ValueError, TypeError):
+        pass  # filesystem rejected the non-UTF-8 name (macOS/APFS) — skip sub-case
+
+    code, out, err = _run(scan_dir)
+    combined = out + err
+    summary = _parse_summary_counts(combined)
+
+    # Conforming anchor is in the read bucket (proves scan continued).
+    assert summary.get("read", 0) >= 1, (
+        f"expected ≥1 read entry; summary: {combined!r}"
+    )
+
+    # Symlink lands in refused, not unreadable.
+    assert summary.get("refused", 0) >= 1, (
+        f"expected ≥1 refused entry (symlink); summary: {combined!r}"
+    )
+
+    # Binary file lands in unreadable, not refused.
+    assert summary.get("unreadable", 0) >= 1, (
+        f"expected ≥1 unreadable entry (binary); summary: {combined!r}"
+    )
+
+    # FIFO, when created, also lands in refused.
+    if has_fifo:
+        assert summary.get("refused", 0) >= 2, (
+            f"FIFO expected in refused; refused={summary.get('refused', 0)}: "
+            f"{combined!r}"
+        )
+
+    # AC-0006: "refused" and "unreadable" are distinct labels in the output.
+    assert "refused:" in combined, f"'refused:' label absent: {combined!r}"
+    assert "unreadable:" in combined, f"'unreadable:' label absent: {combined!r}"
+
+    # Bad-name entry (Linux only): scan must have completed and the entry must
+    # appear in some bucket (the total covers all candidates).
+    if has_bad_name:
+        total = sum(summary.values())
+        # At minimum: conforming + symlink + binary + bad-name = 4.
+        assert total >= 4, (
+            f"bad-name entry unaccounted; total={total}: {combined!r}"
+        )
+
+    # Non-zero exit because of bad entries (AC-0031).
+    assert code != 0, f"expected non-zero exit for hostile directory; got {code}"
+
+
+def test_hard_link_to_outside_file_is_refused_and_named(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A hard link to a record outside the scan directory is refused and named.
+
+    classify_entry returns "regular" for the hard link (it is a regular file);
+    read_confined then refuses it because st_nlink > 1.  The entry appears in
+    the refused bucket of the scan summary and its name appears in the output.
+
+    Retains a behavioural owner for the hard-link helper guarantee that lost
+    its structural gate owner when the delegation criterion was cut.
+    Contributes to AC-0006 and AC-0031.
+    """
+    scan_dir = tmp_path / "adr"
+    scan_dir.mkdir()
+
+    # Conforming anchor — proves the scan continues past the refused entry.
+    (scan_dir / "0050-conforming.md").write_text(_T3_ANCHOR, encoding="utf-8")
+
+    # The original file lives outside the scan directory.
+    original = tmp_path / "original.md"
+    original.write_bytes(b"original content\n")
+
+    # Hard link inside the scan directory: same inode, st_nlink > 1.
+    # classify_entry returns "regular" (it IS a regular file), but
+    # read_confined refuses it because st_nlink > 1.
+    hard_link = scan_dir / "0099-hardlink.md"
+    try:
+        os.link(original, hard_link)
+    except OSError:
+        pytest.skip("hard links not supported on this filesystem")
+
+    code, out, err = _run(scan_dir)
+    combined = out + err
+    summary = _parse_summary_counts(combined)
+
+    # The hard link must land in the refused bucket (not unreadable).
+    assert summary.get("refused", 0) >= 1, (
+        f"hard link expected in refused bucket; summary: {combined!r}"
+    )
+
+    # The entry's name must appear in the output (it is "named").
+    assert "0099-hardlink.md" in combined, (
+        f"hard-link entry name absent from output: {combined!r}"
+    )
+
+    # Non-zero exit (AC-0031: refused entries fail the gate).
+    assert code != 0, f"expected non-zero exit; got {code}"
+
+
+def test_path_outside_scan_root_is_refused_by_helper(
+    tmp_path: pathlib.Path,
+) -> None:
+    """read_confined refuses a path that lies outside its declared root.
+
+    This check fires before any file I/O and cannot be triggered via the
+    lint's normal scan flow (which always constructs root / entry.name).
+    A direct unit test here gives it a behavioural owner so the guarantee
+    is not unobserved.
+
+    Contributes to AC-0006 and AC-0031.
+    """
+    rp = _load_helper()
+
+    root = tmp_path / "scan-root"
+    root.mkdir()
+
+    # A regular file outside the declared root.
+    outside = tmp_path / "outside.md"
+    outside.write_bytes(b"outside content\n")
+
+    # read_confined must refuse because outside is not relative_to(root).
+    with pytest.raises(rp.EntryRefused, match="outside"):
+        rp.read_confined(root, outside)
