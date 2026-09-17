@@ -474,3 +474,330 @@ The first mutation initially reddened only the structural guard, not the
 agreement property, because no fixture had a task with no `Depends on:` line
 followed by one naming an absent ID. Adding that case is what made the property
 load-bearing.
+
+---
+
+## 5b. Where each of T1's six predeclared questions is answered
+
+T1's discovery predicate named six questions. The answers do not all live in one
+place, so this is the index rather than a restatement. Each named home states the
+surfaces it read.
+
+| # | Question | Home |
+| --- | --- | --- |
+| 1 | Which surfaces execute `check --phase implement`, and does each consume the exit code? | § 2, with the `implement` leg re-confirmed against the current tree in § 6 |
+| 2 | Which sites fire `wave-complete`, and does each run before or after GATES? | § 2 — seven sites across four files; GATES runs after the transition |
+| 3 | What does `check_phase` do with an unsupported `schema_version` for a phase other than `implement`? | `plan.md` § Discovery decisions, first entry — it fired the kill condition |
+| 4 | Which statements in the tree assert that `implement` guards `wave-complete`? | § 8.2 — five, not the three T3's `Done when` names |
+| 5 | Which surfaces enumerate the phase list? | § 8.1 |
+| 6 | What length bound does each refusal channel apply? | § 3 — `_MAX_REASON_CHARS = 4000`, `_scalar` at 120, `_diag` unbounded |
+
+---
+
+## 6. The tier-one premise, re-confirmed against the current tree (T1)
+
+§ 2 recorded the pre-PR chain as measured on 2026-09-17. The separate-phase
+design rests on one clause of it — that the hook's `implement` leg is ungated by
+engine state and runs for every `docs/specs/*/state.json` — so it is re-read
+here rather than inherited. Re-confirmed at `ddd85fc6e`, with 20 commits on this
+branch beyond `origin/main`.
+
+**The two halves, read at their current lines:**
+
+| Half | Surface | What it now says |
+| --- | --- | --- |
+| Runs for every spec directory | `tools/hooks/pre-pr.py:134` | `state_files = sorted(Path("docs/specs").glob("*/state.json"))`, then `for state in state_files:` at 139 |
+| `implement` ungated | `tools/hooks/pre-pr.py:156-160` | `for phase in ("implement", "review"):` whose only skip is `if phase == "review" and not review_phase_active: … continue` |
+
+The `review_phase_active` flag is computed at 146-155 from
+`spec_dir/engine-state.json`, and the `continue` that consumes it is guarded on
+`phase == "review"`. No branch reads engine state for `implement`. Both halves
+hold.
+
+**The rest of the chain still holds too, re-read link by link:**
+
+| Link | Surface, current line | Evidence |
+| --- | --- | --- |
+| 1 | `Makefile:96-97` | `pre-pr:` recipe is `$(PYTHON) tools/catalogue/pre_pr_catalogue.py` — still not `tools/hooks/pre-pr.py` directly |
+| 2 | `tools/catalogue/pre_pr_catalogue.py:155-159` | `[py, "tools/hooks/pre-pr.py"]` with `check=False`, then `sys.exit(result.returncode)` — exit code still consumed |
+| 3 | `tools/hooks/pre-pr.py:167-176` | non-zero from the check writes both streams and `sys.exit(1)` |
+| 4 | `tools/repo/build_gate_chain.py:242-243` | still runs `tools/catalogue/pre_pr_catalogue.py` with `args=("--skip-verify",)` |
+| 5 | packaged twin | `shasum -a256` gives `71ddbdc9c9ffc10d…` for both `tools/hooks/pre-pr.py` and `packs/core/.apm/hooks/pre-pr.py` — the same digest § 2 recorded |
+
+**Why the tree moving did not move this.** `git log -1` per file: the two
+`pre-pr.py` copies were last touched by `a509e1dbd` (2026-08-06),
+`pre_pr_catalogue.py` by `edef05cd4` (2026-08-18), `build_gate_chain.py` by
+`6354fda45` (2026-09-13). Only the `Makefile` moved on 2026-09-17
+(`f2817fb35`), and its `pre-pr:` recipe is unchanged — the `Makefile:96`
+citation in § 2 now points at the `pre-pr:` target line with the recipe on 97,
+which is line drift, not a behaviour change.
+
+**Scope of the claim.** `docs/specs/*/state.json` currently matches exactly one
+path (this spec's own), counted with `ls docs/specs/*/state.json | wc -l`. The
+premise is about the glob, not about today's count: the leg runs for however
+many spec directories carry state.
+
+---
+
+## 7. The pinning survey (T1)
+
+What each of the four named suites pins, and what T2 or T3 owes it. Each row
+names the assertion, not only the file.
+
+### 7.1 `test_loop_cohort_cli.py`
+
+**Answer to the question the plan named: neither.** This suite pins **no** verb
+set and **no** `--help` output. `grep -n -- "--help\|usage\|invalid choice\|Verb
+surface\|subparser\|choices\|__doc__"` over the file returns nothing at all. It
+reaches the CLI only by naming the verbs it exercises positionally through
+`_assert_cli`, so a new `dispatch-receipt` subparser is invisible to it.
+
+**Every `--help` assertion in the whole suite tree, found by grepping `--help`
+across `packs/core/tests`, `tests` and `tools`, is subcommand-scoped and
+substring-shaped:**
+
+| Surface | Assertion | Does a new verb touch it? |
+| --- | --- | --- |
+| `test_loop_guards.py:205-208` (`test_load_writes_no_bytecode`) | runs `run_cohort("--help")` only to force a guard-module load; asserts `returncode == 0` and that no new `_loop_guards*.pyc` appeared. Asserts nothing about help text | No |
+| `test_loop_cohort.py:907-911` (`test_schedule_help_states_canonical_plan_path`) | `schedule --help` contains `"path to plan.md (must be <spec-dir>/plan.md)"` | No |
+| `test_loop_engine.py:2949-2957` (`test_reviewers_clean_record_forms_present`) | `review record --help` contains `--direct-clean`, `--report`, `--all-skipped` | No |
+
+**What it does pin, and what T2 owes it.** `EXPECTED_STATE_KEYS` at lines 31-68
+is a 29-name set asserted for **exact** equality against the bundled template by
+`test_01_schema_phase_one_keys_match` (line 300):
+`self.assertEqual(set(template), EXPECTED_STATE_KEYS)`, followed by
+`assertFalse(PHASE_TWO_KEYS & set(template))`. T2 adds the receipts container to
+`assets/state.json`, so **T2 must add the container's key to
+`EXPECTED_STATE_KEYS`** in the same task or this test reds on the extra key. It
+is exact equality, not a subset, so there is no way to land the template change
+without touching this constant. `PHASE_TWO_KEYS` (lines 70-77) is a six-name
+forbidden set; the container key must not collide with it, and it does not.
+
+Both counts were taken by importing the test module and reading
+`len(EXPECTED_STATE_KEYS)` and `len(PHASE_TWO_KEYS)`, not by eyeballing the line
+range: a first pass recorded 29 as 33 from the range alone. The bundled template
+holds 29 keys and the assertion passes today, so the number T2 changes is 29 to
+30.
+
+**What T3 owes it.** `_scheduled()` at line 259 is the fixture 32 call sites in
+this file share (counted as the 33 lines matching `_scheduled` minus its own
+`def`). Four of its five `wave advance` invocations — lines 430, 436, 443, 450 —
+assert exit **0** for `--from-index 0` with **no** receipts written; the fifth,
+line 453, asserts exit 1 for `--from-index 1`. So T3's coupling on the advancing
+branch reds four passing cases here unless each gets a record in its fixture.
+This is the file the earlier hand-picked tally missed.
+
+**The exhaustive `wave advance` call-site count, and how it was counted.**
+`find packs/core/tests tests tools -name '*.py' -not -path '*__pycache__*'`, then
+`grep -cE '"wave",[[:space:]]*"advance"'` per file — the argv form, so prose
+mentions of the verb do not inflate it:
+
+| File | Sites |
+| --- | --- |
+| `packs/core/tests/skills/work-loop/test_loop_cohort.py` | 7 |
+| `packs/core/tests/skills/work-loop/test_loop_engine.py` | 7 |
+| `packs/core/tests/skills/work-loop/test_loop_cohort_cli.py` | 5 |
+| `packs/core/tests/skills/work-loop/test_loop_concurrency.py` | 1 |
+| **Total** | **20 across four files** |
+
+A looser pattern that also matches the prose string `wave advance` reports 25
+across the same four files, which is why the argv form is the one counted. T3's
+`Tests` field owes the per-site branch triage over these 20, not over a subset.
+
+### 7.2 `test_loop_cohort_schedule.py`
+
+**Three whole-file source scans of `loop-cohort.py`.** These read
+`LC_PATH.read_text()` and count lines, so they are file-wide, not
+function-scoped — any line T2 or T3 adds anywhere in `loop-cohort.py` carrying
+the scanned token reds them:
+
+| Assertion | Line | What it forbids |
+| --- | --- | --- |
+| `test_detect_unknown_deps_has_exactly_one_call_site` | 698 | more than one non-`def` line containing `detect_unknown_deps(`; the surviving one must pass `scan_task_ids=` by keyword |
+| `test_boundary_walk_has_exactly_one_owner` | 838 | more than one line containing `TASK_HEADING_RE.finditer`, and more than one containing `DEPENDS_LINE_RE.search`; the `finditer` must stay inside `walk_task_sections` |
+| `test_schedule_is_screen_only_no_gate_call` | 642 | the substrings `dispatch_decision` and `wave_is_disjoint` inside `inspect.getsource` of `cmd_schedule`, `wave_touches_disjoint`, or `globs_overlap`; and pins `str(inspect.signature(lc.dispatch_decision))` to `"(categories, *, merge_tree_clean)"` exactly |
+
+**What T2 owes them.** T2 edits `cmd_schedule` for container creation and stale
+pruning. That edit must not introduce the substring `dispatch_decision` or
+`wave_is_disjoint` into `cmd_schedule` — a live hazard, because the new verb is
+spelled `dispatch-receipt` and a helper named near `dispatch_*` invites the
+collision. It must also not add a second `detect_unknown_deps(`,
+`TASK_HEADING_RE.finditer`, or `DEPENDS_LINE_RE.search` line anywhere in the
+module.
+
+**What it pins about `schedule`'s own behaviour.** `_seed_state` (line 284)
+writes a **two-key** state — `{"schema_version": 1, "run_id": …}` — with no
+receipts container and no `schedule_waves`, and `_schedule` (line 293) drives
+the real CLI against it. So every `schedule` case in this file exercises T2's
+absent-container path. `test_schedule_prints_topological_order` (line 306) pins
+the stdout strings `"wave 1: T1"` and `"wave 2: T2"`;
+`test_schedule_exits_nonzero_on_cycle` (313) pins `"cycle"` on stderr.
+**T2 owes this suite that `cmd_schedule` tolerates a state with neither the
+container nor `schedule_waves` present, and that it adds no stdout line these
+substring assertions sit beside.**
+`test_init_state_has_auto_parallel_false` (667) reads `init`'s output state for
+one key only, so an added template key does not red it.
+
+### 7.3 `test_loop_guards_parity.py`
+
+**What it pins.** A 49-row replay table. Its `_rows()` list at lines 250-290
+carries ten `check` entries — `["check", SPEC, "--phase", <phase>]` — paired with
+an API lambda `g.check_phase(d, phase=<phase>)`. `test_api_and_cli_agree`
+(line 383) asserts the API `ok` and the CLI return code agree, and for a row with
+no `after` compares both normalized streams **byte-for-byte** against
+`golden["before"]` (lines 420-427).
+
+Two coverage properties close the table from both ends:
+
+- `test_the_golden_set_is_fully_consumed` (line 501) — every golden row must
+  appear in `_rows()` or in `EXEMPT_ROWS`, and `EXEMPT_ROWS` must name no
+  vanished row. So a new golden row cannot be added without a parity row.
+- `test_every_exemption_names_a_test_that_exists` (line 522) — each exemption is
+  checked by AST against a real test function.
+
+**What T2 or T3 owes it: nothing, provided no golden row is added.** The
+guard-family assertion is `test_the_table_covers_every_guard` (line 440), and it
+derives the family from `key.split("/")[0]` — the **verb** prefix of the golden
+key — against the fixed set `{identity, schedule-check-current,
+plan-check-current, check, wave-check, check-spec-status}`, requiring both
+outcomes per family. A `wave-exit` phase lands under the existing `check`
+family, adds no family, and owes no row. What T3 does owe is that the ten
+existing `check` rows keep replaying identically — two of them
+(`check/implement-ok`, `check/implement-absent-state`) have no `after` and are
+therefore byte-pinned on both streams.
+
+### 7.4 `test_golden_fixtures.py`
+
+**What it pins.** The fixture's own shape and its live-code digest, not the CLI:
+
+| Assertion | Line | What it pins |
+| --- | --- | --- |
+| `test_after_present_iff_change_reason_declared` | 218 | `after` and `change_reason` appear together, and the reason is in the closed `CHANGE_REASONS` set |
+| `test_changed_rows_flip_a_verdict` | 249 | a row with an `after` must flip the pass/fail verdict |
+| `test_preserved_rows_have_one_line_no_traceback_stderr` | 262 | no `Traceback`; a non-zero row's stderr is non-empty and exactly one line |
+| `test_all_six_read_only_verbs_are_covered` | 287 | per-verb row-count floors — `check/` at least **6** — and both outcomes per verb |
+| `test_the_unprefixed_refusal_is_recorded` | 309 | `plan-check-current/pending`'s stderr byte-exactly |
+| `test_recomputed_digests_match_golden` | 342 | every corpus digest re-derived from the **current** `loop-cohort.py` still equals the frozen golden |
+
+**What T2 or T3 owes it: nothing, and deliberately.** The `check/` floor is a
+minimum (`>= 6`) and there are ten rows, so no row need be added. The digest
+assertion is the one that can red from a code change, and only if
+`canonical_contract` or `sha256_canonical_contract` changes — neither task
+touches them. Its failure message says outright: *"Do NOT regenerate the fixture
+to make this pass."*
+
+---
+
+## 8. The phase-list surfaces, and the statements that couple `implement` to `wave-complete` (T1)
+
+### 8.1 Every surface that enumerates the phase list
+
+Found by grepping `PHASES` and the literal phase names across `*.py`, `*.md`,
+`*.json`, `*.toml`, `*.yml`, excluding `__pycache__`, `build/` and `dist/`.
+
+| Surface | Form | What T3 owes it |
+| --- | --- | --- |
+| `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py:72` | `PHASES = ("implement", "review", "gates-failed")` — the sole declaration | add `wave-exit` here |
+| `loop-cohort.py:2560` | `sp.add_argument("--phase", required=True, choices=PHASES)` — derived, holds no second list | nothing; it follows `PHASES` |
+| `loop-cohort.py:16` | usage docstring `--phase {implement,review,gates-failed}` — a hand-maintained **second** enumeration | update it; nothing pins it, so it drifts silently |
+| `_loop_guards.py:1220, 1224, 1241` | `check_phase`'s three `if phase == …` branches, an enumeration by exhaustion | add the `wave-exit` branch |
+| `_loop_guards.py:1262` | the fall-through `GuardResult(ok=False, reason=f"unknown phase {_scalar(phase)}")` | nothing, but see below |
+| `.claude/` and `.agents/` projections of the two scripts | byte copies | regenerated by `build-self`, never hand-edited |
+
+**Nothing pins `loop-cohort.py`'s `PHASES`.** The only pinned `PHASES` in the
+tree is an unrelated same-named dict in `packs/core/.apm/skills/new-spec/scripts/
+explore-grounding.py`, pinned by `test_explore_grounding.py:314-318`. No test
+reads `loop-cohort`'s tuple, asserts its length, or asserts an
+`invalid choice` message for it. Verified by grepping `PHASES` tree-wide and by
+grepping every `"--phase"` argv literal in `packs/core/tests`, `tests` and
+`tools` — every one names `implement`, `review`, or `gates-failed`.
+
+**Two facts that bound the risk of adding a member.**
+
+- **Adding to `PHASES` cannot widen `record-attempt`.** That verb's `--phase` is
+  a separate argument with its own literal at `loop-cohort.py:2615`:
+  `choices=["implement"]`. Only line 2560 reads `PHASES`.
+- **A member added without a branch refuses by name rather than crashing.**
+  `check_phase` ends with the `unknown phase` fall-through at `_loop_guards.py:1262`,
+  so the two halves of T3's change are independently safe to land in either order.
+
+**The schema-exemption line T3 widens** is `_loop_guards.py:1210`:
+`if phase != "implement" and state.get("schema_version") != SCHEMA_VERSION:`,
+which sits **before** every phase branch. This is the line the kill condition
+fired on, and § Discovery decisions in `plan.md` owns the decision.
+
+### 8.2 Statements asserting that `check --phase implement` guards `wave-complete`
+
+T3's `Done when` says three exist today. Read exhaustively, **five** do — four
+prose statements and the code statement itself. The two the plan does not name
+are the engine table entry and a `test_loop_engine.py` docstring. Recorded here
+so T3 does not discover them.
+
+| # | Surface | The statement | Kind |
+| --- | --- | --- | --- |
+| 1 | `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py:1194` (`check_phase` docstring) | "Returning `ok` unconditionally for `implement` would drop a live refusal that the `wave-complete` guard depends on." | prose |
+| 2 | `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py:1558` (`cmd_check` docstring) | "…and the engine's `wave-complete` guard depends on that." | prose |
+| 3 | `packs/core/tests/skills/work-loop/test_loop_guards.py:2037` (`test_check_phase_reads_state_even_for_implement` docstring) | "The engine's `wave-complete` guard is this check, so returning ok unconditionally would drop a live refusal." | prose |
+| 4 | `packs/core/tests/skills/work-loop/test_loop_engine.py:1613` (`test_legal_wave_complete_to_code_verification` docstring) | "Requires: schedule check-current (pre-guard) + check --phase implement (guard)." | prose |
+| 5 | `packs/core/.apm/skills/work-loop/scripts/loop-engine.py:1012` | `("code", "wave-complete"): _guard_check_phase_implement,` | code |
+
+Both files holding #4 and #3 are already in T3's `Touches`, so no new file is
+implicated. #1, #2 and #5 each have two projected copies under `.claude/` and
+`.agents/` that `build-self` regenerates.
+
+**`_guard_check_phase_implement` is defined at `loop-engine.py:867` and #5 is its
+only reference** — confirmed by `grep -n "_guard_check_phase_implement"` over
+`loop-engine.py`, which returns exactly those two lines. So retargeting the table
+leaves it with no caller, which is why T3's `Done when` requires it removed or
+given one.
+
+**Scope boundary T3 should not try to close.** `docs/specs/loop-infrastructure-phase-1/
+plan.md` states the same coupling at lines 627, 653, 823, 1084, 1115 and 1356,
+and `docs/specs/work-loop-in-process-guards/spec.md:777` and `plan.md:696` describe
+the `implement` stub. Those are Shipped-and-frozen contracts recording what shipped
+then; this plan's Constraints require the first to stay unedited. "No statement in
+the tree" is therefore satisfiable only over live surfaces, which is the five above.
+`tests/roster/test_core_pre_pr_hook.py:190` says "check --phase implement is a
+Phase-1 stub; review cap is the active gate", which stays true after this change
+and is not a coupling statement.
+
+---
+
+## 9. The golden confirmation (T1)
+
+**No golden row replays `check` with a fourth phase.** Counted by loading
+`packs/core/tests/skills/work-loop/fixtures/golden_cli_streams.json` and reading
+`argv` structurally rather than grepping: 49 rows, of which **10** have
+`argv[0] == "check"`, and **every** row carrying `--phase` is one of those ten.
+The phases present are exactly `{implement, review, gates-failed}`.
+
+| Golden key | Phase | Has `after`? |
+| --- | --- | --- |
+| `check/implement-ok` | `implement` | no — byte-pinned on both streams |
+| `check/implement-absent-state` | `implement` | no — byte-pinned on both streams |
+| `check/review-under-cap` | `review` | no |
+| `check/review-at-cap` | `review` | no |
+| `check/gates-failed-under-cap` | `gates-failed` | no |
+| `check/gates-failed-at-cap` | `gates-failed` | no |
+| `check/unsupported-schema-non-implement` | `review` | no |
+| `check/review-string-typed-count` | `review` | yes |
+| `check/review-float-typed-count` | `review` | yes |
+| `check/review-negative-count` | `review` | yes |
+
+No row lacks `--phase`, and no non-`check` row carries one. So the frozen
+fixture makes no statement about a `wave-exit` phase, and the two `implement`
+rows are the ones T3 must leave byte-identical.
+
+**The guard-family assertion keys on the verb, not the phase.**
+`test_the_table_covers_every_guard` at `test_loop_guards_parity.py:440-461`
+computes `family = key.split("/")[0]` and asserts
+`set(seen) == {identity, schedule-check-current, plan-check-current, check,
+wave-check, check-spec-status}` with both outcomes per family. The six names are
+verb names; `check/gates-failed-at-cap` and `check/implement-ok` both reduce to
+`check`. A new phase under the existing `check` verb therefore adds no family and
+owes no golden row — which is what keeps the never-regenerated fixture
+untouched.
+
+**`wave advance` has no golden row either.** No row's `argv[0]` is `wave` with
+`advance`, and the parity table's six families are all read-only verbs, so T3's
+coupling on the advancing branch is unconstrained by the fixture.
