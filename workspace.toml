@@ -1168,6 +1168,66 @@ open = [
   # that change's accepted scope, and the extraction shape is not determined.
   # Unblocks now; no dependency.
   { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
+  # The 22-of-67 convention-obligation cost measured by the review-economics
+  # spike has no owner. Of 67 findings sustained across its six paired cases, 22
+  # were unmet repository obligations rather than defects in the logic the change
+  # set out to alter, split 11 baseline / 11 candidate: projection drift (8,
+  # affecting five of six cases), a register or backlog record left contradicting
+  # the tree (7), an unpaired version bump and changelog entry (3), an unrecorded
+  # sealed-plan or frozen-spec deviation (2), the eval-harness obligation (1),
+  # and a control that cannot fail (1). The even split is what makes it
+  # actionable: the cost is symmetric across both review policies, so no change
+  # to review scheduling removes it -- the implementer not knowing the rule
+  # produces it, and both arms then pay the same repair cost. The strongest form
+  # is that the repairs themselves breached the same rules: C3's baseline repair
+  # introduced projection drift while fixing projection drift.
+  #
+  # Two candidate remedies, and they are NOT equally available right now.
+  # (a) Inline the touched-path obligations into the implementer brief, the way
+  # the orchestrator already inlines security-checklists for security-reviewer
+  # and operational-safety for quality-engineer. The spike names this as a
+  # sibling intent under work-loop-delivery-efficiency. Do not open it yet: that
+  # parent records an owner priority decision of 2026-09-10 ranking the
+  # deterministic repair provability audit ahead of any further review-policy or
+  # repair-packet reshaping, after all three of its children were killed on
+  # safety clauses. Read that audit's own Status line in
+  # docs/product/research/repair-provability-audit-design.md before acting on
+  # this ranking -- it is not restated here, because a copy reads as current
+  # once the audit moves and nothing re-checks it.
+  # (b) Deterministic pre-review checks -- the other half of the spike's own
+  # next-step column. Whether the ranking covers (b) is NOT settled by the
+  # decision: it names "review-policy or repair-packet reshaping" and draws no
+  # carve-out, and a check that suppresses findings before dispatch is arguably
+  # review-policy reshaping. The reading that (b) sits outside it, because it
+  # changes neither review scope nor repair inputs, is this entry's author's,
+  # not the owner's -- which is part of what the owner is being asked to
+  # decide. Every class listed above is mechanically checkable and nothing
+  # gates a change on them before a reviewer is dispatched.
+  #
+  # Measured 2026-09-17 while landing core 2.26.12, as one worked example of
+  # (b). A twenty-line check comparing every docs/knowledge topic's recorded
+  # source digest against the file's live bytes reports 35 of 69 pinned
+  # sources stale and one pointing at docs/CONVENTIONS.md, deleted by #1345.
+  # The knowledge store validates a digest's shape rather than its currency,
+  # so its 212-case suite is green over all of them, and an enquiry returns
+  # those topics as fresh. That is the register-contradicting-the-tree class,
+  # it is mechanically checkable, and nothing runs the check -- which is the
+  # whole shape of (b). This session hit the same defect twice from the
+  # inside: a topic promoted in one commit was made false by the next, and
+  # the retirement that repaired it recorded digests taken before three
+  # further repairs landed. Not repaired here: 35 stale pins across 24 topics
+  # is its own change, and deciding whether the fix is a gate, a refresh, or
+  # a weaker freshness contract belongs with (b).
+  #
+  # Next step: run (b) on its own, or hold both until the provability audit
+  # reports and then choose between them. Deciding this needs the owner, because
+  # (a) is ranked and (b) is not. Evidence:
+  # docs/product/research/work-loop-review-economics-spike.md (the class table
+  # and the 11/11 split), docs/product/intents/work-loop-delivery-efficiency.md
+  # (the priority decision and the three killed children), and the distilled
+  # topic deterministic-repository-obligations-are-not-review-work.
+  #
+  { slug = "convention-obligation-cost-has-no-owner", source = "knowledge-distill/2026-09-17", summary = "22 of 67 sustained findings in the review-economics spike were unmet repository obligations, split 11/11 across both review arms, and no intent owns that cost; the implementer-brief remedy is ranked behind the repair provability audit while the deterministic pre-review-check half is unranked, and choosing between them needs the owner" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
