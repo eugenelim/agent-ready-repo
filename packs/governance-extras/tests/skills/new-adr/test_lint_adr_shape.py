@@ -1403,3 +1403,83 @@ def test_s010_reverse_only_partial_entry_names_both_records(tmp_path):
     assert code == 1, combined
     assert "ADR-S010" in _extract_codes(combined)
     assert "0001-a.md" in combined and "0002-b.md" in combined, combined
+
+
+def _minimal(extra: str = "") -> str:
+    return (
+        "# ADR-0001: T\n\n"
+        "- **Status:** Accepted\n"
+        "- **Date:** 2026-09-17\n"
+        "- **Areas:** governance\n"
+        "- **Reversibility:** high\n"
+        "- **Decision-makers:** someone\n"
+        "- **Supersedes:** none\n"
+        "- **Supersedes in part:** none\n"
+        "- **Superseded by:** none\n"
+        "- **Superseded in part:** none\n\n"
+        "## Decision\n\n- **D1:** a\n\n"
+        "## Consequences\n\n- **Revisit if:** something changes\n"
+        + extra
+    )
+
+
+def test_s015_sees_a_correction_section_under_an_unobserved_spelling(tmp_path):
+    """A correction heading the matcher cannot see evades the class entirely.
+
+    ADR-S015's subject is "a correction section", not "a recognised spelling".
+    `## Corrections` appears in neither RFC-0102 § 5's observed set nor the
+    corpus, and previously produced no finding at all.
+    """
+    d = _write_dir(tmp_path, {"0001-a.md": _minimal(
+        "\n## Corrections\n\n- 2026-09-17 — a clarification\n")})
+    code, out, err = _run(d)
+    assert "ADR-S015" in _extract_codes(out + err), out + err
+    assert code == 1
+
+
+def test_s015_ignores_a_content_section_that_merely_starts_with_corrected(
+        tmp_path):
+    """The discriminating negative, taken from a real record.
+
+    `docs/adr/0105-*.md` carries `## Corrected transition table` — a content
+    section holding a corrected table, not a correction log. A stem matcher
+    that accepted trailing words flagged it, reddening the real corpus.
+    """
+    d = _write_dir(tmp_path, {"0001-a.md": _minimal(
+        "\n## Corrected transition table\n\n| a | b |\n| --- | --- |\n")})
+    code, out, err = _run(d)
+    assert "ADR-S015" not in _extract_codes(out + err), out + err
+
+
+def test_s012_fires_when_the_consequences_section_is_renamed(tmp_path):
+    """S012 is unconditional; S013 is the one scoped to a present section.
+
+    The spec's class table says "a PRESENT `## Confirmation`" for S013 and
+    leaves S012's subject unqualified, so renaming the section away must not
+    retire the Revisit-if requirement with it.
+    """
+    body = _minimal().replace("## Consequences", "## Outcome")
+    d = _write_dir(tmp_path, {"0001-a.md": body})
+    code, out, err = _run(d)
+    assert "ADR-S012" in _extract_codes(out + err), out + err
+    assert code == 1
+
+
+def test_an_oversized_d_id_is_reported_and_the_record_still_counted(tmp_path):
+    """AC-0005 makes the three buckets exhaustive "including a classification
+    that raised". An unbounded `int()` on a record-controlled digit run raised
+    ValueError above Python's conversion limit, aborting the scan with the
+    record in no bucket and no summary printed.
+
+    Every D-ID here is oversized, so `d_ids` ends up empty — the case that
+    would slip past a check placed inside the `if rec.d_ids:` block.
+    """
+    body = _minimal().replace("- **D1:** a", f"- **D{'9' * 5000}:** a")
+    d = _write_dir(tmp_path, {"0001-a.md": body})
+    code, out, err = _run(d)
+    combined = out + err
+    assert "Traceback" not in combined, combined
+    assert "ADR-S011" in _extract_codes(combined), combined
+    counts = _parse_summary_counts(combined)
+    assert counts["read"] == 1, counts
+    assert code == 1
