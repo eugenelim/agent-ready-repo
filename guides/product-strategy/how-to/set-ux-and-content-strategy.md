@@ -60,8 +60,8 @@ Run this alongside UX strategy when content is a first-class part of the product
 **Process**, **Structure**, **Governance** — and commits `content-strategy.md` to
 `docs/product/shaping/`. It is informed by the content-strategy quad but matches
 neither published version of it — Halvorson and Rach's 2012 quad and Brain
-Traffic's 2018 revision each name different parts, and the skill says so where it
-cites them. The four parts are the whole point: it forces you to decide not
+Traffic's 2018 revision each name different parts — see the pack README for the
+comparison. The four parts are the whole point: it forces you to decide not
 only what content is *for* (Purpose) but how it gets *made* (Process), how it's
 *organized* (Structure), and how it stays true over time (Governance). A content
 strategy that only covers Purpose is a mission statement; the value is in the

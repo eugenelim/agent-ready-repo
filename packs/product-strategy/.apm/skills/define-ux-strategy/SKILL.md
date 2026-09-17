@@ -5,7 +5,7 @@ description: Use when a strategist needs to set the experience direction before 
 
 # Skill: define-ux-strategy
 
-Produces a **UX strategy** — a three-layer document (Vision, Goals + Measures, Plan) that bridges business strategy and experience design. Three sources, one job each. NN/g's UX strategy model gives the three layers and their names: vision (or statements of intent), goals and measures, and plan. Jaime Levy's four tenets give the step-2 quality check: business strategy + value innovation + validated user research + frictionless UX, as the 2021 second edition of *UX Strategy* names them — the 2015 first edition called that fourth tenet killer UX design. Gothelf/Seiden's OKR work sets what a measure must be: a key result that tracks behaviour, not features shipped. Sits upstream of the experience-design pack's `journey-mapping`. See `references/agentbundle-layout.md` for artifact path.
+Produces a **UX strategy** — a three-layer document (Vision, Goals + Measures, Plan) that bridges business strategy and experience design. Three sources, one job each. NN/g's UX strategy model gives the three layers and their names: vision (or statements of intent), goals and measures, and plan. Jaime Levy's four tenets give the step-2 quality check: business strategy + value innovation + validated user research + frictionless UX. Gothelf/Seiden's OKR work sets what a measure must be: a key result that tracks behaviour, not features shipped. Sits upstream of the experience-design pack's `journey-mapping`. See `references/agentbundle-layout.md` for artifact path. Sources: see the pack README.
 
 ## Output rendering
 

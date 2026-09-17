@@ -135,6 +135,18 @@ agentbundle install --pack product-strategy --scope user
 
 ---
 
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
+
+- **`define-ux-strategy`** — Jaime Levy's fourth tenet is named **frictionless UX** in the 2021 second edition of *UX Strategy*, and **killer UX design** in the 2015 first edition. This pack follows the 2021 second edition. See [UX Strategy, 2nd edition, ch. 2](https://www.oreilly.com/library/view/ux-strategy-2nd/9781492052425/ch02.xhtml).
+- **`define-content-strategy`** — the skill's Purpose + Process + Structure + Governance is this pack's own composite. It matches neither published content-strategy quad: Kristina Halvorson and Melissa Rach's 2012 quad is Substance / Structure / Workflow / Governance, and Brain Traffic's 2018 revision is Editorial Strategy / Experience Design / Content Structure / Process Design. See [Brain Traffic's new content strategy quad](https://www.braintraffic.com/blog/new-thinking-brain-traffics-content-strategy-quad).
+- **`write-prfaq`** — the PRFAQ (press release + FAQ) format is Amazon's internal product-development practice, documented in Colin Bryar and Bill Carr's *Working Backwards* (2021). See [Amazon's Working Backwards PR-FAQ](https://workingbackwards.com/resources/working-backwards-pr-faq/).
+
+The remaining six skills (`run-swot`, `run-pestle-analysis`, `run-porters-five-forces`, `run-bcg-matrix`, `run-okr-cascade`, `synthesize-stakeholder-research`) name their framework directly in the procedure — the name itself is the instruction, not a separable citation.
+
+---
+
 ## Cross-pack handoffs
 
 **→ `product-engineering`:** `run-okr-cascade` writes `{type = "strategy"}` gap entries to `workspace.toml`. The PE pack's `frame-situation` reads them from the shaping queue.
