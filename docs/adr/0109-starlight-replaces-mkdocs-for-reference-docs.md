@@ -1,11 +1,16 @@
 # ADR-0109: Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline
 
-- **Status:** Accepted — **partially amended:** the **shared palette and design-token sub-decision** (docs-site consuming `web/`'s design tokens) is **superseded by [ADR-0085](0085-docs-rendering-is-site-local.md)** (docs rendering is site-local; the docs palette is self-contained, 2026-08-17); every other decision in this ADR — Starlight replacing MkDocs, the Astro+Node.js-only pipeline, the docs mount point, and the build order — stands.
+- **Status:** Accepted
 - **Date:** 2026-07-25
-- **Renumbered:** issued as ADR-0055 and moved to ADR-0109 on 2026-09-12. Two records had been accepted under 0055 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its decision text is unaltered.
+- **Areas:** documentation, experience
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** [ADR-0050](0050-astro-marketing-site-toolchain-and-deploy.md)
+- **Supersedes:** ADR-0050
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0085
 - **Related:** [RFC-0061](../rfc/0061-web-top-level-directory.md), [`docs/specs/starlight-migration/`](../specs/starlight-migration/spec.md)
+- **Renumbered:** issued as ADR-0055 and moved to ADR-0109 on 2026-09-12. Two records had been accepted under 0055 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its decision text is unaltered.
 
 ## Decision summary
 
@@ -21,9 +26,21 @@ ADR-0050 adopted Astro for the marketing site and retained MkDocs for `/docs/`. 
 
 Starlight 0.41 — compatible with Astro 7.x already in use — removes the tradeoff: both surfaces are now one toolchain. The MkDocs Python stack (`site/requirements.txt`, `site/mkdocs.yml`, `site/overrides/`) is deleted.
 
+## Decision
+
+- **D1:** The reference documentation site is built with Astro + Starlight in a new top-level `docs-site/` directory, replacing MkDocs Material.
+- **D2:** The Python MkDocs toolchain (`site/`) is removed entirely, so the pipeline requires Node.js only.
+- **D3:** Both the marketing site (`web/`) and the docs site (`docs-site/`) run on the same Node.js / Astro toolchain, one `npm ci` per project.
+- **D4:** `docs-site/` writes its output into `build/docs/`, and `web/` builds first because its build cleans `build/` on every run.
+- **D5:** The docs site is a separate Astro instance with `base` scoping rather than a Starlight integration inside `web/`.
+
 ## Build ordering
 
 Build order remains load-bearing: `web/` build runs first (it cleans `build/` on every run), then `docs-site/` writes into `build/docs/`. See `.github/workflows/pages.yml`.
+
+## Consequences
+
+**Revisit if:** Starlight and Astro diverge on peer-dependency requirements, forcing separate Node.js versions for the two projects (D3), or the `docs-site/` top-level directory does not get the follow-up RFC mirroring RFC-0061 that it depends on (`backlog:starlight-migration-rfc`, D1).
 
 ## Option considered and rejected
 
