@@ -435,8 +435,9 @@ entry before committing.
   remedy: splitting the two gating criteria, which this plan had overridden with a
   route-to-owner that silently dropped the execution obligation.
 - 2026-09-16: Contract amendment, owner-authorised. T1's probe found AC-0005
-  enumerated two coverage shapes where three exist: five `run-test-suite` targets
-  are gated only by a script invoked at a command position, so the criterion as
+  had corroboration recognise two coverage shapes where it needed to recognise a
+  third: five `run-test-suite` targets are gated only by a script invoked at a
+  command position, so the criterion as
   approved rejected five correct `PR_GATED` entries and made AC-0013
   unsatisfiable. The criterion now names the three shapes corroboration
   recognises, stated as recognised rather than exhaustive: reviewing the amendment
