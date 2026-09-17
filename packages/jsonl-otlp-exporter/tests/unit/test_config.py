@@ -1,10 +1,12 @@
-"""T2 — configuration resolution and the off-by-default proof.
+"""T2 — configuration resolution: endpoint precedence and file acquisition.
 
-Covers AC-0001, AC-0002, AC-0003, AC-0004, AC-0033, AC-0056, AC-0060, AC-0062.
+Covers AC-0002, AC-0003, AC-0004, AC-0056, AC-0062.
 
-Every case here runs with no network. The `_ExplodingTransport` seam is the
-off-by-default proof: it raises if it is ever constructed, so "nothing was sent"
-is asserted by construction rather than by trusting that no socket appeared.
+Every case here runs with no network. AC-0001's off-by-default proof is not
+here: it lives on the path that actually ships, as
+`test_the_unconfigured_cli_path_constructs_no_connection` in `test_cli.py`,
+because a construction proof about a helper the CLI never calls passed while a
+build opened a socket before the unconfigured return.
 """
 
 from __future__ import annotations
@@ -16,20 +18,13 @@ import pytest
 from jsonl_otlp_exporter import config as cfg
 
 
-class _ExplodingTransport:
-    """Constructing this is the failure. AC-0001 has no other observable here."""
-
-    def __init__(self, *args, **kwargs):  # pragma: no cover - must never run
-        raise AssertionError("a transport was constructed with no endpoint configured")
-
-
 def _write(path, text: str):
     path.write_text(text, encoding="utf-8")
     return path
 
 
 class TestEndpointPrecedence:
-    """AC-0002 — first present of LOGS_ENDPOINT, ENDPOINT, then the config file."""
+    """AC-0002 — first present of LOGS_ENDPOINT, ENDPOINT, then the config files."""
 
     def test_logs_endpoint_wins_over_both_others(self, tmp_path):
         config = _write(tmp_path / "c.toml", '[telemetry]\nendpoint = "https://file:4318"\n')
@@ -38,20 +33,20 @@ class TestEndpointPrecedence:
                 "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://logs:4318/v1/logs",
                 "OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318",
             },
-            config_path=config,
+            cfg.resolve_telemetry(config),
         )
         assert resolved == "https://logs:4318/v1/logs"
 
     def test_base_endpoint_wins_over_the_config_file(self, tmp_path):
         config = _write(tmp_path / "c.toml", '[telemetry]\nendpoint = "https://file:4318"\n')
         resolved = cfg.resolve_endpoint(
-            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318"}, config_path=config
+            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318"}, cfg.resolve_telemetry(config)
         )
         assert resolved == "https://base:4318/v1/logs"
 
     def test_config_file_is_used_when_no_variable_is_present(self, tmp_path):
         config = _write(tmp_path / "c.toml", '[telemetry]\nendpoint = "https://file:4318"\n')
-        assert cfg.resolve_endpoint({}, config_path=config) == "https://file:4318/v1/logs"
+        assert cfg.resolve_endpoint({}, cfg.resolve_telemetry(config)) == "https://file:4318/v1/logs"
 
     def test_an_empty_variable_is_not_present(self, tmp_path):
         """An exported-but-empty variable must not shadow the next source.
@@ -63,7 +58,7 @@ class TestEndpointPrecedence:
         config = _write(tmp_path / "c.toml", '[telemetry]\nendpoint = "https://file:4318"\n')
         resolved = cfg.resolve_endpoint(
             {"OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "", "OTEL_EXPORTER_OTLP_ENDPOINT": ""},
-            config_path=config,
+            cfg.resolve_telemetry(config),
         )
         assert resolved == "https://file:4318/v1/logs"
 
@@ -76,42 +71,28 @@ class TestEndpointTransformation:
         # unconditionally, and one that appends only when absent, both fail here.
         resolved = cfg.resolve_endpoint(
             {"OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://logs:4318/custom/path"},
-            config_path=None,
+            None,
         )
         assert resolved == "https://logs:4318/custom/path"
 
     def test_base_endpoint_gains_the_signal_path(self):
         resolved = cfg.resolve_endpoint(
-            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318"}, config_path=None
+            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318"}, None
         )
         assert resolved == "https://base:4318/v1/logs"
 
     def test_a_trailing_slash_does_not_double(self):
         resolved = cfg.resolve_endpoint(
-            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318/"}, config_path=None
+            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318/"}, None
         )
         assert resolved == "https://base:4318/v1/logs"
 
 
 class TestOffByDefault:
-    """AC-0001, AC-0033, AC-0060 — nothing configured means nothing happens, loudly enough."""
+    """AC-0002 — with no source present, no endpoint resolves at all."""
 
     def test_no_source_resolves_to_nothing(self):
-        assert cfg.resolve_endpoint({}, config_path=None) is None
-
-    def test_unconfigured_run_constructs_no_transport_and_reports_zero(self, capsys):
-        status = cfg.run_unconfigured_check(
-            {}, config_path=None, transport_factory=_ExplodingTransport
-        )
-        assert status == 0
-        assert "no endpoint is configured" in capsys.readouterr().err
-
-    def test_the_note_goes_to_stderr_not_stdout(self, capsys):
-        """stdout is reserved for a machine consumer; a note there would corrupt it."""
-        cfg.run_unconfigured_check({}, config_path=None, transport_factory=_ExplodingTransport)
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err.strip() != ""
+        assert cfg.resolve_endpoint({}, None) is None
 
 
 class TestConfigFileAcquisition:
@@ -177,20 +158,6 @@ class TestConfigFileAcquisition:
         config = _write(tmp_path / "bad.toml", "[telemetry\nendpoint =\n")
         with pytest.raises(cfg.ConfigRefused):
             cfg.read_config_file(config)
-
-
-class TestTransportSeamIsReal:
-    """The exploding-factory assertion only means something if some branch reaches it."""
-
-    def test_a_resolved_endpoint_does_construct_the_transport(self):
-        built = []
-        status = cfg.run_unconfigured_check(
-            {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://base:4318"},
-            config_path=None,
-            transport_factory=lambda endpoint: built.append(endpoint),
-        )
-        assert status is None, "a configured run is not this function's case"
-        assert built == ["https://base:4318/v1/logs"]
 
 
 class TestShortRead:

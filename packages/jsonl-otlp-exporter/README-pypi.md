@@ -21,12 +21,27 @@ OpenTelemetry Collector as **OTLP logs** over HTTP, encoded as JSON.
 
 **The tool sends nothing until an endpoint is configured.** With no endpoint set,
 it writes one line to stderr saying so and exits 0. Configuring an endpoint is a
-deliberate act, through one of three sources, in this order:
+deliberate act, through one of four sources, in this order:
 
 1. `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` — used exactly as given.
 2. `OTEL_EXPORTER_OTLP_ENDPOINT` — `/v1/logs` is appended.
 3. `[telemetry].endpoint` in the TOML file you pass to `--config` — `/v1/logs`
    is appended.
+4. `[telemetry].endpoint` in the TOML file you pass to `--user-config` —
+   `/v1/logs` is appended.
+
+**Two configuration files, merged per setting.** `--config` and `--user-config`
+both declare a `[telemetry]` table, and each setting is resolved on its own:
+`--config` wins for every setting it declares, and only a setting it omits falls
+through to `--user-config`. So a configuration split across the two files — a
+shared endpoint in one, a local `service_name` in the other — reaches the
+command whole, which selecting one file could not do.
+
+`[telemetry]` admits exactly `endpoint` and `service_name`. Any other key is
+refused, naming the file it came from, rather than ignored: these values decide
+where your data goes, and a silently dropped one fails open. Both files are read
+on every run, so a key you cannot deliver is reported even when an environment
+variable is supplying the endpoint.
 
 **What goes in the payload is decided by your profile, not by this tool.** A
 field reaches the Collector only if the profile's `allowlist` names it, or if the
@@ -56,8 +71,9 @@ does not resolve.
 | `--input PATH` | the JSONL file to read (required) |
 | `--profile PATH` | the TOML profile (required; there is no default) |
 | `--root DIR` | the directory `--input` and `--profile` must resolve inside; defaults to the working directory |
-| `--config PATH` | TOML file declaring `[telemetry].endpoint` |
-| `--service-name NAME` | `service.name` on the emitted records; defaults to the `--profile` filename stem |
+| `--config PATH` | TOML file declaring `[telemetry]`; wins per setting |
+| `--user-config PATH` | second TOML file declaring `[telemetry]`; supplies each setting `--config` omits |
+| `--service-name NAME` | `service.name` on the emitted records; falls back to `[telemetry].service_name` from either file, then the `--profile` filename stem |
 | `--follow` | keep reading lines appended after start |
 | `--for SECONDS` | end the run this many seconds after the first read |
 | `--best-effort` | exit 0 even when sending fails |
@@ -131,7 +147,7 @@ allocate or wait without bound.
 | `Retry-After` honoured up to | 30 seconds |
 | Single request | 30 seconds |
 | Whole run | 120 seconds |
-| `--config` and `--profile` file size | 64 KiB each |
+| `--config`, `--user-config` and `--profile` file size | 64 KiB each |
 
 Records are processed as a stream: no run holds more than one batch in memory,
 whatever the size of the input file.

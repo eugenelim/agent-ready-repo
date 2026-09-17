@@ -384,6 +384,37 @@ from `docs/profiles.md` alone.
 **Done when:** the tagged workflow publishes and a fresh `uv tool install`
 produces a working command.
 
+### T9: A second configuration scope, and a closed `[telemetry]` key set
+
+**Depends on:** T2, T6
+
+**Touches:** `jsonl_otlp_exporter/config.py`, `jsonl_otlp_exporter/cli.py`,
+`tests/`, `README-pypi.md`, `CHANGELOG.md`, `pyproject.toml`
+
+**Tests:**
+- `no stub (implementation-discovered)` — the resolution seam is `config.py`'s
+  existing endpoint path, and which function carries the merge is decided by the
+  implementation rather than named here.
+- Verifies AC-0074, AC-0075 and AC-0076. The spec's Testing Strategy owns how
+  each is asserted, and why AC-0076 needs a case per endpoint source rather than
+  one representative; it is not repeated here.
+- AC-0002, AC-0007, AC-0033 and AC-0062 gained clauses for the second scope.
+  Each is re-verified in the group that already asserts it rather than in a new
+  one, so a build honouring a new clause while dropping the one it extends fails
+  where the original criterion is tested.
+
+**Approach:**
+- Delivered by
+  [`telemetry-sender-owns-its-configuration`](../telemetry-sender-owns-its-configuration/plan.md),
+  whose T2 carries the construction detail and T7 the published-surface update.
+  This entry exists so the criteria it adds have an owning task in the plan that
+  serves their spec; duplicating its steps here would give one obligation two
+  homes.
+
+**Done when:** the criteria above are green in the package suite and the
+published option table names `--user-config`.
+
+
 ## Rollout
 
 Additive; nothing existing changes. Reversal is yanking the release.

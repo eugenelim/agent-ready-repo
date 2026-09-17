@@ -17,7 +17,7 @@ import time
 from collections.abc import Sequence
 
 from . import __version__
-from .config import ConfigRefused, resolve_endpoint
+from .config import ConfigRefused, resolve_endpoint, resolve_telemetry
 from .cursor import CursorRefused, parse_cursor, render_cursor, resolve_start_offset
 from .encode import encode_records
 from .profile import ProfileRefused, default_service_name, load_profile
@@ -49,7 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--input", required=True, help="the JSONL file to read")
     parser.add_argument("--root", default=None, help="directory the input must resolve inside")
-    parser.add_argument("--config", default=None, help="TOML file declaring [telemetry].endpoint")
+    parser.add_argument("--config", default=None,
+                        help="TOML file declaring [telemetry]; wins per setting")
+    parser.add_argument("--user-config", dest="user_config", default=None,
+                        help="second TOML file declaring [telemetry]; used per "
+                             "setting the --config file omits")
     parser.add_argument("--profile", default=None, help="TOML file declaring the field mapping")
     parser.add_argument("--service-name", default=None, help="resource service.name")
     parser.add_argument("--follow", action="store_true", help="keep reading appended lines")
@@ -84,7 +88,15 @@ def _run(args, env, stream, out, connection_factory) -> int:
     # always done.
     cursor = parse_cursor(args.from_cursor) if args.from_cursor is not None else None
 
-    endpoint = resolve_endpoint(env, args.config)
+    # AC-0076. Both files are read and validated here, before the endpoint
+    # precedence below, so an inadmissible key is refused whatever supplies the
+    # endpoint. Reading them inside `resolve_endpoint` would reach the files only
+    # when both environment variables are absent, leaving the refusal dead for
+    # every environment that exports one -- and those are the environments most
+    # likely to carry a setting nobody has revisited.
+    settings = resolve_telemetry(args.config, args.user_config)
+
+    endpoint = resolve_endpoint(env, settings)
 
     # A profile that WAS supplied is validated even when nothing is configured,
     # which is what makes the documented dry run real: run with no endpoint to
@@ -96,22 +108,27 @@ def _run(args, env, stream, out, connection_factory) -> int:
         print(
             "jsonl-otlp-export: no endpoint is configured; nothing was sent. "
             "Set OTEL_EXPORTER_OTLP_LOGS_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT, "
-            "or give --config a TOML file declaring [telemetry].endpoint.",
+            "or give --config or --user-config a TOML file declaring "
+            "[telemetry].endpoint.",
             file=stream,
         )
         return EXIT_OK
 
     if profile is None:
         profile = load_profile(None, args.root)  # raises: there is no default
-    # `is None`, not falsiness: AC-0007 says `service.name` takes the value of
-    # `--service-name` and names the stem as the DEFAULT, so an explicitly empty
-    # value is a supplied value. Recorded in the verification ledger, because the
-    # opposite reading -- treating empty as absent, which `config._present` does
-    # deliberately for env vars -- is defensible and the criterion does not decide.
-    service_name = (
-        args.service_name if args.service_name is not None
-        else default_service_name(args.profile)
-    )
+    # AC-0007, in order: the flag, then the merged `[telemetry].service_name`,
+    # then the profile stem. `is None`, not falsiness: AC-0007 names the stem as
+    # the DEFAULT, so an explicitly empty *flag* value is a supplied value.
+    # Recorded in the verification ledger, because the opposite reading --
+    # treating empty as absent, which `config._present` does deliberately for env
+    # vars -- is defensible and the criterion does not decide. No such question
+    # arises for the file sources: `resolve_telemetry` has already refused an
+    # empty setting, so anything in `settings` is a non-empty string.
+    service_name = args.service_name
+    if service_name is None:
+        service_name = settings.get(
+            "service_name", default_service_name(args.profile)
+        )
     # AC-0055 anchors the run bound at the FIRST destination resolution, and
     # AC-0040 requires the request bound to cover resolution. `resolve_destination`
     # does the DNS work, so the clock starts before it, not when sending begins.

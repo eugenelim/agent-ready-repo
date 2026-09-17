@@ -226,6 +226,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
 
+## [agentbundle][0.47.0] — 2026-09-16
+
+### Highlights
+
+- **Sending your work-loop telemetry no longer needs `agentbundle` installed to
+  build the command.** `jsonl-otlp-export` reads `[telemetry]` from your
+  repository and your user `agentbundle-layout.toml` itself, through its own
+  `--config` and `--user-config`, so anything that can run a command can start
+  an export — a hook included. Where you put your settings, and the rule that a
+  repository value wins setting by setting, have not changed.
+
+### Removed
+
+- `agentbundle.telemetry_layout`. Its job moved into the sender, which now
+  resolves both layout scopes. The resolver existed only to read the two files
+  and re-render their values as flags, and that reading is what made every
+  caller of the sender import this package.
+
 ## [agentbundle][0.46.1] — 2026-09-15
 
 ### Fixed

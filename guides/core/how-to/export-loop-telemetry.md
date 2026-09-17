@@ -120,29 +120,40 @@ you never install it, nothing can send, whatever this file says.
 There is no second switch for record contents, because there are none: the
 records carry the named fields listed above and no message body.
 
-## Resolve the invocation
+## Build the invocation
 
-Run this from the repository root after installing `jsonl-otlp-exporter`. The
-resolver reads `agentbundle-layout.toml` from the repository root and from your
-user layout directory. It writes nothing and does not run the sender.
+Run this from the repository root after installing `jsonl-otlp-exporter`. It
+writes nothing. Every path below is built from your repository root and your
+home directory, so this needs nothing installed but Python itself — which is
+what lets a hook run it.
 
 ```python
 import subprocess
 from pathlib import Path
 
-from agentbundle.telemetry_layout import resolve
-
 repo_root = Path.cwd()
 user_root = Path.home() / ".agentbundle"
-# Both arguments are directories, not files. The resolver derives the
-# `agentbundle-layout.toml` filename itself in each scope, so the caller
-# cannot point it at some other file.
-resolved = resolve(repo_root, user_root)
 
-# `resolved.arguments` is already a list, so hand it straight to subprocess.
-# No shell is involved, so no quoting question arises on any platform.
-subprocess.run(["jsonl-otlp-export", *resolved.arguments], check=True)
+subprocess.run([
+    "jsonl-otlp-export",
+    "--input", str(repo_root / ".loop-run" / "events.jsonl"),
+    "--root", str(repo_root),
+    # Both layout files, not one. The sender reads `[telemetry]` from each and
+    # resolves every setting on its own, so it needs both paths rather than a
+    # decision about which file wins.
+    "--config", str(repo_root / "agentbundle-layout.toml"),
+    "--user-config", str(user_root / "agentbundle-layout.toml"),
+    "--profile", str(
+        repo_root / "packs" / "core" / ".apm" / "skills" / "work-loop"
+        / "profiles" / "work-loop.toml"
+    ),
+], check=True)
 ```
+
+Either layout file may be missing. A path that does not exist contributes
+nothing and is not an error, so this same call works whether you configured
+telemetry for the repository, for yourself, or only through an environment
+variable.
 
 That run sends what is in the file and exits. It measures the file once, when it
 opens it, and stops at that many bytes — so a transition your work-loop appends
@@ -157,23 +168,31 @@ successful one-shot run means every line present when it started was sent. It
 does not mean export is running.
 
 **That is the form to use.** If you would rather read the command than run it,
-print it — but quote it, because these arguments carry values read from two TOML
-files. This block stands on its own:
+print it — but quote it, because these arguments carry paths from your own
+filesystem. This block stands on its own:
 
 ```python
 import shlex
 from pathlib import Path
 
-from agentbundle.telemetry_layout import resolve
-
-resolved = resolve(Path.cwd(), Path.home() / ".agentbundle")
-print("jsonl-otlp-export", shlex.join(resolved.arguments))
+repo_root = Path.cwd()
+user_root = Path.home() / ".agentbundle"
+print("jsonl-otlp-export", shlex.join([
+    "--input", str(repo_root / ".loop-run" / "events.jsonl"),
+    "--root", str(repo_root),
+    "--config", str(repo_root / "agentbundle-layout.toml"),
+    "--user-config", str(user_root / "agentbundle-layout.toml"),
+    "--profile", str(
+        repo_root / "packs" / "core" / ".apm" / "skills" / "work-loop"
+        / "profiles" / "work-loop.toml"
+    ),
+]))
 ```
 
 which produces:
 
 ```text
-jsonl-otlp-export --input <repo>/.loop-run/events.jsonl --root <repo> --config <resolved-layout> --profile <repo>/packs/core/.apm/skills/work-loop/profiles/work-loop.toml --service-name <resolved-name>
+jsonl-otlp-export --input <repo>/.loop-run/events.jsonl --root <repo> --config <repo>/agentbundle-layout.toml --user-config <home>/.agentbundle/agentbundle-layout.toml --profile <repo>/packs/core/.apm/skills/work-loop/profiles/work-loop.toml
 ```
 
 `shlex.join` is **POSIX shell quoting**. That printed line is safe to paste into
@@ -181,8 +200,15 @@ jsonl-otlp-export --input <repo>/.loop-run/events.jsonl --root <repo> --config <
 quotes do not protect separators and a value such as `x&whoami&x` would still
 run. On Windows, and in any script, use the `subprocess` form above.
 
-`--config` names one file, and the sender reads only `[telemetry].endpoint` from
-it. Every other setting is rendered as its own flag, which is why a value your
-repository declares still reaches the sender when the endpoint came from your
-user file. A `[telemetry]` setting with no flag is refused rather than ignored,
+The sender resolves each `[telemetry]` setting across both files on its own: a
+setting your repository declares wins, and only one it leaves out falls through
+to yours. That is why both paths are passed rather than whichever file happens
+to hold the endpoint — a repository `service_name` alongside a personal
+`endpoint` is a normal configuration, and no single file expresses it.
+
+`[telemetry]` accepts exactly `endpoint` and `service_name`. Any other key is
+refused, naming which file it came from, rather than ignored — so a setting that
+would quietly do nothing tells you instead. The files are read on every run, so
+you hear about a bad key even when an environment variable is supplying the
+endpoint.
 so a setting that would do nothing tells you instead of failing quietly.

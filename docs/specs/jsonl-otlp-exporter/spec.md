@@ -123,18 +123,20 @@ zero is the number to argue with: it is a consequence of the package not
 existing at plan approval, not an omission, and it is the single largest
 assurance gap this plan carries into EXECUTE.
 
-- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0060, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
+- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0060, AC-0002, AC-0003, AC-0004):** TDD. AC-0002's fourth source and AC-0033's fourth refusable argument are exercised here alongside the three that preceded them, so a build that honours the new source while dropping an older one fails in this group rather than in VI-0014. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
 - **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0053, AC-0064, AC-0065, AC-0066, AC-0068, AC-0069, AC-0070, AC-0071, AC-0072, AC-0073):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
 - **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
 - **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted by walking each distinct state the `### Exit codes` table names — several rows name more than one, so one invocation per row samples a row's first alternative and leaves the rest unexercised — and requiring each observed status to be in `{0, 1, 130}` — that closure is what makes the universal claim checkable without an unbounded quantifier, and it is strictly stronger than excluding the reserved 2–9 band.
-- **VI-0006 — input confinement (AC-0017, AC-0043, AC-0061, AC-0062):** TDD. AC-0062 takes its own fixtures because the config path is the one opened surface the resolved root does not bound, so a build reusing `--input`'s predicate wholesale refuses a legitimate user-scope config and fails it. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
+- **VI-0006 — input confinement (AC-0017, AC-0043, AC-0061, AC-0062):** TDD. AC-0062's fixtures run against `--config` and `--user-config` both, because a build guarding only the flag it already had passes every case written for one of them. Its reparse-point and hard-link rejections take cases of their own: each is a `stat` field the regular-file check does not read, so a build asserting only `S_ISREG` passes the symlink, FIFO, device and directory cases and still admits both. AC-0062 takes its own fixtures because the config path is the one opened surface the resolved root does not bound, so a build reusing `--input`'s predicate wholesale refuses a legitimate user-scope config and fails it. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
 - **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056, AC-0063):** TDD. AC-0063 is asserted through a counting seam over a 10,000-record input rather than by measuring process memory, which no fixture can attribute to this command alone. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
 - **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0042, AC-0022):** TDD. AC-0022 names its mode, its starting state, the mutation applied, the termination trigger and the records expected, so a build that observes nothing and exits fails it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
 - **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
 - **VI-0011 — the published contract (AC-0030, AC-0031, AC-0032):** goal-based check over the authored files. Presence and structure are mechanical; wording is not asserted.
 - **VI-0013 — profile form and validation (AC-0035, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0067):** TDD. A profile is TOML, so every case is a fixture file and the whole group runs with no network. AC-0047 is asserted by driving a profile file whose content would execute if it were ever imported or evaluated, and observing that it is parsed as data and refused on schema rather than taking effect — an implementation that imports would pass a key-shape check but fail this one. AC-0052 takes its own case because "no profile" and "a bad profile" fail differently and a build defaulting to a built-in profile passes every other case here.
+- **VI-0014 — two-scope configuration resolution (AC-0074, AC-0075, AC-0076):** TDD. Every case is a pair of fixture files and runs with no network. AC-0076 takes its own parameterized case over all four endpoint sources rather than one representative: the natural implementation reads a configuration file only when the endpoint variables are absent, so a case fixing a single source leaves the refusal unreachable on the very configurations most likely to carry a stale key, and a build with the read inside that branch passes every other case in this group. AC-0074 is asserted with each file declaring a *different* setting, because a pair declaring the same settings is satisfied by whole-file selection and cannot distinguish per-setting merge from it. AC-0075's message is asserted for a key in each file separately and in both, since a merged mapping has already lost which file a key came from.
+
 - **VI-0012 — release integrity (AC-0046, AC-0057, AC-0058, AC-0059):** goal-based check over the release workflow, exercised by a tag whose version disagrees with `pyproject.toml` and asserting the workflow refuses it.
 
 ## Acceptance Criteria
@@ -143,7 +145,11 @@ assurance gap this plan carries into EXECUTE.
   no socket.
 - [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits
   0, unless an argument it was given was itself refused. A refused `--config`,
-  `--profile` or `--from-cursor` exits 1 whether or not an endpoint resolves.
+  `--user-config`, `--profile` or `--from-cursor` exits 1 whether or not an
+  endpoint resolves. `--user-config` joined the list on 2026-09-16 with the flag
+  itself; the list is enumerated rather than stated as "any refused file
+  argument", so a new file-valued argument that does not join it is silently
+  outside the rule.
   The carve-out states what the command has always done and what the unqualified
   criterion forbade: `--config` is read while the endpoint is being resolved, and
   a supplied `--profile` is validated before the endpoint check so that a run
@@ -155,8 +161,13 @@ assurance gap this plan carries into EXECUTE.
   a line to stderr naming that no endpoint is configured.
 
 - [ ] **AC-0002.** The endpoint used is the first present of, in order:
-  `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, then
-  `[telemetry].endpoint` in the TOML file given by `--config`.
+  `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`,
+  `[telemetry].endpoint` in the TOML file given by `--config`, then
+  `[telemetry].endpoint` in the TOML file given by `--user-config`. The fourth
+  source was appended on 2026-09-16 and moved none of the three before it: a
+  caller holding two configuration scopes previously had to read both itself to
+  decide which single file to pass, and reading them is what made every caller
+  of this command depend on a package to invoke it.
 - [ ] **AC-0003.** A value resolved from `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is
   requested unmodified.
 - [ ] **AC-0004.** A value resolved from any other source is requested with
@@ -183,10 +194,14 @@ assurance gap this plan carries into EXECUTE.
   additional key, is refused before any request is sent and exits 1.
 
 - [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
-  attribute taking the value of `--service-name`, defaulting to the stem of the
-  `--profile` filename. The default is the filename and not a profile-declared
-  name because AC-0035 closes a profile at six keys and none of them is a name,
-  so a name-valued default would be unsatisfiable by every conforming profile.
+  attribute taking the first present of, in order: `--service-name`,
+  `[telemetry].service_name` from `--config`, `[telemetry].service_name` from
+  `--user-config`, then the stem of the `--profile` filename. The two file
+  sources were inserted on 2026-09-16 ahead of the existing default and behind
+  the existing flag; an explicit flag stays authoritative so a single run remains
+  overridable. The final default is the filename and not a profile-declared name
+  because AC-0035 closes a profile at six keys and none of them is a name, so a
+  name-valued default would be unsatisfiable by every conforming profile.
 - [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
   retry.
 - [ ] **AC-0036.** A response carrying a non-empty `partialSuccess` reports its
@@ -318,13 +333,19 @@ assurance gap this plan carries into EXECUTE.
 
 - [ ] **AC-0056.** A `--config` file larger than 64 KiB is refused before it is
   parsed, and the command sends nothing and exits 1.
-- [ ] **AC-0062.** A `--config` file is opened no-follow and the opened descriptor
-  is proven a regular file before any byte of it is parsed; a symbolic link, a
-  FIFO, a device or a directory at that path is refused with nothing sent and
-  exit 1. Refusal is decided on the opened object, never on the pathname alone.
-  Unlike AC-0017 and AC-0048 this criterion imposes no `--root` confinement: a
-  configuration file legitimately lives outside any data root, so requiring
-  containment here would refuse a correct invocation rather than an attack.
+- [ ] **AC-0062.** A file given by `--config` or by `--user-config` is opened
+  no-follow and the opened descriptor is proven a regular file that is neither a
+  reparse point nor multiply linked before any byte of it is parsed; a symbolic
+  link, a FIFO, a device, a directory, a reparse point or a hard link at that
+  path is refused with nothing sent and exit 1. Refusal is decided on the opened
+  object, never on the pathname alone. Unlike AC-0017 and AC-0048 this criterion
+  imposes no `--root` confinement: a configuration file legitimately lives
+  outside any data root, so requiring containment here would refuse a correct
+  invocation rather than an attack. `--user-config` and the reparse-point and
+  hard-link cases were added on 2026-09-16 — the second scope makes a
+  configuration file outside the root the normal case rather than the tolerated
+  one, and both new rejections are `stat` results already available on the open
+  descriptor.
 - [ ] **AC-0057.** The release workflow publishes through OIDC trusted
   publishing, with no long-lived credential present in the workflow.
 - [ ] **AC-0058.** Every third-party action the release workflow uses is pinned to
@@ -388,6 +409,27 @@ assurance gap this plan carries into EXECUTE.
   sending. This is the bound that makes the others reachable: AC-0055's run clock
   starts at the first destination resolution, so without it an arbitrarily large
   file is read and retained before any deadline applies.
+
+- [ ] **AC-0074.** Each `[telemetry]` setting resolves independently across the
+  two configuration files: a setting the `--config` file declares takes that
+  value, and a setting it omits takes the `--user-config` file's value. A file
+  declaring some settings and not others contributes exactly the ones it
+  declares.
+- [ ] **AC-0075.** The `[telemetry]` table admits exactly the settings
+  `endpoint` and `service_name`. Any other key in that table, in either file, is
+  refused with nothing sent and exit 1, and the message names each file the key
+  appeared in and lists the admitted settings. A value that is not a non-empty
+  string, and a `telemetry` value that is not a table, are refused the same way.
+  Refusing rather than ignoring is what makes a sender older than the
+  configuration it is given fail loudly instead of dropping a setting the author
+  believes is in effect.
+- [ ] **AC-0076.** Both supplied configuration files are read and validated on
+  every run, whatever resolves the endpoint. A run whose endpoint comes from
+  `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, from `OTEL_EXPORTER_OTLP_ENDPOINT`, from
+  `--config` or from `--user-config` refuses an inadmissible key identically.
+  This is stated because the cheaper implementation reads a file only when the
+  earlier sources are absent, which leaves the refusal unreachable for exactly
+  the environments that set an endpoint variable.
 
 ## Retired identifiers
 

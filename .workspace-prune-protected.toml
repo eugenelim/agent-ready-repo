@@ -94,6 +94,7 @@ protected = [
   "docs/specs/spec-a",
   "docs/specs/status-projection-and-context-exclusion",
   "docs/specs/t4",
+  "docs/specs/telemetry-sender-owns-its-configuration",
   "docs/specs/thirty-day-cooling-and-retirement",
   "docs/specs/top-canonical",
   "docs/specs/top-legacy",

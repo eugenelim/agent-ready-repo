@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.47.0] — 2026-09-16
+
+### Removed
+
+- `agentbundle.telemetry_layout`. The `jsonl-otlp-exporter` sender resolves
+  `[telemetry]` from the repository and user `agentbundle-layout.toml` files
+  itself, via its own `--config` and `--user-config` flags, so building its
+  arguments no longer requires importing this package — which matters because
+  its intended caller is a hook, and importing anything here parses the adapter
+  contract at import time. Where configuration lives, and the rule that a
+  repository value wins per setting, are unchanged.
+
 ## [0.46.1] — 2026-09-15
 
 ### Fixed

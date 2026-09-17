@@ -507,6 +507,55 @@ backlog = [
 [backlog]
 open = [
   {slug = "pre-existing-local-ci-shared-test-dedup-drift", source = "pre-flight/2026-09-16"},  # 2 cases in tools/test_local_ci_shared_test_deduplication.py fail on a clean tree: test_real_make_root_tool_groups_match_the_approved_profiles (4 errors - standalone/composed process-count and membership drift; needs a decision on which of FIRST_TOOL_BATCH / RETAINED_TOOL_SINGLETONS / FINAL_TOOL_BATCH owns the two pytest commands 2b1574e19 added) and test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation (APPROVED_STANDALONE_PLAN_DIGEST / APPROVED_COMPOSED_PLAN_DIGEST; the 133 reported items are a printout of the computed plan, not 133 defects). Both trace to 2b1574e19 adding packages/jsonl-otlp-exporter to the Makefile. The third case, the sast-unleased byte pin, was re-pinned 2026-09-16. Proven pre-existing by differential: they fail with this branch's new tools/ files removed, and the Makefile is unmodified in the diff. NOTE: this file is in make test (Makefile:643), so make test is red on main until these land.
+  # pre-existing: the exact-ceiling growth race in
+  # packages/jsonl-otlp-exporter/jsonl_otlp_exporter/config.py read_config_file.
+  # Present at HEAD before this session and byte-identical to it -- `git diff` over
+  # the telemetry-sender-owns-its-configuration change does not touch the size or
+  # read block. A file whose fstat samples at exactly MAX_CONFIG_BYTES (65,536) and
+  # is then appended to by a concurrent writer still satisfies
+  # `len(raw) == info.st_size`, because `os.read(fd, MAX_CONFIG_BYTES)` returns
+  # exactly that many bytes. A valid TOML prefix of an oversized file is then parsed
+  # and accepted, so the complete file is never validated -- and a key the full file
+  # carries past the ceiling is never seen. Found by the security review of that
+  # change, which also raised its consequence: since AC-0075 now refuses an
+  # inadmissible [telemetry] key, a prefix that omits the bad key turns a refusal
+  # into a silent accept. Not repaired there because changing the read is a
+  # behaviour change on a shipped path (a file exactly at the ceiling that grows
+  # would start refusing), which the bundled-fixes tiers exclude. Marginal risk is
+  # small: anyone who can rewrite the file can already set any endpoint. Fix: read
+  # with a buffer of MAX_CONFIG_BYTES + 1 and refuse overflow, keeping the
+  # short-read and sampled-size checks.
+  { slug = "pre-existing-config-exact-ceiling-growth-race", source = "pre-flight/2026-09-16" },
+  # pre-existing, exposure doubled: configuration I/O in
+  # packages/jsonl-otlp-exporter/jsonl_otlp_exporter/config.py sits outside every
+  # runtime deadline. Both files are opened and read before `run_started` is taken
+  # in cli.py, and `O_NONBLOCK` does not bound read(2) on a regular file -- so a
+  # config on a slow or disconnected network mount can hang the command with no
+  # diagnostic, even under `--for`. Pre-existing: `--config` was already read
+  # before `run_started` before this change. What changed is exposure -- two files
+  # instead of one, read unconditionally rather than only when both endpoint
+  # variables are absent. Found by the quality review of
+  # docs/specs/telemetry-sender-owns-its-configuration. Not repaired there: putting
+  # configuration acquisition under a deadline is a behaviour change on a shipped
+  # path, outside that change's bundled-fixes tiers. Nothing is blocked -- a local
+  # file cannot hang. Fix: bound configuration acquisition, or document that both
+  # paths must be local and require a supervisor timeout.
+  { slug = "pre-existing-config-io-outside-every-deadline", source = "pre-flight/2026-09-16" },
+  # The sender cannot explain its own effective configuration. `resolve_telemetry`
+  # returns a merged mapping, so once resolution SUCCEEDS nothing records which
+  # scope supplied an admitted value, whether either file existed at all, or which
+  # value was overridden. The refusal messages name their scope; the success path
+  # names nothing. So when telemetry stops, or goes somewhere unexpected, an
+  # adopter has no way to ask the command what it resolved -- they must reason
+  # about two files and four sources by hand. Found by the quality review of
+  # docs/specs/telemetry-sender-owns-its-configuration. Not built there: a
+  # diagnostic mode is new public CLI surface on a published capability, which that
+  # change deliberately declined to add (a `--print-settings` flag was considered
+  # and dropped at planning for the same reason). Nothing is blocked. Fix: return
+  # structured resolution provenance and expose it through a non-sending
+  # `--explain-config`, which needs its own criteria for what it may print --
+  # an endpoint can carry user-info that the existing diagnostics redact.
+  { slug = "sender-cannot-explain-its-effective-configuration", source = "pre-flight/2026-09-16" },
   # Two corrections to `loop-telemetry-export`'s contract that were found by doing
   # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
   # a completed task's section, and both corrections land inside T2 and T4, which
@@ -539,6 +588,28 @@ open = [
   # whether a waived gate should be recorded on the run at all.
   {path = "docs/specs/loop-telemetry-export/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Decide whether a waived work-loop base-freshness check should leave a durable marker on the run, so a later reader can tell a verified base from one accepted on authority", needs = []},
   {path = "docs/product/intents/loop-telemetry-contract-corrections.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/notes/verification-ledger.md"}, summary = "Decide whether AC-0031's four-of-six enumeration and the uncriterioned undeliverable-setting refusal are worth a contract change now that both behaviours have shipped", needs = []},
+  # An enterprise operator cannot yet configure a telemetry endpoint once in its
+  # catalogue so that every user installing the core pack exports to it with no setup.
+  # The enterprise half already ships: RFC-0101 is Accepted, its catalogue-pack-defaults
+  # and pack-config-api specs are Shipped, and catalogue.toml's [pack-defaults.<pack>]
+  # is an open map of string keys in contracts/catalogue.schema.json -- so
+  # [pack-defaults.core] telemetry_endpoint = "..." is schema-legal today with no schema
+  # change. The missing hop is the last one: the baked layer lives inside the installed
+  # agentbundle package's _data/install-defaults.toml and is reachable only via
+  # agentbundle.config.load_pack_config(), while both readers that would use it are
+  # standard-library-only -- the sender's contract forbids a runtime dependency, and the
+  # invoking hook is stdlib-only by convention. That is the identical gap
+  # docs/product/intents/credential-pack-defaults-projection.md records for credentials,
+  # so this is a second consumer of one missing installer projection, not a separate
+  # mechanism. NOT pack.layout/_append_layout_section: that channel places an output
+  # directory, is closed over four keys, and would write a URL as a path. Also open: an
+  # enterprise default means installing begins sending, which contradicts the sender
+  # spec's "installing is the first consent, configuring is the second" until that
+  # sentence admits an operator consenting for its users. Nothing is blocked -- an
+  # adopter-authored [telemetry] section in either scope already reaches the sender.
+  # Fix: an RFC-0101 addendum shared with the credential intent, then a telemetry
+  # precedence-and-disclosure spec. Unblock: the shared projection decision.
+  {path = "docs/product/intents/catalogue-level-telemetry-endpoint-default.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/credential-pack-defaults-projection.md"}, summary = "Let an enterprise catalogue bake a telemetry endpoint once so its users export with zero setup, via the RFC-0101 pack-defaults cascade and the stdlib-readable projection the credential intent also needs", needs = [{type = "local", kind = "intent", path = "docs/product/intents/credential-pack-defaults-projection.md"}]},
   # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
   # rather than left in that spec's notes: a closed spec's notes directory is not
   # a destination, and the obligation would otherwise be enforced by someone
