@@ -293,6 +293,14 @@ does.
   declares. The declared set is part of the fixture definition, not read back
   from the output. `ADR-S008` declares `{ADR-S008, ADR-S010}`. Verifies AC-0001.
 - The parametrisation's id list is asserted equal to the fifteen codes.
+- `ADR-S009` is exercised in BOTH directions: a `Supersedes in part` entry whose
+  D-ID the named record defines, and a `Superseded in part` entry whose D-ID the
+  citing record defines. One direction alone passes a lint that resolves every
+  entry to the named record, which is a false positive on three real records.
+- The clean fixture directory is scanned through a RELATIVE directory argument
+  as well as an absolute one, and reports a non-zero read count both times. The
+  gate chain passes `docs/adr`; an absolute-only fixture cannot tell a working
+  scan from one that refuses every entry.
 - Exit contract: exit 1 when any finding is reported, 0 when none. Verifies
   AC-0002.
 - A directory holding one entry the lint refuses and one it cannot decode, and

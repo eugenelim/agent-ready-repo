@@ -775,3 +775,63 @@ def test_revisit_if_blank_line_list_reports_no_s012(tmp_path: pathlib.Path) -> N
         f"ADR-S012 reported for blank-line+list Revisit if; parser did not read the list:\n{out}"
     )
     assert code == 0, f"expected exit 0 for conforming blank-line+list fixture:\n{out}"
+
+
+# ── Regression guards for two defects the fixture suite could not see ────────
+
+
+def test_a_relative_directory_argument_still_reads_every_record(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The gate chain passes `docs/adr`, not an absolute path.
+
+    `os.scandir` echoes back whatever the caller supplied, so a relative
+    argument yields relative entry paths while the confinement root is
+    resolved; `read_confined`'s `relative_to(root)` then refuses every entry
+    and the scan reads nothing. Every other case in this file passes an
+    absolute `tmp_path`, so none of them can tell a working scan from that one.
+    """
+    d = _write_dir(tmp_path, _conforming())
+    monkeypatch.chdir(tmp_path)
+    code, out, err = _run(pathlib.Path(d.name))
+    assert "refused: 0" in err or "refused: 0" in out, (
+        f"relative argument refused entries:\n{err or out}"
+    )
+    assert "read: 3" in (err + out), f"expected 3 records read:\n{err or out}"
+    assert code == 0, f"expected exit 0 on a conforming dir, got {code}"
+
+
+def test_s009_resolves_the_d_id_owner_by_field_direction(
+    tmp_path: pathlib.Path,
+) -> None:
+    """RFC-0102 :229 — in both halves the D-IDs belong to the superseded record.
+
+    For `Supersedes in part` that is the named record; for `Superseded in part`
+    it is the citing record. Resolving both to the named record reports a false
+    positive on every correct `Superseded in part` entry — three exist in the
+    real corpus, each citing a D-ID its own record defines. Only the second
+    case below distinguishes the two readings.
+    """
+    records = _conforming()
+    # 0001 defines D1 and D2; 0002 defines D1 only. Citing D2 therefore
+    # distinguishes the two readings: it exists in the citing record and does
+    # not exist in the named one, so the wrong resolution fires and the right
+    # one stays silent.
+    citing = records["0001-basic.md"].replace(
+        "- **Superseded in part:** none",
+        "- **Superseded in part:** ADR-0002 D2",
+    )
+    assert "- **D2:**" in citing, "fixture must define the D-ID it cites"
+    records["0001-basic.md"] = citing
+    named = records["0002-superseder.md"].replace(
+        "- **Supersedes in part:** none",
+        "- **Supersedes in part:** ADR-0001 D2",
+    )
+    assert "- **D2:**" not in named, "named record must not define it"
+    records["0002-superseder.md"] = named
+    d = _write_dir(tmp_path, records)
+    codes = _extract_codes(_run(d)[1])
+    assert "ADR-S009" not in codes, (
+        "a `Superseded in part` entry citing the citing record's own D-ID is "
+        f"conformant, but S009 fired: {codes}"
+    )

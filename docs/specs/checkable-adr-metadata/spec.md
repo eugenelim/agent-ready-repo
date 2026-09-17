@@ -226,7 +226,7 @@ disagreeing home for them. What is new here is the code set itself.
 | `ADR-S006` | `Reversibility` | value in a closed token set | RFC-0102 § 2 |
 | `ADR-S007` | the four supersession fields | present, and `none` or a well-formed entry list | RFC-0102 § 3 |
 | `ADR-S008` | `Supersedes` against `Supersedes in part` | no ordinal in both | RFC-0102 § 3 |
-| `ADR-S009` | a cited D-ID | defined by the record the entry names | RFC-0102 § 3 |
+| `ADR-S009` | a cited D-ID | defined by the **superseded** record — the named record for `Supersedes in part`, the citing record for `Superseded in part` | RFC-0102 § 3 |
 | `ADR-S010` | a supersession entry | has its mirrored counterpart | RFC-0102 § 3 |
 | `ADR-S011` | `## Decision` | `- **D<n>:**` list items dense from `D1`, no gap or duplicate | RFC-0102 § 2 |
 | `ADR-S012` | `**Revisit if:**` in `## Consequences` | present and non-empty | RFC-0102 § 1 |
@@ -554,6 +554,17 @@ only and are therefore not editable by this delivery and not follow-on work.
   gate chain re-runs against the updated branch. Spec-stage review raised this
   as a risk and left it indeterminate for want of this setting (source: read
   2026-09-17).
+- Technical: `ADR-S009` resolves the D-ID owner by the field's direction, not
+  to the record the entry names. RFC-0102 `:229` states "In both halves the
+  D-IDs belong to the **superseded** record", which is the named record for
+  `Supersedes in part` and the citing record for `Superseded in part`. An
+  earlier wording here said "defined by the record the entry names", true in
+  one direction only; implemented that way the lint reported three false
+  positives on the real corpus — ADR-0014 citing its own D8, and ADR-0017 its
+  own D16 and D14, all of which those records define. Under a blocking gate
+  that reds main permanently and invites editing three correct records (source:
+  the shipped lint run over `docs/adr`, 2026-09-17; `docs/adr/0014-*.md:11`,
+  `docs/adr/0017-*.md:11`).
 - Technical: `docs/CONVENTIONS.md` was retired by commit `813f533f1` after this
   contract's baseline was sealed, and its obligations were re-homed — the
   document lifecycle classes to a new seeded `docs/README.md`, the

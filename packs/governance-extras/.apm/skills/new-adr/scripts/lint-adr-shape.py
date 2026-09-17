@@ -530,7 +530,12 @@ def _check_cross(records: dict[str, _Record]) -> list[Finding]:
         this_key = f"ADR-{rec.ordinal}" if rec.ordinal else None
         p = str(rec.path)
 
-        # ADR-S009 — cited D-ID exists in the target record
+        # ADR-S009 — a cited D-ID is defined by the SUPERSEDED record.
+        # RFC-0102 :229: "In both halves the D-IDs belong to the superseded
+        # record."  Which record that is depends on the field's direction, and
+        # resolving both to the named record reports a false positive on every
+        # correct `Superseded in part` entry — three of them in this corpus,
+        # each naming a D-ID its own record defines.
         for fname, fval in (
             ("Supersedes in part", rec.supersedes_in_part),
             ("Superseded in part", rec.superseded_in_part),
@@ -542,15 +547,22 @@ def _check_cross(records: dict[str, _Record]) -> list[Finding]:
                 cited_d_ids = _entry_d_ids(entry)
                 if not cited_d_ids:
                     continue
-                target = records.get(target_key)
-                if target is None:
+                if fname == "Supersedes in part":
+                    # This record supersedes the named one: the named record
+                    # is the superseded one, so it owns the D-IDs.
+                    owner_key, owner = target_key, records.get(target_key)
+                else:
+                    # This record is superseded by the named one: this record
+                    # is the superseded one, so it owns the D-IDs.
+                    owner_key, owner = this_key, rec
+                if owner is None:
                     continue   # ADR-S010 will report the missing record
-                defined = {f"D{n}" for n in target.d_ids}
+                defined = {f"D{n}" for n in owner.d_ids}
                 for did in cited_d_ids:
                     if did not in defined:
                         add(p, "ADR-S009",
                             f"'{fname}' entry {entry!r} cites {did} "
-                            f"which is not defined in {target_key}")
+                            f"which is not defined in {owner_key}")
 
         # ADR-S010 — supersession mirroring (both sides)
         # Supersedes: ADR-X  ↔  ADR-X Superseded by: this
@@ -720,7 +732,11 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
     unreadable_count = 0
 
     for entry in candidates:
-        entry_path = Path(entry.path)
+        # Join against the resolved root, not `entry.path`: os.scandir echoes
+        # back whatever the caller supplied, so a relative argument such as the
+        # gate chain's `docs/adr` yields a relative entry path, and
+        # `read_confined`'s `relative_to(root)` then refuses every record.
+        entry_path = root / entry.name
         try:
             kind = classify(entry)
         except OSError as exc:
