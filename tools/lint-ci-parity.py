@@ -596,6 +596,13 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # tests/ -q, which discovers this roster file.
     "pytest decision-record index generator (roster-owned)":
         LOCAL("test-after-build-check"),
+    # checkable-adr-metadata AC-0011: T4 enumerates
+    # test_lint_adr_shape_corpus.py here so its partition assertion runs
+    # before merge.  LOCAL("test-after-build-check") is correct: that
+    # target's run-test-suite includes pytest tests/ -q, which discovers
+    # this roster file.
+    "pytest ADR shape lint corpus partition (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)":
         LOCAL("test-after-build-check"),
     "converters source-attribution scrub (AC2)":
