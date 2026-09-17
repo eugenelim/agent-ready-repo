@@ -1,7 +1,7 @@
 # Plan: construction-time razor
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (pack export boundary, version-bump
   rule, no-internal-citation rule, eval-harness obligation);
   `packs/core/.apm/agents/implementer.md` and

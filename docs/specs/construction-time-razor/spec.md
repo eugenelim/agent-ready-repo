@@ -1,6 +1,6 @@
 # Spec: construction-time razor
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099
@@ -175,45 +175,45 @@ prompt to look, not a failed gate.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** On the reuse fixture, the emitted function delegates to the
+- [x] **AC-0001.** On the reuse fixture, the emitted function delegates to the
   existing sibling helper rather than reimplementing its behaviour.
-- [ ] **AC-0019.** On every fixture whose task is satisfiable — the reuse
+- [x] **AC-0019.** On every fixture whose task is satisfiable — the reuse
   fixture, the helper-absent control, the inadequate-candidate control, the
   heavy-`Approach:` fixture and the heavy-required control — the task's
   `Done when:` one-liner exits zero and prints its stated expected value.
-- [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
-- [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
-- [ ] **AC-0006.** On the inadequate-candidate control, the report names that
+- [x] **AC-0003.** On the helper-absent control, no new module is emitted.
+- [x] **AC-0004.** On the helper-absent control, the report status is `ready`.
+- [x] **AC-0006.** On the inadequate-candidate control, the report names that
   helper as a candidate the search found. Saying nothing about it fails; both
   reusing it in part and declining it pass. The shipped rule additionally
   requires the disposition and the reason, and both are recorded, but this
   criterion reads only that the candidate is named — no check over free prose
   decides whether a stated reason is a real one, and naming the candidate at all
   is what went missing on every pre-repair run.
-- [ ] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
-- [ ] **AC-0008.** On the heavy-`Approach:` fixture, the report status is
+- [x] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
+- [x] **AC-0008.** On the heavy-`Approach:` fixture, the report status is
   `ready`.
-- [ ] **AC-0009.** On the heavy-`Approach:` fixture, the report records the
+- [x] **AC-0009.** On the heavy-`Approach:` fixture, the report records the
   substitution under `Deviations from the task body`.
-- [ ] **AC-0010.** On the required-construction control, whose pre-existing
+- [x] **AC-0010.** On the required-construction control, whose pre-existing
   shared consumer renders through an object protocol its own callers depend on,
   that consumer produces its three expected outputs — so the implementation
   supplied objects satisfying the protocol rather than refusing the structure it
   requires.
-- [ ] **AC-0011.** On that control, the pre-existing shared consumer is
+- [x] **AC-0011.** On that control, the pre-existing shared consumer is
   byte-identical to the fixture's: the implementation satisfies the protocol
   rather than rewriting the consumer to avoid needing it.
-- [ ] **AC-0012.** On the no-route control, whose `Done when:` no available route
+- [x] **AC-0012.** On the no-route control, whose `Done when:` no available route
   satisfies, the report does not claim `ready`; it refuses, with either `failed`
   or `blocked`.
-- [ ] **AC-0015.** `packs/core/pack.toml` and
+- [x] **AC-0015.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version, and it is
   exactly one patch increment above the version at the merge base of this branch
   and `origin/main`. Where that merge base does not resolve, the criterion fails
   rather than assuming a baseline.
-- [ ] **AC-0016.** `agentbundle catalogue self-host --root .` reports no drift
+- [x] **AC-0016.** `agentbundle catalogue self-host --root .` reports no drift
   and `agentbundle catalogue verify --root .` passes.
-- [ ] **AC-0017.** `docs/product/changelog.md` carries a `## [core][<version>]`
+- [x] **AC-0017.** `docs/product/changelog.md` carries a `## [core][<version>]`
   section directly beneath `## [Unreleased]`, with no other section between
   them.
 
