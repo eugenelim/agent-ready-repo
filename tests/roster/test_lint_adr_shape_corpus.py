@@ -62,8 +62,22 @@ def test_the_corpus_has_candidates_to_partition() -> None:
     assert _candidate_count() > 0, "docs/adr holds no *.md entry besides README.md"
 
 
-def test_every_candidate_lands_in_exactly_one_bucket() -> None:
-    """read + refused + unreadable accounts for every candidate entry.
+def test_the_bucket_totals_account_for_every_candidate() -> None:
+    """`read + refused + unreadable` equals the candidate count.
+
+    What this oracle compares, precisely: the SUM of the three reported
+    bucket counts against the number of candidate entries. That catches an
+    entry counted in no bucket — the escape AC-0005 exists to forbid, and the
+    case this suite was void-tested against by dropping one candidate from the
+    scan.
+
+    What it cannot catch: an entry counted twice while another is dropped,
+    which leaves the sum intact. Per-entry attribution is not observable from
+    outside the lint, because only refused and unreadable entries produce a
+    named line — a read entry emits nothing to attribute. AC-0006 covers the
+    labelling of the two non-read buckets; nothing observes read membership
+    per entry, and that is this check's stated blind spot rather than an
+    oversight.
 
     Not an assertion on the finding count or the exit code: those change
     independently (a later plan task clears today's findings), while the
