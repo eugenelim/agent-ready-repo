@@ -1,9 +1,14 @@
 # ADR-0007: Ship the doc-drift spec-metadata lint to adopters as a work-loop skill script
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-05-29
-- **Deciders:** eugenelim
-- **Supersedes:** none (narrows ADR-0006 in part — see Decision)
+- **Areas:** documentation, tooling
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** ADR-0006; RFC-0016 (§ Errata); `docs/specs/lint-work-loop-delivery/`; `docs/specs/doc-drift-prevention/`
 
 ## Context
@@ -35,6 +40,15 @@ ADR, not by errata, so this ADR records the narrowing.
 > agent-invoked, **not** fail-closed. The catalogue additionally runs it as a
 > fail-closed CI gate via `make build-check`.
 
+- **D1:** The spec-metadata lint ships to adopters as a `work-loop` skill script
+  at `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`.
+- **D2:** In adopter repos the lint is agent-invoked at the work-loop's
+  finish-time checklist and is available rather than fail-closed.
+- **D3:** The catalogue additionally runs the same lint as a fail-closed CI gate
+  via `make build-check`.
+- **D4:** ADR-0006 is narrowed only in its sub-claim about the lint's delivery
+  surface; it keeps its `Accepted` status and its construction + judgment core.
+
 This **narrows ADR-0006 in part**: ADR-0006's core decision — doc-drift
 prevention for adopters is delivered by *construction + judgment* — still stands.
 What changes is ADR-0006's sub-claim that the mechanical lint is delivered *only*
@@ -63,6 +77,11 @@ this ADR is the authority on the lint's delivery surface.
 **Neutral / to revisit:**
 - Whether to drive the adopter warn-rate down enough to promote any invariant to
   hard remains deferred (RFC-0016 Q3 / `spec-code-ref-lint`).
+
+**Revisit if:** an adopter-side PR-open lifecycle event becomes available on the
+adapters, which would retire the one surviving RFC-0016 reason for D2 being
+available rather than fail-closed; or the adopter warn-rate falls far enough to
+promote an invariant to hard (RFC-0016 Q3 / `spec-code-ref-lint`).
 
 ## Alternatives considered
 
