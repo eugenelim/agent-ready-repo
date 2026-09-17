@@ -104,7 +104,7 @@ judging an existing screen, `design-review`.
 8. **Write the IA doc.** Resolve `output_dir` via
    `references/agentbundle-layout.md` (the `[design]` section) and apply every
    control in `references/containment.md`, in the order that module states —
-   approval, slug validation, final-target re-canonicalization, intermediate-
+   approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-
    directory confinement, and the existing-artifact checks. The target is
    `<output_dir>/screens/<slug>-ia.md`, where `<slug>` names the screen or flow
    this pass covers. This skill ships no template, so author the file directly,

@@ -74,7 +74,7 @@ Before drafting, confirm:
 8. **Write the taxonomy.** Resolve `output_dir` via
    `references/agentbundle-layout.md` (the `[design]` section) and apply every
    control in `references/containment.md`, in the order that module states —
-   approval, slug validation, final-target re-canonicalization, intermediate-
+   approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-
    directory confinement, and the existing-artifact checks. The target is
    `<output_dir>/tokens/<slug>.md`, where `<slug>` names the system this
    taxonomy serves. When the target does not exist, copy

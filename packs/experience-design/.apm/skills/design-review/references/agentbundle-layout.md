@@ -53,7 +53,7 @@ artifact or finds another product's.
 Regardless of anchor, resolve `output_dir` to its full absolute path
 (realpath-resolved, `~`-expanded, `..` rejected) and approve it under
 `references/containment.md` **before the first read**. The same module states
-the target re-canonicalization, `type:` validation, product-belonging, and
+the final-target confinement, `type:` validation, product-belonging, and
 extract-as-data controls that apply to the read itself.
 
 ## Frontmatter contract

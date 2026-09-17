@@ -10,9 +10,19 @@ about to open.
 
 ## Output-directory approval
 
-Resolve `output_dir` via `references/agentbundle-layout.md` (the `[design]`
-section). Immediately after resolving, apply source-aware approval before
-reading any upstream artifact or composing any output path.
+`references/agentbundle-layout.md` documents the resolution *order*. The
+**value** comes from the adopter's `agentbundle-layout.toml` and never from
+that page: its fenced block shows the shape of the table, and the path inside
+it is an illustration, not your answer.
+
+So resolve by reading. Open the repo-root `./agentbundle-layout.toml`, and the
+user-profile file when the repo-root one is absent or carries no `[design]`
+key, and quote the `output_dir` you actually read before you use it. If you did
+not open a file, you have not resolved `output_dir` — and a value recalled from
+an example resolves to a directory the adopter did not choose.
+
+Immediately after resolving, apply source-aware approval before reading any
+upstream artifact or composing any output path.
 
 **Repo-root configuration.** Realpath-resolve `output_dir`. Confirm that the
 resolved path is neither at nor beneath any reserved tree inside the repository.
@@ -30,10 +40,20 @@ trees for the user-profile branch include the agent host's installed-skill
 directories (for example, `~/.claude/skills` and every subtree under it). A
 value at or beneath any reserved tree is refused, not confirmed.
 
-**Approved root recorded on every path.** On every approval path — whether the
-value came from repo-root or user-profile config, whether it needed explicit
-confirmation or was admitted immediately — record the approved root with the run
-before proceeding.
+**Approved root recorded and surfaced on every path.** On every approval path —
+whether the value came from repo-root or user-profile config, whether it needed
+explicit confirmation or was admitted immediately — record the approved root
+with the run before proceeding, and **state it to the operator, naming the file
+you read it from, together with the target path you composed from it.**
+
+Surfacing is the last line of defence and the reason it is required here.
+Resolution is an instruction like every other control in this module, so it can
+be skipped, and observed runs show it sometimes is: a value recalled from the
+example in the layout reference produces a confident write to a directory the
+adopter never configured. Nothing downstream detects that — the file exists,
+its frontmatter is right, and only the operator knows the path is wrong. Saying
+the path out loud before writing is what turns a silent misresolution into one
+a reader can catch.
 
 **Approval precedes every read and write.** No upstream artifact is read and no
 output path is composed until `output_dir` has been approved by one of the two
@@ -48,12 +68,35 @@ slug does not match `^[a-z0-9]+(-[a-z0-9]+)*$` or exceeds 64 characters. The
 refusal happens before any path is constructed, so a non-conforming slug cannot
 produce a path that reaches a platform limit mid-write.
 
-## Final-target re-canonicalization
+## Final-target confinement — run the resolution, do not reason it
 
-Immediately before writing, resolve the final target path — or its parent
-directory when the target does not yet exist — to its realpath. Re-confirm that
-the resolved path still falls within the approved `output_dir`. A symlink inside
-a subdirectory can redirect a write that passed the initial directory approval.
+A symlink at any component of the target path can redirect a write that already
+passed directory approval, and the redirect is invisible in the configured
+value. Nothing about the path as written reveals it.
+
+So this control is not discharged by thinking about the path. Immediately
+before writing, **execute** a real-path resolution of the final target — or of
+its parent directory when the target does not yet exist — and read the output.
+Any tool that resolves symlinks will do; for example:
+
+```
+python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" <target-or-parent>
+```
+
+Compare that output against the realpath of the approved `output_dir` recorded
+at approval time. Proceed only when the resolved target is the approved root or
+sits beneath it. Otherwise refuse, and report the resolved path so the operator
+can see where the write would have gone.
+
+**Known limitation, stated because it is load-bearing.** This control is an
+instruction, not an enforced boundary. It holds only on the runs where the
+resolution is actually executed, and a skipped check leaves no trace: the write
+succeeds and looks ordinary. Observed runs of these skills confirm the control
+is skipped some of the time, and every skip wrote outside the approved root.
+Do not describe a write as confined unless you ran the resolution and read its
+result. An adopter who needs a guarantee rather than a strong default must
+enforce confinement outside the agent — in the filesystem, or in a tool that
+refuses the write.
 
 ## Intermediate-directory confinement
 
