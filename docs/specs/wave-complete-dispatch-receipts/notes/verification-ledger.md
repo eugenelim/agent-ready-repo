@@ -372,6 +372,31 @@ rather than argued in prose. The spec's canonical-axis criterion and T3's
 pinned `Tests` entry were reworded to the two-valued axis plus this assertion,
 so the instrument no longer contradicts a pinned criterion.
 
+**Mutation proof of the round-10 addition.** Round 10's contract lane found the
+hostile leaves varied a record's `kind` and `reason` by presence and value but
+never by *type*, so the declared type axis on both fields had never been
+exercised. Adding `{"kind": 7}`, `{"kind": ["receipt"]}`,
+`{"kind": "decline", "reason": 7}` and
+`{"kind": "decline", "reason": ["no-implementer-installed"]}` did not merely
+widen the domain — it crashed the run:
+
+```
+TypeError: unhashable type: 'list'
+```
+
+`is_record` tested `value.get("reason") in DECLINE_REASONS` against a
+`frozenset`, and `in` raises for an unhashable left operand. The spec criterion
+claims the predicate is total over every value a position can hold, so that
+raise **falsified the criterion**, not just the script. Fixed with an
+`isinstance(reason, str)` guard — a non-string reason is not in the closed set,
+which is an answer rather than an error. Reverting the guard reproduces the
+`TypeError`, so the fix is load-bearing. The domain grew from 25,872 states to
+35,728, still 0 overlapping and 0 uncovered with every row reached.
+
+This is the fourth time widening the walk's domain found a defect the previous
+domain could not express, and the second time the defect was in a predicate
+rather than in a row's wording.
+
 **Mutation proof of the instrument's first version.** Five mutations, each caught by a
 named assertion:
 

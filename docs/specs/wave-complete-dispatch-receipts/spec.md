@@ -89,6 +89,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `schedule_waves` held in the same file as the records it partitions, so anyone
   who can write a record can compute the current digest. It discriminates a
   stale partition from the live one; it is not evidence of who wrote a record.
+- Disclose the schema toggle at the same strength. The verdict table passes
+  silently on a state whose `schema_version` is not the supported value, by
+  design, so an actor who can write `state.json` sets an unsupported value,
+  fires the transition, and restores the supported value afterwards. Nothing
+  durable records that the exit passed unchecked. While the mismatch stands the
+  run is not free — `loop-cohort status` refuses, and every run-scoped mutation
+  that reads existing cohort state refuses — but those refusals constrain only
+  the window, not what happened inside it. This is the cheapest of the four
+  routes in effort and the quietest in evidence, and it exists because
+  preserving `check --phase implement`'s verdict for old state was chosen over
+  closing it. Disclosed rather than closed.
 - Disclose the forward pointer at the same strength. Every accounting statement
   here is scoped to the *current* wave, so an actor who can write `state.json`
   and sets `current_wave_index` from `n` to `n+1` in one field edit skips wave
@@ -96,8 +107,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   already-applied branch. Against the other two routes this is the cheapest and
   the quietest: a forged record still leaves a per-task record to read, a
   deleted container flips `status` to not-enforced and triggers the exit's
-  notice, and a forward pointer leaves a populated container, an enforced
-  `status`, and a silent exit. Nothing in this spec detects it, because
+  notice — though only while it is absent: an actor who removes the key, fires
+  the exit and the advance, then restores the saved contents leaves `status`
+  reporting enforced and nothing but an ephemeral stdout notice behind — and a
+  forward pointer leaves a populated container, an enforced `status`, and a
+  silent exit. Nothing in this spec detects it, because
   detecting a wave below the pointer needs a per-wave completion record that
   ADR-0061 Option A cannot write. It is disclosed rather than closed.
 - Give every guard verdict a precondition that no other verdict's precondition
@@ -111,11 +125,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Let the guard pass when the receipts container is absent, which is cohort
   state written before receipts existed, so a run already in flight when this
   ships still completes. That is the only such exemption. An absent or empty
-  `schedule_waves` is *not* one: the two are indistinguishable to a reader that
-  supplies `[]` as the default, and the well-formedness rule below classifies
-  that state malformed. A run at this exit has a persisted schedule by
-  construction, so exempting the schedule-less state would buy nothing and
-  would contradict that rule.
+  `schedule_waves` is *not* one, **on a state whose schema is supported**: the
+  two are indistinguishable to a reader that supplies `[]` as the default, and
+  the well-formedness rule below classifies that state malformed. The scope
+  matters and is not a hedge — the unsupported-schema row passes before any
+  shape is read, deliberately, so that the transition's verdict is preserved
+  for the oldest state class. An unsupported-schema state with an empty
+  partition therefore passes, and that is the compatibility guarantee rather
+  than a second verdict for one state.
+
+  The reason to refuse rather than exempt is not that the state is unreachable
+  — it is reachable, through the amendment crash window described under the
+  well-formedness rule. It is that the pass direction is silent: an empty
+  current wave satisfies "every task in the current wave is accounted for"
+  vacuously over zero tasks. Refusing costs a resuming controller one read of
+  `amendment_pending`; passing costs the guarantee.
 - Carry the absent-container exemption inside the shared accounting predicate,
   not beside it, so every consumer of that predicate inherits it rather than
   restating it.
@@ -362,7 +386,9 @@ cannot write.
       tolerates the class and the verb refuses it, so on the oldest state the
       exit passes without a record and no controller action is owed at the
       exit. State the end-to-end outcome too: `_validate_run_id` refuses an
-      unsupported `schema_version` for every cohort mutation, so that same
+      unsupported `schema_version` for every run-scoped mutation that reads
+      existing cohort state — `reset` and `init` do not call it, so the claim is
+      about the run-scoped verbs and not about every verb — so that same
       state's next `wave advance` refuses on schema regardless, and the run
       cannot progress past the wave boundary without a schema migration. The
       exit's tolerance buys the transition, not the run.
@@ -508,9 +534,12 @@ negations, and two rows then covered the same state with opposite verdicts.
       cites it rather than restating a subset. The read axis is two-valued on
       purpose: no verdict row discriminates among the reader's refusal kinds,
       so enumerating them multiplies the domain without adding a distinction
-      any predicate makes. The vocabulary is still listed in the instrument as
-      the evidence that the read-refusal row's wording covers every kind — it
-      is documentation of that row's scope, not an axis.
+      any predicate makes. The instrument asserts that every kind it lists
+      classifies to the read-refusal row and nowhere else, which is what
+      licenses the collapse. It does not establish that the list is the
+      reader's whole vocabulary — that list is maintained by hand, so
+      completeness is the survey's obligation, not the walk's, and the
+      instrument states the bound where the assertion lives.
 - [ ] The container values in that domain are generated from the declared key
       path — a correctly nested instance built from the declaration, then
       mutated at each depth with each hostile value — rather than hand-built at

@@ -7,7 +7,10 @@ session fires `findings-remain` before revising.
 ## Status: a snapshot taken at the round below the table's last row
 
 This file is the state at the point it was written, not the current state. Later
-rounds are recorded in the plan's revision history, which is the live home. The
+rounds are recorded in the plan's revision history, which is the live home.
+Rounds 7 onward ran on Codex reviewers rather than Claude subagents; round 10
+used two reviewers with disjoint focus sets, one on contract and verification
+mechanism, one on secure design. The
 conclusion recorded here — that the next step was a spike rather than another
 round — was acted on; the open blockers below are the ones that were open then.
 
@@ -23,6 +26,9 @@ it were verified against code directly.
 | 3 | 4 blockers, 10 concerns, 2 nits | 2 blockers, 4 concerns, 1 nit | inside round-2 repairs |
 | 4 | 5 blockers, 5 concerns, 2 nits | 4 blockers, 3 concerns, 1 nit | inside round-3 repairs, plus one external caller |
 | 5 | 4 blockers, 6 concerns, 3 nits | 1 blocker, 6 concerns, 1 nit | inside round-4 repairs |
+| 7 | adjudicated | adjudicated | round-6 repairs |
+| 9 | 15 findings | 9 findings | mixed: round-8 repairs and pre-existing |
+| 10 | 2 blockers, 5 concerns | 1 blocker, 2 concerns, 1 nit | both blockers were round-9 drift |
 
 Round 1 adjudication refuted 4 of 23 findings, so the reviewers are not simply
 always right. The sustained rate is high and the pattern did not break.

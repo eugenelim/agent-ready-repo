@@ -330,9 +330,16 @@ Three tiers, and a claim belongs to exactly one:
   a fixture's internal shape.
 
 **The discovery channel below is spent, and that is recorded rather than
-quietly dropped.** T1 predeclared a set of questions, all now answered, in
-§ 2 and § 3 of the verification ledger, and several turned out to be tier
-one rather than tier two — the `schema_version` behaviour is a verification
+quietly dropped.** Every question T1 predeclared now has an answer, and the
+answers do not all live in one place, so the pointer names each home rather
+than the ledger as a whole. Ledger § 2 holds the pre-PR chain and the
+firing-site set; § 3 holds the helper contracts and the length bounds; the
+`schema_version` answer is the first entry in § Discovery decisions in this
+plan, because it fired the kill condition. The pinning survey, the phase-list
+surface inventory, and the inventory of statements asserting that `implement`
+guards `wave-complete` are **not** recorded yet — they are T1's `Done when`,
+which is why that field names the survey explicitly. Several answers turned out
+to be tier one rather than tier two — the `schema_version` behaviour is a verification
 mechanism *and* a security boundary, the pre-PR chain decides which surface the
 change gates, the firing-site set decides the task graph, and the length bounds
 decide a criterion. Its kill condition fired before T1 ever ran and was resolved
@@ -450,9 +457,13 @@ the exhaustive per-clause sweep, not the first time an arm is tested.
 - `no stub (mode)` — goal-based.
 
 **Approach:**
-- The questions this task predeclared are settled; § 2 and § 3 of the
-  verification ledger hold the answers with the surfaces read. Re-verify none of
-  them here: a settled tier-one claim is read from the ledger, not rediscovered.
+- The questions this task predeclared are settled as *answers*, but not all are
+  recorded. Ledger § 2 and § 3 hold the pre-PR chain, the firing-site set, the
+  helper contracts and the length bounds, with the surfaces read; the
+  `schema_version` answer is in § Discovery decisions above. Read those rather
+  than re-deriving them: a settled tier-one claim is read, not rediscovered.
+  The pinning survey, the phase-list surfaces, and the `implement`-guards-
+  `wave-complete` assertion inventory are the ones this task still writes.
 - Confirm the pre-PR hook's `implement` leg is still ungated by the engine state
   and still runs for every `docs/specs/*/state.json`, since the separate-phase
   design rests on it and the tree may have moved. If it no longer holds, stop
@@ -520,6 +531,12 @@ the dispatch-rate generator.
   drives the verb's largest state-derived refusal; the verb's own stderr is
   bounded, discloses truncation, and contains only whole identifiers.
 - A non-matching `--expect-run-id` exits non-zero.
+- `schedule_waves` a non-list, its element at the named index a non-list, and
+  the receipts container malformed at each declared depth in turn: each exits
+  non-zero and names the malformed position rather than surfacing an exception
+  type, and each leaves `state.json` byte-identical. Derived from the same
+  key-path and well-formedness declarations the guard's rows use, so the two
+  cannot disagree about which shapes are hostile.
 - A state whose `schema_version` is not the supported value exits non-zero and
   the message names the schema. Separate from the run-identifier case because
   `_validate_run_id` emits a distinct message for the schema branch, so the
@@ -607,8 +624,9 @@ covers the state lock a new mutation takes.
   streams.
 - A partition-property case over **every** axis the spec's domain criterion
   enumerates — the state-read outcome as returned-or-refused, `schedule_waves`,
-  its element at the pointer, the container, a record's `kind`,
-  `schema_version`, and `current_wave_index` — plus a separate case asserting
+  its element at the pointer, the container, a record's `kind` **and its
+  `reason`**, `schema_version`, and `current_wave_index`, each varied by
+  presence, type, and value — plus a separate case asserting
   that every kind in the reader's refusal vocabulary classifies to the
   read-refusal row and nowhere else, which is what licenses the two-valued
   axis. That criterion is the
@@ -649,6 +667,29 @@ covers the state lock a new mutation takes.
   unaccounted task in wave `n`: exits non-zero, names that task, and leaves
   `state.json` byte-identical so the pointer does not move.
 - The same call with wave `n` fully accounted for: exits zero and advances.
+- `wave advance --from-index n` with the receipts container absent and
+  `current_wave_index == n`: exits zero and advances, which is the
+  absent-container exemption reached through the verb rather than the guard.
+- `wave advance --from-index n` with `current_wave_index` stored as `"1"`,
+  `1.9`, `True`, and `None` in turn: each exits non-zero, names the field, and
+  leaves `state.json` byte-identical. Four cases rather than one because the
+  reading this replaces — `int(...)` — accepts the first three and raises on
+  the fourth, so a single case cannot show the change.
+- `wave advance --from-index n` with `schedule_waves` a non-list, its element
+  at `n` a non-list, and the container malformed at each declared depth in
+  turn: each refuses by name rather than raising, and names `reset` where the
+  unusable value is in cohort state.
+- `wave advance --from-index n` with `current_wave_index` matching neither `n`
+  nor `n + 1`: keeps its existing mismatch refusal, unchanged by the accounting
+  check. This is the third branch, and without a case the sweep in T5 cannot
+  tell it apart from the advancing branch.
+- The bounding pair driven through the verb, not only the guard: a wave whose
+  unaccounted-task list exceeds the per-value interpolation bound, and a
+  state-derived value longer than the bound, each asserted on `wave advance`'s
+  own stderr. Separate from the guard-side pair above because the verb emits
+  through `loop-cohort`'s diagnostic helper, which the ledger measures as
+  applying no length bound at all — so the guard-side cases prove nothing about
+  this channel.
 - `wave advance --from-index n` with `current_wave_index == n + 1` and wave `n`
   unaccounted: exits zero, because that is the documented crash-resume replay.
   This is the discriminating pair for the branch asymmetry — a coupling applied
@@ -849,11 +890,20 @@ tests/roster/test_verification_ledger_contract.py -q` passes.
   task-membership check, the partition-digest match, the guard's reason-code
   check, every verdict row, the accounting check on `wave
   advance`'s advancing branch, its absence from the already-applied branch, the
-  precedence of the verb's existing refusals over it, the `schedule` container
+  precedence of the verb's existing refusals over it, the shared reading of
+  `current_wave_index` on the advancing branch, the absent-container exemption
+  inside the shared predicate, the verb's refuse-by-name handling of each
+  malformed position, the `schedule` container
   creation, the
   `schedule` stale-record pruning, the amendment clearing, and the `status` key
   — re-running the suite after each.
 - Record, per clause, the named test that turned red and the observed failure.
+- Two of those clauses are passes rather than refusals, so "remove it" means
+  invert it: the absent-container exemption is neutralised by making the
+  advancing branch refuse an absent container, and the already-applied branch's
+  unconditional pass by making it apply the accounting check. Both must redden
+  a named case. A pass clause silently dropped from a mutation list is how an
+  exemption ships unverified.
 - A clause whose removal leaves the suite green returns to T2 or T3 for a
   discriminating assertion. Record that round too; a mutation table with no
   survivors and no recorded rounds is the shape a table gets when it was written
@@ -1047,3 +1097,27 @@ tools/test_build_site_routing.py -q` passes.
   acquisition vocabulary was an inert constant; it now carries the
   read-refusal row's scope as an assertion that reddens under a widened
   `readable`.
+- 2026-09-17: revised from review round 10, run on two Codex reviewers with
+  disjoint focus sets. Both blockers on the contract lane were drift from the
+  round-9 repairs themselves. The Boundaries sentence stating that an empty
+  `schedule_waves` is never exempt was unconditional, while the
+  unsupported-schema row passes before any shape is read — so an unsupported
+  state with an empty partition had two contract verdicts. The sentence is now
+  scoped to the supported-schema case, which is the compatibility guarantee
+  rather than a second verdict; the reviewer's remedy, narrowing the pass row,
+  was not taken because it would break the criterion that no state
+  `check --phase implement` passes today may start refusing. The same sentence
+  also claimed a run at this exit has a persisted schedule "by construction",
+  which the crash-window prose added in the same commit refutes; the claim is
+  gone and the reason for refusing is now the silent pass direction.
+  A fourth off-switch was found and disclosed: an actor who can write
+  `state.json` sets an unsupported `schema_version`, fires the transition, and
+  restores the value, leaving nothing durable behind. Container deletion's
+  disclosure was corrected too — it is a restorable window, not a run-long
+  state. The claim that `_validate_run_id` covers "every cohort mutation" was
+  narrowed, because `reset` and `init` do not call it. Every branch round 9
+  added gained a T3 case, the bounding pair is now driven through
+  `wave advance`'s own channel rather than only the guard's, the verb's
+  malformed-position criterion gained T2 carriers, and T5's mutation list gained
+  the two *pass* clauses with an explicit instruction to invert rather than
+  delete them.

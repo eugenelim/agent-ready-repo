@@ -63,14 +63,24 @@ READ_OUTCOMES = ("ok", "refuses")
 
 
 def is_record(value) -> bool:
-    """A record: kind in {receipt, decline}, a decline carrying a closed reason."""
+    """A record: kind in {receipt, decline}, a decline carrying a closed reason.
+
+    Total over any value, which the docstring alone did not make it: round 10
+    added a hostile leaf whose `reason` was a list, and `x in frozenset` raises
+    `TypeError` for an unhashable `x`. The spec criterion claims the predicate
+    is total over every value a position can hold, so a raise here falsifies
+    the criterion rather than merely crashing the walk. The `isinstance` guard
+    is the fix, not a `try`: a non-string reason is *not* in the closed set, and
+    that is an answer, not an error.
+    """
     if not isinstance(value, dict):
         return False
     kind = value.get("kind")
     if kind == "receipt":
         return True
     if kind == "decline":
-        return value.get("reason") in DECLINE_REASONS
+        reason = value.get("reason")
+        return isinstance(reason, str) and reason in DECLINE_REASONS
     return False
 
 
@@ -225,6 +235,13 @@ ROWS = (
 HOSTILE_VALUES = (
     42, "receipt", [], None, {}, {"kind": "bogus"},
     {"kind": "decline"}, {"kind": "decline", "reason": "made-up"},
+    # The declared axes vary a record's `kind` and `reason` by presence, type
+    # AND value. Round 10 found only presence and value covered: every leaf
+    # above carries a string `kind` or omits it, so a predicate comparing
+    # `kind` without a type check stayed green.
+    {"kind": 7}, {"kind": ["receipt"]},
+    {"kind": "decline", "reason": 7},
+    {"kind": "decline", "reason": ["no-implementer-installed"]},
 )
 
 
@@ -348,9 +365,16 @@ def main() -> int:
     # ACQUISITION_REFUSALS was an inert constant a review caught: the read axis
     # is two-valued, so nothing read the vocabulary and its presence read as
     # coverage it did not provide. It now carries the row-1 scope claim as an
-    # assertion — every kind the reader can refuse with must land on row 1 and
-    # nowhere else. This is what makes the two-valued axis legitimate rather
-    # than a collapse that loses cases.
+    # assertion: every kind LISTED here lands on row 1 and nowhere else.
+    #
+    # Bound, stated because the assertion looks stronger than it is: the list is
+    # maintained by hand against the reader's source, so deleting an entry, or
+    # the reader growing a refusal kind nobody adds here, leaves this green.
+    # What is proved is that the two-valued collapse loses no case AMONG THE
+    # LISTED KINDS — not that the list is the reader's whole vocabulary. Closing
+    # that would mean deriving the vocabulary from `_loop_guards` itself, which
+    # a notes script under `docs/` should not import; the completeness half is
+    # T1's survey obligation instead.
     assert ACQUISITION_REFUSALS, "the acquisition vocabulary is empty"
     assert "ok" not in ACQUISITION_REFUSALS, (
         "'ok' is the success value; listing it as a refusal kind would make "
