@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-17
+- **Areas:** security, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review, security review (eight pre-EXECUTE rounds)
-- **Supersedes:** the **CI-chaining sub-decision** in [ADR-0017](0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) only — that SAST runs "chained into `make build-check` … in the existing `build-check.yml` CI on every PR". That ADR's tool choices, severity floor, three-way real-fix-first ladder, and the requirement that the scanners stay CI-only dev dependencies all stand, and the **Makefile chain is deliberately untouched**
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0017
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** the implementing spec `docs/specs/ci-gate-parallelization/`; `tools/assert-sast-chain-reachable.py` carries the operative guarantee; [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) extends the same gate to npm and travels with it
 
 ## Decision summary
@@ -34,7 +39,7 @@ independently required by branch protection. What ADR-0017 actually needed was t
 a developer running the local gate scans, and that CI cannot skip the leg by
 omission.
 
-## Decision detail
+## Decision
 
 **The Makefile chain is untouched.** `make build-check` on a developer machine still
 runs `$(MAKE) sast`. That is ADR-0017's dogfooding requirement, and it is now
@@ -53,6 +58,20 @@ the invoker supplied the assignment on the command line. So an ambient
 scan runs and the honest "complete" verdict prints. Without this, an exported
 variable in a devcontainer image would make `make ci` skip the entire SAST/SCA leg
 and finish with a calm verdict — strictly worse than the state ADR-0017 left.
+
+- **D1:** The SAST/SCA leg runs as its own `gate-sast` job inside
+  `build-check.yml`, always runs, has no skip state, and is independently
+  required by branch protection.
+- **D2:** `gate-main` invokes `make build-check PACKS_DIR=packs SAST_DELEGATED=1`,
+  so the main job no longer owns the scan.
+- **D3:** The Makefile chain is untouched — `make build-check` on a developer
+  machine still runs `$(MAKE) sast`.
+- **D4:** `tools/assert-sast-chain-reachable.py` pins that branch's reachability
+  against both deletion and being made unreachable while still present.
+- **D5:** The signal that a run's SAST leg was deliberately delegated is
+  `$(origin SAST_DELEGATED) = "command line"`, never an environment variable, so
+  an ambient `SAST_DELEGATED=1` neither reaches the quiet banner nor skips the
+  leg.
 
 ## Alternatives considered
 
@@ -115,3 +134,10 @@ aggregator fails closed (non-success → exit 1) — the safe direction, but sur
   concurrency group regardless of that flag, so a third queued run cancels the
   pending one. Do not copy that group shape; see the spec's AC12 for one that keys
   non-PR events uniquely. Tracked as `ci-security-posture-test-unwired`.
+
+**Revisit if:** a partial re-run is exercised and the aggregator reports stale or
+empty results for the non-re-run siblings — the path recorded above as untested —
+or a repository ruleset resolving required workflows from a pinned ref becomes
+available and closes `ci-gate-parallelization-required-workflow-pinned-ref`,
+which would bound D1's "a green aggregator does not prove a scan executed"
+residual.

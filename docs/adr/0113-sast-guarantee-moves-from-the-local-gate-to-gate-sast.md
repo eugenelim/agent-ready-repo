@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-13
+- **Areas:** security, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (Codex, read-only)
-- **Supersedes:** the **dogfooding sub-decision** in [ADR-0017](0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) only — that the SAST/SCA leg is chained into `make build-check` so that a developer running the local gate scans. That ADR's tool choices, severity floor, three-way real-fix-first ladder, and the requirement that the scanners stay CI-only dev dependencies all stand
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0017
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [ADR-0086](0086-split-the-sast-gate-into-its-own-ci-job.md), [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md), PR #1285
 
 ## Decision summary
@@ -91,6 +96,20 @@ We will treat `gate-sast` as the enforcement point for the SAST/SCA gate, and th
 `$(MAKE) sast` branch inside `make build-check` as a supported reproduction path
 rather than the dogfooding mechanism.
 
+- **D1:** `gate-sast` is the enforcement point for the SAST/SCA gate.
+- **D2:** The `$(MAKE) sast` branch inside `make build-check` is a supported
+  reproduction path, not the dogfooding mechanism.
+- **D3:** `make sast` is the named local command for running the scan directly,
+  does not require `make build-check`, and is not an offline path.
+- **D4:** The Makefile chain and `tools/assert-sast-chain-reachable.py` stay
+  unchanged, and the living comments that still call this branch "dogfooding" are
+  corrected.
+- **D5:** `SAST_DELEGATED` is unchanged: ADR-0086's command-line-origin rule
+  stands, and it remains CI's signal rather than a developer default.
+- **D6:** `SKIP_SAST` is unchanged and keeps its `INCOMPLETE` banner.
+- **D7:** The severity floor, the tool set, and the real-fix-first ladder are not
+  relaxed.
+
 Specifically:
 
 - `make sast` is the named local command for running the scan directly. It does
@@ -172,21 +191,24 @@ is removed, or contributors resume running the local gate routinely.
 ## Alternatives considered
 
 - **Keep the dogfooding claim and tell contributors to run `make ci` before
-  pushing.** Rejected against the inner-loop driver. It also fails the coverage
-  driver in an unexpected direction: `make ci` is strictly *weaker* than a pull
-  request, so the advice would trade minutes of local time for less assurance.
+  pushing** — rejected against *inner-loop cost is now a named constraint*: it
+  also fails the coverage driver in an unexpected direction, because `make ci` is
+  strictly *weaker* than a pull request, so the advice would trade minutes of
+  local time for less assurance.
 - **Delete the Makefile chain and `assert-sast-chain-reachable.py` as dead
-  weight.** Rejected against the coverage driver. The offline and
+  weight** — rejected against *no reduction in scan coverage*: the offline and
   reproduce-a-CI-failure cases are real, and an unpinned branch that no path
   exercises is exactly the state ADR-0086 identified as rot-prone.
-- **Document `SAST_DELEGATED=1` as the local default.** Rejected. ADR-0086 made
-  command-line origin load-bearing precisely to stop this becoming ambient, and it
-  would leave `make ci` quietly not scanning while printing a calm verdict —
-  ADR-0086 names that outcome as "strictly worse than the state ADR-0017 left".
+- **Document `SAST_DELEGATED=1` as the local default** — rejected against *the
+  guarantee must be enforced, not asserted*: ADR-0086 made command-line origin
+  load-bearing precisely to stop this becoming ambient, and it would leave
+  `make ci` quietly not scanning while printing a calm verdict — ADR-0086 names
+  that outcome as "strictly worse than the state ADR-0017 left".
 - **A fast/slow split — Bandit chained locally, the network-bound legs on a
-  separate cadence.** This is ADR-0017's own named revisit. Not taken: it keeps a
-  local leg that this decision has just established nobody runs, and splits one
-  gate into two maintenance surfaces for no measured gain.
+  separate cadence** — rejected against *no reduction in scan coverage*: this is
+  ADR-0017's own named revisit, and it keeps a local leg that this decision has
+  just established nobody runs while splitting one gate into two maintenance
+  surfaces for no measured gain.
 
 ## References
 

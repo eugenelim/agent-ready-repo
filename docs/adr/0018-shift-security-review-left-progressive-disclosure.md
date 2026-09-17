@@ -1,9 +1,14 @@
 # ADR-0018: Shift security review left and deliver its depth via an orchestrator-loaded progressive-disclosure skill
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-12
-- **Deciders:** eugenelim
+- **Areas:** security, review
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0029 (the proposal this records); ADR-0017 (the SAST/SCA gate — the motivating evidence and the "scanners catch syntactic; the reviewer catches reasoning" split); ADR-0014 / RFC-0025 (risk-triggered work-loop modes — the security-boundary trigger this reuses); the implementing spec `docs/specs/security-reviewer-shift-left/`
 
 ## Context
@@ -63,6 +68,35 @@ orchestrator-loaded, progressive-disclosure `security-checklists` skill so depth
 never bloats the agent, and (3) shifted left via a spec-stage secure-design mode
 wired into the work-loop's pre-EXECUTE review on the security-boundary trigger —
 with no adapter-contract change.**
+
+- **D1:** The `security-reviewer`'s checklist is four tiers — design-time
+  proactive, awareness breadth, verification depth, and open-ended threat
+  modeling — scoped to the trust boundaries the change crosses, never a flat
+  march.
+- **D2:** The awareness tier cites OWASP Top 10:2025, API Security Top 10:2023,
+  and LLM Top 10:2025; the threat-modeling tier is STRIDE plus LINDDUN.
+- **D3:** The universal method stays in the agent body: the delegation rule,
+  load-context-first, the always-on STRIDE + LINDDUN open pass, the
+  established-helper-bypass meta-check, the severity rubric, the honest-limits
+  footer, and the output format.
+- **D4:** Shape-specific depth ships as ten boundary-keyed
+  `references/<module>.md` modules in a new `security-checklists` skill.
+- **D5:** The orchestrator selects modules by deterministic boundary→module
+  routing and inlines their content into the subagent's brief; subagent
+  self-discovery is a redundant convenience, never a dependency.
+- **D6:** Every loaded check is tagged `tool`, `hybrid`, or `reason`, and
+  delegation detects the ecosystem's scanner rather than assuming Python.
+- **D7:** When a delegated scanner is absent the reviewer reasons the class
+  best-effort with a `degraded: no scanner` flag or states the gap explicitly,
+  never silently skipping it.
+- **D8:** Repo-convention awareness resolves in precedence `AGENTS.md` →
+  `CONVENTIONS.md` and installed pack context → grep inference, and mints no new
+  mandatory `security.md` standard file.
+- **D9:** The spec-stage secure-design mode is wired into the work-loop's
+  pre-EXECUTE review and fires only on the ADR-0014 / RFC-0025 security-boundary
+  risk trigger, not on all work.
+- **D10:** No adapter-contract change is made; the `skill` primitive's existing
+  `direct-directory` projection carries the depth to every adapter.
 
 The specifics, recorded so the next maintainer need not re-litigate them:
 
@@ -167,6 +201,10 @@ Boundaries on the decision:
   it — and whether it belongs in `CONVENTIONS.md` or in the `work-loop` skill (the
   canonical "how") is settled there, consistent with the ongoing move of mode
   mechanics out of `CONVENTIONS.md`.
+
+**Revisit if:** observed redundancy shows two of D4's ten modules always co-fire,
+which collapses them; or an annual standards refresh retires a framework D1/D2
+names, which is the recurring currency cost recorded under Negative.
 
 ## Alternatives considered
 

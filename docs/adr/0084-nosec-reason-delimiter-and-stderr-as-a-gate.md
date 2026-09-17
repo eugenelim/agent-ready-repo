@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-16
+- **Areas:** security, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** security review, quality review
-- **Supersedes:** the **`# nosec <ID> — <reason>` spelling** in [ADR-0017](0017-adopt-bandit-pip-audit-semgrep-sast-gate.md)'s suppression-policy sub-decision only — that ADR's three-way real-fix-first ladder, tool choices, and severity floor all stand
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0017
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** the implementing spec `docs/specs/bandit-nosec-comment-hygiene/`; `bandit.yaml` and `tools/run-bandit-gate.py` carry the operative rules
 
 ## Decision summary
@@ -64,6 +69,17 @@ broken into a no-op is not a gate.
 **The reason goes after a second `#`.** `# nosec B603  # list argv, no shell`.
 The second `#` terminates the id list, so the reason is never parsed. The id is
 **mandatory** — an id-less suppression is a blanket suppression.
+
+- **D1:** A Bandit suppression is written `# nosec <ID>  # <reason>`, with the
+  reason after a second `#` and never after a dash or em dash.
+- **D2:** The test id is mandatory; an id-less `# nosec` is a blanket suppression
+  and is not permitted.
+- **D3:** `make sast` fails when Bandit writes anything to stderr.
+- **D4:** The stderr gate is a script, `tools/run-bandit-gate.py`, not a recipe
+  line, and `tools/test-sast-stderr-gate.py` drives it against a stub `bandit`.
+- **D5:** The rule is sited in three places with fixed roles — this ADR is the
+  decision record, `bandit.yaml`'s header comment is the instruction, and
+  `run-bandit-gate.py` is the enforcement.
 
 **`make sast` fails on non-empty Bandit stderr.** Under `-q` Bandit's stderr
 carries only diagnostics about the scan's own integrity: unparsed suppressions,
@@ -127,22 +143,27 @@ suppression will be; `run-bandit-gate.py` is the enforcement.
 
 ## Alternatives considered
 
-- **Leave the form and filter the warnings out of the recipe.** Rejected: it
-  hides the signal rather than fixing the comments producing it, and leaves both
-  fail-open paths intact.
-- **Put the reason on the preceding line instead.** Works, and is what the one
-  multi-line rationale in `capture-publish-control-evidence.py` does. Rejected as
-  the general rule because ADR-0017's same-line requirement is worth keeping —
-  a suppression and its justification should not drift apart.
-- **Pin or downgrade Bandit so the warnings stop.** Rejected: the warnings are
+- **Leave the form and filter the warnings out of the recipe** — rejected against
+  *a suppression comment is a security control's audit trail*: it hides the
+  signal rather than fixing the comments producing it, and leaves both fail-open
+  paths intact.
+- **Put the reason on the preceding line instead** — rejected against *a
+  suppression comment is a security control's audit trail*: it works, and is what
+  the one multi-line rationale in `capture-publish-control-evidence.py` does, but
+  ADR-0017's same-line requirement keeps a suppression and its justification from
+  drifting apart.
+- **Pin or downgrade Bandit so the warnings stop** — rejected against *a
+  suppression comment is a security control's audit trail*: the warnings are
   correct, and the parse behaviour they report predates the version that started
   reporting it.
-- **Amend ADR-0017 in place.** Rejected: ADR bodies are immutable once Accepted
-  (`docs/CONVENTIONS.md` § Document lifecycle). Only its Status line moves, and
-  it moves to point here.
-- **Ship the form with no enforcement at all.** Rejected: the new spelling is
-  *quieter* than the old one when it is malformed, so documenting it without a
-  gate would trade a noisy foot-gun for a silent one.
+- **Amend ADR-0017 in place** — rejected against *the fix had to survive the next
+  contributor*: ADR bodies are immutable once Accepted (`docs/CONVENTIONS.md`
+  § Document lifecycle), so only its Status line moves, and it moves to point
+  here.
+- **Ship the form with no enforcement at all** — rejected against *ADR-0017's
+  remediation ladder is real-fix-first*: the new spelling is *quieter* than the
+  old one when it is malformed, so documenting it without a gate would trade a
+  noisy foot-gun for a silent one.
 
 ## References
 

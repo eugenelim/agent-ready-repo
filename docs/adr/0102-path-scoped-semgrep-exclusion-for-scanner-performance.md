@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-29
+- **Areas:** security, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** [ADR-0017](0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) in part — its **exclusion-list sub-decision** only (that Semgrep's exclusions are the four listed rule-scoped ones chosen for duplicating Bandit); that ADR's tool choices, severity floor, three-way suppression policy, and the four exclusions themselves all stand
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0017
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [ADR-0084](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) (a quiet scanner signal becomes a gate through a wrapper with a self-test, not a recipe flag)
 
 ## Decision summary
@@ -42,6 +47,20 @@ with no blocking detector for env-tainted subprocess argv.
 Excluding the two *files* instead keeps both rules live everywhere else.
 
 ## Decision
+
+- **D1:** `--exclude <path>` may be used in `SEMGREP_EXCLUDE` when a rule/file
+  interaction makes the gate unrunnable and the rule-scoped alternative would
+  cost blocking coverage on production code.
+- **D2:** A path-scoped exclusion is preferred over raising `--timeout`.
+- **D3:** Every path-scoped entry records, beside itself in the same comment
+  block as the existing four, the detections dropped on that path, what still
+  covers them — naming the gate's severity floor where that matters — and the
+  measured current finding count on the excluded path.
+- **D4:** Every path-scoped entry states the condition under which it is removed.
+- **D5:** ADR-0017's four rule-scoped exclusions, their Bandit-duplication
+  justification, its three-way suppression policy, its tool choices, and its
+  severity floor all stand; only the claim that the exclusion list *is* those
+  four rules is widened.
 
 ### 1. Path-scoped exclusion is a legitimate fourth vehicle
 
@@ -110,3 +129,4 @@ and an exclusion is found to have outlived its cause.
   exclusion exists to avoid. Recorded as a visible `none` rather than omitted,
   because a reader would reasonably expect the retirement trigger to be enforced
   and it is not.
+- **Owner:** eugenelim
