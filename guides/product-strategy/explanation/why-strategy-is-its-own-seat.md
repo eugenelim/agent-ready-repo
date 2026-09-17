@@ -40,8 +40,8 @@ screen looks like. It draws on the NN/g three-layer model, Jaime Levy's four
 tenets, and the Gothelf/Seiden habit of linking UX outcomes to OKRs.
 
 **Content strategy** is also one skill, and it lives above per-surface content
-design. It is the organizational and governance layer — Halvorson's quad of
-Purpose, Process, Structure, and Governance — that decides how content gets made,
+design. It is the organizational and governance layer — Purpose, Process,
+Structure, and Governance, this pack's own composite — that decides how content gets made,
 kept true, and retired. It does not write the copy for any one surface. That is
 the `content-design` skill in the experience-design pack, and the boundary
 matters: strategy sets the system content lives in, design fills it.
