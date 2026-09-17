@@ -452,7 +452,8 @@ jobs:
             tools/test_okf_pre_pr.py \
             tools/test_pack_test_compatibility.py \
             tools/test_check_distribution_route_decisions.py \
-            tools/test_route_branch_guard.py -q
+            tools/test_route_branch_guard.py \
+            tools/test_gate_enumeration.py -q
 
       # CI-only by design, and lint-ci-parity holds the disposition. Proving
       # collection equivalence costs 30 collect-only pytest processes (~36s) —

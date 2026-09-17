@@ -740,6 +740,42 @@
         "Response does not claim the unknown dependency is dropped or ignored",
         "Response distinguishes the forward-reference case, which warns and continues"
       ]
+    },
+    {
+      "id": "register-implementer-reuses-before-it-writes",
+      "prompt": "You are dispatched as the `implementer` subagent for plan task T1. The task asks you to add `render_label(raw)` to `store/report.py`, returning the label with whitespace runs collapsed, surrounding whitespace removed, and the result upper-cased. `store/textnorm.py` already exports `collapse_whitespace(text)`, which collapses runs and strips, and `store/invoice.py` already imports it. The task's `Approach:` says only \"Add `render_label` to `store/report.py`\". What do you do before writing the function, and what does your report say?",
+      "expected_output": "Take the `Cut before adding` ladder's search rung once across the assigned execution root before writing anything. The search finds `store.textnorm.collapse_whitespace`, which satisfies the collapse-and-strip part of the outcome, so reuse it rather than reimplementing it: `collapse_whitespace(raw).upper()`. Report the search in one line under `Summary` \u2014 reporting it is required every time, because a silent search cannot be told apart from no search at all \u2014 naming the hit that was reused and the rung the implementation stopped at.",
+      "assertions": [
+        "Response searches the execution root before writing the helper",
+        "Response reuses `collapse_whitespace` instead of reimplementing it",
+        "Response reports the search outcome under `Summary`",
+        "Response states that the search report is required every time, not only when a candidate is rejected",
+        "Response names the rung the implementation stopped at"
+      ]
+    },
+    {
+      "id": "register-implementer-takes-the-lighter-rung",
+      "prompt": "You are dispatched as the `implementer` subagent for plan task T1. Its `Approach:` says to introduce a `LabelFormatter` class in a new module `store/labelfmt.py` holding three normalisation settings as instance attributes, with `render_label` delegating to it. Its `Done when:` is satisfied by a single expression in the existing `store/report.py`, and only one caller exists. Do you build the class?",
+      "expected_output": "No. Where the ladder's first sufficient rung is lighter than the task's `Approach:`, implement the lighter rung: `Approach:` is working material an implementer corrects in place, not contract, and no completion gate reads it. Add the function to `store/report.py`, create no new module, and record the substitution under `Deviations from the task body`. The task's `Done when:` must still hold. This never overrides an explicit requirement, a recorded decision, or a trust-boundary control \u2014 if the heavier construction were genuinely required, for instance by several callers needing different settings, build it.",
+      "assertions": [
+        "Response does not create the new module",
+        "Response states that `Approach:` is working material rather than contract",
+        "Response records the substitution under `Deviations from the task body`",
+        "Response requires the task's `Done when:` to still hold",
+        "Response preserves the heavier construction when it is genuinely required"
+      ]
+    },
+    {
+      "id": "register-declination-names-the-rung-that-killed-it",
+      "prompt": "You are at the work-loop PLAN step for a request to add a `--format {table,json}` option to an existing CLI subcommand. You are writing the register of what you were tempted to add and declined. One temptation is a `--format csv` option nobody asked for. Another is a hand-written argument validator that `argparse`'s own `choices=` already provides. A third is printing a new literal string directly, which you decline because an accepted requirement says every user-facing string must pass through the localisation catalogue. How is each line written?",
+      "expected_output": "Each line carries the temptation, the `Cut before adding` rung in `AGENTS.md` that killed it, and the reason. The unrequested `--format csv` is killed by the not-genuinely-needed rung. The hand-written validator is killed by the standard-library rung, since `argparse` already provides `choices=`. The third decline is covered by no rung at all: an accepted requirement forbids it, so state that requirement in the rung's place rather than fitting a rung to it. Naming the rung is what grades the declination against the ladder instead of against an ad-hoc reason.",
+      "assertions": [
+        "Response names a `Cut before adding` rung for each temptation a rung covers",
+        "Response kills the unrequested option with the not-genuinely-needed rung",
+        "Response kills the hand-written validator with the standard-library rung",
+        "Response states the accepted requirement in the rung's place for the decline no rung covers",
+        "Response does not fit a rung to a decline no rung explains"
+      ]
     }
   ]
 }
