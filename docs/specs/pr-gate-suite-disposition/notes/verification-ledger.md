@@ -83,9 +83,9 @@ amendment procedure.**
 
 AC-0005 defines what it means for a step to "reach" a suite as two shapes: a
 pytest operand of that step, and any target `build_gate_chain.py` runs when the
-step invokes `make build-check`. Coverage arrives in **three** shapes. The third
-is a script invoked at a command position, and five `run-test-suite` targets are
-gated exclusively that way:
+step invokes `make build-check`. Corroboration can recognise a **third**: a script
+invoked at a command position. Five `run-test-suite` targets are gated exclusively
+that way:
 
 | Target | Gating step | Invocation |
 | --- | --- | --- |
