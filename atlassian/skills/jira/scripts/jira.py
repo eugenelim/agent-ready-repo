@@ -135,7 +135,7 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 
-# Superset of the CONVENTIONS § "The argv ban" canonical six
+# Superset of the the credentialed-skill contract § The argv ban canonical six
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
 # short -t and a Jira-specific alias.
 TOKEN_CLI_FLAGS = frozenset({
@@ -1135,7 +1135,7 @@ async def _run(args: argparse.Namespace) -> int:
             )
         else:
             if args.insecure:
-                # CONVENTIONS requires this whenever the flag fires; the token
+                # The credentialed-skill contract requires this whenever the flag fires; the token
                 # path was silent.
                 print(
                     "warning: --insecure disables TLS certificate verification "

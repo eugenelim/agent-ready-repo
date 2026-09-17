@@ -30,7 +30,7 @@ confirmed none is needed (CHARTER Principle 3).
    — the slot shapes you read and write (by convention + `schema_version`).
 3. [`assets/plan-tree.md`](../skills/discovery-loop/assets/plan-tree.md) — the
    recursive intent-tree scaffold you **copy** to start an initiative.
-4. `AGENTS.md` and `docs/CONVENTIONS.md` — project conventions.
+4. `AGENTS.md` — project conventions.
 
 ## Before you start — scan, don't duplicate
 

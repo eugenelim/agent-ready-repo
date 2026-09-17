@@ -117,7 +117,7 @@ _MANUAL_SSO_SETUP = OPERATOR_SETUP_COMMAND
 # transcript. The Confluence PAT (or Cloud API token used as a Basic-auth
 # password) is resolved only via env / keyring / dotfile. Mirrors the
 # sibling jira / jira-align idiom (exact-set match).
-# Superset of the CONVENTIONS § "The argv ban" canonical six
+# Superset of the the credentialed-skill contract § The argv ban canonical six
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
 # short -t and a Confluence-specific alias.
 TOKEN_CLI_FLAGS = frozenset({
@@ -572,7 +572,7 @@ async def main_async(args: argparse.Namespace) -> int:
             base_url = sso_config.base_url
         else:
             if args.insecure:
-                # CONVENTIONS requires this whenever the flag actually fires.
+                # The credentialed-skill contract requires this whenever the flag fires.
                 print(
                     "warning: --insecure disables TLS certificate verification "
                     "for this invocation.",
