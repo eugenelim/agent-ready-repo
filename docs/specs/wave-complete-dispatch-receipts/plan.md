@@ -1,0 +1,487 @@
+# Plan: wave-complete dispatch receipts
+
+- **Spec:** [`spec.md`](spec.md)
+- **Status:** Drafting <!-- Drafting | Approved | Implementing | Shipped | Archived -->
+- **Repository anchors:** ADR-0061 § Context (its Concern/Owner table carries
+  the read-only-guard / explicit-mutation split this change sits inside);
+  `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` `cmd_record_attempt`
+  and `cmd_wave_advance` as the two analogous explicit cohort mutations, both
+  `@_locked` and both `--expect-run-id`-authorized; their tests in
+  `packs/core/tests/skills/work-loop/test_loop_cohort.py`, and the golden
+  contracts in `test_golden_fixtures.py` plus the replay in
+  `test_loop_guards_parity.py` as the construction path; named uncertainty —
+  whether `test_loop_cohort_cli.py` pins the parser's verb set, which T1 settles
+  before T2 adds a verb.
+
+> **Plan contract:** this is the implementation strategy. It may change
+> substantively only while its Status is `Drafting`, before approval records its
+> baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
+> only lifecycle bookkeeping is permitted, and execution observations belong in
+> `docs/specs/<feature>/notes/verification-ledger.md`.
+
+## Approach
+
+One new field in cohort state, one new explicit mutation named
+`dispatch-receipt` that writes it, one guard clause that reads it, and one line
+of reporting on `loop-cohort status`.
+
+The field is a map keyed by wave index and task identifier. The guard already
+has the denominator it needs — `schedule_waves` and `current_wave_index` are
+persisted at `schedule` time — so accounting for a wave is an intersection of
+two things already on disk, with no new engine state.
+
+Three mechanism facts shape the design, and each one closed off an approach that
+looked simpler:
+
+A passing guard cannot describe itself. `GuardResult.__post_init__` raises unless
+`ok` is true exactly when `reason` is None, and the engine's `_guard_reason`
+discards everything a passing result carries. So the absent-container
+disclosure cannot ride the guard or the transition; it lives on
+`loop-cohort status`, a cohort read verb that carries no golden-pinned row.
+
+The golden row that replays this guard is an *unscheduled* state, not an empty
+wave — `schedule_waves: []`. So the guard passing silently when no schedule is
+persisted preserves that row's captured `returncode 0, stdout "", stderr ""`
+exactly, with no `after`, no `change_reason`, and no edit to the fixture or its
+state builder. The fixture is generated once and never regenerated, so that
+preservation is the only available route rather than a convenience.
+
+The run identifier does not scope a record to a schedule. `schedule` rewrites
+`schedule_waves` and resets `current_wave_index` to zero while leaving `run_id`
+alone, so after a contract amendment a pre-amendment record keyed `(0, T2)`
+would still match the run and still name a task in the new wave 0. Each record
+therefore carries the `plan_hash` that `schedule` already persists, and the
+guard counts a record only on a match — which changes on every re-schedule.
+
+The container is established by `schedule` as well as by the bundled template.
+`schedule` is a cohort mutation ADR-0061 already permits to write, and every
+enforcing run passes through it, so this bounds the absent-container class to
+runs scheduled before the upgrade instead of leaving it open-ended.
+
+Order of operations: settle what the pinned files require, add the state field
+and the mutation, then the guard clause and the status line, then the
+controller-facing prose, then prove each clause by removing it.
+
+## Constraints
+
+- **ADR-0061 (Frozen, Option A).** `loop-engine` owns read-only guard
+  enforcement; `loop-cohort` owns skill-invoked mutations. Option B's durable
+  side-effect semantics need a `pending_transition` schema that does not exist,
+  so the receipt is best-effort by decision, not by omission.
+- **The shared guard contract.** A `GuardResult` that passes carries no reason,
+  and the engine's guard table is typed to a refusal string or None. Changing
+  that adapter is `Ask first` in the spec, and this plan does not.
+- **The golden fixture is frozen.** Generated once before the guard extraction
+  and deliberately never regenerated. No row may be added, rewritten, or
+  regenerated; a preserved row asserts both streams byte-for-byte, and an
+  `after` is legal only when the return code flips.
+- **`loop-infrastructure-phase-1` (Shipped, frozen).** Its plan declares
+  `check --phase implement` a Phase-1 compatibility stub. This spec replaces
+  that behaviour; the frozen plan is not edited.
+- **`packs/AGENTS.md`.** Pack content carries no internal-governance citations,
+  every `.apm/` change bumps `pack.toml` and `.claude-plugin/plugin.json`
+  together with a topmost changelog entry, a non-cosmetic pack update also
+  updates the pack's eval harness, and adapter projections are never edited
+  directly — they are regenerated by self-host after the pack edits.
+- **Phase-1 parallel verbs stay disabled.** `worktree`, `dispatch-decision`,
+  and `auto-parallel` remain non-zero. The receipt is for the sequential path.
+
+## Construction tests
+
+**Integration tests:** one, landing in
+`packs/core/tests/skills/work-loop/test_loop_engine.py` because that is the
+transition-level suite — drive the real `wave-complete` transition through
+`loop-engine` against a cohort state with an unaccounted task and assert a
+non-zero exit. This is the only check that proves the guard reaches the live
+exit rather than merely returning a refusal when called directly.
+
+**Manual verification:** the mutation proof (T5). Each clause added in T2 and T3
+is removed in turn, the suite re-run, and the observed red recorded in the
+verification ledger. A clause whose removal leaves the suite green is not
+verified and returns to T2 or T3.
+
+## Durable-output map
+
+| Durable output | Tasks | Implementation evidence | Closeout evidence |
+| --- | --- | --- | --- |
+| User promise / `docs/product/changelog.md` `[core]` entry with Highlights | T6 | Topmost `## [core][<version>]` heading agreeing with both pack manifests | Entry names the new refusal and the declines that avoid it |
+| Maintainer procedure / `SKILL.md` § Step 2. EXECUTE + `supervisor-mode.md` § Single-agent fallback | T4 | Section-scoped checks find `loop-cohort dispatch-receipt` and both reason codes; three projected copies byte-identical | Both named sections carry the call and the codes |
+| Interface compatibility / `references/state-schema.md` | T4 | Reference names the container and its absence rule | Absence rule documented |
+| Reusable learning / `notes/verification-ledger.md` | T1, T5 | Recorded pinning survey, dispatch-rate measurement, and mutation table | Ledger records all three |
+
+## Design (LLD)
+
+### Design decisions
+
+- **Per-task, not per-wave.** Traces to: the receipt, decline, and unknown-task
+  criteria. A wave-granular receipt would let one record discharge a five-task
+  wave, which is the hole being closed.
+- **The run identifier is a staleness check, not an authenticator.** Traces to:
+  the run-identifier and record-carries-both-values criteria. It excludes a
+  caller from a different run; it does not establish which party called, and
+  nothing scopes a record to the task its writer was dispatched for. Rejected
+  alternative: a distinguishing element identifying the caller — a new trust
+  mechanism the spec routes to `Ask first`, and not needed for what this spec
+  claims.
+- **Each record carries the plan hash.** Traces to: the record-carries-both and
+  guard-counts-on-match criteria. The run identifier survives a re-schedule and
+  the plan hash does not, so the plan hash is what makes a pre-amendment record
+  stop accounting for a re-scheduled task. It costs nothing: `schedule` already
+  persists it.
+- **The guard passes silently on no schedule and on no container.** Traces to:
+  the unscheduled, absent-container, and no-output criteria. Neither is the
+  controller's fault, and the frozen golden row is an unscheduled state whose
+  captured streams are both empty. Rejected alternative: refusing on an absent
+  container, which would strand every in-flight run.
+- **The disclosure lives on `loop-cohort status`.** Traces to: the status
+  criterion. A passing `GuardResult` cannot carry a reason and the engine
+  discards a passing result, so neither `check` nor the transition can say it.
+  Rejected alternative: widening scope to the engine's guard adapter — a
+  contract every guard shares, declined as out of proportion.
+- **The container is established by `schedule` as well as the template.**
+  Traces to: the schedule-leaves-container and key-agreement criteria.
+  `schedule` is a permitted cohort mutation on the path of every enforcing run,
+  so it bounds the absent-container class to pre-upgrade schedules.
+- **Closed two-value decline set.** Traces to: the reason-code criterion. An
+  open reason string would let any run excuse itself with free text.
+
+### Data & schema
+
+Traces to: the receipt, decline, duplicate-replacement, record-carries-both,
+guard-counts-on-match, and absent-container criteria.
+
+One additive, optional field on cohort `state.json`, alongside the existing
+`completed_task_evidence` map, which is the keyed-map precedent — `worktrees` is
+a list and always empty in Phase 1, so it is not one. The field is keyed so that
+one wave index and task identifier hold exactly one record, which makes a repeat
+write a replacement rather than an append. Each record carries the run
+identifier and the plan hash current at write time, and the guard counts a
+record only when both match, so schedule scoping is a property of the record
+shape rather than of `init` and `reset` happening to prevent a record outliving
+its run. `schema_version` stays as it is: the field is additive and read through
+a defaulting accessor, and the `implement` phase already skips schema validation
+so that state from an earlier version does not break the hook.
+
+### Interfaces & contracts
+
+Traces to: the mutation's eight accept and refuse criteria.
+
+One new `loop-cohort dispatch-receipt` verb, following the shape both analogous
+mutations already use: state lock held for the write, `--expect-run-id`
+validated before anything is written, and a refusal that names what it rejected.
+Receipt and decline are mutually exclusive on one invocation. The verb takes the
+wave index explicitly and accepts any index within the current schedule,
+including one the run has already advanced past — because `wave advance` is not
+coupled to this guard, so a controller can legitimately need to record a receipt
+for a wave it has left, and forbidding that would make the task permanently
+unaccountable. An index outside the schedule's range is refused.
+
+`loop-cohort status` gains one line reporting whether dispatch receipts are
+enforced for this run.
+
+### Failure, edge cases & resilience
+
+Traces to: the absent-container, unscheduled, out-of-range, duplicate, and
+byte-equality criteria.
+
+- **Interrupted dispatch.** Best-effort by decision. A controller that crashes
+  between the implementer returning and the receipt being recorded has no
+  receipt, and the remedy is to record it, not to recover it. This is the
+  ADR-0061 Option B line.
+- **Contract amendment and re-schedule.** `schedule` resets the wave pointer and
+  rewrites the waves under the same run identifier. Pre-amendment records carry
+  the superseded plan hash and stop accounting for anything.
+- **A wave advanced past without its exit check.** `wave advance` can move the
+  pointer before `wave-complete` fires, which takes the skipped wave out of the
+  guard's view entirely. This plan does not close that — it is a follow-on — but
+  it keeps the receipt recordable so the record is not also lost.
+- **No schedule yet.** `schedule_waves` empty means there is nothing to account
+  for; the guard passes silently.
+- **An out-of-range wave pointer.** Refused, matching the precedent both
+  neighbouring guards already set for an inconsistent pointer.
+- **Guard purity.** The guard reads and returns. The criterion capturing state
+  bytes before and after a run — on the passing, refusing, and absent-container
+  paths — is what makes that falsifiable; comparing two post-run states would
+  not, since a first-contact migration makes them equal.
+
+## Tasks
+
+### T1: What the pinned files require is settled and recorded
+
+**Depends on:** none
+
+**Touches:** docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md
+
+**Tests:**
+- `no stub (mode)` — goal-based.
+
+**Approach:**
+- Confirm against the fixture and the replay code that the `check/implement-ok`
+  row's state is unscheduled (`schedule_waves: []`), and that a guard passing
+  silently on an unscheduled state preserves its captured streams with no
+  `after` and no fixture edit. Record the confirmation. If it does not hold, stop
+  and surface — every later task depends on the fixture staying untouched.
+- Establish whether `test_loop_cohort_cli.py` pins the parser's verb set, the
+  `--help` output, or neither, and record which.
+- Record what each of `test_golden_fixtures.py`, `test_loop_guards_parity.py`,
+  and `test_loop_cohort_cli.py` pins, and what T2 or T3 must do about it.
+- Read-only task: it writes only the ledger.
+
+**Done when:** the ledger records, for each of the three files, what it pins and
+the action it implies, and records the unscheduled-row confirmation.
+
+### T2: The receipt and decline mutation accepts and refuses as specified
+
+**Depends on:** T1
+
+**Touches:** packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/assets/state.json, packs/core/tests/skills/work-loop/test_loop_cohort.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py
+
+**Tests:**
+- A receipt for a task in the named wave with a matching run identifier exits
+  zero and the task reads as accounted for.
+- A decline with `no-implementer-installed` does the same, and one with
+  `human-directed` does the same.
+- Receipt and decline together exit non-zero, and state is unchanged
+  byte-for-byte.
+- A decline reason outside the closed set exits non-zero, the message contains
+  both accepted codes, and state is unchanged byte-for-byte.
+- A task absent from the named wave exits non-zero, the message names that
+  wave's tasks, and state is unchanged byte-for-byte.
+- A wave index outside the schedule's range — negative and past the end — exits
+  non-zero and state is unchanged byte-for-byte.
+- A non-matching `--expect-run-id` exits non-zero and state is unchanged
+  byte-for-byte.
+- A receipt naming a wave the run has already advanced past exits zero.
+- A written record carries the run identifier and the plan hash cohort state
+  held at write time.
+- Recording the same wave index and task twice exits zero both times and leaves
+  exactly one record.
+- `loop-cohort schedule` leaves the container present.
+- `loop-cohort init` leaves the container present.
+- `stub: true` — one compilable red assertion on the accounted-for predicate for
+  a single recorded receipt; the seam is grounded because both analogous
+  mutations already establish the shape.
+
+**Approach:**
+- Add the container to the bundled `state.json` template and have `cmd_schedule`
+  establish it, so a run upgraded mid-flight acquires it at its next schedule.
+- Add the `dispatch-receipt` verb beside `record-attempt`, reusing its
+  state-lock and run-identifier validation shape.
+- Validate in refuse-cheapest-first order: run identifier, then mutual
+  exclusivity, then reason code, then wave index range, then task membership.
+  Nothing is written until every check passes, which is what makes all six
+  "state unchanged" assertions true rather than incidental.
+- Apply whatever T1 recorded about verb-set pinning.
+
+**Done when:** the thirteen assertions above are green and `python3 -m pytest
+packs/core/tests/skills/work-loop/test_loop_cohort.py
+packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q` passes.
+
+### T3: The wave exit refuses an unaccounted task and names it
+
+**Depends on:** T2
+
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_loop_guards.py, packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/tests/skills/work-loop/test_loop_guards.py, packs/core/tests/skills/work-loop/test_loop_guards_parity.py, packs/core/tests/skills/work-loop/test_loop_engine.py
+
+**Tests:**
+- Every task in the current wave accounted for by a receipt → passes.
+- Every task accounted for, some by decline → passes.
+- One task carrying neither → refuses, and stderr contains that task's
+  identifier.
+- Three tasks, two accounted for → the refusal names the one unaccounted task
+  and not the two accounted ones.
+- A record whose run identifier does not match → does not account for its task,
+  so the guard refuses.
+- A record whose plan hash does not match → does not account for its task, so
+  the guard refuses. This is the post-amendment case.
+- `schedule_waves` empty → passes, and both streams are empty.
+- No receipts container → passes, and both streams are empty.
+- `current_wave_index` out of range → refuses.
+- State bytes before a run equal bytes after, on the passing, refusing, and
+  absent-container paths.
+- A test that reddens when the container key `schedule` writes and the key the
+  guard reads differ.
+- `loop-cohort status` reports receipts not enforced when the container is
+  absent, and does not when it is present.
+- Integration, in `test_loop_engine.py`: the real `wave-complete` transition out
+  of `CODE-IMPLEMENTATION` exits non-zero against a state with one unaccounted
+  task.
+- `stub: true` — one compilable red assertion that the guard refuses a
+  single-task wave with no record.
+
+**Approach:**
+- Replace the `implement` stub's unconditional pass with the accounting check,
+  keeping the existing state-read-first behaviour, since the stub already
+  refuses a missing or malformed `state.json` and that refusal must survive.
+- Order the branches: unreadable state, then unscheduled, then absent container,
+  then out-of-range pointer, then accounting. The first three pass or refuse
+  before any check an old or unscheduled state could not satisfy.
+- Build the refusal from the set difference so it names tasks rather than a
+  count. A refusal carries a `reason`, which `check` prints on stderr — that is
+  the channel, and it is available only because the result is not ok.
+- Add the `status` reporting line. Do not touch `loop-engine.py`.
+
+**Done when:** the fourteen assertions above are green, including the
+transition-level one, and `python3 -m pytest
+packs/core/tests/skills/work-loop/test_loop_guards.py
+packs/core/tests/skills/work-loop/test_loop_guards_parity.py
+packs/core/tests/skills/work-loop/test_loop_engine.py
+packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
+
+### T4: The controller-facing surfaces name the call and the codes
+
+**Depends on:** T3
+
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/evals/evals.json
+
+**Tests:**
+- `no stub (mode)` — goal-based.
+
+**Approach:**
+- In `SKILL.md` § Step 2. EXECUTE, state `loop-cohort dispatch-receipt` as
+  required once per plan task, using the section's existing cardinality
+  vocabulary rather than a second phrasing.
+- In `supervisor-mode.md` § Single-agent fallback, name
+  `no-implementer-installed` as what the controller records, and name
+  `human-directed` as recording a human instruction with no testable
+  precondition.
+- In `state-schema.md`, document the container and state that an absent
+  container means the guard does not enforce.
+- Add an eval case covering the receipt call and both decline codes.
+- Re-run `FORCE=1 make build-self` and verify the three copies of each edited
+  `.apm/` file are byte-identical, trusting the parity check rather than the
+  exit code. Projections are never edited directly.
+
+**Done when:** a check scoped to `## Step 2. EXECUTE` finds
+`loop-cohort dispatch-receipt`; a check scoped to `## Single-agent fallback`
+finds both reason codes; a check scoped to the state-schema field table finds
+the absence rule; `evals/evals.json` parses and contains a case naming
+`dispatch-receipt` and both codes; the three copies of each edited file hash
+equal; and `python3 -m pytest
+packs/core/tests/skills/work-loop/test_reference_routing.py
+packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py -q`
+passes.
+
+### T5: Every clause is proved by its own removal
+
+**Depends on:** T4
+
+**Touches:** docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md
+
+**Tests:**
+- `no stub (mode)` — manual QA.
+
+**Approach:**
+- Remove each clause added in T2 and T3 in turn — the run-identifier check, the
+  mutual-exclusivity check, the reason-code check, the wave-index range check,
+  the task-membership check, the record's run-identifier match, the record's
+  plan-hash match, the unscheduled branch, the absent-container branch, the
+  out-of-range branch, the accounting check, the naming of unaccounted tasks,
+  the `schedule` container establishment, and the `status` line — re-running the
+  suite after each.
+- Record, per clause, the named test that turned red and the observed failure.
+- A clause whose removal leaves the suite green returns to T2 or T3 for a
+  discriminating assertion. Record that round too; a mutation table with no
+  survivors and no recorded rounds is the shape a table gets when it was written
+  from intent rather than run.
+
+**Done when:** the ledger holds one row per clause, each naming a test and an
+observed failure, and no row reports a green survival.
+
+### T6: The pack release surface agrees
+
+**Depends on:** T5
+
+**Touches:** packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md
+
+**Tests:**
+- `no stub (mode)` — goal-based.
+
+**Approach:**
+- Derive the version immediately before pushing, not earlier: this repository
+  has collided on the same core version twice in one session, and a collision
+  produces no conflict in either manifest because both sides write identical
+  bytes.
+- Bump both manifests together and write a topmost
+  `## [core][<version>] — <date>` entry with a `Highlights` block. Word it at
+  the strength the Objective states — the exit refuses an unasserted task — not
+  as a proof that dispatch occurred.
+- After any conflict resolution, re-read the heading order and re-check it
+  against both manifests: inserting a renumbered section can strand the landed
+  version's heading above it with an empty body while every conflict marker is
+  gone.
+
+**Done when:** `python3 -m pytest
+tests/roster/test_wave4_durable_outputs_and_release.py
+tools/test_build_site_routing.py -q` passes and both manifests read the same
+version as the topmost changelog entry.
+
+## Rollout
+
+- **Delivery:** big bang within the pack release, reversible by reverting the
+  version bump. Nothing is irreversible: no migration, no published event, no
+  durable consumer state beyond the additive optional field.
+- **Deployment sequencing:** the guard (T3) must not ship before the mutation
+  (T2), or the wave exit refuses with nothing able to satisfy it. The task
+  dependency chain enforces that order.
+- **Mixed-version behaviour:** cohort state written by an earlier core version
+  has no receipts container and the guard passes on it. Such a run acquires the
+  container at its next `schedule`, which bounds the class rather than leaving
+  it open-ended. A run that starts on the new version and is finished by an
+  older one ignores the field. Neither direction strands a run.
+- **Infrastructure / external systems:** none.
+
+## Risks
+
+- **The refusal strands a legitimate run.** The guard sits on a mandatory
+  transition, so a false refusal blocks the loop rather than degrading it. Four
+  passing paths carry this — recorded decline, unscheduled state, absent
+  container, and a receipt for an already-advanced wave — and the
+  transition-level assertion proves the refusal fires where intended. This is
+  the risk that decides whether the change is safe to ship.
+- **Any actor that can read the run identifier can discharge a wave.** The
+  excusability is not confined to the controller. `run_id` is a plaintext key in
+  the spec directory, and a dispatched `implementer` ships with `Read` and
+  `Bash` and is told to read that directory, so it — or repository content that
+  influences it — can write receipts or `no-implementer-installed` declines for
+  any task in the wave, because nothing scopes a record to the task its writer
+  was dispatched for. Accepted deliberately: scoping a record to its writer
+  means establishing caller identity, which the spec routes to `Ask first` and
+  which `loop-cohort` has no mechanism for. What the change buys is a durable,
+  per-task record of the choice, legible after the fact instead of inferable
+  only from a transcript — not prevention.
+- **`human-directed` has no testable precondition.** It records a human
+  instruction, and nothing bounds how many tasks in a wave may use it, so a wave
+  can be discharged entirely by declines while the exit passes. Accepted on the
+  same grounds, and the spec says so rather than implying otherwise.
+- **A wave can be advanced past without ever being checked.** `wave advance` is
+  not coupled to this guard. Registered as a follow-on; this plan keeps the
+  receipt recordable for an advanced wave so the record is not lost as well.
+- **The absent-container pass is bounded but not retired.** Establishing the
+  container at `schedule` confines it to runs scheduled before the upgrade, but
+  nothing distinguishes such a run from one whose container was removed, and
+  `loop-cohort status` is the only runtime signal. Registered as a follow-on
+  with the arrival of a provenance mechanism as its trigger.
+
+## Changelog
+
+- 2026-09-17: initial plan.
+- 2026-09-17: revised from pre-EXECUTE review round 1 (19 sustained findings).
+  Named the verb; corrected the false claim that an `implementer` cannot hold
+  the run identifier; added the init-produced-state and byte-comparison
+  criteria; bounded the wave index; completed the `Touches` fields.
+- 2026-09-17: revised from pre-EXECUTE review round 2 (9 blockers, all inside
+  the round-1 repairs). Round 2's root cause was the same as round 1's — a
+  criterion written without tracing it to the code that would satisfy it — so
+  this revision is grounded in three verified mechanism facts instead of
+  another wording pass. A passing `GuardResult` cannot carry a reason and the
+  engine discards a passing result, so the disclosure moved to
+  `loop-cohort status` and the engine adapter stays out of scope; the frozen
+  golden row turned out to be an *unscheduled* state, so passing silently with
+  no schedule preserves it and the planned fixture edit and new row were both
+  dropped; and `schedule` resets the wave pointer under the same run
+  identifier, so each record now carries the plan hash. Also: `schedule`
+  establishes the container, a receipt may name an already-advanced wave (the
+  round-1 bound had made a skipped wave permanently unaccountable), the
+  conjoined record/guard criterion split in two, T4's checks became
+  section-scoped, and two follow-ons were registered.
