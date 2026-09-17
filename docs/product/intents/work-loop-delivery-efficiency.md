@@ -64,13 +64,16 @@ moved it.
    review vocabulary, commit type not `feat`, repair verb in the subject — that
    is **87.5% precise on a fresh draw from its own selection** and reproduces the
    design's strata shares within 4.4 points, at 147 cases with 53 in
-   `source + test` against the design's 39. That predicate is fit to freeze. The
-   oracle phase is scoped at roughly 43 minutes per case — about 38 hours for the
-   53 — with the cost in per-case adjudication rather than environment
-   reconstruction. **No repair was reverted and no oracle ran, so the audit's
-   question is still unanswered.** It remains first because it is still the
-   measurement everything below it waits on; what it needs next is a stated path
-   rule and a three-case oracle gate.
+   `source + test` against the design's 39. That predicate is fit to freeze. A
+   three-case oracle gate then **passed**: with predicates frozen before
+   execution, the oracle separated two semantic kills from one structural kill,
+   and every frozen predicate anticipated its outcome. Two harness requirements
+   came out of it — revert every mirrored copy of a hunk, and score provability
+   per repair rather than per commit, since a compound commit hid an uncontrolled
+   repair inside a semantic kill. **The rate is still unmeasured:** three
+   hand-picked cases span the outcome space and estimate no frequency. It remains
+   first because it is still the measurement everything below it waits on, and it
+   is now ready to scale at roughly 43 minutes per case.
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then
