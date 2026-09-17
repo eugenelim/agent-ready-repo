@@ -284,6 +284,49 @@ lanes. `schema_version` is inert across `1`, `99` and absent — the same row in
 all three — which is the intended consequence of `wave-exit` sharing
 `implement`'s exemption.
 
+### The walk is now a committed, self-asserting instrument
+
+**Generator:** [`walk_verdict_partition.py`](walk_verdict_partition.py).
+
+**Command:**
+
+```bash
+python3 docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py
+```
+
+**Recorded run — 2026-09-17:** 94,080 states, 0 overlapping, 0 uncovered, all
+nine rows reached. Exit 0 asserts all three; it does not print them for a reader
+to check.
+
+**Why it replaced seven ad-hoc scripts.** The pass verdict is "no state matched
+two rows and no state matched none", and *both halves are vacuously true of an
+empty domain* — so every earlier walk's result in this ledger was consistent
+with a generator that produced nothing. Reachability would have shown it, but it
+was printed and read by eye, never asserted. The dispatch-rate measurement in
+§ 1 was given a committed generator for exactly this reason and the partition
+walks were not; that was one standard applied unevenly, and this closes it.
+
+**Mutation proof of the instrument itself.** Five mutations, each caught by a
+named assertion:
+
+| Mutation | Assertion that fires |
+| --- | --- |
+| the domain generator returns nothing | `the domain generator produced no states` |
+| row 3 regains a schema clause the spec text does not have | `rows overlap` |
+| rows 3–9 lose the readability precondition | `rows overlap` |
+| the container predicate is bounded one key short of the declared path | `a container nested to the declared key-path depth must be well-formed` |
+| the container predicate is bounded one key too deep | the same anchor |
+
+The fourth and fifth mutations were **not** caught by the first version of this
+script. Partition properties alone do not constrain the predicate's
+correctness: an empty mapping is vacuously well-formed at any depth, so every
+row stayed reachable while the predicate rejected every real record. Three
+anchors now pin it — the canonical container must be well-formed, the
+one-key-short shape must be rejected, and the canonical accounted state must
+match the accounted row alone. Round 6's blocker is exactly the fourth mutation,
+so before those anchors this instrument could not have caught the defect it was
+built for.
+
 **The reusable conclusion.** A domain sourced from the predicates under test can
 exhibit an overlap but never a gap. The domain has to be generated over
 arbitrary values at every position the predicate reads, and the predicate has to
