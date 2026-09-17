@@ -150,8 +150,14 @@ def _field(text: str, name: str) -> str | None:
     matches a newline, so an empty field would capture the following line as its
     value — which is how a Decision weight line reached a Closed date column.
     """
-    match = re.search(rf"^-?[ \t]*\*\*{re.escape(name)}:\*\*[ \t]*(.*?)[ \t]*$",
-                      text, re.MULTILINE)
+    # The value class excludes every control character, not just LF. `.` under
+    # MULTILINE still matches CR, and CommonMark treats a bare CR as a line
+    # ending — so a record-controlled value carrying one would terminate its
+    # table row downstream, where no cell escaper neutralizes a line break.
+    match = re.search(
+        rf"^-?[ \t]*\*\*{re.escape(name)}:\*\*[ \t]*"
+        r"([^\x00-\x1f\x7f]*?)[ \t]*\r?$",
+        text, re.MULTILINE)
     if match is None:
         return None
     value = match.group(1).split("<!--")[0].strip()
@@ -193,7 +199,9 @@ def _display_status(body: str, status: str) -> str:
     if status != "Superseded":
         return status
     target = _field(body, "Superseded by")
-    if target is None or target == _UNFILLED or target.strip().lower() == "none":
+    if (target is None or target == _UNFILLED
+            or not target.strip()
+            or target.strip().lower() == "none"):
         return status
     return f"{status} by {target}"
 
