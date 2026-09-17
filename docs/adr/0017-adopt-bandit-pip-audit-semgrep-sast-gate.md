@@ -1,9 +1,14 @@
 # ADR-0017: Adopt Bandit + pip-audit + Semgrep as the repo's SAST/SCA gate
 
-- **Status:** Accepted (superseded in part by [ADR-0084](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) — the `# nosec <ID> — <reason>` **spelling** in the suppression-policy sub-decision, because Bandit parses the text after `# nosec` as a list of test ids; everything else stands) (superseded in part by [ADR-0086](0086-split-the-sast-gate-into-its-own-ci-job.md) — the **CI-chaining sub-decision**, i.e. that SAST runs chained into `make build-check` in CI; it is now its own `gate-sast` job, the Makefile chain is deliberately intact, and everything else stands) (superseded in part by [ADR-0102](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) — the **exclusion-list sub-decision**, i.e. that Semgrep's exclusions are the four listed rule-scoped ones chosen for duplicating Bandit; a path-scoped `--exclude` taken for scanner performance is now also admitted, subject to a stated residual and a retirement trigger, and everything else stands) (superseded in part by [ADR-0113](0113-sast-guarantee-moves-from-the-local-gate-to-gate-sast.md) — the **dogfooding sub-decision**, i.e. that the guarantee rests on a developer running the local gate; `gate-sast` is now the enforcement point and the Makefile chain is retained as a reproduction path, and everything else stands) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN --><!-- All four clauses use CONVENTIONS § "Superseding a frozen document"'s prescribed grammar. The ADR-0084 clause was normalized into it by ADR-0086's change rather than left in its original "partially amended:" wording, so this line reads in one grammar instead of two. Status is the one field that table makes mutable on a frozen document; no content was dropped. -->
+- **Status:** Accepted
 - **Date:** 2026-06-12
-- **Deciders:** eugenelim
+- **Areas:** security, ci
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0084 D16; ADR-0086 D3; ADR-0102 D14; ADR-0113 D4
 - **Related:** the implementing spec `docs/specs/sast-sca-tooling/`; ADR-0003 (credential-broker contract — `sso-broker.py` is one of the scanned scripts); **ADR-0083** (extends this gate's SCA half to the npm ecosystem — the three tools below cover Python only)
 
 ## Context
@@ -58,6 +63,51 @@ into `make build-check`** — the repo's single native gate, run locally
 `build-check.yml` CI on every PR — so the gate is dogfooded into this repo's own
 development rather than living in a separate, skippable workflow. None of the
 three is ever added to a shipped package's runtime dependencies.
+
+- **D1:** The repo's SAST/SCA gate is these four open-source scanners — Bandit,
+  pip-audit, Semgrep, and CodeQL — and no commercial or account-gated tool is
+  adopted as the primary gate.
+- **D2:** The scanners run behind a single `make sast` target.
+- **D3:** `make sast` is chained into `make build-check`, so SAST runs inside the
+  existing `build-check.yml` CI on every PR rather than in a separate workflow.
+- **D4:** The guarantee that the gate has run rests on a developer running the
+  local gate — the gate is dogfooded into this repo's own development rather
+  than living in a separate, skippable workflow.
+- **D5:** No scanner is ever added to a shipped package's runtime dependencies;
+  all four stay dev/CI-only tools.
+- **D6:** Bandit is the primary Python SAST gate, configured in a repo-root
+  `bandit.yaml` to fail on medium-or-higher severity at medium-or-higher
+  confidence.
+- **D7:** Bandit's configuration excludes test trees and skips `B101`
+  (`assert` use).
+- **D8:** pip-audit is the SCA gate and audits the dependency manifests the repo
+  owns — `tools/requirements.txt`, the two packages, and the shipped per-skill
+  `requirements.txt` files.
+- **D9:** Semgrep is the cross-cutting SAST gate, run against the curated
+  registry rulesets `p/python` and `p/security-audit`.
+- **D10:** The scanners are reached only through `make build-check` and are added
+  to neither `tools/hooks/pre-pr.py` nor `tools/pre-pr-catalogue.py`, so the
+  Windows CI path never invokes Semgrep.
+- **D11:** Custom Semgrep `mode: taint` rules live in `tools/semgrep/` and run in
+  `make sast` via `--config tools/semgrep/`.
+- **D12:** CodeQL runs as a `.github/workflows/codeql.yml` code-scanning workflow
+  at `security-extended`, advisory until branch protection requires it.
+- **D13:** The `session-start` env → `Path` flow is sanitized once in the hook
+  (`_safe_override_path` rejects traversal before the path is used), so every
+  adopter inherits the fix rather than each carrying a suppression.
+- **D14:** Semgrep's exclusions are the four rule-scoped ones that duplicate
+  Bandit's coverage — `insecure-hash-algorithm-sha1`,
+  `dynamic-urllib-use-detected`, `use-defused-xml`,
+  `insecure-file-permissions` — and the exclusion list lives in the `make sast`
+  recipe.
+- **D15:** A genuine finding gets a real code fix, never a suppression.
+- **D16:** A tool-specific false positive gets a `# nosec <ID> — <reason>`
+  comment, scoped to Bandit.
+- **D17:** A finding that must be accepted in Snyk itself is suppressed through a
+  committed `.snyk` policy file, ignored by issue ID with a `reason` and an
+  `expires`.
+- **D18:** The `.snyk` file ships as a documented scaffold and is populated only
+  from issue IDs taken from an actual Snyk run, never authored blind.
 
 Boundaries on the decision:
 
@@ -165,6 +215,13 @@ Boundaries on the decision:
   untrusted env would inherit only advisory coverage — revisit the scope if that
   happens. Promoting CodeQL to a merge blocker is a one-time branch-protection
   setting, not a code change.
+
+**Revisit if:** Semgrep registry drift makes CI flaky, which reopens whether its
+rulesets are pinned or vendored and whether that leg blocks or advises (D9); or
+the slower `build-check` proves painful in the inner loop, which reopens a
+fast/slow split of the chain (D3); or a `tools/` script starts reading genuinely
+untrusted environment input, which would leave that flow on CodeQL's advisory
+coverage alone (D12).
 
 ## Alternatives considered
 
