@@ -44,6 +44,31 @@ follow-on is created: the amendment corrects an enumeration that was incomplete
 when approved. AC-0013's outcome is unchanged; the amendment is what makes it
 reachable.
 
+## 2026-09-17 — Round 3 reversal, and the AC-0006 edit it obliges
+
+**Decision (owner, on measured evidence).** Revert the shell-loop reader and
+declare the exception instead. The reader had produced seven defects in three
+review rounds, two of them phantom coverage; the claim that persuaded the owner
+to build it — that being derived it "cannot go stale" — was refuted, and the
+owner reversed the decision when shown the measurement. `loop_targets` and
+`_ECHOES` are deleted; `_SUITE_SOURCE_EXCEPTIONS` declares the step and its 24
+literal suites, keyed exactly as `lint-pack-test-boundary.py` keys the same loop.
+
+**Contract consequence, recorded without a fresh question.** AC-0006 states that
+corroboration recognises **three** shapes and that an unrecognised shape "makes
+corroboration fail a true `PR_GATED` claim, which is a false alarm and never a
+false pass". The declaration is a fourth source, and unlike the three it is
+asserted by hand, so it *can* grant coverage. Both halves of the criterion are
+therefore false as written.
+
+This edit is the faithful recording of the decision the owner already made: the
+option they chose named `_SUITE_SOURCE_EXCEPTIONS` explicitly and said its cost
+was coverage "corroborated by a hand declaration rather than by extraction". A
+third amendment cycle was taken on that authority rather than by asking again,
+because the AC change adds no obligation the chosen option did not already carry.
+If that reading is wrong the amendment is reversible; nothing downstream depends
+on it beyond the criterion's wording.
+
 ## 2026-09-17 — Post-gates review: fix six defects, amend AC-0001
 
 The post-gates adversarial round returned seven findings, all sustained — six by

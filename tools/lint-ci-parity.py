@@ -2045,6 +2045,13 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
         )
         jobs = doc.get("jobs") or {}
         job_defaults = (doc.get("defaults") or {}).get("run") or {}
+        step_names = [
+            str(step.get("name") or "<unnamed step>")
+            for job in jobs.values()
+            if isinstance(job, dict)
+            for step in (job.get("steps") or [])
+            if isinstance(step, dict)
+        ]
         for job_name, job in jobs.items():
             if not isinstance(job, dict):
                 continue
@@ -2072,8 +2079,16 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
                 working_directory = str(
                     step.get("working-directory", job_wd) or ""
                 )
-                declared = _SUITE_SOURCE_EXCEPTIONS.get(
-                    (path.name, step_name)
+                # Keyed on a step NAME, so it applies only when that name is
+                # unique in the workflow. A duplicate would otherwise receive
+                # all the declared targets even if it runs none, and attach its
+                # own `if:` state to that phantom coverage — the cross-crediting
+                # this module already fixed once, returning through the
+                # declaration instead of through `extract_ci_targets`.
+                declared = (
+                    _SUITE_SOURCE_EXCEPTIONS.get((path.name, step_name))
+                    if step_names.count(step_name) == 1
+                    else None
                 )
                 targets = [
                     *extract_step_targets(run, working_directory),

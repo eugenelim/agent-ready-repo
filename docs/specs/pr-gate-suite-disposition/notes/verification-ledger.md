@@ -656,3 +656,55 @@ declaration prevents. My own stated rule forbade it and my branch violated it.
 Three post-gates rounds, **18 findings, every one sustained, none refuted.** Two
 of my own claims were refuted by the rounds: that a stronger implementation
 needed no amendment, and that the loop reader could not go stale.
+
+## Post-gates review round 4 — three findings on the reversal (2026-09-17)
+
+**1. A duplicate step name regained phantom coverage.** The declaration is keyed
+on `(workflow filename, step name)`, so a second step of the same name received
+all 24 declared targets although it runs none, and attached its own `if:` state
+to them. The cross-crediting fixed in round 1 had returned through the
+declaration instead of through `extract_ci_targets`. A declaration now applies
+only when that step name is unique in its workflow.
+
+**2. Drift validation checked only one direction.** The case asserted each
+*declared* path still appears in the step — which catches a removal and misses an
+**addition**. A 25th suite added to the loop is invisible to extraction by
+definition, so its entry could sit at `NO_PR_GATE` and pass. The step's `run`
+body is now digest-pinned, so any edit to it reddens
+`suite-source-exception-step-body-is-pinned` and a human re-checks the
+declaration. A pin is the only fail-closed answer available when the invocation
+cannot be parsed.
+
+**3. The contract still promised three coverage shapes.** AC-0006 said
+corroboration recognises three, and that an unrecognised shape "makes
+corroboration fail a true `PR_GATED` claim, which is a false alarm and never a
+false pass". The declaration is a fourth source, asserted by hand, and it *can*
+grant coverage the workflow does not provide — so both halves were false.
+
+AC-0006 now names four sources and says which three are read from the workflow
+and which one is asserted. The declaration's cost is bounded by a new
+**AC-0007**: unique step name, every listed suite present in that step's `run`,
+and that body pinned. 16 criteria → 17.
+
+This is the *fourth* instance of one class across the delivery — a claim about
+what a mechanism proves, stated more strongly than it does. The earlier three
+were the one-way-safety claim, `paths-ignore` counted as gating, and "exactly
+three shapes". Each was repaired only where it was cited; none of those repairs
+prompted a sweep for the next instance.
+
+### Mutation proof
+
+| Arm removed | Exit | Case |
+| --- | ---: | --- |
+| declaration applies only to a unique step name | 1 | `suite-source-exception-does-not-apply-to-a-duplicated-step` |
+| step-body digest pin | 1 | `suite-source-exception-step-body-is-pinned` |
+| a 25th path added to the real loop | 1 | `suite-source-exception-step-body-is-pinned` |
+
+196 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.
+
+### Review totals
+
+Four post-gates rounds, **21 findings, every one sustained.** Three of my own
+claims were refuted by them: that a stronger implementation needed no amendment,
+that the loop reader could not go stale, and that corroboration recognised every
+shape that mattered.

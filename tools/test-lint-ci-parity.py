@@ -15,6 +15,7 @@ another's leftovers.
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import os
 import pathlib
@@ -1147,6 +1148,46 @@ composed:
     _check("suite-source-exception-paths-are-in-the-step", _absent, [])
     _check_true("suite-source-exception-covers-the-loop",
                 len(_declared) >= 20)
+
+    # The declaration is keyed on a step NAME, so it must apply only when that
+    # name is unique in the workflow. A duplicate would otherwise receive all 24
+    # declared targets although it runs none, and attach its own `if:` state to
+    # that phantom coverage — the cross-crediting this module fixed once,
+    # returning through the declaration instead of through extraction.
+    def _declared_sources(steps_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / _exception_key[0]).write_text(
+                "on:\n  pull_request:\njobs:\n  j:\n    steps:\n" + steps_yaml,
+                encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get(_declared[0], [])
+
+    _unique = _declared_sources(
+        f"      - name: {_exception_key[1]}\n        run: echo opaque\n")
+    _check_true("suite-source-exception-applies-to-a-unique-step",
+                len(_unique) == 1)
+    _duplicated = _declared_sources(
+        f"      - name: {_exception_key[1]}\n        run: echo opaque\n"
+        f"      - name: {_exception_key[1]}\n        run: echo also\n")
+    _check("suite-source-exception-does-not-apply-to-a-duplicated-step",
+           _duplicated, [])
+    # Subset is not enough, and this is the direction that matters. Asserting
+    # only that each DECLARED path is still in the step catches a removal but
+    # not an addition — a 25th suite added to the loop stays invisible to
+    # extraction, so its entry could sit at `NO_PR_GATE` and pass. The step's
+    # body is therefore PINNED: any edit to it reddens here and a human
+    # re-checks the declaration, which is the only fail-closed answer available
+    # when the invocation cannot be parsed. Recompute with the digest printed by
+    # this case's failure message.
+    _step_digest = hashlib.sha256(_step_run.encode("utf-8")).hexdigest()
+    _check(
+        "suite-source-exception-step-body-is-pinned",
+        _step_digest,
+        "0e1de37f2c7545b96ad37338cb62e872ad6e9b4b379e9d1a02f94c817685e42b",
+    )
 
     # F2. An opaque operand riding free on a literate neighbour's entry.
     _opaque = "$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q"
