@@ -94,10 +94,9 @@ were hand-built at the same two levels the predicate expected. The oracle
 ratified the author's construction rather than the declaration.
 
 So the container's key path is declared once, and both the predicate's nesting
-depth and the domain's shapes derive from it. The current walk is 20,160 states
-whose container values are generated from that declaration — a correct instance
-nested from it, then mutated at each depth with each hostile value — giving zero
-overlapping, zero uncovered, and all nine rows reachable. T3 carries that walk,
+depth and the domain's shapes derive from it. The current walk's size, domain and result
+are recorded in § 4 of the verification ledger rather than restated here, so this
+paragraph cannot fall a generation behind the walk as its predecessor did. T3 carries that walk,
 and generating the domain from the declaration is part of what T3 implements
 rather than an incidental test detail.
 
@@ -205,10 +204,10 @@ verified and returns to T2 or T3.
   `check_wave` and `check_plan_current` consume it for the same kind of field.
   Rejected alternative: a fresh predicate, which would be a second authority on
   one field.
-- **The notice prints from `check --phase wave-exit`, called by GATES before the
-  transition.** Traces to: the absent-container row and the GATES criterion.
+- **The notice prints from `check --phase wave-exit`, run immediately before the
+  transition at each firing site.** Traces to: the absent-container row and the firing-site criteria.
   `cmd_check` emits a passing guard's `message`; the engine's adapter discards
-  it, and no existing step invokes this verb, so without the GATES step the
+  it, and no existing step invokes this verb, so without the pre-transition run the
   notice would be contract with no caller.
 - **Closed two-value decline set, enforced on both sides.** Traces to: the
   reason-code refusal and the accounting criterion. Validating only the write
@@ -242,7 +241,7 @@ removed, which the guard cannot distinguish and the spec discloses.
 
 ### Interfaces & contracts
 
-Traces to: the verb's criteria, the verdict rows, the GATES criterion, and the
+Traces to: the verb's criteria, the verdict rows, the firing-site criteria, and the
 status criterion.
 
 One new `loop-cohort dispatch-receipt` verb, following the shape both analogous
@@ -469,8 +468,13 @@ records one run of the dispatch-rate generator.
   record.
 - `init` leaves the container present; `schedule` leaves the container present.
 - A `schedule` run producing the same partition leaves an earlier record
-  present and unchanged; one producing a different partition leaves no record
-  under the superseded digest.
+  present and unchanged, with an intervening edit to `plan.md` that
+  `canonical_contract` does not normalise — so `plan_hash` moves while the
+  partition does not, and a `plan_hash`-keyed implementation reds. Without that
+  edit the assertion is satisfied by a no-op re-schedule and discriminates
+  nothing.
+- A `schedule` run producing a different partition leaves no record under the
+  superseded digest.
 - A contract amendment leaves the container empty, asserted for the case where
   the re-scheduled partition is identical and the digest therefore unchanged.
 - `stub: true` — one compilable red assertion on the accounted-for predicate
@@ -532,11 +536,17 @@ covers the state lock a new mutation takes.
 **Tests:**
 - One case per verdict row, asserting the exit code and the content of both
   streams.
-- A partition-property case: cohort states constructed by varying the type of
-  `schedule_waves`, the type of its current element, the presence and type of
-  the container, and the type and range of the pointer; every constructed state
-  satisfies exactly one row, and every row is satisfied by some state. The
-  domain comes from the fields the rows read, not from the rows.
+- A partition-property case over **every** axis the spec's domain criterion
+  enumerates — the state-read outcome across its refusal vocabulary,
+  `schedule_waves`, its element at the pointer, the container, a record's
+  `kind`, `schema_version`, and `current_wave_index`. That criterion is the
+  canonical list and this entry cites it rather than restating a subset, because
+  restating it is how three axes went missing while the walk stayed green.
+  Container values are generated from the declared key path — a correct instance
+  nested from it, then mutated at each depth with each hostile value — not
+  hand-built at a literal depth.
+- Every constructed state satisfies exactly one row; every row is satisfied by
+  some state.
 - Three tasks, two accounted for → the refusal names the one unaccounted task
   and not the two accounted ones.
 - A decline record whose reason is outside the closed set does not account for
@@ -555,9 +565,23 @@ covers the state lock a new mutation takes.
   pair for the widened exemption.
 - `loop-cohort status` reports receipts not enforced when the container is
   absent and enforced when present, in both the default and `--json` forms.
+- A wave whose unaccounted-task list exceeds the per-value interpolation bound:
+  the refusal states the list is partial, and every identifier it prints is
+  whole — no fragment of an identifier appears.
+- A state-derived value longer than the bound: the refusal does not carry it
+  whole, asserted on the stream rather than on the helper.
+- A bad-reason decline: the guard refuses **and** stderr names the malformed
+  field, so removing the reason check from the record definition — which would
+  turn that state into an accounted-for pass — flips the verdict and reddens.
 - Integration, in `test_loop_engine.py`: the real `wave-complete` transition out
   of `CODE-IMPLEMENTATION` exits non-zero against a state with one unaccounted
   task.
+- Every existing path that drives `init` → `schedule` → `wave-complete` through
+  the real CLI still reaches `CODE-VERIFICATION`. `make_crash_window_run` and
+  `make_code_review_run` in `test_loop_engine.py` populate `schedule_waves` and
+  write no records, so container-at-`init` makes them refuse; each gets a record
+  written in the fixture. Pinned here because the failure is otherwise
+  discovered rather than planned.
 - `stub: true` — one compilable red assertion that the guard refuses a
   single-task wave with no record.
 
@@ -616,7 +640,12 @@ classifiers; the partition walk is a negative control.**
   `.apm/` file are byte-identical before finishing.
 
 **Done when:** every assertion above is green, including the transition-level
-one, the three copies of each edited `.apm/` file hash equal, and
+one; no statement in the tree still asserts that `check --phase implement`
+guards the `wave-complete` transition (three do today: `check_phase`'s
+docstring, `cmd_check`'s docstring, and a docstring in `test_loop_guards.py`);
+`_guard_check_phase_implement` is either removed or given a caller, since
+retargeting the guard table leaves it with neither; the three copies of each
+edited `.apm/` file hash equal; and
 `python3 -m pytest packs/core/tests/skills/work-loop/test_loop_guards.py
 packs/core/tests/skills/work-loop/test_loop_guards_parity.py
 packs/core/tests/skills/work-loop/test_loop_cohort_cli.py
@@ -627,7 +656,7 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
 
 **Depends on:** T3
 
-**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/references/session-resumption.md, packs/core/.apm/skills/work-loop/references/finding-adjudication.md, packs/core/.apm/skills/work-loop/evals/evals.json, .claude/skills/work-loop/SKILL.md, .agents/skills/work-loop/SKILL.md, .claude/skills/work-loop/references/supervisor-mode.md, .agents/skills/work-loop/references/supervisor-mode.md, .claude/skills/work-loop/references/state-schema.md, .agents/skills/work-loop/references/state-schema.md, .claude/skills/work-loop/evals/evals.json, .agents/skills/work-loop/evals/evals.json
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/references/session-resumption.md, packs/core/.apm/skills/work-loop/references/finding-adjudication.md, packs/core/tests/pack/test_finding_adjudication_contract.py, packs/core/.apm/skills/work-loop/evals/evals.json, .claude/skills/work-loop/SKILL.md, .agents/skills/work-loop/SKILL.md, .claude/skills/work-loop/references/supervisor-mode.md, .agents/skills/work-loop/references/supervisor-mode.md, .claude/skills/work-loop/references/state-schema.md, .agents/skills/work-loop/references/state-schema.md, .claude/skills/work-loop/evals/evals.json, .agents/skills/work-loop/evals/evals.json
 
 **Tests:**
 - `no stub (mode)` — goal-based.
@@ -638,13 +667,22 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   vocabulary, and state that the controller records it and an `implementer` does
   not record its own. The section already declares what the controller retains,
   so this extends that sentence rather than adding a trust mechanism.
-- At each of the four surfaces that instruct firing `wave-complete` — the two
-  repair paths in `SKILL.md`, `references/supervisor-mode.md`,
-  `references/session-resumption.md`, and
-  `references/finding-adjudication.md` — require
-  `loop-cohort check --phase wave-exit` immediately before the transition. Do
-  not put it in GATES: GATES runs after that transition, so a check placed
-  there could never precede it.
+- Instrument every *site* that instructs firing `wave-complete`, not every
+  file: `SKILL.md` has three (changes-requested, further-in-intent-unit, and
+  specialist-adjudication), `references/finding-adjudication.md` has two, and
+  `references/supervisor-mode.md` and `references/session-resumption.md` one
+  each. Do not put the check in GATES: GATES runs after that transition.
+- The checked region differs by surface shape, so state it per shape rather than
+  assuming a fenced block: `SKILL.md` and `supervisor-mode.md` fire inside
+  fenced command blocks, `session-resumption.md` inside a table cell, and
+  `finding-adjudication.md` in running prose. For the latter two the check is a
+  proximity condition on the same cell or the same sentence, which is decidable
+  on both.
+- Survey what pins each surface before editing, the way the EXECUTE pins are
+  surveyed above. `test_finding_adjudication_contract.py` asserts a literal
+  sentence against a sliced region of `finding-adjudication.md` as a substring,
+  so a preceding sentence survives it while a rewrite of that sentence does not
+  — record which of the two is taken.
 - In `supervisor-mode.md` § Single-agent fallback, name
   `no-implementer-installed` as what the controller records, and name
   `human-directed` as recording a human instruction with no testable
@@ -658,7 +696,7 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   that vocabulary rather than a second phrasing. A roster test requires the
   section to carry the verification-ledger pointer verbatim and forbids three
   retired plan-mutability phrasings in it; the new sentence must not reintroduce
-  any of them. The GATES step lands outside the sliced region.
+  any of them. All three of SKILL.md's firing sites sit after Step 3's heading, so the pre-transition runs land outside the sliced EXECUTE region.
 - Run `FORCE=1 make build-self` and verify the three copies of each edited
   `.apm/` file are byte-identical, trusting the parity check rather than the
   exit code. Projections are never edited directly.

@@ -176,6 +176,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   scoped to each named section — not a whole-file grep — finds the literal
   calls, the authorship sentence, and both decline reason codes, and the three
   projected copies of each edited file are byte-identical.
+- **The refusal's bounding and truncation disclosure: TDD.** One case drives a
+  wave whose unaccounted-task list exceeds the interpolation bound and asserts
+  the refusal states the list is partial and cuts at an identifier boundary; one
+  case drives a state-derived value longer than the bound and asserts the
+  refusal does not carry it whole. These are named here because a bounding
+  obligation with no case is the shape this repository has already paid for.
 - **Mutation proof: manual QA.** Each guard and verb clause is removed in turn,
   the suite is re-run, and the observed red is recorded. A clause whose removal
   leaves the suite green is not yet verified, whatever its tests are named.
@@ -191,9 +197,11 @@ changes. Each record is held under the partition digest, wave index, and task
 identifier current when it was written.
 
 - [ ] A record accounts for its task when it is held under the digest of the
-      current wave partition, and a decline record does so only when its reason
-      is a member of the closed set `no-implementer-installed` and
-      `human-directed`.
+      current wave partition. A decline's reason is not re-checked here: a
+      reason outside the closed set makes the value not a record at all, so the
+      state is not well-formed and the malformed row decides it. Stating it in
+      both places would leave the second clause dominated — unable to decide
+      any state, and unable to redden when removed.
 - [ ] A record held under any other partition digest accounts for no task.
 - [ ] Editing `plan.md` in a way that leaves `schedule_waves` unchanged, then
       re-scheduling, leaves every existing record still accounting for its task.
@@ -273,8 +281,13 @@ once is deliberate: an earlier draft asserted that each row negated the rows
 above it without writing those negations, and two rows then covered the same
 state with opposite verdicts.
 
-- [ ] `state.json` is missing or cannot be parsed: exits non-zero and names the
-      state defect on stderr.
+- [ ] The cohort state read refuses, for any reason in its own refusal
+      vocabulary: exits non-zero and names that reason on stderr. The read
+      refuses for more than absence and unparseability — a non-object JSON root,
+      a non-regular file, a file that changed while being opened or read, a
+      document over the size bound, and a non-finite number are each refusals,
+      and a non-object root in particular *parses*, so a row worded around
+      parsing alone would leave it satisfying no row at all.
 - [ ] `state.json` parses and its `schema_version` is not the supported value:
       exits zero and prints nothing to stdout or stderr. This row exists so the
       transition's verdict is *preserved* for that state class, not merely
@@ -306,9 +319,11 @@ state with opposite verdicts.
       container is present, the pointer is valid, the current wave is
       well-formed, and at least one task in the current wave is not accounted
       for: exits non-zero and names on stderr every such task, and no accounted
-      task, up to the guard layer's reason-length bound; where that bound
-      truncates the list, the refusal says so rather than presenting a
-      shortened list as complete.
+      task, up to the guard layer's per-value interpolation bound — the tighter
+      of the two bounds in play, and therefore the one that truncates. Where it
+      truncates, the refusal states that the list is partial, and it cuts only
+      at an identifier boundary, so no fragment of an identifier is ever
+      presented as a task name.
 - [ ] Every value the guard or the verb interpolates into a refusal — whether
       read from `state.json` or supplied as an argument — passes through the
       guard layer's existing length-bounding helper, so no refusal carries an
@@ -320,9 +335,12 @@ state with opposite verdicts.
       above.
 - [ ] Each of the eight rows above is satisfied by some cohort state.
 - [ ] The states the three criteria above are checked over are constructed by
-      varying the type and value of `schedule_waves`, of its element at the
-      pointer, of the receipts container, of a record's `kind`, of
-      `schema_version`, and of `current_wave_index`.
+      varying the outcome of the cohort state read across its refusal
+      vocabulary, and the type and value of `schedule_waves`, of its element at
+      the pointer, of the receipts container, of a record's `kind`, of
+      `schema_version`, and of `current_wave_index`. This list is the single
+      canonical enumeration of the axes; a task's `Tests` field cites it rather
+      than restating a subset.
 - [ ] The container values in that domain are generated from the declared key
       path — a correctly nested instance built from the declaration, then
       mutated at each depth with each hostile value — rather than hand-built at
@@ -348,16 +366,22 @@ state with opposite verdicts.
 
 ### Reporting and reaching the check
 
-- [ ] Every surface that instructs firing the `wave-complete` transition also
+- [ ] Every *site* that instructs firing the `wave-complete` transition also
       instructs running `loop-cohort check --phase wave-exit` immediately
-      before it. Those surfaces are `references/supervisor-mode.md`,
-      `references/session-resumption.md`, `references/finding-adjudication.md`,
-      and the two repair paths in `SKILL.md`. GATES is not among them: GATES
-      fires `wave-passed`, `gates-clean` and `gates-failed`, and it runs after
-      the `wave-complete` transition rather than before it.
-- [ ] That pre-transition run is what gives the absent-container notice a
-      caller, because the engine's guard adapter discards a passing guard's text
-      and the transition alone therefore cannot surface it.
+      before it, counted per site rather than per file — `SKILL.md` carries
+      three such sites and `references/finding-adjudication.md` two, so a
+      file-level check would let an uninstrumented site be absorbed by a
+      covered sibling in the same file.
+- [ ] The count of instrumented sites equals the count of firing sites, so
+      adding a firing site later without its check fails rather than passing
+      silently.
+- [ ] GATES carries no such instruction: GATES fires `wave-passed`,
+      `gates-clean` and `gates-failed`, and runs after the `wave-complete`
+      transition rather than before it.
+<!-- Why the criterion above exists, rather than a criterion itself: the
+engine's guard adapter discards a passing guard's text, so the transition alone
+cannot surface the absent-container notice and the pre-transition run is its
+only caller. Nothing can red for a rationale, so it is not a checkbox. -->
 - [ ] The verdict that pre-transition run reports is about the wave the run is
       leaving — the wave `current_wave_index` names at the moment the check
       runs. A controller that advances the pointer first therefore does not
@@ -395,22 +419,28 @@ state with opposite verdicts.
   `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` — refuse or
   disambiguate a duplicate plan task heading. Registered 2026-09-17; independent
   of this spec.
-- eugenelim: `workspace.toml` `[backlog].open`, entry keyed
-  `wave-advance-uncoupled-from-the-exit-check` — pair leaving a wave index with
+- eugenelim: `workspace.toml` `[backlog].open`, the entry on
+  `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` whose summary opens
+  "Pair leaving a wave index with that wave being accounted for" — register
+  entries are keyed by `path` and carry no slug, so a slug would resolve to
+  nothing. Pair leaving a wave index with
   that wave being accounted for. `loop-cohort wave advance` is authorized by
   `--expect-run-id` alone and is not coupled to this guard, so a controller that
   advances before firing `wave-complete` takes the skipped wave out of the
   guard's view. This spec keeps a record writable for an already-left wave so
   the record is not also lost.
-- eugenelim: `workspace.toml` `[backlog].open`, entry keyed
-  `repair-rounds-reuse-the-first-passes-receipts` — require a repair round to
+- eugenelim: `workspace.toml` `[backlog].open`, the entry on
+  `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` whose summary opens
+  "Require a repair round to carry its own dispatch assertion" — require a
+  repair round to
   carry its own assertion. `gates-failed`, `findings-remain`, and
   `blocker-applied` all re-enter `CODE-IMPLEMENTATION` without moving
   `current_wave_index`. Scoping a record to a round needs a counter that
   advances on all three edges; `implementation_retry_count` advances on one, so
   building on it would look like a control without being one.
-- eugenelim: `workspace.toml` `[backlog].open`, entry keyed
-  `an-enforcement-off-wave-exit-leaves-no-durable-trace` — a wave exit that
+- eugenelim: `workspace.toml` `[backlog].open`, the entry on
+  `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` whose summary opens
+  "Leave a durable trace when a wave exit passes" — a wave exit that
   passes with no container, or with every task declined, leaves no record an
   after-the-fact reader can find, because the read-only guard cannot write and a
   durable side effect on a transition is ADR-0061 Option B. `loop-cohort status`

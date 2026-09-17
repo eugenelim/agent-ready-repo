@@ -114,13 +114,22 @@ shasum -a256 tools/hooks/pre-pr.py packs/core/.apm/hooks/pre-pr.py
   `packs/core/.apm/hooks/pre-pr.py`, in a seeded `tmp_path` sandbox, so it does
   not see the real `docs/specs/`.
 
-**Residual I did not resolve.** `make ci` is `lint-ruff lint-mypy build-check
-test-after-build-check` and does not name `pre-pr`. Whether
-`build-check-unleased` reaches the hook transitively is unverified; two
-comments in `.github/workflows/build-check.yml` (lines 98 and 968) assert that
-`make build-check` chains `tools/hooks/pre-pr.py`, and I did not confirm that
-against the recipe. The claim above is therefore scoped to `make pre-pr` and the
-two test suites, which I did read.
+**Residual resolved — the hook is reached by the required PR gate.** I had
+scoped this to `make pre-pr` and two test suites and left the CI path
+unverified. Round 6 pointed out it is one read away, and it is:
+`tools/repo/build_gate_chain.py` runs `tools/catalogue/pre_pr_catalogue.py
+--skip-verify`; `--skip-verify` suppresses only the catalogue verify step, so
+the delegation to `tools/hooks/pre-pr.py` and the `sys.exit` on its return code
+both still run; and the `Makefile` chains that into `build-check`, which is the
+always-run PR gate. So the `implement` phase's verdict gates every pull request,
+not only a local `make pre-pr`. `make ci` not naming `pre-pr` is not evidence
+against this — it reaches it through `build-check`.
+
+This strengthens rather than changes the design conclusion: keeping the
+accounting out of `--phase implement` matters more, because the surface it would
+have gated is a required check rather than an optional local one. Recorded as a
+correction because T1's `Done when` requires the answer for every surface, and
+scoping a surface away is not answering it.
 
 **Sweep method, stated because a grep missed it.** `grep -rn -- "--phase"` piped
 through a filter for `implement` does **not** find this hook: the phase reaches
