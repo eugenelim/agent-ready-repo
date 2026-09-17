@@ -55,8 +55,13 @@ _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 # A backtick fence's info string may not contain a backtick — otherwise
 # ```` ```bad`info ```` would read as a fence and mask the prose after it. A
 # tilde fence's info string has no such restriction.
+# An optional `>` marker admits a fence inside a block quote, which this
+# repository's prose uses. Deeper container nesting — a fence inside a list
+# item inside a quote — is NOT recognised, and that is the named blind spot.
+_QUOTE = r"(?:> ?)?"
 _FENCE_OPEN_RE = re.compile(
-    r"^(?P<indent> {0,3})(?:(?P<ticks>`{3,})[^`\n]*|(?P<tildes>~{3,})[^\n]*)$"
+    rf"^{_QUOTE}(?P<indent> {{0,3}})"
+    r"(?:(?P<ticks>`{3,})[^`\n]*|(?P<tildes>~{3,})[^\n]*)$"
 )
 
 _BLOCK, _CODE = "block", "code"
@@ -79,7 +84,7 @@ def _fence_close(text: str, search_from: int, delim: str, run: int) -> int:
     opener, alone on its line. "At least as long" is what keeps a ````
     fence open across the ``` lines it is quoting.
     """
-    closer = re.compile(rf"^ {{0,3}}{re.escape(delim)}{{{run},}}\s*$")
+    closer = re.compile(rf"^{_QUOTE} {{0,3}}{re.escape(delim)}{{{run},}}\s*$")
     position = search_from
     while position < len(text):
         line_end = text.find("\n", position)
@@ -88,6 +93,22 @@ def _fence_close(text: str, search_from: int, delim: str, run: int) -> int:
             return min(line_end + 1, len(text))
         position = line_end + 1
     return len(text)
+
+
+_BLANK_LINE_RE = re.compile(r"\n[ \t]*\n")
+
+
+def _block_end(text: str, search_from: int) -> int:
+    """Offset of the blank line that ends the current block, or end of text.
+
+    Inlines are parsed within a block, so a code span cannot reach across a
+    paragraph break. Without this bound an unmatched backtick pairs with one
+    several paragraphs later and blanks everything between — which is how four
+    real headings went missing from `anchors_in` in
+    `docs/guides/guidebook-step-contract.md`.
+    """
+    blank = _BLANK_LINE_RE.search(text, search_from)
+    return len(text) if blank is None else blank.start()
 
 
 def _inert_spans(text: str) -> list[tuple[int, int, str]]:
@@ -119,7 +140,8 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
             while position + run < length and text[position + run] == "`":
                 run += 1
             closer = re.compile(rf"(?<!`){'`' * run}(?!`)")
-            found = closer.search(text, position + run)
+            block_end = _block_end(text, position + run)
+            found = closer.search(text, position + run, block_end)
             if found is not None:
                 spans.append((position, found.end(), _CODE))
                 position, at_line_start = found.end(), False
@@ -136,8 +158,17 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
     return spans
 
 
+# Every character `str.splitlines()` treats as a line boundary. Preserving only
+# `\n` let `\u2028` inside an inert span become a space, so the masked text had
+# fewer lines than the original and the line-paired read in `anchors_in` raised.
+# Live in `docs/specs/loop-tooling-mandated-writes/plan.md`. Caught because that
+# pairing asserts `strict=True`; without it the anchors would have silently
+# shifted by a line.
+_LINE_BOUNDARIES = frozenset("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
+
+
 def _blank(text: str, kinds: tuple[str, ...]) -> str:
-    """Blank the named span kinds, preserving string indices and newlines.
+    """Blank the named span kinds, preserving string indices and line breaks.
 
     Indices are Python string indices — code points, not UTF-8 bytes. That is
     the contract every caller here needs, because each one indexes back into
@@ -148,7 +179,7 @@ def _blank(text: str, kinds: tuple[str, ...]) -> str:
         if kind not in kinds:
             continue
         for i in range(begin, finish):
-            if masked[i] != "\n":
+            if masked[i] not in _LINE_BOUNDARIES:
                 masked[i] = " "
     return "".join(masked)
 
@@ -1289,3 +1320,49 @@ def test_visible_prose_keeps_backticked_tokens_and_drops_blocks() -> None:
     assert "kept-token" in prose
     assert "fenced-out" not in prose
     assert "commented-out" not in prose
+
+
+def test_an_inline_span_does_not_cross_a_paragraph_break() -> None:
+    """An unmatched backtick must not pair with one in a later block.
+
+    Inlines are parsed within a block, so a code span cannot reach across a
+    blank line. Round 18 found an unmatched backtick in
+    `docs/guides/guidebook-step-contract.md` opening a span that ran over three
+    paragraph breaks and hid four real headings from `anchors_in`.
+    """
+    text = "a `unmatched here\n\n## Real Heading\n\nb ` c\n"
+    masked = _inert_masked(text)
+    assert "## Real Heading" in masked
+
+
+def test_a_fence_inside_a_block_quote_is_inert() -> None:
+    """A quoted fence is code a reader sees as code.
+
+    The fence is left unterminated on purpose. A closed quoted fence is masked
+    either way — its two delimiter lines pair as an inline code span, reaching
+    the same result by the wrong route — so only the unterminated form shows
+    that the fence itself is recognised.
+
+    Blind spot, named: one container level. A fence inside a list item inside a
+    quote is not detected.
+    """
+    closed = "> ```\n> [x](docs/README.md#h)\n> ```\n"
+    unterminated = "> ```\n> [x](docs/README.md#h)\n"
+    assert not _LINK_TARGET_RE.findall(_inert_masked(closed))
+    assert not _LINK_TARGET_RE.findall(_inert_masked(unterminated))
+
+
+def test_masking_preserves_every_line_boundary(tmp_path: Path) -> None:
+    """A masked span keeps line parity, not just `\\n` parity.
+
+    `str.splitlines()` breaks on more than `\\n`. Replacing `\\u2028` inside an
+    inert span with a space dropped a line, and `anchors_in` pairs raw and
+    masked lines — live in `docs/specs/loop-tooling-mandated-writes/plan.md`.
+    """
+    text = "`code with a line separator`\n\n## Heading\n"
+    masked = _inert_masked(text)
+    assert len(masked) == len(text)
+    assert len(masked.splitlines()) == len(text.splitlines())
+    page = tmp_path / "page.md"
+    page.write_text(text, encoding="utf-8")
+    assert anchors_in(page) == frozenset({"heading"})

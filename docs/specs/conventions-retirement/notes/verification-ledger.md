@@ -896,3 +896,39 @@ a named implementation the whole time. When a control approximates an external
 standard, the standard settles disputes about it; internal consistency can only
 show the code disagrees with itself. Each guard now reds its own mutation
 individually, including a mutation that re-adds the removed one.
+
+## Round 18 — the first live defect in the scanner, and a third one it exposed
+
+One blocker with live effect, one concern, and a defect neither named.
+
+**An inline span crossed three paragraph breaks and hid four headings.** An
+unmatched backtick in `docs/guides/guidebook-step-contract.md` opened a run
+whose closer was found several blocks later, blanking everything between.
+`anchors_in` lost four real headings as a result, including a `###`. Inlines
+are parsed *within* a block, so a code span cannot reach across a blank line;
+the closer search is now bounded to the current block. This is the first
+scanner finding with a consequence a reader could see, as against a
+permissiveness gap.
+
+**It also disproved round 16's reading.** That entry claimed the seven files
+whose masking changed were all real code spans. They were not — this one was a
+runaway span, and the guard round 16 restored was partly masking the symptom.
+
+**A fence inside a block quote was not recognised.** Now admitted for one
+container level, with deeper nesting named as the blind spot. Worth recording
+how nearly this went unproved: the obvious case, a *closed* quoted fence, is
+masked either way, because the two delimiter lines pair as an inline code span
+and reach the right answer by the wrong route. Only the unterminated form
+distinguishes the fence being recognised from the delimiters coincidentally
+pairing. A case that passes for the wrong reason is worse than no case, because
+it reads as coverage.
+
+**A third defect the round did not name, surfaced by a `strict=True`.**
+`_blank` preserved `\n` and replaced every other character in an inert span —
+including ` `, which `str.splitlines()` also treats as a line boundary. In
+`docs/specs/loop-tooling-mandated-writes/plan.md` that dropped a line from the
+masked text, and `anchors_in` pairs raw and masked lines. It raised rather than
+silently returning anchors shifted by one line, purely because that zip asserts
+`strict=True`. The full boundary set is now preserved. The general point: a
+pairing between two derived sequences should assert equal length, or a
+divergence becomes a silent off-by-one in the result.
