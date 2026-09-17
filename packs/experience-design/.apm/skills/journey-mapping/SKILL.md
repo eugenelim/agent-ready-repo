@@ -5,7 +5,7 @@ description: "Use when a team asks what an end user goes through across an exper
 
 # Skill: journey-mapping
 
-Produces a **customer/end-user journey map** — the stages a customer moves through, the actions they take, the emotions they feel, the pains they encounter, and the opportunities those pains reveal. The map is **outside-in and frontstage**: it describes what the customer experiences, not what happens behind the scenes. The method draws on NN/g journey mapping, Patton user-story mapping, and Torres opportunity-solution tree thinking; see `references/journey-mapping.md`.
+Produces a **customer/end-user journey map** — the stages a customer moves through, the actions they take, the emotions they feel, the pains they encounter, and the opportunities those pains reveal. The map is **outside-in and frontstage**: it describes what the customer experiences, not what happens behind the scenes. Sources: see the pack README; see also `references/journey-mapping.md`.
 
 **Inputs:** a persona (or role description) and an outcome the customer is trying to achieve. Both are elicited inline when absent — this skill is standalone-useful without upstream research artifacts. **Consumed by:** `user-flow` (derives the screen sequence and per-screen briefs from the journey stages) and `service-blueprint` (maps the frontstage actions to backstage services). When `architect` or `contracts` are not installed, downstream services are named textually rather than by package reference.
 

@@ -45,7 +45,7 @@ seam (every skill declares its inputs and what consumes it):
   (observational / survey-backed / assumption-based) and a `surface-genre`
   confirmation. The thread's head.
 - **`design-principles`** — turns journey insights into 3–5 named, testable
-  design principles (NNGroup 4-step model). Consumed by `creative-direction`,
+  design principles. Consumed by `creative-direction`,
   `information-architecture`, `content-design`, and `design-review`.
 - **`user-flow`** — the journey's screens *sequenced*, with transitions
   and error/edge flows, a per-screen state matrix (with `surface-genre:`

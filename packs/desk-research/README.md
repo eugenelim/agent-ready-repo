@@ -119,6 +119,15 @@ desk-research-project-synthesize
 
 ---
 
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — who published what.
+
+- **`build-outline`'s PICO axes** — PICO (Population, Intervention, Comparison, Outcome) comes from evidence-based medicine: Richardson, Wilson, Nishikawa & Hayward, "The Well-Built Clinical Question", *ACP Journal Club*, 1995. PRISMA (Page et al., 2021) is a separate reporting checklist for writing up systematic reviews — it neither defines nor owns PICO.
+- **`source-map`'s survey-by-adjacency finding** — Shao et al., 2024 (NAACL, "Assisting in Writing Wikipedia-like Articles From Scratch with LLMs"): directly-prompted LLMs produce basic "What/When/Where" questions addressing only surface-level facts. STORM instead grounds its perspectives in the tables of contents of related Wikipedia articles rather than asking an LLM to name authorities, and its ablations show the ungrounded variants underperform.
+
+---
+
 ## Cross-pack
 
 **Downstream — `product-strategy`:** `synthesize-stakeholder-research` in the product-strategy pack consumes `desk-research` survey artifacts as a primary evidence source.

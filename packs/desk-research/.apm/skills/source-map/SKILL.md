@@ -44,11 +44,10 @@ Table — When presenting several items that share the same fields, render a Mar
 ## Methodology
 
 The core discovery move is **survey-by-adjacency**, not direct
-question-asking. STORM's finding: asking the LLM "who's authoritative
-on X" produces a generic, training-data-shaped list. Instead, survey
-adjacent material — papers that cite each other, blog posts that cross-
-reference, communities that share vocabulary — and let the authorities
-fall out of the pattern.
+question-asking: survey adjacent material — papers that cite each
+other, blog posts that cross-reference, communities that share
+vocabulary — and let the authorities fall out of the pattern. Sources:
+see the pack README.
 
 Treat any "who is authoritative on X" intuition the LLM produces as
 suspect. Discovery is empirical, not asserted.

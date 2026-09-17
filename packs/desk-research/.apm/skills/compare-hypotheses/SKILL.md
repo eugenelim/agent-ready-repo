@@ -68,11 +68,11 @@ the analyst who weighs evidence asymmetrically across hypotheses.
 
 ## Parallel retrieval
 
-On Claude Code, hypotheses-by-evidence is a +81% parallelizable-task
-case: each hypothesis can be evaluated independently against the same
-source pool. Dispatch N parallel `evidence-retriever` subagents — one
-per hypothesis — and synthesise the returned per-hypothesis evidence
-into the matrix.
+On Claude Code, hypotheses-by-evidence parallelises well: each
+hypothesis can be evaluated independently against the same source
+pool. Dispatch N parallel `evidence-retriever` subagents — one per
+hypothesis — and synthesise the returned per-hypothesis evidence into
+the matrix.
 
 On hosts without subagent support, fall back to sequential evaluation.
 
