@@ -32,6 +32,54 @@ APPROVED_SCAN_DIGEST = "a8ec4080227bab0b8caa78cb46f1cba91cd1bae4a832f115e8278400
 
 _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 
+# Inert spans: text a reader never follows. Each block pattern also matches its
+# unterminated form, because a block left open swallows the rest of the file for
+# a reader and must do the same here. CommonMark allows `~~~` as a fence
+# delimiter and up to three leading spaces on either side, so both are
+# recognised; a narrower pattern leaves a link or heading visible to this module
+# while invisible to every renderer.
+_COMMENT_RE = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
+_FENCE_RE = re.compile(
+    r"^ {0,3}(```|~~~)[^\n]*$.*?(?:^ {0,3}\1|\Z)", re.DOTALL | re.MULTILINE
+)
+# Requires content between the delimiters. `[^`\\n]*` matches a bare ``` fence
+# line as an empty code span, which blanks the delimiter and stops the fence
+# pattern below from ever seeing its own opener.
+_INLINE_CODE_RE = re.compile(r"`+[^`\n]+`+")
+
+
+def _blank_spans(text: str, masked: list[str], *patterns: re.Pattern[str]) -> str:
+    """Overwrite each pattern's matches in `masked` with spaces; return it."""
+    for pattern in patterns:
+        for span in pattern.finditer(text):
+            for i in range(*span.span()):
+                if masked[i] != "\n":
+                    masked[i] = " "
+    return "".join(masked)
+
+
+def _inert_masked(text: str) -> str:
+    """Return `text` with inert spans blanked, offsets and newlines preserved.
+
+    Order is load-bearing, and both halves were found by testing. Fences go
+    first, because a bare ``` delimiter line otherwise reads as an empty inline
+    code span, gets blanked, and leaves the fence pattern with no opener to
+    match. Comments go last, because this repository's prose quotes `<!--` as
+    inline code and an unterminated-comment rule applied before that span is
+    blanked treats the sample as an opener and swallows the rest of the file.
+    Masking in place rather than deleting keeps offsets aligned, so a match
+    found here indexes the original text unchanged.
+    """
+    masked = list(text)
+    fenced = _blank_spans(text, masked, _FENCE_RE)
+    coded = _blank_spans(fenced, masked, _INLINE_CODE_RE)
+    return _blank_spans(coded, masked, _COMMENT_RE)
+
+
+def _mask_inert(text: str) -> str:
+    """Alias kept for the section and link readers, which want full masking."""
+    return _inert_masked(text)
+
 
 def _slug(heading_text: str) -> str:
     """GitHub-style anchor slug for a Markdown heading."""
@@ -44,7 +92,9 @@ def anchors_in(path: Path) -> frozenset[str]:
     """Return every anchor slug a Markdown file exposes."""
     if not path.is_file():
         return frozenset()
-    body = path.read_text(encoding="utf-8")
+    # Masked, for the same reason every other read in this module is: a heading
+    # inside a comment or a fenced example exposes no anchor a link can reach.
+    body = _mask_inert(path.read_text(encoding="utf-8"))
     return frozenset(_slug(m.group("text")) for m in _HEADING_RE.finditer(body))
 
 
@@ -70,15 +120,43 @@ def anchor_map() -> dict[str, dict[str, str]]:
     return rows
 
 
+# AC6 names this figure, so it is part of the criterion rather than an
+# incidental property of the file. Without it a dropped or corrupted inventory
+# row leaves the guard green while its replacement link disappears: the domain
+# would shrink to fit whatever survived.
+RECORDED_USE_COUNT = 30
+
+_INVENTORY_ROW_RE = re.compile(
+    r"^(?P<consumer>[^:]+):(?P<line>\d+):" + RETIRED_TOKEN + r"\.md(?P<anchor>#\S+)$"
+)
+
+
 def recorded_uses() -> tuple[tuple[str, str], ...]:
-    """Return ``(consuming_file, anchor)`` for every use in the inventory."""
+    """Return ``(consuming_file, anchor)`` for every use in the inventory.
+
+    Parsed strictly. A row that does not match is an error, not a row to skip,
+    because silently skipping is how the criterion's domain shrinks.
+    """
     uses: list[tuple[str, str]] = []
-    for line in ANCHOR_INVENTORY.read_text(encoding="utf-8").splitlines():
-        if ":" not in line or RETIRED_TOKEN + ".md#" not in line:
+    malformed: list[str] = []
+    for number, line in enumerate(
+        ANCHOR_INVENTORY.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
-        consumer = line.split(":", 1)[0]
-        anchor = "#" + line.split(RETIRED_TOKEN + ".md#", 1)[1].strip()
-        uses.append((consumer, anchor))
+        row = _INVENTORY_ROW_RE.match(line)
+        if row is None:
+            malformed.append(f"{ANCHOR_INVENTORY.name}:{number}: {line!r}")
+            continue
+        uses.append((row.group("consumer"), row.group("anchor")))
+    assert not malformed, "unparseable anchor-inventory row(s):\n  " + "\n  ".join(
+        malformed
+    )
+    assert len(uses) == RECORDED_USE_COUNT, (
+        f"the inventory records {len(uses)} uses; AC6 names "
+        f"{RECORDED_USE_COUNT}. A row was added or dropped, which moves the "
+        f"criterion's domain."
+    )
     return tuple(uses)
 
 
@@ -126,7 +204,11 @@ def unresolved_uses() -> tuple[str, ...]:
     return tuple(failures)
 
 
-_LINK_TARGET_RE = re.compile(r"\]\(([^)\s]+)")
+# The label is matched so the lookbehind can sit before the opening bracket,
+# which is where an image's `!` and an escaped bracket's backslash live. Testing
+# a guard placed before the closing bracket instead let `![alt](dest)` through:
+# the character before `]` there is ordinary label text.
+_LINK_TARGET_RE = re.compile(r"(?<![!\\])\[[^\]]*\]\(([^)\s]+)")
 
 # A seed page's relative links resolve inside the scaffold it becomes, not inside
 # this repository, so a seed twin pointing at its own twin is correct.
@@ -194,10 +276,15 @@ def _matching_link_count(
     Returns a count rather than a boolean so a consumer citing one anchor
     twice must carry two replacements. The inventory is one line per use.
     """
-    candidates = [REPO_ROOT / destination]
-    for seed_root in SEED_ROOTS:
-        if consumer.startswith(seed_root):
-            candidates.append(REPO_ROOT / seed_root / destination)
+    seed_root = next((r for r in SEED_ROOTS if consumer.startswith(r)), None)
+    if seed_root is None:
+        candidates = [REPO_ROOT / destination]
+    else:
+        # The twin is the only candidate. Accepting the repository copy as well
+        # let a seed link spelled with enough `..` to escape the installed tree
+        # count, because those segments still reach a real file in this
+        # repository — a namespace the adopter never has.
+        candidates = [REPO_ROOT / seed_root / destination]
     wanted = _slug(heading)
     targets = {
         path.resolve()
@@ -302,9 +389,6 @@ def run_scan(pattern: str | None = None) -> tuple[str, ...]:
 ROOT_AGENTS = REPO_ROOT / "AGENTS.md"
 SEED_AGENTS = REPO_ROOT / "packs/core/seeds/AGENTS.md"
 
-_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-_FENCE_RE = re.compile(r"^```.*?^```", re.DOTALL | re.MULTILINE)
-
 
 def visible_prose(text: str) -> str:
     """Strip HTML comments and fenced blocks, then normalise whitespace.
@@ -317,8 +401,19 @@ def visible_prose(text: str) -> str:
     missing rule that is present. Found in T19: the Finish-checklist obligation
     wrapped between "not done" and "until those are updated".
     """
-    stripped = _FENCE_RE.sub("", _COMMENT_RE.sub("", text))
-    return " ".join(stripped.split())
+    # Spans are located on inline-code-masked text so a quoted `<!--` cannot
+    # open a comment, but they are cut from the original, because a backticked
+    # token is ordinary content here and several assertions name one.
+    fence_spans = [m.span() for m in _FENCE_RE.finditer(text)]
+    located = _blank_spans(text, list(text), _FENCE_RE, _INLINE_CODE_RE)
+    keep, cursor = [], 0
+    spans = sorted(fence_spans + [m.span() for m in _COMMENT_RE.finditer(located)])
+    for start, end in spans:
+        if start >= cursor:
+            keep.append(text[cursor:start])
+            cursor = end
+    keep.append(text[cursor:])
+    return " ".join("".join(keep).split())
 
 
 # The three session-priming rules T2 seats in both AGENTS.md files, each named by
@@ -459,23 +554,6 @@ def installed_paths() -> frozenset[str]:
     )
 
 
-def _mask_inert(text: str) -> str:
-    """Blank out comment and fence spans, preserving every offset and newline.
-
-    Searching for a heading has to happen on text that still has its line
-    breaks, but a heading inside a comment or a fenced example is not a section
-    a reader ever sees. Masking in place rather than deleting keeps offsets
-    aligned, so a match found here indexes the original text unchanged.
-    """
-    masked = list(text)
-    for pattern in (_COMMENT_RE, _FENCE_RE):
-        for span in pattern.finditer(text):
-            for i in range(*span.span()):
-                if masked[i] != "\n":
-                    masked[i] = " "
-    return "".join(masked)
-
-
 def section_of(text: str, heading: str) -> str:
     """Return one `##` section's body, or an empty string when absent.
 
@@ -491,13 +569,17 @@ def section_of(text: str, heading: str) -> str:
     either. Both were live weaknesses: the first let a rename keep the
     assertion green, the second let a section no reader renders satisfy it.
     """
+    masked = _mask_inert(text)
     marker = re.compile(rf"^## {re.escape(heading)}$", re.MULTILINE)
-    found = marker.search(_mask_inert(text))
+    found = marker.search(masked)
     if found is None:
         return ""
-    rest = text[found.end():]
-    nxt = rest.find("\n## ")
-    return visible_prose(rest if nxt == -1 else rest[:nxt])
+    # Both boundaries come from the masked string. Finding the start there and
+    # the end in the raw text let a commented-out `## Fake` truncate the
+    # section, so content after it — a dangling link included — was never read.
+    nxt = masked.find("\n## ", found.end())
+    end = len(text) if nxt == -1 else nxt
+    return visible_prose(text[found.end():end])
 
 
 # --------------------------------------------------------------------------

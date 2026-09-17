@@ -636,3 +636,55 @@ three rounds: consumer, then fragment, then the target the fragment resolves
 against. The discipline that caught each one is the same each time — strip the
 named content and confirm the assertion reds, against every branch the control
 has, not just the branch the finding described.
+
+## Round 12 — review of the round-11 repairs
+
+Nine findings, all sustained as Concerns, none refuted, no blockers. Only one
+described a control unprotected over content that exists today; the other eight
+were permissiveness gaps with **no live instance** — no `~~~` fence, no
+indented fence carrying a link, no unterminated block, no image link, no
+escaped bracket, no inline-code link, and no out-of-scaffold relative link on
+any scanned page or in any of the 25 link-checked consumers.
+
+**The clustered remedy was wrong, and checking that was the useful step.**
+Four findings proposed Markdown-aware parsing. This repository declares no
+Markdown parser, and the root `AGENTS.md` ranks the standard library above a
+new dependency and requires recording one before it is added. Adjudication
+found all four remedies over-broad: each reduces to a regex change at a seam
+the module already owns. The gap was real; the proposed fix was not the
+smallest adequate one, and taking it at face value would have added a
+dependency to harden a test guard.
+
+**Two of the adopted fixes were themselves wrong, and only differential
+testing showed it.**
+
+The suggested link guard was `(?<![!\\])\]\(`, which places the lookbehind
+before the *closing* bracket. In `![alt](dest)` the character there is ordinary
+label text, so an image still counted. The guard has to sit before the opening
+bracket, which is where the `!` and the escape actually are.
+
+Masking inline code before fences blanked the fence delimiters: a bare ```
+line matches an empty inline-code span, so the fence pattern lost its own
+opener and a fenced `## Fake` truncated the section anyway. Order is now
+fences, then inline code, then comments — fences first so their delimiters
+survive, comments last so a `<!--` quoted as inline code cannot open one and
+swallow the file. That last case is live: `spec-and-plan-contract.md:97` quotes
+`<!--` as a code sample with no closing `-->`, and the first version of the
+unterminated-comment rule ate the rest of that file and reddened five
+assertions.
+
+Eleven behaviours are now pinned directly against the helpers — visible link
+counted; image, escaped bracket, inline-code link, and links in ```, `~~~` and
+indented fences all ignored; unterminated comment swallows; quoted `<!--` does
+not; fenced and commented `## Fake` do not truncate a section; a real next
+heading still ends one.
+
+**The rest.** `anchors_in` now reads masked text, so a heading that exists only
+inside a comment exposes no anchor. A seed consumer's links resolve in the
+scaffold namespace alone, not also against the repository copy, so a spelling
+with enough `..` to escape the installed tree no longer counts. The inventory
+is parsed strictly and pinned at the 30 rows AC6 names, so a dropped or
+malformed row reds instead of shrinking the domain. The scaffold link check
+requires confinement beneath the scaffold root before testing existence. Link
+liveness and link violations read the same masked text. A deferral naming an
+unscanned page now fails outright.

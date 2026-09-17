@@ -169,39 +169,91 @@ DEFERRED_MISSING_LINKS = frozenset(
 )
 
 
-def _missing_relative_targets(path: Path) -> set[str]:
+_COMMENT_SPAN_RE = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
+_FENCE_SPAN_RE = re.compile(
+    r"^ {0,3}(```|~~~)[^\n]*$.*?(?:^ {0,3}\1|\Z)", re.DOTALL | re.MULTILINE
+)
+# Requires content between the delimiters. `[^`\\n]*` matches a bare ``` fence
+# line as an empty code span, which blanks the delimiter and stops the fence
+# pattern below from ever seeing its own opener.
+_INLINE_CODE_SPAN_RE = re.compile(r"`+[^`\n]+`+")
+
+
+def _operative_lines(path: Path) -> list[tuple[int, str]]:
+    """Return `(lineno, line)` with inert spans blanked, line numbers intact.
+
+    A link inside inline code, an HTML comment or a fenced sample is not one an
+    adopter can follow. Both the violation scan and the dead-entry guard read
+    this, so a spelling that survives only inside a fence cannot keep a
+    deferral alive while the violation half stays suppressed. Inline code is
+    blanked first so a quoted `<!--` cannot open a comment.
+    """
+    text = path.read_text(encoding="utf-8")
+    masked = list(text)
+
+    def blank(source: str, *patterns: re.Pattern[str]) -> str:
+        for pattern in patterns:
+            for span in pattern.finditer(source):
+                for i in range(*span.span()):
+                    if masked[i] != "\n":
+                        masked[i] = " "
+        return "".join(masked)
+
+    fenced = blank(text, _FENCE_SPAN_RE)
+    coded = blank(fenced, _INLINE_CODE_SPAN_RE)
+    final = blank(coded, _COMMENT_SPAN_RE)
+    return list(enumerate(final.splitlines(), start=1))
+
+
+def _unresolved(path: Path, target: str, output_root: Path) -> bool:
+    """Whether `target` fails to resolve to a real file inside the scaffold.
+
+    Existence alone is not enough. A target with enough `..` segments leaves
+    the scaffold written under a pytest temp directory and lands on a path that
+    does exist, so the link passes while an adopter cannot follow it. The
+    scaffold root is the boundary the test's contract names.
+    """
+    resolved = (path.parent / target).resolve()
+    root = output_root.resolve()
+    if resolved != root and root not in resolved.parents:
+        return True
+    return not resolved.exists()
+
+
+def _missing_relative_targets(path: Path, output_root: Path) -> set[str]:
     """Return every relative link target on the page that does not resolve.
 
     Deferral-blind on purpose: the caller applies exceptions, and the dead-entry
     guard needs the unfiltered set to tell a live exemption from a stale one.
     """
     missing: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for _, line in _operative_lines(path):
         for raw_target in MARKDOWN_LINK_RE.findall(line):
             target = raw_target.split("#", 1)[0]
             if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
                 continue
-            if not (path.parent / target).exists():
+            if _unresolved(path, target, output_root):
                 missing.add(target)
     return missing
 
 
-def _scan_for_missing_relative_links(path: Path, relative: str) -> list[str]:
+def _scan_for_missing_relative_links(
+    path: Path, relative: str, output_root: Path
+) -> list[str]:
     """Return repository-relative Markdown links whose targets are absent.
 
     `relative` is the page's scaffold-relative path, which keys its deferred
     exceptions; `path` is where that page was written for this run.
     """
     violations: list[str] = []
-    content = path.read_text(encoding="utf-8")
-    for lineno, line in enumerate(content.splitlines(), start=1):
+    for lineno, line in _operative_lines(path):
         for raw_target in MARKDOWN_LINK_RE.findall(line):
             target = raw_target.split("#", 1)[0]
             if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
                 continue
             if (relative, target) in DEFERRED_MISSING_LINKS:
                 continue
-            if not (path.parent / target).exists():
+            if _unresolved(path, target, output_root):
                 violations.append(f"{relative}:{lineno}: missing link target {target!r}")
     return violations
 
@@ -275,7 +327,9 @@ def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
     for relative in touched:
         page = output_root / relative
         assert page.is_file(), f"scaffold is missing {relative}"
-        violations.extend(_scan_for_missing_relative_links(page, relative))
+        violations.extend(
+            _scan_for_missing_relative_links(page, relative, output_root)
+        )
 
     assert not violations, (
         "scaffold pages contain links unavailable to adopters:\n  " + "\n  ".join(violations)
@@ -283,14 +337,17 @@ def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
     # A deferral covers occurrences that exist. An entry matching nothing is
     # either stale or was recorded against the wrong page, and either way it
     # silently widens the exemption for whatever is added later.
+    deferred_pages = {page for page, _ in DEFERRED_MISSING_LINKS}
+    assert deferred_pages <= set(touched), (
+        "a deferral names a page this test does not scan, so it can never be "
+        f"shown dead: {sorted(deferred_pages - set(touched))}"
+    )
     live = {
         (relative, target)
         for relative in touched
-        for target in _missing_relative_targets(output_root / relative)
+        for target in _missing_relative_targets(output_root / relative, output_root)
     }
-    dead = sorted(
-        pair for pair in DEFERRED_MISSING_LINKS if pair[0] in touched and pair not in live
-    )
+    dead = sorted(pair for pair in DEFERRED_MISSING_LINKS if pair not in live)
     assert not dead, (
         "deferred link exceptions matching no occurrence on a scanned page:\n  "
         + "\n  ".join(f"{page} -> {target!r}" for page, target in dead)
