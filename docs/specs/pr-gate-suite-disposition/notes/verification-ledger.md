@@ -392,3 +392,42 @@ Four-revision resurrection check, per the known trap that a merge can restore a
 retired entry: the entry was present exactly once in `HEAD`, `HEAD~1`,
 `origin/main` and `origin/main~1` before this change, so it was not already
 mid-retirement anywhere.
+
+## The gate caught an independent change, unprompted (2026-09-17)
+
+The strongest evidence in this delivery is not a probe. While the work was in
+flight, a peer merged **PR #1342, "fold the gate-enumeration guard into the final
+tools batch, so it gates a PR"** — by hand, for one suite, with no knowledge of
+this spec. It moved `tools/test_gate_enumeration.py` out of its own
+`run-test-suite` line into the batched line and named it in
+`build-check.yml`'s catalogue-test carve-out step.
+
+Rebasing onto it made this roster stale, and the lint said so before any human
+looked:
+
+```
+lint-ci-parity: ✖ suite 'tools/test_gate_enumeration.py' — NO_PR_GATE is
+  contradicted by covering step 'build-check.yml / gate-main / pytest
+  catalogue-test carve-out destinations (RFC-0082)'. Change it to PR_GATED.
+lint-ci-parity: 1 parity violation(s).
+```
+
+Three things this establishes that a synthetic probe cannot:
+
+1. **The stale-declaration arm fires on real repository movement**, not only on
+   a mutation authored to trip it.
+2. **Completeness survived a line relocation.** #1342 moved the target between
+   recipe lines; the key still resolved, and only the *disposition* went stale.
+   That is the anchor behaving as designed — keyed on lines for completeness,
+   on targets for corroboration.
+3. **The manual practice the roster replaces was already happening.** A
+   maintainer was hand-auditing one suite's PR coverage and hand-fixing it. That
+   is the recall this defect asked to eliminate, observed in the wild mid-delivery.
+
+Entry corrected to `PR_GATED` naming the covering step. The roster now reads
+**59 PR-gated, 6 conditionally gated, 53 with no pull-request gate**, and the
+`run-test-suite` target count rises to 115 with #1342's relocation.
+
+Re-run on the rebased tree: `lint-ruff` 0, `lint-mypy` 0, `lint-ci-parity` 0,
+`test-lint-ci-parity` 0 (169 cases), and the dedup guard green against #1342's
+own re-pinned digests.

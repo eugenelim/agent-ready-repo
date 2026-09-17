@@ -1069,9 +1069,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "which a CI runner does not reproduce."
         ),
     'tools/test_gate_enumeration.py':
-        NO_PR_GATE(
-            "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out "
+            "destinations (RFC-0082)"
         ),
     'tools/test_import_time_path_leaks.py':
         PR_GATED(
