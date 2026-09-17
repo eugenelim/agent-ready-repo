@@ -211,6 +211,28 @@ walk.
 
 | 20,160 states | container values **generated from the declared key path** — a correct instance nested from it, then mutated at each depth with each hostile value — plus the earlier axes and `schema_version` | the nine rows as the spec words them | 0 overlapping, 0 uncovered, all 9 rows reachable |
 
+| 34,720 states | the fifth walk's axes plus the **cohort state read's outcome** across its eight-value refusal vocabulary (ok, missing, unparseable, non-object root, non-regular file, changed-while-reading, oversized, non-finite number) | the nine rows as the spec words them | 0 overlapping, 0 uncovered, all 9 rows reachable |
+
+**The sixth walk's discriminating result.** A non-object JSON root classified to
+*no row* under the fifth walk's predicates: it parses, so the old row 1 was
+false for it, and row 2 needed `schedule_waves` read with its default, which is
+undefined on a list root. It now classifies to row 1, because that row takes the
+read's own refusal vocabulary rather than enumerating two of its cases. The gap
+sat one level *above* the container, and the fifth walk could not exhibit it
+because its domain varied the parsed value and never the read outcome.
+
+**Independent count of the firing sites, since the roster was adopted from a
+review rather than measured.** Seven sites across four files, confirmed by
+reading each: `SKILL.md` three (changes-requested, further-in-intent-unit,
+specialist-adjudication), `references/supervisor-mode.md` one,
+`references/session-resumption.md` one, `references/finding-adjudication.md`
+two. A mention count gives the wrong answer — `SKILL.md` mentions
+`wave-complete` seven times across three sites, and
+`session-resumption.md` mentions it twice of which only one is an instruction to
+fire it: the `reviewers-clean` row's cell. The other is a resumption row keyed
+*by* `wave-complete` as the last event, describing what to do after it fired. My
+first tally said six sites for exactly that reason.
+
 **Why a fifth walk exists: the fourth was green and wrong.** Its container values
 were hand-built two keys deep and the predicate under test was worded two keys
 deep, while the data model declared three. So a correctly shaped container
