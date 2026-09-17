@@ -370,3 +370,26 @@ The rule moved the register from naming no rung at all to naming one on most
 entries, and the non-rung exception is exercised rather than ignored. Neither is
 a detection claim: no criterion grades this register, and the counts are a
 reader's signal, not a gate.
+
+### Release-surface criteria, verified at the shipped revision
+
+The 28 gated checks above are the probe harness's, and the harness scores only
+the behavioural criteria. AC-0015, AC-0016 and AC-0017 are verified by different
+commands and are recorded here so that all 14 checked criteria have evidence at
+the same revision.
+
+| Criterion | Command | Result |
+| --- | --- | --- |
+| AC-0015 | merge-base core version vs both manifests | merge base `2.26.8`; `pack.toml` and `.claude-plugin/plugin.json` both `2.26.9`; expected `2.26.9` — **pass** |
+| AC-0016 | `agentbundle catalogue self-host --root . --check` | exit 0, `catalogue self-host --check: ok` — **pass** |
+| AC-0016 | `agentbundle catalogue verify --root .` | exit 0, `catalogue verify: ok` — **pass** |
+| AC-0017 | heading-order parse of `docs/product/changelog.md` | first two top-level sections are `## [Unreleased]` then `## [core][2.26.9] — 2026-09-16`, nothing between — **pass** |
+
+Totals across both instruments: 11 behavioural criteria at 2 of 2 runs each
+(28 gated checks), plus 3 release-surface criteria verified once each at the
+shipped revision. 14 of 14 criteria have recorded evidence.
+
+The repository's own `tests/roster/test_two_sided_prune_closure_invariant.py::test_pack_delivery_contract_is_complete_and_version_increased`
+independently asserts the `base patch + 1` rule on any branch touching
+`packs/core`, and `tests/roster/test_verification_ledger_contract.py`
+independently asserts the changelog adjacency. Both pass.
