@@ -119,14 +119,8 @@ A feature lifecycle, end to end, with the parts named:
    recognised as a completed write instead of counted twice.
 8. **Specialist reviewers** (if warranted). `security-reviewer` when the diff changes a security boundary, data flow, or guarding control, including agent authority, untrusted-input, tool, permission, sandbox, or data-handling behavior. Unchanged existing I/O and ordinary prompt wording do not fire it. `quality-engineer` covers the maintenance lens. Nits from any reviewer do not block readiness: they are recorded with their citation and deferred, and are only acted on — after promotion, if the repair is larger than a Nit — when the thread means to change the code because of one.
 9. **Repeated findings are reported.** When a round's findings fingerprint the
-   same as the previous round's, the loop surfaces that and carries on; the
-   iteration cap is what bounds it. The signal is advisory because the
-   fingerprint carries a line number and an ordinal that any repair moves, so
-   it reads false through most real recurrence and never fired across two
-   months of recorded runs. It fires only when the sustained set is exactly
-   the previous round's, which a round that changed nothing makes possible but
-   does not guarantee — the set comes from the reviewer's report, not from the
-   tree.
+   same as the previous round's, the loop surfaces that and carries on. It is
+   advisory: the iteration cap is what bounds the loop.
 10. **Capture learnings.** A loop that finished without writing *something* to a skill, ADR, or pattern note wasted what it learned. The work-loop names where each kind of learning belongs.
 
 The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Boundaries because the reviewer measures plans against Boundaries before falling back to the declined-pattern register. The work-loop's prose gates EXECUTE on `plan_review_status = approved`, and that field is set by the reviewer-pass step rather than by the implementing agent — so the discipline holds when the loop is followed and only when it is.

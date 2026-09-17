@@ -127,13 +127,7 @@ Stop the current iteration when any of these is true:
 2. `loop-cohort.py check` exits non-zero, other than the expected pending plan
    review that triggers pre-EXECUTE reviewers. Implementation/review retry caps
    identify their condition. A repeated finding fingerprint from `review inspect`
-   is Surfaced, not a stop. Its preimage carries the finding's position, so a
-   repair that shifts a line gives an otherwise-identical finding a new
-   fingerprint and the comparison reads false through most real recurrence. It
-   fires only when the sustained set is exactly the previous round's, which a
-   round that changed nothing makes possible but does not guarantee — the set
-   is parsed from the reviewer's report, not from the tree. What it cannot do
-   is bound the loop, so the halt it once triggered is retired.
+   is Surfaced, not a stop; it bounds nothing.
 3. The diff is shrinking but findings are not. Stop spot-fixing and return to the
    plan/root cause.
 
