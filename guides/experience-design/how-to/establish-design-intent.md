@@ -52,7 +52,7 @@ Turn these journey pains and peak moments into three to five design principles.
 **Agent returns:**
 <!-- rung: design-principles SKILL.md -->
 
-> **Agent:** Done — I've written named, ranked decision rules with rationale, arbitration tests, and known trade-offs to `docs/design/principles/<slug>.md`.
+> **Agent:** Done — I've written named, ranked decision rules with rationale, arbitration tests, and known trade-offs to `<output_dir>/principles/<slug>.md`.
 
 **You push back:**
 <!-- rung: design-principles SKILL.md -->
@@ -73,7 +73,7 @@ Turn these journey pains and peak moments into three to five design principles.
 **Watch out for:** A polished principle set may be generic everywhere. Notice brand values, copied heuristics, or more than five rules; replace them with a smaller ranked set grounded in this journey.
 <!-- rung: design-principles SKILL.md -->
 
-**Where it lands:** `docs/design/principles/<slug>.md`, with `<slug>` replaced for this product.
+**Where it lands:** `<output_dir>/principles/<slug>.md`, with `<slug>` replaced for this product.
 <!-- rung: design-principles SKILL.md -->
 
 **What it looks like:**

@@ -139,8 +139,8 @@ feature, and implementation/build status.
 to settle tradeoffs.”
 
 **Returns:** 3–5 named principles grounded in evidence, each with rationale and
-an arbitration test. Writes `docs/design/principles/<slug>.md`; this skill does
-not currently consult `[design] output_dir`.
+an arbitration test. Writes `<output_dir>/principles/<slug>.md`, resolved
+through the `[design]` layout contract below.
 
 **Routes away:** target segments and product positioning, choosing or scoping a
 bet, and encoding rules in components. Use `creative-direction` for visual
@@ -354,10 +354,9 @@ setting before user setting), then the pack default `docs/design`, then
 discovery by existing artifact markers. Each skill surfaces the resolved path
 before its first write and creates its subdirectory only when needed.
 
-**Current exception:** `design-principles` writes to the fixed
-`docs/design/principles/<slug>.md` path, which is also where `design-review`
-looks for a principles artifact. It does not currently use the configurable
-`[design] output_dir` contract.
+`design-principles` writes its doc to `<output_dir>/principles/<slug>.md`
+through this contract, and `design-review` resolves the same path when it loads
+a principles artifact to judge findings against.
 
 ## Shared `quality-floor`
 

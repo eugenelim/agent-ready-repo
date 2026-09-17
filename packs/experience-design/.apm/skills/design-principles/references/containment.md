@@ -1,8 +1,12 @@
 # Containment
 
-This module defines the confinement controls shared by the four writes in this
-skill set. Apply every control in the order stated; no control may be deferred
-past the point it is placed.
+This module defines the confinement controls shared across this skill set: the
+four skills that write a design artifact, and any skill that reads one. Apply
+every control in the order stated; no control may be deferred past the point it
+is placed. A control phrased around a write — creating an intermediate
+directory, or replacing an artifact already at the target — binds only a skill
+that writes. Every other control binds a reader too, applied to the path it is
+about to open.
 
 ## Output-directory approval
 
