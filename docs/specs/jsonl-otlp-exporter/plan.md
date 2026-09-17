@@ -414,6 +414,29 @@ produces a working command.
 **Done when:** the criteria above are green in the package suite and the
 published option table names `--user-config`.
 
+### T10: A configuration-acquisition bound
+
+**Depends on:** T2, T9
+
+**Touches:** `jsonl_otlp_exporter/config.py`, `tests/unit/test_config.py`,
+`tests/unit/test_cli.py`, `tests/unit/test_two_scope_config.py`
+
+**Tests:**
+- `no stub (implementation-discovered)` — which function carries the deadline
+  is decided by the implementation rather than named here.
+- Verifies AC-0077. The spec's Testing Strategy owns how it is asserted and why
+  the open, the descriptor proof and the read each need their own case; it is
+  not repeated here.
+
+**Approach:**
+- Delivered by
+  [`sender-bounds-its-configuration-read`](../sender-bounds-its-configuration-read/plan.md),
+  whose T3 carries the construction detail. This entry exists so the criterion
+  it adds has an owning task in the plan that serves its spec; duplicating its
+  steps here would give one obligation two homes.
+
+**Done when:** AC-0077 is green in the package suite.
+
 
 ## Rollout
 

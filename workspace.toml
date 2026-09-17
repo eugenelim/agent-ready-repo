@@ -525,40 +525,6 @@ open = [
   # criteria to the links it touches, which leaves these untouched and visible.
   {slug = "core-seeds-mandate-other-packs-content", source = "spec/conventions-retirement (round-5 adopter-boundary review)"},
   {slug = "pre-existing-local-ci-shared-test-dedup-drift", source = "pre-flight/2026-09-16"},  # 2 cases in tools/test_local_ci_shared_test_deduplication.py fail on a clean tree: test_real_make_root_tool_groups_match_the_approved_profiles (4 errors - standalone/composed process-count and membership drift; needs a decision on which of FIRST_TOOL_BATCH / RETAINED_TOOL_SINGLETONS / FINAL_TOOL_BATCH owns the two pytest commands 2b1574e19 added) and test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation (APPROVED_STANDALONE_PLAN_DIGEST / APPROVED_COMPOSED_PLAN_DIGEST; the 133 reported items are a printout of the computed plan, not 133 defects). Both trace to 2b1574e19 adding packages/jsonl-otlp-exporter to the Makefile. The third case, the sast-unleased byte pin, was re-pinned 2026-09-16. Proven pre-existing by differential: they fail with this branch's new tools/ files removed, and the Makefile is unmodified in the diff. NOTE: this file is in make test (Makefile:643), so make test is red on main until these land.
-  # pre-existing: the exact-ceiling growth race in
-  # packages/jsonl-otlp-exporter/jsonl_otlp_exporter/config.py read_config_file.
-  # Present at HEAD before this session and byte-identical to it -- `git diff` over
-  # the telemetry-sender-owns-its-configuration change does not touch the size or
-  # read block. A file whose fstat samples at exactly MAX_CONFIG_BYTES (65,536) and
-  # is then appended to by a concurrent writer still satisfies
-  # `len(raw) == info.st_size`, because `os.read(fd, MAX_CONFIG_BYTES)` returns
-  # exactly that many bytes. A valid TOML prefix of an oversized file is then parsed
-  # and accepted, so the complete file is never validated -- and a key the full file
-  # carries past the ceiling is never seen. Found by the security review of that
-  # change, which also raised its consequence: since AC-0075 now refuses an
-  # inadmissible [telemetry] key, a prefix that omits the bad key turns a refusal
-  # into a silent accept. Not repaired there because changing the read is a
-  # behaviour change on a shipped path (a file exactly at the ceiling that grows
-  # would start refusing), which the bundled-fixes tiers exclude. Marginal risk is
-  # small: anyone who can rewrite the file can already set any endpoint. Fix: read
-  # with a buffer of MAX_CONFIG_BYTES + 1 and refuse overflow, keeping the
-  # short-read and sampled-size checks.
-  { slug = "pre-existing-config-exact-ceiling-growth-race", source = "pre-flight/2026-09-16" },
-  # pre-existing, exposure doubled: configuration I/O in
-  # packages/jsonl-otlp-exporter/jsonl_otlp_exporter/config.py sits outside every
-  # runtime deadline. Both files are opened and read before `run_started` is taken
-  # in cli.py, and `O_NONBLOCK` does not bound read(2) on a regular file -- so a
-  # config on a slow or disconnected network mount can hang the command with no
-  # diagnostic, even under `--for`. Pre-existing: `--config` was already read
-  # before `run_started` before this change. What changed is exposure -- two files
-  # instead of one, read unconditionally rather than only when both endpoint
-  # variables are absent. Found by the quality review of
-  # docs/specs/telemetry-sender-owns-its-configuration. Not repaired there: putting
-  # configuration acquisition under a deadline is a behaviour change on a shipped
-  # path, outside that change's bundled-fixes tiers. Nothing is blocked -- a local
-  # file cannot hang. Fix: bound configuration acquisition, or document that both
-  # paths must be local and require a supervisor timeout.
-  { slug = "pre-existing-config-io-outside-every-deadline", source = "pre-flight/2026-09-16" },
   # The sender cannot explain its own effective configuration. `resolve_telemetry`
   # returns a merged mapping, so once resolution SUCCEEDS nothing records which
   # scope supplied an admitted value, whether either file existed at all, or which

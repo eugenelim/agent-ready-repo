@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import os
 import stat
+import threading
+import time
 import tomllib
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 __all__ = [
     "ConfigRefused",
@@ -40,6 +42,16 @@ _TELEMETRY_SETTINGS = ("endpoint", "service_name")
 # AC-0056. The ceiling is on the file, checked on the opened descriptor before a
 # byte is parsed, so a hostile file cannot be parsed and then measured.
 MAX_CONFIG_BYTES = 64 * 1024
+
+# AC-0077. Configuration acquisition -- opening, proving and reading every
+# supplied file -- is abandoned this many seconds after it begins. Deliberately
+# private: nothing outside this module needs the number, and the README states
+# the bound as a behaviour an adopter can hit rather than as an importable
+# constant. Not derived from transport.REQUEST_TIMEOUT_SECONDS or
+# RUN_TIMEOUT_SECONDS -- both start at the first destination resolution, which
+# happens only after this I/O has finished, so there is no ordering relation
+# to preserve.
+_CONFIG_TIMEOUT_SECONDS = 5
 
 _LOGS_ENDPOINT_VAR = "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"
 _BASE_ENDPOINT_VAR = "OTEL_EXPORTER_OTLP_ENDPOINT"
@@ -72,57 +84,188 @@ def read_config_file(path: Path | str | None) -> dict[str, Any]:
     is decided on the object the descriptor names rather than on the pathname --
     a pathname check is a different question, asked at a different instant, about
     a thing that can be swapped in between.
+
+    AC-0077: the open, the descriptor checks and the read are all bounded
+    together, by a deadline this call establishes for itself from
+    `_CONFIG_TIMEOUT_SECONDS` -- so a direct caller is bounded by default, the
+    same as `resolve_telemetry` below, which instead shares one deadline across
+    both configuration scopes.
+    """
+    return _read_config_file(path, time.monotonic() + _CONFIG_TIMEOUT_SECONDS)
+
+
+def _read_config_file(path: Path | str | None, deadline: float) -> dict[str, Any]:
+    """`read_config_file`'s body, taking an already-established deadline.
+
+    Split out so `resolve_telemetry` can pass one shared deadline down both
+    scopes -- AC-0077's bound covers acquiring every supplied file together,
+    not a file at a time, so a second file must not be able to extend it.
     """
     if path is None:
         return {}
-    try:
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0))
-    except FileNotFoundError:
+    raw = _acquire_bytes(path, deadline)
+    if raw is None:
         return {}
-    except OSError as exc:
-        # O_NOFOLLOW on a symlink raises ELOOP here (EMLINK on some BSDs), and a
-        # FIFO with no writer is why O_NONBLOCK is set: without it the open
-        # itself would hang before any check could run.
-        raise ConfigRefused(
-            f"config file refused at open: {_shown(path)} ({exc.strerror})"
-        ) from exc
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode):
-            raise ConfigRefused(f"config file is not a regular file: {_shown(path)}")
-        # Both were applied by the confinement helper this read replaced, and
-        # neither needs a root, so both survive a path-valued interface. A
-        # reparse point is Windows' redirection primitive and `O_NOFOLLOW` does
-        # not catch it; a hard link means the bytes have a second name that can
-        # be rewritten after this descriptor was checked.
-        if getattr(info, "st_file_attributes", 0) & getattr(
-            stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0
-        ):
-            raise ConfigRefused(f"config file is a reparse point: {_shown(path)}")
-        if info.st_nlink > 1:
-            raise ConfigRefused(f"config file is hard-linked: {_shown(path)}")
-        if info.st_size > MAX_CONFIG_BYTES:
-            raise ConfigRefused(
-                f"config file is {info.st_size} bytes, over the "
-                f"{MAX_CONFIG_BYTES}-byte ceiling: {_shown(path)}"
-            )
-        raw = os.read(fd, MAX_CONFIG_BYTES)
-        if len(raw) != info.st_size:
-            # `os.read` is one `read(2)` and may return fewer bytes than asked
-            # for. A prefix of a TOML file can be valid TOML, so parsing it would
-            # accept an incomplete config as complete -- and enable sending from
-            # a file whose full content does not parse. Not reachable for a local
-            # regular file under the ceiling; reachable on a network or FUSE
-            # mount, which is exactly where a truncated read is plausible.
-            raise ConfigRefused(
-                f"config file read returned {len(raw)} of {info.st_size} bytes: {_shown(path)}"
-            )
-    finally:
-        os.close(fd)
     try:
         return tomllib.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
         raise ConfigRefused(f"config file does not parse as TOML: {_shown(path)} ({exc})") from exc
+
+
+def _acquire_bytes(path: Path | str, deadline: float) -> bytes | None:
+    """Open, prove and read one file's bytes, bounded by `deadline`.
+
+    Returns `None` for a path that does not exist -- mirroring
+    `read_config_file`'s absence-is-not-a-refusal contract -- and the file's
+    raw bytes otherwise. The open, the descriptor checks and the read all run
+    inside `_do`, on the single abandonable worker `_run_bounded` starts:
+    `open(2)` on an unresponsive mount blocks before `O_NONBLOCK` applies, and
+    neither `fstat(2)` nor a regular-file `read(2)` accepts a timeout, so none
+    of the three can be bounded from the calling thread alone.
+    """
+
+    def _do() -> bytes | None:
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0))
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            # O_NOFOLLOW on a symlink raises ELOOP here (EMLINK on some BSDs), and a
+            # FIFO with no writer is why O_NONBLOCK is set: without it the open
+            # itself would hang before any check could run.
+            raise ConfigRefused(
+                f"config file refused at open: {_shown(path)} ({exc.strerror})"
+            ) from exc
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode):
+                raise ConfigRefused(f"config file is not a regular file: {_shown(path)}")
+            # Both were applied by the confinement helper this read replaced, and
+            # neither needs a root, so both survive a path-valued interface. A
+            # reparse point is Windows' redirection primitive and `O_NOFOLLOW` does
+            # not catch it; a hard link means the bytes have a second name that can
+            # be rewritten after this descriptor was checked.
+            if getattr(info, "st_file_attributes", 0) & getattr(
+                stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0
+            ):
+                raise ConfigRefused(f"config file is a reparse point: {_shown(path)}")
+            if info.st_nlink > 1:
+                raise ConfigRefused(f"config file is hard-linked: {_shown(path)}")
+            if info.st_size > MAX_CONFIG_BYTES:
+                raise ConfigRefused(
+                    f"config file is {info.st_size} bytes, over the "
+                    f"{MAX_CONFIG_BYTES}-byte ceiling: {_shown(path)}"
+                )
+            # AC-0056/AC-0001. One extra byte beyond the ceiling: a file that was
+            # exactly `MAX_CONFIG_BYTES` at the sample above and has not grown
+            # still returns exactly that many bytes here, so the accepted side is
+            # unaffected; a file that grew past the ceiling since the sample
+            # returns more, which the re-sample below turns into a refusal rather
+            # than a silently-accepted prefix.
+            raw = os.read(fd, MAX_CONFIG_BYTES + 1)
+            grown = os.fstat(fd)
+            if grown.st_size != info.st_size:
+                # Decided on the complete file, not the sampled one: a concurrent
+                # writer that appends -- or truncates -- between the sample above
+                # and this read leaves the sampled size stale, and a size
+                # unchanged across the read is what establishes that the bytes
+                # obtained are the whole file as of the read. Placed ahead of the
+                # short-read comparison below so a grown file gets a message
+                # naming the change rather than that comparison's "read returned
+                # N of M bytes", which reads as truncation when the real event
+                # can be either direction -- stated as a size change, not as
+                # growth, so a concurrent shrink is not reported as having grown.
+                raise ConfigRefused(
+                    f"config file size changed from {info.st_size} to "
+                    f"{grown.st_size} bytes during the read: {_shown(path)}"
+                )
+            if len(raw) != info.st_size:
+                # `os.read` is one `read(2)` and may return fewer bytes than asked
+                # for. A prefix of a TOML file can be valid TOML, so parsing it would
+                # accept an incomplete config as complete -- and enable sending from
+                # a file whose full content does not parse. Not reachable for a local
+                # regular file under the ceiling; reachable on a network or FUSE
+                # mount, which is exactly where a truncated read is plausible.
+                raise ConfigRefused(
+                    f"config file read returned {len(raw)} of {info.st_size} bytes: {_shown(path)}"
+                )
+            # AC-0001. The buffer and the re-sample above still leave one
+            # residue: a read that returns exactly the sampled bytes while the
+            # file has grown underneath it *and* the re-sampled `fstat` reports
+            # stale, pre-growth metadata -- the same cached-metadata divergence
+            # a network or FUSE mount can produce between a `read(2)` and an
+            # `fstat(2)` on the same descriptor, seen here in the direction the
+            # two checks above cannot catch. One more single-byte `os.read`
+            # proves no byte remains beyond what was obtained: at genuine EOF it
+            # returns `b""`, and any other result means the file holds more than
+            # this call just accepted. One fixed-size probe, not a read loop --
+            # a loop trades this rare case for an unbounded read over a file a
+            # writer can keep extending.
+            if os.read(fd, 1):
+                raise ConfigRefused(
+                    f"config file has bytes beyond the {len(raw)} obtained "
+                    f"during the read: {_shown(path)}"
+                )
+            return raw
+        finally:
+            os.close(fd)
+
+    return _run_bounded(_do, path, deadline)
+
+
+def _acquisition_bound_refused(path: Path | str) -> ConfigRefused:
+    """The one raise site for both ways `_run_bounded` can time out.
+
+    A deadline found already spent, and a join that timed out, are the same
+    fact from the caller's perspective -- the bound was exceeded -- so they
+    carry one message rather than two that could drift apart. Same move
+    `_shown` already makes for path rendering in this module: one place for
+    a fact several sites would otherwise each restate.
+    """
+    return ConfigRefused(
+        f"config file acquisition exceeded the {_CONFIG_TIMEOUT_SECONDS:g}s "
+        f"bound: {_shown(path)}"
+    )
+
+
+def _run_bounded(
+    func: Callable[[], bytes | None], path: Path | str, deadline: float
+) -> bytes | None:
+    """Run `func` on an abandonable daemon worker, bounded by `deadline`.
+
+    Reused by shape from `transport._resolve_bounded`, not by import: `config`
+    must not depend on `transport`, which pulls in `socket` and `http.client`,
+    and a configuration reader that cannot be read without the transport would
+    be a layering inversion in a package whose whole point is that the
+    off-by-default path opens no socket. The trade is the same one
+    `_resolve_bounded` makes for a hung resolver -- an abandoned worker holds
+    one open descriptor until the process exits, which is strictly better than
+    the caller inheriting its stall.
+
+    A deadline already passed when called refuses without starting a worker,
+    which is what keeps a second file from buying itself a fresh budget after
+    the first one spent it all.
+    """
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise _acquisition_bound_refused(path)
+
+    outcome: dict[str, Any] = {}
+
+    def _call() -> None:
+        try:
+            outcome["value"] = func()
+        except BaseException as exc:  # noqa: BLE001 - re-raised on the caller's thread
+            outcome["error"] = exc
+
+    worker = threading.Thread(target=_call, daemon=True)
+    worker.start()
+    worker.join(remaining)
+    if worker.is_alive():
+        raise _acquisition_bound_refused(path)
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"]
 
 
 def _present(env: Mapping[str, str], name: str) -> str | None:
@@ -135,11 +278,11 @@ def _present(env: Mapping[str, str], name: str) -> str | None:
     return value if value.strip() else None
 
 
-def _scope_settings(path: Path | str | None) -> dict[str, str]:
+def _scope_settings(path: Path | str | None, deadline: float) -> dict[str, str]:
     """Read one scope's `[telemetry]` table, or `{}` when it declares none."""
     if path is None:
         return {}
-    table = read_config_file(path).get("telemetry")
+    table = _read_config_file(path, deadline).get("telemetry")
     if table is None:
         return {}
     if not isinstance(table, dict):
@@ -175,10 +318,15 @@ def resolve_telemetry(
     configures the endpoint. A setting with no route is refused rather than
     dropped because these values decide where data is sent, and a dropped one
     fails open.
+
+    AC-0077: one deadline is established here, before the repository scope's
+    file is opened, and passed down both scopes -- so acquiring the second
+    file cannot buy the whole read a second bound's worth of time.
     """
+    deadline = time.monotonic() + _CONFIG_TIMEOUT_SECONDS
     scopes = (
-        ("repository", config_path, _scope_settings(config_path)),
-        ("user", user_config_path, _scope_settings(user_config_path)),
+        ("repository", config_path, _scope_settings(config_path, deadline)),
+        ("user", user_config_path, _scope_settings(user_config_path, deadline)),
     )
     merged: dict[str, str] = {}
     for _, _, settings in reversed(scopes):

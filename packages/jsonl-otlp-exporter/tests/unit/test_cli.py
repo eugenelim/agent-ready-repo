@@ -18,10 +18,14 @@ import pathlib
 import signal
 import subprocess
 import sys
+import threading
+import time
 
 import jsonl_otlp_exporter
 import pytest
+from conftest import await_released_workers
 from jsonl_otlp_exporter import cli
+from jsonl_otlp_exporter import config as cfg
 from jsonl_otlp_exporter import transport as tp
 
 REFERENCE_PROFILE = (
@@ -489,6 +493,80 @@ class TestReviewRegressions:
         assert "no endpoint is configured" in err.getvalue()
         assert out.getvalue() == "", (
             f"the unconfigured diagnostic reached stdout: {out.getvalue()!r}")
+
+    def test_a_growing_configuration_file_is_refused_with_nothing_sent(
+        self, workspace, monkeypatch
+    ):
+        """T2/AC-0001. A unit over the reader cannot observe "nothing sent and
+        exit 1" -- that half of the criterion only exists at this boundary."""
+        head = '[telemetry]\nendpoint = "http://127.0.0.1:4318"\n#'
+        config = workspace / "grows.toml"
+        config.write_text(head + "x" * (cfg.MAX_CONFIG_BYTES - len(head)), encoding="utf-8")
+        assert config.stat().st_size == cfg.MAX_CONFIG_BYTES
+        real_read = os.read
+
+        def grow_then_read(fd, size):
+            with config.open("ab") as second_descriptor:
+                second_descriptor.write(b"y")
+            return real_read(fd, size)
+
+        monkeypatch.setattr(cfg.os, "read", grow_then_read)
+
+        def exploding(*args, **kwargs):
+            raise AssertionError(
+                "a connection was constructed for a refused configuration")
+
+        err = io.StringIO()
+        code = cli.main(_argv(workspace, "--config", str(config)), env={},
+                        stream=err, connection_factory=exploding)
+        assert code == 1
+        assert "changed" in err.getvalue()
+
+    def test_a_blocking_configuration_read_ends_the_run_within_the_bound(
+        self, workspace, monkeypatch
+    ):
+        """T3/AC-0002/AC-0077. The outcome an adopter sees: a configuration
+        path that never returns must not hang the command. `read_config_file`
+        establishes its own bound, so the command still ends inside it even
+        though nothing here computes a deadline explicitly."""
+        monkeypatch.setattr(cfg, "_CONFIG_TIMEOUT_SECONDS", 0.2)
+        config = workspace / "hangs.toml"
+        config.write_text('[telemetry]\nendpoint = "http://127.0.0.1:4318"\n',
+                          encoding="utf-8")
+        release = threading.Event()
+        real_read = os.read
+
+        def blocking_read(fd, size):
+            release.wait()
+            return real_read(fd, size)
+
+        monkeypatch.setattr(cfg.os, "read", blocking_read)
+
+        def exploding(*args, **kwargs):
+            raise AssertionError(
+                "a connection was constructed for a refused configuration")
+
+        err = io.StringIO()
+        started = time.monotonic()
+        # The sixth site using this idiom, and the one the first repair missed:
+        # releasing the event unblocks the substituted read, but the worker
+        # `_run_bounded` started keeps running until it returns -- through the
+        # overflow probe and `os.close` -- which without this join races
+        # `monkeypatch` teardown and the workspace cleanup.
+        before_threads = set(threading.enumerate())
+        try:
+            code = cli.main(_argv(workspace, "--config", str(config)), env={},
+                            stream=err, connection_factory=exploding)
+        finally:
+            release.set()
+            await_released_workers(before_threads)
+        elapsed = time.monotonic() - started
+        assert elapsed < 2, (
+            f"the command took {elapsed:.3f}s to end against a 0.2s "
+            "configuration-acquisition bound -- it hung instead of refusing"
+        )
+        assert code == 1
+        assert "bound" in err.getvalue()
 
     def test_a_run_whose_every_record_is_rejected_exits_one(self, workspace):
         """AC-0039. Counting encoder INVOCATIONS reported success for a run that

@@ -147,6 +147,7 @@ allocate or wait without bound.
 | `Retry-After` honoured up to | 30 seconds |
 | Single request | 30 seconds |
 | Whole run | 120 seconds |
+| Configuration acquisition (opening, proving and reading every `--config` and `--user-config` file) | 5 seconds, from before the first file is opened |
 | `--config`, `--user-config` and `--profile` file size | 64 KiB each |
 
 Records are processed as a stream: no run holds more than one batch in memory,
