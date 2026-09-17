@@ -118,17 +118,26 @@ genuinely novel token) would need a separate fixture case in
 vocabulary is broad enough that a real, honest decision under governance/tooling
 was never going to need one.
 
-Subject: the plan's own suggested example — that this delivery's shape lint
-ships blocking over the whole corpus rather than the advisory-then-blocking
-phase RFC-0102 § 6 originally specified. That decision is real, small, and
-already settled (it is `plan.md`'s "The gate blocks" Design decision and this
-delivery's T9 closing observation), and it was never recorded as a standalone
-ADR before this task.
+Subject, corrected: AC-0015 asks for "the ADR format decision," and RFC-0102's
+own Follow-on artifacts list names this record by role — "An ADR recording
+this format decision, authored in the new format, shipping with the lint as
+its first fixture." The first draft of this record instead headlined the
+blocking-vs-advisory rollout posture, which is a genuine and separately
+settled decision but not RFC-0102's own format decision, and AC-0015 asks for
+**one** record, not a second. Rewritten in place, same ordinal, to record
+RFC-0102's actual decision — the metadata block is mechanically checkable
+(RFC-0102 §§ 2–3) and acceptance's freeze binds prose, not metadata
+(§ 4) — sourced from RFC-0102 §§ 2–5 directly rather than from memory. The
+blocking-vs-advisory reasoning is kept, folded in as a Consequence and an
+Alternative rather than the headline `Decision`. Renamed with `git mv` to
+`0117-adr-metadata-is-mechanically-checkable-and-the-freeze-binds-prose.md` to
+match; `git status --short` after the move showed only the rename (`R`), no
+lingering empty directory.
 
-**Pinned test — isolated single-record invocation (AC-0015):**
+**Pinned test — isolated single-record invocation (AC-0015), re-run against the corrected, renamed record:**
 
     mkdir -p <scratch>/adr-t10-isolated
-    cp docs/adr/0117-adr-shape-lint-ships-blocking-not-advisory.md <scratch>/adr-t10-isolated/
+    cp docs/adr/0117-adr-metadata-is-mechanically-checkable-and-the-freeze-binds-prose.md <scratch>/adr-t10-isolated/
     python3 .claude/skills/new-adr/scripts/lint-adr-shape.py <scratch>/adr-t10-isolated
     read: 1  refused: 0  unreadable: 0      exit 0
 
@@ -195,15 +204,20 @@ prose the moment it lands, or whether it may be read against the record's
 current metadata. Left for whoever writes that erratum; not a defect in this
 task's `Done when:`.
 
-**Index regeneration (goal-based check):**
+**Index regeneration (goal-based check), re-run after the ADR-0117 rewrite and rename:**
 
-    python3 .claude/skills/new-adr/scripts/index-records.py docs/adr
     python3 .claude/skills/new-adr/scripts/index-records.py --check docs/adr
-    exit 0
+    # exit 1 first: line 121 differed (old title/filename still on disk vs.
+    # the corrected title/filename), naming exactly that mismatch
+    python3 .claude/skills/new-adr/scripts/index-records.py docs/adr
+    # exit 0
+    python3 .claude/skills/new-adr/scripts/index-records.py --check docs/adr
+    # exit 0
 
-`docs/adr/README.md` gained one row, `0117`, at the bottom of the table; no
-other row changed. `next-ordinal.py --check docs/adr` also exits 0 (no
-duplicate ordinals) after the write.
+`docs/adr/README.md`'s `0117` row now reads the corrected title and links the
+renamed file; no other row changed. `next-ordinal.py --check docs/adr` exits
+0 (no duplicate ordinals) after the rename — the ordinal did not change, only
+the filename and title did.
 
 `tests/roster/test_index_records.py`: 48 passed (unchanged from T9 — T10 adds
 no generator case). `tests/roster/test_lint_adr_shape_corpus.py`: 2 passed —

@@ -118,4 +118,4 @@
 | 0114 | [Prune success requires a two-sided post-mutation invariant](0114-prune-success-requires-a-two-sided-post-mutation-invariant.md) | Accepted | 2026-09-13 |
 | 0115 | [The loop-telemetry sender is a separately installed distribution, not pack content](0115-loop-telemetry-sender-is-a-separately-installed-distribution.md) | Accepted | 2026-09-12 |
 | 0116 | [`creative-direction` writes to `direction/`, retiring `aesthetic/`](0116-creative-direction-writes-to-direction-folder-retiring-aesthetic.md) | Accepted | 2026-09-16 |
-| 0117 | [The ADR shape lint ships blocking over the whole corpus, not advisory](0117-adr-shape-lint-ships-blocking-not-advisory.md) | Accepted | 2026-09-17 |
+| 0117 | [ADR metadata is mechanically checkable, and the freeze binds prose, not metadata](0117-adr-metadata-is-mechanically-checkable-and-the-freeze-binds-prose.md) | Accepted | 2026-09-17 |
