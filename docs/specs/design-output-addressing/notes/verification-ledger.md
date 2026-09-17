@@ -196,7 +196,7 @@ diagnosed, now reproducing inside implementation at roughly one instance per
 task. A reviewer should expect more of it and treat each as residue of the known
 class, not as a new defect class.
 
-## Owner waiver — one `Makefile` line, 2026-09-17
+## Owner waiver — one `Makefile` line, 2026-09-17 — **REVERSED, see below**
 
 **§ Boundaries § Never do** confines this change to a path list that does not
 name `Makefile`. T9 adds one line to it, inside `run-test-suite`:
@@ -249,3 +249,48 @@ other place — `tools/test_local_ci_shared_test_deduplication.py` fails three
 tests on a clean tree, verified by reverting the Makefile line and re-running.
 That one is not this change's to fix, but T10 should not be read as wiring a
 green suite.
+
+## The `Makefile` waiver is reversed — both tests moved to `tests/roster/`, 2026-09-17
+
+The waiver recorded above no longer applies. Two facts invalidated it, one of
+them a wrong premise I gave the owner when they decided.
+
+**The wrong premise.** I told the owner that pack placement meant the tests
+"ship with the pack and run for adopters". They do not. `packs/AGENTS.md:6`
+states "tests and pack documentation are not projected", and the runtime export
+boundary is `.apm/` only. Pack placement bought no adopter coverage, which was
+the sole argument for crossing the boundary.
+
+**The cost rose after the rebase.** `origin/main` commit `029092b94` re-pinned
+the shared-test dedup guard's baselines. Verified on a clean `origin/main`
+worktree: `test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation`
+**passes** there and **failed** on this branch. Attribution was measured, not
+assumed — reverting the `Makefile` line alone did not clear it, because the
+existence of `packs/experience-design/tests/pack/` drifts the approved plan by
+133 items on its own. Keeping pack placement would therefore have required
+re-pinning `APPROVED_STANDALONE_PLAN_DIGEST`, `APPROVED_COMPOSED_PLAN_DIGEST`, a
+group-count constant, and the audit comment that file demands — all in
+`tools/test_local_ci_shared_test_deduplication.py`, a second file outside the
+spec's path list.
+
+**Owner decision.** Shown the corrected premise and the measured cost, the owner
+chose to move both tests to `tests/roster/`, which the spec's § Never do list
+already admits. `Makefile` is now byte-identical to `origin/main`,
+`packs/experience-design/tests/` is gone, the dedup guard is green, and **the
+change crosses no boundary at all.** The waiver above is superseded, not
+exercised.
+
+**What the move cost.** Nothing in coverage: the two tests keep every assertion,
+and two of the four mutations were re-run end to end after the move and still go
+red with the same messages. The only edit to either file was re-anchoring
+`ROOT`/`PACK_ROOT` on the sibling roster convention.
+
+**Carried into T10.** All three experience-design roster tests now reach CI only
+through the dispatch-only `test-corpus.yml`. `tests/AGENTS.md` § "Roster is not
+auto-discovered" requires a named step in `build-check.yml` plus a
+`STEP_DISPOSITION` entry. The pre-existing `test_experience_design_guide_agreement.py`
+never had one either, so T10 now closes the gap for three files rather than one.
+
+**One companion the move broke and this commit fixes.** ADR 0116 cited "the
+declaration test in `packs/experience-design/tests/`", a directory the move
+deletes. It now names the file's real path.

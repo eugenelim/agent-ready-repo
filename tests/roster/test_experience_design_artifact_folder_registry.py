@@ -23,7 +23,8 @@ import re
 import tomllib
 from pathlib import Path
 
-PACK_ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[2]
+PACK_ROOT = ROOT / "packs" / "experience-design"
 SKILLS = PACK_ROOT / ".apm" / "skills"
 DESIGN_MD = PACK_ROOT / "DESIGN.md"
 PACK_TOML = PACK_ROOT / "pack.toml"

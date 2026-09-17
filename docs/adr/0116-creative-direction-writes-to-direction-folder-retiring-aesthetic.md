@@ -136,7 +136,9 @@ skill rename makes `direction/` ambiguous.
   that the ADR cites a dataset carrying queries, sampling frame, and inclusion
   rule. The verification gate for that criterion runs against this file and
   [`0116-notes/direction-folder-name-dataset.md`](0116-notes/direction-folder-name-dataset.md).
-  The declaration test in `packs/experience-design/tests/` asserts the
+  The declaration test at
+  `tests/roster/test_experience_design_write_declaration_and_containment.py`
+  asserts the
   `**Writes:**` line carries the declared `direction/<slug>.md` target.
 - **Owner:** the spec author.
 

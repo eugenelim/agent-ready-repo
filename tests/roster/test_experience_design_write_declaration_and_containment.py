@@ -23,7 +23,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-PACK_ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[2]
+PACK_ROOT = ROOT / "packs" / "experience-design"
 SKILLS = PACK_ROOT / ".apm" / "skills"
 
 # The closed set of declared write targets, fixed literally by the spec this
