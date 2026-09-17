@@ -296,17 +296,20 @@ beside the one for adding a workflow step.
 
 **Depends on:** T2, T3, T5
 
-**Tests:** goal-based check — `python3 tools/test-lint-ci-parity.py` passes and
-carries a case per arm named in AC-0001 through AC-0009 (AC-0013). Then, for each arm in turn, remove
-that arm, re-run, record which named case fails, and restore. The `main()` wiring is
-probed by deleting the call, not the arm.
+**Tests:** goal-based check, run **differentially** per arm (AC-0013). For each arm
+named in AC-0001 through AC-0009: remove that arm from `tools/lint-ci-parity.py`,
+run `python3 tools/test-lint-ci-parity.py`, and record both its non-zero exit and
+which named case failed; then restore it and confirm the suite is green. The
+`main()` wiring is probed the same way by deleting the call rather than the arm.
 
-**Approach:** this is the evidence that each control can fail. An arm whose removal
-reddens nothing is a control that cannot fail and the case for it is rewritten
-before the arm is restored.
+**Approach:** the differential run, not the presence of a case, is the evidence. An
+arm whose removal leaves the suite green is a control that cannot fail; its case is
+rewritten and re-probed before the arm is restored, because a case added to satisfy
+a count would have the same defect.
 
-**Done when:** `notes/verification-ledger.md` names a specific reddened case per
-arm, and the suite is green again.
+**Done when:** AC-0013 holds — every arm's removal produced a non-zero exit — and
+`notes/verification-ledger.md` names the specific reddened case per arm, with the
+suite green again at the end.
 
 ### T8: Retire the defect entry
 
