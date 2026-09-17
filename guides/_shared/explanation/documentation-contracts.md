@@ -1,3 +1,10 @@
+---
+title: "Documentation contracts"
+summary: "Understand what each kind of documentation page promises its reader, so you can tell a reference from a how-to and stop mixing them."
+pack: _shared
+kind: explanation
+---
+
 # Documentation contracts
 
 What each documentation page promises its reader, regardless of where the file
