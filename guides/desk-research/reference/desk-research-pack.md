@@ -11,7 +11,7 @@ The dry catalogue of every primitive in the `desk-research` pack. For the walkth
 
 ## Skills
 
-Eleven skills ship in the pack — seven episodic skills (below) and the four `research-project-*` lifecycle skills (under [Project mode](#project-mode)). The `name` and `description` below are reproduced verbatim from each skill's SKILL.md frontmatter (single- sourced — if the SKILL.md description changes, this reference is regenerated to match).
+Eleven skills ship in the pack — seven episodic skills (below) and the four `research-project-*` lifecycle skills (under [Project mode](#project-mode)). Each entry's `name` and `description` below are copied from that skill's SKILL.md frontmatter.
 
 ### identify-perspectives
 
@@ -194,7 +194,7 @@ Cue tokens are advisory — the skill body documents which cues bias which behav
 The lifecycle axis: four skills that drive a sustained, multi-week investigation
 through `capture → digest → synthesize → feedback`. Phase progression is
 human-driven; no skill auto-advances. The `name` and `description` are
-reproduced verbatim from each SKILL.md frontmatter.
+copied from each SKILL.md frontmatter.
 
 ### research-project-start
 
