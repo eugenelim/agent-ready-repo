@@ -133,17 +133,47 @@ PY
 # fixture just because one fixture ships it, and a reference kept inside the root
 # is writable by the run it is meant to judge.
 #
+# inventory <dir> -- every importable .py path under store/, sorted, relative.
+# In Python rather than `find | sort`: a POSIX pipeline reports only its last
+# command's status, so a failed `find` hides behind a successful `sort` and an
+# empty result reads as "nothing there". This exits non-zero on any failure,
+# follows links because Python imports through them, and refuses a link that
+# escapes the fixture instead of enumerating outside it.
+inventory() {
+    python3 - "$1" <<'INV'
+import os, pathlib, sys
+
+root = pathlib.Path(sys.argv[1]).resolve()
+store = root / "store"
+if not store.is_dir():
+    sys.exit(1)
+found = []
+for dirpath, _dirnames, filenames in os.walk(store, followlinks=True):
+    for name in filenames:
+        if not name.endswith('.py'):
+            continue
+        path = pathlib.Path(dirpath) / name
+        try:
+            real = path.resolve()
+        except OSError:
+            sys.exit(1)
+        if not real.is_relative_to(root):
+            sys.stderr.write(f'module escapes the fixture: {path}\n')
+            sys.exit(1)
+        found.append(str(path.relative_to(root)))
+print('\n'.join(sorted(found)))
+INV
+}
+
 # seal <dir> -- record the module inventory and the shared-consumer digest.
 # Returns non-zero on any failure; a fixture that cannot be sealed is not
-# scoreable, because an unsealed comparison silently reads as "nothing added".
+# scoreable, because an unsealed comparison silently reads as 'nothing added'.
 seal() {
     _d=$1
     [ -d "$_d/store" ] || { infra "seal: no store/ under $_d"; return 1; }
-    # Every .py anywhere under store/, not just direct children: work can add a
-    # package (store/labelfmt/__init__.py) or turn a module into one.
-    ( cd "$_d" && find store -type f -name '*.py' | LC_ALL=C sort ) > "$_d.modules" \
-        || { infra "seal: inventory failed for $_d"; return 1; }
-    [ -s "$_d.modules" ] || { infra "seal: empty inventory for $_d"; return 1; }
+    _inv=$(inventory "$_d") || { infra "seal: inventory failed for $_d"; return 1; }
+    [ -n "$_inv" ] || { infra "seal: empty inventory for $_d"; return 1; }
+    printf '%s\n' "$_inv" > "$_d.modules" || { infra "seal: cannot record $_d"; return 1; }
     if [ -f "$_d/store/printing.py" ]; then
         _h=$(shasum -a 256 < "$_d/store/printing.py" | awk '{print $1}')
         [ -n "$_h" ] || { infra "seal: digest failed for $_d"; return 1; }
@@ -154,12 +184,14 @@ seal() {
 
 # no_new_modules <dir> -- prints anything absent when the fixture was sealed.
 # Prints a marker and returns non-zero when the comparison cannot be trusted,
-# so an unusable seal can never read as a clean result.
+# so an unusable seal or a failed enumeration never reads as a clean result.
 no_new_modules() {
     [ -s "$1.modules" ] || { printf '<unsealed>'; return 1; }
-    _now=$( cd "$1" && find store -type f -name '*.py' | LC_ALL=C sort ) \
-        || { printf '<enumeration-failed>'; return 1; }
-    printf '%s\n' "$_now" | comm -13 "$1.modules" - | tr '\n' ' '
+    _now=$(inventory "$1") || { printf '<enumeration-failed>'; return 1; }
+    [ -n "$_now" ] || { printf '<empty-enumeration>'; return 1; }
+    printf '%s\n' "$_now" > "$1.modules.now" || { printf '<compare-failed>'; return 1; }
+    _extra=$(comm -13 "$1.modules" "$1.modules.now") || { printf '<compare-failed>'; return 1; }
+    printf '%s' "$_extra" | tr '\n' ' '
 }
 
 # consumer_intact <dir> -- the shared consumer still hashes to its sealed digest.
