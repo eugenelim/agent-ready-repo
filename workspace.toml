@@ -628,18 +628,6 @@ open = [
   # Fix: an RFC-0101 addendum shared with the credential intent, then a telemetry
   # precedence-and-disclosure spec. Unblock: the shared projection decision.
   {path = "docs/product/intents/catalogue-level-telemetry-endpoint-default.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/credential-pack-defaults-projection.md"}, summary = "Let an enterprise catalogue bake a telemetry endpoint once so its users export with zero setup, via the RFC-0101 pack-defaults cascade and the stdlib-readable projection the credential intent also needs", needs = [{type = "local", kind = "intent", path = "docs/product/intents/credential-pack-defaults-projection.md"}]},
-  # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
-  # rather than left in that spec's notes: a closed spec's notes directory is not
-  # a destination, and the obligation would otherwise be enforced by someone
-  # remembering to reread it -- the same unfalsifiable-rule shape that delivery
-  # spent five review rounds removing from its own content.
-  #
-  # Scope corrected 2026-09-14. The first version of this entry claimed the roster
-  # suite runs on no PR; build-check.yml:410 runs `python -m pytest tests/ -q`
-  # from the root and collects 1506 roster node IDs. Only the pack suite is
-  # genuinely PR-ungated. The evidence table in the source ref was corrected with
-  # it.
-  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Derive the mapping from written path to gating suite instead of carrying it by recall: packs/frontend-engineering/tests/ is named nowhere in build-check.yml, so a pack-content change ships its own guards PR-ungated and reaches CI only through the dispatch-only test-corpus workflow", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
@@ -1185,6 +1173,33 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  # Closed by docs/specs/pr-gate-suite-disposition (2026-09-17).
+  #
+  # The fix did NOT land in this entry's own `path`. `tools/repo/build_gate_chain.py`
+  # is untouched; the mechanism is `SUITE_DISPOSITION` in `tools/lint-ci-parity.py`,
+  # chosen because that module is already run by a required pull-request check
+  # (`make build-check` -> the gate chain -> gate-main), so the new check could not
+  # land PR-ungated and instantiate its own root cause. The path stays as written
+  # so a reader arriving from the old reference finds this note.
+  #
+  # Two corrections to what the entry claimed. It named one instance; the measured
+  # count is 52 of 114 targets the `run-test-suite` define runs reached by no
+  # pull-request workflow. And it asked to "derive" the mapping, which the delivery
+  # declined: `lint-ci-parity.py`'s docstring records that making extraction the
+  # trust anchor was defeated four ways in review, so the roster is hand-declared
+  # and extraction only corroborates. The disagreement is recorded in the spec.
+  #
+  # The named instance, `packs/frontend-engineering/tests/`, is now PR-gated, as is
+  # `tools/test_local_ci_shared_test_deduplication.py` -- a second instance the
+  # entry did not know about, showing the gap reached `tools/` construction tests
+  # and not only pack content. Three of its pins were red on `main` from PR #1313
+  # to PR #1339 and no pull request noticed.
+  #
+  # The other 50 stay ungated BY DECLARATION rather than by omission: each carries
+  # a `NO_PR_GATE` reason, and a new `run-test-suite` line now fails the lint until
+  # someone dispositions it. Which of the 50 should become gates is a per-suite
+  # cost decision, recorded as a follow-on in the spec, not a live defect.
+  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Closed: every command the run-test-suite define runs now declares the pull-request check that gates it, or why none does, enforced by SUITE_DISPOSITION in tools/lint-ci-parity.py; the two measured-cheap instances are PR-gated and the rest are declared rather than accidental", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

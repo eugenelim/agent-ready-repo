@@ -54,12 +54,65 @@ deliberately *not* a coverage source even though it invokes some of the same
 linters: it runs only under `agentbundle catalogue self-host --windows`, so
 counting it would let a Windows-only invocation certify a macOS `make ci` run.
 
+## The second roster: which pull-request check gates each suite
+
+`STEP_DISPOSITION` above answers "what covers this CI step locally".
+`SUITE_DISPOSITION` answers the opposite question — "which pull-request check
+gates this suite" — for every command the Makefile's `run-test-suite` define
+runs. The two are different claims, and conflating them is the defect it exists
+to prevent: suites reached only inside that define run under `make test` and
+`test-after-build-check`, under neither `make build-check` nor any required
+pull-request check, so a pull request could be green on every check while they
+were red. Measured at 114 targets, 52 of them reached by no pull-request
+workflow at all. `packs/frontend-engineering/tests/` shipped its own guards that
+way.
+
+`tools/lint-pack-test-boundary.py`'s `every-suite-dir-has-a-runner` answers a
+third, narrower question — whether *anything* runs a pack suite, where the
+Makefile counts as a runner. A suite can satisfy that rule and still be gated by
+no pull request, which is exactly how the gap stayed invisible.
+
+**Completeness is anchored on the define's recipe lines, not on extracted
+targets.** `suite_lines` supplies the closed set, and it interprets no command:
+it joins continuations, drops blank lines, drops a `#` line only when it holds no
+`$(`, and strips a leading `@`. Keying the roster on the targets a command yields
+would inherit the extractor's blind spots — a command it cannot read would
+produce no key, demand no entry, and leave the gap silent one layer down.
+
+## What the suite roster does not prove — the residual, stated plainly
+
+Five limits, none of which a clean run rules out:
+
+* **Corroboration is best-effort in *both* directions**, unlike the forward
+  gate's one-way claim. A false-positive extraction can satisfy a wrong
+  `PR_GATED`; a false-negative one can let a stale `NO_PR_GATE` stand. What is
+  *not* at risk is completeness: no extraction failure removes a recipe line
+  from the roster.
+* **Corroboration proves a step names a suite, not that it runs it.**
+  `echo "python -m pytest <suite>"` yields the same operand as a real
+  invocation. A bare `echo <dir>` yields nothing, so a passing mention is
+  excluded, but execution is not established.
+* **`PR_GATED_IF` records a condition nobody evaluates.** A conditionally gated
+  suite may simply not run on a given pull request.
+* **A fourth invocation shape exists and is deliberately unread.**
+  `run_with_floor` in `build-check.yml` passes a suite directory to a subshell
+  that `cd`s and runs bare `pytest`. Its directories are not `run-test-suite`
+  targets, so nothing depends on it; an unrecognised shape fails a *true* claim
+  rather than passing a false one.
+* **A reason is checked for presence, never for truth.** `NO_PR_GATE("todo")`
+  passes the lint. Whether a reason is accurate is a human-review control, and
+  so is whether a `PR_GATED` step's command really executes the suite.
+
+Both rosters compare *written* paths. Spell a path in a workflow exactly as the
+define spells it: a parent directory matches neither direction and reports a real
+gate as absent.
+
 Usage:
     python tools/lint-ci-parity.py [--root .]
 
-Exit codes: 0 = every step dispositioned and corroborated, 1 = one or more
-violations, 2 = tool error (workflow or a local gate source unreadable, PyYAML
-absent).
+Exit codes: 0 = every step and every suite line dispositioned and corroborated,
+1 = one or more violations, 2 = tool error (a workflow, the Makefile, or a local
+gate source unreadable, PyYAML absent).
 """
 
 from __future__ import annotations

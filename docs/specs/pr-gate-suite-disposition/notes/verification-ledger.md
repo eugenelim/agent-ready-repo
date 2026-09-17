@@ -333,3 +333,62 @@ or moved `run-test-suite` line owes a `SUITE_DISPOSITION` entry per target. It
 also carries the path-spelling rule T5 discovered, and states that reasons are
 checked for presence and not for truth. The four `lint_agents_md_*` suites stay
 green (16 passed, 10 subtests).
+
+## T4 — the docstring states both rosters and five residuals (2026-09-17)
+
+The module docstring gains a second-roster section and a *What the suite roster
+does not prove* block naming five limits, each verified present by reading
+`__doc__`: corroboration is best-effort in **both** directions unlike the forward
+gate's one-way claim; it proves a step *names* a suite, not that it runs it;
+`PR_GATED_IF` records a condition nobody evaluates; the `run_with_floor` fourth
+shape is deliberately unread; and a reason is checked for presence, never truth.
+The exit-code note now covers the Makefile as a readable source. It also carries
+the path-spelling rule, since both directions compare written paths.
+
+## T7 — every arm reddens a named case, on the finished tree (2026-09-17)
+
+Re-run after T3–T6 landed, because a mutation record goes stale when the code it
+cites moves. Each row neutralises one arm, runs
+`python3 tools/test-lint-ci-parity.py`, and restores.
+
+| Arm removed | Exit | First case to redden |
+| --- | ---: | --- |
+| completeness: all targets of a line | 1 | `suites-partial-line-fires-on-the-missing-target` |
+| completeness: no-path-operand line | 1 | `suites-no-path-operand-line-needs-a-substring-key` |
+| completeness: dead entry | 1 | `suites-dead-entry-fires` |
+| `PR_GATED` on a filtered source | 1 | `suites-pr-gated-naming-a-filtered-workflow-fires` |
+| `PR_GATED` on a conditional source | 1 | `suites-pr-gated-naming-a-conditional-step-fires` |
+| `PR_GATED` uncorroborated | 1 | `suites-pr-gated-with-no-covering-step-fires` |
+| stale `NO_PR_GATE` | 1 | `suites-no-pr-gate-contradicted-by-a-covering-step-fires` |
+| empty `NO_PR_GATE` reason | 1 | `suites-no-pr-gate-empty-reason-fires` |
+| `PR_GATED_IF` uncorroborated | 1 | `suites-pr-gated-if-with-no-source-fires` |
+| `PR_GATED_IF` empty condition | 1 | `suites-pr-gated-if-empty-condition-fires` |
+| `suite_lines` `@`-strip | 1 | `suite-lines-keeps-an-at-prefixed-command` |
+| `suite_lines` comment rule | 1 | `suite-lines-keeps-a-comment-carrying-an-expansion` |
+| `check_suites` call in `main()` | 1 | `suites-arm-is-wired-into-main-reports-the-suite` |
+
+**Thirteen for thirteen**, including the wiring, which the earlier matrix left
+open. No arm survives its own deletion.
+
+## T8 — the register entry is retired (2026-09-17)
+
+Moved from `[backlog].open` to `[backlog].closed`. The comment records that the
+fix did **not** land in the entry's own `path` — `tools/repo/build_gate_chain.py`
+is untouched, and the mechanism is in `tools/lint-ci-parity.py`, chosen because
+that module is already run by a required pull-request check, so the new check
+could not itself land PR-ungated.
+
+It also records two corrections to what the entry claimed: one instance versus a
+measured 52 of 114, and the declined "derive" instruction. And it names the
+second instance the entry did not know about, `tools/test_local_ci_shared_test_deduplication.py`,
+whose pins were red on `main` from PR #1313 to PR #1339.
+
+Verification: `workspace.toml` parses; the entry appears **once**, under
+`closed`; no `[backlog].open` entry restates it; the `source.ref` it names still
+resolves. `test_workspace_status.py` and `test_workspace_status_cli.py` exit 0
+individually and **252 passed, 22 subtests** under pytest.
+
+Four-revision resurrection check, per the known trap that a merge can restore a
+retired entry: the entry was present exactly once in `HEAD`, `HEAD~1`,
+`origin/main` and `origin/main~1` before this change, so it was not already
+mid-retirement anywhere.
