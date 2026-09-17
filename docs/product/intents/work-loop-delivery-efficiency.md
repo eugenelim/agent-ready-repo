@@ -32,22 +32,152 @@
 - What escaped-defect and post-merge rework measures prove that savings did not merely defer quality cost?
 - What benefit-and-cost rubric and evidence floor should govern decisions to retain, adjust, combine, defer, supersede, or close backlog work?
 - Which existing lifecycle operation owns each backlog disposition, and how should the process distinguish low-value work from valuable work whose benefit is merely unmeasured or delayed?
+- Should the deterministic repair-provability audit get a queue presence? It is
+  the designated next investigation and is registered nowhere, which is the most
+  likely reason the ranking's first position has produced no movement. This
+  intent is Accepted and therefore cannot itself join an active or backlog
+  collection, so any registration has to attach to the audit or to a child.
+- Should `loop-contract-item-identity-mechanism` be registered? It is the only
+  child with no workspace presence at all.
+- Does `spec-review-validation-guidance` belong in this tree? It carries no
+  `Parent intent:` pointer, so it is currently unparented.
 
 ## Projection
 
-These are candidate child intents ordered by expected impact, not approved solutions or dependency order. Shape and test one child before activating the next.
+These are candidate child intents ranked by expected impact, not approved
+solutions or dependency order. Shape and test one child before activating the
+next.
 
-- Impact 1 — Focused post-repair re-review: retain the initial broad review, specialist routing and existing blocking semantics; compare focused against broad re-review on identical repaired bytes; narrow later review only if material coverage holds and time and token savings clear predeclared thresholds.
-- Impact 2 — Repair correctness: provide an adjudicated closure packet, touched-path obligations, bounded scope, and targeted verification to the repair implementer; require proof that this improves on the real current implementer path rather than the spike's weakened experimental repair conditions.
-- Impact 3 — Backlog economics and pruning: inventory backlog work attributable to the loop; compare expected avoided risk or user benefit with carrying, shaping, review, delivery, and maintenance cost; then retain, merge, narrow, reframe, defer, supersede, or close items through existing lifecycle and owner authority.
-- Impact 4 — Reviewer-portfolio economics: measure each generalist, specialist, quality, and adjudication role's unique sustained clusters, protected-class yield, refutation load, repair cost, and critical-path contribution before testing any removal or consolidation. Overlap alone is not proof of duplication.
-- Impact 5 — Selective exact context and revision-bound reuse: review each unchanged contract baseline once; supply touched-path rules, affected dependencies, and exact governing bytes on demand; reuse digests only for the same verified base and revision; invalidate on contract, base, merge, rebase, or dependency drift.
-- Impact 6 — Gate economics: run touched, failure-directed gates during repair, cache deterministic results per revision, avoid unchanged retries, run one full relevant gate at convergence, and leave repository-wide confirmation to CI where policy permits.
-- Impact 7 — Progressive authoring: make spec sections trigger-driven, with minimal outcome, boundary, acceptance, and verification by default; require rollout, full LLD, exhaustive stubs, and interface machinery only when their risk triggers apply.
-- Impact 8 — Decouple orchestration from assurance: reserve cohort and state-machine machinery for multi-session, multi-worker, dependent-wave, irreversible, or migration work; allow high assurance without orchestration for bounded single-owner changes.
-- Impact 9 — Model routing after structural savings: test cheaper models only for low-risk extraction, mechanical transformation, or deterministically verified work; retain stronger pinned models for protected judgment until a local ablation clears the same safety bar.
-- Impact 10 — Move learning and release bookkeeping off the blocking path where safe, review canonical sources once, and verify generated projections deterministically.
-- Cross-cutting measurement — Capture preparation and execution wall-clock time, total critical-path time, input and output tokens, reviewer waits, model or queue stall, context bytes, gate duration, per-role finding origin and closure outcome, repair-induced findings, and escaped defects before and after each slice; use a small representative corpus instead of building a new telemetry platform first.
+Each `Impact N` label is a stable identifier that other artifacts cite, so the
+labels keep their numbers when the rank order changes. The rank is the position
+in the list below, and every entry whose rank moved names the evidence that
+moved it.
+
+1. **Deterministic repair-provability audit.** Pinned to first place by the
+   2026-09-10 owner decision recorded below, which this refresh does not
+   revisit. **Started 2026-09-17 and blocked at its own instrumentation gate.**
+   The [first run](../research/repair-provability-audit-run.md) reached the
+   10-case gate the design requires and failed it: the population criterion
+   admitted 10 of 10 cases under one reading and 1 of 10 under another, and the
+   strict reading rejects three of the four cases the design names as its
+   selection method. A second round then found a determinate predicate — wider
+   review vocabulary, commit type not `feat`, repair verb in the subject — that
+   is **87.5% precise on a fresh draw from its own selection** and reproduces the
+   design's strata shares within 4.4 points, at 147 cases with 53 in
+   `source + test` against the design's 39. That predicate is fit to freeze. A
+   three-case oracle gate then **passed**: with predicates frozen before
+   execution, the oracle separated two semantic kills from one structural kill,
+   and every frozen predicate anticipated its outcome. Two harness requirements
+   came out of it — revert every mirrored copy of a hunk, and score provability
+   per repair rather than per commit, since a compound commit hid an uncontrolled
+   repair inside a semantic kill. **The rate is still unmeasured:** three
+   hand-picked cases span the outcome space and estimate no frequency. It remains
+   first because it is still the measurement everything below it waits on, and it
+   is now ready to scale at roughly 43 minutes per case.
+2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
+   backlog work attributable to the loop; compare expected avoided risk or user
+   benefit with carrying, shaping, review, delivery, and maintenance cost; then
+   retain, merge, narrow, reframe, defer, supersede, or close items through
+   existing lifecycle and owner authority. **Moved by two pieces of evidence.**
+   The open inventory has grown rather than shrunk since this intent was
+   accepted, and this effort is itself a net contributor to it (§ Opportunity).
+   [ADR-0114](../../adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md)
+   also supplies the two-sided post-mutation invariant a safe prune was missing,
+   so the control this candidate needed now exists — and nothing has been pruned
+   with it.
+3. **Impact 7 — Progressive authoring** *(rose from rank 7)*: make spec sections
+   trigger-driven, with minimal outcome, boundary, acceptance, and verification
+   by default; require rollout, full LLD, exhaustive stubs, and interface
+   machinery only when their risk triggers apply. **Moved by** the deferral
+   finding that most of one shipped criteria set had no mechanical oracle
+   (§ Assumptions): a contract made mostly of assert-a-sentence-exists items is
+   direct evidence for trigger-driven sections. The same measurement sets this
+   candidate's precondition — an authoring-guidance change must be scored on
+   frozen cases before it ships, because the last one lost a guardrail.
+4. **Impact 5 — Selective exact context and revision-bound reuse** *(held;
+   displaced upward)*: review each unchanged contract baseline once; supply
+   touched-path rules, affected dependencies, and exact governing bytes on
+   demand; reuse digests only for the same verified base and revision;
+   invalidate on contract, base, merge, rebase, or dependency drift.
+5. **Impact 6 — Gate economics** *(held; displaced upward)*: run touched,
+   failure-directed gates during repair, cache deterministic results per
+   revision, avoid unchanged retries, run one full relevant gate at convergence,
+   and leave repository-wide confirmation to CI where policy permits.
+6. **Impact 8 — Decouple orchestration from assurance** *(held; displaced
+   upward)*: reserve cohort and state-machine machinery for multi-session,
+   multi-worker, dependent-wave, irreversible, or migration work; allow high
+   assurance without orchestration for bounded single-owner changes.
+
+   Ranks 4 to 6 are unchanged in framing and in order relative to each other.
+   They rise only because entries above them were delivered or demoted. The
+   [effectiveness survey](../research/agentic-loop-effectiveness-survey.md)
+   grants all three credible external precedent for a local ablation, which is
+   why they now sit above Impact 4 — which needs a role-level marginal-yield
+   measurement first — and Impact 2, which needs the rank 1 audit first.
+7. **Impact 4 — Reviewer-portfolio economics** *(fell from rank 4)*: measure each
+   generalist, specialist, quality, and adjudication role's unique sustained
+   clusters, protected-class yield, refutation load, repair cost, and
+   critical-path contribution before testing any removal or consolidation.
+   Overlap alone is not proof of duplication. **Moved by readiness, not by new
+   counter-evidence.** Nothing has touched it, and this intent's own assumption
+   that overlap is not evidence of duplication still holds — which still gates
+   the candidate behind an unmeasured role-level marginal yield. Ranks 4 to 6
+   need no such precursor.
+8. **Impact 2 — Repair correctness** *(fell from rank 2)*: provide an adjudicated
+   closure packet, touched-path obligations, bounded scope, and targeted
+   verification to the repair implementer; require proof that this improves on
+   the real current implementer path rather than the spike's weakened
+   experimental repair conditions. **Moved because rank 1 measures its
+   premise.** Its child was killed, and the audit at rank 1 is what establishes
+   how often a repair's correctness is provable at all. Re-shaping repair inputs
+   before the audit reports would re-instantiate the kill rather than answer it.
+9. **Impact 1 — Focused post-repair re-review** *(fell from rank 1)*: retain the
+   initial broad review, specialist routing and existing blocking semantics;
+   compare focused against broad re-review on identical repaired bytes; narrow
+   later review only if material coverage holds and time and token savings clear
+   predeclared thresholds. **Partly superseded.**
+   [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md) now ships
+   a light-mode divergence stop, taking the nearest available win off this
+   candidate. The follow-on question — whether the repair-origin rate can gate
+   that stop — is answered **no** by the
+   [repair-origin gating survey](../research/repair-origin-gating-survey.md)
+   (2026-09-14): across four measured loops the proposed rule fires twice, once
+   on a loop that diverged and once on one that converged, so the signal
+   predicts "cut scope" rather than "stop". The child was itself killed on a
+   protected-class miss.
+10. **Impact 9 — Model routing after structural savings** *(held at last)*: test
+    cheaper models only for low-risk extraction, mechanical transformation, or
+    deterministically verified work; retain stronger pinned models for protected
+    judgment until a local ablation clears the same safety bar. Unchanged: the
+    effectiveness survey still reads model routing as the largest transfer gap,
+    on its own evidence.
+
+### Delivered from this projection
+
+- **Impact 10 — Move learning and release bookkeeping off the blocking path** and
+  the **cross-cutting measurement** row are **substantially delivered.** Loop
+  telemetry now exports to a Collector the operator runs:
+  [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
+  with the `packages/jsonl-otlp-exporter` distribution and its own
+  `release-jsonl-otlp-exporter.yml` workflow, alongside the
+  `loop-telemetry-event-vocabulary` and `loop-telemetry-contract-corrections`
+  intents and the
+  [event-derivability study](../research/loop-telemetry-event-derivability.md).
+- **What the measurement set still lacks** is the comparison and one of its two
+  headline metrics. No before-and-after corpus has been captured for any slice,
+  so reviewer waits, model or queue stall, context bytes, per-role finding origin
+  and closure outcome, and escaped defects are still unmeasured against a
+  baseline. More sharply, the
+  [event-derivability study](../research/loop-telemetry-event-derivability.md)
+  (2026-09-13) found six of eight events derivable from the fields
+  `loop-engine` already writes, but **the token half is not derivable and no
+  event would carry it, because the token count does not exist in the emitting
+  process at all.** This intent's own assumption requires reporting tokens and
+  wall-clock separately, so the shipped transport can carry the wall-clock half
+  of that obligation and not the token half. Transport is no longer the blocker
+  for time; tokens need a different source, and every slice still needs a
+  representative corpus.
+
 
 ## Opportunity
 
@@ -56,9 +186,25 @@ These are candidate child intents ordered by expected impact, not approved solut
 - **Social job:** Demonstrate to maintainers and adopters that the delivery mechanism is both defensible and economically proportionate.
 - **Struggling moment:** When an ordinary change enters the current loop, contract expansion, repository machinery, broad repeated checks, and newly sampled review findings can consume most of its elapsed time and token budget before it is ready to ship. Findings and follow-ons can then become durable backlog work whose future carrying and delivery cost is not compared with its expected benefit.
 
-The full mechanism is producing work about work. Current-tree measurements on 2026-09-09 found 389 spec/plan pairs with a 445-line median, 440 specs with a 13-criterion median, and an 821-line work-loop skill plus 13 scripts totaling 11,052 lines. The repository's [agent-skill engineering QA record](../../specs/agent-skill-engineering-languages-and-execution/qa.md#where-the-review-loop-stopped-and-what-that-leaves-open) records 11 adversarial rounds, 87 findings, 72 sustained fixes, 13 refutations, 2 indeterminate findings, and a further 9 defects found while checking fixes. A direct local work-loop test run on the same date took 21m22s for 917 passes, 5 skips, and 47 environment or policy cleanup failures. [ADR-0014](../../adr/0014-rigor-scales-with-risk-work-loop-modes.md) records approximately two hours and $60 for a session dominated by reviewer fan-out iterated to clean. These signals make the likely problem broader than round count: contract authoring, repository machinery, gates, reviewer contracts, and closure semantics manufacture large amounts of expensive work before delivery can complete.
+The full mechanism is producing work about work. Specs, plans, and the
+work-loop skill and its scripts are all large enough that authoring and
+maintaining them is a material share of a change's cost; a current-tree census
+is deliberately not quoted here, because it decays with every commit and the
+per-run observations below carry the argument on their own. The repository's [agent-skill engineering QA record](../../specs/agent-skill-engineering-languages-and-execution/qa.md#where-the-review-loop-stopped-and-what-that-leaves-open) records 11 adversarial rounds, 87 findings, 72 sustained fixes, 13 refutations, 2 indeterminate findings, and a further 9 defects found while checking fixes. A direct local work-loop test run on the same date took 21m22s for 917 passes, 5 skips, and 47 environment or policy cleanup failures. [ADR-0014](../../adr/0014-rigor-scales-with-risk-work-loop-modes.md) records approximately two hours and $60 for a session dominated by reviewer fan-out iterated to clean. These signals make the likely problem broader than round count: contract authoring, repository machinery, gates, reviewer contracts, and closure semantics manufacture large amounts of expensive work before delivery can complete.
 
-On 2026-09-10, workspace status exposed 143 open backlog items: 77 in shape and 66 in build, comprising 76 intents, 37 defects, 1 design item, and 29 unknown or legacy shapes. This establishes the scale of the inventory, not that any item is low value; attribution to the loop and expected benefit must be tested before changing its disposition.
+The open backlog inventory is large and has grown since this intent was
+accepted. A dated total is not recorded here: it decays immediately, and the
+disposition question does not turn on the figure. The inventory establishes
+scale, not that any item is low value — attribution to the loop and expected
+benefit must be tested before changing any item's disposition.
+
+**A finding about this intent, not an aside: this effort is currently a net
+producer of the inventory that Impact 3 exists to reduce.** Every live child it
+has shaped sits unstarted in the backlog, its designated next investigation is
+registered nowhere, and nothing has been pruned — including since
+[ADR-0114](../../adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md)
+supplied the invariant a safe prune needed. The cost case for Impact 3 now
+includes this intent's own output.
 
 ## Assumptions
 
@@ -71,6 +217,48 @@ On 2026-09-10, workspace status exposed 143 open backlog items: 77 in shape and 
 - Reviewer overlap is not yet evidence of reviewer duplication. The retained corpus did not attribute marginal sustained or protected-class yield by role, and the external survey found no directly applicable study that does.
 - Selective context, revision-aware gate scheduling, and simpler orchestration have credible external precedent, while model routing has a larger transfer gap. The [agentic loop effectiveness survey](../research/agentic-loop-effectiveness-survey.md) owns the evidence, counterevidence, and confidence limits.
 - No separate parent-level de-risk test is planned. The cost opportunity is already evidenced; each proposed remedy or backlog disposition remains a hypothesis to test within its child intent before delivery.
+
+### A remedy scored against frozen cases and lost (measured, 2026-09-11)
+
+This is the standing rule above with a measured instance, not a candidate.
+[`docs/specs/acceptance-criteria-set-construction`](../../specs/acceptance-criteria-set-construction/spec.md)
+shipped with all eleven of its acceptance criteria ticked — but what shipped is
+narrower than what it was scoped as. Three mechanical self-checks landed in
+`new-spec/scripts/` (`lint-contract-item-alignment.py`, `explore-grounding.py`,
+`lint-finding-coverage.py`) on
+[ADR-0108](../../adr/0108-opaque-append-only-loop-contract-identifiers.md)'s
+identifier standard. The **authoring procedure** it was scoped to deliver did
+not ship; it is deferred to
+[spec-authoring protocol measured before shipping](spec-authoring-protocol-measured-before-shipping.md).
+
+The reason is a score, not an argument. A frozen case with four must-admit and
+four must-reject items was authored twice, once with no guidance and once by a
+model told to follow the shipped criterion-shape guidance:
+
+| | no guidance | with the shipped guidance |
+| --- | ---: | ---: |
+| criteria returned | 6 | 3 |
+| decidable recall | 2/2 | **1/2** — lost the guardrail |
+| decidable rejection | 1/3 | **2/3** |
+| determinism objective | stated | **absent** |
+
+By the scoring order that spec itself defines — recall before rejection — a
+smaller set obtained by losing a guardrail is a failure, not a success. Sixteen
+adversarial rounds argued the prose; two subagent calls decided it.
+
+Two further results from the same deferral bear on the parent:
+
+- **Twenty-three of forty criteria had no mechanical oracle.** Their only check
+  was that a sentence exists, which an implementation satisfies by writing it
+  and a reviewer can always object to. A contract made mostly of those does not
+  converge.
+- **The protection was never in the criteria.** The pack suite pins forty-seven
+  rule-name keys and zero criterion identifiers, so the criteria carried the
+  ceremony while the checks carried the protection.
+
+This is direct evidence for the standing rule that a remedy is a hypothesis
+until its own child scores it — and the first case where scoring a remedy
+actually reversed a shipping decision.
 
 ## External pressure test
 
@@ -89,12 +277,40 @@ published savings do not cover this loop's protected software judgments.
 
 ## Decomposition
 
+Six intents carry a `Parent intent:` pointer to this one. Three are the killed
+original cut; three were shaped later. A seventh sits one level further down,
+under the first killed child. Each child's lifecycle status lives in that child,
+and its queue membership lives in `workspace.toml`; this tree records structure
+and the decomposition decisions, which are what the parent owns.
+
 ```text
 work-loop-delivery-efficiency (capability)
-├─ work-loop-review-economics (feature; Draft, killed 2026-09-09)
-├─ work-loop-focused-re-review (feature; Draft, killed 2026-09-09)
-└─ work-loop-repair-correctness (feature; Draft, killed 2026-09-10)
+├─ work-loop-review-economics (feature; killed 2026-09-09)
+│  └─ review-response-protocol-across-reviewer-surfaces (feature)
+├─ work-loop-focused-re-review (feature; killed 2026-09-09)
+├─ work-loop-repair-correctness (feature; killed 2026-09-10)
+├─ spec-authoring-protocol-measured-before-shipping (feature)
+├─ grounding-probe-extensions (feature)
+└─ loop-contract-item-identity-mechanism (feature)
 ```
+
+All three kills stay killed. Their candidate mechanisms remain in § Projection
+as candidates; the intents themselves are not reopened.
+
+`review-response-protocol-across-reviewer-surfaces` is drawn one level down
+because its own `Parent intent:` names `work-loop-review-economics`. It is a
+surviving descendant of a killed branch, which is a real position in this tree
+and not a drafting slip — the kill removed the bundled candidate, not every
+mechanism the branch had isolated.
+
+[`spec-review-validation-guidance`](spec-review-validation-guidance.md) is
+thematically part of this effort and carries **no** `Parent intent:` pointer at
+all, so nothing links it here. Whether it belongs in this tree is an open owner
+decision (§ Unresolved questions); this refresh does not create the link.
+
+Why the cut went this way — including why three of these children came from a
+sibling's delivery rather than from ranking this intent's projection — is
+recorded once in § Decomposition decisions below.
 
 ## Priority after three killed children (2026-09-10)
 
@@ -114,32 +330,77 @@ The audit covers 113 natural repair commits with provable bases, costs zero mode
 this run's ~70M tokens for two observations, and yields 39 cases with an executable oracle plus
 three further strata with their own.
 
+**Run 2026-09-17; stopped at the instrumentation gate.** Nothing since
+2026-09-10 has displaced it from first place. The
+[run record](../research/repair-provability-audit-run.md) holds the findings; the
+load-bearing one is that the design's own population criterion is indeterminate,
+so the 113 and the 39 above are unreproduced rather than confirmed. Three
+corrections are required before a re-run: a determinate repair-event predicate,
+a stated source/test/docs path rule, and a base rule for squash-merged changes —
+73.8% of this repository's first-parent history landed with no merge commit,
+which the inherited `merge-base M^1 M^2` rule cannot address. It is still
+registered in no workspace collection (§ Unresolved questions).
+
 ### Gate and context economics, measured during the child validations
 
 Independent of every child's verdict, and cheap:
 
-- **Tool output is 30-64% of a call's tokens.** A result is emitted once and re-sent on every later
-  API request in the same call; a repair call issues ~200. Capping each result at 2,000 characters
-  would have cut 17.0M tokens (64.9%) across four measured calls with no behaviour change. The
-  median result is ~580 characters, so the remedy is capping the tail, not running silent. The
-  retained findings and limits are in the
-  [repair-correctness report](../research/work-loop-repair-correctness-spike.md#cross-cutting-loop-economics-findings).
+- **Tool output: measured, and the shrink was refused.** The original observation
+  stands — a result is emitted once and re-sent on every later API request in the
+  same call, so output volume compounds across a call's requests
+  ([repair-correctness report](../research/work-loop-repair-correctness-spike.md#cross-cutting-loop-economics-findings)).
+  **The remedy did not survive measurement.** The
+  [loop CLI output cost measurement](../research/loop-cli-output-cost-measurement.md)
+  (run 2026-09-10) drove `loop-engine.py` and `loop-cohort.py` through the real
+  full-mode path one command at a time and returned a **do-not-shrink** verdict
+  for both: the removable fraction is small, and most of what remains is either a
+  contract the calling agent parses — a `status --json` payload *is* the resume
+  contract, so dropping a field by default breaks a resuming controller — or a
+  byte-pinned test fixture. What the measurement did produce was one correctness
+  defect: a `git` lookup failure printed a traceback with absolute internal
+  paths, larger than an entire successful run, because `_get_repo_root` converted
+  `TimeoutExpired` but not `OSError`. Core 2.25.13 fixed it in both copies.
+  **Do not re-open a general output cap on these surfaces** without new evidence;
+  a session acting on the earlier framing would redo a measurement the repository
+  has already run and act on a saving it declined.
 - **`workspace_status.py status` emits ~54,752 tokens per call**, of which `canonical.evaluations`
   is 51.5% and the consuming `SKILL.md` never names it, and `repo_backlog` is 28.5% of which the
   skill reads three fields per entry. Narrowing an emitted key set is Ask-first by default.
-- **`lint-spec-status.py` emits ~8,157 tokens on a passing run** — 183 `warn-only` warnings that
-  fire on every clean tree. Those warnings are real unresolved references; silencing without
-  registering them converts visible debt into invisible debt. The static audit's durable findings
-  are retained in the
+- **`lint-spec-status.py` emits its cost as `warn-only` warnings, not stdout.**
+  They fire on every clean tree; the volume is not restated here because it moves
+  with the tree. Those warnings are real unresolved references, so silencing
+  without registering them converts visible debt into invisible debt. Core
+  2.25.11 made the default run *count* them instead of printing each one, so the
+  per-call cost is already reduced; the underlying references remain
+  unregistered. The static audit's durable findings are retained in the
   [repair-correctness report](../research/work-loop-repair-correctness-spike.md#cross-cutting-loop-economics-findings).
-- **A shipped convention is root-ambiguous.** `docs/CONVENTIONS.md:129` routes execution evidence to
-  `notes/verification-ledger.md` with no root; for a change with no spec directory that resolves at
-  the repository root, which `AGENTS.md:39` forbids. Two independent arms hit it in two cases; the
+- **A shipped convention was root-ambiguous — CLOSED.** The finding was real: a
+  convention routed execution evidence to `notes/verification-ledger.md` with no
+  root, which for a change with no spec directory resolved at the repository
+  root. Two independent arms hit it in two cases, and the
   [repair-correctness report](../research/work-loop-repair-correctness-spike.md#cross-cutting-loop-economics-findings)
-  records the attribution and correction shape.
+  records the attribution and correction shape. **Closed by
+  `feat(core): retire docs/CONVENTIONS.md and re-home every obligation it
+  carried` (#1345, spec `conventions-retirement`).** `docs/CONVENTIONS.md` no
+  longer exists, and the obligation is now root-qualified as
+  `docs/specs/<feature>/notes/verification-ledger.md` in both owning surfaces:
+  `work-loop/references/delivery-contract-lifecycle.md` and
+  `new-spec/assets/plan.md`. Retained rather than deleted so the finding's
+  provenance survives its fix.
 - **No dedicated conflict-marker item is warranted.** Base rate is 3 commits in 5,001, all one
   self-corrected incident, zero survivors on main. It is one example for a generic, cheap
   mechanical-residue sweep, not a gate of its own.
+
+**Captured, not acted on.** Two rows above are open findings with no owner and no
+queue entry: narrowing the `canonical.evaluations` emitted key set (Ask-first by
+default) and the `lint-spec-status` warn volume. Both are retained only in the
+repair-correctness report. Separately,
+`docs(specs): capture two loop CLI hygiene findings for later` (`7e3e2aaeb`,
+2026-09-10) registered a *different* pair found during the same measurement — a
+`loop-cohort.py schedule --plan` help string advertising a path the code refuses,
+and a bare `schema_version` literal at three sites while `loop-engine.py` names
+`SCHEMA_VERSION` — under the `loop-tooling-hygiene` spec. Neither of that pair is
+one of the two rows above.
 
 The first child, [work-loop review economics](work-loop-review-economics.md), was killed because its combined candidate missed three protected-class clusters. The owner re-cut its two independently promising mechanisms into separate siblings: [work-loop focused re-review](work-loop-focused-re-review.md) compares broad and focused review on identical repaired bytes without changing initial assurance, while [work-loop repair correctness](work-loop-repair-correctness.md) compares current and obligation-aware repairs before the same broad review. Neither result can mask the other.
 
@@ -147,6 +408,45 @@ The first child, [work-loop review economics](work-loop-review-economics.md), wa
 
 - **2026-09-09 — composite branch replaced after kill:** The original child bundled consequence-bound blocking, focused re-review, and reuse semantics. Its protected-class kill makes that bundle ineligible for decomposition. The replacement sibling isolates focused post-repair re-review because it caught three repair defects and reduced review-phase token load, while preserving the assurance surfaces implicated in the kill.
 - **2026-09-09 — repair correctness separated:** Repair-induced findings are economically material, but combining repair-authoring changes with re-review scope would prevent causal attribution. The owner therefore shaped it as a second sibling with the current broad review fixed in both arms.
+- **2026-09-11 — three children were spawned by a sibling's delivery, not by this
+  intent's own cut.** `spec-authoring-protocol-measured-before-shipping`,
+  `grounding-probe-extensions`, and (one level down)
+  `review-response-protocol-across-reviewer-surfaces` were all produced by
+  delivering
+  [`acceptance-criteria-set-construction`](../../specs/acceptance-criteria-set-construction/spec.md),
+  which shipped its mechanical checks and deferred everything that a frozen-case
+  run had not scored (§ Assumptions). They are grouped here because each one
+  inherits this intent's outcome — cheaper authoring and review at equal
+  assurance — but **none of them was chosen by ranking this intent's
+  projection.** That distinction belongs on the parent: a reader who assumes the
+  tree was cut top-down will misread why these three exist and will over-weight
+  them against the ranked candidates.
+- **Grouping rationale for the deferral children.** The split is by *what
+  decides them*, not by component. `spec-authoring-protocol-measured-before-shipping`
+  holds every arm whose verdict needs a frozen-case score, so an unscored remedy
+  cannot ship by riding along with a scored one.
+  `review-response-protocol-across-reviewer-surfaces` holds the arms that are
+  already specified and only need carrying to further surfaces, which is
+  delivery breadth rather than an open question. `grounding-probe-extensions`
+  holds the two probe additions to the shipped explorer, which are mechanical and
+  independently verifiable. Keeping them separate is what stops a measured
+  failure and an unmeasured extension sharing one verdict.
+- **`loop-contract-item-identity-mechanism` sits beneath the authoring children,
+  and reaches into a ranked candidate.** Its own Boundary excludes authoring
+  guidance and assigns that to `acceptance-criteria-set-construction`, keeping it
+  to the checking mechanism underneath — identifier markers, per-item
+  fingerprints, and the edge from a suspect flag into re-review scope. It is a
+  separate child for two reasons. It carries a decision nobody has taken
+  ([ADR-0108](../../adr/0108-opaque-append-only-loop-contract-identifiers.md)
+  decides item identity only, and
+  [the loop contract](../../architecture/loop-contract.md) § 4 records the
+  fingerprint pairing as `PLANNED`), and its output feeds re-review scope, which
+  is Impact 1's territory. Bundling it into either the authoring children or
+  Impact 1 would tie one candidate's verdict to a mechanism the other also needs.
+  Its guardrail is load-bearing for this parent: a suspect flag scopes what a
+  review looks at and never decides whether a change may proceed, because
+  blocking on a derived signal would rebuild the consequence-bound blocking
+  already measured and killed in `work-loop-review-economics`.
 
 
 ## Source
