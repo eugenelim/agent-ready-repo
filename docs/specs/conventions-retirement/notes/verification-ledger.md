@@ -767,3 +767,21 @@ only became evidence once a trailing delimiter was added, so a span *could*
 close, and once the two mutually-masking guards were reverted together. A
 mutation that fails to red does not mean the fix is unnecessary — it can mean
 the case cannot reach it.
+
+### A citation that landed between the sweep and the merge
+
+`.github/workflows/publish-claude-plugins.yml` cites the retired document in a
+live comment, and the AC2 scan found it only after the merge with `main`. Two
+corrections to how this change's own commit records it. The merge commit says
+main "added" that file; the file existed at the merge base and what main added
+was the comment, in `50bc1381c` (#1326). And a peer session was credited with
+it in conversation, which was wrong — its branch never touched the file.
+
+The mechanism generalises past this instance. A consumer sweep measures the
+tree as it stands, so a citation introduced upstream *after* the sweep and
+*before* the merge is invisible from both sides: the sweep predates it and the
+upstream author has no reason to look for a document that still exists on their
+base. Nothing on this branch would have caught it. It surfaced only because the
+scan was re-run against the post-merge tree rather than the pre-merge result
+being carried forward, which is the practice worth keeping: a consumer sweep's
+result expires when the base moves.
