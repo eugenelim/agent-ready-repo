@@ -188,8 +188,8 @@ after the status token on the status line.
 **Repeated findings.** `review inspect --json` returns
 `matches_previous_round: true` when a round's fingerprint set equals the
 previous round's exactly. Surface it; it starts no transition and stops no
-loop. It is not a stasis detector and bounds nothing — the iteration cap is
-what bounds the loop.
+loop. It is not a stasis detector and bounds nothing — `max_review_retries`
+is what bounds a review loop.
 
 **Atomic writes.** Both tools update their JSON files through
 `tempfile.mkstemp` + `os.replace`. A partial-write cannot present as malformed
