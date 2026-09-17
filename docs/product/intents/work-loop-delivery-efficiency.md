@@ -60,12 +60,14 @@ moved it.
    10-case gate the design requires and failed it: the population criterion
    admitted 10 of 10 cases under one reading and 1 of 10 under another, and the
    strict reading rejects three of the four cases the design names as its
-   selection method. The population total roughly reproduces (104 against 113)
-   but `source + test` — the audit's headline "39 cases with an executable
-   oracle" — reproduces at 21. No repair was reverted and no oracle ran, so the
-   audit's question is still unanswered. It remains first because it is still
-   the measurement everything below it waits on; what it now needs is a
-   determinate population predicate, not execution.
+   selection method. A second round then found a determinate predicate — wider
+   review vocabulary, commit type not `feat`, repair verb in the subject — that
+   is about 95% precise against independent labels and reproduces the design's
+   strata shares within 4.4 points, at 147 cases with 53 in `source + test`
+   against the design's 39. **No repair was reverted and no oracle ran, so the
+   audit's question is still unanswered.** It remains first because it is still
+   the measurement everything below it waits on; what it needs next is a
+   confirmatory sample, a stated path rule, and then the oracle phase.
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then

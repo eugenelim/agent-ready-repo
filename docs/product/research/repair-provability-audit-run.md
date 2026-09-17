@@ -3,11 +3,12 @@
 - **Run date:** 2026-09-17
 - **Owner:** eugenelim, Platform Core maintainer
 - **Against:** `origin/main` at `9d430418b`
-- **Verdict:** **the 10-case instrumentation gate fails, and the audit must not
-  scale to the full population.** The blocker is not instrumentation quality. It
-  is that the [audit design](repair-provability-audit-design.md)'s population
-  criterion does not decide the same set twice, and its own frozen corpus
-  contradicts the criterion as written.
+- **Verdict:** the 10-case instrumentation gate **failed on the first pass**,
+  then a second round found a determinate predicate that reproduces the design's
+  strata. See the erratum below, which withdraws part of Finding 2. What stands:
+  the design's stated criterion does not decide the same set twice and its own
+  frozen corpus contradicts its prose, so the population must be re-frozen on an
+  explicit predicate before any oracle runs. The oracle phase has still not run.
 - **Cost:** zero model calls for the measurement itself; one subagent call for
   the independent hand result. No repository code was executed and no commit was
   reverted.
@@ -159,13 +160,69 @@ invisible in the aggregate and surfaced only when the ten drawn cases were
 inspected individually, which is the argument for the gate the design already
 specifies.
 
+## Erratum, same day: a determinate predicate exists, and it largely reproduces the strata
+
+Findings 1 to 3 above were measured against **one** candidate predicate — the
+design's own `sustained|refuted` vocabulary, here called **P0**. A second round
+labelled a larger sample semantically and scored four predicates against it.
+That round **overturns Finding 2's conclusion** and narrows Finding 1.
+
+**Ground truth.** An independent reader labelled 55 commits on one question —
+is this a natural repair commit answering an adjudicated review round against
+its own branch's work? — with message format explicitly excluded from the test.
+Thirty were drawn from P0's selection, ten were `fix()`-typed review-mentioning
+commits P0 **misses** (to expose false negatives), and fifteen were drawn from
+the region a wider predicate newly admits.
+
+| Predicate | Definition | Selected | Precision | Recall |
+| --- | --- | ---: | ---: | ---: |
+| **P0** | `sustained\|refuted` in the message | 104 | ~77% | ~77% |
+| **P1** | P0, and the commit type is not `feat` | — | ~86% | ~77% |
+| **P2** | wider review vocabulary, type not `feat` | 265 | ~69% | ~94% |
+| **P3** | P2, and a repair verb in the subject | **147** | **~95%** | ~65% |
+
+P2's precision fell to 60% on the 167 commits it newly admits, which is why its
+overall figure is worse than P0's despite better recall. Precision and recall
+here are measured on the sampled regions, not on each predicate's whole
+selection.
+
+**P3 largely reproduces the design's strata:**
+
+| Stratum | P3 | share | Design | share |
+| --- | ---: | ---: | ---: | ---: |
+| source + test | 53 | 36.1% | 39 | 34.5% |
+| source only | 27 | 18.4% | 21 | 18.6% |
+| docs only | 30 | 20.4% | 28 | 24.8% |
+| test only | 37 | 25.2% | 25 | 22.1% |
+| total | 147 | | 113 | |
+
+All four shares land within 4.4 points. **Finding 2's claim that the strata do
+not reproduce is therefore withdrawn:** they do not reproduce from the marker
+the design *states*, and Finding 3's point stands that the path rule is
+unstated, but a determinate predicate reproducing the design's proportions
+exists. `source + test` comes out at 53 rather than 39, above the design's
+figure rather than half of it. The residual gap is most likely the history
+window, since this run cuts at 2026-09-11 while the design was written on
+2026-09-10.
+
+**What Finding 1 still says.** The design's prose remains wrong about what the
+corpus records — three of its four frozen cases carry no counts and no severity
+bands, and a reader who treats that sentence as a requirement admits 1 case in
+10. Determinacy was never the hard part; a regex is determinate. Validity was,
+and it is now measured rather than asserted.
+
+**Remaining step before freezing P3.** Its ~95% precision rests on 21 selected
+cases falling inside the sampled regions. A confirmatory sample drawn from P3's
+own 147 would close that gap. Nothing else blocks freezing the population.
+
 ## What has to change before this audit can run
 
-1. **Replace the population criterion with a determinate predicate.** Either
-   accept that adjudication vocabulary in a review context is the criterion and
-   accept the looser population, or define the required message elements *and*
-   re-derive the reference corpus, which currently fails that definition three
-   times in four.
+1. **Adopt P3 as the frozen population predicate** (see the erratum): wider
+   review vocabulary, commit type not `feat`, repair verb in the subject. It is
+   determinate, ~95% precise, and reproduces the design's strata shares within
+   4.4 points. Confirm it on a sample drawn from its own selection first. Delete
+   the design's claim that the round is recorded with counts and severity bands,
+   which its own corpus contradicts.
 2. **State the source / test / docs rule** as part of the frozen design, not as
    an implementation detail.
 3. **State a base rule for squash-merged changes**, which are how roughly three
