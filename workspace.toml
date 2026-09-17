@@ -1333,6 +1333,38 @@ open = [
   # tests, on a published skill's public seam -- so it is its own change with
   # its own review, not a ride-along here.
   { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
+
+  # Found 2026-09-17 by the pre-EXECUTE review of
+  # docs/specs/wave-complete-dispatch-receipts. All three are limits that spec
+  # discloses and deliberately does not close, each recorded there under
+  # Follow-ons with the reasoning. They are registered here so the spec's
+  # references resolve to real entries rather than to an intention.
+  #
+  # `wave advance` is authorized by --expect-run-id alone and is not coupled to
+  # the wave-exit check, so a controller that advances before firing
+  # wave-complete takes the skipped wave out of the guard's view entirely. The
+  # receipts spec keeps a record writable for an already-left wave so the record
+  # is not lost too, but closing the skip changes wave advance's refusal set.
+  # Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Pair leaving a wave index with that wave being accounted for: loop-cohort wave advance is not coupled to the wave-exit check, so advancing before the exit fires moves the guard's denominator and the skipped wave is never checked", needs = [] },
+
+  # gates-failed, findings-remain and blocker-applied all re-enter
+  # CODE-IMPLEMENTATION without moving current_wave_index, so the first pass's
+  # records satisfy every later exit for that wave -- and a repair round is
+  # where the controller most often works alone. Not closed in the receipts
+  # spec because scoping a record to a round needs a counter advancing on all
+  # three edges, and implementation_retry_count advances on one, so building on
+  # it would look like a control without being one. Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
+
+  # A wave exit that passes with no receipts container, or with every task
+  # declined, leaves no record an after-the-fact reader can find: the read-only
+  # guard cannot write, and a durable side effect on a transition is ADR-0061
+  # Option B, which needs the absent pending_transition schema. loop-cohort
+  # status also refuses when schema_version is unsupported, so for the oldest
+  # state class the guard tolerates, only the stdout notice remains.
+  # Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
