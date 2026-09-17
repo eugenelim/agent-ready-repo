@@ -81,17 +81,25 @@ each of the four surfaces that instruct firing it:
 `references/supervisor-mode.md`, `references/session-resumption.md`,
 `references/finding-adjudication.md`, and the two repair paths in `SKILL.md`.
 
-**The guard is an eight-row verdict table over two named well-formedness
-predicates.** Four rounds produced criteria that overlapped or left gaps, and
-this table's own first draft did both — an empty partition with a non-mapping
-container satisfied two rows with opposite verdicts, and a malformed wave
-element such as `[123]` satisfied none, falling through to the opaque
-`@contained` refusal. So the partition is checked rather than asserted: 1,152
-constructed states were walked, varying the type of `schedule_waves`, the type
-of its current element, the presence and type of the container, and the type and
-range of the pointer — zero overlapping, zero uncovered, every row reachable.
-T3 carries that walk as a test, and its domain deliberately comes from the
-fields the rows read rather than from the rows.
+**The guard is a nine-row verdict table whose predicates derive from one
+declaration.** Four rounds produced criteria that overlapped or left gaps, and
+this table then did it twice more. Its first draft let an empty partition with a
+non-mapping container satisfy two rows with opposite verdicts, and a malformed
+wave element such as `[123]` satisfy none, falling through to the opaque
+`@contained` refusal. Its third draft bounded container well-formedness at two
+key levels while the data model declared three, so every correctly shaped
+container classified as malformed and the exit would have refused every valid
+wave — and a walk over 7,128 states stayed green, because the container values
+were hand-built at the same two levels the predicate expected. The oracle
+ratified the author's construction rather than the declaration.
+
+So the container's key path is declared once, and both the predicate's nesting
+depth and the domain's shapes derive from it. The current walk is 20,160 states
+whose container values are generated from that declaration — a correct instance
+nested from it, then mutated at each depth with each hostile value — giving zero
+overlapping, zero uncovered, and all nine rows reachable. T3 carries that walk,
+and generating the domain from the declaration is part of what T3 implements
+rather than an incidental test detail.
 
 Order of operations: settle what the pinned files require, add the field and the
 mutation, then the verdict table and the reporting, then the controller-facing
@@ -185,7 +193,7 @@ verified and returns to T2 or T3.
   the point. `init` refuses an existing `state.json` and `reset` deletes it, so
   a record cannot outlive its run and a stored run identifier would be a field
   no reachable state could falsify.
-- **Eight verdict rows over two named well-formedness predicates.** Traces to:
+- **Nine verdict rows whose predicates derive from one key-path declaration.** Traces to:
   the verdict rows and the two partition criteria. Branch order is an
   optimisation; the preconditions decide behaviour. The predicates are named
   once rather than repeated per row, because repeating them informally is how
@@ -351,9 +359,9 @@ read, task and field refined. Never edit an existing entry. -->
   they say nothing about a third exempt phase. Alternative taken: (ii), share
   `implement`'s exemption, widening the exempt set rather than keeping the
   accounting in `implement`, because (i) would widen the change into a shipped
-  hook every adopter has wired. Safe because the verdict table validates shape
-  rather than trusting the schema, so it is total regardless of
-  `schema_version`. Refined: none — this was settled before approval, so it is
+  hook every adopter has wired. The exemption alone was not sufficient: it buys
+  totality, not verdict preservation, so the table additionally passes an
+  unsupported-schema state on its own row before any shape is read. Refined: none — this was settled before approval, so it is
   a revision of the Draft spec through the pre-EXECUTE review loop, not a
   discovery-time refinement of an unstarted task, and no amendment machinery
   applies. Recorded here because the channel's kill condition is what surfaced
@@ -567,6 +575,15 @@ covers the state lock a new mutation takes.
   does not change `_guard_reason`'s contract.
 - Implement the rows in precondition order, but write each precondition so it
   stands alone — the partition property is what the test asserts, not the order.
+- Derive the container predicate's nesting depth from the declared key path, not
+  from a literal. A restated depth is what made an earlier draft reject every
+  valid container.
+- Let the unsupported-schema row pass before the table is consulted, so a state
+  the `implement` phase passes today keeps its passing verdict. Widening the
+  schema exemption alone only guarantees the state reaches the table;
+  `implement` returns ok for any readable state, so the table could still land
+  it on a refusing row using a field whose shape an unsupported schema leaves
+  unspecified.
 - Build the refusal from the set difference so it names tasks rather than a
   count.
 - Carry the absent-container notice in the passing result's `message`, which

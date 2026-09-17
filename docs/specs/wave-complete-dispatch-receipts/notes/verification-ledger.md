@@ -200,6 +200,26 @@ walk.
 
 | 7,128 states | the same, plus container **interiors**: valid records, a bad decline reason, a non-mapping leaf, a non-mapping wave map, a missing `kind`, a non-string `kind`; plus `schema_version` | the rows as the spec words them, with well-formedness total over the container | 0 overlapping, 0 uncovered, all 8 rows reachable |
 
+| 20,160 states | container values **generated from the declared key path** — a correct instance nested from it, then mutated at each depth with each hostile value — plus the earlier axes and `schema_version` | the nine rows as the spec words them | 0 overlapping, 0 uncovered, all 9 rows reachable |
+
+**Why a fifth walk exists: the fourth was green and wrong.** Its container values
+were hand-built two keys deep and the predicate under test was worded two keys
+deep, while the data model declared three. So a correctly shaped container
+classified as malformed and the wave exit would have refused every valid state.
+Demonstrated directly: `{digest: {wave: {task: record}}}` fails the fourth
+walk's predicate, because `container[digest][wave]` is a `task → record` mapping
+and carries no `kind`. The walk could not see it, because its oracle compared the
+author's construction against the author's predicate and both were wrong in the
+same direction. The fifth walk derives the predicate's depth and the domain's
+shapes from one declaration, so that mismatch is not expressible.
+
+**The fifth walk's discriminating results.** A correct three-key container with
+every task accounted for passes silently. The same state with
+`schema_version: 99` takes the schema row and still passes — verdict
+preservation, not merely totality. A two-key container, the shape the fourth
+walk built, is now rejected as malformed. An empty mapping at any level remains
+well-formed, which is correct: it holds no records.
+
 **The fourth walk's discriminating results.** A record with reason `made-up`
 classifies to the malformed-state row, not to "accounted for". A record leaf that
 is the string `"receipt"` classifies there too. Both were fail-open or
@@ -215,6 +235,22 @@ arbitrary values at every position the predicate reads, and the predicate has to
 be total by construction rather than bounded one level at a time.
 
 ---
+
+## 4b. A recorded alternative that is not an adopted decision
+
+`notes/review-handoff.md` records that `schedule` clearing the receipts
+container would remove the partition digest entirely, and the pruning rule, the
+amendment clear, and the growth bound with it. When reporting round 5 I said that
+was recorded "in the ledger"; it was recorded in the handoff, not here, and a
+reviewer looking here found nothing. Correcting the citation, not the claim.
+
+Its status is an **alternative, not a decision.** The live spec and plan specify
+digest-keyed records with pruning on a partition-changing `schedule` and a clear
+on contract amendment, and they are internally consistent on that reading. The
+clearing alternative is attractive because `schedule` rewinds
+`current_wave_index` to zero unconditionally, so a re-schedule means every wave
+is re-executed and any record written before it describes work that must be
+redone. Adopting it is a design change owing its own review, not a tidy-up.
 
 ## 5. Task C — boundary-walk consolidation (shipped, `9f0e939d6`)
 

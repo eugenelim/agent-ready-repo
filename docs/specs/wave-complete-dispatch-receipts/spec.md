@@ -40,18 +40,19 @@ directory on every push with no state-machine gate; moving the accounting into
 it would turn a wave-exit guard into a repository-wide push gate for this
 repository and for every adopter of the packaged hook.
 
-What this does not do is prove that dispatch happened, and four limits are
-deliberate rather than overlooked. A record is an assertion by whoever wrote it,
-and any actor that can read `run_id` can write one, including a dispatched
-`implementer`. One decline code records a human instruction with no testable
-precondition. A repair round re-enters implementation without moving the wave
-pointer, so the first pass's records satisfy its exit too. And the pass on an
-absent receipts container cannot be told apart from a pass on a container that
-was deleted, so removing that one key disables enforcement for the run and
-leaves no record of having done so. The exit raises the cost of skipping
-dispatch and leaves a durable per-task record of the choice; it does not make
-skipping impossible. The plan's Risks section carries each limit and names who
-can write a record.
+What the exit guarantees is narrow and positive: a durable, per-task record of
+who the controller says implemented each task, and a refusal when a task in the
+wave has none. It does not prove dispatch happened. The exceptions group by
+consequence rather than by count, so finding another does not falsify a number:
+some let a record be written by a party or for a reason the guard cannot check
+(any actor that can read `run_id` can write one, including a dispatched
+`implementer`; and `human-directed` records a human instruction with no testable
+precondition); some let an exit pass without a fresh assertion (a repair round
+re-enters implementation without moving the wave pointer, and `wave advance` can
+move the pointer past a wave the exit never checked); and some leave no trace
+that enforcement was off (removing the container disables it for the run, and an
+enforcement-off exit writes nothing an after-the-fact reader can find). The
+plan's Risks section carries each, and the register holds the ones with owners.
 
 ## Durable Outputs
 
@@ -249,14 +250,20 @@ A **record** is a mapping whose `kind` is `receipt` or `decline`, and which, whe
 its `kind` is `decline`, carries a `reason` from the closed set
 `no-implementer-installed` and `human-directed`. Nothing else is a record.
 
+The container's **key path** is declared once, here: a record is held under the
+partition digest, then the wave index, then the task identifier — three keys,
+then a record. Every statement about the container's shape derives from this
+declaration rather than restating a nesting depth, because a restated depth is
+how the previous version of this section came to require two keys while the data
+model declared three, which classified every correctly shaped container as
+malformed and would have refused every valid wave exit.
+
 A state is **well-formed** when `state.json` parses, `schedule_waves` read with
 its default is a list, and the receipts container is either absent or a mapping
-each of whose values is a mapping each of whose values is a record. The
-container's interior belongs in this definition on purpose: bounding it at the
-top level while the accounting predicate reads its leaves is what produced four
-successive versions of one gap, a level deeper each time. The predicate is total
-over every value a record position can hold, so accounting never meets a shape
-it cannot classify.
+nested to exactly the declared key-path depth whose every leaf is a record. An
+empty mapping at any level is well-formed: it holds no records, which is not a
+defect. The predicate is total over every value any position can hold, so
+accounting never meets a shape it cannot classify.
 
 A **current wave** is well-formed when it is a list whose every element is a
 string. A pointer is **valid** when `current_wave_index` is a non-negative
@@ -268,6 +275,15 @@ state with opposite verdicts.
 
 - [ ] `state.json` is missing or cannot be parsed: exits non-zero and names the
       state defect on stderr.
+- [ ] `state.json` parses and its `schema_version` is not the supported value:
+      exits zero and prints nothing to stdout or stderr. This row exists so the
+      transition's verdict is *preserved* for that state class, not merely
+      decided. Sharing `check --phase implement`'s exemption from schema
+      validation only guarantees the state reaches the table; `implement`
+      returns ok for any readable state, so a state it passes today could
+      otherwise land on a refusing row below, on the shape of a field an
+      unsupported schema leaves unspecified — which is the breakage this design
+      exists to prevent.
 - [ ] `state.json` parses but the state is not well-formed:
       exits non-zero and names the malformed field on stderr, rather than
       surfacing an exception type.
@@ -293,9 +309,11 @@ state with opposite verdicts.
       task, up to the guard layer's reason-length bound; where that bound
       truncates the list, the refusal says so rather than presenting a
       shortened list as complete.
-- [ ] Every state-derived value the guard or the verb interpolates into a
-      refusal passes through the guard layer's existing length-bounding helper,
-      so no refusal carries an unbounded value read from `state.json`.
+- [ ] Every value the guard or the verb interpolates into a refusal — whether
+      read from `state.json` or supplied as an argument — passes through the
+      guard layer's existing length-bounding helper, so no refusal carries an
+      unbounded value. `loop-cohort`'s own diagnostic helper neutralises control
+      characters but applies no length bound.
 - [ ] No cohort state satisfies the preconditions of two of the eight rows
       above.
 - [ ] No cohort state satisfies the preconditions of none of the eight rows
@@ -303,18 +321,24 @@ state with opposite verdicts.
 - [ ] Each of the eight rows above is satisfied by some cohort state.
 - [ ] The states the three criteria above are checked over are constructed by
       varying the type and value of `schedule_waves`, of its element at the
-      pointer, of the receipts container, of a value held inside that container,
-      of a record's `kind`, of `schema_version`, and of `current_wave_index` —
-      not by instantiating one example per row, which cannot exhibit a gap.
+      pointer, of the receipts container, of a record's `kind`, of
+      `schema_version`, and of `current_wave_index`.
+- [ ] The container values in that domain are generated from the declared key
+      path — a correctly nested instance built from the declaration, then
+      mutated at each depth with each hostile value — rather than hand-built at
+      a literal depth. A hand-built container makes the walk's oracle ratify the
+      shape its author constructed instead of the shape the declaration states,
+      which is how a green walk over 7,128 states coexisted with a predicate
+      that rejected every valid container.
 - [ ] For every row above whose state has a `state.json`, that file is
       byte-identical before and after a `check --phase wave-exit` invocation.
 - [ ] The `wave-complete` transition out of `CODE-IMPLEMENTATION` is refused
       when the guard refuses.
 - [ ] `check --phase wave-exit` reaches the verdict table for a state whose
       `schema_version` is not the supported value, rather than refusing before
-      the table — sharing the exemption `check --phase implement` already has,
-      so a run in flight from before this change is judged by the rows rather
-      than by its schema.
+      the table, by sharing the exemption `check --phase implement` already has.
+- [ ] No state that `check --phase implement` exits zero on today causes the
+      `wave-complete` transition to exit non-zero after this change.
 - [ ] `check --phase review` and `check --phase gates-failed` still refuse a
       state whose `schema_version` is not the supported value.
 - [ ] `check --phase implement` returns the same exit code and the same streams
@@ -334,6 +358,10 @@ state with opposite verdicts.
 - [ ] That pre-transition run is what gives the absent-container notice a
       caller, because the engine's guard adapter discards a passing guard's text
       and the transition alone therefore cannot surface it.
+- [ ] The verdict that pre-transition run reports is about the wave the run is
+      leaving — the wave `current_wave_index` names at the moment the check
+      runs. A controller that advances the pointer first therefore does not
+      satisfy this against the next wave's empty denominator.
 - [ ] `loop-cohort status` reports whether dispatch receipts are enforced for
       the run, in both its default output and its `--json` output.
 - [ ] A record written by `loop-cohort dispatch-receipt` is counted by
