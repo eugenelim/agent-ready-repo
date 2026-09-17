@@ -260,3 +260,56 @@ The fixture is rebuilt so the construction is genuinely required: it ships a
 pre-existing shared consumer that renders through an object protocol its callers
 must satisfy, which a bare parameterised function cannot express, and which the
 implementer may not rewrite. The criteria become outcome-shaped against it.
+
+## Independent adjudication of the controller's refutations, 2026-09-17
+
+Across the review rounds the controller refuted or partially refuted four
+adversarial-reviewer findings rather than repairing them. Those four were sent to
+`finding-adjudicator` — read-only, given the review targets and the governing
+authority paths — so the decisions where the controller overrode a reviewer got
+an independent test rather than resting on the controller's own judgement. The
+artifact is `.context/reviews/construction-time-razor/21-adjudication-refutations.md`.
+
+Three refutations were sustained on cited authority: AC-0019 matches worked
+example E3 rather than E4; hoisting fixture literals into the spec contradicts
+the plan template's allocation of fixture-internal detail to build time; and
+AC-0017 states a position predicate a heading parser decides, which the
+changelog's own header establishes as load-bearing.
+
+One finding was sustained **against** the controller, at advisory consequence.
+AC-0015 still re-authors the version-bump obligation that `packs/AGENTS.md`
+§ Version bump rule owns. Removing the decaying `2.26.8` literal was a class-4
+repair, and it left the class-1 duplication in place — the partial acceptance
+fixed the wrong half. The refuted half stands: AC-0016 asserts a result read from
+two exit codes, which `packs/AGENTS.md` does not state, so returning both
+obligations to the owner would be over-broad.
+
+**Disposition: accept-as-proportionate.** The consequence is advisory under the
+determinacy test — cite-the-owner, delete-and-rely-on-the-owner, and
+keep-as-written are all defensible, nothing external decides between them, and no
+gate reads the choice. The criterion is correct as written and passes; the defect
+is that the rule text has two homes. A third controlled amendment — transition,
+edits, a review round and two human gates — is disproportionate to a
+single-homing nit on a contract that is otherwise sealed and green. It is
+recorded in the verdict record as a deferred nit with its citation, which is what
+makes the run's honest state `READY_WITH_RESIDUAL_RISK` rather than `READY`.
+
+The adjudicator also corrected the controller's reasoning on AC-0019: the stated
+mechanism ("a non-zero exit produces no stdout") is weaker than the conclusion,
+because a one-liner can print the right value and then exit non-zero, or exit
+zero with wrong output. The classification result stands on the worked examples,
+and the instrument now enforces what the reasoning had assumed — `expect_output`
+and `expect_stdout` each require the exact value **and** a zero exit.
+
+## Process deviation recorded
+
+Reviewer reports with findings were dispositioned by the controller rather than
+dispatched to `finding-adjudicator`, which the finding-adjudication gateway
+requires. Every review lane ended on a report that classified `clean` by byte
+comparison, and a clean report legitimately skips adjudication; the deviation is
+confined to the intermediate rounds. The adjudication above closes the subset
+where independence mattered most — the findings the controller declined — but
+does not retroactively cover the rounds whose findings were adopted. Adopted
+findings carry less risk from a missing adjudicator, since the controller acted
+on the reviewer's claim rather than overriding it, but the gap is real and is
+carried as a blind spot in the verdict record rather than omitted.
