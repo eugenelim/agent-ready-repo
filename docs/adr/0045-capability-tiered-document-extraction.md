@@ -2,7 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-30
+- **Areas:** tooling, knowledge
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0058](../rfc/0058-capability-tiered-document-extraction.md) (the accepted decision this records, incl. its seven-decision set, options table, and pre-mortem); [ADR-0037](0037-grounding-is-adopter-and-org-supplied-and-presence-checked-one-gate-from-infra-to-framework.md) (the presence-checked "detect-and-degrade, every layer free to be absent" grounding doctrine this mirrors for extraction *capability*); [ADR-0034](0034-infra-grounding-toolchain-oracle-doctrine-not-tooling-vendor-data-or-agent.md) (the "ship awareness and doctrine, never bundled per-vendor data" rule this extends, not breaks); [RFC-0007 § Errata](../rfc/0007-user-scope-converter-pack.md#errata) (the locked-down-dependency drawback this reverses for `file-to-markdown`)
 
 ## Decision summary
@@ -49,6 +55,22 @@ records which tier ran in the output. The four tiers:
 | **1 — agent-vision** | Rasterize pages/images → the **already-running in-session model** reads → deterministic reconcile | a new rasterizer dep, but no new *model* (a data-handling event — see the egress carve below) |
 | **2 — approved ML** | Docling (today's branch) + its downloaded models | ML-model approval |
 | **3 — managed API** | Outsourced OCR to an adopter-provisioned vendor | cloud egress + vendor approval |
+
+- **D1:** `file-to-markdown` extraction is organised into the four capability
+  tiers above — no-ML Tier 0, agent-vision Tier 1, approved-ML Tier 2, and
+  managed-API Tier 3.
+- **D2:** The skill detects which tiers the environment permits, uses the highest
+  available tier for the input class, and degrades rather than failing closed
+  silently.
+- **D3:** Tier 1 is the already-running in-session model reading a rendered
+  image, never an installed OCR model.
+- **D4:** Tier 3 is never reached by automatic degradation or upgrade; it
+  requires explicit per-input or explicit-scope selection.
+- **D5:** Every extraction on both the document and image branches emits one
+  versioned unified output contract carrying provenance, a quality signal, and
+  the tier that actually ran.
+- **D6:** No ML model, managed-OCR vendor, or per-vendor knowledge base ships
+  with the pack; higher tiers are adopter-provisioned.
 
 Load-bearing boundaries of the decision:
 

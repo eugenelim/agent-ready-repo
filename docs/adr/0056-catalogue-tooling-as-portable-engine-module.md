@@ -2,7 +2,14 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-27  
-**Deciders:** eugenelim
+**Areas:** tooling, packaging  
+**Reversibility:** low  
+**Decision-makers:** eugenelim  
+**Supersedes:** none  
+**Supersedes in part:** none  
+**Superseded by:** none  
+**Superseded in part:** none  
+**Related:** none
 
 ## Context
 
@@ -24,6 +31,11 @@ Add `agentbundle/catalogue_tooling/` to the engine as the portable catalogue lay
 and expose it through the `agentbundle catalogue {lint,verify,self-host,build,
 package,sync-defaults}` and `agentbundle pack evals run` CLI subcommands.
 
+- **D1:** `agentbundle/catalogue_tooling/` is the engine's portable catalogue layer, exposed through the `agentbundle catalogue {lint,verify,self-host,build,package,sync-defaults}` and `agentbundle pack evals run` subcommands.
+- **D2:** `catalogue_tooling/` holds only portable, schema-driven checks that are correct for any repo using the agentbundle adapter contract.
+- **D3:** Repo-specific gates — RFC/ADR-numbered policy lints, SAST, spec-state linters — stay in `tools/` and are layered on top by `tools/repo/build_gate_chain.py`.
+- **D4:** The release carrying this surface is `agentbundle` 0.13.0, the first public version.
+
 The module boundary: `catalogue_tooling/` owns all portable, schema-driven checks
 that are correct for any repo using the agentbundle adapter contract. Repo-specific
 gates (RFC/ADR-numbered policy lints, SAST, spec-state linters) stay in `tools/`
@@ -43,6 +55,10 @@ surface; prior 0.x versions are internal to this repo).
   carrier for the initial landing PR.
 - Adopters running `pip install agentbundle` gain the portable checks without any
   tools/ dependency.
+
+**Revisit if:** a catalogue check cannot be placed cleanly on either side of the
+portable/repo-specific boundary (D2, D3), or `catalogue_tooling/` accumulates
+checks that are not correct for every repo using the adapter contract.
 
 ## Alternatives considered
 

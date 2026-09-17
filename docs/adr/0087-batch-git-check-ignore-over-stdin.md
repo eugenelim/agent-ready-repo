@@ -2,13 +2,21 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-17
+- **Areas:** tooling, ci
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** security review, adversarial review
-- **Supersedes:** the **`--` terminator** requirement in
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** the implementing spec. This record also supersedes the **`--`
+  terminator** requirement in
   [`docs/specs/pack-test-boundary-remaining-packs/`](../specs/pack-test-boundary-remaining-packs/spec.md)'s
   `AC10a` only — that spec's `os.walk(followlinks=False)` symlink prune, its
-  per-pack projection assertion, and every other acceptance criterion stand
-- **Related:** the implementing spec
+  per-pack projection assertion, and every other acceptance criterion stand.
+  Recorded here rather than in `Supersedes:`, whose value domain is
+  decision-record ordinals only
   [`docs/specs/lint-performance-p0/`](../specs/lint-performance-p0/spec.md);
   `tools/lint_git_ignore.py` carries the operative rules and
   `tools/lint-no-direct-check-ignore.py` enforces them
@@ -61,6 +69,23 @@ Candidates go over **stdin**, NUL-delimited, encoded with `os.fsencode`:
 ```
 git check-ignore --stdin -z
 ```
+
+- **D1:** A lint that needs Git-ignore status sends its whole candidate set
+  through one `git check-ignore --stdin -z` call, and no production lint launches
+  one process per path.
+- **D2:** Candidates are NUL-delimited bytes on stdin, encoded with
+  `os.fsencode`, never `str`.
+- **D3:** `--no-index` stays absent, so tracked files remain excluded from the
+  ignored set.
+- **D4:** A `:`-prefixed candidate is refused before the call.
+- **D5:** Any exit other than 0 or 1 raises, carrying Git's stderr, and is never
+  routed through the missing-Git policy.
+- **D6:** Degradation is reported separately from an empty result, and both call
+  sites treat a degraded resolution as fatal rather than reporting "nothing is
+  ignored".
+- **D7:** Every Git subprocess goes through the shared `hermetic_git_env` helper,
+  which removes the thirteen `_LEAKING_GIT_VARS` names, pins `core.excludesFile`
+  at `/dev/null`, and sets rather than removes `GIT_CEILING_DIRECTORIES`.
 
 Four properties of that spelling are load-bearing, each settled against a probe
 of git 2.50.1 rather than from documentation:
@@ -213,3 +238,8 @@ lints run from a pre-PR hook.
   residue [ADR-0084](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)
   accepted, and for the same reason: the operative rule lives in a Living file at
   the point of use, not in a patched record.
+
+**Revisit if:** `git check-ignore --stdin` gains per-path status reporting, which
+would retire the whole-invocation hard-error rule (D5); or a caller appears that
+cannot prune symlinks before batching, which the resolver deliberately does not
+detect for itself.
