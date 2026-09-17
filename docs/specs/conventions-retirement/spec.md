@@ -237,9 +237,11 @@ resolves in the destination recorded in
   land outside the adapter projection prefixes so they never interact with the
   orphan scan (`install.py:1678-1683`). A withdrawn seed leaves an adopter's
   existing file in place.
-- Technical: `packs/core/seeds/AGENTS.md` is 143 lines against
-  `MAX_SEED_LINES = 150`, and root `AGENTS.md` is 162 against
-  `MAX_ROOT_LINES = 170` (`tools/lint-agents-md.py:29-31`).
+- Technical: both `packs/core/seeds/AGENTS.md` and root `AGENTS.md` pass the
+  line caps `tools/lint-agents-md.py` enforces, and the seed cap was raised to
+  admit the rules this change moves into it. The linter is the statement of
+  what fits; recording the measurements here dated them within the same
+  change, which is why they are absent.
 - Technical: the credentialed-skill authoring contract already has an owner.
   `guides/credential-brokers/how-to/add-a-credentialed-skill.md:32-37` states
   `metadata.auth` and all four broker ids and `:43` the argv ban, and

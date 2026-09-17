@@ -737,3 +737,33 @@ read from. The recurring error is narrower than "incomplete fix" — it is
 proving the repair against the helper the fix *introduced* rather than the
 call path the assertion *takes*. A differential test that imports a helper and
 exercises it directly will pass whether or not any caller uses it.
+
+## Round 14 — the confirming round on the structural fix
+
+Three concerns, no blockers. Two were edge cases in the new scanner with no
+live instance; one was the count class again, live.
+
+**The count lesson had two instances left.** The Assumptions section still
+recorded the seed and root `AGENTS.md` line counts against their caps. Both
+were already wrong — the seed cap was raised inside this very change, so the
+figure dated within the same commit that wrote it. The linter is the statement
+of what fits, and the spec now says so instead of quoting a measurement. This
+is the same defect as the disposition counts and the "behaviours pinned" claim:
+a record that states a number the tree owns is wrong at the next edit, and it
+reads as current while being false.
+
+**Two scanner gaps, both closed by tightening what may open a span.** An inline
+code span now opens only at a maximal, unescaped delimiter run, and a run with
+no exact closer is skipped whole rather than one byte at a time — advancing one
+byte let the run's own suffix pair with a later delimiter and swallow an
+operative link. A backtick fence's info string may no longer contain a
+backtick, so ```` ```bad`info ```` is prose rather than a fence.
+
+**The first mutation attempt did not discriminate, which is the part worth
+recording.** Reverting each of the three fixes individually left every case
+green: the mid-run guard and the no-closer skip each mask the other's absence,
+and both mask the escape guard whenever no closer exists downstream. The cases
+only became evidence once a trailing delimiter was added, so a span *could*
+close, and once the two mutually-masking guards were reverted together. A
+mutation that fails to red does not mean the fix is unnecessary — it can mean
+the case cannot reach it.

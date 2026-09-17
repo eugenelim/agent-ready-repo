@@ -52,9 +52,24 @@ _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 # One pass has no ordering to get wrong: whichever construct opens first at the
 # current position wins, and the scan resumes after it closes. A construct left
 # unterminated runs to end of file, which is what a renderer does with it.
-_FENCE_OPEN_RE = re.compile(r"^(?P<indent> {0,3})(?P<delim>`{3,}|~{3,})[^\n]*$")
+# A backtick fence's info string may not contain a backtick — otherwise
+# ```` ```bad`info ```` would read as a fence and mask the prose after it. A
+# tilde fence's info string has no such restriction.
+_FENCE_OPEN_RE = re.compile(
+    r"^(?P<indent> {0,3})(?:(?P<ticks>`{3,})[^`\n]*|(?P<tildes>~{3,})[^\n]*)$"
+)
 
 _BLOCK, _CODE = "block", "code"
+
+
+def _escaped_at(text: str, position: int) -> bool:
+    """Whether the character at `position` is backslash-escaped."""
+    backslashes = 0
+    index = position - 1
+    while index >= 0 and text[index] == "\\":
+        backslashes += 1
+        index -= 1
+    return backslashes % 2 == 1
 
 
 def _fence_close(text: str, search_from: int, delim: str, run: int) -> int:
@@ -86,7 +101,7 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
             line_end = length if line_end == -1 else line_end
             opener = _FENCE_OPEN_RE.match(text[position:line_end])
             if opener is not None:
-                delim = opener.group("delim")
+                delim = opener.group("ticks") or opener.group("tildes")
                 close = _fence_close(
                     text, min(line_end + 1, length), delim[0], len(delim)
                 )
@@ -99,17 +114,28 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
             spans.append((position, close, _BLOCK))
             position, at_line_start = close, False
             continue
-        if text[position] == "`":
-            run = len(text) - len(text.lstrip("`")) if False else 0
+        if text[position] == "`" and not _escaped_at(text, position):
             run = 0
             while position + run < length and text[position + run] == "`":
                 run += 1
+            if position > 0 and text[position - 1] == "`":
+                # Mid-run: the maximal run started earlier and was handled
+                # there. Never let a run's own suffix open a span.
+                position += run
+                at_line_start = False
+                continue
             closer = re.compile(rf"(?<!`){'`' * run}(?!`)")
             found = closer.search(text, position + run)
             if found is not None:
                 spans.append((position, found.end(), _CODE))
                 position, at_line_start = found.end(), False
                 continue
+            # No exact closer: CommonMark leaves the run as literal prose, so
+            # skip the whole run. Advancing one byte would re-open on its
+            # suffix and mask the operative text that follows.
+            position += run
+            at_line_start = False
+            continue
         at_line_start = text[position] == "\n"
         position += 1
     return spans
@@ -1185,6 +1211,19 @@ _FRAG = "#the-three-lifecycle-classes"
         # A `<!--` shown as inline code is a sample, not an opener. Live at
         # `spec-and-plan-contract.md`, which quotes it with no closing `-->`.
         ("quoted comment opener", f"a `<!--` b\n[x]({_DEST}{_FRAG})", True),
+        # A two-backtick run whose only later delimiter is a single backtick has
+        # no exact closer, so CommonMark leaves it as prose. The trailing
+        # backtick is what makes this discriminating: pair the run's own suffix
+        # with it and the span swallows the link.
+        ("unclosed double run", f"`` [x]({_DEST}{_FRAG}) `", True),
+        # An escaped backtick opens nothing. The unescaped one after the link
+        # would otherwise close a span that starts before it.
+        ("escaped backtick", f"\\` [x]({_DEST}{_FRAG}) `", True),
+        # A backtick fence's info string may not hold a backtick, so this is
+        # not a fence and the link after it stays operative.
+        ("invalid fence info", f"```bad`info\n[x]({_DEST}{_FRAG})", True),
+        # A tilde fence's info string may.
+        ("tilde fence info", f"~~~bad`info\n[x]({_DEST}{_FRAG})\n~~~", False),
     ],
 )
 def test_only_an_operative_link_counts(label: str, markup: str, operative: bool) -> None:
