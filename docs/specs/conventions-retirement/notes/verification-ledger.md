@@ -932,3 +932,23 @@ silently returning anchors shifted by one line, purely because that zip asserts
 `strict=True`. The full boundary set is now preserved. The general point: a
 pairing between two derived sequences should assert equal length, or a
 divergence becomes a silent off-by-one in the result.
+
+## Round 19 — the last two, and the case that passed for the wrong reason
+
+Two concerns, no blockers, neither with a live instance. Both determinate, so
+both closed rather than carried.
+
+A fence's closer must sit in the same container as its opener: an unquoted
+fence accepting a `>`-prefixed closer ends early and exposes lines a reader
+sees as code. And a block boundary is not only `\n[ \t]*\n` — a CRLF file puts
+the CR *between* the two newlines, and inside a block quote the separator
+carries the marker, so a span could cross either.
+
+**The container case passed for the wrong reason on the first attempt.** With
+the link placed *inside* the fence, both the permissive and the strict closer
+mask it — one because the fence ends at the mismatched line with the link
+before it, the other because the fence never ends. The case only discriminates
+with the link *after* the candidate closer, and the matched-pair direction has
+to be asserted too, so that "never closes" cannot masquerade as correct. That
+is the third time in this loop a case was written that could not fail; the
+tell each time was a mutation that stayed green.

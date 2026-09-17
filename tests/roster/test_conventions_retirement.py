@@ -58,9 +58,9 @@ _HEADING_RE = re.compile(r"^#{1,6}\s+(?P<text>.+?)\s*$", re.MULTILINE)
 # An optional `>` marker admits a fence inside a block quote, which this
 # repository's prose uses. Deeper container nesting — a fence inside a list
 # item inside a quote — is NOT recognised, and that is the named blind spot.
-_QUOTE = r"(?:> ?)?"
+_QUOTE = r"> ?"
 _FENCE_OPEN_RE = re.compile(
-    rf"^{_QUOTE}(?P<indent> {{0,3}})"
+    rf"^(?P<quote>{_QUOTE})?(?P<indent> {{0,3}})"
     r"(?:(?P<ticks>`{3,})[^`\n]*|(?P<tildes>~{3,})[^\n]*)$"
 )
 
@@ -77,14 +77,21 @@ def _escaped_at(text: str, position: int) -> bool:
     return backslashes % 2 == 1
 
 
-def _fence_close(text: str, search_from: int, delim: str, run: int) -> int:
+def _fence_close(
+    text: str, search_from: int, delim: str, run: int, quoted: bool
+) -> int:
     """Offset just past the line that closes this fence, or end of text.
 
     CommonMark closes a fence with the same character, at least as long as the
     opener, alone on its line. "At least as long" is what keeps a ````
     fence open across the ``` lines it is quoting.
+
+    `quoted` carries the opener's container, and the closer must match it. A
+    fence outside a quote closing on a `>`-prefixed delimiter would end the
+    span early and expose lines a reader sees as code.
     """
-    closer = re.compile(rf"^{_QUOTE} {{0,3}}{re.escape(delim)}{{{run},}}\s*$")
+    prefix = _QUOTE if quoted else ""
+    closer = re.compile(rf"^{prefix} {{0,3}}{re.escape(delim)}{{{run},}}\s*$")
     position = search_from
     while position < len(text):
         line_end = text.find("\n", position)
@@ -95,7 +102,10 @@ def _fence_close(text: str, search_from: int, delim: str, run: int) -> int:
     return len(text)
 
 
-_BLANK_LINE_RE = re.compile(r"\n[ \t]*\n")
+# A block boundary: a line holding nothing but optional spaces or tabs, or —
+# inside a block quote — nothing but the marker. `\r?` on each side because a
+# CRLF file puts the CR between the two newlines.
+_BLANK_LINE_RE = re.compile(r"\r?\n>?[ \t]*\r?\n")
 
 
 def _block_end(text: str, search_from: int) -> int:
@@ -124,7 +134,11 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
             if opener is not None:
                 delim = opener.group("ticks") or opener.group("tildes")
                 close = _fence_close(
-                    text, min(line_end + 1, length), delim[0], len(delim)
+                    text,
+                    min(line_end + 1, length),
+                    delim[0],
+                    len(delim),
+                    opener.group("quote") is not None,
                 )
                 spans.append((position, close, _BLOCK))
                 position, at_line_start = close, True
@@ -1366,3 +1380,51 @@ def test_masking_preserves_every_line_boundary(tmp_path: Path) -> None:
     page = tmp_path / "page.md"
     page.write_text(text, encoding="utf-8")
     assert anchors_in(page) == frozenset({"heading"})
+
+
+@pytest.mark.parametrize(
+    ("label", "text", "operative"),
+    [
+        # The link sits AFTER the candidate closer, which is what makes these
+        # discriminating: a closer accepted from the wrong container ends the
+        # fence early and exposes the link, where a matching one keeps it in.
+        ("unquoted opener, quoted closer",
+         "```\ncode\n> ```\n[x](docs/README.md#h)\n", False),
+        ("quoted opener, unquoted closer",
+         "> ```\n> code\n```\n[x](docs/README.md#h)\n", False),
+        # Matched pairs must still close, leaving the link after them operative.
+        ("both quoted", "> ```\n> code\n> ```\n[x](docs/README.md#h)\n", True),
+        ("both unquoted", "```\ncode\n```\n[x](docs/README.md#h)\n", True),
+    ],
+)
+def test_a_fence_closes_only_in_its_own_container(
+    label: str, text: str, operative: bool
+) -> None:
+    """A mismatched closer leaves the fence open, so what follows stays inert.
+
+    A matched pair closes, so the link after it is operative. Both directions
+    are asserted: without them a permissive closer passes, because a link
+    *inside* the fence is masked either way.
+    """
+    assert bool(_LINK_TARGET_RE.findall(_inert_masked(text))) == operative, label
+
+
+@pytest.mark.parametrize(
+    ("label", "separator"),
+    [
+        ("plain blank line", "\n\n"),
+        ("blank line with spaces", "\n   \n"),
+        ("blank line with a tab", "\n\t\n"),
+        ("CRLF blank line", "\r\n\r\n"),
+        ("quoted blank line", "\n>\n"),
+    ],
+)
+def test_every_blank_line_form_ends_a_block(label: str, separator: str) -> None:
+    """An unmatched backtick must not reach past any block boundary.
+
+    A CR sits *between* the two newlines in a CRLF file, and inside a block
+    quote the separator carries the marker — neither is matched by a
+    newline-only pattern, so a span could cross either.
+    """
+    text = f"a `unmatched{separator}## Real Heading{separator}b ` c\n"
+    assert "## Real Heading" in _inert_masked(text), label
