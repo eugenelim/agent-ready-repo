@@ -1,6 +1,6 @@
 # Spec: PR-gate suite disposition
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -105,9 +105,12 @@ from it.
 
 ### Always do
 
-- Keep `SUITE_DISPOSITION` complete in both directions: every recipe line of the
-  `run-test-suite` define resolves to at least one entry, and every entry is
-  resolved by at least one line.
+- Keep `SUITE_DISPOSITION` complete in both directions: **every target on every
+  recipe line** of the `run-test-suite` define carries its own entry, a line
+  whose suites the module cannot resolve to literal paths carries a
+  literal-substring entry, and every entry is resolved by at least one line.
+  "At least one entry per line" is the weaker rule, and it lets a suite added
+  beside dispositioned siblings inherit theirs.
 - Keep the roster's completeness independent of shell parsing, so a command the
   extractor cannot read fails the lint rather than leaving the roster.
 - Give every `NO_PR_GATE` entry a reason naming the route that does run the suite
@@ -139,66 +142,71 @@ from it.
 
 ## Testing Strategy
 
-AC-0001 through AC-0007 are each a violation string `tools/lint-ci-parity.py` either
+AC-0001 through AC-0009 are each a violation string `tools/lint-ci-parity.py` either
 does or does not emit, so each is a compressible invariant verified by **TDD**
 through the existing self-test entry point `tools/test-lint-ci-parity.py`. That file
 runs its cases from `main()` via `tools/selftest_harness.py`, and each case supplies
 its own roster, workflow mapping and Makefile text as keyword arguments, so no case
-mutates module globals. AC-0008 drives the same module through its command entry
+mutates module globals. AC-0009 drives the same module through its command entry
 point instead, and the seven criteria after it concern workflow content, roster
 state, mutation sensitivity and backlog state rather than a violation string. All
 eight take the modes named below.
 
-- **Roster completeness, both directions (AC-0001, AC-0002)** — TDD. Each direction is a
+- **Roster completeness, all three directions (AC-0001, AC-0002, AC-0003)** — TDD. Each direction is a
   distinct violation string with a distinct remedy, so each gets its own case. AC-0001's
   case uses a define line whose operands the extractor yields nothing for, because
   that is the shape that would otherwise escape the roster.
-- **Trigger and enforcement classification (AC-0003, AC-0004)** —  TDD. These decide
+- **Trigger and enforcement classification (AC-0004, AC-0005)** —  TDD. These decide
   whether a claimed gate is unconditional, so each misclassification is asserted
   separately.
-- **Corroboration of a gating claim (AC-0005, AC-0006)** — TDD. The consequential direction —
+- **Corroboration of a gating claim (AC-0006, AC-0007)** — TDD. The consequential direction —
   claiming a gate that does not exist — is asserted with a roster naming a suite no
   workflow step reaches, including the case where the only coverage route is
   `tools/repo/build_gate_chain.py`.
-- **Reason presence (AC-0007)** — TDD.
-- **Disconnecting the gate reddens a test (AC-0008)** — TDD, at the **integration**
+- **Reason presence (AC-0008)** — TDD.
+- **Disconnecting the gate reddens a test (AC-0009)** — TDD, at the **integration**
   surface. The other cases call the check arm directly, so they stay green if the
   arm is never wired into `main()`. This one drives the command entry point against
   a fixture root and asserts exit 1. It closes that one disconnection, not every
   way a gate can be defeated.
-- **The two newly gated suites (AC-0009, AC-0010, AC-0011, AC-0012)** —
+- **The two newly gated suites (AC-0010, AC-0011, AC-0012, AC-0013)** —
   **goal-based check**, two criteria per suite because the two states fail
-  independently and have different remedies. The execution criteria (AC-0009,
-  AC-0011) are read off the workflow step; the disposition criteria (AC-0010,
-  AC-0012) off the roster. Omitting both halves leaves a consistent `NO_PR_GATE`
+  independently and have different remedies. The execution criteria (AC-0010,
+  AC-0012) are read off the workflow step; the disposition criteria (AC-0011,
+  AC-0013) off the roster. Omitting both halves leaves a consistent `NO_PR_GATE`
   entry and a green lint, so the lint's exit status establishes neither.
-  AC-0005's arm narrows what is left: it forces the named step to carry the suite as
+  AC-0006's arm narrows what is left: it forces the named step to carry the suite as
   a **pytest operand**, which excludes a step naming the path in passing, but it
   cannot prove execution — `echo "python -m pytest <suite>"` extracts identically to
   a real invocation. Execution is therefore its own criterion, read by a human, not
   a consequence claimed off corroboration. That each new step also carries a
   `STEP_DISPOSITION` entry is not restated as a criterion: the module's existing
   forward arm and `tools/AGENTS.md` own it.
-- **The repository's own roster is honest (AC-0013)** — **goal-based check**.
-- **The new arms can fail (AC-0014)** — TDD, verified **differentially**. One
+- **The repository's own roster is honest (AC-0014)** — **goal-based check**.
+- **The new arms can fail (AC-0015)** — TDD, verified **differentially**. One
   self-test case per arm asserts that arm's own violation string, so removing the arm
   removes the string and reddens a named case. The criterion is stated as the
   differential outcome rather than as the presence of a case, because a case that
   cannot fail satisfies presence.
-- **The recorded defect is retired (AC-0015)** — **goal-based check**.
+- **The recorded defect is retired (AC-0016)** — **goal-based check**.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `tools/lint-ci-parity.py` exits 1, naming the line, when a recipe line of the
-  `run-test-suite` define resolves to no `SUITE_DISPOSITION` entry — including a
-  line whose operands the module's extractor yields nothing for.
-- [ ] **AC-0002.** `tools/lint-ci-parity.py` exits 1, naming the entry, when a
+- [ ] **AC-0001.** `tools/lint-ci-parity.py` exits 1, naming the target, when any
+  target on a recipe line of the `run-test-suite` define carries no
+  `SUITE_DISPOSITION` entry, so a suite added beside dispositioned siblings on
+  one line does not inherit their entries.
+- [ ] **AC-0002.** `tools/lint-ci-parity.py` exits 1, naming the line, when a
+  recipe line of the define gives pytest a suite the module cannot resolve to a
+  literal path — a line with no path operand at all, or one passing a variable
+  expansion — and no literal-substring entry covers that line.
+- [ ] **AC-0003.** `tools/lint-ci-parity.py` exits 1, naming the entry, when a
   `SUITE_DISPOSITION` entry is resolved by no recipe line of the define.
-- [ ] **AC-0003.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a workflow
+- [ ] **AC-0004.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a workflow
   whose `pull_request` trigger carries a `paths` allowlist or a `paths-ignore` list.
-- [ ] **AC-0004.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a step or job
+- [ ] **AC-0005.** `tools/lint-ci-parity.py` exits 1 when a `PR_GATED` entry names a step or job
   carrying `continue-on-error` or an `if:` condition.
-- [ ] **AC-0005.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
+- [ ] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
   `PR_GATED` entry names a suite that no step of any workflow under
   `.github/workflows/` with an unfiltered `pull_request` trigger reaches, where
   corroboration recognises three shapes: the suite is a pytest operand of that step;
@@ -207,27 +215,27 @@ eight take the modes named below.
   `make build-check`. These are the shapes the check recognises, not every shape a
   step can run a suite in — an unrecognised shape makes corroboration fail a true
   `PR_GATED` claim, which is a false alarm and never a false pass.
-- [ ] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the covering step, when a
+- [ ] **AC-0007.** `tools/lint-ci-parity.py` exits 1, naming the covering step, when a
   `NO_PR_GATE` entry names a suite that a workflow with an unfiltered
   `pull_request` trigger does reach.
-- [ ] **AC-0007.** `tools/lint-ci-parity.py` exits 1 when a `NO_PR_GATE` or `PR_GATED_IF` entry
+- [ ] **AC-0008.** `tools/lint-ci-parity.py` exits 1 when a `NO_PR_GATE` or `PR_GATED_IF` entry
   carries an empty or whitespace-only reason.
-- [ ] **AC-0008.** `python3 tools/lint-ci-parity.py` invoked against a fixture root
+- [ ] **AC-0009.** `python3 tools/lint-ci-parity.py` invoked against a fixture root
   whose `run-test-suite` define carries an undispositioned recipe line exits 1.
-- [ ] **AC-0009.** A step of `.github/workflows/build-check.yml` invokes pytest on
+- [ ] **AC-0010.** A step of `.github/workflows/build-check.yml` invokes pytest on
   `packs/frontend-engineering/tests/`.
-- [ ] **AC-0010.** `packs/frontend-engineering/tests/`'s `SUITE_DISPOSITION` entry
+- [ ] **AC-0011.** `packs/frontend-engineering/tests/`'s `SUITE_DISPOSITION` entry
   reads `PR_GATED` naming that step.
-- [ ] **AC-0011.** A step of `.github/workflows/build-check.yml` invokes pytest on
+- [ ] **AC-0012.** A step of `.github/workflows/build-check.yml` invokes pytest on
   `tools/test_local_ci_shared_test_deduplication.py`.
-- [ ] **AC-0012.** `tools/test_local_ci_shared_test_deduplication.py`'s
+- [ ] **AC-0013.** `tools/test_local_ci_shared_test_deduplication.py`'s
   `SUITE_DISPOSITION` entry reads `PR_GATED` naming that step.
-- [ ] **AC-0013.** `python3 tools/lint-ci-parity.py` exits 0 against the repository, with every
+- [ ] **AC-0014.** `python3 tools/lint-ci-parity.py` exits 0 against the repository, with every
   recipe line of the `run-test-suite` define dispositioned.
-- [ ] **AC-0014.** For each check arm named in AC-0001 through AC-0007, removing
+- [ ] **AC-0015.** For each check arm named in AC-0001 through AC-0009, removing
   that arm from `tools/lint-ci-parity.py` makes `python3 tools/test-lint-ci-parity.py`
-  exit non-zero; and so does removing the entry-point call AC-0008 exercises.
-- [ ] **AC-0015.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
+  exit non-zero; and so does removing the entry-point call AC-0009 exercises.
+- [ ] **AC-0016.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
   and whose `kind` is `defect` appears once, under `[backlog].closed`, and no
   `[backlog].open` entry restates it.
 

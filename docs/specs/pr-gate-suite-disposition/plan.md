@@ -1,7 +1,7 @@
 # Plan: PR-gate suite disposition
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/lint-ci-parity.py` (the forward gate this extends,
   and the source of the roster-anchor/extraction-corroboration pattern);
   `tools/test-lint-ci-parity.py` (the self-test route, 143 existing cases run from
@@ -108,8 +108,11 @@ docs-site` is a single valid line combining two shapes that sit adjacent at
 `Makefile:584-585` today, and a syntactic `@` drop would hide the suite inside it.
 `suite_lines` strips a leading `@` and treats the line like any other.
 
-Every surviving line must resolve to at least one `SUITE_DISPOSITION` entry, and
-every entry must be resolved by at least one line. A roster key is either a target
+Every target on every surviving line must carry its own `SUITE_DISPOSITION`
+entry, and every entry must be resolved by at least one line. Not "at least one
+entry per line": the define batches up to nineteen modules onto a single
+continued line, so a twentieth would inherit its siblings' dispositions and
+demand none of its own. A roster key is either a target
 path (the readable, stable form) or a literal substring of the line, for a command
 with no path operand. Extraction proposes the target keys; it never decides whether
 a line needs an entry. Four lines in the define carry no extractable target and so
@@ -220,29 +223,32 @@ the *Repository anchors* uncertainty is closed or converted into a task.
 
 **Tests:** one self-test case per violation string, each supplying its own roster,
 Makefile text and workflow mapping as keyword arguments:
-- a define line resolving to no entry, where the line's operands parse (AC-0001)
-- a define line resolving to no entry, where the line has no path operand at all —
-  the `npm run test:plugins` shape, which is the case a target-keyed roster misses
+- a define line one of whose targets carries no entry, where the operands parse —
+  and specifically a line whose OTHER targets are dispositioned, since inheriting
+  a sibling's entry is the failure this criterion exists to catch (AC-0001)
+- a define line with no path operand at all — the `npm run test:plugins` shape,
+  which is the case a target-keyed roster misses entirely (AC-0002)
+- a define line passing a variable expansion to pytest beside a literal target,
+  so the opaque operand cannot ride free on its neighbour's entry (AC-0002)
+- a define line that is `@`-prefixed and carries a suite after a `&&`, which a
+  syntactic `@` drop would hide (AC-0001)
+- a define line that is a `#` comment containing `$(shell ... pytest ...)`, and
+  the same in `${...}` brace form, both of which GNU Make expands and runs
   (AC-0001)
-- a define line resolving to no entry where the line is `@`-prefixed and carries a
-  suite after a `&&`, which is the case a syntactic `@` drop would hide (AC-0001)
-- a define line resolving to no entry where the line is a `#` comment containing
-  `$(shell ... pytest ...)`, which a content-blind comment drop would hide even
-  though Make expands and runs it (AC-0001)
-- an entry resolved by no define line (AC-0002)
+- an entry resolved by no define line (AC-0003)
 - `PR_GATED` naming a `paths`-filtered workflow, and one naming a
-  `paths-ignore`-filtered workflow (AC-0003)
+  `paths-ignore`-filtered workflow (AC-0004)
 - `PR_GATED` naming a step carrying `continue-on-error`, and one naming a step
-  carrying `if:` (AC-0004)
-- `PR_GATED` whose suite no extracted step reaches (AC-0005)
+  carrying `if:` (AC-0005)
+- `PR_GATED` whose suite no extracted step reaches (AC-0006)
 - `PR_GATED` satisfied *only* through `build_gate_chain.py` coverage, which fails if
-  that arm of the union is dropped (AC-0005)
+  that arm of the union is dropped (AC-0006)
 - `PR_GATED` satisfied *only* through a script invoked at a command position —
   `python3 tools/test-pages-workflow.py` is the live shape — which fails if
-  corroboration demands a pytest operand (AC-0005). Five real entries depend on
+  corroboration demands a pytest operand (AC-0006). Five real entries depend on
   this arm; T1 found the approved criterion had omitted it.
-- `NO_PR_GATE` whose suite an unfiltered workflow does reach (AC-0006)
-- `NO_PR_GATE` and `PR_GATED_IF` with whitespace-only reasons (AC-0007)
+- `NO_PR_GATE` whose suite an unfiltered workflow does reach (AC-0007)
+- `NO_PR_GATE` and `PR_GATED_IF` with whitespace-only reasons (AC-0008)
 
 **Approach:** add the constructors, `suite_lines`, `line_targets`, `pr_gate_sources`
 and `check_suites`, then populate the roster from T1's output and review every entry
@@ -261,14 +267,14 @@ the `NO_PR_GATE` targets as dispositioned rather than as violations.
 **Tests:** one case building a fixture root — a `Makefile` with a `run-test-suite`
 define carrying an undispositioned line, plus a minimal `.github/workflows/` — and
 invoking the module's command entry point, asserting exit 1 and the AC-0001 violation
-string (AC-0008).
+string (AC-0009).
 
 **Approach:** every T2 case calls `check_suites` directly, so all of them stay green
 if the arm is never wired into `main()`. This case is the one that reddens when the
 gate is disconnected rather than broken. It is a separate task because it verifies
 the wiring, not the rule, and T6 void-probes it as its own arm.
 
-**Done when:** AC-0008 holds, and deleting the `check_suites(...)` call from
+**Done when:** AC-0009 holds, and deleting the `check_suites(...)` call from
 `main()` reddens this case while leaving every T2 case green — recorded in the
 ledger.
 
@@ -303,23 +309,23 @@ not establish about pull-request coverage.
 **Tests:**
 - `python3 tools/lint-ci-parity.py` exits 0, which fails if either new step lacks a
   `STEP_DISPOSITION` entry (existing forward arm, unchanged) or if either suite's
-  entry still reads `NO_PR_GATE` (AC-0006's arm)
+  entry still reads `NO_PR_GATE` (AC-0007's arm)
 - `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py -q` stays
   green, confirming a workflow-only change moves neither plan digest
-- each new step invokes pytest on its suite, read off `build-check.yml` (AC-0009,
-  AC-0011), and each suite's roster entry reads `PR_GATED` naming that step
-  (AC-0010, AC-0012) — four checks, because a step present with no roster change and
+- each new step invokes pytest on its suite, read off `build-check.yml` (AC-0010,
+  AC-0012), and each suite's roster entry reads `PR_GATED` naming that step
+  (AC-0011, AC-0013) — four checks, because a step present with no roster change and
   a roster change with no step are different failures with different remedies
 - `python3 tools/lint-ci-parity.py` exits 0 against the repository with every
-  recipe line of the define dispositioned (AC-0013) — this is the task that
+  recipe line of the define dispositioned (AC-0014) — this is the task that
   completes it, because T2 lands the roster and T5 lands the last two entries
 
 **Approach:** add two `gate-main` steps, their `STEP_DISPOSITION` entries as
 `LOCAL("test-after-build-check")`, and flip both `SUITE_DISPOSITION` entries to
 `PR_GATED` naming the new steps. Neither step may carry `if:` or
-`continue-on-error`, or AC-0004's arm rejects the claim it is meant to support.
+`continue-on-error`, or AC-0005's arm rejects the claim it is meant to support.
 
-**Done when:** AC-0009 through AC-0012 hold — each step invokes pytest on its suite
+**Done when:** AC-0010 through AC-0013 hold — each step invokes pytest on its suite
 and each roster entry reads `PR_GATED` naming that step — and the lint corroborates
 both entries.
 
@@ -345,8 +351,8 @@ beside the one for adding a workflow step.
 
 **Depends on:** T2, T3, T5
 
-**Tests:** goal-based check, run **differentially** per arm (AC-0014). For each arm
-named in AC-0001 through AC-0007: remove that arm from `tools/lint-ci-parity.py`,
+**Tests:** goal-based check, run **differentially** per arm (AC-0015). For each arm
+named in AC-0001 through AC-0009: remove that arm from `tools/lint-ci-parity.py`,
 run `python3 tools/test-lint-ci-parity.py`, and record both its non-zero exit and
 which named case failed; then restore it and confirm the suite is green. The
 `main()` wiring is probed the same way by deleting the call rather than the arm.
@@ -356,7 +362,7 @@ arm whose removal leaves the suite green is a control that cannot fail; its case
 rewritten and re-probed before the arm is restored, because a case added to satisfy
 a count would have the same defect.
 
-**Done when:** AC-0014 holds — every arm's removal produced a non-zero exit — and
+**Done when:** AC-0015 holds — every arm's removal produced a non-zero exit — and
 `notes/verification-ledger.md` names the specific reddened case per arm, with the
 suite green again at the end.
 
@@ -370,7 +376,7 @@ suite green again at the end.
 - `python3 tools/test_workspace_status.py` and
   `python3 tools/test_workspace_status_cli.py` stay green
 - the entry whose `path` is `tools/repo/build_gate_chain.py` and whose `kind` is
-  `defect` appears once, under `[backlog].closed` (AC-0015)
+  `defect` appears once, under `[backlog].closed` (AC-0016)
 
 **Approach:** move the entry, carrying a comment recording where the fix landed,
 that `tools/repo/build_gate_chain.py` — the entry's own `path` — is untouched, that
@@ -417,28 +423,28 @@ entry before committing.
   arm were never wired into `main()`.
 - 2026-09-16: Round 2 reviewed the repairs and found five of them had left drift.
   The `@`-prefix exclusion was a second content-blind drop and reopened the escape
-  hatch round 1 closed; only blanks and comments are dropped now. AC-0004 rejected a
+  hatch round 1 closed; only blanks and comments are dropped now. AC-0005 rejected a
   correct `PR_GATED_IF` whose job alone was conditional. Two baseline count sets
   contradicted each other (61/1/52 beside 57/5/52); the measured 56/6/52 is now
-  stated once. AC-0009 and AC-0010 could both pass with the whole change absent, so
-  they now read off the roster and lean on AC-0005 for the step. AC-0012 was
+  stated once. AC-0010 and AC-0011 could both pass with the whole change absent, so
+  they now read off the roster and lean on AC-0006 for the step. AC-0013 was
   restated differentially, because a self-test case that cannot fail satisfies
   "carries a case".
 - 2026-09-16: Round 3 found two further defects in round 2's repairs, both proven by
   probe rather than argued. A recipe comment is not inert — GNU Make 3.81 expanded
   and ran `# $(shell ... pytest ...)` under both `make` and `make -n` — so the
-  comment drop is now conditional on the line holding no `$(`. And AC-0005 was
+  comment drop is now conditional on the line holding no `$(`. And AC-0006 was
   claimed to force the named step to *reach* the suite; measured against
   `_pytest_path_args`, `echo "python -m pytest <suite>"` extracts identically to a
   real invocation, so the claim is narrowed to "names it as a pytest operand" and
   execution became its own criterion. That last repair reinstates round 2's original
   remedy: splitting the two gating criteria, which this plan had overridden with a
   route-to-owner that silently dropped the execution obligation.
-- 2026-09-16: Contract amendment, owner-authorised. T1's probe found AC-0005
+- 2026-09-16: Contract amendment, owner-authorised. T1's probe found AC-0006
   had corroboration recognise two coverage shapes where it needed to recognise a
   third: five `run-test-suite` targets are gated only by a script invoked at a
   command position, so the criterion as
-  approved rejected five correct `PR_GATED` entries and made AC-0013
+  approved rejected five correct `PR_GATED` entries and made AC-0014
   unsatisfiable. The criterion now names the three shapes corroboration
   recognises, stated as recognised rather than exhaustive: reviewing the amendment
   found a fourth, `build-check.yml:827`'s `run_with_floor` wrapper, whose two
