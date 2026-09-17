@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0067 (the lifecycle manifest design this declines to add a `git_managed` flag to); ADR-0063 (session instruction as the universal mechanism, which keeps skills adapter-agnostic)
+- **Related:** ADR-0067 (the lifecycle manifest design this declines to add a `git_managed`
+  flag to); ADR-0063 (session instruction as the universal mechanism, which
+  keeps skills adapter-agnostic)
 
 ## Decision summary
 

@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0013](../rfc/0013-credential-broker-contract.md), [RFC-0006](../rfc/0006-skill-secrets-storage.md), [RFC-0004](../rfc/0004-install-scope-per-pack.md), [RFC-0011](../rfc/0011-pack-allowed-adapters.md), [`credential-broker-contract` spec](../specs/credential-broker-contract/spec.md), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md)
+- **Related:** RFC-0013; RFC-0006; RFC-0004; RFC-0011; ADR-0002
 
 ## Context
 

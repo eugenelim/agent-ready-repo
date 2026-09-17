@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0020 D3
-- **Related:** [`docs/CONVENTIONS.md`](../CONVENTIONS.md), [ADR-0020](0020-per-pack-diataxis-hierarchy-for-guides.md) (amends the guides sub-decision)
+- **Related:** `docs/CONVENTIONS.md`; ADR-0020 (amends the guides sub-decision)
 
 ## Context
 

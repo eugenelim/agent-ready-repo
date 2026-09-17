@@ -10,10 +10,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0071 (the pack is the ownership and test-execution boundary —
-  unchanged by this ADR), RFC-0082 (test ownership boundaries),
-  `docs/specs/lint-performance-p0/` (whose golden-baseline pin this ADR amends),
-  `docs/specs/pack-test-compatibility-classes/`
+- **Related:** ADR-0071 (the pack is the ownership and test-execution boundary — unchanged
+  by this ADR); RFC-0082 (test ownership boundaries)
 
 ## Decision summary
 

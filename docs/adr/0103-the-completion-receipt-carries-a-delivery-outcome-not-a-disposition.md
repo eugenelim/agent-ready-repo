@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §6 and §7 (the receipt's four fields and its per-citation lifetime)
+- **Related:** RFC-0096 §6 and §7 (the receipt's four fields and its per-citation lifetime)
 
 ## Decision summary
 

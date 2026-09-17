@@ -9,7 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §2 (reclassification ends delivery authority without deletion); [`delivery-lifecycle-record.schema.json`](../../contracts/jsonschema/delivery-lifecycle-record.schema.json) (the lifecycle record contract)
+- **Related:** RFC-0096 §2 (reclassification ends delivery authority without deletion);
+  `delivery-lifecycle-record.schema.json` (the lifecycle record contract)
 
 ## Decision summary
 

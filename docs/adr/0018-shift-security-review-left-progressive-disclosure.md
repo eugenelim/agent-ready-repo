@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0029 (the proposal this records); ADR-0017 (the SAST/SCA gate — the motivating evidence and the "scanners catch syntactic; the reviewer catches reasoning" split); ADR-0014 / RFC-0025 (risk-triggered work-loop modes — the security-boundary trigger this reuses); the implementing spec `docs/specs/security-reviewer-shift-left/`
+- **Related:** RFC-0029 (the proposal this records); ADR-0017 (the SAST/SCA gate — the
+  motivating evidence and the "scanners catch syntactic; the reviewer
+  catches reasoning" split); ADR-0014 / RFC-0025 (risk-triggered work-loop
+  modes — the security-boundary trigger this reuses)
 
 ## Context
 

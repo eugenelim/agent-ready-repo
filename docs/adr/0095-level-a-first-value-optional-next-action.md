@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** none. Per [CONVENTIONS § Cite upward, never downward](../CONVENTIONS.md#specs), an ADR does not cite specs; the affected specs carry the forward pointer instead.
+- **Related:** 
 
 ## Context
 

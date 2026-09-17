@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0004](../rfc/0004-install-scope-per-pack.md), [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md), [`distribution-adapters` spec](../specs/distribution-adapters/spec.md), [`agent-spec-cli` spec](../specs/agent-spec-cli/spec.md)
+- **Related:** RFC-0004; RFC-0001
 
 ## Context
 

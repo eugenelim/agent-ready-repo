@@ -10,7 +10,7 @@
 - **Supersedes in part:** ADR-0017 D4
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0086](0086-split-the-sast-gate-into-its-own-ci-job.md), [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md), PR #1285
+- **Related:** ADR-0086; ADR-0083; PR #1285
 
 ## Decision summary
 

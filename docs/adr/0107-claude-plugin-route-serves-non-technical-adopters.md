@@ -10,7 +10,11 @@
 - **Supersedes in part:** ADR-0025 D4
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0034](../rfc/0034-pack-profiles.md) OQ2 (the deferral this revisits), [ADR-0003](0003-credential-broker-contract.md) / [RFC-0013](../rfc/0013-credential-broker-contract.md) option F (the meta-pack rejection, upheld here), [RFC-0092](../rfc/0092-first-class-distribution-routes.md) (the route layer), [ADR-0072](0072-derived-plugin-manifest-mirrors-upstream-schema.md) (schema conformance is not client proof), [`docs/product/research/claude-desktop-distribution-survey.md`](../product/research/claude-desktop-distribution-survey.md) (the evidence base)
+- **Related:** RFC-0034 OQ2 (the deferral this revisits); ADR-0003 / RFC-0013 option F (the
+  meta-pack rejection, upheld here); RFC-0092 (the route layer); ADR-0072
+  (schema conformance is not client proof);
+  `docs/product/research/claude-desktop-distribution-survey.md` (the
+  evidence base)
 
 ## Decision summary
 

@@ -10,9 +10,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0091](../rfc/0091-right-size-rfc-governance.md) D3 (the
-  accepted proposal this records); RFC-0054 (the frozen RFC whose D1 text wins);
-  RFC-0014 (the frozen RFC that mandated the five gate checks)
+- **Related:** RFC-0091 D3 (the accepted proposal this records); RFC-0054 (the frozen RFC
+  whose D1 text wins); RFC-0014 (the frozen RFC that mandated the five gate
+  checks)
 
 ## Decision summary
 

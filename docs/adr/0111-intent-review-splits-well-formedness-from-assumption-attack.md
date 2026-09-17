@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0099 § 5, ADR-0042, `docs/specs/shaping-review-contracts/spec.md`
+- **Related:** RFC-0099 § 5; ADR-0042
 
 ## Decision summary
 

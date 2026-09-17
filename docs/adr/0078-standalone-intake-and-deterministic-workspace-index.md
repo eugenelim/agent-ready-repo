@@ -9,10 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0098 D6; ADR-0092
-- **Related:** [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md),
-  [ADR-0030](0030-consolidated-pack-output-layout-contract.md),
-  [ADR-0051](0051-workspace-toml-toml-format-and-main-branch-coordination.md),
-  [ADR-0076](0076-briefs-persist-dispatch-starts-from-specs.md)
+- **Related:** RFC-0083; ADR-0030; ADR-0051; ADR-0076
 
 ## Decision summary
 

@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0062 (the per-session-only port constraint that rules out an SSE listener); ADR-0063 (session instruction as the universal mechanism, which keeps skills adapter-agnostic)
+- **Related:** ADR-0062 (the per-session-only port constraint that rules out an SSE
+  listener); ADR-0063 (session instruction as the universal mechanism, which
+  keeps skills adapter-agnostic)
 
 ## Decision summary
 

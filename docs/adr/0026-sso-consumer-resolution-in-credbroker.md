@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0035](../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) (SSO-cookie auth for the atlassian pack — the proposal this resolution serves); [RFC-0013](../rfc/0013-credential-broker-contract.md) (the four-broker contract + § Errata recording this consumer-surface addition); [RFC-0023](../rfc/0023-credential-manager-broker.md) (made `credbroker` the pip-installable consumer-resolution library and retired in-pack shared-module projection); [ADR-0003](0003-credential-broker-contract.md) (broker contract); spec: [`docs/specs/atlassian-sso-cookie/`](../specs/atlassian-sso-cookie/spec.md).
+- **Related:** RFC-0035 (SSO-cookie auth for the atlassian pack — the proposal this
+  resolution serves); RFC-0013 (the four-broker contract + § Errata
+  recording this consumer-surface addition); RFC-0023 (made `credbroker` the
+  pip-installable consumer-resolution library and retired in-pack
+  shared-module projection); ADR-0003 (broker contract)
 
 ## Context
 

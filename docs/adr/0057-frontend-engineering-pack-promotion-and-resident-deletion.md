@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [`guides/frontend-engineering/`](../../guides/frontend-engineering/), [`docs/specs/frontend-engineering-core-delegation/`](../specs/frontend-engineering-core-delegation/)
+- **Related:** `guides/frontend-engineering/`
 
 ## Decision summary
 

@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0050 (§ D7 — the `experience-reviewer`, decided within this policy), RFC-0048 (§ lens-team roster — the multi-loop reviewer model this generalizes), RFC-0032 (architect `design-reviewer` — the first non-core reviewer admitted), `docs/CHARTER.md` (Scope non-goal: "Not a marketplace of specialized agents. Three reviewers is the ceiling.")
+- **Related:** RFC-0050 (§ D7 — the `experience-reviewer`, decided within this policy);
+  RFC-0048 (§ lens-team roster — the multi-loop reviewer model this
+  generalizes); RFC-0032 (architect `design-reviewer` — the first non-core
+  reviewer admitted); `docs/CHARTER.md` (Scope non-goal: "Not a marketplace
+  of specialized agents. Three reviewers is the ceiling.")
 
 ## Decision summary
 

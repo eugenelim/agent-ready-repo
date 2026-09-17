@@ -10,7 +10,12 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0100 (the accepted decision this ADR records); ADR-0034 (the doctrine this *extends* — read the two together); ADR-0035 (architect-side companion); RFC-0044 / RFC-0041 (the infra gate + preflight); RFC-0040 + ADR-0030 (the presence-check idiom); RFC-0002 / RFC-0034 / RFC-0046 + ADR-0036 / ADR-0021 (the org-pack distribution primitives); `docs/specs/framework-contract-grounding/`, `docs/specs/adopter-grounding-surface/`, `docs/specs/catalogue-seeds-lint/` (the implementing specs); `docs/CHARTER.md` Principle 3 ("a habit, not a tool… not infrastructure")
+- **Related:** RFC-0100 (the accepted decision this ADR records); ADR-0034 (the doctrine
+  this *extends* — read the two together); ADR-0035 (architect-side
+  companion); RFC-0044 / RFC-0041 (the infra gate + preflight); RFC-0040 +
+  ADR-0030 (the presence-check idiom); RFC-0002 / RFC-0034 / RFC-0046 +
+  ADR-0036 / ADR-0021 (the org-pack distribution primitives);
+  `docs/CHARTER.md` Principle 3 ("a habit, not a tool… not infrastructure")
 
 ## Context
 

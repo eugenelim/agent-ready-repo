@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0091
-- **Related:** [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md), [RFC-0011](../rfc/0011-pack-allowed-adapters.md), [RFC-0004](../rfc/0004-install-scope-per-pack.md), [`repo-scope-per-adapter-projection` spec](../specs/repo-scope-per-adapter-projection/spec.md), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md)
+- **Related:** RFC-0012; RFC-0011; RFC-0004; ADR-0002
 
 ## Context
 

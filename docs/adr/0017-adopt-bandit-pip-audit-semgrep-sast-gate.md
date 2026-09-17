@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0084 D16; ADR-0086 D3; ADR-0102 D14; ADR-0113 D4
-- **Related:** the implementing spec `docs/specs/sast-sca-tooling/`; ADR-0003 (credential-broker contract — `sso-broker.py` is one of the scanned scripts); **ADR-0083** (extends this gate's SCA half to the npm ecosystem — the three tools below cover Python only)
+- **Related:** ADR-0003 (credential-broker contract — `sso-broker.py` is one of the scanned
+  scripts); **ADR-0083** (extends this gate's SCA half to the npm ecosystem
+  — the three tools below cover Python only)
 
 ## Context
 

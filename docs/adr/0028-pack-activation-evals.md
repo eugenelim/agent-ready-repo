@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0037 (the proposal this records), RFC-0031 / ADR-0021 (`pack.toml` as the rich source of truth), RFC-0036 (`converters`, first `evals/evals.json`), ADR-0017 (SAST CI gate — catalogue-internal tooling belongs in-repo), ADR-0014 (rigor scales with risk — report-only over a hard gate)
+- **Related:** RFC-0037 (the proposal this records); RFC-0031 / ADR-0021 (`pack.toml` as
+  the rich source of truth); RFC-0036 (`converters`, first
+  `evals/evals.json`); ADR-0017 (SAST CI gate — catalogue-internal tooling
+  belongs in-repo); ADR-0014 (rigor scales with risk — report-only over a
+  hard gate)
 
 > **Correction (2026-06-21, ✅ signed off by eugenelim — RFC-0037 Approver; see RFC-0037 § Errata E1):**
 > Decision 3 below records the detector as `claude -p "<query>" --output-format

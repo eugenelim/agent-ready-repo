@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0052](../rfc/0052-shared-prefix-aware-multi-adapter-install.md) (the decision this records), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md) (install scope is a per-pack default + allowance — this ADR pairs with it as the *identity* half of the install model), [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md) (the sibling decision that routes cohort skills to the shared prefix this ADR introduces), [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md) (Alternative #7 — the rejected one-install-one-adapter fan-out, reversed here)
+- **Related:** RFC-0052 (the decision this records); ADR-0002 (install scope is a per-pack
+  default + allowance — this ADR pairs with it as the *identity* half of the
+  install model); ADR-0040 (the sibling decision that routes cohort skills
+  to the shared prefix this ADR introduces); RFC-0012 (Alternative #7 — the
+  rejected one-install-one-adapter fan-out, reversed here)
 
 ## Context
 

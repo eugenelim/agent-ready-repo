@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0031](../rfc/0031-catalogue-package-manager-posture.md) (decisions D2 + D7 — this ADR is the decision record that RFC's follow-on artifacts call for), [`docs/specs/enriched-pack-manifest/`](../specs/enriched-pack-manifest/spec.md), [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md), `contracts/pack.schema.json`, `contracts/plugin-manifest.derived.schema.json`
+- **Related:** RFC-0031 (decisions D2 + D7 — this ADR is the decision record that RFC's
+  follow-on artifacts call for); ADR-0001; `contracts/pack.schema.json`;
+  `contracts/plugin-manifest.derived.schema.json`
 
 ## Context
 

@@ -10,7 +10,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0049](../rfc/0049-the-release-loop-and-company-os.md) · [RFC-0048](../rfc/0048-autonomous-product-team-operating-model.md) · [RFC-0041](../rfc/0041-infra-aware-work-loop.md) · [ADR-0031](0031-infra-support-is-doctrine-on-existing-reviewers-not-a-new-reviewer-or-runtime.md) · [ADR-0043](0043-the-discovery-coordinator-is-an-agent-plus-skill-plus-carried-sidecar-no-engine.md) · [release-loop spec](../specs/release-loop/spec.md)
+- **Related:** RFC-0049; RFC-0048; RFC-0041; ADR-0031; ADR-0043
 
 ## Decision summary
 

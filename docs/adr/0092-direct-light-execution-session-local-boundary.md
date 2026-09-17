@@ -9,12 +9,12 @@
 - **Supersedes in part:** ADR-0014 D3; ADR-0076 D7; ADR-0078
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088. The ADR-0078
-  entry above carries no D-ID because this record narrows two things there: its
-  start-route materialization rule (ADR-0078 D1) and its "every executable work
-  item has a reviewable canonical contract and plan" **consequence**, which is
-  prose in `## Consequences` and so has no constraint address. ADR-0078's
-  workspace-entry dispatchability rule stands unchanged
+- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088. The ADR-0078 entry above
+  carries no D-ID because this record narrows two things there: its
+  start-route materialization rule (ADR-0078 D1) and its "every executable
+  work item has a reviewable canonical contract and plan" **consequence**,
+  which is prose in `## Consequences` and so has no constraint address.
+  ADR-0078's workspace-entry dispatchability rule stands unchanged
 
 ## Decision summary
 

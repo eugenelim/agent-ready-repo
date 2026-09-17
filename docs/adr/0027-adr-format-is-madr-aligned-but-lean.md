@@ -9,7 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0038](../rfc/0038-align-adr-template-with-madr.md); [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md) — adopted the ADR format without recording its rationale; this ADR records it but does not supersede 0001
+- **Related:** RFC-0038; ADR-0001 — adopted the ADR format without recording its rationale;
+  this ADR records it but does not supersede 0001
 
 ## Context
 

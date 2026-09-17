@@ -10,7 +10,17 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0045 (the accepted decision this ADR records); RFC-0044 + ADR-0034 (the *build*-loop companion this mirrors one inner-loop stage earlier — same memory-vs-ground-truth thesis, design-time adaptation carved explicitly); RFC-0042 + ADR-0032 (built the dual-consumed workload-class routing axis at design Stage 0 *and* `architect-review` WA mode, and **explicitly deferred ML/SaaS/serverless** — ADR-0032 §"Neutral / to revisit": *"A future RFC that backs any of them reopens this scope"*; this is that future RFC for serverless); `docs/specs/well-architected-cloud/` (Shipped/frozen — origin of the pillar spine + the concern × workload-class lens-axis model); `docs/specs/agentic-well-architected-overlay/` (the sibling lens whose dual-consumed shape this mirrors); the repo's 3-tier dependency policy (T2's detect-and-recommend, which the K decision reuses); CHARTER Principles 1 (no per-vendor enumeration), 2 (no duplication), 3 (habit, not infrastructure)
+- **Related:** RFC-0045 (the accepted decision this ADR records); RFC-0044 + ADR-0034 (the
+  *build*-loop companion this mirrors one inner-loop stage earlier — same
+  memory-vs-ground-truth thesis, design-time adaptation carved explicitly);
+  RFC-0042 + ADR-0032 (built the dual-consumed workload-class routing axis
+  at design Stage 0 *and* `architect-review` WA mode, and **explicitly
+  deferred ML/SaaS/serverless** — ADR-0032 §"Neutral / to revisit": *"A
+  future RFC that backs any of them reopens this scope"*; this is that
+  future RFC for serverless); the repo's 3-tier dependency policy (T2's
+  detect-and-recommend, which the K decision reuses); CHARTER Principles 1
+  (no per-vendor enumeration), 2 (no duplication), 3 (habit, not
+  infrastructure)
 
 ## Context
 

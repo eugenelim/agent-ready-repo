@@ -10,7 +10,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** `docs/architecture/binder-publishing/` (the design tree this decision serves)
+- **Related:** `docs/architecture/binder-publishing/` (the design tree this decision
+  serves)
 
 ## Decision summary
 

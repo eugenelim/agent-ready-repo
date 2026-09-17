@@ -9,7 +9,14 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0021 (greenfield inception — the accepted proposal these decisions record); RFC-0019 + ADR-0009 (the brief and the plan-owned LLD — `init-project` emits the first brief and hands off to this loop); RFC-0020 + ADR-0010 (the normative `reference.md` — `init-project`'s foundation step is the greenfield population path that authors it); the `adapt-to-project` skill (the brownfield front-door this mirrors); the `research` pack (applied-mode discovery, fed *in*); `greenfield-inception` spec; `docs/CHARTER.md` §Principles
+- **Related:** RFC-0021 (greenfield inception — the accepted proposal these decisions
+  record); RFC-0019 + ADR-0009 (the brief and the plan-owned LLD —
+  `init-project` emits the first brief and hands off to this loop); RFC-0020
+  + ADR-0010 (the normative `reference.md` — `init-project`'s foundation
+  step is the greenfield population path that authors it); the
+  `adapt-to-project` skill (the brownfield front-door this mirrors); the
+  `research` pack (applied-mode discovery, fed *in*); `docs/CHARTER.md`
+  §Principles
 
 ## Context
 

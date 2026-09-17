@@ -10,7 +10,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0080, ADR-0002 (install scope per pack), ADR-0039 (install identity and footprint)
+- **Related:** RFC-0080; ADR-0002 (install scope per pack); ADR-0039 (install identity and
+  footprint)
 
 ## Decision summary
 

@@ -9,7 +9,15 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0020 (reference-architecture foundation — the accepted proposal these decisions record); RFC-0019 + ADR-0009 (the LLD lives in the plan and reads `reference.md` when present — the *consumer* of what this ADR's artifact provides); RFC-0021 (greenfield inception — its foundation step authors the first `reference.md`); RFCs 0001–0003 (the pack-catalogue model opt-in stack packs extend); ADR-0008 (the prior "agnostic, convention-first core seam" precedent); `reference-architecture` spec; `docs/architecture/overview.md`; the `adapt-to-project` skill (Class-3 discovery, extended for harvest); `docs/CHARTER.md` §Principles
+- **Related:** RFC-0020 (reference-architecture foundation — the accepted proposal these
+  decisions record); RFC-0019 + ADR-0009 (the LLD lives in the plan and
+  reads `reference.md` when present — the *consumer* of what this ADR's
+  artifact provides); RFC-0021 (greenfield inception — its foundation step
+  authors the first `reference.md`); RFCs 0001–0003 (the pack-catalogue
+  model opt-in stack packs extend); ADR-0008 (the prior "agnostic,
+  convention-first core seam" precedent); `docs/architecture/overview.md`;
+  the `adapt-to-project` skill (Class-3 discovery, extended for harvest);
+  `docs/CHARTER.md` §Principles
 
 ## Context
 

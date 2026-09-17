@@ -10,7 +10,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0046 (the accepted decision this ADR records); RFC-0031 (the runtime-infra-free package-manager posture this honours); RFC-0011/0012 (the resolver cascade and adapter state-hint); RFC-0040 + ADR-0030 (the untrusted-origin precedent); `docs/specs/convenient-install-defaults/` (the implementing spec); `docs/CHARTER.md` Principle 3 ("a habit, not a tool… not infrastructure")
+- **Related:** RFC-0046 (the accepted decision this ADR records); RFC-0031 (the
+  runtime-infra-free package-manager posture this honours); RFC-0011/0012
+  (the resolver cascade and adapter state-hint); RFC-0040 + ADR-0030 (the
+  untrusted-origin precedent); `docs/CHARTER.md` Principle 3 ("a habit, not
+  a tool… not infrastructure")
 
 ## Context
 

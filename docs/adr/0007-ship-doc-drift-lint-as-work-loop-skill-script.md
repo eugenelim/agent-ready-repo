@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0006; RFC-0016 (§ Errata); `docs/specs/lint-work-loop-delivery/`; `docs/specs/doc-drift-prevention/`
+- **Related:** ADR-0006; RFC-0016 (§ Errata)
 
 ## Context
 

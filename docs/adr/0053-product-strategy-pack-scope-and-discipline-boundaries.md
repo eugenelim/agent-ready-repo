@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0063 (driving RFC — D1–D10); RFC-0030 (product-engineering pack); RFC-0050 (experience-design pack); RFC-0062 (content-design and copy-direction — deferred content strategy to this pack); RFC-0004 (Rail A user-scope); ADR-0024 (pure-markdown guardrail extended by analogy); ADR-0030 (consolidated-pack-layout)
+- **Related:** RFC-0063 (driving RFC — D1–D10); RFC-0030 (product-engineering pack);
+  RFC-0050 (experience-design pack); RFC-0062 (content-design and
+  copy-direction — deferred content strategy to this pack); RFC-0004 (Rail A
+  user-scope); ADR-0024 (pure-markdown guardrail extended by analogy);
+  ADR-0030 (consolidated-pack-layout)
 
 ## Decision summary
 

@@ -8,7 +8,9 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded in part:** none
-- **Related:** RFC-0032 (architect `design-reviewer` subagent), **ADR-0042 (the superseding agent-addition policy)**, `docs/CHARTER.md` (Scope non-goal "Not a marketplace of specialized agents. Three reviewers is the ceiling"), `docs/specs/architect-design-reviewer/`
+- **Related:** RFC-0032 (architect `design-reviewer` subagent); **ADR-0042 (the superseding
+  agent-addition policy)**; `docs/CHARTER.md` (Scope non-goal "Not a
+  marketplace of specialized agents. Three reviewers is the ceiling")
 
 ## Context
 

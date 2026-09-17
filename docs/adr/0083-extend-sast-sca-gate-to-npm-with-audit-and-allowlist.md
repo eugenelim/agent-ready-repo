@@ -9,7 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** extends ADR-0017 (Bandit + pip-audit + Semgrep as the repo's SAST/SCA gate) to a second ecosystem; the implementing spec `docs/specs/npm-sca-gate/`
+- **Related:** extends ADR-0017 (Bandit + pip-audit + Semgrep as the repo's SAST/SCA gate)
+  to a second ecosystem
 
 ## Context
 

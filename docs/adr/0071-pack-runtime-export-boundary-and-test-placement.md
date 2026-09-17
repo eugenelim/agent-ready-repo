@@ -10,7 +10,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0002 (install scope per pack), `docs/specs/pack-test-boundary/spec.md`
+- **Related:** ADR-0002 (install scope per pack)
 
 ## Decision summary
 

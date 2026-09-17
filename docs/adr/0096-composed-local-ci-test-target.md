@@ -9,8 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** none. Per CONVENTIONS § Cite upward, an ADR does not cite specs;
-  the affected frozen and current specs carry the pointer.
+- **Related:** 
 
 ## Context
 

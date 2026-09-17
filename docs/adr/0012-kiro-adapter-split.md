@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0022 (the accepted proposal); RFC-0005 + errata E1-E3 (user-scope hook support; hook-wiring is CLI-only, `kiro-ide-hook` vocabulary closure); RFC-0001 (adapter spec and build pipeline); RFC-0009 (precedent for adapter migration, single-mode bump); RFC-0011 (`allowed-adapters`; existing packs declare `"kiro"`); `kiro-adapter-split` spec; `kiro-ide-hook` spec (PR #99 — primitive-per-surface ADR tracked in `docs/backlog.md § kiro-ide-hook → T-F`)
+- **Related:** RFC-0022 (the accepted proposal); RFC-0005 + errata E1-E3 (user-scope hook
+  support; hook-wiring is CLI-only, `kiro-ide-hook` vocabulary closure);
+  RFC-0001 (adapter spec and build pipeline); RFC-0009 (precedent for
+  adapter migration, single-mode bump); RFC-0011 (`allowed-adapters`;
+  existing packs declare `"kiro"`)
 
 ## Context
 

@@ -10,7 +10,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0092](../rfc/0092-first-class-distribution-routes.md) (the accepted proposal this records), [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md) (the adapter contract this extends), [RFC-0008](../rfc/0008-claude-plugins-install-route-parity.md), [RFC-0010](../rfc/0010-apm-install-route-parity.md), [ADR-0021](0021-pack-manifest-source-of-truth-and-scoped-identity.md), [ADR-0072](0072-derived-plugin-manifest-mirrors-upstream-schema.md), [ADR-0079](0079-executable-plugin-branch-publisher-identity.md)
+- **Related:** RFC-0092 (the accepted proposal this records); RFC-0001 (the adapter
+  contract this extends); RFC-0008; RFC-0010; ADR-0021; ADR-0072; ADR-0079
 
 ## Decision summary
 

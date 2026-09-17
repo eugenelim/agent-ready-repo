@@ -9,7 +9,12 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0098 D2
-- **Related:** RFC-0019 (product-brief intake + LLD-aware spec/plan — the accepted proposal these decisions record); RFC-0020 (reference-architecture foundation — the LLD reads `reference.md` when present); RFC-0021 (greenfield inception — produces the first brief); `product-brief-intake` spec; `lld-aware-spec-plan` spec; ADR-0008 (contract authoring seam — the prior "agnostic, convention-first core seam" precedent); `docs/CHARTER.md` §Principles
+- **Related:** RFC-0019 (product-brief intake + LLD-aware spec/plan — the accepted proposal
+  these decisions record); RFC-0020 (reference-architecture foundation — the
+  LLD reads `reference.md` when present); RFC-0021 (greenfield inception —
+  produces the first brief); ADR-0008 (contract authoring seam — the prior
+  "agnostic, convention-first core seam" precedent); `docs/CHARTER.md`
+  §Principles
 
 ## Context
 

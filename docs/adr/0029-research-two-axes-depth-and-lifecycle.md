@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0039 (the accepted decision this records); [`docs/rfc/0039-notes/survey-managing-research-projects.md`](../rfc/0039-notes/survey-managing-research-projects.md) (four-discipline evidence); RFC-0038 (MADR-aligned ADR template)
+- **Related:** RFC-0039 (the accepted decision this records);
+  `docs/rfc/0039-notes/survey-managing-research-projects.md`
+  (four-discipline evidence); RFC-0038 (MADR-aligned ADR template)
 
 ## Context
 

@@ -10,7 +10,7 @@
 - **Supersedes in part:** ADR-0017 D16
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** the implementing spec `docs/specs/bandit-nosec-comment-hygiene/`; `bandit.yaml` and `tools/run-bandit-gate.py` carry the operative rules
+- **Related:** `bandit.yaml` and `tools/run-bandit-gate.py` carry the operative rules
 
 ## Decision summary
 

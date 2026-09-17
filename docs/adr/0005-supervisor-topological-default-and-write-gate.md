@@ -9,7 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0015 (`docs/rfc/0015-wave-scheduled-supervisor-mode.md`); spec `docs/specs/wave-scheduled-supervisor/`; `docs/CONVENTIONS.md` §Supervisor mode; `work-loop` skill.
+- **Related:** RFC-0015 (`docs/rfc/0015-wave-scheduled-supervisor-mode.md`);
+  `docs/CONVENTIONS.md` §Supervisor mode; `work-loop` skill.
 
 ## Context
 

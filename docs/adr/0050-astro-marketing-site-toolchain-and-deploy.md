@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0061](../rfc/0061-web-top-level-directory.md), [`docs/specs/platform-site/`](../specs/platform-site/spec.md), [`web/AGENTS.md`](../../web/AGENTS.md)
+- **Related:** RFC-0061; `web/AGENTS.md`
 
 ## Decision summary
 

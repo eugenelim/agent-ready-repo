@@ -9,7 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0017 (pluggable API-contract standards + spec-driven contract seam); `pluggable-api-standards` spec (Stage 1, shipped); `spec-contract-seam` spec (Stage 2); ADR-0007 (doc-drift lint as a work-loop skill script)
+- **Related:** RFC-0017 (pluggable API-contract standards + spec-driven contract seam);
+  ADR-0007 (doc-drift lint as a work-loop skill script)
 
 ## Context
 

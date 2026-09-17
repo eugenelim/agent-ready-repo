@@ -9,7 +9,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [`loop-contract.md`](../architecture/loop-contract.md) § 3 (the standard as stated); [identifier comparison matrix](../product/research/item-id-management-comparison-matrix.md) (the evidence and the rejected alternatives)
+- **Related:** `loop-contract.md` § 3 (the standard as stated); identifier comparison
+  matrix (the evidence and the rejected alternatives)
 
 ## Decision summary
 

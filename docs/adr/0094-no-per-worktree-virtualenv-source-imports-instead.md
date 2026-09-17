@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** `docs/specs/repo-tests-worktree-source/spec.md`; `docs/specs/worktree-runtime-hygiene/spec.md` (Shipped); ADR-0036
+- **Related:** ADR-0036
 
 ## Decision summary
 

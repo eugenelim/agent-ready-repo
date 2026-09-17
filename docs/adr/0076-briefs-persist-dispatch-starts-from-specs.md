@@ -9,13 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0098 D1,D2; ADR-0092 D7
-- **Related:** [ADR-0009](0009-product-brief-layer-and-plan-owned-lld.md),
-  [ADR-0019](0019-product-intent-ontology-and-brief-projection.md),
-  [ADR-0033](0033-intent-level-open-recognized-set-decoupled-from-scale.md),
-  [ADR-0051](0051-workspace-toml-toml-format-and-main-branch-coordination.md),
-  [`work-intake-and-artifact-routing.md`](../architecture/work-intake-and-artifact-routing.md);
-  ADR-0078 records standalone intake and deterministic workspace indexing while
-  preserving this ADR's persistent-brief and spec/plan-only dispatch rules
+- **Related:** ADR-0009, ADR-0019, ADR-0033, ADR-0051,
+  `work-intake-and-artifact-routing.md`; ADR-0078 records standalone intake
+  and deterministic workspace indexing while preserving this ADR's
+  persistent-brief and spec/plan-only dispatch rules
 
 ## Decision summary
 

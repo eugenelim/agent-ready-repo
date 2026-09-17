@@ -9,11 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0098 D1
-- **Related:** [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md),
-  [ADR-0019](0019-product-intent-ontology-and-brief-projection.md),
-  [ADR-0033](0033-intent-level-open-recognized-set-decoupled-from-scale.md),
-  [ADR-0076](0076-briefs-persist-dispatch-starts-from-specs.md),
-  [RFC-0068](../rfc/0068-linear-pack.md)
+- **Related:** RFC-0083; ADR-0019; ADR-0033; ADR-0076; RFC-0068
 
 ## Decision summary
 

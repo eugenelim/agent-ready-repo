@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0033 (the proposal), RFC-0007 (user-scope refusal rails + grep-enforcement pattern), RFC-0004 (install-scope-per-pack, Rail A), RFC-0032 (the three-reviewer ceiling reading), `docs/specs/design-craft-pack/`
+- **Related:** RFC-0033 (the proposal); RFC-0007 (user-scope refusal rails +
+  grep-enforcement pattern); RFC-0004 (install-scope-per-pack, Rail A);
+  RFC-0032 (the three-reviewer ceiling reading)
 
 ## Context
 

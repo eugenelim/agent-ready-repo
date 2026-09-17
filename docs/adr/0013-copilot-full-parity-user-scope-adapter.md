@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0040 D5
-- **Related:** [RFC-0024](../rfc/0024-copilot-subagent-projection.md) (the decision; supersedes-in-part RFC-0012), [ADR-0004](0004-repo-scope-per-adapter-projection.md) (per-adapter projection model this extends), [RFC-0009](../rfc/0009-codex-native-skills.md) + [`dropped-primitives-coverage` spec](../specs/dropped-primitives-coverage/spec.md) (the codex `dropped`→first-class precedent), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md) (scope dimension)
+- **Related:** RFC-0024 (the decision; supersedes-in-part RFC-0012); ADR-0004 (per-adapter
+  projection model this extends); RFC-0009 + `dropped-primitives-coverage`
+  spec (the codex `dropped`→first-class precedent); ADR-0002 (scope
+  dimension)
 
 ## Context
 

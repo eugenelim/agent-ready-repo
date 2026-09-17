@@ -10,7 +10,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0002](../rfc/0002-self-hosting.md) (its `Manual` classification of the three index files is corrected by that RFC's 2026-09-13 erratum, not by this ADR); [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md); [ADR-0006](0006-doc-drift-construction-and-judgment.md); [ADR-0007](0007-ship-doc-drift-lint-as-work-loop-skill-script.md); [RFC-0016](../rfc/0016-doc-drift-mechanical-gate.md); [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) § Wave 7d
+- **Related:** RFC-0002 (its `Manual` classification of the three index files is corrected
+  by that RFC's 2026-09-13 erratum, not by this ADR); ADR-0001; ADR-0006;
+  ADR-0007; RFC-0016; RFC-0096 § Wave 7d
 
 ## Decision summary
 

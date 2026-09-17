@@ -10,10 +10,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0084](../rfc/0084-sso-destination-trust-boundary.md),
-  [ADR-0026](0026-sso-consumer-resolution-in-credbroker.md),
-  [credential architecture](../architecture/credentials.md), and the
-  [`jira-check-sso-auto-login` spec](../specs/jira-check-sso-auto-login/spec.md)
+- **Related:** RFC-0084; ADR-0026; credential architecture
 
 ## Decision summary
 

@@ -9,7 +9,14 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0030 (the product-engineering pack — decision #9 + Appendix A, which accepted this layer) · ADR-0019 (the v1 `intent` ontology / brief-as-projection / contract-maturity, which deferred these decisions to phase 2) · ADR-0008 + RFC-0017 + RFC-0018 (the contract-authoring seam this reuses) · RFC-0020 (`reference.md` golden-path — the `architect` seam) · RFC-0016 (the doc-drift discipline this layer's currency relies on) · RFC-0019 + ADR-0009 (`receive-brief` and its per-repo coverage rollup, which this aggregates above)
+- **Related:** RFC-0030 (the product-engineering pack — decision #9 + Appendix A, which
+  accepted this layer); ADR-0019 (the v1 `intent` ontology /
+  brief-as-projection / contract-maturity, which deferred these decisions to
+  phase 2); ADR-0008 + RFC-0017 + RFC-0018 (the contract-authoring seam this
+  reuses); RFC-0020 (`reference.md` golden-path — the `architect` seam);
+  RFC-0016 (the doc-drift discipline this layer's currency relies on);
+  RFC-0019 + ADR-0009 (`receive-brief` and its per-repo coverage rollup,
+  which this aggregates above)
 
 ## Context
 

@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0066 (driving RFC — Decision 7 specifies all 9 renames), ADR-0038 (the rename-without-alias precedent this ADR follows exactly), ADR-0024 (agnosticism guardrails, unchanged by this rename)
+- **Related:** RFC-0066 (driving RFC — Decision 7 specifies all 9 renames); ADR-0038 (the
+  rename-without-alias precedent this ADR follows exactly); ADR-0024
+  (agnosticism guardrails, unchanged by this rename)
 
 ## Decision summary
 

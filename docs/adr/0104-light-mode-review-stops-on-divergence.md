@@ -9,7 +9,8 @@
 - **Supersedes in part:** ADR-0014 D4
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0014](0014-rigor-scales-with-risk-work-loop-modes.md) (light/full modes; its trigger set stands), [ADR-0088](0088-risk-triggers-have-a-single-documented-home.md) (the risk-trigger block's single home — unaffected), [RFC-0025](../rfc/0025-work-loop-light-mode-and-risk-based-escalation.md)
+- **Related:** ADR-0014 (light/full modes; its trigger set stands); ADR-0088 (the
+  risk-trigger block's single home — unaffected); RFC-0025
 
 ## Decision summary
 

@@ -10,9 +10,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0077](../rfc/0077-distill-knowledge.md),
-  [ADR-0081](0081-canonical-project-knowledge-uses-per-topic-json.md), and the
-  [knowledge capture architecture](../architecture/knowledge-capture.md)
+- **Related:** RFC-0077; ADR-0081; and the knowledge capture architecture
 
 ## Decision summary
 

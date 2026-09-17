@@ -10,7 +10,15 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0042 (the accepted decision this ADR records); `docs/specs/well-architected-cloud/` (Shipped/frozen — the spec whose review-time-only scoping this widens, and the source of the five-concern lens being expanded); RFC-0032 (the `architect` `design-reviewer` / fresh-context critique whose value the design-time-only alternative would have lost); ADR-0023 (the three-reviewer ceiling scopes the core *code-review* lenses — cited to show a design-time skill lens does not engage it); RFC-0029 (the `security-checklists` `llm-agent` module the overlay's security-boundary concerns route to); RFC-0041 / ADR-0031 (the precedent for a progressive-disclosure concern library consumed by a pack lens, and for naming an emerging-standard's maturity caveat honestly)
+- **Related:** RFC-0042 (the accepted decision this ADR records); RFC-0032 (the `architect`
+  `design-reviewer` / fresh-context critique whose value the
+  design-time-only alternative would have lost); ADR-0023 (the
+  three-reviewer ceiling scopes the core *code-review* lenses — cited to
+  show a design-time skill lens does not engage it); RFC-0029 (the
+  `security-checklists` `llm-agent` module the overlay's security-boundary
+  concerns route to); RFC-0041 / ADR-0031 (the precedent for a
+  progressive-disclosure concern library consumed by a pack lens, and for
+  naming an emerging-standard's maturity caveat honestly)
 
 ## Context
 

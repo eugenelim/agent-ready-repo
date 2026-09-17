@@ -9,7 +9,8 @@
 - **Supersedes in part:** ADR-0017 D14
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0084](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) (a quiet scanner signal becomes a gate through a wrapper with a self-test, not a recipe flag)
+- **Related:** ADR-0084 (a quiet scanner signal becomes a gate through a wrapper with a
+  self-test, not a recipe flag)
 
 ## Decision summary
 

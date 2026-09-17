@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** `docs/specs/product-documentation-pack/spec.md`, `docs/specs/product-documentation-pack/plan.md`
+- **Related:** 
 
 ## Decision summary
 

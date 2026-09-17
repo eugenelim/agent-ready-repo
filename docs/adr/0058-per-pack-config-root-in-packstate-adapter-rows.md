@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0101](../rfc/0101-pack-config-and-oplog.md), [ADR-0039 footprint co-ownership and install identity](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md)
+- **Related:** RFC-0101; ADR-0039 footprint co-ownership and install identity
 
 ## Decision summary
 

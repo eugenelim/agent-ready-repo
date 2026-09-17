@@ -9,7 +9,7 @@
 - **Supersedes in part:** ADR-0109
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0089](../rfc/0089-starlight-docs-boundary.md), [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md)
+- **Related:** RFC-0089; ADR-0109
 
 ## Decision summary
 

@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0042](0042-agent-additions-keyed-to-loop-and-work-type.md) (agent additions keyed to loop and work type); [ADR-0014](0014-rigor-scales-with-risk-work-loop-modes.md) (rigor scales with risk); [RFC-0050](../rfc/0050-experience-pack-pressure-test.md) (§ D7 — the `experience-reviewer` admitted); backlog items `experience-reviewer-as-work-loop-gate` and `experience-loop-trigger-for-site-changes`
+- **Related:** ADR-0042 (agent additions keyed to loop and work type); ADR-0014 (rigor
+  scales with risk); RFC-0050 (§ D7 — the `experience-reviewer` admitted);
+  backlog items `experience-reviewer-as-work-loop-gate` and
+  `experience-loop-trigger-for-site-changes`
 
 ## Decision summary
 

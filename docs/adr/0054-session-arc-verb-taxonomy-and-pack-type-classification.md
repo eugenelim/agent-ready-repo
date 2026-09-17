@@ -9,7 +9,12 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0067 (driving RFC — all decisions); RFC-0025 (work-loop light mode — no-new-skill precedent for Change C); RFC-0050 (clean-retire rename precedent: design-craft → experience-design rename with no install-time alias); ADR-0051 (workspace-toml format — check-workspace named as historical record); ADR-0053 (product-strategy pack — check-workspace routing record)
+- **Related:** RFC-0067 (driving RFC — all decisions); RFC-0025 (work-loop light mode —
+  no-new-skill precedent for Change C); RFC-0050 (clean-retire rename
+  precedent: design-craft → experience-design rename with no install-time
+  alias); ADR-0051 (workspace-toml format — check-workspace named as
+  historical record); ADR-0053 (product-strategy pack — check-workspace
+  routing record)
 
 ## Decision summary
 

@@ -9,7 +9,11 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0058](../rfc/0058-capability-tiered-document-extraction.md) (capability-tiered extraction, Open-Q2: `msg-to-markdown` adopts the unified contract); [ADR-0045](0045-capability-tiered-document-extraction.md) (names "the shared output contract `msg-to-markdown` adopts"); [ADR-0034](0034-infra-grounding-toolchain-oracle-doctrine-not-tooling-vendor-data-or-agent.md) (ship no bundled per-vendor data / models — the `.msg` reader stays pip-on-demand); [RFC-0007](../rfc/0007-user-scope-converter-pack.md) (the user-scope `converters` pack); [spec `extraction-msg-to-markdown-python-contract`](../specs/extraction-msg-to-markdown-python-contract/spec.md) (the Python-port slice this dependency serves)
+- **Related:** RFC-0058 (capability-tiered extraction, Open-Q2: `msg-to-markdown` adopts
+  the unified contract); ADR-0045 (names "the shared output contract
+  `msg-to-markdown` adopts"); ADR-0034 (ship no bundled per-vendor data /
+  models — the `.msg` reader stays pip-on-demand); RFC-0007 (the user-scope
+  `converters` pack)
 
 ## Decision summary
 

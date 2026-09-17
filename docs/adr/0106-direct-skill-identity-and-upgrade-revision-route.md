@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0098](../rfc/0098-direct-skill-repository-installation.md) D4, D5, and D6
+- **Related:** RFC-0098 D4; D5; and D6
 
 ## Decision summary
 

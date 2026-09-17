@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0040 D1
-- **Related:** [RFC-0026](../rfc/0026-cursor-full-parity-adapter.md) (the decision), [ADR-0013](0013-copilot-full-parity-user-scope-adapter.md) (the full-parity user-scope template this follows), [ADR-0012](0012-kiro-adapter-split.md) (the `.md`-agent + frontmatter-mapping shape Cursor's agent projection reuses), [ADR-0004](0004-repo-scope-per-adapter-projection.md) (the per-adapter projection model this extends), [spec `apm-install-route-parity`](../specs/apm-install-route-parity/spec.md) (already treats Cursor as an install target via `${CURSOR_PLUGIN_ROOT}`)
+- **Related:** RFC-0026 (the decision); ADR-0013 (the full-parity user-scope template this
+  follows); ADR-0012 (the `.md`-agent + frontmatter-mapping shape Cursor's
+  agent projection reuses); ADR-0004 (the per-adapter projection model this
+  extends)
 
 ## Context
 

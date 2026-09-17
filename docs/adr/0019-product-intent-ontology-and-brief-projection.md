@@ -9,7 +9,16 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0098 D6,D7
-- **Related:** RFC-0030 (the product-engineering pack — the decision this records) · ADR-0009 (the brief layer this reframes) · ADR-0008 + RFC-0017 + RFC-0018 (the contract-authoring seam this stages) · RFC-0019 (receive-brief); ADR-0033 refines part 1 (`Level` is an open recognized set, decoupled from `Scale`); ADR-0076 refines part 2 (briefs may persist and selected delivery dispatches only from spec/plan pairs); ADR-0077 further refines part 2 by gating feature projection on shippability/coordination and replacing universal one-way tracker projection with lifecycle authority modes. Part 3 and the remainder of part 2 stand. ADR-0019 stays Accepted; these are metadata back-pointers, not body edits.
+- **Related:** RFC-0030 (the product-engineering pack — the decision this records);
+  ADR-0009 (the brief layer this reframes); ADR-0008 + RFC-0017 + RFC-0018
+  (the contract-authoring seam this stages); RFC-0019 (receive-brief);
+  ADR-0033 refines part 1 (`Level` is an open recognized set, decoupled from
+  `Scale`); ADR-0076 refines part 2 (briefs may persist and selected
+  delivery dispatches only from spec/plan pairs); ADR-0077 further refines
+  part 2 by gating feature projection on shippability/coordination and
+  replacing universal one-way tracker projection with lifecycle authority
+  modes. Part 3 and the remainder of part 2 stand. ADR-0019 stays Accepted;
+  these are metadata back-pointers, not body edits.
 
 ## Context
 

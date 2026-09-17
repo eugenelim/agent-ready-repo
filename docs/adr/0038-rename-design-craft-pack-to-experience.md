@@ -9,7 +9,12 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level), RFC-0050 (the `experience`-pack child RFC that models it), RFC-0033 + ADR-0024 (created the `design-craft` pack and its posture — **frozen, bridged here**), RFC-0100 § Errata 2026-06-25 (the `infra-contract-acquisition → contract-acquisition` skill rename — the precedent this follows), `docs/specs/design-craft-pack/` (Shipped — **frozen, bridged here**)
+- **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level); RFC-0050
+  (the `experience`-pack child RFC that models it); RFC-0033 + ADR-0024
+  (created the `design-craft` pack and its posture — **frozen, bridged
+  here**); RFC-0100 § Errata 2026-06-25 (the
+  `infra-contract-acquisition → contract-acquisition` skill rename — the
+  precedent this follows)
 
 ## Decision summary
 

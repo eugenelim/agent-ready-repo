@@ -10,7 +10,22 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0044 (the accepted decision this records); ADR-0031 (the scaffold this extends — infra support is doctrine on existing reviewers, no new reviewer or runtime; this ADR adds the *grounding* layer, extends the `operational-safety` consumer to EXECUTE, and honors ADR-0031's no-executable-tooling / no-new-reviewer calls without reversing them); ADR-0023 (the three-reviewer ceiling — the constraint that forecloses a fourth, infra-contract-lens reviewer, deferred here behind an evidence trigger); ADR-0018 + RFC-0029 (shift review left + deliver depth via an orchestrator-loaded progressive-disclosure library — the `security-checklists` / `operational-safety` pattern the new skill and module reuse); RFC-0041 (P1 preflight extended by a fifth artifact, P2 smoke refined by V1/V2, `observability-and-smoke` strengthened by D, the no-new-reviewer ceiling honored); RFC-0025 + ADR-0014 (risk triggers already route a destructive/irreversible `apply` to full mode — the hook point); the repo's 3-tier dependency policy (T2's detect-and-recommend); CHARTER Principles 1–4
+- **Related:** RFC-0044 (the accepted decision this records); ADR-0031 (the scaffold this
+  extends — infra support is doctrine on existing reviewers, no new reviewer
+  or runtime; this ADR adds the *grounding* layer, extends the
+  `operational-safety` consumer to EXECUTE, and honors ADR-0031's
+  no-executable-tooling / no-new-reviewer calls without reversing them);
+  ADR-0023 (the three-reviewer ceiling — the constraint that forecloses a
+  fourth, infra-contract-lens reviewer, deferred here behind an evidence
+  trigger); ADR-0018 + RFC-0029 (shift review left + deliver depth via an
+  orchestrator-loaded progressive-disclosure library — the
+  `security-checklists` / `operational-safety` pattern the new skill and
+  module reuse); RFC-0041 (P1 preflight extended by a fifth artifact, P2
+  smoke refined by V1/V2, `observability-and-smoke` strengthened by D, the
+  no-new-reviewer ceiling honored); RFC-0025 + ADR-0014 (risk triggers
+  already route a destructive/irreversible `apply` to full mode — the hook
+  point); the repo's 3-tier dependency policy (T2's detect-and-recommend);
+  CHARTER Principles 1–4
 
 ## Context
 

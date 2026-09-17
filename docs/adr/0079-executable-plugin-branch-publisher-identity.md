@@ -10,7 +10,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0072](0072-derived-plugin-manifest-mirrors-upstream-schema.md), [`docs/specs/claude-plugin-hook-parity/`](../specs/claude-plugin-hook-parity/)
+- **Related:** ADR-0072
 
 ## Decision summary
 

@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0088 D8; ADR-0104 D4; ADR-0092 D3
-- **Related:** RFC-0025 (the proposal this records); ADR-0005 (supervisor-mode scheduling — orthogonal); ADR-0007 (doc-drift lint shipped as a `work-loop` skill script)
+- **Related:** RFC-0025 (the proposal this records); ADR-0005 (supervisor-mode scheduling —
+  orthogonal); ADR-0007 (doc-drift lint shipped as a `work-loop` skill
+  script)
 
 ## Context
 

@@ -9,7 +9,13 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0058](../rfc/0058-capability-tiered-document-extraction.md) (the accepted decision this records, incl. its seven-decision set, options table, and pre-mortem); [ADR-0037](0037-grounding-is-adopter-and-org-supplied-and-presence-checked-one-gate-from-infra-to-framework.md) (the presence-checked "detect-and-degrade, every layer free to be absent" grounding doctrine this mirrors for extraction *capability*); [ADR-0034](0034-infra-grounding-toolchain-oracle-doctrine-not-tooling-vendor-data-or-agent.md) (the "ship awareness and doctrine, never bundled per-vendor data" rule this extends, not breaks); [RFC-0007 § Errata](../rfc/0007-user-scope-converter-pack.md#errata) (the locked-down-dependency drawback this reverses for `file-to-markdown`)
+- **Related:** RFC-0058 (the accepted decision this records, incl. its seven-decision set,
+  options table, and pre-mortem); ADR-0037 (the presence-checked
+  "detect-and-degrade, every layer free to be absent" grounding doctrine
+  this mirrors for extraction *capability*); ADR-0034 (the "ship awareness
+  and doctrine, never bundled per-vendor data" rule this extends, not
+  breaks); RFC-0007 § Errata (the locked-down-dependency drawback this
+  reverses for `file-to-markdown`)
 
 ## Decision summary
 

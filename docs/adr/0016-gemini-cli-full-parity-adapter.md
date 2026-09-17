@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0040 D2
-- **Related:** [RFC-0027](../rfc/0027-gemini-cli-full-parity-adapter.md) (the decision), [RFC-0026](../rfc/0026-cursor-full-parity-adapter.md) / ADR-0015 (Cursor full-parity adapter — the immediate precedent and template), [RFC-0024](../rfc/0024-copilot-subagent-projection.md) / [ADR-0013](0013-copilot-full-parity-user-scope-adapter.md) (Copilot full-parity, scope-agnostic emission + user-scope rewrite), [ADR-0004](0004-repo-scope-per-adapter-projection.md) (per-adapter projection model), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md) (scope dimension)
+- **Related:** RFC-0027 (the decision); RFC-0026 / ADR-0015 (Cursor full-parity adapter —
+  the immediate precedent and template); RFC-0024 / ADR-0013 (Copilot
+  full-parity, scope-agnostic emission + user-scope rewrite); ADR-0004
+  (per-adapter projection model); ADR-0002 (scope dimension)
 
 > **Numbering note.** Confirmed: the Cursor adapter (RFC-0026) merged first (#273), taking **ADR-0015**; this record is **ADR-0016**.
 

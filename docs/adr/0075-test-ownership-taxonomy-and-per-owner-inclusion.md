@@ -10,9 +10,8 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0082](../rfc/0082-test-ownership-boundaries-and-inclusion.md)
-  (the proposal this records), [ADR-0071](0071-pack-runtime-export-boundary-and-test-placement.md)
-  (pack-side companion — see *Relationship to ADR-0071*)
+- **Related:** RFC-0082 (the proposal this records); ADR-0071 (pack-side companion — see
+  *Relationship to ADR-0071*)
 
 ## Decision summary
 

@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [`telemetry.md`](../architecture/telemetry.md) §§ 5.2, 8, 10 (the invariant this preserves and the measured backend route); [delivery mechanism survey](../product/research/loop-telemetry-export-survey.md) and its [counterpoints](../product/research/loop-telemetry-export-counterpoints.md) (the five mechanisms priced, and which survey findings did not survive review); [`docs/specs/loop-telemetry-export/`](../specs/loop-telemetry-export/spec.md) (the delivery)
+- **Related:** `telemetry.md` §§ 5.2, 8, 10 (the invariant this preserves and the measured
+  backend route); delivery mechanism survey and its counterpoints (the five
+  mechanisms priced, and which survey findings did not survive review)
 
 ## Decision summary
 

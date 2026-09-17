@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0016; `docs/specs/doc-drift-prevention/`; `docs/CONVENTIONS.md` § 4
+- **Related:** RFC-0016; `docs/CONVENTIONS.md` § 4
 
 ## Context
 

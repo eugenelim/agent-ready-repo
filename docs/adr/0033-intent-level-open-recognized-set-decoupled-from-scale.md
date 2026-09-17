@@ -10,7 +10,14 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0019 (the recursive level-tagged `intent` ontology this **refines** — its part 1 `Level` enum, not its whole; ADR-0019 stays Accepted and its parts 2–3 stand) · RFC-0043 (the accepted decision this ADR records) · RFC-0030 (the `product-engineering` pack's founding RFC, whose steel-thread already named a "vision/intent root" this ships) · RFC-0019 (`receive-brief`, the level-agnostic universal receiver this does not touch) · core `init-project` (the greenfield front door the seam connects to) · `docs/specs/product-rung/` (the implementing spec these decisions are confirmed against)
+- **Related:** ADR-0019 (the recursive level-tagged `intent` ontology this **refines** —
+  its part 1 `Level` enum, not its whole; ADR-0019 stays Accepted and its
+  parts 2–3 stand); RFC-0043 (the accepted decision this ADR records);
+  RFC-0030 (the `product-engineering` pack's founding RFC, whose
+  steel-thread already named a "vision/intent root" this ships); RFC-0019
+  (`receive-brief`, the level-agnostic universal receiver this does not
+  touch); core `init-project` (the greenfield front door the seam connects
+  to)
 
 ## Context
 

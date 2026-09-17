@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0060](../rfc/0060-catalogue-runtime-inventory.md), [ADR-0021](0021-pack-manifest-source-of-truth-and-scoped-identity.md), [`docs/specs/catalogue-runtime-inventory/`](../specs/catalogue-runtime-inventory/spec.md)
+- **Related:** RFC-0060; ADR-0021
 
 ## Decision summary
 

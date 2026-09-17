@@ -9,7 +9,7 @@
 - **Supersedes in part:** ADR-0001 D3
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md), [RFC-0031](../rfc/0031-catalogue-package-manager-posture.md), [RFC-0030](../rfc/0030-product-engineering-pack.md), [`docs/specs/enriched-pack-manifest/`](../specs/enriched-pack-manifest/spec.md), [`docs/CONVENTIONS.md` §5c](../CONVENTIONS.md)
+- **Related:** ADR-0001; RFC-0031; RFC-0030; `docs/CONVENTIONS.md` §5c
 
 ## Context
 

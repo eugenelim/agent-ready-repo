@@ -10,7 +10,10 @@
 - **Supersedes in part:** ADR-0004
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0092](../rfc/0092-first-class-distribution-routes.md) D3 (the accepted proposal this records), [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md) alternative 2 (the same rejection in its originating RFC, corrected there by Errata), [ADR-0090](0090-distribution-routes-separate-from-runtime-adapters.md) (the route layer this route lives in), [RFC-0022](../rfc/0022-kiro-adapter-split.md) (the Kiro IDE/CLI adapter split, intact)
+- **Related:** RFC-0092 D3 (the accepted proposal this records); RFC-0012 alternative 2
+  (the same rejection in its originating RFC, corrected there by Errata);
+  ADR-0090 (the route layer this route lives in); RFC-0022 (the Kiro IDE/CLI
+  adapter split, intact)
 
 ## Decision summary
 

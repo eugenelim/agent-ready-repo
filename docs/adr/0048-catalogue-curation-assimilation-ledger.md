@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0059 (the catalogue-curation pack — this ADR is its named ledger follow-on); ADR-0002 (per-pack install scope); the `adapt-to-project` / credbroker `~/.agentbundle/` user-scope precedent
+- **Related:** RFC-0059 (the catalogue-curation pack — this ADR is its named ledger
+  follow-on); ADR-0002 (per-pack install scope); the `adapt-to-project` /
+  credbroker `~/.agentbundle/` user-scope precedent
 
 ## Decision summary
 

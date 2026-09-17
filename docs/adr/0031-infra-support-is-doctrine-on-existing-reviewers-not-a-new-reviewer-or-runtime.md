@@ -10,7 +10,16 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0041 (the accepted decision this records); ADR-0023 (the three-reviewer ceiling scopes the core code-review lenses — the constraint that forecloses a fourth, infra-lens reviewer); ADR-0014 + RFC-0025 (risk triggers already route a destructive/irreversible `apply` to full mode — the hook point this builds on); ADR-0018 (shift security review left + deliver its depth via an orchestrator-loaded progressive-disclosure skill — the `security-checklists` pattern P3's `operational-safety` library reuses verbatim); ADR-0017 (Bandit + pip-audit + Semgrep as the SAST/SCA gate — the scanner family the infra policy-as-code/CSPM scanner joins, complementing not replacing the reviewer)
+- **Related:** RFC-0041 (the accepted decision this records); ADR-0023 (the three-reviewer
+  ceiling scopes the core code-review lenses — the constraint that
+  forecloses a fourth, infra-lens reviewer); ADR-0014 + RFC-0025 (risk
+  triggers already route a destructive/irreversible `apply` to full mode —
+  the hook point this builds on); ADR-0018 (shift security review left +
+  deliver its depth via an orchestrator-loaded progressive-disclosure skill
+  — the `security-checklists` pattern P3's `operational-safety` library
+  reuses verbatim); ADR-0017 (Bandit + pip-audit + Semgrep as the SAST/SCA
+  gate — the scanner family the infra policy-as-code/CSPM scanner joins,
+  complementing not replacing the reviewer)
 
 ## Context
 

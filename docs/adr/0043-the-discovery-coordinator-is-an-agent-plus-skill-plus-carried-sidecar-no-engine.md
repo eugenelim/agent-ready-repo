@@ -10,7 +10,18 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0053 (the discovery loop — the decision this records); RFC-0041 + ADR-0031 (the doctrine + reference-library + reuse, no-engine idiom this applies one altitude up — the sibling ADR this mirrors); RFC-0048 (the operating model this is child 5 of; D7/D8 spike-confirmed); RFC-0049 (the sibling downstream release-loop coordinator, whose coordinator ADR is the third member of this family); RFC-0051 (the self-coverage gate `discovery-loop` is the full-battery home of); ADR-0042 (reviewer additions keyed to loop + work type — the policy under which the loop-scoped discovery roster is admitted; the CHARTER reviewer ceiling stays a `work-loop`/code-review cap); ADR-0030 / RFC-0040 (the three-tier layout the sidecar paths obey); ADR-0022 (the cross-repo reference-by-version the stable-id traceability reuses)
+- **Related:** RFC-0053 (the discovery loop — the decision this records); RFC-0041 +
+  ADR-0031 (the doctrine + reference-library + reuse, no-engine idiom this
+  applies one altitude up — the sibling ADR this mirrors); RFC-0048 (the
+  operating model this is child 5 of; D7/D8 spike-confirmed); RFC-0049 (the
+  sibling downstream release-loop coordinator, whose coordinator ADR is the
+  third member of this family); RFC-0051 (the self-coverage gate
+  `discovery-loop` is the full-battery home of); ADR-0042 (reviewer
+  additions keyed to loop + work type — the policy under which the
+  loop-scoped discovery roster is admitted; the CHARTER reviewer ceiling
+  stays a `work-loop`/code-review cap); ADR-0030 / RFC-0040 (the three-tier
+  layout the sidecar paths obey); ADR-0022 (the cross-repo
+  reference-by-version the stable-id traceability reuses)
 
 ## Decision summary
 

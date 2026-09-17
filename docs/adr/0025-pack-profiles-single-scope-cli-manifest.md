@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0107 D4
-- **Related:** [RFC-0034](../rfc/0034-pack-profiles.md) (accepted proposal — full rationale, options, and prior art); [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md) (catalogue model, "Common adoption patterns"); [RFC-0004](../rfc/0004-install-scope-per-pack.md) (install scope); [RFC-0031](../rfc/0031-catalogue-package-manager-posture.md) (catalogue posture: hygiene not infrastructure); [ADR-0003](0003-credential-broker-contract.md) (meta-pack option F, rejected); spec: [`docs/specs/pack-profiles/`](../specs/pack-profiles/spec.md).
+- **Related:** RFC-0034 (accepted proposal — full rationale, options, and prior art);
+  RFC-0001 (catalogue model, "Common adoption patterns"); RFC-0004 (install
+  scope); RFC-0031 (catalogue posture: hygiene not infrastructure); ADR-0003
+  (meta-pack option F, rejected)
 
 ## Context
 

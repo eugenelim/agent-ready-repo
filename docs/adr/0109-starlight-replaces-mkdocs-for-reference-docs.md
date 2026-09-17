@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** ADR-0085
-- **Related:** [RFC-0061](../rfc/0061-web-top-level-directory.md), [`docs/specs/starlight-migration/`](../specs/starlight-migration/spec.md)
+- **Related:** RFC-0061
 - **Renumbered:** issued as ADR-0055 and moved to ADR-0109 on 2026-09-12. Two records had been accepted under 0055 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its decision text is unaltered.
 
 ## Decision summary

@@ -9,7 +9,15 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md) — governing RFC; decisions D2 and D4; refined by ADR-0078, which makes comments non-semantic and constrains `workspace.toml` to a deterministic index of canonical artifacts and lifecycle facts; the TOML format and main-branch coordination decisions stand. This ADR also supersedes the umbrella-branch coordination pattern adopted in the 2026-07-18 `workspace.toml` design session — that session settled the artifact's existence and three-queue schema, and this ADR records the format and branching decisions resolved in the same RFC; recorded here because that pattern is not a decision record.
+- **Related:** RFC-0064 — governing RFC; decisions D2 and D4; refined by ADR-0078, which
+  makes comments non-semantic and constrains `workspace.toml` to a
+  deterministic index of canonical artifacts and lifecycle facts; the TOML
+  format and main-branch coordination decisions stand. This ADR also
+  supersedes the umbrella-branch coordination pattern adopted in the
+  2026-07-18 `workspace.toml` design session — that session settled the
+  artifact's existence and three-queue schema, and this ADR records the
+  format and branching decisions resolved in the same RFC; recorded here
+  because that pattern is not a decision record.
 
 ## Decision summary
 

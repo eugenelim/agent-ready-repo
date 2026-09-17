@@ -9,7 +9,9 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [ADR-0027](0027-adr-format-is-madr-aligned-but-lean.md) — the lean-vs-full thesis this *extends* (read the two together; not superseded); [RFC-0056](../rfc/0056-right-size-adr-template-decision-summary-revisit-confirmation.md) — the proposal this records; [RFC-0038](../rfc/0038-align-adr-template-with-madr.md) — the template decision ADR-0027 recorded, now amended by RFC-0056
+- **Related:** ADR-0027 — the lean-vs-full thesis this *extends* (read the two together;
+  not superseded); RFC-0056 — the proposal this records; RFC-0038 — the
+  template decision ADR-0027 recorded, now amended by RFC-0056
 
 ## Decision summary
 

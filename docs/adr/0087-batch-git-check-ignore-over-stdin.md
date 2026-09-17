@@ -10,16 +10,14 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** the implementing spec
-  [`docs/specs/lint-performance-p0/`](../specs/lint-performance-p0/spec.md);
-  `tools/lint_git_ignore.py` carries the operative rules and
+- **Related:** `tools/lint_git_ignore.py` carries the operative rules and
   `tools/lint-no-direct-check-ignore.py` enforces them. This record also
   supersedes the **`--` terminator** requirement in
-  [`docs/specs/pack-test-boundary-remaining-packs/`](../specs/pack-test-boundary-remaining-packs/spec.md)'s
-  `AC10a` only — that spec's `os.walk(followlinks=False)` symlink prune, its
-  per-pack projection assertion, and every other acceptance criterion stand.
-  Recorded here rather than in `Supersedes:`, whose value domain is
-  decision-record ordinals only
+  `docs/specs/pack-test-boundary-remaining-packs/`'s `AC10a` only — that
+  spec's `os.walk(followlinks=False)` symlink prune, its per-pack projection
+  assertion, and every other acceptance criterion stand. Recorded here
+  rather than in `Supersedes:`, whose value domain is decision-record
+  ordinals only
 
 ## Decision summary
 

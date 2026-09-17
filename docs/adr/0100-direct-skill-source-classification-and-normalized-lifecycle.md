@@ -9,7 +9,10 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** [RFC-0098](../rfc/0098-direct-skill-repository-installation.md) (direct-source contract and Errata); [RFC-0085](../rfc/0085-catalogue-source-identity.md) (catalogue identity); [ADR-0036](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md) (source precedence and its 2026-08-11 Erratum handing catalogue identity to RFC-0085); [ADR-0039](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) (pack/adapter identity and rollback posture)
+- **Related:** RFC-0098 (direct-source contract and Errata); RFC-0085 (catalogue identity);
+  ADR-0036 (source precedence and its 2026-08-11 Erratum handing catalogue
+  identity to RFC-0085); ADR-0039 (pack/adapter identity and rollback
+  posture)
 
 ## Decision summary
 
