@@ -2,7 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-12
+- **Areas:** telemetry, distribution, packaging
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [`telemetry.md`](../architecture/telemetry.md) §§ 5.2, 8, 10 (the invariant this preserves and the measured backend route); [delivery mechanism survey](../product/research/loop-telemetry-export-survey.md) and its [counterpoints](../product/research/loop-telemetry-export-counterpoints.md) (the five mechanisms priced, and which survey findings did not survive review); [`docs/specs/loop-telemetry-export/`](../specs/loop-telemetry-export/spec.md) (the delivery)
 
 ## Decision summary
@@ -42,6 +48,9 @@
    and must earn its place.
 4. **No new dependency without an ADR.** Whatever ships must work from the
    standard library or justify otherwise.
+5. **The decision must close the last mile.** A mechanism that preserves every
+   invariant but leaves the adopter to build the delivery path does not deliver
+   the outcome.
 
 ## Context
 
@@ -85,6 +94,25 @@ and Splunk's own guidance is to send to the Collector you deployed. Targeting a
 Collector therefore lets one stdlib sender reach every backend, which satisfies
 driver 4 without a dependency — and `guides/_shared/how-to/author-a-skill.md`
 already prefers stdlib over a pip dependency.
+
+## Decision
+
+- **D1:** The component that sends work-loop telemetry ships as its own PyPI distribution, `jsonl-otlp-exporter`, installed by the adopter with `uv tool install` or `pipx`.
+- **D2:** The distribution is named for the capability — a JSONL event log in, OTLP logs out — not for its first consumer.
+- **D3:** No pack gains a network path; no module under `packs/` opens a socket.
+- **D4:** `packs/core` declares the exporter as an optional runtime dependency and reports on it; it never installs it.
+- **D5:** The sender works from the standard library and targets an OTLP Collector, so it adds no dependency.
+- **D6:** The mapping profile is consumer-supplied declarative TOML selected at invocation, and the distribution bundles no consumer's profile.
+- **D7:** A profile declares five things: its timestamp field and that field's format, its severity field and that field's mapping, its record-identity attributes, and the allowlist of fields that may be sent.
+- **D8:** A profile is data, never code. It is read with the same bounded, confined discipline as any other input, and an implementation that imports a Python module as a profile, or evaluates any part of one, is non-conforming.
+- **D9:** A selected profile is trusted, and no invocation-level cap narrows its allowlist.
+- **D10:** `rfc3339` timestamps require an explicit offset and are refused without one; `epoch-millis` and `epoch-seconds` take an integer, never a float, and convert in integer arithmetic.
+- **D11:** Severity numbers are constrained to OTLP's 1–24, and 0 is refused.
+- **D12:** An unmapped or absent severity sends the record with severity omitted, reports each distinct unmapped value once with a count, and exits 0 on that account.
+- **D13:** JSON maps onto `AnyValue` by type recursively, bounded at eight levels; `null` emits no attribute, and a line whose top-level JSON value is not an object is skipped exactly as an unparseable line is.
+- **D14:** The distribution's documentation and the core guide disclose that the capability exists, what it carries and where it goes, while it sends nothing.
+- **D15:** The distribution follows `release-credbroker.yml` — trusted publishing, a SHA-pinned publish action, a tag-equals-version assertion, a fresh-venv smoke — and is added to every list where this repository enumerates a published distribution.
+- **D16:** The installer does not acquire packages; `[[pack.runtime-dependencies]]` support is Tier 1 reporting, detect and fail clean.
 
 ## Consequences
 
@@ -201,15 +229,36 @@ a hostile input cannot make the encoder walk without limit, and a line whose
 top-level JSON value is not an object is skipped exactly as an unparseable line
 is.
 
+**Revisit if:** a second engine needs to emit and the two senders duplicate
+meaningful OTLP mapping, redaction, batching or retry logic. That is the trigger
+for a shared library at `~/.agentbundle/lib/`, and D2's capability-scoped name is
+what keeps it open.
+
 ## Alternatives considered
 
-Each is priced against the drivers in Context above: a seeded script (drivers 1,
-2), a user-scope pack on the existing rail (driver 2), extending that rail to
-repo scope (driver 1, plus an adapter contract change), documentation only (does
-not deliver), and a local transformer (preserves § 8 but does not close the last
-mile). The official OpenTelemetry SDK was rejected against driver 4: the HTTP
-exporter pulls `protobuf`, `googleapis-common-protos` and the api/sdk/proto
-stack, where the wire format needed here is a documented public contract.
+- **A seeded script** (`packs/core/seeds/tools/…`) — rejected against *the
+  structural promise must survive* and *the sender must stay upgradable*:
+  `deliver_seeds` writes through `write_jailed` with no mode so the file arrives
+  non-executable, `upgrade.py` never calls `deliver_seeds` so a delivered seed is
+  never refreshed, and an adopter edit forks the upstream copy to `*.upstream.py`.
+- **A user-scope pack on the existing `adapter-root-bins` rail** — rejected
+  against *the sender must stay upgradable*: `upgrade.py` does not reference
+  `collect_pack_root_bins`, so a delivered binary is never refreshed; the same
+  gap already leaves `credential-brokers`' `sso-broker.py` stale.
+- **Extending that rail to repo scope** — rejected against *the structural
+  promise must survive*: its only distinct benefit is putting the sender in
+  `core`, which is the outcome that driver rejects, and it additionally changes
+  adapter contracts, the repo path jail, and install/upgrade/uninstall semantics.
+- **Documenting a Collector and shipping nothing** — rejected against *the
+  decision must close the last mile*: it preserves every invariant at near-zero
+  repository cost but leaves the adopter to build the whole path.
+- **A local transformer that never opens a socket** — rejected against *the
+  decision must close the last mile*: it satisfies § 8 word-for-word and remains
+  available as a later addition, but it moves the last mile onto the adopter.
+- **The official OpenTelemetry SDK** — rejected against *no new dependency
+  without an ADR*: the HTTP exporter pulls `protobuf`,
+  `googleapis-common-protos` and the api/sdk/proto stack, where the wire format
+  needed here is a documented public contract.
 
 ## Confirmation
 
