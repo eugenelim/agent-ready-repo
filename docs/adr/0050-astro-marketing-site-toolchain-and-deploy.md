@@ -2,8 +2,12 @@
 
 - **Status:** Superseded by [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md)
 - **Date:** 2026-07-16
+- **Areas:** experience, documentation
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0061](../rfc/0061-web-top-level-directory.md), [`docs/specs/platform-site/`](../specs/platform-site/spec.md), [`web/AGENTS.md`](../../web/AGENTS.md)
 
 ## Decision summary
@@ -23,6 +27,19 @@ The [platform-site spec](../specs/platform-site/spec.md) establishes a marketing
 ## Decision
 
 **Astro builds the marketing site into `build/` first; MkDocs then writes the reference docs into `build/docs/`; a single GitHub Pages deploy serves the combined artifact.**
+
+- **D1:** Astro builds the marketing site into `build/` before MkDocs writes the
+  reference docs into `build/docs/`, because `astro build` cleans its `outDir`
+  on every run; one GitHub Pages deploy serves the combined artifact.
+- **D2:** The Astro project lives in top-level `web/` and is built as a single
+  npm package (`npm --prefix web`), not a root monorepo workspace.
+- **D3:** `web/astro.config.ts` sets `outDir: '../build'` and `site/mkdocs.yml`
+  sets `site_dir: ../build/docs`.
+- **D4:** The design-system `--ds-*` token block is the sole colour and spacing
+  authority on the Astro surface, and no CSS framework is used.
+- **D5:** The site is a GitHub Pages project site served under
+  `/agent-ready-repo/`, so `web/astro.config.ts` sets `base: '/agent-ready-repo'`
+  and hardcoded internal hrefs go through `src/lib/paths.ts` `withBase()`.
 
 Concretely:
 
