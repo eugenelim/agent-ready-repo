@@ -213,6 +213,15 @@ walk.
 
 | 34,720 states | the fifth walk's axes plus the **cohort state read's outcome** across its eight-value refusal vocabulary (ok, missing, unparseable, non-object root, non-regular file, changed-while-reading, oversized, non-finite number) | the nine rows as the spec words them | 0 overlapping, 0 uncovered, all 9 rows reachable |
 
+**Bound on the sixth walk.** Its `0 uncovered` result applies only to the eight
+outcomes named in that row; it is not a walk over the state reader's full
+refusal vocabulary. It did not traverse invalid UTF-8, a document nested too
+deeply to parse, either unopenable-path class (`cannot be examined` or
+`cannot be opened safely`), a file changed while being opened, a
+`could not be read safely` refusal, or the two size-cap measurement paths
+separately: the pre-open stat size and the post-read byte count. The
+non-object-root class was traversed and remains part of the bounded claim.
+
 **The sixth walk's discriminating result.** A non-object JSON root classified to
 *no row* under the fifth walk's predicates: it parses, so the old row 1 was
 false for it, and row 2 needed `schedule_waves` read with its default, which is
@@ -232,6 +241,21 @@ two. A mention count gives the wrong answer — `SKILL.md` mentions
 fire it: the `reviewers-clean` row's cell. The other is a resumption row keyed
 *by* `wave-complete` as the last event, describing what to do after it fired. My
 first tally said six sites for exactly that reason.
+
+| 41,664 states | the sixth walk's axes plus an absent `current_wave_index`, over the rows as reworded with the **readable** and **supported** predicates | the nine rows as the spec words them, encoded with no precondition the text does not state | 0 overlapping, 0 uncovered, all 9 rows reachable |
+
+**The seventh walk caught an incomplete repair.** A Codex worker applied the
+adjudicated round-7 remedies as briefed, including adding a named
+supported-schema predicate to every row below the unsupported-schema row.
+Encoding the rows literally afterwards found 23,436 overlapping states in two
+classes, both of which the brief had not named: rows 3–9 required a supported
+schema but never required the read to have succeeded, so a missing `state.json`
+with a supported schema fired the read-refusal row and all of rows 3–9; and row
+2 was worded around the file *parsing*, which a non-object root does while the
+read still refuses it, so that state fired rows 1 and 2. Adding a named
+**readable** predicate and requiring it in rows 2–9 closes both. The defect was
+in the brief, not in the worker's execution — the worker did what it was told,
+and what it was told was insufficient.
 
 **Why a fifth walk exists: the fourth was green and wrong.** Its container values
 were hand-built two keys deep and the predicate under test was worded two keys

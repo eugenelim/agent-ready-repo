@@ -265,7 +265,7 @@ both its default and `--json` forms.
 
 ### Failure, edge cases & resilience
 
-Traces to: the eight verdict rows, the verb's unusable-partition refusal, and
+Traces to: the nine verdict rows, the verb's unusable-partition refusal, and
 the byte-equality criteria.
 
 - **Interrupted dispatch.** Best-effort by decision. A controller that crashes
@@ -460,6 +460,9 @@ records one run of the dispatch-rate generator.
   contains both accepted codes.
 - A task absent from the named wave exits non-zero and the message names that
   wave's tasks.
+- A named wave whose identifier list exceeds the per-value interpolation bound
+  drives the verb's largest state-derived refusal; the verb's own stderr is
+  bounded, discloses truncation, and contains only whole identifiers.
 - A non-matching `--expect-run-id` exits non-zero.
 - One case per refusal above asserts `state.json` is byte-identical to its
   pre-invocation content, and one case asserts it for a refusal raised by the
@@ -531,7 +534,7 @@ covers the state lock a new mutation takes.
 
 **Depends on:** T2
 
-**Touches:** packs/core/.apm/skills/work-loop/scripts/_loop_guards.py, packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/scripts/loop-engine.py, .claude/skills/work-loop/scripts/_loop_guards.py, .agents/skills/work-loop/scripts/_loop_guards.py, .claude/skills/work-loop/scripts/loop-cohort.py, .agents/skills/work-loop/scripts/loop-cohort.py, .claude/skills/work-loop/scripts/loop-engine.py, .agents/skills/work-loop/scripts/loop-engine.py, packs/core/tests/skills/work-loop/test_loop_guards.py, packs/core/tests/skills/work-loop/test_loop_guards_parity.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py, packs/core/tests/skills/work-loop/test_loop_engine.py
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_loop_guards.py, packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/scripts/loop-engine.py, .claude/skills/work-loop/scripts/_loop_guards.py, .agents/skills/work-loop/scripts/_loop_guards.py, .claude/skills/work-loop/scripts/loop-cohort.py, .agents/skills/work-loop/scripts/loop-cohort.py, .claude/skills/work-loop/scripts/loop-engine.py, .agents/skills/work-loop/scripts/loop-engine.py, packs/core/tests/skills/work-loop/test_loop_guards.py, packs/core/tests/skills/work-loop/test_loop_guards_parity.py, packs/core/tests/skills/work-loop/test_loop_cohort.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py, packs/core/tests/skills/work-loop/test_loop_engine.py
 
 **Tests:**
 - One case per verdict row, asserting the exit code and the content of both
@@ -576,6 +579,10 @@ covers the state lock a new mutation takes.
 - Integration, in `test_loop_engine.py`: the real `wave-complete` transition out
   of `CODE-IMPLEMENTATION` exits non-zero against a state with one unaccounted
   task.
+- Integration, in `test_loop_engine.py`: distinguish the current wave from the
+  next wave, run the pre-transition verdict before any pointer advance, and
+  assert that it names the unaccounted task in the current wave and not a task
+  in the next wave.
 - Every existing path that drives `init` → `schedule` → `wave-complete` through
   the real CLI still reaches `CODE-VERIFICATION`. `make_crash_window_run` and
   `make_code_review_run` in `test_loop_engine.py` populate `schedule_waves` and
@@ -648,6 +655,7 @@ retargeting the guard table leaves it with neither; the three copies of each
 edited `.apm/` file hash equal; and
 `python3 -m pytest packs/core/tests/skills/work-loop/test_loop_guards.py
 packs/core/tests/skills/work-loop/test_loop_guards_parity.py
+packs/core/tests/skills/work-loop/test_loop_cohort.py
 packs/core/tests/skills/work-loop/test_loop_cohort_cli.py
 packs/core/tests/skills/work-loop/test_loop_engine.py
 packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
@@ -656,10 +664,13 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
 
 **Depends on:** T3
 
-**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/references/session-resumption.md, packs/core/.apm/skills/work-loop/references/finding-adjudication.md, packs/core/tests/pack/test_finding_adjudication_contract.py, packs/core/.apm/skills/work-loop/evals/evals.json, .claude/skills/work-loop/SKILL.md, .agents/skills/work-loop/SKILL.md, .claude/skills/work-loop/references/supervisor-mode.md, .agents/skills/work-loop/references/supervisor-mode.md, .claude/skills/work-loop/references/state-schema.md, .agents/skills/work-loop/references/state-schema.md, .claude/skills/work-loop/evals/evals.json, .agents/skills/work-loop/evals/evals.json
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md, packs/core/.apm/skills/work-loop/references/state-schema.md, packs/core/.apm/skills/work-loop/references/session-resumption.md, packs/core/.apm/skills/work-loop/references/finding-adjudication.md, packs/core/tests/pack/test_finding_adjudication_contract.py, packs/core/.apm/skills/work-loop/evals/evals.json, .claude/skills/work-loop/SKILL.md, .agents/skills/work-loop/SKILL.md, .claude/skills/work-loop/references/supervisor-mode.md, .agents/skills/work-loop/references/supervisor-mode.md, .claude/skills/work-loop/references/state-schema.md, .agents/skills/work-loop/references/state-schema.md, .claude/skills/work-loop/references/session-resumption.md, .agents/skills/work-loop/references/session-resumption.md, .claude/skills/work-loop/references/finding-adjudication.md, .agents/skills/work-loop/references/finding-adjudication.md, .claude/skills/work-loop/evals/evals.json, .agents/skills/work-loop/evals/evals.json
 
 **Tests:**
 - `no stub (mode)` — goal-based.
+- A section-scoped absence check over `## Step 3. GATES` succeeds as
+  `! grep -q -- '--phase wave-exit'`, proving GATES carries no pre-exit
+  instruction.
 
 **Approach:**
 - In `SKILL.md` § Step 2. EXECUTE, state `loop-cohort dispatch-receipt` as
@@ -673,11 +684,13 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   `references/supervisor-mode.md` and `references/session-resumption.md` one
   each. Do not put the check in GATES: GATES runs after that transition.
 - The checked region differs by surface shape, so state it per shape rather than
-  assuming a fenced block: `SKILL.md` and `supervisor-mode.md` fire inside
-  fenced command blocks, `session-resumption.md` inside a table cell, and
-  `finding-adjudication.md` in running prose. For the latter two the check is a
-  proximity condition on the same cell or the same sentence, which is decidable
-  on both.
+  assuming a fenced block: `SKILL.md` uses fenced command blocks for the
+  changes-requested and specialist-adjudication sites, and running prose inside
+  a bullet for the further-in-intent-unit site; `supervisor-mode.md` uses a
+  fenced command block; `session-resumption.md` uses a table cell; and
+  `finding-adjudication.md` uses running prose. For the prose and table shapes,
+  the check is a proximity condition in the same bullet, sentence, or cell,
+  which is decidable on each.
 - Survey what pins each surface before editing, the way the EXECUTE pins are
   surveyed above. `test_finding_adjudication_contract.py` asserts a literal
   sentence against a sliced region of `finding-adjudication.md` as a substring,
@@ -702,9 +715,10 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   exit code. Projections are never edited directly.
 
 **Done when:** a check scoped to `## Step 2. EXECUTE` finds
-`loop-cohort dispatch-receipt` and the authorship sentence; every one of the
-four `wave-complete` firing surfaces carries `--phase wave-exit` within the
-instruction block that fires the transition; a check scoped to
+`loop-cohort dispatch-receipt` and the authorship sentence; all seven
+`wave-complete` firing sites across the four files instruct
+`loop-cohort check --phase wave-exit` immediately before the fire instruction
+at that site; a check scoped to
 `## Single-agent fallback` finds both reason codes; a check scoped to the
 state-schema field table finds the absence rule; `evals/evals.json` parses and
 contains a case naming both calls, the authorship, and both codes; the three
@@ -727,7 +741,7 @@ tests/roster/test_verification_ledger_contract.py -q` passes.
   mutual-exclusivity check, the verb's reason-code check, the index type check,
   each end of the index range check, the usable-partition check, the
   task-membership check, the partition-digest match, the guard's reason-code
-  check, each of the eight verdict rows, the `schedule` container creation, the
+  check, each of the nine verdict rows, the `schedule` container creation, the
   `schedule` stale-record pruning, the amendment clearing, and the `status` key
   — re-running the suite after each.
 - Record, per clause, the named test that turned red and the observed failure.
@@ -890,4 +904,3 @@ tools/test_build_site_routing.py -q` passes.
   carry their template tier declarations, the measurement has one home, each
   task now regenerates the projections it invalidates, and the four accepted
   limits are disclosed in the spec's Objective rather than only in these Risks.
-

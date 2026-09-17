@@ -35,10 +35,11 @@ exit accepts it — so an adopter without the agent sees a loop that still
 completes, with the degradation written down rather than inferred.
 
 The check has its own phase, `wave-exit`. `--phase implement` keeps the
-semantics it has today, because the pre-PR hook runs that phase for every spec
-directory on every push with no state-machine gate; moving the accounting into
-it would turn a wave-exit guard into a repository-wide push gate for this
-repository and for every adopter of the packaged hook.
+semantics it has today, because local `make pre-pr` and the always-run
+`build-check` pull-request gate run that phase for every spec directory with no
+state-machine gate. Moving the accounting into it would turn a wave-exit guard
+into a repository-wide pre-PR and pull-request gate for this repository and
+every adopter of the packaged hook.
 
 What the exit guarantees is narrow and positive: a durable, per-task record of
 who the controller says implemented each task, and a refusal when a task in the
@@ -59,7 +60,7 @@ plan's Risks section carries each, and the register holds the ones with owners.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | User promise | Applicable — the loop gains a refusal an adopter can hit | `docs/product/changelog.md`, `[core]` entry with a `Highlights` block | work-loop release step | Topmost `## [core][<version>]` entry agreeing with both pack manifests | Entry names the new refusal and the declines that avoid it, at the strength the Objective states |
-| Maintainer procedure | Applicable — the controller gains a required call per plan task and a required check before the exit | `packs/core/.apm/skills/work-loop/SKILL.md` § Step 2. EXECUTE and § Step 3. GATES, and `references/supervisor-mode.md` § Single-agent fallback | this spec | Section-scoped checks find the record call, its authorship, the pre-exit check, and both decline reason codes | Projections regenerated and byte-identical across the three copies |
+| Maintainer procedure | Applicable — the controller gains a required call per plan task and a required check before the exit | `packs/core/.apm/skills/work-loop/SKILL.md` § Step 2. EXECUTE and its `wave-complete` firing sites; `references/supervisor-mode.md` § Single-agent fallback and its firing site; and the firing sites in `references/session-resumption.md` and `references/finding-adjudication.md` | this spec | Section-scoped checks find the record call, its authorship, the pre-exit check, and both decline reason codes | Projections regenerated and byte-identical across the three copies |
 | Interface compatibility | Applicable — durable cohort state gains an additive field an older version ignores | `packs/core/.apm/skills/work-loop/references/state-schema.md` | this spec | The field documented with its absence rule | State-schema reference names the field and what an absent field means |
 | Decision rationale | Not applicable — ADR-0061 already decides the Option A split this change sits inside; no new decision is taken | — | — | — | — |
 | Reusable learning | Applicable — the measurement that motivated this change, and the proof the guard bites | `docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md` | this spec | The ledger is the single home for the dispatch-rate measurement and the mutation table | Ledger records both, each required by a task's `Done when` |
@@ -118,9 +119,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Never do
 
-- Change what `check --phase implement` returns for any state. The pre-PR hook
-  runs that phase for every spec directory on every push with no state-machine
-  gate, so a refusal there is a push gate, not a wave gate.
+- Change what `check --phase implement` returns for any state. Local
+  `make pre-pr` and the always-run `build-check` pull-request gate run that
+  phase for every spec directory with no state-machine gate, so a refusal there
+  is a pre-PR and pull-request gate, not a wave gate.
 - Give the record durable side-effect semantics: no `pending_transition` entry,
   no idempotency key, no crash-safe replay. Those are ADR-0061 Option B, they
   need a schema that does not exist, and building them here would require
@@ -203,6 +205,8 @@ identifier current when it was written.
       both places would leave the second clause dominated — unable to decide
       any state, and unable to redden when removed.
 - [ ] A record held under any other partition digest accounts for no task.
+- [ ] A record written to `state.json`, serialized, and read back still
+      accounts for its task.
 - [ ] Editing `plan.md` in a way that leaves `schedule_waves` unchanged, then
       re-scheduling, leaves every existing record still accounting for its task.
 
@@ -238,6 +242,10 @@ identifier current when it was written.
 - [ ] Recording when the current partition is empty, or when the current wave
       index is not a valid index into it, exits non-zero and names the unusable
       partition rather than raising.
+- [ ] Whenever `schedule_waves` or the wave element at the named index holds a
+      value outside the declared well-formed shape, the verb refuses by name
+      rather than raising. The hostile values are derived from the same key-path
+      and well-formedness declarations that generate the guard's predicate.
 - [ ] Requesting a receipt and a decline in one invocation exits non-zero.
 - [ ] A decline reason outside the closed set exits non-zero and names the
       accepted set.
@@ -260,11 +268,13 @@ its `kind` is `decline`, carries a `reason` from the closed set
 
 The container's **key path** is declared once, here: a record is held under the
 partition digest, then the wave index, then the task identifier — three keys,
-then a record. Every statement about the container's shape derives from this
-declaration rather than restating a nesting depth, because a restated depth is
-how the previous version of this section came to require two keys while the data
-model declared three, which classified every correctly shaped container as
-malformed and would have refused every valid wave exit.
+then a record. On disk, all three are JSON object-member names: the partition
+digest text, the wave index in decimal string form, and the task identifier
+text. Every statement about the container's shape derives from this declaration
+rather than restating a nesting depth, because a restated depth is how the
+previous version of this section came to require two keys while the data model
+declared three, which classified every correctly shaped container as malformed
+and would have refused every valid wave exit.
 
 A state is **well-formed** when `state.json` parses, `schedule_waves` read with
 its default is a list, and the receipts container is either absent or a mapping
@@ -273,13 +283,21 @@ empty mapping at any level is well-formed: it holds no records, which is not a
 defect. The predicate is total over every value any position can hold, so
 accounting never meets a shape it cannot classify.
 
+A state is **readable** when the cohort state read returns a state rather than
+refusing. Readability is not the same as the file parsing: a non-object JSON
+root parses and the read still refuses it, so a row worded around parsing would
+fire alongside the read-refusal row. Every row below the read-refusal row
+requires readability.
+
+A schema is **supported** when `schema_version` has the supported value.
+
 A **current wave** is well-formed when it is a list whose every element is a
-string. A pointer is **valid** when `current_wave_index` is a non-negative
-integer by the guard layer's existing validation, which rejects `bool`, and is
-less than the number of waves in the partition. Naming the shared preconditions
-once is deliberate: an earlier draft asserted that each row negated the rows
-above it without writing those negations, and two rows then covered the same
-state with opposite verdicts.
+string. A pointer is **valid** when `current_wave_index`, read as zero when the
+key is absent, is a non-negative integer by the guard layer's existing
+validation, which rejects `bool`, and is less than the number of waves in the
+partition. Naming the shared preconditions once is deliberate: an earlier draft
+asserted that each row negated the rows above it without writing those
+negations, and two rows then covered the same state with opposite verdicts.
 
 - [ ] The cohort state read refuses, for any reason in its own refusal
       vocabulary: exits non-zero and names that reason on stderr. The read
@@ -288,7 +306,8 @@ state with opposite verdicts.
       document over the size bound, and a non-finite number are each refusals,
       and a non-object root in particular *parses*, so a row worded around
       parsing alone would leave it satisfying no row at all.
-- [ ] `state.json` parses and its `schema_version` is not the supported value:
+- [ ] The state is readable and its `schema_version` is not the supported
+      value:
       exits zero and prints nothing to stdout or stderr. This row exists so the
       transition's verdict is *preserved* for that state class, not merely
       decided. Sharing `check --phase implement`'s exemption from schema
@@ -297,50 +316,55 @@ state with opposite verdicts.
       otherwise land on a refusing row below, on the shape of a field an
       unsupported schema leaves unspecified — which is the breakage this design
       exists to prevent.
-- [ ] `state.json` parses but the state is not well-formed:
+- [ ] The state is readable, the schema is supported but the state is not well-formed:
       exits non-zero and names the malformed field on stderr, rather than
       surfacing an exception type.
-- [ ] The state is well-formed and the partition is empty:
+- [ ] The state is readable, the schema is supported, the state is well-formed, and the partition is
+      empty:
       exits zero and prints nothing to stdout or stderr.
-- [ ] The state is well-formed, the partition is non-empty, and
+- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
+      non-empty, and
       the receipts container is absent: exits zero and names the absent
       container on stdout.
-- [ ] The state is well-formed, the partition is non-empty, the
-      container is present, and the pointer is not valid: exits non-zero and
-      names the invalid pointer on stderr.
-- [ ] The state is well-formed, the partition is non-empty, the
-      container is present, the pointer is valid, and the current wave is not
-      well-formed: exits non-zero and names the malformed wave on stderr.
-- [ ] The state is well-formed, the partition is non-empty, the
-      container is present, the pointer is valid, the current wave is
-      well-formed, and every task in the current wave is accounted for: exits
-      zero and prints nothing to stdout or stderr.
-- [ ] The state is well-formed, the partition is non-empty, the
-      container is present, the pointer is valid, the current wave is
-      well-formed, and at least one task in the current wave is not accounted
-      for: exits non-zero and names on stderr every such task, and no accounted
-      task, up to the guard layer's per-value interpolation bound — the tighter
-      of the two bounds in play, and therefore the one that truncates. Where it
-      truncates, the refusal states that the list is partial, and it cuts only
-      at an identifier boundary, so no fragment of an identifier is ever
-      presented as a task name.
+- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
+      non-empty, the container is present, and the pointer is not valid: exits
+      non-zero and names the invalid pointer on stderr.
+- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
+      non-empty, the container is present, the pointer is valid, and the
+      current wave is not well-formed: exits non-zero and names the malformed
+      wave on stderr.
+- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
+      non-empty, the container is present, the pointer is valid, the current
+      wave is well-formed, and every task in the current wave is accounted for:
+      exits zero and prints nothing to stdout or stderr.
+- [ ] The state is readable, the schema is supported, the state is well-formed, the partition is
+      non-empty, the container is present, the pointer is valid, the current
+      wave is well-formed, and at least one task in the current wave is not
+      accounted for: exits non-zero and names on stderr every such task, and no
+      accounted task, subject to the identifier-list property below.
+- [ ] Any state-derived list of identifiers in a refusal, from either the guard
+      or the verb, names identifiers up to the guard layer's per-value
+      interpolation bound — the tighter of the two bounds in play, and
+      therefore the one that truncates. Where it truncates, the refusal states
+      that the list is partial and cuts only at an identifier boundary, so no
+      fragment of an identifier is presented as a task name.
 - [ ] Every value the guard or the verb interpolates into a refusal — whether
       read from `state.json` or supplied as an argument — passes through the
       guard layer's existing length-bounding helper, so no refusal carries an
       unbounded value. `loop-cohort`'s own diagnostic helper neutralises control
       characters but applies no length bound.
-- [ ] No cohort state satisfies the preconditions of two of the eight rows
+- [ ] No cohort state satisfies the preconditions of two of the nine rows
       above.
-- [ ] No cohort state satisfies the preconditions of none of the eight rows
+- [ ] No cohort state satisfies the preconditions of none of the nine rows
       above.
-- [ ] Each of the eight rows above is satisfied by some cohort state.
+- [ ] Each of the nine rows above is satisfied by some cohort state.
 - [ ] The states the three criteria above are checked over are constructed by
       varying the outcome of the cohort state read across its refusal
-      vocabulary, and the type and value of `schedule_waves`, of its element at
-      the pointer, of the receipts container, of a record's `kind`, of
-      `schema_version`, and of `current_wave_index`. This list is the single
-      canonical enumeration of the axes; a task's `Tests` field cites it rather
-      than restating a subset.
+      vocabulary, and the presence, type, and value of `schedule_waves`, of its
+      element at the pointer, of the receipts container, of a record's `kind`
+      and `reason`, of `schema_version`, and of `current_wave_index`. This list
+      is the single canonical enumeration of the axes; a task's `Tests` field
+      cites it rather than restating a subset.
 - [ ] The container values in that domain are generated from the declared key
       path — a correctly nested instance built from the declaration, then
       mutated at each depth with each hostile value — rather than hand-built at
@@ -355,8 +379,9 @@ state with opposite verdicts.
 - [ ] `check --phase wave-exit` reaches the verdict table for a state whose
       `schema_version` is not the supported value, rather than refusing before
       the table, by sharing the exemption `check --phase implement` already has.
-- [ ] No state that `check --phase implement` exits zero on today causes the
-      `wave-complete` transition to exit non-zero after this change.
+- [ ] No state whose `schema_version` is not the supported value and for which
+      `check --phase implement` exits zero today causes the `wave-complete`
+      transition to exit non-zero after this change.
 - [ ] `check --phase review` and `check --phase gates-failed` still refuse a
       state whose `schema_version` is not the supported value.
 - [ ] `check --phase implement` returns the same exit code and the same streams
@@ -445,7 +470,8 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
   after-the-fact reader can find, because the read-only guard cannot write and a
   durable side effect on a transition is ADR-0061 Option B. `loop-cohort status`
   also refuses when `schema_version` is unsupported, so for the oldest state
-  class the guard tolerates, only the stdout notice remains.
+  class the guard tolerates, neither status nor the stdout notice survives; no
+  reporting channel remains.
 
 ## Assumptions
 
@@ -461,11 +487,17 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
   `packs/core/.apm/hooks/pre-pr.py` glob every `docs/specs/*/state.json` and run
   `loop-cohort check <spec-dir> --phase <phase>` for both `implement` and
   `review`, gating only `review` on the engine state and exiting non-zero on any
-  failure. So a refusal added to the `implement` phase becomes a push gate for
-  every spec directory in the repository. This is the reason for a separate
+  failure. Local `make pre-pr` reaches that hook through
+  `tools/catalogue/pre_pr_catalogue.py`; `tools/repo/build_gate_chain.py`
+  reaches the same helper as part of `build-check`, whose workflow runs on pull
+  requests to `main` and pushes to `main`. A refusal added to the `implement`
+  phase therefore gates local pre-PR checks and the always-run pull-request
+  build check for every spec directory. This is the reason for a separate
   phase, and it is a caller no grep for `--phase implement` finds, because the
   phase name reaches the argument list through a loop variable (source:
-  `tools/hooks/pre-pr.py`, probe 2026-09-17)
+  `tools/hooks/pre-pr.py`, `tools/catalogue/pre_pr_catalogue.py`,
+  `tools/repo/build_gate_chain.py`, and the `build-check` workflow, probe
+  2026-09-17)
 - Technical: `PHASES` is a three-element tuple in `loop-cohort.py` supplying
   `--phase`'s argparse choices, and no test pins it, so a fourth phase is
   additive (source: `PHASES` in `loop-cohort.py` and a search of the pack and
