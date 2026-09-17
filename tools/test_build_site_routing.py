@@ -2270,7 +2270,7 @@ def test_every_changelog_section_is_separated():
 
     Scoped to `docs/product/changelog.md`, at every heading level. The package
     changelogs under `packages/*/CHANGELOG.md` are peer artifacts under
-    CONVENTIONS.md § 5b and are deliberately not covered: their instances sit in
+    `docs/product/README.md` and are deliberately not covered: their instances sit in
     already-published release sections, which `tools/test_guide_typed_asides.py`
     treats as immutable history.
 

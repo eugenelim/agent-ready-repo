@@ -261,7 +261,8 @@ checklists; verification-mode awareness applies to every review that carries a v
    must be updated in the same PR. Otherwise it's drift, not done. *Semantic*
    drift (does the behavior match the contract?) is your judgment call — but
    four *metadata* invariants are concrete; check each by name (the contract
-   they measure against is pinned in `CONVENTIONS.md` § 4 Spec metadata
+   they measure against is pinned in the `new-spec` skill's
+   `references/spec-and-plan-contract.md` § Spec metadata
    contract):
    - (a) **Status flipped to match the change.** A PR that completes a spec
      moves its `- **Status:**` to `Shipped`; one that starts it moves to

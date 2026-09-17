@@ -6,7 +6,7 @@ installed lives in the operating system's trust store and not in the PEM file
 Python's OpenSSL reads.
 
   1. ``resolve_trust_paths`` / ``build_context`` — honour the trust-store
-     environment variables ``CONVENTIONS.md`` § Corporate-network requirements
+     environment variables the credentialed-skill contract § Corporate-network requirements
      mandates, for an adopter or IT department that already holds a bundle.
   2. ``system_anchor_pem`` — on macOS, export the *administrator* keychains so
      the fetch can recover without the adopter knowing what a PEM file is.

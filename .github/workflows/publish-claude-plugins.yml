@@ -48,8 +48,9 @@ name: Publish Claude plugin packages
 #
 # This comment is the operative statement of the trigger's reach. AC1 of
 # docs/specs/claude-plugins-publish-and-discover is frozen at the unfiltered
-# shape it verified, and a frozen body is not patched (docs/CONVENTIONS.md
-# rule 4).
+# shape it verified, and a frozen body is not patched -- see rule 4 of
+# `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`
+# section "Superseding a frozen document".
 #
 # Skips committing when content is byte-for-byte identical to the
 # previous publish; cancels in-flight runs when a newer push lands.

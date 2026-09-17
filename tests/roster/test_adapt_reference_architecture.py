@@ -1,7 +1,7 @@
 """Roster checks spanning core's reference-architecture assets and guides.
 
 Every pack subject is core's `adapt-to-project` skill — its
-`assets/reference.md` template, its SKILL.md, and the CONVENTIONS seed. The four
+`assets/reference.md` template, its SKILL.md, and the seeded docs map. The four
 guides are repository documentation; `guides/architect/` is a guide-tree path,
 not a dependency on the architect pack.
 
@@ -10,7 +10,7 @@ Covers, per the spec's Testing Strategy:
     carries the fill-only guidance, and is adopter-clean.
   - T3: the `adapt-to-project` SKILL.md documents the Class-3 optional
     reference-architecture enrichment, and that subsection is adopter-clean.
-  - T4: the CONVENTIONS seed seats `reference.md` in the document-hierarchy
+  - T4: the seeded docs map seats `reference.md` in the document-hierarchy
     diagram, and the lines this feature added are adopter-clean.
   - T5: the four user guides exist, every intra-repo relative link in them
     resolves on disk (file + anchor), the reference guide states all four
@@ -34,7 +34,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ADAPT_SKILL_DIR = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "adapt-to-project"
 TEMPLATE = ADAPT_SKILL_DIR / "assets" / "reference.md"
 SKILL = ADAPT_SKILL_DIR / "SKILL.md"
-CONVENTIONS_SEED = REPO_ROOT / "packs" / "core" / "seeds" / "docs" / "CONVENTIONS.md"
+DOCS_MAP_SEED = REPO_ROOT / "packs" / "core" / "seeds" / "docs" / "README.md"
 
 GUIDES_DIR = REPO_ROOT / "guides"
 GUIDES = {
@@ -156,64 +156,41 @@ def test_harvest_subsection_is_adopter_clean() -> None:
     _assert_adopter_clean(_harvest_subsection(), "adapt-to-project harvest subsection")
 
 
-# --- T4: CONVENTIONS diagram ---------------------------------------------
+# --- T4: the seeded docs map ---------------------------------------------
+#
+# This slice moved from the retired conventions document's § Document hierarchy
+# to `packs/core/seeds/docs/README.md`. The operative content is the
+# descriptive-versus-normative distinction between the two architecture
+# documents; the ASCII diagram that carried it was presentation, so the
+# row-alignment guard that policed the box went with it.
 
 
-def _conventions_added_block() -> str:
-    """The diagram node children + the descriptive/normative gloss this feature
-    added — the lines the adopter-clean grep must be scoped to (the document at
-    large legitimately names RFC/ADR/docs paths elsewhere)."""
-    body = CONVENTIONS_SEED.read_text(encoding="utf-8")
-    start_marker = "`/ARCHITECTURE.md`, when present, is the concise descriptive system model"
-    end_marker = "The bottom layers cite the upper layers"
+def _docs_map_architecture_gloss() -> str:
+    """The descriptive/normative gloss, scoped so the adopter-clean grep does
+    not see the rest of the map (which legitimately names docs paths)."""
+    body = DOCS_MAP_SEED.read_text(encoding="utf-8")
+    start_marker = "### Two architecture documents, two jobs"
+    end_marker = "## The three lifecycle classes"
     assert start_marker in body, (
-        f"CONVENTIONS gloss {start_marker!r} moved — update this slice"
+        f"docs-map gloss {start_marker!r} moved — update this slice"
     )
     start = body.index(start_marker)
     assert end_marker in body[start:], (
-        f"CONVENTIONS marker {end_marker!r} moved — update this slice"
+        f"docs-map marker {end_marker!r} moved — update this slice"
     )
-    end = body.index(end_marker, start)
-    return body[start:end]
+    return body[start : body.index(end_marker, start)]
 
 
-def test_conventions_seats_reference_md() -> None:
-    body = CONVENTIONS_SEED.read_text(encoding="utf-8")
-    assert "reference.md (golden" in body, "diagram does not seat reference.md"
-    assert "overview.md (map" in body, "diagram should enumerate overview.md too"
-    gloss = _conventions_added_block()
+def test_docs_map_seats_reference_md() -> None:
+    gloss = _docs_map_architecture_gloss()
+    assert "reference.md" in gloss, "the map does not seat reference.md"
+    assert "overview.md" in gloss, "the map should name overview.md too"
+    assert "golden path" in gloss, "reference.md is the golden path"
     assert "**normative**" in gloss and "**descriptive**" in gloss
 
 
-def test_conventions_added_block_is_adopter_clean() -> None:
-    _assert_adopter_clean(_conventions_added_block(), "CONVENTIONS diagram edit")
-
-
-def test_conventions_diagram_rows_aligned() -> None:
-    """The architecture/product double-box is fixed-width ASCII; the rows this
-    feature added are hand-aligned. Guard against a silent column break: every
-    row of the box (top border through bottom border) must be the same width.
-    """
-    lines = CONVENTIONS_SEED.read_text(encoding="utf-8").splitlines()
-    # The box top border is the line with two top-corners; bottom is two
-    # bottom-corners. The architecture/product boxes are the first such pair.
-    top = next(
-        i for i, ln in enumerate(lines)
-        if ln.startswith("   ┌") and ln.count("┐") == 2
-    )
-    bottom = next(
-        i for i, ln in enumerate(lines[top:], start=top)
-        if ln.startswith("   └") and ln.count("┘") == 2
-    )
-    box_rows = lines[top : bottom + 1]
-    widths = {len(r) for r in box_rows}
-    assert len(widths) == 1, (
-        "architecture/product diagram rows are not equal width — a box column "
-        f"broke: row widths seen = {sorted(widths)}"
-    )
-
-
-# --- T5: user guides ------------------------------------------------------
+def test_docs_map_gloss_is_adopter_clean() -> None:
+    _assert_adopter_clean(_docs_map_architecture_gloss(), "docs-map gloss")
 
 
 def test_four_guides_exist() -> None:

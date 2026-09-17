@@ -168,7 +168,11 @@ allowed-scopes = {scopes}{allowed_adapters}
                 "AGENTS.md": "# Fixture agents\n",
                 ".gitignore": ".agentbundle-state.toml\n",
                 "docs/CHARTER.md": "# Fixture charter\n",
-                "docs/CONVENTIONS.md": "# Fixture conventions\n",
+                # The third tier-1 prose seed core ships. Synthetic, like its
+                # siblings: this catalogue is built here rather than read from
+                # `packs/`, so the fixture must gain a seed whenever the real
+                # pack does or a dry-run assertion over the tier-1 set fails.
+                "docs/README.md": "# Fixture docs map\n",
             }.items():
                 seed = pack / "seeds" / relative
                 seed.parent.mkdir(parents=True, exist_ok=True)

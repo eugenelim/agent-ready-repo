@@ -6,7 +6,7 @@
       "owner": "adapt-doctor",
       "evidence": "explicit",
       "outcome": "preserve-links",
-      "prompt": "Diagnose a repository whose root AGENTS.md links docs/architecture/ and docs/CONVENTIONS.md. Do not write changes.",
+      "prompt": "Diagnose a repository whose root AGENTS.md links docs/architecture/ and AGENTS.md. Do not write changes.",
       "expected_output": "Report both existing links as Explicit repository anchors in their current locations. Recommend no relocation and make no write. Offer a core location only for a concern that has no equivalent source.",
       "assertions": ["Preserves the existing paths", "Labels documented links Explicit", "Makes no write", "Does not require a pack-specific relocation"]
     },
@@ -16,7 +16,7 @@
       "evidence": "explicit",
       "outcome": "preserve-links",
       "prompt": "Diagnose a repository whose architecture is DESIGN.md and whose coding workflow is in engineering/playbook.md.",
-      "expected_output": "Keep DESIGN.md and engineering/playbook.md as the adopter-owned sources, label them Explicit when their contents support the concern, and propose links rather than copies. Do not create docs/architecture/reference.md or docs/CONVENTIONS.md merely for conformity.",
+      "expected_output": "Keep DESIGN.md and engineering/playbook.md as the adopter-owned sources, label them Explicit when their contents support the concern, and propose links rather than copies. Do not create docs/architecture/reference.md or AGENTS.md merely for conformity.",
       "assertions": ["Accepts custom filenames", "Preserves adopter terminology", "Links instead of copying", "Rejects mandatory core locations"]
     },
     {

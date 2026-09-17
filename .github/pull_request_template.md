@@ -37,7 +37,7 @@ paragraph why this PR doesn't need one.
 - [ ] Living docs match reality:
   - [ ] `docs/product/changelog.md` updated if this bumps a released artifact's
         version — a pack or a published package (repository tooling that ships in
-        no release needs no entry; see `docs/CONVENTIONS.md` § 5b)
+        no release needs no entry; see `docs/product/README.md`)
   - [ ] `guides/` updated if user-facing behavior, config, or interfaces changed (right Diátaxis bucket — see [`guides/README.md`](../guides/README.md))
   - [ ] `docs/architecture/` updated if code structure changed materially
   - [ ] `docs/product/roadmap.md` updated if this completes a roadmap item

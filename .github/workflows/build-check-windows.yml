@@ -12,7 +12,7 @@ name: build-check-windows
 #
 # What `paths-ignore: docs/**` skips: the per-instance governance docs
 # (RFCs, specs/plans, ADRs, guides) and the projected doc copies
-# (CHARTER/CONVENTIONS/product/architecture). None of those change how
+# (CHARTER/docs-map/product/architecture). None of those change how
 # the Python build/lint/test scripts behave on Windows. Source edits to
 # skills, agents, and seeds live under `packs/` — not `docs/` — so they
 # still trigger this job. And the Linux `make build-check` job remains

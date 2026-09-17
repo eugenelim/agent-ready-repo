@@ -345,7 +345,7 @@ def test_foundation_pins_hold_the_shipped_cases() -> None:
 
     This equality cannot by itself detect an unrecorded re-take -- the naming
     record is that control, and it lives in the owning slice's
-    `notes/verification-ledger.md`, which `docs/CONVENTIONS.md` assigns as the
+    `notes/verification-ledger.md`, which the docs map assigns as the
     home for an execution-produced observation. A maintainer auditing a pin
     change reads that ledger for each moved pin's prior and current value and
     for any recorded caveat about the instrument that measured it. An earlier

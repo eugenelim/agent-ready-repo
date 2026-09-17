@@ -35,9 +35,11 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib.util
 import io
 import os
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -140,17 +142,122 @@ def _scan_for_leaks(output_root: Path, projected_paths: list[str]) -> list[str]:
     return violations
 
 
-def _scan_for_missing_relative_links(path: Path) -> list[str]:
-    """Return repository-relative Markdown links whose targets are absent."""
-    violations: list[str] = []
-    content = path.read_text(encoding="utf-8")
-    for lineno, line in enumerate(content.splitlines(), start=1):
+# Out-of-scaffold link targets the core seed tree carried before this change:
+# core's seeds mandate records and guides that core does not itself install.
+# Logged as `core-seeds-mandate-other-packs-content` in `[backlog].open` and
+# deliberately not repaired here.
+#
+# Keyed by (scaffold page, target), not by target alone. A target-wide set
+# exempts the same string on a page that never carried it, so a newly added
+# `[guide](../guides/)` anywhere in the domain would be silently allowed —
+# the deferral covers the occurrences that already existed, nothing more.
+# `docs/README.md` carries no Markdown links at all and so appears nowhere
+# here. It was listed once, in error: the pre-repair diagnostic printed only
+# `path.name`, so violations from `docs/product/README.md` read as a bare
+# `README.md:` and were attributed to the wrong page. The diagnostic now
+# prints the scaffold-relative path, and the guard below fails a dead entry.
+DEFERRED_MISSING_LINKS = frozenset(
+    {
+        ("docs/product/README.md", "personas.md"),
+        ("docs/product/README.md", "release-checklist.md"),
+        ("docs/product/README.md", "../adr/"),
+        ("docs/product/README.md", "../rfc/"),
+        ("docs/product/README.md", "../guides/"),
+        ("docs/CHARTER.md", "adr/"),
+        ("docs/CHARTER.md", "GOVERNANCE.md"),
+        ("docs/architecture/README.md", "../adr/"),
+        ("docs/architecture/README.md", "../rfc/"),
+    }
+)
+
+
+def _inert_masked(text: str) -> str:
+    """The guard module's inert-span scanner, loaded under an explicit name.
+
+    Imported rather than re-implemented. A second copy of the construct
+    precedence is how the two drift, and getting it right took three attempts.
+    The unique module name follows this repository's rule against binding a
+    test helper by bare name.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "roster_conventions_retirement_guard",
+        Path(__file__).resolve().parent / "test_conventions_retirement.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = sys.modules.get(spec.name)
+    if module is None:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+    return str(module._inert_masked(text))
+
+
+def _operative_lines(path: Path) -> list[tuple[int, str]]:
+    """Return `(lineno, line)` with inert spans blanked, line numbers intact.
+
+    A link inside inline code, an HTML comment or a fenced sample is not one an
+    adopter can follow. Both the violation scan and the dead-entry guard read
+    this, so a spelling that survives only inside a fence cannot keep a
+    deferral alive while the violation half stays suppressed.
+
+    The scanner is the guard module's, imported rather than re-implemented: a
+    second copy of this logic is how the two drift, and it took three attempts
+    to get the construct precedence right the first time.
+    """
+    masked = _inert_masked(path.read_text(encoding="utf-8"))
+    return list(enumerate(masked.splitlines(), start=1))
+
+
+def _unresolved(path: Path, target: str, output_root: Path) -> bool:
+    """Whether `target` fails to resolve to a real file inside the scaffold.
+
+    Existence alone is not enough. A target with enough `..` segments leaves
+    the scaffold written under a pytest temp directory and lands on a path that
+    does exist, so the link passes while an adopter cannot follow it. The
+    scaffold root is the boundary the test's contract names.
+    """
+    resolved = (path.parent / target).resolve()
+    root = output_root.resolve()
+    if resolved != root and root not in resolved.parents:
+        return True
+    return not resolved.exists()
+
+
+def _missing_relative_targets(path: Path, output_root: Path) -> set[str]:
+    """Return every relative link target on the page that does not resolve.
+
+    Deferral-blind on purpose: the caller applies exceptions, and the dead-entry
+    guard needs the unfiltered set to tell a live exemption from a stale one.
+    """
+    missing: set[str] = set()
+    for _, line in _operative_lines(path):
         for raw_target in MARKDOWN_LINK_RE.findall(line):
             target = raw_target.split("#", 1)[0]
             if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
                 continue
-            if not (path.parent / target).exists():
-                violations.append(f"{path.name}:{lineno}: missing link target {target!r}")
+            if _unresolved(path, target, output_root):
+                missing.add(target)
+    return missing
+
+
+def _scan_for_missing_relative_links(
+    path: Path, relative: str, output_root: Path
+) -> list[str]:
+    """Return repository-relative Markdown links whose targets are absent.
+
+    `relative` is the page's scaffold-relative path, which keys its deferred
+    exceptions; `path` is where that page was written for this run.
+    """
+    violations: list[str] = []
+    for lineno, line in _operative_lines(path):
+        for raw_target in MARKDOWN_LINK_RE.findall(line):
+            target = raw_target.split("#", 1)[0]
+            if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
+                continue
+            if (relative, target) in DEFERRED_MISSING_LINKS:
+                continue
+            if _unresolved(path, target, output_root):
+                violations.append(f"{relative}:{lineno}: missing link target {target!r}")
     return violations
 
 
@@ -196,18 +303,62 @@ def test_first_install_snapshot(pack_name: str, tmp_path: Path) -> None:
     )
 
 
-def test_core_conventions_relative_links_resolve_after_scaffold(tmp_path: Path) -> None:
-    """Core conventions links resolve inside the adopter's scaffold."""
-    output_root = _scaffold_pack("core", tmp_path)
-    conventions = output_root / "docs" / "CONVENTIONS.md"
-    content = conventions.read_text(encoding="utf-8")
+def test_scaffold_markdown_relative_links_resolve(tmp_path: Path) -> None:
+    """Every link this change adds or edits resolves inside the scaffold.
 
-    violations = _scan_for_missing_relative_links(conventions)
+    Was scoped to one named seed, which this change retires. Deleting the test
+    with it would have removed the only relative-link check over the adopter
+    scaffold, so it scans each scaffold page this retirement edits.
+
+    The domain is the edited pages rather than every scaffold page: the seed tree
+    already carries out-of-scaffold links to `adr/`, `rfc/`, `guides/`,
+    `GOVERNANCE.md`, `personas.md` and `release-checklist.md` that predate this
+    change and are logged as `core-seeds-mandate-other-packs-content` in
+    `[backlog].open`. Round 9 found two edited pages missing from the tuple.
+    """
+    output_root = _scaffold_pack("core", tmp_path)
+    touched = (
+        "docs/README.md",
+        "AGENTS.md",
+        "docs/specs/README.md",
+        "docs/product/README.md",
+        "docs/CHARTER.md",
+        "docs/architecture/README.md",
+    )
+
+    violations: list[str] = []
+    for relative in touched:
+        page = output_root / relative
+        assert page.is_file(), f"scaffold is missing {relative}"
+        violations.extend(
+            _scan_for_missing_relative_links(page, relative, output_root)
+        )
 
     assert not violations, (
-        "Core conventions contain links unavailable to adopters:\n  " + "\n  ".join(violations)
+        "scaffold pages contain links unavailable to adopters:\n  " + "\n  ".join(violations)
     )
+    # A deferral covers occurrences that exist. An entry matching nothing is
+    # either stale or was recorded against the wrong page, and either way it
+    # silently widens the exemption for whatever is added later.
+    deferred_pages = {page for page, _ in DEFERRED_MISSING_LINKS}
+    assert deferred_pages <= set(touched), (
+        "a deferral names a page this test does not scan, so it can never be "
+        f"shown dead: {sorted(deferred_pages - set(touched))}"
+    )
+    live = {
+        (relative, target)
+        for relative in touched
+        for target in _missing_relative_targets(output_root / relative, output_root)
+    }
+    dead = sorted(pair for pair in DEFERRED_MISSING_LINKS if pair not in live)
+    assert not dead, (
+        "deferred link exceptions matching no occurrence on a scanned page:\n  "
+        + "\n  ".join(f"{page} -> {target!r}" for page, target in dead)
+    )
+
     for citation in ("ADR-0003", "RFC-0013"):
-        assert citation not in content, (
-            f"Core conventions contain catalogue-only citation {citation!r}"
-        )
+        for relative in touched:
+            content = (output_root / relative).read_text(encoding="utf-8")
+            assert citation not in content, (
+                f"{relative} contains catalogue-only citation {citation!r}"
+            )

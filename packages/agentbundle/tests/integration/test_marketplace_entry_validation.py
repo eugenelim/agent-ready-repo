@@ -1,6 +1,6 @@
 """Red stubs for spec/claude-plugins-manifest-correctness.
 
-Materialised at PLAN per docs/CONVENTIONS.md § Stub → EXECUTE handoff. Every
+Materialised at PLAN per the spec-and-plan contract reference § Stub → EXECUTE handoff. Every
 test here asserts a contract surface the spec's Acceptance Criteria determine;
 none is a bare TODO. They are expected to FAIL until their task lands.
 

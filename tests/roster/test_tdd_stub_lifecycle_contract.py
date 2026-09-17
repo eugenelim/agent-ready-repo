@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[2]
 NEW_SPEC = ROOT / "packs/core/.apm/skills/new-spec/SKILL.md"
 WORK_LOOP = ROOT / "packs/core/.apm/skills/work-loop/SKILL.md"
 TDD_STUBS = ROOT / "packs/core/.apm/skills/work-loop/references/tdd-stubs.md"
-CONVENTIONS = ROOT / "packs/core/seeds/docs/CONVENTIONS.md"
 RFC_0028 = ROOT / "docs/rfc/0028-tdd-stub-generation-in-the-core-loop.md"
 RFC_INDEX = ROOT / "docs/rfc/README.md"
 RFC_0028_ACCEPTED_BODY_SHA256 = "dee31e8a9d9ed998fae31d2c2783475613e5689bbe94895b992f632a8eaa8b47"
@@ -70,10 +69,14 @@ def test_spec_authoring_and_plan_do_not_write_repository_tests() -> None:
         "one stub **file per plan task**",
         "red stub written now",
         "usually the red test is then already written",
-        "red stub materialised at PLAN per CONVENTIONS",
-        "materialised at PLAN per CONVENTIONS",
+        "red stub materialised at PLAN per the spec-and-plan contract",
+        "materialised at PLAN per the spec-and-plan contract",
     )
-    live_sources = (new_spec, work_loop, _text(TDD_STUBS), _text(CONVENTIONS))
+    # AC9: a negative assertion over a source that no longer exists passes
+    # vacuously, so every member is proved present before it is read.
+    for named in (NEW_SPEC, WORK_LOOP, TDD_STUBS, *LIVE_PLAN_TIME_SOURCES):
+        assert named.is_file(), f"live plan-time source missing: {named}"
+    live_sources = (new_spec, work_loop, _text(TDD_STUBS))
     live_sources += tuple(_text(path) for path in LIVE_PLAN_TIME_SOURCES)
     for source in live_sources:
         normalized_source = source.lower()
@@ -120,8 +123,9 @@ def test_tdd_reference_owns_both_lifecycle_branches_and_exceptions() -> None:
 def test_convention_architecture_and_guides_share_the_phase_boundary() -> None:
     """Maintainer and adopter surfaces teach the same commit-safe sequence."""
 
-    # STUB: AC6
-    convention = _text(CONVENTIONS)
+    # STUB: AC6. The maintainer surface was the retired conventions document;
+    # the work-loop SKILL is what teaches this sequence now.
+    convention = _text(WORK_LOOP)
     architecture = _text(ARCHITECTURE)
     how_to = _text(HOW_TO)
     explanation = _text(EXPLANATION)

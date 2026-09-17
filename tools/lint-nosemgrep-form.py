@@ -15,7 +15,7 @@ recognised source suffix from becoming a fail-open gap.
 Cost, measured 2026-08-31 on darwin 25.5.0 / Python 3.13.13: 3.56 s over ~2,700
 files, one bounded pass, zero ignore queries. Recorded here rather than in
 `docs/specs/lint-performance-p0/notes/lint-inventory.md`, which is a frozen
-dated capture: `docs/CONVENTIONS.md` rule 4 keeps the operative figure in a
+dated capture: the operative figure stays in a
 Living file at the point of use instead of patching the historical record.
 """
 

@@ -853,15 +853,19 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertTrue(_is_excluded(Path("tests/future-owner/probe.txt")))
         self.assertFalse(_is_excluded(Path("tests.md")))
 
-    def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
+    def test_post_2026_05_25_shrink_left_the_override_list_empty(self) -> None:
         """Per the 2026-05-25 amendment: PROJECTED_README_OVERRIDES
-        shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
-        Every other formerly-overridden path now falls through to
-        EXCLUDED_PATTERNS coverage."""
-        from agentbundle.build.self_host import _is_excluded
+        shrank from 20 to 1 entry, and retiring that entry emptied it.
+        Every formerly-overridden path now falls through to
+        EXCLUDED_PATTERNS coverage, with no exception."""
+        from agentbundle.build.self_host import (
+            PROJECTED_README_OVERRIDES,
+            _is_excluded,
+        )
 
-        # docs/CONVENTIONS.md stays in the override → not excluded.
-        self.assertFalse(_is_excluded(Path("docs/CONVENTIONS.md")))
+        # The allow-list is empty, so nothing is re-included past an
+        # excluded pattern: classification comes from EXCLUDED_PATTERNS alone.
+        self.assertEqual(PROJECTED_README_OVERRIDES, ())
 
         # All 19 reclassified paths are now Excluded (either via
         # existing `docs/<area>/*.md` patterns, the `guides/**/*.md`

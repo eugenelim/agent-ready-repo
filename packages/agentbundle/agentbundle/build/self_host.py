@@ -644,6 +644,11 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # Manual seed-projected root path (amendment 2026-05-25). The subtree
     # patterns above cover the other reclassified documentation paths.
     "docs/CHARTER.md",
+    # Seeded once, then repository-owned — same shape as CHARTER.md. The seed is
+    # a template whose map carries a placeholder row; a real repository's map
+    # names its own areas, including ones no pack seeds. Projecting the seed over
+    # it would overwrite that with the template on every build.
+    "docs/README.md",
     "README.md",  # root-level; nested README.md not excluded
     "CONTRIBUTING.md",
     "LICENSE-*",
@@ -724,14 +729,12 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # Hardcoded "Projected README" allow-list — paths classified as
 # *Projected* even when EXCLUDED_PATTERNS would otherwise catch them.
 #
-# The 2026-05-25 amendment reclassified 19 paths Projected
-# → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
-# accordingly. The reclassified paths now fall through to
-# EXCLUDED_PATTERNS coverage (the repository-owned documentation and package
-# subtrees plus their root-file entries above).
-PROJECTED_README_OVERRIDES: tuple[str, ...] = (
-    "docs/CONVENTIONS.md",
-)
+# The 2026-05-25 amendment reclassified 19 paths Projected → Manual, leaving
+# one entry. Retiring the conventions document removed it, so the allow-list is now
+# empty: every path's classification comes from EXCLUDED_PATTERNS alone, with no
+# exception. Keep the tuple rather than deleting it — a future Projected path
+# that an excluded pattern would otherwise catch belongs here.
+PROJECTED_README_OVERRIDES: tuple[str, ...] = ()
 
 
 def _is_excluded(relative: Path) -> bool:
@@ -789,7 +792,7 @@ def _project_seeds(
             # the Phase-2 composite-agents-md recipe consumes them
             # by reading `packs/core/seeds/_agents-footer.md`
             # directly. Skip standalone projection. Convention
-            # documented in docs/CONVENTIONS.md § Pack source-of-truth
+            # documented in ``docs/architecture/pack-layout.md`` § The source-of-truth split.
             # split.
             if src.name.startswith("_"):
                 continue

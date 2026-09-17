@@ -321,7 +321,7 @@ def _topmost_changelog_version(artifact: str) -> str:
     """Return an artifact's version from the newest release heading naming it.
 
     A release heading may cover several artifacts at once — `## [core][2.15.2]
-    / [governance-extras][0.10.2] / ... — <date>`. `docs/CONVENTIONS.md:701-703`
+    / [governance-extras][0.10.2] / ... — <date>`. the product README's changelog rule
     makes that the format ("one section per release, naming every artifact that
     release covers") and nine shipped headings use it, two of them combining
     packs this slice releases. Since this slice releases three packs in one PR,

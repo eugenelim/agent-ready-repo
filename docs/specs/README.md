@@ -1,7 +1,7 @@
 # Specs
 
 > Feature specifications and implementation plans. See
-> [`../CONVENTIONS.md`](../CONVENTIONS.md#4-specs-and-plans--docsspecsfeature)
+> § Spec and plan below
 > for the spec / plan distinction and lifecycle.
 
 Work that needs a durable delivery contract gets a directory:
@@ -38,3 +38,21 @@ cp "$SKILL/assets/plan.md" docs/specs/<feature-name>/plan.md
 ```
 
 Or invoke the `new-spec` skill by name in your agent.
+
+## Spec and plan
+
+`spec.md` is the contract: what the feature does, its boundaries, its testing
+strategy, and the acceptance criteria that close it. `plan.md` is the strategy:
+how it gets built, in tasks, with the construction tests designed up front.
+
+A spec's status moves `Draft` → `Approved` → `Implementing` → `Shipped`, and may
+end `Archived`. A plan's moves `Drafting` → `Approved` → `Executing` → `Done`.
+The two vocabularies are separate: plan words in a spec, or spec words in a
+plan, are a mistake a status lint can catch.
+
+A shipped spec freezes. Correct it by superseding it, not by editing the body,
+and record the erratum where the original cites it.
+
+`workspace.toml` is a lifecycle index over these directories, not a second
+requirements store. What a spec obliges lives in the spec; the index carries a
+pointer, its status, and its hard dependencies.

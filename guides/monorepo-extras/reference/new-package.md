@@ -68,7 +68,7 @@ A human-facing package README with four sections:
 - **Install** — a fenced block for the package manager's install command.
 - **Usage** — one realistic example, not a full API reference.
 - **API reference** — a pointer to generated docs or a `docs/` subpage, not a duplicated dump.
-- **Contributing** — links to the repository-root `AGENTS.md` and `docs/CONVENTIONS.md`, plus the package's own `AGENTS.md` for any package-specific rules.
+- **Contributing** — links to the repository-root `AGENTS.md`, plus the package's own `AGENTS.md` for any package-specific rules.
 
 ### `packages/_example/AGENTS.md`
 

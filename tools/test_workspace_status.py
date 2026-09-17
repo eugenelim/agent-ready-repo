@@ -1530,7 +1530,7 @@ _WORK_LOOP_CONTRACT_HASH = (
 # (3) That same rewrite initially dropped the spec-vocabulary parenthetical it
 # inherited from `main`; it is restored here, scoped to `spec.md`, because the
 # `lint-spec-status.py` failure warning has no other home —
-# `docs/CONVENTIONS.md` owns the vocabularies but not that warning.
+# the spec-and-plan contract reference owns the vocabularies but not that warning.
 # (4) The Direct-light handoff bullet inside the same window now reads
 # "non-goals and independently scoped follow-ons" instead of "non-goals and
 # deferrals" — this wave's AC3 wording, pinned by
@@ -1588,8 +1588,21 @@ _WORK_LOOP_CONTRACT_HASH = (
 # `Status: Shipped`, workspace-status still owns workspace.toml
 # queue/active/shipped. The status vocabulary, the deferral-anchor
 # requirement, and the invariants the bullet lists are all untouched.
+#
+# Re-pinned 2026-09-16 for the conventions retirement, which added one bullet:
+# a shipped feature's user-facing documentation is updated, routed to the guides
+# by Diataxis quadrant. This is the phase-slice doctrine the retired conventions
+# document used to carry, re-homed to the checklist that already owns finish-time
+# obligations. Reviewed as the pin requires, and the engine needs no edit: the
+# bullet writes no spec.md field, mutates no workspace.toml array, and adds no
+# invariant the engine evaluates - it obliges the author to update guides.
+# Ownership is unchanged, as the engine states at its own boundary comment
+# ("Its finish checklist only sets spec.md Status: Shipped"): work-loop still
+# writes spec.md `Status: Shipped`, workspace-status still owns workspace.toml
+# queue/active/shipped. The status vocabulary, the deferral-anchor requirement,
+# and the doc-drift bullet's listed invariants are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "56bbfebd0e5a273d7ddbf867f7c019e70040ae0177c878e463ffc87c6cfc72a0"
+    "e50bf962cff0c57bb3282161348ba7a01428380db0c9f8271709a4114522cbe5"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

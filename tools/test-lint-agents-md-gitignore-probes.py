@@ -161,7 +161,7 @@ def main() -> int:
             "drift-watch: 'docs/specs/example/state.json' should be gitignored "
             "(session-scratch — see "
             ".claude/skills/work-loop/references/state-schema.md, "
-            "CONVENTIONS.md#supervisor-mode)."
+            "work-loop/references/supervisor-mode.md)."
         )
         wording = subprocess.run(
             [sys.executable, str(LINTER)], cwd=str(sandbox),

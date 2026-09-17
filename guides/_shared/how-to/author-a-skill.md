@@ -11,7 +11,7 @@ kind: how-to
 **Prerequisites:** A skill directory under `packs/<pack>/.apm/skills/<name>/` with a `SKILL.md`; see "Before you start".
 **Result:** A lint-clean, catalogue-standard skill with correct frontmatter, body structure, dependency handling, and evaluation fixtures.
 
-This guide collects the standards every skill in this catalogue follows — the bundled packs and the skills you author in your own pack alike. Some standards are checked by lint (called out inline, with the linter as the authority); the rest are reviewer-enforced. It assumes you already know what a skill is and when to add one ([`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md) § Skills: you've done the same multi-step thing three times, and you're not adding one speculatively).
+This guide collects the standards every skill in this catalogue follows — the bundled packs and the skills you author in your own pack alike. Some standards are checked by lint (called out inline, with the linter as the authority); the rest are reviewer-enforced. It assumes you already know what a skill is and when to add one ([§ When a skill earns its place](#when-a-skill-earns-its-place): you've done the same multi-step thing three times, and you're not adding one speculatively).
 
 If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills.
 
@@ -33,7 +33,7 @@ Don't memorize the exact rules from this page — run the linter, which is the s
 agentbundle catalogue lint --root . --deep
 ```
 
-It checks the key whitelist, description syntax, `allowed-tools` shape, `evals/`, and the projected copy. (The CONVENTIONS rule applies: the linter does the style job better than prose can.)
+It checks the key whitelist, description syntax, `allowed-tools` shape, `evals/`, and the projected copy. (The catalogue rule applies: the linter does the style job better than prose can.)
 
 ## Body structure
 
@@ -424,4 +424,15 @@ Full reference and CLI equivalents: [`guides/_shared/reference/pack-config-api.m
 - [Skill UX patterns](../reference/skill-ux-patterns.md) — craft rules: column alignment, truncation, command bar, delete-gate box.
 - [Skill script conventions](../reference/skill-script-conventions.md) — flag conventions, docblocks, shared-libs, pack-config API.
 - [`mermaid-renderer`](../../../packs/converters/.apm/skills/mermaid-renderer) — the Tier-1 reference: `## Prerequisites` + a `shutil.which` `--check` verb + an explicit "don't auto-install" rule.
-- [`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md) § Skills — when to add a skill at all (the three-times rule).
+- [§ When a skill earns its place](#when-a-skill-earns-its-place) — when to add a skill at all (the three-times rule).
+
+## When a skill earns its place
+
+Skills are workflows agents invoke for repeating tasks: scaffolding a package,
+opening an ADR, running a release. They live in the adapter's skills directory as
+`<name>/SKILL.md`.
+
+Add a skill when you've done the same multi-step thing three times. Don't add
+one speculatively — speculative skills bloat context and degrade adherence.
+
+The skill index is generated at the bottom of `AGENTS.md`.

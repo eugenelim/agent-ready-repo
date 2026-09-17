@@ -14,7 +14,12 @@ def test_new_spec_consumes_mapped_sources_before_name_based_fallback() -> None:
     assert "When no usable map exists" in text
     assert "common names and repository references" in text
     assert "docs/architecture/reference.md" not in text
-    assert "docs/CONVENTIONS.md" not in text
+    # The retired conventions document had a negative here too: the skill must
+    # route through the repository map rather than hardcode one document. That
+    # document no longer exists, so the negative is unneeded rather than
+    # re-pointable — and re-pointing it at `AGENTS.md` contradicted the first
+    # assertion above, which requires that exact name. The hardcoded-path class
+    # is still covered by the line above.
 
 
 def test_new_spec_bounds_structural_example_discovery_and_asks_on_absence() -> None:

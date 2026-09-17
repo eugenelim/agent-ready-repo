@@ -1,6 +1,6 @@
 """`--insecure` must disclose itself on stderr, on both auth paths.
 
-`docs/CONVENTIONS.md` § *Five anti-patterns rejected by name* requires
+The credentialed-skill contract § Anti-pattern register requires
 ``--insecure`` to be opt-in and to "emit a stderr warning". This CLI was silent.
 
 The two paths carry **different** messages, and the difference is the point:

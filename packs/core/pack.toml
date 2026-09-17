@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "2.26.10"
+version = "2.26.11"
 
 description = "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 readme = "README.md"
@@ -19,7 +19,7 @@ lint-seeds = true
 # The four shipped packs all declare the same shape so the catalogue's
 # published packs and the CLI release land in lockstep. core is
 # repo-only by content — it ships hooks (Rail B would refuse user
-# scope) and AGENTS.md / CONVENTIONS seeds that reference this
+# scope) and AGENTS.md / docs-map seeds that reference this
 # project's vocabulary by name (the falsifiable user-scope test fails).
 # Copilot is a full-parity adapter: it projects core's subagents
 # (`.github/agents/`) + hook-wiring (`.github/hooks/`); only `command` stays

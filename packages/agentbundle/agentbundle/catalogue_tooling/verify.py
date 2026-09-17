@@ -1092,7 +1092,7 @@ def _step_agent_artifacts(
         model = fields.get("model")
         if model is None or model == "":
             _report(path, "frontmatter missing required key: model "
-                         "(see docs/CONVENTIONS.md#model-selection)")
+                         "(see the work-loop skill's references/model-selection.md)")
         elif not isinstance(model, str):
             _report(path, f"frontmatter key 'model' must be a string "
                          f"(got {type(model).__name__}) — "

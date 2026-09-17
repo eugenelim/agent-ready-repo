@@ -55,15 +55,15 @@ def test_classify_seeds_differs(tmp_path):
     """Seed differs on disk → action == 'companion' with correct companion_relpath."""
     from agentbundle.commands._common import _classify_seeds
 
-    seeds = _mk_seeds_dir(tmp_path, {"docs/CONVENTIONS.md": b"new content"})
+    seeds = _mk_seeds_dir(tmp_path, {"docs/README.md": b"new content"})
     root = tmp_path / "root"
     (root / "docs").mkdir(parents=True)
-    (root / "docs" / "CONVENTIONS.md").write_bytes(b"old content")
+    (root / "docs" / "README.md").write_bytes(b"old content")
 
     results = _classify_seeds(seeds, root)
     assert len(results) == 1
     assert results[0].action == "companion"
-    assert results[0].companion_relpath == "docs/CONVENTIONS.upstream.md"
+    assert results[0].companion_relpath == "docs/README.upstream.md"
 
 
 def test_classify_seeds_agents_md_composition(tmp_path):

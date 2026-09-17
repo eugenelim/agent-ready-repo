@@ -1,5 +1,6 @@
 """T10 (credential-broker-contract): documentation surface presence
-checks for the governance surface (ADR, CONVENTIONS, backlog, guide, sibling
+checks for the governance surface (ADR, the credentialed-skill contract,
+backlog, guide, sibling
 spec amendments).
 """
 
@@ -30,14 +31,17 @@ def test_ac40_adr_exists():
 
 
 def test_ac41_conventions_credentialed_section_names_brokers():
-    """CONVENTIONS § Credentialed skills names the four
+    """The credentialed-skill contract names the four
     brokers and `metadata.auth`."""
-    conventions = (REPO_ROOT / "docs" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    contract = (
+        REPO_ROOT / "guides" / "credential-brokers" / "how-to"
+        / "add-a-credentialed-skill.md"
+    ).read_text(encoding="utf-8")
     # Locate the Credentialed skills section.
-    start = conventions.find("## Credentialed skills")
-    assert start > 0, "CONVENTIONS.md missing § Credentialed skills"
-    end = conventions.find("\n## ", start + 1)
-    section = conventions[start:end] if end > 0 else conventions[start:]
+    start = contract.find("## The credentialed-skill contract")
+    assert start > 0, "the how-to is missing § The credentialed-skill contract"
+    end = contract.find("\n## ", start + 1)
+    section = contract[start:end] if end > 0 else contract[start:]
     assert "metadata.auth" in section
     for broker in ("env", "cli", "creds", "sso-cookie"):
         assert f"`{broker}`" in section, f"section missing broker id {broker!r}"

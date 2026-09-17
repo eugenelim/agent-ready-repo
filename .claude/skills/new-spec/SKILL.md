@@ -327,7 +327,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      (`graphql`), a standalone schema (`jsonschema`), … The type drives
      everything below. Confirm with the user — it's a judgment, not a flag.
    - **Locate or create** the contract at its type's conventional path
-     `contracts/<type>/<domain>.<ext>` (CONVENTIONS § 4 *Contracts*;
+     `contracts/<type>/<domain>.<ext>` (`references/spec-and-plan-contract.md` § Contracts;
      [`references/contract-types.md`](references/contract-types.md) maps every
      type to its location) — a new file for a new interface, the existing file
      when this spec modifies a known one. The **location convention is the
@@ -347,7 +347,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    - **Link it (both ways).** Fill the spec's `- **Contract:**` header with the
      contract file(s) this spec defines or touches, and add the backward pointer
      in the contract (an `x-spec` extension, or a `contracts/REGISTRY.md` row for
-     extensionless formats) — CONVENTIONS § 4 *Contracts*.
+     extensionless formats) — `references/spec-and-plan-contract.md` § Contracts.
    - **Point the plan at it.** The plan's construction tests reference the
      contract as the artifact the implementation is verified against.
 

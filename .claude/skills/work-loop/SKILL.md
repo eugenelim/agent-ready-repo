@@ -781,6 +781,11 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   the owner explicitly requested capture through `work-intake`.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
 - [ ] **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — in `spec.md` use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` there is invalid and will fail `lint-spec-status.py`); every final accepted AC is `[x]`; any separable follow-on is outside the AC list with its own owner/artifact reference; historical `(deferred: <slug>)` anchors still resolve in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. Per-spec invariants cover the specs changed against the base ref; the dangling-reference and deferral-anchor invariants always cover every spec. Add `--all` for the exhaustive per-spec sweep — use it when a base ref will not resolve, or in a gate. Add `--verbose` to list the warn-only findings the clean summary only counts. When no spec exists, do not run the spec-status lint.
+- [ ] **A shipped feature's user-facing documentation is updated.** A spec is the
+  team's permanent record of the contract; its user-facing description belongs in
+  the guides — reference for authoritative description, how-to if users need a
+  recipe, explanation if it introduces a concept. The spec workflow is not done
+  until those are updated.
 - [ ] Conventional commit format used; no force-push to shared branches.
 - [ ] Learnings captured per [Capture learnings](#capture-learnings).
 - [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,

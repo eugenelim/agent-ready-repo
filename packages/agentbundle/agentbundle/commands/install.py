@@ -509,7 +509,7 @@ def _run(args: argparse.Namespace) -> int:
     if not _PACK_NAME_RE.fullmatch(pack_name):
         print(
             f"install: pack {pack_name!r} has invalid name: "
-            f"must match ^[a-z0-9][a-z0-9-]*$ per docs/CONVENTIONS.md",
+            f"must match ^[a-z0-9][a-z0-9-]*$ per docs/README.md",
             file=sys.stderr,
         )
         return 1
@@ -2905,7 +2905,7 @@ def _assert_pack_metadata_shape(
     any write to either scope's state file. The three checks:
 
     - ``pack.name`` matches ``^[a-z0-9][a-z0-9-]*$`` per
-      ``docs/CONVENTIONS.md``.
+      ``docs/architecture/pack-layout.md``.
     - ``pack.version`` matches a SemVer-ish grammar
       ``^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$``.
       ``pack.schema.json`` types this as a bare string today; we tighten
@@ -2932,7 +2932,7 @@ def _assert_pack_metadata_shape(
     if not isinstance(name_raw, str) or not _PACK_NAME_RE.fullmatch(name_raw):
         raise RuntimeError(
             f"install: pack {name_for_message!r} has invalid name: "
-            f"must match ^[a-z0-9][a-z0-9-]*$ per docs/CONVENTIONS.md"
+            f"must match ^[a-z0-9][a-z0-9-]*$ per docs/README.md"
         )
 
     if not isinstance(version_raw, str) or not _PACK_VERSION_RE.fullmatch(version_raw):
@@ -3602,7 +3602,7 @@ def _emit_recommends_warning(
     import tomllib
 
     # Pack names follow the catalogue's `^[a-z0-9][a-z0-9-]*$` shape
-    # (CONVENTIONS.md). The contents of `recommends` are not currently
+    # (the pack-layout contract). The contents of `recommends` are not currently
     # schema-validated, so a malicious pack could declare
     # ``recommends = ["../../../etc/passwd"]`` and probe the adopter's
     # filesystem via the lookup below. Refuse anything outside the

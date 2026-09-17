@@ -30,16 +30,20 @@ def test_seed_agents_distinguishes_minimum_from_conditional_guidance() -> None:
     assert headings == [
         "Project overview",
         "Rule lookups",
+        "Documentation",
         "Development workflow",
         "Build and test commands",
         "Coding conventions",
-    ]
-    for optional in (
-        "Documentation",
         "Security considerations",
         "Scoped instructions",
-        "Repository structure",
-    ):
+    ]
+    # `Documentation` is now a real section rather than an offered option: the
+    # seed installs four `docs/` areas plus `docs/README.md`, so the trigger the
+    # comment named has fired. The rest stay offered until their own task
+    # promotes them.
+    # Each promoted section stops being an offered option in the task that makes
+    # it real: leaving the offer would invite an adopter to add what they have.
+    for optional in ("Repository structure",):
         assert f"`{optional}`" in text
     assert "trigger" in text.lower()
     assert "benefit" in text.lower()

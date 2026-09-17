@@ -58,7 +58,7 @@ agentbundle catalogue verify --root my-catalogue
 - **Use the catalogue:** [technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) · [install routes](guides/_shared/explanation/install-routes.md) · [adapter support](guides/_shared/reference/adapter-support.md) · [`agentbundle` reference](guides/_shared/reference/agentbundle.md)
 - **Understand the operating model:** [the three supervised loops](guides/_shared/explanation/the-three-loops.md) · [file safety](guides/_shared/explanation/file-safety-contract.md)
 - **Inspect the implementation:** [architecture](docs/architecture/) · [machine contracts](contracts/) · [security model](docs/architecture/security.md)
-- **Contribute:** [contribution lanes and gates](CONTRIBUTING.md) · [pack authoring](packs/) · [repository conventions](docs/CONVENTIONS.md)
+- **Contribute:** [contribution lanes and gates](CONTRIBUTING.md) · [pack authoring](packs/) · [repository conventions](AGENTS.md)
 
 ## License
 

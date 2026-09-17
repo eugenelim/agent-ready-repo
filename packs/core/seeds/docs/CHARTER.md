@@ -56,7 +56,7 @@ To keep this file from becoming everything-and-the-kitchen-sink:
 - **Current product state** lives in [`product/`](product/). The charter
   is direction; product/ is where we are.
 - **Current architecture state** lives in [`architecture/`](architecture/).
-- **Conventions for how we work** live in [`CONVENTIONS.md`](CONVENTIONS.md).
+- **Conventions for how we work** live in [`../AGENTS.md`](../AGENTS.md).
 - **Governance** (roles, decision-making processes, voting) lives in
   [`GOVERNANCE.md`](GOVERNANCE.md) if and when the project is large
   enough to need it. Most small/medium projects don't — a single
@@ -76,3 +76,38 @@ Revise this charter when:
 
 Revise via RFC. Editing the charter directly without discussion is the
 single fastest way to lose the trust this document is meant to build.
+
+## What a charter revision needs
+
+**What:** one page. Mission, scope, and principles. The foundational
+document. Modeled on the [CNCF charter pattern](https://contribute.cncf.io/maintainers/governance/charter/).
+
+**Lifecycle:** living, but rarely changed. Mission, scope, and foundational-principle
+changes are reserved; wording, clarification, examples, typos, broken links, and
+accepted decisions are normal PRs regardless of pathname.
+
+**What goes here:**
+
+- **Mission.** One sentence. What the project is, in language anyone
+  could understand.
+- **Scope.** What the project does, and — equally important — what it
+  doesn't. The "doesn't" list is what tells contributors and agents when
+  a request is out of bounds.
+- **Principles.** Five to seven values that resolve ties. Each principle
+  has a one-sentence elaboration with a concrete example.
+
+**What does NOT go here:**
+
+- Decision history → ADRs.
+- Current product state → `product/`.
+- Roles, voting, decision-making → `GOVERNANCE.md`, *if* the project is
+  large enough to need one.
+- A glossary → `guides/reference/`. Vocabulary is reference material.
+
+**On governance docs:** small and medium projects don't need a separate
+`GOVERNANCE.md`. A maintainer or small group operating by consensus is
+fine. Add governance documentation when there are roles, decision
+procedures, or election processes worth writing down — typically when
+the project has external contributors who need clarity on how to gain
+authority. Forcing governance ceremony on a project that doesn't need
+it produces theater, not clarity.

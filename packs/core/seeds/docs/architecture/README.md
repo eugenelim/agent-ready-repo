@@ -16,9 +16,24 @@ does this codebase look like today" without replaying ADR history.
 Lifecycle: living. Update whenever the layout or major dependencies
 change.
 
-Note for contributors: the bundle's source-of-truth split (skills,
-agents, hooks, commands, hook-wiring, and pack seeds all live under
-`packs/<pack>/`) is described in
-[`../CONVENTIONS.md` § Pack source-of-truth split](../CONVENTIONS.md#pack-source-of-truth-split).
-Anything in this directory documents the *projected* layout adopters
-end up with; the pack-side authoring rules are in CONVENTIONS.
+## What belongs here
+
+How the code is *currently* organized. Not why — that is a decision record; not
+what we want — that is a proposal. What is.
+
+`overview.md` is the map: what lives where, and how the parts relate. One file
+per non-trivial subsystem describes its structure and entry points, and links to
+the decisions that explain why it took that shape.
+
+This directory holds current state. A designed-but-unbuilt subtree is admitted
+only when its index carries a `STATUS: PLANNED` marker and links to the decision
+governing it.
+
+When a page carries a `Last verified against commit` marker, it records a
+deliberate whole-page re-verification against that commit, not merely an edit.
+Update it only after re-reading the whole page against the tree at that commit.
+An unchanged marker means the page has not had that audit; it is provenance, not
+a freshness requirement.
+
+Decision records accumulate, and reconstructing current state from them means
+reading every one in order. This directory is the rolled-up snapshot instead.

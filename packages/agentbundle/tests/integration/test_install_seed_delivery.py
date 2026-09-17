@@ -43,7 +43,7 @@ allowed-scopes = ["repo"]
         "AGENTS.md": b"# Fixture agents\n",
         "_agents-footer.md": b"Fixture footer.\n",
         "docs/CHARTER.md": b"# Fixture charter\n",
-        "docs/CONVENTIONS.md": b"# Fixture conventions\n",
+        "docs/README.md": b"# Fixture docs map\n",
         "docs/specs/README.md": b"# Fixture specs\n",
         "docs/architecture/overview.md": b"# Fixture architecture\n",
         "workspace.toml": b"[workspace]\n",
@@ -77,7 +77,7 @@ def test_install_delivers_seeds(tmp_path):
     for rel in (
         "AGENTS.md",
         "docs/CHARTER.md",
-        "docs/CONVENTIONS.md",
+        "docs/README.md",
         "docs/specs/README.md",
         "docs/architecture/overview.md",
         "workspace.toml",
@@ -94,7 +94,7 @@ def test_install_records_seeds_in_state(tmp_path):
     state = tomllib.loads((target / ".agentbundle-state.toml").read_text(encoding="utf-8"))
     # v0.4 shape: [pack.core.adapters.claude-code.files]
     files = state["pack"]["core"]["adapters"]["claude-code"]["files"]
-    for rel in ("AGENTS.md", "docs/CHARTER.md", "docs/CONVENTIONS.md"):
+    for rel in ("AGENTS.md", "docs/CHARTER.md", "docs/README.md"):
         assert rel in files, f"seed {rel!r} not recorded in state files map"
         # Same {sha, from-pack-version} shape as primitives.
         assert files[rel]["sha"], f"seed {rel!r} state entry missing sha"

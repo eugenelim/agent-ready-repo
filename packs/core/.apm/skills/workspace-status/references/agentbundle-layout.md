@@ -45,7 +45,7 @@ the user file still applies.
 
 When no `[product]` section resolves, skills fall back to the conventional
 default `docs/product/shaping` for `shaping`. This matches the structure
-documented in `docs/CONVENTIONS.md §5b`.
+documented in `docs/product/README.md`.
 
 `core` ships **no `[pack.layout.user]` default** for this section — product
 output is per-repo and there is no sensible cross-repo absolute path. For a

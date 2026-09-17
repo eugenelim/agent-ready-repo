@@ -348,7 +348,7 @@ No "execute as cross-scope" outcome exists.
 **Contract relocation.** Many adopters keep interface contracts in
 non-canonical locations — `api/openapi.yaml`, a root `swagger.json`, a top-level
 `proto/`, `schemas/`. On adapt, walk the adopter tree for these and propose
-relocating each into the canonical `contracts/<type>/` layout (CONVENTIONS § 4
+relocating each into the canonical `contracts/<type>/` layout (the `new-spec` skill's spec-and-plan contract reference § 4
 *Contracts*) — per-finding accept / edit / decline, recorded at **repo scope**
 (contracts are repo artifacts, so no cross-scope move). Creating the `contracts/`
 root to do so is the **narrow anti-pattern exception** below; absent that

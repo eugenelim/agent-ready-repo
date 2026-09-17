@@ -54,16 +54,50 @@ a rule that activates only when you already know it applies never activates. Its
 table ships empty, so this costs one short read until an adopter or a pack adds
 rows.
 
+## Documentation
+
+| Need | Canonical source | Scope |
+| --- | --- | --- |
+| What belongs where in `docs/` | [`docs/README.md`](docs/README.md) | Repository |
+| Project scope | [`docs/CHARTER.md`](docs/CHARTER.md) | Repository |
+| How the code is organized today | [`docs/architecture/README.md`](docs/architecture/README.md) | Repository and subsystem |
+| Durable feature contracts | [`docs/specs/README.md`](docs/specs/README.md) | Feature, when present |
+| Product direction and history | [`docs/product/README.md`](docs/product/README.md) | Repository |
+| Practitioner patterns and gotchas | [`docs/knowledge/README.md`](docs/knowledge/README.md) | File glob |
+| Repeating agent workflow | its `SKILL.md` | Workflow |
+| Mechanically knowable fact | code, schema, manifest, test, or linter | Owning component |
+
+Add a row when the repository has a source this list does not name. The rows
+above are what the `core` pack installs; a pack that seeds a new area brings its
+own entry point.
+
 ## Development workflow
 
 Follow the repository's existing contributor workflow. Use the `work-loop`
 skill for repository changes when installed; it owns planning, verification,
 review, and recovery.
 
+- Scope changes precisely to the request, and surface assumptions or conflicts
+  before building. Record disagreement rather than complying silently.
+- Get confirmation before destructive or irreversible operations.
+- Propose a new top-level directory through the repository's decision process
+  rather than creating one.
+- Keep unrelated discoveries out of the current change unless the accepted
+  contract admits them. Note them somewhere durable instead.
+
+Commits are [Conventional Commits](https://www.conventionalcommits.org/) —
+`<type>(<scope>): <subject>`, `type` one of `feat`, `fix`, `docs`, `refactor`,
+`test`, `perf`, `build`, `ci`, `chore`, `scope` the package or area touched. Keep
+the repository's existing convention when it already has one.
+
+A pull-request description answers four questions in order: what does this
+change, why, how do I verify it, and what did you not change that you
+considered? The last catches more than the rest.
+
 If the repository has `CONTRIBUTING.md` or equivalent guidance, link to it here.
-If it has none, the seeded [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) is an
-optional starting point to adopt with maintainer approval, not an authority that
-outranks existing guidance.
+If it has none, [`docs/README.md`](docs/README.md) is an optional starting point
+to adopt with maintainer approval, not an authority that outranks existing
+guidance.
 
 ## Build and test commands
 
@@ -86,6 +120,17 @@ one nearby example must not become a rule.
 
 Prefer clear code shape and exact names over a long note. Comment only to
 explain intent, a hard limit, or a trade-off the code cannot show.
+
+Add types and docstrings to code you change. Validate what crosses a boundary;
+trust internal callers and framework guarantees rather than re-checking them.
+
+Record a new dependency in the owning package's instructions, or in a decision
+record, before adding it. An import missing from the owning manifest is a new
+dependency even when it resolves locally.
+
+Do not silently resolve a conflict between documented guidance and code. State
+the evidence and the trade-off, then update whichever source owns the rule —
+never a generated projection of it.
 
 ### Cut before adding
 
@@ -121,19 +166,26 @@ Lead with the useful outcome and omit routine tool narration. Preserve required
 interactive updates, and end a completion receipt with changed state,
 verification, and remaining work.
 
+## Security considerations
+
+Never commit personal information or credentials. Use generic placeholders in
+repository artifacts: no real names, emails, hostnames, tokens or customer
+identifiers, in code, fixtures, tests or prose. Follow the repository's own
+security workflow for changes that cross a trust boundary, and name its approved
+helpers here once you have verified them.
+
+## Scoped instructions
+
+A scoped `AGENTS.md` carries deltas for its subtree; everything above it still
+applies. § Rule lookups owns which ones a change obliges you to read.
+
+Report stale or conflicting instructions instead of working around them. An
+instruction that no longer matches the code is a defect in the instruction.
+
 <!--
 Recommended additional guidance — add only after verifying its trigger. Each
 option should link to the owning source instead of copying its rules.
 
-- `Documentation` — trigger: two or more authoritative sources need routing.
-  Benefit: agents can find architecture, decisions, and contributor guidance
-  without imposing a new document layout.
-- `Security considerations` — trigger: security/privacy boundaries, sanctioned
-  helpers, sensitive-data rules, or an external quality gate change behavior.
-  Benefit: agents use the repository's approved controls.
-- `Scoped instructions` — trigger: existing scoped files or a subtree has
-  materially different commands, ownership, generated sources, or rules.
-  Benefit: agents load action-changing deltas only where they apply.
 - `Repository structure` — trigger: ownership or change boundaries are not
   obvious, such as generated projections, multiple build roots, or unusual test
   ownership. Benefit: agents see responsibility and change guidance without a

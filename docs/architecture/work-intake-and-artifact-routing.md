@@ -388,7 +388,7 @@ CI gates where a PR event and Python exist. They do not fail closed inside an
 arbitrary adopter repository.
 
 - `lint-spec-status.py` checks `docs/specs/*/spec.md` metadata against the
-  status contract in `CONVENTIONS.md` §4.
+  status contract in the `new-spec` skill's `references/spec-and-plan-contract.md`.
 - `lint-traceability.py` flags structural orphans across the product chain.
 - `lint-brief-coverage.py` rolls each brief's Spec map from `Brief:` back-links
   and requires a non-empty map of shipped specs for delivery.

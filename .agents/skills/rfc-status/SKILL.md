@@ -43,7 +43,7 @@ as a sub-step of `workspace-status` to populate the findings count line.
 ### 1. Scan `docs/rfc/*.md`
 
 Read every `.md` file in `docs/rfc/`. For each file, extract the `**Status:**`
-front-matter line. The valid lifecycle states per CONVENTIONS.md §3 are:
+front-matter line. The valid lifecycle states are:
 
 ```
 Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental | Superseded

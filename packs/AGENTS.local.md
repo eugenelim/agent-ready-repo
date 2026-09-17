@@ -9,7 +9,7 @@ Applies to `packs/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
 
 | Target (do not edit) | Source |
 | --- | --- |
-| `docs/CONVENTIONS.md` | `core/seeds/docs/CONVENTIONS.md` |
+| `docs/README.md` | `core/seeds/docs/README.md` |
 | Adapter skill projections | `<pack>/.apm/skills/<name>/**` |
 | Adapter agent, command, and hook projections | `<pack>/.apm/{agents,commands,hooks}/...` |
 | Scaffold `packs/AGENTS.md` | `packs/AGENTS.md` |

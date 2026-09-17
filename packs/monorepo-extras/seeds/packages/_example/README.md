@@ -22,5 +22,5 @@
 ## Contributing
 
 See the repository root [`AGENTS.md`](../../AGENTS.md) and
-[`docs/CONVENTIONS.md`](../../docs/CONVENTIONS.md) for how to contribute.
+[`AGENTS.md`](../../AGENTS.md) for how to contribute.
 Package-specific rules (if any) are in this package's [`AGENTS.md`](AGENTS.md).

@@ -184,7 +184,7 @@ draft     = [
   # predecessor's round-3 verdict of "does not block Ready":
   #   1. The "ran and did not work" assumption is now a Risks bullet, but must
   #      be answered before A5 is confirmed.
-  #   2. The guide shippability test (CONVENTIONS.md "A phase whose tooling
+  #   2. The guide shippability test (the phase-slice rule, "A phase whose tooling
   #      ships without its guide is not a complete slice") is unapplied. No
   #      slice names a guides/ artifact yet.
   #   3. A4 reuses step 5a's POSITION; B's routing spike reuses its SHAPE. 5a is
@@ -267,9 +267,9 @@ shipped = [
   # nothing branched on the disposition, so no runtime behaviour moved. Eight
   # review rounds; the explanatory rationale was cut on owner decision after five
   # successive corrections each introduced a new precision error, and now lives
-  # only in the ADR and this spec. Both `CONVENTIONS.md` copies stayed out of
-  # scope because another branch deletes them; if that merge does not land, both
-  # keep a retired halt and nothing here catches it.
+  # only in the ADR and this spec. The two retired conventions copies stayed out
+  # of scope because another branch deletes them, and that deletion has since
+  # landed, so the recorded risk of both keeping a retired halt is discharged.
   {path = "docs/specs/stasis-stop-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Retire full mode's stasis stop disposition across the work-loop references, the published guides, and the public pack page, preserving the Surface dispositions and the authority statements, and pin it with an absence sweep", needs = []},
   {path = "docs/specs/finding-response-receptacle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md"}, summary = "Optional response and reason on a review-verdict finding, and the answers to a sustained finding stated in DECIDE as an ordered four-axis ladder with a stop rule and a per-axis surface walk", needs = []},
   # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
@@ -506,6 +506,24 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Discovered while shaping docs/specs/conventions-retirement. The core pack's
+  # seeds impose obligations and links that only other packs -- or no pack --
+  # can satisfy, and core declares no dependency on any of them. Verified
+  # 2026-09-14: seeded `docs/CHARTER.md` orders an RFC for charter revisions and
+  # seeded `docs/product/roadmap.md` orders one for substantive roadmap changes,
+  # while `docs/rfc/` is seeded by governance-extras and appears in no core
+  # install path. Seeded `docs/architecture/README.md` and
+  # `docs/product/README.md` link to `./adr/`, `./rfc/` and `./guides/`;
+  # governance-extras seeds the first two as auto-generated indexes and no pack
+  # seeds the third, nor `docs/GOVERNANCE.md`, `docs/product/personas.md` or
+  # `docs/product/release-checklist.md`. An adopter installing core alone
+  # receives a charter mandating a process it cannot learn and READMEs pointing
+  # at directories it never gets. The fix is to uncouple: core states only what
+  # it installs, and a pack that owns a process carries its own mandate. Owner
+  # declined to absorb this into the retirement spec so that change stays scoped
+  # to the document it retires; the retirement instead narrows its scaffold-link
+  # criteria to the links it touches, which leaves these untouched and visible.
+  {slug = "core-seeds-mandate-other-packs-content", source = "spec/conventions-retirement (round-5 adopter-boundary review)"},
   {slug = "pre-existing-local-ci-shared-test-dedup-drift", source = "pre-flight/2026-09-16"},  # 2 cases in tools/test_local_ci_shared_test_deduplication.py fail on a clean tree: test_real_make_root_tool_groups_match_the_approved_profiles (4 errors - standalone/composed process-count and membership drift; needs a decision on which of FIRST_TOOL_BATCH / RETAINED_TOOL_SINGLETONS / FINAL_TOOL_BATCH owns the two pytest commands 2b1574e19 added) and test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation (APPROVED_STANDALONE_PLAN_DIGEST / APPROVED_COMPOSED_PLAN_DIGEST; the 133 reported items are a printout of the computed plan, not 133 defects). Both trace to 2b1574e19 adding packages/jsonl-otlp-exporter to the Makefile. The third case, the sast-unleased byte pin, was re-pinned 2026-09-16. Proven pre-existing by differential: they fail with this branch's new tools/ files removed, and the Makefile is unmodified in the diff. NOTE: this file is in make test (Makefile:643), so make test is red on main until these land.
   # pre-existing: the exact-ceiling growth race in
   # packages/jsonl-otlp-exporter/jsonl_otlp_exporter/config.py read_config_file.
@@ -654,7 +672,7 @@ open = [
   # the agent, so there is no code path an alias table could sit on, and every
   # reader has to move together. Surface measured 2026-09-11: 23 `SKILL.md`
   # bodies, the `references/agentbundle-layout.md` set, five `pack.toml`
-  # comment blocks, four `DESIGN.md`, `docs/CONVENTIONS.md` and its byte-parity
+  # comment blocks, four `DESIGN.md`, the retired conventions document and its byte-parity
   # twin, the guide corpus, the work-loop corpus fixtures, and
   # `tools/test_live_demo_guide.py`, which asserts a literal section name.
   # Two decisions it must settle first: `[product]` is shared by two item types
@@ -783,7 +801,7 @@ open = [
   # Unblocks when: someone decides whether the seal should admit a prose-only
   # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
   # blocked mid-run and landed only after an owner-authorized cohort re-seal.
-  {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
+  {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract requires in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
 

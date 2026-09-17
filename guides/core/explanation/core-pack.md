@@ -31,7 +31,7 @@ The leverage in agent coding has moved off the prompt. A single sharp prompt buy
 A loop running on its own is also a loop making mistakes on its own, at machine speed — so it has to check its own work harder than you would by hand. Three forces make that non-negotiable, and `core` answers each:
 
 - **The model grades its own homework too kindly.** The agent that just wrote the code is the worst judge of whether it's right. `core` splits the maker from the checker: `adversarial-reviewer` reads the diff cold in a separate context, with no memory of why the code looks the way it does and no sunk cost to defend.
-- **The model forgets everything between runs.** Nothing in the agent's head carries to the next session, so the memory lives on disk — the spec, the plan, `state.json`, `AGENTS.md`, `CONVENTIONS.md`, and the learnings captured at the end of every loop. The next run reads the repo, not a transcript.
+- **The model forgets everything between runs.** Nothing in the agent's head carries to the next session, so the memory lives on disk — the spec, the plan, `state.json`, `AGENTS.md`, and the learnings captured at the end of every loop. The next run reads the repo, not a transcript.
 - **Your attention is the bottleneck, not the tool.** You can spawn more agents than you can meaningfully review, and the gap between what ships and what you actually understand widens every time you wave a change through. `core` keeps you in the judgment seat on purpose: it surfaces assumptions and **stops** before building on them, gates on checks you can trust, and refuses to self-certify past a red gate.
 
 A loop will happily make you faster on work you understand — or let you skip understanding it at all. The loop can't tell those apart. You can. `core` is built for the first kind of engineer: the one who designs the loop and stays the engineer, not just the person who presses go.
@@ -61,12 +61,12 @@ to the visual and interaction design principles used by the tech-site pack.
 The core pack ships seven tightly-coupled artifacts plus the documents they all read:
 
 - **`AGENTS.md`** — the project's agent context, loaded first by every skill, every subagent, every reviewer. It carries the non-negotiables ("touch only what you're asked to touch"), the source-of-truth table, the check-before-acting rules. If a subagent skips it, the review is wrong.
-- **`docs/CONVENTIONS.md`** — the *why* behind `AGENTS.md`. The verification-mode taxonomy (TDD / goal-based / visual-manual), the loop-iteration cap, the model-selection table, the rationale for every rule. AGENTS.md cites it for anything that needs a paragraph.
+- **the `work-loop` skill and the core guides** — the *why* behind `AGENTS.md`. The verification-mode taxonomy (TDD / goal-based / visual-manual), the loop-iteration cap, the model-selection table, the rationale for every rule. AGENTS.md cites it for anything that needs a paragraph.
 - **The `new-spec` skill** — drafts `docs/specs/<feature>/spec.md` + `plan.md`. Mandates assumption-surfacing **before** any spec body is written, mandates a Boundaries section with at least one structural `Never do`, mandates per-task `Tests:` before `Approach:`. The spec is the contract; the plan is the strategy.
 - **The `work-loop` skill** — the plan → execute → gates → review → fix loop. Tracks state in `state.json` (gitignored, session-scratch), enforces an iteration cap, reports when a round's findings repeat, and gates EXECUTE on plan-approval after a pre-EXECUTE adversarial review.
 - **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses, which now own disjoint concerns: adversarial checks delivery drift and contract conformance, security owns every threat finding, and quality owns test strength and maintenance cost. A reviewer that spots another lens's concern says so in its own lens rather than emitting that lens's finding.
 - **The reviewer subagents** —
-  - **`adversarial-reviewer`** (Opus): reads spec/plan or diff cold, against `AGENTS.md` + `CONVENTIONS.md` + the spec. Returns severity-labeled findings (Blockers / Concerns / Nits), and cannot be skipped, in those code-facing modes and the RFC-only one. It also carries a narrower, optional `intent` mode that attacks a bet's riskiest assumption and non-goals, returning an open question with a named decider, a validation hook, or nothing — no severity labels there, and nothing that gates a transition.
+  - **`adversarial-reviewer`** (Opus): reads spec/plan or diff cold, against `AGENTS.md` + the spec. Returns severity-labeled findings (Blockers / Concerns / Nits), and cannot be skipped, in those code-facing modes and the RFC-only one. It also carries a narrower, optional `intent` mode that attacks a bet's riskiest assumption and non-goals, returning an open question with a named decider, a validation hook, or nothing — no severity labels there, and nothing that gates a transition.
   - **`finding-adjudicator`** (Opus): independently tests each completed
     reviewer report that reaches it against current evidence and governing
     authority before a finding can trigger repair. A report the loop classifies
@@ -109,7 +109,7 @@ A feature lifecycle, end to end, with the parts named:
 5. **EXECUTE.** After the engine enters `CODE-IMPLEMENTATION`, the agent materializes each approved TDD block unchanged at its real test path, verifies byte identity, and then runs red, green, refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
 7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
-   `CONVENTIONS.md` + `spec.md`. Each report is persisted, then classified:
+   `AGENTS.md` + `spec.md`. Each report is persisted, then classified:
    a structurally clean report is recorded directly, a report carrying findings
    or a coverage-disclosure footer goes to `finding-adjudicator`, and a
    malformed one stops the loop. The adjudicator independently sustains,
@@ -135,7 +135,7 @@ Vibe-coding is the null alternative: the agent reads the prompt, writes code, de
 | Scope creeps mid-implementation — new abstraction here, defensive wrapper there. | Spec Boundaries + the PLAN-step's declined-pattern register. The reviewer flags any addition not named in either as drift. |
 | Edge cases live outside the prompt. | Spec Objective is precise enough to derive tests from; Testing Strategy pairs each user-visible outcome with a verification mode. |
 | Agent retries the same broken approach. | The iteration cap bounds the loop; repeated findings are surfaced to a human. |
-| Convention drift across PRs. | `AGENTS.md` + `CONVENTIONS.md` loaded first by every subagent. Repo rules can't be forgotten. |
+| Convention drift across PRs. | `AGENTS.md` loaded first by every subagent. Repo rules can't be forgotten. |
 | No second opinion. | Adversarial reviewer reads the diff cold in a separate context, no memory of the implementation rationale, can't be talked out of findings. |
 
 The cost is the overhead of plan-before-code, of surfacing assumptions before bodies fill in, of an extra reviewer pass. The benefit is fewer broken PRs, shorter review cycles, and code that survives next quarter's refactor. For non-trivial work the math is decisive; for one-line edits, skip the loop.
@@ -192,6 +192,45 @@ For everything else — features, multi-file bug fixes, refactors, migrations, s
 
 - [The pack catalogue](../../_shared/explanation/pack-catalogue.md) — why `core` is the load-bearing pack and how the other packs compose against it.
 - [Install routes](../../_shared/explanation/install-routes.md) — the four ways to install `core` and the install→adapt chain that closes on first session.
-- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale, deeper than this page.
+- [`core-pack.md` § Why the loop](../../core/explanation/core-pack.md#why-the-loop) — the contributor-side rationale, deeper than this page.
 - [The token economy of the loop](token-economy.md) — what the loop wastes, what it spends on purpose, and why the cold reviewer is worth its cost.
 - [The `work-loop` skill itself](../../../packs/core/.apm/skills/work-loop/SKILL.md) — the authoritative procedure. Loaded by the agent when a non-trivial task starts.
+
+## Why the loop
+
+Skip the loop only when a change is cosmetic, tightly local, behavior-preserving,
+*and* obviously verifiable — a one-line authentication, migration, production-
+config, or public-interface change is not trivial. For everything else, follow
+the **plan → execute → verify → review → iterate** loop. The mechanics are in
+the `work-loop` skill; this section is the why.
+
+**Why a loop, not a single pass.** LLM self-assessment is unreliable: agents
+declare victory when they *feel* done. Mechanical gates (lint, typecheck,
+tests) plus an adversarial review pass replace "feel" with verifiable
+termination. The loop keeps going until both kinds of check are satisfied —
+or it pauses for human replanning.
+
+Before construction, a caller may use `shaping-reviewer` to test a contract's
+scope and observability. That is distinct from the later code-review lenses:
+adversarial review checks delivery drift, security review checks threats, and
+quality review checks maintainability.
+
+**Why think before acting.** The cost of a wrong start is higher than the
+cost of thinking. For high-stakes changes (architectural choices, multi-file
+refactors, anything touching shared infrastructure), use your agent's
+extended-thinking facility — it catches the wrong assumption *before* it
+becomes 14 commits of wrong code. For routine work, skip the ceremony; the
+discipline is "match thinking depth to stakes," not "always think hardest."
+
+**Why iterate, not retry-from-scratch.** Most loops converge: gates fail,
+review surfaces a finding, the next pass fixes it. Restart-from-scratch
+loses the planning context. We do it the other way only when fresh context
+is the *point* — an unattended, fresh-session-per-iteration loop (see the
+work-loop skill).
+
+**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
+
+**Why capture learnings.** A loop that finishes without updating *some*
+doc, skill, or note has wasted what it learned. The next agent (or a
+human) will pay for it again. The work-loop skill enumerates where each
+kind of learning belongs.

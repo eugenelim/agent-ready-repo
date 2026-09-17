@@ -93,7 +93,7 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 
-# Superset of the CONVENTIONS § "The argv ban" canonical six
+# Superset of the the credentialed-skill contract § The argv ban canonical six
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
 # short -t and Jira-Align-specific aliases.
 TOKEN_CLI_FLAGS = frozenset({
@@ -663,7 +663,7 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     if args.insecure:
-        # CONVENTIONS § "--insecure is opt-in only and must emit a stderr
+        # The credentialed-skill contract: --insecure is opt-in only and must emit a stderr
         # warning". Emitted here, as soon as the flag is seen, rather than at
         # client construction: a run that fails on credential resolution first
         # would otherwise disclose nothing. This CLI has no SSO-cookie path, so

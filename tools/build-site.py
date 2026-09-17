@@ -1264,7 +1264,7 @@ def _rewrite_contributing(text: str) -> str:
     """Fix links in CONTRIBUTING.md when placed at docs-site content root.
 
     CONTRIBUTING.md lives at the repo root; links are repo-root-relative.
-    Most targets (AGENTS.md, docs/CONVENTIONS.md, etc.) aren't in the site,
+    Most targets (AGENTS.md, docs/README.md, etc.) aren't in the site,
     so we convert them to GitHub URLs using proper Path resolution.
     """
     contributing_src = REPO_ROOT / "CONTRIBUTING.md"

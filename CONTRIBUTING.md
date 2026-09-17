@@ -26,7 +26,7 @@ The chain is proportional, not ceremonial: small fixes can go straight to a PR, 
 Two reads will save you time:
 
 - [`AGENTS.md`](AGENTS.md) — how this repo expects agents and contributors to work (the plan → execute → verify → review loop, what's in scope vs out, the non-negotiables).
-- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) — the single source of truth for *how we work in this repo*: document hierarchy, commit format, PR shape, and the [pack source-of-truth split](docs/CONVENTIONS.md#pack-source-of-truth-split) that every code change in this repo lives under.
+- [`AGENTS.md`](AGENTS.md) — how we work in this repo: commit format, PR shape, and the [pack source-of-truth split](docs/architecture/pack-layout.md#the-source-of-truth-split) that every code change in this repo lives under.
 
 One install: the artifact and skill-spec linters parse YAML via PyYAML. Run `pip install -r tools/requirements.txt` once. The linters also print an actionable install hint with exit code 2 if the import fails, so the first lint run will remind you.
 
@@ -38,7 +38,7 @@ Every adapter-projected file in this repo has an upstream under `packs/<pack>/`.
 
 The muscle memory: edit the upstream, run `make build-self` (add `FORCE=1` if your tree is dirty), commit both the upstream and the regenerated projection in the same PR.
 
-Full rule with the projected-paths list: [`CONVENTIONS.md § Pack source-of-truth split`](docs/CONVENTIONS.md#pack-source-of-truth-split).
+Full rule with the projected-paths list: [`pack-layout.md § The source-of-truth split`](docs/architecture/pack-layout.md#the-source-of-truth-split).
 
 ## Three contribution lanes
 
@@ -95,7 +95,7 @@ Three gates, all of which run locally:
 - **`make build-check`** — fails if any projected path was edited directly without the upstream moving. Run this *after* `build-self` to confirm the tree is clean.
 - **`conventions-check`** — the agent-artifact and conventions linter (also runs via the `pre-pr` hook). Available as a slash command in the core pack.
 
-Commit format is Conventional Commits — full rules in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits). If your commit implements a spec, RFC, or ADR, cite it in the footer (`Spec:`, `RFC:`, `ADR:`).
+Commit format is Conventional Commits — full rules in [`AGENTS.md` § Coding conventions](AGENTS.md#coding-conventions). If your commit implements a spec, RFC, or ADR, cite it in the footer (`Spec:`, `RFC:`, `ADR:`).
 
 ## Cutting an `agentbundle` release
 
@@ -153,7 +153,7 @@ The **one-time** PyPI Trusted Publisher — a Pending Publisher matching `releas
 | Mission, scope, principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
 | Public product behavior and task guidance | [Technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) and their source in [`guides/`](guides/) |
 | Current repository architecture | [`docs/architecture/overview.md`](docs/architecture/overview.md) |
-| How we work, document hierarchy | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) |
+| How we work | [`AGENTS.md`](AGENTS.md) |
 | Evidence informing a product direction | [`docs/product/research/`](docs/product/research/) |
 | Why we chose X over Y | [`docs/adr/`](docs/adr/) |
 | In-flight proposals | [`docs/rfc/`](docs/rfc/) |
@@ -171,3 +171,117 @@ Flag the drift in your PR rather than working around it. Substantive changes to 
 ## License
 
 Contributions are dual-licensed under MIT and Apache 2.0 — the same terms as the catalogue itself. By opening a PR you agree to those terms unless you state otherwise.
+
+## Scaling profiles — how this template adapts to different repo sizes
+
+This template is designed for **single applications, components,
+microservices, and medium-sized platforms or engines** — repos with
+roughly 1 to 50 contributors. It is **not** designed for sprawling
+monorepos with hundreds of contributors and SIG-style governance; if
+that's your context, look at Kubernetes' or CNCF's models instead.
+
+The structure stays the same at every supported size. What changes is
+which folders you actively populate and how much ceremony each kind of
+doc carries. **An empty folder is not a problem** — it's a placeholder
+for content that will arrive when it's needed.
+
+### Profile A — Microservice / single component (1-3 contributors)
+
+The minimum viable set. Many of the template's folders sit empty until
+something forces them to fill.
+
+| Keep | Delete or leave empty |
+| --- | --- |
+| `AGENTS.md`, `CLAUDE.md` (symlink) | `packages/`, `apps/` (no monorepo split) |
+| `docs/CHARTER.md` (a few lines is fine) | `rfc/` (almost never fires at this size) |
+| `AGENTS.md` (trim aggressively) | `docs/architecture/` (the README is enough) |
+| `docs/adr/` (write when you make a real tradeoff) | `docs/product/personas.md` |
+| `docs/specs/` (one spec at a time, or none) | Per-package `AGENTS.md` (no packages) |
+| `docs/product/changelog.md` | the `adversarial-reviewer` subagent (overhead at this size) |
+| `guides/reference/` (API/config docs) | Other Diátaxis buckets — fill as needed |
+| the `work-loop` skill | |
+
+**Rule of thumb:** if your README + an OpenAPI/schema file would have
+been enough, you're at this profile. The template gives you ADRs and
+specs *for when* a decision or feature gets non-trivial — not as
+mandatory ceremony.
+
+### Profile B — Single library or app (4-10 contributors)
+
+Most folders start carrying content.
+
+- All of Profile A, plus:
+- `docs/architecture/overview.md` becomes useful (one file).
+- `docs/specs/` typically has 1-3 active features at a time.
+- `guides/` grows: at least `reference/` and probably one
+  `tutorials/` entry (a quickstart) and a few `how-to/` recipes.
+- ADRs accumulate slowly — maybe 5-15 over the project's first year.
+- `rfc/` may still be unused; PRs are enough for most decisions.
+- `adversarial-reviewer` subagent is worth using. `security-reviewer` and
+  `quality-engineer` are worth reaching for when a PR warrants them — see
+  the `work-loop` skill's REVIEW step.
+
+### Profile C — Medium platform / engine (10-50 contributors)
+
+This is the design target — everything in the template is in active use.
+
+- All of Profile B, plus:
+- `apps/` and/or `packages/` populated, each with its own `AGENTS.md`.
+- `rfc/` actively used for cross-cutting changes.
+- `docs/architecture/` contains an overview plus per-subsystem files.
+- `guides/` has substantive content in all four Diátaxis buckets.
+- `docs/product/roadmap.md` reviewed quarterly with real stakes.
+- ADRs are routine — likely 30+ in the project's history.
+- Multiple specs in flight; spec/plan/review discipline carries weight.
+
+### Multi-agent shape by profile
+
+The mechanisms — supervisor mode, parallel reviewer dispatch, the
+knowledge base — are defined in their own sections above. The mapping
+below says *which of them you actually use* at each profile, so a
+template adopter knows when to wire each one up.
+
+- **Profile A** — sequential work-loop. Each plan task still dispatches to one
+  `implementer` at a time; what rarely triggers at this size is parallel
+  fan-out, because most plans have sequential `Depends on:` chains and the
+  parallel-dispatch payoff doesn't beat the coordination overhead. Specialist reviewers are usually skipped,
+  and `adversarial-reviewer` itself is optional at this size.
+- **Profile B** — [supervisor mode](packs/core/.apm/skills/work-loop/references/supervisor-mode.md) runs every
+  multi-task plan in topological order (sequential by default); its
+  parallel-write fan-out earns its keep only when a wave of independent
+  tasks clears the safe-category ∧ `git merge-tree` gate. Reviewer
+  fan-out follows the
+  *Parallel dispatch discipline* section
+  in the work-loop skill: one tool-call message, one Agent use per
+  reviewer, barrier-wait, merge in the orchestrator's context.
+- **Profile C** — same as B, plus the [knowledge base](docs/knowledge/README.md)
+  is actively populated (`docs/knowledge/patterns.jsonl`). The
+  `session-start` hook is shipped pre-wired by the install pipeline,
+  but knowledge remains out of automatic session context; explicit
+  `--show-knowledge` rendering is available for curation.
+
+### Above Profile C
+
+If your repo is heading past ~50 active contributors with multiple teams
+working in parallel, the template starts to underspecify what you need.
+At that scale you typically need:
+
+- A `GOVERNANCE.md` describing roles, decision processes, and how
+  authority is granted.
+- A formal RFC process with comment periods and final-comment-period
+  rules (Rust's [RFC process](https://github.com/rust-lang/rfcs) is the
+  reference).
+- Sub-team boundaries (CNCF SIGs, Kubernetes-style).
+- CODEOWNERS-driven review routing.
+
+Adopt those when the friction of *not* having them exceeds the friction
+of adopting them — not as a precaution.
+
+### Anti-patterns at every size
+
+- **Bootstrapping at Profile C when you're at Profile A.** Empty
+  ceremony degrades into ignored ceremony. Start at the right profile
+  and grow into the next one when you actually need it.
+- **Skipping Profile A entirely because "we'll be a platform someday."**
+  You'll get there faster if early decisions are recorded honestly than
+  if they're hidden inside a structure too big for the team to maintain.

@@ -28,7 +28,7 @@ harness-neutral.
 
 1. **`AGENTS.md` (CLAUDE.md)** — the project conventions, the minimal-diff rule,
    and the blessed credential-broker boundary.
-2. **`docs/CONVENTIONS.md`** — how non-trivial work runs, and the spec/ADR/RFC
+2. **`AGENTS.md`** — how non-trivial work runs, and the spec/ADR/RFC
    source-of-truth map.
 3. **The `release-loop` skill** — your loop doctrine: the minimum-regret carve,
    convergence-by-policy + the release-readiness gate, the inner↔outer feedback

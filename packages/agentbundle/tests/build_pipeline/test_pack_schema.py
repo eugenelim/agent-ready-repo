@@ -124,7 +124,7 @@ description = "Core agent skills."
 name = "core"
 version = "0.1.0"
 description = "Core agent skills."
-seeds = ["AGENTS.md", "docs/CHARTER.md", "docs/CONVENTIONS.md"]
+seeds = ["AGENTS.md", "docs/CHARTER.md", "docs/README.md"]
 """
         instance = _parse_toml(toml_text)
         errors = validate(instance, schema)

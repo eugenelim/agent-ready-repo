@@ -653,7 +653,7 @@ def test_dry_run_preflight_path_jail_passthrough(tmp_path):
 
 def test_dry_run_includes_seed_create_lines(tmp_path):
     """Dry-run fresh install stdout contains AGENTS.md, docs/CHARTER.md,
-    docs/CONVENTIONS.md as 'create tier-1' lines."""
+    docs/README.md as 'create tier-1' lines."""
     target = tmp_path / "repo"
     target.mkdir()
 
@@ -664,7 +664,7 @@ def test_dry_run_includes_seed_create_lines(tmp_path):
     # format_plan_line pads action to 9 chars; "tier-1 <path>" uniquely identifies
     assert "tier-1 AGENTS.md" in out, f"AGENTS.md seed create line missing:\n{out}"
     assert "tier-1 docs/CHARTER.md" in out, f"docs/CHARTER.md missing:\n{out}"
-    assert "tier-1 docs/CONVENTIONS.md" in out, f"docs/CONVENTIONS.md missing:\n{out}"
+    assert "tier-1 docs/README.md" in out, f"docs/README.md missing:\n{out}"
     # verify these lines are create lines, not some other tier-1 entry
     for line in out.splitlines():
         if "AGENTS.md" in line and "tier-1" in line:

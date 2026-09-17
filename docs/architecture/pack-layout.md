@@ -5,7 +5,7 @@ bundler refuses anything that doesn't conform. This page maps each
 directory and file to its role. The authoritative format spec lives in
 [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md);
 contributor conventions on *what goes where* live in
-[`docs/CONVENTIONS.md § Pack source-of-truth split`](../CONVENTIONS.md#pack-source-of-truth-split).
+[§ The source-of-truth split](#the-source-of-truth-split) below.
 
 ## The shape
 
@@ -37,7 +37,7 @@ packs/<name>/
     ├── .gitignore
     └── docs/
         ├── CHARTER.md
-        ├── CONVENTIONS.md
+        ├── README.md
         └── ...
 ```
 
@@ -207,7 +207,7 @@ file under `seeds/` is **Tier-1** under the
 [file-safety contract](../../guides/_shared/explanation/file-safety-contract.md) —
 collisions land as `*.upstream.<ext>` companions, never silent
 overwrites. Typical contents: `AGENTS.md`, `docs/CHARTER.md`,
-`docs/CONVENTIONS.md`, quadrant READMEs.
+`docs/README.md`, quadrant READMEs.
 
 A pack with `default-scope = "user"` cannot ship seeds at all — the
 contract's user-scope seeds-rail (in
@@ -244,10 +244,112 @@ that contribute to the AGENTS.md managed block.
 
 - [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md) —
   the authoritative format spec.
-- [`docs/CONVENTIONS.md § Pack source-of-truth split`](../CONVENTIONS.md#pack-source-of-truth-split) —
+- [§ The source-of-truth split](#the-source-of-truth-split) —
   why `seeds/` and `.apm/` are separate roots, and the rules for
   authoring inside each.
 - [`agentbundle.md`](agentbundle.md) — how the bundler reads this
   shape into `dist/<route>/<pack>/`.
 - [`pack-catalogue.md`](../../guides/_shared/explanation/pack-catalogue.md) —
   the adopter-facing companion to this page.
+
+## The source-of-truth split
+
+Bundle content (skills, agents, hooks, commands, hook-wiring, and pack
+seeds) lives under `packs/<pack>/`. The split is:
+
+- `packs/<pack>/.apm/` — the upstream for every adapter-projected
+  primitive. Sub-directories: `skills/`, `agents/`, `hooks/`,
+  `commands/`, `hook-wiring/`.
+- `packs/<pack>/seeds/` — the upstream for every seed-projected path
+  (the README / template / governance content adopters install).
+  Files whose names start with `_` (e.g. `_agents-footer.md`) are
+  *composition fragments* — they live in seeds for adopter
+  customization but are not projected as standalone files; they're
+  consumed by composite recipes.
+
+*Projected* paths under `make build-check`'s gate:
+- Adapter-driven primitives: the adapter's skills, agents, commands, and local
+  settings targets; the adapter contract owns their exact paths. `tools/hooks/<name>.<ext>`
+  and the `hooks` settings key are also adapter-driven — but `tools/**` is in
+  `EXCLUDED_PATTERNS`, which gates the drift comparison as well as seed
+  projection, so no gate catches a hand edit to `tools/hooks/<name>.<ext>`.
+  Edit the source anyway; the rule holds, the enforcement does not.
+- Adapter-independent runtime primitives: `.agentbundle/bin/<name>.py` from
+  `packs/<pack>/.apm/adapter-root-bins/`, and
+  `.agentbundle/lib/<module>/` from the package source vendored through
+  `packs/<pack>/.apm/user-libs/`. These rails share the self-host drift gate
+  even though they are outside every adapter's native discovery tree.
+- Seed-projected paths: `AGENT_RULES.md`,
+  `docs/AGENTS.md`, `governance/manifest.example.yaml`, and the agent-rule
+  files a pack seeds. (Other seed-projected paths from earlier
+  phases — `docs/CHARTER.md`, `docs/README.md`, the seed READMEs under
+  `docs/<area>/`,
+  `workspace.toml`, and `packages/_example/` — were reclassified as
+  *Manual* with placeholder seeds; adopters receive the placeholder on
+  first install via brownfield rules and own their on-disk content
+  thereafter. Membership is decided by `EXCLUDED_PATTERNS`, not by this
+  list: a seed whose target it does not match stays Projected.)
+- Aggregated: `.claude-plugin/marketplace.json` from the `.claude-plugin/plugin.json`
+  of every pack whose `[pack.install] allowed-scopes` admits `user` — and that declares `[pack.adapter-contract] version`; a pack with no
+  contract version resolves `repo` regardless of what `allowed-scopes` says. The
+  Claude-plugin route installs at user scope, so a repo-scoped pack is not
+  listed there — it installs with `agentbundle install`.
+- Recreated: `CLAUDE.md → AGENTS.md` symlink.
+
+The pipeline regenerates each from its `packs/*/` upstream; direct
+edits to any *Projected* path are caught by `make build-check` and
+bounced with a message naming the source path and regeneration
+command. The pack source-of-truth split is the catalogue's
+load-bearing convention; CI's drift gate enforces it.
+
+The muscle memory: to change a *Projected* path's content, edit its
+upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
+`make build-self` (with `FORCE=1` if the working tree is dirty),
+commit, push. The gate is the contract; the source-of-truth split is
+the convention.
+
+### Managed generated output
+
+A *managed* tree is one a compiler owns end to end: it writes every file in it,
+records each one in a manifest beside the pack, and refuses to proceed if the
+tree holds anything the manifest does not list. `compile-okf` is the current
+example — it owns `.apm/skills/<router>/` and records it in
+`.okf-generated.json`.
+
+The rules:
+
+- **Author the source, never the output.** Edit the canonical input (for OKF,
+  `packs/<pack>/okf/<bundle>/`) and recompile. A hand edit to managed output is
+  detected as drift, not accepted as a change.
+- **A managed directory may not hold unmanaged files.** The compiler refuses a
+  directory containing files its manifest does not own, because it cannot tell
+  your file from a stale one it should delete. Keep hand-authored content in a
+  sibling directory the compiler does not own.
+- **Check mode is the gate; write mode is the authoring step.** Check re-renders
+  and compares against the committed bytes, so it verifies without needing to
+  write. That matters on platforms where the confined write path is
+  unavailable — check mode still proves the committed output is what that
+  platform produces.
+- **Retargeting output is a rename, not a deletion.** Pointing a bundle at a new
+  output directory hands the old one back to its author only when the source is
+  still declared and its target actually changed. Removing a source is a
+  removal, and its former output stays managed until cleaned up.
+
+Managed output is projected like any other pack content, so the muscle memory
+above still applies: edit the source, run `make build-self`, commit both.
+
+### Install scope is per-pack
+
+Each pack declares its install **scope** — `repo` (project-local), `user`
+(shared across every repo the adopter opens), or both — in
+`pack.toml`'s `[pack.install]` table. The pack author picks the
+dimension; adopters can override within the publisher's declared set
+via `--scope`. The default landing for every pack we ship today is
+`repo`; user-scope eligibility requires content portability — no hooks
+wired into a specific repo's surface, no seeds that name a particular
+project. The schema enforces `default-scope ∈ allowed-scopes` so the
+rule holds outside the CLI. `agentbundle install` re-runs the
+contract-level user-scope rails (seeds / hooks / marker) against the
+resolved pack content at install time, closing the
+widen-after-publish gap.
+

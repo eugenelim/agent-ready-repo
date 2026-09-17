@@ -12,7 +12,7 @@
 - [README](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/README.md): what the project is, quick start, the catalogue table.
 - [AGENTS.md](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/AGENTS.md): the canonical agent-context file — how to work in this repo.
 - [Charter](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/CHARTER.md): mission, scope, and the principles that gate what gets built.
-- [Conventions](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/CONVENTIONS.md): how we work — the loop, commits, the doc hierarchy.
+- [Agent context](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/AGENTS.md): how we work — the loop, commits, the doc map.
 
 ## Architecture
 

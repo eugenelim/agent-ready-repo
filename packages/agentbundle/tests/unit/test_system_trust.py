@@ -236,7 +236,8 @@ def test_good_anchor_survives_a_malformed_block_in_the_dump(monkeypatch, tmp_pat
 
 
 def test_no_shipped_module_can_disable_verification():
-    """Invariant across every shipped package, per CONVENTIONS.md:1201 and :1218.
+    """Invariant across every shipped package, per the credentialed-skill contract
+    § Corporate-network requirements.
 
     An --insecure escape hatch must not appear even as a debug convenience.
 

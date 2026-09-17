@@ -405,3 +405,157 @@ Both lints exit 0 against the worked example; aim for the same.
 - Reference consumer (runnable, shipped): [`packs/atlassian/.apm/skills/jira/`](../../../packs/atlassian/.apm/skills/jira) — a live `auth: creds` credentialed CLI
 - Explanation: [`guides/credential-brokers/explanation/credentialed-skills.md`](../explanation/credentialed-skills.md)
 - Related how-to: [How to author a skill](../../_shared/how-to/author-a-skill.md) — the general skill-authoring standards (structure, cross-platform scripts, the three-tier dependency policy); the `auth: cli` broker is where credential and tool-presence concerns meet.
+
+## The credentialed-skill contract
+
+Skills that call external authenticated APIs follow a tighter set of
+rules than plain skills, because the moment a credential reaches the
+LLM as a tool argument the architecture has already failed.
+This section is the in-loop reminder of the shape every credentialed
+skill must respect.
+
+### Two-layer architecture
+
+Skills do not hold credentials. A *credentialed primitive* — a Python
+module, an MCP server, or a CLI wrapper packaged as a primitive —
+owns the secret on disk and constructs the API call inside its own
+process. The skill body invokes the primitive without ever touching
+the token. A how-to on adding a credentialed skill walks authors
+through broker selection and the verbatim security-rules blocks; the
+shipped `jira` / `figma` skills are runnable references.
+
+### Frontmatter declarations
+
+A credentialed skill declares three project-specific flags under the
+`metadata:` block of its `SKILL.md` frontmatter:
+
+```yaml
+---
+name: your-skill-name
+description: <what triggers it>
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli   # or mcp-server
+  auth: creds                         # env / cli / creds / sso-cookie
+  # auth-fallback: creds              # optional: dual-auth — the broker to fall
+  #                                   #   back to when the active one can't resolve
+  #                                   #   (e.g. sso-cookie with a creds fallback)
+  # broker-specific extras follow:
+  # namespace: <ns>                   # required for auth: creds and auth: env
+  # keys: ["<KEY>"]                   # required for auth: creds and auth: env
+  # sso_profile: <profile>            # required for auth: sso-cookie
+---
+```
+
+The keys live under `metadata:` rather than at top level because the
+[agentskills.io specification](https://agentskills.io/specification)
+pins the top-level frontmatter set to `name`, `description`,
+`license`, `compatibility`, `metadata`, `allowed-tools` and reserves
+`metadata:` as the project-specific escape hatch. `agentbundle catalogue verify`
+(step 11) refuses any top-level key outside that set; `agentbundle catalogue lint`
+(`_PackRules._check_credentialed_skills`) scopes its checks to skills with `metadata.credentialed: true`.
+
+`metadata.auth-fallback` is optional and names a second broker a **dual-auth**
+skill falls back to when the active one can't resolve (e.g. an `auth: sso-cookie`
+skill that drops to `creds` on a non-SSO instance). When present, the skill's
+Security section must satisfy **both** brokers' don't-block phrase sets.
+
+### Four brokers — pick one per skill
+
+`metadata.auth` names the broker that resolves the credential. Choose
+exactly one of these four ids:
+
+- **`env`** — the credential is a plain environment variable
+  (`<NAMESPACE>_<KEY>`). Catalogue contributes naming convention and
+  lint; no runtime resolver.
+- **`cli`** — the primitive shells out to a vendor-authenticated
+  binary (`gh`, `aws`, `kubectl`, `gcloud`). Vendor CLI owns the
+  credential.
+- **`creds`** — static token via the three-tier model (env → OS
+  keychain → 0600 dotfile floor). Resolved via the `credbroker`
+  library (`pip install credbroker`), imported in-process; the
+  build-projected `credentials_shim` it replaced is retired for
+  `creds` consumers (the four-broker taxonomy above is unchanged).
+- **`sso-cookie`** — session cookie acquired via a headed-browser SSO
+  flow. The skill resolves the session through the `credbroker` SSO
+  resolver (`from credbroker import load_sso_cookies`), which
+  subprocess-invokes `~/.agentbundle/bin/sso-broker.py` (projected by the
+  `credential-brokers` pack at user scope) — mirroring how `creds` moved
+  broker resolution into `credbroker`. A skill that still resolves the
+  broker in its own `scripts/` is also accepted.
+
+The broker-agnostic invariants below apply to every credentialed
+primitive regardless of broker. Broker-specific lint extensions layer
+on top (`auth: creds` requires a credential-resolver import in
+`scripts/` — `from credbroker import …`, or the legacy
+`from .credentials_shim …`; `auth: env` requires each declared `<NAMESPACE>_<KEY>` to
+be read at least once; `auth: sso-cookie` requires either a credbroker SSO import
+(`from credbroker import load_sso_cookies`) or subprocess-invocation of the
+canonical `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:
+cli` falls through to broker-agnostic checks only).
+
+### Three storage tiers
+
+Credentials resolve in this order, first-hit-wins per key:
+
+1. **Tier 1 — env var.** `<NAMESPACE>_<KEY>` from `os.environ`
+   (e.g. `JIRA_API_TOKEN`). Composes with Vault Agent / `op run --`
+   wrappers without further changes; the only path that does.
+2. **Tier 2 — OS keyring.** macOS Keychain via `/usr/bin/security`
+   (token via child stdin, never argv); Windows Credential Manager
+   via in-process `ctypes` against `advapi32`. Linux falls through
+   to Tier 3 in v1 — a `libsecret` backend is deferred to a v2 RFC.
+3. **Tier 3 — dotfile.** `~/.agentbundle/credentials.env`, mode
+   `0600` on POSIX, DACL-verified via `icacls` on Windows. The
+   fallback floor.
+
+Changing the order, or adding a new tier, is an `Ask first` action
+in the spec's Boundaries section — the corporate-network constraints
+that justified the precedence are non-obvious.
+
+### The argv ban
+
+Credentialed-CLI-class primitives must refuse the value-shaped flags
+`--token`, `--api-token`, `--api-key`, `--bearer`, `--pat`,
+`--password`. The CLI verb's `setup` subparser registers these as
+*tombstone arguments* whose action emits the verbatim sentinel
+`tokens cannot be passed via argv` and exits non-zero; the
+`agentbundle catalogue lint` (`_PackRules._check_credentialed_skills`) refuses any primitive's
+script that declares one of the banned names in an
+`argparse.ArgumentParser.add_argument` call. MCP-server-class
+primitives may accept *header-naming* flags (`--bearer-header`,
+`--auth-header`, `--header-prefix`) because those name *which* header
+to consult per-request, not the value.
+
+### Anti-pattern register
+
+Five anti-patterns rejected by name:
+
+- **Tokens in skill argv** — defeats the architecture rule.
+- **A `get` verb that returns a cleartext token** — any verb that
+  prints the resolved token to stdout enables capture from a skill
+  body. The `credential-setup` skill writes; a consumer's `check`
+  verb reads (resolves and returns 0/non-0 only); no skill or shim
+  surface returns the cleartext token to a caller other than the
+  in-process credentialed primitive that owns the API call.
+- **Per-skill dotfiles** — the contract mandates one well-known per-user
+  file; per-skill files multiply the wipe-on-rotation surface.
+- **`SSL_VERIFY=false` defaults** — `--insecure` is opt-in only and
+  must emit a stderr warning.
+- **Vendored copies of third-party API skills** — pin upstream and
+  audit; do not fork to silence a vendor's lint.
+
+### Corporate-network requirements
+
+Credentialed primitives ship from this catalogue running on corporate
+laptops; the network they live on imposes constraints the primitive
+must respect:
+
+- **Honor `HTTPS_PROXY` / `NO_PROXY` from the environment.** No
+  hard-coded `requests.get(...)` without proxy resolution.
+- **Honor the system trust store via `REQUESTS_CA_BUNDLE`,
+  `SSL_CERT_FILE`, `SSL_CERT_DIR`.** Corporate MITM CAs land here;
+  ignoring them turns into a "works on the engineer's laptop only"
+  bug.
+- **Refuse `--insecure` / `verify=False` as a default.** Opt-in flag
+  only; primitive emits a stderr warning whenever it fires.

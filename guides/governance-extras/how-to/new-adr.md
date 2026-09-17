@@ -17,7 +17,7 @@ You made an architectural call — a database choice, a process commitment, a st
 Use the new-adr skill to write an ADR for choosing PostgreSQL for the order service.
 ```
 
-This guide is task-oriented; for the *why* of ADRs (immutable history vs. living docs), read [`docs/CONVENTIONS.md` § ADR](../../../docs/CONVENTIONS.md#2-adr--architecture-decision-records--docsadr). For where ADRs sit in the wider doc system, see [the core pack as a system](../../core/explanation/core-pack.md).
+This guide is task-oriented; for the *why* of ADRs (immutable history vs. living docs), read [§ What an ADR records](#what-an-adr-records). For where ADRs sit in the wider doc system, see [the core pack as a system](../../core/explanation/core-pack.md).
 
 ## ADR or RFC?
 
@@ -199,7 +199,7 @@ A previously-accepted ADR no longer reflects the team's call. You do *not* edit 
 2. Set the new ADR's frontmatter `Supersedes:` to the old ADR's number.
 3. After the new ADR is Accepted, update the old ADR's frontmatter `Status:` from `Accepted` to `Superseded by ADR-<NNNN>` — with the actual four-digit number of the new ADR substituted in. Leave the old body alone — it's history.
 
-If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) for the trigger conditions.
+If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`new-rfc.md` § The RFC lifecycle](new-rfc.md#the-rfc-lifecycle) for the trigger conditions.
 
 ### Originating from an accepted RFC
 
@@ -251,5 +251,47 @@ the durable decision changes.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where ADRs sit in the wider doc hierarchy.
 - [`new-adr` skill](../../../packs/governance-extras/.apm/skills/new-adr/SKILL.md) — authoritative procedure (preconditions, template, pushback rules).
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure for the proposal skill.
-- [`docs/CONVENTIONS.md` § ADR](../../../docs/CONVENTIONS.md#2-adr--architecture-decision-records--docsadr) — the immutability rule, status values, when-to-write tests.
-- [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.
+- [§ What an ADR records](#what-an-adr-records) — the immutability rule, status values, when-to-write tests.
+- [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.
+
+## What an ADR records
+
+> The `adr/README.md` index is generated from the records themselves, so it
+> cannot disagree with them. Regenerate it rather than editing a row.
+
+**What:** an immutable record of a decision and the context that produced it.
+"We chose Postgres over DynamoDB because <reasons>, accepting <tradeoffs>."
+
+**The key property of an ADR is that it is never edited after acceptance.**
+If a decision is reversed or revised, you write a new ADR that supersedes the
+old one and update the old one's status to `Superseded by ADR-NNNN`. The old
+text stays. This is the difference between an ADR and documentation: ADRs are
+history.
+
+**Filename:** `NNNN-kebab-case-title.md`, e.g. `0007-use-postgres-for-primary-store.md`.
+Numbers are sequential and never reused.
+
+**Status values:** `Proposed` → `Accepted` or `Rejected`. An `Accepted` ADR may
+later become `Deprecated` (the decision no longer applies and nothing replaces
+it) or `Superseded by ADR-NNNN` (a specific later ADR replaces it). A `Rejected`
+ADR is kept as a record, never deleted.
+
+**Template:** `assets/adr.md` in the `new-adr` skill that creates ADRs from it.
+
+**When to write an ADR:**
+
+- You're choosing between two or more reasonable options and the choice will
+  be expensive to reverse.
+- The reasoning involves tradeoffs a future maintainer (or agent) won't be able
+  to reconstruct from the code alone.
+- Someone asks "why did we do it this way?" and there's no good answer in
+  writing.
+
+**When NOT to write an ADR:**
+
+- The decision is trivial or has only one sensible option ("we use UTF-8").
+- The decision is about a single feature's internals — that's a spec, not an ADR.
+- You're documenting how something works today — that's `architecture/`.
+
+**Rule of thumb:** if you'd be annoyed to discover the decision was made without
+discussion, write an ADR. If you'd shrug, don't.

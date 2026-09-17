@@ -26,9 +26,9 @@ Architecture docs are a living snapshot. Update them with layout or dependency
 changes.
 
 The bundle source-of-truth split lives in
-[`../CONVENTIONS.md` § Pack source-of-truth split](../CONVENTIONS.md#pack-source-of-truth-split).
-This directory documents projected adopter layout; pack authoring rules live in
-CONVENTIONS.
+[`pack-layout.md` § The source-of-truth split](pack-layout.md#the-source-of-truth-split).
+This directory documents the projected adopter layout; the pack-side authoring
+rules live with that split.
 
 ## Planned architecture
 
@@ -42,3 +42,25 @@ CONVENTIONS.
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by
   [RFC-0097](../rfc/0097-agent-skill-engineering.md).
+
+## What belongs here
+
+How the code is *currently* organized. Not why — that is a decision record; not
+what we want — that is a proposal. What is.
+
+`overview.md` is the map: what lives where, and how the parts relate. One file
+per non-trivial subsystem describes its structure and entry points, and links to
+the decisions that explain why it took that shape.
+
+This directory holds current state. A designed-but-unbuilt subtree is admitted
+only when its index carries a `STATUS: PLANNED` marker and links to the decision
+governing it.
+
+When a page carries a `Last verified against commit` marker, it records a
+deliberate whole-page re-verification against that commit, not merely an edit.
+Update it only after re-reading the whole page against the tree at that commit.
+An unchanged marker means the page has not had that audit; it is provenance, not
+a freshness requirement.
+
+Decision records accumulate, and reconstructing current state from them means
+reading every one in order. This directory is the rolled-up snapshot instead.

@@ -72,7 +72,7 @@ docs/rfc/
 ```
 
 `/new-rfc` points you at this companion when you scaffold; the convention is in
-`docs/CONVENTIONS.md` § 3. Promote **only the brief** (and, if useful, the typed
+the RFC lifecycle. Promote **only the brief** (and, if useful, the typed
 verdict) — not the raw `sources/` or the matrix. The brief is self-contained by
 design, so it stands alone in the companion folder.
 

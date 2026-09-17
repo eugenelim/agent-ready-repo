@@ -16,7 +16,8 @@ standalone linter; it now ships as a skill script so it projects to adopters
 too.)
 
 It checks six invariants over `docs/specs/*/spec.md`, measured against the
-contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
+contract pinned in the `new-spec` skill's `references/spec-and-plan-contract.md`
+(Spec metadata contract). Only the
 header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
 
   (i)   status vocabulary — the leading status token is one of

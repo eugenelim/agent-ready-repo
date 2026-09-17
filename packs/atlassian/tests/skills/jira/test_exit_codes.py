@@ -78,7 +78,7 @@ def _deps_installed() -> bool:
 
 # --- behavioral (real file-path invocation; need deps installed) -----------
 
-# CONVENTIONS § "The argv ban" canonical six — every credentialed CLI must
+# the credentialed-skill contract § The argv ban canonical six — every credentialed CLI must
 # refuse these before argparse can echo the value.
 CANONICAL_BANNED_FLAGS = (
     "--token", "--api-token", "--api-key", "--bearer", "--pat", "--password",
