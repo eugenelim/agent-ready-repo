@@ -85,6 +85,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   out only the status token — an entry added afterwards invalidates the
   baseline.
 
+## [governance-extras][0.11.0] — 2026-09-17
+
+### Highlights
+
+- **New ADRs now record how easy a decision is to reverse and which areas it
+  touches.** The `new-adr` template adds `Reversibility` and `Areas` fields,
+  plus four supersession fields that stay `none` until a decision is actually
+  reversed. Coining an `Areas` value nothing else in your `docs/adr` directory
+  already uses now asks for your explicit confirmation first, so a typo does
+  not quietly start a new label on its own.
+- **Reversing a decision no longer means editing the old record.** Point a new
+  ADR's `Supersedes:` field at the one it replaces; the old record's own
+  `Status` and `Superseded by:` fields pick up the link. Its text stays as
+  written — history, not something the new decision rewrites — and the
+  generated index shows the pointer from both records.
+- **A shape check for your own decision records.** `new-adr` and `new-rfc`
+  bundle a script that reads every record's metadata block and reports
+  anything missing, unmatched, or shaped wrong, over the whole directory in
+  one pass rather than stopping at the first problem.
+- **Correcting an accepted decision has one place to write it.** Add a dated
+  entry under `## Errata` instead of editing the decision itself; entries are
+  only ever added, never rewritten or removed.
+
+### Added
+
+- `new-adr` bundles `lint-adr-shape.py`, checking every ADR's metadata block
+  against fifteen shape rules — required fields present, a bare `Status`
+  token rather than a compound value, a supersession entry matched by its
+  mirrored counterpart on the other record, a duplicate decision ID among
+  others — and reporting every finding it finds, not only the first.
+- The ADR template adds `Areas`, `Reversibility`, and four supersession fields
+  (`Supersedes`, `Superseded by`, `Supersedes in part`, `Superseded in part`),
+  each defaulting to `none`. The template states which parse tier each field
+  belongs to and the authoring transformation: substitute every placeholder,
+  delete the guidance comments.
+- `new-adr` gains a `## Errata` convention: a dated, append-only section for
+  correcting what an accepted ADR meant, without rewriting its decision.
+
+### Changed
+
+- `new-adr`'s write gate checks a drafted `Areas` value against the tokens
+  already in use in the target directory and asks for explicit confirmation
+  before coining one none of them use.
+- The generated ADR and RFC index now reads a bare `Status` token plus a
+  `Superseded by:` field to render a supersession pointer, rather than a
+  compound `Superseded by ADR-NNNN` value inside `Status` itself.
+- `new-adr` and `new-rfc` state the four zones a record moves through after
+  acceptance — Live (`Status`, the supersession fields, `Areas`), Attested
+  (`Date`, `Decision-makers`, `Reversibility`, frozen), Frozen (prose, frozen
+  except `## Errata`), and Append-only (`## Errata`) — replacing the earlier
+  rule that only a status change was ever permitted, which did not describe
+  the metadata block's own fields.
+
 ## [core][2.26.13] — 2026-09-17
 
 ### Highlights
