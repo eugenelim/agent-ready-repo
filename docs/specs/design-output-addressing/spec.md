@@ -1,6 +1,6 @@
 # Spec: design-output-addressing
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **T11 scope decision:** the four case families the plan's T11 names beyond
   this spec's own refusal criterion are scoped out by the owner, eugenelim,
   2026-09-17, under `plan.md`'s second completion branch. Recorded in
@@ -188,29 +188,29 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 
 ## Acceptance Criteria
 
-- [ ] `creative-direction` writes its doc to `<output_dir>/direction/<slug>.md`,
+- [x] `creative-direction` writes its doc to `<output_dir>/direction/<slug>.md`,
       `information-architecture` writes its doc to
       `<output_dir>/screens/<slug>-ia.md`, `design-principles` writes its doc to
       `<output_dir>/principles/<slug>.md`, and `design-system` writes its taxonomy
       to `<output_dir>/tokens/<slug>.md`.
-- [ ] `design-system` states a write step that commits the derived taxonomy to
+- [x] `design-system` states a write step that commits the derived taxonomy to
       that path.
-- [ ] `design-system` ships a template emitting frontmatter `type: token-taxonomy`
+- [x] `design-system` ships a template emitting frontmatter `type: token-taxonomy`
       that names semantic roles and scale relationships symbolically and prints no
       colour literal, dimension, duration, ratio, or easing curve.
-- [ ] `tools/lint-experience-agnostic.py` exits 0 over `packs/experience-design/`
+- [x] `tools/lint-experience-agnostic.py` exits 0 over `packs/experience-design/`
       with that template present.
-- [ ] Each of the four writes states its target in its own `SKILL.md` on a line of
+- [x] Each of the four writes states its target in its own `SKILL.md` on a line of
       the literal form `**Writes:** ` followed by that path in backticks, and
       nothing else on the line.
-- [ ] `packs/experience-design/.apm/skills/design-principles/SKILL.md` contains no
+- [x] `packs/experience-design/.apm/skills/design-principles/SKILL.md` contains no
       occurrence of the literal `docs/design`.
-- [ ] Each of the four writes ships a `references/agentbundle-layout.md`.
-- [ ] The shared containment module exists at `references/containment.md` inside
+- [x] Each of the four writes ships a `references/agentbundle-layout.md`.
+- [x] The shared containment module exists at `references/containment.md` inside
       each of the four writes' skill directory, and every copy is byte-identical.
-- [ ] Each of the four writes states a line of the literal form `**Confinement:** ` followed
+- [x] Each of the four writes states a line of the literal form `**Confinement:** ` followed
       by a reference to the shared containment module in backticks.
-- [ ] The shared containment module states that an `output_dir` is approved only
+- [x] The shared containment module states that an `output_dir` is approved only
       when its realpath is neither **at nor beneath** any reserved tree, that the
       reserved set is stated for the user-profile branch as well as the repository
       one, and that an inadmissible value is refused rather than confirmed. A
@@ -222,43 +222,43 @@ appears in **the seven** as a non-writer and separately owes a read repair.
       approval path, not only that one; that a
       user-profile value is approved against its own declared absolute root; and
       that every later prefix check binds to the approved value.
-- [ ] The shared containment module states that the final target, or its parent
+- [x] The shared containment module states that the final target, or its parent
       when the target does not exist, is re-canonicalized and re-checked under the
       approved `output_dir` immediately before the write.
-- [ ] The shared containment module states that a `<slug>` is rejected before any
+- [x] The shared containment module states that a `<slug>` is rejected before any
       path is composed unless the whole string matches `^[a-z0-9]+(-[a-z0-9]+)*$`
       and is at most 64 characters, so the refusal happens before a composed path
       can exceed a platform limit mid-write.
-- [ ] The shared containment module states that an existing target's `type:` is
+- [x] The shared containment module states that an existing target's `type:` is
       read before writing, that a mismatch **or an absent or unparseable `type:`**
       is surfaced rather than overwritten, and that a blank template is never
       copied over an existing artifact.
-- [ ] Each of the four writes emits a declared `type:` in its artifact, so the
+- [x] Each of the four writes emits a declared `type:` in its artifact, so the
       mismatch check has a value to compare against at every destination.
-- [ ] The shared containment module states that when `output_dir` came from
+- [x] The shared containment module states that when `output_dir` came from
       user-profile configuration, product belonging is confirmed before an
       existing target is replaced.
-- [ ] The shared containment module states that an existing target carrying a
+- [x] The shared containment module states that an existing target carrying a
       **matching** `type:` is surfaced before replacement, not silently
       overwritten. `creative-direction` states an amend branch; `information-architecture`
       and `design-principles` state none, so for those two a second run on the same
       slug writes a freshly generated doc over a possibly hand-amended artifact,
       and the mismatch check cannot see it because the type agrees.
-- [ ] The shared containment module states that an existing target read before
+- [x] The shared containment module states that an existing target read before
       amendment is treated as structured data — only the named fields extracted,
       any directive embedded in its body ignored — so all five controls the
       Assumptions claim are propagated are specified rather than four.
-- [ ] The shared containment module states that each missing intermediate
+- [x] The shared containment module states that each missing intermediate
       directory it creates is confined under the approved `output_dir` at the
       component being created, not at a nominal parent that may itself be absent.
-- [ ] `creative-direction`'s template emits frontmatter `type: creative-direction`.
-- [ ] `information-architecture` declares `type: information-architecture` as the
+- [x] `creative-direction`'s template emits frontmatter `type: creative-direction`.
+- [x] `information-architecture` declares `type: information-architecture` as the
       marker its artifact emits, so the literal is fixed here rather than invented
       at implementation and joining the pack's discover-by-marker set unreviewed.
-- [ ] `guides/experience-design/reference/experience-design.md` states no
+- [x] `guides/experience-design/reference/experience-design.md` states no
       `docs/design/principles` path, since no skill declares one after the
       relocation.
-- [ ] `packs/experience-design/.apm/skills/design-review/SKILL.md` resolves the
+- [x] `packs/experience-design/.apm/skills/design-review/SKILL.md` resolves the
       `design-principles` artifact through `output_dir`, confirms its canonicalized
       real path under the approved `output_dir`, validates its declared `type:`,
       extracts only the principle entries while ignoring any directive embedded in
@@ -268,46 +268,46 @@ appears in **the seven** as a non-writer and separately owes a read repair.
       `guides/experience-design/how-to/` reads `**Writes no artifact.**` rather than a
       path, and the step's simulated agent-returns line no longer claims a file was
       written.
-- [ ] `interaction-design`'s `**Where it lands:**` line names the per-screen brief
+- [x] `interaction-design`'s `**Where it lands:**` line names the per-screen brief
       it enriches rather than denying a write or naming a file of its own.
-- [ ] For every step whose declared path this change moves, the step's simulated
+- [x] For every step whose declared path this change moves, the step's simulated
       agent-returns line names the same destination its `artifact_location` names,
       or states that nothing was written. `establish-design-intent.md:55` claims a
       write to `docs/design/principles/<slug>.md` and `design-each-screen.md:402`
       to the orphaned `<output_dir>/screens/<slug>.md`; both are published prose
       promising a path no skill will write.
-- [ ] Every step's `artifact_location` obligation in
+- [x] Every step's `artifact_location` obligation in
       `guides/experience-design/how-to/` is one of: a path its owning skill
       declares, `**Writes no artifact.**` where the skill states no write step, or
       a path naming the artifact the skill enriches. Quantifying over the
       `**Where it lands:**` label instead would make the second form unreachable,
       because it replaces that label rather than appearing on it.
-- [ ] No file under `packs/experience-design/` or `guides/experience-design/` names
+- [x] No file under `packs/experience-design/` or `guides/experience-design/` names
       an `aesthetic/` output folder.
-- [ ] `web/src/content/journeys/experience-design.md` is byte-equal to the output
+- [x] `web/src/content/journeys/experience-design.md` is byte-equal to the output
       of `python3 tools/build-site.py --journeys-only`.
-- [ ] Every `docs/design` literal remaining in `packs/experience-design/JOURNEY.md`
+- [x] Every `docs/design` literal remaining in `packs/experience-design/JOURNEY.md`
       appears inside a fenced transcript block.
-- [ ] Every folder named in `packs/experience-design/DESIGN.md`, in the
+- [x] Every folder named in `packs/experience-design/DESIGN.md`, in the
       `packs/experience-design/pack.toml` subdirectory comment, and in each
       folder-naming surface of `experience-status/SKILL.md` is one some skill declares.
-- [ ] The verification ledger records, for each of the four writes, a refusal observed
+- [x] The verification ledger records, for each of the four writes, a refusal observed
       against an inadmissible `output_dir`, a symlinked target, and a
       non-conforming slug; and a successful `design-review` load under a
       non-default `output_dir`.
-- [ ] `tools/lint-guidebook-steps.py` exits 0.
-- [ ] `python3 -m pytest tests/conformance/test_pack_layout_declared_section.py -q` passes.
-- [ ] `.github/workflows/build-check.yml` names a step for the guide-agreement
+- [x] `tools/lint-guidebook-steps.py` exits 0.
+- [x] `python3 -m pytest tests/conformance/test_pack_layout_declared_section.py -q` passes.
+- [x] `.github/workflows/build-check.yml` names a step for the guide-agreement
       test, and `tools/lint-ci-parity.py` exits 0 with that step name carrying a
       disposition.
-- [ ] The ADR recording `direction/` cites a dataset, stored beside the ADR,
+- [x] The ADR recording `direction/` cites a dataset, stored beside the ADR,
       carrying the queries, sampling frame, and inclusion rule needed to reproduce
       its sample.
-- [ ] `agentbundle catalogue verify --root .` exits 0.
-- [ ] `.claude-plugin/marketplace.json` is byte-identical to the output of a fresh
+- [x] `agentbundle catalogue verify --root .` exits 0.
+- [x] `.claude-plugin/marketplace.json` is byte-identical to the output of a fresh
       self-host run.
-- [ ] Each of the four writes has an `evals/evals.json` case covering its declared target.
-- [ ] The topmost `## [experience-design][<version>] — YYYY-MM-DD` heading in
+- [x] Each of the four writes has an `evals/evals.json` case covering its declared target.
+- [x] The topmost `## [experience-design][<version>] — YYYY-MM-DD` heading in
       `docs/product/changelog.md` names that pack's new `pack.toml` version, at the
       level directly beneath `[Unreleased]`.
 

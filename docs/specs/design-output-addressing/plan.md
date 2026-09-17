@@ -1,7 +1,7 @@
 # Plan: design-output-addressing
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (export boundary, version bump rule,
   § Security and authoring rules) and `docs/CONVENTIONS.md` § Phase-slice
   planning. Analogous implementation: `copy-direction/SKILL.md` steps 1, 3 and 6 —
