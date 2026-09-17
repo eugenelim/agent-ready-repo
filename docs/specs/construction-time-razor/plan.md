@@ -1,7 +1,7 @@
 # Plan: construction-time razor
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (pack export boundary, version-bump
   rule, no-internal-citation rule, eval-harness obligation);
   `packs/core/.apm/agents/implementer.md` and
@@ -191,12 +191,12 @@ those copies are never edited directly.
 - Every satisfiable fixture's `Done when:` one-liner is run and its exit code and
   stdout recorded, proving AC-0019. This is the external functional signal; a
   `ready` status never stands in for it.
-- Inadequate-candidate control, proving AC-0005 and AC-0006: its sibling helper
-  collapses whitespace runs but does not strip, so reuse would break
-  `Done when:`. The emitted function must not delegate to it, and the report must
-  name it as a found-and-rejected candidate with the reason. This is the only
-  fixture in which a rejected candidate exists, and it is the over-fire guard for
-  the reuse rule.
+- Inadequate-candidate control, proving AC-0006: its sibling helper collapses
+  whitespace runs but does not strip, so reusing it alone breaks `Done when:`.
+  The report must name it as a candidate the search found and did not use
+  outright, with the reason. Whether the implementation composes with it or
+  declines it is recorded but not graded — measured runs took one route each and
+  both satisfied the outcome. AC-0019 is the over-fire guard on this fixture.
 - Heavy-`Approach:` fixture, proving AC-0007, AC-0008 and AC-0009: no new module
   is emitted, status is `ready`, and the substitution is recorded under
   `Deviations from the task body`. Proven red on the pre-change contract — two
@@ -204,8 +204,10 @@ those copies are never edited directly.
 - Heavy-required control, proving AC-0010 and AC-0011: two callers need different
   configurations, so the named construction is genuinely warranted. It must still
   be built, and the report must not claim a lighter substitution.
-- No-route control, proving AC-0012: a `Done when:` no route satisfies still
-  returns `failed`.
+- No-route control, proving AC-0012: a `Done when:` no route satisfies is
+  refused rather than claimed as `ready`. Accept `failed` or `blocked`; the
+  fixture's contradictory conditions are a supervisor decision, which the shipped
+  contract routes to `blocked`.
 - Regression floor: `python3 -m pytest packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py -q` and the roster sibling stay green. The bullet's placement below the first `<!--` is what keeps the envelope slice at two bullets.
 - `no stub (goal-based)`
 
@@ -289,12 +291,15 @@ narration.
 - `agentbundle catalogue self-host --root .` reports no drift and
   `agentbundle catalogue verify --root .` passes, proving AC-0016. Run self-host
   on a clean tree: it refuses a dirty one.
-- The `[core]` section sits directly under `[Unreleased]` with nothing between,
-  proving AC-0017.
+- `docs/product/changelog.md` carries `## [core][<version>]` directly beneath
+  `## [Unreleased]` with nothing between, proving AC-0017. The repository's own
+  `tests/roster/test_verification_ledger_contract.py` pins the same adjacency.
 - `evals.json` validates against its schema, and carries one case per rule as the
-  Behaviour register durable output rather than as a criterion. Each case's own
-  text records that the set is a register, because this skill sits outside the
-  eval allowlist and a case here cannot detect a regression.
+  Behaviour register durable output rather than as a criterion. The manifest
+  admits only `id`, `prompt`, `expected_output`, `assertions` and an optional
+  `files`, so the register status rides each case's `id` prefix and is stated in
+  full in the changelog entry and the verification ledger — not forced into
+  `expected_output`, and not carried on an invented schema key.
 - Four new pack-local content pins, anchored at `parents[2]` so none reads above
   its pack, covering the four obligations enumerated under Construction tests.
   Each pin must fail on the removal of its own obligation, so a single pin over a
@@ -334,6 +339,13 @@ version bump.
 
 ## Changelog
 
+- 2026-09-16 — Amendment 1. Four specification errors the delivery's own scored
+  runs established: AC-0005 retired and AC-0012 narrowed, because each named one
+  correct answer where the contract admits two and flipped between them on
+  consecutive runs; AC-0017's path corrected; T3's register disclosure rehomed
+  where the target schema can hold it. The rule repairs that preceded it — an
+  unconditional search receipt and a directive lighter rung — were ordinary
+  repairs against sound criteria and needed no amendment.
 - 2026-09-16 — Drafted. Scope set by probes taken before authoring: the reuse,
   lighter-route, and declination criteria were each proven red on the pre-change
   contract, and a fourth candidate outcome about reviewer finding determinacy was

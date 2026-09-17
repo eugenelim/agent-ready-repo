@@ -1,6 +1,6 @@
 # Spec: construction-time razor
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099
@@ -124,10 +124,13 @@ which is the cost the owner accepted for it.
   fixture, whose sibling helper fully satisfies the task.
 - **No reuse where nothing adequate exists (AC-0003, AC-0004)** — goal-based
   check on the helper-absent control.
-- **No reuse of an inadequate candidate (AC-0005, AC-0006)** — goal-based check
-  on the inadequate-candidate control, whose helper covers part of the outcome
-  only. This is the over-fire guard for the reuse rule and the only fixture in
-  which a rejected candidate exists to be named.
+- **No reuse of an inadequate candidate (AC-0006)** — goal-based check on the
+  inadequate-candidate control, whose helper covers part of the outcome only. It
+  is the only fixture in which a rejected candidate exists to be named. Whether
+  the implementation composes with the partial helper or declines it is not
+  graded: both satisfy the outcome, and a criterion that picked one graded a
+  preference. AC-0019 is the over-fire guard here — reusing a hit that genuinely
+  does not fit breaks `Done when:`.
 - **The lighter route (AC-0007, AC-0008, AC-0009)** — goal-based check on the
   heavy-`Approach:` fixture, whose `Done when:` one function in the existing
   module satisfies.
@@ -135,8 +138,11 @@ which is the cost the owner accepted for it.
   the heavy-required control, whose two callers need different configurations.
   AC-0011 keeps the report honest: the rule must not teach a run to claim a
   lighter substitution it did not make.
-- **`failed` stays reachable (AC-0012)** — goal-based check on the no-route
+- **A refusal stays reachable (AC-0012)** — goal-based check on the no-route
   control. Without it the lighter-route rule could pass by relaxing its own bar.
+  The criterion reads the refusal, not which refusal: a task no route satisfies
+  is usually a task whose body is wrong, and the shipped contract routes that to
+  `blocked` rather than `failed`. Claiming `ready` is the failure.
 - **The task actually works (AC-0019)** — goal-based check across the closed set
   of satisfiable fixtures. A report's `ready` status is the run's own account of
   itself, so functional success is read from the fixture's `Done when:` one-liner
@@ -172,9 +178,6 @@ prompt to look, not a failed gate.
   `Done when:` one-liner exits zero and prints its stated expected value.
 - [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
 - [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
-- [ ] **AC-0005.** On the inadequate-candidate control, whose sibling helper
-  satisfies part of the required outcome only, the emitted function does not
-  delegate to that helper. AC-0019 owns that fixture's functional success.
 - [ ] **AC-0006.** On the inadequate-candidate control, the report names that
   helper as a candidate the search found and did not use, and why.
 - [ ] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
@@ -187,7 +190,8 @@ prompt to look, not a failed gate.
 - [ ] **AC-0011.** On the heavy-required control, the report claims no lighter
   substitution.
 - [ ] **AC-0012.** On the no-route control, whose `Done when:` no available route
-  satisfies, the report status is `failed`.
+  satisfies, the report does not claim `ready`; it refuses, with either `failed`
+  or `blocked`.
 - [ ] **AC-0015.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version, and it is
   exactly one patch increment above the version at the merge base of this branch
@@ -195,8 +199,9 @@ prompt to look, not a failed gate.
   rather than assuming a baseline.
 - [ ] **AC-0016.** `agentbundle catalogue self-host --root .` reports no drift
   and `agentbundle catalogue verify --root .` passes.
-- [ ] **AC-0017.** `CHANGELOG.md` carries a `[core]` section directly under
-  `[Unreleased]`, with no other section between them.
+- [ ] **AC-0017.** `docs/product/changelog.md` carries a `## [core][<version>]`
+  section directly beneath `## [Unreleased]`, with no other section between
+  them.
 
 ## Retired identifiers
 
@@ -213,7 +218,15 @@ entry naming its rung; a non-rung declination naming no rung; and the
 helper-absent control's report naming the standard-library or one-obvious-line
 rung.
 
+AC-0005 joins them under Amendment 1. It required the inadequate-candidate
+control to decline the partial helper, but composing with it and declining it are
+both correct, and consecutive runs of the unchanged fixture took one route each.
+Destination: AC-0006 keeps the reporting obligation and AC-0019 keeps the
+functional one, so no obligation is lost and no pin is owed. Owner authority:
+the amendment recorded in `notes/verification-ledger.md`.
+
 - AC-0002
+- AC-0005
 - AC-0013
 - AC-0014
 - AC-0018

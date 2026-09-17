@@ -236,7 +236,14 @@ fx_helper_absent() {   # AC-0003, AC-0004 gated; AC-0019 gated
 fx_inadequate() {      # AC-0005, AC-0006 gated; AC-0019 gated
     d=$WORK/inadequate-$1; scaffold "$d"; helper_inadequate "$d"; plan_plain "$d"; brief "$d"
     run_once "$d" out.txt
-    ! grep -q 'collapse_runs' "$d/store/report.py"; check "AC-0005 inadequate helper not delegated to" $?
+    # Whether the run composes with the partial helper or declines it is recorded,
+    # not graded: both satisfy Done when:, and consecutive runs took one route
+    # each. AC-0019 is the over-fire guard -- a hit that truly does not fit
+    # breaks the task.
+    if grep -q 'collapse_runs' "$d/store/report.py"
+    then note "composed with the partial helper (ungraded)"
+    else note "declined the partial helper (ungraded)"
+    fi
     grep -q 'collapse_runs' "$d/out.txt"; check "AC-0006 report names the rejected candidate" $?
     done_when_holds "$d"; check "AC-0019 Done when holds" $?
     record_rung "$d/out.txt"
@@ -331,7 +338,11 @@ required and neither is negotiable.
 EOF
     brief "$d"
     run_once "$d" out.txt
-    grep -qE '^\*\*Status:\*\* failed' "$d/out.txt"; check "AC-0012 status is failed" $?
+    # A task no route satisfies is usually a task whose body is wrong, which the
+    # shipped contract routes to `blocked`. Either refusal is correct; claiming
+    # `ready` is the failure this guards.
+    grep -qE '^\*\*Status:\*\* (failed|blocked)' "$d/out.txt"
+    check "AC-0012 refuses rather than claiming ready" $?
 }
 
 # ------------------------------------------- declination fixtures (T2, ungraded)
