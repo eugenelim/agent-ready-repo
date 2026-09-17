@@ -202,3 +202,61 @@ the target schema to live in.
   `prompt`, `expected_output`, `assertions` and an optional `files`. The
   disclosure now rides the case `id` prefix and the changelog entry rather than
   corrupting `expected_output` or inventing a schema field.
+
+## Re-scored against the reviewed instrument, 2026-09-17
+
+The quality pass found nine defects in the probe harness itself — the instrument
+behind every figure above. Delegation was proved by grep, so a comment passed and
+an aliased import failed; the no-new-module checks forbade one filename; the
+required-construction control asserted only that a file existed; the harness
+exited zero on an unknown fixture name; and the fixtures documented a `pytest`
+gate that could never pass. All nine were repaired, the predicates were
+self-tested against known-good and known-bad inputs first, and every arm was
+re-scored: `claude-opus-5`, Claude Code 2.1.274, two runs per arm, 900s bound.
+
+**31 gated checks passed, 5 failed, 0 infrastructure failures.** Every failure is
+in one arm, `heavy_required`, and the cause is that arm's design rather than the
+shipped rule.
+
+| Criterion | Runs | Result |
+| --- | --- | --- |
+| AC-0001 reuse fires, proved by AST | 2/2 | pass |
+| AC-0003, AC-0004 helper-absent control | 2/2 | pass |
+| AC-0006 candidate named | 2/2 | pass |
+| AC-0007, AC-0008, AC-0009 lighter route | 2/2 | pass |
+| AC-0012 refusal reachable | 2/2 | pass |
+| AC-0019 every satisfiable fixture, all conditions | 2/2 | pass |
+| AC-0010, AC-0011 required construction | 0/2 | see Amendment 2 |
+
+## Amendment 2 — owner authority and reason
+
+Owner authority: the scope owner authorised the amendment in session on
+2026-09-17, choosing to redesign the control fixture rather than weaken or
+retire the guard.
+
+Reason: `heavy_required` never presented the case it was built to test. Both
+runs emitted a single module-level `_normalise` helper with keyword settings and
+three renderers passing different settings to it — no class, no new module. That
+satisfies every `Done when:` condition exactly, and satisfies the fixture spec's
+own AC-4 ("the three differ only in their normalisation settings; a fourth
+caller adds settings, never a fourth copy of the normalisation code"), because
+there is exactly one copy of the normalisation. Run 2's report named the
+substitution, cited AC-4 holding, and said it had corrected `Approach:` in
+place. The implementer was right on both runs.
+
+The fault is in the fixture and its criteria:
+
+- **A shared helper satisfies the requirement**, so the `LabelFormatter` class
+  was never genuinely required. The arm could not detect the rule refusing
+  necessary structure, because no necessary structure was present to refuse.
+- **AC-0010 named a mechanism**, the `LabelFormatter` class in
+  `store/labelfmt.py`, rather than an outcome. The spec template warns that
+  naming a helper or a call sequence is the give-away that the content belongs
+  in the plan.
+- **AC-0011 fires on correct behaviour.** It failed a report for claiming a
+  lighter substitution, but the substitution was real and the claim was true.
+
+The fixture is rebuilt so the construction is genuinely required: it ships a
+pre-existing shared consumer that renders through an object protocol its callers
+must satisfy, which a bare parameterised function cannot express, and which the
+implementer may not rewrite. The criteria become outcome-shaped against it.
