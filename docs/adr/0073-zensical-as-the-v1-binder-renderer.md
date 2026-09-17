@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-06
+- **Areas:** experience, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** design-reviewer (rounds 1–10)
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `docs/architecture/binder-publishing/` (the design tree this decision serves)
 
 ## Decision summary
@@ -99,7 +104,18 @@ continuation forks exist —
 [mkdocs-ng](https://github.com/mkdocs-ng/mkdocs-material). Large projects with no
 stake in Zensical are migrating off.
 
-## Options considered
+## Decision
+
+- **D1:** The `binder-publishing` pack renders through Zensical, pinned exactly at `0.0.53`, as an ordinary Tier-2 pip dependency.
+- **D2:** The renderer sits behind an adapter seam, and `binder-index.json` stays renderer-neutral, so a second adapter is an addition rather than a redesign.
+- **D3:** The pinned version is verified through `importlib.metadata.version`, because `zensical.__version__` does not exist.
+- **D4:** Mermaid is vendored and delivered through a `custom_dir` template override, never through `extra_javascript`, so no build fetches it from unpkg.
+- **D5:** Chapter numbering and appendix lettering are the compiler's job, since Zensical numbers nothing.
+- **D6:** Offline hardening is mandatory, not optional.
+- **D7:** Only the `binder-publishing` pack takes a renderer dependency; no other pack and nothing in the catalogue's core depends on this choice.
+- **D8:** The renderer gates Z1–Z4 are CI-required on every PR and re-run against every version bump before it lands.
+
+## Alternatives considered
 
 **A — keep Quarto.** Highest fidelity, stable, and a free path to PDF/EPUB later.
 Rejected: 236 MB external CLI, and it is the direct cause of the fence
@@ -170,6 +186,16 @@ font-suppression key, and the assumption that Mermaid ships bundled. All three h
 been inferred from the shape of a configuration surface rather than run. The
 renderer gates are therefore CI-required on every PR, which a 12.2 MB wheel makes
 affordable in a way a 236 MB toolchain did not.
+
+**Revisit if:** Zensical reaches 1.0, or a release changes any of the four
+surfaces this design depends on — `nav`, the theme/`custom_dir` contract,
+`superfences`, search — or Zensical bundles Mermaid or gains a first-class
+offline mode, which would retire D4. Reverse the decision if a build makes
+outbound requests configuration cannot suppress, no release lands for six months
+or the project is archived, navigation/search/theme move behind a sponsorship
+tier, or the D8 gates fail on routine bumps often enough that tracking upstream
+costs more than owning a renderer would. See *Revisit as Zensical evolves* below
+for the full table.
 
 ## Revisit as Zensical evolves
 

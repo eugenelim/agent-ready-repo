@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-14
-- **Deciders:** eugenelim
+- **Areas:** experience, packaging
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0033 (the proposal), RFC-0007 (user-scope refusal rails + grep-enforcement pattern), RFC-0004 (install-scope-per-pack, Rail A), RFC-0032 (the three-reviewer ceiling reading), `docs/specs/design-craft-pack/`
 
 ## Context
@@ -39,6 +44,29 @@ v1 is skills only.
 > **`design-craft` is an opt-in, user-scope pack of pure-markdown skills that
 > serve designers as authors of upstream design intent, and every skill is
 > stripped to portable method under two hard agnosticism guardrails.**
+
+- **D1:** `design-craft` is an opt-in, user-scope pack of pure-markdown skills
+  serving designers and design-eng hybrids as authors of upstream design intent.
+- **D2:** v1 ships four skills — `aesthetic-direction`,
+  `design-system-foundations`, `layout-and-information-architecture`,
+  `design-critique` — plus a shared `quality-floor` checklist.
+- **D3:** Guardrail A — skills name the recognized standards and ship the method
+  to derive values, and never reprint a palette, spacing or type scale, contrast
+  ratio, or any px/ms/hex/easing table.
+- **D4:** Guardrail B — skills describe concepts, never platform primitives:
+  wayfinding as orientation rather than ARIA roles, layout as hierarchy and
+  reading flow rather than CSS grid, motion as the reduced-motion principle
+  rather than a media query or animation library.
+- **D5:** The pack ships no hook, engine, in-pack validator or linter,
+  `work-loop` reviewer subagent, or new top-level directory.
+- **D6:** The `design-reviewer` subagent twin (RFC-0033 OQ#2) is out of v1.
+- **D7:** Agnosticism is enforced by a pack-scoped CI lint
+  (`tools/lint-design-craft-agnostic.py`) and is not promoted to a repo-wide
+  `CONVENTIONS` lint.
+- **D8:** The pack installs user-scope-default (`default-scope = "user"`,
+  `allowed-scopes = ["user","repo"]`) across all seven shipped adapters at
+  contract v0.12, with no `seeds/` — the one template rides as a skill `assets/`
+  file.
 
 Specifically:
 
@@ -105,6 +133,8 @@ Specifically:
 
 - Whether design-craft eventually ships a `design-reviewer` subagent (OQ#2)
   remains open and would reopen the reviewer-ceiling reading RFC-0032 settled.
+
+**Revisit if:** RFC-0033 OQ#2 is reopened to ship a `design-reviewer` subagent, which would reverse D6 and reopen the reviewer-ceiling reading RFC-0032 settled; or a second pack needs the same agnosticism enforcement, at which point the pack-scoped lint (D7) should be generalized.
 
 ## Alternatives considered
 

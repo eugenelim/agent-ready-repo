@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-19
+- **Areas:** experience, packaging
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0066 (driving RFC — Decision 7 specifies all 9 renames), ADR-0038 (the rename-without-alias precedent this ADR follows exactly), ADR-0024 (agnosticism guardrails, unchanged by this rename)
 
 ## Decision summary
@@ -20,7 +25,16 @@ RFC-0066 (surface-genre uplift, experience pack 0.6.0) identified nine skills wh
 
 No skill-alias mechanism exists in this repo (grep-confirmed in RFC-0048). Inventing one is a distribution-mechanism RFC, not in scope here. The rename precedent is ADR-0038 (the `design-craft → experience` pack rename), which renamed the live surface, bridged frozen governance with a new ADR, and accepted the no-alias tradeoff. This ADR follows that precedent exactly.
 
-## The nine renames
+## Decision
+
+Rename nine experience-pack skills from the invented pack-scoped slugs used in
+v0.5.x to the canonical industry names practitioners already use.
+
+- **D1:** The nine skills are renamed to the canonical slugs in the table below,
+  which are the only canonical names from v0.6.0 onward.
+- **D2:** Frozen governance documents naming the old slugs are not updated; this
+  ADR is the mapping bridge a reader consults instead.
+- **D3:** No install-time or runtime alias maps an old slug to a new one.
 
 | Old slug (v0.5.x and earlier) | New slug (v0.6.0 canonical) | Rationale |
 |------------------------------|----------------------------|-----------|
@@ -43,3 +57,7 @@ Frozen documents that name old slugs: RFC-0050 (experience-pack pressure test, 2
 ## No alias
 
 No install-time or runtime alias maps old slug names to new slug names. No alias mechanism exists in this repo; inventing one is out of scope. Adopters who name old skill slugs by string in their own prompts must update to the canonical names in this table. The user-scope default and the pre-stable version window keep the migration cost acceptable.
+
+## Consequences
+
+**Revisit if:** a skill-alias mechanism is designed, which would let a future rename ship a compatibility tail instead of the clean break this ADR accepts.
