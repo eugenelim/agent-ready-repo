@@ -66,5 +66,6 @@ packages/agentbundle/agentbundle/_data/cooling.py         merge=regen
 packages/agentbundle/agentbundle/_data/file_safety.py     merge=regen
 packages/agentbundle/agentbundle/_data/work_intake_refresh.py    merge=regen
 packages/agentbundle/agentbundle/_data/workspace_status_engine.py merge=regen
+packages/agentbundle/agentbundle/_data/workspace_status_prune.py merge=regen
 docs/adr/README.md                                        merge=regen
 docs/rfc/README.md                                        merge=regen

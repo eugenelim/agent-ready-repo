@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Level:** feature
 - **Scale:** app
-- **Parent:** [`nontechnical-pack-first-value-rollout`](nontechnical-pack-first-value-rollout.md)
+- **Parent:** docs/product/intents/nontechnical-pack-first-value-rollout.md
 
 ## Outcome
 

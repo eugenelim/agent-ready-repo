@@ -153,14 +153,16 @@ resolves in the destination recorded in
   produces, rather than reading one named seed file. Narrowed on the same ground as
   AC14 and against the same backlog entry.
 - [ ] AC11 — `docs/product/changelog.md` carries a **new** free-standing `core`
-  entry, above `## [core][2.26.1] — 2026-09-14`, whose body names the seed
-  withdrawal. Appending a sentence to the already-released 2.26.1 entry does not
+  entry, topmost among the `core` sections, whose body names the seed
+  withdrawal. Appending a sentence to an already-released entry does not
   satisfy this.
 - [ ] AC12 — `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
-  both carry `2.27.0`. Both hold `2.26.1` today, so a minor bump fixes the value
-  uniquely; a patch bump satisfies any looser comparison, and the only machine
+  both carry `2.27.0`, and the criterion names that value rather than an
+  ordering: a patch bump satisfies any looser comparison, and the only machine
   check is that the two files agree with each other
-  (`catalogue_tooling/lint.py:1748`).
+  (`catalogue_tooling/lint.py:1748`). The released baseline moved while this
+  change was in flight — core shipped several patches on `main` — which is why
+  the target is pinned to a value and not expressed relative to a predecessor.
 - [ ] AC13 — `CONTRIBUTING.md` states the scaling-profile names and their
   contributor ranges.
 - [ ] AC14 — No link **this change adds or edits** in a file under

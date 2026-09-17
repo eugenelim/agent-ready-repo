@@ -717,6 +717,29 @@
         "Re-runs the step-8a anchor-test sweep",
         "Limits the anchor-test sweep to every file the repair touched"
       ]
+    },
+    {
+      "id": "schedule-implementer-dispatch-reminder",
+      "prompt": "`loop-cohort schedule` prints the topological order and its dispatch reminder. What should the controller do when an implementer subagent is installed, what is the fallback when it is not, and who retains orchestration responsibility?",
+      "expected_output": "Treat the output as a dispatch reminder. When an implementer subagent is installed, send each scheduled task to one implementer subagent, one at a time. When no implementer is installed, the controller runs the tasks itself and notes the degradation in the final summary. In both cases, scheduling, gates, review, and state stay with the controller. The reminder does not enforce or verify dispatch.",
+      "assertions": [
+        "Sends each scheduled task to one implementer subagent at a time when that agent is installed",
+        "Runs the tasks and notes the degradation in the final summary when no implementer is installed",
+        "Keeps scheduling, gates, review, and state with the controller",
+        "Does not claim the reminder enforces or verifies dispatch"
+      ]
+    },
+    {
+      "id": "schedule-refuses-unknown-dependency",
+      "prompt": "My plan's T3 says `**Depends on:** T7` but there is no T7 task in the plan. What does `loop-cohort schedule` do?",
+      "expected_output": "It refuses. `schedule` stops, names the offending `T3->T7` pair on stderr, and persists no state, because a dependency naming a task the plan does not contain would otherwise be dropped silently and collapse the waves that the per-wave gate run is keyed to. A forward reference is different: a dependency authored later in the file warns on stderr, is reordered so the dependency runs first, and the run continues.",
+      "assertions": [
+        "Response says schedule refuses or stops rather than warning",
+        "Response says the offending task-to-dependency pair is named",
+        "Response says no state is persisted",
+        "Response does not claim the unknown dependency is dropped or ignored",
+        "Response distinguishes the forward-reference case, which warns and continues"
+      ]
     }
   ]
 }

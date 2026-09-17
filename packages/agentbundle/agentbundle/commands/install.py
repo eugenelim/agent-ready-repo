@@ -357,8 +357,8 @@ def _run(args: argparse.Namespace) -> int:
     # --profile; `--scope` is rejected here because a profile declares its own
     # scope (argparse can't express that mutex — --scope is valid with --pack).
     # Guarded before `args.pack` is read, which is None under --profile.
-    if getattr(args, "profile", None):
-        if getattr(args, "scope", None) is not None:
+    if args.profile:
+        if args.scope is not None:
             print(
                 "install: --scope is not allowed with --profile; a profile "
                 "declares its own scope in its manifest",
@@ -372,13 +372,13 @@ def _run(args: argparse.Namespace) -> int:
     # "Exactly one of --pack / --profile / a direct source" is enforced here
     # instead, and a usage error still exits 2 so the observable contract is
     # what it was.
-    if not getattr(args, "pack", None):
+    if not args.pack:
         from agentbundle.commands._common import direct_source_root
         from agentbundle.commands.validate import _has_direct_marker
         from agentbundle.direct_install import _print_refusal, run_direct_install
         from agentbundle.direct_source import DirectAdmissionError
 
-        positional = getattr(args, "catalogue", None)
+        positional = args.catalogue
         if positional and positional.startswith("git+https://"):
             # A remote direct source is a string, not a path; acquisition
             # resolves it to a tree before admission sees it.
@@ -417,12 +417,12 @@ def _run(args: argparse.Namespace) -> int:
     except CatalogueError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
-    cli_scope: str | None = getattr(args, "scope", None)
-    force: bool = bool(getattr(args, "force", False))
-    force_merge: bool = bool(getattr(args, "force_merge", False))
-    dry_run: bool = bool(getattr(args, "dry_run", False))
-    yes: bool = bool(getattr(args, "yes", False))
-    cli_adapter: str | None = getattr(args, "adapter", None)
+    cli_scope: str | None = args.scope
+    force: bool = bool(args.force)
+    force_merge: bool = bool(args.force_merge)
+    dry_run: bool = bool(args.dry_run)
+    yes: bool = bool(args.yes)
+    cli_adapter: str | None = args.adapter
     # User-config attached by `cli.py:main()` via args._user_config.
     # Default to None for callers that construct an args namespace by
     # hand (tests) or for any code path that bypasses main(). The
@@ -2578,7 +2578,7 @@ def _offer_upgrade(
     # than `args.catalogue` (which is `None` on a bare install) — the upgrade
     # hand-off must not re-resolve and risk a divergent second detection.
     ns.catalogue = catalogue_uri
-    ns.root = getattr(args, "output", ".")
+    ns.root = args.output
     ns.scope = scope
     # Forward the install-side `--adapter` so upgrade targets the same
     # adapter the user picked. Without this, a pack installed for multiple
@@ -2588,10 +2588,17 @@ def _offer_upgrade(
     # auto-detects a target adapter and the upgrade offer must target that same
     # row rather than leaving upgrade to re-disambiguate (and fail) when multiple
     # adapter rows exist at this scope.
-    ns.adapter = getattr(args, "adapter", None) or resolved_adapter
+    ns.adapter = args.adapter or resolved_adapter
     ns.yes = True
     ns.dry_run = False
     ns.skill = ns.agent = ns.hook = ns.seed = ns.command = None
+    # Whole-pack offer, so the bulk and source-override paths stay off and the
+    # plan prints in its default shape. These three carry the `upgrade`
+    # subparser's own defaults; `test_offer_upgrade_namespace_is_complete`
+    # fails if that subparser grows a dest this namespace does not set.
+    ns.all = False
+    ns.source = None
+    ns.format = "table"
     ns._user_config = getattr(args, "_user_config", None)
     return _upgrade.run(ns)
 
@@ -4868,7 +4875,7 @@ def _run_profile(args: argparse.Namespace) -> int:
     except CatalogueError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
-    cli_adapter: str | None = getattr(args, "adapter", None)
+    cli_adapter: str | None = args.adapter
     user_config = getattr(args, "_user_config", None)
     from agentbundle.source_defaults import (
         read_packaged_preferred_adapter as _read_pref_adapter_profile,

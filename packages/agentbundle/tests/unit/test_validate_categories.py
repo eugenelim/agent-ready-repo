@@ -7,12 +7,13 @@ shape (array of ≤5 strings); this rail only nudges taxonomy consistency.
 
 from __future__ import annotations
 
-import argparse
 import io
 from pathlib import Path
 from unittest import mock
 
 from agentbundle.categories import DEFAULT_CATEGORIES
+
+from tests._support import cli_namespace
 
 
 def _write_pack(tmp_path: Path, categories_line: str) -> Path:
@@ -33,7 +34,7 @@ def _write_pack(tmp_path: Path, categories_line: str) -> Path:
 def _run(pack_path: Path):
     from agentbundle.commands import validate as validate_mod
 
-    ns = argparse.Namespace(pack_path=str(pack_path), strict=False)
+    ns = cli_namespace("validate", str(pack_path))
     captured = io.StringIO()
     with mock.patch("sys.stderr", captured):
         rc = validate_mod.run(ns)

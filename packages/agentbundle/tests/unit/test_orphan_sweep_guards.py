@@ -16,6 +16,8 @@ from agentbundle.build.adapters._sweep_guard import (
     installed_skill_names,
 )
 
+from tests._support import cli_namespace
+
 SWEEP_ADAPTERS = (
     "claude_code",
     "codex",
@@ -129,15 +131,10 @@ def test_install_reports_a_sweep_refusal_instead_of_a_traceback(tmp_path: Path, 
     target.mkdir(parents=True)
     (target / "SKILL.md").write_text("# installed\n", encoding="utf-8")
 
-    class _Args:
-        catalogue = None
-        output = str(tmp_path)
-        pack = "core"
-        profile = scope = adapter = skill = None
-        all_skills = dry_run = force = yes = False
+    args = cli_namespace("install", "--pack", "core", "--output", str(tmp_path))
 
     try:
-        exit_code = install_cmd.run(_Args())
+        exit_code = install_cmd.run(args)
     except Exception as exc:  # noqa: BLE001 - the point is that none escapes
         raise AssertionError(f"a sweep refusal escaped as {type(exc).__name__}") from exc
 

@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.27.0] — 2026-09-15
+## [core][2.27.0] — 2026-09-16
 
 ### Highlights
 
@@ -101,6 +101,231 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/README.md` is seeded once and then yours, the same way `docs/CHARTER.md`
   already was. Rebuilding never overwrites your edits to it.
 
+## [core][2.26.8] — 2026-09-16
+
+### Highlights
+
+- **A plan that names a task you never wrote no longer runs in the wrong order.**
+  `loop-cohort schedule` used to drop a `Depends on:` entry pointing at a task
+  the plan did not contain — no warning, no error. The dependency edge vanished,
+  the tasks collapsed into one wave, and because gates run per wave, the gate run
+  collapsed with them. `schedule` now stops, names every offending
+  `task->dependency` pair, and writes no state, so you fix the plan instead of
+  discovering the wrong order later.
+
+### Fixed
+
+- `work-loop`: a `Depends on:` entry that names no task in the plan is refused.
+  Only the declarations of tasks still to be scheduled are examined, and every
+  task in the plan counts as a valid target, so a dependency on completed work
+  still resolves and an amended plan is not refused for a line it can no longer
+  edit. A range that spans an absent ID is refused too, naming the absent member.
+- `work-loop`: cross-spec dependencies are unaffected, a dependency cycle still
+  stops the run, and a forward reference still warns, reorders so the dependency
+  runs first, and continues.
+- `new-spec`: the plan template's `Depends on:` placeholder no longer names `T0`,
+  a task ID that can never exist.
+
+## [core][2.26.7] — 2026-09-16
+
+### Added
+
+- `work-loop`'s mutation-proof reference names the four shapes that make a test
+  unable to fail: a fixture that puts the asserted path out of reach, an absence
+  the test harness itself guarantees, two independently sufficient mechanisms
+  where no single removal changes an outcome, and an assertion naming a message
+  the code under test never emits. It already said a test that passes under its
+  mutation is not proof; it now says how to recognise one before mutating.
+
+## [core][2.26.6] — 2026-09-15
+
+### Fixed
+
+- `loop-cohort schedule` now reminds full-mode controllers to delegate scheduled
+  tasks one at a time when an implementer is installed, or run them directly
+  and note the single-agent degradation.
+- `work-loop`: `loop-cohort schedule` stops on cycles, reports and reorders
+  forward references so dependencies run first, and drops missing task IDs
+  without a diagnostic. Its supervisor reference does not promise that
+  `schedule` validates declared dependency existence.
+
+## [core][2.26.5] — 2026-09-15
+
+### Highlights
+
+- **Your work-loop runs can now be watched in an observability backend.** Install
+  `jsonl-otlp-exporter`, point it at your own OpenTelemetry Collector, and each
+  phase change arrives as a log record — how long the phase took, which gate
+  decided what, and how close the run is to its retry budgets. It is off until
+  you configure an endpoint, and the thing that sends is a separate distribution
+  you install on purpose, so a catalogue install alone can never transmit.
+- **What would be sent is written down before you turn it on.** The how-to guide
+  names the file that is read, the records that leave, the fields that may go,
+  and the things a pack cannot see at all — your prompts, the model's replies,
+  and token counts.
+
+### Added
+
+- `work-loop`: a mapping profile at
+  `.apm/skills/work-loop/profiles/work-loop.toml` that turns an event line into
+  OTLP. Its allowlist is exactly the emitted keys less the four that are routed,
+  so a field added to the envelope stops the build rather than flowing silently.
+- `work-loop`: every freshly built event line carries `schema` with integer value
+  1. A record replayed from a crash is appended unchanged and is never
+  retro-stamped.
+- `guides/core/how-to/export-loop-telemetry.md`: how to resolve the invocation
+  for a repository, and a `What leaves your machine` disclosure section.
+- `contracts/jsonschema/loop-run-event.schema.json`: the event line's shape,
+  pinned against a corpus recorded from real transitions rather than authored.
+- `core` declares `jsonl-otlp-exporter` as an optional runtime dependency;
+  `agentbundle catalogue lint` reports it as unsatisfied and exits 0 without
+  invoking any package manager.
+
+### Changed
+
+- `docs/architecture/telemetry.md` describes the sender that now exists. Its
+  § 5.1 field count is pinned to a line the engine emits.
+
+## [agentbundle][0.46.1] — 2026-09-15
+
+### Fixed
+
+- **A symlink in your target directory can no longer redirect what
+  `catalogue init` writes.** The staging file now carries a random name, is
+  created exclusively, and keeps the permissions your umask would give it.
+  This closes a way another local user could have had a file of their
+  choosing overwritten, at your privilege, when you initialise a catalogue
+  in a directory you do not exclusively control.
+
+## [agentbundle][0.46.0] — 2026-09-15
+
+### Highlights
+
+- **A self-hosted catalogue can now be recreated from its recorded recipe.** A
+  repeat `catalogue init --preset self-hosted` keeps the recorded catalogue
+  identity and pack and profile selections unless you explicitly replace them.
+
+### Changed
+
+- `catalogue init --preset self-hosted` writes schema-3 state with a recipe and
+  source pin. The generated `catalogue.toml` escapes every interpolated value.
+  Local-path sources have no source revision or archive digest to record.
+
+## [agentbundle][0.45.0] — 2026-09-14
+
+### Highlights
+
+- **`agentbundle` can now work out where to send your loop telemetry.** A new
+  resolver reads your repository and personal layout files and returns the exact
+  arguments for the separately installed sender. Repository settings win per
+  setting, because sending data off the machine is a team decision rather than a
+  personal one — the opposite of how personal research settings resolve.
+- **`catalogue lint` now tells you when an optional tool a pack wants is not
+  installed.** It names the package and exits 0. It never installs anything.
+
+### Added
+
+- `agentbundle.telemetry_layout.resolve()` — per-setting, repository-first
+  resolution over both `agentbundle-layout.toml` files, returning the merged
+  `[telemetry]` settings and the sender's arguments. Both files are read through
+  the catalogue's confinement helper, bounded at 64 KiB, with malformed, oversized,
+  wrongly typed and symlinked inputs refused.
+- `CAT-L032` — an informational diagnostic naming an optional runtime dependency
+  that is declared by a pack and not installed. Detection is in-process; no
+  package manager is invoked and the exit code stays 0.
+
+## [core][2.26.4] — 2026-09-15
+
+### Fixed
+
+- `workspace-status`: an initiative whose `workspace.toml` section omits `name`
+  or `milestone` no longer renders a blank segment at orientation. Neither key
+  is required by the schema and no finding fires for a missing one, so both
+  project as empty strings; the rendering template now omits the segment rather
+  than showing `— ` followed by nothing. The state was unreachable while those
+  fields were redacted and became reachable when they began projecting as
+  authored in 2.26.2.
+
+## [agentbundle][0.44.3] — 2026-09-15
+
+<!-- No Highlights: this release changes `make build-check`, a gate that runs
+against a source checkout. `run_build_check_drift_gates` resolves its corpus
+from REPO_ROOT, which is derived from the installed package location, so an
+adopter running the published CLI cannot reach it. Nothing a consumer acts on
+changed. -->
+
+### Fixed
+
+- `make build-check` fails when a declared packaged runtime is missing, not
+  only when it has drifted. `agentbundle/_data/` carries a copy of each core
+  pack script the packaged CLI runs where no installed skill tree is present,
+  and the gate compared bytes only when both halves of a pair existed, so an
+  absent copy was silently skipped. That is the worse failure of the two: the
+  packaged engine loads its siblings from its own directory, so an unsynced
+  copy breaks it at import while the gate reports clean. The skip now mirrors
+  the write condition of the sync path itself — wherever `build-self` would
+  have written a copy, the gate requires it present and byte-identical. A tree
+  with no `_data/` directory is a partial checkout and is still tolerated.
+- The same gate derives the declared set's sibling closure rather than trusting
+  it. Pairs are hand-declared, so a runtime could be bundled while the helper it
+  loads was not — the state reached during the workspace-status prune split,
+  where `build-self` synced the engine and not its new sibling and nothing
+  complained. `_data/` is flat, so every helper is reached as a sibling of the
+  loading module's own file. The gate reads those reaches and requires each to
+  be a declared pair or an exemption carrying its reason. An ancestor hop is not
+  a sibling, so a reach into another skill tree is excluded by construction
+  rather than by allow-list; a sibling whose name is computed rather than
+  literal fails closed rather than passing unread.
+
+## [core][2.26.3] — 2026-09-14
+
+### Highlights
+
+- `workspace-status` can now prune an explicitly approved selection of
+  delivery artifacts. A successful exit guarantees that every selected
+  artifact directory and every workspace membership resolving to it are
+  absent, proven in one coherent observation taken while the shared workspace
+  lock is held. If either half survives, the command fails and names which
+  one, rather than reporting success.
+- An interrupted prune is now recoverable from the command's own output: a
+  failure names the selection and how far it got, and a busy lock names the
+  lock file and the process holding it.
+- Creating a durable work artifact now coordinates with that same lock, so an
+  intake and a prune can no longer interleave and leave the register
+  disagreeing with what is on disk.
+
+### Added
+
+- `workspace-status prune` removes a selected artifact together with every
+  workspace entry resolving to it, including duplicate, legacy-alias and
+  non-spec-kind forms. It requires an explicit confirmation bound to the
+  selection and to the artifacts' recorded state; `prune --preview` emits the
+  unsigned challenge a caller needs to build one. A repository-level protected
+  list refuses targets that must never be removed, comments and formatting in
+  `workspace.toml` are preserved, and nothing outside the selection changes.
+
+## [core][2.26.2] — 2026-09-14
+
+### Highlights
+
+- **`workspace-status` shows you which initiative is which again.** Orientation
+  used to list bare slugs, because the projection replaced each initiative's
+  name and milestone with a stand-in meaning "this value was not safe to hand
+  to an agent." That guard was added when display text from `workspace.toml`
+  was treated as untrusted input. It is not: `workspace.toml` lives inside the
+  repository it describes, so anyone who can reach it already has the source,
+  and the guard was costing readability for a risk that was not there. A
+  session now opens with `ini-002 — Platform Core (milestone: P5 · Adopt (M1–M5
+  shipped))`.
+
+### Changed
+
+- `workspace-status`: `initiatives[].name` and `initiatives[].milestone` carry
+  the values `workspace.toml` assigns, as authored. Non-string values are
+  coerced to their text form, so the fields are always JSON strings. `SKILL.md`
+  describes and renders both fields and no longer instructs the consumer to
+  render the slug alone.
+
 ## [core][2.26.1] — 2026-09-14
 
 ### Highlights
@@ -122,6 +347,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rendering template shows the slug alone, and the skill is told not to read
   `workspace.toml` to recover either value — doing so would put back the
   untrusted prose the sentinel keeps out of agent context.
+
+## [agentbundle][0.44.2] — 2026-09-14
+
+### Highlights
+
+- **A catalogue you derive now keeps a working check on its vendored
+  `credbroker` code.** `catalogue init --preset self-hosted` copied the
+  vendored copy of that code but left its source behind, and the check that
+  compares the two passed by finding nothing to compare. The copy was frozen:
+  an edit to it went unreported, and `catalogue self-host` never produced the
+  staged floor it is meant to write. Selecting the `credential-brokers` pack
+  now brings the source across too, so the comparison is real again.
+- **`--attribution white-label` no longer leaves the upstream catalogue's name
+  in a file you commit.** That mode promises no upstream trace, and the scan
+  enforcing it allows the upstream name zero occurrences anywhere — but the
+  scan runs before `.agentbundle/self-host-state.json` is written, so the name
+  landed there unchecked. The file now records your own catalogue's name.
+  `--attribution attributed` is unchanged and still records the upstream name.
+
+### Fixed
+
+- `catalogue init --preset self-hosted` copies `packages/credbroker/` into the
+  target whenever the `credential-brokers` pack is selected, independent of
+  `--tooling`. `agentbundle/build/user_libs.py` resolves the package by
+  relative path at `<catalogue root>/packages/credbroker/credbroker/`; absent
+  it, `compute_projections` returns an empty list and both of its consumers
+  become silent no-ops — `apply_projection` writes no
+  `.agentbundle/lib/credbroker/` floor and `check_drift` reports clean over
+  nothing. The copy carries no test content, matching the boundary the
+  vendored-pack copy already draws.
+- `--attribution white-label` records the derived catalogue's name as
+  `source_pack_identity` in `.agentbundle/self-host-state.json`. The leak check
+  runs over the planned file map at step 9 and that file is written at step 13,
+  so it was never scanned. Its scope is deliberately unchanged: bringing the
+  state file inside the check would make a usable upstream pin impossible in
+  the mode that most needs control over what ships, so the recorded value
+  changed instead.
+
+## [frontend-engineering][0.2.5] — 2026-09-14
+
+### Highlights
+
+- A surface can now declare the minimum viewport width it supports, and the
+  rendered-page inspection stops asking for captures below it. A desktop-only
+  tool that supports 1280 and up is asked for four captures per route in one
+  channel instead of eight across two.
+- Declaring a minimum never hides a width the surface does claim. It only ever
+  raises a band's lower bound, so a minimum that falls between the default bands
+  leaves the wider one where it is rather than pulling a capture down into a gap
+  that satisfies no channel.
+- A breakpoint above the minimum keeps its own band, so a high minimum cannot
+  flatten a surface that really is responsive above it. Each run records the
+  minimum it used and any breakpoint the minimum discarded, so a mistyped
+  minimum is distinguishable from a deliberate single-channel surface.
+
+### Changed
+
+- The channel axis takes an optional declared minimum width. Bands lying wholly
+  below it stop being required and the lowest surviving band starts at it.
+- The evidence manifest's `viewports` field records the minimum in force, or
+  `none-declared`, and any discarded breakpoints.
+- The journey's `youProvide` names the supported minimum width among the inputs
+  an adopter brings.
 
 ## [core][2.26.0] — 2026-09-13
 
@@ -7936,6 +8224,7 @@ project page and the swept docstrings actually reach installers.
 ## [1.0.0] — YYYY-MM-DD
 
 ### Added
+
 - Initial public release.
 
 [Unreleased]: https://github.com/<org>/<repo>/compare/v1.0.0...HEAD

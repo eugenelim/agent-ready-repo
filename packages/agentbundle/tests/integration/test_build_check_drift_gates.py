@@ -8,7 +8,9 @@ The four gates are wired into ``run_build_check_drift_gates`` in
      must be byte-identical to the canonical template.
 
   2. **Packaged runtime drift:** package-data workspace-status and work-intake
-     runtimes must be byte-identical to their core pack sources.
+     runtimes must be present and byte-identical to their core pack sources
+     wherever the real-write sync path would have written them, and the
+     declared set must be closed under sibling loading.
 
   3. **Source-shape plugin.json (gate 2, in-Python defence-in-depth):**
      every ``packs/<pack>/.claude-plugin/plugin.json`` must not carry a
@@ -278,7 +280,15 @@ def test_make_build_check_refuses_packaged_runtime_drift(tmp_path, monkeypatch, 
 
 
 def test_make_build_check_skips_absent_packaged_runtime_pair(tmp_path, monkeypatch, capsys):
-    """A partial non-monorepo tree does not turn an absent pair into drift."""
+    """A partial non-monorepo tree does not turn an absent pair into drift.
+
+    The tree deliberately has no ``packages/agentbundle/agentbundle/_data/``
+    directory at all. That is the only absence the gate tolerates: it mirrors
+    the sync path's write condition, which also skips a pair whose bundled
+    directory does not exist. A *present* ``_data/`` missing a declared copy is
+    covered by
+    ``test_make_build_check_refuses_missing_packaged_runtime_copy``.
+    """
 
     import agentbundle.build.self_host as self_host_mod
 
@@ -289,7 +299,162 @@ def test_make_build_check_skips_absent_packaged_runtime_pair(tmp_path, monkeypat
     packs_dir = tmp_path / "packs"
 
     assert self_host_mod.run_build_check_drift_gates(tmp_path, packs_dir) == 0
-    assert "packaged runtime drift" not in capsys.readouterr().err
+    # Neither message: not drift, and not a missing copy either.
+    assert "packaged runtime" not in capsys.readouterr().err
+
+
+def test_make_build_check_refuses_missing_packaged_runtime_copy(tmp_path, monkeypatch, capsys):
+    """A declared pair whose bundled copy is missing fails the gate.
+
+    A missing copy is worse than a drifted one: the packaged engine loads its
+    prune sibling from its own directory, so an unsynced or deleted copy breaks
+    the packaged CLI at import. Before this case the gate compared bytes only
+    when both files existed, so the absence was silently skipped.
+    """
+
+    import agentbundle.build.self_host as self_host_mod
+
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    source = tmp_path / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("CANONICAL = True\n", encoding="utf-8")
+    # The bundled directory exists — this is a full tree — but the declared
+    # copy inside it does not.
+    (tmp_path / "packages/agentbundle/agentbundle/_data").mkdir(parents=True)
+    packs_dir = tmp_path / "packs"
+
+    rc = self_host_mod.run_build_check_drift_gates(tmp_path, packs_dir)
+
+    assert rc != 0
+    err = capsys.readouterr().err
+    assert "packaged runtime missing" in err
+    assert "work_intake_refresh.py" in err
+
+
+# ---------------------------------------------------------------------------
+# Gate 2b: Packaged runtime closure completeness
+#
+# Byte identity of the declared pairs says nothing about whether the declared
+# SET is complete. Pairs are hand-declared, so a runtime can be bundled while
+# the sibling it loads is not — the packaged CLI then resolves a module that is
+# not there. These cases cover the gate's behaviour on synthetic trees.
+#
+# The half that reads the repository's own pack sources lives in
+# `tests/roster/test_packaged_runtime_closure.py`: this tree is published and
+# also runs from an sdist, which ships no `packs/`.
+# ---------------------------------------------------------------------------
+
+
+def _write_runtime_source(root, body):
+    """Place ``body`` at both halves of a declared pair, byte-identical.
+
+    Writing the bundled copy too keeps gate 2's presence and drift checks
+    silent, so each closure case fails for its own reason and not for a missing
+    or drifted copy it did not set out to test.
+    """
+    source = root / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    bundled = root / "packages/agentbundle/agentbundle/_data/work_intake_refresh.py"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    bundled.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text(body, encoding="utf-8")
+    bundled.write_text(body, encoding="utf-8")
+    return source
+
+
+def test_make_build_check_refuses_an_undeclared_sibling(tmp_path, monkeypatch, capsys):
+    """A bundled runtime loading an undeclared sibling fails the gate.
+
+    This is the live shape of the hole: `make build-self` syncs the declared
+    pairs and says nothing about a helper one of them imports.
+    """
+    import agentbundle.build.self_host as self_host_mod
+
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    _write_runtime_source(
+        tmp_path,
+        "from pathlib import Path\n"
+        'HELPER = Path(__file__).resolve().with_name("undeclared_helper.py")\n',
+    )
+
+    rc = self_host_mod.run_build_check_drift_gates(tmp_path, tmp_path / "packs")
+
+    assert rc != 0
+    err = capsys.readouterr().err
+    assert "packaged runtime closure incomplete" in err
+    assert "undeclared_helper.py" in err
+
+
+def test_make_build_check_accepts_a_reach_out_of_the_runtime_directory(
+    tmp_path, monkeypatch, capsys
+):
+    """A reach into another skill tree is not a sibling and does not fail.
+
+    Without this case the gate could pass the one above by flagging every
+    `.py` literal, which would red the repository's real sources.
+
+    Covers three shapes, not just the repository's. The multi-segment join is
+    what the real sources use, but it is shielded by its own shape — the join
+    is not directly off a classified directory — so it cannot show that an
+    ancestor hop is treated as non-sibling. The two single-segment hops can:
+    widening `parents[n]` or a second `.parent` to count as the module's own
+    directory turns both into false sibling reaches.
+    """
+    import agentbundle.build.self_host as self_host_mod
+
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    _write_runtime_source(
+        tmp_path,
+        "from pathlib import Path\n"
+        "SCRIPT_DIR = Path(__file__).resolve().parent\n"
+        "SKILLS_DIR = SCRIPT_DIR.parents[1]\n"
+        'OTHER = SKILLS_DIR / "other-skill" / "scripts" / "elsewhere.py"\n'
+        'HOP = SCRIPT_DIR.parents[1] / "indexed_hop.py"\n'
+        'UP = Path(__file__).resolve().parent.parent / "walked_hop.py"\n',
+    )
+
+    rc = self_host_mod.run_build_check_drift_gates(tmp_path, tmp_path / "packs")
+
+    assert rc == 0
+    assert "packaged runtime closure" not in capsys.readouterr().err
+
+
+def test_make_build_check_refuses_a_computed_sibling_name(tmp_path, monkeypatch, capsys):
+    """A sibling whose name is computed fails rather than passing unread.
+
+    The derivation reads literals. Its blind spot is a name it cannot see, so
+    the gate fails closed on one instead of reporting a closure it did not
+    check.
+    """
+    import agentbundle.build.self_host as self_host_mod
+
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    _write_runtime_source(
+        tmp_path,
+        "from pathlib import Path\n"
+        "def load(stem):\n"
+        '    return Path(__file__).resolve().with_name(stem + ".py")\n',
+    )
+
+    rc = self_host_mod.run_build_check_drift_gates(tmp_path, tmp_path / "packs")
+
+    assert rc != 0
+    assert "packaged runtime closure unreadable" in capsys.readouterr().err
+
+
+def test_make_build_check_accepts_a_declared_sibling(tmp_path, monkeypatch, capsys):
+    """A sibling that IS declared passes, so the gate is not simply always-red."""
+    import agentbundle.build.self_host as self_host_mod
+
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    _write_runtime_source(
+        tmp_path,
+        "from pathlib import Path\n"
+        'ENGINE = Path(__file__).resolve().with_name("workspace_status_engine.py")\n',
+    )
+
+    self_host_mod.run_build_check_drift_gates(tmp_path, tmp_path / "packs")
+
+    assert "packaged runtime closure" not in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------

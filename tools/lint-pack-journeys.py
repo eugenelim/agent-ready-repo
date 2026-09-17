@@ -23,6 +23,8 @@ import re
 import subprocess
 import sys
 
+import lint_harness
+
 STATE_VOCAB: frozenset[str] = frozenset({
     "read-only",
     "draft",
@@ -200,20 +202,44 @@ def _validate_journey(
     return findings
 
 
-def main() -> int:
+# The central-journey table and the duplicate-id findings are both derived from
+# the whole set, not from one file, so `_files` computes them once and parks
+# them here for the per-file predicate.
+_STATE: dict[str, object] = {}
+
+_NOTHING_TO_VALIDATE = lint_harness.Outcome(
+    "lint-pack-journeys: no JOURNEY.md files found — nothing to validate",
+    0,
+    "stdout",
+)
+
+
+def _parse(argv: list[str] | None) -> tuple[pathlib.Path, pathlib.Path]:
+    """Return (packs dir, central journey dir). This lint takes no arguments;
+    `LPJ_PACKS_DIR` and `LPJ_JOURNEY_DIR` are its only inputs, so *argv* is
+    accepted and ignored."""
     root = _repo_root()
-    packs_dir = pathlib.Path(
-        os.environ.get("LPJ_PACKS_DIR", root / "packs")
-    )
+    packs_dir = pathlib.Path(os.environ.get("LPJ_PACKS_DIR", root / "packs"))
     journey_dir = pathlib.Path(
         os.environ.get("LPJ_JOURNEY_DIR", root / "web/src/content/journeys")
     )
+    return packs_dir, journey_dir
 
+
+def _journey_files(
+    dirs: tuple[pathlib.Path, pathlib.Path],
+) -> list[pathlib.Path] | None:
+    """Return every pack-local JOURNEY.md, or ``None`` when `packs/` is absent.
+
+    Both answers are the same ordinary pass over zero files, which is what this
+    lint did before the move onto the driver.
+    """
+    packs_dir, journey_dir = dirs
+    if not packs_dir.is_dir():
+        return None
     journey_files = sorted(packs_dir.glob("*/JOURNEY.md"))
-
     if not journey_files:
-        print("lint-pack-journeys: no JOURNEY.md files found — nothing to validate")
-        return 0
+        return []
 
     central_files: dict[str, tuple[str, str]] = {}
     if journey_dir.exists():
@@ -233,26 +259,58 @@ def main() -> int:
         if jid:
             id_to_paths.setdefault(jid, []).append(jf)
 
-    all_findings: list[str] = []
+    _STATE["central_files"] = central_files
+    _STATE["duplicates"] = [
+        f"duplicate journey_id {jid!r} found in: "
+        + ", ".join(str(p) for p in paths)
+        for jid, paths in id_to_paths.items()
+        if len(paths) > 1
+    ]
+    _STATE["first"] = journey_files[0]
+    return journey_files
 
-    for jid, paths in id_to_paths.items():
-        if len(paths) > 1:
-            all_findings.append(
-                f"duplicate journey_id {jid!r} found in: "
-                + ", ".join(str(p) for p in paths)
-            )
 
-    for jf in journey_files:
-        all_findings.extend(_validate_journey(jf, jf.parent, central_files))
+def _findings(path: pathlib.Path) -> list[str]:
+    """Return one message per violation in one JOURNEY.md.
 
-    if all_findings:
-        print("lint-pack-journeys: violations found:", file=sys.stderr)
-        for f in all_findings:
-            print(f"  {f}", file=sys.stderr)
-        return 1
+    The duplicate-journey_id findings belong to the set rather than to any one
+    file, and they are reported ahead of every per-file finding. The driver
+    walks files, so they ride out on the first one — which puts them in exactly
+    the position they held when this was a single pass, and keeps a run whose
+    only defect is a duplicate id from reporting success.
+    """
+    central_files = _STATE["central_files"]
+    assert isinstance(central_files, dict)
+    findings: list[str] = []
+    if path == _STATE["first"]:
+        duplicates = _STATE["duplicates"]
+        assert isinstance(duplicates, list)
+        findings.extend(duplicates)
+    findings.extend(_validate_journey(path, path.parent, central_files))
+    return findings
 
-    print(f"lint-pack-journeys: all {len(journey_files)} JOURNEY.md files valid")
-    return 0
+
+def _report(findings: list[str]) -> None:
+    """Print the header before the findings; this rule writes nothing after."""
+    print("lint-pack-journeys: violations found:", file=sys.stderr)
+    for f in findings:
+        print(f"  {f}", file=sys.stderr)
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_journey_files,
+    predicate=_findings,
+    pass_line=lambda dirs, n: f"lint-pack-journeys: all {n} JOURNEY.md files valid",
+    empty_scan=lambda dirs: _NOTHING_TO_VALIDATE,
+    absent_root=lambda dirs: _NOTHING_TO_VALIDATE,
+    report=_report,
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the pack-journey lint and return its process exit status."""
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":

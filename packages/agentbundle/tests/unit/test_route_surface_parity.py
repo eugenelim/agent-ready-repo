@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import tomllib
 from collections.abc import Sequence
 from importlib import import_module
@@ -19,6 +18,8 @@ from agentbundle.commands import install as install_cmd
 from agentbundle.commands import render as render_cmd
 from agentbundle.commands import upgrade as upgrade_cmd
 from agentbundle.commands import validate as validate_cmd
+
+from tests._support import cli_namespace
 
 build_main = import_module("agentbundle.build.main")
 
@@ -250,7 +251,7 @@ def test_portable_recipe_changes_validation_from_rejected_to_accepted(
         encoding="utf-8",
         newline="\n",
     )
-    args = argparse.Namespace(pack_path=str(tmp_path), strict=False)
+    args = cli_namespace("validate", str(tmp_path))
 
     with monkeypatch.context() as context:
         context.setattr(

@@ -6,6 +6,91 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.46.1] — 2026-09-15
+
+### Fixed
+
+- `catalogue init` no longer writes through a temporary path another local
+  user can predict. The staging file now gets a random name, is created
+  exclusively, and keeps the permissions your umask would give it, so a
+  symlink left in the target directory cannot redirect the write. This
+  matters when you initialise a catalogue in a directory you do not
+  exclusively control, such as a shared or world-writable parent.
+
+## [0.46.0] — 2026-09-15
+
+### Changed
+
+- `catalogue init --preset self-hosted` writes schema-3 ownership state with a
+  recipe and source pin. A later run reuses recorded identity fields and pack
+  and profile selections when the corresponding flags are omitted; explicit
+  flags still win. Mode flags still resolve from their normal defaults.
+- State from a local-path `--source` records no source revision or archive
+  digest. Generated `catalogue.toml` values are escaped for TOML syntax.
+
+## [0.45.0] — 2026-09-14
+
+### Added
+
+- `agentbundle.telemetry_layout.resolve()` — per-setting, repository-first
+  resolution over the repository and user `agentbundle-layout.toml` files,
+  returning the merged `[telemetry]` settings and the argument vector for the
+  separately installed `jsonl-otlp-exporter` sender. Each scope names a root and
+  the filename is derived, so the caller cannot choose which file is read. Both
+  are read through the catalogue confinement helper and bounded at 64 KiB;
+  malformed, oversized, wrongly typed and symlinked inputs are refused. A
+  `[telemetry]` setting with no route to the sender is refused rather than
+  ignored, and the refusal names the file it came from.
+- `CAT-L032` — an informational catalogue-lint diagnostic naming an optional
+  runtime dependency a pack declares that is not installed. Detection is
+  in-process: no package manager is invoked, nothing is installed, and the exit
+  code stays 0.
+
+## [0.44.3] — 2026-09-15
+
+### Fixed
+
+- `make build-check` fails when a declared packaged runtime is missing, not
+  only when it has drifted. `agentbundle/_data/` carries a copy of each core
+  pack script the packaged CLI runs where no installed skill tree is present,
+  and the gate compared bytes only when both halves of a pair existed. An
+  absent copy hit the skip branch, so an incomplete packaged runtime passed
+  clean — the worse failure of the two, because the packaged engine loads its
+  siblings from its own directory and breaks at import. The skip now mirrors
+  the write condition of the sync path itself: wherever `build-self` would have
+  written a copy, the gate requires it present and byte-identical. A tree with
+  no `_data/` directory is a partial checkout and is still tolerated.
+- The same gate derives the declared set's sibling closure rather than trusting
+  it. Pairs are hand-declared, so a runtime could be bundled while the helper it
+  loads was not. `_data/` is flat, so every helper is reached as a sibling of
+  the loading module's own file; the gate now reads those reaches
+  (`Path(__file__)...with_name()`, a join on the module's own directory, and
+  `agentbundle._data.<name>` imports) and requires each one to be declared or
+  recorded as an exemption with its reason. An ancestor hop is not a sibling, so
+  a reach into another skill tree is excluded by construction. A sibling whose
+  name is computed rather than literal fails closed rather than passing unread.
+
+## [0.44.2] — 2026-09-14
+
+### Fixed
+
+- `catalogue init --preset self-hosted` copies `packages/credbroker/` into the
+  target whenever the `credential-brokers` pack is selected, in both tooling
+  modes. The user-libs projection resolves its source by relative path, so a
+  derived catalogue that omitted it reached the whole-package-retirement
+  branch by accident: the projection found no sources, `catalogue self-host`
+  wrote no `.agentbundle/lib/credbroker/` floor, and the drift gate compared
+  nothing and reported clean. The pack-vendored copy still arrived, leaving
+  frozen content with no source and no drift signal. This is not the
+  `packages/agentbundle/` treatment — that tree is vendored to
+  `.agentbundle/tooling/` because it is an install source, while this is a
+  build input resolved by relative path.
+- `--attribution white-label` records the derived catalogue's name in
+  `.agentbundle/self-host-state.json`, not the upstream one. The identity scan
+  runs over the planned file map before that file is written, so the upstream
+  name — identity anchor #1, which the scan allows zero hits of anywhere —
+  reached a file the adopter commits and ships. `attributed` is unchanged.
+
 ## [0.44.1] — 2026-09-13
 
 ### Changed
@@ -84,6 +169,7 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   row's recorded digest before parsing it. An uninspectable prior declaration
   or a capability widening fails closed without changing the projection or
   state.
+
 ## [0.42.0] — 2026-09-03
 
 ### Added
@@ -253,6 +339,7 @@ symlink targets, and mode bits.
   turning a skill name into a `skill://` URI needs templating the
   frontmatter-mapping grammar cannot express, so the build stops rather than
   emitting an unresolvable resource entry.
+
 ## [0.39.3] — 2026-08-23
 
 ### Changed
@@ -525,6 +612,7 @@ symlink targets, and mode bits.
   The build's `.apm` and `seeds` copytrees still pass `symlinks=True`, and that
   stays: preserving a link there is *safe* precisely because nothing reads the
   target at that layer. The defect was the composition, not either layer.
+
 ## [0.36.0] — 2026-08-16
 
 ### Fixed
@@ -581,6 +669,7 @@ symlink targets, and mode bits.
   wrong disclosure policy without noticing. Pass `"catalogue"` to keep the old
   behaviour, or `"single-pack"` when rendering a subset. The function had no
   callers in this repository.
+
 ## [0.35.3] — 2026-08-15
 
 ### Fixed

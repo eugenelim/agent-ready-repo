@@ -14,6 +14,73 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.46.1
+
+`catalogue init` no longer stages its writes under a name another local user
+can predict. The temporary file now has a random name, is created
+exclusively, and keeps the permissions your umask would give it. A symlink
+left in the target directory can no longer redirect the write — which
+matters if you initialise a catalogue somewhere you do not exclusively
+control, such as a shared or world-writable directory.
+
+## What's new in 0.46.0
+
+`catalogue init --preset self-hosted` now records the recipe it used and
+reuses its identity fields plus pack and profile selections on a later run.
+Running the same command again therefore recreates the recorded catalogue
+without deriving a new name or widening the selected pack set. Explicit flags
+still take precedence.
+
+The recorded state now has schema 3 and carries the available source pin.
+Because `--source` accepts a local path, its revision and archive digest are
+null. Values written into the generated `catalogue.toml` are escaped for TOML.
+
+## What's new in 0.45.0
+
+`agentbundle` can now work out where to send your work-loop telemetry.
+`agentbundle.telemetry_layout.resolve()` reads the `[telemetry]` section of the
+`agentbundle-layout.toml` in your repository and the one in your user layout
+directory, and returns the arguments for the separately installed
+`jsonl-otlp-exporter` sender. Nothing is sent unless you configure an endpoint
+and install that sender: they are two separate consents.
+
+Repository settings win per setting, because sending data off the machine is a
+team decision rather than a personal one. Both files are read through the
+catalogue's confinement helper and bounded at 64 KiB, and a `[telemetry]`
+setting the sender has no route for is refused — naming the file it came from —
+rather than silently ignored.
+
+`catalogue lint` also reports `CAT-L032` when a pack declares an optional
+runtime dependency you do not have installed. It names the package and exits 0.
+It never invokes a package manager and never installs anything.
+
+## What's new in 0.44.3
+
+Repository maintenance only: this release changes `make build-check`, which
+runs against a source checkout. Nothing an installed `agentbundle` does
+changes.
+
+The check that keeps `agentbundle/_data/` in step with its core-pack sources
+now fails on a copy that is missing, not only on one that has drifted. It also
+derives which copies are needed from the sources themselves, so a bundled
+script that loads a helper nobody bundled is reported instead of shipping an
+import that cannot resolve.
+
+## What's new in 0.44.2
+
+A catalogue you derive with `catalogue init --preset self-hosted` now keeps a
+working drift check on its vendored `credbroker` code. Selecting the
+`credential-brokers` pack copies the package source alongside it, so the check
+that compares the vendored copy against that source has something to compare.
+Previously the source was left behind and the check passed by finding nothing:
+the vendored copy was frozen, and an edit to it went unreported.
+
+`--attribution white-label` also no longer records the upstream catalogue's
+name in `.agentbundle/self-host-state.json`. That file is written after the
+identity scan runs, so the name reached a file you commit and ship. It now
+records your own catalogue's name. `--attribution attributed` is unchanged and
+still records the upstream name.
+
 ## What's new in 0.44.1
 
 Installing a pack now adds its default output location to an
@@ -129,6 +196,7 @@ Claude Code fields Kiro cannot read (`permissionMode`, `memory`, `maxTurns`, …
 and IDE-only keys that make the CLI loader drop an agent (`hooks`) are dropped,
 each with a `kiro: dropping … agent field` line on stderr. If you relied on the
 previous pass-through, check your build log after upgrading.
+
 ## What's new in 0.39.3
 
 The bundled workspace-status engine now recognizes reviewed legacy work-intake

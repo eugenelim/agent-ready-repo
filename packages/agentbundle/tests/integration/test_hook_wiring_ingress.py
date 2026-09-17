@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import tomllib
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from agentbundle import config
@@ -16,6 +14,8 @@ from agentbundle.build.lint_packs import lint_pack
 from agentbundle.build.main import _read_bundled
 from agentbundle.commands import diff, init_state, install, render, upgrade, validate
 from agentbundle.render import render_pack_to_dir
+
+from tests._support import cli_namespace
 
 
 def _hazardous_pack(tmp_path: Path, *, consent: bool = True) -> Path:
@@ -61,7 +61,7 @@ def test_validate_cli_rejects_hazardous_command(tmp_path: Path) -> None:
     pack = _hazardous_pack(tmp_path)
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
-        rc = validate.run(argparse.Namespace(pack_path=str(pack), strict=False))
+        rc = validate.run(cli_namespace("validate", str(pack)))
     assert rc == 1
     assert "python3 -c" in stderr.getvalue()
     assert "run.toml" in stderr.getvalue()
@@ -73,27 +73,14 @@ def _run_public_consumer(name: str, tmp_path: Path) -> tuple[int, Path]:
     output = tmp_path / "output"
     if name == "render":
         return render.run(
-            SimpleNamespace(
-                pack_path=str(pack),
-                output=str(output),
-                target=None,
-                self_host=False,
-            )
+            cli_namespace("render", str(pack), "--output", str(output))
         ), output
     if name == "install":
         return install.run(
-            SimpleNamespace(
-                pack="hazardous",
-                profile=None,
-                catalogue=str(catalogue),
-                output=str(output),
-                scope="repo",
-                adapter=None,
-                emit_install_routes=True,
-                dry_run=True,
-                force=False,
-                force_merge=False,
-                yes=True,
+            cli_namespace(
+                "install", str(catalogue), "--pack", "hazardous",
+                "--output", str(output), "--scope", "repo",
+                "--emit-install-routes", "--dry-run", "--yes",
             )
         ), output
     if name == "upgrade":
@@ -113,21 +100,10 @@ def _run_public_consumer(name: str, tmp_path: Path) -> tuple[int, Path]:
         state_path.write_text(config.dump_state(state), encoding="utf-8")
         before = state_path.read_bytes()
         result = upgrade.run(
-            SimpleNamespace(
-                pack="hazardous",
-                all=False,
-                catalogue=str(catalogue),
-                root=str(output),
-                scope="repo",
-                adapter=None,
-                skill=None,
-                agent=None,
-                hook=None,
-                seed=None,
-                command=None,
-                format="table",
-                dry_run=True,
-                yes=True,
+            cli_namespace(
+                "upgrade", str(catalogue), "--pack", "hazardous",
+                "--root", str(output), "--scope", "repo",
+                "--dry-run", "--yes",
                 _user_config=None,
             )
         )
@@ -135,25 +111,15 @@ def _run_public_consumer(name: str, tmp_path: Path) -> tuple[int, Path]:
         return result, output
     if name == "diff":
         return diff.run(
-            SimpleNamespace(
-                pack_path=str(pack),
-                root=str(output),
-                scope=None,
-                adapter=None,
-            )
+            cli_namespace("diff", str(pack), "--root", str(output))
         ), output
     if name == "validate":
-        return validate.run(
-            SimpleNamespace(pack_path=str(pack), strict=False)
-        ), output
+        return validate.run(cli_namespace("validate", str(pack))), output
     if name == "init-state":
         return init_state.run(
-            SimpleNamespace(
-                pack="hazardous",
-                packs_dir=str(catalogue / "packs"),
-                root=str(output),
-                migrate=False,
-                scope=None,
+            cli_namespace(
+                "init-state", "--pack", "hazardous",
+                "--packs-dir", str(catalogue / "packs"), "--root", str(output),
             )
         ), output
     raise AssertionError(f"unknown consumer fixture {name}")

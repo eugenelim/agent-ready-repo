@@ -20,6 +20,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from tests._support import cli_namespace
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -40,10 +42,7 @@ allowed-scopes = ["repo"]
 
 
 def _args(pack_path: Path) -> argparse.Namespace:
-    ns = argparse.Namespace()
-    ns.pack_path = str(pack_path)
-    ns.strict = False
-    return ns
+    return cli_namespace("validate", str(pack_path))
 
 
 def _run(pack_path: Path):

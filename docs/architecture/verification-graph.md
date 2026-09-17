@@ -204,7 +204,7 @@ updates are deliberately disabled for that reason.
 | `iac-release-loop-canary.yml` | `push`, `pull_request`, `workflow_dispatch` | Operational-safety module references |
 | `iac-staleness.yml` | weekly `schedule`, `workflow_dispatch` | Terraform and OpenTofu example validation |
 | `publish-catalogue.yml` | `workflow_dispatch`, `workflow_call` | Packaging and Artifactory upload |
-| `publish-claude-plugins.yml` | `push` on `main`, `workflow_dispatch` | Claude plugin publication |
+| `publish-claude-plugins.yml` | `push` on `main` (`paths:` allowlist — the 15 published pack directories, every pack's two scope-declaring manifests, and the ten other paths the job consumes), `workflow_dispatch` | Claude plugin publication. The job is gated on the `claude-plugin-publish` environment, so a push that cannot change the published tree would otherwise open a deployment approval; `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree in either direction |
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
 | `release-credbroker.yml` | `push`, `pull_request` | The same shape for CredBroker |
 

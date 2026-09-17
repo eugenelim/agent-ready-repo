@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 FIXTURE_CATALOGUE = (
     Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
@@ -27,20 +27,18 @@ FIXTURE_CATALOGUE = (
 
 
 def _install_args(output: str, **overrides) -> argparse.Namespace:
-    base = {
-        "pack": "alpha",
-        "catalogue": str(FIXTURE_CATALOGUE),
-        "output": output,
-        "scope": None,
-        "force": False,
-        "force_merge": False,
-        "dry_run": False,
-        "yes": False,
-        "adapter": None,
-        "emit_install_routes": True,  # dist-tree shape (fixture predates per-IDE)
-    }
-    base.update(overrides)
-    return argparse.Namespace(**base)
+    # emit_install_routes=True: dist-tree shape (fixture predates per-IDE projection).
+    # Deviation: emit_install_routes=True vs parser default False → pass --emit-install-routes.
+    ns = cli_namespace(
+        "install",
+        str(FIXTURE_CATALOGUE),
+        "--pack", "alpha",
+        "--output", output,
+        "--emit-install-routes",
+    )
+    for key, value in overrides.items():
+        setattr(ns, key, value)
+    return ns
 
 
 def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
@@ -219,17 +217,12 @@ allowed-adapters = ["claude-code", "codex"]
     monkeypatch.setattr("builtins.input", lambda prompt="": "y")
 
     with patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home)}):
-        args = argparse.Namespace(
-            pack="converters",
-            catalogue=str(cat),
-            output=str(tmp_path / "repo"),
-            scope="user",
-            force=False,
-            force_merge=False,
-            dry_run=False,
-            yes=False,
-            adapter=None,
-            emit_install_routes=False,
+        args = cli_namespace(
+            "install",
+            str(cat),
+            "--pack", "converters",
+            "--output", str(tmp_path / "repo"),
+            "--scope", "user",
         )
         rc = _install_mod.run(args)
 

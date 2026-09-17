@@ -18,7 +18,7 @@ standard, what we add, and where each part is specified.
 | 2. Pack | The envelope that ships a skill (and other primitives): `pack.toml`, `.apm/<primitive>/`, `seeds/`, `.claude-plugin/plugin.json`. | [`pack-layout.md`](pack-layout.md), [`pack-manifest.md`](pack-manifest.md) |
 | 3. Projection | One pack source → many agent outputs, routed by the adapter contract. | [`agentbundle.md`](agentbundle.md), [`contracts/adapter.toml`](../../contracts/adapter.toml) |
 
-Above all three sits the [catalogue](catalogue.md). A source catalogue is
+Above all three sits the [catalogue](catalogue/README.md). A source catalogue is
 identified by a root `catalogue.toml` and a literal root `packs/` directory;
 adapter projections such as `.claude-plugin/marketplace.json` are generated
 only when their adapter is enabled.
@@ -83,7 +83,7 @@ authoritative format spec for the projection modes is
 
 ## Where to read next
 
-- [`catalogue.md`](catalogue.md) — the directory these packs live in, and how
+- [`catalogue/README.md`](catalogue/README.md) — the directory these packs live in, and how
   to stand up your own.
 - [Author a skill](../../guides/_shared/how-to/author-a-skill.md) — the hands-on
   how-to, including the `evals/` convention.

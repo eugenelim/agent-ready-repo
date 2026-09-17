@@ -515,19 +515,57 @@ MAX_AMENDMENT_EVIDENCE_REFS = 64
 MAX_AMENDMENT_STATE_BYTES = 1024 * 1024
 
 
-def parse_depends_on(field: str, local_task_ids):
-    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
+def _local_dep_ids(field: str) -> set[str]:
+    """Local task IDs a `Depends on:` field names ahead of its first `(`.
+
+    Trailing parenthetical prose is authored commentary, not declaration, so the
+    field is truncated there. An ID written after that `(` is therefore not a
+    declared dependency for any caller: it is neither scheduled as an edge nor
+    reported as unknown. That is deliberate — widening it would change what
+    counts as a dependency for every caller of this helper, not just the
+    unknown-dependency check.
+    """
     head = field.split("(")[0]
-    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
     cleaned = _CROSS_MARKER_RE.sub("", head)
     cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
     if not cleaned.strip() or re.fullmatch(r"\s*none\s*", cleaned, re.IGNORECASE):
-        return set(), cross
+        return set()
     ids: set[str] = set()
     for lo, hi in _RANGE_RE.findall(cleaned):
         ids.update(f"T{i}" for i in range(int(lo[1:]), int(hi[1:]) + 1))
     ids.update(_TASK_ID_RE.findall(cleaned))
-    return {t for t in ids if t in local_task_ids}, cross
+    return ids
+
+
+def parse_depends_on(field: str, local_task_ids):
+    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
+    head = field.split("(")[0]
+    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
+    return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
+
+
+def detect_unknown_deps(text: str, scan_task_ids: set[str] | None = None) -> list[tuple[str, str]]:
+    """Return (task, dep) pairs naming an ID the plan does not contain.
+
+    Dependencies always resolve against every task in `text`. `scan_task_ids`
+    restricts which tasks' declarations are read; None reads all of them.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    # Resolution set: ALL task IDs in the plan — never narrowed by the caller.
+    resolution_set = {m.group(1) for m in matches}
+    result: list[tuple[str, str]] = []
+    for i, m in enumerate(matches):
+        task_id = m.group(1)
+        if scan_task_ids is not None and task_id not in scan_task_ids:
+            continue
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        dm = DEPENDS_LINE_RE.search(text[m.end():end])
+        if not dm:
+            continue
+        unknown = _local_dep_ids(dm.group(1)) - resolution_set
+        for dep in sorted(unknown):
+            result.append((task_id, dep))
+    return sorted(result)
 
 
 def parse_plan(text: str):
@@ -606,6 +644,17 @@ def schedule_unfinished_plan(plan_text: str, state: dict) -> list[list[str]]:
         task_id: dependencies.get(task_id, set()) & remaining_set
         for task_id in remaining
     }
+    # Keyword argument, never positional: the set in scope here is the scan set,
+    # and resolving against it instead of the whole plan would refuse every
+    # amended plan whose dependency is already completed.
+    unknown = detect_unknown_deps(plan_text, scan_task_ids=remaining_set)
+    if unknown:
+        raise ValueError(
+            "dependency names no task in the plan: "
+            + ", ".join(f"{a}->{b}" for a, b in unknown)
+            + " — correct the ID in plan.md, or drop it from that task's"
+            " `Depends on:` line"
+        )
     cycles = detect_cycles(remaining, remaining_dependencies)
     if cycles:
         raise ValueError(
@@ -1422,6 +1471,12 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     print(
         f"loop-cohort: schedule persisted for {spec_dir.name} "
         f"({len(waves)} wave(s), plan_hash={plan_hash[:12]}…)"
+    )
+    print(
+        "loop-cohort: dispatch — send each task above to one implementer subagent, one\n"
+        "  at a time, when that agent is installed; otherwise run them yourself and note\n"
+        "  the degradation in the final summary. Scheduling, gates, review and state\n"
+        "  stay with you."
     )
     return 0
 

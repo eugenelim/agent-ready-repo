@@ -27,7 +27,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 _CONVERTERS_MANIFEST = """\
 [pack]
@@ -70,17 +70,10 @@ class InstallMessageRailTests(unittest.TestCase):
         stage_installable_pack(self.cat, "converters", _CONVERTERS_MANIFEST)
 
     def _install(self, *, scope: str, adapter: str | None = None) -> tuple[int, str, str]:
-        return _run_install(
-            argparse.Namespace(
-                pack="converters",
-                catalogue=str(self.cat),
-                output=str(self.repo),
-                scope=scope,
-                force=False,
-                force_merge=False,
-                adapter=adapter,
-            )
-        )
+        argv = [str(self.cat), "--pack", "converters", "--output", str(self.repo), "--scope", scope]
+        if adapter is not None:
+            argv += ["--adapter", adapter]
+        return _run_install(cli_namespace("install", *argv))
 
     def test_user_scope_install_emits_via_clause(self) -> None:
         """User-scope install stdout contains `via <adapter>`."""

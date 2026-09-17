@@ -302,6 +302,12 @@ validated target is the only path the materializer may write. Use the same
 helper to sequence registration and the processor handoff. Dispatch is allowed
 only after both writes are durable.
 
+The intake transaction participates in the shared workspace-writer lock at
+the repository root. It acquires the lock without waiting before artifact
+materialization and holds it continuously through workspace registration and
+any rollback or reconciliation recovery. If another writer holds the lock,
+the transaction returns `lock_busy` without mutating either side.
+
 For all routes that create or remember work, apply Terse workspace capture:
 the workspace entry is the current coordination index only. The artifact owns
 requirements, rationale, findings, source excerpts, follow-on scope, and any

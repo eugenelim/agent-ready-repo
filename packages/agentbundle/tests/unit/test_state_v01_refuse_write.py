@@ -14,13 +14,14 @@ v0.1 state file at the repo root before the call.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 from pathlib import Path
 
 import pytest
 from agentbundle.commands import adapt, diff, init_state, install, uninstall, upgrade
+
+from tests._support import cli_namespace
 
 V01_STATE = """
 schema-version = "0.1"
@@ -69,12 +70,8 @@ def test_install_refuses_v01_state(tmp_path):
     )
     (pack / ".apm").mkdir()  # empty apm so render is a no-op
 
-    args = argparse.Namespace(
-        pack="demo",
-        catalogue=str(tmp_path / "catalogue"),
-        output=str(tmp_path),
-        scope=None,
-        force=False,
+    args = cli_namespace(
+        "install", str(tmp_path / "catalogue"), "--pack", "demo", "--output", str(tmp_path)
     )
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
@@ -84,7 +81,7 @@ def test_install_refuses_v01_state(tmp_path):
 
 def test_uninstall_refuses_v01_state(tmp_path):
     _v01(tmp_path)
-    args = argparse.Namespace(pack="core", root=str(tmp_path), scope=None)
+    args = cli_namespace("uninstall", "--pack", "core", "--root", str(tmp_path))
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
         rc = uninstall.run(args)
@@ -99,17 +96,8 @@ def test_upgrade_refuses_v01_state(tmp_path):
         '[pack]\nname = "core"\nversion = "0.2.0"\n', encoding="utf-8", newline="\n"
     )
     (pack / ".apm").mkdir()
-    args = argparse.Namespace(
-        pack="core",
-        catalogue=str(tmp_path / "catalogue"),
-        yes=True,
-        skill=None,
-        agent=None,
-        hook=None,
-        seed=None,
-        command=None,
-        root=str(tmp_path),
-        scope=None,
+    args = cli_namespace(
+        "upgrade", str(tmp_path / "catalogue"), "--pack", "core", "--root", str(tmp_path), "--yes"
     )
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
@@ -124,12 +112,8 @@ def test_init_state_without_migrate_refuses_v01(tmp_path):
     (pack / "pack.toml").write_text(
         '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
-    args = argparse.Namespace(
-        pack="demo",
-        packs_dir=str(tmp_path / "packs"),
-        root=str(tmp_path),
-        migrate=False,
-        scope=None,
+    args = cli_namespace(
+        "init-state", "--pack", "demo", "--packs-dir", str(tmp_path / "packs"), "--root", str(tmp_path)
     )
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
@@ -147,7 +131,7 @@ def test_init_state_without_migrate_refuses_v01(tmp_path):
 def test_adapt_ci_refuses_legacy_state_gracefully(tmp_path):
     """adapt --ci reads state; a legacy file refuses with a clean message."""
     _v01(tmp_path)
-    args = argparse.Namespace(values_from=None, ci=True, root=str(tmp_path))
+    args = cli_namespace("adapt", "--ci", "--root", str(tmp_path))
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
         rc = adapt.run(args)
@@ -164,9 +148,7 @@ def test_diff_refuses_legacy_state_gracefully(tmp_path):
     (pack / "pack.toml").write_text(
         '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
-    args = argparse.Namespace(
-        pack_path=str(pack), root=str(tmp_path), scope=None, adapter=None
-    )
+    args = cli_namespace("diff", str(pack), "--root", str(tmp_path))
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
         try:

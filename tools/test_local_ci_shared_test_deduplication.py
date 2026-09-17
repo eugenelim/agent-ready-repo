@@ -210,6 +210,19 @@ RETAINED_TOOL_SINGLETONS = (
     "tools/test_worktree_lease_interlock.py",
     "tools/test_worktree_import_resolution.py",
     "tools/test_editable_install_guard.py",
+    # Added 2026-09-16, registering the runner line `2b1574e19` (PR #1313) put
+    # in `run-test-suite`. It is a singleton rather than a batch member because
+    # the Makefile gives it its own `-m pytest` invocation, at Makefile:651,
+    # directly after `test_editable_install_guard.py` — which is why it sits
+    # there here too. That is the only Makefile adjacency this position
+    # reproduces, and it reproduces nothing load-bearing:
+    # EXPECTED_ROOT_TOOL_PATHS is a frozenset, so placement is for the reader.
+    # It is the only membership delta between this worktree's
+    # Makefile and `16611c21e:Makefile`: `_root_tool_pytest_groups` over the new
+    # Makefile reports exactly one path extra against the prior
+    # EXPECTED_ROOT_TOOL_PATHS and none missing, and over `16611c21e:Makefile`
+    # the prior set matched exactly, so that set was current before this edit.
+    "tools/test_gate_enumeration.py",
     "tools/test_run_slot.py",
     "tools/test_with_lease_cli.py",
     "tools/test_playwright_evidence_lifecycle.py",
@@ -565,11 +578,56 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # the pre-change Makefile with the superseded digests still in place reports no
 # drift at all, reproducing `7fadaf20…` and `e48c8b01…` exactly, so this re-pin
 # is not sitting on a move someone else already made.
+#
+# Re-pinned 2026-09-16 for `2b1574e19` (PR #1313), which registered
+# `packages/jsonl-otlp-exporter` and added its two runner lines to
+# `run-test-suite`. That PR did not touch this file at all — `git diff
+# 2b1574e19~1 2b1574e19 -- tools/test_local_ci_shared_test_deduplication.py`
+# is empty — so nothing here moved with it and these two digests have been red
+# on `main` ever since. They surface only under `make test` and
+# `test-after-build-check-unleased`, neither of which a PR runs, which is why
+# the gap lasted. This entry re-pins to the true current values; it does not
+# weaken the check. Dispositioned through `_effective_composition_errors`
+# itself, both ways the block above requires.
+#
+# Two provenance traps cost three review rounds here; both are worth the lines.
+#
+# Do not take #1313's commit message for what #1313 did to this file. That
+# message says the Makefile edit drifted MAKE_BASELINE_DIGESTS["SEMGREP_EXCLUDE"]
+# and that the pin was recomputed. This file has no such edit in it. `fefa18aa…`
+# was pinned earlier by `87a3c8045` (PR #1293), an ancestor of the baseline
+# below, and that variable is byte-identical across this whole window.
+#
+# Do not read `git diff <baseline> 2b1574e19 -- <a file>` as #1313's own diff.
+# That range spans other PRs, and for this file it shows only their work: the
+# workspace-status CLI count moves 162 -> 166 inside it, from `003709805`
+# (#1304), `e119bac45` (#1311), and `2fabbbc64` (#1315). Use `2b1574e19~1` when
+# the question is what one commit did; the range baseline below is for the
+# Makefile only, where the range and the commit happen to agree.
+#
+# That baseline is `16611c21e` (PR #1299), the last Makefile-touching commit
+# before #1313, NOT #1313's parent — that is `21dac81a9` (PR #1322), which left
+# the Makefile untouched. `git diff 16611c21e 21dac81a9 -- Makefile` is empty,
+# so the two are interchangeable as a Makefile baseline, and `16611c21e` is the
+# one worth naming, being the revision a replay can reason about.
+#
+# (1) Sole cause: the same path against this worktree's Makefile and against
+# `16611c21e:Makefile` moves each plan by exactly two lines —
+# standalone 63 -> 65, composed 62 -> 64 — inserting
+# `<PYTHON> -m pytest packages/jsonl-otlp-exporter/ -q` at index 3 in both, and
+# `<PYTHON> -m pytest tools/test_gate_enumeration.py -q` at index 55 standalone
+# and 54 composed. Every other differing index differs only by that shift:
+# deleting those two lines from the new plan reproduces the old plan element
+# for element, and each appears exactly once, so nothing else moved, was
+# reordered, or was dropped. (2) Prior pins were current: with the superseded
+# `8f32abf2…` and `de0cadbf…` still in place, `_effective_composition_errors`
+# over `16611c21e:Makefile` returns an empty error list — zero drift — so this
+# supersedes live values rather than stacking on a move someone else left.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "8f32abf234db484ed12269e7b4182a34e5db5ea21764556e852e4d96f17c7583"
+    "8130fdecfb24f06d64fa41359745163ec68aaf88eedd439ef13e0587846f408f"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "de0cadbf5e920afe80eb4ffb024474afa59af915b26e5ab014fdb008bb1c5390"
+    "88c37c693fb15da7071027e261d0833ea5c6c7587072997732d6e886507e60a0"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -593,7 +651,16 @@ MAKE_BASELINE_DIGESTS = {
     # digest exists to pin are byte-identical.
     "build-check-unleased": "4299c65f68880e4f2e67e4cbf4ac6103154340ccd25ab98c8fca5e574a92b3b9",
     "sast": "6e3046497a9f9ed10e559865ecd9e330d88e37417ccfc35af20bc610616ef0b4",
-    "sast-unleased": "cb4177f36bd64773812db97f879ad7e49e197370ecb9934ecb8a133318d4b1e5",
+    # Bumped 2026-09-16 for the jsonl-otlp-exporter packaging addition
+    # (2b1574e19), which appended `packages/jsonl-otlp-exporter/pyproject.toml`
+    # to the recipe's `audit-requirements.py --build-system` call. Verified
+    # before the bump the same way the SEMGREP_EXCLUDE entry above was:
+    # `sast-unleased` was the SOLE surface to move, every other one of the
+    # eight reproduced byte-identically, and the value being replaced was
+    # recomputed from `2b1574e19~1` and matched exactly — so this supersedes a
+    # live pin, not a stale one, and the move is confined to the one line that
+    # commit deliberately added.
+    "sast-unleased": "9b2decb9e6baf12f75074c508590272b3052fa0a367a437bab290c2bca6e3dff",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
     "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
     # Bumped 2026-09-13 for the httpsconnection-detected exclusion. Verified
@@ -1166,7 +1233,26 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
         direct_skip_reasons[nodeid] = str(
             getattr(method, "__unittest_skip_why__", "")
         )
-    assert len(cli_contract) == len(direct_cli_nodes) == 163
+    # Re-pinned 2026-09-14: 163 -> 165, dispositioned rather than taken from
+    # either side. Two renames, count-neutral, same bodies with their
+    # display-field assertions inverted:
+    # test_benign_initiative_display_fields_are_still_redacted ->
+    # test_initiative_display_fields_project_as_authored, and
+    # test_initiative_display_prose_is_not_projected ->
+    # test_initiative_display_prose_projects_verbatim. Two genuine additions,
+    # which is the whole of the delta:
+    #   test_initiative_display_fields_coerce_non_strings
+    #   test_skill_contract_describes_display_fields_as_values
+    # Nothing was removed. The preceding 162 -> 163 re-pin landed with
+    # no note of its own; it was the single addition
+    # test_benign_initiative_display_fields_are_still_redacted, so the count
+    # has a continuous account behind it again rather than a gap.
+    # Re-pinned 2026-09-15: 165 -> 166. One addition, no removals, no renames:
+    #   test_skill_contract_handles_empty_display_fields
+    # It pins the rendering rule for an initiative whose workspace.toml section
+    # omits name or milestone -- a state the redaction sentinel made unreachable
+    # until display metadata began projecting as authored.
+    assert len(cli_contract) == len(direct_cli_nodes) == 166
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1387,7 +1473,9 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
         for method in unittest.defaultTestLoader.getTestCaseNames(test_case)
     }
 
-    assert len(direct_ids) == 163
+    # Same delta as the re-pin note above; both literals move together.
+    # Same delta as the re-pin note above; both literals move together.
+    assert len(direct_ids) == 166
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 
@@ -1426,7 +1514,7 @@ def test_real_make_root_tool_groups_match_the_approved_profiles() -> None:
 
 
 def test_root_tool_topology_mutations_fail_closed() -> None:
-    """Removal, duplication, broad discovery, and stale ownership all redden."""
+    """Removal, duplication, regrouping, broad discovery, stale ownership redden."""
     makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
     grouped_member = f"\t{PROVEN_COMPATIBLE_FILES[1]} \\\n"
     assert grouped_member in makefile
@@ -1440,6 +1528,31 @@ def test_root_tool_topology_mutations_fail_closed() -> None:
     assert "standalone root/tool membership drift" in _root_tool_topology_errors(
         duplicated
     )
+
+    # The control for the two hardcoded process counts, added 2026-09-16 with
+    # the 15/14 -> 16/15 re-pin. The four cases around it all move membership,
+    # so every one of them reddens through the Counter comparison and none of
+    # them can tell whether the counts still work. This mutation merges two
+    # singleton invocations into one: every path still runs exactly once, so
+    # membership is untouched by construction, and the only thing that moves is
+    # how many pytest processes the profile starts. A wrong count literal is
+    # already caught by
+    # test_real_make_root_tool_groups_match_the_approved_profiles,
+    # which asserts no errors against the real Makefile; what is caught only
+    # here is the count assertions being DELETED or weakened while membership
+    # still passes, which is the failure a re-pin invites.
+    regrouped = makefile.replace(
+        "$(PYTHON) -m pytest tools/test_run_slot.py -q\n"
+        "$(PYTHON) -m pytest tools/test_with_lease_cli.py -q\n",
+        "$(PYTHON) -m pytest tools/test_run_slot.py tools/test_with_lease_cli.py -q\n",
+        1,
+    )
+    assert regrouped != makefile
+    regrouped_errors = _root_tool_topology_errors(regrouped)
+    assert regrouped_errors == [
+        "standalone root/tool process count drift",
+        "composed root/tool process count drift",
+    ]
 
     broad = makefile.replace(
         "$(PYTHON) -m pytest \\\n\ttools/test_import_time_path_leaks.py \\\n",
@@ -1895,9 +2008,29 @@ def _root_tool_topology_errors(makefile_text: str | None = None) -> list[str]:
 
     standalone_groups = _root_tool_pytest_groups(standalone.stdout)
     composed_groups = _root_tool_pytest_groups(composed.stdout)
-    if len(standalone_groups) != 15:
+    # Process counts, not path counts: they catch a regrouping that keeps every
+    # path and still changes how many pytest processes run, which the membership
+    # comparison below cannot see. Re-pinned 2026-09-16 from 15/14 for
+    # `2b1574e19` (PR #1313), whose `tools/test_gate_enumeration.py` runner line
+    # is its own invocation and so adds one group to each profile. Its sibling
+    # `packages/jsonl-otlp-exporter/` line adds none: `_root_tool_pytest_groups`
+    # keeps only root/tool targets, and that path is neither. Dispositioned by
+    # running this function against both Makefiles. (1) Sole cause: against
+    # `16611c21e:Makefile` (the pre-#1313 Makefile baseline named in the
+    # APPROVED_*_PLAN_DIGEST block above) the counts are 15 and 14, against
+    # this worktree's Makefile 16 and 15 — one added group each, matching the
+    # one added qualifying runner line. (2) Prior pins were current: this
+    # function returns an empty error list over `16611c21e:Makefile` with the
+    # WHOLE prior pin set restored — 15/14 here AND
+    # `tools/test_gate_enumeration.py` dropped back out of
+    # RETAINED_TOOL_SINGLETONS. Reverting only the counts does not reproduce
+    # it: this function checks counts and membership against the same two
+    # expansions, so a half-revert reports membership drift instead. The
+    # plan-digest entry above is the other shape — there a digest-only revert
+    # is the whole prior state — so do not copy its replay recipe here.
+    if len(standalone_groups) != 16:
         errors.append("standalone root/tool process count drift")
-    if len(composed_groups) != 14:
+    if len(composed_groups) != 15:
         errors.append("composed root/tool process count drift")
 
     standalone_paths = [path for group in standalone_groups for path in group]
@@ -2514,6 +2647,82 @@ endef
 test-unleased:
 \t+echo observable
 """,
+        # `make -n test-unleased` walks the whole prerequisite closure and
+        # expands each recipe it reaches, so a `$(MAKE)` in a PREREQUISITE runs
+        # for real during expansion. PR #1330 left these three unrefused: the
+        # walk read only the define body and the root's own recipe.
+        "recursive-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard:
+\t$(MAKE) observable
+""",
+        "recursive-braced-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard:
+\t${MAKE} observable
+""",
+        # Two hops, because the closure is transitive: a one-level widening
+        # would pass this while still executing the hazard.
+        "recursive-transitive-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard: deeper-guard
+\techo safe
+
+deeper-guard:
+\t$(MAKE) observable
+""",
+        # A CONTINUED prerequisite list. Make joins the backslash-newline and
+        # reads `deeper-guard` as a prerequisite; a physical-line scan reads
+        # that tab-indented line as test-unleased's recipe instead and never
+        # queues the target, so the hazard two hops away escapes.
+        "recursive-continued-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard \\
+\tdeeper-guard
+\t$(call run-test-suite)
+
+guard:
+\techo safe
+
+deeper-guard:
+\t$(MAKE) observable
+""",
+        # An INLINE recipe. `make -n` executes `; +cmd` exactly as it executes a
+        # forced tab-indented line, and a tail parsed wholly as prerequisites
+        # yields no recipe at all for the hazard check to see.
+        "recursive-inline-prerequisite": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard: ; $(MAKE) observable
+""",
+        # `#` inside an inline recipe is NOT a comment -- Make hands the line to
+        # the shell. Measured on GNU Make 3.81: this fixture ran `$(MAKE)` for
+        # real under `-n`. A tail that strips comments before finding the
+        # recipe separator truncates the hazard away and lets the subprocess go.
+        "recursive-behind-a-quoted-hash": """override define run-test-suite
+echo safe
+endef
+test-unleased: guard
+\t$(call run-test-suite)
+
+guard: ; @echo "#"; $(MAKE) observable
+""",
     }
     for name, makefile_text in fixtures.items():
         make_run = mock.Mock()
@@ -2804,14 +3013,29 @@ def test_shard_workflow_run_scalars_enumerate_no_suite() -> None:
 
 
 def test_shard_workflow_roster_leak_detector_catches_each_shape() -> None:
-    """Each forbidden enumeration shape is actually detected."""
+    """Each forbidden enumeration shape is detected; the shipped steps are not.
+
+    The last two leak rows carry no trailing slash. `make check packs/core/tests`
+    names a suite just as `tests/` does, and an earlier detector that required
+    the slash let both through. The two clean rows are the shape of the
+    workflow's real provisioning steps: installing pytest is not invoking it, so
+    a detector that fired on the bare word would report the shipped file.
+    """
     for leaked in (
         "python -m pytest tools/test_build_gate_chain.py -q",
         "pytest packs/core/tests/pack/ -q",
         "make check tools/test_check_artifact_contents.py",
         "make test tests/",
+        "make check packs/core/tests",
+        "make check tests",
     ):
         assert _shard_roster_leaks([leaked]), leaked
+
+    for clean in (
+        "python -m pip install pytest -r tools/requirements.txt",
+        "npm ci --prefix docs-site",
+    ):
+        assert _shard_roster_leaks([clean]) == [], clean
 
 
 def test_shard_workflow_runs_one_test_step_on_the_exact_runner() -> None:
@@ -2886,24 +3110,97 @@ def test_shard_expansion_passes_no_print_directory() -> None:
 def test_shard_refuses_combined_force_recipe_prefixes() -> None:
     """`@+cmd` forces execution under -n exactly as `+cmd` does."""
     shard = _shard_module()
-    for prefix in ("+", "@+", "-+", "+@", "@-+"):
-        makefile_text = (
+    # The modelled places `make -n test-unleased` reaches a forced recipe. All
+    # but the first are PREREQUISITE shapes: `make -n` walks the prerequisite
+    # closure and expands each recipe it finds there, so each executed for real
+    # and unrefused before this change. `shard_test_roster` states which Make
+    # constructs it does not model, and those are deliberately absent here.
+    # Measured on GNU Make 3.81: `guard:` + `\t+echo x`, `guard: ; +echo x`,
+    # and a continued prerequisite list each printed `x` under `-n`.
+    hazard_sites = {
+        "root recipe": (
             "override define run-test-suite\necho safe\nendef\n"
-            f"test-unleased:\n\t{prefix}echo observable\n"
-        )
-        make_run = mock.Mock()
-        with (
-            mock.patch.object(shard.subprocess, "run", make_run),
-            unittest.TestCase().assertRaises(shard.RosterError),
-        ):
-            shard.roster_lines(makefile_text)
-        assert make_run.call_args_list == [], prefix
+            "test-unleased:\n\t{prefix}echo observable\n"
+        ),
+        "prerequisite recipe": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\nguard:\n\t{prefix}echo observable\n"
+        ),
+        "inline prerequisite recipe": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\nguard: ; {prefix}echo observable\n"
+        ),
+        # `deeper-guard` is named only on the continued line, which is
+        # tab-indented: read physically it is test-unleased's recipe, and the
+        # target never enters the closure.
+        "continued prerequisite list": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard \\\n\tdeeper-guard\n\t$(call run-test-suite)\n"
+            "\nguard:\n\techo safe\n"
+            "\ndeeper-guard:\n\t{prefix}echo observable\n"
+        ),
+        # Make accepts a SPACE-indented rule (a tab would make it a recipe), so
+        # a column-zero-only match skips a prerequisite that does have a rule.
+        "space-indented prerequisite rule": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\n  guard:\n\t{prefix}echo observable\n"
+        ),
+        # Make ignores blank and comment-only lines and still attaches the
+        # tab-indented lines that follow, so a collector that stops at one
+        # never sees the rest of the recipe.
+        "recipe after an ignored line": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\n\t$(call run-test-suite)\n"
+            "\nguard:\n\techo safe\n\n# an interposed note\n"
+            "\t{prefix}echo observable\n"
+        ),
+        # An escaped space makes ONE prerequisite name. Split on plain
+        # whitespace it becomes two, neither of which resolves to the rule that
+        # exists, so its recipe never enters the closure.
+        "escaped space in a prerequisite name": (
+            "override define run-test-suite\necho safe\nendef\n"
+            "test-unleased: guard\\ target\n\t$(call run-test-suite)\n"
+            "\nguard\\ target:\n\t{prefix}echo observable\n"
+        ),
+    }
+    for site, template in hazard_sites.items():
+        for prefix in ("+", "@+", "-+", "+@", "@-+"):
+            make_run = mock.Mock()
+            with (
+                mock.patch.object(shard.subprocess, "run", make_run),
+                unittest.TestCase().assertRaises(shard.RosterError),
+            ):
+                shard.roster_lines(template.format(prefix=prefix))
+            assert make_run.call_args_list == [], (site, prefix)
 
     # `@` and `-` alone do NOT force execution and must stay allowed, or the
-    # refusal would reject the roster's own silenced guard lines.
+    # refusal would reject the roster's own silenced guard lines. The benign
+    # prerequisites prove the closure walk permits the safe forms rather than
+    # refusing every Makefile that uses them: one continued onto a second line,
+    # one with an inline recipe, and two whose COMMENT contains both `;` and
+    # `+`. Make runs nothing forced for those -- measured,
+    # `guard: dep # note; +echo observable` printed only its real recipe under
+    # `-n` -- so refusing them would abort roster acquisition for a valid file.
+    # `fourth-guard` is the backslash-PARITY case: the run before `#` is even,
+    # so it does not escape it and Make reads a comment. Measured: Make asked
+    # for the prerequisite `dep\\` and ignored the apparent inline recipe.
+    #
+    # The trailing macro is the control on `define`-body masking: its
+    # tab-indented `+echo observable` sits under a column-zero `guard:` that is
+    # NOT a rule. Read the body as Makefile text and `guard` resolves to a
+    # forced recipe and this call refuses.
     allowed = (
         "override define run-test-suite\n@echo safe\n-echo safe\nendef\n"
-        "test-unleased:\n\t$(call run-test-suite)\n"
+        "test-unleased: guard \\\n\tsecond-guard third-guard fourth-guard\n"
+        "\t$(call run-test-suite)\n"
+        "\nguard:\n\t@echo safe\n\t-echo safe\n"
+        "\nsecond-guard: ; @echo safe\n"
+        "\nthird-guard: # note; +echo observable\n\t@echo safe\n"
+        "\nfourth-guard: dep\\\\# note; +echo observable\n\t@echo safe\n"
+        "\ndefine documented-shape\nguard:\n\t+echo observable\nendef\n"
     )
     with mock.patch.object(
         shard.subprocess,
@@ -2936,15 +3233,6 @@ def test_shard_matrix_check_reads_only_the_make_test_scalar() -> None:
     ).replace("make test SHARD=${{ matrix.shard }} SHARDS=4", "make test SHARD=${{ matrix.shard }} SHARDS=3", 1)
     assert decoyed != text
     assert _shard_matrix_errors(decoyed) != []
-
-
-def test_shard_roster_leak_detector_catches_slashless_suite_paths() -> None:
-    """A suite directory named without a trailing slash is still a leak."""
-    assert _shard_roster_leaks(["make check packs/core/tests"])
-    assert _shard_roster_leaks(["make check tests"])
-    # And the legitimate shipped steps still read clean.
-    assert _shard_roster_leaks(["python -m pip install pytest -r tools/requirements.txt"]) == []
-    assert _shard_roster_leaks(["npm ci --prefix docs-site"]) == []
 
 
 def test_shard_child_environment_cannot_reselect_a_shard() -> None:

@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TYPED_PACKAGES = [
     "packages/agentbundle/agentbundle",
     "packages/credbroker/credbroker",
+    "packages/jsonl-otlp-exporter/jsonl_otlp_exporter",
 ]
 
 

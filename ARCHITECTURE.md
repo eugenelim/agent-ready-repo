@@ -160,7 +160,7 @@ dependency of pack source or of a target runtime.
 ## 8. Deeper current-state pages
 
 - [Directory map](docs/architecture/overview.md)
-- [Catalogue](docs/architecture/catalogue.md) and
+- [Catalogue](docs/architecture/catalogue/README.md) and
   [pack layout](docs/architecture/pack-layout.md)
 - [Skill and pack format](docs/architecture/skill-and-pack-format.md) and
   [pack manifest](docs/architecture/pack-manifest.md)

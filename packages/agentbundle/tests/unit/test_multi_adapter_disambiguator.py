@@ -9,11 +9,12 @@ command is actionable without a second lookup.
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 
 from agentbundle.commands import diff, uninstall, upgrade
 from agentbundle.commands._common import format_adapter_versions
 from agentbundle.config import PackState, State, dump_state
+
+from tests._support import cli_namespace
 
 
 def test_format_adapter_versions_sorted_pairs():
@@ -41,11 +42,7 @@ def _write_repo_state(root: Path) -> None:
 
 def test_upgrade_disambiguator_includes_versions(tmp_path, capsys):
     _write_repo_state(tmp_path)
-    args = SimpleNamespace(
-        pack="foo", skill=None, agent=None, hook=None, seed=None, command=None,
-        catalogue=None, root=str(tmp_path), scope="repo", adapter=None,
-        yes=False, dry_run=False,
-    )
+    args = cli_namespace("upgrade", "--pack", "foo", "--root", str(tmp_path), "--scope", "repo")
     rc = upgrade.run(args)
     err = capsys.readouterr().err
     assert rc == 1
@@ -55,10 +52,7 @@ def test_upgrade_disambiguator_includes_versions(tmp_path, capsys):
 
 def test_uninstall_disambiguator_includes_versions(tmp_path, capsys):
     _write_repo_state(tmp_path)
-    args = SimpleNamespace(
-        pack="foo", root=str(tmp_path), scope="repo", adapter=None,
-        yes=False, dry_run=False,
-    )
+    args = cli_namespace("uninstall", "--pack", "foo", "--root", str(tmp_path), "--scope", "repo")
     rc = uninstall.run(args)
     err = capsys.readouterr().err
     assert rc == 1
@@ -73,9 +67,7 @@ def test_diff_disambiguator_includes_versions(tmp_path, capsys):
     (pack_dir / "pack.toml").write_text(
         '[pack]\nname = "foo"\nversion = "0.9.0"\n', encoding="utf-8", newline="\n"
     )
-    args = SimpleNamespace(
-        pack_path=str(pack_dir), root=str(tmp_path), scope="repo", adapter=None,
-    )
+    args = cli_namespace("diff", str(pack_dir), "--root", str(tmp_path), "--scope", "repo")
     rc = diff.run(args)
     err = capsys.readouterr().err
     assert rc == 1

@@ -12,12 +12,11 @@ crumb → orphan guard fires (`--force` removes), and message wording.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 from pathlib import Path
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 WORK_LOOP_SKILL = ".claude/skills/work-loop/SKILL.md"
 
@@ -47,18 +46,12 @@ allowed-scopes = ["repo"]
             "---\ndescription: Fixture work loop.\n---\nFixture.\n",
             encoding="utf-8",
         )
-    args = argparse.Namespace(
-        pack="core",
-        catalogue=str(catalogue),
-        output=str(target),
-        scope="repo",
-        emit_install_routes=False,
-        force=force,
-        # `yes=True` so the new --force destructive-cleanup confirm (CLI-hygiene
-        # confirm) does not refuse on the non-TTY test stdin; harmless when no
-        # cleanup fires.
-        yes=True,
-    )
+    # emit_install_routes=False was explicit in the old namespace (matching the
+    # parser default); --scope repo + per-IDE projection is what these tests assert.
+    argv = [str(catalogue), "--pack", "core", "--output", str(target), "--scope", "repo", "--yes"]
+    if force:
+        argv.append("--force")
+    args = cli_namespace("install", *argv)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = install_run(args)

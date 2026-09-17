@@ -50,7 +50,7 @@ Review this design set against its user task, principles, quality floor, genre r
 **Agent returns:**
 <!-- rung: design-review SKILL.md -->
 
-> **Agent:** Done — I've written severity-rated findings tied to observed evidence and a principle, floor commitment, heuristic, genre rule, or grounded aesthetic goal to `<output_dir>/screens/<slug>-review.md`.
+> **Agent:** Done — I've produced severity-rated findings tied to observed evidence and a principle, floor commitment, heuristic, genre rule, or grounded aesthetic goal in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: design-review SKILL.md -->
@@ -71,8 +71,8 @@ Review this design set against its user task, principles, quality floor, genre r
 **Watch out for:** A uniformly confident review may be guessing where states or source artifacts are absent. Notice findings that cite no observed screen state or grounded rule; supply the missing evidence, discard unsupported taste claims, and re-run the affected scope.
 <!-- rung: design-review SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-review.md`.
-<!-- rung: authored; design-review SKILL.md declares the review record but not its path -->
+**Writes no artifact.** It produces the severity-rated findings list in the agent session and does not change files.
+<!-- rung: design-review SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->

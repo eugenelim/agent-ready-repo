@@ -251,13 +251,14 @@ def test_run_returns_1_on_invalid_packaged_preferred_adapter(
     is invalid.  The CatalogueError is caught at the top of run(), before any
     catalogue fetch or filesystem write.
     """
-    import argparse
     import contextlib
     import io
 
     import agentbundle.source_defaults as _sd
     from agentbundle.catalogue import CatalogueError
     from agentbundle.commands import install as _install
+
+    from tests._support import cli_namespace as _cli_namespace
 
     def _raise_invalid():
         raise CatalogueError(
@@ -268,13 +269,11 @@ def test_run_returns_1_on_invalid_packaged_preferred_adapter(
     monkeypatch.setattr(_sd, "read_packaged_preferred_adapter", _raise_invalid)
 
     # Provide a catalogue so resolve_catalogue_uri succeeds before our check.
-    args = argparse.Namespace(
-        pack="core",
-        catalogue="git+https://github.com/placeholder/catalogue",
-        output=str(tmp_path),
-        scope=None,
-        force=False,
-        profile=None,
+    args = _cli_namespace(
+        "install",
+        "git+https://github.com/placeholder/catalogue",
+        "--pack", "core",
+        "--output", str(tmp_path),
     )
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):

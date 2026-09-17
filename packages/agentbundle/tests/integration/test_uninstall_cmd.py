@@ -10,8 +10,9 @@ Coverage:
 
 from __future__ import annotations
 
-import types
 from pathlib import Path
+
+from tests._support import cli_namespace
 
 # Fixture catalogue reused from the install tests.
 FIXTURE_CATALOGUE = Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
@@ -27,17 +28,11 @@ def _run_install(pack: str, catalogue: str, output: str) -> int:
     from agentbundle.commands.install import run
 
     # Test fixtures predate per-IDE projection at repo scope;
-    # pass `emit_install_routes=True` to keep the dist-tree shape these
-    # tests assert against. The per-IDE projection path is covered by
-    # the new `test_install_repo_scope_per_adapter.py` integration suite.
-    return run(
-        types.SimpleNamespace(
-            pack=pack,
-            catalogue=catalogue,
-            output=output,
-            emit_install_routes=True,
-        )
-    )
+    # pass --emit-install-routes to keep the dist-tree shape these tests
+    # assert against. The real parser defaults emit_install_routes=False
+    # (per-IDE projection path), but the old hand-rolled namespace omitted
+    # the attribute entirely, so install.py's hasattr branch used True.
+    return run(cli_namespace("install", catalogue, "--pack", pack, "--output", output, "--emit-install-routes"))
 
 
 def _run_uninstall(pack: str, root: str, *, yes: bool = True, dry_run: bool = False) -> int:
@@ -46,14 +41,12 @@ def _run_uninstall(pack: str, root: str, *, yes: bool = True, dry_run: bool = Fa
     # `yes=True` by default so the pre-existing non-prompt tests don't block on
     # input(); the confirmation-flow tests pass yes=False and monkeypatch
     # input/isatty (mirrors test_upgrade_cmd.py's `_run_upgrade`).
-    return run(
-        types.SimpleNamespace(
-            pack=pack,
-            root=root,
-            yes=yes,
-            dry_run=dry_run,
-        )
-    )
+    argv = ["--pack", pack, "--root", root]
+    if yes:
+        argv.append("--yes")
+    if dry_run:
+        argv.append("--dry-run")
+    return run(cli_namespace("uninstall", *argv))
 
 
 def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:

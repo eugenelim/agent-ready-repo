@@ -28,7 +28,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack, stage_primitives
+from tests._support import cli_namespace, stage_installable_pack, stage_primitives
 
 
 def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
@@ -44,15 +44,10 @@ def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
 def _install_args(
     *, catalogue: str, repo: str, scope: str, adapter: str | None = None
 ) -> argparse.Namespace:
-    return argparse.Namespace(
-        pack="converters",
-        catalogue=catalogue,
-        output=repo,
-        scope=scope,
-        force=False,
-        force_merge=False,
-        adapter=adapter,
-    )
+    argv = [catalogue, "--pack", "converters", "--output", repo, "--scope", scope]
+    if adapter is not None:
+        argv.extend(["--adapter", adapter])
+    return cli_namespace("install", *argv)
 
 
 class AllowedAdaptersInstallTests(unittest.TestCase):
@@ -184,12 +179,10 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex"]
 
         # Same source version → no-op upgrade, but the resolver runs
         # and the cross-adapter refusal can fire.
-        upgrade_args = argparse.Namespace(
-            pack="converters",
-            catalogue=str(self.cat),
-            yes=True,
-            root=str(self.repo),
-            scope="user",
+        # yes=True was the old fixture value (parser default is False); keep via --yes.
+        upgrade_args = cli_namespace(
+            "upgrade", str(self.cat), "--pack", "converters",
+            "--root", str(self.repo), "--scope", "user", "--yes",
         )
         stdout_buf = io.StringIO()
         stderr_buf = io.StringIO()

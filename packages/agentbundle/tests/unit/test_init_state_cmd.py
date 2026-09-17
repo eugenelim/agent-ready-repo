@@ -11,12 +11,14 @@ Three scenarios:
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 from pathlib import Path
-from types import SimpleNamespace
 
 from agentbundle import config, render
 from agentbundle.commands import init_state
+
+from tests._support import cli_namespace
 
 PACKS_DIR = Path(__file__).resolve().parents[1] / "build_pipeline" / "fixtures" / "packs"
 CORE_PACK = PACKS_DIR / "core"
@@ -27,12 +29,9 @@ def _make_args(
     pack: str = "core",
     packs_dir: str | None = None,
     root: str,
-) -> SimpleNamespace:
-    return SimpleNamespace(
-        pack=pack,
-        packs_dir=str(packs_dir) if packs_dir is not None else str(PACKS_DIR),
-        root=root,
-    )
+) -> argparse.Namespace:
+    packs_dir_val = str(packs_dir) if packs_dir is not None else str(PACKS_DIR)
+    return cli_namespace("init-state", "--pack", pack, "--packs-dir", packs_dir_val, "--root", root)
 
 
 def _project_pack_into(pack_path: Path, root: Path) -> dict[str, bytes]:

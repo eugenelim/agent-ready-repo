@@ -24,7 +24,10 @@ from __future__ import annotations
 import re
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is the literal "git"
 import sys
+from collections.abc import Sequence
 from pathlib import Path
+
+import lint_harness
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -199,67 +202,106 @@ def scan_source(source: str, path: str) -> list[Violation]:
     return violations
 
 
-def main(argv: list[str]) -> int:
-    """Run the repository form lint and return its documented exit status."""
+# Per-run counters the walk accumulates; see the note in lint-nosec-form.py.
+_STATE: dict[str, object] = {}
+
+
+def _parse(argv: list[str] | None) -> list[str]:
+    return list(sys.argv[1:] if argv is None else argv)
+
+
+def _files(explicit: list[str]) -> list[Path]:
+    """Return the tracked sources under the requested roots.
+
+    Failing to resolve the roots is a refusal, not an empty scan, so it aborts
+    with this lint's own message instead of reaching the empty-scan guard.
+    """
     base = REPO_ROOT
     try:
-        roots = argv[1:] or sast_dirs(base)
+        roots = explicit or sast_dirs(base)
         files = tracked_source_files(roots, base)
     except (LintError, OSError, UnicodeDecodeError) as exc:
-        print(f"lint-nosemgrep-form: {exc}", file=sys.stderr)
-        return 2
-    if not files:
-        print(
-            f"lint-nosemgrep-form: no tracked sources under {' '.join(roots)} "
-            "— refusing to report success on an empty scan",
-            file=sys.stderr,
-        )
-        return 2
+        raise lint_harness.RuleAbort(
+            lint_harness.Outcome(f"lint-nosemgrep-form: {exc}", 2)
+        ) from exc
+    _STATE.update(roots=roots, base=base, files=files, scanned=0, skipped=0)
+    return files
 
-    violations: list[Violation] = []
-    scanned = 0
-    skipped = 0
+
+def _suppressions(relative: Path) -> list[str]:
+    """Return the malformed suppressions in one tracked source file."""
+    base = _STATE["base"]
+    absolute = base / relative
+    if not absolute.exists():
+        return []
     try:
-        for relative in files:
-            absolute = base / relative
-            if not absolute.exists():
-                continue
-            try:
-                source = absolute.read_text(encoding="utf-8")
-            except UnicodeDecodeError:
-                skipped += 1
-                continue
-            except OSError as exc:
-                print(f"lint-nosemgrep-form: could not read {relative}: {exc}", file=sys.stderr)
-                return 2
-            violations.extend(scan_source(source, relative.as_posix()))
-            scanned += 1
+        source = absolute.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        _STATE["skipped"] = _STATE["skipped"] + 1
+        return []
+    except OSError as exc:
+        raise lint_harness.RuleAbort(lint_harness.Outcome(
+            f"lint-nosemgrep-form: could not read {relative}: {exc}", 2)) from exc
+    try:
+        found = list(scan_source(source, relative.as_posix()))
     except LintError as exc:
-        print(f"lint-nosemgrep-form: {exc}", file=sys.stderr)
-        return 2
+        raise lint_harness.RuleAbort(lint_harness.Outcome(
+            f"lint-nosemgrep-form: {exc}", 2)) from exc
+    _STATE["scanned"] = _STATE["scanned"] + 1
+    return [violation.render() for violation in found]
 
+
+def _empty_scan(explicit: list[str]) -> lint_harness.Outcome:
+    roots = _STATE.get("roots", explicit)
+    return lint_harness.Outcome(
+        f"lint-nosemgrep-form: no tracked sources under {' '.join(roots)} "
+        "— refusing to report success on an empty scan", 2)
+
+
+def _clean(explicit: list[str], n: int) -> lint_harness.Outcome:
+    """Answer a walk that found no violations.
+
+    Every tracked file can be absent or non-UTF-8, which would otherwise
+    report a clean scan of nothing.
+    """
+    scanned, skipped = _STATE["scanned"], _STATE["skipped"]
     if scanned == 0:
-        print(
+        return lint_harness.Outcome(
             "lint-nosemgrep-form: no UTF-8 text sources were available "
-            f"({skipped} non-UTF-8 file(s) skipped) — refusing to report success on an empty scan",
-            file=sys.stderr,
-        )
-        return 2
-    if violations:
-        print(
-            f"lint-nosemgrep-form: FAIL — {len(violations)} malformed suppression(s) "
-            f"in {scanned} UTF-8 text file(s); skipped {skipped} non-UTF-8 file(s):",
-            file=sys.stderr,
-        )
-        for violation in violations:
-            print(violation.render(), file=sys.stderr)
-        return 1
-    print(
+            f"({skipped} non-UTF-8 file(s) skipped) — refusing to report "
+            "success on an empty scan", 2)
+    return lint_harness.Outcome(
         f"lint-nosemgrep-form: OK — every suppression in {scanned} UTF-8 text file(s) "
         f"carries a rule-id list and a comma-free second-comment reason; "
-        f"skipped {skipped} non-UTF-8 file(s)."
+        f"skipped {skipped} non-UTF-8 file(s).", 0, "stdout")
+
+
+def _report(violations: Sequence[str]) -> None:
+    """Header first, then the findings; this lint prints no trailer."""
+    print(
+        f"lint-nosemgrep-form: FAIL — {len(violations)} malformed suppression(s) "
+        f"in {_STATE['scanned']} UTF-8 text file(s); "
+        f"skipped {_STATE['skipped']} non-UTF-8 file(s):",
+        file=sys.stderr,
     )
-    return 0
+    for violation in violations:
+        print(violation, file=sys.stderr)
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_files,
+    predicate=_suppressions,
+    pass_line=_clean,
+    empty_scan=_empty_scan,
+    absent_root=_empty_scan,
+    report=_report,
+)
+
+
+def main(argv: list[str]) -> int:
+    """Run the repository form lint and return its documented exit status."""
+    return lint_harness.run(RULE, list(argv[1:]))
 
 
 if __name__ == "__main__":

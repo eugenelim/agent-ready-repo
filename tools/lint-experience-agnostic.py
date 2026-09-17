@@ -41,6 +41,8 @@ import re
 import subprocess
 import sys
 
+import lint_harness
+
 
 def _repo_root() -> pathlib.Path:
     try:
@@ -150,47 +152,85 @@ def _scan_root() -> pathlib.Path:
     return _repo_root() / "packs" / "experience-design"
 
 
-def main() -> int:
-    root = _scan_root()
+# `_scan_root` resolves once and the per-file predicate needs it to relativise
+# each path, so the root and the compiled rule list are parked here by `_files`.
+_STATE: dict[str, object] = {}
+
+
+def _parse(argv: list[str] | None) -> pathlib.Path:
+    """Return the scan root. This lint takes no arguments; `EXPERIENCE_ROOT` is
+    its only input, so *argv* is accepted and ignored."""
+    return _scan_root()
+
+
+def _markdown(root: pathlib.Path) -> list[pathlib.Path] | None:
+    """Return every Markdown file under *root*, or ``None`` when it is absent."""
     if not root.exists():
-        print(
-            f"::error::experience agnosticism lint: scan root {root} does not exist",
-            file=sys.stderr,
-        )
-        return 2
+        return None
+    _STATE["root"] = root
+    _STATE["rules"] = _rules()
+    return sorted(root.rglob("*.md"))
 
-    rules = _rules()
+
+def _leaks(md: pathlib.Path) -> list[str]:
+    """Return one message per stack token or values-table shape in one file."""
+    root = _STATE["root"]
+    rules = _STATE["rules"]
+    assert isinstance(root, pathlib.Path) and isinstance(rules, list)
+    try:
+        text = md.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:  # pragma: no cover
+        raise lint_harness.RuleAbort(
+            lint_harness.Outcome(f"::error::could not read {md}: {exc}", 2)
+        ) from exc
+    rel = md.relative_to(root) if md.is_relative_to(root) else md
     violations: list[str] = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        for label, pattern in rules:
+            m = pattern.search(line)
+            if m:
+                violations.append(
+                    f"{rel}:{lineno}: {label}: '{m.group(0)}'  "
+                    f"— experience ships portable method, not a stack or a "
+                    f"values table (RFC-0033)"
+                )
+    return violations
 
-    for md in sorted(root.rglob("*.md")):
-        try:
-            text = md.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError) as exc:  # pragma: no cover
-            print(f"::error::could not read {md}: {exc}", file=sys.stderr)
-            return 2
-        rel = md.relative_to(root) if md.is_relative_to(root) else md
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            for label, pattern in rules:
-                m = pattern.search(line)
-                if m:
-                    violations.append(
-                        f"{rel}:{lineno}: {label}: '{m.group(0)}'  "
-                        f"— experience ships portable method, not a stack or a "
-                        f"values table (RFC-0033)"
-                    )
 
-    if violations:
-        for v in violations:
-            print(f"::error::{v}", file=sys.stderr)
-        print(
-            f"\n✖ experience agnosticism lint: {len(violations)} "
-            f"violation(s) in {root}",
-            file=sys.stderr,
-        )
-        return 1
+def _report(violations: list[str]) -> None:
+    """Print each finding as a CI annotation, then the count and the root."""
+    for v in violations:
+        print(f"::error::{v}", file=sys.stderr)
+    print(
+        f"\n✖ experience agnosticism lint: {len(violations)} "
+        f"violation(s) in {_STATE['root']}",
+        file=sys.stderr,
+    )
 
-    print(f"✓ experience agnosticism lint: clean ({root})")
-    return 0
+
+def _clean(root: pathlib.Path) -> str:
+    return f"✓ experience agnosticism lint: clean ({root})"
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_markdown,
+    predicate=_leaks,
+    pass_line=lambda root, n: _clean(root),
+    # A scan root that exists with no Markdown in it reported clean before the
+    # move onto the driver, and still does; only a missing root is an error.
+    empty_scan=lambda root: lint_harness.Outcome(_clean(root), 0, "stdout"),
+    absent_root=lambda root: lint_harness.Outcome(
+        f"::error::experience agnosticism lint: scan root {root} does not exist",
+        2,
+    ),
+    report=_report,
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the agnosticism lint and return its documented exit status."""
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":

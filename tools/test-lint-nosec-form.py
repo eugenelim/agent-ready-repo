@@ -22,31 +22,29 @@ So the cases below come in three layers:
 
 from __future__ import annotations
 
-import importlib.util
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is sys.executable or "git"
 import sys
 import tempfile
 from pathlib import Path
+
+import selftest_harness
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 _HERE = Path(__file__).resolve().parent
 _LINTER = _HERE / "lint-nosec-form.py"
-_SPEC = importlib.util.spec_from_file_location("lint_nosec_form", _LINTER)
-assert _SPEC and _SPEC.loader
-_MOD = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(_MOD)
+_MOD = selftest_harness.load("lint-nosec-form.py", module_name="lint_nosec_form")
 
-FAILURES: list[str] = []
+_CHECKS = selftest_harness.CaseFailures("lint-nosec-form self-test")
 
 
 def check(label: str, condition: bool, detail: str = "") -> None:
     if condition:
         print(f"  ok   {label}")
     else:
-        FAILURES.append(f"{label}{': ' + detail if detail else ''}")
         print(f"  FAIL {label} {detail}")
+    _CHECKS.check(label, condition, detail)
 
 
 def kinds(source: str, known=None) -> list[str]:
@@ -64,7 +62,20 @@ def run(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess
 
 
 def _git_repo(tmp: Path, files: dict[str, str]) -> Path:
-    """Create a throwaway git repo containing `files`, and track them."""
+    """Create a throwaway git repo containing `files`, and track them.
+
+    When the sandbox carries a copy of the linter, it also gets a copy of
+    ``tools/lint_harness.py``. The linter imports the shared driver, and a
+    sandbox holding only the linter would raise ``ModuleNotFoundError`` there
+    rather than exercising the behaviour the case is about.
+    """
+    if any(key.startswith("tools/") for key in files):
+        files = {
+            **files,
+            "tools/lint_harness.py": (_HERE / "lint_harness.py").read_text(
+                encoding="utf-8"
+            ),
+        }
     for name, body in files.items():
         target = tmp / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -288,11 +299,7 @@ def main() -> int:
           clean.stdout.strip()[:160])
 
     print()
-    if FAILURES:
-        print(f"lint-nosec-form self-test: {len(FAILURES)} case(s) failed.")
-        return 1
-    print("lint-nosec-form self-test: all cases passed.")
-    return 0
+    return _CHECKS.report()
 
 
 if __name__ == "__main__":

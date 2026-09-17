@@ -15,12 +15,12 @@ if TYPE_CHECKING:
 def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.self_host import check_self_host, write_self_host
 
-    root = Path(getattr(args, "root", ".")).resolve()
-    do_check = getattr(args, "check", False)
-    do_write = getattr(args, "write", False)
-    do_windows = getattr(args, "windows", False)
-    force = getattr(args, "force", False)
-    fmt = getattr(args, "format", "table")
+    root = Path(args.root).resolve()
+    do_check = args.check
+    do_write = args.write
+    do_windows = args.windows
+    force = args.force
+    fmt = args.format
 
     if not do_check and not do_write:
         print("catalogue self-host: specify --check or --write", file=sys.stderr)

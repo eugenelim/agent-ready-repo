@@ -51,14 +51,23 @@ class CredentialBrokerAtlassianIntegrationTests(unittest.TestCase):
         shutil.copytree(PACK_SRC, self.catalogue / "packs" / "credential-brokers")
 
     def _install(self) -> None:
-        args = argparse.Namespace(
-            pack="credential-brokers",
-            catalogue=str(self.catalogue),
-            output=str(self.repo),
-            scope="user",
-            force=False,
-            force_merge=False,
-        )
+        # Parsed rather than hand-built: `install.run` reads every dest the
+        # `install` subparser declares, so a namespace assembled by hand omits
+        # whichever ones this test did not think about and fails where no
+        # adopter can. (`packages/agentbundle/tests/_support.cli_namespace` is
+        # the same idea, but that `tests` package is shadowed by this one.)
+        from agentbundle.cli import _build_parser
+
+        args = _build_parser().parse_args([
+            "install",
+            str(self.catalogue),
+            "--pack",
+            "credential-brokers",
+            "--output",
+            str(self.repo),
+            "--scope",
+            "user",
+        ])
         rc, stdout, stderr = _run_install(args)
         self.assertEqual(rc, 0, f"stdout={stdout!r} stderr={stderr!r}")
 

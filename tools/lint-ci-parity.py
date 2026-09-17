@@ -475,11 +475,15 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest core work-loop activation hook (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest package pytest pythonpath (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest shaping-review contracts (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest RFC-0099 activation + fixture register (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest TDD stub lifecycle contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest loop-telemetry contracts (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest agent-skill-engineering consumer integrations (roster-owned)":
         LOCAL("test-after-build-check"),

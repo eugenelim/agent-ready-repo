@@ -14,11 +14,11 @@ line the only reliable onboarding path.
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import io
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -32,20 +32,33 @@ CORE_NEXT_ACTION = (
 )
 
 
-def _core_install_args(repo: Path, *, scope: str) -> SimpleNamespace:
-    """Build arguments for installing the repository's real core pack."""
-    return SimpleNamespace(
-        pack="core",
-        catalogue=str(REPOSITORY_ROOT),
-        output=str(repo),
-        scope=scope,
-        adapter="codex",
-        force=False,
-        force_merge=False,
-        dry_run=False,
-        yes=True,
-        emit_install_routes=False,
-    )
+def _core_install_args(repo: Path, *, scope: str) -> argparse.Namespace:
+    """Build arguments for installing the repository's real core pack.
+
+    Parsed rather than hand-built: `install.run` reads every dest the `install`
+    subparser declares, so a namespace assembled by hand omits whichever ones
+    this test did not think about and fails where no adopter can.
+    `packages/agentbundle/tests/_support.cli_namespace` is the same idea, but
+    that `tests` package is shadowed by this one at the repository root.
+
+    `--emit-install-routes` is deliberately absent: the old fixture pinned
+    `emit_install_routes=False`, and the parser default is also False.
+    """
+    from agentbundle.cli import _build_parser
+
+    return _build_parser().parse_args([
+        "install",
+        str(REPOSITORY_ROOT),
+        "--pack",
+        "core",
+        "--output",
+        str(repo),
+        "--scope",
+        scope,
+        "--adapter",
+        "codex",
+        "--yes",
+    ])
 
 
 def _install(repo: Path, *, scope: str) -> tuple[int, str]:

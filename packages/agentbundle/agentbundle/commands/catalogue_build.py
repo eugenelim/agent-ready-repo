@@ -15,12 +15,12 @@ if TYPE_CHECKING:
 def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.build import build_catalogue
 
-    root = Path(getattr(args, "root", ".")).resolve()
-    output_str = getattr(args, "output", None)
+    root = Path(args.root).resolve()
+    output_str = args.output
     output = Path(output_str).resolve() if output_str else None
-    pack = getattr(args, "pack", None)
-    recipe = getattr(args, "recipe", None)
-    fmt = getattr(args, "format", "table")
+    pack = args.pack
+    recipe = args.recipe
+    fmt = args.format
 
     try:
         result = build_catalogue(root, output=output, pack=pack, recipe=recipe)

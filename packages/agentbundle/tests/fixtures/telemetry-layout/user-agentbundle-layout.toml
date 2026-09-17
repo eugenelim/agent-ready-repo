@@ -1,0 +1,3 @@
+[telemetry]
+endpoint = "https://user-collector.example:4318"
+service_name = "work-loop-user"

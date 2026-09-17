@@ -1011,12 +1011,13 @@ CHANGELOG = REPO_ROOT / "docs/product/changelog.md"
 PACK_TOML = REPO_ROOT / "packs/core/pack.toml"
 PLUGIN_JSON = REPO_ROOT / "packs/core/.claude-plugin/plugin.json"
 
-# The version both manifests held before this change, kept for the diagnostic.
-PRE_CHANGE_VERSION = "2.26.1"
-
 # AC12 names one version, so the control asserts that value rather than an
-# ordering. Round 9 found `> 2.26.1` accepted 2.26.2 and 3.0.0 alike, which is
-# the whole substance of the minor-bump decision.
+# ordering. Round 9 found a `greater than the predecessor` comparison accepted
+# both a patch and a major bump, which is the whole substance of the decision
+# to take a minor. Pinning the target also survives the baseline moving: core
+# released several patches on `main` while this change was in flight, and an
+# ordering expressed against a predecessor would have silently re-based on
+# each one.
 RELEASE_VERSION = "2.27.0"
 
 _CORE_HEADING_RE = re.compile(r"^## \[core\]\[(?P<version>[^\]]+)\] — ", re.MULTILINE)
@@ -1052,8 +1053,8 @@ def test_both_manifests_carry_the_same_bumped_version() -> None:
     )
     assert pack.group(1) == RELEASE_VERSION, (
         f"AC12 names {RELEASE_VERSION} exactly; found {pack.group(1)}. "
-        f"Core held {PRE_CHANGE_VERSION} before this change, and a patch or "
-        f"major bump satisfies any looser comparison."
+        f"A patch or major bump satisfies any looser comparison, so the "
+        f"criterion pins the value."
     )
 
 

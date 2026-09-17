@@ -1,0 +1,272 @@
+{
+ "lint-conformance-portability": {
+  "absent": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "conformance-portability: passed\n"
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "conformance-portability: passed\n"
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "conformance-portability: passed\n"
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "conformance-portability: repository-only references found (move the test to its owner, e.g. tests/roster/):\n  tests/conformance/test_placeholder.py:2: reaches repository-only 'tools'\n",
+   "stdout": ""
+  }
+ },
+ "lint-experience-agnostic": {
+  "absent": {
+   "exit": 2,
+   "stderr": "::error::experience agnosticism lint: scan root <ROOT>/packs/experience-design does not exist\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "\u2713 experience agnosticism lint: clean (<ROOT>/packs/experience-design)\n"
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "\u2713 experience agnosticism lint: clean (<ROOT>/packs/experience-design)\n"
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "::error::placeholder.md:3: UI-framework name: 'React'  \u2014 experience ships portable method, not a stack or a values table (RFC-0033)\n\n\u2716 experience agnosticism lint: 1 violation(s) in <ROOT>/packs/experience-design\n",
+   "stdout": ""
+  }
+ },
+ "lint-guide-titles": {
+  "absent": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-guide-titles: OK (0 file(s))\n"
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-guide-titles: OK (231 file(s))\n"
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-guide-titles: OK (0 file(s))\n"
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "<ROOT>/guides/placeholder.md: frontmatter title and body H1 differ\n    title: Placeholder Alpha\n    H1:    Placeholder Beta\n    Starlight renders `title:` as the page heading and the build strips\n    the body H1, so only `title:` is published.\n    Prefer making them agree. Deleting the H1 also satisfies this lint,\n    but guides/_shared/** ships verbatim into adopter catalogues and\n    bundles, where frontmatter never renders \u2014 a deleted H1 leaves those\n    files opening with no heading at all.\n\nlint-guide-titles: 1 divergent title(s) in 1 file(s)\n",
+   "stdout": ""
+  }
+ },
+ "lint-guides-no-repo-only-refs": {
+  "absent": {
+   "exit": 2,
+   "stderr": "error: cannot resolve guides root: [Errno 2] No such file or directory: '<ROOT>/guides'\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "OK \u2014 no repo-only governance references in guides/\n"
+  },
+  "empty": {
+   "exit": 2,
+   "stderr": "error: cannot resolve specs root: [Errno 2] No such file or directory: '<ROOT>/docs'\n",
+   "stdout": ""
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "",
+   "stdout": "guides/placeholder.md:3: repo-only governance token ADR-0001\n"
+  }
+ },
+ "lint-journey-contract": {
+  "absent": {
+   "exit": 1,
+   "stderr": "lint-journey-contract: journey directory not found: <ROOT>/web/src/content/journeys\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-journey-contract: all 19 journeys conform\n"
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-journey-contract: all 0 journeys conform\n"
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "lint-journey-contract: structural violations:\n  placeholder.md: missing `contract:` frontmatter block\n  placeholder.md: no `## N.`-format stages found\n",
+   "stdout": ""
+  }
+ },
+ "lint-nosec-form": {
+  "absent": {
+   "exit": 2,
+   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stdout": "",
+   "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-nosec-form: OK \u2014 every suppression in 1216 tracked file(s) carries a test ID, with any reason behind a second `#`.\n"
+  },
+  "empty": {
+   "exit": 2,
+   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stdout": "",
+   "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
+  },
+  "violation": {
+   "exit": 2,
+   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stdout": "",
+   "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
+  }
+ },
+ "lint-nosemgrep-form": {
+  "absent": {
+   "exit": 2,
+   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stdout": "",
+   "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-nosemgrep-form: OK \u2014 every suppression in 2983 UTF-8 text file(s) carries a rule-id list and a comma-free second-comment reason; skipped 1 non-UTF-8 file(s).\n"
+  },
+  "empty": {
+   "exit": 2,
+   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stdout": "",
+   "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
+  },
+  "violation": {
+   "exit": 2,
+   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stdout": "",
+   "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
+  }
+ },
+ "lint-pack-descriptions": {
+  "absent": {
+   "exit": 2,
+   "stderr": "lint-pack-descriptions: no pack.toml found under <ROOT>/packs \u2014 scanned nothing, so this is not a pass. Check --root.\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-pack-descriptions: no pack description has run away (drift backstop only \u2014 the quality bar is catalogue-authoring-standards.md \u00a7 2).\n"
+  },
+  "empty": {
+   "exit": 2,
+   "stderr": "lint-pack-descriptions: no pack.toml found under <ROOT>/packs \u2014 scanned nothing, so this is not a pass. Check --root.\n",
+   "stdout": ""
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "lint-pack-descriptions: placeholder: [pack].description has run away \u2014 900 chars, past the 800-char drift backstop. This is display copy a person reads while deciding whether to install, so rewrite it against catalogue-authoring-standards.md \u00a7 2 (lead with the adopter outcome; the component list belongs in placeholder/README.md). Passing this check is not a sign the copy is good \u2014 only that it is not runaway.\nlint-pack-descriptions: 1 pack(s) past the 800-char drift backstop.\n",
+   "stdout": ""
+  }
+ },
+ "lint-pack-journeys": {
+  "absent": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-pack-journeys: no JOURNEY.md files found \u2014 nothing to validate\n"
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-pack-journeys: all 14 JOURNEY.md files valid\n"
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-pack-journeys: no JOURNEY.md files found \u2014 nothing to validate\n"
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "lint-pack-journeys: violations found:\n  stage '### 1. Placeholder stage': missing **State:** label (required in pack-local JOURNEY.md stages)\n",
+   "stdout": ""
+  }
+ },
+ "lint-pack-maintainer-emails": {
+  "absent": {
+   "exit": 2,
+   "stderr": "lint-pack-maintainer-emails: no pack.toml found under <ROOT>/packs \u2014 scanned nothing, so this is not a pass. Check --root.\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": "lint-pack-maintainer-emails: every maintainer email is on a reviewed host or is a reviewed address.\n"
+  },
+  "empty": {
+   "exit": 2,
+   "stderr": "lint-pack-maintainer-emails: no pack.toml found under <ROOT>/packs \u2014 scanned nothing, so this is not a pass. Check --root.\n",
+   "stdout": ""
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "lint-pack-maintainer-emails: placeholder: [[pack.maintainers]].email 'placeholder.person@placeholder.example.test' is not on a reviewed host and is not a reviewed address. Publish from one of ['users.noreply.github.com'], or add the host to ALLOWED_HOSTS (or the exact address to ALLOWED_EMAILS) with its reason.\nlint-pack-maintainer-emails: 1 maintainer email(s) outside the repository privacy policy.\n",
+   "stdout": ""
+  }
+ },
+ "lint-sso-config": {
+  "absent": {
+   "exit": 0,
+   "stderr": "sso-config lint: 2 file(s) scanned, 0 finding(s)\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "sso-config lint: 2 file(s) scanned, 0 finding(s)\n",
+   "stdout": ""
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "sso-config lint: 2 file(s) scanned, 0 finding(s)\n",
+   "stdout": ""
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "sso-config lint: <ROOT>/packs/placeholder/.apm/skills/placeholder-skill/references/sso-config.toml: auth_default must be \"creds\" upstream (got 'sso'); the SSO-cookie path is adopter opt-in\nsso-config lint: <ROOT>/packs/placeholder/.apm/skills/placeholder-skill/references/sso-config.toml: missing [sso] table\nsso-config lint: 2 finding(s)\n",
+   "stdout": ""
+  }
+ },
+ "lint_zone_violations": {
+  "absent": {
+   "exit": 2,
+   "stderr": "error: scan root does not exist or is not a directory: <ROOT>/web/src\n",
+   "stdout": ""
+  },
+  "clean": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": ""
+  },
+  "empty": {
+   "exit": 0,
+   "stderr": "",
+   "stdout": ""
+  },
+  "violation": {
+   "exit": 1,
+   "stderr": "",
+   "stdout": "<ROOT>/web/src/placeholder.css:2: #abc123\n"
+  }
+ }
+}

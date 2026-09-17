@@ -21,11 +21,12 @@ Subcommands under test:
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 from typing import Callable
 
 import pytest
+
+from tests._support import cli_namespace
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = PACKAGE_ROOT.parent.parent
@@ -101,10 +102,9 @@ def _tier3_relpaths(pre: dict[str, bytes]) -> list[str]:
 def _run_scaffold(root: Path, pack_dir: Path) -> int:
     from agentbundle.commands.scaffold import run
 
-    args = argparse.Namespace(
-        pack=pack_dir.name,
-        packs_dir=str(pack_dir.parent),
-        output=str(root),
+    args = cli_namespace(
+        "scaffold", "--pack", pack_dir.name, "--packs-dir", str(pack_dir.parent),
+        "--output", str(root),
     )
     return run(args)
 
@@ -113,11 +113,11 @@ def _run_install(root: Path, pack_dir: Path) -> int:
     from agentbundle.commands.install import run
 
     catalogue = str(pack_dir.parent.parent)  # catalogue_v1/
-    args = argparse.Namespace(
-        pack=pack_dir.name,
-        catalogue=catalogue,
-        output=str(root),
-        emit_install_routes=True,
+    # emit_install_routes=True was the old fixture value (parser default is False);
+    # keep via --emit-install-routes.
+    args = cli_namespace(
+        "install", catalogue, "--pack", pack_dir.name, "--output", str(root),
+        "--emit-install-routes",
     )
     return run(args)
 
@@ -134,19 +134,18 @@ def _run_render(root: Path, pack_dir: Path) -> int:
     from agentbundle.commands.install import run as install_run
     from agentbundle.commands.render import run
 
-    install_args = argparse.Namespace(
-        pack=pack_dir.name,
-        catalogue=str(pack_dir.parent.parent),
-        output=str(root),
-        emit_install_routes=True,
+    # emit_install_routes=True was the old fixture value (parser default is False);
+    # keep via --emit-install-routes.
+    install_args = cli_namespace(
+        "install", str(pack_dir.parent.parent), "--pack", pack_dir.name,
+        "--output", str(root), "--emit-install-routes",
     )
     install_run(install_args)
 
-    args = argparse.Namespace(
-        pack_path=str(pack_dir),
-        output=str(root),
-        target=None,
-        self_host=True,
+    # self_host=True was the old fixture value (parser default is False);
+    # keep via --self-host.
+    args = cli_namespace(
+        "render", str(pack_dir), "--output", str(root), "--self-host",
     )
     return run(args)
 
@@ -154,10 +153,9 @@ def _run_render(root: Path, pack_dir: Path) -> int:
 def _run_init_state(root: Path, pack_dir: Path) -> int:
     from agentbundle.commands.init_state import run
 
-    args = argparse.Namespace(
-        pack=pack_dir.name,
-        packs_dir=str(pack_dir.parent),
-        root=str(root),
+    args = cli_namespace(
+        "init-state", "--pack", pack_dir.name, "--packs-dir", str(pack_dir.parent),
+        "--root", str(root),
     )
     return run(args)
 
@@ -167,11 +165,7 @@ def _run_adapt_no_values(root: Path, pack_dir: Path) -> int:
     touch Tier-1 content (only `.adapt-pending.md` may be written)."""
     from agentbundle.commands.adapt import run
 
-    args = argparse.Namespace(
-        values_from=None,
-        ci=False,
-        root=str(root),
-    )
+    args = cli_namespace("adapt", "--root", str(root))
     return run(args)
 
 
@@ -180,19 +174,16 @@ def _run_uninstall(root: Path, pack_dir: Path) -> int:
     from agentbundle.commands.install import run as install_run
     from agentbundle.commands.uninstall import run
 
-    install_args = argparse.Namespace(
-        pack=pack_dir.name,
-        catalogue=str(pack_dir.parent.parent),
-        output=str(root),
-        emit_install_routes=True,
+    # emit_install_routes=True was the old fixture value (parser default is False);
+    # keep via --emit-install-routes.
+    install_args = cli_namespace(
+        "install", str(pack_dir.parent.parent), "--pack", pack_dir.name,
+        "--output", str(root), "--emit-install-routes",
     )
     install_run(install_args)
 
-    args = argparse.Namespace(
-        pack=pack_dir.name,
-        root=str(root),
-        yes=True,
-    )
+    # yes=True was the old fixture value (parser default is False); keep via --yes.
+    args = cli_namespace("uninstall", "--pack", pack_dir.name, "--root", str(root), "--yes")
     return run(args)
 
 
@@ -201,24 +192,21 @@ def _run_upgrade(root: Path, pack_dir: Path) -> int:
     from agentbundle.commands.install import run as install_run
     from agentbundle.commands.upgrade import run
 
-    install_args = argparse.Namespace(
-        pack=pack_dir.name,
-        catalogue=str(pack_dir.parent.parent),  # catalogue_v1
-        output=str(root),
+    # `install.py:493` branches on whether `emit_install_routes` is *present*,
+    # not on its value: an absent attribute means "dist-tree at repo scope".
+    # This fixture never set it, so it took the dist-tree route and wrote the
+    # `apm/core/...` companion the upgrade row asserts. A parsed namespace
+    # always carries the attribute, so the flag is what preserves that route.
+    install_args = cli_namespace(
+        "install", str(pack_dir.parent.parent), "--pack", pack_dir.name,  # catalogue_v1
+        "--output", str(root), "--emit-install-routes",
     )
     install_run(install_args)
 
     catalogue_v2 = pack_dir.parent.parent.parent / "catalogue_v2"
-    args = argparse.Namespace(
-        pack=pack_dir.name,
-        yes=True,
-        skill=None,
-        agent=None,
-        hook=None,
-        seed=None,
-        command=None,
-        catalogue=str(catalogue_v2),
-        root=str(root),
+    # yes=True was the old fixture value (parser default is False); keep via --yes.
+    args = cli_namespace(
+        "upgrade", str(catalogue_v2), "--pack", pack_dir.name, "--root", str(root), "--yes",
     )
     return run(args)
 

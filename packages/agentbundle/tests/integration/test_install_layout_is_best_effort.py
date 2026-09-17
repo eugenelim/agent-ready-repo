@@ -20,10 +20,11 @@ level.
 
 from __future__ import annotations
 
-import types
 from pathlib import Path
 
 import pytest
+
+from tests._support import cli_namespace
 
 FIXTURE_CATALOGUE = Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
 
@@ -31,14 +32,9 @@ FIXTURE_CATALOGUE = Path(__file__).parent.parent / "fixtures" / "install" / "cat
 def _run_install(output: Path, catalogue: Path = FIXTURE_CATALOGUE) -> int:
     from agentbundle.commands.install import run
 
-    return run(
-        types.SimpleNamespace(
-            pack="alpha",
-            catalogue=str(catalogue),
-            output=str(output),
-            emit_install_routes=True,
-        )
-    )
+    # --emit-install-routes keeps the dist-tree shape these tests assert against;
+    # the real parser defaults it to False (per-IDE projection).
+    return run(cli_namespace("install", str(catalogue), "--pack", "alpha", "--output", str(output), "--emit-install-routes"))
 
 
 def _projected(root: Path) -> set[str]:

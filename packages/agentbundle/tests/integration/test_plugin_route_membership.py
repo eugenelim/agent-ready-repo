@@ -21,6 +21,8 @@ from pathlib import Path
 
 import pytest
 
+from tests._support import cli_namespace
+
 REPO_ROOT = Path(__file__).resolve().parents[4]
 FIXTURES = (
     REPO_ROOT / "packages" / "agentbundle" / "tests" / "build_pipeline"
@@ -209,7 +211,6 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
     change starts pruning, this test fails and the changelog needs revisiting —
     which is the point.
     """
-    import argparse
     import contextlib
     import io
     import re as _re
@@ -226,11 +227,11 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
                     symlinks=False)
     root = tmp_path / "adopter"
     root.mkdir()
+    # --emit-install-routes writes the dist-tree shape (apm/) so the subsequent
+    # upgrade takes the dist-tree branch. The old hand-rolled namespace omitted
+    # emit_install_routes, so install.py's hasattr branch computed True.
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        install.run(argparse.Namespace(
-            pack=pack_name, catalogue=str(catalogue), output=str(root),
-            scope=None, force=False,
-        ))
+        install.run(cli_namespace("install", str(catalogue), "--pack", pack_name, "--output", str(root), "--emit-install-routes"))
 
     # What a pre-change dist-tree install left behind.
     stale_rel = f"claude-plugins/{pack_name}/skills/diataxis/SKILL.md"
@@ -258,11 +259,7 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
     )
 
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        rc = upgrade.run(argparse.Namespace(
-            pack=pack_name, catalogue=str(catalogue), root=str(root), scope="repo",
-            adapter=None, yes=True, dry_run=False, json=False, force=False,
-            all=False, primitive=None,
-        ))
+        rc = upgrade.run(cli_namespace("upgrade", str(catalogue), "--pack", pack_name, "--root", str(root), "--scope", "repo", "--yes"))
 
     assert rc == 0
     # Prove *this upgrade run* took the dist-tree branch. `apm/core` will not

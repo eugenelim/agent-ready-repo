@@ -70,17 +70,34 @@ def test_concurrent_acquirers_publish_one_complete_lease_per_port(
     barrier = threading.Barrier(2)
     counter_lock = threading.Lock()
     link_calls = 0
+    synchronised: set[int] = set()
     real_link = runtime.os.link
 
     def coordinated_link(source: Path, destination: Path) -> None:
+        """Race both acquirers at the same destination, once per thread.
+
+        Only each thread's FIRST attempt on this destination meets the barrier.
+        A retry passes straight through, because the two threads do not make the
+        same number of attempts: whichever loses the race raises
+        `FileExistsError`, reclaims the planted stale lease, and retries — and
+        the unlink that reclaim performs can land before the winner's own
+        `os.link`, which then succeeds on its first attempt and never comes
+        back. Waiting on every attempt leaves that retry alone at a two-party
+        barrier until it times out. Both orderings occur; the one that strands
+        the retry dominates on a loaded machine, so this only ever failed in CI.
+        """
         nonlocal link_calls
         if Path(destination).name == "preview-4321.json":
             payload = json.loads(Path(source).read_text(encoding="utf-8"))
             assert payload["token"]
             assert payload["created_at"]
+            thread_id = threading.get_ident()
             with counter_lock:
                 link_calls += 1
-            barrier.wait(timeout=30.0)
+                first_attempt = thread_id not in synchronised
+                synchronised.add(thread_id)
+            if first_attempt:
+                barrier.wait(timeout=30.0)
         real_link(source, destination)
 
     monkeypatch.setattr(runtime.os, "link", coordinated_link)

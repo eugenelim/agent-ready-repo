@@ -12,7 +12,6 @@ record.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import shutil
@@ -21,6 +20,8 @@ from pathlib import Path
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.commands import install, list_packs, list_profiles
 from agentbundle.user_config import UserConfig
+
+from tests._support import cli_namespace
 
 FIXTURE_CORE = (
     Path(__file__).resolve().parents[1]
@@ -60,14 +61,8 @@ def test_bare_install_resolves_via_config_source(tmp_path):
     target.mkdir()
 
     # Bare invocation: catalogue=None; the source comes from layer 2.
-    args = argparse.Namespace(
-        pack="core",
-        catalogue=None,
-        output=str(target),
-        scope=None,
-        force=False,
-        force_merge=False,
-        profile=None,
+    args = cli_namespace(
+        "install", "--pack", "core", "--output", str(target),
         _user_config=UserConfig(source=str(cat)),
     )
     out, err = io.StringIO(), io.StringIO()
@@ -91,13 +86,8 @@ def test_bare_profile_install_reaches_default_resolver(tmp_path, monkeypatch):
 
     monkeypatch.setattr(_common, "resolve_catalogue_uri", _spy)
 
-    args = argparse.Namespace(
-        pack=None,
-        profile="starter",
-        catalogue=None,
-        output=str(tmp_path),
-        scope=None,
-        adapter=None,
+    args = cli_namespace(
+        "install", "--profile", "starter", "--output", str(tmp_path),
         _user_config=None,
     )
     out, err = io.StringIO(), io.StringIO()
@@ -115,7 +105,7 @@ def test_offer_upgrade_hands_off_resolved_uri(monkeypatch):
     captured = {}
     monkeypatch.setattr(_upgrade, "run", lambda ns: captured.setdefault("ns", ns) and 0)
 
-    args = argparse.Namespace(catalogue=None, output=".", _user_config=None)
+    args = cli_namespace("install", _user_config=None)
     install._offer_upgrade(
         args, pack_name="core", scope="repo", catalogue_uri="git+https://resolved/x"
     )
@@ -131,9 +121,7 @@ def test_offer_upgrade_forwards_adapter(monkeypatch):
     captured = {}
     monkeypatch.setattr(_upgrade, "run", lambda ns: captured.setdefault("ns", ns) and 0)
 
-    args = argparse.Namespace(
-        catalogue=None, output=".", _user_config=None, adapter="claude-code"
-    )
+    args = cli_namespace("install", "--adapter", "claude-code", _user_config=None)
     # Pass a differing resolved_adapter to confirm CLI value wins over the fallback.
     install._offer_upgrade(
         args,
@@ -154,9 +142,7 @@ def test_offer_upgrade_uses_resolved_adapter_when_no_cli_adapter(monkeypatch):
     captured = {}
     monkeypatch.setattr(_upgrade, "run", lambda ns: captured.setdefault("ns", ns) and 0)
 
-    args = argparse.Namespace(
-        catalogue=None, output=".", _user_config=None, adapter=None
-    )
+    args = cli_namespace("install", _user_config=None)
     install._offer_upgrade(
         args,
         pack_name="desk-research",
@@ -171,7 +157,7 @@ def test_bare_list_packs_resolves_default_source(tmp_path):
     # A bare `list-packs` (no catalogue) resolves the source via the
     # same chain and lists the catalogue's packs.
     cat = _local_catalogue(tmp_path)
-    args = argparse.Namespace(catalogue=None, _user_config=UserConfig(source=str(cat)))
+    args = cli_namespace("list-packs", _user_config=UserConfig(source=str(cat)))
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = list_packs.run(args)
@@ -191,7 +177,7 @@ def test_bare_list_profiles_resolves_default_source(tmp_path):
         encoding="utf-8",
         newline="\n",
     )
-    args = argparse.Namespace(catalogue=None, _user_config=UserConfig(source=str(cat)))
+    args = cli_namespace("list-profiles", _user_config=UserConfig(source=str(cat)))
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = list_profiles.run(args)

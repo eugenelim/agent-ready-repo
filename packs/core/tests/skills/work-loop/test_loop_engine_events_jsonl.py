@@ -451,3 +451,35 @@ class TestOutboxRecovery:
 
     def test_io_failure_does_not_abort_transition(self) -> None:
         pytest.skip("STUB (graceful-degradation): monkeypatch events.jsonl append to raise PermissionError; assert engine-state.json write still succeeds and a warning is emitted")
+
+
+class TestSchemaVersionStub:
+    def test_event_line_carries_schema_version_one(self, tmp_path) -> None:
+        # STUB: AC-0046
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        event = json.loads((repo / ".loop-run" / "events.jsonl").read_text().strip())
+        assert event["schema"] == 1
+
+
+class TestReplayPreservesLegacyRecord:
+    def test_replayed_pending_without_schema_stays_without_schema(self, tmp_path) -> None:
+        # STUB: AC-0047
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        run_id = _engine_init(repo, spec_dir)
+        state = json.loads((spec_dir / "engine-state.json").read_text())
+        legacy = {
+            "seq": state["transition_sequence"], "run_id": run_id,
+            "spec": "docs/specs/test-spec", "from": "INIT", "event": "init",
+            "to": state["state"], "at": "2026-01-01T00:00:00Z",
+        }
+        (repo / ".loop-run" / "events.pending").write_text(json.dumps(legacy))
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        lines = (repo / ".loop-run" / "events.jsonl").read_text().splitlines()
+        assert len(lines) == 2, f"replay must precede the new record: {lines}"
+        replayed = json.loads(lines[0])
+        assert "schema" not in replayed
+        assert replayed == legacy, "the replayed record must be unchanged, not merely unstamped"

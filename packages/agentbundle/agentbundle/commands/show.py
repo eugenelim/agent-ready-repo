@@ -53,7 +53,7 @@ def run(args: argparse.Namespace) -> int:
     from agentbundle.pack_inventory import agent_names, skill_names
 
     pack_name: str = args.pack
-    fmt: str = getattr(args, "format", "table")
+    fmt: str = args.format
 
     # ── Resolve the catalogue (authoritative primary source) ──────────────────
     try:
@@ -207,7 +207,7 @@ def _load_states(args: argparse.Namespace) -> list[State]:
         pass
     else:
         candidates.append(("user", user_root / ".agentbundle" / "state.toml"))
-    repo_root = Path(getattr(args, "root", ".") or ".").resolve()
+    repo_root = Path(args.root or ".").resolve()
     candidates.append(("repo", repo_root / ".agentbundle-state.toml"))
     # Include local-scope state so `show` finds locally-installed packs
     candidates.append(("local", resolve_state_path("local", repo_root)))

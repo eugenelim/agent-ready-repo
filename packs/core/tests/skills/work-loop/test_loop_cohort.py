@@ -822,6 +822,45 @@ def test_schedule_persists_waves(tmp: Path) -> None:
         ok(name)
 
 
+def test_schedule_prints_implementer_dispatch_reminder(tmp: Path) -> None:
+    name = "schedule-prints-implementer-dispatch-reminder"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    rc, out, _ = run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    collapsed_out = " ".join(out.split())
+    last_wave_index = collapsed_out.find("wave 2: T2")
+    persisted_index = collapsed_out.find("loop-cohort: schedule persisted")
+    dispatch_index = collapsed_out.find("loop-cohort: dispatch")
+    expected_reminder = (
+        "loop-cohort: dispatch — send each task above to one implementer subagent, "
+        "one at a time, when that agent is installed; otherwise run them yourself and "
+        "note the degradation in the final summary. Scheduling, gates, review and state "
+        "stay with you."
+    )
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+    elif last_wave_index == -1:
+        fail(name, f"final wave missing from stdout: {out!r}")
+    elif dispatch_index <= last_wave_index:
+        fail(name, f"dispatch reminder did not follow the wave output: {out!r}")
+    elif persisted_index == -1:
+        fail(name, f"schedule persistence missing from stdout: {out!r}")
+    elif dispatch_index <= persisted_index:
+        fail(name, f"dispatch reminder did not follow schedule persistence: {out!r}")
+    elif not collapsed_out[dispatch_index:].startswith(expected_reminder):
+        fail(
+            name,
+            f"dispatch reminder mismatch: expected {expected_reminder!r}; "
+            f"got {collapsed_out[dispatch_index:]!r}",
+        )
+    else:
+        ok(name)
+
+
 def test_schedule_run_id_mismatch(tmp: Path) -> None:
     name = "schedule-run-id-mismatch"
     run_id = str(uuid.uuid4())

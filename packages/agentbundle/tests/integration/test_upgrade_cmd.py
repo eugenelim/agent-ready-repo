@@ -10,15 +10,16 @@ Coverage:
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import re
 import shlex
-import types
 from pathlib import Path
 
 import pytest
 
 from tests._direct_acquisition import GitHttpsAcquisitionFake
+from tests._support import cli_namespace
 
 # Fixture catalogue directories.
 FIXTURE_ROOT = Path(__file__).parent.parent / "fixtures" / "upgrade"
@@ -46,31 +47,32 @@ def _args_upgrade(
     command: str | None = None,
     dry_run: bool = False,
     yes: bool = True,
-) -> types.SimpleNamespace:
+) -> argparse.Namespace:
     # `yes=True` by default so non-prompt tests don't block on input(); the
     # confirmation-flow tests pass yes=False and monkeypatch input/isatty.
-    return types.SimpleNamespace(
-        pack=pack,
-        catalogue=catalogue,
-        root=root,
-        skill=skill,
-        agent=agent,
-        hook=hook,
-        seed=seed,
-        command=command,
-        dry_run=dry_run,
-        yes=yes,
-    )
+    # Deviation: yes=True default vs parser default False → pass --yes when yes=True.
+    argv = [catalogue, "--pack", pack, "--root", root]
+    if skill is not None:
+        argv.extend(["--skill", skill])
+    if agent is not None:
+        argv.extend(["--agent", agent])
+    if hook is not None:
+        argv.extend(["--hook", hook])
+    if seed is not None:
+        argv.extend(["--seed", seed])
+    if command is not None:
+        argv.extend(["--command", command])
+    if dry_run:
+        argv.append("--dry-run")
+    if yes:
+        argv.append("--yes")
+    return cli_namespace("upgrade", *argv)
 
 
-def _args_install(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
-    # Dist-tree fixtures need `emit_install_routes=True`.
-    return types.SimpleNamespace(
-        pack=pack,
-        catalogue=catalogue,
-        output=output,
-        emit_install_routes=True,
-    )
+def _args_install(pack: str, catalogue: str, output: str) -> argparse.Namespace:
+    # Dist-tree fixtures need emit_install_routes=True.
+    # Deviation: emit_install_routes=True vs parser default False → pass --emit-install-routes.
+    return cli_namespace("install", catalogue, "--pack", pack, "--output", output, "--emit-install-routes")
 
 
 def _run_upgrade(**kwargs) -> int:

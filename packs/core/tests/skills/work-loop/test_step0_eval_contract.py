@@ -33,6 +33,36 @@ def test_step0_evals_follow_canonical_workspace_preflight() -> None:
     assert "both canonical active spec paths" in multiple["expected_output"]
 
 
+def test_schedule_refuses_unknown_dependency_eval_contract() -> None:
+    """Eval entry for unknown-dependency refusal must name both topics in its assertions.
+
+    The catalogue lint only checks assertions are non-empty strings, so nothing
+    else notices if the entry stops mentioning refusal or the forward-reference
+    contrast at all.  This check pins that both topics are mentioned; it is a
+    substring search, so it does not observe polarity — an assertion could name
+    refusal and still say the wrong thing about it, and that is the eval run's
+    job to catch, not this one's.
+    """
+    import re
+
+    evals = _evals_by_id()
+    assert "schedule-refuses-unknown-dependency" in evals, (
+        "Missing eval entry 'schedule-refuses-unknown-dependency' in evals.json"
+    )
+    entry = evals["schedule-refuses-unknown-dependency"]
+    assertions: list[str] = list(entry["assertions"])  # type: ignore[arg-type]
+
+    has_refus = any(re.search("refus", a, re.IGNORECASE) for a in assertions)
+    assert has_refus, (
+        "No assertion in 'schedule-refuses-unknown-dependency' matches 'refus' (case-insensitive)"
+    )
+
+    has_forward = any(re.search("forward", a, re.IGNORECASE) for a in assertions)
+    assert has_forward, (
+        "No assertion in 'schedule-refuses-unknown-dependency' matches 'forward' (case-insensitive)"
+    )
+
+
 def test_step0_evals_do_not_retain_superseded_messages() -> None:
     """The eval corpus must not contradict the live canonical preflight.
 

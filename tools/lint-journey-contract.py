@@ -31,6 +31,8 @@ import re
 import subprocess
 import sys
 
+import lint_harness
+
 COMMON_CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive")
 # Generated copies carry approved semantic identities; hand-authored pages retain
 # display-only decisions until their mappings are editorially approved.
@@ -181,38 +183,60 @@ def _check_stages(body: str) -> list[str]:
     return findings
 
 
-def main() -> int:
+def _parse(argv: list[str] | None) -> pathlib.Path:
+    """Return the journey directory. This lint takes no arguments;
+    `LJC_JOURNEY_DIR` is its only input, so *argv* is accepted and ignored."""
     root = _repo_root()
-    journey_dir = pathlib.Path(
+    return pathlib.Path(
         os.environ.get("LJC_JOURNEY_DIR", root / "web/src/content/journeys")
     )
 
+
+def _journeys(journey_dir: pathlib.Path) -> list[pathlib.Path] | None:
+    """Return the journey pages, or ``None`` when the directory is absent.
+
+    The two cases answer differently and always have: a missing directory is an
+    error, while a directory holding no journeys is an ordinary pass over zero
+    files. Preserved rather than corrected — adding a fail-closed guard here is
+    a behaviour change, not a migration.
+    """
     if not journey_dir.exists():
-        print(
-            f"lint-journey-contract: journey directory not found: {journey_dir}",
-            file=sys.stderr,
-        )
-        return 1
+        return None
+    return sorted(journey_dir.glob("*.md"))
 
-    findings: list[str] = []
-    checked = 0
 
-    for jf in sorted(journey_dir.glob("*.md")):
-        text = jf.read_text(encoding="utf-8")
-        fm, body = _split_frontmatter(text)
-        file_findings = _check_contract(fm) + _check_stages(body)
-        checked += 1
-        for f in file_findings:
-            findings.append(f"  {jf.name}: {f}")
+def _findings(jf: pathlib.Path) -> list[str]:
+    """Return one message per structural violation in one journey page."""
+    text = jf.read_text(encoding="utf-8")
+    fm, body = _split_frontmatter(text)
+    return [f"  {jf.name}: {f}" for f in _check_contract(fm) + _check_stages(body)]
 
-    if findings:
-        print("lint-journey-contract: structural violations:", file=sys.stderr)
-        for f in findings:
-            print(f, file=sys.stderr)
-        return 1
 
-    print(f"lint-journey-contract: all {checked} journeys conform")
-    return 0
+def _report(findings: list[str]) -> None:
+    """Print the header before the findings; this rule writes nothing after."""
+    print("lint-journey-contract: structural violations:", file=sys.stderr)
+    for f in findings:
+        print(f, file=sys.stderr)
+
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=_journeys,
+    predicate=_findings,
+    pass_line=lambda root, n: f"lint-journey-contract: all {n} journeys conform",
+    empty_scan=lambda root: lint_harness.Outcome(
+        "lint-journey-contract: all 0 journeys conform", 0, "stdout"
+    ),
+    absent_root=lambda root: lint_harness.Outcome(
+        f"lint-journey-contract: journey directory not found: {root}", 1
+    ),
+    report=_report,
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the journey-contract lint and return its process exit status."""
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":

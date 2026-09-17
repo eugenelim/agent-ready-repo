@@ -54,8 +54,8 @@ def run(args: argparse.Namespace) -> int:
     from agentbundle.config import ConfigError, dump_state, load_state
 
     pack_name: str = args.pack
-    cli_scope: str | None = getattr(args, "scope", None)
-    cli_adapter: str | None = getattr(args, "adapter", None)
+    cli_scope: str | None = args.scope
+    cli_adapter: str | None = args.adapter
     root = Path(args.root).resolve()
     state_path = resolve_state_path("repo", root)
 
@@ -199,8 +199,8 @@ def run(args: argparse.Namespace) -> int:
 
         user_prefixes = _adapter_allowed_prefixes_user(target_adapter or "claude-code")
 
-    dry_run: bool = bool(getattr(args, "dry_run", False))
-    yes: bool = bool(getattr(args, "yes", False))
+    dry_run: bool = bool(args.dry_run)
+    yes: bool = bool(args.yes)
 
     # ── Step 2a: Classify the pack's recorded files (no mutation) ─────────────
     # State-file relpaths are *untrusted input* — a malicious state file

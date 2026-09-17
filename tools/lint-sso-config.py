@@ -30,6 +30,8 @@ import tomllib
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import lint_harness
+
 # The atlassian [sso] connection-param schema (keep in sync with each skill's
 # scripts/_sso_config.py _ALLOWED_SSO_KEYS).
 _ALLOWED_SSO_KEYS = frozenset(
@@ -171,22 +173,36 @@ def _default_paths() -> list[Path]:
     return sorted(root.glob("packs/*/.apm/skills/*/references/sso-config.toml"))
 
 
-def main(argv: list[str] | None = None) -> int:
+def _parse(argv: list[str] | None) -> list[Path]:
     args = list(sys.argv[1:] if argv is None else argv)
-    paths = [Path(a) for a in args] if args else _default_paths()
+    return [Path(a) for a in args] if args else _default_paths()
 
-    findings: list[str] = []
-    for path in paths:
-        findings.extend(lint_file(path))
 
-    if findings:
-        for f in findings:
-            sys.stderr.write(f"sso-config lint: {f}\n")
-        sys.stderr.write(f"sso-config lint: {len(findings)} finding(s)\n")
-        return 1
+def _scanned(text: str) -> str:
+    return f"sso-config lint: {text}"
 
-    sys.stderr.write(f"sso-config lint: {len(paths)} file(s) scanned, 0 finding(s)\n")
-    return 0
+
+RULE = lint_harness.Rule(
+    parse=_parse,
+    files=lambda paths: paths,
+    predicate=lambda path: [_scanned(f) for f in lint_file(path)],
+    # Success goes to stderr, which is where this lint has always reported.
+    pass_line=lambda paths, n: lint_harness.Outcome(
+        _scanned(f"{n} file(s) scanned, 0 finding(s)"), 0, "stderr"
+    ),
+    empty_scan=lambda paths: lint_harness.Outcome(
+        _scanned("0 file(s) scanned, 0 finding(s)"), 0, "stderr"
+    ),
+    absent_root=lambda paths: lint_harness.Outcome(
+        _scanned("0 file(s) scanned, 0 finding(s)"), 0, "stderr"
+    ),
+    summary=lambda n: _scanned(f"{n} finding(s)"),
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Lint every supplied sso-config.toml and return the exit status."""
+    return lint_harness.run(RULE, argv)
 
 
 if __name__ == "__main__":

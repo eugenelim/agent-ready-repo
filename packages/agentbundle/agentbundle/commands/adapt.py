@@ -246,7 +246,7 @@ def run(args: argparse.Namespace) -> int:
             for k, v in discovery.markers.items():
                 values[k] = v
 
-    if getattr(args, "values_from", None):
+    if args.values_from:
         try:
             explicit = load_values_from(Path(args.values_from))
         except ConfigError as exc:
@@ -265,7 +265,7 @@ def run(args: argparse.Namespace) -> int:
 
         # Substitute markers only when --values-from was given (preserve
         # the read-only-without-values-from contract).
-        if getattr(args, "values_from", None) and values and projected:
+        if args.values_from and values and projected:
             for relpath in sorted(projected):
                 target = s.root / relpath
                 if not target.exists() or not target.is_file():

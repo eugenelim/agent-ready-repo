@@ -13,7 +13,7 @@
 # environment variable, so no child process a test spawns is affected. The two
 # packages/*/ suites are also unaffected: each has its own
 # [tool.pytest.ini_options], which is the nearer configfile for its own run.
-pythonpath = [".", "packages/agentbundle", "packages/credbroker"]
+pythonpath = [".", "packages/agentbundle", "packages/credbroker", "packages/jsonl-otlp-exporter"]
 
 [tool.ruff]
 line-length = 99
@@ -94,4 +94,5 @@ exclude = ["packages/agentbundle/agentbundle/_data/catalogue-scaffold/tests/"]
 files = [
     "packages/agentbundle/agentbundle",
     "packages/credbroker/credbroker",
+    "packages/jsonl-otlp-exporter/jsonl_otlp_exporter",
 ]
