@@ -308,21 +308,23 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4719e830f21d1d461a51b9a6db602ecd62bb06ba"
+        "object_id": "48b7d2c83acfa4d48bddafde0b1a485b3525349d"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-13T06:10:35Z",
-        "state": "fresh"
+        "checked_at": "2026-09-17T00:00:00Z",
+        "state": "retired"
       },
-      "lifecycle": "active",
+      "lifecycle": "retired",
       "path": "topics/a-lint-rule-reported-as-partial-did-not-run.json",
       "scopes": [
+        ".claude/skills",
+        "docs/knowledge",
         "docs/specs",
-        ".claude/skills"
+        "packs/core"
       ],
       "title": "A lint rule reported as 'partial' did not run, and the summary still reads as a pass",
       "topic_key": "a-lint-rule-reported-as-partial-did-not-run"
