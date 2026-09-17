@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-22
+- **Areas:** install, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** none. Per [CONVENTIONS § Cite upward, never downward](../CONVENTIONS.md#specs), an ADR does not cite specs; the affected specs carry the forward pointer instead.
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** 
 
 ## Context
 
@@ -20,6 +25,12 @@ concept for Level B packs.
 
 **We will allow Level A first-value metadata to include an optional
 `next-action`, printed after `Verify:`.**
+
+- **D1:** Level A first-value metadata may declare an optional `next-action`.
+- **D2:** A declared Level A `next-action` is printed after the `Verify:` line.
+- **D3:** Level B continues to require `next-action`.
+- **D4:** A Level A pack without the field, and any pack without first-value metadata, keeps its current installer output unchanged.
+- **D5:** Handoff text stays pack-owned metadata; the installer gains no core-specific branch.
 
 Level B continues to require `next-action`. Level A packs without it and packs
 without first-value metadata retain their current output. Handoff text remains
@@ -58,11 +69,11 @@ first-value contract.
 
 ## Alternatives considered
 
-**Hard-code core behavior in the installer.** Rejected because it couples
-generic installation logic to one pack.
-
-**Add a separate install-manifest field.** Rejected because it duplicates the
-existing bounded `next-action` concept and expands the schema.
-
-**Rely on documentation or hooks alone.** Rejected because neither guarantees
-an effective post-install handoff.
+- **Hard-code core behavior in the installer** — rejected against *keep installer
+  behavior pack-agnostic*: it couples generic installation logic to one pack.
+- **Add a separate install-manifest field** — rejected against *reuse an existing
+  bounded metadata field*: it duplicates the existing bounded `next-action`
+  concept and expands the schema.
+- **Rely on documentation or hooks alone** — rejected against *guarantee
+  onboarding independently of runtime hooks*: neither guarantees an effective
+  post-install handoff.

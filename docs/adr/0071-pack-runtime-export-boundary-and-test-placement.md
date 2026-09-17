@@ -2,10 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-06
+- **Areas:** testing, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer, quality-engineer
 - **Supersedes:** none
-- **Related:** ADR-0002 (install scope per pack), `docs/specs/pack-test-boundary/spec.md`
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0002 (install scope per pack)
 
 ## Decision summary
 
@@ -38,7 +43,16 @@ Nothing enforced a rule either way. `lint_packs._PACK_SUBTREES` walks only
 `pack.schema.json` constrains `pack.toml`, not the directory tree. The layout was
 whatever the last author chose.
 
-## Options considered
+## Decision
+
+- **D1:** The pack is the ownership and test-execution boundary.
+- **D2:** `.apm/` is the runtime export boundary and carries only content intended to be installed, projected, or executed.
+- **D3:** A skill is the evaluation-fixture boundary.
+- **D4:** Deterministic implementation tests live at `packs/<pack>/tests/`, laid out as `tests/skills/<skill>/`, `tests/hooks/`, `tests/pack/`, and `tests/fixtures/`.
+- **D5:** Runtime skill evals stay at `.apm/skills/<skill>/evals/`, one per skill named in `[pack.evals].skills`.
+- **D6:** This catalogue declines a repository-root `tests/` tree; a new top-level directory is RFC-gated here.
+
+## Alternatives considered
 
 **A — leave tests under `.apm/`, rely on the installer ignoring them.** Zero work.
 Rejected: it is the status quo that produced the defect, and it makes correctness
@@ -86,3 +100,8 @@ Tracked as `pack-test-boundary-remaining-packs` in `workspace.toml [backlog].ope
 `parents[N] / ".apm" / ...` rather than `.claude/skills/...`. Projection fidelity
 is separately gated by the self-host drift check, so this is not a coverage loss,
 but it does mean the drift check is now the sole guard on that seam.
+
+**Revisit if:** the remaining packs move their tests out of `.apm/skills/*/scripts/`
+(`pack-test-boundary-remaining-packs`), which would let the boundary test widen
+beyond `core`; or cross-cutting tests need a home, which D6 deliberately leaves
+open.

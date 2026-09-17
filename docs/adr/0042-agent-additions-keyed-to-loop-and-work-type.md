@@ -1,10 +1,19 @@
 # ADR-0042: Agent additions are keyed to loop and work type, not a global cap
 
-- **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-29
+- **Areas:** review, governance
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** ADR-0023
-- **Related:** RFC-0050 (§ D7 — the `experience-reviewer`, decided within this policy), RFC-0048 (§ lens-team roster — the multi-loop reviewer model this generalizes), RFC-0032 (architect `design-reviewer` — the first non-core reviewer admitted), `docs/CHARTER.md` (Scope non-goal: "Not a marketplace of specialized agents. Three reviewers is the ceiling.")
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0050 (§ D7 — the `experience-reviewer`, decided within this policy);
+  RFC-0048 (§ lens-team roster — the multi-loop reviewer model this
+  generalizes); RFC-0032 (architect `design-reviewer` — the first non-core
+  reviewer admitted); `docs/CHARTER.md` (Scope non-goal: "Not a marketplace
+  of specialized agents. Three reviewers is the ceiling.")
 
 ## Decision summary
 
@@ -58,6 +67,25 @@ as a loop/work-type-keyed rule.
 > and work type it serves** — never as a default — and the charter's "three
 > reviewers is the ceiling" binds the **core `work-loop` code-review gate
 > specifically**, not agents catalogue-wide.
+
+- **D1:** An agent is added only when it clears a value test keyed to the loop and
+  work type it serves, never as a default.
+- **D2:** The charter's "three reviewers is the ceiling" binds the core
+  `work-loop` code-review gate specifically, not agents catalogue-wide.
+- **D3:** The always-on core code-review gate stays capped at
+  `adversarial-reviewer`, `security-reviewer`, and `quality-engineer`; a fourth
+  core-loop lens is a charter question requiring an RFC and a charter amendment,
+  which this ADR does not pre-authorize.
+- **D4:** Any other agent is admissible only when all four hold: it serves a
+  different loop or work type than the core code-review gate; it earns its
+  existence by forked-context independence, parallelism, or a distinct
+  surface/cadence; it clears the charter's four principles; and it is
+  collision-hardened by construction with a distinct discipline-word head and a
+  role-disambiguating `description:` cue.
+- **D5:** The burden is on the addition to clear the test, with fewer agents as
+  the default bias.
+- **D6:** Loop and work type, not pack, is the key — two agents that would run in
+  the same gate on the same surface are one agent.
 
 Concretely:
 
@@ -143,7 +171,8 @@ becomes universally exact-name (weakening the collision-hardening rationale).
 
 ## Alternatives considered
 
-- **Keep ADR-0023 as-is** (core-loop-lenses-only framing). Rejected: the *reading*
+- **Keep ADR-0023 as-is** (core-loop-lenses-only framing). Rejected against the
+  *distinct surface/cadence* driver: the *reading*
   is right but the *framing* is too narrow — it did not generalize to the multi-loop
   roster RFC-0048 already runs, and it was mis-cited in RFC-0050 D7 to forbid an
   admissible reviewer. This ADR keeps the holding and states the general rule.

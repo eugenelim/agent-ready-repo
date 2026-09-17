@@ -1,11 +1,18 @@
 # ADR-0112: Index tables over a document corpus are generated or absent, never hand-maintained
 
-- **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-09-13
+- **Areas:** documentation, tooling
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Consulted:** applied prior-art survey across six proposal processes, five spec-driven-development frameworks, thirteen ADR tools, and four changelog-fragment tools — [`docs/product/research/document-index-patterns-survey.md`](../product/research/document-index-patterns-survey.md)
 - **Supersedes:** none
-- **Related:** [RFC-0002](../rfc/0002-self-hosting.md) (its `Manual` classification of the three index files is corrected by that RFC's 2026-09-13 erratum, not by this ADR); [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md); [ADR-0006](0006-doc-drift-construction-and-judgment.md); [ADR-0007](0007-ship-doc-drift-lint-as-work-loop-skill-script.md); [RFC-0016](../rfc/0016-doc-drift-mechanical-gate.md); [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) § Wave 7d
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0002 (its `Manual` classification of the three index files is corrected
+  by that RFC's 2026-09-13 erratum, not by this ADR); ADR-0001; ADR-0006;
+  ADR-0007; RFC-0016; RFC-0096 § Wave 7d
 
 ## Decision summary
 
@@ -102,6 +109,21 @@ indexes:
    projection**, never a duplicate, following `lint-spec-status.py` exactly. The
    generator carries `--check` for the gate chain and `--write` for the authoring
    step.
+
+- **D1:** An index table over a document corpus is generated from that corpus or
+  does not exist; hand-maintenance is not an option.
+- **D2:** The spec index is retired — `docs/specs/README.md` carries no table,
+  `new-spec` drops its index write, and the `core` seed loses its placeholder
+  tables.
+- **D3:** The ADR and RFC indexes are generated flat from each document's
+  `# ADR-NNNN: Title` / `# RFC-NNNN: Title` heading and its `Status`,
+  `Date opened`, and `Date closed` metadata lines.
+- **D4:** One generator per index type ships as a script in the pack that owns
+  that index, `governance-extras`.
+- **D5:** Repo tooling invokes that same script through its self-hosted
+  projection, never a duplicate copy.
+- **D6:** The generator carries `--check` for the gate chain and `--write` for
+  the authoring step.
 
 ## Decision drivers
 

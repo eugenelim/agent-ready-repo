@@ -1,11 +1,20 @@
 # ADR-0107: The Claude-plugin route serves non-technical adopters, as individual per-pack plugins
 
-- **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-09-10
+- **Areas:** distribution, adapters
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** independent shaping review (two rounds; the first returned WRONG ARTIFACT against a meta-plugin framing of this same outcome)
-- **Supersedes:** the **"CLI-route only" clause only** of [ADR-0025](0025-pack-profiles-single-scope-cli-manifest.md) — specifically its sentence "Plugin/APM-route surfacing is deferred (it would require coupled meta-plugins)", to the extent it reads as deferring *pack* distribution on the plugin route. ADR-0025's actual decision — that a **profile** is a single-scope, catalogue-owned, CLI-expanded manifest and **not** a meta-pack — stands unchanged, as do its single-scope, catalogue-ownership, thin-orchestration, and no-new-persistent-entity clauses.
-- **Related:** [RFC-0034](../rfc/0034-pack-profiles.md) OQ2 (the deferral this revisits), [ADR-0003](0003-credential-broker-contract.md) / [RFC-0013](../rfc/0013-credential-broker-contract.md) option F (the meta-pack rejection, upheld here), [RFC-0092](../rfc/0092-first-class-distribution-routes.md) (the route layer), [ADR-0072](0072-derived-plugin-manifest-mirrors-upstream-schema.md) (schema conformance is not client proof), [`docs/product/research/claude-desktop-distribution-survey.md`](../product/research/claude-desktop-distribution-survey.md) (the evidence base)
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0025 D4
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0034 OQ2 (the deferral this revisits); ADR-0003 / RFC-0013 option F (the
+  meta-pack rejection, upheld here); RFC-0092 (the route layer); ADR-0072
+  (schema conformance is not client proof);
+  `docs/product/research/claude-desktop-distribution-survey.md` (the
+  evidence base)
 
 ## Decision summary
 
@@ -84,6 +93,14 @@ installs are accepted as sufficient.
 > chat, and Cowork. Distribution is by **individually installed per-pack
 > plugins**, which the catalogue already publishes. No meta-plugin is created,
 > and profiles are not surfaced on this route.
+
+- **D1:** The Claude-plugin route is a supported distribution surface for adopters who do not use a terminal, reaching Desktop's Chat tab, web chat, and Cowork.
+- **D2:** Distribution on this route is by individually installed per-pack plugins; no aggregate or meta-plugin is created and no `dependencies` field is added to any generated manifest.
+- **D3:** Profiles are not projected onto this route; `profiles/<name>.toml` stays what ADR-0025 says it is, read only by `agentbundle`.
+- **D4:** Both registration paths are first-class, and adopter documentation names the personal self-registration path first and the organisation path second.
+- **D5:** Documentation must not imply that one install reaches both Claude Code and the Claude apps, because the same marketplace is registered separately on each surface.
+- **D6:** Documentation states sub-agent availability per surface — available in Cowork, present but unrunnable in chat — rather than claiming uniform parity.
+- **D7:** This decision promotes no support claim above `documentation-verified`; the dated per-client observation is owed separately.
 
 Specifically:
 
@@ -172,22 +189,25 @@ Specifically:
 
 ## Alternatives considered
 
-1. **An aggregate meta-plugin using the `dependencies` array.** Rejected. It
-   reverses ADR-0003 / RFC-0013 option F's meta-pack rejection for a convenience
-   gain; plugin dependencies install at one scope with no notion of this
-   catalogue's user/repo pack scope; and a fifth published artifact has no
-   canonical source under RFC-0092 P4, which requires every route manifest to
-   project from `pack.toml`. Once individual installs are accepted as
-   sufficient, it buys nothing that justifies that cost.
-2. **Surface profiles on the plugin route.** Rejected — this *is* alternative 1
-   under another name, which is precisely what RFC-0034 OQ2 recorded.
-3. **The skills-upload route.** Rejected as a primary route. One skill per ZIP
-   with no bulk form means the upload count scales with the toolkit, and there
-   is no per-pack update path; a plugin carries a whole pack and updates with
-   it.
-4. **Status quo — CLI only.** Rejected. It excludes the audience this decision
-   exists to serve, and leaves the adopter documentation asserting the plugin
-   route is for Claude Code alone, which was factually wrong.
+1. **An aggregate meta-plugin using the `dependencies` array** — rejected against
+   *preserve the meta-pack rejection*: it reverses ADR-0003 / RFC-0013 option F's
+   meta-pack rejection for a convenience gain; plugin dependencies install at one
+   scope with no notion of this catalogue's user/repo pack scope; and a fifth
+   published artifact has no canonical source under RFC-0092 P4, which requires
+   every route manifest to project from `pack.toml`. Once individual installs are
+   accepted as sufficient, it buys nothing that justifies that cost.
+2. **Surface profiles on the plugin route** — rejected against *preserve the
+   meta-pack rejection*: this *is* alternative 1 under another name, which is
+   precisely what RFC-0034 OQ2 recorded (D3).
+3. **The skills-upload route** — rejected against *reach the non-technical adopter
+   at all*: one skill per ZIP with no bulk form means the upload count scales with
+   the toolkit, and there is no per-pack update path, so it does not actually
+   deliver a practice to this audience; a plugin carries a whole pack and updates
+   with it.
+4. **Status quo — CLI only** — rejected against *reach the non-technical adopter
+   at all*: it excludes the audience this decision exists to serve, and leaves the
+   adopter documentation asserting the plugin route is for Claude Code alone,
+   which was factually wrong.
 
 ## Confirmation
 

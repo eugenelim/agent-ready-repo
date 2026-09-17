@@ -2,10 +2,23 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-22
+- **Areas:** packaging, contracts
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Extended by:** ADR-0078 opts standalone core intake into the shared layout contract as a repository-confined `[core]` consumer.
-- **Related:** RFC-0040 (the accepted decision this records); ADR-0029 (research project mode — introduced `research-layout.toml`, the file this generalises, and the only prior prompt-only-read layout precedent); ADR-0021 (`pack.toml` is the metadata source of truth — home for the `[pack.layout]` extension); RFC-0035 (`references/sso-config.toml` — namespacing + shipped-placeholder delivery, but code-read via `tomllib`, *not* a prompt-only-read precedent); RFC-0034 (`profiles/<name>.toml` config precedent); RFC-0038 (forward-only migration / one-release alias — considered, found not to apply)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0040 (the accepted decision this records); ADR-0029 (research project
+  mode — introduced `research-layout.toml`, the file this generalises, and
+  the only prior prompt-only-read layout precedent); ADR-0021 (`pack.toml`
+  is the metadata source of truth — home for the `[pack.layout]` extension);
+  RFC-0035 (`references/sso-config.toml` — namespacing + shipped-placeholder
+  delivery, but code-read via `tomllib`, *not* a prompt-only-read
+  precedent); RFC-0034 (`profiles/<name>.toml` config precedent); RFC-0038
+  (forward-only migration / one-release alias — considered, found not to
+  apply); ADR-0078 extends this contract — it opts standalone core intake
+  into the shared layout contract as a repository-confined `[core]` consumer
 
 ## Context
 
@@ -27,6 +40,38 @@ Constraints in force when deciding:
 
 > We will replace the research-only `research-layout.toml` with one namespaced **`agentbundle-layout.toml`** that every output-producing pack reads — one `[<pack>]` table each, whose single `parent` key names a **base directory under which each unit of work gets its own topic-named folder**.
 
+- **D1:** One namespaced `agentbundle-layout.toml` replaces the research-only
+  `research-layout.toml`, carrying one `[<pack>]` table per output-producing pack
+  whose single `parent` key names a base directory.
+- **D2:** A repo-root `./agentbundle-layout.toml` overrides a user-profile
+  `~/.agentbundle/agentbundle-layout.toml` **per table**; a table present only in
+  the user file survives.
+- **D3:** `research`, `architect`, and `product-engineering` are the three
+  consumers wired in one implementing spec.
+- **D4:** `parent` is a base directory, and each skill creates a topic-named
+  child folder per unit of work using its own naming convention.
+- **D5:** `parent` is anchored by the layout file's own location — repo-root-relative
+  for the repo-root file, an explicit `~`-anchored absolute path for the
+  user-profile file.
+- **D6:** The skill resolves and surfaces the full absolute path before the first
+  write, realpath-resolved and `~`-expanded, with `..` rejected.
+- **D7:** A repo-root-sourced `parent` resolving outside the repo is treated as an
+  untrusted-origin, Ask-first deviation.
+- **D8:** Reading the layout file is prompt-only; no runtime engine, index,
+  daemon, or watcher reads it while a skill operates.
+- **D9:** Writing is install-time code only — an append-if-exists,
+  never-overwrite, never-create installer step sourcing each pack's default from a
+  scope-keyed `[pack.layout]` table in `pack.toml`, serialised through the
+  injection-safe emitter and written via the path-jailed atomic write.
+- **D10:** The active layout file is adopter-owned and never shipped as a
+  projected artifact; the shipped artifacts are each pack's
+  `references/agentbundle-layout.md` schema doc and its within-pack
+  `[pack.layout]` default.
+- **D11:** Migration is a clean rename with no alias — `research-layout.toml`'s
+  top-level `parent` becomes the `[research]` table's `parent`.
+- **D12:** Specs, ADRs, RFCs, `contracts/<type>/`, and `packages/` stay at fixed
+  locations; only the three named packs' relocatable output is in scope.
+
 Elaboration and boundaries:
 
 - **One file, `[<pack>]` tables, one resolution rule.** Two locations with precedence — a repo-root `./agentbundle-layout.toml` **overrides** a user-profile `~/.agentbundle/agentbundle-layout.toml`, **per table** (the repo file's table is used whole; a table only in the user file survives). `research`, `architect`, and `product-engineering` are the three consumers wired in one implementing spec.
@@ -44,6 +89,7 @@ Elaboration and boundaries:
 - **Free migration window** — `research-layout.toml` is undistributed; consolidating now costs zero migration, and the window closes at the next release. This drove *now* over *later* and *clean rename* over *alias*.
 - **Namespace as structure, not convention** — a `[<pack>]` table is the natural per-pack scope and the natural per-table override unit, and lets a prompt-only reader "read/scaffold only my section" cleanly; rules out flat prefixed keys (`research_parent`).
 - **Adding the next consumer is a table, not a migration** — the contract degrades gracefully (a pack with no adopter section uses its default), so the cost of being wrong about a consumer's demand is low.
+- **One file, one resolution rule** — an adopter customising N packs should edit one file with one schema and one precedence story, not N; rules out per-pack `*-layout.toml` files.
 
 ## Consequences
 
@@ -62,19 +108,21 @@ Elaboration and boundaries:
 - **The three-consumer scope rests on a load-bearing assumption** — that `architect` and `product-engineering` are genuine relocation needs (Approver-confirmed, but the code survey found only `research` with an existing config). If demand is softer than stated, the contract still degrades gracefully — a pack with no adopter section uses its default — so over-fit risk is low; this is the assumption to re-check before adding a fourth consumer.
 - `receive-brief` / `decompose-intent`'s `docs/product/briefs/` output stays pinned even when `product-engineering` relocates its `intents/`/`rollups/`. Core can opt in as a `[core]` consumer in a later RFC if a need appears.
 
+**Revisit if:** a `[<pack>]` table grows a second key, at which point per-table override (D2) stops coinciding with per-key merge and the documented npm/Cargo per-key fallback needs a superseding decision; or a fourth consumer is proposed, which is the moment to re-check the load-bearing assumption behind the three-consumer scope (D3).
+
 ## Confirmation
 
-- The implementing spec's acceptance criteria encode the file contract, the two-location resolution, the anchoring rule, and the prompt-only constraint; adversarial + quality review checks that no runtime reader/engine creeps in.
-- The four security acceptance criteria (confine + reject `..` + surface the resolved absolute path; realpath so symlinks are visible; repo-root-sourced out-of-tree `parent` is untrusted-origin Ask-first; the installer append round-trips a hostile default through the injection-safe emitter and never overwrites an existing section) are checked by the spec-stage and diff-stage security-reviewer pass.
-- The manifest-schema/validator update and the contract-version bump are an explicit spec task carrying the lexical-version-compare and CI-ungated-test-root traps recorded in repo memory.
+- **Mode:** spec acceptance criteria + security review (spec-stage and diff-stage).
+- **Signal:** the implementing spec's acceptance criteria encode the file contract, the two-location resolution (D2), the anchoring rule (D5), and the prompt-only constraint (D8), and adversarial + quality review checks that no runtime reader or engine creeps in; the four security acceptance criteria (confine + reject `..` + surface the resolved absolute path; realpath so symlinks are visible; repo-root-sourced out-of-tree `parent` is untrusted-origin Ask-first; the installer append round-trips a hostile default through the injection-safe emitter and never overwrites an existing section) are checked by the spec-stage and diff-stage security-reviewer pass; the manifest-schema/validator update and the contract-version bump are an explicit spec task carrying the lexical-version-compare and CI-ungated-test-root traps recorded in repo memory.
+- **Owner:** eugenelim.
 
 ## Alternatives considered
 
-- **Do nothing** (research keeps `research-layout.toml`; architect keeps re-eliciting; product-engineering stays hardcoded). Rejected against the *free-migration-window* driver — the next pack repeats the question, proliferation sets in, and the zero-cost window closes at the next release.
-- **Per-pack files** (`research-layout.toml`, `architect-layout.toml`, …). Rejected against the *one-file* goal — an adopter customising N packs juggles N files/schemas with no shared precedence story.
-- **One shared file, flat prefixed keys** (`research_parent`, `architect_parent`). Rejected against *namespace-as-structure* — the namespace lives in a key-name convention rather than structure, making "read only my section" and per-table override harder for a prompt-only reader.
-- **A one-release `research-layout.toml` alias for migration** (RFC-0038 pattern). Rejected against *free-migration-window* — `research 0.4.0` is undistributed, so there is nothing in the wild to be backward-compatible with.
-- **A runtime config reader/engine** to centralise resolution. Rejected against *Principle 3* — that is infrastructure; reading stays in the skill body, and only the install-time append is code.
+- **Do nothing** (research keeps `research-layout.toml`; architect keeps re-eliciting; product-engineering stays hardcoded) — rejected against *free migration window*: the next pack repeats the question, proliferation sets in, and the zero-cost window closes at the next release.
+- **Per-pack files** (`research-layout.toml`, `architect-layout.toml`, …) — rejected against *one file, one resolution rule*: an adopter customising N packs juggles N files and schemas with no shared precedence story.
+- **One shared file, flat prefixed keys** (`research_parent`, `architect_parent`) — rejected against *namespace as structure, not convention*: the namespace lives in a key-name convention rather than structure, making "read only my section" and per-table override harder for a prompt-only reader.
+- **A one-release `research-layout.toml` alias for migration** (RFC-0038 pattern) — rejected against *free migration window*: `research 0.4.0` is undistributed, so there is nothing in the wild to be backward-compatible with.
+- **A runtime config reader/engine** to centralise resolution — rejected against *prompt-only / habit-not-infrastructure (Principle 3)*: that is infrastructure; reading stays in the skill body, and only the install-time append is code.
 
 ## References
 

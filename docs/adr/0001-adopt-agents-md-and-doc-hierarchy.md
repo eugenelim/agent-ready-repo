@@ -1,10 +1,15 @@
 # ADR-0001: Adopt AGENTS.md + spec/ADR/RFC governance
 
-- **Status:** Accepted — **partially amended:** the `guides/` organization sub-decision (Diátaxis types at the top level) is **superseded by [ADR-0020](0020-per-pack-diataxis-hierarchy-for-guides.md)** (per-pack hierarchy, 2026-06-13); every other decision in this ADR stands.
-- **Date:** YYYY-MM-DD <!-- replace with the date you adopt this template -->
-- **Deciders:** <maintainers>
+- **Status:** Accepted
+- **Date:** 2026-05-03
+- **Areas:** governance, documentation
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [`docs/CONVENTIONS.md`](../CONVENTIONS.md), [ADR-0020](0020-per-pack-diataxis-hierarchy-for-guides.md) (amends the guides sub-decision)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0020 D3
+- **Related:** `docs/CONVENTIONS.md`; ADR-0020 (amends the guides sub-decision)
 
 ## Context
 
@@ -34,6 +39,13 @@ We needed a single, opinionated structure that:
 ## Decision
 
 We adopt the following:
+
+- **D1:** `AGENTS.md` at the repository root is the canonical agent context file, with `CLAUDE.md` as a symlink to it.
+- **D2:** The root `AGENTS.md` stays under ~200 lines and uses progressive disclosure — it points to docs and skills rather than embedding their content.
+- **D3:** `docs/` is organised on two axes, audience and lifecycle: `CHARTER.md` foundational, `adr/` frozen history, `rfc/` governance, `architecture/` and `product/` living-internal, `guides/` living-external in Diátaxis buckets, and `specs/<feature>/` per-feature.
+- **D4:** Every commit follows Conventional Commits with a footer reference to the spec, ADR, or RFC it implements.
+- **D5:** Package-specific rules live in a per-package `AGENTS.md`, loaded on demand by the agent's directory walk.
+- **D6:** A skill is added to `.claude/skills/` only after its workflow has been performed three times, never speculatively.
 
 1. **`AGENTS.md` at the repository root** as the canonical agent context file,
    with `CLAUDE.md` as a symlink. The file is kept under ~200 lines and uses
@@ -91,6 +103,11 @@ The full mechanics are in [`docs/CONVENTIONS.md`](../CONVENTIONS.md).
 - We don't currently enforce a maximum size on subdirectory AGENTS.md files
   in CI — only the root. We may add a cap if package-level files start to
   bloat.
+
+**Revisit if:** the AGENTS.md cross-tool standard diverges meaningfully from
+CLAUDE.md's expected format, breaking the symlink that D1 rests on; or
+package-level `AGENTS.md` files (D5) bloat enough to need a CI size cap of their
+own, which only the root file carries today.
 
 ## Alternatives considered
 

@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-05-23
-- **Deciders:** eugenelim
+- **Areas:** packaging, install
+- **Reversibility:** low
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0004](../rfc/0004-install-scope-per-pack.md), [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md), [`distribution-adapters` spec](../specs/distribution-adapters/spec.md), [`agent-spec-cli` spec](../specs/agent-spec-cli/spec.md)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0004; RFC-0001
 
 ## Context
 
@@ -24,6 +29,12 @@ Each axis admits multiple positions. The team needed to pick one combination and
 We adopted the **per-pack default + allowance** model:
 
 > A pack's `pack.toml` declares both a `default-scope` (the scope used when the adopter passes no `--scope`) and an `allowed-scopes` set (the scopes the pack permits). The CLI's `--scope` flag overrides the default within the declared set; a value outside `allowed-scopes` is refused with stderr naming the pack and the declared set.
+
+- **D1:** A pack's `pack.toml` declares both a `default-scope` and an `allowed-scopes` set.
+- **D2:** Scope precedence is CLI flag > pack `default-scope` > built-in `repo`.
+- **D3:** A `--scope` value outside the pack's `allowed-scopes` is refused, with stderr naming the pack and the declared set.
+- **D4:** A pack installs at one scope and every primitive in that pack lives at that scope; there is no per-item override.
+- **D5:** The `default-scope ∈ allowed-scopes` invariant is enforced declaratively in `pack.schema.json` via a jsonschema `if`/`then` block, so catalogue indexers, third-party validators, and `agentbundle validate` refuse a malformed pack identically without importing CLI code.
 
 Three derived rules pin the model concretely:
 
@@ -53,6 +64,8 @@ The four shipped packs (`core`, `governance-extras`, `user-guide-diataxis`, `mon
 - `global` (system-wide) scope is deliberately absent. No adapter has a system-wide root, and adding it later is a one-line schema bump against the already-versioned contract.
 - `[pack.install]` could grow more fields in future (`requires-confirmation`, etc.) — out of scope for v0.2.
 
+**Revisit if:** an adapter gains a system-wide root, which would make the deliberately absent `global` scope meaningful against D1's declared set; or the follow-up RFC designing the user-scope hook-wiring merge lands and lifts the ban on hook-shaped primitives at user scope.
+
 ## Alternatives considered
 
 The numbering follows RFC-0004 § *Alternatives considered* for traceability. This ADR explicitly records the rejection of alternatives **2, 3, 7, and 8**; the other rejections (1, 4, 5, 6) are recorded in the RFC body and not re-litigated here.
@@ -71,7 +84,7 @@ The numbering follows RFC-0004 § *Alternatives considered* for traceability. Th
 - [`distribution-adapters` spec § Install-scope dimension (contract v0.2)](../specs/distribution-adapters/spec.md)
 - [`agent-spec-cli` spec § Install-scope dimension (CLI surface, contract v0.2)](../specs/agent-spec-cli/spec.md)
 
-## Amendments
+## Errata
 
 ### 2026-05-24 — Narrow definition of "hook-shaped" (per RFC-0006)
 

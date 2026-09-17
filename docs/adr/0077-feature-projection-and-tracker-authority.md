@@ -1,14 +1,15 @@
 # ADR-0077: Feature projection is gated; tracker authority follows lifecycle
 
-- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — the feature-projection table's universal feature-intent start; the shippability gate and lifecycle authority modes stand)
+- **Status:** Accepted
 - **Date:** 2026-08-09
+- **Areas:** shaping, workspace
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md),
-  [ADR-0019](0019-product-intent-ontology-and-brief-projection.md),
-  [ADR-0033](0033-intent-level-open-recognized-set-decoupled-from-scale.md),
-  [ADR-0076](0076-briefs-persist-dispatch-starts-from-specs.md),
-  [RFC-0068](../rfc/0068-linear-pack.md)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0098 D1
+- **Related:** RFC-0083; ADR-0019; ADR-0033; ADR-0076; RFC-0068
 
 ## Decision summary
 
@@ -60,6 +61,50 @@ in force.
 **We will project a feature intent according to shippability and coordination
 need, and we will govern imported requirements through explicit repo-origin or
 tracker-origin authority that tightens with local lifecycle.**
+
+- **D1:** A feature intent projects by shippability and coordination need: one
+  independently shippable change in one repository becomes a spec, several
+  become a brief with specs beneath it, and work spanning several component
+  repositories becomes one brief per affected repository with specs beneath
+  each.
+- **D2:** A one-spec brief is permitted only as a repository projection of a
+  cross-repository feature that preserves concrete parent identity, sibling
+  coordination, affected-repository scope, ordering, or closure evidence.
+- **D3:** Ordinary source provenance, a tracker reference, or an external
+  object's type never justifies a wrapper brief.
+- **D4:** Each repository brief names the same durable parent and coordination
+  reference, and a remote prerequisite is represented by a reviewed local
+  receipt pinning its locator, accepted revision, reported terminal status,
+  reviewer, and date.
+- **D5:** Dispatch never reads another repository live to decide whether a
+  prerequisite is satisfied.
+- **D6:** Source authority has exactly two modes, repo-origin and
+  tracker-origin, and under repo-origin a tracker-authored requirement change
+  never overwrites the local canonical artifact.
+- **D7:** Under tracker-origin, named imported fields remain source-owned only
+  while the local artifact is Draft, and the artifact records the source
+  locator, compared revision, accepted revision when applicable, and per-field
+  ownership.
+- **D8:** The canonical artifact owns the detailed authority record;
+  `workspace.toml` may mirror only the origin mode, locator, and revision needed
+  for routing and display, and is not a second field-ownership map.
+- **D9:** Every tracker-origin refresh is an explicit reviewed delta, and the
+  only actor who may accept it or resolve a requirements conflict is the actor
+  authorized to accept the artifact.
+- **D10:** Refresh authority tightens by local lifecycle: permitted after
+  authorized review at Draft; gated at Accepted intent, Ready brief, and
+  Approved spec, each source change requiring a recorded `keep-local`,
+  `accept-source`, or `revise-both` decision; locked while a spec is
+  Implementing or a brief is Executing; and limited at Shipped to trace links,
+  status, comments, pull-request links, and closure.
+- **D11:** At Accepted, Ready, or Approved the accepted requirement fields
+  transfer to local ownership and the reviewed revision is pinned, and every
+  later conflict decision is append-only, recording source revision, field,
+  decision, authorized approver, and date.
+- **D12:** When an Executing brief returns to Ready, refresh may affect only
+  not-yet-materialized scope, shipped child specs never change, and a source
+  delta that would rewrite completed behavior becomes new intake or a defect
+  report.
 
 Feature projection follows this gate:
 

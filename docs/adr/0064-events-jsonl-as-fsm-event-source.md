@@ -2,7 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** orchestration, telemetry
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Decision summary
 
@@ -22,7 +29,23 @@ The outbox pattern (write pending event to `.loop-run/events.pending`, commit st
 
 Inode/truncation detection (tracking file inode and size alongside byte offset) handles the case where `.loop-run/events.jsonl` is deleted and recreated (e.g., by `loop-engine reset`): when the inode changes or the file size is smaller than the tracked offset, the bridge resets its offset, buffer, and run_id to reattach to the new file.
 
-## Alternatives rejected
+## Decision
+
+workspace-mcp's event bridge reads loop-engine transitions from `.loop-run/events.jsonl`.
+
+- **D1:** loop-engine appends one line to the append-only, ephemeral `.loop-run/events.jsonl` on each FSM transition, in `cmd_transition` and `cmd_init`.
+- **D2:** loop-engine's external CLI contract is unchanged, and loop-engine never learns whether workspace-mcp is present.
+- **D3:** The event bridge tail-polls the file by tracked byte offset, reading all unread bytes each cycle, rather than receiving events over IPC or a network socket.
+- **D4:** Each event line carries `seq`, `run_id`, `spec`, `from`, `event`, `to`, and `at`, and the bridge filters to the current session by `run_id`.
+- **D5:** A transition is made crash-consistent by the outbox protocol: write `.loop-run/events.pending`, commit state atomically, append to `events.jsonl`, delete pending.
+- **D6:** A pending event is replayed on restart only after `pending.to` is verified equal to `engine-state.json.state`, never unconditionally.
+- **D7:** The bridge tracks file inode and size alongside the offset, and resets offset, buffer, and `run_id` when the inode changes or the file shrinks.
+
+## Consequences
+
+**Revisit if:** loop-engine gains a stable IPC facility — a Unix socket or named pipe — that it can expose without becoming adapter-aware (D2, D3); or the 200ms poll latency proves unacceptable for a control-plane integration needing sub-100ms transition delivery (D3).
+
+## Alternatives considered
 
 **In-process IPC channel (Unix socket, named pipe).** loop-engine emits events over an IPC channel that workspace-mcp subscribes to. This delivers events with push-based latency (no polling) and eliminates the offset-tracking complexity. Rejected because it requires loop-engine to manage connection lifecycle (accept, send, handle disconnection) and to know whether a subscriber is present. The CLI becomes adapter-aware, violating the clean boundary that makes it reusable across deployment contexts.
 

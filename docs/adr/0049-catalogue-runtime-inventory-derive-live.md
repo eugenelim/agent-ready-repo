@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-02
+- **Areas:** tooling, state
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** [RFC-0060](../rfc/0060-catalogue-runtime-inventory.md), [ADR-0021](0021-pack-manifest-source-of-truth-and-scoped-identity.md), [`docs/specs/catalogue-runtime-inventory/`](../specs/catalogue-runtime-inventory/spec.md)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0060; ADR-0021
 
 ## Decision summary
 
@@ -42,6 +47,20 @@ constraints are load-bearing:
 
 **The pack inventory is derived live from the directory tree on each call; nothing
 is persisted, and no manifest the Claude consumer reads is touched.**
+
+- **D1:** The pack inventory is derived live by walking the pack's `.apm/` source
+  tree on every invocation, and nothing is persisted.
+- **D2:** No manifest the Claude consumer reads — `plugin.json`,
+  `marketplace.json` — and no `pack.toml` field or schema is written or changed
+  to carry the inventory.
+- **D3:** `agentbundle show <pack>` enumerates skills from
+  `.apm/skills/<name>/SKILL.md` and agents from `.apm/agents/<name>.md` as the
+  full, untagged inventory, alongside the `pack.toml` metadata.
+- **D4:** On an unresolvable catalogue an installed pack falls back to its own
+  install-state rows, unioned across adapters, and the result is marked as
+  derived-from-installed-state.
+- **D5:** On an unresolvable catalogue a not-installed pack prints a one-line
+  error and exits non-zero rather than degrading softly.
 
 Concretely:
 

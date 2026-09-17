@@ -1,10 +1,16 @@
 # ADR-0083: Extend the SAST/SCA gate to npm with `npm audit` + a reasoned allowlist
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-08-16
-- **Deciders:** eugenelim
+- **Areas:** security, ci
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** extends ADR-0017 (Bandit + pip-audit + Semgrep as the repo's SAST/SCA gate) to a second ecosystem; the implementing spec `docs/specs/npm-sca-gate/`
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** extends ADR-0017 (Bandit + pip-audit + Semgrep as the repo's SAST/SCA gate)
+  to a second ecosystem
 
 ## Context
 
@@ -42,6 +48,25 @@ scan's output.
 **Add `npm audit` as a fourth scanner on the existing `make sast` gate, invoked
 through a thin stdlib wrapper (`tools/audit-npm.py`) that carries a reasoned
 advisory allowlist.**
+
+- **D1:** `npm audit` runs as a fourth scanner on the existing `make sast` gate,
+  invoked through a stdlib-only wrapper, not as a new workflow or a job outside
+  `tools/lint-ci-parity.py`'s `WORKFLOW_SCOPE`.
+- **D2:** Both lockfiles are listed in the Makefile's `SAST_CONFIG`, so a PR whose
+  only changed file is a lockfile does not set `SKIP_SAST=1`.
+- **D3:** Advisory suppressions live in a reasoned allowlist, and every entry
+  carries `id`, a non-blank `reason`, and a non-blank `unblocked_when`; a missing
+  or blank field is a tool error, never a silent pass.
+- **D4:** A clean verdict is reachable only from a parsed payload carrying
+  `auditReportVersion`; npm absent, unparseable output, an `error` key, an
+  unrecognised schema, or zero lockfiles discovered all exit 2 as a tool error.
+- **D5:** The blocking threshold is `moderate` and above; `low` and `info` stay
+  ungated.
+- **D6:** Lockfiles are discovered by walking the tree, never listed, so a third
+  npm project cannot be added without the gate noticing.
+- **D7:** The gate audits a known-vulnerable canary lockfile first; if the
+  endpoint does not report that advisory, the run is a tool error rather than a
+  pass.
 
 ### Why a leg on `make sast` rather than a new workflow
 
@@ -210,3 +235,7 @@ so something known-positive has to be run through it.
   time*. Neither substitutes for the other.
 - **JavaScript SAST** (`sast-javascript-coverage`) remains open. SCA and SAST are
   different lenses; this ADR adds only the first for npm.
+
+**Revisit if:** `npm audit` gains a per-advisory ignore, which would remove the
+wrapper's reason to exist (D3); or the canary advisory GHSA-jf85-cpcp-j695 is
+withdrawn, which wedges the gate closed until the pin is replaced (D7).

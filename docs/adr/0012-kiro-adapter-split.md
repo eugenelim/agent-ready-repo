@@ -2,9 +2,18 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-01
-- **Deciders:** eugenelim
+- **Areas:** adapters, distribution
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0022 (the accepted proposal); RFC-0005 + errata E1-E3 (user-scope hook support; hook-wiring is CLI-only, `kiro-ide-hook` vocabulary closure); RFC-0001 (adapter spec and build pipeline); RFC-0009 (precedent for adapter migration, single-mode bump); RFC-0011 (`allowed-adapters`; existing packs declare `"kiro"`); `kiro-adapter-split` spec; `kiro-ide-hook` spec (PR #99 — primitive-per-surface ADR tracked in `docs/backlog.md § kiro-ide-hook → T-F`)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0022 (the accepted proposal); RFC-0005 + errata E1-E3 (user-scope hook
+  support; hook-wiring is CLI-only, `kiro-ide-hook` vocabulary closure);
+  RFC-0001 (adapter spec and build pipeline); RFC-0009 (precedent for
+  adapter migration, single-mode bump); RFC-0011 (`allowed-adapters`;
+  existing packs declare `"kiro"`)
 
 ## Context
 
@@ -19,6 +28,15 @@ The IDE and CLI are one vendor but two distinct surfaces: different agent format
 ## Decision
 
 > We will split `kiro` into **`kiro-ide`** and **`kiro-cli`** as canonical adapters, retaining **`kiro`** as a deprecated alias for `kiro-ide` with no removal timeline, and bump the adapter contract to **v0.9**.
+
+- **D1:** `kiro-ide` and `kiro-cli` are the canonical adapters; `kiro` is not.
+- **D2:** `kiro` is retained as a deprecated alias resolving to `kiro-ide`, at both the Python adapter registry and the `[adapter.kiro]` stub block in `adapter.toml`, with a build-time deprecation warning on alias resolution and no removal timeline.
+- **D3:** The adapter contract is bumped to v0.9.
+- **D4:** `kiro-ide` projects agent files as `.md` (frontmatter plus body as system prompt) and `kiro-cli` projects them as `.json`.
+- **D5:** Each surface carries its own frontmatter-mapping table — `kiro-ide-agent-frontmatter-v0.9` using Kiro tool ids, `kiro-cli-agent-frontmatter-v1.0` using CLI short names.
+- **D6:** On `kiro-ide`, `hook-wiring` is `mode = "dropped"` and `kiro-ide-hook` is active at repo scope only; on `kiro-cli`, `hook-wiring` is kept as `mode = "merge-into-agent-json"` and `kiro-ide-hook` is `mode = "dropped"`.
+- **D7:** Model id values are the same in both mapping tables and are maintained by hand, with no automated cross-check.
+- **D8:** RFC-0005 carries Approver-signed errata E1–E3, and the `distribution-adapters`, `agent-spec-cli` spec corrections land with this decision.
 
 Six specific decisions, recording RFC-0022's six requested decisions:
 
@@ -55,6 +73,8 @@ Six specific decisions, recording RFC-0022's six requested decisions:
 - **`kiro` alias removal.** RFC-0022 sets no removal timeline. Future maintainers decide at a major contract version boundary.
 - **User-scope `kiro-ide-hook` lift.** Blocked on kirodotdev/Kiro#5440. Monitor; lift via point amendment to RFC-0022 when the issue closes (RFC-0022 Open Q1).
 - **Q6 probe assumption.** This ADR records the `yes-recursion` quadrant as the plan assumption. If the probe lands `no-recursion`, T1's `target.repo` flattens and the plan is amended before merge; the split decision itself is unaffected.
+
+**Revisit if:** kirodotdev/Kiro#5440 closes, which lifts `kiro-ide-hook` to user scope (D6); or a major adapter-contract version boundary arrives, which is where the deprecated `kiro` alias (D2) is retired.
 
 ## Alternatives considered
 

@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-06
+- **Areas:** distribution, contracts
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer, security-reviewer
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `.github/workflows/publish-claude-plugins.yml`
 
 ## Decision summary
@@ -21,6 +26,7 @@
   and it published empty plugins to adopters while every gate stayed green.
 - **Applies to:** the derived plugin manifest, the marketplace entries built from
   it, and any future artifact whose shape is dictated by a third-party runtime.
+
 
 ## Context
 
@@ -67,7 +73,31 @@ A second, independent defect — components projected to `<pack>/.claude/` where
 plugins require `skills/`, `agents/`, `commands/` at the plugin root — was
 invisible until the first was fixed, and is corrected alongside it.
 
-## Options considered
+## Decision
+
+`contracts/plugin-manifest.derived.schema.json` mirrors an external contract
+this repository does not own; where it and Claude Code's published plugin
+schema disagree, the upstream schema wins.
+
+- **D1:** `contracts/plugin-manifest.derived.schema.json` is a mirror of Claude
+  Code's published plugin schema, not a contract this repository authors; when the
+  two disagree the upstream schema wins and the mirror is corrected.
+- **D2:** No compatibility shim and no local extension is added to the mirror,
+  except a tightening that is restrictive only and justified by an observed defect.
+- **D3:** The plugin `source` object is a `git-subdir` source carrying `source`,
+  `url`, `path`, and at least one of `ref` or `sha`; `branch` and `directory` are
+  removed.
+- **D4:** The at-least-one-of `ref`/`sha` rule is expressed with `if`/`then`/`else`,
+  never `oneOf`/`anyOf`/`allOf`, which `build/validate.py:23-28` lists as
+  unsupported by design.
+- **D5:** Marketplace entries are validated against the schema, which the build
+  previously bypassed by popping `source` and `category` before validation.
+- **D6:** A human runs the real `claude` client before merging a change to the
+  plugin pipeline; a green hermetic build is necessary but not sufficient.
+- **D7:** Branch protection on `claude-plugins-dist` is a precondition of this
+  decision, not an optimisation.
+
+## Alternatives considered
 
 **A — extend the schema to permit both shapes.** Add `git-subdir` alongside the
 existing `github`+`branch`+`directory` form, keeping old manifests valid.
@@ -139,6 +169,11 @@ any workflow holding `contents: write` — can push to unreviewed.
 **Follow-on.** A periodic or release-gated job that runs the real `claude` client
 against the published marketplace would close the CI gap properly. Not in scope
 here; recorded as the known weakness this ADR accepts.
+
+**Revisit if:** Claude Code's published plugin schema changes, since D1 obliges the
+mirror to follow it; or a periodic or release-gated job that runs the real client
+against the published marketplace becomes available, which closes the CI gap D6's
+human check currently covers.
 
 ## Verification
 

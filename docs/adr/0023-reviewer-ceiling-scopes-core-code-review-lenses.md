@@ -2,9 +2,15 @@
 
 - **Status:** Superseded by [ADR-0042](0042-agent-additions-keyed-to-loop-and-work-type.md). ADR-0042 keeps this ADR's core holding (the ceiling binds the core code-review gate) and generalizes the rest into a loop/work-type-keyed agent-addition policy.
 - **Date:** 2026-06-14
-- **Deciders:** eugenelim
+- **Areas:** review, governance
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0032 (architect `design-reviewer` subagent), **ADR-0042 (the superseding agent-addition policy)**, `docs/CHARTER.md` (Scope non-goal "Not a marketplace of specialized agents. Three reviewers is the ceiling"), `docs/specs/architect-design-reviewer/`
+- **Supersedes in part:** none
+- **Superseded in part:** none
+- **Related:** RFC-0032 (architect `design-reviewer` subagent); **ADR-0042 (the superseding
+  agent-addition policy)**; `docs/CHARTER.md` (Scope non-goal "Not a
+  marketplace of specialized agents. Three reviewers is the ceiling")
 
 ## Context
 
@@ -31,6 +37,18 @@ code-review lenses the `work-loop` runs on every PR.
 > The charter's "three reviewers is the ceiling" governs the **always-on core
 > code-review lenses** (`adversarial-reviewer`, `security-reviewer`,
 > `quality-engineer`) — not a global cap on reviewer agents across all packs.
+
+- **D1:** The charter's "three reviewers is the ceiling" scopes the always-on
+  core code-review lenses (`adversarial-reviewer`, `security-reviewer`,
+  `quality-engineer`), not a global cap on reviewer agents across all packs.
+- **D2:** A reviewer that runs inside the core `work-loop`'s default gate
+  sequence on every PR counts against the ceiling, so a fourth such lens stays
+  restrained.
+- **D3:** A reviewer that lives in an opt-in pack, reviews a different surface,
+  and runs at a different cadence does not count against the ceiling and is
+  admissible only when it clears the charter's four principles.
+- **D4:** This record is an interpretation recorded against the charter, not an
+  amendment; the charter text is unchanged.
 
 Concretely:
 
@@ -73,6 +91,11 @@ The first artifact admitted under this reading is the architect pack's
   question (RFC + charter amendment), and this ADR does not pre-authorize it.
 - If the "reviewer" overload proves confusing in practice, a future charter RFC
   could restate the ceiling explicitly as "three *code-side* review lenses."
+
+**Revisit if:** a change wants a fourth core-loop reviewer, which is a charter
+question (RFC plus charter amendment) that D2 does not pre-authorize; or the
+"reviewer" overload proves confusing enough in practice that a charter RFC
+restates the ceiling as "three *code-side* review lenses."
 
 ## Alternatives considered
 

@@ -2,9 +2,17 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-26
+- **Areas:** adapters, install
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** the **skill-home sub-decision** of [ADR-0013](0013-copilot-full-parity-user-scope-adapter.md), [ADR-0015](0015-cursor-full-parity-distribution-adapter.md), and [ADR-0016](0016-gemini-cli-full-parity-adapter.md) only — each of those ADRs' agent / hook / command projection decisions stand
-- **Related:** [RFC-0052](../rfc/0052-shared-prefix-aware-multi-adapter-install.md) Decision 3 (the call this records — the one RFC-0052 decision that required an explicit Approver yes), [ADR-0039](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) (the `shared` prefix class + co-ownership model this routing relies on), [RFC-0009](../rfc/0009-codex-native-skills.md) (codex's existing `.agents/skills/` native home, the precedent)
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0013 D5; ADR-0015 D1; ADR-0016 D2
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0052 Decision 3 (the call this records — the one RFC-0052 decision that
+  required an explicit Approver yes); ADR-0039 (the `shared` prefix class +
+  co-ownership model this routing relies on); RFC-0009 (codex's existing
+  `.agents/skills/` native home, the precedent)
 
 ## Context
 
@@ -23,6 +31,21 @@ This is RFC-0052 Decision 3, the single decision that required an explicit Appro
 ## Decision
 
 > **Every adapter in the `.agents/skills/` cohort — codex, cursor, gemini, copilot — writes the `skill` primitive to the shared `.agents/skills/` prefix. Their agent, hook, and command primitives stay on each tool's native paths exactly as ADR-0013 / ADR-0015 / ADR-0016 specify. This supersedes the skill-home sub-decision of those three ADRs and nothing else in them.**
+
+- **D1:** Every adapter in the `.agents/skills/` cohort — codex, cursor, gemini,
+  copilot — writes the `skill` primitive to the shared `.agents/skills/` prefix.
+- **D2:** Those adapters' agent, hook, and command primitives stay on each tool's
+  native paths exactly as ADR-0013 / ADR-0015 / ADR-0016 specify.
+- **D3:** The supersession reaches only the skill-home sub-decision of those three
+  ADRs and nothing else in them.
+- **D4:** Cursor, gemini, and copilot list `.agents/skills/` in
+  `allowed-prefixes` at both repo and user scope, so the routed skill path is
+  jail-admissible at the default repo scope.
+- **D5:** Cohort membership and prefix class are recorded as contract data per
+  ADR-0039, so routing is declarative and an adapter joins or leaves by a contract
+  edit rather than an engine change.
+- **D6:** Each superseded ADR carries the partial-amendment status idiom, not a
+  bare "Superseded by".
 
 Concretely: codex already targets `.agents/skills/` (RFC-0009); cursor, gemini, and copilot move their skill output there. The cohort and the prefix class are recorded as contract data per ADR-0039, so the routing is declarative. Cursor, gemini, and copilot gain `.agents/skills/` in their `allowed-prefixes` at **both** repo and user scope (codex already lists it at both; the other three list only their native trees today), so the routed skill path is jail-admissible at the default repo scope as well as user scope.
 
@@ -58,7 +81,23 @@ Each prior ADR is marked with the repo's partial-amendment status idiom (the pre
 
 - `.claude/skills/` stays a private island today. If Claude Code adopts `.agents/skills/` ([claude-code#31005](https://github.com/anthropics/claude-code/issues/31005)), it joins the cohort by a contract edit; that is a future decision, not pre-committed here.
 
+**Revisit if:** a cohort adapter drops `.agents/skills/` support, at which point
+its routed skills stop being discovered and it is demoted to its native home by a
+one-line contract change (D5); or Claude Code adopts `.agents/skills/` and
+`.claude/skills/` stops being a private island.
+
 ## Confirmation
+
+- **Mode:** acceptance criteria in the implementing spec, plus a standing
+  re-verification checklist item at every future adapter-contract bump.
+- **Signal:** the acceptance criteria in
+  `docs/specs/shared-prefix-aware-multi-adapter-install/` pass — the contract
+  gains the prefix-class and reader-cohort fields; cursor, gemini, and copilot
+  skill output targets `.agents/skills/` and their `allowed-prefixes` include it
+  at both repo and user scope; and the cohort-coexistence test installs a pack for
+  codex then cursor and asserts the second install co-owns the existing
+  `.agents/skills/` copy rather than sweeping or double-writing it.
+- **Owner:** eugenelim
 
 The implementing spec (`docs/specs/shared-prefix-aware-multi-adapter-install/`) carries the acceptance criteria: the contract gains the prefix-class + reader-cohort fields; cursor/gemini/copilot skill output targets `.agents/skills/`; cursor, gemini, and copilot `allowed-prefixes` include `.agents/skills/` at both repo and user scope (codex already does); and a cohort-coexistence test installs a pack for codex then cursor and asserts the second install co-owns the existing `.agents/skills/` copy rather than sweeping or double-writing it. Re-verification of each tool's `.agents/skills/` support is a checklist item at every future adapter-contract bump.
 

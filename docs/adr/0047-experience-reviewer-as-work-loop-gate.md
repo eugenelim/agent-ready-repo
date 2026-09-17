@@ -2,8 +2,17 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-02
+- **Areas:** review, experience, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Related:** [ADR-0042](0042-agent-additions-keyed-to-loop-and-work-type.md) (agent additions keyed to loop and work type); [ADR-0014](0014-rigor-scales-with-risk-work-loop-modes.md) (rigor scales with risk); [RFC-0050](../rfc/0050-experience-pack-pressure-test.md) (§ D7 — the `experience-reviewer` admitted); backlog items `experience-reviewer-as-work-loop-gate` and `experience-loop-trigger-for-site-changes`
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0042 (agent additions keyed to loop and work type); ADR-0014 (rigor
+  scales with risk); RFC-0050 (§ D7 — the `experience-reviewer` admitted);
+  backlog items `experience-reviewer-as-work-loop-gate` and
+  `experience-loop-trigger-for-site-changes`
 
 ## Decision summary
 
@@ -46,6 +55,12 @@ ADR-0042 requires a new reviewer to clear:
 
 > `experience-reviewer` is a **conditional specialist reviewer** in `work-loop`'s REVIEW section — not a fourth core-code-review lens, not always-on, and not behind a new risk trigger. It fires when the diff crosses a user-facing surface in full-mode work, carrying the standard select-or-note fallback. The pre-EXECUTE design-intent pass (running `aesthetic-direction` / `design-critique` before writing code for user-facing surface work) is advisory in both light and full mode.
 
+- **D1:** `experience-reviewer` is a conditional specialist reviewer in `work-loop`'s REVIEW section — not a fourth core code-review lens, not always-on, and not behind a new risk trigger.
+- **D2:** It fires on full-mode diffs that change what a reader or adopter sees — a new page, a redesigned screen, a pack card, a docs page.
+- **D3:** It carries the select-or-note posture: the end-of-session checklist requires a clean return or an explicit named skip, and absence of the experience pack is never a silent pass.
+- **D4:** The orchestrator hands it the rendered output plus the grounded aesthetic reference and constraints, not the code diff.
+- **D5:** The pre-EXECUTE design-intent pass is advisory in both light and full mode, and a light-mode surface change receives that recommendation only.
+
 Concretely:
 
 - **Trigger:** "for diffs that change what a reader or adopter sees — a new page, a redesigned screen, a pack card, a docs page — in full-mode work."
@@ -64,6 +79,8 @@ Concretely:
 **Negative:**
 - The gate degrades when the experience pack is absent — teams who skip experience pack installation will never see the gate fire even for net-new pages. Mitigated by the named-skip discipline (the final summary always names the skipped reviewer).
 - The full-mode-only scoping means a light-mode copy edit that ships misleading marketing copy gets only the advisory, not the gate. Mitigated by the marketing clarity criterion added to `design-critique` (same PR).
+
+**Revisit if:** `experience-reviewer`'s scope expands beyond design artifacts to code diffs, which would need a different trigger than D2; or core declares a hard dependency on the experience pack, making the select-or-note fallback (D3) unnecessary.
 
 ## Confirmation
 

@@ -2,8 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-08
+- **Areas:** install, security
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Related:** [RFC-0098](../rfc/0098-direct-skill-repository-installation.md) D4, D5, and D6
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0098 D4; D5; and D6
 
 ## Decision summary
 
@@ -47,6 +53,30 @@ could otherwise be pre-written there and compared with itself, turning a
 capability widening into an apparent no-op.
 
 ## Decision
+
+- **D1:** Direct collision identity is `(source-kind, ref-stripped stored source,
+  source-path)`; for `git+https` ref stripping removes the trailing `@<ref>` from
+  the stored source, and a local path is compared whole.
+- **D2:** Identity does not use `canonicalize_source`, and no other
+  normalization applies — a `.git` suffix and repository case remain as stored,
+  so two spellings of one upstream are two identities.
+- **D3:** The terminating remediation for such a collision is
+  remove-then-install.
+- **D4:** `upgrade --skill <name> --source <source>` is the only route that moves
+  a row whose stored `ref_kind` is `sha` or `abbreviated-sha`, and it is also
+  admitted for a named ref.
+- **D5:** The override may change only the ref-stripped source element after the
+  selected row's `source-kind` and `source-path` establish identity; a different
+  repository refuses.
+- **D6:** Direct upgrade reads the prior capability declaration from the
+  installed projection only after hashing the confined `SKILL.md` bytes and
+  matching them to the row's recorded file digest, with the digest check
+  preceding metadata parsing.
+- **D7:** Missing, unreadable, malformed, unsafe, or digest-mismatched prior
+  bytes produce an unknown prior surface, and upgrade refuses rather than
+  treating it as unchanged.
+- **D8:** No new state field is introduced; RFC-0098 D4's state schema is
+  unchanged.
 
 ### Identity uses stored spelling with only the ref removed
 
@@ -105,6 +135,11 @@ remains unchanged.
 - An uninspectable prior declaration fails closed, so availability is traded
   for preserving the capability-consent boundary.
 
+**Revisit if:** a stored-source migration gives direct sources a versioned
+canonical repository identity, retiring the respelling-is-a-new-identity cost of
+D2 and D3, or direct upgrade gains an explicit capability re-consent flow that
+removes D7's availability trade.
+
 ## Alternatives considered
 
 - **Use `canonicalize_source` for identity.** Rejected because it adds URL and
@@ -121,11 +156,14 @@ remains unchanged.
 
 ## Confirmation
 
-Identity tests distinguish local paths containing `@`, remote refs, `.git`
-spellings, and repository case. Upgrade tests move full-SHA, abbreviated-SHA,
-and named-ref rows through `--source`, reject another repository, and prove the
-capability read checks the recorded digest before parsing. Integration coverage
-also proves that an uninspectable prior surface refuses without writing.
+- **Mode:** construction and integration tests
+- **Signal:** identity tests distinguish local paths containing `@`, remote refs,
+  `.git` spellings, and repository case. Upgrade tests move full-SHA,
+  abbreviated-SHA, and named-ref rows through `--source`, reject another
+  repository, and prove the capability read checks the recorded digest before
+  parsing. Integration coverage also proves that an uninspectable prior surface
+  refuses without writing.
+- **Owner:** eugenelim
 
 ## References
 

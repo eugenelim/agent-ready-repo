@@ -1,15 +1,18 @@
 # ADR-0076: Briefs persist; dispatch starts from specs
 
-- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — public readiness and selected-slice handling move to `author-delivery-brief continue`; brief persistence and spec/plan-only dispatch stand)
+- **Status:** Accepted
 - **Date:** 2026-08-08
+- **Areas:** shaping, workspace
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Carried forward by:** ADR-0078 records standalone intake and deterministic workspace indexing while preserving this ADR's persistent-brief and spec/plan-only dispatch rules.
-- **Related:** [ADR-0009](0009-product-brief-layer-and-plan-owned-lld.md),
-  [ADR-0019](0019-product-intent-ontology-and-brief-projection.md),
-  [ADR-0033](0033-intent-level-open-recognized-set-decoupled-from-scale.md),
-  [ADR-0051](0051-workspace-toml-toml-format-and-main-branch-coordination.md),
-  [`work-intake-and-artifact-routing.md`](../architecture/work-intake-and-artifact-routing.md)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0098 D1,D2; ADR-0092 D7
+- **Related:** ADR-0009, ADR-0019, ADR-0033, ADR-0051,
+  `work-intake-and-artifact-routing.md`; ADR-0078 records standalone intake
+  and deterministic workspace indexing while preserving this ADR's
+  persistent-brief and spec/plan-only dispatch rules
 
 ## Decision summary
 
@@ -55,6 +58,29 @@ model, and ADR-0051's TOML/main-branch decisions remain in force.
 **We will allow accepted briefs to persist without specs, materialize only
 selected delivery slices as spec/plan pairs, and use `workspace.toml` as a
 deterministic index over those artifacts rather than as a requirements store.**
+
+- **D1:** An accepted brief may remain Ready with no specs, queued specs, or
+  shipped specs, and may stay Ready indefinitely.
+- **D2:** Only slices the user confirms as independently shippable are
+  materialized, and `new-spec` creates a `spec.md` and `plan.md` pair for each.
+- **D3:** Each derived spec records its `Brief:` back-link and source
+  provenance, and that value must match the brief path recorded in the workspace
+  source index.
+- **D4:** Structured work entries are added only after the spec and plan files
+  exist.
+- **D5:** `work-loop` reads the spec and plan and never reconstructs
+  requirements from workspace comments.
+- **D6:** Routing may use only parsed entry fields, file existence,
+  machine-readable artifact status, and explicit hard dependencies; comment
+  text, list order, nearby prose, and prior-session memory have no routing
+  meaning.
+- **D7:** A dispatchable entry must reference an existing `spec.md` with a
+  sibling `plan.md`.
+- **D8:** Deferred work stays in the brief and must not be stored only in a
+  comment.
+- **D9:** Missing artifacts, mismatched links, malformed entries, duplicate
+  lifecycle membership, and impossible transitions are reconciliation failures,
+  and readers fail closed rather than falling back to comments.
 
 A brief follows this lifecycle:
 

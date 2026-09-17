@@ -1,10 +1,16 @@
 # ADR-0104: A review loop stops on divergence, not on a round budget — and a signal that cannot be calibrated advises rather than gates
 
-- **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-09-04
+- **Areas:** review, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** ADR-0014 in part — its light-mode review-bound clause only
-- **Related:** [ADR-0014](0014-rigor-scales-with-risk-work-loop-modes.md) (light/full modes; its trigger set stands), [ADR-0088](0088-risk-triggers-have-a-single-documented-home.md) (the risk-trigger block's single home — unaffected), [RFC-0025](../rfc/0025-work-loop-light-mode-and-risk-based-escalation.md)
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0014 D4
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0014 (light/full modes; its trigger set stands); ADR-0088 (the
+  risk-trigger block's single home — unaffected); RFC-0025
 
 ## Decision summary
 
@@ -46,6 +52,26 @@ the machinery takes on more complex changes.
 
 **Light mode's `adversarial-reviewer` rounds run to clean, and stop on a
 divergence signal rather than a round count.**
+
+- **D1:** Light mode's `adversarial-reviewer` rounds run to clean and stop on a
+  divergence signal, never on a round count; the trend is read at the third round
+  and every second round after.
+- **D2:** The checkpoint defaults to stopping — the loop continues only while the
+  trend affirmatively says findings are getting fewer and smaller.
+- **D3:** The exit from a diverging loop is the requester, never automatic
+  escalation to full mode.
+- **D4:** The repair-introduced signal is advisory: it informs the trend read and
+  never decides it.
+- **D5:** Risk-trigger escalation is untouched and fires independently of this
+  checkpoint.
+- **D6:** Full mode's cross-round recurrence key is the finding's cited location
+  and title with the leading ordinal and any severity tag removed; the
+  within-round fingerprint, which carries the line, is unchanged.
+- **D7:** Full mode's stasis stop route is retired rather than re-keyed.
+- **D8:** The recurrence signal is reported and Surfaced, and nothing in the loop
+  branches on it.
+- **D9:** Full mode's retry cap is untouched and remains its only mechanical
+  bound.
 
 - **The count is a checkpoint, not a budget.** The trend is read at the third
   round and every second round after. Three is where there are first enough

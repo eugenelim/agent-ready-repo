@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-11
+- **Areas:** review, shaping
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0099 § 5, ADR-0042, `docs/specs/shaping-review-contracts/spec.md`
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0099 § 5; ADR-0042
 
 ## Decision summary
 
@@ -43,6 +48,31 @@ Two different jobs were riding one rubric: *is this artifact well-formed enough 
 
 We will split intent-stage review into two narrow mandates, each with an output vocabulary that
 cannot express a rewrite.
+
+- **D1:** `shaping-reviewer` `intent` mode checks well-formedness, not quality,
+  across six conditions, and does not run the failure-mode table, which stays with
+  `delivery-brief` and `spec` mode unchanged.
+- **D2:** The altitude condition applies only to an intent that names a parent,
+  and where an intent lists no decomposition the children condition fires only
+  above the leaf of the recognized level set at `Status: Accepted`; a level the
+  mode cannot place suppresses that absence branch alone.
+- **D3:** A wrong-owner token is emitted alone and suppresses the other five
+  conditions.
+- **D4:** Intent-mode output is `MALFORMED(<field>)` per failed condition or
+  nothing — no severity bucket, no `Fix:`, no `Clean` — while `delivery-brief` and
+  `spec` modes keep `Clean` | `Findings`.
+- **D5:** A condition the supplied packet cannot settle emits its own token, so
+  absent evidence fails closed.
+- **D6:** `adversarial-reviewer` gains an `intent` mode whose only outputs are an
+  open question with a named decider or a validation hook — a kill condition plus
+  the real-world activity that would trigger it — and empty output when there is
+  nothing to say.
+- **D7:** Both intent modes run the six-predicate self-check before emission:
+  observation, authority, reachability, existing handling, consequence, proposed
+  mechanism.
+- **D8:** `de-risk-intent` never dispatches `adversarial-reviewer`.
+- **D9:** Neither reviewer performs independent retrieval or holds lifecycle
+  authority, and the caller-supplied packet stays attributed untrusted data.
 
 1. `shaping-reviewer` `intent` mode checks well-formedness, not quality, across six conditions: the
    statement is an outcome and not a solution; non-goals are present; the riskiest assumption is

@@ -2,12 +2,16 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-08
+- **Areas:** testing, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer
 - **Supersedes:** none
-- **Related:** [RFC-0082](../rfc/0082-test-ownership-boundaries-and-inclusion.md)
-  (the proposal this records), [ADR-0071](0071-pack-runtime-export-boundary-and-test-placement.md)
-  (pack-side companion — see *Relationship to ADR-0071*)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0082 (the proposal this records); ADR-0071 (pack-side companion — see
+  *Relationship to ADR-0071*)
 
 ## Decision summary
 
@@ -63,6 +67,14 @@ Ownership is therefore not a property of files.
 
 **We will assign every test exactly one owner, decided by what it asserts, and
 derive both its location and its distribution from that owner.**
+
+- **D1:** Every test carries exactly one owner — engine, catalogue, a single pack, or a `tools/` script — decided by what it asserts.
+- **D2:** Each owner has one home, as the table below assigns it.
+- **D3:** `packages/<pkg>/<pkg>/`, the importable package directory, is the engine's runtime export boundary, and nothing testable lives inside it.
+- **D4:** Inclusion is per surface and per owner: the sdist carries the engine suite, the catalogue channels carry the catalogue and pack suites, and the wheel, zipapp, and vendored engine copy carry none.
+- **D5:** A shipped catalogue test must be rule-shaped; roster-shaped tests stay in this repository, and the `conformance/` ÷ `roster/` split makes that mechanical.
+- **D6:** Ownership is assigned per test class, not per module, so a mixed module has its conformance classes extracted rather than the module relocated.
+- **D7:** `tools/test*.py` stays co-located; `tools/` crosses no distribution surface, so the export boundary does not reach it.
 
 | Owner | Asserts | Home |
 | --- | --- | --- |
@@ -163,6 +175,15 @@ ADRs are immutable in this repository and CI enforces it, so this correction
 lives here, naming ADR-0071, and never as an edit to it.
 
 ## Confirmation
+
+- **Mode:** lint/CI
+- **Signal:** the `tools/` artifact gate, run in the release workflow after the
+  build step, reports no test content in the wheel, zipapp, or vendored engine
+  copy and a complete runnable engine tree in the sdist; the vendored-payload
+  unit test in `packages/agentbundle/tests/` passes; and the materialised
+  conformance suite passes against a catalogue scaffolded by `catalogue init`
+  into a temporary directory.
+- **Owner:** eugenelim
 
 Two in-repo pure-stdlib instruments, both delivered by the implementing specs:
 

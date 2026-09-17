@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-17
+- **Areas:** experience, documentation
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md) in part — shared palette and design-token implementation
-- **Related:** [RFC-0089](../rfc/0089-starlight-docs-boundary.md), [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md)
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0109
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0089; ADR-0109
 
 ## Decision summary
 
@@ -23,6 +28,10 @@ RFC-0089 ratified the shipped structure: `web/` is the marketing project, `docs-
 ## Decision
 
 The marketing and technical-documentation sites will own their palettes, components, and framework controls locally.
+
+- **D1:** `web/` and `docs-site/` each own their palette, components, and framework controls locally.
+- **D2:** Shared product identity is expressed through information architecture, destination vocabulary, and generated content data, and requires no shared CSS, runtime components, or colour alignment.
+- **D3:** This supersedes only ADR-0109's palette and design-token-sharing decision; its decisions about Starlight, the sibling project boundary, the Node/Astro toolchain, and build order remain authoritative.
 
 Shared product identity may be expressed through information architecture, destination vocabulary, and generated content data. It does not require shared CSS, runtime components, or colour alignment.
 
@@ -59,11 +68,9 @@ This supersedes only ADR-0109's palette and design-token-sharing decision. Its d
 
 ## Alternatives considered
 
-**Share one palette and token implementation:** rejected because it contradicts the shipped docs-specific palette and couples independent renderers.
-
-**Move technical documentation into `web/`:** rejected because Starlight's routing and ownership model are intentionally isolated in the sibling project.
-
-**Keep separate projects but align their colours:** rejected because visual sameness is not required for shared product identity and would reopen an already settled docs design decision.
+- **Share one palette and token implementation** — rejected against *avoid coupling two renderer implementations through visual internals*: it contradicts the shipped docs-specific palette and couples independent renderers.
+- **Move technical documentation into `web/`** — rejected against *preserve the accepted sibling-project boundary*: Starlight's routing and ownership model are intentionally isolated in the sibling project.
+- **Keep separate projects but align their colours** — rejected against *describe shipped behavior without triggering a redesign*: visual sameness is not required for shared product identity and would reopen an already settled docs design decision.
 
 ## References
 

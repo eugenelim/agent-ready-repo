@@ -2,7 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** tooling, orchestration
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Decision summary
 
@@ -20,7 +27,24 @@ The MCP stdio transport — stdin/stdout of the spawned child process — is arc
 
 The per-session constraint also enforces the no-port-binding requirement: without a persistent process there is nothing to bind, eliminating a class of port-collision and firewall issues that would complicate adopter deployment.
 
-## Alternatives rejected
+## Decision
+
+`workspace-mcp` spawns once per session and exits when the session ends.
+
+- **D1:** `workspace-mcp` spawns once per session and exits when that session
+  ends.
+- **D2:** `workspace-mcp` has no persistent daemon mode and binds no port.
+- **D3:** No `workspace-mcp` process outlives the controlling AI agent session.
+- **D4:** A control plane that wants cross-session workspace discovery opens a
+  short-lived discovery session rather than querying a persistent process.
+
+## Consequences
+
+**Revisit if:** the project charter is amended to admit managed runtime services
+as in-scope primitives, or a distinct RFC documents the lifecycle management,
+crash recovery, and security boundary that a persistent mode would require (D2).
+
+## Alternatives considered
 
 **Persistent daemon with a Unix socket.** A long-lived process listening on a Unix socket would allow the control plane to query workspace state between sessions without spawning a new process. Rejected because it requires process supervision (restart on crash), socket lifecycle management (cleanup on unclean exit), and a documented security boundary around who may connect. These obligations push workspace-mcp past the "habit" threshold into infrastructure territory — a charter violation unless the charter is amended.
 

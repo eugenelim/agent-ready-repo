@@ -2,7 +2,16 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** orchestration, adapters
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0062 (the per-session-only port constraint that rules out an SSE
+  listener); ADR-0063 (session instruction as the universal mechanism, which
+  keeps skills adapter-agnostic)
 
 ## Decision summary
 
@@ -22,7 +31,23 @@ The capability-declaration bug in `claude-agent-acp` (issue #419) means workspac
 
 The response-file protocol requires the control plane to write the response atomically using temp-and-rename (write to a temp file in the same directory, then `rename()`). workspace-mcp reads the file only once the rename completes; a partial write is never observed.
 
-## Alternatives rejected
+## Decision
+
+workspace-mcp delivers elicitations through two tiers: MCP-native `elicitation/create` first, a response file second.
+
+- **D1:** The primary delivery path is `elicitation/create` in the MCP server→client direction, bridged by the AI host through the ACP adapter as an `_agentbundle.core/elicitation-pending` event.
+- **D2:** Adapter capability is checked during the MCP init handshake, not at the call site; when `elicitation` is absent from the host's declared capabilities, workspace-mcp omits it from its own init response.
+- **D3:** The fallback path is a response file in an `mkdtemp()`-isolated directory, polled by workspace-mcp until the control plane writes it.
+- **D4:** The control plane writes the response atomically with temp-and-rename, and workspace-mcp reads the file only after the rename completes, so a partial write is never observed.
+- **D5:** `elicitation/create` is called synchronously from a worker thread while the main stdio loop keeps reading incoming MCP messages.
+- **D6:** The delivery path stays workspace-mcp's internal concern; no skill branches per adapter.
+- **D7:** The response-file path is not a secure gate for multi-user or shared-machine deployments, and the install guide states that limit.
+
+## Consequences
+
+**Revisit if:** Codex CLI and Kiro CLI add `elicitation/create` support, which would retire the fallback for every Class A/B adapter in scope (D3); or a third delivery mechanism closes the response-file race window without needing `elicitation/create` support (D3, D7).
+
+## Alternatives considered
 
 **Webhook delivery.** The control plane registers an HTTP endpoint; workspace-mcp POSTs the elicitation request to it. Requires the control plane to expose an inbound HTTP endpoint and workspace-mcp to know its URL. Adds a network dependency and a firewall/proxy concern. Rejected in favor of the MCP-native `elicitation/create` path, which uses the existing MCP channel with no new network surface.
 

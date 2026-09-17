@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-13
-- **Deciders:** eugenelim
-- **Supersedes:** none — **amends** ADR-0001's `guides/` organization sub-decision only (the rest of ADR-0001 stands; ADR-0001 remains Accepted)
-- **Related:** [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md), [RFC-0031](../rfc/0031-catalogue-package-manager-posture.md), [RFC-0030](../rfc/0030-product-engineering-pack.md), [`docs/specs/enriched-pack-manifest/`](../specs/enriched-pack-manifest/spec.md), [`docs/CONVENTIONS.md` §5c](../CONVENTIONS.md)
+- **Areas:** documentation
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0001 D3
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0001; RFC-0031; RFC-0030; `docs/CONVENTIONS.md` §5c
 
 ## Context
 
@@ -19,6 +24,17 @@ Two constraints bound the shape:
 ## Decision
 
 **We will organize `guides/` by pack at the top level, preserving the four Diátaxis types within each pack:** `guides/<pack>/{tutorials,how-to,reference,explanation}/`. The four-type discipline (one piece of content per type; "link out" rather than mix) is unchanged — it now applies *within* each pack's subtree. This **amends ADR-0001's guides sub-decision** (four types at the top level); every other ADR-0001 decision stands.
+
+- **D1:** `guides/` is organized by pack at the top level, as
+  `guides/<pack>/{tutorials,how-to,reference,explanation}/`.
+- **D2:** The four-type Diátaxis discipline — one piece of content per type, link
+  out rather than mix — applies within each pack's subtree.
+- **D3:** Cross-cutting guides that are not specific to one pack keep a single
+  shared home rather than being duplicated per pack.
+- **D4:** The adopter-facing `user-guide-diataxis` seed scaffold stays
+  type-at-top, and that internal/adopter divergence is documented.
+- **D5:** Each pack's `pack.toml` `[pack.links].documentation` targets
+  `guides/<pack>/`.
 
 Boundaries on the decision:
 - **Cross-cutting guides** that aren't specific to one pack (repo-wide workflow, contributing) keep a shared home (a top-level `guides/_shared/<quadrant>/` or equivalent), not duplicated per pack.
@@ -42,6 +58,11 @@ Boundaries on the decision:
 **Neutral / to revisit:**
 - A guide that genuinely spans packs: prefer a shared doc + cross-links over duplication.
 
+**Revisit if:** guides that genuinely span packs become common enough that the
+shared home (D3) plus cross-links no longer avoids duplication, or the internal
+pack-at-top layout and the adopter type-at-top scaffold (D4) can no longer be kept
+legibly distinct.
+
 ## Alternatives considered
 
 - **Keep type-at-top (ADR-0001 status quo) + a per-pack landing page in `explanation/`.** Rejected: a single landing page per pack doesn't scale into a real per-pack docs home, and the catalogue's natural reader entry point is the pack.
@@ -53,7 +74,7 @@ Boundaries on the decision:
 - [Diátaxis — complex hierarchies](https://diataxis.fr/complex-hierarchies/)
 - ADR-0001 (the guides sub-decision this amends); RFC-0031 (package-manager posture); `scope_rails.py:87` (the seeds-rail constraint).
 
-## Erratum (2026-06-13)
+## Errata
 
 The Decision's implementation note says to amend `CONVENTIONS.md §5c`. In
 practice `docs/CONVENTIONS.md` is **projected** from the adopter seed

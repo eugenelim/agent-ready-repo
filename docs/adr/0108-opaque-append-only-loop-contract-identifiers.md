@@ -2,8 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-10
+- **Areas:** governance, contracts
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Related:** [`loop-contract.md`](../architecture/loop-contract.md) § 3 (the standard as stated); [identifier comparison matrix](../product/research/item-id-management-comparison-matrix.md) (the evidence and the rejected alternatives)
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** `loop-contract.md` § 3 (the standard as stated); identifier comparison
+  matrix (the evidence and the rejected alternatives)
 
 ## Decision summary
 
@@ -48,6 +55,23 @@ numbering as unsuitable where immutable numbers are needed. Three
 test-management tools keep a test's identifier independent of the requirement it
 verifies, which is the argument against deriving a verification identifier from
 its task.
+
+## Decision
+
+An acceptance criterion and a verification item each carry an opaque,
+append-only identifier scoped to its own spec directory.
+
+- **D1:** An acceptance criterion and a verification item each carry an opaque
+  identifier scoped to its own spec directory, not a repository-global one.
+- **D2:** An identifier is assigned once and never renumbered on insertion or
+  reorder.
+- **D3:** An identifier is never reused after removal, and every removal is
+  recorded in the artifact's retired list.
+- **D4:** A verification item's identifier is independent of the criterion and the
+  task it serves.
+- **D5:** Cross-spec citation uses the existing `spec:<slug>/` marker.
+- **D6:** Adoption is forward-only — the 442 existing spec directories are not
+  renumbered.
 
 ## Consequences
 

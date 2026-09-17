@@ -2,8 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-02
+- **Areas:** workspace, contracts
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
-- **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §6 and §7 (the receipt's four fields and its per-citation lifetime)
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0096 §6 and §7 (the receipt's four fields and its per-citation lifetime)
 
 ## Decision summary
 
@@ -51,6 +57,19 @@ A dependant reading a receipt is asking the delivery question. It needs to know
 whether the thing it depends on landed. `post_closeout_result` cannot answer it:
 a delivery that shipped and one that was abandoned can both be parked as
 `Retained`, and both would read identically to every dependant.
+
+## Decision
+
+The completion receipt answers the delivery question, and it rides on the citing dependency edge.
+
+- **D1:** The receipt's `outcome` is the closed vocabulary `completed`, `abandoned`, `superseded` — the delivery's result.
+- **D2:** `outcome` is neither `post_closeout_result` nor free prose.
+- **D3:** The receipt's other three fields use the grammars `delivery-lifecycle-record.schema.json` already publishes.
+- **D4:** Those three grammars are pinned by a test that reads the lifecycle record at run time and asserts equality, so the comparison value is never restated in prose.
+- **D5:** `delivery_id` is pinned that way too, although RFC-0096's follow-on row named only the other two.
+- **D6:** The receipt rides as an optional object on the citing local dependency edge in `workspace.toml`, and creates no permanent initiative shell, shipped-spec list, third room, receipt store, or lifecycle schema.
+- **D7:** The receipt's lifetime is the citing edge's: deleting the last citing edge deletes the receipt.
+- **D8:** A malformed completion receipt reports `invalid_completion_receipt`, kept distinct from the cross-repository block's `invalid_receipt`.
 
 ## Decision detail
 
@@ -131,3 +150,8 @@ The receipt records no obligation of its own. Whether an artifact's workspace
 entry was removed is not recorded anywhere today, so a later wave cannot yet
 distinguish a correct prune from a file deleted with its entry orphaned. That
 gap is recorded as a follow-on rather than closed here.
+
+**Revisit if:** a delivery result appears that none of the three `outcome` values
+describes (D1); or the lifecycle record gains an `outcome` field, making the
+receipt's value derivable rather than asserted (D1, D4); or a receipt is found to
+have outlived every dependant that justified it (D7).

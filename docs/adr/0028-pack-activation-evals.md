@@ -1,10 +1,19 @@
 # ADR-0028: Pack-level activation evals adopt the agentskills.io trigger-eval convention; coverage in `pack.toml`; runner is catalogue-internal tooling
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-21
+- **Areas:** testing, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0037 (the proposal this records), RFC-0031 / ADR-0021 (`pack.toml` as the rich source of truth), RFC-0036 (`converters`, first `evals/evals.json`), ADR-0017 (SAST CI gate — catalogue-internal tooling belongs in-repo), ADR-0014 (rigor scales with risk — report-only over a hard gate)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0037 (the proposal this records); RFC-0031 / ADR-0021 (`pack.toml` as
+  the rich source of truth); RFC-0036 (`converters`, first
+  `evals/evals.json`); ADR-0017 (SAST CI gate — catalogue-internal tooling
+  belongs in-repo); ADR-0014 (rigor scales with risk — report-only over a
+  hard gate)
 
 > **Correction (2026-06-21, ✅ signed off by eugenelim — RFC-0037 Approver; see RFC-0037 § Errata E1):**
 > Decision 3 below records the detector as `claude -p "<query>" --output-format
@@ -117,6 +126,34 @@ Constraints in play at the time of this decision:
 > under our already-blessed `evals/` subdir (alongside the output-quality
 > `evals/evals.json`) is our choice, not theirs.
 
+The D-bullets below address the `## Decision` text as written; the four signed
+correction and scope-adjustment blocks above amend Decisions 3 and 4.
+
+- **D1:** Each covered skill carries activation evals at
+  `evals/eval_queries.json`, a flat array of `{query, should_trigger}` cases with
+  near-miss negatives as first-class entries.
+- **D2:** `evals/eval_queries.json` stays a separate file from
+  `evals/evals.json`, so the published output-quality schema is never forked.
+- **D3:** `pack.toml`'s `[pack.evals].skills` is the single declarative source of
+  truth for which skills the pack-level runner covers, as an explicit allowlist
+  rather than auto-discovery.
+- **D4:** The runner is `tools/run-pack-evals.py`, catalogue-internal dev tooling
+  that lives in `tools/`, is never projected into any pack, and adds no new
+  dependency beyond stdlib, `tomllib`, and the `claude` CLI.
+- **D5:** The runner grades a `trigger_rate` over N runs against the convention's
+  0.5 threshold, recording both activation and which skill fired.
+- **D6:** The runner's workflow (`.github/workflows/pack-evals.yml`) runs on
+  schedule plus manual or label dispatch only and is report-only, leaving
+  `make build-check` structural, deterministic, and fast.
+- **D7:** The runner writes into a gitignored, iteration-numbered eval workspace
+  that reserves the Tier-B grading slots (`without_skill/`, `timing.json`,
+  `grading.json`, `benchmark.json`).
+- **D8:** Activation is measured on claude-code as the reference harness, with
+  GUI-only IDEs out of scope and the other headless CLIs admitted later as
+  additive detectors behind a `Detector` seam.
+- **D9:** Scope is Tier A (activation and selection) only; output-quality grading
+  is a separate future RFC.
+
 Elaboration of the three decisions and their scope:
 
 1. **Convention & file.** Each covered skill gains
@@ -217,6 +254,8 @@ Elaboration of the three decisions and their scope:
   Q2 / Non-goals.
 - The `converters` `evals/evals.json` carry-over gate **may** later consolidate
   onto `[pack.evals].skills`; out of scope here and may land as a follow-on.
+
+**Revisit if:** one calibration cycle establishes a per-skill baseline, which is the condition for turning the report-only posture (D6) into a regression-from-baseline gate; or Tier-B output-quality grading is taken up, which extends the Tier-A-only scope (D9).
 
 ## Alternatives considered
 

@@ -234,4 +234,3 @@ When accepted:
 - **Skill amendment:** `adapt-to-project` SKILL.md — carve a narrow exception into the "never add a new top-level directory" anti-pattern for the RFC-authorized `contracts/` root, enabling Class 3 contract relocation (Stage 2).
 - **ADR:** record the "separate pack + agnostic, convention-first seam (not a merge)" decision, the repo-level contract-tree location, and the capability-name convention.
 - Possible **follow-on RFC:** AsyncAPI / CloudEvents (or proto / GraphQL / MCP) standard as a second contract type.
-</content>

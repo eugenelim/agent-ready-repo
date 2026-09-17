@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-27
+- **Areas:** shaping, workspace
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** ADR-0009 Decision 1; ADR-0019 Decision 2; ADR-0076 public-receiver holding; ADR-0077 feature-projection table; ADR-0078 minimal Core intent fields (each only as specified below)
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0009 D2; ADR-0019 D6,D7; ADR-0076 D1,D2; ADR-0077 D1; ADR-0078 D6
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0099; ADR-0099
 
 ## Decision summary
@@ -25,6 +30,17 @@ RFC-0099 authorizes clause-level replacements while preserving workspace schemas
 ## Decision
 
 **We will give neutral intake, repository-intent admission, and delivery-brief lifecycle distinct canonical owners.**
+
+- **D1:** `work-intake` is the neutral entry for raw, ambiguous, acquisition, refresh, and intake-safety requests, while status and explicitly named artifact or work-type requests route directly to their existing owners.
+- **D2:** `intake-intent` creates or admits a repository intent, and its minimum contract is status, outcome, boundary, owner, unresolved questions, projection, and the source data the authority mode requires.
+- **D3:** Product fields — level, opportunity, assumptions, scale, and JTBD — stay optional enrichment on a repository intent.
+- **D4:** `author-delivery-brief create` authors a Draft from sufficient authority.
+- **D5:** `author-delivery-brief continue` evaluates an existing repository brief for Ready and changes status only with human confirmation.
+- **D6:** A Ready brief may contain zero specs, and selecting and materializing a delivery slice is a separate human confirmation.
+- **D7:** A brief's coverage map separates governance references from executable delivery slices, and only specs participate in execution and closure rollups.
+- **D8:** `author-brief` delegates only to `author-delivery-brief create`, and `receive-brief` delegates only to `author-delivery-brief continue`.
+- **D9:** Both aliases are write-old/read-old compatibility surfaces that emit a deprecation notice and cannot widen the canonical owner's authority.
+- **D10:** ADR-0078's workspace index and dispatch rules remain unchanged, and every holding of the five prior ADRs not listed under Clause-level replacements stays authoritative.
 
 `work-intake` remains the neutral entry for raw, ambiguous, acquisition, refresh, and intake-safety requests. Status and explicitly named artifact or work-type requests route directly to their existing owners.
 

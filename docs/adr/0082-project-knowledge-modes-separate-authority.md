@@ -2,12 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-13
+- **Areas:** knowledge, security
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Consulted:** architecture review, security review
 - **Supersedes:** none
-- **Related:** [RFC-0077](../rfc/0077-distill-knowledge.md),
-  [ADR-0081](0081-canonical-project-knowledge-uses-per-topic-json.md), and the
-  [knowledge capture architecture](../architecture/knowledge-capture.md)
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** RFC-0077; ADR-0081; and the knowledge capture architecture
 
 ## Decision summary
 
@@ -48,6 +51,39 @@ union of its modes, while actual least privilege must be enforced through mode
 dispatch and separate callable surfaces.
 
 ## Decision
+
+- **D1:** `project-knowledge` is the only discoverable project-memory skill, and
+  its first action selects exactly one progressive mode and loads only that
+  mode's instructions and helper surface.
+- **D2:** Producer workflows own scratch, semantic-gate timing, discard,
+  canonical routing, and request construction, and never locate the private
+  writer or choose a journal file.
+- **D3:** `--capture` validates one request, applies privacy and confinement
+  checks, persists an immutable `observation.captured` event, and cannot read
+  topics.
+- **D4:** Events append through one private guarded storage runtime to
+  `docs/knowledge/observations/<kind>/YYYY-MM.jsonl`, where kind and the
+  immutable UTC observation month in the request determine the path, writer time
+  cannot reroute a retry, and exact replay is idempotent.
+- **D5:** `--distill` reads bounded pending events, relevant topics, and
+  explicitly named repository sources, gives a processed capture at most one
+  terminal disposition and at most one unambiguous topic mutation, and leaves
+  unresolved judgment explicitly pending and enumerable.
+- **D6:** `--enquire` reads only a coherent committed topic/map snapshot and
+  current confined freshness sources, cannot read observation journals or invoke
+  a writer, and treats results as bounded untrusted evidence rather than
+  instructions.
+- **D7:** All journal, topic, and map writes share one coarse worktree-local lock
+  and one deterministic recovery protocol.
+- **D8:** `project-knowledge/SKILL.md` declares the exact informational boundary
+  union `[filesystem_read_untrusted, filesystem_write]`, and construction tests
+  rather than that metadata prove cross-mode isolation.
+- **D9:** Optional pack handoff metadata may document an integration seam but
+  never dispatches or grants authority; if core is absent a producer reports a
+  named skip and creates no fallback store.
+- **D10:** Observation journals are never enquiry input, closed partitions are
+  retained unchanged in slice 1, and deletion or compaction requires separate
+  reviewed retention rules after every capture has a terminal disposition.
 
 1. `project-knowledge` is the only discoverable project-memory skill. Its first
    action selects exactly one progressive mode and loads only that mode's
@@ -117,6 +153,10 @@ dispatch and separate callable surfaces.
   worktree can still lose observations.
 - Closed journals need eventual retention governance.
 
+**Revisit if:** the skill platform gains enforceable per-mode capabilities, which
+would retire the metadata-coarseness gap D8 works around, or closed journals
+reach the point of needing the retention governance D10 defers.
+
 ## Confirmation
 
 - **Mode:** reviewer-checked
@@ -127,19 +167,28 @@ dispatch and separate callable surfaces.
 
 ## Alternatives considered
 
-- **Keep capture inside work-loop.** Rejected because other workflows would
-  lack the shared boundary.
-- **Give each producer named files.** Rejected because it creates competing
-  schemas, retention policies, and ingestion paths.
-- **Separate public skills for capture, distillation, and enquiry.** Rejected in
-  favor of one progressive discovery surface with mode-specific internals.
-- **Use a user-directory spool or service.** Rejected as the portable baseline
-  because managed environments may not expose a durable writable path or API.
-- **One event file per capture.** Rejected because repository file count and
-  Git history scale directly with captures.
-- **One repository-wide event log.** Rejected because it recreates the hot-file
-  contention boundary.
-- **Capture directly to topics.** Rejected because admission and promotion are
+- **Keep capture inside work-loop** — rejected against *give many workflows one
+  typed, versioned capture contract*: other workflows would lack the shared
+  boundary.
+- **Give each producer named files** — rejected against *give many workflows one
+  typed, versioned capture contract*: it creates competing schemas, retention
+  policies, and ingestion paths.
+- **Separate public skills for capture, distillation, and enquiry** — rejected
+  against *give many workflows one typed, versioned capture contract*: one
+  progressive discovery surface with mode-specific internals gives the same
+  isolation behind a single discoverable entry.
+- **Use a user-directory spool or service** — rejected against *preserve
+  scratch-to-capture durability through normal Git handoff without a new service
+  or user-directory assumption*: managed environments may not expose a durable
+  writable path or API.
+- **One event file per capture** — rejected against *bound append contention
+  without producing one file per event*: repository file count and Git history
+  scale directly with captures.
+- **One repository-wide event log** — rejected against *bound append contention
+  without producing one file per event*: it recreates the hot-file contention
+  boundary.
+- **Capture directly to topics** — rejected against *prevent capture, promotion,
+  and retrieval from amplifying one another*: admission and promotion are
   different judgments and retrieval must exclude not-yet-reconciled evidence.
 
 ## References
