@@ -93,5 +93,3 @@ left inheriting all tools (D4).
 - [ADR-0013](0013-copilot-full-parity-user-scope-adapter.md) / [RFC-0024](../rfc/0024-copilot-subagent-projection.md) — the full-parity, user-scope, documented-tool-degradation template this adapter follows.
 - [ADR-0012](0012-kiro-adapter-split.md) / [RFC-0022](../rfc/0022-kiro-adapter-split.md) — the `.md`-agent + frontmatter-mapping shape Cursor's agent projection reuses.
 - [`docs/specs/cursor-full-parity/`](../specs/cursor-full-parity/spec.md) — the implementing spec: adapter module, `[adapter.cursor]` block, `cursor-agent-frontmatter-v0.11` + hook-event map, readonly predicate, contract bump, tests, CI wiring.
-</content>
-</invoke>
