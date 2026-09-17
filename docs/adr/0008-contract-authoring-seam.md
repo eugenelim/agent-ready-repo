@@ -1,9 +1,14 @@
 # ADR-0008: Contract authoring integrates via an agnostic, convention-first seam (not a core merge); contracts live in a repo-level tree
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-05-31
-- **Deciders:** eugenelim
+- **Areas:** contracts, packaging
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0017 (pluggable API-contract standards + spec-driven contract seam); `pluggable-api-standards` spec (Stage 1, shipped); `spec-contract-seam` spec (Stage 2); ADR-0007 (doc-drift lint as a work-loop skill script)
 
 ## Context
@@ -28,6 +33,20 @@ user-scope default; `core` is the agnostic base.
 > convention-first seam**, not by merging `contracts` into `core`; and contracts
 > live in a **repo-level `contracts/<type>/` tree**, discovered by location
 > convention with a capability-name lookup that degrades gracefully.
+
+- **D1:** `api-contract` stays in the `contracts` pack, and `core` imports no code
+  from `contracts`.
+- **D2:** `core`'s `new-spec` gains a conditional contract-authoring step anchored
+  on the `contracts/<type>/` location convention and the contract type.
+- **D3:** Contracts live at the repo root under `contracts/<type>/`, not as
+  per-feature files under `docs/specs/<feature>/`.
+- **D4:** Artifact discovery is by the location convention alone, so it needs no
+  installed skill.
+- **D5:** Capability discovery derives the expected authoring-skill name from the
+  contract type and checks the agent's runtime skill roster, falling back to a
+  direct file-edit plus a runtime note when the skill is absent.
+- **D6:** The type→skill map is an explicit table living consumer-side in `core`'s
+  seam, not in any pack manifest.
 
 Specifically:
 
@@ -73,6 +92,8 @@ Specifically:
 - v1 covers OpenAPI/REST only; other contract types (AsyncAPI, proto, …) plug in
   as new `contracts/<type>/` rows + roster entries without re-touching `core`.
 - A runtime multi-standard resolver remains deferred (RFC-0017 Open Q1).
+
+**Revisit if:** a second contract type needs more than a new `contracts/<type>/` row plus a roster entry, or RFC-0017 Open Q1's deferred runtime multi-standard resolver is taken up — either would press on the consumer-side type→skill table (D6) and the convention-first discovery order (D4, D5).
 
 ## Alternatives considered
 
