@@ -1483,6 +1483,9 @@ def suite_lines(makefile_text: str) -> list[str]:
 # all-targets rule keyed only on what extraction SEES then let the opaque operand
 # ride free on its literate neighbour's entry.
 _OPAQUE_OPERAND = re.compile(r"\$[({][^)}]*[)}]")
+# A roster key that is a path rather than a command phrase. Used to keep a path
+# entry out of the line-key remedy; see the dead-entry branch in `check_suites`.
+_PATH_SHAPED = re.compile(r"^[A-Za-z0-9_.][A-Za-z0-9_./-]*(?:/|\.py|\.sh)$")
 
 
 def opaque_operands(line: str) -> list[str]:
@@ -1958,48 +1961,68 @@ def is_covered(target: str, local: set[str]) -> bool:
 # package names, or one whose body only echoes, would contribute phantom
 # coverage. Coverage is the direction where a false positive is consequential, so
 # this reads one shape exactly rather than guessing at shell semantics.
-# A command that prints rather than runs. `echo "python -m pytest $d"` is
-# text, not an invocation, and must not contribute coverage.
-_ECHOES = re.compile(r"(?:echo|printf|:)\b")
-_FOR_LOOP = re.compile(
-    r"for\s+(?P<var>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+(?P<items>[^;]*?);\s*do"
-    r"(?P<body>.*?)\bdone\b",
-    re.S,
-)
-
-
-def loop_targets(run: str, working_directory: str = "") -> list[str]:
-    """Literal suite paths a `for … in … ; do … pytest "$VAR" … ; done` runs.
-
-    Returns nothing unless the body actually invokes pytest on the loop
-    variable, so a loop that iterates for any other purpose contributes no
-    coverage.
-    """
-    found: list[str] = []
-    for match in _FOR_LOOP.finditer(run):
-        var = match.group("var")
-        body = match.group("body")
-        # The body is read as COMMAND SEGMENTS, not as raw text. Searching the
-        # raw body accepted `# python -m pytest "$d"` and
-        # `echo "python -m pytest $d"`, either of which reported every literal
-        # item as real coverage — and this is the direction where a false
-        # positive is consequential, because it can validate a `PR_GATED_IF`
-        # claim for a suite nothing runs.
-        if not any(
-            re.search(
-                rf"(?:^|\s)(?:-m\s+)?pytest(?=\s)[^\n]*\$\{{?{re.escape(var)}\}}?",
-                segment,
-            )
-            and not _ECHOES.match(segment.strip())
-            for segment in _segments(_strip_comment_lines(_strip_inline_comment(body)))
-        ):
-            continue
-        for token in match.group("items").replace("\\", " ").split():
-            if token.startswith("-") or "$" in token:
-                continue
-            if "/" in token or token.endswith((".py", ".sh")):
-                found.append(_prefixed(token.strip('"\''), working_directory))
-    return found
+# Steps whose pytest invocation no static scan can attribute, with the literal
+# suites each one runs. A DECLARATION, not a parse.
+#
+# `catalogue-tooling-ci-gates.yml` runs 24 pack suites as
+# `for d in <paths>; do python -m pytest "$d" -q; done`, so the operand pytest
+# receives is `"$d"` and no scan of the step sees a suite. Ignoring that cost 21
+# entries a `NO_PR_GATE` reason asserting no workflow named them, while that
+# workflow ran every one.
+#
+# A reader for the loop shape was built and then removed. It produced seven
+# defects across three review rounds, two of them PHANTOM COVERAGE — `true` then
+# `echo "python -m pytest $d"` reported the suites as gated, and a leading `#`
+# comment deleted the rest of the body so a real invocation went unseen. Both
+# came from one mistake: `_segments` and `_strip_inline_comment` are documented
+# single-*line* helpers, applied to a multi-line shell body. This module's own
+# docstring records that making extraction the trust anchor was defeated four
+# ways and that a fix in one round caused the next round's defect; the loop
+# reader was that class again, and phantom coverage is the direction that
+# silently validates a false `PR_GATED_IF`.
+#
+# So the roster stays the anchor here too. `tools/lint-pack-test-boundary.py`
+# carries `_UNRESOLVABLE_RUNNER_EXCEPTIONS` keyed the same way for this same
+# loop, which is the precedent this follows. The residual is stated rather than
+# parsed: these suites' coverage rests on a hand declaration, and the docstring
+# says so. A path listed here that the step no longer runs is a stale
+# declaration no check can catch — which is the honest cost of the trade, and
+# strictly smaller than a parser that invents coverage.
+_SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
+    (
+        "catalogue-tooling-ci-gates.yml",
+        "Run repo/pack hook suites (Linux)",
+    ): (
+        "a bash for-loop runs one literal suite per process, so the operand "
+        "pytest receives is `\"$d\"` and no static scan can attribute it",
+        (
+            "packs/core/tests/hooks/",
+            "packs/core/tests/pack/",
+            "packs/core/tests/skills/adapt-to-project/",
+            "packs/core/tests/skills/bug-fix/",
+            "packs/core/tests/skills/capture-work/",
+            "packs/core/tests/skills/close-work/",
+            "packs/core/tests/skills/project-knowledge/",
+            "packs/core/tests/skills/receive-brief/",
+            "packs/core/tests/skills/work-intake/",
+            "packs/core/tests/skills/work-loop/",
+            "packs/core/tests/skills/workspace-status/",
+            "packs/product-documentation/tests/",
+            "packs/desk-research/tests/pack/",
+            "packs/desk-research/tests/skills/desk-research/",
+            "packs/desk-research/tests/skills/desk-research-project-start/",
+            "packs/desk-research/tests/skills/desk-research-project-check/",
+            "packs/desk-research/tests/skills/desk-research-project-digest/",
+            "packs/desk-research/tests/skills/desk-research-project-status/",
+            "packs/desk-research/tests/skills/desk-research-project-synthesize/",
+            "packs/desk-research/tests/skills/devils-advocate/",
+            "packs/agent-skill-engineering/tests/pack/",
+            "packs/agent-skill-engineering/tests/integration/",
+            "packs/agent-skill-engineering/tests/skills/author_or_update/",
+            "packs/agent-skill-engineering/tests/skills/review_or_optimize/",
+        ),
+    ),
+}
 
 
 def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
@@ -2049,9 +2072,12 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
                 working_directory = str(
                     step.get("working-directory", job_wd) or ""
                 )
+                declared = _SUITE_SOURCE_EXCEPTIONS.get(
+                    (path.name, step_name)
+                )
                 targets = [
                     *extract_step_targets(run, working_directory),
-                    *loop_targets(run, working_directory),
+                    *(declared[1] if declared else ()),
                 ]
                 if re.search(r"(?:^|\s)make\s+build-check(?:\s|$)", run):
                     if chain_targets is None:
@@ -2148,8 +2174,16 @@ def check_suites(
         # line key takes two edits — the roster and `_SUBSTRING_KEYS` — because
         # a path key must stay ineligible for substring matching: the repo-root
         # key `tests/` boundary-matches almost every test line.
-        if entry not in _SUBSTRING_KEYS and any(
-            _matches_at_boundary(entry, line) for line in lines
+        # Only a LINE-KEY candidate may be told to enter `_SUBSTRING_KEYS`. A
+        # path-shaped entry must not: `tests/` boundary-matches almost every
+        # test line, so diagnosing an unresolved path as a half-declared line
+        # key would recommend exactly the edit that makes a path key
+        # substring-eligible — the broad false pass the hand declaration exists
+        # to prevent. A path entry keeps the dead-entry remedy.
+        if (
+            entry not in _SUBSTRING_KEYS
+            and not _PATH_SHAPED.match(entry)
+            and any(_matches_at_boundary(entry, line) for line in lines)
         ):
             violations.append(
                 f"suite {entry!r} — matches a run-test-suite line but is not "

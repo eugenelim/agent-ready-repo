@@ -570,8 +570,8 @@ whatever else the suite says.
 
 | Arm removed | Exit | Case |
 | --- | ---: | --- |
-| echo/comment exclusion in the loop body | 1 | `loop-targets-ignores-an-echoed-invocation` |
-| loop body read as segments | 1 | `loop-targets-ignores-a-commented-invocation` |
+| echo/comment exclusion in the loop body | 1 | `loop-targets-ignores-an-echoed-invocation` (both since removed with the reader) |
+| loop body read as segments | 1 | `loop-targets-ignores-a-commented-invocation` (ditto) |
 | `search` rather than `fullmatch` | 1 | `opaque-operand-detects[…]` |
 | quote stripping | 1 | `opaque-operand-detects["$(EXTRA)"]` |
 | opaque operand demands a key | 1 | `suites-opaque-operand-demands-its-own-key` |
@@ -583,3 +583,76 @@ Two Nits also fixed: the spec's Testing Strategy still assigned the
 unresolvable-line case to AC-0001 after the amendment moved it to AC-0002, and
 the plan still described the comment guard as retaining `$(` only rather than
 any `$`.
+
+## Post-gates review round 3 — the loop reader was the wrong instrument (2026-09-17)
+
+Round 3 returned six findings against round 2's repairs. **All sustained.** Five
+shared one cause, and it retires an approach rather than patching it.
+
+### One mistake, five findings
+
+`_segments` and `_strip_inline_comment` are documented single-**line** helpers —
+"split a shell line", "truncate *line* at the first unquoted `#`". Round 2's
+repair applied both to a multi-line shell body. Measured consequences:
+
+| Loop body | `loop_targets` | Direction |
+| --- | --- | --- |
+| `# a note` then a real `pytest "$d"` | `[]` | missed gate |
+| `echo setup` then a real `pytest "$d"` | `[]` | missed gate |
+| `true` then `echo "python -m pytest $d"` | `['packs/a/tests/']` | **phantom coverage** |
+| `: "python -m pytest $d"` | `['packs/a/tests/']` | **phantom coverage** |
+
+Phantom coverage is the consequential direction: it silently validates a false
+`PR_GATED_IF`, which is the failure this delivery exists to remove.
+
+### The decision was reversed on measured evidence
+
+Defects in the loop reader alone: round 1 → 1, round 2 → 1, round 3 → 5. It
+diverged. The owner had chosen to build it over a hand declaration on the
+strength of one claim of mine — that being derived, "it cannot go stale". That
+claim was false: it is hand-written shell parsing, and this module's docstring
+already records that making extraction the trust anchor was defeated four ways,
+with a fix in one round causing the next round's defect. The loop reader was that
+class a fifth time.
+
+Surfaced to the owner with the measurement, who reversed the decision.
+`loop_targets` and `_ECHOES` are **deleted** — about 80 lines of shell parsing —
+and `_SUITE_SOURCE_EXCEPTIONS` declares the step and its 24 literal suites with
+the reason no static scan can attribute them. This is the mechanism
+`tools/lint-pack-test-boundary.py` already uses, keyed the same way, for this
+same loop.
+
+The split is unchanged at **59 / 27 / 32**, so the declaration buys the same
+answer with none of the parsing.
+
+**Residual, stated rather than parsed.** These suites' coverage now rests on a
+hand declaration. A listed path the step stops running is a stale declaration no
+check can catch. That cost is real and strictly smaller than a parser that
+invents coverage. What *is* checked: every declared path appears verbatim in that
+step's own `run`, so the declaration cannot drift from the workflow text without
+reddening `suite-source-exception-paths-are-in-the-step`.
+
+### The second independent finding
+
+The half-declared-key diagnosis told an author to add the entry to
+`_SUBSTRING_KEYS` — including when the entry was a **path**. Since `tests/`
+boundary-matches almost every test line, that recommended precisely the edit that
+makes a path key substring-eligible, restoring the broad false pass the hand
+declaration prevents. My own stated rule forbade it and my branch violated it.
+`_PATH_SHAPED` now keeps a path entry on the dead-entry remedy.
+
+### Mutation proof
+
+| Arm removed | Exit | Case |
+| --- | ---: | --- |
+| declaration wired into `pr_gate_sources` | 1 | `live-clean` |
+| a declared path the step does not run | 1 | `live-clean` |
+| `_PATH_SHAPED` guard on the line-key remedy | 1 | `suites-unresolved-path-entry-keeps-the-dead-entry-remedy` |
+
+193 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.
+
+### Review totals
+
+Three post-gates rounds, **18 findings, every one sustained, none refuted.** Two
+of my own claims were refuted by the rounds: that a stronger implementation
+needed no amendment, and that the loop reader could not go stale.

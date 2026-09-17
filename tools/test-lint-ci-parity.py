@@ -24,6 +24,8 @@ import subprocess
 import sys
 import tempfile
 
+import yaml
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 LINTER = REPO_ROOT / "tools" / "lint-ci-parity.py"
 
@@ -1118,40 +1120,33 @@ composed:
     # disposition, and every one was invisible from reading the code.
 
     # F1. A suite named only inside `for d in <paths>; do pytest "$d"; done`.
-    # One workflow runs 24 pack suites that way. The roster was authored from
-    # this extractor, so all 24 inherited its blind spot and 21 shipped a reason
-    # asserting no workflow named them.
-    _loop_run = (
-        'for d in \\\n  packs/a/tests/ \\\n  packs/b/tests/; do\n'
-        '  python -m pytest "$d" -q\ndone\n'
+    # One workflow runs 24 pack suites that way, and the operand pytest receives
+    # is `"$d"`, so no static scan attributes it. A reader for that shape was
+    # built and removed after seven defects in three rounds, two of them phantom
+    # coverage; the roster carries a DECLARATION instead, as
+    # `lint-pack-test-boundary.py` does for the same loop.
+    _exception_key = (
+        "catalogue-tooling-ci-gates.yml", "Run repo/pack hook suites (Linux)")
+    _check_true("suite-source-exception-is-declared",
+                _exception_key in M._SUITE_SOURCE_EXCEPTIONS)
+    _reason, _declared = M._SUITE_SOURCE_EXCEPTIONS[_exception_key]
+    _check_true("suite-source-exception-states-a-reason", bool(_reason.strip()))
+    # The declaration is only as good as its agreement with the step it names.
+    # Nothing can prove a listed path is still run, so the next best thing is
+    # asserted: every declared path appears verbatim in that step's own `run`.
+    _wf = yaml.safe_load(
+        (REPO_ROOT / ".github" / "workflows" / _exception_key[0]).read_text(
+            encoding="utf-8"))
+    _step_run = next(
+        str(step.get("run") or "")
+        for job in (_wf.get("jobs") or {}).values()
+        for step in (job.get("steps") or [])
+        if step.get("name") == _exception_key[1]
     )
-    _check("loop-targets-reads-a-literal-for-loop",
-           sorted(M.loop_targets(_loop_run)),
-           ["packs/a/tests/", "packs/b/tests/"])
-    # Narrow on purpose: coverage is the direction where a false positive is
-    # consequential, so a loop whose body never runs pytest on the variable
-    # contributes nothing.
-    _check("loop-targets-ignores-a-loop-that-does-not-run-pytest",
-           M.loop_targets('for d in packs/a/tests/; do\n  echo "$d"\ndone\n'), [])
-    # The item must be a LITERAL path. `$(SUITE_DIR)/tests/` is the
-    # discriminating shape: it contains a slash, so a guard keyed only on path
-    # shape admits it and the roster gains a key that is not a path at all. A
-    # bare `$(SUITES)` cannot show this, because the path-shape filter excludes
-    # it for an unrelated reason.
-    _check("loop-targets-ignores-a-non-literal-item",
-           M.loop_targets(
-               'for d in $(SUITE_DIR)/tests/; do\n  python -m pytest "$d" -q\ndone\n'),
-           [])
-
-    # F1b. A commented or echoed pytest inside the body is TEXT, not an
-    # invocation. Searching the raw body accepted both, and this is the unsafe
-    # direction: phantom coverage can validate a PR_GATED_IF claim.
-    _check("loop-targets-ignores-a-commented-invocation",
-           M.loop_targets('for d in packs/a/tests/; do\n'
-                          '  # python -m pytest "$d" -q\n  echo skip\ndone\n'), [])
-    _check("loop-targets-ignores-an-echoed-invocation",
-           M.loop_targets('for d in packs/a/tests/; do\n'
-                          '  echo "python -m pytest $d -q"\ndone\n'), [])
+    _absent = [path for path in _declared if path not in _step_run]
+    _check("suite-source-exception-paths-are-in-the-step", _absent, [])
+    _check_true("suite-source-exception-covers-the-loop",
+                len(_declared) >= 20)
 
     # F2. An opaque operand riding free on a literate neighbour's entry.
     _opaque = "$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q"
@@ -1190,6 +1185,24 @@ composed:
     _check_true("path-key-boundary-matches-a-deeper-path",
                 M._matches_at_boundary("tests/",
                                        "$(PYTHON) -m pytest packs/x/tests/ -q"))
+    # Which is why an unresolved PATH entry keeps the dead-entry remedy. Offering
+    # it `_SUBSTRING_KEYS` would recommend the one edit that makes a path key
+    # substring-eligible, restoring the broad false pass the hand declaration
+    # prevents — the branch diagnosing a half-declared line key must not fire on
+    # a path.
+    _path_entry = _suites(
+        _mk("\t$(PYTHON) -m pytest packs/x/tests/ -q"),
+        {"packs/x/tests/": M.NO_PR_GATE("x"),
+         "tests/": M.NO_PR_GATE("an unresolved path entry")})
+    _check_fires("suites-unresolved-path-entry-keeps-the-dead-entry-remedy",
+                 [v for v in _path_entry if "dead SUITE_DISPOSITION" in v],
+                 "dead SUITE_DISPOSITION")
+    _check("suites-unresolved-path-entry-is-not-offered-a-line-key",
+           [v for v in _path_entry if "not declared a substring key" in v], [])
+    _check_true("path-shaped-entries-are-recognised",
+                bool(M._PATH_SHAPED.match("tests/"))
+                and bool(M._PATH_SHAPED.match("tools/test_x.py"))
+                and not M._PATH_SHAPED.match("npm run test:plugins"))
 
     # F3. GNU Make expands `${...}` in a recipe comment as readily as `$(...)`.
     _check("suite-lines-keeps-a-comment-with-a-brace-expansion",
