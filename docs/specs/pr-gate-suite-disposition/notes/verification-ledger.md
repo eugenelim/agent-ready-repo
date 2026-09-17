@@ -870,3 +870,36 @@ gives. Now guarded, exiting 2 with the same hint.
 
 200 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0,
 `lint-contract-item-alignment` 0, dedup guard 51 passed in 61s.
+
+## Confirmatory round on the quality pass (2026-09-17)
+
+Three findings, all narrow, all applied.
+
+**A pin missing a *field* still crashed.** The guard added one round earlier
+handled a wholly absent pin but not a pin present with `step_body` or `declared`
+missing — that passed the manifest-coverage check and then raised `KeyError`.
+Both now read through `.get` and produce the same diagnosis. The reviewer also
+confirmed the two `continue`s added for that repair are safe: each follows an
+already-recorded failure and skips only checks dependent on the missing step or
+pin, so neither can turn a real failure into a pass.
+
+**The de-duplication comment claimed more than the work did.** `_PACK_HOOK_LINUX`
+and `_WHY_FILTERED_AND_CONDITIONAL` had 21 uses each, but `_WHY_PATH_FILTERED`
+had **zero** while its text remained duplicated six times under a different line
+wrap — and the comment beside it said the de-duplication was done. Fixed: 21, 6
+and 21 uses, and the comment now states those counts. The reviewer verified by
+sampling that the constants carry byte-identical text to the literals they
+replaced, which matters because a silent change to a `PR_GATED_IF` source string
+would break corroboration for 21 suites at once.
+
+**The self-test still called itself pure-stdlib** while requiring PyYAML. The
+docstring now states the dependency and what a missing install does.
+
+This is the seventh instance in the delivery of a claim stated wider than the
+work performed, and the fourth found by a reviewer rather than by me. The pattern
+is not carelessness about any one claim: it is that I write the summarising
+sentence from the intent of the change rather than from its result, and the two
+diverge whenever the change is partial. What catches it is a reviewer re-reading
+the claim against the artifact — which is exactly what these rounds did, 32 times.
+
+200 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.

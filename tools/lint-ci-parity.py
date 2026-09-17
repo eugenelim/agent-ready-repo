@@ -705,8 +705,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED_IF(
             "catalogue-tooling-ci-gates.yml / agentbundle-tests / Run full agentbundle test "
             "suite (Linux)",
-            "its workflow's pull_request trigger carries a path filter, so a pull request "
-            "outside that filter does not run it",
+            _WHY_PATH_FILTERED,
         ),
     'packages/credbroker/':
         PR_GATED(
@@ -749,8 +748,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED_IF(
             "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run pack hook suites (Windows — "
             "curated portable subset)",
-            "its workflow's pull_request trigger carries a path filter, so a pull request "
-            "outside that filter does not run it",
+            _WHY_PATH_FILTERED,
         ),
     'packs/core/tests/pack/':
         PR_GATED(
@@ -999,14 +997,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_catalogue_tooling_rewire.py':
         PR_GATED_IF(
             "catalogue-tooling-ci-gates.yml / catalogue-repo-rewire / pytest rewire tests",
-            "its workflow's pull_request trigger carries a path filter, so a pull request "
-            "outside that filter does not run it",
+            _WHY_PATH_FILTERED,
         ),
     'tools/test_catalogue_tooling_docs.py':
         PR_GATED_IF(
             "catalogue-tooling-ci-gates.yml / catalogue-repo-rewire / pytest docs contract tests",
-            "its workflow's pull_request trigger carries a path filter, so a pull request "
-            "outside that filter does not run it",
+            _WHY_PATH_FILTERED,
         ),
     'tools/test_validate_guides.py':
         PR_GATED(
@@ -1119,8 +1115,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED_IF(
             "build-check-windows.yml / lock-semantics-windows / Run coordination lease publisher "
             "and prober",
-            "its workflow's pull_request trigger carries a path filter, so a pull request "
-            "outside that filter does not run it",
+            _WHY_PATH_FILTERED,
         ),
     'tools/test_branch_added_paths.py':
         NO_PR_GATE(
@@ -1263,8 +1258,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED_IF(
             "docs.yml / loop-cohort / Pack runtime boundary (no pack's .apm/ carries tests; "
             "projection is clean)",
-            "its workflow's pull_request trigger carries a path filter, so a pull request "
-            "outside that filter does not run it",
+            _WHY_PATH_FILTERED,
         ),
     # The four lines that yield no path operand. Each is keyed by a literal
     # substring of the line, because there is no target to key on — and each is

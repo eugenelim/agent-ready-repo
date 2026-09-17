@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Self-test for tools/lint-ci-parity.py.
 
-Pure-stdlib Python so the suite runs on Windows without an MSYS shell.
+Pure-stdlib Python apart from PyYAML, which it shares with the linter, so the
+suite runs on Windows without an MSYS shell. A missing PyYAML exits 2 with the
+same install hint the linter gives, rather than a traceback.
 
 A parity linter fails in practice by reporting **ok** while checking nothing, so
 most of these cases exist to pin the ways that could happen. The reasoning behind
@@ -1194,10 +1196,14 @@ composed:
             ("declared", "\n".join(_declared)),
         ):
             _got = hashlib.sha256(_value.encode("utf-8")).hexdigest()
-            if _got != _pins[_field]:
+            # `.get`, because a pin present but MISSING A FIELD passed the
+            # manifest-coverage check above and then crashed here — the same
+            # maintenance event as a missing pin, and it deserves the same
+            # diagnosis rather than a KeyError.
+            if _got != _pins.get(_field):
                 _FAILURES.append(
                     f"suite-source-exception-{_field}-is-pinned[{_step_name}]: "
-                    f"got {_got}, want {_pins[_field]}. Re-read the step and the "
+                    f"got {_got}, want {_pins.get(_field)!r}. Re-read the step and "
                     f"declaration, then set _EXCEPTION_PINS[{_key!r}]"
                     f'["{_field}"] = "{_got}" — the pin exists so a change here '
                     "is reviewed, not absorbed."
