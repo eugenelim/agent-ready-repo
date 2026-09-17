@@ -323,7 +323,7 @@ does.
 
 **Done when:** `python3 -m pytest packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py -q` is green with all fifteen parametrised cases collected.
 
-### T3: The lint attributes bad entries correctly and reaches no file itself
+### T3: The lint attributes bad entries correctly
 
 **Depends on:** T2
 
@@ -476,7 +476,10 @@ are unchanged, and the guide checks are clean.
   assertion at `:1346` passes, and both steps' argv is asserted on the
   mechanism the file already uses for `lint-spec-status.py` at `:1347-1351`.
   The path pin alone cannot see a wrong directory or a missing flag, which is
-  why the argv half needs its own assertion. An exact-list pin, so the update is
+  why the argv half needs its own assertion. That mechanism is a single
+  lookup — find the one argv containing a named script, assert its last element
+  equals a literal — so extending it means writing an analogous lookup per
+  step, not reusing a parameterised helper. An exact-list pin, so the update is
   part of this task rather than a discovery during GATES. Verifies AC-0010.
 
 **Approach:**
@@ -487,7 +490,15 @@ are unchanged, and the guide checks are clean.
   AC-0002 makes the lint exit 1 on any finding, so blocking is not
   argv-conditional and cannot be lost by an argv edit.
 
-**Done when:** `python3 -m pytest tools/test_build_gate_chain.py -q` is green.
+**Done when:** `python3 -m pytest tools/test_build_gate_chain.py -q` is green,
+AND the projected script the step names exists and runs: `make build-self` has
+emitted `.claude/skills/new-adr/scripts/lint-adr-shape.py` and
+`_record_paths.py`, and invoking that projected path over `docs/adr` reports
+the same finding count as the `packs/` source. The test alone cannot observe
+this — `_script_step` wraps `subprocess.run` without checking the target
+exists, and `EXPECTED_SCRIPT_STEPS` compares declared path strings — so a step
+naming a missing file passes it. The projection today holds only
+`index-records.py` and `next-ordinal.py`, both pre-T1.
 
 ### T9: The generator reads the field, the last two records conform, and the gate is green
 
@@ -705,9 +716,11 @@ enumerates it.
   claiming the same input. Extended AC-0011 to both roster files. Pinned the
   generator's field read same-line and the helper's confinement root. Added T3
   to T9's dependencies so the closing observation runs against the lint T3
-  changes. Corrected the residual to 8 finding lines naming 4 record paths under
-  the contract's own counting unit, after two earlier figures used units the
-  contract does not produce.
+  changes. Corrected the residual to the figure and counting unit the spec's
+  Assumptions state, after two earlier figures used units the contract does not
+  produce. Regenerate it with
+  `python3 packs/governance-extras/.apm/skills/new-adr/scripts/lint-adr-shape.py docs/adr`
+  rather than reading it from here.
 - 2026-09-17: amendment, before any task ran. Commit `813f533f1` retired
   `docs/CONVENTIONS.md` after this contract's baseline sealed, re-homing the
   document lifecycle classes to a seeded `docs/README.md` and the

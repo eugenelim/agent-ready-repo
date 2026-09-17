@@ -39,7 +39,7 @@ Parse tiers — fields the shape lint checks:
 - **Consulted:** <!-- whose input was sought, two-way; optional, delete if none -->
 - **Informed:** <!-- who is kept up to date, one-way; optional, delete if none -->
 - **Supersedes:** none <!-- none, or: ADR-NNNN -->
-- **Supersedes in part:** none <!-- none, or: ADR-NNNN D1, ADR-MMMM D2 -->
+- **Supersedes in part:** none <!-- none, or: ADR-NNNN D1; ADR-MMMM D2, D3 -->
 - **Superseded by:** none <!-- none, or: ADR-NNNN -->
 - **Superseded in part:** none <!-- none, or: ADR-NNNN D1 -->
 - **Related:** <!-- suggested (tier T1-unchecked — not validated by the lint):

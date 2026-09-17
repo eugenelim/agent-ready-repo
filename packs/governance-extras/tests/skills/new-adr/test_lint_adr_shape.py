@@ -1289,3 +1289,47 @@ def test_template_instantiation_passes_the_lint(tmp_path: pathlib.Path) -> None:
     assert _extract_codes(out) == set(), (
         f"Instantiated template produced lint findings:\n{out}"
     )
+
+
+def test_template_supersession_examples_parse_under_the_lints_grammar(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Every worked value the template shows must be one the lint accepts.
+
+    The separators are easy to transpose: `;` divides entries and `,` divides
+    D-IDs within an entry, so a two-entry example written with a comma reads
+    naturally and is rejected. An author following the template then writes a
+    record the blocking gate refuses, with nothing pointing back at the
+    template that misled them. This walks the template's own comments rather
+    than a copy of them, so a future edit to either side is caught.
+    """
+    template = _TEMPLATE_PATH.read_text(encoding="utf-8")
+    examples: list[tuple[str, str]] = []
+    for field in ("Supersedes", "Supersedes in part",
+                  "Superseded by", "Superseded in part"):
+        m = re.search(
+            rf"^- \*\*{re.escape(field)}:\*\*.*?<!--\s*none,\s*or:\s*(.+?)\s*-->$",
+            template, re.M,
+        )
+        if m:
+            examples.append((field, m.group(1)))
+    assert examples, "no supersession examples found in the template"
+
+    base = _conforming()["0001-basic.md"]
+    for field, raw in examples:
+        # Resolve the placeholder ordinals the way an author does. The example
+        # is guidance about SHAPE — separators, D-ID placement — so `NNNN`
+        # standing in for digits is the convention, not a defect.
+        value = raw.replace("NNNN", "0002").replace("MMMM", "0003")
+        parent = tmp_path / field.replace(" ", "_")
+        parent.mkdir()
+        d = _write_dir(
+            parent,
+            {"0001-basic.md": base.replace(
+                f"- **{field}:** none", f"- **{field}:** {value}")},
+        )
+        codes = _extract_codes(_run(d)[1])
+        assert "ADR-S007" not in codes, (
+            f"the template's {field!r} example {raw!r} is malformed under "
+            f"the lint's own grammar: {codes}"
+        )
