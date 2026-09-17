@@ -317,7 +317,7 @@ measurement with its method.
 
 **Depends on:** T1
 
-**Touches:** packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/assets/state.json, .claude/skills/work-loop/scripts/loop-cohort.py, .agents/skills/work-loop/scripts/loop-cohort.py, .claude/skills/work-loop/assets/state.json, .agents/skills/work-loop/assets/state.json, packs/core/tests/skills/work-loop/test_loop_cohort.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py, packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py
+**Touches:** packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/assets/state.json, .claude/skills/work-loop/scripts/loop-cohort.py, .agents/skills/work-loop/scripts/loop-cohort.py, .claude/skills/work-loop/assets/state.json, .agents/skills/work-loop/assets/state.json, packs/core/tests/skills/work-loop/test_loop_cohort.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py, packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py, packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py, packs/core/tests/skills/work-loop/test_loop_concurrency.py
 
 **Tests:**
 - A receipt for a task in the named wave with a matching run identifier exits
@@ -377,7 +377,12 @@ has one home, so agreement is proved by the round trip in T3 instead.
 `.apm/` file hash equal, and `python3 -m pytest
 packs/core/tests/skills/work-loop/test_loop_cohort.py
 packs/core/tests/skills/work-loop/test_loop_cohort_cli.py
-packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py -q` passes.
+packs/core/tests/skills/work-loop/test_loop_cohort_schedule.py
+packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py
+packs/core/tests/skills/work-loop/test_loop_concurrency.py -q` passes.
+`test_contract_amendment_wave4.py` calls `apply_contract_amendment` directly and
+is the suite that owns the path this task changes; `test_loop_concurrency.py`
+covers the state lock a new mutation takes.
 
 ### T3: The wave exit refuses an unaccounted task and names it
 
@@ -462,6 +467,13 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
 - In `state-schema.md`, document the container and state that an absent
   container means the guard does not enforce.
 - Add an eval case covering both calls, the authorship, and both decline codes.
+- The EXECUTE section is pinned from two directions. A pack test slices it
+  between `## Step 2. EXECUTE` and `## Step 3. GATES` and requires the literals
+  `once per plan task` and `one implementer at a time`, so the new sentence uses
+  that vocabulary rather than a second phrasing. A roster test requires the
+  section to carry the verification-ledger pointer verbatim and forbids three
+  retired plan-mutability phrasings in it; the new sentence must not reintroduce
+  any of them. The GATES step lands outside the sliced region.
 - Run `FORCE=1 make build-self` and verify the three copies of each edited
   `.apm/` file are byte-identical, trusting the parity check rather than the
   exit code. Projections are never edited directly.
@@ -474,8 +486,8 @@ state-schema field table finds the absence rule; `evals/evals.json` parses and
 contains a case naming both calls, the authorship, and both codes; the three
 copies of each edited file hash equal; and `python3 -m pytest
 packs/core/tests/skills/work-loop/test_reference_routing.py
-packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py -q`
-passes.
+packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py
+tests/roster/test_verification_ledger_contract.py -q` passes.
 
 ### T5: Every clause is proved by its own removal
 

@@ -1,131 +1,177 @@
 # Review handoff — wave-complete dispatch receipts
 
 Run `2fbae32e-0dc7-4e27-b80e-d9c34451a693`. Engine left at `SPEC-PLAN-REVIEW`
-(seq 5) with sustained findings open, which is the correct resumable state: a
-resuming session fires `findings-remain` before revising.
+with sustained findings open, which is the correct resumable state: a resuming
+session fires `findings-remain` before revising.
 
-## Why this stopped rather than continuing
+## Status: the design is not settled, and the next step is a spike, not a round
 
-Three pre-EXECUTE review rounds ran on both lanes (`adversarial-reviewer` and
+Five pre-EXECUTE review rounds ran on both lanes (`adversarial-reviewer` and
 `security-reviewer`, spec-stage secure-design mode). Round 1's findings were
-adjudicated by `finding-adjudicator`; rounds 2 and 3 were verified against code
+adjudicated by `finding-adjudicator`; rounds 2–5 were verified against code
 directly.
-
-Every round found its blockers inside the previous round's repairs:
 
 | Round | Adversarial | Security | Where the blockers sat |
 | --- | --- | --- | --- |
 | 1 | 6 blockers, 5 concerns, 3 nits | 3 blockers, 6 concerns | original draft |
 | 2 | 6 blockers, 5 concerns, 2 nits | 3 blockers, 5 concerns | inside round-1 repairs |
 | 3 | 4 blockers, 10 concerns, 2 nits | 2 blockers, 4 concerns, 1 nit | inside round-2 repairs |
+| 4 | 5 blockers, 5 concerns, 2 nits | 4 blockers, 3 concerns, 1 nit | inside round-3 repairs, plus one external caller |
+| 5 | 4 blockers, 6 concerns, 3 nits | 1 blocker, 6 concerns, 1 nit | inside round-4 repairs |
 
-Adjudication in round 1 refuted 4 of 23 findings, so the reviewers are not
-simply always right — but the sustained rate is high and the pattern is stable.
+Round 1 adjudication refuted 4 of 23 findings, so the reviewers are not simply
+always right. The sustained rate is high and the pattern did not break.
 
-**The class, stated once:** criteria were authored as assertions about desired
-outcomes and only afterwards checked against the code that would satisfy them.
-Round 1 produced claims stronger than their mechanism. Round 2 produced criteria
-whose mechanism did not exist. Round 3 produced criteria that contradict each
-other because each was written as an unconditional predicate over a state space
-that overlaps its neighbours — and one round-3 "verified mechanism fact" was
-itself over-generalized (see below). Patching individual criteria has not
-touched this, because the defect is in how the criteria are derived.
+**The class, stated once.** Each round's central design decision was invalidated
+by a fact about the surrounding system that surfaced only when a reviewer pointed
+at it. The instances differ; the cause does not. The spec was written against a
+model of the engine, the guard layer, and the skill, and the model was wrong in
+a different place each time:
 
-## The recommended next move
+- Round 2: a passing `GuardResult` cannot carry a `reason`, so the disclosure
+  channel did not exist.
+- Round 3: `cmd_check` *can* emit on a pass via `message`, so the impossibility
+  claimed in round 2's repair was itself wrong.
+- Round 4: `pre-pr.py` runs `check --phase implement` for every spec directory
+  on every push, ungated, so putting the accounting there is a push gate.
+- Round 5: GATES runs *after* `wave-complete`, so the caller added in round 4's
+  repair is in the wrong section; and the new phase inherits a `schema_version`
+  refusal the `implement` phase is deliberately exempt from, so the retarget
+  changes the transition's verdict for pre-Phase-1 state from pass to refuse.
 
-Rewrite the Acceptance Criteria block for the guard as an explicit **decision
-table over cohort state**, not a list of independent sentences. Columns: the
-state predicate, the exit code, the channel the message uses, and the criterion
-that owns it. Rows must partition the state space, so exactly one row applies to
-any cohort state. That form makes the round-3 blocker class unrepresentable:
-overlapping antecedents with opposite consequents cannot be written down.
+Specifying further against the same model will keep producing this. The next
+step is to establish the model first.
 
-Enumerate the state space at least over: unreadable or missing `state.json`;
-`schedule_waves` empty; `schedule_waves` non-empty with the container absent;
-container present and `current_wave_index` out of range; container present,
-pointer valid, every task accounted for; same but at least one task unaccounted;
-and a container or `schedule_waves` whose type is wrong.
+## The spike this needs before any more specification
 
-Derive each row's channel from the code before writing it, not after.
+Read and record, before writing another criterion:
 
-## Corrections to carry forward
+1. **Every caller of the guard surface.** `pre-pr.py` was found by reading, not
+   grepping, because the phase name reaches the argument list through a loop
+   variable. Enumerate every invocation of `loop-cohort check`, every entry in
+   `loop-engine.py`'s guard table, and every hook, script, or workflow that
+   reaches either — in `tools/`, `packs/core/.apm/hooks/`, and the projections.
+2. **Every site that fires `wave-complete`.** Round 5 found four:
+   `references/supervisor-mode.md`, `references/session-resumption.md`,
+   `SKILL.md`'s two repair paths, and `references/finding-adjudication.md`.
+   Three are in no task's `Touches`. Establish which sections run before the
+   transition and which after — GATES runs after.
+3. **The `schema_version` axis.** `check_phase` refuses any phase but
+   `implement` on an unsupported schema, and
+   `packs/core/tests/skills/work-loop/test_loop_guards.py` pins that asymmetry
+   as deliberate and load-bearing. Decide what the wave exit owes for that state
+   class before choosing a phase, because the choice of phase decides it.
+4. **Every statement in the tree that asserts `implement` guards
+   `wave-complete`.** Round 5 found three: `check_phase`'s docstring,
+   `cmd_check`'s docstring, and a test docstring. A retarget falsifies all
+   three and orphans `_guard_check_phase_implement`.
+5. **Every surface that enumerates the phase list.** `PHASES`, the argparse
+   choices, `loop-cohort.py`'s usage block, and
+   `references/state-schema.md`'s `check` exit contract.
+6. **The truncation and bounding contract for refusal text.**
+   `_MAX_REASON_CHARS` is 4000 and `_scalar` caps at 120, both in
+   `_loop_guards.py`; `_diag` in `loop-cohort.py` has no length bound at all.
+   A refusal that must "name every unaccounted task" collides with these.
 
-- **`cmd_check` can emit on a passing guard.** `GuardResult` carries `message`
-  alongside `reason`, and `cmd_check` calls `_emit(result.message)` for a
-  passing result. What is true is narrower: a passing `GuardResult` may not
-  carry a `reason` (`__post_init__` raises unless `ok` is true exactly when
-  `reason` is None), and `loop-engine._guard_reason` returns None for any
-  passing result, so the *engine* cannot surface a passing guard's text. The
-  spec's Boundary and Assumption are correctly scoped to the engine; the plan's
-  Design decision generalises wrongly and must be corrected.
-- **The owner chose `loop-cohort status`** as the absent-container disclosure
-  channel, over widening scope to the engine's shared guard adapter
-  (2026-09-17). That decision stands. Only its stated rationale was wrong.
-- **`cmd_status` refuses on `schema_version != 1`** while the `implement` guard
-  deliberately skips schema validation, so for the oldest state class the guard
-  tolerates, `status` produces no signal at all. The disclosure channel does not
-  cover the whole class it was chosen to serve.
-- **The frozen golden row is an unscheduled state.** `check/implement-ok`
-  supplies `schedule_waves: []` and `current_wave_index: 0`. The fixture is
-  generated once and deliberately never regenerated, and a preserved row
-  asserts both streams byte-for-byte, so no row may be added or rewritten. A
-  guard that passes silently on an unscheduled state preserves it.
-- **`cmd_schedule` resets the wave pointer under an unchanged `run_id`** and
-  re-derives `plan_hash`. So the run identifier cannot scope a record across a
-  re-schedule, and `plan_hash` can also change for an ordinary prose edit to
-  `plan.md` — which invalidates correct records without the partition changing.
-- **`cmd_wave_advance` is not coupled to the implement check**, so a wave can be
-  advanced past without ever being accounted for.
+## The simplification the last round found, which should survive
+
+`_schedule_run_impl` sets `current_wave_index = 0` unconditionally. A
+re-schedule therefore means every wave is re-executed, so records written before
+it describe work that must be redone. That makes **`schedule` clearing the
+receipts container** correct rather than destructive — and once it clears, the
+partition digest has no remaining job.
+
+Removing the digest removes, in one move: the digest helper, digest-keyed
+records, the stale-record pruning rule, the amendment clear, the "one live
+partition so no size cap" argument and its collision with the 1 MiB amendment
+ceiling, the pointer-rewind pre-discharge, and the criterion about a
+partition-preserving re-schedule. Every one of those was generating findings in
+rounds 4 and 5. Records become keyed by wave index and task identifier alone.
+
+An amendment empties `schedule_waves` and forces a re-approval and re-schedule
+before implementation continues, so it inherits the clear and needs no rule of
+its own.
+
+## The verification lesson, which is the reusable part
+
+The recurring gap was not in the predicates but in the **domain they were
+checked over**. Three successive walks each drew their domain from the
+predicates under test, so each could find overlaps and never gaps:
+
+- 480 states over my own row conditions — found the row-2/row-3 overlap, missed
+  the malformed wave element.
+- 1,152 states over field *types* — found the malformed wave element, missed
+  malformed container interiors and record leaves.
+- 1,800 states over the literal spec wording — found two wording ambiguities,
+  still missed record `kind` and record shape, which both lanes then reported.
+
+A domain sourced from the thing under test cannot exhibit a gap outside it. The
+domain has to be generated over arbitrary values at every position the predicate
+reads, and the predicate has to be total by construction rather than bounded one
+level at a time.
 
 ## Open blockers at the point of stopping
 
-1. Criteria for the guard overlap with opposite consequents; a test written
-   literally from the out-of-range criterion reddens the frozen golden row.
-   Subsumed by the decision-table rewrite above.
-2. A receipt is recordable for a wave the run has not yet entered, so one
-   up-front batch could discharge every wave exit in the run. Bound the index to
-   the current wave or one already left.
-3. "`schedule` leaves the container present" is satisfied by an unconditional
-   assignment that erases every existing record. Needs a preservation criterion
-   with a test that reddens on overwrite.
-4. The no-output criterion has no assertion on the accounted-for passing path,
-   and its stated basis is the false generalisation above.
-5. The dispatch-rate measurement is promised as a durable output but no task's
-   `Done when` requires it.
-6. The `loop-cohort status` assertion has no owning test file in any `Touches`,
-   and `test_loop_cohort_schedule.py` — the existing schedule suite — is
-   unaccounted for by the task that changes `cmd_schedule`.
+1. The pre-exit check is specified in GATES, which runs after `wave-complete`.
+   It belongs at every site that fires the transition; three of the four are in
+   no task's `Touches`.
+2. The `wave-exit` phase inherits `check_phase`'s `schema_version` refusal,
+   which `implement` is exempt from, so the retarget silently changes the
+   transition's verdict for pre-Phase-1 state. The rows do not model the axis
+   and the constructed domain does not vary it.
+3. Well-formedness is defined only at the container's top level. A record that
+   is not a mapping, or whose `kind` is outside the closed set, either
+   fail-opens into "accounted for" or raises into the opaque `@contained`
+   refusal the named rows exist to replace. Both lanes reported this
+   independently.
+4. Testing Strategy promises the pre-PR hook's verdict is unchanged, and no
+   task's `Tests`, `Done when`, or `Touches` covers it.
 
 ## Open concerns worth keeping
 
-- The closed decline set is enforced only on the write path; the guard counts a
-  record without inspecting its reason, so free text or a third code already in
-  `state.json` would be honoured.
-- No criterion places receipt authorship with the controller, though
-  `SKILL.md` already declares what the controller retains, so saying it is prose
-  rather than a new trust mechanism.
-- Re-entry into `CODE-IMPLEMENTATION` via `gates-failed` or `findings-remain`
-  does not move `current_wave_index`, so a repair round exits through a guard the
-  first pass's receipts already satisfy — and repair rounds are where the
-  controller most often works alone.
-- The key-agreement criterion may be unfalsifiable if the container key is
-  single-sourced, which is the natural implementation.
-- The no-write invariant is appended to five refusal criteria instead of being
-  one criterion over the enumerated refusal set.
-- A malformed container or `schedule_waves` falls past every branch into the
-  accounting arm; `@contained` turns it into an opaque `internal-error` refusal
-  that no criterion enumerates.
-- T6 does not pin the bump class, and this change adds a new CLI verb and a new
-  state field.
+- Three code comments and a test docstring assert that `implement` guards
+  `wave-complete`; a retarget falsifies them and orphans
+  `_guard_check_phase_implement`.
+- The phase enumeration in `loop-cohort.py`'s usage block and the `check` exit
+  contract in `references/state-schema.md` are not required to learn the phase.
+- The digest-versus-`plan_hash` criterion has no assertion that exercises a
+  `plan.md` edit, so it would stay green under a `plan_hash`-keyed
+  implementation.
+- The `implement`-unchanged criterion supplies its own comparison value for the
+  per-row states, and its stated rationale names the rows when the shared
+  preamble is what could actually move that phase's verdict.
+- "Bounds the class" overstates the in-flight-upgrade window: `schedule` runs
+  only on a plan change or amendment, so a run that never re-schedules keeps
+  enforcement off for its whole life. The mid-upgrade re-schedule case — an
+  empty container against a non-empty partition, needing after-the-fact
+  declines for already-implemented tasks — is in no enumerated list.
+- The verb interpolates unbounded state-derived text into refusals through
+  `_diag`, which has no length bound, while the guard layer's `_scalar` caps at
+  120 and `GuardResult` truncates at 4000. "Name every task" is unsatisfiable at
+  the cap and currently fails toward silent under-reporting.
+- The absent-container notice's only caller is a prose step addressed to the
+  party the guard constrains, and skipping it is silent and undetectable — the
+  same weakness the change exists to remove, now carrying the disclosure half.
+- `cmd_reset` is a third record-removal path the `Never do` rule does not name.
+- Two pinned task obligations — the eval case and the manifest bump — trace to
+  `packs/AGENTS.md` rather than to an acceptance criterion.
+- The Objective's "four limits" is a closed count that goes stale each time a
+  fifth is found; state the positive property and group exceptions by
+  consequence instead.
 
 ## What is settled and should not be relitigated
 
 - Per-task granularity, not per-wave. The wave's task list is the denominator.
-- The receipt is an assertion, not proof of dispatch, and the spec says so.
+- A record is an assertion, not proof of dispatch, and the spec says so.
 - Any actor that can read `run_id` can write a record, including a dispatched
   `implementer`; nothing scopes a record to the task its writer was dispatched
   for. Accepted, because scoping it means establishing caller identity.
+- The accounting must not live in `--phase implement`, because `pre-pr.py` makes
+  that phase a push gate.
 - ADR-0061 Option A holds: explicit cohort mutation, read-only guard, no
   `pending_transition`, no idempotency key.
 - Round-1 refutations: declines need no corroboration mechanism here, and a
   provenance marker cannot replace key-absence.
+- Round-2 refutations: the version-bump level is fixed at patch by
+  `packs/AGENTS.md` itself, and the measurement's two homes are the template's
+  own shape.

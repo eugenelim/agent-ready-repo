@@ -245,7 +245,10 @@ Exactly one row applies to any cohort state, and the rows together cover every
 cohort state. A state is **well-formed at the top level** when `state.json`
 parses, `schedule_waves` read with its default is a list, and the receipts
 container is either absent or a mapping. A **current wave** is well-formed when
-it is a list whose every element is a string. Naming the shared preconditions
+it is a list whose every element is a string. A pointer is **valid** when
+`current_wave_index` is a non-negative integer by the guard layer's existing
+validation, which rejects `bool`, and is less than the number of waves in the
+partition. Naming the shared preconditions
 once is deliberate: an earlier draft asserted that each row negated the rows
 above it without writing those negations, and two rows then covered the same
 state with opposite verdicts.
@@ -261,25 +264,37 @@ state with opposite verdicts.
       the receipts container is absent: exits zero and names the absent
       container on stdout.
 - [ ] The state is well-formed at the top level, the partition is non-empty, the
-      container is present, and `current_wave_index` is not a valid index into
-      the partition: exits non-zero and names the invalid pointer on stderr.
+      container is present, and the pointer is not valid: exits non-zero and
+      names the invalid pointer on stderr.
 - [ ] The state is well-formed at the top level, the partition is non-empty, the
       container is present, the pointer is valid, and the current wave is not
       well-formed: exits non-zero and names the malformed wave on stderr.
-- [ ] All the preceding structural conditions hold and every task in the current
-      wave is accounted for: exits zero and prints nothing to stdout or stderr.
-- [ ] All the preceding structural conditions hold and at least one task in the
-      current wave is not accounted for: exits non-zero and names every such
-      task, and no accounted task, on stderr.
+- [ ] The state is well-formed at the top level, the partition is non-empty, the
+      container is present, the pointer is valid, the current wave is
+      well-formed, and every task in the current wave is accounted for: exits
+      zero and prints nothing to stdout or stderr.
+- [ ] The state is well-formed at the top level, the partition is non-empty, the
+      container is present, the pointer is valid, the current wave is
+      well-formed, and at least one task in the current wave is not accounted
+      for: exits non-zero and names every such task, and no accounted task, on
+      stderr.
 - [ ] No cohort state satisfies the preconditions of two of the eight rows
-      above, and no cohort state satisfies the preconditions of none of them.
+      above.
+- [ ] No cohort state satisfies the preconditions of none of the eight rows
+      above.
 - [ ] Each of the eight rows above is satisfied by some cohort state.
+- [ ] The states the three criteria above are checked over are constructed by
+      varying the type and value of `schedule_waves`, of its element at the
+      pointer, of the receipts container, and of `current_wave_index` — not by
+      instantiating one example per row, which cannot exhibit a gap.
 - [ ] For every row above whose state has a `state.json`, that file is
       byte-identical before and after a `check --phase wave-exit` invocation.
 - [ ] The `wave-complete` transition out of `CODE-IMPLEMENTATION` is refused
       when the guard refuses.
-- [ ] `check --phase implement` returns the same exit code and the same streams,
-      for every state, as it does before this change.
+- [ ] `check --phase implement` returns the same exit code and the same streams
+      as it does before this change, for the golden parity replay of that phase
+      and for one state per row of the table above — the states the new rows
+      distinguish being the only ones whose verdict could have moved.
 
 ### Reporting and reaching the check
 
