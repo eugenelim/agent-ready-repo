@@ -5,7 +5,7 @@
     "CQ-OPERATE"
   ],
   "freshness": {
-    "checked_at": "2026-09-01T01:37:30Z",
+    "checked_at": "2026-09-17T00:00:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,33 +21,36 @@
       "source": {
         "path": "packs/core/.apm/skills/work-loop/SKILL.md"
       }
+    },
+    {
+      "capture_id": "kco-202609-1002a3716dfe56043437401878864aacfa271858ef67fb456ddce50e910e9a42",
+      "mutation_id": "48831fde96299b58c877330a5fd0592575b8c69fc545461188004e98eb63390e",
+      "observed_at": "2026-09-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+      }
     }
   ],
   "owning_source": {
     "digest": {
-      "byte_length": 76884,
+      "byte_length": 117120,
       "kind": "sha256-bytes-v1",
-      "sha256": "90793da90b468ffd54af5d6aeaf74ab73aa83a75eff7922dbfcdaa4f88b56986"
+      "sha256": "a39edea657288af1e05ca53a591541309da3e947db4a199ffbc77e1719661c51"
     },
-    "path": "packs/core/.apm/skills/work-loop/SKILL.md"
+    "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
   },
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "packs/core/.apm/skills/work-loop"
   ],
-  "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 114156,
-        "kind": "sha256-bytes-v1",
-        "sha256": "8eea535891de1444c28e3fb312895b3e13b32881ff09abfde20e32d1e089cb95"
-      },
-      "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
-    }
-  ],
+  "supporting_sources": [],
   "synthesis": {
-    "body": "A safety cap enforced only by shell syntax in agent-facing instructions is one reformat away from gone. A retry cap carried by an && chaining a guarded transition to an unguarded write stopped being enforced the moment the statement was split for an unrelated reason, and the write verb exceeded the cap when called directly. Put the guard in the verb, not in the instruction's punctuation. The audit question for any published cap, budget, or ordering constraint is: name the code that refuses when the constraint is violated. If the only answer is a shell operator, a step order, or a sentence in a SKILL.md, the constraint is documentation, not a control.",
-    "kind": "pattern"
+    "body": "A safety cap enforced only by shell syntax in agent-facing instructions is one reformat away from gone. A retry cap carried by an && chaining a guarded transition to an unguarded write stopped being enforced the moment the statement was split for an unrelated reason, and the write verb exceeded the cap when called directly. Put the guard in the verb, not in the instruction's punctuation. The audit question for any published cap, budget, or ordering constraint is: name the code that refuses when the constraint is violated. If the only answer is a shell operator, a step order, or a sentence in a SKILL.md, the constraint is documentation, not a control. INSTANCE CLOSED, re-verified 2026-09-17: `loop-cohort.py` review record now performs the retry-cap check itself, after its operation gate so a replay is still decidable, and the code comment there records that the cap 'previously held only because the shipped instructions chained this command to a capped transition with `&&`'. The audit question is what generalises; that one cap is no longer an open example of failing it.",
+    "kind": "antipattern"
   },
   "title": "A safety cap enforced only by shell punctuation in agent instructions is one reformat away from gone",
   "topic_key": "a-safety-cap-enforced-only-by-shell-punctuation-is-one-reformat-away-from-gone"

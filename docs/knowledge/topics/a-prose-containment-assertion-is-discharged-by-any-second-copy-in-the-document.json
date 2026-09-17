@@ -5,7 +5,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-09-10T00:32:23Z",
+    "checked_at": "2026-09-17T00:00:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -20,6 +20,18 @@
       "semantic_gate": "plan-locked",
       "source": {
         "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"
+      }
+    },
+    {
+      "capture_id": "kco-202609-794f252b10b0269e13a1688820396e9f7fe11f2b42f7982109b0ed9dbb417bbe",
+      "mutation_id": "68ae9e9cbe52c8d09590d385c5d22a5fcc43cc982d56161225a015caf833f405",
+      "observed_at": "2026-09-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "packs/agent-skill-engineering/tests/pack/test_composition_floors.py"
       }
     }
   ],
@@ -37,14 +49,6 @@
     "docs/specs"
   ],
   "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 59940,
-        "kind": "sha256-bytes-v1",
-        "sha256": "81881bda03c82e5964b679e43d40cb3b06f136e852541bf94877cc61adae1357"
-      },
-      "path": "packs/agent-skill-engineering/tests/pack/test_corpus_admission.py"
-    },
     {
       "digest": {
         "byte_length": 38010,
