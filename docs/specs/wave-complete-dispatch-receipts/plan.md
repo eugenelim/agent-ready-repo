@@ -77,11 +77,11 @@ caller cannot be GATES: GATES fires `wave-passed`, `gates-clean` and
 `gates-failed`, and every documented firing of `wave-complete` reads "fire
 `wave-complete`, then run GATES" — so GATES runs *after* the transition it would
 have to precede. The check therefore goes immediately before the transition at
-each of the four surfaces that instruct firing it:
-`references/supervisor-mode.md`, `references/session-resumption.md`,
-`references/finding-adjudication.md`, and the two repair paths in `SKILL.md`.
+each of the seven sites that instruct firing it, across four files: three in
+`SKILL.md`, two in `references/finding-adjudication.md`, and one each in
+`references/supervisor-mode.md` and `references/session-resumption.md`.
 
-**The guard is a nine-row verdict table whose predicates derive from one
+**The guard is an eight-row verdict table whose predicates derive from one
 declaration.** Four rounds produced criteria that overlapped or left gaps, and
 this table then did it twice more. Its first draft let an empty partition with a
 non-mapping container satisfy two rows with opposite verdicts, and a malformed
@@ -99,6 +99,19 @@ are recorded in § 4 of the verification ledger rather than restated here, so th
 paragraph cannot fall a generation behind the walk as its predecessor did. T3 carries that walk,
 and generating the domain from the declaration is part of what T3 implements
 rather than an incidental test detail.
+
+**Leaving a wave is coupled to the same predicate.** A guard that refuses an
+unaccounted wave is worth little while `wave advance` walks past the same wave
+unchecked, so the verb gains the accounting check — on the branch where
+`current_wave_index` equals `--from-index` and the pointer moves, and not on the
+branch that recognises the move as already applied. That asymmetry is
+deliberate: the skill documents the verb as idempotent and `session-resumption`
+re-issues it on a `wave-passed` resume, so a refusal on the already-applied
+branch would turn crash recovery into a dead end. The check sits after the
+verb's existing refusals, so nothing that refuses today refuses for a new
+reason. `wave advance` has no golden row — it is a mutation, not one of the six
+guard families the parity table covers — so the frozen fixture does not
+constrain it.
 
 Order of operations: settle what the pinned files require, add the field and the
 mutation, then the verdict table and the reporting, then the controller-facing
@@ -192,7 +205,7 @@ verified and returns to T2 or T3.
   the point. `init` refuses an existing `state.json` and `reset` deletes it, so
   a record cannot outlive its run and a stored run identifier would be a field
   no reachable state could falsify.
-- **Nine verdict rows whose predicates derive from one key-path declaration.** Traces to:
+- **Eight verdict rows whose predicates derive from one key-path declaration.** Traces to:
   the verdict rows and the two partition criteria. Branch order is an
   optimisation; the preconditions decide behaviour. The predicates are named
   once rather than repeated per row, because repeating them informally is how
@@ -265,7 +278,7 @@ both its default and `--json` forms.
 
 ### Failure, edge cases & resilience
 
-Traces to: the nine verdict rows, the verb's unusable-partition refusal, and
+Traces to: the eight verdict rows, the verb's unusable-partition refusal, and
 the byte-equality criteria.
 
 - **Interrupted dispatch.** Best-effort by decision. A controller that crashes
@@ -292,9 +305,36 @@ the byte-equality criteria.
   for every row whose state has a file, make the no-write rule falsifiable on
   the paths where a write would be tempting.
 
-## Discovery channel
+## Where a claim is settled
 
-T1 is a **declared discovery task**. Exact helper names, fixture shapes, and
+Three tiers, and a claim belongs to exactly one:
+
+- **Settled before approval, here or in `spec.md`.** Anything that could change
+  intent, an acceptance criterion, architecture, a dependency choice, a security
+  or data boundary, the task graph, or a verification mechanism. These are not
+  discoverable; deferring one means approving a contract whose meaning is still
+  open.
+- **In an unstarted task, with a kill condition.** A claim that could change
+  only that task's local method — which fixture to extend, which helper to
+  reuse — and nothing another task or criterion depends on.
+- **In code, with a direct test oracle.** A cheap, reversible detail whose
+  wrongness a test states immediately: a message's exact words, a helper's name,
+  a fixture's internal shape.
+
+**The discovery channel below is spent, and that is recorded rather than
+quietly dropped.** T1 predeclared six questions. All six are now answered, in
+§ 2 and § 3 of the verification ledger, and four of them turned out to be tier
+one rather than tier two — the `schema_version` behaviour is a verification
+mechanism *and* a security boundary, the pre-PR chain decides which surface the
+change gates, the firing-site set decides the task graph, and the length bounds
+decide a criterion. Its kill condition fired before T1 ever ran and was resolved
+by taking a bounded alternative, which is recorded as the first entry in
+§ Discovery decisions. What remains in T1 is the obligation to record two ledger
+entries, which is not discovery. Nothing tier-one is deferred to it.
+
+## Discovery channel (spent; retained for its decision record)
+
+T1 was a **declared discovery task**. Exact helper names, fixture shapes, and
 local construction details for an unstarted task may remain unresolved until it
 runs; T1 may then refine those details in named, unstarted tasks only. A task
 section locks when its execution begins, and a completed section is immutable.
@@ -391,7 +431,7 @@ the exhaustive per-clause sweep, not the first time an arm is tested.
 
 ## Tasks
 
-### T1 (discovery): The guard surface is mapped and the pinned files are settled
+### T1: The measurement and the pinning survey are recorded
 
 **Depends on:** none
 
@@ -401,9 +441,13 @@ the exhaustive per-clause sweep, not the first time an arm is tested.
 - `no stub (mode)` — goal-based.
 
 **Approach:**
-- Confirm the pre-PR hook's `implement` leg is ungated by the engine state and
-  runs for every `docs/specs/*/state.json`. The separate-phase design rests on
-  it. If it does not hold, stop and surface.
+- The six questions this task predeclared are settled; § 2 and § 3 of the
+  verification ledger hold the answers with the surfaces read. Re-verify none of
+  them here: a settled tier-one claim is read from the ledger, not rediscovered.
+- Confirm the pre-PR hook's `implement` leg is still ungated by the engine state
+  and still runs for every `docs/specs/*/state.json`, since the separate-phase
+  design rests on it and the tree may have moved. If it no longer holds, stop
+  and surface — this is a tier-one premise, not a detail to work around.
 - Confirm no golden row replays `check` with a phase other than `implement`,
   `review`, or `gates-failed`, and that the parity table's guard-family
   assertion keys on the verb rather than the phase.
@@ -497,6 +541,12 @@ records one run of the dispatch-rate generator.
   reason code, index type and range, usable partition, task membership. Nothing
   is written until every check passes.
 - Apply whatever T1 recorded about verb-set and `PHASES` pinning.
+- Three details are deliberately left to code, each with the oracle that states
+  its wrongness immediately: the exact words of each refusal, the names of the
+  helpers added, and the internal shape of each new fixture. The oracle is the
+  task's own pytest invocation — a wrong message fails the assertion that reads
+  it, a wrong helper name fails to import, a wrong fixture shape fails the case
+  built on it. None of them is a claim another task or criterion depends on.
 - Run `FORCE=1 make build-self` and verify the three copies of each edited
   `.apm/` file are byte-identical before finishing.
 
@@ -534,7 +584,7 @@ covers the state lock a new mutation takes.
 
 **Depends on:** T2
 
-**Touches:** packs/core/.apm/skills/work-loop/scripts/_loop_guards.py, packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/scripts/loop-engine.py, .claude/skills/work-loop/scripts/_loop_guards.py, .agents/skills/work-loop/scripts/_loop_guards.py, .claude/skills/work-loop/scripts/loop-cohort.py, .agents/skills/work-loop/scripts/loop-cohort.py, .claude/skills/work-loop/scripts/loop-engine.py, .agents/skills/work-loop/scripts/loop-engine.py, packs/core/tests/skills/work-loop/test_loop_guards.py, packs/core/tests/skills/work-loop/test_loop_guards_parity.py, packs/core/tests/skills/work-loop/test_loop_cohort.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py, packs/core/tests/skills/work-loop/test_loop_engine.py
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_loop_guards.py, packs/core/.apm/skills/work-loop/scripts/loop-cohort.py, packs/core/.apm/skills/work-loop/scripts/loop-engine.py, .claude/skills/work-loop/scripts/_loop_guards.py, .agents/skills/work-loop/scripts/_loop_guards.py, .claude/skills/work-loop/scripts/loop-cohort.py, .agents/skills/work-loop/scripts/loop-cohort.py, .claude/skills/work-loop/scripts/loop-engine.py, .agents/skills/work-loop/scripts/loop-engine.py, packs/core/tests/skills/work-loop/test_loop_guards.py, packs/core/tests/skills/work-loop/test_loop_guards_parity.py, packs/core/tests/skills/work-loop/test_loop_cohort.py, packs/core/tests/skills/work-loop/test_loop_cohort_cli.py, packs/core/tests/skills/work-loop/test_loop_engine.py, packs/core/tests/skills/work-loop/test_loop_concurrency.py
 
 **Tests:**
 - One case per verdict row, asserting the exit code and the content of both
@@ -576,6 +626,18 @@ covers the state lock a new mutation takes.
 - A bad-reason decline: the guard refuses **and** stderr names the malformed
   field, so removing the reason check from the record definition — which would
   turn that state into an accounted-for pass — flips the verdict and reddens.
+- `wave advance --from-index n` with `current_wave_index == n` and an
+  unaccounted task in wave `n`: exits non-zero, names that task, and leaves
+  `state.json` byte-identical so the pointer does not move.
+- The same call with wave `n` fully accounted for: exits zero and advances.
+- `wave advance --from-index n` with `current_wave_index == n + 1` and wave `n`
+  unaccounted: exits zero, because that is the documented crash-resume replay.
+  This is the discriminating pair for the branch asymmetry — a coupling applied
+  to both branches passes the first case and fails this one.
+- Each of the verb's existing refusals — empty partition, negative index,
+  out-of-range index, final wave, run-identifier mismatch — still exits non-zero
+  with its current reason, asserted against a state where the accounting check
+  would also have refused, so precedence is pinned rather than incidental.
 - Integration, in `test_loop_engine.py`: the real `wave-complete` transition out
   of `CODE-IMPLEMENTATION` exits non-zero against a state with one unaccounted
   task.
@@ -583,6 +645,12 @@ covers the state lock a new mutation takes.
   next wave, run the pre-transition verdict before any pointer advance, and
   assert that it names the unaccounted task in the current wave and not a task
   in the next wave.
+- Every existing call site that drives `wave advance` through the real CLI still
+  behaves as it does today. There are fifteen: seven in `test_loop_engine.py`,
+  seven in `test_loop_cohort.py`, one in `test_loop_concurrency.py`. Enumerate
+  which reach the advancing branch — the others refuse before the accounting
+  check and are unaffected — and give each of those a record in its fixture.
+  Pinned because the failure is otherwise discovered rather than planned.
 - Every existing path that drives `init` → `schedule` → `wave-complete` through
   the real CLI still reaches `CODE-VERIFICATION`. `make_crash_window_run` and
   `make_code_review_run` in `test_loop_engine.py` populate `schedule_waves` and
@@ -658,6 +726,7 @@ packs/core/tests/skills/work-loop/test_loop_guards_parity.py
 packs/core/tests/skills/work-loop/test_loop_cohort.py
 packs/core/tests/skills/work-loop/test_loop_cohort_cli.py
 packs/core/tests/skills/work-loop/test_loop_engine.py
+packs/core/tests/skills/work-loop/test_loop_concurrency.py
 packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
 
 ### T4: The controller-facing surfaces carry the calls, the authorship, and the codes
@@ -691,6 +760,12 @@ packs/core/tests/skills/work-loop/test_golden_fixtures.py -q` passes.
   `finding-adjudication.md` uses running prose. For the prose and table shapes,
   the check is a proximity condition in the same bullet, sentence, or cell,
   which is decidable on each.
+- Which of the two admissible edits to the pinned `finding-adjudication.md`
+  sentence to take — inserting before it, or rewriting it — is this task's local
+  method, so it is decided here and not in the spec. Kill condition: if neither
+  edit leaves the substring assertion passing, stop and surface rather than
+  weakening the assertion, because that would change a verification mechanism
+  and those are settled before approval.
 - Survey what pins each surface before editing, the way the EXECUTE pins are
   surveyed above. `test_finding_adjudication_contract.py` asserts a literal
   sentence against a sliced region of `finding-adjudication.md` as a substring,
@@ -741,7 +816,10 @@ tests/roster/test_verification_ledger_contract.py -q` passes.
   mutual-exclusivity check, the verb's reason-code check, the index type check,
   each end of the index range check, the usable-partition check, the
   task-membership check, the partition-digest match, the guard's reason-code
-  check, each of the nine verdict rows, the `schedule` container creation, the
+  check, each of the eight verdict rows, the accounting check on `wave
+  advance`'s advancing branch, its absence from the already-applied branch, the
+  precedence of the verb's existing refusals over it, the `schedule` container
+  creation, the
   `schedule` stale-record pruning, the amendment clearing, and the `status` key
   — re-running the suite after each.
 - Record, per clause, the named test that turned red and the observed failure.
@@ -840,9 +918,14 @@ tools/test_build_site_routing.py -q` passes.
   same file — is equally removable, and because conditioning the pass on
   evidence that does not exist would refuse every genuinely pre-upgrade run. It
   is disclosed in the spec's Objective, not only here.
-- **A wave can be advanced past without ever being checked.** `wave advance` is
-  not coupled to this guard. Registered as a follow-on; a record stays writable
-  for an already-left wave so it is not lost as well.
+- **A wave advanced past before the exit fires is now checked too.** `wave
+  advance` applies the same accounting predicate on the branch that moves the
+  pointer, so the bypass this plan previously disclosed and deferred is closed.
+  What remains open, deliberately: the already-applied branch exits zero
+  regardless, because the documented crash-resume replay re-issues the verb
+  after the pointer has moved. A controller that advances, has its records
+  removed, and then replays therefore still advances — a narrower window than
+  the bypass it replaces, and the alternative is a dead end in crash recovery.
 - **An enforcement-off exit leaves no durable trace.** The notice and the
   `status` key are both ephemeral and read by the constrained party, and for
   state whose `schema_version` is unsupported `status` refuses outright. A

@@ -1346,7 +1346,6 @@ open = [
   # receipts spec keeps a record writable for an already-left wave so the record
   # is not lost too, but closing the skip changes wave advance's refusal set.
   # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Pair leaving a wave index with that wave being accounted for: loop-cohort wave advance is not coupled to the wave-exit check, so advancing before the exit fires moves the guard's denominator and the skipped wave is never checked", needs = [] },
 
   # gates-failed, findings-remain and blocker-applied all re-enter
   # CODE-IMPLEMENTATION without moving current_wave_index, so the first pass's
@@ -1379,6 +1378,18 @@ open = [
 # docs/specs/pr-gate-suite-disposition/notes/verification-ledger.md; settling the
 # convention is its own decision.
 closed = [
+  # Closed 2026-09-17 by folding it into
+  # docs/specs/wave-complete-dispatch-receipts rather than deferring it. It was
+  # registered as a follow-on of that spec, then absorbed on the owner's
+  # instruction: a wave exit that refuses an unaccounted wave is worth little
+  # while `wave advance` steps past the same wave unchecked, so the guard's
+  # value depended on this entry staying open. The coupling applies the same
+  # accounting predicate on the branch that moves the pointer, and deliberately
+  # not on the branch that recognises the move as already applied, because the
+  # skill documents the verb as idempotent and session-resumption re-issues it
+  # on a wave-passed resume -- refusing there would turn crash recovery into a
+  # dead end. That residual window is disclosed in the spec's Risks.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Pair leaving a wave index with that wave being accounted for: loop-cohort wave advance is not coupled to the wave-exit check, so advancing before the exit fires moves the guard's denominator and the skipped wave is never checked", needs = [] },
   # Closed 2026-09-17 in core 2.26.11. `walk_task_sections` is now the sole
   # owner of the task-section boundary walk and `section_depends_field` the sole
   # owner of the `Depends on:` field lookup; `detect_unknown_deps`, `parse_plan`,

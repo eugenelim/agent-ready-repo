@@ -49,8 +49,8 @@ some let a record be written by a party or for a reason the guard cannot check
 (any actor that can read `run_id` can write one, including a dispatched
 `implementer`; and `human-directed` records a human instruction with no testable
 precondition); some let an exit pass without a fresh assertion (a repair round
-re-enters implementation without moving the wave pointer, and `wave advance` can
-move the pointer past a wave the exit never checked); and some leave no trace
+re-enters implementation without moving the wave pointer); and some leave no
+trace
 that enforcement was off (removing the container disables it for the run, and an
 enforcement-off exit writes nothing an after-the-fact reader can find). The
 plan's Risks section carries each, and the register holds the ones with owners.
@@ -113,8 +113,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Changing `loop-engine.py`'s guard adapter. `_guard_reason` returns `None` for
   any passing result, so a design needing the engine to surface a passing
   guard's text is a change to a contract every guard shares.
-- Coupling `loop-cohort wave advance` to this guard, or scoping a record to a
-  repair round. Both change an existing verb's refusal set.
+- Scoping a record to a repair round. That changes an existing verb's refusal
+  set in a way this spec does not attempt.
 - Any change to the `wave-passed` guard or the review-phase guards.
 
 ### Never do
@@ -260,6 +260,49 @@ identifier current when it was written.
       `state.json` is byte-identical to its content before the invocation.
 - [ ] Recording the same partition digest, wave index, and task identifier twice
       exits zero both times and leaves exactly one record for that triple.
+
+### Leaving a wave
+
+A wave exit that refuses an unaccounted wave is worth little while a sibling
+verb can step past the same wave unchecked, so `loop-cohort wave advance` is
+coupled to the same accounting predicate. The coupling is on the branch that
+*moves* the pointer, not on the branch that recognises the move as already
+applied: the skill documents the verb as idempotent and re-issues it on a
+`wave-passed` resume, so refusing on the already-applied branch would turn a
+crash-recovery replay into a dead end.
+
+- [ ] `loop-cohort wave advance --from-index n`, on the branch where
+      `current_wave_index` equals `n` and the pointer therefore moves, exits
+      non-zero when any task in wave `n` is not accounted for, and names every
+      such task.
+- [ ] That refusal leaves `state.json` byte-identical to its content before the
+      invocation, so the pointer does not move.
+- [ ] On the branch where `current_wave_index` already equals `n + 1`, the verb
+      exits zero regardless of whether wave `n` is accounted for, because the
+      documented crash-resume replay re-issues it after the pointer has moved
+      and a refusal there would strand the run.
+- [ ] The accounting predicate `wave advance` applies is the same one
+      `check --phase wave-exit` applies, from one declaration, so the two
+      cannot disagree about whether a wave is accounted for.
+- [ ] The verb's existing refusals — an empty partition, a negative or
+      out-of-range `--from-index`, the final wave, and a non-matching run
+      identifier — keep their current verdicts and are decided before the
+      accounting check, so no state that refuses today refuses with a different
+      reason after this change.
+
+### The verb and the unsupported-schema class
+
+The exit tolerates a state whose `schema_version` is not the supported value, so
+what the verb does for that same class is a criterion rather than an inherited
+detail: leaving it unstated would let the exit ask for a record the controller
+cannot write.
+
+- [ ] `loop-cohort dispatch-receipt` refuses a state whose `schema_version` is
+      not the supported value, as every other cohort mutation does, and names
+      the schema as the reason.
+- [ ] That asymmetry is stated where the fallback is documented: the exit
+      tolerates the class and the verb refuses it, so on the oldest state the
+      exit passes without a record and no controller action is owed.
 
 ### The `check --phase wave-exit` verdict
 
@@ -463,16 +506,6 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
   `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` — refuse or
   disambiguate a duplicate plan task heading. Registered 2026-09-17; independent
   of this spec.
-- eugenelim: `workspace.toml` `[backlog].open`, the entry on
-  `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` whose summary opens
-  "Pair leaving a wave index with that wave being accounted for" — register
-  entries are keyed by `path` and carry no slug, so a slug would resolve to
-  nothing. Pair leaving a wave index with
-  that wave being accounted for. `loop-cohort wave advance` is authorized by
-  `--expect-run-id` alone and is not coupled to this guard, so a controller that
-  advances before firing `wave-complete` takes the skipped wave out of the
-  guard's view. This spec keeps a record writable for an already-left wave so
-  the record is not also lost.
 - eugenelim: `workspace.toml` `[backlog].open`, the entry on
   `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py` whose summary opens
   "Require a repair round to carry its own dispatch assertion" — require a
