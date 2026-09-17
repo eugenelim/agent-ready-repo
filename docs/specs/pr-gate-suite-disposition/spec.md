@@ -51,8 +51,8 @@ route, which is the superset, because the composed
 the third macro argument: of 114 gate targets, 56 are reached by
 a workflow whose `pull_request` trigger carries no path filter, 6 only conditionally
 (four behind `catalogue-tooling-ci-gates.yml`'s `paths-ignore`, one behind
-`build-check-windows.yml`'s `paths`, one behind `docs.yml`'s), and 52 by no
-pull-request workflow at all.
+`build-check-windows.yml`'s `paths-ignore`, one behind `docs.yml`'s `paths`), and
+52 by no pull-request workflow at all.
 
 `tools/lint-pack-test-boundary.py`'s `every-suite-dir-has-a-runner` rule answers a
 neighbouring but different question — whether *anything* runs a pack suite, where
@@ -268,8 +268,9 @@ eight take the modes named below.
   T1 re-derives it; this assumption records only that the probe is the module's own
   `_expanded_recipe_lines` plus `extract_ci_targets` over every workflow, not a
   second copy of the numbers.
-- Technical: only `build-check.yml` and `ci-security.yml` carry an unfiltered
-  `pull_request` trigger (probe: YAML parse of `.github/workflows/*.yml`).
+- Technical: of 17 workflow files, only `build-check.yml` and `ci-security.yml`
+  carry an unfiltered `pull_request` trigger; 11 carry a filtered one (6
+  `paths`, 5 `paths-ignore`) and 4 have no pull-request trigger (probe: YAML parse of `.github/workflows/*.yml`).
 - Technical: `catalogue-tooling-ci-gates.yml` filters with `paths-ignore`, not
   `paths`, so it runs for any `packs/**` or `packages/**` change but skips a
   pull request confined to the ignored set. Both filter kinds are therefore

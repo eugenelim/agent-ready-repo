@@ -25,12 +25,28 @@ The 6 conditional targets and their routes: `packages/agentbundle/tests/`,
 `packs/core/tests/hooks/`, `tools/test_catalogue_tooling_rewire.py` and
 `tools/test_catalogue_tooling_docs.py` behind `catalogue-tooling-ci-gates.yml`'s
 `paths-ignore`; `tools/test_coordination_lease.py` behind
-`build-check-windows.yml`'s `paths`; `tools/lint-pack-test-boundary.py` behind
+`build-check-windows.yml`'s `paths-ignore`; `tools/lint-pack-test-boundary.py` behind
 `docs.yml`'s `paths`.
 
 Of 17 workflow files, only `build-check.yml` and `ci-security.yml` carry an
-unfiltered `pull_request` trigger. 11 carry a filtered one; 4 have no
-pull-request trigger.
+unfiltered `pull_request` trigger. 11 carry a filtered one — 6 `paths`, 5
+`paths-ignore` — and 4 have no pull-request trigger. An earlier reading of this
+table mislabelled `build-check-windows.yml` and `codeql.yml` as `paths`; both are
+`paths-ignore`. No classification moves, because the amended AC-0005 treats both
+filter kinds as conditional; only the prose was wrong.
+
+### Enforcement shapes, measured
+
+No job or step of any workflow carries `continue-on-error`. The `if:` conditions
+that exist sit on `gate-sast`'s two steps and the `build-check` aggregator job
+(`always()`), on `build-check-windows`'s job, on four `catalogue-tooling-ci-gates`
+matrix steps, on `docs.yml`'s `check-adr-immutability` job, on `pages.yml`'s
+upload-on-failure step and `deploy` job, and on the three release workflows' tag
+guards. **None is on `gate-main`**, which is where every script-invocation and
+pytest-operand `PR_GATED` route runs, so AC-0004's arm rejects no current entry.
+
+Exactly one step invokes `make build-check` and so pulls in the whole gate chain:
+`gate-main / Run make build-check`.
 
 ### Lines with no extractable target: four, not three
 
