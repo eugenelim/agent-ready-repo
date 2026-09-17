@@ -44,6 +44,41 @@ follow-on is created: the amendment corrects an enumeration that was incomplete
 when approved. AC-0013's outcome is unchanged; the amendment is what makes it
 reachable.
 
+## 2026-09-17 — Post-gates review: fix six defects, amend AC-0001
+
+The post-gates adversarial round returned seven findings, all sustained — six by
+direct test against the code, one a contract reading. Owner decisions:
+
+**Finding 1 — 21 false `NO_PR_GATE` entries. Teach the extractor to read the
+loop.** `catalogue-tooling-ci-gates.yml` lists 24 suite paths literally in
+`for d in <paths>; do python -m pytest "$d" -q; done`, so the extractor saw no
+literal operand and the roster declared 21 of those suites ungated with reasons
+stating that no workflow names them. `pr_gate_sources` now reads that bounded
+shape — a `for VAR in <literal list>` whose body invokes pytest on `$VAR` — and
+the 21 entries become `PR_GATED_IF`, corroborated rather than asserted.
+
+Rejected alternative: hand-declaring them, following
+`lint-pack-test-boundary.py`'s `_UNRESOLVABLE_RUNNER_EXCEPTIONS` precedent. It is
+cheaper and avoids extractor work in a module whose docstring warns that
+extractor cleverness was defeated four times, but it would leave 21 entries that
+nothing verifies — the shape this roster exists to remove.
+
+**Finding 7 — amend AC-0001 to require every target.** AC-0001 as approved fires
+only when a line "resolves to no entry", and the *Always do* boundary says "at
+least one". The implementation requires every target on the line to carry an
+entry. The delivery first recorded that as a ledger-noted deviation on the
+grounds that stronger behaviour satisfies the criterion. That reasoning was right
+about conformance and wrong about durability: nothing stops a later
+implementation restoring the weaker rule while still passing AC-0001 and AC-0014.
+A second controlled amendment makes the property contractual.
+
+Findings 2 through 6 are implementation defects needing no contract change: an
+opaque operand beside a known target demanded no entry; a `${...}` brace-form
+Make expansion in a recipe comment was dropped where `$(...)` was retained; a
+declared substring key resolved a *different* command by raw containment;
+`if: false` loaded as Boolean false and read as unconditional; and duplicate step
+names cross-credited targets between steps.
+
 ## Earlier decisions, recorded during authoring
 
 - Roster placement: extend `tools/lint-ci-parity.py` rather than add a new lint,
