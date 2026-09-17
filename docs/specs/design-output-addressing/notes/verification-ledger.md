@@ -129,3 +129,31 @@ with where it writes — but repairing it needs a criterion, and inventing one
 mid-implementation against a frozen contract is the failure this ledger exists
 to avoid. It belongs to the `design-handoff-read` follow-on or a successor, and
 should be carried there rather than closed here.
+
+## Execution observation — the containment module has five copies, not four, 2026-09-16
+
+T5 gave `design-review` its own `references/containment.md`. A skill installs
+standalone and cannot reach a sibling's `references/`, so the byte-identical
+copy is the pack's own mechanism for a shared control — the one T1 chose. The
+module therefore has **five** copies: `creative-direction`,
+`design-principles`, `design-system`, `information-architecture`, and now
+`design-review`. All five carry one md5.
+
+The approved plan says four in three live places — `plan.md:65`, `:103` and
+`:153` — and `plan.md:375` specifies T9's declaration test as red "when one
+module copy is altered so equality fails". **T9's test must quantify over all
+five copies.** A test written from the plan's count would leave the fifth
+unpinned, which is the copy most likely to drift: it is the only one held by a
+skill that does not write.
+
+No obligation changes. The criterion is equality across the module's copies;
+only the population grew, and it grew because T5 added a reader that needs the
+controls. Recorded here rather than amending the frozen plan, and carried into
+T9's brief.
+
+The module's opening paragraph was generalized in the same commit, identically
+across all five copies. It said the module governed "the four writes in this
+skill set", which became false the moment a read-only skill held a copy, and
+half its controls — intermediate-directory creation, replacing an artifact
+already at the target — have no read counterpart. T5 created that falsehood by
+adding the fifth copy, so T5 repaired it. Equality is unaffected.
