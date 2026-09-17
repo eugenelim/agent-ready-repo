@@ -25,6 +25,16 @@ change to one.
   whatever supplies the endpoint, so the refusal cannot be shadowed by an
   environment variable. A configuration file is also refused when the opened
   descriptor is a reparse point or has more than one link.
+- The `--config` and `--user-config` size ceiling (64 KiB) is decided on the
+  complete file, not on a size sampled before the read: the reader asks for one
+  byte past the ceiling and re-samples the file's size afterward, refusing a
+  file whose size changed across the read rather than parsing a valid prefix of
+  an oversized file.
+- Configuration acquisition — opening, proving and reading every `--config` and
+  `--user-config` file — runs under one 5 second deadline established before
+  the first file is opened, on a worker the command abandons if it overruns, so
+  a configuration path on a slow or disconnected mount is refused instead of
+  hanging the command with no diagnostic.
 - `service.name` falls back to `[telemetry].service_name` from either file when
   `--service-name` is absent, before the `--profile` filename stem.
 - Declarative profiles: a TOML file names the timestamp field and its format,

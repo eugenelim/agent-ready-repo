@@ -15,8 +15,10 @@ import json
 import os
 import pathlib
 import stat
+import threading
 
 import pytest
+from conftest import await_released_workers
 from jsonl_otlp_exporter import cli
 from jsonl_otlp_exporter import config as cfg
 
@@ -292,19 +294,38 @@ class TestHostileContentIsEscaped:
     # unknown-key message escaping its path while eight other messages did not,
     # so a single case is exactly the control that passed while the gap shipped.
     #
-    # `config.py` raises `ConfigRefused` at ten sites, and all ten are walked
-    # here. The short-read site needs a substituted `os.read` -- a real short
-    # read cannot be forced on a local regular file under the ceiling, which is
-    # what `TestShortRead` in `test_config.py` records -- but the substitution is
-    # orthogonal to the claim under test: the hostile name is still this arm's
-    # own file, so the message it formats still carries the hostile path.
+    # `config.py` raises `ConfigRefused` from twelve message-construction
+    # sites, and all twelve are walked here. Eleven format their own message
+    # inline; the twelfth is `_acquisition_bound_refused`, the one place both
+    # of `_run_bounded`'s two refusals -- a deadline already spent, and a join
+    # that timed out -- construct their (identical) message, so walking it
+    # through either branch proves both escape. Before that extraction there
+    # were thirteen raise statements for twelve distinct messages, and an arm
+    # here for only one of the two identical-message sites; the coordinator
+    # who found that gap also supplied the fix, folding the duplicate into
+    # one site rather than adding a second arm for a message that cannot
+    # drift from itself.
+    #
+    # The short-read, grown and acquisition-timeout sites each need a
+    # substituted `os.read` -- neither a real short read, a real
+    # same-instant growth nor a genuine hang can be forced on a local regular
+    # file under the ceiling, which is what `TestShortRead`,
+    # `TestExactCeilingGrowthRace` and `TestAcquisitionBound` in
+    # `test_config.py` record -- but the substitution is orthogonal to the
+    # claim under test: the hostile name is still this arm's own file, so the
+    # message it formats still carries the hostile path. A case where this
+    # arm's assertion could be satisfied by another site's message is exactly
+    # how a previous delivery shipped an escaping control that covered one
+    # site of ten -- hence one arm per site, mutated individually.
     @pytest.mark.parametrize("kind", [
         "unknown-key", "bad-value", "non-table", "bad-toml", "oversized",
         "not-regular", "hard-link", "reparse", "open-error", "short-read",
+        "grown", "growth-residue", "acquisition-timeout",
     ])
     def test_every_refusal_escapes_a_hostile_path(self, tmp_path, kind, monkeypatch):
         """The path is caller-supplied and reaches the same terminal as the key."""
         hostile = tmp_path / "we\nird\x1b[31m.toml"
+        release = None
         if kind == "unknown-key":
             hostile.write_text('[telemetry]\nbogus = "x"\n', encoding="utf-8")
         elif kind == "bad-value":
@@ -370,9 +391,99 @@ class TestHostileContentIsEscaped:
             monkeypatch.setattr(
                 cfg.os, "read",
                 lambda fd, size: genuine_read(fd, size)[:1])
+        elif kind == "grown":
+            # Armed at exactly the ceiling, then grown through a second
+            # descriptor from inside a substituted `os.read` -- the
+            # concurrent-writer race `TestExactCeilingGrowthRace` in
+            # `test_config.py` exercises directly. Only the re-sampled
+            # `fstat` -- not the sampled-size or short-read checks -- can
+            # catch this, so it needs its own site and its own message.
+            head = '[telemetry]\nendpoint = "http://127.0.0.1:4318"\n#'
+            hostile.write_text(
+                head + "x" * (cfg.MAX_CONFIG_BYTES - len(head)), encoding="utf-8")
+            assert hostile.stat().st_size == cfg.MAX_CONFIG_BYTES
+            genuine_read = os.read
 
-        with pytest.raises(cfg.ConfigRefused) as caught:
-            cfg.resolve_telemetry(hostile, None)
+            def grow_then_read(fd, size):
+                with hostile.open("ab") as second_descriptor:
+                    second_descriptor.write(b"y")
+                return genuine_read(fd, size)
+
+            monkeypatch.setattr(cfg.os, "read", grow_then_read)
+        elif kind == "growth-residue":
+            # T2/AC-0001 follow-up. The residue the buffer and the re-sample
+            # together still leave: a substituted read returns exactly the
+            # sampled ceiling length even though the file has grown for real
+            # underneath it, AND the re-sampled `fstat` reports the
+            # pre-growth size -- so neither the "changed" check nor the
+            # short-read comparison can catch it. Only the trailing
+            # single-byte probe (run after both) still finds an unread byte
+            # on the descriptor. Same technique as
+            # `test_growth_hidden_by_a_capped_read_and_a_stale_resample_is_caught_by_the_probe`
+            # in `test_config.py`.
+            head = '[telemetry]\nendpoint = "http://127.0.0.1:4318"\n#'
+            hostile.write_text(
+                head + "x" * (cfg.MAX_CONFIG_BYTES - len(head)), encoding="utf-8")
+            assert hostile.stat().st_size == cfg.MAX_CONFIG_BYTES
+            genuine_read = os.read
+            genuine_fstat = os.fstat
+            calls = {"n": 0}
+
+            def capped_read_after_growth(fd, size):
+                if size == 1:
+                    return genuine_read(fd, size)
+                with hostile.open("ab") as second_descriptor:
+                    second_descriptor.write(b"y")
+                return genuine_read(fd, cfg.MAX_CONFIG_BYTES)
+
+            def first_genuine_then_stale_fstat(fd):
+                calls["n"] += 1
+                if calls["n"] == 1:
+                    return genuine_fstat(fd)
+                genuine = genuine_fstat(fd)
+
+                class _StaleStat:
+                    def __init__(self, inner):
+                        self._inner = inner
+
+                    def __getattr__(self, name):
+                        return getattr(self._inner, name)
+
+                    @property
+                    def st_size(self):
+                        return cfg.MAX_CONFIG_BYTES
+
+                return _StaleStat(genuine)
+
+            monkeypatch.setattr(cfg.os, "read", capped_read_after_growth)
+            monkeypatch.setattr(cfg.os, "fstat", first_genuine_then_stale_fstat)
+        elif kind == "acquisition-timeout":
+            # T3/AC-0077. A substituted `os.read` that blocks past the
+            # (monkeypatched, short) acquisition bound rather than a real
+            # short read or growth -- `TestAcquisitionBound` in
+            # `test_config.py` exercises the three blocking syscalls
+            # directly. Released in `finally` below so the abandoned worker
+            # ends with this case rather than outliving the session.
+            hostile.write_text('[telemetry]\nendpoint = "http://127.0.0.1:4318"\n',
+                                encoding="utf-8")
+            monkeypatch.setattr(cfg, "_CONFIG_TIMEOUT_SECONDS", 0.2)
+            release = threading.Event()
+            genuine_read = os.read
+
+            def blocking_read(fd, size):
+                release.wait()
+                return genuine_read(fd, size)
+
+            monkeypatch.setattr(cfg.os, "read", blocking_read)
+
+        before_threads = set(threading.enumerate())
+        try:
+            with pytest.raises(cfg.ConfigRefused) as caught:
+                cfg.resolve_telemetry(hostile, None)
+        finally:
+            if release is not None:
+                release.set()
+                await_released_workers(before_threads)
         message = str(caught.value)
         if kind == "reparse":
             assert "reparse point" in message, message
@@ -380,6 +491,12 @@ class TestHostileContentIsEscaped:
             assert "refused at open" in message, message
         elif kind == "short-read":
             assert "read returned" in message, message
+        elif kind == "grown":
+            assert "changed" in message, message
+        elif kind == "growth-residue":
+            assert "beyond" in message, message
+        elif kind == "acquisition-timeout":
+            assert "bound" in message, message
         assert "\n" not in message, (
             f"a newline in a path split the {kind} message: {message!r}")
         assert "\x1b" not in message, (

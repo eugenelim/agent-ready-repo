@@ -107,20 +107,26 @@ reaches every backend that has a Collector in front of it.
 
 ## Testing Strategy
 
-**TDD stub dispositions.** Four plan tasks are TDD: T2, T3, T4 and T5. None
-carries a validated stub, and all four carry `no stub
-(implementation-discovered)` with a discovery predicate and proof obligation,
-because the package does not exist at plan approval and `tdd-stubs.md` forbids
-inventing a module to assert against. T1, T6, T7 and T8 each carry their own
-`no stub (mode)` record naming the mode and the reason.
+**TDD stub dispositions.** T2, T3, T4 and T5 are TDD because the package does
+not exist at plan approval; each carries `no stub (implementation-discovered)`
+with its own discovery predicate and proof obligation, since `tdd-stubs.md`
+forbids inventing a module to assert against. T9 and T10 are TDD for a
+different reason — the package already exists by the time each lands, and each
+names a seam its own implementation decides — and each carries the same `no
+stub (implementation-discovered)` disposition for that reason instead. T1, T6,
+T7 and T8 each carry their own `no stub (mode)` record naming the mode and the
+reason.
 
-Across the 72 criteria: **0** are covered by a validated stub; **58** sit under
-`no stub (implementation-discovered)` in the four TDD tasks (VI-0001, VI-0002,
-VI-0004, VI-0006, VI-0007, VI-0008, VI-0009, VI-0010 and VI-0013); **14** are
-goal-based or manual QA and take no stub (VI-0003, VI-0005, VI-0011 and
-VI-0012). Every criterion appears in exactly one of the three groups, and the
-zero is the number to argue with: it is a consequence of the package not
-existing at plan approval, not an omission, and it is the single largest
+Across the 76 criteria: **0** are covered by a validated stub; **59** sit under
+`no stub (implementation-discovered)` in the nine groups already named for that
+disposition (VI-0001, VI-0002, VI-0004, VI-0006, VI-0007, VI-0008, VI-0009,
+VI-0010 and VI-0013); **3** sit under the same disposition in VI-0014, kept as
+its own count here because the amendment that added VI-0014 left its criteria
+out of both buckets and this census exists to catch that failure again; and
+**14** are goal-based or manual QA and take no stub (VI-0003, VI-0005, VI-0011
+and VI-0012). Every criterion appears in exactly one of these three groupings,
+and the zero is the number to argue with: it is a consequence of the package
+not existing at plan approval, not an omission, and it is the single largest
 assurance gap this plan carries into EXECUTE.
 
 - **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0060, AC-0002, AC-0003, AC-0004):** TDD. AC-0002's fourth source and AC-0033's fourth refusable argument are exercised here alongside the three that preceded them, so a build that honours the new source while dropping an older one fails in this group rather than in VI-0014. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
@@ -129,7 +135,7 @@ assurance gap this plan carries into EXECUTE.
 - **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
 - **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted by walking each distinct state the `### Exit codes` table names — several rows name more than one, so one invocation per row samples a row's first alternative and leaves the rest unexercised — and requiring each observed status to be in `{0, 1, 130}` — that closure is what makes the universal claim checkable without an unbounded quantifier, and it is strictly stronger than excluding the reserved 2–9 band.
 - **VI-0006 — input confinement (AC-0017, AC-0043, AC-0061, AC-0062):** TDD. AC-0062's fixtures run against `--config` and `--user-config` both, because a build guarding only the flag it already had passes every case written for one of them. Its reparse-point and hard-link rejections take cases of their own: each is a `stat` field the regular-file check does not read, so a build asserting only `S_ISREG` passes the symlink, FIFO, device and directory cases and still admits both. AC-0062 takes its own fixtures because the config path is the one opened surface the resolved root does not bound, so a build reusing `--input`'s predicate wholesale refuses a legitimate user-scope config and fails it. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
-- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056, AC-0063):** TDD. AC-0063 is asserted through a counting seam over a 10,000-record input rather than by measuring process memory, which no fixture can attribute to this command alone. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
+- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056, AC-0063, AC-0077):** TDD. AC-0063 is asserted through a counting seam over a 10,000-record input rather than by measuring process memory, which no fixture can attribute to this command alone. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit. AC-0056's exact-ceiling case needs a paired non-growing arm at the same size: without it, a build that refuses every file at the ceiling — including a legitimate one that never grew — passes the growth arm by over-refusing rather than by deciding correctly, and the non-growing arm is the only thing that catches that off-by-one. AC-0077 is asserted by observing the call return with its refusal, not by reading the constant it compares against: a build that computes the 5-second deadline correctly and then issues an open or a read it cannot abandon satisfies every assertion written against the bound's value and still hangs forever, so an assertion over the value alone proves nothing the defect does not already satisfy.
 - **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0042, AC-0022):** TDD. AC-0022 names its mode, its starting state, the mutation applied, the termination trigger and the records expected, so a build that observes nothing and exits fails it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
 - **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
@@ -331,8 +337,29 @@ assurance gap this plan carries into EXECUTE.
 - [ ] **AC-0052.** With no `--profile` given, the command sends nothing and exits
   1; no profile is built in.
 
-- [ ] **AC-0056.** A `--config` file larger than 64 KiB is refused before it is
-  parsed, and the command sends nothing and exits 1.
+- [ ] **AC-0056.** A configuration file supplied by `--config` or by
+  `--user-config` is refused, with nothing sent and exit 1, when its complete
+  content exceeds 64 KiB; a file whose complete content is exactly 64 KiB is
+  accepted and parsed. Refusal is decided on the file the reader actually
+  obtained, never on a size sampled before the read: a file sampled at exactly
+  the ceiling and then appended to before its bytes are read is refused all the
+  same. `--user-config` and the complete-file decision were both added on
+  2026-09-17 — the flag joined the module's neighbouring confinement criterion,
+  AC-0062, on 2026-09-16 and was missed here, and the sampled-size measure left
+  a file grown between the sample and the read to have its truncated prefix
+  parsed as though it were the whole file.
+- [ ] **AC-0077.** Configuration acquisition — opening and reading every
+  configuration file the command was given, whichever of `--config` and
+  `--user-config` were supplied — is abandoned 5 seconds after that acquisition
+  begins, measured on a monotonic clock, with nothing sent and exit 1 naming the
+  bound. The clock starts before the first configuration file is opened,
+  because `open(2)` on an unresponsive mount blocks before any flag applies, and
+  it covers every supplied file under one deadline so a second file cannot
+  extend it. This is not a reuse of AC-0040 or AC-0055: both start at the first
+  destination resolution, which happens only after every configuration file has
+  already been read, so neither bound's clock ever runs during this I/O. The
+  bound fires on a configuration path whose open, whose descriptor proof, or
+  whose read does not return.
 - [ ] **AC-0062.** A file given by `--config` or by `--user-config` is opened
   no-follow and the opened descriptor is proven a regular file that is neither a
   reparse point nor multiply linked before any byte of it is parsed; a symbolic
