@@ -185,6 +185,67 @@ def test_a_sentence_after_the_status_token_is_a_qualifying_clause(tmp_path):
     assert rows[0].split(" | ")[2] == "Superseded by ADR-0042"
 
 
+def test_a_bare_superseded_status_composes_the_pointer_from_its_own_field(tmp_path):
+    """AC-0013: a bare `Status: Superseded` plus a populated `Superseded by:`
+    still renders a supersession pointer, pinned independently of any one
+    record. `_status_token` alone cannot see the target once `Status` carries
+    only the lifecycle token."""
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        "- **Superseded by:** ADR-0042\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded by ADR-0042"
+
+
+def test_a_bare_superseded_status_with_no_pointer_field_stays_bare(tmp_path):
+    """No `Superseded by:` field: the bare token renders with nothing composed in."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: T", status="Superseded")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded"
+
+
+def test_a_none_valued_superseded_by_field_composes_nothing(tmp_path):
+    """The template's `none` sentinel names no target, so nothing is composed."""
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        "- **Superseded by:** none\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded"
+
+
+def test_a_superseded_by_value_with_both_escaping_classes_renders_inert(tmp_path):
+    """AC-0032: a value carrying both the cell-breaking set (`|[]<>`) and the
+    destination-terminating set (`) # ? ` whitespace`) in one value. A
+    single-class fixture cannot tell `_escape_cell` from `_escape_destination`:
+    both neutralize `|`/`[`/`]` (the destination escaper via percent-encoding),
+    so only a destination-only character exposes the wrong escaper -- it would
+    come out percent-encoded instead of literal. The status cell already runs
+    through `_escape_cell(status)`, so composing the pointer ahead of that call
+    is what makes this pass with no change to the emission code."""
+    value = "ADR-0109|[x]<y>(z) #h?"
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        f"- **Superseded by:** {value}\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    cell = rows[0].split(" | ")[2]
+    # Cell-breaking characters neutralized: raw `|` would split the row, raw
+    # `[`/`]` would open a link, raw `<`/`>` would open markup.
+    assert cell == r"Superseded by ADR-0109\|\[x\]&lt;y&gt;(z) #h?"
+    # Destination-terminating characters stay literal. Percent-encoding them
+    # (`%28`, `%23`) would prove `_escape_destination` ran instead -- wrong for
+    # a value that never becomes a link destination.
+    assert "(z) #h?" in cell
+    assert "%28" not in cell and "%23" not in cell and "%3F" not in cell.upper()
+
+
 def test_an_unfilled_date_placeholder_is_not_a_date(tmp_path):
     """A record still carrying the template's placeholder has no date."""
     _write(tmp_path, "0001-r.md", "ADR-0001: T", date="YYYY-MM-DD")

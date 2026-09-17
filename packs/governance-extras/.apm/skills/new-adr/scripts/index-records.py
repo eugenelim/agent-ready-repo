@@ -176,6 +176,28 @@ def _status_token(text: str) -> str | None:
     return re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", raw).strip()
 
 
+def _display_status(body: str, status: str) -> str:
+    """The status token, with a bare `Superseded` pointer composed in.
+
+    A record's supersession target lives in its own `Superseded by:` field, not
+    in `Status`, so a bare-token record carries the pointer nowhere
+    `_status_token` can see. Composed here, ahead of the caller's
+    `_escape_cell(status)` call, the result travels the same escaping path as
+    every other record-controlled cell -- no change to the emission code. Read
+    same-line only, like every other field this generator reads, on a
+    deliberately narrower contract than a shape lint's block-aware reader.
+    This generator runs standalone and cannot assume the field was validated
+    upstream, so an absent, unfilled, or `none` value leaves the bare token
+    untouched rather than composing a pointer to nothing.
+    """
+    if status != "Superseded":
+        return status
+    target = _field(body, "Superseded by")
+    if target is None or target == _UNFILLED or target.strip().lower() == "none":
+        return status
+    return f"{status} by {target}"
+
+
 _BACKTICK_RUN = re.compile(r"`+")
 
 
@@ -339,6 +361,8 @@ def render(directory, record_type: str | None = None) -> str:
         if status is None:
             _warn(f"{name}: no Status field")
             status = ""
+        else:
+            status = _display_status(body, status)
         cells = [f"{ordinal:04d}",
                  f"[{_escape_cell(title)}]({_escape_destination(name)})",
                  _escape_cell(status)]
