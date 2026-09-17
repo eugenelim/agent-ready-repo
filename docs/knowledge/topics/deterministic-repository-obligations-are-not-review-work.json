@@ -1,0 +1,64 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-CHANGE",
+    "CQ-REVIEW",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-09T20:18:56Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-27791d385591c5b0712532f18773c17ed2e9305a6945b4e86d8e9a1739769a84",
+      "mutation_id": "6cfa1c9fa8c6a9c2e22dc5aa32272073f01974ef01a22aa5b507e16d8b5131bf",
+      "observed_at": "2026-09-09T20:18:56Z",
+      "producer": "de-risk-intent",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/product",
+      "semantic_gate": "spike-verdict",
+      "source": {
+        "path": "docs/product/research/work-loop-review-economics-spike.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 53653,
+      "kind": "sha256-bytes-v1",
+      "sha256": "eb4c5f6250f5f8c0e1fe306b989102a2d7fc8caf028ee67389c2110b6642f1e1"
+    },
+    "path": "docs/product/research/work-loop-review-economics-spike.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/product",
+    "packs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 22623,
+        "kind": "sha256-bytes-v1",
+        "sha256": "09bc56e306fcaa344bd4ab5b1273a93633e11e24ae84f01e4f1dc2fa88d36428"
+      },
+      "path": "docs/product/intents/work-loop-review-economics.md"
+    },
+    {
+      "digest": {
+        "byte_length": 8785,
+        "kind": "sha256-bytes-v1",
+        "sha256": "2925e64585521a2d411dc6570b1d3c0ff787ba1b4a0e7afe021cec04f25bf67f"
+      },
+      "path": "packs/core/.apm/agents/implementer.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A six-case paired review experiment sustained 67 findings; 22 of them were unmet repository conventions, split 11/11 between the baseline and the candidate arm. Projection drift affected five of the six cases. The rest were register or backlog contradictions, release version and changelog obligations, approval-pinned deviations, eval coverage, and controls that could not fail. Because the cost was symmetric across both arms and the repairs repeated the same breaches, no change to review scheduling removes it: a semantic reviewer is being paid to run checks a script can run. Carry the touched-path ground rules into the implementer brief, discharge the deterministic obligations before review is dispatched, and keep a focused re-review only as a backstop for repair-induced defects.",
+    "kind": "antipattern"
+  },
+  "title": "Deterministic repository obligations are not review work — verify them before dispatching a reviewer",
+  "topic_key": "deterministic-repository-obligations-are-not-review-work"
+}

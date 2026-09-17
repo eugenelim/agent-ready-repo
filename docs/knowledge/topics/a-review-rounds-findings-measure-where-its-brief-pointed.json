@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-REVIEW",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-11T02:26:18Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-2827fc44b85ea9082cb6dca92f9b113bea4780c1cdadbe9c7f05d901ef110d71",
+      "mutation_id": "b077ec9315a19f9e587c9caf038912f64f973420abd7769562644f95c86feac7",
+      "observed_at": "2026-09-11T02:26:18Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "docs/specs/acceptance-criteria-set-construction/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 73171,
+      "kind": "sha256-bytes-v1",
+      "sha256": "df5c32d519fb320c7882b9599ae74980498838ad73ce65a21754a49d1339f958"
+    },
+    "path": "docs/specs/acceptance-criteria-set-construction/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    "packs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 27796,
+        "kind": "sha256-bytes-v1",
+        "sha256": "299fd2495e681b85a05a9418f51c178069f2bb723523871a156f8bd6ef62757b"
+      },
+      "path": "docs/specs/acceptance-criteria-set-construction/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "Round 8 of one spec sustained a stale cross-reference that had been present and reachable for at least two earlier rounds. It surfaced only because that round's brief named reference-walking as its first attack. Two consequences follow. A declining per-round finding count partly measures the brief narrowing rather than the artifact improving, so on its own it is not evidence of convergence. And a round that says nothing about an area is not evidence that the area is clean. Keep this separate from the illegitimate case: a reviewer reopening a decision the brief records as settled is not a late finding, and is refused rather than repaired.",
+    "kind": "gotcha"
+  },
+  "title": "A review round's findings measure where its brief pointed, not what is wrong with the artifact",
+  "topic_key": "a-review-rounds-findings-measure-where-its-brief-pointed"
+}

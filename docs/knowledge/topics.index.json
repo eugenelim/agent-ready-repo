@@ -166,6 +166,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "49cfb6e15302820d795a3babccf2ac4ef13bb86d"
+      },
+      "competency_facets": [
+        "CQ-ORIENT",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T02:50:05Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-corpus-living-with-a-violation-has-already-invented-a-workaround.json",
+      "scopes": [
+        "docs",
+        "tools"
+      ],
+      "title": "A corpus living with a violation has already invented a workaround — read the index before adding the check",
+      "topic_key": "a-corpus-living-with-a-violation-has-already-invented-a-workaround"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "04e9d287f63b8a910b0a67ce9e8cfce720f7b435"
       },
       "competency_facets": [
@@ -238,6 +262,29 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "fa9276e8748555d02e95c7bec64a9a1895de2ab1"
+      },
+      "competency_facets": [
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T02:49:57Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-git-pathspec-helper-must-be-asserted-from-a-real-subdirectory.json",
+      "scopes": [
+        "packs",
+        "tests"
+      ],
+      "title": "A git-pathspec helper must be asserted from a real repository subdirectory, not a root-level fixture",
+      "topic_key": "a-git-pathspec-helper-must-be-asserted-from-a-real-subdirectory"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "3f0a2ffeee22857df4658a57e00291163e99ce1f"
       },
       "competency_facets": [
@@ -255,6 +302,30 @@
       ],
       "title": "A house-style rule put in the shipped package becomes an adopter's build break",
       "topic_key": "a-house-style-rule-put-in-the-shipped-package-becomes-an-adopter-s-build-break"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "4719e830f21d1d461a51b9a6db602ecd62bb06ba"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T06:10:35Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-lint-rule-reported-as-partial-did-not-run.json",
+      "scopes": [
+        "docs/specs",
+        ".claude/skills"
+      ],
+      "title": "A lint rule reported as 'partial' did not run, and the summary still reads as a pass",
+      "topic_key": "a-lint-rule-reported-as-partial-did-not-run"
     },
     {
       "audience": "project",
@@ -488,6 +559,30 @@
       ],
       "title": "A review round whose findings are mostly prior-round repairs is the signal to cut the plan, not extend it",
       "topic_key": "a-review-round-whose-findings-are-mostly-prior-round-repairs-is-a-signal-to-cut"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "c71f0bc2a75442a4f3484db9d37e5469816608a1"
+      },
+      "competency_facets": [
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-11T02:26:18Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-review-rounds-findings-measure-where-its-brief-pointed.json",
+      "scopes": [
+        "docs/specs",
+        "packs"
+      ],
+      "title": "A review round's findings measure where its brief pointed, not what is wrong with the artifact",
+      "topic_key": "a-review-rounds-findings-measure-where-its-brief-pointed"
     },
     {
       "audience": "project",
@@ -1127,6 +1222,31 @@
       ],
       "title": "Delete a clause that has sustained a review finding twice; do not reword it a third time",
       "topic_key": "delete-a-clause-that-has-sustained-a-finding-twice-do-not-reword-it-a-third-time"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "e14b41dc52bff87fc1a92642783c07de9355aef5"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T20:18:56Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/deterministic-repository-obligations-are-not-review-work.json",
+      "scopes": [
+        "docs/product",
+        "packs"
+      ],
+      "title": "Deterministic repository obligations are not review work — verify them before dispatching a reviewer",
+      "topic_key": "deterministic-repository-obligations-are-not-review-work"
     },
     {
       "audience": "project",
@@ -1787,6 +1907,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "7594eba7121d2dc92016c7d976217227f6f464c6"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-ROUTE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-10T19:40:19Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/re-test-a-supersession-after-the-owner-narrows-scope.json",
+      "scopes": [
+        "docs/adr",
+        "docs/rfc"
+      ],
+      "title": "Re-test whether a supersession is still needed after the decision owner narrows scope",
+      "topic_key": "re-test-a-supersession-after-the-owner-narrows-scope"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "0e92647c673e0e674b53beaa16838a2c7137e19d"
       },
       "competency_facets": [
@@ -1825,6 +1969,30 @@
       ],
       "title": "Render-to-temp + copy breaks merge/splice on-conflict against the working tree",
       "topic_key": "render-to-temp-copy-breaks-merge-splice-on-conflict-against-the-working-tree"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "7b14e88f10602e993f59afd1f1b94ed95e9ad83c"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T06:10:35Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/repairing-the-cited-surface-leaves-its-siblings-contradicting-it.json",
+      "scopes": [
+        "docs/specs",
+        ".claude/skills"
+      ],
+      "title": "Repairing the surface a finding cites leaves its sibling surfaces contradicting it",
+      "topic_key": "repairing-the-cited-surface-leaves-its-siblings-contradicting-it"
     },
     {
       "audience": "project",

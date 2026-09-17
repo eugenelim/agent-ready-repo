@@ -1,0 +1,46 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-13T06:10:35Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-45c1db75766e8ac011e16ed4d82b757e73816a86845d7a18767926087e9b6fee",
+      "mutation_id": "ea49987de7a747b3049cbc2ec34d1258b3442e95dd5079b518d1d925e4bd5eff",
+      "observed_at": "2026-09-13T06:10:35Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-plan-review",
+      "source": {
+        "path": ".claude/skills/new-spec/scripts/lint-contract-item-alignment.py"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 26635,
+      "kind": "sha256-bytes-v1",
+      "sha256": "4f0acb0b0929f9eec914d4bb024192ad6b72595dd16517f355dd0d4dd3948905"
+    },
+    "path": ".claude/skills/new-spec/scripts/lint-contract-item-alignment.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    ".claude/skills"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "lint-contract-item-alignment's stale-assertion rule — a criterion reworded while the plan assertions naming it stayed put — executes only when --since supplies a base revision. Without it every run prints '0 finding(s) ... 1 partial (rules with no input: stale-assertion (no --since))', which scans as green. Across three spec-review rounds that line was read past about ten times while the same defect was found by hand twice. Supplying --since against the pre-repair commit flagged seven criteria whose plan assertions had not followed their rewording. Treat any 'partial (rules with no input)' count as an un-run rule and supply its input, rather than reading the finding count alone.",
+    "kind": "gotcha"
+  },
+  "title": "A lint rule reported as 'partial' did not run, and the summary still reads as a pass",
+  "topic_key": "a-lint-rule-reported-as-partial-did-not-run"
+}
