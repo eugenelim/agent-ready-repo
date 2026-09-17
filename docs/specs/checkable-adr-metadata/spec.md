@@ -406,7 +406,7 @@ only and are therefore not editable by this delivery and not follow-on work.
 ## Assumptions
 
 - Technical: the corpus is migrated. Commit `4b2714112` brought all 115 records
-  to the new format and `7fbc73075` normalized the last two shape outliers. The
+  to the new format and `2f9e9308a` ("bullet ADR-0055 and ADR-0056's metadata blocks") normalized the last two shape outliers. The
   residual, measured against all fifteen predicates as this spec states them,
   is **8 finding lines naming 4 record paths, remedied by 2 record edits**. The
   unit is the emitted finding line, because the plan's output contract gives one
@@ -530,7 +530,7 @@ only and are therefore not editable by this delivery and not follow-on work.
 - Technical: `ADR-S014` checks presence only, not that each alternative cites a
   declared driver. RFC-0102 § 1 states tier T2 is "presence and layout checked;
   wording never" (source: `docs/rfc/0102-mechanically-checkable-adrs.md:134`,
-  re-read after commit `d6ed7e9a1` moved it). That commit also removed the
+  re-read after commit `2eb5e01ed` ("scope RFC-0102's evidence to mechanism, not one corpus") moved it). That commit also removed the
   § 7 row asking for alternatives to be rewritten to cite a declared driver, so
   nothing now asks for the stronger check.
 - Technical: the adopter seed `packs/governance-extras/seeds/docs/adr/README.md`
@@ -542,7 +542,7 @@ only and are therefore not editable by this delivery and not follow-on work.
   § Self-hosting projection and `.github/workflows/build-check.yml:3-6`).
 - Process: **named deviation — the gate ships blocking, where RFC-0102 still
   says advisory-then-blocking** (`:18`, `:336`, `:562`, re-read after commit
-  `d6ed7e9a1`). The RFC's stated precondition for the flip is a migrated
+  `2eb5e01ed` ("scope RFC-0102's evidence to mechanism, not one corpus")). The RFC's stated precondition for the flip is a migrated
   corpus, and the migration landed in `4b2714112`, so the deviation is from the
   sequencing rather than from the intent. Recorded on the owner's authority
   (user confirmation 2026-09-17). A peer session owns reconciling the RFC's own

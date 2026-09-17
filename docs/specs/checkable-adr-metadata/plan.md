@@ -68,7 +68,7 @@ and why an `ADR-S008` fixture necessarily reports `ADR-S010` alongside it.
   Its § 6 two-copy claim is narrowed to one copy. Its § 7 sequencing
   precondition — generator before bare-token statuses — is live and binding on
   T9. Its advisory-then-blocking posture is a named deviation: the RFC still
-  states it at `:18`, `:336` and `:562` after commit `d6ed7e9a1`, and this
+  states it at `:18`, `:336` and `:562` after commit `2eb5e01ed` ("scope RFC-0102's evidence to mechanism, not one corpus"), and this
   delivery ships blocking because the flip's stated precondition, a migrated
   corpus, was met by `4b2714112`. A peer session owns the RFC's own text.
 - [ADR-0027](../../adr/0027-adr-format-is-madr-aligned-but-lean.md) — deferred
@@ -358,9 +358,12 @@ because a symlink and a FIFO cannot be committed.
 `test_index_records.py` and `test_decision_record_ordinal_uniqueness.py`, whose
 non-empty-floor-before-property discipline this reuses. Dispatch-only evidence.
 
-- Every regular, non-symlink `*.md` under `docs/adr/` less `README.md` appears
-  in exactly one of the lint's three outcome buckets, derived from the directory
-  listing at run time. Verifies AC-0005.
+- The partition AC-0005 states holds over `docs/adr/`, with membership derived
+  from the directory listing at run time. The predicate is AC-0005's and is not
+  restated here: it moved in review, the Testing Strategy copy was updated and
+  this one was not, so for a while the criterion covered every `*.md` entry
+  whatever its type while this bullet still said "regular, non-symlink".
+  Verifies AC-0005.
 - The file is enumerated in `build-check.yml` with its `STEP_DISPOSITION` entry,
   on the same reasoning T1 uses for its sibling: this is the criterion proving
   no record escapes the blocking scan, and dispatch-only is where that regresses
@@ -504,7 +507,7 @@ naming a missing file passes it. The projection today holds only
 
 **Depends on:** T3, T8
 
-**Touches:** packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py, tests/roster/test_index_records.py, docs/adr/0023-reviewer-ceiling-scopes-core-code-review-lenses.md, docs/adr/0050-astro-marketing-site-toolchain-and-deploy.md, docs/adr/README.md
+**Touches:** packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py, packs/governance-extras/.apm/skills/new-rfc/scripts/index-records.py, tests/roster/test_index_records.py, docs/adr/0023-reviewer-ceiling-scopes-core-code-review-lenses.md, docs/adr/0050-astro-marketing-site-toolchain-and-deploy.md, docs/adr/README.md
 
 **Tests:** `tests/roster/test_index_records.py` for the generator, plus the
 chain step for the corpus.
@@ -532,9 +535,12 @@ chain step for the corpus.
   Verifies AC-0009.
 
 **Approach:**
-- ADR-0055 and ADR-0056 were already normalized, in commit `7fbc73075` ahead of
+- ADR-0055 and ADR-0056 were already normalized, in commit `2f9e9308a` ("bullet ADR-0055 and ADR-0056's metadata blocks") ahead of
   this plan; that is why the lint needs no tolerance rule and no criterion, and
   no step here repeats it.
+- Change BOTH shipped generator copies together. `test_index_records.py` pins
+  them byte-identical, so changing the ADR copy alone reds that assertion — the
+  defect T1 shipped and this pin now catches.
 - Change the generator first, commit, then edit the two superseded records. RFC-0102 § 7
   states that ordering and these two records are why it matters; reversing it
   drops both pointers from the index in the intervening commit.
@@ -677,7 +683,7 @@ enumerates it.
   field of both absent. Fixing the records keeps that out of the contract
   entirely. Also recorded the blocking posture as a named deviation from
   RFC-0102's still-current advisory text, and re-pinned the tier-table citation
-  after commit `d6ed7e9a1` moved it.
+  after commit `2eb5e01ed` ("scope RFC-0102's evidence to mechanism, not one corpus") moved it.
 - 2026-09-17: round 4. Re-measured the corpus against all fifteen predicates
   after review showed the earlier figure was taken with a probe implementing
   nine of them and no mirror rules: as written they produced 42 findings, not 4.
