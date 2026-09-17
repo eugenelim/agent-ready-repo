@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-07
+- **Areas:** concurrency, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer, security-reviewer
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `packages/agentbundle/agentbundle/statelock.py`
 
 ## Decision summary
@@ -52,7 +57,7 @@ one hard, one about ownership.
    at 98% CPU indefinitely and the timeout never fires. Confirmed against the
    shipped package.
 
-## Options considered
+## Alternatives considered
 
 | Option | Verdict |
 |---|---|
@@ -68,6 +73,17 @@ committed, stdlib-only, loaded by path, and carried into `.claude/` and
 `.agents/` by the ordinary skill projection that already handles every other
 script in that directory. No new build primitive, no drift gate, no engine
 change, no runtime dependency on `agentbundle`.
+
+- **D1:** The work-loop's advisory lockfile is authored and owned as a work-loop script at `packs/core/.apm/skills/work-loop/scripts/_statelock.py`.
+- **D2:** That script is stdlib-only, committed, loaded by path, and carried into `.claude/` and `.agents/` by the ordinary skill projection — no new build primitive, drift gate, or engine change.
+- **D3:** The work-loop's lock has no dependency on `agentbundle` at runtime or at build time, and `agentbundle` keeps its own separate lock for the installer's `state.toml`.
+- **D4:** The acquire loop checks the deadline on every retry path.
+- **D5:** A non-regular lock path is refused.
+- **D6:** Reclaim and release both verify inode-plus-token ownership.
+- **D7:** Reclaim restores through a link, so a bystander's lockfile is never clobbered.
+- **D8:** A torn zero-byte create is reclaimed.
+- **D9:** The module creates no directory.
+- **D10:** `StateLockError` and its subclasses do not derive from `OSError`.
 
 It carries the hardening driver 4 names: a deadline check on every retry path,
 refusal of a non-regular lock path, inode-plus-token ownership on reclaim and
@@ -91,3 +107,9 @@ are in sync.
 **Mitigation.** This module's docstring names `agentbundle/statelock.py`, says
 the separation is deliberate, and points here. The backlog item carries a hard
 `needs` edge so the other half is not lost.
+
+**Revisit if:** `agentbundle-statelock-symlink-spin` is fixed and the installer's
+lock converges on the same hardened contract (D4–D10), so the two
+implementations differ only by ownership; or a build-time projection primitive
+lands in the RFC-gated engine pipeline for another reason, removing driver 3's
+cost from any sharing scheme.
