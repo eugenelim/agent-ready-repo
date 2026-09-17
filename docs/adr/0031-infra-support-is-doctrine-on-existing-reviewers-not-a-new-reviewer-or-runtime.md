@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-23
+- **Areas:** infrastructure, review, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0041's applied-mode research brief, its citation-integrity pass, and the module-taxonomy follow-up (`0041-notes/research.md`); the spec-stage adversarial + design review of this ADR and the two implementing specs
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0041 (the accepted decision this records); ADR-0023 (the three-reviewer ceiling scopes the core code-review lenses — the constraint that forecloses a fourth, infra-lens reviewer); ADR-0014 + RFC-0025 (risk triggers already route a destructive/irreversible `apply` to full mode — the hook point this builds on); ADR-0018 (shift security review left + deliver its depth via an orchestrator-loaded progressive-disclosure skill — the `security-checklists` pattern P3's `operational-safety` library reuses verbatim); ADR-0017 (Bandit + pip-audit + Semgrep as the SAST/SCA gate — the scanner family the infra policy-as-code/CSPM scanner joins, complementing not replacing the reviewer)
 
 ## Context
@@ -29,6 +34,25 @@ Constraints in force when deciding (CHARTER Principles 1–3, plus the reviewer 
 ## Decision
 
 > We will make `work-loop` function for infrastructure development as **doctrine plus a reference library inside the loop — never executable infra tooling** — routing the **operational-safety** lens to the existing **`quality-engineer`** reviewer (no new reviewer), and making the **security** lens on infra a **mandatory, non-skippable `security-reviewer` + policy-as-code/CSPM scanner *pair***.
+
+- **D1:** Infrastructure support in `work-loop` ships as prose only — `SKILL.md`
+  edits plus an `operational-safety` skill of boundary-keyed `references/*.md`
+  modules — and no executable infra tooling ships.
+- **D2:** The `operational-safety` library is consumed by `quality-engineer`, and
+  no fourth core code-review reviewer is added.
+- **D3:** The carve holds: `security-checklists` owns security config,
+  `operational-safety` owns reliability and ops config.
+- **D4:** Infra-flavored work non-skippably invokes `security-reviewer` at the
+  spec stage and on the diff, with the orchestrator force-loading the
+  infra-relevant `security-checklists` modules.
+- **D5:** "Infra-flavored" is the defined signal — the destructive/irreversible
+  risk trigger plus the routing table's IaC/deploy-config entry — not a per-diff
+  judgement.
+- **D6:** A provider-appropriate policy-as-code/CSPM scanner must run alongside
+  the reviewer; the requirement is mechanism-level and pins no tool.
+- **D7:** No new risk trigger and no new `security-checklists` module is added.
+- **D8:** Progressive delivery — canary and blue-green metric gates — is deferred
+  to a future RFC.
 
 Three sub-decisions, each expensive to reverse:
 
@@ -72,7 +96,19 @@ Boundaries on the decision:
 - **The right default for auto-remediation of drift in an agentic loop is unsettled** — the Terraform community (gate it) and the GitOps community (auto-sync) disagree by risk tolerance, and no evidence settles it across both contexts. RFC-0041 names this as a tension to surface, not resolve; the `drift-and-rollback` module records it as such.
 - **Progressive delivery is deferred, not rejected** — a Kubernetes-using adopter who needs canary/blue-green metric gates reopens it as a follow-up RFC.
 
+**Revisit if:** a reviewer-fit gap shows `quality-engineer`'s lens does not
+stretch to operational safety (D2), evidence settles the auto-remediation-of-drift
+default that the Terraform and GitOps communities disagree on, or a
+Kubernetes-using adopter reopens progressive delivery (D8) as a follow-up RFC.
+
 ## Confirmation
+
+- **Mode:** reviewer-checked — deliberately review-time, not a standing CI gate.
+- **Signal:** the three checks recorded below — the two implementing specs'
+  acceptance criteria, the adversarial + quality + security passes on the
+  implementing diff, and a recorded `security-reviewer` pass plus scanner run on
+  any infra-flavored diff reaching DECIDE.
+- **Owner:** eugenelim
 
 - The two implementing specs' acceptance criteria encode the doctrine — the generalized preflight, the multi-artifact infra mechanism set, the layered infra GATES, the mandatory security reviewer + scanner pair, the six-module `operational-safety` library, and the `quality-engineer` consumer wiring — so conformance is checkable against the specs.
 - The adversarial + quality + security review passes on the implementing diff check that **no executable infra tooling creeps in** (the standing scope-inflation risk), that every module stays **tool-neutral** (Principle 1), and that the **reliability-vs-security carve** between `operational-safety` and `security-checklists` holds (no security config in the operational library, no operational config migrating into the security one).

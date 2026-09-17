@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-24
+- **Areas:** infrastructure, knowledge, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0044's two-build, scrubbed field report (`docs/rfc/0044-notes/field-report.md`); its external prior-art set (the IaC defect-taxonomy replication study, the deployability-centric IaC-generation loop, HolmesGPT / k8sgpt, Terratest + Google Cloud Terraform testing practice, the HashiCorp `terraform providers schema` reference verifying force-new is *not* machine-readable); the spec-stage adversarial + design review of this ADR and the implementing spec
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0044 (the accepted decision this records); ADR-0031 (the scaffold this extends — infra support is doctrine on existing reviewers, no new reviewer or runtime; this ADR adds the *grounding* layer, extends the `operational-safety` consumer to EXECUTE, and honors ADR-0031's no-executable-tooling / no-new-reviewer calls without reversing them); ADR-0023 (the three-reviewer ceiling — the constraint that forecloses a fourth, infra-contract-lens reviewer, deferred here behind an evidence trigger); ADR-0018 + RFC-0029 (shift review left + deliver depth via an orchestrator-loaded progressive-disclosure library — the `security-checklists` / `operational-safety` pattern the new skill and module reuse); RFC-0041 (P1 preflight extended by a fifth artifact, P2 smoke refined by V1/V2, `observability-and-smoke` strengthened by D, the no-new-reviewer ceiling honored); RFC-0025 + ADR-0014 (risk triggers already route a destructive/irreversible `apply` to full mode — the hook point); the repo's 3-tier dependency policy (T2's detect-and-recommend); CHARTER Principles 1–4
 
 ## Context
@@ -35,6 +40,15 @@ Constraints in force when deciding:
 ## Decision
 
 > We will ground `work-loop`'s infra inner loop in the platform's real contract and runtime truth across all six MECE failure families, as **doctrine plus reference prose**: a new **protocol-shaped `core` skill (`infra-contract-acquisition`)** that drives the toolchain's own deterministic oracles — **tool-keyed, not vendor-keyed** — and declares its oracle tier + confidence; a new **`operational-safety` module (`cloud-implementation-craft`)** inlined into the **implementer's EXECUTE brief**; a strengthened **`observability-and-smoke`** module; and `work-loop` SKILL.md edits — with conformance review on the **existing `quality-engineer`** and **no new executable tooling, per-vendor knowledge base, or reviewer / agent.**
+
+- **D1:** Everything ships as prose — one new protocol-shaped `core` skill, one new `operational-safety` module, and edits to `observability-and-smoke` and `work-loop` — with no plan-parser, schema-diff, probe-runner, or oracle runner.
+- **D2:** No per-cloud or per-vendor knowledge base is bundled; the curated platform skill (T2) stays opt-in, detect-and-recommend content.
+- **D3:** The protocol routes on the tool, never the vendor, and the agent declares its oracle tier and confidence, shifting weight to the runtime probe on a weak oracle rather than faking static coverage.
+- **D4:** `cloud-implementation-craft` is inlined into the implementer's EXECUTE brief on infra-flavored work, so `operational-safety` has two consumers — EXECUTE and REVIEW.
+- **D5:** The RFC-0041 P1 preflight gains durable-credentials-once as a fifth artifact, terminal-failed-state is a named convergence case, and every live-environment interaction goes through a reusable, idempotent, credential-reusing script rather than one-off commands.
+- **D6:** Oracles are phased and increasing-fidelity — the cheap early oracle is necessary and never sufficient — and the infra smoke is a readiness-aware, in-network-if-private, data-plane, self-tearing-down probe against an ephemeral uniquely-named target.
+- **D7:** The debug family is served by a symptom→layer playbook inside the existing `observability-and-smoke` module, not by a new module.
+- **D8:** Contract and craft review ride the existing `quality-engineer`, which re-derives the contract independently from the oracles rather than trusting the implementer's evidence; no fourth reviewer or new agent ships, and `infra-contract-reviewer` stays deferred behind its named evidence trigger.
 
 Seven sub-decisions, each expensive to reverse (cross-references to "Decision N" below are to **RFC-0044's** eight-decision numbering, not this ADR's bullet order):
 
@@ -85,18 +99,23 @@ Boundaries on the decision:
 - **`quality-engineer` is assumed to hold contract + craft without a dedicated window** — believed true given slice-fetching. *Falsification trigger:* this is routed into the same evidence trigger that gates the dedicated-`infra-contract-reviewer` deferral (Decision 8) — a spike showing oracle-execution traffic (large `plan` / `synth` output) measurably degrades `quality-engineer`'s other lenses reopens both the window assumption and the no-new-agent call together.
 - **The protocol-vs-checklist family inconsistency** is accepted now; a future RFC may converge the three depth surfaces on one shape.
 
+**Revisit if:** a post-ship infra build still shows the field-report symptoms — reactive permission-iteration, undesigned propagation waits, ad-hoc `sleep`s, or a raw cold-start timeout surfaced to the user — with `cloud-implementation-craft` loaded, which reopens D4's EXECUTE-brief design; or a spike shows oracle-execution traffic measurably degrades `quality-engineer`'s other lenses, which reopens D8's no-new-agent call together with the window assumption.
+
 ## Confirmation
 
+- **Mode:** reviewer-checked — deliberately review-time, not a standing CI gate.
+- **Signal:** the implementing spec's acceptance criteria pass, and the adversarial, quality, and security review passes on the implementing diff confirm no executable infra tooling crept in, that the protocol and every module stayed tool-neutral, and that the four-way carve held.
+- **Owner:** eugenelim
 - The implementing spec's acceptance criteria encode the doctrine — the tiered tool-keyed oracle protocol + tier-honesty, the EXECUTE contract-grounding gate, the `cloud-implementation-craft` module loaded at EXECUTE, the fifth preflight artifact + terminal-failed-state convergence + the reusable-script corollary, phased oracle fidelity, the readiness-aware data-plane probe, the symptom→layer playbook, and the `quality-engineer` infra-flavored wiring — so conformance is checkable against the spec.
 - The adversarial + quality + security review passes on the implementing diff check that **no executable infra tooling creeps in** (the standing scope-inflation risk), that the protocol and every module stay **tool-neutral with the capability spectrum first-class** (Principle 1), and that the **four-way carve** holds (no security config in the craft module, no per-vendor data in the protocol, no operational config migrating into `security-checklists`).
 - **Enforcement is deliberately review-time, not a standing CI gate** — matching ADR-0031 and Principle 3 (the bar that forecloses a code gate is the one that makes the controls prose). An optional later governance lint (asserting the `work-loop`, `operational-safety`, and `infra-contract-acquisition` skills ship no executable oracle / parser / probe runner) could harden it without reversing this ADR, and is recorded as a possible follow-up, not a requirement.
 
 ## Alternatives considered
 
-- **Executable infra tooling** (a schema-diff, plan-parser, probe-runner, or oracle runner). Rejected against **Principle 3** — that is runtime infrastructure — and **Principle 1** (it would need per-tool bindings). The agent runs the existing oracles directly. This is the option the form-and-home sub-decision rejects.
-- **A per-vendor contract / knowledge base.** Rejected against **Principle 1** — a bundled per-cloud KB can't cover the long tail (on-prem / Hetzner / bespoke), rots between releases, and breaks stack-neutrality. The curated *platform skill* (T2) is the bounded, opt-in, recommend-when-warranted version.
-- **A dedicated `infra-contract-reviewer` agent now.** Rejected against the **three-reviewer ceiling (ADR-0023)** — viable but premature; the isolation case is real-but-unproven and softened by slice-fetching. Decision 8's evidence trigger names exactly when to revisit it.
-- **Do nothing (RFC-0041 / ADR-0031 as-is).** Rejected — every unfamiliar-platform build repeats the contract-ignorance and verification-gap failures, and the human stays the relay (handing the loop a platform skill, demanding a probe), observed in **two** independent builds. The pain is recurring and present now.
+- **Executable infra tooling** (a schema-diff, plan-parser, probe-runner, or oracle runner) — rejected against *Principle 3 (habit, not infrastructure)*: that is runtime infrastructure, and it would additionally need the per-tool bindings Principle 1 rules out; the agent runs the existing oracles directly (D1).
+- **A per-vendor contract / knowledge base** — rejected against *Principle 1 (universal across stacks)*: a bundled per-cloud KB can't cover the long tail (on-prem / Hetzner / bespoke), rots between releases, and breaks stack-neutrality; the curated platform skill (T2) is the bounded, opt-in, recommend-when-warranted version (D2).
+- **A dedicated `infra-contract-reviewer` agent now** — rejected against *the three-reviewer ceiling (ADR-0023)*: viable but premature, with the isolation case real-but-unproven and softened by slice-fetching; D8's evidence trigger names exactly when to revisit it.
+- **Do nothing (RFC-0041 / ADR-0031 as-is)** — rejected against *the recurring human-as-relay cost across two independent builds*: every unfamiliar-platform build repeats the contract-ignorance and verification-gap failures, and the human stays the relay, handing the loop a platform skill and demanding a probe.
 
 ## References
 
