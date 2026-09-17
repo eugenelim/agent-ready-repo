@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-11
+- **Areas:** credentials, security
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** security-reviewer, adversarial-reviewer
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0084](../rfc/0084-sso-destination-trust-boundary.md),
   [ADR-0026](0026-sso-consumer-resolution-in-credbroker.md),
   [credential architecture](../architecture/credentials.md), and the
@@ -50,6 +55,24 @@ SAML session cookies, and is not authorized by this decision.
 
 The credential-brokers baseline provides no destination security boundary
 against hostile code running under the agent principal.
+
+- **D1:** The credential-brokers baseline provides no destination security
+  boundary against hostile code running under the agent principal, and does not
+  claim one.
+- **D2:** Interactive SSO-cookie capture is reachable only through an
+  operator-typed registration action.
+- **D3:** Automatic refresh is always headless and never falls back to a visible
+  login page.
+- **D4:** The existing HTTPS, origin, derivation, and success-condition checks
+  remain defense in depth for mistakes and ordinary misconfiguration.
+- **D5:** Those checks are never described as protection against hostile
+  same-principal destination poisoning.
+- **D6:** No second user-scoped Python package or verifier is built as a
+  destination enforcer.
+- **D7:** A destination-protected mode requires a new proposal backed either by a
+  remote authorization protocol that independently binds user approval for a
+  concrete consumer, or by a supported installation class whose code, policy, and
+  invocation contract are protected by another authority.
 
 Within supported catalogue workflows:
 
@@ -113,17 +136,22 @@ the supported deployment can install a component under independent authority.
 
 ## Alternatives considered
 
-- **Another Python package or virtual environment.** Rejected because it remains
-  owned and bypassable by the agent principal.
-- **A root-owned or signed policy with the current verifier.** Rejected because
-  a user-writable or bypassable verifier cannot enforce that policy.
-- **A browser extension, privileged helper, or local service.** Technically
-  viable, but outside the supported installation envelope.
-- **Implement protocol-backed authorization now.** Rejected without a concrete
-  consumer, issuer contract, client registration, credential type, and
-  migration path.
-- **Remove generic headed capture.** Rejected because explicit operator capture
-  remains a useful compatibility workflow when its limitation is understood.
+- **Another Python package or virtual environment** — rejected against *avoid
+  maintaining an additional package that changes packaging without changing
+  authority*: it remains owned and bypassable by the agent principal.
+- **A root-owned or signed policy with the current verifier** — rejected against
+  *do not claim a security boundary the supported installation cannot provide*: a
+  user-writable or bypassable verifier cannot enforce that policy.
+- **A browser extension, privileged helper, or local service** — rejected against
+  *do not claim a security boundary the supported installation cannot provide*:
+  technically viable, but outside the supported installation envelope.
+- **Implement protocol-backed authorization now** — rejected against *keep future
+  protocol-backed authentication possible without pretending it solves generic
+  cookie capture*: there is no concrete consumer, issuer contract, client
+  registration, credential type, or migration path.
+- **Remove generic headed capture** — rejected against *preserve generic
+  SSO-cookie compatibility*: explicit operator capture remains a useful
+  compatibility workflow when its limitation is understood.
 
 ## References
 

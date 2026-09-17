@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-05-26
-- **Deciders:** eugenelim
+- **Areas:** credentials, security, packaging
+- **Reversibility:** low
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0013](../rfc/0013-credential-broker-contract.md), [RFC-0006](../rfc/0006-skill-secrets-storage.md), [RFC-0004](../rfc/0004-install-scope-per-pack.md), [RFC-0011](../rfc/0011-pack-allowed-adapters.md), [`credential-broker-contract` spec](../specs/credential-broker-contract/spec.md), [ADR-0002](0002-install-scope-per-pack-default-and-allowance.md)
 
 ## Context
@@ -21,6 +26,46 @@
 We adopted **four broker ids keyed on `metadata.auth`** with **two transports in v1**:
 
 > Every credentialed skill declares `metadata.auth: <broker-id>` in its `SKILL.md` frontmatter. The four broker ids are `env` / `cli` / `creds` / `sso-cookie`. Broker-agnostic security invariants apply to every credentialed primitive regardless of broker (Don't-block presence, argv ban, never-logged, corporate-network env propagation); broker-specific lint extensions layer on top. Two transports ship in v1: an **in-process Python shim** (`credentials_shim.py` + per-platform Tier-2 backends, projected into each consumer's `scripts/` by the build pipeline) for `creds`; an **adapter-root subprocess** (`sso-broker.py` at `~/.agentbundle/bin/`, projected by a new build-pipeline primitive class) for `sso-cookie`. The catalogue contributes lint and naming convention only for `env` and `cli`.
+
+- **D1:** Every credentialed skill declares `metadata.auth` naming exactly one of
+  the four broker ids `env` / `cli` / `creds` / `sso-cookie`.
+- **D2:** The broker-agnostic security invariants — Don't-block presence, argv
+  ban, never-logged, corporate-network env propagation — apply to every
+  credentialed primitive regardless of broker, with broker-specific lint
+  extensions layered on top.
+- **D3:** v1 ships exactly two transports: an in-process Python shim for `creds`
+  and an adapter-root subprocess for `sso-cookie`.
+- **D4:** The catalogue contributes lint and naming convention only for `env` and
+  `cli`, with no runtime resolver for either.
+- **D5:** The pack is named `credential-brokers`, is user-scope, and declares
+  `allowed-scopes = ["user", "repo"]` and
+  `allowed-adapters = ["claude-code", "kiro", "codex"]`.
+- **D6:** `credential-setup` is the single LLM-cooperative exception, and its
+  `description:` carries the verbatim phrase *"interactive, user-invoked, do not
+  auto-run"*.
+- **D7:** `shared-libs/` projects `packs/<pack>/.apm/shared-libs/*.py`
+  byte-identically into the `scripts/` of every skill in any pack declaring
+  `metadata.auth: creds`.
+- **D8:** `adapter-root-bins/` projects `packs/<pack>/.apm/adapter-root-bins/*.py`
+  to `$HOME/.agentbundle/bin/<basename>.py` at user scope and
+  `<repo>/.agentbundle/bin/<basename>.py` at repo scope, mode `0o755` on POSIX.
+- **D9:** Every projection target lives under the contract's `allowed-prefixes`
+  for the three named adapters, and the build pipeline performs no PATH
+  manipulation.
+- **D10:** Consumers resolve the SSO broker through the single canonical path
+  `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"`, independent of
+  adapter.
+- **D11:** `make build-check` errors on modified, missing, or orphaned projected
+  copies with stderr naming the regeneration command, and `make build-self` is
+  the idempotent projector that resolves all three.
+- **D12:** Inter-pack basename collisions in `shared-libs/` are a hard error at
+  projection time.
+- **D13:** The `agentbundle.credentials` removal lands in the last PR of the
+  migration sequence, and that release bumps `agentbundle` from `0.1.x` to
+  `0.2.0`; intermediate PRs do not bump the minor.
+- **D14:** `[contract] version` bumps `0.6 → 0.7` in
+  `packages/agentbundle/agentbundle/_data/adapter.toml` and the mirror at
+  `contracts/adapter.toml`, with the header comment naming RFC-0013.
 
 Six derived rules pin the model concretely:
 
@@ -50,6 +95,10 @@ Six derived rules pin the model concretely:
 
 - MCP-server transport for any broker is deferred (v1 is subprocess + in-process only). Additive evolution per RFC-0013 § 8 if a downstream consumer needs it.
 - `sso-pat-mint` and similar OAuth/PAT-derived broker shapes are deferred until a concrete consumer surfaces.
+
+**Revisit if:** a downstream consumer needs an MCP-server transport for a broker,
+or a concrete consumer surfaces for an OAuth/PAT-derived shape such as
+`sso-pat-mint` — either would add a transport beyond D3 or a broker id beyond D1.
 
 ## Alternatives considered
 
