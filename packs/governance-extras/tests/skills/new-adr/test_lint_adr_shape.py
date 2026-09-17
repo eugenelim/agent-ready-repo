@@ -1125,3 +1125,167 @@ def test_streams_are_reconfigured_with_a_handler_that_survives_a_surrogate() -> 
     probe.reconfigure(encoding="utf-8", errors=str(handler))
     probe.write("warning: 0117-x\udcff.md: refused\n")
     probe.flush()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# T5: template content and conformance (AC-0017, AC-0018, AC-0019, AC-0020,
+#     AC-0022)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+#: Path to the shipped template — read by all T5 tests rather than a copy, so
+#: the template and the lint cannot drift apart silently.
+_TEMPLATE_PATH = (
+    pathlib.Path(__file__).resolve().parents[3]
+    / ".apm/skills/new-adr/assets/adr.md"
+)
+
+
+def test_template_declares_all_metadata_fields() -> None:
+    """The template pre-declares Areas, Reversibility, and all four supersession
+    fields; each supersession field carries the 'none' sentinel.
+
+    Verifies AC-0017.
+    """
+    text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    assert "**Areas:**" in text, "template missing Areas field"
+    assert "**Reversibility:**" in text, "template missing Reversibility field"
+
+    # All four supersession fields must be present with 'none' as the sentinel.
+    for field in (
+        "Supersedes",
+        "Supersedes in part",
+        "Superseded by",
+        "Superseded in part",
+    ):
+        marker = f"**{field}:** none"
+        assert marker in text, (
+            f"template missing '{field}' field with 'none' sentinel; "
+            f"looked for {marker!r}"
+        )
+
+
+def test_template_states_four_parse_tiers() -> None:
+    """The template states the four parse tiers and which fields belong to each.
+
+    The tier names must be written in full ('tier T1', not bare 'T1') to
+    avoid colliding with plan task identifiers.  Verifies AC-0018.
+    """
+    text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    for tier in ("tier T1", "tier T1-unchecked", "tier T2", "tier T3"):
+        assert tier in text, (
+            f"template does not state {tier!r}; "
+            "all four parse tiers must be named in full"
+        )
+
+    # Each tier names at least one field that belongs to it.
+    # tier T1 owns the mechanically checked fields.
+    for field in ("Status", "Date", "Areas", "Reversibility"):
+        assert field in text, f"expected tier T1 field {field!r} mentioned in template"
+
+    # tier T1-unchecked owns Related.
+    assert "Related" in text, "expected 'Related' mentioned under tier T1-unchecked"
+
+    # tier T2 owns Alternatives considered.
+    assert "Alternatives considered" in text, (
+        "expected 'Alternatives considered' mentioned under tier T2"
+    )
+
+
+def test_template_states_authoring_transformation() -> None:
+    """The template states the authoring transformation an author performs.
+
+    The transformation is: substitute every placeholder, then delete all
+    guidance comments.  Verifies AC-0019.
+    """
+    text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    assert "substitute every placeholder" in text, (
+        "template does not state 'substitute every placeholder'"
+    )
+    assert "delete" in text and "comment" in text, (
+        "template does not state that guidance comments should be deleted"
+    )
+
+
+def test_template_states_related_shape_marked_unchecked_with_placeholder_ordinals() -> None:
+    """The template states the suggested Related: shape, marked as not validated,
+    with a worked example whose ordinals are all in the literal placeholder form
+    used elsewhere in the template (ADR-NNNN, RFC-NNNN).
+
+    The check is expressed against the literal placeholder form rather than
+    against whether any ordinal resolves — a pack test may not read above its
+    own pack to decide that (lint-pack-test-boundary.py check 8).
+
+    Verifies AC-0020.
+    """
+    text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    # The guidance must be marked as not validated.
+    assert "not validated" in text, (
+        "Related: guidance must be marked as 'not validated' (tier T1-unchecked)"
+    )
+
+    # The worked example must contain only placeholder ordinals.
+    # ADR-NNNN and RFC-NNNN are the placeholder forms used elsewhere.
+    assert "RFC-NNNN" in text, (
+        "Related: worked example must use RFC-NNNN as the placeholder ordinal form"
+    )
+    assert "ADR-NNNN" in text, (
+        "Related: worked example must use ADR-NNNN as the placeholder ordinal form"
+    )
+
+    # No real (digit-only) ordinals may appear in the template at all —
+    # packs/AGENTS.md forbids citing internal governance records.
+    import re as _re
+    real_ordinals = _re.findall(r"\b(?:ADR|RFC)-\d{4}\b", text)
+    assert real_ordinals == [], (
+        f"template contains real ordinals {real_ordinals!r}; "
+        "only placeholder forms (ADR-NNNN, RFC-NNNN) are permitted"
+    )
+
+
+def test_template_instantiation_passes_the_lint(tmp_path: pathlib.Path) -> None:
+    """Instantiating the template by the transformation it documents produces a
+    record the lint accepts with exit 0 and no findings.
+
+    Transformation: strip HTML comment blocks, then substitute all placeholders
+    (angle-bracket text and the YYYY-MM-DD sentinel) with valid values, then
+    replace the initial 'Proposed' Status with 'Accepted'.
+
+    Verifies AC-0022.
+    """
+    import re as _re
+
+    text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    # Step 1: delete all HTML comment blocks (<!-- … -->).
+    text = _re.sub(r"<!--.*?-->", "", text, flags=_re.DOTALL)
+
+    # Step 2: replace the date placeholder.
+    text = text.replace("YYYY-MM-DD", "2026-01-01")
+
+    # Step 3: set Status to a valid accepted token.
+    text = _re.sub(r"(- \*\*Status:\*\*) Proposed", r"\1 Accepted", text)
+
+    # Step 4: substitute all remaining angle-bracket placeholders with a
+    # minimal non-empty string.  Every lint-checked field that requires a
+    # specific token (Areas, Reversibility) must be substituted to a token
+    # in its allowed set before this step.
+    text = text.replace("<area-token>", "tooling")
+    text = text.replace("<high|low>", "low")
+    text = _re.sub(r"<[^>]+>", "test", text)
+
+    # Write the instantiated record to a temp scan directory and run the lint.
+    adr_dir = tmp_path / "adr"
+    adr_dir.mkdir()
+    (adr_dir / "0001-test-record.md").write_text(text, encoding="utf-8")
+
+    code, out, _err = _run(adr_dir)
+    assert code == 0, (
+        f"Instantiated template failed the lint (exit {code}):\n{out}"
+    )
+    assert _extract_codes(out) == set(), (
+        f"Instantiated template produced lint findings:\n{out}"
+    )
