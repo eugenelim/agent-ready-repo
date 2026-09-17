@@ -1,4 +1,4 @@
-"""Pack-local tests for the shared confinement helper _record_paths.py (T1).
+"""Pack-local tests for the confinement helper (T1) and the ADR shape lint (T2).
 
 This suite is gated by name in the gate chain (T8 adds the build-check.yml
 step).  It may not read above its own pack — lint-pack-test-boundary.py
@@ -15,12 +15,25 @@ T1 cases cover:
 - read_confined reads a regular single-link file; refuses a hard link
 - the hard-link case is the load-bearing proof that read_confined is stricter
   than the lstat-then-read_text idiom the scripts previously carried
+
+T2 cases cover lint-adr-shape.py against synthetic fixtures:
+- clean conforming directory: zero findings, exit 0 (AC-0001 floor)
+- parametrised over all fifteen codes: each mutation declares its expected
+  code set; the ID list is asserted equal to the fifteen codes (AC-0001)
+- exit 1 on any finding (AC-0002)
+- absent/empty directory exits 1 with a refusal message, no findings (AC-0003)
+- ADR-S010 mutation: findings attributed to both record paths (AC-0004)
+- refused + unreadable entries exit non-zero without a finding (AC-0031)
+- Signal as indented block and Revisit if as blank-line+list: no finding (AC-0008)
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import os
 import pathlib
+import re
 import sys
 import types
 
@@ -30,6 +43,10 @@ sys.dont_write_bytecode = True
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[3] / ".apm/skills/new-adr/scripts"
 _HELPER_PATH = SCRIPTS / "_record_paths.py"
+_LINT_PATH = SCRIPTS / "lint-adr-shape.py"
+
+# Committed synthetic fixtures for the T2 conforming-floor test
+_FIXTURES_DIR = pathlib.Path(__file__).resolve().parent / "fixtures" / "conforming"
 
 
 def _load_helper() -> types.ModuleType:
@@ -269,3 +286,492 @@ def test_read_confined_refuses_hard_link(tmp_path: pathlib.Path) -> None:
     rp = _load_helper()
     with pytest.raises(rp.EntryRefused, match="hard link"):
         rp.read_confined(tmp_path, hard_link)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# T2: lint-adr-shape.py against synthetic fixtures
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _load_lint() -> types.ModuleType:
+    """Load lint-adr-shape.py by path (cached per process).
+
+    Mirrors the loader in test_index_records.py: by-path via
+    importlib.util.spec_from_file_location, never by bare name.
+    """
+    name = "lint_adr_shape_t2"
+    if name in sys.modules:
+        return sys.modules[name]  # type: ignore[return-value]
+    spec = importlib.util.spec_from_file_location(name, str(_LINT_PATH))
+    assert spec is not None and spec.loader is not None, (
+        f"no import spec for {_LINT_PATH}"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    finally:
+        sys.dont_write_bytecode = prev
+    return mod  # type: ignore[return-value]
+
+
+def _run(directory: pathlib.Path) -> tuple[int, str, str]:
+    """Run lint main([str(directory)]) and return (exit_code, stdout, stderr).
+
+    Uses redirect_stdout / redirect_stderr so the lint's reconfigure() guard
+    (which skips streams lacking .reconfigure) leaves the StringIO untouched.
+    """
+    lint = _load_lint()
+    out = io.StringIO()
+    err = io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = lint.main([str(directory)])
+    return code, out.getvalue(), err.getvalue()
+
+
+def _extract_codes(output: str) -> set[str]:
+    """Return the set of ADR-Snnn codes present in a finding stream."""
+    return set(re.findall(r"\bADR-S\d{3}\b", output))
+
+
+def _write_dir(tmp_path: pathlib.Path, files: dict[str, str]) -> pathlib.Path:
+    """Write {name: content} to a fresh subdirectory and return its path."""
+    d = tmp_path / "adr"
+    d.mkdir()
+    for name, content in files.items():
+        (d / name).write_text(content, encoding="utf-8")
+    return d
+
+
+def _conforming() -> dict[str, str]:
+    """Return {filename: content} for the three conforming fixture records."""
+    return {
+        name: (_FIXTURES_DIR / name).read_text(encoding="utf-8")
+        for name in ("0001-basic.md", "0002-superseder.md", "0003-superseded.md")
+    }
+
+
+# ── T2: conforming floor ───────────────────────────────────────────────────────
+
+
+def test_conforming_directory_has_zero_findings(tmp_path: pathlib.Path) -> None:
+    """A directory with three conforming records reports no findings and exits 0.
+
+    This is the floor every mutation case is measured against.
+    """
+    d = _write_dir(tmp_path, _conforming())
+    code, out, _err = _run(d)
+    codes = _extract_codes(out)
+    assert codes == set(), f"unexpected findings in conforming dir: {out!r}"
+    assert code == 0, f"expected exit 0 for conforming dir, got {code}\n{out}"
+
+
+# ── T2: mutation parametrisation ─────────────────────────────────────────────
+
+
+def _mutate(base: dict[str, str], name: str, old: str, new: str) -> dict[str, str]:
+    """Return a copy of base with one substring replacement in file `name`."""
+    d = dict(base)
+    assert old in d[name], f"pattern not found in {name!r}: {old!r}"
+    d[name] = d[name].replace(old, new, 1)
+    return d
+
+
+# Each entry: (files_dict, expected_code_set)
+# The `id` in pytest.param is the single check class code this case names.
+# ADR-S008 declares {ADR-S008, ADR-S010} because its mutation adds an
+# unmirrored entry (RFC-0102 § 3 field-specific mirroring).
+_MUTATION_CASES: list[pytest.param] = [  # type: ignore[type-arg]
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Status:** Accepted",
+                          "- **Status:** InProgress"),
+        {"ADR-S001"},
+        id="ADR-S001",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Date:** 2026-01-15",
+                          "- **Date:** not-a-date"),
+        {"ADR-S002"},
+        id="ADR-S002",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Areas:** tooling, infrastructure",
+                          "- **Areas:**"),
+        {"ADR-S003"},
+        id="ADR-S003",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Areas:** tooling, infrastructure",
+                          "- **Areas:** a, b, c, d"),
+        {"ADR-S004"},
+        id="ADR-S004",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Areas:** tooling, infrastructure",
+                          "- **Areas:** TOOLING, infrastructure"),
+        {"ADR-S005"},
+        id="ADR-S005",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Reversibility:** low",
+                          "- **Reversibility:** medium"),
+        {"ADR-S006"},
+        id="ADR-S006",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Superseded by:** none\n",
+                          ""),
+        {"ADR-S007"},
+        id="ADR-S007",
+    ),
+    # ADR-S008 mutation adds ADR-0003 to Supersedes in part on ADR-0002, so
+    # ADR-0003 appears in both Supersedes and Supersedes in part — S008 fires.
+    # The added entry has no mirror on ADR-0003 — S010 also fires (RFC-0102 § 3).
+    pytest.param(
+        lambda b: _mutate(b, "0002-superseder.md",
+                          "- **Supersedes in part:** none",
+                          "- **Supersedes in part:** ADR-0003 D1"),
+        {"ADR-S008", "ADR-S010"},
+        id="ADR-S008",
+    ),
+    # ADR-S009: add partial supersession between ADR-0001 and ADR-0003 citing
+    # D99, which does not exist in either record (both define only D1/D2).
+    # Mirrors are present so ADR-S010 does not fire.
+    pytest.param(
+        lambda b: {
+            **_mutate(b, "0001-basic.md",
+                      "- **Supersedes in part:** none",
+                      "- **Supersedes in part:** ADR-0003 D99"),
+            "0003-superseded.md": _mutate(b, "0003-superseded.md",
+                                          "- **Superseded in part:** none",
+                                          "- **Superseded in part:** ADR-0001 D99")[
+                "0003-superseded.md"
+            ],
+        },
+        {"ADR-S009"},
+        id="ADR-S009",
+    ),
+    # ADR-S010: remove the Superseded by mirror on ADR-0003 so ADR-0002's
+    # Supersedes: ADR-0003 has no counterpart.  Finding attributed to both paths.
+    pytest.param(
+        lambda b: _mutate(b, "0003-superseded.md",
+                          "- **Superseded by:** ADR-0002",
+                          "- **Superseded by:** none"),
+        {"ADR-S010"},
+        id="ADR-S010",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **D2:** All services read configuration at startup from the shared store.",
+                          "- **D3:** All services read configuration at startup from the shared store."),
+        {"ADR-S011"},
+        id="ADR-S011",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "**Revisit if:** The store becomes unavailable or introduces unacceptable latency.",
+                          "**Revisit if:**"),
+        {"ADR-S012"},
+        id="ADR-S012",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Mode:** reviewer-checked\n",
+                          ""),
+        {"ADR-S013"},
+        id="ADR-S013",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Per-service config files:** Rejected because it causes drift between services.\n"
+                          "- **Environment variables only:** Rejected because secrets management becomes complex.",
+                          ""),
+        {"ADR-S014"},
+        id="ADR-S014",
+    ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "## Errata",
+                          "## Amendments"),
+        {"ADR-S015"},
+        id="ADR-S015",
+    ),
+]
+
+_ALL_CODES = [f"ADR-S{n:03d}" for n in range(1, 16)]
+
+
+def test_parametrization_ids_equal_fifteen_codes() -> None:
+    """The parametrised case IDs are exactly the fifteen check class codes.
+
+    A class added without a case makes this test red.
+    """
+    ids = [c.id for c in _MUTATION_CASES]
+    assert ids == _ALL_CODES
+
+
+@pytest.mark.parametrize("mutate_fn,expected_codes", _MUTATION_CASES)
+def test_mutation_reports_expected_codes(
+    tmp_path: pathlib.Path,
+    mutate_fn: object,
+    expected_codes: set[str],
+) -> None:
+    """Each mutation causes exactly the declared code set to be reported.
+
+    Verifies AC-0001 for all fifteen check classes.  The expected_codes set
+    is declared by the fixture, not read back from the output.
+    """
+    import typing
+    base = _conforming()
+    files = typing.cast(
+        "dict[str, str]",
+        mutate_fn(base),  # type: ignore[operator]
+    )
+    d = _write_dir(tmp_path, files)
+    code, out, _err = _run(d)
+    actual = _extract_codes(out)
+    assert actual == expected_codes, (
+        f"expected {expected_codes!r}, got {actual!r}\nstdout:\n{out}"
+    )
+    assert code == 1, f"expected exit 1 when findings reported, got {code}"
+
+
+# ── T2: exit contract (AC-0002) ────────────────────────────────────────────────
+
+
+def test_exit_0_on_no_findings_and_all_read(tmp_path: pathlib.Path) -> None:
+    """Exits 0 only when there are no findings and every candidate was read.
+
+    Verifies AC-0002 (finding half): conforming dir exits 0.
+    The mutation parametrisation covers the exit-1-on-finding half.
+    """
+    d = _write_dir(tmp_path, _conforming())
+    code, out, _err = _run(d)
+    assert code == 0
+    assert _extract_codes(out) == set()
+
+
+# ── T2: absent and empty directory (AC-0003) ───────────────────────────────────
+
+
+def test_absent_directory_exits_1_with_message_and_no_findings(
+    tmp_path: pathlib.Path,
+) -> None:
+    """An absent target directory exits 1, prints a message, and has no finding codes.
+
+    Verifies AC-0003 (absent-directory path).
+    """
+    missing = tmp_path / "does_not_exist"
+    code, out, _err = _run(missing)
+    assert code == 1, f"expected exit 1 for absent dir, got {code}"
+    assert _extract_codes(out) == set(), f"unexpected ADR codes in output: {out!r}"
+    assert out.strip(), "expected a message naming the absent-directory case"
+
+
+def test_empty_candidate_listing_exits_1_with_message_and_no_findings(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A directory with no *.md candidates exits 1, names the case, has no findings.
+
+    Verifies AC-0003 (empty-listing path).  A directory with only non-.md files
+    or no files produces an empty candidate listing.
+    """
+    d = tmp_path / "empty_adr"
+    d.mkdir()
+    # Write a non-candidate file so the directory exists but has no .md records
+    (d / "README.md").write_text("# index\n", encoding="utf-8")
+    code, out, _err = _run(d)
+    assert code == 1, f"expected exit 1 for empty listing, got {code}"
+    assert _extract_codes(out) == set(), f"unexpected ADR codes in output: {out!r}"
+    assert out.strip(), "expected a message naming the empty-listing case"
+
+
+# ── T2: mirrored-pair attribution (AC-0004) ───────────────────────────────────
+
+
+def test_s010_findings_attributed_to_both_record_paths(
+    tmp_path: pathlib.Path,
+) -> None:
+    """ADR-S010 findings name both the record that has the entry and the one missing the mirror.
+
+    Verifies AC-0004: a missing counterpart in a mirrored pair is reported
+    against both records, not just the one that triggered the check.
+    """
+    base = _conforming()
+    # Remove the Superseded by mirror from ADR-0003
+    files = _mutate(base, "0003-superseded.md",
+                    "- **Superseded by:** ADR-0002",
+                    "- **Superseded by:** none")
+    d = _write_dir(tmp_path, files)
+    code, out, _err = _run(d)
+
+    # Both records must appear in the ADR-S010 finding lines
+    s010_lines = [line for line in out.splitlines() if "ADR-S010" in line]
+    assert len(s010_lines) >= 2, (
+        f"expected findings on both records; got:\n{out}"
+    )
+    paths_in_findings = {line.split(":")[0] for line in s010_lines}
+    names_in_findings = {pathlib.Path(p).name for p in paths_in_findings}
+    assert "0002-superseder.md" in names_in_findings, (
+        f"ADR-0002 (the record with Supersedes: ADR-0003) missing from findings:\n{out}"
+    )
+    assert "0003-superseded.md" in names_in_findings, (
+        f"ADR-0003 (the record missing its mirror) missing from findings:\n{out}"
+    )
+    assert code == 1
+
+
+# ── T2: refused and unreadable entries fail the run (AC-0031) ─────────────────
+
+
+def test_refused_and_unreadable_entries_exit_nonzero(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A directory with one refused and one undecodable entry exits non-zero.
+
+    Verifies AC-0031: unchecked entries fail the gate even without findings.
+    The entry in the refused bucket is a directory named like a record.
+    The entry in the unreadable bucket is a binary file that is not UTF-8.
+    """
+    d = tmp_path / "adr"
+    d.mkdir()
+    # Refused: a directory named like a record (classify returns "directory")
+    dir_record = d / "0001-refused.md"
+    dir_record.mkdir()
+    # Unreadable: a binary file with non-UTF-8 bytes
+    (d / "0002-binary.md").write_bytes(b"\xff\xfe not utf-8 \x00\x01")
+
+    code, out, err = _run(d)
+    assert code != 0, (
+        f"expected non-zero exit with refused+unreadable entries, got {code}"
+    )
+    # There should be no ADR-S finding lines (these are bucket entries, not parsed)
+    assert _extract_codes(out) == set(), (
+        f"unexpected finding codes; refused/unreadable should not produce ADR codes:\n{out}"
+    )
+
+
+# ── T2: continuation-block field values (AC-0008) ─────────────────────────────
+
+
+_SIGNAL_INDENTED_BLOCK = """\
+# ADR-0010: Use indented signal block
+
+- **Status:** Accepted
+- **Date:** 2026-04-01
+- **Areas:** tooling
+- **Reversibility:** low
+- **Decision-makers:** alice
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+
+## Context
+
+Modelled on ADR-0070 in the real corpus, whose Signal is an indented block.
+
+## Decision
+
+We test the indented-block Signal form.
+
+- **D1:** Signal values may span multiple indented lines.
+
+## Consequences
+
+Positive: the parser handles both corpus forms.
+
+**Revisit if:** The corpus shifts to a different Signal shape.
+
+## Confirmation
+
+- **Mode:** reviewer-checked
+- **Signal:**
+  - The integration test suite passes.
+  - No regression in existing checks.
+- **Owner:** alice
+
+## Alternatives considered
+
+- **Same-line Signal:** Accepted for the simple case; both are supported.
+"""
+
+_REVISIT_BLANK_LINE_LIST = """\
+# ADR-0011: Use blank-line Revisit if list
+
+- **Status:** Accepted
+- **Date:** 2026-04-02
+- **Areas:** tooling
+- **Reversibility:** low
+- **Decision-makers:** alice
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+
+## Context
+
+Modelled on ADR-0070's Revisit if form: blank line then unindented list.
+
+## Decision
+
+We test the blank-line-then-list Revisit if form.
+
+- **D1:** Revisit if values may be a blank-line-separated unindented list.
+
+## Consequences
+
+Positive: the parser handles both corpus Revisit if forms.
+
+**Revisit if:**
+
+- The store becomes unavailable.
+- Performance degrades beyond acceptable thresholds.
+
+## Confirmation
+
+- **Mode:** reviewer-checked
+- **Signal:** All tests green.
+- **Owner:** alice
+
+## Alternatives considered
+
+- **Same-line Revisit if:** Accepted for the simple case; both are supported.
+"""
+
+
+def test_signal_indented_block_reports_no_s013(tmp_path: pathlib.Path) -> None:
+    """A Signal value written as an indented block is read as non-empty.
+
+    Modelled on ADR-0070 in the real corpus.  A line-scoped reader would see
+    the Signal field as empty and report ADR-S013; AC-0008 requires it to pass.
+    """
+    d = _write_dir(tmp_path, {"0010-signal-block.md": _SIGNAL_INDENTED_BLOCK})
+    code, out, _err = _run(d)
+    assert "ADR-S013" not in out, (
+        f"ADR-S013 reported for indented-block Signal; parser did not read the block:\n{out}"
+    )
+    assert code == 0, f"expected exit 0 for conforming indented-block fixture:\n{out}"
+
+
+def test_revisit_if_blank_line_list_reports_no_s012(tmp_path: pathlib.Path) -> None:
+    """A Revisit if value written as a blank-line+list is read as non-empty.
+
+    Modelled on ADR-0070 in the real corpus.  A line-scoped reader would see
+    the Revisit if field as empty and report ADR-S012; AC-0008 requires it to pass.
+    """
+    d = _write_dir(tmp_path, {"0011-revisit-list.md": _REVISIT_BLANK_LINE_LIST})
+    code, out, _err = _run(d)
+    assert "ADR-S012" not in out, (
+        f"ADR-S012 reported for blank-line+list Revisit if; parser did not read the list:\n{out}"
+    )
+    assert code == 0, f"expected exit 0 for conforming blank-line+list fixture:\n{out}"
