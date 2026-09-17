@@ -376,3 +376,66 @@ admit, and orthogonal to what T11 is scored on.
   the `evals.json`/`eval_queries.json` edits into `.claude/skills/new-adr/
   evals/` and `.agents/skills/new-adr/evals/`; `cmp` confirms both
   projections are byte-identical to the `packs/` source after the sync.
+
+## Round 6 — post-execute implementation review (Codex), 2026-09-17
+
+Reviewer: `codex exec --model gpt-5.6-sol --sandbox read-only`, scoped to the
+six implementation files and a pre-extracted diff. Raw report:
+`.context/reviews/c1120540-bd0d-4741-8bd6-8421a07557fa/6-post-execute-code-adversarial-codex-raw.md`
+(103 lines, 7 findings: 3 Blocker, 4 Concern, 0 Nit). The reviewer could not
+run pytest — no writable temp dir under its sandbox — so every finding is
+static. Each was reproduced here before being acted on.
+
+### Reproduced and fixed (5)
+
+| Finding | Probe | Before | After |
+| --- | --- | --- | --- |
+| B1 `ADR-S010` compares ordinals, not D-IDs | pair where A says it superseded B's `D1` and B records its `D2` superseded | exit 0 | exit 1, both records named |
+| B1b reverse-only partial attributed to one record | `Superseded in part` with no counterpart | one path | both paths |
+| B3 CR in `Superseded by:` reaches the cell | value `ADR-0109\rINJECTED` | `^M` raw in the status cell | value refused, bare `Superseded` |
+| C5 `## Corrections` evades `ADR-S015` | correction section under an unobserved spelling | exit 0, no finding | exit 1, `ADR-S015` |
+| C5 renaming `## Consequences` retires `ADR-S012` | section renamed `## Outcome` | exit 0 | exit 1, `ADR-S012` |
+| C6 oversized D-ID aborts the scan | 5000-digit D-ID | `ValueError` traceback, record in no bucket, no summary | `ADR-S011`, `read: 1`, exit 1 |
+
+Ten tests added, each paired with its discriminating negative, because a
+control that has never been observed failing is indistinguishable from one
+that cannot fail. The negatives are load-bearing: matching D-IDs must still
+pass, a CRLF record must still read its field, and a content section merely
+beginning with "Corrected" must not be flagged.
+
+**Two fixes of mine were wrong on first attempt, and the corpus caught both.**
+Excluding every control character from the field read also excluded the
+trailing CR of a CRLF line ending, which would have made every field
+unreadable on a Windows checkout — the repository supports those. And matching
+correction headings by word stem plus trailing words flagged ADR-0105's
+`## Corrected transition table`, a content section, reddening the real corpus
+on first run. Both were caught by running against the corpus rather than
+against fixtures alone.
+
+### Two criteria were ticked before they held
+
+AC-0004 and AC-0032 were ticked against passing tests whose fixtures did not
+reach the defect: AC-0032's escaping fixture used an ordinary space where the
+criterion's own wording names line breaks as the load-bearing case, and
+AC-0004's attribution test exercised only the forward direction. Both criteria
+hold now. The tick was the error, not the criterion.
+
+### Open, not fixed
+
+- **B2 — check-then-act window in `_record_paths.py`.** The supplied directory
+  is tested with `is_symlink()` and then separately opened by `os.scandir`, and
+  a candidate classified by `classify_entry` is opened later in
+  `read_confined`. `(st_dev, st_ino)` equality proves identity at two instants,
+  not across the gap. Closing it means opening the directory once with
+  `O_DIRECTORY | O_NOFOLLOW` and resolving every candidate relative to that
+  descriptor — a rewrite of the helper, which is byte-identity pinned to the
+  `new-rfc` copy. Not attempted; owner decision.
+- **C7 — the mutation suite proves one example per class, not every clause.**
+  Deleting `ADR-S005`'s duplicate-token loop, `ADR-S011`'s duplicate branch, or
+  `ADR-S013`'s Signal/Owner checks would leave the suite green. The hostile
+  bucket test asserts `>= 1` per bucket, so double-counting one entry passes.
+  `tests/roster/test_lint_adr_shape_corpus.py:74` already names that blind spot.
+- **C5's third limb — `<!-- TODO -->` satisfies `ADR-S014`.** A comment-only
+  section is non-empty as bytes. The accepted narrowing for S014 was
+  "present-and-non-empty", so this matches the criterion as written; recorded
+  rather than changed.
