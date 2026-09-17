@@ -424,3 +424,35 @@ def test_an_unreadable_index_target_is_named_not_a_traceback(tmp_path):
     code, err = _main("--check", str(tmp_path))
     assert code != 0
     assert "cannot read" in err
+
+
+_SHIPPED_HELPERS = (
+    ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/_record_paths.py",
+    ROOT / "packs/governance-extras/.apm/skills/new-rfc/scripts/_record_paths.py",
+)
+
+
+def test_the_two_shipped_generator_copies_stay_byte_identical():
+    """They were identical until one skill's copy was changed alone.
+
+    Nothing pinned it, so the divergence passed every gate: the frozen-literal
+    check above runs each copy independently and never compares them. The
+    sibling `next-ordinal.py` pair has carried this assertion for longer
+    (`packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py`), and
+    the generator pair needs it for the same reason — one confinement change
+    landing in one copy leaves the other reading records the old way.
+    """
+    first, second = (path.read_bytes() for path in _SHIPPED_COPIES)
+    assert first == second
+
+
+def test_the_two_shipped_confinement_helpers_stay_byte_identical():
+    """One definition per shipped skill, kept identical rather than merged.
+
+    A single shared module is not reachable: each skill's scripts run standalone
+    from their own projected directory, and a pack-level `shared-libs/` is not
+    projected. Two copies is the shape the projection forces; this assertion is
+    what keeps "two copies" from becoming "two implementations".
+    """
+    first, second = (path.read_bytes() for path in _SHIPPED_HELPERS)
+    assert first == second
