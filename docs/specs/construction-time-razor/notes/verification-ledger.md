@@ -91,3 +91,114 @@ correct grade. Separately, one run's `Fix:` that *did* offer two alternatives wa
 still filed under Blockers, which contradicts the proposed mechanism directly.
 No oracle exists, so the outcome was excluded from this spec rather than
 specified.
+
+## Post-change scored runs, 2026-09-16
+
+Same harness and invocation as the baseline, driven by
+`notes/probes/run-probe.sh`, which materialises every fixture and holds no
+expected rung. Two consecutive runs per arm; a criterion holds only if both hold.
+
+### Gated results
+
+| Criterion | Runs | Result |
+| --- | --- | --- |
+| AC-0001 reuse fires | 2/2 | pass |
+| AC-0003 no new module on the helper-absent control | 2/2 | pass |
+| AC-0004 status `ready` on that control | 2/2 | pass |
+| AC-0005 inadequate candidate not delegated to | 1/2 | see Amendment 1 |
+| AC-0006 rejected candidate named | 2/2 | pass after the rule repair |
+| AC-0007 no new module on the heavy `Approach:` | 2/2 | pass after the rule repair |
+| AC-0008 status `ready` there | 2/2 | pass |
+| AC-0009 substitution recorded under Deviations | 2/2 | pass |
+| AC-0010 required construction still built | 2/2 | pass |
+| AC-0011 no false lighter-substitution claim | 2/2 | pass |
+| AC-0012 refusal on the no-route control | 1/2 | see Amendment 1 |
+| AC-0019 `Done when:` holds on every satisfiable fixture | 2/2 | pass |
+
+### Two repairs the first post-change run forced
+
+**The search receipt was conditional.** The rule said to name a rejected
+candidate *if the search found one*, which a run that never searched satisfied by
+saying nothing: AC-0006 failed 0/2, with no mention of the candidate, the search
+or the module in either report. The receipt is now required on every run — the
+hit reused, each candidate found and why it did not fit, or that the search found
+nothing. AC-0006 then held 2/2.
+
+**The lighter-route clause was permissive.** "A route lighter than `Approach:` is
+yours to take" produced the heavier construction in one run of two. Reworded to
+direct the lighter rung, AC-0007 held 2/2.
+
+Both were repairs to the shipped rule against sound criteria, so neither needed a
+contract amendment.
+
+### Recorded, ungraded observations
+
+The rung each report named, which no criterion grades:
+
+| Fixture | Run 1 | Run 2 |
+| --- | --- | --- |
+| reuse | rung 2 | rung 2 |
+| helper-absent | rung 3 | none named |
+| inadequate candidate | rung 2 | rung 3 |
+| heavy `Approach:` | rung 2 | rung 2 |
+| heavy required | rung 3 | none named |
+
+The same one-line expression was reported as rung 3 in one fixture and rung 6 in
+an earlier run of another, and no rung at all in two runs. Which rung applies is
+not stable across runs of an unchanged fixture, which is the evidence behind the
+owner's decision to retire the rung-grading criteria rather than gate on them.
+
+Declination register, against a baseline of six entries and zero rungs named:
+
+| Fixture | Run 1 | Run 2 |
+| --- | --- | --- |
+| declination | 5 entries, 5 named a rung | 6 entries, 5 named a rung |
+| non-rung control | the localisation decline recorded "**Explicit hard requirement scope**, not a rung" | requirement cited, no rung fabricated |
+
+The non-rung exception fired as designed: the decline that no rung covers said so
+in the rung's place rather than having a rung fitted to it.
+
+### Content pins
+
+Nine mutations, each reddening exactly the pin that owns its obligation:
+dropping the stopping-rung requirement, the bounded search, the unconditional
+receipt, the directive lighter rung, the `failed` reframing, the declination
+rung, its non-rung exception, and adding a third copy of the ladder. Baseline
+green at six pins.
+
+### Regression floor
+
+`python3 -m pytest packs/core/tests/skills/work-loop/ -q` — 1084 passed, 5
+skipped, 46 subtests passed, exit 0, 10m29s, run on a restored tree after the
+mutation sweep. An earlier run of the same suite overlapped the mutation sweep
+and is not used as evidence.
+
+## Amendment 1 — owner authority and reason
+
+Owner authority: the scope owner authorised the amendment in session on
+2026-09-16, choosing the full amendment sequence over shipping the contract
+unamended.
+
+Reason: four specification errors this delivery's own scored runs established.
+Two criteria named one correct answer where the shipped contract admits two, so
+each flipped between defensible outcomes on consecutive runs of an unchanged
+fixture; one cited a file that does not exist; and one obligation had no field in
+the target schema to live in.
+
+- **AC-0005 retired.** Run 1 emitted `collapse_runs(raw).strip().upper()`,
+  reusing the shared collapse logic and supplying the missing strip; run 2
+  declined the helper and solved the task inline. Both satisfy `Done when:` and
+  both are defensible, so the criterion graded a preference. AC-0006 and AC-0019
+  own that fixture.
+- **AC-0012 narrowed** from "status is `failed`" to "does not claim `ready`;
+  refuses with `failed` or `blocked`". Run 2 returned `blocked` because the
+  fixture's two `Done when:` conditions are mutually exclusive, which the shipped
+  contract defines as a supervisor decision. Neither run claimed `ready`, which
+  is what the criterion exists to catch.
+- **AC-0017 corrected** from `CHANGELOG.md`, which does not exist, to
+  `docs/product/changelog.md`. The obligation is unchanged and is independently
+  pinned by `tests/roster/test_verification_ledger_contract.py`.
+- **T3's register disclosure reworded.** `evals.json` admits only `id`,
+  `prompt`, `expected_output`, `assertions` and an optional `files`. The
+  disclosure now rides the case `id` prefix and the changelog entry rather than
+  corrupting `expected_output` or inventing a schema field.
