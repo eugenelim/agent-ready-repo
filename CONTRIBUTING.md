@@ -246,7 +246,7 @@ template adopter knows when to wire each one up.
   fan-out, because most plans have sequential `Depends on:` chains and the
   parallel-dispatch payoff doesn't beat the coordination overhead. Specialist reviewers are usually skipped,
   and `adversarial-reviewer` itself is optional at this size.
-- **Profile B** — [supervisor mode](#supervisor-mode) runs every
+- **Profile B** — [supervisor mode](packs/core/.apm/skills/work-loop/references/supervisor-mode.md) runs every
   multi-task plan in topological order (sequential by default); its
   parallel-write fan-out earns its keep only when a wave of independent
   tasks clears the safe-category ∧ `git merge-tree` gate. Reviewer
@@ -254,7 +254,7 @@ template adopter knows when to wire each one up.
   *Parallel dispatch discipline* section
   in the work-loop skill: one tool-call message, one Agent use per
   reviewer, barrier-wait, merge in the orchestrator's context.
-- **Profile C** — same as B, plus the [knowledge base](#knowledge-base)
+- **Profile C** — same as B, plus the [knowledge base](docs/knowledge/README.md)
   is actively populated (`docs/knowledge/patterns.jsonl`). The
   `session-start` hook is shipped pre-wired by the install pipeline,
   but knowledge remains out of automatic session context; explicit

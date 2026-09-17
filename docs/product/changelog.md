@@ -5,8 +5,12 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Maintenance: see [`README.md` § What belongs here](README.md#what-belongs-here)
-> for *when* an entry is owed. This header covers *how* this file is written.
+> Maintenance: an entry is owed in the same change that bumps a released
+> artifact's version — you know the version at write time, because you are
+> setting it. Tooling that ships in no release owes none. This header covers
+> *how* the file is written; stating the *when* here too keeps both in the
+> place `docs/product/AGENTS.md` says owns them, and needs no link out of a
+> published page to one that is not published.
 >
 > **A released section is free-standing, directly beneath `[Unreleased]`.**
 > Write `## [<artifact>][<version>] — YYYY-MM-DD` at the top level, newest
