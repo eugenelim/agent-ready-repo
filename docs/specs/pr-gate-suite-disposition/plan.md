@@ -74,12 +74,24 @@ key, demands no disposition, and leaves the gap silent. `Makefile:585`'s
 `node --test` suite that yields no path operand at all.
 
 So `suite_lines(makefile_text)` enumerates the define's command lines lexically:
-join backslash continuations, drop blank lines, `#` comment lines and `@`-prefixed
-shell guards, and interpret nothing else. Every surviving line must resolve to at
-least one `SUITE_DISPOSITION` entry, and every entry must be resolved by at least
-one line. A roster key is either a target path (the readable, stable form) or a
-literal substring of the line for a command with no path operand. Extraction
-proposes the target keys; it never decides whether a line needs an entry.
+join backslash continuations, then drop only blank lines and `#` comment lines.
+Those two are the sole content-blind exclusions the design permits, and they are
+safe because neither can execute anything.
+
+A `@` prefix is **not** an exclusion. It suppresses echo; it does not stop the
+command running, so dropping `@`-prefixed lines would reopen the escape hatch one
+notch down — `@test -d docs-site/node_modules && npm run test:plugins --prefix
+docs-site` is a single valid line combining two shapes that sit adjacent at
+`Makefile:584-585` today, and a syntactic `@` drop would hide the suite inside it.
+`suite_lines` strips a leading `@` and treats the line like any other.
+
+Every surviving line must resolve to at least one `SUITE_DISPOSITION` entry, and
+every entry must be resolved by at least one line. A roster key is either a target
+path (the readable, stable form) or a literal substring of the line, for a command
+with no path operand. Extraction proposes the target keys; it never decides whether
+a line needs an entry. Four lines in the define carry no extractable target and so
+need a substring key each: the two `@` shell guards, `npm run test:plugins`, and
+`$(PYTHON) -c "import httpx"`.
 
 **What each layer proves, stated without overclaiming.** Completeness is
 extraction-independent and fails closed. Corroboration is best-effort in *both*
@@ -104,15 +116,15 @@ candidate step carries either, so the check needs no exception list today.
 
 ### Component / module decomposition
 
-Four additions to `tools/lint-ci-parity.py`, all module-level beside their forward
+Six additions to `tools/lint-ci-parity.py`, all module-level beside their forward
 counterparts:
 
 - `PR_GATED` / `PR_GATED_IF` / `NO_PR_GATE` constructors, beside `LOCAL` and
   `CI_ONLY`.
 - `SUITE_DISPOSITION`, beside `STEP_DISPOSITION`.
 - `suite_lines(makefile_text)` — the lexical line enumeration described above. The
-  completeness anchor; reuses `_join_continuations` and nothing that interprets a
-  command.
+  completeness anchor; reuses `_join_continuations`, strips a leading `@`, and
+  interprets nothing else.
 - `line_targets(line)` — the per-line target proposal, reusing `_segments`,
   `_strip_inline_comment`, `_strip_shell_noise` and `_pytest_path_args`. Corroboration
   only.
@@ -128,10 +140,12 @@ counterparts:
 - A workflow with no `pull_request` trigger contributes no coverage.
 - A workflow that fails to parse is a tool error, exit 2, as the module already does.
 - A `run-test-suite` line with no path operand still demands an entry, keyed by a
-  literal substring. Three exist: `npm run test:plugins` (a real `node --test`
-  suite), `$(PYTHON) -c "import httpx"` (an import precondition, not a suite), and
-  the `$(3)` macro placeholder. Each is dispositioned on its own terms, and T1
-  confirms the enumeration finds exactly these three and no more.
+  literal substring. Four exist on the standalone route: the two `@` guards
+  (`command -v npm`, `test -d docs-site/node_modules`), `npm run test:plugins` (a
+  real `node --test` suite over two `.test.ts` files), and
+  `$(PYTHON) -c "import httpx"` (an import precondition, not a suite). Each is
+  dispositioned on its own terms, and T1 confirms the enumeration finds exactly
+  these four and no more.
 
 ### Quality attributes (NFRs)
 
@@ -173,10 +187,15 @@ Makefile text and workflow mapping as keyword arguments:
 - a define line resolving to no entry, where the line has no path operand at all —
   the `npm run test:plugins` shape, which is the case a target-keyed roster misses
   (AC-0001)
+- a define line resolving to no entry where the line is `@`-prefixed and carries a
+  suite after a `&&`, which is the case a syntactic `@` drop would hide (AC-0001)
 - an entry resolved by no define line (AC-0002)
 - `PR_GATED` naming a `paths`-filtered workflow, and one naming a
   `paths-ignore`-filtered workflow (AC-0003)
-- `PR_GATED_IF` naming an unfiltered workflow with an unconditional step (AC-0004)
+- `PR_GATED_IF` naming an unfiltered workflow whose step and job are both
+  unconditional, and — as the discriminating pair — `PR_GATED_IF` naming an
+  unfiltered workflow whose *job* carries `if:` while its step does not, which must
+  be accepted (AC-0004)
 - `PR_GATED` naming a step carrying `continue-on-error`, and one naming a step
   carrying `if:` (AC-0005)
 - `PR_GATED` whose suite no extracted step reaches (AC-0006)
@@ -209,8 +228,9 @@ if the arm is never wired into `main()`. This case is the one that reddens when 
 gate is disconnected rather than broken. It is a separate task because it verifies
 the wiring, not the rule, and T6 void-probes it as its own arm.
 
-**Done when:** deleting the `check_suites(...)` call from `main()` reddens this case
-while leaving every T2 case green — recorded in the ledger.
+**Done when:** AC-0009 holds, and deleting the `check_suites(...)` call from
+`main()` reddens this case while leaving every T2 case green — recorded in the
+ledger.
 
 ### T4: Docstring — contract and residual
 
@@ -253,7 +273,8 @@ not establish about pull-request coverage.
 `PR_GATED` naming the new steps. Neither step may carry `if:` or
 `continue-on-error`, or AC-0005's arm rejects the claim it is meant to support.
 
-**Done when:** both entries read `PR_GATED` and the lint corroborates them.
+**Done when:** AC-0010 and AC-0011 hold — each entry reads `PR_GATED` naming its
+new step — and the lint corroborates both.
 
 ### T6: `tools/AGENTS.md`
 
@@ -342,3 +363,12 @@ entry before committing.
   reclassified from gating to conditional, `continue-on-error`/`if:` added to the
   enforcement check, and T3 added because every other case would stay green if the
   arm were never wired into `main()`.
+- 2026-09-16: Round 2 reviewed the repairs and found five of them had left drift.
+  The `@`-prefix exclusion was a second content-blind drop and reopened the escape
+  hatch round 1 closed; only blanks and comments are dropped now. AC-0004 rejected a
+  correct `PR_GATED_IF` whose job alone was conditional. Two baseline count sets
+  contradicted each other (61/1/52 beside 57/5/52); the measured 56/6/52 is now
+  stated once. AC-0010 and AC-0011 could both pass with the whole change absent, so
+  they now read off the roster and lean on AC-0006 for the step. AC-0013 was
+  restated differentially, because a self-test case that cannot fail satisfies
+  "carries a case".
