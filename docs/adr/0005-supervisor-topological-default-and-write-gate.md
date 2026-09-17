@@ -1,9 +1,14 @@
 # ADR-0005: Supervisor mode — topological-order default, gated parallel writes
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-05-29
-- **Deciders:** @eugenelim
+- **Areas:** orchestration, concurrency
+- **Reversibility:** high
+- **Decision-makers:** @eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0015 (`docs/rfc/0015-wave-scheduled-supervisor-mode.md`); spec `docs/specs/wave-scheduled-supervisor/`; `docs/CONVENTIONS.md` §Supervisor mode; `work-loop` skill.
 
 ## Context
@@ -42,6 +47,19 @@ carries hazards under a shared `.git` (multi-session drivers).
 > adapter; parallel implementer **writes** are **opt-in and gated** on (a)
 > membership in a measured safe category *and* (b) a `git merge-tree`
 > file-disjointness check, with everything else run serial.
+
+- **D1:** Supervisor mode schedules tasks from the full `Depends on:` DAG and
+  executes them in topological order, sequentially, by default on every adapter.
+- **D2:** Parallel implementer writes are opt-in, never automatic.
+- **D3:** A parallel write is admitted only for a task in a measured safe
+  category — *cannot-collide*, *typed Group B*, or *textual-loud*.
+- **D4:** A parallel write additionally requires a `git merge-tree`
+  file-disjointness check; everything else runs serial.
+- **D5:** Parallel reads, including reviewer fan-out, stay ungated.
+- **D6:** `merge-abort` is preserved as the textual backstop and is never
+  relaxed.
+- **D7:** Write isolation comes from a git worktree — loop-managed when
+  standalone, delegated to the driver when one is present, never stacked.
 
 Elaboration and boundaries:
 
@@ -82,6 +100,11 @@ Elaboration and boundaries:
   path is expanded.
 - The safe-category list may widen if static-interference tooling matures
   enough to make a currently-silent class loud.
+
+**Revisit if:** the **T2-live** spike measures a real-implementer break
+frequency that does not support the safe-category gate (D3); or static
+interference tooling matures enough to make a currently-silent class loud,
+which would widen the admitted categories.
 
 ## Alternatives considered
 

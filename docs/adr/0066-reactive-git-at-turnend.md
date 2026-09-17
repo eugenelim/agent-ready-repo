@@ -2,7 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** orchestration, workspace
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** ADR-0067 (the lifecycle manifest design this declines to add a `git_managed` flag to); ADR-0063 (session instruction as the universal mechanism, which keeps skills adapter-agnostic)
 
 ## Decision summary
 
@@ -22,7 +29,20 @@ The question is whether the commit lifecycle should be:
 
 The reactive approach is more robust: it does not require the manifest to be exhaustive, does not create race conditions between the artifact watcher and the commit tool, and gives the control plane full agency over commit timing (e.g., wait until a gate is reached before committing, rather than committing every intermediate file).
 
-## Alternatives rejected
+## Decision
+
+The control plane drives the commit lifecycle reactively at TurnEnd.
+
+- **D1:** The control plane calls `git_status()` after each AI turn ends and commits any uncommitted artifacts it finds.
+- **D2:** No `git_managed` flag is declared per lifecycle type in the lifecycle manifest.
+- **D3:** workspace-mcp exposes `git_status`, `git_commit`, and `git_push` as MCP tools the AI agent may call directly.
+- **D4:** Commit timing stays the control plane's decision; no artifact-watcher event commits a file automatically.
+
+## Consequences
+
+**Revisit if:** the lifecycle manifest grows per-type commit semantics — for example "commit immediately when the artifact appears" versus "commit at gate only" — at which point a declarative `git_managed` flag would enable push-based scheduling and retire the per-turn `git_status()` call (D1, D2).
+
+## Alternatives considered
 
 **Declarative `git_managed` flag per lifecycle type.** Each type in the manifest declares whether its artifacts should be committed automatically when they appear. workspace-mcp listens for artifact watcher events and calls `git_commit` when a `git_managed` artifact appears. Rejected because it creates a race between artifact creation (the watcher fires when the file appears) and artifact completion (the AI may still be writing the file); requires the manifest to be exhaustive; and requires manifest updates whenever a skill adds a new output type.
 

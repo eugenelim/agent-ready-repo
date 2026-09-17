@@ -2,7 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
+- **Areas:** orchestration, tooling
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Decision summary
 
@@ -20,7 +27,26 @@ A per-skill approach (each gate-capable skill calls `gate_request` or similar) w
 
 The session instruction approach treats the AI agent as the universal proxy: a preamble injected at `session/new` time instructs the AI to route all questions and decisions through `elicit()` rather than emitting them as plain text. The AI then mediates between the skill's elicitation need and the control plane's response, with no skill modification required.
 
-## Alternatives rejected
+## Decision
+
+Elicitation interception is implemented by injecting a single session-level
+instruction at startup.
+
+- **D1:** Elicitation interception is implemented by a single session-level
+  instruction injected at startup via `session/new.instruction` or equivalent.
+- **D2:** No skill is modified to check for or call a `gate_request` or similar
+  tool at its decision points.
+- **D3:** The injected instruction directs the AI to route all questions and
+  decisions through `elicit()` rather than emitting them as plain text.
+
+## Consequences
+
+**Revisit if:** Claude Code or another AI host exposes a system-prompt
+enforcement surface that lets workspace-mcp guarantee elicitation routing rather
+than rely on prompt-following (D1), or the measured non-compliance rate for
+structured decisions exceeds an acceptable threshold in Stage 3 validation.
+
+## Alternatives considered
 
 **Per-skill `gate_request` tool check.** Each gate-capable skill (work-loop, new-spec, place-bet) checks at decision points if a `gate_request` tool is available and calls it. This covers declared gate states only — it misses the majority of AI→user communication that happens through informal elicitations. Covering all informal elicitations via this approach is the same problem as the session instruction, multiplied across every skill, indefinitely. Rejected because it delivers less coverage at greater coupling cost.
 
