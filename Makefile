@@ -646,9 +646,6 @@ $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 $(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
 $(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 $(PYTHON) -m pytest tools/test_editable_install_guard.py -q
-# Every gate enumeration that must name jsonl-otlp-exporter. Each site is a
-# literal list, so adding the package to one adds it to none of the others.
-$(PYTHON) -m pytest tools/test_gate_enumeration.py -q
 # This exact class is stable in forward/reverse order and under the state-leak
 # characterization controls. The import-time path guard deliberately retains
 # its sanitized full-roster child collection inside this outer pytest process.
@@ -683,7 +680,8 @@ $(PYTHON) -m pytest \
 	tools/test_okf_pre_pr.py \
 	tools/test_pack_test_compatibility.py \
 	tools/test_check_distribution_route_decisions.py \
-	tools/test_route_branch_guard.py -q
+	tools/test_route_branch_guard.py \
+	tools/test_gate_enumeration.py -q
 # The identity derivation is what catches the SILENT hazard — a subject module
 # bound to the wrong path, or a sys.path mutation added to a class member.
 # Collection-only characterization cannot see either, and at ~2s this is the
