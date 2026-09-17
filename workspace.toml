@@ -1228,6 +1228,58 @@ open = [
   # topic deterministic-repository-obligations-are-not-review-work.
   #
   { slug = "convention-obligation-cost-has-no-owner", source = "knowledge-distill/2026-09-17", summary = "22 of 67 sustained findings in the review-economics spike were unmet repository obligations, split 11/11 across both review arms, and no intent owns that cost; the implementer-brief remedy is ranked behind the repair provability audit while the deterministic pre-review-check half is unranked, and choosing between them needs the owner" },
+
+  # The knowledge base's freshness contract pins bytes, and the pins do not
+  # hold. Measured 2026-09-17 over docs/knowledge: of 98 topics, 63 pin no
+  # source digest at all, 35 pin one, and 24 of those 35 are stale -- a 69%
+  # failure rate among the topics that use the mechanism. One pin names
+  # docs/CONVENTIONS.md, deleted by #1345. The store validates a digest's
+  # shape rather than its currency (knowledge_store.py `_validate_source`), so
+  # the 212-case project-knowledge suite is green over every one of them and
+  # enquiry returns the stale topics as fresh.
+  #
+  # 35 stale pins is not 35 wrong lessons. Dispositioned into four classes:
+  #
+  # A. No action -- 6 pins across 3 retired topics. Their freshness.state is
+  #    already `retired` so enquiry excludes them; the digest is a historical
+  #    anchor, which is what it should be.
+  # B. Drop the dead source -- 1 pin. The `docs/CONVENTIONS.md` supporting
+  #    source on a-pack-version-bump-is-three-files-build-self-syncs-none-of-them.
+  #    That topic's OWNING source is already packs/AGENTS.md, which is where
+  #    #1345 re-homed the version-bump rule, so the dead path carries nothing.
+  #    Mechanical and unambiguous.
+  # C. Drop the pin, do not refresh it -- ~27 pins across 16 topics whose
+  #    lesson is about how Python, git, semgrep or a review technique behaves,
+  #    not about a defect living in those bytes. Four were read in full to
+  #    confirm the classification: semgrep-strict (semgrep's per-file budget),
+  #    batching-n-subprocess-calls (`git check-ignore --stdin` exiting 128),
+  #    a-negative-path-assertion and a-case-count-is-not-coverage (both pure
+  #    test-design principles). Refreshing these re-stales immediately --
+  #    loop-engine.py grew 15,910 bytes and workspace.toml 18,735 -- and the
+  #    pin was never load-bearing for the claim.
+  # D. Re-verify before deciding -- 5 topics asserting something about THIS
+  #    repository's current behaviour, where drift is a real prompt to
+  #    re-check: build-site-rewrites-an-unresolvable-in-tree-link (does it
+  #    still rewrite to a blob URL outside the audit's scope), 
+  #    a-safety-cap-enforced-only-by-shell-punctuation (is the cap still
+  #    punctuation-only), loop-cohort-schedule-parses-task-headings-by-pattern,
+  #    a-document-wide-href-scan-cannot-prove-a-link-sits-in-a-starlight-section,
+  #    and a-pack-version-bump-is-three-files. These are the only ones where
+  #    staleness might mean the knowledge base is wrong rather than unpinned.
+  #
+  # Recommended contract change: record the revision a lesson was learned at
+  # rather than a byte digest. It ages gracefully, still answers "what has
+  # moved since", and does not fail on an unrelated edit to a large file. Two
+  # alternatives, both weaker: durable lessons carry no pin at all (matches the
+  # 63 that already do, but loses the re-check signal), or keep byte pins and
+  # add a currency gate -- which is actively harmful, because the pinned set
+  # includes Makefile, workspace.toml and work-loop/SKILL.md, so the gate would
+  # fire on most pull requests.
+  #
+  # Not repaired when found: this was discovered while landing core 2.26.12,
+  # whose own topic hit the same defect, and 24 topics plus a contract decision
+  # is its own change. Class B is one row and could go first on its own.
+  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
