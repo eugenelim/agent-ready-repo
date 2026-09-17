@@ -52,7 +52,7 @@ Turn these journey pains and peak moments into three to five design principles.
 **Agent returns:**
 <!-- rung: design-principles SKILL.md -->
 
-> **Agent:** Done — I've written named, ranked decision rules with rationale, arbitration tests, and known trade-offs to `docs/design/principles/<slug>.md`.
+> **Agent:** Done — I've written named, ranked decision rules with rationale, arbitration tests, and known trade-offs to `<output_dir>/principles/<slug>.md`.
 
 **You push back:**
 <!-- rung: design-principles SKILL.md -->
@@ -73,7 +73,7 @@ Turn these journey pains and peak moments into three to five design principles.
 **Watch out for:** A polished principle set may be generic everywhere. Notice brand values, copied heuristics, or more than five rules; replace them with a smaller ranked set grounded in this journey.
 <!-- rung: design-principles SKILL.md -->
 
-**Where it lands:** `docs/design/principles/<slug>.md`, with `<slug>` replaced for this product.
+**Where it lands:** `<output_dir>/principles/<slug>.md`, with `<slug>` replaced for this product.
 <!-- rung: design-principles SKILL.md -->
 
 **What it looks like:**
@@ -99,7 +99,7 @@ Set a visual direction for this surface from its audience, persona, precedents, 
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
 
-> **Agent:** Done — I've written a named, ranked aesthetic direction grounded in stable referents to `<output_dir>/aesthetic/<slug>.md`.
+> **Agent:** Done — I've written a named, ranked aesthetic direction grounded in stable referents to `<output_dir>/direction/<slug>.md`.
 
 **You push back:**
 <!-- rung: creative-direction SKILL.md -->
@@ -120,13 +120,22 @@ Set a visual direction for this surface from its audience, persona, precedents, 
 **Watch out for:** Confident aesthetic language can conceal guesses. Notice goals with no referent and lines borrowed from a general genre pattern; argue with those first, and reject any direction that conflicts with the quality floor.
 <!-- rung: creative-direction SKILL.md -->
 
-**Where it lands:** `<output_dir>/aesthetic/<slug>.md`.
-<!-- rung: authored; creative-direction SKILL.md declares the record but not its path -->
+**Where it lands:** `<output_dir>/direction/<slug>.md`.
+<!-- rung: creative-direction SKILL.md -->
 
 **What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md -->
 
 ```markdown
+---
+type: creative-direction
+slug: "<kebab-case-slug — the surface or product this direction serves>"
+# surface: the target platform this direction is for. It changes which
+# platform standards ground each goal below.
+surface: "<responsive-web | iOS | Android | cross-platform>"
+date: "<YYYY-MM-DD>"
+---
+
 # Aesthetic direction: <surface or product name>
 
 <!--
@@ -136,14 +145,6 @@ Set a visual direction for this surface from its audience, persona, precedents, 
   or values; those are derived later by `design-system`. Keep it
   short enough that a non-designer reads it in two minutes.
 -->
-
-## Surface
-
-<!-- The target platform for this direction. One of:
-     responsive-web | iOS | Android | cross-platform
-     This changes which platform standards ground each goal. -->
-
-**Target surface:** <responsive-web | iOS | Android | cross-platform>
 
 ## Named goals (ranked)
 
@@ -169,7 +170,7 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
 
-> **Agent:** Done — I've written a semantic token and scale taxonomy whose roles trace to the approved direction to `<output_dir>/aesthetic/<slug>-tokens.md`.
+> **Agent:** Done — I've written a semantic token and scale taxonomy whose roles trace to the approved direction to `<output_dir>/tokens/<slug>.md`.
 
 **You push back:**
 <!-- rung: design-system SKILL.md -->
@@ -190,21 +191,41 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 **Watch out for:** A complete-looking taxonomy may contain roles projected from general design-system patterns. Notice any role with no direction rationale or accessibility constraint; challenge those lines first and remove unsupported tokens.
 <!-- rung: design-system SKILL.md -->
 
-**Where it lands:** `<output_dir>/aesthetic/<slug>-tokens.md`.
-<!-- rung: authored; design-system SKILL.md declares the taxonomy but not its path -->
+**Where it lands:** `<output_dir>/tokens/<slug>.md`.
+<!-- rung: design-system SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: packs/experience-design/.apm/skills/design-system/assets/token-taxonomy-template.md -->
 
 ```markdown
-# Token taxonomy
-## Semantic roles
-## Scale rationale
-## Accessibility constraints
-## Composition rules
+---
+type: token-taxonomy
+slug: "<kebab-case-slug — the system this taxonomy serves>"
+direction: "<name of the aesthetic direction this taxonomy derives from>"
+date: "<YYYY-MM-DD>"
+---
+
+# Token taxonomy: <system or product name>
+
+<!--
+  Written by the `design-system` skill. Fill the angle-bracket prompts and
+  delete this comment. This doc holds the *taxonomy* — the roles, the layering,
+  and the scale relationships expressed symbolically. It holds NO resolved
+  values: no palette, no spacing sheet, no type sheet, no timing table. You
+  record the method and the shape; whoever builds resolves the numbers for
+  their medium and density, and records them in the interchange file, not here.
+-->
+
+## Direction this derives from
+
+<!-- Name the goals from the aesthetic direction. Every role and every scale
+     decision below traces back to one of them. A taxonomy with no named goal
+     behind it is arbitrary. -->
+
+- **<goal 1>** — <one line on what it asks of the system>
 ```
 
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Where this leads
 

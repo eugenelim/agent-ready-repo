@@ -177,7 +177,7 @@ Type `user-flow`. The agent sequences the screens implied by the journey and bui
 ```text
 user-flow
 
-  screens  docs/design/screen-flows/onboarding.md
+  screens  docs/design/screens/onboarding-flow.md
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
   States per screen: default · loading · error · success · empty
@@ -195,7 +195,7 @@ Type `creative-direction` to anchor the visual direction in persona, precedent, 
 ```text
 creative-direction
 
-  direction  docs/design/aesthetic/onboarding.md
+  direction  docs/design/direction/onboarding.md
 
   Goals   Calm confidence, platform-native trust
   Ref     Linear's focused workspace; Notion's quiet hierarchy
@@ -216,7 +216,7 @@ Type `information-architecture` (or a genre-direct skill for dashboards, marketi
 ```text
 interaction-design [/onboarding/welcome]
 
-  screen  docs/design/screens/welcome.md
+  screen  docs/design/screens/onboarding/welcome.md
   States: default · loading · error · success · empty ✓
   Motion: entrance · field-focus · submit-feedback ✓
 ```

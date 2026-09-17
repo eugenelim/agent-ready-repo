@@ -101,9 +101,26 @@ judging an existing screen, `design-review`.
    (`../design-review/references/quality-floor.md`). Empty, loading, and
    error states change the IA — first-run orients and invites, no-results
    shows recovery, loading preserves layout so the surface doesn't jump.
-8. **Write the IA doc** — the ranked content, the reading pattern and why,
-   the disclosure stages, the navigation shape, the wayfinding plan, and
-   the per-state layout notes. Reasoning and rationale, no layout code.
+8. **Write the IA doc.** Resolve `output_dir` via
+   `references/agentbundle-layout.md` (the `[design]` section) and apply every
+   control in `references/containment.md`, in the order that module states —
+   approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-
+   directory confinement, and the existing-artifact checks. The target is
+   `<output_dir>/screens/<slug>-ia.md`, where `<slug>` names the screen or flow
+   this pass covers. This skill ships no template, so author the file directly,
+   carrying the frontmatter its `references/agentbundle-layout.md` § Frontmatter
+   contract fixes: `type: information-architecture`, `slug:`, and `date:`. Fill
+   it with the ranked content, the reading pattern and why, the disclosure
+   stages, the navigation shape, the wayfinding plan, and the per-state layout
+   notes. Reasoning and rationale, no layout code.
+
+## Output
+
+**Writes:** `<output_dir>/screens/<slug>-ia.md`
+
+**Confinement:** `references/containment.md`
+
+Artifact frontmatter declares `type: information-architecture`.
 
 ## Anti-patterns to refuse
 

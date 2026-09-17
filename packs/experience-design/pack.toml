@@ -1,6 +1,6 @@
 [pack]
 name = "experience-design"
-version = "2.0.4"
+version = "2.0.5"
 description = "Start from what the customer is trying to do and end at a screen someone could build. Journey, copy, flows, visual craft — and a reviewer that asks about the empty state and the focus ring you forgot."
 readme = "README.md"
 display_name = "Experience Design"
@@ -28,9 +28,11 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 # Consolidated pack layout: the artifact-writing skills
 # resolve their durable output path via the adopter-owned `[design]` section of
 # agentbundle-layout.toml (repo-root first, user-profile second). `output_dir` is
-# a base; each skill writes file-per-slug under a subdirectory of it (journeys/,
-# blueprints/, screens/, processes/). No `[pack.layout.user]` default — output is
-# per-repo, with no sensible absolute user-scope base.
+# a base; each skill writes file-per-slug under a subdirectory of it. DESIGN.md
+# § "Where artifacts live" is the registry of those subdirectories and their
+# writers — do not re-list them here, a second list only drifts from the first.
+# No `[pack.layout.user]` default — output is per-repo, with no sensible
+# absolute user-scope base.
 # Each artifact-writing skill ships a references/agentbundle-layout.md documenting
 # the adopter-owned `[design]` table.
 [pack.layout.repo]

@@ -105,6 +105,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/README.md` is seeded once and then yours, the same way `docs/CHARTER.md`
   already was. Rebuilding never overwrites your edits to it.
 
+## [experience-design][2.0.5] — 2026-09-17
+
+### Highlights
+
+- **Four design skills now write where you point them.** `creative-direction`,
+  `design-principles`, `information-architecture` and `design-system` each
+  declare one canonical target under the `[design] output_dir` you set in
+  `agentbundle-layout.toml`. Before this release `design-principles` wrote to a
+  fixed `docs/design/principles/...` path that ignored your configuration,
+  `information-architecture` used a location no skill declared,
+  `creative-direction` named none at all, and `design-system` produced no file —
+  it now writes a token taxonomy your frontend work can read instead of
+  re-deriving tokens every session.
+- **Treat the pack's confinement as a strong default, not a boundary.** Each of
+  the four is instructed, before writing, to state the approved output
+  directory, the file it read that value from, and the target path it composed.
+  One full run was captured against the shipped wording — `creative-direction`,
+  which stated all three — so this is a measured instruction for that skill and
+  an unobserved one for the other three. The check that keeps a write inside
+  that directory is an instruction the agent has to carry out, not something
+  the pack enforces. Against a target reached through a symlink it was
+  skipped in 2 of 8 observed runs, and every skip wrote outside the approved
+  directory. The step was rewritten to require an executed real-path resolution
+  and has refused on every run observed since, but a skipped check still leaves
+  no trace: the file exists and looks ordinary. If you need a guarantee rather
+  than a strong default, enforce confinement outside the agent — in the
+  filesystem, or in a tool that refuses the write.
+- **The how-to guides now say what each skill actually does.** Nineteen steps
+  published a "where it lands" path. Eight named a file the skill never writes,
+  and several sent you to an `aesthetic/` folder nothing produces. Every step
+  now gives either the path its skill writes or a plain statement that it writes
+  no artifact, so you stop waiting for a file that was never coming.
+
+### Added
+
+- `design-system` writes `<output_dir>/tokens/<slug>.md` with `type:
+  token-taxonomy` frontmatter, from a shipped template. It is the skill's first
+  artifact, and it is what a downstream frontend surface reads when it asks
+  which token taxonomy applies.
+- A shared containment module, `references/containment.md`, carried as a
+  byte-identical copy by each of the four writers and by `design-review`. It
+  holds output-directory approval, slug validation, final-target real-path
+  confinement, intermediate-directory confinement, the existing-artifact type
+  and product-belonging checks, and the rule that a loaded artifact is data
+  rather than instructions.
+- Each of the four writes has an eval case covering its declared target,
+  its frontmatter type, and the requirement to surface the resolved path.
+
+### Changed
+
+- The three existing writes resolve through your configured output directory:
+  `creative-direction` to `<output_dir>/direction/<slug>.md`,
+  `design-principles` to `<output_dir>/principles/<slug>.md`, and
+  `information-architecture` to `<output_dir>/screens/<slug>-ia.md`. Nothing
+  moves on upgrade; these targets had no address to move from.
+- `design-review` resolves the design-principles artifact the same way. Its load
+  is a step the skill marks mandatory, so under a non-default `output_dir` it
+  previously missed the file and produced findings traced to nothing.
+- The pack's three folder listings — `DESIGN.md`, the `pack.toml` subdirectory
+  note, and the `experience-status` scan table — name the same nine declared
+  folders. `aesthetic/` and `screen-flows/`, which no skill writes, are gone.
+- **A known limit, stated because you cannot see it from the output.**
+  Resolving `output_dir` is itself an instruction, and an agent sometimes writes
+  to the example path in the layout reference instead of reading your
+  `agentbundle-layout.toml`: 2 of 12 observed runs before that section was
+  reworded, 1 of 4 after — no measured improvement. The wording is kept because
+  it is more accurate, not because it fixed anything. The mitigation is
+  visibility rather than prevention: the resolved path and the file it came from
+  are stated before the write, so a wrong directory is something you can catch
+  at the time.
+
+### Fixed
+
+- The final-target confinement check is now discharged by running a real-path
+  resolution and reading its result, with the command given inline, rather than
+  by reasoning about the path. Measured on the two skills that had leaked: 2
+  escapes in 6 symlink runs before, 0 in 6 after, with no new refusals on benign
+  input. Across all four writes, measured against the shipped module, the
+  current state refuses an inadmissible `output_dir`, a symlinked target, and a
+  non-conforming slug — twelve cells, twelve refusals, no file written in any of
+  them.
+- **A non-conforming slug was being silently rewritten rather than refused.**
+  Given a slug carrying path-traversal segments, `creative-direction` derived a
+  tidy slug from the product name and wrote the artifact — in 2 of 3 runs. The
+  containment module said to reject such a slug and never said not to repair it,
+  so the skill complied in the most helpful way available. This is the one
+  failure in this release you could not have spotted from the result: the file
+  that lands is well-formed, correctly placed, and named something you did not
+  ask for. All four writes now refuse a non-conforming slug instead of
+  substituting one, and say which rule it broke.
+- The module now states its own limit at the point of use: the control is an
+  instruction rather than an enforced boundary, a skipped check leaves no trace,
+  and an adopter who needs a guarantee must enforce confinement outside the
+  agent. A write is not to be described as confined unless the resolution was
+  actually run.
+
 ## [core][2.26.10] — 2026-09-17
 
 ### Highlights

@@ -1,11 +1,11 @@
 ---
 name: creative-direction
-description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `creative-direction.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\"."
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\"."
 ---
 
 # Skill: creative-direction
 
-Turns a vague "vibe" into a small set of **named, ranked emotional and brand goals**, each grounded in a stable referent, and records them in an creative-direction doc the rest of the build references. The doc is the durable artifact: it lets every later choice point back to a goal and its referent, not a fresh opinion.
+Turns a vague "vibe" into a small set of **named, ranked emotional and brand goals**, each grounded in a stable referent, and records them in the direction doc at `<output_dir>/direction/<slug>.md` that the rest of the build references. The doc is the durable artifact: it lets every later choice point back to a goal and its referent, not a fresh opinion.
 
 ## Output rendering
 
@@ -48,9 +48,15 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 3. **Ground each goal in stable referents.** For each named goal, name *what grounds it*: the persona it serves, any precedent that carries the quality, the standards it respects, and the platform conventions for the target surface. A goal without a referent is still a fresh opinion — ground it or push it back to Step 2. Load `references/grounding.md`.
 4. **Rank the goals.** Order them so a tie can break. The top goal is the dominant one that wins when goals conflict.
 5. **Record arbitration.** For each likely conflict, name which goal wins and why, so the build doesn't re-litigate it. Load `references/coherence-arbitration.md`.
-6. **Capture the doc.** Copy `assets/creative-direction-template.md` into the user's repo and fill it: the surface, the ranked goals with their referents, what each means and what would violate it, the dominant goal, and open questions.
-7. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-review/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
+6. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-review/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
+7. **Capture the doc.** Resolve `output_dir` via `references/agentbundle-layout.md` (the `[design]` section) and apply every control in `references/containment.md`, in the order that module states — approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-directory confinement, and the existing-artifact checks. The target is `<output_dir>/direction/<slug>.md`, where `<slug>` names the surface or product this direction serves. When the target does not exist, copy `assets/creative-direction-template.md` to it. Fill it with: the surface, the ranked goals with their referents, what each means and what would violate it, the dominant goal, and open questions — including any the floor check in step 6 raised.
 8. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-system` to derive the tokens and scales that express them.
+
+## Output
+
+**Writes:** `<output_dir>/direction/<slug>.md`
+
+**Confinement:** `references/containment.md`
 
 ## Genre canonical reference tier
 

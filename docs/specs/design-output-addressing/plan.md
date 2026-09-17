@@ -1,18 +1,19 @@
 # Plan: design-output-addressing
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (export boundary, version bump rule,
   § Security and authoring rules) and `docs/CONVENTIONS.md` § Phase-slice
-  planning. Analogous implementation: `copy-direction/SKILL.md` steps 1 and 6 —
-  the only skill in the pack that both approves the resolved `output_dir` and
-  re-canonicalizes the final target before writing; `tone-of-voice/SKILL.md:58`
-  for the singleton variant. Construction path:
+  planning. Analogous implementation: `copy-direction/SKILL.md` steps 1, 3 and 6 —
+  the only place in the pack that approves a resolved `output_dir`,
+  re-canonicalizes a final target before writing, validates an existing target's
+  `type:`, confirms product belonging for user-profile config, and extracts a
+  loaded artifact as data. Those are the five controls this change moves into one
+  module. Construction path:
   `tests/conformance/test_pack_layout_declared_section.py` for the declared pair,
-  and `tools/lint-ci-parity.py:360-372` for the disposition shape a new
-  `build-check.yml` step must match. Named deviation: none — every control this
-  change adds already exists in `copy-direction`, so this is propagation of an
-  in-repo pattern rather than new design.
+  `tools/lint-ci-parity.py:360-372` for the disposition shape a new
+  `build-check.yml` step must match. Named deviation: none — every control is
+  already in `copy-direction`, so this propagates an in-repo pattern.
 
 > **Plan contract:** implementation strategy. It may change substantively only
 > while Status is `Drafting`. Execution observations belong in
@@ -20,351 +21,489 @@
 
 ## Approach
 
-Ten tasks in one chain with a single fork: T7 depends on T4, and T8 and T9 both
-fork off T7, rejoining at T10. T8 and T9 are the only pair that can run
-alongside each other.
+Thirteen tasks. Each task's subject is taken from the acceptance criteria it
+discharges, not from a grouping of skills — that grouping is what drifted when
+the spec narrowed twice, and re-deriving from the criteria is why this plan
+replaces its predecessor rather than patching it.
 
-The tests are authored **after** the work they check and proven red by mutating
-the artifact, not by the pre-change state. That is deliberate: a test introduced
-before the four writes exist cannot go green at the task that introduces it,
-which is the defect that made two earlier drafts unclosable.
+The `Depends on:` field on each task is the dependency shape. This paragraph does
+not summarise it, characterise it, or count its branches: every prior round of
+this plan carried such a summary and every one of them disagreed with the fields.
+Read the fields.
 
-Review shape is **MIXED**. T2 authors one shared module the four writes reference, and
-carries a re-run check; T4 and T5 are the tasks that need reading.
+Review shape is **MIXED**. T2 is uniform across four skills; T1 and T11 are the
+deep tasks, because T1 authors a trust-boundary control and T11 is the only place
+its behaviour is observed.
 
 ## Constraints
 
-- The declaration form is introduced by this change, not inferred from the tree.
-  The seven declaring writers phrase their target seven different ways, so any
-  predicate matching all seven also matches a read reference — and `design-review`
-  will carry exactly such a read reference after T3.
-- The guide-agreement test reads `guides/` as well as `packs/`, so it cannot live
-  in the pack suite: `tools/lint-pack-test-boundary.py` fails a pack test whose
-  source resolves above its owning pack. It goes to the roster suite, and a roster
-  test runs on no pull request until T6 wires it.
-- `tools/lint-experience-agnostic.py` rejects nine named token classes, not "every
-  literal" — a bare integer or a percentage passes. The token-taxonomy template
-  must avoid colour literals, digit-plus-unit dimensions, `N:1` ratios and named
-  easing curves specifically.
+- The module is one body in four places. A skill installs standalone, so it
+  cannot reach a sibling's `references/`; "shared" means byte-identical copies,
+  and a criterion pins that rather than the plan asserting it.
+- The declaration form is introduced by this change. The seven already-declaring
+  writers phrase their target seven ways and `copy-direction`'s first
+  `<output_dir>` match is a *read*, so no predicate over existing prose separates
+  a write from a read.
+- A pack test may not read above its owning pack, so the guide-agreement test is
+  repository-level and runs on no pull request until T10 wires it.
+- `tools/lint-experience-agnostic.py` rejects eight named token classes — not
+  "every literal". A bare integer and a percentage pass; colour literals,
+  digit-plus-unit dimensions, `N:1` ratios and named easing curves do not.
 
 ## Construction tests
 
-Two test files. The first is pack-confined; the second is not, which is what
-obliges T6.
+Three test files, authored in T9 **after** the work they check. Authoring them
+earlier cannot work: each quantifies over state that T2-T8 create, so a test
+introduced before its subject exists can never go green at the task that
+introduces it. T9's Tests block states what proves each one; this section does
+not restate it.
 
-- **Per-skill declaration and containment** (pack suite). Subject: **the four
-  writes** the spec's closed set names — `creative-direction`,
-  `information-architecture`, `design-principles`, `design-system`. For each,
-  assert its `SKILL.md` carries a `**Writes:**` line naming its declared target
-  and a `**Confinement:**` line referencing the shared module. The seven
-  declaring writers are out of subject: the spec defers their containment audit
-  to a follow-on and none uses a `**Writes:**` line today, so including them
-  would make the test red against work no task performs.
+- **Declaration and containment** (pack suite). Subject: the four writes named at
+  `spec.md`'s closed set — `creative-direction`, `information-architecture`,
+  `design-principles`, `design-system`. Per skill, assert a `**Writes:**` line
+  naming its declared target, a `**Confinement:**` line referencing
+  `references/containment.md`, that the module copy is present and byte-identical
+  to the others, and that the skill emits a declared `type:`. The seven
+  already-declaring writers are out of subject: the spec defers their containment
+  audit and none uses a `**Writes:**` line, so including them would red the test
+  against work no task performs.
 - **Guide agreement** (roster suite). For each step in
-  `guides/experience-design/how-to/`, assert its **`artifact_location` obligation
-  only** — the label-agnostic name the guidebook lint uses — resolves when the
-  owning `SKILL.md` disclaims a file-per-slug artifact, and otherwise name a path
-  that `SKILL.md` declares. This is the check that would have caught the
-  `interaction-design` claim.
-- **Registry agreement** (pack suite). Compare the folder set named by `DESIGN.md`,
-  the `pack.toml` comment, and `experience-status`'s scan table against the
-  declared set; assert all four equal.
+  `guides/experience-design/how-to/`, assert its `artifact_location` obligation —
+  the label-agnostic name the guidebook lint uses — is a path its owning skill
+  declares, `**Writes no artifact.**` where the skill states no write step, or a
+  path naming the artifact the skill enriches.
+- **Registry agreement** (pack suite). Assert the folder set named by `DESIGN.md`,
+  the `pack.toml` subdirectory comment, and each folder-naming surface of
+  `experience-status/SKILL.md` equals the set the skills declare.
 
 ## Durable-output map
 
 | Durable output | Tasks | Evidence |
 | --- | --- | --- |
-| User-facing promise | T1, T5, T9 | Guide-agreement test; `lint-guidebook-steps.py` |
+| User-facing promise | T5, T6, T7 produce it; T9 authors its test; T10 wires that test | Guide-agreement test green in CI; `lint-guidebook-steps.py` exits 0 |
 | Current product truth | T8 | Registry-agreement test |
-| Interface compatibility | T2, T3, T4 | Layout conformance test; declaration test |
-| Decision rationale | T9 | ADR accepted; dataset reproduces the sample |
-| Operations | T6 | `tools/lint-ci-parity.py` exits 0 with the step named |
-| Release history | T10 | Topmost `experience-design` entry names the new version |
-| Reusable learning | T10 | `project-knowledge` receipt or recorded unavailability |
+| Interface compatibility (module) | T1 | Module present and byte-identical in all four |
+| Interface compatibility (layout) | T2 | Layout conformance test |
+| Decision rationale | T12 | ADR accepted; its dataset reproduces the sample |
+| Operations | T10 | `tools/lint-ci-parity.py` exits 0 with the step named |
+| Release history | T13 | Topmost `experience-design` entry names the new version |
+| Reusable learning | T13 | `project-knowledge` receipt or recorded unavailability |
 
 ## Design (LLD)
 
 ### Design decisions
 
-**Approval precedes confinement.** `copy-direction` step 1 approves the resolved
-`output_dir` before anything is read under it — a repo-root value must stay in the
-repository tree or take explicit confirmation. Without that step a hostile
-`agentbundle-layout.toml` in a cloned repository names any absolute root and every
-prefix check passes against it. The two controls are one control in two parts.
+**Approval precedes confinement, and admissibility is containment.** Without
+approving the resolved `output_dir`, a prefix check confirms only that a path sits
+under a root the adopter's config named — and a hostile `agentbundle-layout.toml`
+in a cloned repository names any absolute root. Testing whether that root *is* a
+reserved directory admits every descendant, so the predicate is at-or-beneath and
+the reserved set is stated for the user-profile branch too.
 
-**Containment is propagated from `copy-direction`, the deepest in-repo pattern.**
-The pack carries three depths: `experience-status` stops at `..`-rejection,
-`user-flow` confines `output_dir` only, and `copy-direction` re-canonicalizes the
-final target and checks provenance. Copying the nearest neighbour rather than the
-deepest would have spread the weakest pattern to ten more skills.
+**One module, four copies, equality pinned.** The controls live in one body so a
+later weakening is one edit rather than four, and so the per-skill test asserts a
+reference rather than a paragraph. Standalone install means the body ships four
+times, so copy-equality is a criterion; without it, "shared" is an assertion the
+tree does not support.
 
-**The subject is the skills this change edits.** The seven declaring writers
-probably owe the same containment — `user-flow` confines only the root — but
-auditing them is separate work with its own risk, and quantifying a criterion over
-skills no task touches is how an obligation ships with no implementer.
+**`design-system` is a new capability, not a relocation.** The other three writes
+already write and only lack a location. `design-system` stops at "record the
+taxonomy" with no file, and gains a write because the shared contract's
+`Design System Reference` field asks which token taxonomy a surface uses and the
+frontend pack fabricates tokens every session for want of one.
 
-**The guide is corrected, not implemented.** `interaction-design` disclaims a
-file-per-slug artifact; the guide assigns it one, at a path `user-flow` owns. The
-skill is the owning source, and the guide-agreement test stops the class recurring.
+**`interaction-design` names what it enriches; it does not deny a write.** It
+writes into the brief `user-flow` owns. The guidebook step contract admits only a
+backticked path or `**Writes no artifact.**`, so the path form is the one that is
+both admissible and true — which also introduces `<screen>` as a segment the page
+must resolve.
 
-**`design-review` is two fixes, not one.** It is a silent writer and a hardcoded
-reader. Relocating the artifact it reads without repointing the read leaves a
-step the skill marks mandatory pointing at a path that resolves only by luck.
+**Readers are repaired with writers.** Relocating `design-principles` without
+repointing `design-review`'s load, and without the two promises the reference page
+makes, leaves a mandatory step and published prose pointing at a path that
+resolves only when `output_dir` happens to be the default.
 
 ### Interfaces & contracts
 
-Each declaration resolves `[design] output_dir` by name and states its target
-relative to it. `creative-direction` takes `direction/<slug>.md` and
-`design-system` takes `tokens/<slug>.md`, both slug-keyed under the pack's
-existing kind-first grammar. The frontend read of these artifacts is a separate
-spec; this one only gives them addresses.
+Each write resolves `[design] output_dir` by name and states its target relative
+to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, and
+`tokens/<slug>.md`. The frontend read of these artifacts is a separate spec.
 
 ### Failure, edge cases & resilience
 
-- `output_dir` resolving outside the repository tree from repo-root config:
-  explicit confirmation before use, per `copy-direction`.
-- A target whose parent does not exist: canonicalize the parent and prefix-check
-  that, since the leaf cannot be resolved before creation.
-- A slug carrying a separator: refused by the stated character class before any
-  path is composed.
-- An existing target with a foreign `type:`: out of scope here and recorded as a
-  follow-on, because the collision rule belongs with the read path that relies on it.
+| Condition | Result |
+| --- | --- |
+| Repo-root `output_dir` resolving outside the repository tree | explicit confirmation before use, recorded with the run |
+| Resolved `output_dir` at or beneath a reserved tree, either branch | refused, not confirmed |
+| Target's parent absent | confinement re-established at each intermediate component as it is created |
+| Slug non-conforming or over 64 characters | refused before any path is composed |
+| Existing target with a foreign, absent or unparseable `type:` | surfaced as a collision; never overwritten, never a blank template copied over it |
+| Existing target with a **matching** `type:` | surfaced before replacement — for a skill with no amend branch this is the ordinary second run, and the mismatch check cannot see it |
+| User-profile `output_dir`, target from another product | belonging confirmed before replacement; mismatch surfaced |
+| Existing target read before amendment | treated as structured data; embedded directives ignored |
 
 ## Tasks
 
-### T1: Correct the guide claim against its owning skill
+### T1: Author the shared containment module
 
 **Depends on:** none
 
 **Tests:**
-- Goal-based: `guides/experience-design/how-to/design-each-screen.md` carries
-  `**Writes no artifact.**` for both the `**Where it lands:**` and
-  `**What it looks like:**` labels of the `interaction-design` step, and names no
-  path for it.
-- Goal-based: `tools/lint-guidebook-steps.py` exits 0, which admits that form for
-  both labels independently.
+- Goal-based: `references/containment.md` exists in each of the four writes' skill
+  directory and all four copies are byte-identical.
+- Goal-based: the module states every criterion in `spec.md` that begins "The
+  shared containment module states" — the set, not a count, because this task's
+  count has gone stale each time a criterion was added. For the
+  approval criterion that means every clause it carries, not its heading: the
+  at-or-beneath predicate; the reserved set for the repository branch and for the
+  user-profile branch; refusal rather than confirmation for an inadmissible value;
+  explicit confirmation for a repo-root value resolving outside the repository
+  tree; the user-profile branch approved against its own declared absolute root,
+  which fixes the admissible root and is not the same clause as the reserved set
+  that fixes the inadmissible one; the approved root recorded with the run on
+  every approval path; approval before the first read or write under the
+  directory; and the binding of every later resolution to the approved value.
+  Separately enumerated because each is its own criterion: final-target
+  re-canonicalization; confinement re-established at each missing intermediate
+  directory as it is created, not at a nominal parent; the slug class and its
+  64-character bound, refused before any path is composed; the `type:` check
+  treating absent or unparseable as a collision and forbidding a blank template
+  over an existing artifact; a matching `type:` surfaced before replacement;
+  user-profile product belonging before replacement; and extract-as-data for an
+  existing target read before amending.
 
 **Approach:**
-- Convert both labels, not only the path line: the step contract admits the
-  no-artifact form for the preview too, and leaving the preview in place would
-  declare that the skill writes nothing while still showing a file outline.
-- Record the conflict and its resolution, the skill being the owning source.
+- Author the body once, then write the other three copies from it so equality is
+  produced rather than hand-matched.
+- Take the content from `copy-direction`'s five controls in full. Its step 1 fixes
+  the ordering and binds every later lookup to the validated value; reproducing
+  the branch without the binding lets a skill re-resolve from configuration at its
+  write step.
 
-**Done when:** both labels read the no-artifact form and the guidebook lint exits 0.
+**Done when:** every check in this task's Tests block passes, and the module
+exists in all four skills as one body.
 
-### T2: Author the shared containment module
+### T2: Declare all four writes
 
 **Depends on:** T1
 
 **Tests:**
-- Goal-based: the module exists at its declared path inside each write's export
-  boundary, and every installed copy is byte-identical.
-- Goal-based: the module states all five controls the spec's criteria require —
-  source-aware approval with its ordering and value binding, final-target
-  re-canonicalization including missing intermediate directories, the slug class
-  and its refusal, the `type:` and blank-template check treating an absent type
-  as a collision, and extract-as-data for any existing target read before amending.
+- Goal-based: each of `creative-direction`, `information-architecture`,
+  `design-principles` and `design-system` states its target in its own `SKILL.md`
+  on a `**Writes:**` line carrying that path in backticks and nothing else.
+- Goal-based: each states a line of the literal form `**Confinement:** ` followed
+  by `references/containment.md` in backticks, and nothing else on the line.
+- Goal-based: each ships a `references/agentbundle-layout.md`, and
+  `python3 -m pytest tests/conformance/test_pack_layout_declared_section.py -q` passes.
+- Goal-based: `information-architecture` states `type: information-architecture`
+  — the literal a criterion fixes, so the marker is not invented at
+  implementation and does not join the pack's discover-by-marker set unreviewed.
+- Goal-based: `design-principles` still states `type: design-principles`. No
+  criterion fixes that literal because the skill already emits it; it survives a
+  rewrite rather than being chosen, and it sits on the same line as the
+  `docs/design` literal T5 removes, which is how it could be lost.
+- Neither ships a template, so the declaration is the only place the marker can
+  live; `design-system` and `creative-direction` carry theirs in the templates
+  T3 and T4 add.
 
 **Approach:**
-- Author the module once and place a byte-identical copy in each of the four
-  writes' `references/`, because a skill installs standalone and cannot reach a
-  sibling's tree. The equality is what the "one module" claim rests on.
-- Take its content from `copy-direction`'s five controls, not from a subset:
-  approval ordered before the first read or write under the directory, with every
-  later resolution bound to the approved value.
-- Admissibility is decided by containment, not identity — no resolved
-  `output_dir` may be at *or beneath* a reserved tree, and the reserved set is
-  stated for the user-profile branch as well as the repository one.
+- Targets come from the acceptance criteria, which are the canonical statement —
+  not from the guides, which name `aesthetic/` for two of them and which T7 corrects.
+- All four, including `information-architecture`, which the criteria name among the
+  four writes and which the previous plan left without an implementer.
 
-**Done when:** the module exists at its declared path, its copies are
-byte-identical, and it states all five controls.
+**Done when:** every check in this task's Tests block passes, and all four writes
+declare a target a reader can resolve.
 
-### T3: Repoint `design-principles`'s write and `design-review`'s read
+### T3: `design-system`'s write step and token-taxonomy template
+
+**Depends on:** T2
+
+**Tests:**
+- Goal-based: `design-system/SKILL.md` states a write step committing the derived
+  taxonomy to its declared target.
+- Goal-based: its template emits frontmatter `type: token-taxonomy` and names
+  semantic roles and scale relationships symbolically.
+- Goal-based: `tools/lint-experience-agnostic.py` exits 0 over
+  `packs/experience-design/`.
+
+**Approach:**
+- Run the agnosticism lint before anything else in this task. The skill already
+  states it "does not implement token values" and leaves the numbers to the
+  reader, so a value-free artifact is its natural shape — but the lint is the
+  binding check, not that reasoning.
+
+**Done when:** every check in this task's Tests block passes, and `design-system`
+produces a durable taxonomy where it previously produced none.
+
+### T4: `creative-direction`'s template frontmatter
+
+**Depends on:** T2
+
+**Tests:**
+- Goal-based: the template emits frontmatter `type: creative-direction`.
+
+**Approach:**
+- The template today opens straight into an H1 with no frontmatter. Add the
+  frontmatter, plus a `surface:` field so the
+  amend-versus-new branch has something to compare. One shipped reference document
+  already assumes that marker exists —
+  `content-design/references/agentbundle-layout.md:84` — so this makes a claim the
+  pack already publishes true.
+
+**Done when:** the template carries the declared `type:`.
+
+### T5: Repoint `design-principles`'s write and every reader of it
 
 **Depends on:** T2
 
 **Tests:**
 - Goal-based: `design-principles/SKILL.md` contains no occurrence of the literal
-  `docs/design` — the criterion's predicate, not the narrower path.
-- Goal-based: no line in `guides/experience-design/` states a `docs/design`
-  literal outside a transcript block; `establish-design-intent.md:55` carries one
-  in its agent-returns line.
-- Goal-based: `design-review/SKILL.md` resolves that artifact through `output_dir`
-  and states the canonicalized-real-path check before loading it.
+  `docs/design`, and still states its declared `type:` — the line carrying the
+  literal is the same line that declares the type, so the rewrite can drop it.
+- Goal-based: `design-review/SKILL.md` resolves that artifact through `output_dir`,
+  confirms its canonicalized real path under the approved `output_dir`, validates
+  its declared `type:`, extracts only the principle entries while ignoring any
+  embedded directive, and confirms product belonging for user-profile config.
+- Goal-based: `guides/experience-design/reference/experience-design.md` states no
+  `docs/design/principles` path.
+- Goal-based: the agent-returns line at `establish-design-intent.md:55` names the
+  relocated destination rather than the literal it claims today.
 
 **Approach:**
-- Replace the literal write path with `output_dir` resolution.
-- Repoint the reader in the same task. The load sits in a step the skill marks
-  mandatory, so a relocated writer without a repointed reader silently misses for
-  any adopter on a non-default directory.
+- The reader repairs belong in this task, not a later one: `design-review`'s load
+  sits in a step the skill marks mandatory, and the reference page makes two
+  promises about the old path. Relocating the writer alone leaves all three
+  resolving only by luck.
+- Scope the literal check to the files this task owns. A repository-wide ban on
+  `docs/design` is not satisfiable — the pack's declared default is that literal,
+  every `references/agentbundle-layout.md` must carry it, and the reference page
+  legitimately names it as the pack default.
 
-**Done when:** neither file names the literal and the read carries its check.
+**Done when:** every check in this task's Tests block passes, and no reader of the
+relocated artifact still names the literal path.
 
-### T4: Give `creative-direction` and `design-system` addresses
+### T6: Name the artifact `interaction-design` enriches
 
-**Depends on:** T3
+**Depends on:** none
 
 **Tests:**
-- Goal-based: `tools/lint-experience-agnostic.py` exits 0 — the binding check on
-  the new template.
-- Goal-based: each template's frontmatter carries its declared `type:` value.
-- Goal-based: both skills state the canonical form and the containment step.
+- Goal-based: the `interaction-design` step's `artifact_location` names
+  `<output_dir>/screens/<slug>/<screen>.md`, the brief `user-flow` writes, and does
+  not deny a write.
+- Goal-based: `design-each-screen.md` resolves `<screen>` in the segment line under
+  its table, which naming that path newly requires.
+- Goal-based: the agent-returns line at `design-each-screen.md:402` names the
+  brief rather than the orphaned `<output_dir>/screens/<slug>.md`.
+- Goal-based: `tools/lint-guidebook-steps.py` exits 0.
 
 **Approach:**
-- `creative-direction` to `direction/<slug>.md`; `design-system` to
-  `tokens/<slug>.md`, both with the stated slug class.
-- Add `type: creative-direction` and a `surface:` field to the existing template,
-  which today opens straight into an H1 with no frontmatter.
-- Author the token-taxonomy template describing roles and scale relationships
-  symbolically. Run the agnosticism lint first, before any other work in this task.
+- The step contract admits only a backticked path or `**Writes no artifact.**`, and
+  the skill does write — into another skill's file. The path form is the only one
+  that is both admissible and true.
+- Re-excerpt the preview from the brief template that defines that section and rung
+  it to that template's repository-relative path; a higher rung than `authored`
+  exists once the block names a template-backed artifact.
 
-**Done when:** the agnosticism lint exits 0 and both templates carry their `type:`.
+**Done when:** every check in this task's Tests block passes, and the step no
+longer publishes a path no skill writes.
 
-### T5: Author the declaration and guide-agreement tests
+### T7: Retire `aesthetic/`
 
-**Depends on:** T4
+**Depends on:** T2
 
 **Tests:**
-- TDD by mutation: the declaration test proven red by removing the containment
-  step from one skill, and separately by rewriting one target off the canonical
-  form. Green against the real tree.
-- TDD by mutation: the guide-agreement test proven red by restoring the
-  `interaction-design` path line T1 removed. Green against the real tree.
+- Goal-based: no file under `packs/experience-design/` or
+  `guides/experience-design/` names an `aesthetic/` output folder.
+- Goal-based: every `docs/design` literal left in
+  `packs/experience-design/JOURNEY.md` sits inside a fenced transcript block.
+- Goal-based: `web/src/content/journeys/experience-design.md` is byte-equal to a
+  fresh `python3 tools/build-site.py --journeys-only` run.
+- Goal-based: the three journey lints exit 0.
+- Goal-based: `tools/lint-guidebook-steps.py` exits 0 after this task's guide
+  edits — it is the last task to touch a guide step, and it rewrites three
+  `**Where it lands:**` lines and their rungs, which is exactly what that lint reads.
+- Goal-based: the agent-returns lines at `establish-design-intent.md:102` and
+  `:172` name the destination their step's `**Where it lands:**` line names after
+  this task's edit — byte-for-byte the same path, not merely a path free of
+  `aesthetic/`. The literal ban alone passes a wrong destination: it admits
+  `<output_dir>/tokens/<slug>-tokens.md` where the declared target is
+  `<output_dir>/tokens/<slug>.md`.
+- Goal-based: `establish-design-intent.md` states no hardcoded `docs/design/`
+  prefix where a sibling line uses `<output_dir>`.
 
 **Approach:**
-- The declaration test is pack-confined. The guide-agreement test reads `guides/`
-  and goes to `tests/roster/`.
-- Authoring after the work is deliberate: both tests quantify over the four
-  writes, so neither can go green at a task that precedes them. Red is
-  demonstrated by mutation, which is a stronger demonstration than the pre-change
-  state anyway.
+- Update all three `**Where it lands:**` lines in `establish-design-intent.md` —
+  `:76`, `:123` and `:193` — and rewrite the rung annotations on the latter two,
+  whose second halves become false once T2 lands. Update each step's
+  agent-returns line in the same edit: four steps in this change publish a moved
+  path, and a line left behind promises a destination no skill writes.
+- Edit the transcript lines in `JOURNEY.md`, including the `screen-flows/` one that
+  names a folder the pack does not ship, then regenerate the web copy here rather
+  than at release — no lint compares the two.
 
-**Done when:** both tests are green against the real tree and red against each
-named mutation, recorded in the ledger.
+**Done when:** every check in this task's Tests block passes.
 
-### T6: Wire the roster test into CI
+### T8: Reconcile the registries
 
-**Depends on:** T5
+**Depends on:** T2, T5, T7
+
+**Tests:**
+- Goal-based: every folder named in `DESIGN.md`, in the `pack.toml` subdirectory
+  comment, and in each folder-naming surface of `experience-status/SKILL.md` is one
+  some skill declares.
+
+**Approach:**
+- `DESIGN.md`: replace the `aesthetic/` row with `direction/` and `tokens/`, correct
+  `screen-flows/` to the shipped `screens/`, move `design-principles` to
+  `principles/`, add the missing `copy/` row, correct the `screens/` row that names
+  `interaction-design` as a writer of its own file, and the `output_dir` comment that
+  lists `briefs/`.
+- `pack.toml`: make the subdirectory comment point at the registry rather than list
+  four folders that are now nine.
+- `experience-status`: extend all three folder-naming surfaces — the scan table, the
+  readiness-gate table, and the report template — not only the first.
+
+**Done when:** every folder-naming surface names only declared folders.
+
+### T9: Author the three construction tests
+
+**Depends on:** T3, T4, T5, T6, T7, T8
+
+**Tests:**
+- TDD, differential: the declaration test green against the tree, and red when
+  one write's `**Confinement:**` line is removed, and again when one module copy
+  is altered so equality fails.
+- TDD, differential: the guide-agreement test green against the tree, and red
+  when the orphaned `screens/<slug>.md` path is restored to the
+  `interaction-design` step.
+- TDD, differential: the registry test green against the tree, and red when one
+  stale `DESIGN.md` row is restored.
+- Each is a pair. A test red against the unmutated tree satisfies a
+  mutation-only check while proving nothing, so greenness is stated here rather
+  than left to a downstream suite.
+
+**Approach:**
+- The declaration and registry tests are pack-confined. The guide-agreement test
+  reads `guides/` and goes to `tests/roster/`.
+- Authoring after the work is deliberate: all three quantify over state T1-T8
+  create, which is why every one of those tasks is named above. Each test is
+  proven as a pair — green against the tree, red under its named mutation —
+  because either half alone is satisfiable by a test that proves nothing.
+
+**Done when:** every check in this task's Tests block passes, with each test's red
+state recorded in the ledger alongside the mutation that produced it.
+
+### T10: Wire the roster test into CI
+
+**Depends on:** T9
 
 **Tests:**
 - Goal-based: `.github/workflows/build-check.yml` names a step for the
-  guide-agreement test, and `tools/lint-ci-parity.py` exits 0.
+  guide-agreement test and `tools/lint-ci-parity.py` exits 0.
 
 **Approach:**
 - Add the step and a matching `STEP_DISPOSITION` entry of the
   `LOCAL("test-after-build-check")` shape. Without both, the test runs under
   `pytest tests/` and on no pull request — green by never executing, which is how
-  the guide claim survived in the first place.
+  the guide claims survived in the first place.
 
 **Done when:** the parity lint exits 0 with the step name carrying a disposition.
 
-### T7: Retire `aesthetic/`
+### T11: Observe the controls refusing
 
-**Depends on:** T4
-
-**Tests:**
-- Goal-based: no file under `packs/experience-design/` or
-  `guides/experience-design/` names `aesthetic/`.
-- Goal-based: every `docs/design` literal left in `JOURNEY.md` sits inside a
-  fenced transcript block.
-- Goal-based: the committed web journey copy is byte-equal to a fresh
-  `build-site.py --journeys-only` run.
-- Goal-based: the three journey lints exit 0.
-
-**Approach:**
-- Update the two `**Where it lands:**` lines in `establish-design-intent.md` and
-  rewrite their `rung` annotations, whose second halves ("declares the record but
-  not its path") become false once T4 lands.
-- Fix `establish-design-intent.md:76`, which hardcodes `docs/design/` where every
-  sibling line uses `<output_dir>`.
-- Edit the transcript lines in `JOURNEY.md`, including the `screen-flows/` one that
-  advertises a folder the pack does not ship, then regenerate the web copy here
-  rather than at release.
-
-**Done when:** all four checks pass.
-
-### T8: Reconcile the three registries
-
-**Depends on:** T7
+**Depends on:** T2, T3, T4, T5
 
 **Tests:**
-- TDD by mutation: the registry-agreement test, proven red by restoring one stale
-  `DESIGN.md` row. Green against the real tree.
+- Visual / manual QA, paired per control: for each of the four writes, a benign run
+  and then a run that must make the control fire — an `output_dir` at or beneath a
+  reserved tree, a symlinked target, a non-conforming slug, an existing target with
+  a foreign `type:`, and a foreign-product target under user-profile config.
+- Visual / manual QA, paired: the blank-template-over-artifact case for the two
+  writes that ship a template — `creative-direction` and `design-system`. The
+  other two ship none, so that case is unstageable by construction.
+- Visual / manual QA, paired: the matching-`type:` replacement case for all four,
+  and for `information-architecture` and `design-principles` especially. Those two
+  state no amend branch, so a second run on the same slug is the destructive path
+  the blank-template case stands in for elsewhere; scoping the template case out
+  without staging this one would exempt the loss rather than the mechanism.
+- Visual / manual QA: a `design-review` load under a non-default `output_dir`.
 
 **Approach:**
-- `DESIGN.md`: replace the `aesthetic/` row with `direction/` and `tokens/`,
-  correct `screen-flows/` to `screens/`, move `design-principles` to `principles/`,
-  add the missing `copy/` row, and correct the `screens/` row, which names
-  `interaction-design` as a writer T1 established writes nothing.
-- `pack.toml`: make the subdirectory comment point at the registry rather than list
-  four folders that are now nine.
-- `experience-status`: add the scan rows for the folders it does not read.
+- Stage fixtures with an absolute `output_dir` pointed at a temporary tree, which is
+  what makes the symlink, reserved-tree and foreign-product cases stageable rather
+  than hypothetical.
+- Record paths relative to `output_dir` plus the configuration source. A staged
+  user-profile case surfaces an absolute home path and the spec's `Never do` forbids
+  committing it.
+- An unstageable case is a blocking condition needing a named owner waiver recorded
+  in the spec, not an unverified pass.
 
-**Done when:** the registry test is green and red against the named mutation.
+**Done when:** every control has both halves recorded in the ledger, or a waiver
+recorded in the spec with its owner.
 
-### T9: ADR and its dataset
+### T12: ADR and its dataset
 
-**Depends on:** T7
+**Depends on:** none
 
 **Tests:**
-- Goal-based: the dataset sits beside the ADR, and re-running its recorded queries
-  reproduces the sample's counts.
+- Goal-based: re-running the dataset's recorded queries reproduces its counts.
 
 **Approach:**
-- Record the queries, sampling frame and inclusion rule that produced the folder
-  measurement, beside the ADR rather than under any `output_dir`, then write the
-  ADR citing it. A stored table of counts satisfies a path check without being
-  reproducible, which is the failure mode this avoids.
-- Ship the guide index row for anything T1-T7 added, naming
-  `guides/experience-design/README.md` as the file that holds it.
+- Record the queries, sampling frame and inclusion rule beside the ADR, then write
+  the ADR citing it. A stored table of counts satisfies a path check without being
+  reproducible, which is the failure this avoids.
 
-**Done when:** the ADR is accepted and its dataset's queries reproduce its counts.
+**Done when:** the dataset's queries reproduce its counts and the ADR cites it.
 
-### T10: Release surface
+### T13: Release surface
 
-**Depends on:** T6, T8, T9
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12
 
 **Tests:**
 - Goal-based: `agentbundle catalogue verify --root .` exits 0, which owns the
   `pack.toml` / `plugin.json` version agreement.
 - Goal-based: `.claude-plugin/marketplace.json` is byte-identical to a fresh
   self-host run.
+- Goal-based: each of the four writes has an `evals/evals.json` case covering its
+  declared target.
 - Goal-based: the topmost `experience-design` changelog heading names its new version.
-- Goal-based: every skill given a new or corrected target has an `evals/evals.json`
-  case covering it.
 
 **Approach:**
-- Bump `experience-design` **patch** in `pack.toml` and `plugin.json`, per the
-  spec's assumption: `packs/AGENTS.md` reserves minor for new primitives and this
-  change adds no skill, command or agent. Regenerate `marketplace.json` by
-  self-host rather than editing it.
+- Bump `experience-design` **patch** in `pack.toml` and `plugin.json`:
+  `packs/AGENTS.md` reserves minor for new primitives and this change adds no skill,
+  command or agent. Regenerate `marketplace.json` by self-host rather than editing it.
 - Route learnings through the `project-knowledge` seam.
 
-**Done when:** the four checks pass and `git status` is clean.
+**Done when:** every check in this task's Tests block passes and `git status` is
+clean.
 
 ## Rollout
 
-No runtime component. Adopters see new declared paths on upgrade; nothing moves an
-existing file, because the two newly addressed artifacts had no address to move
-from. Two exceptions are recorded as follow-ons rather than claimed as clean: this
+No runtime component. Adopters see declared paths on upgrade; nothing moves an
+existing file, because the newly addressed artifacts had no address to move from.
+Two exceptions are recorded as follow-ons rather than claimed clean: this
 repository's own `docs/design/direction/` already holds two files, one with a
-`type:` that will collide once the read path ships; and an adopter who followed the
-guide by hand and used `aesthetic/` keeps files nothing will look for.
+`type:` the collision rule will surface; and an adopter who followed the guide by
+hand and used `aesthetic/` keeps files nothing will look for.
 
 ## Risks
 
-- **The token-taxonomy template trips the agnosticism lint.** Mitigated by
-  authoring symbolically and running the lint first in T4.
-- **The canonical declaration form does not fit one of the four writes.** Then the form
-  is wrong, not the skill; T2 surfaces it rather than special-casing.
-- **A negative case cannot be staged in T2's manual QA.** That is a blocking
-  condition needing a named owner waiver recorded in the spec, per its `Never do`.
+- **The token-taxonomy template trips the agnosticism lint.** Mitigated by running
+  the lint first in T3 and authoring symbolically.
+- **The declaration form does not fit one of the four.** Then the form is wrong, not
+  the skill; T2 surfaces it rather than special-casing.
+- **A refusal case cannot be staged in T11.** A blocking condition needing a named
+  owner waiver, per the spec's `Never do` — not an unverified pass.
+- **The module's four copies drift during authoring.** Mitigated by writing three
+  from the first and pinning equality in a criterion rather than in prose.
 
 ## Changelog
 
-- 2026-09-16 — Initial plan. Third structure for this work. A combined spec drew 48
-  findings, its addressing half drew 53 more, and the convergent diagnosis was that
-  the criteria quantified over a population derived from surfaces the change edits.
-  The population is now a closed set stated in the spec, the frontend read path is a
-  separate spec because it is the only new trust boundary, and the tests are
-  authored after the work they check and proven red by mutation.
+- 2026-09-16 — Rewritten from the acceptance criteria rather than patched. Its
+  predecessor was aligned three times against a spec that narrowed twice, and each
+  alignment dropped or contradicted something: a review round found ten of fifteen
+  findings originating in the previous round's own repairs, one of the four writes
+  left without an implementing task, and two repairs reported but absent from the
+  file. Every task subject here is derived from the criteria it discharges, and the
+  dependency shape is stated from the `Depends on:` fields rather than described.

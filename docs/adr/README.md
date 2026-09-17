@@ -117,3 +117,4 @@
 | 0113 | [The SAST/SCA guarantee moves from the local gate to `gate-sast`](0113-sast-guarantee-moves-from-the-local-gate-to-gate-sast.md) | Accepted | 2026-09-13 |
 | 0114 | [Prune success requires a two-sided post-mutation invariant](0114-prune-success-requires-a-two-sided-post-mutation-invariant.md) | Accepted | 2026-09-13 |
 | 0115 | [The loop-telemetry sender is a separately installed distribution, not pack content](0115-loop-telemetry-sender-is-a-separately-installed-distribution.md) | Accepted | 2026-09-12 |
+| 0116 | [`creative-direction` writes to `direction/`, retiring `aesthetic/`](0116-creative-direction-writes-to-direction-folder-retiring-aesthetic.md) | Accepted | 2026-09-16 |

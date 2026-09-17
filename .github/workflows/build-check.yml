@@ -683,6 +683,22 @@ jobs:
           tests/roster/test_curation_qa_contracts.py
           tests/roster/test_rfc_template_contract.py
 
+      # design-output-addressing (T10): the three experience-design contracts
+      # are repository-level. The guide-agreement classifier reads guides/ as
+      # well as packs/, and the write-declaration and artifact-folder-registry
+      # controls read packs/experience-design plus its sibling surfaces, so
+      # lint-pack-test-boundary forbids all three from the pack's test tree.
+      # CI does not auto-discover roster tests, and `pytest tests/` reaches
+      # them only through test-after-build-check, which no CI job runs — so
+      # without this step the declaration, containment and registry guarantees
+      # gate on no pull request at all.
+      - name: pytest experience-design output-addressing contracts (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_experience_design_guide_agreement.py
+          tests/roster/test_experience_design_write_declaration_and_containment.py
+          tests/roster/test_experience_design_artifact_folder_registry.py
+
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
       # helper, uninstall --dry-run/--yes/confirm, install --force confirm +
       # the install→upgrade offer, and the dropped --scope flags. The CLI

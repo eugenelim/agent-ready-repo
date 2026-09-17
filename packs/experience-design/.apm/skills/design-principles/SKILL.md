@@ -56,9 +56,9 @@ Form: **[Imperative verb] + [what] + [why/for whom]**
 2. *"Make the expert fast, not just the novice safe"* — surfaces the principle that power users are first-class citizens. Distinguishes a design that buries expert actions behind safety guardrails (fails) from one that exposes them at appropriate depth (passes).
 3. *"Surface the cost before the commitment"* — for any destructive or irreversible action, the consequence is visible before the trigger. Distinguishes a design that names consequences only in a post-action undo toast (fails) from one that makes the consequence visible in the affordance itself (passes).
 
-## Procedure — NNGroup 4-step model
+## Procedure
 
-Map each step to its stage label before writing principles:
+Steps 1–4 are NNGroup's 4-step model; map each to its stage label before writing principles. Step 5 is this pack's write step, not part of that model.
 
 1. **Identify core product values → insight.** From the journey map's pains and highest-opportunity moments: what does this product owe its users? List 5–8 candidate values as raw statements ("users feel anxious during the upload wait"). These are observations, not principles yet.
 
@@ -67,6 +67,8 @@ Map each step to its stage label before writing principles:
 3. **Surface known tradeoffs → arbitration-aware.** For each candidate, name the opposing pull it will lose to: "Speed vs. reassurance — if we optimize for speed alone, we skip the progress signal; this principle says we don't." This step is what makes a principle arbitrate rather than just aspire.
 
 4. **Draft collaboratively, converge through critique → team-owned.** Generate candidate principles in draft form, then run each through the arbitration test with the team. A principle that everyone agrees is "nice" but that no one can use to reject a wireframe is not finished. Converge when each principle can distinguish between two real design options from your current problem space.
+
+5. **Write the principles doc.** Resolve `output_dir` via `references/agentbundle-layout.md` (the `[design]` section) and apply every control in `references/containment.md`, in the order that module states — approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-directory confinement, and the existing-artifact checks. The target is `<output_dir>/principles/<slug>.md`, where `<slug>` names the product these principles serve. This skill ships no template, so author the file directly, carrying the frontmatter its `references/agentbundle-layout.md` § Frontmatter contract fixes: `type: design-principles`, `slug:`, and `date:`. `type: design-principles` is the discover-by-marker key `design-review` validates when it loads these principles — without it the artifact cannot be found. Fill the body in the shape `## Output` states — one entry per principle, then the `## Known tradeoffs` section — and apply the evidence-level carry-through below when the source journey map is assumption-based.
 
 ## Evidence-level carry-through
 
@@ -88,7 +90,11 @@ An assumption-based principle is not a defect — it is honest about its epistem
 
 ## Output
 
-A principles doc at `docs/design/principles/<slug>.md` with frontmatter `type: design-principles`. Each principle entry:
+**Writes:** `<output_dir>/principles/<slug>.md`
+
+**Confinement:** `references/containment.md`
+
+A principles doc at the declared target above, carrying frontmatter `type: design-principles`. Each principle entry:
 
 ```markdown
 ## <Principle title>

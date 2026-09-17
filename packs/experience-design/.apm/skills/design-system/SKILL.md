@@ -71,6 +71,26 @@ Before drafting, confirm:
 7. **Serialize portably.** Record the taxonomy in the W3C Design Tokens
    interchange shape so it travels across tools. Pointer in
    `references/token-taxonomy-derivation.md`.
+8. **Write the taxonomy.** Resolve `output_dir` via
+   `references/agentbundle-layout.md` (the `[design]` section) and apply every
+   control in `references/containment.md`, in the order that module states —
+   approval, slug validation, final-target confinement (run the real-path resolution; a skipped check leaves no trace), intermediate-
+   directory confinement, and the existing-artifact checks. The target is
+   `<output_dir>/tokens/<slug>.md`, where `<slug>` names the system this
+   taxonomy serves. When the target does not exist, copy
+   `assets/token-taxonomy-template.md` to it. Fill it with what steps 1–7
+   produced: the named goals each decision traces to, the primitive and
+   semantic layers, the roles and the job each does, the organizing ratio and
+   its symbolic steps for spacing and type, the accessibility floor and any
+   tension against it, the contrast budget, and the pointer to the interchange
+   file. The doc records the method and the symbolic shape; the resolved
+   numbers stay with the reader.
+
+## Output
+
+**Writes:** `<output_dir>/tokens/<slug>.md`
+
+**Confinement:** `references/containment.md`
 
 ## Anti-patterns to refuse
 
