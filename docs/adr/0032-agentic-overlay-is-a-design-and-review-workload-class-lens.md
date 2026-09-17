@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-23
+- **Areas:** architecture, review
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0042 (the accepted decision this records, incl. its AWS-Agentic-Lens spike result and the D1–D5 decision set); the spec-stage adversarial + design + security review of this ADR and the implementing spec
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0042 (the accepted decision this ADR records); `docs/specs/well-architected-cloud/` (Shipped/frozen — the spec whose review-time-only scoping this widens, and the source of the five-concern lens being expanded); RFC-0032 (the `architect` `design-reviewer` / fresh-context critique whose value the design-time-only alternative would have lost); ADR-0023 (the three-reviewer ceiling scopes the core *code-review* lenses — cited to show a design-time skill lens does not engage it); RFC-0029 (the `security-checklists` `llm-agent` module the overlay's security-boundary concerns route to); RFC-0041 / ADR-0031 (the precedent for a progressive-disclosure concern library consumed by a pack lens, and for naming an emerging-standard's maturity caveat honestly)
 
 ## Context
@@ -29,6 +34,44 @@ RFC-0042 settled *whether* and *how* to close these gaps (decisions D1–D5, wit
 ## Decision
 
 > We will treat the GenAI/agentic well-architected overlay as a **first-class workload-class lens consumed by construction at design time *and* at review time, from one logical lens (physically duplicated per the pack's per-skill shape, kept byte-identical)**; expand it into a **progressive, capability-tiered taxonomy** (Tier A *the LLM is on the path* → Tier B *the system acts* → Tier C *the agent persists or collaborates*); and ship it as a **routing branch plus reference-content expansion on the existing `architect` skills** — not as a new reviewer, a new skill, or any executable tooling.
+
+- **D1:** The GenAI/agentic overlay is consumed by construction at
+  `architect-design` Stage 0 *and* re-checked at `architect-review` WA mode, from
+  one logical lens.
+- **D2:** The lens is physically duplicated per the pack's per-skill shape and
+  kept byte-identical; divergence is caught at review, not prevented by a single
+  physical file.
+- **D3:** This names the frozen `well-architected-cloud` spec's review-time-only
+  scoping explicitly and widens it; that spec's body is not edited.
+- **D4:** `architect-design` Stage 0 carries workload-class as a second axis
+  orthogonal to its existing provider axis, so an agentic design on a named cloud
+  loads both.
+- **D5:** The workload-class trigger is the system *acting* — tool-use,
+  autonomous action, or an agent loop; a non-acting generative design loads only
+  Tier A.
+- **D6:** The overlay's concerns are grouped into progressive capability tiers
+  (A → B → C), not a flat list and not keyed to pillars.
+- **D7:** The tiers are a filter, not a worklist — the "apply the concerns that
+  bite for THIS system" instruction is preserved.
+- **D8:** Graduated autonomy ships as engineering judgment and asserts no
+  standards mandate for threshold-gated checkpoint removal.
+- **D9:** Irreversibility and blast radius bound how far autonomy widens
+  regardless of track record, and a partially-reversible action defaults to the
+  gated side absent a deliberate per-action judgment.
+- **D10:** This ships as a routing branch plus reference-content expansion on the
+  existing `architect` skills — no new skill, no new reviewer agent, and no new
+  primitive.
+- **D11:** The overlay stays prose; no executable tooling, evals, or runtime
+  ships, and the taxonomy lives in the on-demand reference rather than
+  `architect-design/SKILL.md`.
+- **D12:** Security-boundary concerns are named at design altitude only and route
+  control-level verification to `security-reviewer` / `security-checklists`; the
+  overlay owns no controls.
+- **D13:** Coverage parity between the overlay's security concern set and the
+  `llm-agent` module is bidirectional, and a boundary the module does not yet
+  enumerate is recorded as a deferred backlog item rather than a silent gap.
+- **D14:** Scope is GenAI/agentic only; ML, SaaS, and serverless stay
+  named-but-unbacked, with the deferral recorded in `docs/backlog.md`.
 
 Four sub-decisions, each expensive to reverse:
 
@@ -75,8 +118,25 @@ Boundaries on the decision:
 - **Tier C's gate is split** — memory & context integrity fires on *stateful*, while sub-agent provenance + multi-agent coordination/identity-propagation fire on *multi-agent* (tool/MCP *source* provenance moves up to Tier B, where any externally-sourced tool/MCP load is the LLM03 supply-chain trust question) — so a single stateful agent picks up only the memory concern. This is the sharpest instance of RFC-0042's falsifiable assumption that the capability-tiered grouping is the right cut (adopters can tell which tier they're in); if the Tier-C split proves ambiguous in practice, that assumption — and the taxonomy-shape sub-decision — is what fails. Revisit then. (RFC-0042 open question 2, resolved to this default.)
 - **ML / SaaS / serverless stay deferred**, named-but-unbacked. A future RFC that backs any of them reopens this scope.
 
+**Revisit if:** the OTel GenAI semantic conventions leave "Development" status,
+which retires the maturity caveat; or D6's capability-tiered cut proves ambiguous
+in practice — the Tier-C split (stateful vs multi-agent) is the sharpest instance,
+and if adopters cannot tell which tier they are in, the taxonomy-shape decision is
+what fails; or a future RFC backs ML or SaaS and reopens D14's scope.
+
 ## Confirmation
 
+- **Mode:** review-time, deliberately not a standing CI gate — conformance is
+  confirmed at the implementing PR and thereafter by the three reviewer passes'
+  standing doctrine.
+- **Signal:** the implementing spec's acceptance criteria pass — the
+  workload-class routing branch in `architect-design` Stage 0, the expanded Tier
+  A/B/C `lens-genai-agentic.md` byte-identical in both skill copies, the Tier-C
+  gate split, the bidirectional coverage-parity criterion against the `llm-agent`
+  module, and the dogfood run — and the spec-stage and diff review passes
+  (adversarial + design + security) report no new primitive, no control-level
+  prescriptions, and no divergence between the two lens copies.
+- **Owner:** eugenelim
 - The implementing spec's acceptance criteria encode the decision — the workload-class routing branch in `architect-design` Stage 0, the expanded progressive Tier A/B/C `lens-genai-agentic.md` in **both** skill copies, the trust triad and graduated-autonomy framing, the Tier-C gate split, the coverage-parity criterion against the `llm-agent` module, and the dogfood run — so conformance is checkable against the spec.
 - The spec-stage and diff review passes (adversarial + design + security) confirm that **no new primitive creeps in** (the standing scope-inflation risk), that the overlay **stays prose at design altitude** with no control-level prescriptions, that the **route-to-`security-reviewer` boundary holds**, and that the **two lens copies stay identical** (the pack's per-skill duplication, not divergence).
 - **Enforcement is deliberately review-time, not a standing CI gate.** Conformance is confirmed at the implementing PR (the spec's ACs) and thereafter by the three reviewer passes' standing doctrine; there is no machine fitness function asserting "the overlay ships no executable tooling" or "the two copies match" against future drift. This matches Principle 3 (the bar that forecloses a code gate is the same one that keeps the overlay prose) and ADR-0030/0031's precedent of accepting a prose-enforced, reviewer-held residual. A later optional governance lint (e.g. asserting the two lens copies are byte-identical modulo the duplication note) could harden it without reversing this ADR, and is recorded as a possible follow-up, not a requirement.

@@ -1,9 +1,14 @@
 # ADR-0010: A normative `reference.md` is the repo's golden path — template-instantiated on demand, never a core seed, populated by repo context
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted
 - **Date:** 2026-06-01
-- **Deciders:** eugenelim
+- **Areas:** architecture, documentation
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0020 (reference-architecture foundation — the accepted proposal these decisions record); RFC-0019 + ADR-0009 (the LLD lives in the plan and reads `reference.md` when present — the *consumer* of what this ADR's artifact provides); RFC-0021 (greenfield inception — its foundation step authors the first `reference.md`); RFCs 0001–0003 (the pack-catalogue model opt-in stack packs extend); ADR-0008 (the prior "agnostic, convention-first core seam" precedent); `reference-architecture` spec; `docs/architecture/overview.md`; the `adapt-to-project` skill (Class-3 discovery, extended for harvest); `docs/CHARTER.md` §Principles
 
 ## Context
@@ -49,6 +54,23 @@ That consumer was shipped against an artifact that did not exist. The forces:
 > brownfield harvest, or stack-pack pre-bake); with brownfield harvest delivered
 > by **extending `adapt-to-project` Class-3 discovery**, and stack specifics
 > carried **only by opt-in stack packs**.
+
+- **D1:** `docs/architecture/reference.md` is a normative golden-path document,
+  distinct from the descriptive `overview.md`.
+- **D2:** It carries four arc42 sections — Constraints (§2), Solution strategy
+  (§4), Building-block view (§5), Crosscutting concepts (§8) — not invented
+  headings.
+- **D3:** It is instantiated on demand from a template asset and is never shipped
+  as a pre-placed `core` document seed.
+- **D4:** It is populated by repo context — greenfield authoring, brownfield
+  harvest, or stack-pack pre-bake.
+- **D5:** Brownfield harvest extends `adapt-to-project` Class-3 discovery to
+  propose a draft the adopter confirms, rather than adding a harvester skill.
+- **D6:** Stack specifics are carried only by opt-in stack packs, never baked
+  into `core`.
+- **D7:** `reference.md` is steering context a design conforms to and a reviewer
+  checks against, scoped to durable golden path — not per-feature design and not
+  live infrastructure state.
 
 Specifically:
 
@@ -107,6 +129,11 @@ live infrastructure state.
   separately; this decision ships the template that path will consume.
 - Whether arc42's four chosen sections are universal enough to hold any adopter's
   golden path is a falsifiable assumption to watch as adopters fill them.
+
+**Revisit if:** adopters cannot fit their golden path into the four arc42
+sections D2 fixes, or "reference architecture" proves commonly misread as a
+vendor blueprint — the recorded fallback is renaming the artifact
+`foundation.md`.
 
 ## Alternatives considered
 
