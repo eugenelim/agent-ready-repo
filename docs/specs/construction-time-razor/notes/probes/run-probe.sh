@@ -148,7 +148,16 @@ store = root / "store"
 if not store.is_dir():
     sys.exit(1)
 found = []
-for dirpath, _dirnames, filenames in os.walk(store, followlinks=True):
+
+
+def _halt(exc: OSError) -> None:
+    # os.walk swallows directory-read failures by default, so an unreadable
+    # package would simply be absent and read as "nothing was added".
+    sys.stderr.write(f'traversal failed: {exc}\n')
+    sys.exit(1)
+
+
+for dirpath, _dirnames, filenames in os.walk(store, followlinks=True, onerror=_halt):
     for name in filenames:
         if not name.endswith('.py'):
             continue
