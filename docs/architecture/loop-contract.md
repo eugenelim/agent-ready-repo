@@ -205,6 +205,10 @@ and no source converges on a universal one.
 - [Review-loop non-convergence survey](../product/research/review-loop-nonconvergence-survey.md)
   — why a review loop over these artifacts terminates on a residue rather than
   on a clean verdict.
+- [Repair-origin gating survey](../product/research/repair-origin-gating-survey.md)
+  — why the repair-origin rate stays advisory: across four measured loops a
+  threshold on it fires on a converging loop as readily as a diverging one, and
+  the response it earns is cutting scope rather than stopping.
 - [`docs/CONVENTIONS.md`](../CONVENTIONS.md) § 4 — the spec metadata contract and
   the contract-versus-construction split, which this page describes rather than
   redefines.

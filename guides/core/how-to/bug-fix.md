@@ -104,7 +104,7 @@ If the failing test from step 2 still passes under a symptom-only fix, the test 
 
 Run lint / typecheck / tests and open the PR. The commit follows Conventional Commits format (`fix(<scope>): <subject>`) with a body documenting the root cause from step 3.
 
-For multi-file fixes, treat the work as non-trivial and run it through `work-loop` for the gate / review / fix iteration: the same iteration cap, stasis detection, and adversarial-reviewer pass that any other multi-file change goes through. See [how to plan and execute non-trivial work](plan-and-execute-non-trivial-work.md) for the loop mechanics. The `bug-fix` skill itself doesn't dispatch the loop — that's your call based on the diff's shape.
+For multi-file fixes, treat the work as non-trivial and run it through `work-loop` for the gate / review / fix iteration: the same iteration cap and adversarial-reviewer pass that any other multi-file change goes through. See [how to plan and execute non-trivial work](plan-and-execute-non-trivial-work.md) for the loop mechanics. The `bug-fix` skill itself doesn't dispatch the loop — that's your call based on the diff's shape.
 
 If there's a tracker ticket, the final step is commenting the PR URL on it and transitioning state. The mechanism is adopter-specific (`gh issue comment`, Jira MCP, Linear CLI, or whatever your team uses); the obligation — keeping the ticket synced — is universal.
 

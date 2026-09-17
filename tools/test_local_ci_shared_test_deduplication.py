@@ -180,6 +180,15 @@ PROVEN_COMPATIBLE_NODE_HASH = (
 )
 
 FIRST_TOOL_BATCH = (
+    # Added 2026-09-17 with tools/test_stasis_retirement_claims.py, which joined
+    # the existing `pytest guides + catalogue navigation` invocation in both the
+    # Makefile enumeration and build-check.yml. Membership only: it appends a
+    # path to a group that already exists, so the standalone/composed group
+    # counts stay 15/14 and neither literal moved. Verified before the bump by
+    # running `_root_tool_topology_errors` over the edited Makefile — it
+    # reported membership drift on both expansions and no count drift, which is
+    # the signature of an appended path rather than a new process.
+    "tools/test_stasis_retirement_claims.py",
     "tools/test_build_gate_chain.py",
     "tools/test_journey_editorial_decisions.py",
     "tools/test_catalogue_tooling_rewire.py",
@@ -688,11 +697,24 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `2b1574e19:Makefile` with `8130fdec…` and `88c37c69…` still in place returns
 # an empty error list — zero drift — so this supersedes live values set one day
 # earlier, not a pin that had already gone stale underneath them.
+# Bumped 2026-09-17 for tools/test_stasis_retirement_claims.py, which appended
+# one module token to the first tools batch line so that the suite gates a PR
+# rather than only `make test`.
+# (1) Sole cause: `git diff origin/main...HEAD -- Makefile` is one line removed
+# and one line added, the same batch line, differing only by the appended
+# token. No line was added, removed or reordered — the signature of a
+# lengthened line rather than a new process — so only the two digests move.
+# Both values are the checker's own computed digests over the baselines it
+# derives, not a digest of the raw plan, which differs.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `079a4090…` and `137a65fa…` still in place returns
+# an empty error list, so this supersedes live values rather than a pin that had
+# already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "079a4090dafabf8db0a36fef1599f470b56950ed6ab8b3051ccd6829f5341aee"
+    "35c6b14d74ba194e7e87c0e15e1f507e0d1366e051974cd1e296e2c6e83fffd1"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "137a65fa4876f01b5f830e10592c66ea04b1541ae706325a64b3ba5797d19c88"
+    "82b752ea939080dd360fea280a4e887b2838d286374d7d0898053d98b7dd02f6"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

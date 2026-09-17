@@ -342,6 +342,11 @@ jobs:
           tools/test_catalogue_navigation.py
           tools/test_documentation_entry_links.py
 
+      - name: pytest stasis-stop retirement claims
+        run: >-
+          python -m pytest
+          tools/test_stasis_retirement_claims.py
+
       # test_check_rendered_site_links.py appears in pages.yml as a `paths:`
       # trigger and never as a run step — easy to miscount as covered.
       - name: pytest site build + link rewriting
