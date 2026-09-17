@@ -48,3 +48,16 @@ agentbundle = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# This table SHADOWS the root pyproject's [tool.pytest.ini_options] rather than
+# merging with it, so the root's `pythonpath` does not reach a run invoked as
+# `pytest packages/agentbundle/tests/` -- pytest picks the nearest configfile
+# and stops. Unlike the sibling packages, this suite already resolved the
+# worktree copy without this line, but only by accident: `tests/__init__.py`
+# makes `tests` a package, so prepend import-mode inserts this directory as the
+# basedir. Deleting that file, or moving the suite to
+# `--import-mode=importlib`, would silently redirect every `import agentbundle`
+# to whatever is in site-packages -- and an editable install here is global to
+# the interpreter and routinely points at another worktree
+# (`tools/repo/editable_install_guard.py`). This line states the resolution the
+# suite depends on instead of inheriting it from a layout detail.
+pythonpath = ["."]
