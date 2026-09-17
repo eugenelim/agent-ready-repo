@@ -68,6 +68,14 @@ slug does not match `^[a-z0-9]+(-[a-z0-9]+)*$` or exceeds 64 characters. The
 refusal happens before any path is constructed, so a non-conforming slug cannot
 produce a path that reaches a platform limit mid-write.
 
+**Refuse it; do not repair it.** Do not sanitize the slug, strip the offending
+characters, or derive a replacement from the product name or anything else in
+the request. Observed runs show this is the failure mode here: given a slug
+carrying traversal segments, an agent substituted a tidy slug of its own and
+wrote the artifact, which is helpful and wrong. The operator asked for one name
+and silently received another, and the control that was supposed to stop the run
+reported success. Say which rule the slug broke and ask for a conforming one.
+
 ## Final-target confinement — run the resolution, do not reason it
 
 A symlink at any component of the target path can redirect a write that already
@@ -128,6 +136,31 @@ configuration, confirm that the existing artifact belongs to the current product
 before replacing it. A user-profile `output_dir` is shared across repositories;
 a matching slug alone does not distinguish artifacts from different products
 sharing the same output path.
+
+## Known limits of these controls
+
+Two inputs these controls depend on are not decidable from what this module
+states. Both are recorded deliberately rather than closed, because closing
+either one is a design choice this module's authority does not fix, and a rule
+invented to look complete is worse than a limit a reader can see.
+
+**The reserved-tree set is not closed.** The repo-root branch reserves paths at
+or beneath `.apm/` and the user-profile branch gives the host's installed-skill
+directories as an example. Neither enumerates the set. A realpath inside the
+repository but outside `.apm/` — a version-control directory, for instance —
+satisfies every check named above. The user-profile branch's positive test is
+also circular: it approves the value against the root the user-profile config
+names for design output, which is the value being approved. Treat approval as
+deciding the cases named here, not every input.
+
+**Product belonging has no discriminator.** The existing-artifact checks require
+confirming an artifact belongs to the current product, and state that a matching
+slug cannot establish that for a user-profile `output_dir` shared across
+repositories. No field supplies the distinction: the frontmatter contract
+carries the artifact type, the slug and the date. A shared directory plus a
+common slug therefore yields a foreign artifact that passes every executable
+check. Until a discriminator exists, surface the artifact to the user and let
+them decide rather than reporting belonging as confirmed.
 
 ## Amendment: extract as data
 
