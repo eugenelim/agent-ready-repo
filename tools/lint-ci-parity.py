@@ -1511,8 +1511,16 @@ def opaque_operands(line: str) -> list[str]:
                 continue
             if token.startswith("-"):
                 continue
-            if _OPAQUE_OPERAND.fullmatch(token):
-                found.append(token)
+            # Strip balanced outer quotes, then search rather than fullmatch:
+            # `"$(EXTRA)"`, `'${EXTRA}'` and `$(SUITE_DIR)/tests/` are all
+            # expansions, and a fullmatch on the bare form caught only the last
+            # of the three shapes an author is likely to write.
+            bare = token
+            for quote in ('"', "'"):
+                if len(bare) > 1 and bare[0] == quote and bare[-1] == quote:
+                    bare = bare[1:-1]
+            if _OPAQUE_OPERAND.search(bare):
+                found.append(bare)
     return found
 
 
@@ -1950,6 +1958,9 @@ def is_covered(target: str, local: set[str]) -> bool:
 # package names, or one whose body only echoes, would contribute phantom
 # coverage. Coverage is the direction where a false positive is consequential, so
 # this reads one shape exactly rather than guessing at shell semantics.
+# A command that prints rather than runs. `echo "python -m pytest $d"` is
+# text, not an invocation, and must not contribute coverage.
+_ECHOES = re.compile(r"(?:echo|printf|:)\b")
 _FOR_LOOP = re.compile(
     r"for\s+(?P<var>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+(?P<items>[^;]*?);\s*do"
     r"(?P<body>.*?)\bdone\b",
@@ -1968,11 +1979,20 @@ def loop_targets(run: str, working_directory: str = "") -> list[str]:
     for match in _FOR_LOOP.finditer(run):
         var = match.group("var")
         body = match.group("body")
-        uses_var = re.search(
-            rf"(?:^|\s)(?:-m\s+)?pytest(?=\s)[^\n]*\$\{{?{re.escape(var)}\}}?",
-            body,
-        )
-        if not uses_var:
+        # The body is read as COMMAND SEGMENTS, not as raw text. Searching the
+        # raw body accepted `# python -m pytest "$d"` and
+        # `echo "python -m pytest $d"`, either of which reported every literal
+        # item as real coverage — and this is the direction where a false
+        # positive is consequential, because it can validate a `PR_GATED_IF`
+        # claim for a suite nothing runs.
+        if not any(
+            re.search(
+                rf"(?:^|\s)(?:-m\s+)?pytest(?=\s)[^\n]*\$\{{?{re.escape(var)}\}}?",
+                segment,
+            )
+            and not _ECHOES.match(segment.strip())
+            for segment in _segments(_strip_comment_lines(_strip_inline_comment(body)))
+        ):
             continue
         for token in match.group("items").replace("\\", " ").split():
             if token.startswith("-") or "$" in token:
@@ -2068,6 +2088,17 @@ def check_suites(
     violations: list[str] = []
     for line in lines:
         targets = line_targets(line)
+        # Computed once, boundary-matched, and used for BOTH the opaque-operand
+        # remedy and `resolved`. Two separate reads were self-contradictory: the
+        # opaque branch tested raw containment, so a key merely mentioned on the
+        # line suppressed the violation, while a key legitimately declared for a
+        # mixed literal/opaque line never entered `resolved` and was then
+        # reported dead — making AC-0002's required remedy impossible to satisfy.
+        substring_keys = {
+            key
+            for key in _SUBSTRING_KEYS & set(dispositions)
+            if _matches_at_boundary(key, line)
+        }
         if targets:
             # EVERY target must carry an entry, not merely one of them. "At
             # least one" is the weaker rule and it reopens the gap this roster
@@ -2076,7 +2107,7 @@ def check_suites(
             # would inherit its siblings' dispositions and demand none of its
             # own -- a new suite landing PR-ungated in silence, which is the
             # original defect one layer down.
-            resolved = set(targets) & set(dispositions)
+            resolved = (set(targets) & set(dispositions)) | substring_keys
             missing = [target for target in targets if target not in dispositions]
             # An opaque operand is a suite the roster cannot name, so the line
             # needs a declared substring key of its own. Without this, a known
@@ -2084,15 +2115,13 @@ def check_suites(
             # one demanded nothing — the escape the recipe-line anchor exists to
             # prevent, reopened by keying the check on extracted targets.
             opaque = opaque_operands(line)
-            if opaque and not (_SUBSTRING_KEYS & set(dispositions) & {
-                key for key in _SUBSTRING_KEYS if key in line
-            }):
+            if opaque and not substring_keys:
                 violations.append(
                     f"suite line {line!r} passes "
                     f"{', '.join(sorted(opaque))} to pytest, which names no "
-                    "literal path. Add a literal-substring key for this line: "
-                    "an operand the roster cannot resolve is a suite it cannot "
-                    "disposition."
+                    "literal path. Add a literal-substring key for this line, "
+                    "to the roster AND to `_SUBSTRING_KEYS`: an operand the "
+                    "roster cannot resolve is a suite it cannot disposition."
                 )
             if missing:
                 violations.append(
@@ -2102,20 +2131,32 @@ def check_suites(
                     "that gates it, or NO_PR_GATE with the reason none does."
                 )
         else:
-            resolved = {
-                key
-                for key in _SUBSTRING_KEYS & set(dispositions)
-                if _matches_at_boundary(key, line)
-            }
+            resolved = substring_keys
             if not resolved:
                 violations.append(
                     f"suite line {line!r} has no SUITE_DISPOSITION entry and no "
                     "path operand to key one on. Add a literal-substring key "
-                    "for it; a line the extractor cannot read still runs."
+                    "for it, to the roster AND to `_SUBSTRING_KEYS`; a line the "
+                    "extractor cannot read still runs."
                 )
         line_entries[line] = resolved
     resolved_entries = set().union(*line_entries.values()) if line_entries else set()
     for entry in sorted(set(dispositions) - resolved_entries):
+        # An entry that MATCHES a line but is not declared a substring key is a
+        # half-finished remedy, not a dead entry, and saying "dead" sent the
+        # author to delete the entry they had just been told to add. Adding a
+        # line key takes two edits — the roster and `_SUBSTRING_KEYS` — because
+        # a path key must stay ineligible for substring matching: the repo-root
+        # key `tests/` boundary-matches almost every test line.
+        if entry not in _SUBSTRING_KEYS and any(
+            _matches_at_boundary(entry, line) for line in lines
+        ):
+            violations.append(
+                f"suite {entry!r} — matches a run-test-suite line but is not "
+                "declared a substring key, so nothing resolves it. Add it to "
+                "`_SUBSTRING_KEYS` as well; a line key takes both edits."
+            )
+            continue
         violations.append(
             f"suite {entry!r} — dead SUITE_DISPOSITION entry: no run-test-suite "
             "line resolves it. Remove it or add the suite to the define."

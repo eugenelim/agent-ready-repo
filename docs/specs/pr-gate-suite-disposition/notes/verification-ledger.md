@@ -522,3 +522,64 @@ After strengthening, every arm reddens a named case:
 | conditional source contradicts `NO_PR_GATE` | 1 | `suites-no-pr-gate-contradicted-by-a-conditional-source` |
 
 184 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.
+
+## Post-gates review round 2 — three more, all in my own repairs (2026-09-17)
+
+Round 2 reviewed round 1's repairs and returned three Blockers and two Nits.
+Every Blocker was a defect **introduced by a round-1 repair**, and two of the
+three were in the direction the design calls consequential.
+
+**1. `loop_targets` accepted non-executing text.** The new loop reader searched
+the raw body, so `# python -m pytest "$d"` and `echo "python -m pytest $d"` both
+satisfied it and every literal item in the list was reported as real coverage.
+Repair 1 had *added* coverage detection, where a false positive grants a false
+pass — it could validate a `PR_GATED_IF` claim for a suite nothing runs. The body
+is now read as comment-stripped command segments, and a printing command is
+excluded.
+
+**2. Quoted and composed expansions escaped AC-0002.**
+`_OPAQUE_OPERAND.fullmatch(token)` matched a bare `$(EXTRA)` only, so
+`"$(EXTRA)"`, `'${EXTRA}'` and `$(SUITE_DIR)/tests/` all slipped past — the last
+being the likeliest shape an author writes. Now the outer quotes are stripped and
+the pattern is searched rather than fullmatched.
+
+**3. The opaque-operand remedy was undiscoverable.** The opaque branch tested raw
+`key in line`, so a key merely *mentioned* on the line suppressed the violation;
+and a key legitimately declared for a mixed literal/opaque line never entered
+`resolved`, so it was then reported as a **dead entry** — sending the author to
+delete exactly what they had just been told to add.
+
+The reviewer called this self-contradictory. **Partly refuted**: the remedy is
+satisfiable, verified by performing it — adding the key to the roster *and* to
+`_SUBSTRING_KEYS` yields zero violations. It was undiscoverable, not impossible.
+Deriving `_SUBSTRING_KEYS` instead would reintroduce the round-1 boundary defect,
+because the repo-root key `tests/` boundary-matches almost every test line
+(measured). So the declaration stays and the half-finished state now diagnoses
+itself by name instead of reading as a dead entry.
+
+### The probe found an unprobed branch
+
+Mutating the quote-stripping loop left the suite green: `search` already finds an
+expansion inside quotes, so stripping changes only the *reported* string, and a
+truthiness assertion could not see it. The case now pins the reported value, so
+the branch is covered by what it actually buys — a message naming `$(EXTRA)`
+rather than `"$(EXTRA)"`. An unprobed branch is a control that cannot fail,
+whatever else the suite says.
+
+### Mutation proof, round 2's fixes
+
+| Arm removed | Exit | Case |
+| --- | ---: | --- |
+| echo/comment exclusion in the loop body | 1 | `loop-targets-ignores-an-echoed-invocation` |
+| loop body read as segments | 1 | `loop-targets-ignores-a-commented-invocation` |
+| `search` rather than `fullmatch` | 1 | `opaque-operand-detects[…]` |
+| quote stripping | 1 | `opaque-operand-detects["$(EXTRA)"]` |
+| opaque operand demands a key | 1 | `suites-opaque-operand-demands-its-own-key` |
+| half-done remedy diagnosis | 1 | `suites-half-declared-line-key-names-its-own-remedy` |
+
+191 cases. Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0.
+
+Two Nits also fixed: the spec's Testing Strategy still assigned the
+unresolvable-line case to AC-0001 after the amendment moved it to AC-0002, and
+the plan still described the comment guard as retaining `$(` only rather than
+any `$`.

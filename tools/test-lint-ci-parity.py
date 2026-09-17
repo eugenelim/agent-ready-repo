@@ -1143,6 +1143,16 @@ composed:
                'for d in $(SUITE_DIR)/tests/; do\n  python -m pytest "$d" -q\ndone\n'),
            [])
 
+    # F1b. A commented or echoed pytest inside the body is TEXT, not an
+    # invocation. Searching the raw body accepted both, and this is the unsafe
+    # direction: phantom coverage can validate a PR_GATED_IF claim.
+    _check("loop-targets-ignores-a-commented-invocation",
+           M.loop_targets('for d in packs/a/tests/; do\n'
+                          '  # python -m pytest "$d" -q\n  echo skip\ndone\n'), [])
+    _check("loop-targets-ignores-an-echoed-invocation",
+           M.loop_targets('for d in packs/a/tests/; do\n'
+                          '  echo "python -m pytest $d -q"\ndone\n'), [])
+
     # F2. An opaque operand riding free on a literate neighbour's entry.
     _opaque = "$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q"
     _check("opaque-operand-is-detected", M.opaque_operands(_opaque), ["$(EXTRA_SUITE)"])
@@ -1153,6 +1163,33 @@ composed:
     # define would false-alarm if the command position counted.
     _check("opaque-operand-ignores-the-command-position",
            M.opaque_operands("$(PYTHON) -m pytest known/tests/ -q"), [])
+    # An expansion is an expansion however it is written. A fullmatch on the
+    # bare token caught only the third of these three plausible shapes.
+    # The REPORTED value is asserted, not merely truthiness. `search` already
+    # finds an expansion inside quotes, so a truthiness check left the
+    # quote-stripping unprobed; what stripping buys is a violation message that
+    # names `$(EXTRA)` rather than `"$(EXTRA)"`.
+    for _form, _want in (('"$(EXTRA)"', "$(EXTRA)"),
+                         ("'${EXTRA}'", "${EXTRA}"),
+                         ("$(SUITE_DIR)/tests/", "$(SUITE_DIR)/tests/")):
+        _check(f"opaque-operand-detects[{_form}]",
+               M.opaque_operands(f"$(PYTHON) -m pytest known/tests/ {_form} -q"),
+               [_want])
+    # The remedy must be SATISFIABLE. A line key takes two edits — the roster
+    # and `_SUBSTRING_KEYS` — and the half-done state has to say so rather than
+    # read as a dead entry, which sent the author to delete what they just added.
+    _mixed = "\t$(PYTHON) -m pytest known/tests/ $(EXTRA) -q"
+    _check_fires("suites-half-declared-line-key-names-its-own-remedy",
+                 [v for v in _suites(_mk(_mixed),
+                                     {"known/tests/": M.NO_PR_GATE("x"),
+                                      "$(EXTRA)": M.NO_PR_GATE("declared")})
+                  if "not declared a substring key" in v],
+                 "not declared a substring key")
+    # And a path key must never become substring-eligible: the repo-root key
+    # `tests/` boundary-matches almost every test line.
+    _check_true("path-key-boundary-matches-a-deeper-path",
+                M._matches_at_boundary("tests/",
+                                       "$(PYTHON) -m pytest packs/x/tests/ -q"))
 
     # F3. GNU Make expands `${...}` in a recipe comment as readily as `$(...)`.
     _check("suite-lines-keeps-a-comment-with-a-brace-expansion",

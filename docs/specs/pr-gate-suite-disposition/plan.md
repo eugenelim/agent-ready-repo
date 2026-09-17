@@ -87,12 +87,14 @@ the forward gate.
 
 From that expansion, `suite_lines` enumerates the command lines lexically:
 join backslash continuations, then drop blank lines, and drop a `#` comment line
-**only when it contains no `$(`**.
+**only when it contains no `$`**.
 
 The comment carve-out is narrower than it looks because a recipe comment is not
 inert. GNU Make expands functions in a recipe line before the shell ever sees it,
 including a line the shell would treat as a comment, so
-`# $(shell $(PYTHON) -m pytest hidden-suite/ -q)` runs its suite at expansion time.
+`# $(shell $(PYTHON) -m pytest hidden-suite/ -q)` runs its suite at expansion
+time — and so does the `${...}` brace form, which GNU Make accepts equally, so
+the guard admits any `$` rather than only `$(`.
 Measured on GNU Make 3.81, the version this repository's tooling floor names: that
 line wrote its evidence file under a plain `make` run **and** under `make -n`. A
 content-blind comment drop would therefore hide an executing suite. The define

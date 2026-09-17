@@ -152,10 +152,13 @@ point instead, and the seven criteria after it concern workflow content, roster
 state, mutation sensitivity and backlog state rather than a violation string. All
 eight take the modes named below.
 
-- **Roster completeness, all three directions (AC-0001, AC-0002, AC-0003)** — TDD. Each direction is a
-  distinct violation string with a distinct remedy, so each gets its own case. AC-0001's
-  case uses a define line whose operands the extractor yields nothing for, because
-  that is the shape that would otherwise escape the roster.
+- **Roster completeness, all three directions (AC-0001, AC-0002, AC-0003)** — TDD.
+  Each direction is a distinct violation string with a distinct remedy, so each
+  gets its own case. AC-0001's case uses a line whose *other* targets are
+  dispositioned, because inheriting a sibling's entry is the failure it exists to
+  catch. AC-0002's uses a line the extractor cannot resolve to a literal path —
+  no path operand, and a variable expansion beside a literal — since that is the
+  shape that escapes a target-keyed roster entirely. AC-0003's is a dead entry.
 - **Trigger and enforcement classification (AC-0004, AC-0005)** —  TDD. These decide
   whether a claimed gate is unconditional, so each misclassification is asserted
   separately.
