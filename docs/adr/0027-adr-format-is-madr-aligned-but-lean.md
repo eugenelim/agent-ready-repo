@@ -134,3 +134,22 @@ conformance is reviewer-checked.
 
 - [RFC-0038](../rfc/0038-align-adr-template-with-madr.md) — the proposal this ADR records.
 - [MADR 4.0](https://adr.github.io/madr/) — the reference conventions.
+
+## Errata
+
+- **2026-09-17 — the mechanical ADR-status lint this Confirmation deferred has
+  shipped, and `D5` is overridden.**
+  [RFC-0102](../rfc/0102-mechanically-checkable-adrs.md) ("An ADR's metadata is
+  checkable, and the freeze binds its prose") was accepted 2026-09-17 and
+  ships `lint-adr-shape.py` (the `check-adr-shape` pull-request gate) as the
+  mechanical ADR-status lint this ADR's Confirmation section named absent and
+  deferred: "adding one is a separate, RFC-gated convention and is deferred —
+  until then, conformance is reviewer-checked." [ADR-0117](0117-adr-shape-lint-ships-blocking-not-advisory.md)
+  records that decision. On RFC-0102's authority, this ADR's `D5` — "Migration
+  is forward-only — existing ADRs keep `Deciders` and are not rewritten" — is
+  overridden: the corpus, including this ADR's own frontmatter, was migrated
+  to the new metadata block (`Areas`, `Reversibility`, the four supersession
+  fields, and the `Decision-makers` rename this ADR already carried) ahead of
+  the lint shipping blocking over it. The Context, Decision, and Consequences
+  sections above are preserved unchanged as the historical record of the
+  original choice.

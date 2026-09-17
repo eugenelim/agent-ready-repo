@@ -92,3 +92,120 @@ Generator suite `tests/roster/test_index_records.py`: 48 passed, 2.46s, up from
 `none` sentinel, and AC-0032's escaping. `cmp` confirms the two shipped
 generator copies stay byte-identical, and both `.claude/` and `.agents/`
 projections match their `packs/` source.
+
+## T10 — the new record and ADR-0027's erratum, run 2026-09-17
+
+### The new record: `docs/adr/0117-adr-shape-lint-ships-blocking-not-advisory.md`
+
+Authored by walking `new-adr`'s procedure by hand against the projected
+`.claude/skills/new-adr/SKILL.md` step order, rather than through the live
+skill dispatcher (no interactive session here to hold the step-7 confirmation
+gate open). `python3 .claude/skills/new-adr/scripts/next-ordinal.py docs/adr`
+printed `0117`, and `--check docs/adr` reported "no duplicate ordinals" both
+before and after the write. **Recording the allocated ordinal here, per the
+task's instruction — the spec names this record by role
+("the one new-format decision record"), not by number.**
+
+Step 7's confirm-before-coining check was run, not skipped: scanning every
+sibling record's `Areas` field (`grep -h "Areas:" docs/adr/*.md`) turned up 24
+tokens already in use, including `governance` and `tooling`, so the drafted
+`Areas: governance, tooling` value coined nothing and the explicit-confirmation
+branch never fires. That is a true negative on the check, not an unexercised
+one — the scan ran, found the value already covered, and the record proceeded
+without asking. Exercising the branch where a real answer must be given (a
+genuinely novel token) would need a separate fixture case in
+`test_lint_adr_shape.py`, not a real corpus record — this repository's `Areas`
+vocabulary is broad enough that a real, honest decision under governance/tooling
+was never going to need one.
+
+Subject: the plan's own suggested example — that this delivery's shape lint
+ships blocking over the whole corpus rather than the advisory-then-blocking
+phase RFC-0102 § 6 originally specified. That decision is real, small, and
+already settled (it is `plan.md`'s "The gate blocks" Design decision and this
+delivery's T9 closing observation), and it was never recorded as a standalone
+ADR before this task.
+
+**Pinned test — isolated single-record invocation (AC-0015):**
+
+    mkdir -p <scratch>/adr-t10-isolated
+    cp docs/adr/0117-adr-shape-lint-ships-blocking-not-advisory.md <scratch>/adr-t10-isolated/
+    python3 .claude/skills/new-adr/scripts/lint-adr-shape.py <scratch>/adr-t10-isolated
+    read: 1  refused: 0  unreadable: 0      exit 0
+
+**What this isolated run proves, and what it does not.** All four supersession
+fields on the new record are the `none` sentinel, so every per-record check
+(`ADR-S001`–`ADR-S008`, `ADR-S011`–`ADR-S015`) ran against the record's own
+content and is a real pass. The two mirror rules, `ADR-S009` (a cited D-ID
+exists in the record it names) and `ADR-S010` (a supersession entry has its
+mirrored counterpart), had nothing to pair against: with one record and no
+non-`none` supersession field, both rules are vacuously satisfied rather than
+exercised. A single-record directory cannot exercise either mirror rule
+regardless of the record's content, unless the record cites a sibling that is
+absent from the same directory — which would itself only prove the *absent*
+branch, not the paired-mirror branch. That branch is what T2's and T3's fixture
+suites cover; this run is the manual-QA instance the spec's Testing Strategy
+asks for, over the real shipped lint and the real new record, not a substitute
+for the fixture coverage of the mirror rules.
+
+**Full-corpus re-run after the new record joined `docs/adr`:**
+
+    python3 .claude/skills/new-adr/scripts/lint-adr-shape.py docs/adr
+    read: 117  refused: 0  unreadable: 0      exit 0
+
+Up by exactly 1 from the 116 pre-T10 baseline (confirmed by re-running the
+lint before making any change), all attributed to the new record; no other
+corpus record's outcome changed.
+
+### ADR-0027's erratum (AC-0016)
+
+One dated `## Errata` entry appended after `## References`, at the position
+every one of the eight pre-existing corpus records using `## Errata` already
+uses (`0002`, `0013`, `0020`, `0022`, `0036`, `0061`, `0072`, `0079`). It
+covers both facts the task names in one entry, dated 2026-09-17: that the
+mechanical ADR-status lint this ADR's own `Confirmation` section deferred has
+now shipped (citing RFC-0102 and the new ADR-0117 record of that decision),
+and that `D5`'s forward-only-migration clause is overridden on RFC-0102's
+authority, because the corpus — including this ADR's own frontmatter, which
+already carried `Areas`, `Reversibility`, and all four supersession fields —
+was migrated ahead of the lint shipping blocking.
+
+**Was the convention usable, as the first real exercise of it?** Yes, and the
+part expected to be awkward — picking the heading and deciding whether a
+correction needs its own new supersession chain rather than an in-place
+entry — was not. `new-adr/SKILL.md`'s "## Recording corrections (Errata)"
+section fixes the heading to exactly `## Errata` and states plainly that a
+changed decision is a new ADR, never an edit here; that left no judgment call
+about *which* mechanism this correction needed. The corpus's eight pre-existing
+`## Errata` sections (all predating this delivery, so the heading and the
+dated-bold-headline entry shape were already established practice, not
+something this delivery had to invent from the SKILL.md prose alone) gave a
+real precedent for entry shape and placement, which is why the new entry above
+matches their `**YYYY-MM-DD — headline.**` form.
+
+One genuine ambiguity did surface, worth naming rather than papering over: the
+convention states entries are "append-only" and a later entry supersedes an
+earlier one "by being later," but says nothing about whether an erratum
+entry may itself cite metadata-block fields that the `Live` zone still permits
+to change after the entry is written (here, `Superseded by:` on a *different*
+record, not this one). This record's erratum does not need that — it corrects
+meaning, not a supersession pointer — so the gap did not block this task, but a
+future erratum that does need to reference a still-mutable field would have no
+stated rule for whether the erratum text itself must be treated as frozen
+prose the moment it lands, or whether it may be read against the record's
+current metadata. Left for whoever writes that erratum; not a defect in this
+task's `Done when:`.
+
+**Index regeneration (goal-based check):**
+
+    python3 .claude/skills/new-adr/scripts/index-records.py docs/adr
+    python3 .claude/skills/new-adr/scripts/index-records.py --check docs/adr
+    exit 0
+
+`docs/adr/README.md` gained one row, `0117`, at the bottom of the table; no
+other row changed. `next-ordinal.py --check docs/adr` also exits 0 (no
+duplicate ordinals) after the write.
+
+`tests/roster/test_index_records.py`: 48 passed (unchanged from T9 — T10 adds
+no generator case). `tests/roster/test_lint_adr_shape_corpus.py`: 2 passed —
+its partition assertion is computed from the live directory listing at run
+time, so the new record is absorbed without a code or fixture change.
