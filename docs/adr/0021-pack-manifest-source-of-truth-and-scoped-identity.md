@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-13
-- **Deciders:** eugenelim
+- **Areas:** packaging, state
+- **Reversibility:** low
+- **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0031](../rfc/0031-catalogue-package-manager-posture.md) (decisions D2 + D7 — this ADR is the decision record that RFC's follow-on artifacts call for), [`docs/specs/enriched-pack-manifest/`](../specs/enriched-pack-manifest/spec.md), [ADR-0001](0001-adopt-agents-md-and-doc-hierarchy.md), `contracts/pack.schema.json`, `contracts/plugin-manifest.derived.schema.json`
 
 ## Context
@@ -19,6 +24,26 @@ RFC-0031 (Accepted) set a package-manager posture for the pack catalogue. Two of
 
 **D7 — pack identity is `@catalogue/pack` (npm-style), with a bare/unscoped `pack` resolving to the public default catalogue.** This lets a private/org catalogue and the public default host packs of the same short name without renaming. In the first increment it is **declare-only** — the `[pack].catalogue` field plus canonical rendering in `list-packs`; multi-catalogue *resolution* is deferred to the index-contract / virtual-catalogue follow-on RFC. Scope ownership-proof is deferred (a curated catalogue needs convention, not cryptography); if public third-party submission is ever opened, a scope is bound to a verified GitHub org/domain at publish time — a registry policy, not a syntax change.
 
+- **D1:** `pack.toml` is the single rich source of truth for pack metadata.
+- **D2:** Each tool's marketplace or manifest format receives a lossy,
+  one-directional projection of the subset it understands; projection runs
+  `pack.toml → tool format` only and never round-trips.
+- **D3:** Tool-specific knobs live in namespaced `[pack.metadata.<tool>]` tables
+  that the schema ignores.
+- **D4:** The first increment projects only the Claude/Copilot `marketplace.json`
+  entry; the Codex and Cursor per-tool projectors are follow-on work.
+- **D5:** Pack identity is `@catalogue/pack`, with a bare or unscoped `pack`
+  resolving to the public default catalogue.
+- **D6:** Identity ships declare-only in the first increment — the
+  `[pack].catalogue` field plus canonical rendering in `list-packs` — with
+  multi-catalogue resolution deferred to the index-contract follow-on RFC.
+- **D7:** Scope ownership-proof is deferred; if public third-party submission is
+  ever opened, a scope is bound to a verified GitHub org or domain at publish
+  time as a registry policy, not a syntax change.
+
+*(These D-IDs address this ADR. They are distinct from RFC-0031's decision
+numbers D2 and D7 quoted in the prose above.)*
+
 ## Consequences
 
 **Positive:**
@@ -32,6 +57,8 @@ RFC-0031 (Accepted) set a package-manager posture for the pack catalogue. Two of
 
 **Neutral / to revisit:**
 - A real range/transitive dependency resolver and a persisted, queryable index become warranted once a second catalogue or real diamond conflicts exist (the index-contract follow-on RFC).
+
+**Revisit if:** a second catalogue or a real diamond dependency conflict appears — that is when declare-only identity (D5, D6) has to grow multi-catalogue resolution, and when a range/transitive resolver plus a persisted, queryable index become warranted.
 
 ## Alternatives considered
 
