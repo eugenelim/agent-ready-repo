@@ -140,10 +140,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The final-target confinement check is now discharged by running a real-path
   resolution and reading its result, with the command given inline, rather than
   by reasoning about the path. Measured on the two skills that had leaked: 2
-  escapes in 4 symlink runs before, 0 in 6 after, with no new refusals on benign
-  input. Across all four writes the current state refuses an inadmissible
-  `output_dir`, a symlinked target, and a non-conforming slug, writing no file in
-  any of those runs.
+  escapes in 6 symlink runs before, 0 in 6 after, with no new refusals on benign
+  input. Across all four writes, measured against the shipped module, the
+  current state refuses an inadmissible `output_dir`, a symlinked target, and a
+  non-conforming slug — twelve runs, twelve refusals, no file written in any of
+  them.
+- **A non-conforming slug was being silently rewritten rather than refused.**
+  Given a slug carrying path-traversal segments, `creative-direction` derived a
+  tidy slug from the product name and wrote the artifact — in 2 of 3 runs. The
+  containment module said to reject such a slug and never said not to repair it,
+  so the skill complied in the most helpful way available. This is the one
+  failure in this release you could not have spotted from the result: the file
+  that lands is well-formed, correctly placed, and named something you did not
+  ask for. All four writes now refuse a non-conforming slug instead of
+  substituting one, and say which rule it broke.
 - The module now states its own limit at the point of use: the control is an
   instruction rather than an enforced boundary, a skipped check leaves no trace,
   and an adopter who needs a guarantee must enforce confinement outside the
