@@ -260,6 +260,17 @@ shipped = [
   # Two answers added on owner authority, filling the axis that let a contract
   # shrink. Naming the answers stays a deferred criterion, so the ladder ships as
   # guidance pinned by tests and carries no acceptance criterion.
+  # Shipped 2026-09-16 as core 2.26.8. Carried out ADR-0104's full-mode half:
+  # the stasis halt is gone from three work-loop references, six guide files and
+  # the public pack page, the Surface dispositions and six authority statements
+  # survive, and an absence sweep pins eight retired phrasings. Prose-only --
+  # nothing branched on the disposition, so no runtime behaviour moved. Eight
+  # review rounds; the explanatory rationale was cut on owner decision after five
+  # successive corrections each introduced a new precision error, and now lives
+  # only in the ADR and this spec. Both `CONVENTIONS.md` copies stayed out of
+  # scope because another branch deletes them; if that merge does not land, both
+  # keep a retired halt and nothing here catches it.
+  {path = "docs/specs/stasis-stop-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Retire full mode's stasis stop disposition across the work-loop references, the published guides, and the public pack page, preserving the Surface dispositions and the authority statements, and pin it with an absence sweep", needs = []},
   {path = "docs/specs/finding-response-receptacle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md"}, summary = "Optional response and reason on a review-verdict finding, and the answers to a sustained finding stated in DECIDE as an ordered four-axis ladder with a stop rule and a per-axis surface walk", needs = []},
   # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
   # criteria over the three checks the skill runs on its own artifacts; the
@@ -627,6 +638,16 @@ open = [
   # kco-202609-43b240cb94a85bb57b6c908b7e4cdaf71a4845bdd3c591750d02d42c083ed0ba
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
   {path = "docs/product/intents/emitted-guide-link-fallback-detector.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/desk-research-build-handover/spec.md"}, summary = "Assert that no page emitted from guides/ carries an external blob locator pointing back under guides/, so an unresolvable in-tree link cannot be laundered past the internal link audit", needs = []},
+  # Observed 2026-09-16 during the stasis-stop-retirement run, on a full
+  # packs/core/tests/skills/work-loop/ pass sharing the machine with two other
+  # suites under memory pressure. 2 of 8 concurrent record-attempt calls failed
+  # to acquire the state lock, so implementation_retry_count reached 6 of 8.
+  # Passes 9/9 in isolation. Neither the test nor loop-cohort.py/_statelock was
+  # in that change's diff, which is prose-only, so this is load-sensitive rather
+  # than caused by it. Recorded so the next run that sees it does not re-derive
+  # the triage; not yet established whether the lock timeout is too tight or the
+  # contention is the test harness's own.
+  {slug = "pre-existing-record-attempt-lock-contention-under-load", source = "pre-flight/2026-09-16", summary = "test_concurrent_record_attempt_no_lost_update loses 2 of 8 concurrent record-attempt calls to state-lock acquisition timeouts when the suite shares a loaded machine; passes in isolation"},
   {slug = "direct-lifecycle-uninstall-skill", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "RFC-0098 D4/D6 mandate uninstall --skill <name> for a direct row, routed to the pack-keyed file-ownership removal path and mutually exclusive with --pack. The CLI has no --skill and requires --pack, so that form does not exist; removal works only via uninstall --pack <identity> --yes. No removed criterion carried this. It also owns the removal completeness direct-skill-lifecycle F8 measures: a file a later revision drops stays on disk unowned, and ownership-keyed removal alone cannot reach it.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
   {path = "docs/product/intents/direct-skill-lifecycle.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/direct-skill-repository-installation/spec.md"}, summary = "Keep a directly installed skill current, and know what changed before it lands", needs = []},
   {slug = "direct-lifecycle-capability-inspection", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Re-read what an installed direct skill declares: allowed-tools, metadata.boundaries, metadata.credentialed, the SKILL.md digest, and every payload digest, per skill. Probed 2026-09-01: show, list-installed --format json, and the state file each carry none of them, so an adopter who consented at install has no route back to what they agreed to. The show contract sets additionalProperties false over a closed key set docs/specs/okf-catalogue-discovery owns, so that spec needs amending alongside.", intent = "docs/product/intents/direct-skill-lifecycle.md"},

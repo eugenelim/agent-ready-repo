@@ -1,6 +1,6 @@
-# ADR-0104: Light mode's review stops on divergence, not on a round budget
+# ADR-0104: A review loop stops on divergence, not on a round budget — and a signal that cannot be calibrated advises rather than gates
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-04
 - **Areas:** review, work-loop
 - **Reversibility:** high
@@ -14,11 +14,11 @@
 
 ## Decision summary
 
-- **Decision:** light mode's `adversarial-reviewer` rounds run to clean, stopping on a divergence checkpoint rather than a round count; the exit is the requester.
-- **Because:** round count measures nothing about the cost the bound exists to contain, and the escalation exit cost more to obey than to rationalise around.
-- **Applies to:** light mode's post-GATES review only. Full mode's iteration cap and the risk-trigger set are unchanged.
-- **Tradeoff accepted:** light mode now has no mechanical stop — the checkpoint is a judgement, and ADR-0014's named compensating control is replaced by a Surface.
-- **Revisit if:** light-mode runs are observed running long without the checkpoint firing, or the repair-introduced signal becomes calibratable.
+- **Decision:** light mode's `adversarial-reviewer` rounds run to clean, stopping on a divergence checkpoint rather than a round count; the exit is the requester. Full mode's recurrence signal is made visible and its unreachable stasis stop is retired. Neither mode gates on a finding-derived signal.
+- **Because:** round count measures nothing about the cost the bound exists to contain; the escalation exit cost more to obey than to rationalise around; and no finding-derived signal here has ever been calibrated, while the two that were proposed are measurably unable to separate a converging loop from a diverging one.
+- **Applies to:** light mode's post-GATES review, and full mode's stasis route and recurrence key. Full mode's retry cap, mode selection, and the risk-trigger set are unchanged.
+- **Tradeoff accepted:** light mode has no mechanical stop, and full mode now has one fewer. Full mode's remaining mechanical bound is its retry cap; light mode's is the requester.
+- **Revisit if:** light-mode runs are observed running long without the checkpoint firing, or a committed record of per-round recurrence accumulates far enough to calibrate a threshold that this decision could not.
 
 ## Context
 
@@ -54,20 +54,24 @@ the machinery takes on more complex changes.
 divergence signal rather than a round count.**
 
 - **D1:** Light mode's `adversarial-reviewer` rounds run to clean and stop on a
-  divergence signal, never on a round count.
-- **D2:** The trend is read at the third round and every second round after, as a
-  sampling checkpoint rather than an allowance.
-- **D3:** The checkpoint defaults to stopping; the loop continues only while the
+  divergence signal, never on a round count; the trend is read at the third round
+  and every second round after.
+- **D2:** The checkpoint defaults to stopping — the loop continues only while the
   trend affirmatively says findings are getting fewer and smaller.
-- **D4:** A diverging loop's exit is the requester, never an automatic escalation
-  to full mode.
-- **D5:** The repair-introduced-finding signal is advisory and never decides the
-  checkpoint read.
-- **D6:** Risk-trigger escalation is untouched and still fires independently.
-- **D7:** A maintainability concern that needed the dropped `quality-engineer`
-  floor is Surfaced to the requester rather than escalated automatically.
-- **D8:** This covers light mode's post-GATES review only — not the risk-trigger
-  set, mode selection, or full mode's iteration cap.
+- **D3:** The exit from a diverging loop is the requester, never automatic
+  escalation to full mode.
+- **D4:** The repair-introduced signal is advisory: it informs the trend read and
+  never decides it.
+- **D5:** Risk-trigger escalation is untouched and fires independently of this
+  checkpoint.
+- **D6:** Full mode's cross-round recurrence key is the finding's cited location
+  and title with the leading ordinal and any severity tag removed; the
+  within-round fingerprint, which carries the line, is unchanged.
+- **D7:** Full mode's stasis stop route is retired rather than re-keyed.
+- **D8:** The recurrence signal is reported and Surfaced, and nothing in the loop
+  branches on it.
+- **D9:** Full mode's retry cap is untouched and remains its only mechanical
+  bound.
 
 - **The count is a checkpoint, not a budget.** The trend is read at the third
   round and every second round after. Three is where there are first enough
@@ -86,13 +90,27 @@ divergence signal rather than a round count.**
   and still fires independently, so a trigger discovered at any point routes the
   work to full mode without anyone's permission.
 
+**Full mode's recurrence signal is visible, and its stasis stop is retired.**
+
+- **The recurrence key drops position.** A finding's identity for
+  cross-round comparison is its cited location and title with the leading
+  ordinal and any severity tag removed. The within-round fingerprint, which
+  carries the line, is unchanged: one key cannot serve both jobs.
+- **The stasis stop route is retired, not repaired.** Full mode routed
+  `matches_previous_round` to "do not start another round". That route is
+  removed rather than re-keyed.
+- **The signal advises.** Recurrence is reported and Surfaced. Nothing in the
+  loop branches on it.
+- **The retry cap is untouched.** It remains full mode's mechanical bound and
+  the only thing that stops an unattended run.
+
 ADR-0014 named the light-to-full escalation as what compensated for light mode's
 dropped `quality-engineer` floor. That route is gone, so a maintainability
 concern needing that lens is Surfaced instead: absent a risk trigger, only the
 requester can move the work to full mode.
 
-This decision covers light mode's post-GATES review only. It changes neither the
-risk-trigger set, nor mode selection, nor full mode's iteration cap.
+This decision changes neither the risk-trigger set, nor mode selection, nor
+full mode's retry cap.
 
 ## Decision drivers
 
@@ -116,13 +134,27 @@ risk-trigger set, nor mode selection, nor full mode's iteration cap.
   mode.
 - Divergence — the failure that actually matters — is now what the rule detects,
   rather than round count, which correlates with nothing.
+- Full mode stops carrying a control that cannot fire. A stop whose trigger
+  condition normal editing destroys reads as protection while providing none,
+  and it is the kind of control a reader trusts precisely because it is there.
+- The recurrence signal becomes readable for the first time, so a stuck loop is
+  visible to whoever is watching even though nothing acts on it.
 
 **Negative:**
 
 - **Light mode has no mechanical stop.** The checkpoint is a judgement the agent
-  makes. Full mode's iteration cap and its stasis detection are engine-side and
-  unreachable from light mode, which holds no cohort state, so nothing bounds a
-  light-mode run when the trend read is wrong except the requester.
+  makes. Full mode's retry cap is engine-side and unreachable from light mode,
+  which holds no cohort state, so nothing bounds a light-mode run when the trend
+  read is wrong except the requester.
+- **Full mode has one fewer.** Retiring the stasis route leaves the retry cap as
+  its only mechanical bound. An unattended full-mode run that stops converging
+  therefore burns rounds to the cap rather than halting earlier. The measured
+  cost of that is bounded: in the recorded corpus the cap fired twice, and on
+  both occasions a human chose to continue past it, so an earlier stop would
+  have changed when the question was asked rather than the answer.
+- **The never-gate boundary is prose.** Nothing mechanical prevents a later
+  change from wiring a stop to the recurrence signal. The Confirmation section
+  states why an absence sweep cannot serve here.
 - **ADR-0014's named compensating control is replaced, not preserved.** A
   surviving Blocker no longer escalates into the full `quality-engineer` lens; a
   maintainability concern reaches it only if Surfaced and the requester moves the
@@ -131,8 +163,10 @@ risk-trigger set, nor mode selection, nor full mode's iteration cap.
   read is more cognitive surface than a counter.
 
 **Revisit if:** light-mode runs are observed running long without the checkpoint
-firing, or a calibration for the repair-introduced signal becomes available that
-would let it gate rather than advise.
+firing, or a committed record of per-round recurrence accumulates far enough to
+calibrate a threshold that this decision could not. The second trigger needs a
+sink that does not exist: live cohort state is per-run and untracked, so every
+observation of the signal this decision makes visible is presently discarded.
 
 ## Confirmation
 
@@ -143,6 +177,15 @@ would let it gate rather than advise.
   sweeping nothing. **Explicit residual:** the checkpoint's judgement half — the
   cadence, the trend read, and the requester exit — is prose an agent follows and
   is not mechanically checkable. Only its absence-of-the-old-rule half is.
+
+  For full mode: the retired stasis route is confirmed by the absence of its
+  disposition from the shipped surfaces that carried it, and the position-free
+  key by a case that reds when a finding surviving a line shift, a renumbering,
+  or a severity change is treated as new. **Explicit residual:** that no future
+  change wires a stop to the recurrence signal is not mechanically checkable. An
+  absence sweep for the signal's name near stop vocabulary cannot serve, because
+  the compliant reference document must itself state that the signal never stops
+  a loop. This boundary is prose, and it is load-bearing.
 - **Owner:** eugenelim
 
 ## Alternatives considered
@@ -158,21 +201,48 @@ would let it gate rather than advise.
 - **A hard round budget** — three at most, then stop. Rejected against the first
   driver: round count tracks nothing about cost, and a fixed cap kills converging
   loops that legitimately need more rounds.
-- **Gate on the repair-introduced signal.** Tried and rejected against the third
-  driver. Conjoining "not ones your own repairs created" into the trend read
-  makes a single repair-induced finding trip the checkpoint; measurement during
-  this change's own review found 25% of findings repair-induced at a healthy,
-  converging round three, which would have stopped the loop. It ships advisory,
-  the same treatment `shaping-reviewer` gives emphasis density.
-- **Soften full mode's caps first.** Deferred, not rejected. Full mode already
-  computes a divergence signal and then ignores it in favour of a counter, but
-  changing that touches `_loop_guards.py`, `loop-engine.py`, `assets/state.json`,
-  and the test that polices their single-sourcing — a state-schema and
-  public-interface change needing its own spec. This decision establishes the
-  rule that change would later implement mechanically.
+- **Gate on the repair-introduced rate.** Rejected against the third driver, on
+  measurement rather than on principle. A threshold of "above half, two
+  consecutive rounds" was proposed as the calibration this decision's own
+  *Revisit if* asked for. Measured against four recorded loops it fires on two:
+  one that diverged and one that converged to a single finding two rounds later.
+  Its level does not discriminate — the two converging loops peaked at 80% and
+  75%, above the diverging loop's maximum of 60%. The rate is also confounded by
+  amendment size: measured by citation overlap it rises with how much of the
+  artifact the previous repair touched, so a large amendment reads high with no
+  injection at all. It ships advisory, the same treatment `shaping-reviewer`
+  gives emphasis density.
+- **Gate on family recurrence** — stop when two consecutive rounds share a
+  finding family. Rejected, and recorded here because this repository's own
+  research proposed it. Three measurements decide it. Full mode already carried
+  such a stop and it returned `false` on all 302 recorded evaluations across two
+  months, never once firing, because its key embedded a line number and an
+  ordinal that every repair moves. In the same corpus the retry cap fired twice
+  and a human overrode it both times — the documented default of resetting the
+  run happened zero times, so a mechanical stop here produces an override
+  conversation rather than less work. And 21 of 30 specs peaked at two findings
+  rounds or fewer, so an earlier stop would have had almost nothing to act on
+  while its false-stop risk fell on the majority. What ended the one genuinely
+  stuck loop was a revert that cut the reviewed construct, not a stop.
+- **Soften full mode's caps.** Still deferred, and now separated from the
+  instrument question this decision does answer. Full mode's retry cap is a
+  round count, which the first driver holds tracks nothing about the cost the
+  bound exists to contain; diff size is the quantity that does. Changing it
+  touches `_loop_guards.py`, `loop-engine.py`, `assets/state.json`, and the test
+  that polices their single-sourcing. That remains a state-schema and
+  public-interface change needing its own spec, and this decision deliberately
+  leaves the cap in place: after retiring the stasis route it is full mode's only
+  mechanical bound.
+- **Repair the stasis stop instead of retiring it.** Rejected. Re-keying it to
+  the position-free family would revive a stop that has never fired, and revival
+  is a behaviour change no prior decision record chose — the route was designed
+  in a spec, not decided in an ADR. The measurements under *Gate on family
+  recurrence* above are the grounds.
 
 ## References
 
 - Implementation: PR #1231, `packs/core/.apm/skills/work-loop/references/light-mode.md`.
 - [ADR-0014](0014-rigor-scales-with-risk-work-loop-modes.md) — the decision this replaces in part; its Consequences name the dropped `quality-engineer` floor as the most material accepted loss.
 - [RFC-0025](../rfc/0025-work-loop-light-mode-and-risk-based-escalation.md) — the proposal ADR-0014 recorded.
+- [`docs/product/research/repair-origin-gating-survey.md`](../product/research/repair-origin-gating-survey.md) — the four-loop measurement, the amendment-size confound, and the self-scoring evidence behind rejecting the repair-introduced rate.
+- [`docs/product/research/review-loop-nonconvergence-survey.md`](../product/research/review-loop-nonconvergence-survey.md) — the survey whose § 6 option 3 proposed gating on family recurrence, and whose § 5 records that no mature review process terminates on a defect classification. This decision follows the second and declines the first.
