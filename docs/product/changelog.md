@@ -64,6 +64,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.12] — 2026-09-17
+
+### Highlights
+
+- **The spec checker now notices when a criterion was reworded and its
+  assertions were not.** It could already do this, but only if you knew to
+  hand it a revision to compare against. Without one it said nothing and
+  reported a clean run, so the check was there and almost never ran. It now
+  works out what to compare against on its own — the point your branch left
+  the default branch. Nothing new can fail your build: this check describes
+  what it found and never sets the exit code. Pass `--no-since` if you want it
+  left alone.
+
+### Changed
+
+- `lint-contract-item-alignment.py` resolves its own base revision for the
+  stale-assertion rule, trying `origin/HEAD`, `origin/main`, `origin/master`,
+  `main` and `master` in that order and taking the merge-base with `HEAD`.
+  `--since` still names one explicitly; `--no-since` declines one, and the two
+  are mutually exclusive. An empty `--since` is now refused rather than read as
+  absent.
+- Default base resolution is bounded to `--root`. `git` searches upward for a
+  repository, so a spec tree nested inside an unrelated checkout would
+  otherwise be compared against that checkout's history. A `--root` that is
+  not itself a repository root now declines instead. `GIT_DIR` and its
+  companions are dropped from git's environment for the same reason: they take
+  precedence over the directory, so an inherited one — normal inside a git
+  hook, `git rebase --exec` or `git bisect run` — would otherwise answer for a
+  repository you did not name while appearing to respect `--root`.
+- Every no-input entry the stale-assertion rule emits names which input was
+  missing, rather than printing a bare rule name that read as a check
+  declining to run. The causes it can report include an opt-out, an absent
+  `plan.md`, an unreadable diff, no repository, a repository with no work
+  tree, a root inside another repository, no commit on `HEAD`, no default
+  branch, and no merge-base with one that resolved.
+
 ## [core][2.26.11] — 2026-09-17
 
 ### Highlights

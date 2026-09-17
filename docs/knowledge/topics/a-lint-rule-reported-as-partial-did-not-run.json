@@ -1,0 +1,77 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-17T00:00:00Z",
+    "state": "retired"
+  },
+  "lifecycle": "retired",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-45c1db75766e8ac011e16ed4d82b757e73816a86845d7a18767926087e9b6fee",
+      "mutation_id": "ea49987de7a747b3049cbc2ec34d1258b3442e95dd5079b518d1d925e4bd5eff",
+      "observed_at": "2026-09-13T06:10:35Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-plan-review",
+      "source": {
+        "path": ".claude/skills/new-spec/scripts/lint-contract-item-alignment.py"
+      }
+    },
+    {
+      "capture_id": "kco-202609-de807fc63ffb04c8631a13e30b0aee9a0f2877580b2d42326b0eecf49afcc28f",
+      "mutation_id": "127f040e46189d7e0409d53ce49ac00fb3c9800ab3d533f4dd78f54024ed66ec",
+      "observed_at": "2026-09-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core",
+      "semantic_gate": "spec-plan-review",
+      "source": {
+        "path": "packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 36831,
+      "kind": "sha256-bytes-v1",
+      "sha256": "49524407fca5816616c8b1a3c61c19f60c3a3f03f0804bd1afa7b3d1da15e3b4"
+    },
+    "path": "packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py"
+  },
+  "retirement": {
+    "coverage_verified": true,
+    "reason": "enforced",
+    "successors": [
+      "packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py",
+      "packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py"
+    ]
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    ".claude/skills",
+    "docs/knowledge",
+    "docs/specs",
+    "packs/core"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 51999,
+        "kind": "sha256-bytes-v1",
+        "sha256": "5bb93f68dc73d3deba3f57b7cc9847b039b277418f7a1e9ae65aa573a2a36023"
+      },
+      "path": "packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py"
+    }
+  ],
+  "synthesis": {
+    "body": "RETIRED 2026-09-17 -- the behaviour this recorded no longer ships; kept for the generalisable half. lint-contract-item-alignment's stale-assertion rule used to execute only when --since supplied a base revision. Without one every run printed '0 finding(s) ... 1 partial (rules with no input: stale-assertion (no --since))', which scans as green; across three spec-review rounds that line was read past about ten times while the same defect was found by hand twice, and supplying --since then flagged seven criteria whose plan assertions had not followed their rewording. The rule now resolves its own base and every no-input entry names the input it lacked. What survives the fix: treat any 'partial (rules with no input)' entry as an un-run rule and supply its input, rather than reading the finding count alone. A rule whose input is optional is a rule that does not run.",
+    "kind": "gotcha"
+  },
+  "title": "A lint rule reported as 'partial' did not run, and the summary still reads as a pass",
+  "topic_key": "a-lint-rule-reported-as-partial-did-not-run"
+}

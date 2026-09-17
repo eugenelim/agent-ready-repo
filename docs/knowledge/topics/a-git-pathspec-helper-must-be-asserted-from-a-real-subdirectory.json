@@ -1,0 +1,54 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-13T02:49:57Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-02c9854c0594f8ec6042d82da0f284b79e18892d6bb829ce5e67c7def350f6a8",
+      "mutation_id": "ba76a57df0a342b37f316260aa6281f3398bf3a529004f5e1ea7a7b564f2d4f0",
+      "observed_at": "2026-09-13T02:49:57Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tests",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "docs/specs/decision-record-ordinal-uniqueness/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 29910,
+      "kind": "sha256-bytes-v1",
+      "sha256": "5df5abef6d73c9b3e6879e4d671a1dd57afaab8a157b313ef97952347afcd6b0"
+    },
+    "path": "docs/specs/decision-record-ordinal-uniqueness/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs",
+    "tests"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 18500,
+        "kind": "sha256-bytes-v1",
+        "sha256": "e990e8a2ceee30015e1330f870d7c50de356de11c634d63bfcb2b6e3b5ef2038"
+      },
+      "path": "docs/specs/decision-record-ordinal-uniqueness/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "Git resolves a pathspec relative to the current directory, not the repository root. A helper that takes a directory, changes into it, and lists a tree with a root-relative pathspec therefore searches for that path nested under itself, matches nothing, and exits zero. There is no error to catch, so a best-effort wrapper reads the empty result as 'nothing on the remote'. Run the call from the repository root with a root-relative pathspec, or ask the lister for the full tree. The defect survived review and a green suite because the fixture built its records at the repository root, where the relative path is empty and the pathspec degrades to the current directory — the one shape where the two coincide, and no real caller is shaped that way. A fixture whose directory layout differs from production is exercising a different function; one assertion against the real tree is cheaper than the suite that missed it.",
+    "kind": "gotcha"
+  },
+  "title": "A git-pathspec helper must be asserted from a real repository subdirectory, not a root-level fixture",
+  "topic_key": "a-git-pathspec-helper-must-be-asserted-from-a-real-subdirectory"
+}

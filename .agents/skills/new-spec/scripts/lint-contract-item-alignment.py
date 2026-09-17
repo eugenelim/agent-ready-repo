@@ -17,8 +17,10 @@ The rules, all mechanical:
   7. a verification item's identifier is its own, not derived from what it serves
   8. no task entry leaves a code span open, which is how a multi-site edit
      truncates a closing condition without making it look truncated
-  9. given a base revision, no criterion was reworded while the assertion blocks
-     naming it stayed put -- a criterion whose assertion did not follow it
+  9. no criterion was reworded while the assertion blocks naming it stayed put
+     -- a criterion whose assertion did not follow it. Its base revision
+     defaults to the merge-base with the default branch; `--since` names one
+     explicitly and `--no-since` declines it.
 
 Rule 5 is scoped to task entries -- a task's 'Tests:' and 'Done when:'
 blocks -- and not to the whole document. The weaker form, "does this identifier
@@ -32,17 +34,30 @@ before the convention existed.
 
 Exit codes: '0' no failing findings -- which includes a run where a reporting
 rule flagged something, since those are printed as "reported, not failing" and
-never set the status; '1' at least one failing finding; '2' the check could
-not run, which is only a spec directory outside the invocation root; a directory
-with no 'spec.md' is a finding, not a refusal.
+never set the status; '1' at least one failing finding; '2' the check could not
+run, which is a spec directory outside the invocation root, or any usage error
+argparse rejects -- an empty '--since', '--since' with '--no-since', an unknown
+flag; a directory with no 'spec.md' is a finding, not a refusal.
 
 Rule 9 is the reporting rule. It over-reports by construction, so a non-zero
-exit on it would fail a build for a prose edit.
+exit on it would fail a build for a prose edit. It resolves its own base
+revision rather than waiting to be given one: a rule whose input is optional is
+a rule that does not run, and its no-input line prints beside a zero finding
+count where the summary reads as a pass.
+
+The summary's 'partial (rules with no input: ...)' clause lists rules 5, 7, 8
+and 9 when they had no input, grouped by spec; its count is of specs, not of
+rules. Rule 4 is deliberately absent even when it is half-applied -- see
+PLAN_GATED -- so the clause is not the complete account of what did not run.
+Any entry in it is an un-run rule, never a clean result. Rule 9's entry states
+which input it lacked; rules 5, 7 and 8 name themselves only, because a
+plan-gated rule has one way to have no input.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -224,6 +239,135 @@ def _read_confined(path: Path, root: Path | None) -> str | None:
         return None
 
 
+# Tried in order against the working tree. A remote-tracking ref is preferred
+# over a local one because it is the ref the change will be reviewed against:
+# a local `main` left unpulled has an older tip, so the merge-base against it
+# is older too and rule 9 reads commits that landed since as part of this
+# change. `origin/HEAD` is first because it names the remote's own default
+# rather than guessing at its spelling. A tag beats a branch of the same name
+# here, silently; no one prefix disambiguates a list that includes
+# `origin/HEAD`, which is not under `refs/heads/`.
+_DEFAULT_BASE_REFS = ("origin/HEAD", "origin/main", "origin/master", "main", "master")
+
+# `GIT_DIR` and its companions take precedence over `-C`, so under a git hook,
+# `rebase --exec` or `bisect run` an inherited environment answers for a
+# repository the caller never named -- `--show-toplevel` can report `--root`
+# while `HEAD` comes from elsewhere, which defeats the bound below by telling
+# it what it wants to hear. Dropped rather than overridden: there is no value
+# for these that means "use `-C`".
+#
+# The criterion for membership is narrow, and it is *not* "every GIT_* name":
+# a variable belongs here only if it can change WHICH repository or WHICH refs
+# answer, because that is the only thing the `--root` bound is protecting. The
+# object-location variables fail that test -- `GIT_OBJECT_DIRECTORY` and
+# `GIT_ALTERNATE_OBJECT_DIRECTORIES` change where objects are read from, not
+# whose history is being read, so dropping them buys nothing against this
+# threat and actively breaks git's own push-quarantine environment, where a
+# `pre-receive` or `update` hook reaches the pushed objects only through the
+# alternates. Scrubbing them there made a resolvable HEAD report
+# "no commit on HEAD" -- a cause that is not the observed state, which is the
+# defect this module reports in other artifacts.
+_GIT_DISCOVERY_ENV = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_NAMESPACE",
+)
+
+
+def _git_env() -> dict[str, str]:
+    """The ambient environment with git's discovery overrides removed."""
+    return {k: v for k, v in os.environ.items() if k not in _GIT_DISCOVERY_ENV}
+
+
+def _default_since(root: Path) -> tuple[str | None, str]:
+    """Merge-base with the default branch, plus why it could not be resolved.
+
+    Returns ``(object_id, reason)``; exactly one is empty. A caller that does
+    not supply ``--since`` still gets rule 9, because a rule whose input is
+    optional is a rule that does not run: its no-input line prints alongside a
+    zero finding count and the summary reads as a pass.
+
+    The reason names the state actually observed, never a state inferred from
+    the absence of another. Reporting "no default branch" for a branch that
+    resolved but had no merge-base would be the same defect this rule exists to
+    report: a no-input line whose stated cause sends the reader to repair
+    something that is not broken. Every return below therefore carries the
+    state it observed, and a new one owes a reason of its own.
+
+    Bounded to ``root``. `git -C` discovers the *enclosing* repository, so a
+    spec tree nested inside an unrelated checkout would otherwise resolve a
+    base from that checkout and run rule 9 against history the caller never
+    pointed at, with nothing in the output saying which repository answered.
+    Under an explicit ``--since`` that base is at least caller-chosen; as a
+    default it is not, so a root that is not itself a repository declines
+    rather than borrows one.
+    """
+    class _Unavailable(Exception):
+        """git did not answer: not started, or started and never finished.
+
+        Distinct from git answering "no", which is a return value.
+        """
+
+    def _git(*args: str) -> str | None:
+        """Stdout, or None when git ran and declined. None is not "empty".
+
+        Failing to invoke git raises instead of returning None, because the two
+        are different states and the caller must not report one as the other.
+        """
+        try:
+            done = subprocess.run(
+                ["git", "-C", str(root), *args],
+                capture_output=True, text=True, check=False, timeout=30,
+                env=_git_env(),
+            )
+        except (OSError, subprocess.SubprocessError) as exc:   # includes timeout
+            raise _Unavailable from exc
+        return done.stdout.strip() if done.returncode == 0 else None
+
+    try:
+        # `--show-toplevel` is the confinement check: it answers with the
+        # discovered repository's root, which is only `root` when `root` is
+        # that repository rather than a directory sitting inside one.
+        if not root.is_dir():
+            # A guard, not a reported state: with a file as `--root` the spec
+            # glob is empty and nothing prints this, and an explicit spec_dir
+            # under it exits 2 on confinement first. It exists so git is never
+            # asked about a file, and is asserted by calling this function
+            # directly rather than through the summary.
+            return None, "root is not a directory"
+        toplevel = _git("rev-parse", "--show-toplevel")
+        if toplevel is None:
+            # `--show-toplevel` fails both outside a repository and inside a
+            # bare one, which are different states. `--is-inside-work-tree`
+            # separates them: it answers `false` from a bare repository and
+            # fails outside one altogether. Other git refusals -- dubious
+            # ownership under `safe.directory`, say -- land on whichever of
+            # these two they resolve to; telling those apart needs stderr,
+            # which is not read here, so no attempt is made to name them.
+            if _git("rev-parse", "--is-inside-work-tree") is not None:
+                return None, "repository has no work tree"
+            return None, "no git repository"
+        if Path(toplevel).resolve() != root.resolve():
+            return None, "root is not a repository root"
+        head = _git("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+        if head is None:
+            return None, "no commit on HEAD"
+        unrelated: list[str] = []
+        for candidate in _DEFAULT_BASE_REFS:
+            # The verified object id is what reaches `merge-base`, so a ref
+            # that moves between the two calls cannot change the answer.
+            resolved = _git("rev-parse", "--verify", "--quiet", f"{candidate}^{{commit}}")
+            if resolved is None:
+                continue
+            base = _git("merge-base", head, resolved)
+            if base:
+                return base, ""
+            unrelated.append(candidate)
+    except _Unavailable:
+        return None, "git could not be consulted"
+    if unrelated:
+        return None, f"no merge-base with {', '.join(unrelated)}"
+    return None, f"no default branch among {', '.join(_DEFAULT_BASE_REFS)}"
+
+
 def _changed_lines(root: Path, ref: str, path: Path) -> set[int] | None:
     """New-file line numbers touched since ``ref``, or None when git cannot say.
 
@@ -242,6 +386,7 @@ def _changed_lines(root: Path, ref: str, path: Path) -> set[int] | None:
             ["git", "-C", str(root), "diff", "-U0", "--end-of-options",
              ref, "--", str(path)],
             capture_output=True, text=True, check=False, timeout=30,
+            env=_git_env(),
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -337,9 +482,16 @@ def stale_assertions(spec_dir: Path, root: Path, ref: str,
 
 
 def check(spec_dir: Path, root: Path | None = None,
-          since: str | None = None) -> tuple[list[str], bool, list[str], list[str]]:
+          since: str | None = None,
+          no_since_reason: str = "no --since",
+          ) -> tuple[list[str], bool, list[str], list[str]]:
     """Return failing findings, whether the check ran, rules with no input, and
     findings that report without failing.
+
+    ``no_since_reason`` labels rule 9's no-input line when ``since`` is absent.
+    `main` resolves the default base once per run and passes the reason here, so
+    a run that could not resolve one says which, rather than reading as a caller
+    who chose not to ask.
 
     The second value distinguishes "no findings" from "not applicable"; the third
     distinguishes "no findings" from "some rules had no input". A caller that
@@ -443,10 +595,17 @@ def check(spec_dir: Path, root: Path | None = None,
                     )
                     break     # one finding per task; a broken entry usually breaks one clause
 
+    # Rule 9's no-input line always names its cause. Resolving a base by default
+    # makes `since` almost always set, so the diff-unreadable and no-plan paths
+    # below are now the reachable ones; leaving either bare would report an
+    # un-run rule without saying what to supply, which is the shape this rule
+    # exists to report in other artifacts. The diff-unreadable path is reached
+    # by `--since` naming a revision git cannot diff -- covered by the
+    # unresolvable-ref case in the suite, which drives exactly this branch.
     if since and plan:                                            # rule 9
         stale = stale_assertions(spec_dir, root or spec_dir, since, spec, plan)
         if stale is None:
-            unapplied.append("stale-assertion")
+            unapplied.append(f"stale-assertion (git could not diff since {since})")
         else:
             for ident in stale:
                 # Reported, never failing. This rule over-reports by construction
@@ -458,9 +617,9 @@ def check(spec_dir: Path, root: Path | None = None,
                     f"since {since}"
                 )
     elif since:
-        unapplied.append("stale-assertion")
+        unapplied.append("stale-assertion (no plan.md)")
     else:
-        unapplied.append("stale-assertion (no --since)")
+        unapplied.append(f"stale-assertion ({no_since_reason})")
 
     for item in sorted(set(ITEM_REF.findall(plan))):              # rule 7
         digits = item.split("-")[1]
@@ -480,9 +639,18 @@ def main(argv: list[str] | None = None) -> int:
                         help="repository root every path is resolved and confined to")
     parser.add_argument("--verbose", action="store_true",
                         help="list every finding instead of capping the listing")
-    parser.add_argument("--since", metavar="REF",
-                        help="base revision for the reworded-criterion rule; "
-                             "skipped when absent or when the tree has no history")
+    # Mutually exclusive: naming a base and refusing one are contradictory, and
+    # silently letting one win would make the rule's input depend on argument
+    # order rather than on what the caller asked for.
+    base = parser.add_mutually_exclusive_group()
+    base.add_argument("--since", metavar="REF",
+                      help="base revision for the reworded-criterion rule; "
+                           "defaults to the merge-base with the default branch, "
+                           "and is skipped when neither that nor this revision "
+                           "can be resolved")
+    base.add_argument("--no-since", action="store_true",
+                      help="do not resolve a default base revision; leaves the "
+                           "reworded-criterion rule on the no-input list")
     parser.add_argument("spec_dir", nargs="*", type=Path)
     args = parser.parse_args(argv)
 
@@ -494,12 +662,27 @@ def main(argv: list[str] | None = None) -> int:
         p.parent for p in (root / "docs" / "specs").glob("*/spec.md")
     )
 
+    # Resolved once, before the loop: every target shares one working tree, so
+    # a per-target call would re-answer the same question N times.
+    if args.no_since:
+        since, no_since_reason = None, "--no-since"
+    elif args.since is not None:
+        # An empty `--since` is the `--since "$BASE"` form with `BASE` unset.
+        # Reporting it as "no --since" would name a state the caller was not
+        # in; resolving a default would silently substitute a base they did
+        # not choose. Refusing is the only answer that is true.
+        if not args.since.strip():
+            parser.error("--since was given an empty revision")
+        since, no_since_reason = args.since, "no --since"
+    else:
+        since, no_since_reason = _default_since(root)
+
     findings, ran, skipped, absent, partial, reported = [], 0, 0, 0, [], []
     for target in targets:
         if root not in target.parents and target != root:
             print(f"lint-contract-item-alignment: {FINDING_KINDS['unconfined']}: {target}")
             return 2
-        found, applied, unapplied, noted = check(target, root, args.since)
+        found, applied, unapplied, noted = check(target, root, since, no_since_reason)
         findings.extend(found)
         reported.extend(noted)
         ran += applied

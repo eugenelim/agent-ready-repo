@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-CHANGE",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-13T06:10:35Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-9d824ff62335e505a574bf12affd545e7a64f0f030237b53b981d4147e3e8db2",
+      "mutation_id": "aaded9474fb12d01d3e30a53fbf9e644507088c859e22d64267be790d32a6b63",
+      "observed_at": "2026-09-13T06:10:35Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-plan-review",
+      "source": {
+        "path": ".claude/skills/new-spec/references/spec-authoring-rubric.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 19812,
+      "kind": "sha256-bytes-v1",
+      "sha256": "22ab4335e5b2d57c5324310b87f3f94cb1cb946bcd139b02f4fff7a1f807c90b"
+    },
+    "path": ".claude/skills/new-spec/references/spec-authoring-rubric.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    ".claude/skills"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 79915,
+        "kind": "sha256-bytes-v1",
+        "sha256": "f59a150992ad13821bb4ee061146f80ac52d0554b07d49d1007438f8747b0483"
+      },
+      "path": ".claude/skills/work-loop/SKILL.md"
+    }
+  ],
+  "synthesis": {
+    "body": "One obligation lives in up to five places: the acceptance criterion, its verification group, and the plan's Tests, Approach and stub-disposition Constraint. Applying a sustained finding only to the surface it cites produced two confirmed regressions in a single round — a task whose test bullets required descriptor-anchored traversal while its pinned stub Constraint still said 'canonicalise before opening', and an absent-input case removed from a criterion but left in the plan's pinned lifecycle test. new-spec's spec-authoring-rubric.md names this class exactly under 'Find the property's siblings', but work-loop's FIX step compresses it to 'fix the established defect, not the symptom' and routes nowhere. An agent applying findings from FIX rather than through new-spec step 7 therefore has the idea without the checklist or the mechanical check. After every repair, enumerate the obligation's other homes before closing the finding.",
+    "kind": "antipattern"
+  },
+  "title": "Repairing the surface a finding cites leaves its sibling surfaces contradicting it",
+  "topic_key": "repairing-the-cited-surface-leaves-its-siblings-contradicting-it"
+}

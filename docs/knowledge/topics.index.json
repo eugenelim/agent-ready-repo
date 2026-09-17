@@ -166,6 +166,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "49cfb6e15302820d795a3babccf2ac4ef13bb86d"
+      },
+      "competency_facets": [
+        "CQ-ORIENT",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T02:50:05Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-corpus-living-with-a-violation-has-already-invented-a-workaround.json",
+      "scopes": [
+        "docs",
+        "tools"
+      ],
+      "title": "A corpus living with a violation has already invented a workaround — read the index before adding the check",
+      "topic_key": "a-corpus-living-with-a-violation-has-already-invented-a-workaround"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "04e9d287f63b8a910b0a67ce9e8cfce720f7b435"
       },
       "competency_facets": [
@@ -238,6 +262,29 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "fa9276e8748555d02e95c7bec64a9a1895de2ab1"
+      },
+      "competency_facets": [
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T02:49:57Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-git-pathspec-helper-must-be-asserted-from-a-real-subdirectory.json",
+      "scopes": [
+        "packs",
+        "tests"
+      ],
+      "title": "A git-pathspec helper must be asserted from a real repository subdirectory, not a root-level fixture",
+      "topic_key": "a-git-pathspec-helper-must-be-asserted-from-a-real-subdirectory"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "3f0a2ffeee22857df4658a57e00291163e99ce1f"
       },
       "competency_facets": [
@@ -255,6 +302,32 @@
       ],
       "title": "A house-style rule put in the shipped package becomes an adopter's build break",
       "topic_key": "a-house-style-rule-put-in-the-shipped-package-becomes-an-adopter-s-build-break"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "48b7d2c83acfa4d48bddafde0b1a485b3525349d"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-17T00:00:00Z",
+        "state": "retired"
+      },
+      "lifecycle": "retired",
+      "path": "topics/a-lint-rule-reported-as-partial-did-not-run.json",
+      "scopes": [
+        ".claude/skills",
+        "docs/knowledge",
+        "docs/specs",
+        "packs/core"
+      ],
+      "title": "A lint rule reported as 'partial' did not run, and the summary still reads as a pass",
+      "topic_key": "a-lint-rule-reported-as-partial-did-not-run"
     },
     {
       "audience": "project",
@@ -329,14 +402,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "850707082a31c5dfe3a8cede7ccaa7b3671e3948"
+        "object_id": "bce744d6ea5797994402168cfd992f2fe6d7ee48"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T00:00:00Z",
+        "checked_at": "2026-09-17T00:00:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -377,14 +450,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4c959fcd1bc884905aa139d1bfb98f6461379d94"
+        "object_id": "66077cb86d01075276c000712a6e6096188c32e9"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-08-27T00:00:00Z",
+        "checked_at": "2026-09-17T00:00:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -446,14 +519,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "8526552ba94f0260e65652d15010b4fd2dcee2f9"
+        "object_id": "c4236a0dd91d5e636ac020d3a31e2144afd1f44c"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-10T00:32:23Z",
+        "checked_at": "2026-09-17T00:00:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -494,6 +567,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "c71f0bc2a75442a4f3484db9d37e5469816608a1"
+      },
+      "competency_facets": [
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-11T02:26:18Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-review-rounds-findings-measure-where-its-brief-pointed.json",
+      "scopes": [
+        "docs/specs",
+        "packs"
+      ],
+      "title": "A review round's findings measure where its brief pointed, not what is wrong with the artifact",
+      "topic_key": "a-review-rounds-findings-measure-where-its-brief-pointed"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "6e6f0d1f43e23e09aa69c4a0c34f4f48a57782a3"
       },
       "competency_facets": [
@@ -517,14 +614,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "2486dc1bf8bc4bb809864814a896074f86e876a2"
+        "object_id": "2a094260ec66aabac0b76000c501d747a78ac35f"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-OPERATE"
       ],
       "freshness": {
-        "checked_at": "2026-09-01T01:37:30Z",
+        "checked_at": "2026-09-17T00:00:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1133,6 +1230,31 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "e14b41dc52bff87fc1a92642783c07de9355aef5"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T20:18:56Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/deterministic-repository-obligations-are-not-review-work.json",
+      "scopes": [
+        "docs/product",
+        "packs"
+      ],
+      "title": "Deterministic repository obligations are not review work — verify them before dispatching a reviewer",
+      "topic_key": "deterministic-repository-obligations-are-not-review-work"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "3b29e91bb7d5fdcba9a1bf93e8fc4519c12de1c4"
       },
       "competency_facets": [
@@ -1426,14 +1548,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "5f1f1b8bda442e180b37af7d0be0f29a7d700583"
+        "object_id": "7923e557326e7cd225ea0a9105571f6440112226"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-08-28T01:35:54Z",
+        "checked_at": "2026-09-17T00:00:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1787,6 +1909,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "7594eba7121d2dc92016c7d976217227f6f464c6"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-ROUTE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-10T19:40:19Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/re-test-a-supersession-after-the-owner-narrows-scope.json",
+      "scopes": [
+        "docs/adr",
+        "docs/rfc"
+      ],
+      "title": "Re-test whether a supersession is still needed after the decision owner narrows scope",
+      "topic_key": "re-test-a-supersession-after-the-owner-narrows-scope"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "0e92647c673e0e674b53beaa16838a2c7137e19d"
       },
       "competency_facets": [
@@ -1825,6 +1971,30 @@
       ],
       "title": "Render-to-temp + copy breaks merge/splice on-conflict against the working tree",
       "topic_key": "render-to-temp-copy-breaks-merge-splice-on-conflict-against-the-working-tree"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "7b14e88f10602e993f59afd1f1b94ed95e9ad83c"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-13T06:10:35Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/repairing-the-cited-surface-leaves-its-siblings-contradicting-it.json",
+      "scopes": [
+        "docs/specs",
+        ".claude/skills"
+      ],
+      "title": "Repairing the surface a finding cites leaves its sibling surfaces contradicting it",
+      "topic_key": "repairing-the-cited-surface-leaves-its-siblings-contradicting-it"
     },
     {
       "audience": "project",

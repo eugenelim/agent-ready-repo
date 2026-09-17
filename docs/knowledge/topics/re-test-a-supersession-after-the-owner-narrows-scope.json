@@ -1,0 +1,46 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-ROUTE"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-10T19:40:19Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-60b9aa60ffd7c682de81c1390a3ed8814b1a90d3c54cfa6b0014d2ebe3b34130",
+      "mutation_id": "6b4fc65ccfab6195ce9cb89b4e82b3c363da846e185ffcdb417bb91883eaa269",
+      "observed_at": "2026-09-10T19:40:19Z",
+      "producer": "new-adr",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/adr",
+      "semantic_gate": "adr-accepted",
+      "source": {
+        "path": "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 15012,
+      "kind": "sha256-bytes-v1",
+      "sha256": "7da68875ce48dfaf8cbae2b67c74d1955f6510f6978390bc71037e45bf260258"
+    },
+    "path": "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/adr",
+    "docs/rfc"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A blocked decision looked like it required reversing a rejected architectural option. Once the owner accepted a weaker requirement — individually acceptable installs instead of one-shot bundling — the conflicting mechanism was no longer needed at all, and the supersession collapsed from reversing that rejection to a single clause, with the rest of the prior decision explicitly standing. Draft the supersession scope last, against the narrowed requirement, not against the original ask.",
+    "kind": "pattern"
+  },
+  "title": "Re-test whether a supersession is still needed after the decision owner narrows scope",
+  "topic_key": "re-test-a-supersession-after-the-owner-narrows-scope"
+}

@@ -175,6 +175,18 @@
         "Rejects the overlap evidence because a count of shared names is not the comparison the criterion states, and suspects the instrument before the artifact",
         "Rejects the duplicate-finding criterion because it holds when no rule file exists, and names the falsifying state"
       ]
+    },
+    {
+      "id": "a-partial-lint-rule-is-un-run-not-clean",
+      "prompt": "I ran the contract-item alignment check at step 8 on my spec directory and it printed: `lint-contract-item-alignment: 0 finding(s); 1 spec(s) checked, 0 skipped as unlabelled, 1 partial (rules with no input: billing-export: no-task-entry, derived-item, broken-entry, stale-assertion (--no-since)).` Exit code was 0. Is the spec clean? Can I move on to approval?",
+      "expected_output": "No. The zero finding count and the zero exit code are both true and neither means the contract was fully checked: the `partial (rules with no input: ...)` clause names four rules that did not run, so this run is silent about them rather than clean on them. The agent reads that clause before the finding count, tells the user which rules had no input and what each one needs, and does not treat the run as satisfying step 8 for the un-run rules. `stale-assertion (--no-since)` is the caller's own opt-out, so it is re-run without `--no-since` -- the rule otherwise resolves its base revision itself, so nothing needs supplying. The other three are plan-gated, so their input is a `plan.md` in that directory, and their absence means the spec directory has no plan rather than that the plan is fine. The agent does not read the clause's count as a count of rules; it counts specs. It also does not invent an exit-code failure: this check reports without failing by design, so exit 0 is correct and is not the signal to read.",
+      "assertions": [
+        "The run is not reported as clean, and the exit code is not treated as the signal",
+        "The `partial (rules with no input: ...)` clause is read as rules that did not run",
+        "`--no-since` is identified as the caller's opt-out, re-run without it rather than given a revision",
+        "The three plan-gated rules are traced to a missing plan.md as their input",
+        "The clause's count is not described as a count of rules"
+      ]
     }
   ]
 }

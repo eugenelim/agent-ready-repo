@@ -1168,6 +1168,150 @@ open = [
   # that change's accepted scope, and the extraction shape is not determined.
   # Unblocks now; no dependency.
   { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
+  # The 22-of-67 convention-obligation cost measured by the review-economics
+  # spike has no owner. Of 67 findings sustained across its six paired cases, 22
+  # were unmet repository obligations rather than defects in the logic the change
+  # set out to alter, split 11 baseline / 11 candidate: projection drift (8,
+  # affecting five of six cases), a register or backlog record left contradicting
+  # the tree (7), an unpaired version bump and changelog entry (3), an unrecorded
+  # sealed-plan or frozen-spec deviation (2), the eval-harness obligation (1),
+  # and a control that cannot fail (1). The even split is what makes it
+  # actionable: the cost is symmetric across both review policies, so no change
+  # to review scheduling removes it -- the implementer not knowing the rule
+  # produces it, and both arms then pay the same repair cost. The strongest form
+  # is that the repairs themselves breached the same rules: C3's baseline repair
+  # introduced projection drift while fixing projection drift.
+  #
+  # Two candidate remedies, and they are NOT equally available right now.
+  # (a) Inline the touched-path obligations into the implementer brief, the way
+  # the orchestrator already inlines security-checklists for security-reviewer
+  # and operational-safety for quality-engineer. The spike names this as a
+  # sibling intent under work-loop-delivery-efficiency. Do not open it yet: that
+  # parent records an owner priority decision of 2026-09-10 ranking the
+  # deterministic repair provability audit ahead of any further review-policy or
+  # repair-packet reshaping, after all three of its children were killed on
+  # safety clauses. Read that audit's own Status line in
+  # docs/product/research/repair-provability-audit-design.md before acting on
+  # this ranking -- it is not restated here, because a copy reads as current
+  # once the audit moves and nothing re-checks it.
+  # (b) Deterministic pre-review checks -- the other half of the spike's own
+  # next-step column. Whether the ranking covers (b) is NOT settled by the
+  # decision: it names "review-policy or repair-packet reshaping" and draws no
+  # carve-out, and a check that suppresses findings before dispatch is arguably
+  # review-policy reshaping. The reading that (b) sits outside it, because it
+  # changes neither review scope nor repair inputs, is this entry's author's,
+  # not the owner's -- which is part of what the owner is being asked to
+  # decide. Every class listed above is mechanically checkable and nothing
+  # gates a change on them before a reviewer is dispatched.
+  #
+  # Measured 2026-09-17 while landing core 2.26.12, as one worked example of
+  # (b). A twenty-line check comparing every docs/knowledge topic's recorded
+  # source digest against the file's live bytes reports 35 of 69 pinned
+  # sources stale and one pointing at docs/CONVENTIONS.md, deleted by #1345.
+  # The knowledge store validates a digest's shape rather than its currency,
+  # so its 212-case suite is green over all of them, and an enquiry returns
+  # those topics as fresh. That is the register-contradicting-the-tree class,
+  # it is mechanically checkable, and nothing runs the check -- which is the
+  # whole shape of (b). This session hit the same defect twice from the
+  # inside: a topic promoted in one commit was made false by the next, and
+  # the retirement that repaired it recorded digests taken before three
+  # further repairs landed. Not repaired here: 35 stale pins across 24 topics
+  # is its own change, and deciding whether the fix is a gate, a refresh, or
+  # a weaker freshness contract belongs with (b).
+  #
+  # Next step: run (b) on its own, or hold both until the provability audit
+  # reports and then choose between them. Deciding this needs the owner, because
+  # (a) is ranked and (b) is not. Evidence:
+  # docs/product/research/work-loop-review-economics-spike.md (the class table
+  # and the 11/11 split), docs/product/intents/work-loop-delivery-efficiency.md
+  # (the priority decision and the three killed children), and the distilled
+  # topic deterministic-repository-obligations-are-not-review-work.
+  #
+  { slug = "convention-obligation-cost-has-no-owner", source = "knowledge-distill/2026-09-17", summary = "22 of 67 sustained findings in the review-economics spike were unmet repository obligations, split 11/11 across both review arms, and no intent owns that cost; the implementer-brief remedy is ranked behind the repair provability audit while the deterministic pre-review-check half is unranked, and choosing between them needs the owner" },
+
+  # The knowledge base's freshness contract pins bytes, and the pins do not
+  # hold. Measured 2026-09-17 over docs/knowledge: of 98 topics, 63 pin no
+  # source digest at all, 35 pin one, and 24 of those 35 are stale -- a 69%
+  # failure rate among the topics that use the mechanism. One pin names
+  # docs/CONVENTIONS.md, deleted by #1345. The store validates a digest's
+  # shape rather than its currency (knowledge_store.py `_validate_source`), so
+  # the 212-case project-knowledge suite is green over every one of them and
+  # enquiry returns the stale topics as fresh.
+  #
+  # 35 stale pins is not 35 wrong lessons. Dispositioned into four classes:
+  #
+  # A. No action -- 6 pins across 3 retired topics. Their freshness.state is
+  #    already `retired` so enquiry excludes them; the digest is a historical
+  #    anchor, which is what it should be.
+  # B. Drop the dead source -- 1 pin. The `docs/CONVENTIONS.md` supporting
+  #    source on a-pack-version-bump-is-three-files-build-self-syncs-none-of-them.
+  #    That topic's OWNING source is already packs/AGENTS.md, which is where
+  #    #1345 re-homed the version-bump rule, so the dead path carries nothing.
+  #    Mechanical and unambiguous.
+  # C. Drop the pin, do not refresh it -- ~27 pins across 16 topics whose
+  #    lesson is about how Python, git, semgrep or a review technique behaves,
+  #    not about a defect living in those bytes. Four were read in full to
+  #    confirm the classification: semgrep-strict (semgrep's per-file budget),
+  #    batching-n-subprocess-calls (`git check-ignore --stdin` exiting 128),
+  #    a-negative-path-assertion and a-case-count-is-not-coverage (both pure
+  #    test-design principles). Refreshing these re-stales immediately --
+  #    loop-engine.py grew 15,910 bytes and workspace.toml 18,735 -- and the
+  #    pin was never load-bearing for the claim.
+  # D. Re-verify before deciding -- 5 topics asserting something about THIS
+  #    repository's current behaviour, where drift is a real prompt to
+  #    re-check: build-site-rewrites-an-unresolvable-in-tree-link (does it
+  #    still rewrite to a blob URL outside the audit's scope), 
+  #    a-safety-cap-enforced-only-by-shell-punctuation (is the cap still
+  #    punctuation-only), loop-cohort-schedule-parses-task-headings-by-pattern,
+  #    a-document-wide-href-scan-cannot-prove-a-link-sits-in-a-starlight-section,
+  #    and a-pack-version-bump-is-three-files. These are the only ones where
+  #    staleness might mean the knowledge base is wrong rather than unpinned.
+  #
+  # Recommended contract change: record the revision a lesson was learned at
+  # rather than a byte digest. It ages gracefully, still answers "what has
+  # moved since", and does not fail on an unrelated edit to a large file. Two
+  # alternatives, both weaker: durable lessons carry no pin at all (matches the
+  # 63 that already do, but loses the re-check signal), or keep byte pins and
+  # add a currency gate -- which is actively harmful, because the pinned set
+  # includes Makefile, workspace.toml and work-loop/SKILL.md, so the gate would
+  # fire on most pull requests.
+  #
+  # Owner disposition 2026-09-17: B drop, C drop the pin, D re-verify.
+  # Executed: B is done -- no topic references the deleted path any more. D's
+  # five claims were all re-verified against live code: D1 (build-site blob
+  # rewrite) and D4 (Starlight wrapper walk) still hold verbatim; D3's parser
+  # and pinning order hold but it quoted a paraphrase of the refusal rather
+  # than the emitted string and the pattern has gained an optional letter
+  # suffix; D5's eight-pack list is still exact but its denominator drifted
+  # 22 -> 24 and it cited the deleted docs/CONVENTIONS.md; D2's instance is
+  # REPAIRED -- loop-cohort.py now carries the retry cap in the verb and its
+  # comment records the `&&` history -- while its audit question generalises.
+  # D2, D3 and D5 were rewritten accordingly. Two Class C topics whose only
+  # stale pin was a supporting one had it dropped.
+  #
+  # BLOCKED, and this is the finding: the sanctioned write path cannot drop an
+  # owning pin. `validate_topic` accepts `owning_source: null` and 63 topics
+  # carry it, but `_validate_mutation_proposal` and `complete_mutation_proposal`
+  # both call `_validate_source(..., digest_required=True)`, so every proposal
+  # must name an owning source WITH a digest. Verified by executing both routes
+  # against a real topic: `owning_source: null` and omitting the key are each
+  # refused `strict_parse`. The store can therefore represent a state its only
+  # sanctioned writer cannot produce, and the 63 topics in that state are all
+  # legacy imports that never went through the writer.
+  #
+  # A second consequence follows from the same constraint: any mutation
+  # refreshes the owning digest as a side effect, so on a topic whose owning
+  # AND supporting pins are both stale, dropping the supporting pin silently
+  # refreshes the owning one -- the opposite of the disposition. That is why
+  # only the two topics with an already-exact owning pin were touched.
+  #
+  # Remaining: 28 stale pins across 19 topics -- 3 retired (Class A, correctly
+  # no action) and 16 active, every one carrying a stale OWNING pin. All 16 are
+  # blocked until the writer can express a null owning source. That change is
+  # two small edits mirroring validate_topic's own `is not None` guard, plus
+  # tests, on a published skill's public seam -- so it is its own change with
+  # its own review, not a ride-along here.
+  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives

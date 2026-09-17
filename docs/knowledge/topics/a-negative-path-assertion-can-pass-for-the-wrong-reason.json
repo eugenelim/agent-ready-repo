@@ -5,7 +5,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-08-17T00:00:00Z",
+    "checked_at": "2026-09-17T00:00:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -18,6 +18,18 @@
       "reviewed_disposition": "promoted",
       "scope": "tools",
       "semantic_gate": "capture-learnings",
+      "source": {
+        "path": "bandit.yaml"
+      }
+    },
+    {
+      "capture_id": "kco-202609-c6cc3fadbb2533f6c725b06c003c7c2c94f49ad66e6229abe6998a9962e5f9e6",
+      "mutation_id": "8f6931e7bc7dcf3e7248aee02afb9fe99a13d2b5b8a06b5dbd3e16d68fa5a9e4",
+      "observed_at": "2026-09-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "plan-locked",
       "source": {
         "path": "bandit.yaml"
       }
@@ -44,14 +56,6 @@
         "sha256": "9c07a6287077f6d0aaef2c00648a0bf9a982365d76085b99000f51e5ec20c634"
       },
       "path": "tools/test-capture-publish-control-evidence.py"
-    },
-    {
-      "digest": {
-        "byte_length": 55945,
-        "kind": "sha256-bytes-v1",
-        "sha256": "785e19b8aa2a4f4d823dbb7e710fd3cf6bc10b7a2c09414fd113b331d8f4845a"
-      },
-      "path": ".github/workflows/build-check.yml"
     }
   ],
   "synthesis": {

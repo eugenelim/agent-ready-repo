@@ -5,7 +5,7 @@
     "CQ-CHANGE"
   ],
   "freshness": {
-    "checked_at": "2026-08-27T00:00:00Z",
+    "checked_at": "2026-09-17T00:00:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -18,6 +18,18 @@
       "reviewed_disposition": "promoted",
       "scope": "packs",
       "semantic_gate": "maintainer-requested",
+      "source": {
+        "path": "packs/AGENTS.md"
+      }
+    },
+    {
+      "capture_id": "kco-202609-4713c16decf8086dd6b27e357f56edda1b4406ea3f22128b508aaa9c5f11c7a5",
+      "mutation_id": "b1bc3d0c202e6122f05e211d135909991d2c6a43c52edfb28cb3f5e84da90cf1",
+      "observed_at": "2026-09-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs",
+      "semantic_gate": "plan-locked",
       "source": {
         "path": "packs/AGENTS.md"
       }
@@ -38,23 +50,15 @@
   "supporting_sources": [
     {
       "digest": {
-        "byte_length": 13290,
+        "byte_length": 14201,
         "kind": "sha256-bytes-v1",
-        "sha256": "6090af21c0594107b19fcfaa0255e4502862a48b774e7be15ae872b18f97615c"
+        "sha256": "7bd7111a9590a187338bc8a919a119107a7b37fbe5efdd3483cb4df06be738e4"
       },
       "path": ".claude-plugin/marketplace.json"
-    },
-    {
-      "digest": {
-        "byte_length": 83924,
-        "kind": "sha256-bytes-v1",
-        "sha256": "6faf0753654df33ba495bb6290f0b3e557fab7288ad0756beec5ae16efc08747"
-      },
-      "path": "docs/CONVENTIONS.md"
     }
   ],
   "synthesis": {
-    "body": "A pack version bump is never one file, and the file set depends on the pack's distribution route. Every pack bumps packs/<pack>/pack.toml and packs/<pack>/.claude-plugin/plugin.json together, and every bump also needs a docs/product/changelog.md entry in the same PR (docs/CONVENTIONS.md, RFC-0095). A pack listed in the root .claude-plugin/marketplace.json bumps that too, making four files. A repo-scope pack is NOT listed there -- the Claude plugin marketplace is the user-profile install route -- so its bump is three files and there is no marketplace entry to update. Eight of twenty-two packs ship a plugin.json with no marketplace entry: core, example-pack, catalogue-curation, governance-extras, iac-terraform, monorepo-extras, release-engineering, and user-guide-diataxis. Looking for a marketplace entry for one of those wastes the search. Enforcement is uneven, which is why the file set has to be known rather than discovered: CAT-V-005 catches a pack.toml/plugin.json mismatch so make build-check fails, marketplace.json staleness is caught only by the agentbundle pytest suite, and the changelog obligation is a convention gate. FORCE=1 make build-self projects pack CONTENT into .claude/ and .agents/ but propagates no version, so it repairs none of these. Determine the pack's route first, then bump its set by hand in one commit.",
+    "body": "A pack version bump is never one file, and the file set depends on the pack's distribution route. Every pack bumps packs/<pack>/pack.toml and packs/<pack>/.claude-plugin/plugin.json together, and every bump also needs a docs/product/changelog.md entry in the same PR -- that obligation is stated in the changelog's own header, and by RFC-0095. A pack listed in the root .claude-plugin/marketplace.json bumps that too, making four files. A repo-scope pack is NOT listed there -- the Claude plugin marketplace is the user-profile install route -- so its bump is three files and there is no marketplace entry to update. Re-verified 2026-09-17: of 24 packs, 23 ship a plugin.json and eight of those have no marketplace entry -- _example, catalogue-curation, core, governance-extras, iac-terraform, monorepo-extras, release-engineering and user-guide-diataxis. Looking for a marketplace entry for one of those wastes the search. Enforcement is uneven, which is why the file set has to be known rather than discovered: CAT-V-005 catches a pack.toml/plugin.json mismatch so make build-check fails, marketplace.json staleness is caught only by the agentbundle pytest suite, and the changelog obligation is a convention gate. FORCE=1 make build-self projects pack CONTENT into .claude/ and .agents/ but propagates no version, so it repairs none of these. Determine the pack's route first, then bump its set by hand in one commit.",
     "kind": "gotcha"
   },
   "title": "A pack version bump spans three or four files; build-self syncs none of them",
