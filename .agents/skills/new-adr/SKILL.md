@@ -317,9 +317,10 @@ status, or repository instructions. Consequential uncertainty abstains.
   ordinal, set the old record's `Status:` to the bare token `Superseded` and its
   `Superseded by:` to the new ordinal. Both records then carry the same fact, so
   either reads alone. The old prose stays as history.
-- **Deprecated vs Superseded.** Mark an ADR `Deprecated` when the decision no
-  longer applies and nothing replaces it; `Superseded by ADR-NNNN` when a
-  specific later ADR replaces it.
+- **Deprecated vs Superseded.** Both are bare `Status` tokens. Use
+  `Deprecated` when the decision no longer applies and nothing replaces it, and
+  `Superseded` — naming the replacement in `Superseded by:`, never in `Status`
+  — when a specific later ADR replaces it.
 - **Backfilling.** Recording a decision made months ago is fine — reconstruct
   the Context from memory and history, list the people who actually decided as
   `Decision-makers`, and note in References that it's a backfill.
