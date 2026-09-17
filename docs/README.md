@@ -15,7 +15,7 @@ goes stale, and current state recorded as a decision never gets updated.
 | `product/` | What the product is doing today: direction, release history, and the briefs behind in-flight work | living |
 | `specs/` | The engineering contract for one feature, with its implementation plan | living while building, frozen once shipped |
 | `knowledge/` | Practitioner residue — patterns, gotchas and antipatterns scoped to a file glob | living |
-| `adr/` | Why we chose X over Y, one record per decision | frozen |
+| `adr/` | Why we chose X over Y, one record per decision | frozen, save a small metadata block ([RFC-0102](rfc/0102-mechanically-checkable-adrs.md) § 4) it keeps writable |
 | `rfc/` | Should we change this? Open until accepted, rejected or withdrawn | governance |
 | `guides/` | How users use what we ship, in Diátaxis quadrants | living |
 
@@ -40,8 +40,12 @@ Every document belongs to exactly one, and the maintenance rule differs:
 
 - **living** — must match current reality, and is updated in the same change as
   anything that affects it. Drift is a bug, not debt.
-- **frozen** — an immutable record of what was decided or delivered. Never
-  edited to reflect a later change; superseded by a new record that cites it.
+- **frozen** — the prose is immutable once delivered: never rewritten to
+  reflect a later change, only superseded by a new record that cites it. This
+  names the whole record's lifecycle stage, not a per-field zone a record kind
+  may define for itself under the same word — an ADR's own mutability zones,
+  for example, include one it also calls "Frozen," narrower in scope than this
+  class.
 - **governance** — an in-flight proposal, open until it is accepted, rejected or
   withdrawn. It describes what someone wants, not what is.
 
