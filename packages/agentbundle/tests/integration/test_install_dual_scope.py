@@ -18,12 +18,13 @@ adopter's real home directory.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 from pathlib import Path
 
 from agentbundle.commands import diff, install, uninstall, upgrade
+
+from tests._support import cli_namespace
 
 # Pack catalogues for the various test setups.
 PACK_TOML_REPO_ONLY = """
@@ -63,7 +64,21 @@ def _stage_pack(catalogue_root: Path, pack_name: str, toml_text: str) -> Path:
 
 def _install(args_dict) -> tuple[int, str, str]:
     """Run install with redirected stdout/stderr; return (rc, stdout, stderr)."""
-    args = argparse.Namespace(**args_dict)
+    argv = [args_dict["catalogue"], "--pack", args_dict["pack"], "--output", args_dict["output"]]
+    scope = args_dict.get("scope")
+    if scope is not None:
+        argv.extend(["--scope", scope])
+    if args_dict.get("force"):
+        argv.append("--force")
+    # `install.py:493` branches on whether `emit_install_routes` is *present*,
+    # not on its value: an absent attribute means "dist-tree at repo scope".
+    # These fixtures never set it, so they took the dist-tree route, and the
+    # recap they assert (`installed: X @ repo`, no `via <adapter>` suffix) is
+    # the dist-tree one. A parsed namespace always carries the attribute, so
+    # the flag is what preserves the route. argparse rejects it at user scope.
+    if scope != "user":
+        argv.append("--emit-install-routes")
+    args = cli_namespace("install", *argv)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = install.run(args)
@@ -248,7 +263,7 @@ def test_uninstall_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
     _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True})  # noqa: E501
 
-    args = argparse.Namespace(pack="demo-both", root=str(target), scope=None)
+    args = cli_namespace("uninstall", "--pack", "demo-both", "--root", str(target))
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
         rc = uninstall.run(args)
@@ -270,17 +285,8 @@ def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
     _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True})  # noqa: E501
 
-    args = argparse.Namespace(
-        pack="demo-both",
-        catalogue=str(cat),
-        yes=True,
-        skill=None,
-        agent=None,
-        hook=None,
-        seed=None,
-        command=None,
-        root=str(target),
-        scope=None,
+    args = cli_namespace(
+        "upgrade", str(cat), "--pack", "demo-both", "--root", str(target), "--yes"
     )
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
@@ -314,8 +320,8 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
     assert rc == 0
     assert (fake_home / ".agentbundle" / "state.toml").exists()
 
-    args = argparse.Namespace(
-        pack="demo-both", root=str(target), scope="user", yes=True
+    args = cli_namespace(
+        "uninstall", "--pack", "demo-both", "--root", str(target), "--scope", "user", "--yes"
     )
     out = io.StringIO()
     err = io.StringIO()
@@ -360,17 +366,9 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
     # test pins that the render selection doesn't refuse on
     # `allowed-prefixes` and the state file's `installed-version`
     # updates).
-    args = argparse.Namespace(
-        pack="demo-both",
-        catalogue=str(cat),
-        yes=True,
-        skill=None,
-        agent=None,
-        hook=None,
-        seed=None,
-        command=None,
-        root=str(target),
-        scope="user",
+    args = cli_namespace(
+        "upgrade", str(cat), "--pack", "demo-both", "--root", str(target),
+        "--scope", "user", "--yes"
     )
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
@@ -432,7 +430,7 @@ def test_diff_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
     _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True})  # noqa: E501
 
-    args = argparse.Namespace(pack_path=str(pack), root=str(target), scope=None)
+    args = cli_namespace("diff", str(pack), "--root", str(target))
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
         rc = diff.run(args)

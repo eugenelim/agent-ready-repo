@@ -17,13 +17,12 @@ One assertion: the unfiltered APM route retains core's authored
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 
 from agentbundle.commands import install
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 
 def test_core_fixture_install_writes_session_start_binding(tmp_path):
@@ -60,13 +59,11 @@ allowed-scopes = ["repo"]
     target = tmp_path / "repo"
     target.mkdir()
 
-    args = argparse.Namespace(
-        pack="core",
-        catalogue=str(cat),
-        output=str(target),
-        scope=None,
-        force=False,
-    )
+    # --emit-install-routes keeps the dist-tree shape (apm/core/) the test
+    # asserts. The real parser defaults emit_install_routes=False (per-IDE),
+    # but the old hand-rolled namespace omitted the attribute, so install.py's
+    # hasattr branch computed True (scope=None not in ("user", "local")).
+    args = cli_namespace("install", str(cat), "--pack", "core", "--output", str(target), "--emit-install-routes")
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = install.run(args)

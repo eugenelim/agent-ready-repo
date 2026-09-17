@@ -13,13 +13,12 @@ dist-tree producer).
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import tomllib
 from pathlib import Path
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 
 def _core_catalogue(parent: Path) -> tuple[Path, Path]:
@@ -60,12 +59,8 @@ def _install_core(target: Path) -> tuple[int, str, str]:
     from agentbundle.commands.install import run as install_run
 
     catalogue, _seeds = _core_catalogue(target.parent)
-    args = argparse.Namespace(
-        pack="core",
-        catalogue=str(catalogue),
-        output=str(target),
-        scope="repo",
-        emit_install_routes=False,
+    args = cli_namespace(
+        "install", str(catalogue), "--pack", "core", "--output", str(target), "--scope", "repo"
     )
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):

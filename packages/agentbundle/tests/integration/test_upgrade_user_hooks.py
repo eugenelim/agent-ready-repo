@@ -10,7 +10,6 @@ Covers spec § Upgrade reconciliation tests:
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import json
@@ -20,6 +19,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+from tests._support import cli_namespace
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
@@ -40,17 +41,16 @@ def _run_upgrade(args):
 
 
 def _install_args(pack, catalogue, output, scope="user", adapter=None):
-    return argparse.Namespace(
-        pack=pack, catalogue=catalogue, output=output,
-        scope=scope, force=False, force_merge=False, adapter=adapter,
-    )
+    argv = [catalogue, "--pack", pack, "--output", output, "--scope", scope]
+    if adapter is not None:
+        argv.extend(["--adapter", adapter])
+    return cli_namespace("install", *argv)
 
 
 def _upgrade_args(pack, catalogue, root, scope="user"):
-    return argparse.Namespace(
-        pack=pack, catalogue=catalogue,
-        root=root, scope=scope, yes=True,
-        skill=None, agent=None, hook=None, seed=None, command=None,
+    # yes=True keeps non-prompt tests unblocked; confirmation tests override.
+    return cli_namespace(
+        "upgrade", catalogue, "--pack", pack, "--root", root, "--scope", scope, "--yes",
     )
 
 
@@ -99,8 +99,8 @@ class UpgradeThenUninstallTests(_UpgradeBase):
         self.assertEqual(rc, 0, f"upgrade failed: {err}")
 
         # Uninstall.
-        un_args = argparse.Namespace(
-            pack="kiro-user-hooks", root=str(self.repo), scope="user", yes=True,
+        un_args = cli_namespace(
+            "uninstall", "--pack", "kiro-user-hooks", "--root", str(self.repo), "--scope", "user", "--yes",
         )
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             rc = uninstall_cmd.run(un_args)

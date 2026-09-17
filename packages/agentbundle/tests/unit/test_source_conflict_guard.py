@@ -18,6 +18,8 @@ from unittest.mock import patch
 from agentbundle.commands.install import _check_source_conflict
 from agentbundle.config import PackState, State
 
+from tests._support import cli_namespace
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -102,21 +104,18 @@ def _make_install_args(
 ) -> argparse.Namespace:
     """Build an args namespace for install.run().
 
-    Sets emit_install_routes=False to select the per-IDE projection path
-    (matching the default argparse value). Without this attribute, the
-    fallback logic in run() uses emit_install_routes=(scope != "user"),
-    which causes the --adapter + --emit-install-routes mutex to fire.
+    emit_install_routes defaults to False in the parser, selecting per-IDE projection path.
     """
-    ns = argparse.Namespace(
-        pack=pack,
-        catalogue=catalogue,
-        output=output,
-        scope=scope,
-        force=force,
-        yes=yes,
-        adapter=adapter,
-        emit_install_routes=False,
-    )
+    argv = [catalogue, "--pack", pack, "--output", output]
+    if scope is not None:
+        argv.extend(["--scope", scope])
+    if force:
+        argv.append("--force")
+    if yes:
+        argv.append("--yes")
+    if adapter is not None:
+        argv.extend(["--adapter", adapter])
+    ns = cli_namespace("install", *argv)
     # _source_uri: pass None explicitly to simulate "attribute present but None"
     # vs omit entirely (_ABSENT) to simulate absent attribute.
     if source_uri is not _ABSENT:

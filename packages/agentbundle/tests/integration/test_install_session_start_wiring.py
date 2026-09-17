@@ -21,13 +21,14 @@ elements declare `type = "command"` and the literal command string.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import json
 from pathlib import Path
 
 from agentbundle.commands import install
+
+from tests._support import cli_namespace
 
 PACK_TOML = """
 [pack]
@@ -84,7 +85,14 @@ def _stage_synthetic_pack(catalogue_root: Path) -> None:
 
 
 def _install(args_dict) -> tuple[int, str, str]:
-    args = argparse.Namespace(**args_dict)
+    argv = [args_dict["catalogue"], "--pack", args_dict["pack"], "--output", args_dict["output"]]
+    if args_dict.get("scope"):
+        argv += ["--scope", args_dict["scope"]]
+    if args_dict.get("force"):
+        argv.append("--force")
+    if args_dict.get("emit_install_routes"):
+        argv.append("--emit-install-routes")
+    args = cli_namespace("install", *argv)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = install.run(args)

@@ -17,11 +17,12 @@ Failure-mode robustness for (i) missing discovery file and
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import tomllib
 from pathlib import Path
+
+from tests._support import cli_namespace
 
 ADDON_NO_DEPENDENCIES = """\
 [pack]
@@ -57,7 +58,22 @@ def _stage_pack(catalogue_root: Path, name: str, body: str) -> Path:
 def _install(args_dict) -> tuple[int, str, str]:
     from agentbundle.commands.install import run
 
-    args = argparse.Namespace(**args_dict)
+    argv = [args_dict["catalogue"], "--pack", args_dict["pack"]]
+    if args_dict.get("output") is not None:
+        argv.extend(["--output", args_dict["output"]])
+    scope = args_dict.get("scope")
+    if scope is not None:
+        argv.extend(["--scope", scope])
+    if args_dict.get("force"):
+        argv.append("--force")
+    # `install.py:493` branches on whether `emit_install_routes` is *present*,
+    # not on its value: an absent attribute means "dist-tree at repo scope".
+    # These fixtures never set it, so that is the route they exercised. A
+    # parsed namespace always carries the attribute, so the flag is what
+    # preserves it. argparse rejects the flag at user scope.
+    if scope != "user":
+        argv.append("--emit-install-routes")
+    args = cli_namespace("install", *argv)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = run(args)
@@ -346,10 +362,9 @@ allowed-scopes = ["repo"]
     packs_dir = catalogue / "packs"
     output = tmp_path / "out"
     output.mkdir()
-    ns = argparse.Namespace(
-        pack="core",
-        packs_dir=str(packs_dir),
-        output=str(output),
+    ns = cli_namespace(
+        "scaffold", "--pack", "core", "--packs-dir", str(packs_dir),
+        "--output", str(output),
     )
     rc = scaffold_run(ns)
     assert rc == 0, "scaffold against core pack should succeed"

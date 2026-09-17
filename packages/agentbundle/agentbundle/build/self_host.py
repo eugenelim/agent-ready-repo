@@ -130,6 +130,32 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
     )
 
 
+def _library_mirrors(root: Path) -> tuple[tuple[Path, Path], ...]:
+    """Return pack-source mirrors that land outside the flat `_data/` layout.
+
+    `catalogue_tooling.file_safety` is the blessed filesystem-confinement helper
+    and must stay byte-identical to the core pack script it mirrors. It is kept
+    separate from `_runtime_projections` because the sibling-closure derivation
+    below is a fact about `_data/`'s flat layout: this destination is an ordinary
+    package module reached by import, so it has no sibling closure to check.
+    """
+
+    return (
+        (
+            root / "packs" / "core" / ".apm" / "skills" / "close-work"
+            / "scripts" / "file_safety.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "catalogue_tooling"
+            / "file_safety.py",
+        ),
+    )
+
+
+def _mirrored_pack_sources(root: Path) -> tuple[tuple[Path, Path], ...]:
+    """Every pack-source copy `make build-self` writes and build-check gates."""
+
+    return _runtime_projections(root) + _library_mirrors(root)
+
+
 # A bundled runtime loads its helpers as siblings of its own file, because the
 # `_data/` layout is flat. Every sibling it reaches must therefore be bundled
 # too, or the packaged CLI resolves a module that is not there. Pairs are
@@ -1589,7 +1615,7 @@ def run_self_host(
     if agents_path is not None:
         extra_marker_paths.append(Path("AGENTS.md"))
     resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)
-    for source_path, bundled_path in _runtime_projections(working_tree):
+    for source_path, bundled_path in _mirrored_pack_sources(working_tree):
         if not source_path.is_file() or not bundled_path.parent.is_dir():
             continue
         bundled_path.write_bytes(source_path.read_bytes())
@@ -1864,14 +1890,15 @@ def run_build_check_drift_gates(
     # directory missing a declared copy is the worse failure, because the
     # packaged engine imports its siblings by path and would fail at import
     # while build-check reported clean.
-    for source_path, bundled_path in _runtime_projections(REPO_ROOT):
+    for source_path, bundled_path in _mirrored_pack_sources(REPO_ROOT):
         if not source_path.is_file() or not bundled_path.parent.is_dir():
             continue
         if not bundled_path.is_file():
+            _where = bundled_path.parent.relative_to(REPO_ROOT).as_posix()
             failures.append(
                 "build-check: packaged runtime missing — "
                 f"{bundled_path.name} is declared as a packaged runtime but is "
-                "absent from packages/agentbundle/agentbundle/_data/; run "
+                f"absent from {_where}/; run "
                 "`make build-self` to sync it"
             )
             continue

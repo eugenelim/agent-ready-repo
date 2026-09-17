@@ -14,12 +14,13 @@ All warnings emit on stderr; stdout reserved for the `installed:` rail.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 from pathlib import Path
 
 from agentbundle.commands import install
+
+from tests._support import cli_namespace
 
 PACK_A_REPO_RECS_B = """
 [pack]
@@ -99,11 +100,16 @@ def _stage_pack(catalogue_root: Path, name: str, toml: str) -> Path:
 
 
 def _run(args_dict) -> tuple[int, str, str]:
-    # Set emit_install_routes=False explicitly so the per-IDE projection
-    # path is used (not the dist-tree legacy path), consistent with what
-    # the real argparse parser default produces.
-    d = {"emit_install_routes": False, **args_dict}
-    args = argparse.Namespace(**d)
+    # emit_install_routes defaults to False in the real argparse parser
+    # (the per-IDE projection path, not the dist-tree legacy path).
+    argv = [args_dict["catalogue"], "--pack", args_dict["pack"], "--output", args_dict["output"]]
+    if args_dict.get("scope"):
+        argv += ["--scope", args_dict["scope"]]
+    if args_dict.get("force"):
+        argv.append("--force")
+    if args_dict.get("adapter"):
+        argv += ["--adapter", args_dict["adapter"]]
+    args = cli_namespace("install", *argv)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = install.run(args)

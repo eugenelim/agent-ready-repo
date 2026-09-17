@@ -9,7 +9,6 @@ register an ``--apply`` flag.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import json
@@ -22,21 +21,24 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests._support import cli_namespace
+
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 
 
-def _run_reconcile(scope: str = "user") -> tuple[int, str, str]:
+def _run_reconcile(scope: str = "user") -> tuple[int, str, str]:  # noqa: ARG001
+    # reconcile dropped --scope from its parser; run() ignores args entirely.
     from agentbundle.commands import reconcile
 
     stdout = io.StringIO()
     stderr = io.StringIO()
     with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-        rc = reconcile.run(argparse.Namespace(scope=scope))
+        rc = reconcile.run(cli_namespace("reconcile"))
     return rc, stdout.getvalue(), stderr.getvalue()
 
 
-def _run_install(args: argparse.Namespace) -> int:
+def _run_install(args) -> int:
     from agentbundle.commands import install
 
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -46,10 +48,10 @@ def _run_install(args: argparse.Namespace) -> int:
 def _install_args(
     pack: str, catalogue: str, output: str, scope: str = "user", adapter: str | None = None
 ):
-    return argparse.Namespace(
-        pack=pack, catalogue=catalogue, output=output,
-        scope=scope, force=False, force_merge=False, adapter=adapter,
-    )
+    argv = [catalogue, "--pack", pack, "--output", output, "--scope", scope]
+    if adapter:
+        argv += ["--adapter", adapter]
+    return cli_namespace("install", *argv)
 
 
 def _copy_fixture(src: Path, dst: Path) -> None:

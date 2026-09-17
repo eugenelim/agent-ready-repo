@@ -15,6 +15,8 @@ from pathlib import Path
 import pytest
 from agentbundle.commands.scaffold import run
 
+from tests._support import cli_namespace
+
 # ---------------------------------------------------------------------------
 # Fixture helpers
 # ---------------------------------------------------------------------------
@@ -24,11 +26,7 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "scaffold" / "test-pa
 
 def _make_args(packs_dir: Path, output: Path, pack: str = "test-pack") -> argparse.Namespace:
     """Build a minimal Namespace matching the scaffold subparser's shape."""
-    return argparse.Namespace(
-        pack=pack,
-        packs_dir=str(packs_dir),
-        output=str(output),
-    )
+    return cli_namespace("scaffold", "--pack", pack, "--packs-dir", str(packs_dir), "--output", str(output))
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +271,7 @@ def test_scaffold_refuses_path_jail_escape(tmp_path, monkeypatch):
 
     monkeypatch.setattr(safety, "write_jailed", _refuse)
 
-    args = argparse.Namespace(pack="evil", packs_dir=str(packs_dir), output=str(output))
+    args = cli_namespace("scaffold", "--pack", "evil", "--packs-dir", str(packs_dir), "--output", str(output))
     rc = scaffold.run(args)
     assert rc == 1
 
@@ -295,6 +293,6 @@ def test_init_state_refuses_path_jail_escape(tmp_path, monkeypatch):
 
     monkeypatch.setattr(safety, "write_jailed", _refuse)
 
-    args = argparse.Namespace(pack="core", packs_dir=str(packs_dir), root=str(tmp_path))
+    args = cli_namespace("init-state", "--pack", "core", "--packs-dir", str(packs_dir), "--root", str(tmp_path))
     rc = init_state.run(args)
     assert rc == 1

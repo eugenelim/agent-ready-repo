@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 def run(args: argparse.Namespace) -> int:
-    flavor: str = getattr(args, "flavor", "runtime")
+    flavor: str = args.flavor
     if flavor == "source":
         return _run_source(args)
     return _run_runtime(args)
@@ -20,15 +20,15 @@ def run(args: argparse.Namespace) -> int:
 def _run_runtime(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.package import package_catalogue
 
-    root = Path(getattr(args, "root", ".")).resolve()
-    output_str = getattr(args, "output", None)
+    root = Path(args.root).resolve()
+    output_str = args.output
     if not output_str:
         print("error: --output is required", file=sys.stderr)
         return 1
     output = Path(output_str).resolve()
-    bundle = getattr(args, "bundle", None)
-    release = getattr(args, "release", None)
-    channel = getattr(args, "channel", None)
+    bundle = args.bundle
+    release = args.release
+    channel = args.channel
 
     for flag, value in (("bundle", bundle), ("release", release), ("channel", channel)):
         if not value:
@@ -41,9 +41,9 @@ def _run_runtime(args: argparse.Namespace) -> int:
         release=release,
         channel=channel,
         output=output,
-        source_revision=getattr(args, "source_revision", None),
-        minimum_agentbundle_version=getattr(args, "minimum_agentbundle_version", None),
-        published_at=getattr(args, "published_at", None),
+        source_revision=args.source_revision,
+        minimum_agentbundle_version=args.minimum_agentbundle_version,
+        published_at=args.published_at,
     )
 
     if not result.ok:
@@ -57,7 +57,7 @@ def _run_runtime(args: argparse.Namespace) -> int:
 def _run_source(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.package import package_source_flavour
 
-    channel = getattr(args, "channel", None)
+    channel = args.channel
     if channel:
         print(
             "error: --channel is not valid with --flavor source; "
@@ -66,14 +66,14 @@ def _run_source(args: argparse.Namespace) -> int:
         )
         return 2
 
-    root = Path(getattr(args, "root", ".")).resolve()
-    output_str = getattr(args, "output", None)
+    root = Path(args.root).resolve()
+    output_str = args.output
     if not output_str:
         print("error: --output is required", file=sys.stderr)
         return 1
     output = Path(output_str).resolve()
-    bundle = getattr(args, "bundle", None)
-    release = getattr(args, "release", None)
+    bundle = args.bundle
+    release = args.release
 
     for flag, value in (("bundle", bundle), ("release", release)):
         if not value:
@@ -85,7 +85,7 @@ def _run_source(args: argparse.Namespace) -> int:
         bundle=bundle,
         release=release,
         output=output,
-        source_revision=getattr(args, "source_revision", None),
+        source_revision=args.source_revision,
     )
 
     if not result.ok:

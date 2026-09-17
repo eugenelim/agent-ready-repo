@@ -45,14 +45,14 @@ def run(args) -> int:
         return gate
 
     # Determine recipe set
-    recipes = _select_recipes(getattr(args, "target", None))
+    recipes = _select_recipes(args.target)
     if recipes is None:
         # Unknown target
         from agentbundle.build.adapters import ADAPTERS
         from agentbundle.build.main import selectable_render_target_recipes
 
         known = sorted(set(ADAPTERS) | set(selectable_render_target_recipes()))
-        target = getattr(args, "target", None)
+        target = args.target
         print(
             f"render: unknown target {target!r}; known targets: {', '.join(known)}",
             file=sys.stderr,
@@ -74,7 +74,7 @@ def run(args) -> int:
     # dist/ semantic) even if a state file happens to sit at --output.
     # With the flag, --output is treated as an adopter root: collisions
     # with adopter-edited content produce .upstream.<ext> companions.
-    self_host_mode = bool(getattr(args, "self_host", False))
+    self_host_mode = bool(args.self_host)
     state_path = output_dir / ".agentbundle-state.toml"
     if self_host_mode:
         if not state_path.exists():

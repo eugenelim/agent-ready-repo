@@ -23,13 +23,12 @@ import argparse
 import contextlib
 import io
 import tarfile
-import types
 from pathlib import Path
 from unittest import mock
 
 import pytest
 
-from tests._support import materialize_catalogue
+from tests._support import cli_namespace, materialize_catalogue
 
 # Fixture catalogue dir containing packs/alpha/ (see tests/fixtures/install/).
 FIXTURE_CATALOGUE = (
@@ -42,12 +41,17 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 # Helper: build a fake namespace the same way argparse would
 # ---------------------------------------------------------------------------
 
-def _args(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
+def _args(pack: str, catalogue: str, output: str) -> argparse.Namespace:
     # Test fixtures predate per-IDE projection at repo scope;
-    # pass `emit_install_routes=True` to keep the dist-tree shape.
-    return types.SimpleNamespace(
-        pack=pack, catalogue=catalogue, output=output,
-        emit_install_routes=True,
+    # `--emit-install-routes` keeps the dist-tree shape.
+    return cli_namespace(
+        "install",
+        catalogue,
+        "--pack",
+        pack,
+        "--output",
+        output,
+        "--emit-install-routes",
     )
 
 
@@ -405,7 +409,6 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     state so subsequent whole-pack upgrades still surface the mixed state.
     (Concern 8 from adversarial review.)
     """
-    import argparse
     import contextlib
     import io
 
@@ -414,9 +417,7 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     cat = str(Path(__file__).parent.parent / "fixtures" / "upgrade" / "catalogue_v1")
 
     # 1. Install once.
-    rc = install_run(argparse.Namespace(
-        pack="core", catalogue=cat, output=str(tmp_path), scope=None, force=False,
-    ))
+    rc = install_run(cli_namespace("install", cat, "--pack", "core", "--output", str(tmp_path)))
     assert rc == 0
 
     # 2. Re-install is refused with the spec-named message.
@@ -426,10 +427,9 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     #    `upgrade`'s job, not `install`'s.
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
-        rc = install_run(argparse.Namespace(
-            pack="core", catalogue=cat, output=str(tmp_path),
-            scope=None, force=False,
-        ))
+        rc = install_run(
+            cli_namespace("install", cat, "--pack", "core", "--output", str(tmp_path))
+        )
     assert rc != 0
     err = buf.getvalue()
     assert "already installed at repo" in err
@@ -489,15 +489,20 @@ def _fixture_core_catalogue(tmp_path):
 
 def _args_core(target: Path, *, force: bool = False, dry_run: bool = False):
     """Args for installing the real `core` pack at repo scope (per-IDE shape)."""
-    return argparse.Namespace(
-        pack="core",
-        catalogue=str(CATALOGUE_ROOT),
-        output=str(target),
-        scope="repo",
-        emit_install_routes=False,
-        force=force,
-        dry_run=dry_run,
-    )
+    argv = [
+        str(CATALOGUE_ROOT),
+        "--pack",
+        "core",
+        "--output",
+        str(target),
+        "--scope",
+        "repo",
+    ]
+    if force:
+        argv.append("--force")
+    if dry_run:
+        argv.append("--dry-run")
+    return cli_namespace("install", *argv)
 
 
 def _run_core(args) -> tuple[int, str, str]:
@@ -624,9 +629,15 @@ def test_dry_run_preflight_path_jail_passthrough(tmp_path):
     malicious_relpath = "../../malicious_dry_run.txt"
     fake_projection = {malicious_relpath: b"malicious content"}
 
-    args = types.SimpleNamespace(
-        pack="alpha", catalogue=str(FIXTURE_CATALOGUE), output=str(tmp_path),
-        emit_install_routes=True, dry_run=True,
+    args = cli_namespace(
+        "install",
+        str(FIXTURE_CATALOGUE),
+        "--pack",
+        "alpha",
+        "--output",
+        str(tmp_path),
+        "--emit-install-routes",
+        "--dry-run",
     )
     with mock.patch("agentbundle.render.render_pack", return_value=fake_projection):
         rc = run(args)

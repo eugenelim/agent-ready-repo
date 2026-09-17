@@ -39,8 +39,8 @@ def run(args: argparse.Namespace) -> int:
     """Entry point called by the CLI dispatcher. Returns exit code."""
     pack_path = Path(args.pack_path).resolve()
     root = Path(args.root).resolve()
-    cli_scope: str | None = getattr(args, "scope", None)
-    cli_adapter: str | None = getattr(args, "adapter", None)
+    cli_scope: str | None = args.scope
+    cli_adapter: str | None = args.adapter
 
     # ── Multi-scope disambiguator ─────────────────────────────────────────────
     # diff is read-only but still subject to the --scope rule: pick which

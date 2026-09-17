@@ -18,6 +18,8 @@ from pathlib import Path
 from agentbundle import render
 from agentbundle.commands.render import run
 
+from tests._support import cli_namespace
+
 # The test fixture pack lives next to the build tests; it has both .sh and .py hooks.
 # File: packages/agentbundle/tests/unit/test_render_cmd.py
 #   parents[0] = packages/agentbundle/tests/unit
@@ -36,9 +38,15 @@ FIXTURE_CORE = FIXTURE_PACKS / "core"
 
 def _args(**kwargs) -> argparse.Namespace:
     """Build a Namespace that mimics what argparse produces for `render`."""
-    defaults = {"pack_path": str(FIXTURE_CORE), "output": None, "target": None}
-    defaults.update(kwargs)
-    return argparse.Namespace(**defaults)
+    pack_path = str(kwargs.get("pack_path", str(FIXTURE_CORE)))
+    output = kwargs.get("output")
+    target = kwargs.get("target")
+    argv = [pack_path]
+    if output is not None:
+        argv += ["--output", str(output)]
+    if target is not None:
+        argv += ["--target", str(target)]
+    return cli_namespace("render", *argv)
 
 
 # ---------------------------------------------------------------------------

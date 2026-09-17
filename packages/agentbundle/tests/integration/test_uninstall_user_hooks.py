@@ -9,7 +9,6 @@ until the agent primitive's own uninstall runs).
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import json
@@ -19,6 +18,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+from tests._support import cli_namespace
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
@@ -49,24 +50,19 @@ def _copy_fixture(src: Path, dst: Path) -> None:
 def _install_args(
     pack: str, catalogue: str, output: str, scope: str | None = None, adapter: str | None = None
 ):
-    return argparse.Namespace(
-        pack=pack,
-        catalogue=catalogue,
-        output=output,
-        scope=scope,
-        force=False,
-        force_merge=False,
-        adapter=adapter,
-    )
+    argv = [catalogue, "--pack", pack, "--output", output]
+    if scope:
+        argv += ["--scope", scope]
+    if adapter:
+        argv += ["--adapter", adapter]
+    return cli_namespace("install", *argv)
 
 
 def _uninstall_args(pack: str, output: str, scope: str | None = None):
-    return argparse.Namespace(
-        pack=pack,
-        root=output,
-        scope=scope,
-        yes=True,
-    )
+    argv = ["--pack", pack, "--root", output, "--yes"]
+    if scope:
+        argv += ["--scope", scope]
+    return cli_namespace("uninstall", *argv)
 
 
 class _UninstallBase(unittest.TestCase):

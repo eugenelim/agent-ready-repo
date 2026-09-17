@@ -45,14 +45,14 @@ def run(args: argparse.Namespace) -> int:
     # just rewrite the state file in place. Run before the regular init-
     # state path so the absent-file vs v0.1-file branches don't trip the
     # `--pack` requirement.
-    if getattr(args, "migrate", False):
+    if args.migrate:
         return _run_migrate(args)
 
     root = Path(args.root).resolve()
-    packs_dir = Path(getattr(args, "packs_dir", "packs"))
+    packs_dir = Path(args.packs_dir)
     if not packs_dir.is_absolute():
         packs_dir = root / packs_dir
-    pack_name: str | None = getattr(args, "pack", None)
+    pack_name: str | None = args.pack
     if not pack_name:
         # argparse can't enforce the "required unless --migrate" shape
         # without an arg-group hack; we enforce it here so the handler's
@@ -165,7 +165,7 @@ def _run_migrate(args: argparse.Namespace) -> int:
     version with re-install guidance, and treats an already-current file
     as an idempotent no-op.
     """
-    scope = getattr(args, "scope", None) or "repo"
+    scope = args.scope or "repo"
     if scope == "user":
         try:
             state_path = safety.user_state_path()

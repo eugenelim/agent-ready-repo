@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 
 
 def run(args: argparse.Namespace) -> int:
-    root = Path(getattr(args, "root", ".")).resolve()
-    archive_str = getattr(args, "archive", None)
-    sha256_str = getattr(args, "sha256_file", None)
-    pack = getattr(args, "pack", None)
-    fmt = getattr(args, "format", "table")
+    root = Path(args.root).resolve()
+    archive_str = args.archive
+    sha256_str = args.sha256_file
+    pack = args.pack
+    fmt = args.format
 
     if archive_str:
         from agentbundle.catalogue_tooling.archive import verify_archive

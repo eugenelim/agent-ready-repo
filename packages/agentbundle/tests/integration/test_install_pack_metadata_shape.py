@@ -10,20 +10,18 @@ stderr line, before any write to either scope's state.
 
 from __future__ import annotations
 
-import types
+import argparse
 from pathlib import Path
 
 import pytest
 
+from tests._support import cli_namespace
+
 
 def _args(
     pack: str, catalogue: Path, output: Path
-) -> types.SimpleNamespace:
-    return types.SimpleNamespace(
-        pack=pack,
-        catalogue=str(catalogue),
-        output=str(output),
-    )
+) -> argparse.Namespace:
+    return cli_namespace("install", str(catalogue), "--pack", pack, "--output", str(output))
 
 
 def _write_pack(

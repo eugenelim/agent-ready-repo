@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -199,3 +200,26 @@ allowed-scopes = {scopes}{allowed_adapters}
         encoding="utf-8",
     )
     return destination
+
+
+def cli_namespace(command: str, *argv: str, **overrides: object) -> argparse.Namespace:
+    """Build a command namespace the way the real CLI parser builds it.
+
+    A hand-rolled `argparse.Namespace(...)` carries only the attributes the test
+    author thought of, so a handler that reads an attribute the parser always
+    supplies fails here and nowhere a user can reach. Parsing a real command line
+    instead gives the fixture every default its subcommand declares, and a flag
+    renamed in `cli.py` surfaces as a parse error rather than as a passing test
+    against a namespace that no longer exists.
+
+    `command` is the subcommand words, e.g. `"catalogue verify"`. `argv` carries
+    any further arguments argparse itself must see, including required
+    positionals. `overrides` set attributes after parsing, for the private values
+    (`_user_config`, `_source_uri`) that no flag can express.
+    """
+    from agentbundle.cli import _build_parser
+
+    namespace = _build_parser().parse_args([*command.split(), *argv])
+    for key, value in overrides.items():
+        setattr(namespace, key, value)
+    return namespace

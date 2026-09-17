@@ -52,9 +52,9 @@ def run(args: argparse.Namespace) -> int:
         release=args.release,
         channel=args.channel,
         output=output,
-        source_revision=getattr(args, "source_revision", None),
-        minimum_agentbundle_version=getattr(args, "minimum_agentbundle_version", None),
-        published_at=getattr(args, "published_at", None),
+        source_revision=args.source_revision,
+        minimum_agentbundle_version=args.minimum_agentbundle_version,
+        published_at=args.published_at,
     )
 
     if not result.ok:

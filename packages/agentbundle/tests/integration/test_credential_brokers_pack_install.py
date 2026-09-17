@@ -19,7 +19,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support import stage_installable_pack
+from tests._support import cli_namespace, stage_installable_pack
 
 
 def _stage_broker_pack(catalogue: Path) -> Path:
@@ -96,13 +96,9 @@ class SeedsRefusalRailTests(_BaseInstall):
         (seeds / "README.md").write_text("# injected fixture\n", encoding="utf-8", newline="\n")
 
     def test_install_refuses_with_pinned_message(self) -> None:
-        args = argparse.Namespace(
-            pack="credential-brokers",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            force=False,
-            force_merge=False,
+        args = cli_namespace(
+            "install", str(self.cat), "--pack", "credential-brokers",
+            "--output", str(self.repo), "--scope", "user",
         )
         rc, _stdout, stderr = _run_install(args)
         self.assertNotEqual(rc, 0, "install should refuse with seeds/ injected")
@@ -119,13 +115,9 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
     """
 
     def _install(self) -> tuple[str, str]:
-        args = argparse.Namespace(
-            pack="credential-brokers",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            force=False,
-            force_merge=False,
+        args = cli_namespace(
+            "install", str(self.cat), "--pack", "credential-brokers",
+            "--output", str(self.repo), "--scope", "user",
         )
         rc, stdout, stderr = _run_install(args)
         self.assertEqual(
@@ -170,13 +162,9 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
         floor = self.home / ".agentbundle" / "lib"
         floor.mkdir(parents=True)
         floor.chmod(0o777)
-        args = argparse.Namespace(
-            pack="credential-brokers",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            force=False,
-            force_merge=False,
+        args = cli_namespace(
+            "install", str(self.cat), "--pack", "credential-brokers",
+            "--output", str(self.repo), "--scope", "user",
         )
         rc, _stdout, stderr = _run_install(args)
         self.assertNotEqual(rc, 0, "install must refuse a group/world-writable floor")

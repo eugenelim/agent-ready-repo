@@ -22,6 +22,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from tests._support import cli_namespace
+
 V0_3_CONTRACT_PATH = (
     Path(__file__).resolve().parents[2] / "agentbundle" / "_data" / "adapter.toml"
 )
@@ -184,11 +186,9 @@ class ValidateCommandRailFires(unittest.TestCase):
                 newline="\n",
             )
 
-            import argparse
-
             from agentbundle.commands.validate import run as validate_run
 
-            ns = argparse.Namespace(pack_path=str(pack), strict=False)
+            ns = cli_namespace("validate", str(pack))
 
             buf = io.StringIO()
             with redirect_stderr(buf):

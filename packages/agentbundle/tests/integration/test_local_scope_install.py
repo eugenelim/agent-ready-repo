@@ -16,11 +16,13 @@ Test matrix:
 
 from __future__ import annotations
 
+import argparse
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
+
+from tests._support import cli_namespace
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -52,31 +54,25 @@ def _git_init(repo: Path) -> None:
 
 
 def _install_args(repo: Path, *, scope: str = "local", adapter: str | None = _ADAPTER,
-                  force: bool = False) -> SimpleNamespace:
-    return SimpleNamespace(
-        pack=PACK_NAME,
-        catalogue=str(FIXTURE_CATALOGUE),
-        output=str(repo),
-        scope=scope,
-        adapter=adapter,
-        force=False,
-        force_merge=False,
-        dry_run=False,
-        yes=True,
-        emit_install_routes=False,
-    )
+                  force: bool = False) -> argparse.Namespace:
+    # yes=True was the old fixture default (parser default is False); keep via --yes.
+    # The force parameter in this signature is intentionally ignored in argv
+    # (the original always put force=False in the namespace regardless of the
+    # parameter); tests that need force=True set it on the returned namespace directly.
+    argv = [str(FIXTURE_CATALOGUE), "--pack", PACK_NAME, "--output", str(repo),
+            "--scope", scope, "--yes"]
+    if adapter is not None:
+        argv.extend(["--adapter", adapter])
+    return cli_namespace("install", *argv)
 
 
 def _uninstall_args(repo: Path, *, scope: str = "local",
-                    adapter: str | None = None) -> SimpleNamespace:
-    return SimpleNamespace(
-        pack=PACK_NAME,
-        root=str(repo),
-        scope=scope,
-        adapter=adapter,
-        dry_run=False,
-        yes=True,
-    )
+                    adapter: str | None = None) -> argparse.Namespace:
+    # yes=True was the old fixture default (parser default is False); keep via --yes.
+    argv = ["--pack", PACK_NAME, "--root", str(repo), "--scope", scope, "--yes"]
+    if adapter is not None:
+        argv.extend(["--adapter", adapter])
+    return cli_namespace("uninstall", *argv)
 
 
 def _git_status(repo: Path) -> str:
@@ -175,11 +171,7 @@ def test_install_local_list_installed_shows_row(git_repo: Path) -> None:
     assert rc == 0
 
     out = io.StringIO()
-    list_args = SimpleNamespace(
-        root=str(git_repo),
-        scope="local",
-        format="table",
-    )
+    list_args = cli_namespace("list-installed", "--root", str(git_repo), "--scope", "local")
     with contextlib.redirect_stdout(out):
         rc2 = list_run(list_args)
     assert rc2 == 0
