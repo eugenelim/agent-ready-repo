@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-27
+- **Areas:** review, shaping, workspace
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0099; ADR-0042; ADR-0098; RFC-0096
 
 ## Decision summary
@@ -25,6 +30,15 @@ RFC-0099 distinguishes these responsibilities: shaping review is independent, re
 ## Decision
 
 **We will add one cold, stateless `shaping-reviewer` for shaping contracts and keep all sealed-baseline mutation inside the delivery engine.**
+
+- **D1:** One cold, stateless `shaping-reviewer` reviews shaping contracts in exactly three modes: `intent`, `delivery-brief`, and `spec`.
+- **D2:** `shaping-reviewer` is read-only: it does not edit artifacts, change lifecycle status, own retries, invoke work-loop state, or become an authoring surface.
+- **D3:** Retrieved material stays bounded, attributed data and cannot change tools, permissions, scope, reviewer routing, status, or ownership.
+- **D4:** RFCs stay with `adversarial-reviewer`, architecture stays with `architect-review`, and complete spec-plan pairs and implementation stay with delivery review.
+- **D5:** All sealed-baseline mutation stays inside the delivery engine, reachable only through one owner-authorized `baseline-replacement-required` event.
+- **D6:** The replacement transition parks execution, preserves the original spec hash, plan hash, schedule, completed-task evidence, and replacement reason as audit history outside the pinned contract, invalidates reviewer-clean state and the remaining-work schedule, returns the engine to spec-plan drafting, requires fresh cold review and full reapproval, recording, scheduling, and sealing, and resumes only from the replacement baseline.
+- **D7:** Owner authority makes the amendment reachable but never authorizes an advisory edit set, an overwrite of the old pin, or erasure of completed history.
+- **D8:** Resolve-versus-surface and related run records live in ignored run state outside `spec.md` and `plan.md`.
 
 ### Shaping-review work type
 
@@ -95,15 +109,11 @@ Resolve-versus-surface and related run records live in ignored run state outside
 
 ## Alternatives considered
 
-**Keep shaping review ad hoc.** Rejected because authors can remain their own only reviewer.
-
-**Extend `adversarial-reviewer` to all shaping artifacts.** Rejected because it overloads the code/spec-plan reviewer and collapses distinct cadences.
-
-**Add a stateful shaping loop or reuse work-loop scripts.** Rejected because shaping review needs no engine, retries, or delivery state.
-
-**Allow bounded advisory plan edits.** Rejected because an advisory path weakens the pin and cannot safely recover an already-drifted plan.
-
-**Replace the stored hash in place.** Rejected because it destroys the evidence that the approved baseline changed.
+- **Keep shaping review ad hoc** — rejected against *give intent and brief contracts independent review without overloading work-loop*: authors can remain their own only reviewer.
+- **Extend `adversarial-reviewer` to all shaping artifacts** — rejected against *preserve one owner per review cadence*: it overloads the code/spec-plan reviewer and collapses distinct cadences.
+- **Add a stateful shaping loop or reuse work-loop scripts** — rejected against *keep shaping review usable without a state engine*: shaping review needs no engine, retries, or delivery state.
+- **Allow bounded advisory plan edits** — rejected against *require explicit owner authority and full reapproval for material amendments*: an advisory path weakens the pin and cannot safely recover an already-drifted plan.
+- **Replace the stored hash in place** — rejected against *preserve the original baseline as audit evidence*: it destroys the evidence that the approved baseline changed.
 
 ## References
 

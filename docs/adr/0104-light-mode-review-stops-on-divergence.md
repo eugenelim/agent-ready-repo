@@ -1,9 +1,14 @@
 # ADR-0104: Light mode's review stops on divergence, not on a round budget
 
-- **Status:** Proposed <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Proposed
 - **Date:** 2026-09-04
+- **Areas:** review, work-loop
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
-- **Supersedes:** ADR-0014 in part — its light-mode review-bound clause only
+- **Supersedes:** none
+- **Supersedes in part:** ADR-0014
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [ADR-0014](0014-rigor-scales-with-risk-work-loop-modes.md) (light/full modes; its trigger set stands), [ADR-0088](0088-risk-triggers-have-a-single-documented-home.md) (the risk-trigger block's single home — unaffected), [RFC-0025](../rfc/0025-work-loop-light-mode-and-risk-based-escalation.md)
 
 ## Decision summary
@@ -46,6 +51,22 @@ the machinery takes on more complex changes.
 
 **Light mode's `adversarial-reviewer` rounds run to clean, and stop on a
 divergence signal rather than a round count.**
+
+- **D1:** Light mode's `adversarial-reviewer` rounds run to clean and stop on a
+  divergence signal, never on a round count.
+- **D2:** The trend is read at the third round and every second round after, as a
+  sampling checkpoint rather than an allowance.
+- **D3:** The checkpoint defaults to stopping; the loop continues only while the
+  trend affirmatively says findings are getting fewer and smaller.
+- **D4:** A diverging loop's exit is the requester, never an automatic escalation
+  to full mode.
+- **D5:** The repair-introduced-finding signal is advisory and never decides the
+  checkpoint read.
+- **D6:** Risk-trigger escalation is untouched and still fires independently.
+- **D7:** A maintainability concern that needed the dropped `quality-engineer`
+  floor is Surfaced to the requester rather than escalated automatically.
+- **D8:** This covers light mode's post-GATES review only — not the risk-trigger
+  set, mode selection, or full mode's iteration cap.
 
 - **The count is a checkpoint, not a budget.** The trend is read at the third
   round and every second round after. Three is where there are first enough
