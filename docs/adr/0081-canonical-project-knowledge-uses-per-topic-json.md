@@ -2,9 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-13
+- **Areas:** knowledge, state
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Consulted:** architecture review, security review
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** [RFC-0077](../rfc/0077-distill-knowledge.md),
   [ADR-0082](0082-project-knowledge-modes-separate-authority.md), and the
   [knowledge capture architecture](../architecture/knowledge-capture.md)
@@ -38,6 +43,14 @@ require replay, compaction, and a materialized current view. A committed
 database would add a dependency and create another source-of-truth question.
 
 ## Decision
+
+- **D1:** Each narrow, independently verifiable subject has one stable topic JSON file under `docs/knowledge/topics/<namespace>/`.
+- **D2:** A topic carries current synthesis, structural scope, lifecycle, source-relative freshness, provenance-bearing occurrences, and successor references where applicable.
+- **D3:** `topics.index.json` is a byte-deterministic map of identity, path, routing headers, schema version, and expected Git blob identity, and carries no topic or occurrence bodies.
+- **D4:** Topic files are the semantic authority; a map mismatch is an integrity failure, and a map-only merge conflict is discarded and rebuilt.
+- **D5:** Ordinary enquiry reads a coherent map and topic blobs from one committed Git tree, and working-tree files are authoring proposals rather than published memory.
+- **D6:** Richer lexical, full-text, embedding, or graph indexes are disposable local accelerators — gitignored, never committed, and rebuildable from canonical topics.
+- **D7:** JSONL is not the reconciled current-topic representation; the legacy corpus remains migration evidence, and JSONL may carry append-oriented capture events or interchange only.
 
 1. Each narrow, independently verifiable subject has one stable topic JSON file
    under `docs/knowledge/topics/<namespace>/`.
@@ -86,6 +99,11 @@ database would add a dependency and create another source-of-truth question.
 - Large repositories may eventually need a derived index for acceptable query
   latency.
 
+**Revisit if:** measured corpus size, enquiry latency, or write contention on the
+committed topic map exceeds the published file-first budgets, since a large
+repository would then need a derived index rather than per-topic JSON plus a
+disposable accelerator alone (D1, D6).
+
 ## Confirmation
 
 - **Mode:** reviewer-checked
@@ -96,14 +114,18 @@ database would add a dependency and create another source-of-truth question.
 
 ## Alternatives considered
 
-- **Keep one JSONL corpus.** Rejected because it remains hot and does not model
-  reconciled current state without replay.
-- **Use JSONL per topic.** Rejected because immutable revisions still require a
-  materialized current view and compaction policy.
-- **Commit a database.** Rejected because it adds tooling and binary merge
-  costs while obscuring review.
-- **Do not commit a topic map.** Rejected because every supported reader would
-  otherwise need to enumerate and parse all topic bodies before routing.
+- **Keep one JSONL corpus** — rejected against *reduce unrelated content conflicts
+  without adding replay machinery*: one file stays hot across independent subjects
+  and does not model reconciled current state without replay.
+- **Use JSONL per topic** — rejected against *reduce unrelated content conflicts
+  without adding replay machinery*: immutable revisions still require a
+  materialized current view and a compaction policy.
+- **Commit a database** — rejected against *avoid a database dependency before
+  measurements justify one*: it adds tooling and binary merge costs while obscuring
+  review.
+- **Do not commit a topic map** — rejected against *keep the core pack portable
+  from tiny repositories to large monorepos*: every supported reader would
+  otherwise enumerate and parse all topic bodies before routing.
 
 ## References
 

@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-22
+- **Areas:** knowledge, packaging
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0039 (the accepted decision this records); [`docs/rfc/0039-notes/survey-managing-research-projects.md`](../rfc/0039-notes/survey-managing-research-projects.md) (four-discipline evidence); RFC-0038 (MADR-aligned ADR template)
 
 ## Context
@@ -21,6 +26,22 @@ Constraints in force when deciding:
 ## Decision
 
 > We will structure the `research` pack as **two orthogonal axes — depth (one-shot: quick/standard/applied/deep) × lifecycle (episodic vs project)** — and implement "project" research as a **stateful, prompt-only, three-layer discipline** (raw capture → a constructed-column digest layer → a typed synthesis), not as another depth tier and not as a deferral to an external tool.
+
+- **D1:** The `research` pack is structured on two orthogonal axes — depth
+  (quick / standard / applied / deep) and lifecycle (episodic vs project).
+- **D2:** Episodic output is named `<topic-slug>-<type>.md`, with `research.md`
+  retained as a legacy alias.
+- **D3:** Project research is a folder, scratch and out-of-repo by default,
+  holding `sources/` → `synthesis-matrix.md` + `memos.md` → a typed synthesis
+  plus a single-file `<topic-slug>-brief.md` governance handoff.
+- **D4:** Raw sources are never overwritten.
+- **D5:** Project mode is driven by a four-skill family carrying a passive
+  stop-signal.
+- **D6:** Implementation is prompt-only — `phase` is a frontmatter string the
+  agent reads and writes, and the stop-signal is in-prompt judgment over the
+  matrix, with no counter, derived metric, or engine.
+- **D7:** The pack's existing seven skills are reused as phase operations, not
+  rewritten.
 
 Elaboration and boundaries:
 - **Episodic** is today's one-shot behaviour; its output is named by topic + research type (`<topic-slug>-<type>.md`), with `research.md` retained as a legacy alias.
@@ -53,20 +74,22 @@ Elaboration and boundaries:
 - **Emergent-vs-fixed columns** is the one call without empirical backing. RFC-0039's Experiment validates it across the first 2–3 real projects; if agents need a fixed scaffold for coherence, that flips via a *superseding* ADR — it is not edited here.
 - Whether `-check` may lightly write `verdict_status` (RFC-0039 open question) is settled at spec time.
 
+**Revisit if:** RFC-0039's Experiment finds across the first 2–3 real projects that agents need a fixed digest scaffold for coherence, which flips the constructed-column call behind D3 and D6 — by a superseding ADR, not an edit here.
+
 ## Confirmation
 
-- The project-mode spec's acceptance criteria encode the three-layer folder and the prompt-only constraint; adversarial + quality review checks that no runtime engine creeps in.
-- Skill-authoring review confirms the new skills stay prompt-driven file operations (no engine; dependency discipline per the skill-prereq policy).
-- The emergent-columns validation (RFC-0039 § Experiment) is the periodic check on that sub-decision.
+- **Mode:** spec acceptance criteria + reviewer-checked.
+- **Signal:** the project-mode spec's acceptance criteria encode the three-layer folder (D3) and the prompt-only constraint (D6), and adversarial + quality review checks that no runtime engine creeps in; skill-authoring review confirms the new skills stay prompt-driven file operations (no engine; dependency discipline per the skill-prereq policy); the emergent-columns validation (RFC-0039 § Experiment) is the periodic check on that sub-decision.
+- **Owner:** eugenelim.
 
 ## Alternatives considered
 
-- **"Project" as another depth tier (a fifth, deepest mode).** Rejected against *fidelity* / "different kind of object" — depth is one-shot; a lifecycle state machine cannot ride a depth parameter.
-- **One fat `research.md` per project.** Rejected against *fidelity* — no raw/synthesis separation, the exact anti-pattern every surveyed discipline rejects.
-- **Flat typed files, no enclosing folder.** Rejected — gives the naming win but no project boundary, phase, or stop-signal for a growing corpus.
-- **Defer to an external tool/vault** (Obsidian, llm-wiki-kit). Rejected against *universality* + the pack's evidence rail — abandons portability and GRADE/triangulation.
-- **Fixed pillars for the digest layer** (llm-wiki-kit v1's entities/attributes/mental-model/verdict). Rejected against *fit to material* — procrustean for causal and prior-art questions; chose constructed columns (pending validation).
-- **A runtime engine/index** to compute saturation and manage the corpus. Rejected against *Principle 3* — that is infrastructure, not a habit.
+- **"Project" as another depth tier (a fifth, deepest mode)** — rejected against *fidelity to how sustained research is actually managed*: depth is one-shot, and a lifecycle state machine cannot ride a depth parameter.
+- **One fat `research.md` per project** — rejected against *fidelity to how sustained research is actually managed*: no raw/synthesis separation, the exact anti-pattern every surveyed discipline rejects.
+- **Flat typed files, no enclosing folder** — rejected against *fidelity to how sustained research is actually managed*: it gives the naming win but no project boundary, phase, or stop-signal for a growing corpus.
+- **Defer to an external tool/vault** (Obsidian, llm-wiki-kit) — rejected against *universality (Principle 1)*: it abandons portability and the pack's GRADE/triangulation evidence rail.
+- **Fixed pillars for the digest layer** (llm-wiki-kit v1's entities/attributes/mental-model/verdict) — rejected against *fit to messy material over up-front opinionation*: procrustean for causal and prior-art questions, so constructed columns were chosen pending validation.
+- **A runtime engine/index** to compute saturation and manage the corpus — rejected against *prompt-only / habit-not-infrastructure (Principle 3)*: that is infrastructure, not a habit.
 
 ## References
 

@@ -2,10 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2026-06-25
+- **Areas:** knowledge, install
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Consulted:** RFC-0100 (the accepted decision this records, incl. its six-decision set, the two de-risk spikes, and the options-considered table); **ADR-0034** (the infra-grounding doctrine this generalizes — the no-per-vendor-knowledge-base rule ADR-0034 derives from CHARTER Principle 1, universality across stacks: the driver bullet at `0034:59`, reinforced in its Alternatives at `0034:97`); ADR-0035 (the architect-side platform grounding this is the work-loop-side companion to); RFC-0044 / RFC-0041 (the infra EXECUTE contract-grounding gate + the multi-artifact preflight this widens and seeds); RFC-0040 + ADR-0030 (the `agentbundle-layout.toml` optional-resolution idiom the presence-check matches); RFC-0034 (profiles), RFC-0002 (seeds + the placeholder-only `lint-seeds` contract), RFC-0046 + ADR-0036 (the editable-install / blanked-default fork mechanism the org-pack distribution reuses), ADR-0021 (pack-manifest source of truth + the contract-version rule the new optional flag is measured against); the external prior art confirmed in RFC-0100's evidence section (Cursor Team/Project/User rule precedence, Context7 optional MCP/skill, Backstage golden paths)
-
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0100 (the accepted decision this ADR records); ADR-0034 (the doctrine this *extends* — read the two together); ADR-0035 (architect-side companion); RFC-0044 / RFC-0041 (the infra gate + preflight); RFC-0040 + ADR-0030 (the presence-check idiom); RFC-0002 / RFC-0034 / RFC-0046 + ADR-0036 / ADR-0021 (the org-pack distribution primitives); `docs/specs/framework-contract-grounding/`, `docs/specs/adopter-grounding-surface/`, `docs/specs/catalogue-seeds-lint/` (the implementing specs); `docs/CHARTER.md` Principle 3 ("a habit, not a tool… not infrastructure")
 
 ## Context
@@ -29,6 +33,14 @@ The forces in play when deciding *how* to close these gaps:
 ## Decision
 
 > We will treat platform, framework/library, and verification grounding as **context the adopter and their organization supply, read if present and degraded honestly if absent — never bundled, never mandated, never CI-gated on presence** — and we will deliver it by **generalizing the one existing EXECUTE contract-grounding gate from infra to framework/library through a single detect-and-recommend tier**, by **sharpening files the adopter already owns** (`AGENTS.md`, `reference.md`) into the preflight's first read, and by **documenting an org-stack pack composed entirely of existing primitives**, distributed from an org-owned detached fork. This **extends ADR-0034's no-bundled-KB rule; it does not break it** — we still ship awareness and doctrine, and the per-vendor *content* now has named non-catalogue authors (the adopter, the org, an optional detected tool). Be precise about what moves: CHARTER Principle 1 (universality across stacks) binds the **universal catalogue** — `core` and the first-party packs — and that constraint is unchanged here. An org pack shipping a filled-in `reference.md` and internal-framework skills *is* stack-specific content, deliberately so; it is permitted not because the no-bundle rule loosened but because it is **adopter-owned and outside the universality scope by construction** (a fork the org owns, never a universal catalogue pack). The rule now reads "not bundled in a universal catalogue pack," which is the rule it always was once you separate the universal catalogue from an adopter's own fork.
+
+- **D1:** The existing EXECUTE contract-grounding gate widens to framework/library contracts through a software detect-and-recommend tier mirroring `infra-contract-acquisition`'s T2; no parallel skill is added, and the agent never silently guesses a behavioral contract.
+- **D2:** Grounding coordinates are recorded only in files the adopter already owns — `AGENTS.md` and `reference.md` — with no new top-level config file.
+- **D3:** An org ships its golden path as a pack of existing primitives installed via a repo-scope profile from an org-owned detached fork, with no runtime or package dependency on the upstream catalogue.
+- **D4:** The seed lint enforces only where a pack opts in through its own manifest, carries no central pack list, and stays a single tool — so a downstream or org pack is unenforced by construction.
+- **D5:** Every grounding read is presence-checked: the recorded surface seeds acquisition and never replaces it, a recorded value contradicting the oracle is surfaced as drift rather than trusted, and absence never fails the loop and is never CI-gated.
+- **D6:** Layering an org pack over a live upstream catalogue is out of scope, and no new catalogue-resolution machinery ships.
+- **D7:** No per-vendor or per-library contract data is bundled, and no MCP or retrieval backend is shipped, run, required, or auto-installed.
 
 Four load-bearing, expensive-to-reverse sub-decisions. (Numbering is the ADR's own; it records RFC-0100's six decisions, folding D1+D2 into ADR-D1, D3+D4 into ADR-D2, D5 into ADR-D3, and D6 into ADR-D4.)
 
@@ -80,21 +92,26 @@ Boundaries on the decision:
 - **Whether a framework-library-skill *starter* ever earns bundling.** Declined now (no proven recurring shape, and it would sit against Principle 1); revisit if internal-framework skills converge on a stable shape across adopters.
 - **Whether `reference.md` should ever be auto-populated** from the running stack — a separate detect-and-fill capability, out of scope here.
 
+**Revisit if:** internal-framework skills converge on a stable shape across adopters, which reopens whether a framework-library-skill starter earns bundling against D7's no-bundle rule; or auto-populating `reference.md` from the running stack is taken up as a capability, which changes D2's adopter-written recording surface.
+
 ## Confirmation
 
+- **Mode:** reviewer-checked — review-time, not a new CI gate.
+- **Signal:** the `framework-contract-grounding`, `adopter-grounding-surface`, and `catalogue-seeds-lint` acceptance criteria pass; the spec-stage and diff `adversarial-reviewer` passes confirm no parallel framework skill, no mandatory or CI-gated read, and the lint flag landing on all four first-party packs in one change; and the presence-check regression fence holds — a repo with no recorded coordinates and no org pack runs the loop exactly as before.
+- **Owner:** eugenelim
 - The three implementing specs' acceptance criteria encode the decision: `framework-contract-grounding` (D1 — the widened gate trigger + the software detect-and-recommend tier + `quality-engineer` re-derivation, as *prose + routing* with **no new skill**); `adopter-grounding-surface` (D2 — the `AGENTS.md` block + sharpened `reference.md` prompts + the preflight "read recorded coordinates first" step + `adapt-to-project`/`init-project` elicitation, every read presence-checked); `catalogue-seeds-lint` (D4 — the `lint-seeds` → `lint-catalogue-seeds` rename, the opt-in `[pack].lint-seeds` flag on the four first-party scaffold packs in the *same* change, the CI-step rename, and the manifest-bump confirmation). The org-pack guide (D3) is a named follow-on artifact; the org-owned detached-fork *distribution* RFC that RFC-0100 originally named is withdrawn as redundant with the shipped RFC-0046 / ADR-0036 editable-install path (RFC-0100 § Errata 2026-06-25).
 - **Review-time, not a new CI gate** (Principle 3). The spec-stage and diff `adversarial-reviewer` passes confirm no parallel framework skill creeps in (D1), no read becomes mandatory or CI-gated (D2), and the lint flip lands the flag on all four first-party packs in the same change (D4). A `security-reviewer` pass applies where the framework-grounding tier touches an optional MCP/retrieval surface (the 3-tier dependency policy bans Tier-3 auto-install; MCP stays Tier-1 detect-and-stop).
 - **The presence-check is the regression fence**: every grounding read must degrade honestly to today's behavior when its surface is absent — an existing repo with no recorded coordinates and no org pack must run the loop exactly as before this decision.
 
 ## Alternatives considered
 
-- **(a) Do nothing — keep grounding infra-only.** Rejected against the three concrete gaps: software guessing, cold preflight, orgs reinventing — each compounding per loop and per adopter.
-- **(b) Bundle vendor/library contract data in the catalogue.** Rejected against ADR-0034's no-bundled-KB rule: it *is* the per-vendor knowledge base the doctrine was written to avoid, and is unmaintainable by enumeration.
-- **(c) Mandate a specific external toolchain** (require Context7 / a steering-file standard). Rejected against the no-mandate constraint and the Tier-3 dependency ban: couples the loop to a tool that may be absent or unauthenticated.
-- **(d) A new parallel `framework-contract-acquisition` skill for the software case.** Rejected against the **gate-already-names-itself-the-generalization** driver: a redundant second front door for a case the existing gate was abstracted from; extend the one gate instead (D1).
-- **(e) A new `grounding.toml` recording surface.** Rejected against Principle 3 and the prior-art convergence (Cursor "reference files, don't copy"): the adopter already owns `AGENTS.md` and `reference.md`; a new file is surface for surface's sake (D2).
-- **(f) Split the seed lint into a first-party tool and an org tool.** Rejected against the **empty "for other things" bucket** finding: both check kinds serve one contract and key off one predicate, and no seed check an instance pack wants exists — one tool with one opt-in flag is simpler and has nothing to drift (D4).
-- **(g) Layer an org pack over a live upstream catalogue.** Rejected/out-of-scoped against the **no-upstream-runtime-dependency** posture: it needs the unbuilt RFC-0031 D6 virtual catalogue; the detached-fork model the org owns outright is the chosen distribution, realized by the existing RFC-0046 / ADR-0036 editable-install path (D3).
+- **(a) Do nothing — keep grounding infra-only** — rejected against *ADR-0034's no-bundled-KB rule is the fixed point, and the gaps are real*: software guessing, cold preflight, and orgs reinventing each compound per loop and per adopter, and none of the three closes itself.
+- **(b) Bundle vendor/library contract data in the catalogue** — rejected against *ADR-0034's no-bundled-KB rule is the fixed point*: it *is* the per-vendor knowledge base the doctrine was written to avoid, and is unmaintainable by enumeration (D7).
+- **(c) Mandate a specific external toolchain** (require Context7 / a steering-file standard) — rejected against *an empty surface must cost nothing*: it couples the loop to a tool that may be absent or unauthenticated, and the Tier-3 dependency ban forbids auto-installing it (D7).
+- **(d) A new parallel `framework-contract-acquisition` skill for the software case** — rejected against *the gate already calls itself the software generalization*: a redundant second front door for a case the existing gate was abstracted from; extend the one gate instead (D1).
+- **(e) A new `grounding.toml` recording surface** — rejected against *Principle 3 (habit, not infrastructure)*: the adopter already owns `AGENTS.md` and `reference.md`, and the prior art converges on referencing files rather than copying them, so a new file is surface for surface's sake (D2).
+- **(f) Split the seed lint into a first-party tool and an org tool** — rejected against *the seed lint enforces the opposite of what an org pack ships*: both check kinds serve one contract and key off one predicate, and the "for other things" bucket is empty, so one tool with one opt-in flag is simpler and has nothing to drift (D4).
+- **(g) Layer an org pack over a live upstream catalogue** — rejected against *the org tier must not couple to upstream at runtime*: it needs the unbuilt RFC-0031 D6 virtual catalogue; the detached-fork model the org owns outright is the chosen distribution, realized by the existing RFC-0046 / ADR-0036 editable-install path (D3, D6).
 - **(h) Supplied-not-bundled, present-or-not (chosen).** Closes all three gaps by naming non-catalogue authors for the per-vendor content, reuses the proven infra detect-and-recommend doctrine and existing primitives, and stays additive throughout — at the cost of more optional surface and org-pack docs to maintain.
 
 ## References

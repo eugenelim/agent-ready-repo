@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-26
+- **Areas:** knowledge, security
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0097; ADR-0093
 
 ## Decision summary
@@ -59,6 +64,62 @@ eligible provider from discovery of the corpus it owns.
 governed repository authorities remain readable through their owning workflow,
 while an OKF-backed surface is accessed only through an explicitly selected
 provider and never through discovery or interpretation of its corpus.**
+
+- **D1:** Eligible knowledge surfaces are detected by semantic capability, and
+  directly governed repository authorities stay readable through their owning
+  workflow's existing routing.
+- **D2:** An OKF-backed surface is accessed only through an explicitly selected
+  provider, never through discovery or interpretation of its corpus.
+- **D3:** A pack owning governed OKF declares each corpus, its canonical
+  authoring source, and its generated router or provider; compilers and
+  verification gates process only declared bundles and never infer a corpus by
+  scanning directories.
+- **D4:** A declared corpus whose generated provider is missing, unsafe, or
+  drifted fails construction or verification rather than becoming silently
+  undiscoverable.
+- **D5:** A pack exposing compiled knowledge to independent workflows exposes an
+  ordinary portable knowledge skill as its discovery membrane, identifying its
+  domain, bounded purpose, supported request shape, and integration-only
+  behavior without requiring the consumer to know its product name, installation
+  path, generated router path, or AgentBundle identity.
+- **D6:** A consumer inspects only knowledge capabilities already exposed by the
+  active runtime, repository, or preauthenticated provider surface, and derives
+  eligibility from effective repository instructions, explicit user selection, or
+  trusted runtime or delivery registration.
+- **D7:** Provider metadata and returned content cannot self-assert authority,
+  outrank the source that owns the applicable rule, or change instructions,
+  tools, identity, permissions, scope, or mutation authority.
+- **D8:** After selection the consumer resolves the provider's exact installed
+  identity at invocation time, so exact identity is never a hard-coded discovery
+  dependency.
+- **D9:** Requests and results carry only minimized, redacted routing fields and
+  exclude credentials, protected configuration, raw session logs, personal
+  identifiers, private endpoints, and unrelated enterprise context; the provider
+  does not persist them without a separately authorized contract.
+- **D10:** An invoked provider navigates only its own compiled references,
+  starting at its root index, descending only through named child indexes,
+  reading only selected topic bodies, and returning topic identifiers and
+  provenance.
+- **D11:** A provider exposed to independent consumers resolves a regular-file
+  target beneath its declared generated reference root and verifies generated
+  manifest ownership before every index, topic, or body read, rejecting absolute
+  paths, traversal, symlink or reparse-point escapes, and unmanifested files
+  before content is read.
+- **D12:** Neither provider nor consumer compensates for an unavailable result by
+  crawling pack directories, probing hidden configuration or endpoints,
+  discovering credentials, guessing generated paths, or searching raw OKF.
+- **D13:** Provider absence is an expected runtime condition that never blocks or
+  weakens the consumer's pre-existing baseline; a stop is recorded as a baseline
+  grounding failure, not provider absence.
+- **D14:** Several eligible providers yield a bounded selection or a reported
+  ambiguity, never a silent merge of conflicting doctrine, and an integrity
+  failure is fail-closed and can never count as support or profile-backed
+  grounding.
+- **D15:** Existing same-pack routers may continue to be addressed statically,
+  and a corpus-owning pack must add this ADR's capability, minimized
+  request/result, activation, absence, failure, confinement, and evaluation
+  contract — verified by its own construction and integration gates — before
+  delivery metadata advertises one to independent consumers.
 
 Capability detection is broader than provider discovery. Effective repository
 instructions, mapped repository documents, and other directly readable
@@ -252,34 +313,38 @@ provider-capability negotiation protocol that subsumes this contract.
 
 ## Alternatives considered
 
-**Hard-code provider identities in every consumer.** Rejected because it makes
-portable workflows depend on another pack's product name and installed layout,
-prevents equivalent organization or framework providers from participating,
-and confuses exact invocation with discovery.
-
-**Forbid cross-pack discovery and use only same-pack knowledge.** Rejected
-because it leaves available domain grounding unused and forces consumers to
-duplicate doctrine or operate with avoidably low confidence.
-
-**Discover corpora by filesystem convention or raw OKF search.** Rejected
-because it violates ADR-0093, couples consumers to authoring and delivery
-layout, bypasses provider routing and provenance, and broadens filesystem and
-instruction-injection exposure.
-
-**Centralize all knowledge in one shared runtime service.** Rejected because it
-moves corpus ownership, availability, authentication, and version compatibility
-into a mandatory service boundary. The provider-mediated contract permits such
-a service when exposed as an eligible capability but does not require it.
-
-**Copy relevant corpus material into each consumer pack.** Rejected because it
-creates competing authorities and synchronization work; the repository already
-has evidence that copied taxonomies require parity tooling and drift.
-
-**Use only delivery-time integration declarations.** Rejected because external
-declarations such as `pack.integrations` can describe installed composition and
-fallback without polluting portable instructions, but they do not let a
-workflow recognize other already-authorized organization, repository,
-framework, architecture, or agent-skills knowledge surfaces by capability.
+- **Hard-code provider identities in every consumer** — rejected against *keep
+  consumers portable and independent of another pack's product identity and
+  filesystem layout*: it makes portable workflows depend on another pack's
+  product name and installed layout, prevents equivalent organization or
+  framework providers from participating, and confuses exact invocation with
+  discovery.
+- **Forbid cross-pack discovery and use only same-pack knowledge** — rejected
+  against *use available enterprise, repository, framework, architecture, and
+  agent-skills knowledge for domain grounding*: it leaves available domain
+  grounding unused and forces consumers to duplicate doctrine or operate with
+  avoidably low confidence.
+- **Discover corpora by filesystem convention or raw OKF search** — rejected
+  against *preserve ADR-0093's governed build-time source and same-pack ownership
+  rule*: it violates ADR-0093, couples consumers to authoring and delivery
+  layout, bypasses provider routing and provenance, and broadens filesystem and
+  instruction-injection exposure.
+- **Centralize all knowledge in one shared runtime service** — rejected against
+  *preserve authentication isolation, least authority, and the
+  instruction-versus-data boundary*: it moves corpus ownership, availability,
+  authentication, and version compatibility into a mandatory service boundary,
+  though the provider-mediated contract permits such a service when exposed as an
+  eligible capability.
+- **Copy relevant corpus material into each consumer pack** — rejected against
+  *preserve ADR-0093's governed build-time source and same-pack ownership rule*:
+  it creates competing authorities and synchronization work, and the repository
+  already has evidence that copied taxonomies require parity tooling and drift.
+- **Use only delivery-time integration declarations** — rejected against *keep
+  AgentBundle-specific delivery outside the portable skill contract*: external
+  declarations such as `pack.integrations` can describe installed composition and
+  fallback without polluting portable instructions, but they do not let a
+  workflow recognize other already-authorized organization, repository,
+  framework, architecture, or agent-skills knowledge surfaces by capability.
 
 ## References
 
