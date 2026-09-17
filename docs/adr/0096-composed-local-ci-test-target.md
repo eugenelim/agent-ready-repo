@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-25
+- **Areas:** ci, testing
+- **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** none. Per CONVENTIONS § Cite upward, an ADR does not cite specs;
   the affected frozen and current specs carry the pointer.
 
@@ -21,6 +26,17 @@ offer no ambient selector that can reduce a standalone gate.
 
 **We will make an explicit `test-after-build-check` target the test prerequisite
 of composed local CI while keeping standalone `test` unchanged.**
+
+- **D1:** `test-after-build-check` is the test prerequisite of composed local CI.
+- **D2:** Standalone `test` is unchanged and remains the public complete test
+  gate.
+- **D3:** The composed target depends on a successful `build-check`, acquires the
+  existing test lease once, and runs the existing test recipe.
+- **D4:** The composed target excludes only the mechanically owned shared files,
+  and `build-check` remains the owner of those files.
+- **D5:** No ambient environment or command-line selector can reduce standalone
+  gate coverage.
+- **D6:** Local CI parity dispositions point at the composed target.
 
 The composed target depends on successful `build-check`, acquires the existing
 test lease once, and runs the existing test recipe with only the mechanically
