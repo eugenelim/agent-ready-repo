@@ -159,13 +159,16 @@ counterparts:
   `_strip_inline_comment`, `_strip_shell_noise` and `_pytest_path_args`. Corroboration
   only.
 - `pr_gate_sources(root)` — target → list of (workflow, trigger kind, step,
-  conditional?). Unions three coverage shapes, because T1 measured that coverage
-  arrives in three and an earlier enumeration of two would have rejected five
-  correct entries: a pytest operand of a step, a script path at a command position
+  conditional?). Unions three coverage shapes it can recognise, because T1 measured
+  that an enumeration of two rejected five correct entries: a pytest operand of a step, a script path at a command position
   in a step, and — for a step invoking `make build-check` — every
   `script_step_targets` entry of the gate chain. The first two both fall out of
   `extract_ci_targets`, which already reads paths at invocation positions; the third
-  mirrors `local_targets()`.
+  mirrors `local_targets()`. A fourth shape exists and is deliberately not read: the
+  `run_with_floor` shell function at `build-check.yml:827` passes a suite directory
+  to a subshell that `cd`s and runs bare `pytest`. Not reading it costs nothing
+  because an unrecognised shape fails a true claim rather than passing a false one,
+  and reading it would widen the amendment past its authority.
 - a `check_suites(...)` arm called from `main()` alongside `check(...)`, taking its
   tables as keyword parameters so each self-test case supplies its own.
 
@@ -198,7 +201,7 @@ mechanism before review, and its output is evidence for the ledger, not contract
 
 **Approach:** settle four things the design rests on before any of it becomes module
 code. That `suite_lines`'s lexical enumeration finds every command line of the
-define, and that exactly three carry no path operand. That unioning
+define, and that exactly four carry no path operand. That unioning
 `script_step_targets` reclassifies `tools/test_workspace_status.py` and
 `tools/test_workspace_status_cli.py` from ungated to gated, proving the union is
 load-bearing rather than decorative. That re-classifying `paths-ignore` as
@@ -431,12 +434,15 @@ entry before committing.
   execution became its own criterion. That last repair reinstates round 2's original
   remedy: splitting the two gating criteria, which this plan had overridden with a
   route-to-owner that silently dropped the execution obligation.
-- 2026-09-17: Contract amendment, owner-authorised. T1's probe found AC-0005
+- 2026-09-16: Contract amendment, owner-authorised. T1's probe found AC-0005
   enumerated two coverage shapes where three exist: five `run-test-suite` targets
   are gated only by a script invoked at a command position, so the criterion as
   approved rejected five correct `PR_GATED` entries and made AC-0013
-  unsatisfiable. The criterion now names all three shapes and T2 gains a case for
-  the third. Five review rounds missed this because none separated *how* each
+  unsatisfiable. The criterion now names the three shapes corroboration
+  recognises, stated as recognised rather than exhaustive: reviewing the amendment
+  found a fourth, `build-check.yml:827`'s `run_with_floor` wrapper, whose two
+  directories are not roster targets. T2 gains a case for the third shape. Five
+  review rounds missed the original omission because none separated *how* each
   target was matched; only running the extractor per shape exposed it. Authority:
   `notes/owner-decisions.md`; evidence: `notes/verification-ledger.md`.
 - 2026-09-16: Deletion pass before approval cut one criterion. The rejected-

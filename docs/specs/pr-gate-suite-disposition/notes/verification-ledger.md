@@ -4,7 +4,7 @@ Execution observations for this delivery. Not hash-pinned, so an observation
 recorded here needs no contract amendment; a genuine specification error does,
 and one is recorded below.
 
-## T1 — enumeration and corroboration probe (2026-09-17)
+## T1 — enumeration and corroboration probe (2026-09-16)
 
 Throwaway probe, not committed, run through `tools/lint-ci-parity.py`'s own
 parsers via `tools/selftest_harness.py`'s loader so the measurement uses the
@@ -103,3 +103,20 @@ unsatisfiable. The two criteria contradict each other as frozen.
 The omission is in the criterion's enumeration, not in the module: the forward
 gate already reads non-pytest gates at invocation positions, which is how the
 existing `STEP_DISPOSITION` corroboration covers the same five scripts locally.
+
+Verified after amending: under the three-shape definition all five classify
+`PR_GATED` and the 56/6/52 split is unchanged, so AC-0013 is reachable.
+
+### A fourth shape exists, and is deliberately unread
+
+Review of the amendment found that `build-check.yml:827`'s `run_with_floor` shell
+function takes a suite directory as an argument, `cd`s into it and runs bare
+`python -m pytest`. The suite is neither a pytest operand nor a script at a command
+position, and no `make build-check` is involved. Its two directories —
+`packs/catalogue-curation/tests/skills/assimilate-primitive` and
+`.../assimilate-repo` — are not `run-test-suite` targets, so no roster entry
+depends on it.
+
+The criterion therefore states three *recognised* shapes rather than an exhaustive
+three. The direction is safe: an unrecognised shape makes corroboration fail a true
+`PR_GATED` claim, a false alarm, never a false pass.

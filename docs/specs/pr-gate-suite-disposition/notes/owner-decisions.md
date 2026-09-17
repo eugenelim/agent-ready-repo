@@ -4,7 +4,7 @@ Stable record of scope-owner decisions for this delivery. Referenced by
 `loop-engine contract-amendment --owner-authority-ref`, which requires a
 repository path: a conversation is not a reference.
 
-## 2026-09-17 — Contract amendment approved: AC-0005 omits a coverage shape
+## 2026-09-16 — Contract amendment approved: AC-0005 omits a coverage shape
 
 **Decision.** Amend AC-0005 so its definition of "reaches" enumerates all three
 shapes in which pull-request coverage arrives. Owner authorised the controlled
@@ -25,6 +25,12 @@ five targets and their `build-check.yml` lines, is in
 2. a script path at a command position in that step; and
 3. any target `tools/repo/build_gate_chain.py` runs, when the step invokes
    `make build-check`.
+
+These are stated as the shapes corroboration **recognises**, not as an exhaustive
+account of how a step can run a suite. Review of the amendment found a fourth —
+the `run_with_floor` shell wrapper at `build-check.yml:827` — whose two
+directories are not `run-test-suite` targets. Teaching the check to read shell
+wrappers is explicitly **outside** this amendment's authority.
 
 **Why this shape and not a re-disposition.** Dispositioning the five as
 `PR_GATED_IF` was considered and rejected by the owner: those five do run on every

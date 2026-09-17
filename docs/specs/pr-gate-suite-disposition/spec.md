@@ -200,11 +200,13 @@ eight take the modes named below.
   carrying `continue-on-error` or an `if:` condition.
 - [ ] **AC-0005.** `tools/lint-ci-parity.py` exits 1, naming the suite, when a
   `PR_GATED` entry names a suite that no step of any workflow under
-  `.github/workflows/` with an unfiltered `pull_request` trigger reaches. A step
-  reaches a suite in exactly three shapes: the suite is a pytest operand of that
-  step; the suite is a script path at a command position in that step; or the suite
-  is a target `tools/repo/build_gate_chain.py` runs and the step invokes
-  `make build-check`.
+  `.github/workflows/` with an unfiltered `pull_request` trigger reaches, where
+  corroboration recognises three shapes: the suite is a pytest operand of that step;
+  the suite is a script path at a command position in that step; or the suite is a
+  target `tools/repo/build_gate_chain.py` runs and the step invokes
+  `make build-check`. These are the shapes the check recognises, not every shape a
+  step can run a suite in — an unrecognised shape makes corroboration fail a true
+  `PR_GATED` claim, which is a false alarm and never a false pass.
 - [ ] **AC-0006.** `tools/lint-ci-parity.py` exits 1, naming the covering step, when a
   `NO_PR_GATE` entry names a suite that a workflow with an unfiltered
   `pull_request` trigger does reach.
@@ -242,6 +244,16 @@ eight take the modes named below.
   `PR_GATED_IF` stating that condition. Whether the repository's largest suite
   should have an unconditional gate is a cost decision outside this spec. Owner:
   repository maintainer.
+
+- A `build-check.yml` step can run a suite in a shape corroboration does not
+  recognise. The live instance is the `run_with_floor` shell function
+  (`build-check.yml:827`), which takes a suite directory as an argument, `cd`s into
+  it and runs bare `python -m pytest`; its two directories,
+  `packs/catalogue-curation/tests/skills/assimilate-primitive` and
+  `.../assimilate-repo`, are not `run-test-suite` targets, so no entry depends on
+  it today. Teaching corroboration to read shell wrappers is a separate change
+  needing its own authority, not part of this amendment. Owner: repository
+  maintainer.
 
 ## Assumptions
 
