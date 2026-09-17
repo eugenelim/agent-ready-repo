@@ -195,3 +195,57 @@ deferred. This is the companion-staleness class the spec's review rounds
 diagnosed, now reproducing inside implementation at roughly one instance per
 task. A reviewer should expect more of it and treat each as residue of the known
 class, not as a new defect class.
+
+## Owner waiver — one `Makefile` line, 2026-09-17
+
+**§ Boundaries § Never do** confines this change to a path list that does not
+name `Makefile`. T9 adds one line to it, inside `run-test-suite`:
+
+```
+$(PYTHON) -m pytest packs/experience-design/tests/pack/ -q
+```
+
+**Measured, both directions.** Without the line,
+`tools/lint-pack-test-boundary.py` exits 1: "packs/experience-design/tests/pack
+holds a suite that no runner names. Wire it, or add it to `_NO_RUNNER` with the
+reason — a suite nobody runs must be declared, not discovered." With it, 0.
+
+The two alternatives are worse. `_NO_RUNNER` lives inside the lint, so taking
+that route is editing a lint to pass a gate — which this spec also forbids —
+and it would declare the suite permanently ungated. Leaving it unwired ships a
+suite that stays green by never executing.
+
+**Owner decision.** The owner was shown the boundary text, the measured exit
+codes, and two alternatives — moving both tests to `tests/roster/`, which is
+inside the allowed list but stops them shipping with the pack, and amending the
+spec's path list, which re-opens approval and forces a cohort reset. The owner
+chose to keep the line under this waiver.
+
+Recorded here rather than in `spec.md`: the spec is hash-pinned by the cohort
+and takes Status-line pointers only. No obligation changes; one path is added
+to what the change may touch.
+
+## Execution observation — the 0116 ordinal collision, 2026-09-17
+
+T9's gate run surfaced a red this change had created: `docs/adr/` held both
+`0116-creative-direction-...md` and `0116-direction-folder-name-dataset.md`,
+and `tests/roster/test_decision_record_ordinal_uniqueness.py` fails on any
+ordinal held by two regular files. T12 introduced it by giving the dataset the
+ADR's own ordinal.
+
+It mattered beyond tidiness because T10 wires the roster suite into CI, so the
+red would have been wired in rather than found.
+
+Repaired at `0f6debfde` by moving the dataset to `docs/adr/0116-notes/`, the
+`<ordinal>-notes/` directory convention already used by more than ten records
+in `docs/rfc/` and the mechanism the guard is built around — it skips entries
+that are not regular files.
+
+**Two findings worth carrying.** First, the guard's diagnostic prints the word
+"companion" next to shared ordinals, which reads as though a companion
+exemption exists for files; it does not, and that wording invited the original
+mistake. Second, the roster suite was red before this change touched it in one
+other place — `tools/test_local_ci_shared_test_deduplication.py` fails three
+tests on a clean tree, verified by reverting the Makefile line and re-running.
+That one is not this change's to fix, but T10 should not be read as wiring a
+green suite.
