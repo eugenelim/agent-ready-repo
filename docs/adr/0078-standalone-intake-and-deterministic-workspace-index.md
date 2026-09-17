@@ -1,9 +1,14 @@
 # ADR-0078: Standalone intake with an artifact-backed workspace index
 
-- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — the minimum Core intent fields; workspace indexing and dispatch rules stand)
+- **Status:** Accepted
 - **Date:** 2026-08-09
+- **Areas:** workspace, shaping
+- **Reversibility:** low
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** ADR-0098 D6; ADR-0092
 - **Related:** [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md),
   [ADR-0030](0030-consolidated-pack-output-layout-contract.md),
   [ADR-0051](0051-workspace-toml-toml-format-and-main-branch-coordination.md),
@@ -60,6 +65,43 @@ to find, sequence, display, and reconcile them.
 intent contract in that shared layer, and treat `workspace.toml` as a
 deterministic index over canonical artifacts rather than as a requirements
 store.**
+
+- **D1:** `work-intake` is the standalone core entry point and exposes exactly
+  four adopter intents: start or do this, remember this for later, where are we,
+  and refresh this from the source.
+- **D2:** A refresh request whose artifact has no configured refresh processor
+  fails closed rather than degrading to a generic synchronization.
+- **D3:** The router is part of core and depends on no optional discovery,
+  prioritization, or shaping pack.
+- **D4:** Optional workflows may enrich the same artifacts by reference but may
+  not redefine their shared fields, identity, classification, or lifecycle
+  semantics.
+- **D5:** `capture-work` becomes a temporary compatibility alias rather than a
+  second permanent intake meaning.
+- **D6:** Core owns the minimal intent contract, which contains `Status`,
+  `Level`, `Outcome`, `Opportunity`, `Assumptions`, and `Source`, and whose
+  shared lifecycle is Draft, Accepted, Fulfilled, or Superseded.
+- **D7:** Shared intake resolves its output parent through ADR-0030's
+  `agentbundle-layout.toml` as a `[core]` consumer, defaults to `docs/product`,
+  and refuses a resolved parent outside the repository.
+- **D8:** Every target-state workspace lifecycle entry records exactly `path`,
+  `kind`, `source`, `summary`, and `needs`.
+- **D9:** The canonical artifact owns requirements, detailed source authority,
+  acceptance decisions, and closure evidence, while `workspace.toml` owns local
+  lifecycle membership and the minimal routing and display index.
+- **D10:** Comments, `summary`, list order, nearby prose, tracker vocabulary,
+  and previous-session memory carry no routing, readiness, dependency, or
+  processor meaning.
+- **D11:** Missing artifacts or plans, unsafe paths, mismatched brief/spec
+  links, duplicate membership, unknown kinds, malformed entries, unresolved
+  source conflicts, and impossible lifecycle transitions are reconciliation
+  findings, and readers fail closed rather than reconstructing a contract from
+  comments.
+- **D12:** An entry is dispatchable only when it appears exactly once in an
+  active initiative's work queue, names an existing Approved spec and sibling
+  plan, has consistent source and brief provenance, carries no reconciliation
+  finding or unresolved refresh conflict, and has every typed hard dependency
+  satisfied.
 
 `work-intake` exposes four adopter intents:
 
