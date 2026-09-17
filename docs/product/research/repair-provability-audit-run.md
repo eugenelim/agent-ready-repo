@@ -215,14 +215,103 @@ and it is now measured rather than asserted.
 cases falling inside the sampled regions. A confirmatory sample drawn from P3's
 own 147 would close that gap. Nothing else blocks freezing the population.
 
+## P3 confirmed on its own selection, and the oracle phase scoped
+
+Two independent workers, one per task.
+
+### P3's precision on a fresh draw from its own 147: 14 of 16
+
+The erratum's ~95% figure rested on 21 cases that happened to fall inside
+regions sampled for other predicates. A confirmatory sample of **16 commits
+drawn from P3's own selection**, none previously labelled, spread across all
+four strata (5 source+test, 4 source only, 4 test only, 3 docs only), returns
+**14 yes / 2 no — 87.5% precision**.
+
+That is lower than 95% and it is the figure to carry. On a sample of 16 the
+interval is wide, so treat 87.5% as a point estimate, not a tight bound.
+Applied to the population: 147 selected, **roughly 129 true repair events**,
+against the design's 113.
+
+The two false positives name their own classes, and both are excludable if
+precision needs to rise:
+
+| Commit | Why it is not a repair event |
+| --- | --- |
+| `bd7d9030b` | fixes a self-found guard defect before the next review — no review round to answer |
+| `de6d4aac0` | reconciles backlog lifecycle state against already-completed work |
+
+**P3 is fit to freeze as the population predicate.** It is determinate, it
+reproduces the design's strata shares within 4.4 points, and its precision is
+now measured on its own selection rather than inferred from a neighbouring one.
+
+### The oracle phase costs adjudication, not compute
+
+Five `source + test` cases were scoped without running anything. The result
+corrects a cost assumption this run recorded earlier.
+
+**The environment is cheap.** None of the five needs an editable install, a
+build step or generated inputs. Python 3.11+, pytest, git, Bash and PyYAML
+cover all five; the tests build their own temporary git repositories. The
+expensive part is not reconstructing an environment — it is deciding, per case,
+what the adjudicated source repair actually was.
+
+| Case | Estimate | Dominant cost |
+| --- | ---: | --- |
+| `00df54200` | 25 min | three mirrored copies of the hunk |
+| `b1e7d6864` | 20 min | simple revert, but the failure is structural |
+| `3546f2c28` | 45 min | compound repair, fixture/source attribution |
+| `5ae6efe67` | 50 min | determining whether a semantic oracle exists at all |
+| `90cb9426e` | 75 min | two independent repairs, one Windows-only |
+
+About **43 minutes per case**, so **roughly 38 sequential hours for 53 cases**,
+with a 30-50 hour band depending on how many commits are compound.
+
+**Three validity threats, ranked by the scoping worker:**
+
+1. **Wrong unit of repair.** A compound commit can carry a controlled defect and
+   an uncontrolled one. One failing test then makes the whole commit read as
+   controlled. `3546f2c28` and `90cb9426e` both have this shape.
+2. **Structural false positives.** Digest pins, changed reason strings, shared
+   fixtures and mirrored projections can all fail without exercising the
+   dispatched defect.
+3. **Historical environment drift.** Python and Bash versions, symlink
+   permission and Windows `icacls` can leave R red or silently skip the path.
+
+**A harness requirement found by inspection.** In `00df54200` and `b1e7d6864`
+the repaired hunk is byte-identical in three locations — `.agents/skills/`,
+`.claude/skills/` and `packs/core/.apm/skills/`. The test exercises the
+`packs/core/.apm` copy. **Reverting one copy leaves the tested copy repaired and
+scores the case `survives` when the control would in fact have fired.** Any
+oracle harness must revert every mirrored copy, and must assert it did.
+
+**A preview of the result, and a caution.** Of the five scoped cases only
+`00df54200` and `3546f2c28` look like clean semantic kills. `b1e7d6864`'s
+co-changed test fails only on a changed reason string, and `5ae6efe67`'s fails
+only on a digest pin — both structural, neither controlling the dispatched
+defect. `5ae6efe67` may have no semantic oracle at all. If that ratio holds, the
+audit's own thesis is visible before any test runs: the co-changed test
+frequently does not control the defect the repair was dispatched against. **That
+is a hypothesis from five inspected cases, not a result.**
+
+### Recommended gate before the full 53
+
+Run three, chosen to span the outcome space rather than to confirm the method:
+`00df54200` (expected semantic kill, validates mirrored-source handling),
+`b1e7d6864` (expected structural kill, tests whether the adjudicator
+distinguishes a changed reason string from the defect), `90cb9426e` (compound
+repair and platform-specific attribution). Add `3546f2c28` and `5ae6efe67` to
+exercise fixture coupling and the `unmeasurable` rule.
+
 ## What has to change before this audit can run
 
 1. **Adopt P3 as the frozen population predicate** (see the erratum): wider
    review vocabulary, commit type not `feat`, repair verb in the subject. It is
-   determinate, ~95% precise, and reproduces the design's strata shares within
-   4.4 points. Confirm it on a sample drawn from its own selection first. Delete
-   the design's claim that the round is recorded with counts and severity bands,
-   which its own corpus contradicts.
+   determinate, **87.5% precise on a fresh draw from its own selection**, and
+   reproduces the design's strata shares within 4.4 points. Optionally exclude
+   self-found-defect repairs and lifecycle reconciliation, the two false-positive
+   classes the confirmatory sample named. Delete the design's claim that the
+   round is recorded with counts and severity bands, which its own corpus
+   contradicts.
 2. **State the source / test / docs rule** as part of the frozen design, not as
    an implementation detail.
 3. **State a base rule for squash-merged changes**, which are how roughly three

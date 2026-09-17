@@ -62,12 +62,15 @@ moved it.
    strict reading rejects three of the four cases the design names as its
    selection method. A second round then found a determinate predicate — wider
    review vocabulary, commit type not `feat`, repair verb in the subject — that
-   is about 95% precise against independent labels and reproduces the design's
-   strata shares within 4.4 points, at 147 cases with 53 in `source + test`
-   against the design's 39. **No repair was reverted and no oracle ran, so the
-   audit's question is still unanswered.** It remains first because it is still
-   the measurement everything below it waits on; what it needs next is a
-   confirmatory sample, a stated path rule, and then the oracle phase.
+   is **87.5% precise on a fresh draw from its own selection** and reproduces the
+   design's strata shares within 4.4 points, at 147 cases with 53 in
+   `source + test` against the design's 39. That predicate is fit to freeze. The
+   oracle phase is scoped at roughly 43 minutes per case — about 38 hours for the
+   53 — with the cost in per-case adjudication rather than environment
+   reconstruction. **No repair was reverted and no oracle ran, so the audit's
+   question is still unanswered.** It remains first because it is still the
+   measurement everything below it waits on; what it needs next is a stated path
+   rule and a three-case oracle gate.
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then
