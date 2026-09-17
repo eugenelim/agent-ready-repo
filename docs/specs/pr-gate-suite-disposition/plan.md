@@ -1,7 +1,7 @@
 # Plan: PR-gate suite disposition
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/lint-ci-parity.py` (the forward gate this extends,
   and the source of the roster-anchor/extraction-corroboration pattern);
   `tools/test-lint-ci-parity.py` (the self-test route, 143 existing cases run from
@@ -166,7 +166,7 @@ counterparts:
   `_strip_inline_comment`, `_strip_shell_noise` and `_pytest_path_args`. Corroboration
   only.
 - `pr_gate_sources(root)` — target → list of (workflow, trigger kind, step,
-  conditional?). Unions three coverage of the four coverage sources it recognises, because T1
+  conditional?). Unions the four coverage sources it recognises, because T1
   measured that an enumeration of two rejected five correct entries: a pytest operand of a step, a script path at a command position
   in a step, and — for a step invoking `make build-check` — every
   `script_step_targets` entry of the gate chain. The first two both fall out of
@@ -230,38 +230,29 @@ the *Repository anchors* uncertainty is closed or converted into a task.
 
 **Tests:** one self-test case per violation string, each supplying its own roster,
 Makefile text and workflow mapping as keyword arguments:
-- a define line one of whose targets carries no entry, where the operands parse —
-  and specifically a line whose OTHER targets are dispositioned, since inheriting
-  a sibling's entry is the failure this criterion exists to catch (AC-0001)
-- a define line with no path operand at all — the `npm run test:plugins` shape,
-  which is the case a target-keyed roster misses entirely (AC-0002)
-- a define line passing a variable expansion to pytest beside a literal target,
-  so the opaque operand cannot ride free on its neighbour's entry (AC-0002)
-- a define line that is `@`-prefixed and carries a suite after a `&&`, which a
-  syntactic `@` drop would hide (AC-0001)
-- a define line that is a `#` comment containing `$(shell ... pytest ...)`, and
-  the same in `${...}` brace form, both of which GNU Make expands and runs
+- a define line resolving to no entry, where the line's operands parse (AC-0001)
+- a define line resolving to no entry, where the line has no path operand at all —
+  the `npm run test:plugins` shape, which is the case a target-keyed roster misses
   (AC-0001)
-- an entry resolved by no define line (AC-0003)
+- a define line resolving to no entry where the line is `@`-prefixed and carries a
+  suite after a `&&`, which is the case a syntactic `@` drop would hide (AC-0001)
+- a define line resolving to no entry where the line is a `#` comment containing
+  `$(shell ... pytest ...)`, which a content-blind comment drop would hide even
+  though Make expands and runs it (AC-0001)
+- an entry resolved by no define line (AC-0002)
 - `PR_GATED` naming a `paths`-filtered workflow, and one naming a
-  `paths-ignore`-filtered workflow (AC-0004)
+  `paths-ignore`-filtered workflow (AC-0003)
 - `PR_GATED` naming a step carrying `continue-on-error`, and one naming a step
-  carrying `if:` (AC-0005)
-- `PR_GATED` whose suite no extracted step reaches (AC-0006)
+  carrying `if:` (AC-0004)
+- `PR_GATED` whose suite no extracted step reaches (AC-0005)
 - `PR_GATED` satisfied *only* through `build_gate_chain.py` coverage, which fails if
-  that arm of the union is dropped (AC-0006)
+  that arm of the union is dropped (AC-0005)
 - `PR_GATED` satisfied *only* through a script invoked at a command position —
   `python3 tools/test-pages-workflow.py` is the live shape — which fails if
-  corroboration demands a pytest operand (AC-0006). Five real entries depend on
+  corroboration demands a pytest operand (AC-0005). Five real entries depend on
   this arm; T1 found the approved criterion had omitted it.
-- `NO_PR_GATE` whose suite an unfiltered workflow does reach (AC-0008)
-- a declared exception on a step whose name is DUPLICATED in its workflow, which
-  must contribute nothing: otherwise the duplicate inherits every declared
-  target and attaches its own `if:` state to phantom coverage (AC-0007)
-- the declared paths against the named step's own `run`, and that body's digest,
-  because subset agreement catches a removed path but never an added one and an
-  added loop path is invisible to extraction by definition (AC-0007)
-- `NO_PR_GATE` and `PR_GATED_IF` with whitespace-only reasons (AC-0009)
+- `NO_PR_GATE` whose suite an unfiltered workflow does reach (AC-0006)
+- `NO_PR_GATE` and `PR_GATED_IF` with whitespace-only reasons (AC-0007)
 
 **Approach:** add the constructors, `suite_lines`, `line_targets`, `pr_gate_sources`
 and `check_suites`, then populate the roster from T1's output and review every entry
@@ -280,14 +271,14 @@ the `NO_PR_GATE` targets as dispositioned rather than as violations.
 **Tests:** one case building a fixture root — a `Makefile` with a `run-test-suite`
 define carrying an undispositioned line, plus a minimal `.github/workflows/` — and
 invoking the module's command entry point, asserting exit 1 and the AC-0001 violation
-string (AC-0010).
+string (AC-0008).
 
 **Approach:** every T2 case calls `check_suites` directly, so all of them stay green
 if the arm is never wired into `main()`. This case is the one that reddens when the
 gate is disconnected rather than broken. It is a separate task because it verifies
 the wiring, not the rule, and T6 void-probes it as its own arm.
 
-**Done when:** AC-0010 holds, and deleting the `check_suites(...)` call from
+**Done when:** AC-0008 holds, and deleting the `check_suites(...)` call from
 `main()` reddens this case while leaving every T2 case green — recorded in the
 ledger.
 
@@ -322,23 +313,23 @@ not establish about pull-request coverage.
 **Tests:**
 - `python3 tools/lint-ci-parity.py` exits 0, which fails if either new step lacks a
   `STEP_DISPOSITION` entry (existing forward arm, unchanged) or if either suite's
-  entry still reads `NO_PR_GATE` (AC-0008's arm)
+  entry still reads `NO_PR_GATE` (AC-0006's arm)
 - `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py -q` stays
   green, confirming a workflow-only change moves neither plan digest
-- each new step invokes pytest on its suite, read off `build-check.yml` (AC-0011,
-  AC-0013), and each suite's roster entry reads `PR_GATED` naming that step
-  (AC-0012, AC-0014) — four checks, because a step present with no roster change and
+- each new step invokes pytest on its suite, read off `build-check.yml` (AC-0009,
+  AC-0011), and each suite's roster entry reads `PR_GATED` naming that step
+  (AC-0010, AC-0012) — four checks, because a step present with no roster change and
   a roster change with no step are different failures with different remedies
 - `python3 tools/lint-ci-parity.py` exits 0 against the repository with every
-  recipe line of the define dispositioned (AC-0015) — this is the task that
+  recipe line of the define dispositioned (AC-0013) — this is the task that
   completes it, because T2 lands the roster and T5 lands the last two entries
 
 **Approach:** add two `gate-main` steps, their `STEP_DISPOSITION` entries as
 `LOCAL("test-after-build-check")`, and flip both `SUITE_DISPOSITION` entries to
 `PR_GATED` naming the new steps. Neither step may carry `if:` or
-`continue-on-error`, or AC-0005's arm rejects the claim it is meant to support.
+`continue-on-error`, or AC-0004's arm rejects the claim it is meant to support.
 
-**Done when:** AC-0011 through AC-0014 hold — each step invokes pytest on its suite
+**Done when:** AC-0009 through AC-0012 hold — each step invokes pytest on its suite
 and each roster entry reads `PR_GATED` naming that step — and the lint corroborates
 both entries.
 
@@ -399,6 +390,57 @@ than by omission. Check the four-revision window for a merge resurrecting a reti
 entry before committing.
 
 **Done when:** the entry is closed and no `[backlog].open` entry restates it.
+
+### T9: Carry the review rounds' added obligations
+
+**Depends on:** T2, T3, T5
+
+**Touches:** `tools/lint-ci-parity.py`, `tools/test-lint-ci-parity.py`
+
+Five post-gates review rounds added obligations to work T2, T3 and T5 had already
+completed. Their sections are pinned and cannot be edited — a correction to a
+completed task is a new dependency-ordered task — so this one carries the delta,
+and lists their files in its own `Touches` so the delta reaches their output.
+Their sections still read as they did at completion; that is a record, not a
+live claim.
+
+**Tests:**
+- every target on a line carries its own entry, asserted with a line whose OTHER
+  targets are dispositioned, since inheriting a sibling's entry is the failure
+  (AC-0001)
+- a line the module cannot resolve to literal paths carries a substring entry:
+  the no-path-operand shape, and a variable expansion beside a literal, in bare,
+  quoted and path-composed forms (AC-0002)
+- a `#` recipe comment is retained when it holds any `$`, in `$(...)` and
+  `${...}` form, because GNU Make expands and runs either (AC-0001)
+- `PR_GATED` on a `paths`- or `paths-ignore`-filtered workflow, and on a step or
+  job carrying `if:` by KEY PRESENCE, since `if: false` loads as Boolean false
+  (AC-0004, AC-0005)
+- a declared exception contributes nothing when its step name is duplicated
+  across two jobs, and every exception's step body and declared tuple are pinned
+  against an `_EXCEPTION_PINS` manifest asserted to cover exactly the
+  declaration's keys (AC-0007)
+- `NO_PR_GATE` contradicted by ANY source, conditional or not (AC-0008)
+- an unresolved path-shaped entry keeps the dead-entry remedy rather than being
+  told to become a substring key (AC-0003)
+- `python3 tools/lint-ci-parity.py` exits 0 against the repository with every
+  target dispositioned, which the restored T5 section names by its pre-amendment
+  number and so no longer resolves from there (AC-0015)
+- the entry-point case still reddens when `check_suites` is unwired from
+  `main()`, named here because T3's restored section carries the old number
+  (AC-0010)
+- `tools/test_local_ci_shared_test_deduplication.py`'s entry reads `PR_GATED`
+  naming its `build-check.yml` step, which T5's restored section names by its
+  pre-amendment number (AC-0014)
+
+**Approach:** the obligations above are already implemented and probed; this task
+exists so the contract records them against a live task rather than inside a
+frozen section. The substantive decisions it carries are in
+`notes/owner-decisions.md` and the evidence in `notes/verification-ledger.md`.
+
+**Done when:** AC-0001 through AC-0008 hold, `python3 tools/test-lint-ci-parity.py`
+passes, and each arm's removal reddens a named case as the ledger's mutation
+tables record.
 
 ## Rollout
 

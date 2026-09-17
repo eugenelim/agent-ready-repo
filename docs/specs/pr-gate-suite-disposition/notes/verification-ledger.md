@@ -794,3 +794,35 @@ of my own claims were refuted by them:
 Every one was a claim about scope or guarantee stated wider than the work
 supported. The reviews did not find much wrong with the mechanism I built; they
 found a great deal wrong with what I said about it.
+
+## Contract bookkeeping: a completed section cannot absorb a later round
+
+`approve-plan` refused the amended baseline with *"completed task section
+changed: T2, T3, T5"*. Rounds 4 and 5 had added test cases and renumbered AC
+references inside task sections the amendment had already pinned, and the
+contract is explicit: a completed task section cannot be edited, and a correction
+is a new dependency-ordered task.
+
+Recovery, in the contract's own terms rather than by loosening it:
+
+1. Those three sections were restored byte-for-byte to their pinned content.
+   They now read as they did at completion — a record, not a live claim.
+2. **T9** carries the delta, and lists T2/T3/T5's files in its own `Touches` so
+   the correction reaches their output.
+3. Restoring the sections re-orphaned three criteria whose only task reference
+   was the pre-amendment number inside them (AC-0010, AC-0014, AC-0015).
+   `lint-contract-item-alignment` caught all three; T9 adopts them explicitly and
+   says why.
+
+Then a sequencing error of mine: `approve-plan` ran *before* T9 was added, so
+`schedule` re-pinned a plan the approval had not seen. The tool's own diagnostic
+prescribes the recovery — a cohort-only reset, never an engine reset, since
+`plan-locked` is legal only from `SPEC-PLAN-APPROVED` and the engine has no
+state-setting verb. Run in the documented order, with both statuses reading
+`Approved` first.
+
+That reset **is a re-approval in substance**, and it discarded the cohort's
+amendment history, completed-task state and retry counters. The owner had just
+approved the amended spec and plan, so the re-approval is substantively
+authorised rather than assumed — but the discarded history is a real loss, and
+the amendment record survives only here and in `notes/owner-decisions.md`.
