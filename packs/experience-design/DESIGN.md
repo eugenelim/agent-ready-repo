@@ -137,7 +137,7 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 | `tone-of-voice` | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
 | `copy-direction` | Content brief + tone-of-voice brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
 | `user-flow` | Journey + content brief | Screen inventory, transitions, per-screen briefs | Which screens exist, what state each handles, how they connect |
-| `service-blueprint` | Journey + screen flow | Blueprint (frontstage / backstage / support) | What services back each screen action |
+| `service-blueprint` | Journey + screen flow | Blueprint (evidence of service / frontstage / line of visibility / backstage / support) | What services back each screen action |
 | `process-mapping` | Internal workflow | As-is / to-be process (SIPOC, swimlane, pain register) | What the internal operations look like, where waste is |
 | `design-principles` | Journey insights | 3–5 named principles with arbitration tests | The decision rules that hold screens to a shared standard |
 
