@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-16
 - **Decision-makers:** eugenelim
-- **Related:** [`docs/specs/design-output-addressing/spec.md`](../specs/design-output-addressing/spec.md) — the spec this ADR satisfies; [`0116-direction-folder-name-dataset.md`](0116-direction-folder-name-dataset.md) — the reproducible dataset this ADR cites
+- **Related:** [`docs/specs/design-output-addressing/spec.md`](../specs/design-output-addressing/spec.md) — the spec this ADR satisfies; [`0116-notes/direction-folder-name-dataset.md`](0116-notes/direction-folder-name-dataset.md) — the reproducible dataset this ADR cites
 
 ## Decision summary
 
@@ -41,7 +41,7 @@ skill itself never stated.
 The `docs/specs/design-output-addressing/spec.md` acceptance criterion requires
 that the ADR recording `direction/` cite a dataset carrying the queries,
 sampling frame, and inclusion rule needed to reproduce its sample. That dataset
-is [`0116-direction-folder-name-dataset.md`](0116-direction-folder-name-dataset.md).
+is [`0116-notes/direction-folder-name-dataset.md`](0116-notes/direction-folder-name-dataset.md).
 
 Three alternative subfolder names were evaluated: `aesthetic/` (retiring),
 `creative-direction/` (the skill's own name), and `visual-direction/` (a
@@ -135,14 +135,14 @@ skill rename makes `direction/` ambiguous.
 - **Signal:** the `design-output-addressing` spec's acceptance criterion asserts
   that the ADR cites a dataset carrying queries, sampling frame, and inclusion
   rule. The verification gate for that criterion runs against this file and
-  [`0116-direction-folder-name-dataset.md`](0116-direction-folder-name-dataset.md).
+  [`0116-notes/direction-folder-name-dataset.md`](0116-notes/direction-folder-name-dataset.md).
   The declaration test in `packs/experience-design/tests/` asserts the
   `**Writes:**` line carries the declared `direction/<slug>.md` target.
 - **Owner:** the spec author.
 
 ## References
 
-- [`0116-direction-folder-name-dataset.md`](0116-direction-folder-name-dataset.md)
+- [`0116-notes/direction-folder-name-dataset.md`](0116-notes/direction-folder-name-dataset.md)
   — the reproducible dataset: queries, sampling frame, inclusion rule, and
   locally verifiable findings that back the evidence claims in this ADR.
 - [`docs/specs/design-output-addressing/spec.md`](../specs/design-output-addressing/spec.md)
