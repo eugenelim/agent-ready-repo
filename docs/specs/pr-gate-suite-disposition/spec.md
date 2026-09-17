@@ -209,7 +209,12 @@ eight take the modes named below.
   removes the string and reddens a named case. The criterion is stated as the
   differential outcome rather than as the presence of a case, because a case that
   cannot fail satisfies presence.
-- **The recorded defect is retired (AC-0017)** — **goal-based check**.
+- **The recorded defect is retired (AC-0017)** — **goal-based check**, verified by
+  `tests/roster/test_workspace_status_projection.py`'s fail-closed lifecycle case
+  rather than by reading the file. The entry is *removed* rather than moved to
+  `[backlog].closed`: that collection requires the entry's own `path` artifact to
+  carry `Status: Closed` and a `Resolution:`, and this entry's path is a Python
+  module. The disposition trail lives in the spec's Follow-ons and the ledger.
 
 ## Acceptance Criteria
 
@@ -264,9 +269,10 @@ eight take the modes named below.
 - [x] **AC-0016.** For each check arm named in AC-0001 through AC-0010, removing
   that arm from `tools/lint-ci-parity.py` makes `python3 tools/test-lint-ci-parity.py`
   exit non-zero; and so does removing the entry-point call AC-0010 exercises.
-- [x] **AC-0017.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
-  and whose `kind` is `defect` appears once, under `[backlog].closed`, and no
-  `[backlog].open` entry restates it.
+- [x] **AC-0017.** No `workspace.toml` entry whose `path` is
+  `tools/repo/build_gate_chain.py` and whose `kind` is `defect` remains in
+  `[backlog].open`, and the projection reports no fail-closed lifecycle finding
+  for it.
 
 ## Follow-ons
 

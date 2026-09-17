@@ -1172,34 +1172,16 @@ open = [
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
+#
+# Still empty, and the pr-gate-suite-disposition delivery found out why the first
+# time anyone tried to use it: `_append_lifecycle_findings` requires a closed
+# defect's own `path` artifact to carry `Status: Closed` and a `Resolution:` of
+# fixed, declined or superseded. Two open defect entries have `.py` paths, and a
+# code file cannot honestly carry either field, so those defects can be removed
+# but not retired here. Recorded in
+# docs/specs/pr-gate-suite-disposition/notes/verification-ledger.md; settling the
+# convention is its own decision.
 closed = [
-  # Closed by docs/specs/pr-gate-suite-disposition (2026-09-17).
-  #
-  # The fix did NOT land in this entry's own `path`. `tools/repo/build_gate_chain.py`
-  # is untouched; the mechanism is `SUITE_DISPOSITION` in `tools/lint-ci-parity.py`,
-  # chosen because that module is already run by a required pull-request check
-  # (`make build-check` -> the gate chain -> gate-main), so the new check could not
-  # land PR-ungated and instantiate its own root cause. The path stays as written
-  # so a reader arriving from the old reference finds this note.
-  #
-  # Two corrections to what the entry claimed. It named one instance; the measured
-  # count is 52 of 114 targets the `run-test-suite` define runs reached by no
-  # pull-request workflow. And it asked to "derive" the mapping, which the delivery
-  # declined: `lint-ci-parity.py`'s docstring records that making extraction the
-  # trust anchor was defeated four ways in review, so the roster is hand-declared
-  # and extraction only corroborates. The disagreement is recorded in the spec.
-  #
-  # The named instance, `packs/frontend-engineering/tests/`, is now PR-gated, as is
-  # `tools/test_local_ci_shared_test_deduplication.py` -- a second instance the
-  # entry did not know about, showing the gap reached `tools/` construction tests
-  # and not only pack content. Three of its pins were red on `main` from PR #1313
-  # to PR #1339 and no pull request noticed.
-  #
-  # The other 50 stay ungated BY DECLARATION rather than by omission: each carries
-  # a `NO_PR_GATE` reason, and a new `run-test-suite` line now fails the lint until
-  # someone dispositions it. Which of the 50 should become gates is a per-suite
-  # cost decision, recorded as a follow-on in the spec, not a live defect.
-  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Closed: every command the run-test-suite define runs now declares the pull-request check that gates it, or why none does, enforced by SUITE_DISPOSITION in tools/lint-ci-parity.py; the two measured-cheap instances are PR-gated and the rest are declared rather than accidental", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

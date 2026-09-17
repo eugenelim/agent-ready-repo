@@ -944,3 +944,53 @@ What these two merges establish that no probe of mine could:
    title is "so it gates a PR", which is one maintainer hand-auditing one suite's
    pull-request coverage. That is the recall this defect asked to eliminate,
    observed in the wild mid-delivery.
+
+## The register cannot retire a defect whose `path` is a code file (2026-09-17)
+
+The `test-corpus.yml` dispatch — the only run that exercises the
+`run-test-suite` set — failed on shard 4 with a regression from this delivery:
+
+```
+AssertionError: impossible_transition reappeared: ['tools/repo/build_gate_chain.py']
+tests/roster/test_workspace_status_projection.py::RepositoryHealthTests
+  ::test_no_fail_closed_lifecycle_findings
+```
+
+`workspace_status_engine._append_lifecycle_findings` (line 3191) requires a
+`backlog.closed` entry of `kind = "defect"` to have its **own `path` artifact**
+carry `Status: Closed` *and* a `Resolution:` of `fixed`, `declined` or
+`superseded`. Both are parsed from the artifact's text preamble by
+`_metadata_from_root`. This entry's `path` is `tools/repo/build_gate_chain.py`, a
+Python module with no preamble, and none it could honestly gain — writing
+`Status: Closed` into a gate-chain module's docstring would assert that the
+*module* is a closed defect.
+
+Three facts make this a convention gap rather than a local slip:
+
+- **`[backlog].closed` was empty repo-wide.** This delivery was the first to use
+  it, so the rule had never been exercised.
+- **No artifact under `docs/` carries a `Resolution:` field.** There is no shape
+  to copy.
+- **Two open defect entries have `.py` paths**, so the register currently holds
+  defects it cannot retire. The `open` rule is laxer — it objects only if an open
+  defect's artifact reads `Closed` — which is why the entry sat there for months.
+
+The owner's earlier instruction to flag that `tools/repo/build_gate_chain.py`
+"may not be where the fix lands" understated it: the wrong path does not merely
+misdescribe the fix, it **blocks the retirement**. Surfaced, and the owner chose
+to delete the entry outright rather than invent a convention or repoint the
+entry's provenance. `[backlog].closed` returns to empty, carrying a comment that
+records why, so the next person to try does not rediscover it.
+
+AC-0017 was corrected with it: it had asserted the entry appears under
+`[backlog].closed`, which is not merely false now but unreachable.
+
+**The gate's own claim held.** `pytest tests/ -q` is a `run-test-suite` target
+this roster dispositions `PR_GATED` through gate-main, so the PR check would have
+caught this too — the dispatch simply got there first. That is the coverage this
+delivery exists to make legible, working on the delivery itself.
+
+Verification: `test_no_fail_closed_lifecycle_findings` passes; its suite is 25
+passed with 12 subtests; `workspace.toml` parses with `open=151 closed=0`, no
+`build_gate_chain` entry anywhere in the backlog, and main's new telemetry entry
+intact.
