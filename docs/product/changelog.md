@@ -60,6 +60,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.9] — 2026-09-16
+
+### Changed
+
+- **An implementer now looks for an existing solution before it writes a new
+  one.** The "Cut before adding" ladder already told it to search once and reuse
+  what it finds, but nothing at the point of writing code asked it to, and it
+  showed: given a task whose best answer was a helper sitting one module away,
+  it produced byte-identical code whether that helper existed or not. It now
+  takes the search once across the root it was given, reuses a hit that
+  satisfies the outcome, and says what the search turned up every single time —
+  the hit it reused, each candidate it found and why that one did not fit, or
+  that it found nothing. A search nobody hears about cannot be told apart from
+  a search that never happened, which is exactly how this went unnoticed.
+- **A heavier plan than the job needs no longer gets built anyway.** Where the
+  ladder's first sufficient rung is lighter than the route the task body names,
+  the implementer builds the lighter one and records the swap under its
+  deviations. Asked for a configuration class in a new module to satisfy
+  something one function covers, it now writes the function. The task body's
+  `Approach:` is working material an implementer corrects as the work teaches,
+  not a contract — and the `failed` status says so too: it now means no route
+  you can see satisfies `Done when:`, rather than that the named approach did
+  not work. Genuinely necessary structure is untouched: where several callers
+  really do need different settings, the class still gets built.
+- **A declined addition is now weighed against the ladder instead of a
+  one-off reason.** When the loop records what it was tempted to add and chose
+  against, each line names the "Cut before adding" rung that killed it. Where no
+  rung covers the decline — an accepted requirement or a trust-boundary control
+  forbids it — that reason goes in the rung's place rather than a rung being
+  fitted to it after the fact.
+- Frozen cases for all three rules are recorded in `work-loop`'s eval set. They
+  are a behaviour register rather than detection: `work-loop` sits outside the
+  pack's eval coverage list on purpose, so nothing executes them and a
+  regression would not redden them. Their identifiers carry a `register-`
+  prefix to say so.
+
 ## [core][2.26.8] — 2026-09-16
 
 ### Highlights
