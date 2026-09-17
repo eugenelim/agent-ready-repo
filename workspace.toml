@@ -239,6 +239,14 @@ active  = [
   # earlier, narrower draft registered as `four-discipline-walk-execution`, which
   # never reached main. It remains Draft and requires human approval.
   {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
+  # Discharges RFC-0102. Ships the ADR shape lint (fifteen check classes) blocking
+  # over the whole `docs/adr` corpus, the four mutability zones replacing the
+  # retired status-only edit rule, and a `Superseded by:` field the index
+  # generator reads. `source.revision` is omitted deliberately: the recorded
+  # `sha256-bytes-v1` values in this file do not reproduce from their cited
+  # artifacts' current bytes, so a computed one would assert a provenance check
+  # that is not actually performed.
+  {path = "docs/specs/checkable-adr-metadata/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0102-mechanically-checkable-adrs.md"}, summary = "Make an ADR's metadata mechanically checkable and split acceptance's freeze so it binds prose rather than metadata", needs = []},
 ]
 shipped = [
   # S1 of the agent-authoring-input-quality brief, authored 2026-09-17. It
