@@ -64,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.15] — 2026-09-17
+
+### Fixed
+
+- The supervisor-mode parallel-dispatch reference named a disjointness check
+  that does not exist. It now names `dispatch_decision`, states that the
+  function is handed a merge-tree verdict rather than computing one, and says
+  that the verdict's producer is unbuilt — no shipped script runs
+  `git merge-tree`. Reading the old sentence and resolving the missing name to
+  the nearest real symbol inverted the gate's safety property, because that
+  symbol is the advisory glob screen the same page says must never greenlight a
+  parallel wave. The merge step remains the sole authority for disjointness.
 ## [core][2.26.14] — 2026-09-17
 
 ### Highlights

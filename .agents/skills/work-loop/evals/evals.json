@@ -776,6 +776,18 @@
         "Response states the accepted requirement in the rung's place for the decline no rung covers",
         "Response does not fit a rung to a decline no rung explains"
       ]
+    },
+    {
+      "id": "dispatch-decision-consumes-a-merge-tree-verdict",
+      "prompt": "In the supervisor-mode parallel path, does `dispatch-decision` establish that a wave's branches are file-disjoint? Explain what it checks.",
+      "expected_output": "No. `dispatch_decision(categories, merge_tree_clean=...)` consumes a merge-tree verdict its caller supplies; it does not compute one. No shipped script runs `git merge-tree`, so the producer of that verdict is unbuilt and the preview cannot establish disjointness. The merge-tree check enforced at the merge step, where `git merge --no-ff` aborts on any collision, stays the sole authority.",
+      "assertions": [
+        "Says `dispatch_decision` consumes a merge-tree verdict rather than computing one",
+        "Says no shipped script invokes `git merge-tree`, so that producer is unbuilt",
+        "Keeps the merge step as the sole authority for disjointness",
+        "Does NOT claim a `wave_is_disjoint` check exists",
+        "Does NOT treat the preview as a greenlight for parallel dispatch"
+      ]
     }
   ]
 }
