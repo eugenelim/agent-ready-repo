@@ -71,11 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Four design skills now write where you point them.** `creative-direction`,
   `design-principles`, `information-architecture` and `design-system` each
   declare one canonical target under the `[design] output_dir` you set in
-  `agentbundle-layout.toml`. Two of them previously wrote to a fixed
-  `docs/design/...` path that ignored your configuration, one invented a
-  location, and `design-system` produced no file at all — it now writes a token
-  taxonomy your frontend work can read instead of re-deriving tokens every
-  session.
+  `agentbundle-layout.toml`. Before this release `design-principles` wrote to a
+  fixed `docs/design/principles/...` path that ignored your configuration,
+  `information-architecture` used a location no skill declared,
+  `creative-direction` named none at all, and `design-system` produced no file —
+  it now writes a token taxonomy your frontend work can read instead of
+  re-deriving tokens every session.
 - **Treat the pack's confinement as a strong default, not a boundary.** Before
   writing, each of the four states the approved output directory, the file it
   read that value from, and the target path it composed. The check that keeps a
