@@ -46,7 +46,7 @@ addopts = "-q"
 # `pytest packages/jsonl-otlp-exporter/` -- pytest picks the nearest configfile
 # and stops. Without this line the whole suite fails collection with
 # `No module named 'jsonl_otlp_exporter'` unless the distribution happens to be
-# installed. `packages/credbroker/pyproject.toml` has the identical table and
-# gets away with it only because credbroker IS pip-installed here; this one is
-# not, so the omission was load-bearing.
+# installed. Both sibling packages had the identical omission and now carry the
+# identical line; `tests/roster/test_package_pytest_pythonpath.py` is what keeps
+# a fourth package from reopening it.
 pythonpath = ["."]

@@ -43,3 +43,13 @@ include = ["credbroker*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# This table SHADOWS the root pyproject's [tool.pytest.ini_options] rather than
+# merging with it, so the root's `pythonpath` does not reach a run invoked as
+# `pytest packages/credbroker/` -- pytest picks the nearest configfile and
+# stops. Without this line `import credbroker` falls through to site-packages,
+# and the suite then reports on the RELEASED copy: it would still catch a
+# regression published in credbroker, and would miss one introduced by the diff
+# under review. `tests/` carries no `__init__.py`, so prepend import-mode
+# inserts `tests/` as the basedir and never the package directory -- nothing
+# else here supplies it.
+pythonpath = ["."]

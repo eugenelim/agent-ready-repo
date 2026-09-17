@@ -561,6 +561,20 @@ jobs:
       - name: pytest core work-loop activation hook (roster-owned)
         run: python -m pytest tests/roster/test_core_work_loop_hook.py
 
+      # package-pytest-pythonpath: each distribution under packages/ carries its
+      # own [tool.pytest.ini_options], which SHADOWS the root table rather than
+      # merging with it, so a suite whose table omits `pythonpath` imports an
+      # installed copy from site-packages and reports on the released package
+      # instead of the tree under test -- or fails collection outright when
+      # nothing is installed. The check runs one real child pytest per package
+      # and asks where the package actually resolved, so it needs every
+      # distribution plus the root pyproject present -- which it cannot get in
+      # packages/agentbundle/tests/, shipped in the sdist and re-run against an
+      # extracted workspace holding only that one package. CI does not
+      # auto-discover roster tests, so keep it explicit.
+      - name: pytest package pytest pythonpath (roster-owned)
+        run: python -m pytest tests/roster/test_package_pytest_pythonpath.py
+
       # shaping-review-contracts: source-agent boundary metadata and the closed
       # shaping-review documentation set are repository-owned contracts. CI does
       # not auto-discover roster tests, so keep both acceptance suites explicit.
