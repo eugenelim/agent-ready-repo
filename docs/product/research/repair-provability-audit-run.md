@@ -401,3 +401,218 @@ nothing about how often repairs ship with a control that can fail. The design's
 `## What this does not measure` section still stands unchanged, and its
 `## Transfer limits` section on the 307 goal-based verification declarations is
 untouched by this run.
+
+## Scale-up attempt, 2026-09-17: the oracle reproduces, the population does not
+
+- **Run date:** 2026-09-17, after PR #1353 merged as `f443b09ff`
+- **Against:** `origin/main` at `9d430418b`, the same revision the earlier
+  sections measure
+- **Verdict:** the three-case oracle gate **reproduces exactly** on an
+  independently rebuilt harness, and both harness requirements are confirmed a
+  second time by observation. **The frozen population does not reproduce.** P3
+  is documented above as 147 commits with 53 in `source + test`; the predicate
+  as stated selects **164 with 58 in `source + test`**, and no reading of it
+  tested here returns 147. So the 50 remaining cases were not drawn, because
+  the denominator of the headline rate is not yet a settled object.
+- **Cost:** zero model calls. Eight pytest runs in a throwaway detached
+  worktree, about 4 minutes of test time. No repository code was changed and no
+  commit was reverted outside that worktree, which was removed afterwards.
+
+### The harness is validated on five numbers it reproduces exactly
+
+The harness was rebuilt from scratch, because the first run retained no scripts.
+Before trusting it against P3, it was calibrated against every precisely stated
+number in the earlier sections. All five reproduce on the nose:
+
+| Claim, as recorded above | Section | Rebuilt harness |
+| --- | --- | --- |
+| P0 selects **130** candidates | Finding 2 | **130** |
+| **14** of the 130 are first-parent-line commits with no base | Finding 5 | **14** |
+| **1,299** first-parent commits | Finding 5 | **1,299** |
+| **340** of them are merges | Finding 5 | **340** |
+| **959** landed with no merge commit | Finding 5 | **959** |
+
+The corrected base rule also turns out to be *unambiguous*, which Finding 6
+argued for but did not measure: across all 340 first-parent merges, **no commit
+falls inside more than one qualifying merge set**. Every merge-landed commit has
+exactly one landing merge, so "earliest qualifying merge" and "the qualifying
+merge" name the same thing. That independently confirms Finding 6's correction.
+
+### The base filter above drops 12 commits it does not account for
+
+Finding 2 reports 130 candidates and **104** with a provable base. Finding 5
+reports that **14** of those 130 are first-parent-line commits which "have no
+base" under the design's rule. Those two statements do not agree: 130 − 14 is
+**116**, not 104.
+
+The rebuilt harness returns 116, and the 14 baseless commits it finds are
+*exactly* the 14 first-parent-line commits — the two sets are identical, not
+merely equal in size. So the arithmetic in Finding 5 reproduces and the headline
+104 in Finding 2 does not. Twelve commits were dropped by something the run
+does not record.
+
+This matters beyond bookkeeping. The same unrecorded step sits upstream of P3,
+so it is the most likely single cause of the 147-versus-164 gap.
+
+### P3's 147 is not reachable from the predicate as stated
+
+The predicate is recorded as: review vocabulary
+(`sustained|refuted|adjudicat\w+|re-review|adversarial review|round[- ]\d+|round \w+`),
+commit type not `feat`, and a repair verb in the subject
+(`repair|close[sd]?|closing|fix(es|ed)?|answer\w*`).
+
+Read faithfully — all seven vocabulary alternatives, case-insensitive, matched
+against the whole message, word-bounded, with the corrected base rule — it
+selects **164**, not 147:
+
+| | Recorded above | Rebuilt harness |
+| --- | ---: | ---: |
+| total | **147** | **164** |
+| source + test | **53** | **58** |
+| source only | 27 | 29 |
+| docs only | 30 | 34 |
+| test only | 37 | 43 |
+
+**1,016 predicate configurations were then tested exhaustively** — every one of
+the 127 non-empty subsets of the seven vocabulary alternatives, crossed with two
+repair-verb anchorings, two match fields (whole message, body below the subject)
+and the base filter on or off. Exactly **10 configurations return 147**. Not one
+of them is the predicate as stated: every one drops at least one vocabulary
+alternative, and they disagree about which.
+
+Adding the strata as a second constraint does not rescue it. Across those 10
+configurations crossed with six path rules, the best fit misses by 2 cases
+(53 / 27 / **31** / **36**) and gets there only by dropping `adjudicat\w+` and
+`re-review` — the two terms that most directly express "adjudicated review
+round", which is the predicate's whole point. No configuration reproduces all
+four strata. Reaching 147 requires mutilating the predicate, and the routes to
+it do not agree.
+
+**This is the same failure the first run found in the design, now in the
+replacement.** Finding 2 withdrew its own claim on the ground that a
+determinate predicate reproducing the design's strata exists. The predicate is
+determinate — a regex always is — but the *recorded counts* do not follow from
+the *recorded predicate*, which is exactly the property that made the design's
+113 unusable. A number that cannot be recomputed from its stated rule is not a
+frozen population, however precisely it is written down.
+
+### The three-case oracle gate reproduces exactly
+
+Every published expectation held, on a harness built without reference to the
+earlier implementation. The runner enforced the protocol mechanically: hard
+reset and clean, detached checkout, **printed and verified `HEAD`**, refusal to
+proceed on a dirty tree, and a per-path assertion that each named mirror
+actually changed.
+
+| Case | Expected | Observed | What decided it |
+| --- | --- | --- | --- |
+| `00df54200` | semantic kill | **semantic kill** | R passed first (23 passed). With all 3 mirrors reverted, the replay returned `1 != 0` and the guard said `review_retry_count 5 has reached max_review_retries 5` — the dispatched defect exactly. 5 of 23 tests failed. |
+| `b1e7d6864` | structural kill | **structural kill** | R passed first (95 passed). The unsafe input stayed rejected: `assertEqual(r.returncode, 2)` still passed. Only the reason changed — `plan_file_outside_root != plan_file_is_symlink`. 1 of 95 failed. |
+| `90cb9426e` | semantic kill on the AST repair | **semantic kill** | R passed first (9 passed). Reverting the walker made the lint report `1 skill(s) scanned, 0 finding(s)` — the fixture was scanned and the banned flags went undetected, so the pass is not a structural skip. |
+
+Because the predicates were frozen before this run and published above, no
+predicate could be written to fit a result. That is the freeze-before-observe
+discipline the gate exists to test, and it held a second time.
+
+### Both harness requirements confirmed again, by observation
+
+**1. Reverting one mirrored copy manufactures a false survivor.** In
+`00df54200` the repaired hunk is byte-identical in `.agents/skills/`,
+`.claude/skills/` and `packs/core/.apm/skills/`. Reverting only `.agents` was
+run as a deliberate control arm: **23 passed, exit 0.** The same suite that
+reports 5 failures when all three mirrors go back reports a clean pass when one
+does. A harness that reverts one copy records `survives` for a repair whose
+control fires.
+
+**2. Scored per repair, `90cb9426e` is one semantic kill and one repair with no
+control at all.** The two repairs were reverted in separate arms:
+
+| Arm | Reverted | Result |
+| --- | --- | --- |
+| A | AST walker only | 1 failure — the dispatched defect |
+| B | ACL/SID matching only | **9 passed, exit 0** |
+| C | both | 1 failure, identical to arm A |
+
+Arm B is the decisive one, and it is stronger evidence than the first run's
+byte-identical comparison. Reverting the Windows ACL repair **on its own** leaves
+the suite entirely green. That repair has no control in this test, and the
+reason is structural rather than incidental: the helper opens with
+`if os.name != "nt": return`, so on POSIX the reverted code never runs. Scored
+per commit the case reads `semantic kill` and the uncontrolled repair vanishes.
+
+**A third unit question surfaced, and it is not yet answered.** `b1e7d6864`
+answers *three* adjudicated findings, not one: the symlink rejection (P1,
+source), the SKILL.md consent language (P2, prose) and a dependency record in a
+new `packs/core/AGENTS.md` (P2, prose). Only the first has a source hunk this
+stratum's oracle can revert. So "one outcome per adjudicated repair" does not by
+itself say what to do with a repair whose oracle lives in a different stratum.
+Counting it as one case understates the commit; counting all three understates
+provability, because two of them were never in scope here. No outcome was
+recorded for those two.
+
+### Outcomes so far, and why they are still not a rate
+
+Scored per repair, the four adjudicated source repairs measured to date:
+
+| Outcome | Count |
+| --- | ---: |
+| semantic kill | 2 |
+| structural kill | 1 |
+| survives | 0 |
+| unmeasurable | 1 |
+| **denominator** | **4 repairs across 3 commits** |
+
+**This is not a rate and must not be read as one.** All three commits were
+hand-picked to span the outcome space, which is the opposite of a random draw.
+The design's own power limit also stands: at n≈39–53 this measurement can
+separate a widespread problem from a rare one and **will not support a threshold
+near 10%**.
+
+### The selection order is frozen now, before any outcome is seen
+
+So that the draw cannot later be reordered to favour a result, the order over
+the `source + test` stratum is fixed and recorded here:
+
+- **Population:** the faithful reading of P3 described above — 164 commits, 58
+  in `source + test`, on `origin/main` at `9d430418b`, committer date on or
+  before 2026-09-11.
+- **Order:** the 58 SHAs sorted, then shuffled with Python `random.Random(20260917)`.
+- **Digest:** `sha256` of the newline-joined order is
+  `10c3aaace43af05a6f1fd62078dc3923752696f3222aec6e45397c441cca5b81`.
+
+The three gate cases land at positions **21, 44 and 50** in that order. They are
+not front-loaded, which is the check that the order was not fitted to the cases
+already scored.
+
+If the owner settles on a different population, the order must be regenerated by
+the same recorded procedure and its digest published before any case is run.
+
+### What blocks the remaining 50
+
+One decision, and it belongs to the owner because it sets the denominator of the
+headline result.
+
+**Which population is frozen?** Three options, best first:
+
+1. **Adopt the faithful reading — 164 commits, 58 in `source + test`.** It
+   recomputes from its stated rule, which is the property 147 lacks. The cost is
+   that the recorded 87.5% precision was measured on a 16-case draw from the
+   147, so it transfers to the 164 by assumption rather than by measurement.
+2. **Recover the missing step.** Twelve commits vanish between Finding 2's 116
+   and its 104, and something similar most likely separates 164 from 147. If
+   that step is recoverable, 147 becomes reproducible and the precision figure
+   keeps its basis.
+3. **Re-derive and re-validate a fresh predicate.** Most defensible, and it
+   repeats work the earlier sections already paid for.
+
+Everything downstream is ready. The oracle discriminates, the runner enforces
+the mirror and clean-tree requirements mechanically, the environment needs only
+Python, pytest, git and PyYAML, and the per-case cost estimate of about 43
+minutes held on all three gate cases.
+
+### Transfer limit on this run
+
+This run measures the instrument and the oracle, not repair provability. It
+establishes that the oracle reproduces and discriminates on a second independent
+implementation, and that the population is not yet reproducible. It says nothing
+about how often repairs ship with a control that can fail.
