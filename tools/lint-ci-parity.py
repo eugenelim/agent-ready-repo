@@ -54,12 +54,78 @@ deliberately *not* a coverage source even though it invokes some of the same
 linters: it runs only under `agentbundle catalogue self-host --windows`, so
 counting it would let a Windows-only invocation certify a macOS `make ci` run.
 
+## The second roster: which pull-request check gates each suite
+
+`STEP_DISPOSITION` above answers "what covers this CI step locally".
+`SUITE_DISPOSITION` answers the opposite question — "which pull-request check
+gates this suite" — for every command the Makefile's `run-test-suite` define
+runs. The two are different claims, and conflating them is the defect it exists
+to prevent: suites reached only inside that define run under `make test` and
+`test-after-build-check`, under neither `make build-check` nor any required
+pull-request check, so a pull request could be green on every check while they
+were red. Measured at 114 targets, 52 of them reached by no pull-request
+workflow at all. `packs/frontend-engineering/tests/` shipped its own guards that
+way.
+
+`tools/lint-pack-test-boundary.py`'s `every-suite-dir-has-a-runner` answers a
+third, narrower question — whether *anything* runs a pack suite, where the
+Makefile counts as a runner. A suite can satisfy that rule and still be gated by
+no pull request, which is exactly how the gap stayed invisible.
+
+**Completeness is anchored on the define's recipe lines, not on extracted
+targets.** `suite_lines` supplies the closed set, and it interprets no command:
+it joins continuations, drops blank lines, drops a `#` line only when it holds no
+`$(`, and strips a leading `@`. Keying the roster on the targets a command yields
+would inherit the extractor's blind spots — a command it cannot read would
+produce no key, demand no entry, and leave the gap silent one layer down.
+
+## What the suite roster does not prove — the residual, stated plainly
+
+Six limits, none of which a clean run rules out.
+
+* **Completeness is extraction-independent at the LINE level, not at the target
+  level.** `suite_lines` interprets no command, so no parser failure removes a
+  recipe line from the roster. But which *targets* a line carries is read by
+  `line_targets`, and a suite the extractor cannot see is caught only by the
+  opaque-operand arm — which is itself extraction. A pytest operand that is
+  neither a literal path nor a recognised expansion would escape.
+* **Corroboration is best-effort in *both* directions**, unlike the forward
+  gate's one-way claim. A false-positive extraction can satisfy a wrong
+  `PR_GATED`; a false-negative one can let a stale `NO_PR_GATE` stand.
+* **Corroboration proves a step names a suite, not that it runs it.**
+  `echo "python -m pytest <suite>"` yields the same operand as a real
+  invocation. A bare `echo <dir>` yields nothing, so a passing mention is
+  excluded, but execution is not established.
+* **`PR_GATED_IF` records a condition nobody evaluates.** A conditionally gated
+  suite may simply not run on a given pull request.
+* **A declared exception (`_SUITE_SOURCE_EXCEPTIONS`) asserts coverage rather
+  than reading it,** and is the one source here that can grant coverage the
+  workflow does not provide. Three things bound it: the named step's name must
+  be unique in its workflow, every listed suite must appear in that step's own
+  `run`, and that body is digest-pinned so any edit reddens a test and obliges a
+  human to re-check. What none of that establishes is that the step *executes*
+  the listed suites — only that the workflow text still says what it said when a
+  human last looked. A parse was built for this shape instead and removed after
+  seven defects in three review rounds, two of them phantom coverage.
+* **A reason is checked for presence, never for truth.** `NO_PR_GATE("todo")`
+  passes the lint. Whether a reason is accurate is a human-review control, and
+  so is whether a `PR_GATED` step's command really executes the suite.
+
+Separately, and not a limit of the roster: `run_with_floor` in `build-check.yml`
+runs two suites through a subshell that `cd`s and runs bare `pytest`. Neither is
+a `run-test-suite` target, so no entry depends on it; were one added, the
+unrecognised shape would fail a *true* claim rather than pass a false one.
+
+Both rosters compare *written* paths. Spell a path in a workflow exactly as the
+define spells it: a parent directory matches neither direction and reports a real
+gate as absent.
+
 Usage:
     python tools/lint-ci-parity.py [--root .]
 
-Exit codes: 0 = every step dispositioned and corroborated, 1 = one or more
-violations, 2 = tool error (workflow or a local gate source unreadable, PyYAML
-absent).
+Exit codes: 0 = every step and every suite line dispositioned and corroborated,
+1 = one or more violations, 2 = tool error (a workflow, the Makefile, or a local
+gate source unreadable, PyYAML absent).
 """
 
 from __future__ import annotations
@@ -235,6 +301,28 @@ def LOCAL(make_target: str) -> tuple[str, str]:
 
 def CI_ONLY(reason: str) -> tuple[str, str]:
     return ("ci-only", reason)
+
+
+def PR_GATED(where: str) -> tuple[str, str]:
+    """Declare a suite reached by an unconditional pull-request check."""
+    return ("pr-gated", where)
+
+
+def PR_GATED_IF(where: str, condition: str) -> tuple[str, str, str]:
+    """Declare a suite reached only when *condition* holds.
+
+    `where` and `condition` stay SEPARATE fields. Joining them into one string
+    broke both checks that read this entry: corroboration compares a source's
+    `where` for equality, which a joined value never matches, so every
+    conditional claim went unverified; and the empty-reason check reads the same
+    value, which a blank condition leaves non-empty, so it could not fire.
+    """
+    return ("pr-gated-if", where, condition)
+
+
+def NO_PR_GATE(reason: str) -> tuple[str, str]:
+    """Declare why a suite has no pull-request gate."""
+    return ("no-pr-gate", reason)
 
 
 STEP_DISPOSITION: dict[str, tuple[str, str]] = {
@@ -452,6 +540,10 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         ),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
+    "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
+    "pytest shared-test dedup guard (pr-gate-suite-disposition)":
+        LOCAL("test-after-build-check"),
     "pytest pack-test compatibility class characterization (ADR-0101)":
         CI_ONLY(
             "deliberately not local: proving isolated-vs-grouped collection "
@@ -557,6 +649,664 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pack description drift backstop + self-test":
         LOCAL("build-check"),
 }
+
+
+# This roster is deliberately written from the expanded `test-unleased` recipe,
+# then reviewed against pull-request workflows.  Its closed set is the recipe
+# lines, not what the parser happens to recognise.
+# ── The inverse roster: one entry per command the define runs ────────────────
+#
+# `STEP_DISPOSITION` above answers "what covers this CI step locally". This one
+# answers the opposite question — "which pull-request check gates this suite" —
+# and the two are not the same claim. `tools/lint-pack-test-boundary.py`'s
+# `every-suite-dir-has-a-runner` rule answers a third, narrower one: whether
+# *anything* runs a pack suite, where the Makefile counts. A suite can satisfy
+# that rule and still be gated by no pull request, which is exactly how
+# `packs/frontend-engineering/tests/` came to ship its own guards PR-ungated.
+#
+# **Completeness is anchored on the define's recipe lines, not on extracted
+# targets.** `suite_lines` supplies the closed set. Keying this roster on the
+# targets a command yields would inherit the extractor's blind spots: a command
+# it cannot read would produce no key, demand no entry, and leave the gap silent
+# one layer down from the defect this exists to close. `npm run test:plugins` is
+# the live proof — a real `node --test` suite that yields no path operand at all.
+#
+#   PR_GATED(where)              a step of an unfiltered, unconditional
+#                                pull-request workflow runs it. Corroborated.
+#   PR_GATED_IF(where, why)      a pull-request workflow runs it, but only
+#                                sometimes — a path filter, or a conditional
+#                                step or job. A weaker claim, stated as one.
+#   NO_PR_GATE(reason)           no pull-request check runs it, and why.
+#
+# Authored from what `pr_gate_sources` concluded, then reviewed entry by entry —
+# the same way `STEP_DISPOSITION` above was built. The lint checks that a reason
+# is *present*; whether it is *true* is a human-review control.
+# The source strings and conditions that many entries share. Written once
+# because the roster wrote them out 21, 6 and 21 times respectively, and a
+# renamed job or step then meant that many synchronised edits plus a flood of
+# identical violations. The KEYS stay explicit per suite — a roster whose keys
+# were also derived would stop being a declaration, which is the property the
+# whole design rests on.
+_PACK_HOOK_LINUX = (
+    "catalogue-tooling-ci-gates.yml / pack-hook-tests / "
+    "Run repo/pack hook suites (Linux)"
+)
+_WHY_PATH_FILTERED = (
+    "its workflow's pull_request trigger carries a path filter, so a pull "
+    "request outside that filter does not run it"
+)
+_WHY_FILTERED_AND_CONDITIONAL = (
+    "its workflow's pull_request trigger carries a path filter and its step or "
+    "job is conditional, so a pull request outside that filter does not run it"
+)
+
+
+SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
+    'packages/agentbundle/tests/':
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / agentbundle-tests / Run full agentbundle test "
+            "suite (Linux)",
+            _WHY_PATH_FILTERED,
+        ),
+    'packages/credbroker/':
+        PR_GATED(
+            "build-check.yml / gate-credbroker / pytest credbroker (RFC-0023 Phase 1)"
+        ),
+    'packages/jsonl-otlp-exporter/':
+        NO_PR_GATE(
+            "Distribution suite for jsonl-otlp-exporter. `make test` runs it; no pull-request "
+            "workflow names it. release-jsonl-otlp-exporter.yml runs on a tag, not a pull "
+            "request."
+        ),
+    'tools/lint-conformance-portability.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/lint-direct-code-table.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/check-docs-contrast.py':
+        PR_GATED(
+            "build-check.yml / gate-main / docs palette contrast gate"
+        ),
+    'tools/test-pages-workflow.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pages.yml deploy-gate posture"
+        ),
+    'tools/test-pages-concurrency.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pages.yml concurrency posture"
+        ),
+    'tests/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/core/tests/hooks/':
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / pack-hook-tests / Run pack hook suites (Windows — "
+            "curated portable subset)",
+            _WHY_PATH_FILTERED,
+        ),
+    'packs/core/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/core/tests/skills/adapt-to-project/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/author-brief/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/core/tests/skills/author-delivery-brief/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/core/tests/skills/bug-fix/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/capture-work/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/close-work/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/contract-acquisition/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/core/tests/skills/intake-intent/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/core/tests/skills/new-spec/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/core/tests/skills/project-knowledge/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/receive-brief/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/work-intake/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/work-loop/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/workspace-status/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/catalogue-curation/tests/pack/':
+        NO_PR_GATE(
+            "Pack suite for catalogue-curation. `make test` runs it; no workflow names it, so it "
+            "reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/catalogue-curation/tests/skills/compile-okf/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the catalogue-curation batch; no workflow "
+            "names it, so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/product-documentation/tests/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/frontend-engineering/tests/skills/frontend-engineering/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest frontend-engineering pack "
+            "suite (pr-gate-suite-disposition)"
+        ),
+    'packs/architect/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/architect/tests/skills/architect-assess/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/architect/tests/skills/architect-design/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the architect batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/architect/tests/skills/architect-review/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the architect batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/credential-brokers/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira/test_intake_policy.py':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/atlassian/tests/skills/flow-metrics/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-brief-intake/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/atlassian/tests/skills/jira-align-brief-intake/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/github/tests/skills/github-brief-intake/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/product-engineering/tests/pack/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/agent-skill-engineering/tests/pack/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/agent-skill-engineering/tests/integration/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/agent-skill-engineering/tests/skills/author_or_update/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/agent-skill-engineering/tests/skills/review_or_optimize/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/linear/tests/skills/linear/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/linear/tests/skills/linear-brief-intake/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the linear batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/converters/tests/skills/markdown-to-html/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest markdown-to-html installed entry-point "
+            "contract"
+        ),
+    'packs/converters/tests/skills/mermaid-renderer/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest mermaid-renderer installed entry-point "
+            "contract"
+        ),
+    'packs/desk-research/tests/skills/desk-research/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/skills/desk-research-project-start/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/pack/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/skills/desk-research-project-check/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/skills/desk-research-project-digest/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/skills/desk-research-project-status/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/skills/desk-research-project-synthesize/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/desk-research/tests/skills/devils-advocate/':
+        PR_GATED_IF(
+            _PACK_HOOK_LINUX,
+            _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'tools/test_build_gate_chain.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest make-free gate chains "
+            "(windows-build-gate-chain)"
+        ),
+    'tools/test_journey_editorial_decisions.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest journey editorial decisions"
+        ),
+    'tools/test_catalogue_tooling_rewire.py':
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / catalogue-repo-rewire / pytest rewire tests",
+            _WHY_PATH_FILTERED,
+        ),
+    'tools/test_catalogue_tooling_docs.py':
+        PR_GATED_IF(
+            "catalogue-tooling-ci-gates.yml / catalogue-repo-rewire / pytest docs contract tests",
+            _WHY_PATH_FILTERED,
+        ),
+    'tools/test_validate_guides.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides + catalogue navigation"
+        ),
+    'tools/test_check_guide_index.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides + catalogue navigation"
+        ),
+    'tools/test_catalogue_navigation.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides + catalogue navigation"
+        ),
+    'tools/test_documentation_entry_links.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides + catalogue navigation"
+        ),
+    'tools/test_build_site_link_rewrites.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest site build + link rewriting"
+        ),
+    'tools/test_check_rendered_site_links.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest site build + link rewriting"
+        ),
+    'tools/test_build_site_routing.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest site build + link rewriting"
+        ),
+    'tools/test_check_docs_contrast.py':
+        PR_GATED(
+            "build-check.yml / gate-main / docs palette contrast gate"
+        ),
+    'tools/test_build_site_inventory.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_build_site_projection.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_build_site_sidebar.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_browser_gate_subset.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest site build + link rewriting"
+        ),
+    'tools/test_stasis_retirement_claims.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest stasis-stop retirement claims"
+        ),
+    'tools/test_local_ci_shared_test_deduplication.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest shared-test dedup guard "
+            "(pr-gate-suite-disposition)"
+        ),
+    'tools/test_gitattributes_merge_driver.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest gitattributes merge-driver scope (AC1)"
+        ),
+    'tools/test_merge_driver_behaviour.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest merge-driver behaviour (AC2-AC4)"
+        ),
+    'tools/test_workspace_status.py':
+        PR_GATED(
+            "build-check.yml / gate-main / Run make build-check"
+        ),
+    'tools/test_workspace_status_cli.py':
+        PR_GATED(
+            "build-check.yml / gate-main / Run make build-check"
+        ),
+    'tools/test_worktree_hygiene.py':
+        NO_PR_GATE(
+            "Acquires or inspects a real coordination lease and worktree state, which a CI "
+            "runner's fresh checkout cannot present. `make test` runs it under the lease it "
+            "needs."
+        ),
+    'tools/test_worktree_lease_interlock.py':
+        NO_PR_GATE(
+            "Acquires or inspects a real coordination lease and worktree state, which a CI "
+            "runner's fresh checkout cannot present. `make test` runs it under the lease it "
+            "needs."
+        ),
+    'tools/test_worktree_import_resolution.py':
+        NO_PR_GATE(
+            "Acquires or inspects a real coordination lease and worktree state, which a CI "
+            "runner's fresh checkout cannot present. `make test` runs it under the lease it "
+            "needs."
+        ),
+    'tools/test_editable_install_guard.py':
+        NO_PR_GATE(
+            "Exercises the editable install and child-process plumbing of a developer checkout, "
+            "which a CI runner does not reproduce."
+        ),
+    'tools/test_gate_enumeration.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out "
+            "destinations (RFC-0082)"
+        ),
+    'tools/test_import_time_path_leaks.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest import-time path leaks (collector sys.path "
+            "guard)"
+        ),
+    'tools/test_managed_child.py':
+        NO_PR_GATE(
+            "Exercises the editable install and child-process plumbing of a developer checkout, "
+            "which a CI runner does not reproduce."
+        ),
+    'tools/test_coordination_lease.py':
+        PR_GATED_IF(
+            "build-check-windows.yml / lock-semantics-windows / Run coordination lease publisher "
+            "and prober",
+            _WHY_PATH_FILTERED,
+        ),
+    'tools/test_branch_added_paths.py':
+        NO_PR_GATE(
+            "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
+            "through the dispatch-only test-corpus.yml."
+        ),
+    'tools/test_bootstrap.py':
+        NO_PR_GATE(
+            "Exercises the editable install and child-process plumbing of a developer checkout, "
+            "which a CI runner does not reproduce."
+        ),
+    'tools/test_run_slot.py':
+        NO_PR_GATE(
+            "Acquires or inspects a real coordination lease and worktree state, which a CI "
+            "runner's fresh checkout cannot present. `make test` runs it under the lease it "
+            "needs."
+        ),
+    'tools/test_with_lease_cli.py':
+        NO_PR_GATE(
+            "Acquires or inspects a real coordination lease and worktree state, which a CI "
+            "runner's fresh checkout cannot present. `make test` runs it under the lease it "
+            "needs."
+        ),
+    'tools/test_playwright_evidence_lifecycle.py':
+        NO_PR_GATE(
+            "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
+            "through the dispatch-only test-corpus.yml."
+        ),
+    'tools/test_worktree_lifecycle_hooks.py':
+        NO_PR_GATE(
+            "Acquires or inspects a real coordination lease and worktree state, which a CI "
+            "runner's fresh checkout cannot present. `make test` runs it under the lease it "
+            "needs."
+        ),
+    'tools/test_frontend_runtime.py':
+        NO_PR_GATE(
+            "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
+            "through the dispatch-only test-corpus.yml."
+        ),
+    'tools/test_check_artifact_contents.py':
+        PR_GATED(
+            "build-check.yml / gate-export-boundary / pytest export-boundary gate"
+        ),
+    'tools/test_lint_agents_md_diataxis_block.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_agents_md_legacy_block.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_agents_md_risk_block.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_agents_md_frontmatter_scope.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_catalogue_curation_guard.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_contract_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_marketplace_envelope_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_guide_authoring_standard.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_guide_ledger_integrity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_release_check.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_impact.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_scaffold_projection.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_conformance_portability.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_direct_code_table.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_guides_no_repo_only_refs.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_okf_pre_pr.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_pack_test_compatibility.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_distribution_route_decisions.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_route_branch_guard.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/lint-pack-test-boundary.py':
+        PR_GATED_IF(
+            "docs.yml / loop-cohort / Pack runtime boundary (no pack's .apm/ carries tests; "
+            "projection is clean)",
+            _WHY_PATH_FILTERED,
+        ),
+    # The four lines that yield no path operand. Each is keyed by a literal
+    # substring of the line, because there is no target to key on — and each is
+    # dispositioned on its own terms rather than waved through as "not a suite".
+    "command -v npm":
+        NO_PR_GATE(
+            "Shell guard, not a suite: `make test` stops here with an install "
+            "hint when Node.js is absent."
+        ),
+    "test -d docs-site/node_modules":
+        NO_PR_GATE(
+            "Shell guard, not a suite: `make test` stops here with an `npm ci` "
+            "hint when the docs-site dependencies are absent."
+        ),
+    "npm run test:plugins":
+        NO_PR_GATE(
+            "A real test suite — `node --test` over two `.test.ts` files, per "
+            "docs-site/package.json — and the one that proves completeness "
+            "cannot be keyed on extracted targets, since it yields no path "
+            "operand. No pull-request workflow runs it; `make test` does."
+        ),
+    '$(PYTHON) -c "import httpx"':
+        NO_PR_GATE(
+            "Import precondition for the atlassian SSO suites, not a suite "
+            "itself. build-check.yml installs httpx explicitly instead."
+        ),
+}
+
+# The only keys a line may be resolved by *substring* match. Every other key is
+# a path and matches a line only by being one of its extracted targets.
+#
+# This separation is load-bearing, and its absence was a false pass. With any key
+# eligible for substring matching, the repo-root key `tests/` is a substring of
+# almost every test path, so a line naming `packs/anything/tests/` resolved
+# against it and demanded no entry of its own. A `# $(shell ... pytest
+# packs/sneaky/tests/ ...)` comment -- a line GNU Make expands and runs -- passed
+# the gate that way.
+_SUBSTRING_KEYS = frozenset({
+    "command -v npm",
+    "test -d docs-site/node_modules",
+    "npm run test:plugins",
+    '$(PYTHON) -c "import httpx"',
+})
 
 
 def _strip_comment_lines(text: str) -> str:
@@ -686,6 +1436,112 @@ def _pytest_path_args(segment: str) -> list[str] | None:
             continue  # a flag value that slipped through, not a path
         out.append(tok.replace("\\", "/").removeprefix("./"))
     return out
+
+
+def suite_lines(makefile_text: str) -> list[str]:
+    """Return executable `run-test-suite` lines as `test-unleased` expands them.
+
+    This is deliberately lexical.  A line the target extractor cannot understand
+    still needs a roster entry, because GNU Make can expand a function in a recipe
+    comment before the shell sees that comment.
+    """
+    expanded: list[str] = []
+    for names, _deps, recipe in iter_makefile_rules(makefile_text):
+        if "test-unleased" not in names:
+            continue
+        for raw in recipe:
+            expanded.extend(_expanded_recipe_lines(makefile_text, raw))
+    lines: list[str] = []
+    for line in _join_continuations(expanded):
+        stripped = line.lstrip()
+        # A recipe comment is dropped ONLY when it can carry no expansion at
+        # all. GNU Make accepts `${...}` as readily as `$(...)`, and expands
+        # either inside a recipe comment before the shell sees it, so a rule
+        # keyed on `$(` alone still dropped `# ${shell ... pytest ...}` — the
+        # same hatch through the other brace. Any `$` keeps the line.
+        if not stripped or (stripped.startswith("#") and "$" not in stripped):
+            continue
+        if stripped.startswith("@"):
+            stripped = stripped[1:]
+        lines.append(stripped)
+    return lines
+
+
+# A pytest operand that is a variable expansion rather than a literal path.
+# `$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q` yields one target, and an
+# all-targets rule keyed only on what extraction SEES then let the opaque operand
+# ride free on its literate neighbour's entry.
+_OPAQUE_OPERAND = re.compile(r"\$[({][^)}]*[)}]")
+# A roster key that is a path rather than a command phrase. Used to keep a path
+# entry out of the line-key remedy; see the dead-entry branch in `check_suites`.
+_PATH_SHAPED = re.compile(r"^[A-Za-z0-9_.][A-Za-z0-9_./-]*(?:/|\.py|\.sh)$")
+
+
+def opaque_operands(line: str) -> list[str]:
+    """Variable-expansion operands of a pytest invocation on *line*.
+
+    The command position is excluded: every recipe line in the define is written
+    `$(PYTHON) -m pytest …`, so the interpreter itself is an expansion and is not
+    an operand. Only tokens *after* the `pytest` token count.
+    """
+    found: list[str] = []
+    for segment in _segments(_strip_inline_comment(line)):
+        # Deliberately NOT `_strip_shell_noise`: it replaces parentheses with
+        # spaces, so `$(EXTRA_SUITE)` arrives as `$ EXTRA_SUITE` and the
+        # expansion this function exists to find is already gone. The raw
+        # segment is the only place it survives.
+        match = _PYTEST_ARGS.search(segment)
+        if match is None:
+            continue
+        skip_next = False
+        for token in match.group(1).split():
+            if skip_next:
+                skip_next = False
+                continue
+            if token in _PYTEST_VALUE_FLAGS:
+                skip_next = True
+                continue
+            if token.startswith("-"):
+                continue
+            # Strip balanced outer quotes, then search rather than fullmatch:
+            # `"$(EXTRA)"`, `'${EXTRA}'` and `$(SUITE_DIR)/tests/` are all
+            # expansions, and a fullmatch on the bare form caught only the last
+            # of the three shapes an author is likely to write.
+            bare = token
+            for quote in ('"', "'"):
+                if len(bare) > 1 and bare[0] == quote and bare[-1] == quote:
+                    bare = bare[1:-1]
+            if _OPAQUE_OPERAND.search(bare):
+                found.append(bare)
+    return found
+
+
+def _matches_at_boundary(key: str, line: str) -> bool:
+    """Whether *key* occurs in *line* as a complete command phrase.
+
+    Raw containment let a key resolve a DIFFERENT command:
+    `npm run test:plugins-extra` contains `npm run test:plugins`, so a newly
+    added suite inherited an existing entry's disposition and demanded none of
+    its own. The character after the match must therefore end the phrase.
+    """
+    for match in re.finditer(re.escape(key), line):
+        tail = line[match.end():match.end() + 1]
+        if tail == "" or tail in " \t\"'<>|&;)":
+            return True
+    return False
+
+
+def line_targets(line: str) -> list[str]:
+    """Propose path targets from one suite line for corroboration only."""
+    found: list[str] = []
+    for segment in _segments(_strip_inline_comment(line)):
+        clean = _strip_shell_noise(segment)
+        found.extend(
+            m.group(0).replace("\\", "/").removeprefix("./")
+            for m in _PATH_TOKEN.finditer(clean)
+        )
+        found.extend(_pytest_path_args(clean) or [])
+    return list(dict.fromkeys(target for target in found if target))
 
 
 def _prefixed(target: str, working_directory: str) -> str:
@@ -1082,6 +1938,367 @@ def is_covered(target: str, local: set[str]) -> bool:
     return any(entry.endswith("/") and target.startswith(entry) for entry in local)
 
 
+# `for d in <literal paths>; do … pytest "$d" …; done`. One workflow runs 24 pack
+# suites this way, and the operand pytest receives is `"$d"`, so a scan for
+# literal operands sees none of them. That is not hypothetical laxity: the roster
+# was first authored FROM this extractor, so all 24 inherited its blind spot and
+# 21 shipped a `NO_PR_GATE` reason asserting that no workflow named them, while
+# `catalogue-tooling-ci-gates.yml` named every one.
+#
+# The shape is read deliberately narrowly. The loop's list must be literal, and
+# the body must invoke pytest on that same variable — otherwise a loop over
+# package names, or one whose body only echoes, would contribute phantom
+# coverage. Coverage is the direction where a false positive is consequential, so
+# this reads one shape exactly rather than guessing at shell semantics.
+
+
+# Steps whose pytest invocation no static scan can attribute, with the literal
+# suites each one runs. A DECLARATION, not a parse.
+#
+# `catalogue-tooling-ci-gates.yml` runs 24 pack suites as
+# `for d in <paths>; do python -m pytest "$d" -q; done`, so the operand pytest
+# receives is `"$d"` and no scan of the step sees a suite. Ignoring that cost 21
+# entries a `NO_PR_GATE` reason asserting no workflow named them, while that
+# workflow ran every one.
+#
+# A reader for the loop shape was built and then removed. It produced seven
+# defects across three review rounds, two of them PHANTOM COVERAGE — `true` then
+# `echo "python -m pytest $d"` reported the suites as gated, and a leading `#`
+# comment deleted the rest of the body so a real invocation went unseen. Both
+# came from one mistake: `_segments` and `_strip_inline_comment` are documented
+# single-*line* helpers, applied to a multi-line shell body. This module's own
+# docstring records that making extraction the trust anchor was defeated four
+# ways and that a fix in one round caused the next round's defect; the loop
+# reader was that class again, and phantom coverage is the direction that
+# silently validates a false `PR_GATED_IF`.
+#
+# So the roster stays the anchor here too. `tools/lint-pack-test-boundary.py`
+# carries `_UNRESOLVABLE_RUNNER_EXCEPTIONS` keyed the same way for this same
+# loop, which is the precedent this follows. The residual is stated rather than
+# parsed: these suites' coverage rests on a hand declaration, and the docstring
+# says so. What IS checked: the named step's name is unique in its workflow,
+# every listed path appears in that step's own `run`, and both that body and this
+# declared tuple are digest-pinned, so any edit to either reddens a test and
+# sends a human back to re-check. What is NOT checked is whether the step
+# actually executes the listed suites — only that the workflow text still says
+# what it said when a human last looked. That residual is the honest cost of the
+# trade, and strictly smaller than a parser that invents coverage.
+_SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
+    (
+        "catalogue-tooling-ci-gates.yml",
+        "Run repo/pack hook suites (Linux)",
+    ): (
+        "a bash for-loop runs one literal suite per process, so the operand "
+        "pytest receives is `\"$d\"` and no static scan can attribute it",
+        (
+            "packs/core/tests/hooks/",
+            "packs/core/tests/pack/",
+            "packs/core/tests/skills/adapt-to-project/",
+            "packs/core/tests/skills/bug-fix/",
+            "packs/core/tests/skills/capture-work/",
+            "packs/core/tests/skills/close-work/",
+            "packs/core/tests/skills/project-knowledge/",
+            "packs/core/tests/skills/receive-brief/",
+            "packs/core/tests/skills/work-intake/",
+            "packs/core/tests/skills/work-loop/",
+            "packs/core/tests/skills/workspace-status/",
+            "packs/product-documentation/tests/",
+            "packs/desk-research/tests/pack/",
+            "packs/desk-research/tests/skills/desk-research/",
+            "packs/desk-research/tests/skills/desk-research-project-start/",
+            "packs/desk-research/tests/skills/desk-research-project-check/",
+            "packs/desk-research/tests/skills/desk-research-project-digest/",
+            "packs/desk-research/tests/skills/desk-research-project-status/",
+            "packs/desk-research/tests/skills/desk-research-project-synthesize/",
+            "packs/desk-research/tests/skills/devils-advocate/",
+            "packs/agent-skill-engineering/tests/pack/",
+            "packs/agent-skill-engineering/tests/integration/",
+            "packs/agent-skill-engineering/tests/skills/author_or_update/",
+            "packs/agent-skill-engineering/tests/skills/review_or_optimize/",
+        ),
+    ),
+}
+
+
+def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
+    """Map recognised suite targets to their pull-request workflow sources."""
+    import yaml
+
+    sources: dict[str, list[dict[str, str | bool]]] = {}
+    workflow_dir = root / WORKFLOW_DIR
+    chain_targets: set[str] | None = None
+    for path in sorted(workflow_dir.glob("*.y*ml")):
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if not isinstance(doc, dict):
+            continue
+        triggers = doc.get("on", doc.get(True))
+        if not isinstance(triggers, dict) or "pull_request" not in triggers:
+            continue
+        trigger = triggers["pull_request"]
+        filtered = isinstance(trigger, dict) and (
+            "paths" in trigger or "paths-ignore" in trigger
+        )
+        jobs = doc.get("jobs") or {}
+        job_defaults = (doc.get("defaults") or {}).get("run") or {}
+        step_names = [
+            str(step.get("name") or "<unnamed step>")
+            for job in jobs.values()
+            if isinstance(job, dict)
+            for step in (job.get("steps") or [])
+            if isinstance(step, dict)
+        ]
+        for job_name, job in jobs.items():
+            if not isinstance(job, dict):
+                continue
+            # PRESENCE, not truth. `if: false` loads as Python False, so a
+            # truthiness test read a step that never runs as unconditional and
+            # let it corroborate a PR_GATED claim. Any `if` at all makes the
+            # coverage conditional; that is what the disposition has to say.
+            job_conditional = "if" in job or bool(job.get("continue-on-error"))
+            job_wd = (
+                (job.get("defaults") or {}).get("run") or job_defaults
+            ).get("working-directory", "") or ""
+            for step in job.get("steps") or []:
+                if not isinstance(step, dict):
+                    continue
+                step_name = str(step.get("name") or "<unnamed step>")
+                where = f"{path.name} / {job_name} / {step_name}"
+                conditional = job_conditional or "if" in step or bool(
+                    step.get("continue-on-error")
+                )
+                run = str(step.get("run") or "")
+                # Attributed per STEP, not per step NAME. `extract_ci_targets`
+                # groups by name, and two steps sharing one name then share the
+                # merged target list — so an unconditional step that runs
+                # nothing could lend its standing to a conditional step's suite.
+                working_directory = str(
+                    step.get("working-directory", job_wd) or ""
+                )
+                # Keyed on a step NAME, so it applies only when that name is
+                # unique in the workflow. A duplicate would otherwise receive
+                # all the declared targets even if it runs none, and attach its
+                # own `if:` state to that phantom coverage — the cross-crediting
+                # this module already fixed once, returning through the
+                # declaration instead of through `extract_ci_targets`.
+                declared = (
+                    _SUITE_SOURCE_EXCEPTIONS.get((path.name, step_name))
+                    if step_names.count(step_name) == 1
+                    else None
+                )
+                targets = [
+                    *extract_step_targets(run, working_directory),
+                    *(declared[1] if declared else ()),
+                ]
+                if re.search(r"(?:^|\s)make\s+build-check(?:\s|$)", run):
+                    if chain_targets is None:
+                        chain_targets = script_step_targets(
+                            (root / GATE_CHAIN).read_text(encoding="utf-8")
+                        )
+                    targets = list(dict.fromkeys([*targets, *chain_targets]))
+                for target in targets:
+                    sources.setdefault(target, []).append(
+                        {
+                            "workflow": path.name,
+                            "where": where,
+                            "filtered": filtered,
+                            "conditional": conditional,
+                        }
+                    )
+    return sources
+
+
+def check_suites(
+    root: Path,
+    *,
+    makefile_text: str | None = None,
+    dispositions: dict[str, tuple[str, ...]] | None = None,
+    sources: dict[str, list[dict[str, str | bool]]] | None = None,
+) -> list[str]:
+    """Check suite-roster completeness and pull-request coverage claims."""
+    dispositions = SUITE_DISPOSITION if dispositions is None else dispositions
+    if makefile_text is None:
+        makefile_text = (root / "Makefile").read_text(encoding="utf-8")
+    sources = pr_gate_sources(root) if sources is None else sources
+    lines = suite_lines(makefile_text)
+    line_entries: dict[str, set[str]] = {}
+    violations: list[str] = []
+    for line in lines:
+        targets = line_targets(line)
+        # Computed once, boundary-matched, and used for BOTH the opaque-operand
+        # remedy and `resolved`. Two separate reads were self-contradictory: the
+        # opaque branch tested raw containment, so a key merely mentioned on the
+        # line suppressed the violation, while a key legitimately declared for a
+        # mixed literal/opaque line never entered `resolved` and was then
+        # reported dead — making AC-0002's required remedy impossible to satisfy.
+        substring_keys = {
+            key
+            for key in _SUBSTRING_KEYS & set(dispositions)
+            if _matches_at_boundary(key, line)
+        }
+        if targets:
+            # EVERY target must carry an entry, not merely one of them. "At
+            # least one" is the weaker rule and it reopens the gap this roster
+            # exists to close: `run-test-suite` batches up to nineteen modules
+            # onto a single continued line, so a twentieth added beside them
+            # would inherit its siblings' dispositions and demand none of its
+            # own -- a new suite landing PR-ungated in silence, which is the
+            # original defect one layer down.
+            resolved = (set(targets) & set(dispositions)) | substring_keys
+            missing = [target for target in targets if target not in dispositions]
+            # An opaque operand is a suite the roster cannot name, so the line
+            # needs a declared substring key of its own. Without this, a known
+            # target beside `$(EXTRA_SUITE)` satisfied the line and the opaque
+            # one demanded nothing — the escape the recipe-line anchor exists to
+            # prevent, reopened by keying the check on extracted targets.
+            opaque = opaque_operands(line)
+            if opaque and not substring_keys:
+                violations.append(
+                    f"suite line {line!r} passes "
+                    f"{', '.join(sorted(opaque))} to pytest, which names no "
+                    "literal path. Add a literal-substring key for this line, "
+                    "to the roster AND to `_SUBSTRING_KEYS`: an operand the "
+                    "roster cannot resolve is a suite it cannot disposition."
+                )
+            if missing:
+                violations.append(
+                    f"suite line {line!r} runs "
+                    f"{', '.join(sorted(missing))} with no SUITE_DISPOSITION "
+                    "entry. Add one per target naming the pull-request check "
+                    "that gates it, or NO_PR_GATE with the reason none does."
+                )
+        else:
+            resolved = substring_keys
+            if not resolved:
+                violations.append(
+                    f"suite line {line!r} has no SUITE_DISPOSITION entry and no "
+                    "path operand to key one on. Add a literal-substring key "
+                    "for it, to the roster AND to `_SUBSTRING_KEYS`; a line the "
+                    "extractor cannot read still runs."
+                )
+        line_entries[line] = resolved
+    resolved_entries = set().union(*line_entries.values()) if line_entries else set()
+    for entry in sorted(set(dispositions) - resolved_entries):
+        # An entry that MATCHES a line but is not declared a substring key is a
+        # half-finished remedy, not a dead entry, and saying "dead" sent the
+        # author to delete the entry they had just been told to add. Adding a
+        # line key takes two edits — the roster and `_SUBSTRING_KEYS` — because
+        # a path key must stay ineligible for substring matching: the repo-root
+        # key `tests/` boundary-matches almost every test line.
+        # Only a LINE-KEY candidate may be told to enter `_SUBSTRING_KEYS`. A
+        # path-shaped entry must not: `tests/` boundary-matches almost every
+        # test line, so diagnosing an unresolved path as a half-declared line
+        # key would recommend exactly the edit that makes a path key
+        # substring-eligible — the broad false pass the hand declaration exists
+        # to prevent. A path entry keeps the dead-entry remedy.
+        if (
+            entry not in _SUBSTRING_KEYS
+            and not _PATH_SHAPED.match(entry)
+            and any(_matches_at_boundary(entry, line) for line in lines)
+        ):
+            violations.append(
+                f"suite {entry!r} — matches a run-test-suite line but is not "
+                "declared a substring key, so nothing resolves it. Add it to "
+                "`_SUBSTRING_KEYS` as well; a line key takes both edits."
+            )
+            continue
+        violations.append(
+            f"suite {entry!r} — dead SUITE_DISPOSITION entry: no run-test-suite "
+            "line resolves it. Remove it or add the suite to the define."
+        )
+    for suite, entry in sorted(dispositions.items()):
+        kind, value, *extra = entry
+        condition = extra[0] if extra else ""
+        suite_sources = sources.get(suite, [])
+        named = [source for source in suite_sources if source["where"] == value]
+        if kind == "pr-gated":
+            # One defect, one message. The specific diagnoses below and the
+            # generic one are the same failure seen at different resolutions, so
+            # emitting both makes an author read two lines to learn one thing —
+            # and made a self-test case that asserts a single violation fail for
+            # the wrong reason.
+            if any(
+                not source["filtered"] and not source["conditional"]
+                for source in named
+            ):
+                pass  # corroborated
+            elif any(source["filtered"] for source in named):
+                violations.append(
+                    f"suite {suite!r} — PR_GATED names filtered source {value!r}. "
+                    "Use PR_GATED_IF with its path condition."
+                )
+            elif any(source["conditional"] for source in named):
+                violations.append(
+                    f"suite {suite!r} — PR_GATED names conditional source {value!r}. "
+                    "Use PR_GATED_IF with the step or job condition."
+                )
+            else:
+                violations.append(
+                    f"suite {suite!r} — PR_GATED source {value!r} does not reach it "
+                    "through a required pull-request check. Correct the source "
+                    "or re-disposition it."
+                )
+        elif kind == "no-pr-gate":
+            # ANY pull-request workflow that names the suite contradicts this,
+            # not only an unconditional one. Ignoring conditional sources let 21
+            # entries ship a reason asserting that no workflow named them while
+            # a path-filtered workflow ran every one — `NO_PR_GATE` has to mean
+            # "no pull-request check reaches this at all", because
+            # `PR_GATED_IF` is what the conditional case is for.
+            unconditional = next(
+                (
+                    source
+                    for source in suite_sources
+                    if not source["filtered"] and not source["conditional"]
+                ),
+                None,
+            )
+            if unconditional:
+                violations.append(
+                    f"suite {suite!r} — NO_PR_GATE is contradicted by covering step "
+                    f"{unconditional['where']!r}. Change it to PR_GATED."
+                )
+            elif suite_sources:
+                conditional_source = suite_sources[0]
+                violations.append(
+                    f"suite {suite!r} — NO_PR_GATE is contradicted by "
+                    f"{conditional_source['where']!r}, which reaches it "
+                    "conditionally. Change it to PR_GATED_IF stating the "
+                    "condition."
+                )
+            if not value.strip():
+                violations.append(
+                    f"suite {suite!r} — NO_PR_GATE has an empty reason; state the "
+                    "route that runs it or the missing precondition."
+                )
+        elif kind == "pr-gated-if":
+            # Corroborated like PR_GATED, but inverted: the named source must
+            # exist AND must actually be conditional. Without this the claim was
+            # unverifiable, so a conditional entry could name a workflow or step
+            # that does not exist.
+            if not named:
+                violations.append(
+                    f"suite {suite!r} — PR_GATED_IF source {value!r} names no "
+                    "step of any pull-request workflow. Correct the source or "
+                    "re-disposition it."
+                )
+            elif not any(
+                source["filtered"] or source["conditional"] for source in named
+            ):
+                violations.append(
+                    f"suite {suite!r} — PR_GATED_IF names {value!r}, which is "
+                    "unfiltered and unconditional, so the coverage is not in "
+                    "fact conditional. Use PR_GATED."
+                )
+            if not condition.strip():
+                violations.append(
+                    f"suite {suite!r} — PR_GATED_IF has an empty condition; "
+                    "state what makes the coverage conditional."
+                )
+        else:
+            violations.append(f"suite {suite!r} — unknown disposition kind {kind!r}.")
+    return violations
+
+
 def check(
     classified: dict,
     local: set[str],
@@ -1256,6 +2473,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     violations = check(classified, local, reachable, workflow_files)
+    try:
+        violations += check_suites(root, makefile_text=makefile)
+    except (OSError, yaml.YAMLError) as exc:
+        print(f"lint-ci-parity: cannot read a pull-request gate source: {exc}", file=sys.stderr)
+        return 2
     if violations:
         for item in violations:
             print(f"lint-ci-parity: ✖ {item}", file=sys.stderr)
@@ -1265,12 +2487,36 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     ci_only = sum(1 for k, _ in STEP_DISPOSITION.values() if k == "ci-only")
+    # Both rosters report their own counts, so a green run says which checks
+    # actually ran. A silently deleted arm would otherwise leave this line
+    # unchanged, which is the shape that makes a dead gate look like a passing
+    # one.
+    kinds = [entry[0] for entry in SUITE_DISPOSITION.values()]
+    gated = kinds.count("pr-gated")
+    gated_if = kinds.count("pr-gated-if")
+    ungated = kinds.count("no-pr-gate")
     print(
         f"lint-ci-parity: ok — {len(classified['steps'])} step(s) across "
         f"{len(in_scope)} in-scope workflow(s), all dispositioned "
         f"({len(STEP_DISPOSITION) - ci_only} locally covered, {ci_only} CI-only); "
         f"{sum(len(v) for v in classified['by_step'].values())} extracted target(s) "
         "corroborated."
+    )
+    # Three distinct counts, because they are three distinct things and
+    # reporting one as another is a claim about what ran. `SUITE_DISPOSITION`
+    # holds a key per target PLUS a key per line with no path operand, so it is
+    # larger than either the line count or the target count.
+    suite_line_count = len(suite_lines(makefile))
+    target_count = len({
+        target for line in suite_lines(makefile)
+        for target in (line_targets(line) or [])
+    })
+    print(
+        f"lint-ci-parity: ok — {suite_line_count} recipe line(s) of "
+        f"`run-test-suite` carrying {target_count} target(s), all "
+        f"dispositioned across {len(SUITE_DISPOSITION)} roster key(s) "
+        f"({gated} PR-gated, {gated_if} conditionally gated, {ungated} with no "
+        "pull-request gate)."
     )
     return 0
 

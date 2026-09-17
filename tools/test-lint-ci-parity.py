@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Self-test for tools/lint-ci-parity.py.
 
-Pure-stdlib Python so the suite runs on Windows without an MSYS shell.
+Pure-stdlib Python apart from PyYAML, which it shares with the linter, so the
+suite runs on Windows without an MSYS shell. A missing PyYAML exits 2 with the
+same install hint the linter gives, rather than a traceback.
 
 A parity linter fails in practice by reporting **ok** while checking nothing, so
 most of these cases exist to pin the ways that could happen. The reasoning behind
@@ -15,6 +17,7 @@ another's leftovers.
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import os
 import pathlib
@@ -24,8 +27,32 @@ import subprocess
 import sys
 import tempfile
 
+try:
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover — matches the linter's own path
+    # PyYAML is the one non-stdlib dependency, shared with the linter, which
+    # exits 2 with an install hint rather than a traceback. A bare top-level
+    # import here contradicted `tools/AGENTS.md`'s stdlib rule and turned a
+    # missing dependency into a stack trace.
+    print("test-lint-ci-parity: PyYAML not installed — "
+          "run: pip install -r tools/requirements.txt", file=sys.stderr)
+    raise SystemExit(2) from None
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 LINTER = REPO_ROOT / "tools" / "lint-ci-parity.py"
+
+# Pins for every `_SUITE_SOURCE_EXCEPTIONS` entry: the declared step's
+# `run` body, and the declared path tuple itself. A declaration is the one
+# coverage source that can grant what the workflow does not provide, so an
+# edit to either side must redden and send a human back to re-check it.
+# Subset agreement alone catches a removed path and never an added one.
+_EXCEPTION_PINS: dict[tuple[str, str], dict[str, str]] = {
+    ('catalogue-tooling-ci-gates.yml',
+     'Run repo/pack hook suites (Linux)'): {
+        "step_body": '0e1de37f2c7545b96ad37338cb62e872ad6e9b4b379e9d1a02f94c817685e42b',
+        "declared": 'fd5c11e868c1ec5f12798599526f776beceb74e9312ee0071a1468cc93d6ee24',
+    },
+}
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -828,6 +855,47 @@ composed:
         )
         _check("missing-workflow-dir-exits-2", res.returncode, 2)
 
+    # ── the suite arm is WIRED INTO main(), asserted end-to-end ────────────
+    #
+    # Every other suite case drives `check_suites` directly, so deleting its
+    # call from `main()` leaves all of them green while the gate is dead — the
+    # one failure mode a per-function test cannot see. This case goes through
+    # the command entry point instead, against a fixture whose define carries an
+    # undispositioned line.
+    #
+    # It asserts the suite-specific message, not merely a non-zero exit. A
+    # fixture root also fails the forward gate (its workflows are unclassified),
+    # so exit 1 alone would pass whether or not the suite arm ran at all.
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "on:\n  pull_request:\n"
+            "jobs:\n  gate-main:\n    steps:\n      - name: a gate\n"
+            "        run: python3 tools/nobody-runs-this.py\n", encoding="utf-8")
+        (fake / "Makefile").write_text(
+            "override define run-test-suite\n"
+            "\t$(PYTHON) -m pytest fixture/undispositioned/ -q\n"
+            "endef\n\n"
+            "test-unleased:\n"
+            "\t$(call run-test-suite,,,)\n",
+            encoding="utf-8")
+        (fake / "tools" / "repo").mkdir(parents=True)
+        (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+        for rel in M.AGGREGATORS:
+            (fake / rel).parent.mkdir(parents=True, exist_ok=True)
+            (fake / rel).write_text("# no _run calls\n", encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("suites-arm-is-wired-into-main-exit", res.returncode, 1)
+        _check_in("suites-arm-is-wired-into-main-reports-the-suite",
+                  "fixture/undispositioned/", out)
+        _check_in("suites-arm-is-wired-into-main-names-the-roster",
+                  "SUITE_DISPOSITION", out)
+
     # ── live: the wiring this spec added is load-bearing, asserted A/B ──────
     # Both sides go through the linter's own local_targets(), so a future third
     # coverage source cannot make this case quietly diverge from main().
@@ -939,6 +1007,406 @@ composed:
         _check("verdict-delegated-ambient-exact", out, exact_verdicts["full-run"])
     else:  # pragma: no cover — Windows contributor path
         print("… verdict polarity cases skipped: no `sh` on PATH")
+
+    # ── suite_lines: the completeness anchor ────────────────────────────────
+    #
+    # Every case below supplies its own Makefile text and its own roster, so
+    # none touches module state. The anchor is what makes the suite roster
+    # extraction-independent, and each of these is a shape that defeated an
+    # earlier implementation.
+    def _mk(body: str, third: str = "") -> str:
+        """A Makefile whose run-test-suite define holds *body*.
+
+        *third* is the macro's third argument, empty by default so a case's
+        roster only has to cover what its own body names.
+        """
+        return (
+            "override define run-test-suite\n"
+            + body
+            + "\nendef\n\n"
+            "test-unleased:\n"
+            f"\t$(call run-test-suite,,,{third})\n"
+        )
+
+    # The define body carries `$(3)` literally. Reading the body verbatim would
+    # leave whatever arrives through that argument with no roster key at all,
+    # which is why the enumeration expands the call site instead.
+    _check("suite-lines-expands-the-call-site-not-the-body",
+           M.suite_lines(_mk("\t$(PYTHON) -m pytest a/ -q\n\t$(3)",
+                             "$(PYTHON) -m pytest tools/test_third.py -q")),
+           ["$(PYTHON) -m pytest a/ -q",
+            "$(PYTHON) -m pytest tools/test_third.py -q"])
+    # A `@` suppresses echo; it does not stop execution. Dropping `@` lines as
+    # "guards" hid a suite behind `@test -d x && pytest y`.
+    _check("suite-lines-keeps-an-at-prefixed-command",
+           M.suite_lines(_mk("\t@test -d x && $(PYTHON) -m pytest x/tests/ -q")),
+           ["test -d x && $(PYTHON) -m pytest x/tests/ -q"])
+    # GNU Make expands a function in a recipe comment before the shell sees it,
+    # so this line RUNS. Measured on GNU Make 3.81 under `make` and `make -n`.
+    _check("suite-lines-keeps-a-comment-carrying-an-expansion",
+           M.suite_lines(_mk("\t# $(shell $(PYTHON) -m pytest sneaky/ -q)")),
+           ["# $(shell $(PYTHON) -m pytest sneaky/ -q)"])
+    # An inert comment cannot execute, so dropping it is safe and must not
+    # become a false alarm.
+    _check("suite-lines-drops-an-inert-comment",
+           M.suite_lines(_mk("\t# a note mentioning pytest a/tests/ inertly\n"
+                             "\t$(PYTHON) -m pytest a/tests/ -q")),
+           ["$(PYTHON) -m pytest a/tests/ -q"])
+
+    # ── check_suites: completeness, both directions ─────────────────────────
+    _ROOT = M.Path(".")
+
+    def _suites(makefile: str, roster: dict, sources: dict | None = None) -> list[str]:
+        return M.check_suites(_ROOT, makefile_text=makefile,
+                              dispositions=roster, sources=sources or {})
+
+    one_line = _mk("\t$(PYTHON) -m pytest a/tests/ b/tests/ -q")
+    full = {"a/tests/": M.NO_PR_GATE("nothing runs it"),
+            "b/tests/": M.NO_PR_GATE("nothing runs it")}
+    _check("suites-complete-roster-is-clean", _suites(one_line, full), [])
+    # EVERY target of a line needs an entry, not merely one. `run-test-suite`
+    # batches nineteen modules onto one continued line, so an "at least one"
+    # rule let a twentieth inherit its siblings' dispositions and demand none —
+    # the original defect one layer down.
+    partial = dict(full)
+    del partial["b/tests/"]
+    _check_fires("suites-partial-line-fires-on-the-missing-target",
+                 _suites(one_line, partial), "b/tests/")
+    _check_fires("suites-missing-entry-names-the-line",
+                 _suites(one_line, partial), "no SUITE_DISPOSITION")
+    # A line with no path operand still needs a key, and only a DECLARED
+    # substring key may resolve it. Letting any key match by substring meant the
+    # repo-root key `tests/` resolved every line containing that fragment.
+    no_operand = _mk("\tnpm run test:plugins --prefix docs-site")
+    _check_fires("suites-no-path-operand-line-needs-a-substring-key",
+                 _suites(no_operand, {}), "no path operand")
+    _check("suites-declared-substring-key-resolves-its-line",
+           _suites(no_operand, {"npm run test:plugins": M.NO_PR_GATE("node --test")}),
+           [])
+    # The dead-entry direction: an entry no line resolves.
+    dead = dict(full)
+    dead["c/tests/"] = M.NO_PR_GATE("nothing runs it")
+    _check_fires("suites-dead-entry-fires", _suites(one_line, dead), "dead SUITE_DISPOSITION")
+
+    # ── check_suites: corroboration of a coverage claim ─────────────────────
+    _WHERE = "build-check.yml / gate-main / pytest a"
+
+    def _src(**kw) -> dict:
+        rec = {"workflow": "build-check.yml", "where": _WHERE,
+               "filtered": False, "conditional": False}
+        rec.update(kw)
+        return {"a/tests/": [rec]}
+
+    gated = dict(full)
+    gated["a/tests/"] = M.PR_GATED(_WHERE)
+    _check("suites-pr-gated-corroborated-by-an-unfiltered-step",
+           _suites(one_line, gated, _src()), [])
+    # The consequential direction: a gate claimed where none exists.
+    _check_fires("suites-pr-gated-with-no-covering-step-fires",
+                 _suites(one_line, gated, {}), "does not reach it")
+    _check_fires("suites-pr-gated-naming-a-filtered-workflow-fires",
+                 _suites(one_line, gated, _src(filtered=True)), "filtered source")
+    # A step can name a suite and not block the pull request.
+    _check_fires("suites-pr-gated-naming-a-conditional-step-fires",
+                 _suites(one_line, gated, _src(conditional=True)), "conditional source")
+    # The stale-declaration direction: ungated declared where a gate exists.
+    _check_fires("suites-no-pr-gate-contradicted-by-a-covering-step-fires",
+                 _suites(one_line, full, _src()), "contradicted")
+    # A conditional source DOES contradict NO_PR_GATE. This case asserted the
+    # opposite, and that wrong assumption is why 21 entries shipped a reason
+    # saying no workflow named them while a path-filtered workflow ran every
+    # one. `NO_PR_GATE` means no pull-request check reaches the suite at all;
+    # `PR_GATED_IF` is what the conditional case is for.
+    _check_fires("suites-no-pr-gate-contradicted-by-a-conditional-source",
+                 _suites(one_line, full, _src(filtered=True)),
+                 "reaches it conditionally")
+    # A reason is required. Whether it is TRUE is a human-review control.
+    blank = dict(full)
+    blank["a/tests/"] = M.NO_PR_GATE("   ")
+    _check_fires("suites-no-pr-gate-empty-reason-fires", _suites(one_line, blank), "empty reason")
+    blank_if = dict(full)
+    blank_if["a/tests/"] = M.PR_GATED_IF(_WHERE, "  ")
+    _check_fires("suites-pr-gated-if-empty-condition-fires",
+                 _suites(one_line, blank_if, _src(filtered=True)), "empty condition")
+    good_if = dict(full)
+    good_if["a/tests/"] = M.PR_GATED_IF(_WHERE, "a path filter")
+    _check("suites-pr-gated-if-corroborated-by-a-filtered-source",
+           _suites(one_line, good_if, _src(filtered=True)), [])
+    # A conditional claim must name a real source, and that source must really
+    # be conditional -- otherwise the entry understates coverage unverifiably.
+    _check_fires("suites-pr-gated-if-with-no-source-fires",
+                 _suites(one_line, good_if, {}), "names no step")
+    _check_fires("suites-pr-gated-if-on-an-unconditional-source-fires",
+                 _suites(one_line, good_if, _src()), "not in fact conditional")
+
+    # ── the six defects the post-gates review found ─────────────────────────
+    #
+    # Every one was a way a suite escaped the roster or carried a false
+    # disposition, and every one was invisible from reading the code.
+
+    # F1. A suite named only inside `for d in <paths>; do pytest "$d"; done`.
+    # The operand pytest receives is `"$d"`, so no static scan attributes it. A
+    # reader for that shape was built and removed after seven defects in three
+    # rounds, two of them phantom coverage; the roster carries a DECLARATION
+    # instead, as `lint-pack-test-boundary.py` does for the same loop.
+    #
+    # Every bound below iterates EVERY exception. Pinning only the one that
+    # exists today would let a second entry take coverage on the generic
+    # name-uniqueness check alone, with no path agreement and no pinned body —
+    # and a declaration is the one source here that can grant coverage the
+    # workflow does not provide.
+    global _CASES
+    _check_true("suite-source-exceptions-exist", bool(M._SUITE_SOURCE_EXCEPTIONS))
+    _check("suite-source-exception-pins-cover-every-entry",
+           sorted(_EXCEPTION_PINS), sorted(M._SUITE_SOURCE_EXCEPTIONS))
+    for _key, (_reason, _declared) in sorted(M._SUITE_SOURCE_EXCEPTIONS.items()):
+        _wf_name, _step_name = _key
+        _check_true(f"suite-source-exception-states-a-reason[{_step_name}]",
+                    bool(_reason.strip()))
+        _wf = yaml.safe_load(
+            (REPO_ROOT / ".github" / "workflows" / _wf_name).read_text(
+                encoding="utf-8"))
+        _steps = [step for job in (_wf.get("jobs") or {}).values()
+                  for step in (job.get("steps") or [])]
+        _named = [step for step in _steps if step.get("name") == _step_name]
+        # The key carries no job name, so the name must be unique across the
+        # WHOLE workflow, not merely within one job.
+        _check(f"suite-source-exception-step-is-unique[{_step_name}]",
+               len(_named), 1)
+        if len(_named) != 1:
+            # Stop here rather than dereference. A renamed or removed step is a
+            # maintenance event, and the dependent checks below would turn its
+            # diagnosis into an IndexError.
+            continue
+        _step_run = str(_named[0].get("run") or "")
+        _check(f"suite-source-exception-paths-are-in-the-step[{_step_name}]",
+               [path for path in _declared if path not in _step_run], [])
+        # Subset agreement catches a REMOVED path and never an added one, and an
+        # added loop path is invisible to extraction by definition. So the body
+        # is pinned, and so is the declared tuple: an edit to either reddens and
+        # a human re-checks. Recompute from this case's failure message.
+        # The manifest-coverage case above already reports a missing pin; look
+        # it up defensively so that report is what a maintainer reads instead of
+        # a KeyError from here.
+        _pins = _EXCEPTION_PINS.get(_key)
+        if _pins is None:
+            continue
+        for _field, _value in (
+            ("step_body", _step_run),
+            ("declared", "\n".join(_declared)),
+        ):
+            _got = hashlib.sha256(_value.encode("utf-8")).hexdigest()
+            # `.get`, because a pin present but MISSING A FIELD passed the
+            # manifest-coverage check above and then crashed here — the same
+            # maintenance event as a missing pin, and it deserves the same
+            # diagnosis rather than a KeyError.
+            if _got != _pins.get(_field):
+                _FAILURES.append(
+                    f"suite-source-exception-{_field}-is-pinned[{_step_name}]: "
+                    f"got {_got}, want {_pins.get(_field)!r}. Re-read the step and "
+                    f"declaration, then set _EXCEPTION_PINS[{_key!r}]"
+                    f'["{_field}"] = "{_got}" — the pin exists so a change here '
+                    "is reviewed, not absorbed."
+                )
+            _CASES += 1
+
+    # A declaration applies only to a uniquely named step. A duplicate would
+    # otherwise receive every declared target although it runs none, and attach
+    # its own `if:` state to that phantom coverage. The duplicate is placed in a
+    # SECOND JOB, because the key carries no job name: a per-job count would
+    # leave this green while restoring cross-job phantom coverage.
+    _first_key = sorted(M._SUITE_SOURCE_EXCEPTIONS)[0]
+    _first_declared = M._SUITE_SOURCE_EXCEPTIONS[_first_key][1]
+
+    def _declared_sources(jobs_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / _first_key[0]).write_text(
+                "on:\n  pull_request:\njobs:\n" + jobs_yaml, encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get(_first_declared[0], [])
+
+    _check("suite-source-exception-applies-to-a-unique-step",
+           len(_declared_sources(
+               f"  a:\n    steps:\n      - name: {_first_key[1]}\n"
+               f"        run: echo opaque\n")), 1)
+    # The filtered-source cases below inject `filtered=True` into a source
+    # record, which tests `check_suites` and not the boundary that produces it.
+    # `pr_gate_sources` is what must recognise a filter, and BOTH forms: it is
+    # `paths-ignore` that carries the 27 conditional entries, and reading only
+    # `paths` would have reported every one of them as unconditionally gated.
+
+    def _filter_kind_sources(trigger_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / "w.yml").write_text(
+                "on:\n  pull_request:\n" + trigger_yaml
+                + "jobs:\n  j:\n    steps:\n      - name: s\n"
+                  "        run: python -m pytest a/tests/ -q\n",
+                encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get("a/tests/", [])
+
+    _check("pr-gate-sources-reads-a-paths-filter",
+           _filter_kind_sources("    paths:\n      - 'packs/**'\n")[0]["filtered"],
+           True)
+    _check("pr-gate-sources-reads-a-paths-ignore-filter",
+           _filter_kind_sources("    paths-ignore:\n      - 'docs/**'\n")[0]["filtered"],
+           True)
+    _check("pr-gate-sources-reads-an-unfiltered-trigger",
+           _filter_kind_sources("")[0]["filtered"], False)
+
+    _check("suite-source-exception-does-not-apply-across-duplicated-jobs",
+           _declared_sources(
+               f"  a:\n    steps:\n      - name: {_first_key[1]}\n"
+               f"        run: echo opaque\n"
+               f"  b:\n    steps:\n      - name: {_first_key[1]}\n"
+               f"        run: echo also\n"), [])
+
+    # F2. An opaque operand riding free on a literate neighbour's entry.
+    _opaque = "$(PYTHON) -m pytest known/tests/ $(EXTRA_SUITE) -q"
+    _check("opaque-operand-is-detected", M.opaque_operands(_opaque), ["$(EXTRA_SUITE)"])
+    _check_fires("suites-opaque-operand-demands-its-own-key",
+                 _suites(_mk("\t" + _opaque), {"known/tests/": M.NO_PR_GATE("x")}),
+                 "names no literal path")
+    # `$(PYTHON)` is the interpreter, not an operand, so every real line in the
+    # define would false-alarm if the command position counted.
+    _check("opaque-operand-ignores-the-command-position",
+           M.opaque_operands("$(PYTHON) -m pytest known/tests/ -q"), [])
+    # An expansion is an expansion however it is written. A fullmatch on the
+    # bare token caught only the third of these three plausible shapes.
+    # The REPORTED value is asserted, not merely truthiness. `search` already
+    # finds an expansion inside quotes, so a truthiness check left the
+    # quote-stripping unprobed; what stripping buys is a violation message that
+    # names `$(EXTRA)` rather than `"$(EXTRA)"`.
+    for _form, _want in (('"$(EXTRA)"', "$(EXTRA)"),
+                         ("'${EXTRA}'", "${EXTRA}"),
+                         ("$(SUITE_DIR)/tests/", "$(SUITE_DIR)/tests/")):
+        _check(f"opaque-operand-detects[{_form}]",
+               M.opaque_operands(f"$(PYTHON) -m pytest known/tests/ {_form} -q"),
+               [_want])
+    # The remedy must be SATISFIABLE. A line key takes two edits — the roster
+    # and `_SUBSTRING_KEYS` — and the half-done state has to say so rather than
+    # read as a dead entry, which sent the author to delete what they just added.
+    _mixed = "\t$(PYTHON) -m pytest known/tests/ $(EXTRA) -q"
+    _check_fires("suites-half-declared-line-key-names-its-own-remedy",
+                 [v for v in _suites(_mk(_mixed),
+                                     {"known/tests/": M.NO_PR_GATE("x"),
+                                      "$(EXTRA)": M.NO_PR_GATE("declared")})
+                  if "not declared a substring key" in v],
+                 "not declared a substring key")
+    # And a path key must never become substring-eligible: the repo-root key
+    # `tests/` boundary-matches almost every test line.
+    _check_true("path-key-boundary-matches-a-deeper-path",
+                M._matches_at_boundary("tests/",
+                                       "$(PYTHON) -m pytest packs/x/tests/ -q"))
+    # Which is why an unresolved PATH entry keeps the dead-entry remedy. Offering
+    # it `_SUBSTRING_KEYS` would recommend the one edit that makes a path key
+    # substring-eligible, restoring the broad false pass the hand declaration
+    # prevents — the branch diagnosing a half-declared line key must not fire on
+    # a path.
+    _path_entry = _suites(
+        _mk("\t$(PYTHON) -m pytest packs/x/tests/ -q"),
+        {"packs/x/tests/": M.NO_PR_GATE("x"),
+         "tests/": M.NO_PR_GATE("an unresolved path entry")})
+    _check_fires("suites-unresolved-path-entry-keeps-the-dead-entry-remedy",
+                 [v for v in _path_entry if "dead SUITE_DISPOSITION" in v],
+                 "dead SUITE_DISPOSITION")
+    _check("suites-unresolved-path-entry-is-not-offered-a-line-key",
+           [v for v in _path_entry if "not declared a substring key" in v], [])
+    _check_true("path-shaped-entries-are-recognised",
+                bool(M._PATH_SHAPED.match("tests/"))
+                and bool(M._PATH_SHAPED.match("tools/test_x.py"))
+                and not M._PATH_SHAPED.match("npm run test:plugins"))
+
+    # F3. GNU Make expands `${...}` in a recipe comment as readily as `$(...)`.
+    _check("suite-lines-keeps-a-comment-with-a-brace-expansion",
+           M.suite_lines(_mk("\t# ${shell ${PYTHON} -m pytest sneaky/ -q}")),
+           ["# ${shell ${PYTHON} -m pytest sneaky/ -q}"])
+
+    # F4. A substring key must match a complete command phrase, or a new suite
+    # inherits an existing entry by raw containment.
+    _check_true("substring-key-matches-its-own-line",
+                M._matches_at_boundary("npm run test:plugins",
+                                       "npm run test:plugins --prefix docs-site"))
+    _check("substring-key-does-not-match-a-longer-command",
+           M._matches_at_boundary("npm run test:plugins",
+                                  "npm run test:plugins-extra --prefix docs-site"),
+           False)
+
+    # F5 and F6 read a fixture workflow tree, because both are properties of
+    # `pr_gate_sources` rather than of a single string.
+    def _sources_for(step_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / "w.yml").write_text(
+                "on:\n  pull_request:\njobs:\n  j:\n    steps:\n" + step_yaml,
+                encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get("a/tests/", [])
+
+    # F5. `if: false` loads as Boolean False, so a truthiness test read a step
+    # that never runs as unconditional and let it corroborate PR_GATED.
+    _false_if = _sources_for(
+        "      - name: s\n        if: false\n"
+        "        run: python -m pytest a/tests/ -q\n")
+    _check_true("if-false-is-conditional-by-presence",
+                bool(_false_if) and bool(_false_if[0]["conditional"]))
+    _check("no-if-is-unconditional",
+           _sources_for("      - name: s\n        run: python -m pytest a/tests/ -q\n"
+                        )[0]["conditional"], False)
+
+    # The same presence rule has to hold on the JOB. A job-level `if: false`
+    # stops every step in it, and the step itself carries no condition to see.
+    def _job_sources(job_yaml: str) -> list[dict]:
+        with tempfile.TemporaryDirectory() as td:
+            fake = pathlib.Path(td)
+            (fake / ".github" / "workflows").mkdir(parents=True)
+            (fake / ".github" / "workflows" / "w.yml").write_text(
+                "on:\n  pull_request:\njobs:\n" + job_yaml, encoding="utf-8")
+            (fake / "tools" / "repo").mkdir(parents=True)
+            (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
+            return M.pr_gate_sources(fake).get("a/tests/", [])
+
+    _job_false = _job_sources(
+        "  j:\n    if: false\n    steps:\n      - name: s\n"
+        "        run: python -m pytest a/tests/ -q\n")
+    _check_true("job-if-false-is-conditional-by-presence",
+                bool(_job_false) and bool(_job_false[0]["conditional"]))
+    _check("job-continue-on-error-is-conditional",
+           _job_sources(
+               "  j:\n    continue-on-error: true\n    steps:\n      - name: s\n"
+               "        run: python -m pytest a/tests/ -q\n")[0]["conditional"], True)
+
+    # F6. Targets attributed per step, not per step NAME: two steps sharing a
+    # name shared the merged list, so a step running nothing lent its standing
+    # to another step's suite.
+    _dupes = _sources_for(
+        "      - name: same\n        if: false\n"
+        "        run: python -m pytest a/tests/ -q\n"
+        "      - name: same\n        run: echo nothing\n")
+    _check("duplicate-step-names-do-not-cross-credit", len(_dupes), 1)
+    _check_true("duplicate-step-names-keep-the-real-step-conditional",
+                bool(_dupes) and bool(_dupes[0]["conditional"]))
+
+    # ── the roster this repository actually ships ───────────────────────────
+    # Wiring, not rule: every other case passes its own tables, so all of them
+    # stay green if `check_suites` is never called from `main()`. This one reads
+    # the shipped roster, so a disconnected arm still leaves it green — AC-0008
+    # and its own task own that hole, and this case exists to say so rather than
+    # to close it.
+    _check_true("suites-shipped-roster-is-complete-in-both-directions",
+                M.check_suites(_ROOT) == [])
+    # A cardinality comparison was here and is deliberately gone: `len(roster)
+    # >= len(lines)` passes with unrelated or dead entries and adds nothing to
+    # `suites-shipped-roster-is-complete-in-both-directions` above, which checks
+    # the actual property.
 
     if _FAILURES:
         print(f"✖ {len(_FAILURES)}/{_CASES} cases failed:")

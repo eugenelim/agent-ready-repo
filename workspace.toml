@@ -628,18 +628,6 @@ open = [
   # Fix: an RFC-0101 addendum shared with the credential intent, then a telemetry
   # precedence-and-disclosure spec. Unblock: the shared projection decision.
   {path = "docs/product/intents/catalogue-level-telemetry-endpoint-default.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/credential-pack-defaults-projection.md"}, summary = "Let an enterprise catalogue bake a telemetry endpoint once so its users export with zero setup, via the RFC-0101 pack-defaults cascade and the stdlib-readable projection the credential intent also needs", needs = [{type = "local", kind = "intent", path = "docs/product/intents/credential-pack-defaults-projection.md"}]},
-  # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
-  # rather than left in that spec's notes: a closed spec's notes directory is not
-  # a destination, and the obligation would otherwise be enforced by someone
-  # remembering to reread it -- the same unfalsifiable-rule shape that delivery
-  # spent five review rounds removing from its own content.
-  #
-  # Scope corrected 2026-09-14. The first version of this entry claimed the roster
-  # suite runs on no PR; build-check.yml:410 runs `python -m pytest tests/ -q`
-  # from the root and collects 1506 roster node IDs. Only the pack suite is
-  # genuinely PR-ungated. The evidence table in the source ref was corrected with
-  # it.
-  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Derive the mapping from written path to gating suite instead of carrying it by recall: packs/frontend-engineering/tests/ is named nowhere in build-check.yml, so a pack-content change ships its own guards PR-ungated and reaches CI only through the dispatch-only test-corpus workflow", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
@@ -1184,6 +1172,15 @@ open = [
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
+#
+# Still empty, and the pr-gate-suite-disposition delivery found out why the first
+# time anyone tried to use it: `_append_lifecycle_findings` requires a closed
+# defect's own `path` artifact to carry `Status: Closed` and a `Resolution:` of
+# fixed, declined or superseded. Two open defect entries have `.py` paths, and a
+# code file cannot honestly carry either field, so those defects can be removed
+# but not retired here. Recorded in
+# docs/specs/pr-gate-suite-disposition/notes/verification-ledger.md; settling the
+# convention is its own decision.
 closed = [
 ]
 

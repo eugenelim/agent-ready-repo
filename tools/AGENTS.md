@@ -29,6 +29,17 @@ Applies to `tools/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
   `packs/credential-brokers/`: a commit touching either needs an
   `Engine-Change-RFC:` trailer, conventionally `n/a — <justification>` when no
   RFC governs the change.
-- Adding a step to `.github/workflows/build-check.yml` requires a matching
-  `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`, naming either the make
-  target that covers it locally or why none can.
+- `tools/lint-ci-parity.py` holds two dispositions, one per direction, and
+  editing either surface obliges the matching entry:
+  - **Adding a step to `.github/workflows/build-check.yml`** requires a
+    `STEP_DISPOSITION` entry naming either the make target that covers it
+    locally or why none can.
+  - **Adding or moving a line in the Makefile's `run-test-suite` define**
+    requires a `SUITE_DISPOSITION` entry per target on that line, naming the
+    pull-request check that gates the suite (`PR_GATED`), the condition under
+    which one does (`PR_GATED_IF`), or why none does (`NO_PR_GATE`). Spell a
+    path in the workflow exactly as the define spells it: both directions
+    compare written paths, so a parent directory matches neither and reports a
+    real gate as absent.
+  Neither roster's reasons are machine-checked for truth, only for presence —
+  that is a human-review control, and the module docstring says so.
