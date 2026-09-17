@@ -20,12 +20,12 @@
 ## Unresolved questions
 
 - AC-0031 names four gate enumerations; six are required, and two of the six are not surfaces it names — so the criterion can be satisfied literally while the gate checks nothing. Reword it, or accept that its purpose clause carries the obligation and the ledger carries the correction?
-- `telemetry_layout.resolve()` refuses a `[telemetry]` setting the sender cannot receive. `CONVENTIONS.md` requires an observable refusal added during implementation to become a criterion. AC-0055 was written and withdrawn because its only honest task entry, T2, was already complete and frozen. Give it a criterion in a future contract, or accept three controls and no criterion?
+- ~~`telemetry_layout.resolve()` refuses a `[telemetry]` setting the sender cannot receive. `CONVENTIONS.md` requires an observable refusal added during implementation to become a criterion. AC-0055 was written and withdrawn because its only honest task entry, T2, was already complete and frozen. Give it a criterion in a future contract, or accept three controls and no criterion?~~ **Answered 2026-09-16 by relocation, not by amendment.** `telemetry-sender-owns-its-configuration` retires `telemetry_layout` and moves the refusal into the sender, where it becomes AC-0075 in `docs/specs/jsonl-otlp-exporter/spec.md` — a criterion in a live contract rather than a withdrawn one in a frozen task. The question closed because the behaviour changed owner: nothing had to be written into `loop-telemetry-export`, so the frozen-task obstacle that sank AC-0055 never applied.
 - More generally: when a contract error is found by implementing the task it describes, the task is complete by the time it is visible and the section is frozen. Is that acceptable, or does the amendment path need a way to correct a completed task's contract without discarding the cohort's audit trail?
 
 ## Projection
 
-- A small spec amendment against a future `loop-telemetry-export` revision, or a decision to close both as accepted. No queue entry is implied and no work is blocked on this.
+- One question remains: AC-0031's four-of-six gate enumeration. A small spec amendment against a future `loop-telemetry-export` revision, or a decision to close it as accepted. No queue entry is implied and no work is blocked on this. The undeliverable-setting question above is closed and needs no amendment.
 
 ## Opportunity
 

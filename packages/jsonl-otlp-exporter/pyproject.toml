@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jsonl-otlp-exporter"
-version = "0.1.0"
+version = "0.2.0"
 description = "Send JSONL records to an OpenTelemetry Collector as OTLP logs, with the field mapping supplied as a declarative profile."
 requires-python = ">=3.11"
 dependencies = []

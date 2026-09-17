@@ -608,14 +608,17 @@ jobs:
       - name: pytest TDD stub lifecycle contract (roster-owned)
         run: python -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py
 
-      # loop-telemetry-export: three repository-level contracts. The event-line
+      # loop-telemetry-export: four repository-level contracts. The event-line
       # schema reads contracts/jsonschema/ and a corpus fixture under packs/core;
       # the disclosure contract reads docs/architecture/ and guides/; the tally
-      # control reads docs/specs/. lint-pack-test-boundary forbids all three from
-      # a pack test tree, and the schema one additionally cannot live in
+      # control reads docs/specs/; the sender-configuration contract reads the
+      # guide, the shipped work-loop profile and the installed sender together,
+      # and is the only mechanical control over loop-telemetry-export's AC-0041,
+      # AC-0043 and AC-0044. lint-pack-test-boundary forbids all of them from a
+      # pack test tree, and the schema one additionally cannot live in
       # packages/agentbundle/tests/, which ships in the sdist and is re-run
       # against an extracted workspace that has no contracts/ or packs/. CI does
-      # not auto-discover roster tests, so keep all three explicit.
+      # not auto-discover roster tests, so keep all of them explicit.
       - name: pytest loop-telemetry contracts (roster-owned)
         run: >-
           python -m pytest
@@ -623,6 +626,7 @@ jobs:
           tests/roster/test_loop_telemetry_disclosure_contract.py
           tests/roster/test_loop_telemetry_spec_tally.py
           tests/roster/test_core_optional_runtime_dependency.py
+          tests/roster/test_telemetry_sender_owns_its_configuration.py
 
       # agent-skill-engineering-consumer-integrations: the consumer half binds
       # packs/core, packs/architect and packs/agent-skill-engineering plus

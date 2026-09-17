@@ -13,8 +13,11 @@ import ast
 import functools
 import io
 import json
+import os
 import pathlib
 import signal
+import subprocess
+import sys
 
 import jsonl_otlp_exporter
 import pytest
@@ -419,8 +422,52 @@ class TestReviewRegressions:
         assert code == 0
         printed = capsys.readouterr().out.strip()
         assert printed == expected
-        assert printed != "0.1.0" or expected == "0.1.0", (
-            "a hardcoded literal must not be able to satisfy this"
+
+    def test_the_cli_version_output_follows_the_named_distribution_metadata(self):
+        """The guard the deleted assertion only appeared to be.
+
+        The line this replaces read
+        `assert printed != "<current>" or expected == "<current>"` under the
+        message "a hardcoded literal must not be able to satisfy this". It could
+        never fail: the assertion above it already established
+        `printed == expected`, so the disjunction is a tautology for every
+        literal — at 0.1.0 as much as at 0.2.0.
+
+        What the requirement actually is: the **CLI's `--version` output**
+        follows the metadata of the distribution named `jsonl-otlp-exporter`.
+        Asserting the package attribute alone is not enough, because `cli.py`
+        binds `__version__` at import, so a literal in the parser would satisfy
+        it while `--version` printed something invented.
+
+        Driven in a subprocess so no other case sees a substituted metadata
+        module. The stub answers the sentinel **only** for the exact
+        distribution name and a distinct marker for anything else, so querying
+        the wrong name fails rather than passing silently; and `--version` is
+        invoked through `cli.main`, which is the surface the criterion is about.
+        The stale untracked `jsonl_otlp_exporter.egg-info` on the path cannot
+        make this pass: it reports the real version, and the assertion demands
+        the sentinel.
+        """
+        sentinel = "9.9.9+sentinel"
+        probe = (
+            "import importlib.metadata as m;"
+            "_real = m.version;"
+            "m.version = (lambda name: "
+            f"{sentinel!r} if name == 'jsonl-otlp-exporter' "
+            "else 'WRONG-DISTRIBUTION-NAME');"
+            "from jsonl_otlp_exporter import cli;"
+            "cli.main(['--version'])"
+        )
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(pathlib.Path(__file__).resolve().parents[2])
+        proc = subprocess.run(
+            [sys.executable, "-c", probe],
+            env=env, capture_output=True, text=True, timeout=60,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == sentinel, (
+            "`--version` did not follow the metadata of the named distribution, "
+            f"so it is not being read from it: {proc.stdout.strip()!r}"
         )
 
     def test_the_unconfigured_cli_path_constructs_no_connection(self, workspace):
@@ -431,10 +478,17 @@ class TestReviewRegressions:
             raise AssertionError("a connection was constructed with no endpoint")
 
         err = io.StringIO()
-        code = cli.main(_argv(workspace), env={}, stream=err,
+        # `out` is passed explicitly, and asserted empty, because stdout is the
+        # machine channel and carries only the cursor: a diagnostic printed there
+        # would corrupt a consumer parsing it. Left unset, `main` defaults it to
+        # the real `sys.stdout` and nothing here could see the move.
+        out = io.StringIO()
+        code = cli.main(_argv(workspace), env={}, stream=err, out=out,
                         connection_factory=exploding)
         assert code == 0
         assert "no endpoint is configured" in err.getvalue()
+        assert out.getvalue() == "", (
+            f"the unconfigured diagnostic reached stdout: {out.getvalue()!r}")
 
     def test_a_run_whose_every_record_is_rejected_exits_one(self, workspace):
         """AC-0039. Counting encoder INVOCATIONS reported success for a run that

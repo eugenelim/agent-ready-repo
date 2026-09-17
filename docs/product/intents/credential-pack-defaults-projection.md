@@ -29,6 +29,8 @@ Credential-pack catalogue defaults reach standard-library-only skill scripts thr
 
 This intent absorbs pack-config-catalogue-sso-defaults. RFC-0101 shipped the catalogue cascade, but its baked AgentBundle layer is unreachable from standard-library-only skill scripts and no safe installer projection exists.
 
+A second consumer now needs the same projection: [`catalogue-level-telemetry-endpoint-default`](catalogue-level-telemetry-endpoint-default.md) wants an enterprise operator to bake a telemetry endpoint once so users of that catalogue export with no configuration step. Its readers are standard-library-only for a stronger reason than convenience — the sender's contract forbids any runtime dependency beyond the standard library, and the hook that invokes it is stdlib-only by repository convention. Two independent consumers blocked on one missing hop is the argument for solving the projection generally rather than per pack, and it means the trust boundary this intent draws has to hold for a non-credential value too: an endpoint is a data destination, not a sign-in destination, so it sits outside the sensitive class this intent refuses to project while still needing the same delivery path.
+
 ## Assumptions
 
 - The projected defaults file remains catalogue-derived untrusted configuration even when the installer writes it.

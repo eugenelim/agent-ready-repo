@@ -130,10 +130,19 @@ carry the evidence.
 What an adopter actually gets is stronger than a setting: if you never install
 the thing that sends, nothing can send, whatever any file says.
 
-### 5.3 How an exporter would be configured
+### 5.3 How the exporter is configured
 
 Settings use what the repository already has for adopter-owned pack
-configuration. Nothing new is needed.
+configuration. Nothing new was needed.
+
+**The sender reads the layout files itself.** A caller passes
+`--config <repo>/agentbundle-layout.toml` and
+`--user-config <user-root>/agentbundle-layout.toml` — two paths, no parsing —
+and `jsonl-otlp-export` resolves `[telemetry]` from both. Nothing between the
+adopter's file and the sender interprets it, so invoking the sender needs only
+the standard library, which is what lets a hook do it. The sender is never told
+the filename: the caller supplies each path, because a published capability may
+not name a particular product's layout in its contract.
 
 **Catalogue-level default.** A pack declares a scope-keyed
 `[pack.layout.repo]` / `[pack.layout.user]` table in its `pack.toml`. At
@@ -155,9 +164,16 @@ and can never replace a decision they have already made.
 **Which scope wins is decided per setting, not per file.** `desk-research`
 reads the user file first, so someone's personal notes folder follows them
 between repositories. Whether to send data off the machine is a team decision
-rather than a personal one, so telemetry would read the repository file first
+rather than a personal one, so telemetry reads the repository file first
 instead. Same two files, opposite order — said here because you cannot guess
 one from the other.
+
+Per setting, not per file, is load-bearing rather than incidental: a repository
+`service_name` alongside a personal `endpoint` is an ordinary configuration, and
+no single file expresses it. That is why the sender takes both paths instead of
+whichever file holds the endpoint. The table admits exactly `endpoint` and
+`service_name`; any other key is refused with its file named, because a setting
+these files carry decides where data goes and a dropped one fails open.
 
 **Environment override.** An environment variable takes precedence over both
 files, so an operator can disable one run without editing an installed artifact.

@@ -4,14 +4,29 @@ All notable changes to `jsonl-otlp-exporter` are recorded here. This project
 follows semantic versioning. While the version is 0.x the profile format is
 provisional, and any change to it is called out under its release.
 
-## 0.1.0 — unreleased
+## 0.2.0 — unreleased
 
-First release.
+First release. The version moved from 0.1.0 before publication, so no release
+carries the narrower configuration surface: `--user-config` and the closed
+`[telemetry]` key set are part of the first published version rather than a
+change to one.
 
 ### Added
 
 - `jsonl-otlp-export`, a console script that reads a JSONL file and sends its
   records to an OpenTelemetry Collector as OTLP logs over HTTP/JSON.
+- `--user-config`, a second TOML file declaring `[telemetry]`. The two
+  configuration files merge per setting: `--config` wins for each setting it
+  declares, and only a setting it omits falls through. A caller holding two
+  configuration scopes no longer has to read them to decide which single file to
+  pass, which is what previously made invoking this command require a package.
+- `[telemetry]` admits exactly `endpoint` and `service_name`, and any other key
+  is refused with the file it came from named. Both files are read on every run,
+  whatever supplies the endpoint, so the refusal cannot be shadowed by an
+  environment variable. A configuration file is also refused when the opened
+  descriptor is a reparse point or has more than one link.
+- `service.name` falls back to `[telemetry].service_name` from either file when
+  `--service-name` is absent, before the `--profile` filename stem.
 - Declarative profiles: a TOML file names the timestamp field and its format,
   the severity field and its mapping, the record identity, and an allowlist of
   fields that may be sent. Profiles are read as data, never imported or

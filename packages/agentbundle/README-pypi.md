@@ -14,6 +14,14 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.47.0
+
+**Removed:** the work-loop telemetry resolver. `jsonl-otlp-export` now reads
+`[telemetry]` from your repository and user `agentbundle-layout.toml` itself,
+through its own `--config` and `--user-config` flags, so invoking it no longer
+requires importing this package. Configuration files, their location and their
+repository-wins-per-setting precedence are unchanged; only what reads them moved.
+
 ## What's new in 0.46.1
 
 `catalogue init` no longer stages its writes under a name another local user
@@ -37,22 +45,9 @@ null. Values written into the generated `catalogue.toml` are escaped for TOML.
 
 ## What's new in 0.45.0
 
-`agentbundle` can now work out where to send your work-loop telemetry.
-`agentbundle.telemetry_layout.resolve()` reads the `[telemetry]` section of the
-`agentbundle-layout.toml` in your repository and the one in your user layout
-directory, and returns the arguments for the separately installed
-`jsonl-otlp-exporter` sender. Nothing is sent unless you configure an endpoint
-and install that sender: they are two separate consents.
-
-Repository settings win per setting, because sending data off the machine is a
-team decision rather than a personal one. Both files are read through the
-catalogue's confinement helper and bounded at 64 KiB, and a `[telemetry]`
-setting the sender has no route for is refused — naming the file it came from —
-rather than silently ignored.
-
-`catalogue lint` also reports `CAT-L032` when a pack declares an optional
-runtime dependency you do not have installed. It names the package and exits 0.
-It never invokes a package manager and never installs anything.
+Work-loop telemetry configuration. The resolver this release introduced was
+removed in 0.47.0 — the sender reads both `agentbundle-layout.toml` files
+itself, so nothing in this package stands between your configuration and it.
 
 ## What's new in 0.44.3
 
