@@ -136,3 +136,74 @@ depends on it.
 The criterion therefore states three *recognised* shapes rather than an exhaustive
 three. The direction is safe: an unrecognised shape makes corroboration fail a true
 `PR_GATED` claim, a false alarm, never a false pass.
+
+## T2 — the roster and its check arm (2026-09-16)
+
+Implemented in `tools/lint-ci-parity.py`: the three constructors, `suite_lines`,
+`line_targets`, `pr_gate_sources`, `SUITE_DISPOSITION`, and `check_suites` called
+from `main()`. 866 added lines, one file.
+
+Gates: `lint-ci-parity` 0, `lint-ruff` 0, `lint-mypy` 0,
+`test-lint-ci-parity` 0 (143 cases). `tools/test_local_ci_shared_test_deduplication.py`
+51 passed in 53.9s, confirming a tools-only change moves neither plan digest.
+
+The roster carries 118 keys: 114 target paths plus 4 literal-substring keys for
+the lines with no path operand. Split: **56 PR_GATED, 6 PR_GATED_IF, 56 with no
+pull-request gate** (52 targets and the 4 substring keys). `main()` now prints
+both rosters' counts, so a green run states which checks ran — a silently deleted
+arm would otherwise leave the output unchanged.
+
+### Void-probe matrix
+
+Each row mutates the tree, runs `python3 tools/lint-ci-parity.py --root .`, and
+restores. A control that cannot fail proves nothing, so every arm was probed.
+
+| Probe | Mutation | Exit | Verdict |
+| --- | --- | ---: | --- |
+| A | `check_suites` call removed from `main()` | 0 | **open — T3/AC-0008 owns it** |
+| B | new suite appended to the 19-target `tools/` batch line | 1 | closes the defect class |
+| C | a truly gated suite re-declared `NO_PR_GATE` | 1 | closed |
+| D | suite behind an `@`-prefixed guard on one line | 1 | closed |
+| E | suite inside a Make-expanded recipe comment | 1 | closed |
+| F | inert prose comment naming a path | 0 | no false alarm |
+| G | `PR_GATED` naming a `paths`-filtered workflow | 1 | closed |
+
+Probe B is the one that matters most: `tools/test_brand_new_suite.py` appended
+beside nineteen siblings on a single continued line is caught and named. That is
+the recorded defect — a new suite landing PR-ungated in silence — demonstrated
+closed rather than described.
+
+### Three defects found by probing, not by reading
+
+**1. The completeness arm required *any* target, not every target.** The first
+implementation resolved a line if one of its targets carried an entry. Deleting
+`packs/desk-research/tests/pack/`, which shares a line with five siblings, left
+the line resolved and the lint green. With nineteen modules on the `tools/` batch
+line, a twentieth would have inherited its siblings' dispositions and demanded
+none of its own. Now every target of a line must carry an entry, and the
+violation names the missing ones.
+
+**Deviation from the plan's `## Design (LLD)`, recorded here rather than
+amended.** That section says "Every surviving line must resolve to at least one
+`SUITE_DISPOSITION` entry", which is the weaker rule the first implementation
+matched. The implemented rule is stronger and still satisfies AC-0001, which
+requires the lint to fire when a line resolves to no entry; firing *also* on a
+partially dispositioned line exceeds the criterion rather than contradicting it.
+`## Design (LLD)` is working material under the plan's own tier declaration, and
+the lifecycle reference puts a deviation from a task row's literal method in this
+ledger, so no contract amendment is owed.
+
+**2. Unanchored substring matching was a false pass.** The fallback for a line
+with no path operand matched *any* roster key as a substring. The repo-root key
+`tests/` is a substring of nearly every test path, so
+`# $(shell $(PYTHON) -m pytest packs/sneaky/tests/ -q)` resolved against it and
+passed — the comment-expansion hatch reopened through a different door. Only the
+four keys in `_SUBSTRING_KEYS` are now eligible for substring matching.
+
+**3. Wrapping a source string corrupted a load-bearing identifier.** Generating
+the roster with `textwrap.wrap` at its defaults split
+`windows-build-gate-chain` into `windows-build-gate- chain`, because
+`break_on_hyphens` is true by default. The corroboration arm caught it
+immediately — a `PR_GATED` source naming no real step — which is the inversion
+working as designed. Fixed with `break_on_hyphens=False, break_long_words=False`;
+verified zero literals split at a hyphen before re-splicing.
