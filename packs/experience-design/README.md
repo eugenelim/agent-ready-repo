@@ -76,14 +76,14 @@ journey-mapping [paste the user's outcome and context]
 ```text
 user-flow [link to docs/design/journeys/onboarding.md]
 
-  screens  docs/design/screen-flows/onboarding.md
+  screens  docs/design/screens/onboarding-flow.md
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
   States per screen: default · loading · error · success · empty
 ```
 
 ```text
-experience-reviewer [link to docs/design/screen-flows/onboarding.md]
+experience-reviewer [link to docs/design/screens/onboarding-flow.md]
 
   Blocker  Welcome screen: empty state not designed
   Concern  Connect screen: error text has no recovery action
