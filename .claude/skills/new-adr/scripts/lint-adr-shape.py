@@ -123,8 +123,29 @@ _ALL_SUPERS_FIELDS = _FULL_SUPERS_FIELDS | _PART_SUPERS_FIELDS
 
 # Correction section: the only valid heading and the alternatives ADR-S015 catches
 _ERRATA_HEADING = "## Errata"
+# ADR-S015's subject is "a correction section", so a heading the matcher does
+# not recognise is one the class cannot check at all — such a section evades
+# the append-only rule entirely rather than being reported for its spelling.
+# The matcher therefore covers the correction-log nouns, not only the two
+# variants RFC-0102 § 5 observed, with an optional parenthetical or dated
+# suffix.
+#
+# The heading must be the noun ALONE. A first attempt matched the stem plus
+# any trailing words and immediately misfired on a real record — ADR-0105's
+# `## Corrected transition table`, which is a content section holding a
+# corrected table, not a correction log.
+#
+# BLIND SPOT, stated rather than implied: a correction log headed with none of
+# these nouns (say `## Notes`) is still invisible. Recognition by enumeration
+# cannot be completed; this names what it misses instead of implying coverage.
+# Python refuses int() on very long digit strings; a record-controlled D-ID
+# must be rejected as malformed rather than allowed to raise mid-scan.
+_D_ID_MAX_DIGITS = 6
+
 _CORRECTION_RE = re.compile(
-    r"^## (?:Errata|Amendments|Erratum(?:\s+\([^)]+\))?)$"
+    r"^## (?:Errata|Erratum|Amendment|Amendments|Correction|Corrections)"
+    r"\s*(?:\([^)]*\))?$",
+    re.IGNORECASE,
 )
 
 # Metadata field: optional "- " bullet; key in **Key:** bold
@@ -167,6 +188,7 @@ class _Record:
     superseded_by: str | None = None
     superseded_in_part: str | None = None
     d_ids: list[int] = field(default_factory=list)   # defined D-IDs, in parse order
+    oversized_d_ids: list[str] = field(default_factory=list)  # reported, not converted
     has_consequences: bool = False
     revisit_if: str | None = None    # effective Revisit if value
     has_confirmation: bool = False
@@ -286,7 +308,16 @@ def _parse(path: Path, text: str) -> _Record:
         if section == "Decision":
             m3 = _D_DEF_RE.match(line)
             if m3:
-                rec.d_ids.append(int(m3.group(1)))
+                digits = m3.group(1)
+                # Bound before converting. AC-0005 makes read/refused/
+                # unreadable exhaustive "including a classification that
+                # raised"; an unbounded int() on a record-controlled digit run
+                # raises ValueError above Python's conversion limit, which
+                # aborts the scan with the record in no bucket at all.
+                if len(digits) > _D_ID_MAX_DIGITS:
+                    rec.oversized_d_ids.append(digits[:_D_ID_MAX_DIGITS] + "…")
+                else:
+                    rec.d_ids.append(int(digits))
 
         # ── ## Consequences: Revisit if ───────────────────────────────────────
         if section == "Consequences":
@@ -478,10 +509,26 @@ def _check_record(rec: _Record) -> list[Finding]:
                 f"Decision D-IDs {sorted_unique!r} are not dense from D1 "
                 f"(expected {expected!r})")
 
-    # ADR-S012 — ## Consequences has non-empty Revisit if
-    if rec.has_consequences and not rec.revisit_if:
-        add("ADR-S012",
-            "Consequences section has no non-empty '**Revisit if:**' line")
+    # Reported outside the `if rec.d_ids:` block above: when every D-ID in a
+    # record is oversized, `d_ids` is empty and that block never runs, so the
+    # finding this exists to raise would be dropped by the guard.
+    if rec.oversized_d_ids:
+        add("ADR-S011",
+            f"Decision D-ID(s) with more than {_D_ID_MAX_DIGITS} digits: "
+            f"{rec.oversized_d_ids!r}")
+
+    # ADR-S012 — non-empty Revisit if. Unconditional, unlike ADR-S013: the
+    # spec's class table makes S013's subject "a PRESENT ## Confirmation" and
+    # leaves S012's unqualified, so renaming or dropping the section must not
+    # retire the check with it.
+    if not rec.revisit_if:
+        if rec.has_consequences:
+            add("ADR-S012",
+                "Consequences section has no non-empty '**Revisit if:**' line")
+        else:
+            add("ADR-S012",
+                "no '**Revisit if:**' line (no '## Consequences' section "
+                "either — the line is required regardless)")
 
     # ADR-S013 — ## Confirmation (when present): Mode, Signal, Owner non-empty
     if rec.has_confirmation:
