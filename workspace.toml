@@ -546,6 +546,25 @@ open = [
   # `--explain-config`, which needs its own criteria for what it may print --
   # an endpoint can carry user-info that the existing diagnostics redact.
   { slug = "sender-cannot-explain-its-effective-configuration", source = "pre-flight/2026-09-16" },
+  # Three documentation-versus-code defects around the governance index, all found
+  # while measuring whether an ADR `Area` field would duplicate the index's `domains:`
+  # key. (1) `packs/governance-extras/.apm/skills/new-adr/references/infra-decisions.md:4-5`
+  # claims its seven infra-mode topics "correspond to" the `generate-iac` governance-index
+  # domains; the manifest carries eight. The seven/eight split is deliberate -- seven
+  # authoring topics, eight index domains, both shipped in 8d6688d36 -- so the fix is the
+  # correspondence sentence, not either list. (2) The manifest says `generate-iac` "reads
+  # this manifest at Stage 0 and adds any missing domain rows"; it does not. That skill
+  # only bootstraps the whole file when no index exists, and never names the eight domains.
+  # The same unimplemented claim is repeated in `guides/governance-extras/how-to/
+  # governance-index.md` and in accepted RFC-0065, so nothing in the repository ever writes
+  # a domain row. Fix is to delete the claim or implement it -- an owner call, because
+  # RFC-0065 is accepted and the manifest is adopter-owned. (3) `reconcile-iac`'s
+  # resource-type-to-domain map covers six of the eight domains, so `remediation` and
+  # `observability` can never be resolved, and it emits a seventh token `policy` that is
+  # not a domain at all; the skill labels the map "heuristic". Nothing is blocked: the
+  # infra loop works for the six mapped domains. Unblock: an owner decision on (2), since
+  # deleting versus implementing that claim changes whether (3) is a gap or by design.
+  {path = "packs/governance-extras/seeds/governance/manifest.example.yaml", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: correct infra-decisions.md's false seven-to-eight correspondence claim, delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token", needs = []},
   # Two corrections to `loop-telemetry-export`'s contract that were found by doing
   # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
   # a completed task's section, and both corrections land inside T2 and T4, which
