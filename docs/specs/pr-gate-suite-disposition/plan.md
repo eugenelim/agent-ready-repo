@@ -73,12 +73,35 @@ key, demands no disposition, and leaves the gap silent. `Makefile:585`'s
 `npm run test:plugins --prefix docs-site` is not hypothetical — it is a real
 `node --test` suite that yields no path operand at all.
 
-So `suite_lines(makefile_text)` enumerates the define's command lines lexically:
-join backslash continuations, then drop only blank lines and `#` comment lines.
-Those two are the sole content-blind exclusions the design permits, and they are
-safe because neither can execute anything.
+`suite_lines(makefile_text)` reads the define **as `test-unleased` expands it**, not
+as it sits on disk. That choice is load-bearing and easy to get wrong. The define
+body carries `$(3)` literally; enumerating the body verbatim would make `$(3)` a
+single undispositioned line and leave the two suites that arrive through it —
+`tools/test_workspace_status.py` and `tools/test_workspace_status_cli.py` — with no
+roster key at all, which is the escape the whole design exists to close. Expanding
+the `test-unleased` call site substitutes them in. That route is also the superset:
+`test-after-build-check-unleased` only appends `--ignore=` operands to the same
+lines and passes an empty third argument, so it contributes no line the standalone
+route lacks. `_expanded_recipe_lines` already performs exactly this expansion for
+the forward gate.
 
-A `@` prefix is **not** an exclusion. It suppresses echo; it does not stop the
+From that expansion, `suite_lines` enumerates the command lines lexically:
+join backslash continuations, then drop blank lines, and drop a `#` comment line
+**only when it contains no `$(`**.
+
+The comment carve-out is narrower than it looks because a recipe comment is not
+inert. GNU Make expands functions in a recipe line before the shell ever sees it,
+including a line the shell would treat as a comment, so
+`# $(shell $(PYTHON) -m pytest hidden-suite/ -q)` runs its suite at expansion time.
+Measured on GNU Make 3.81, the version this repository's tooling floor names: that
+line wrote its evidence file under a plain `make` run **and** under `make -n`. A
+content-blind comment drop would therefore hide an executing suite. The define
+carries 16 comment lines today and none contains `$(`, so the rule costs nothing
+now and closes the hatch permanently.
+
+A `@` prefix is not an exclusion either.
+
+It suppresses echo; it does not stop the
 command running, so dropping `@`-prefixed lines would reopen the escape hatch one
 notch down — `@test -d docs-site/node_modules && npm run test:plugins --prefix
 docs-site` is a single valid line combining two shapes that sit adjacent at
@@ -99,6 +122,13 @@ directions: a false-positive extraction can satisfy a wrong `PR_GATED` claim, an
 false-negative one can let a stale `NO_PR_GATE` claim stand. Neither can make a line
 escape the roster, which is the property that matters, and the docstring says
 exactly this rather than repeating the forward gate's stronger one-way claim.
+
+Concretely, corroboration proves the named step carries the suite as a pytest
+operand. It does **not** prove the step executes it: `echo "python -m pytest
+<suite>"` yields the same operand as a real invocation, measured against
+`_pytest_path_args` directly. A bare `echo <dir>` yields nothing, so the arm does
+exclude a step that merely mentions a directory in passing. Execution is a separate
+criterion a human reads off the step, not a consequence claimed off this layer.
 
 **Two constructors for coverage, because both filter kinds are conditional.**
 `PR_GATED(where)` requires a workflow whose `pull_request` trigger carries neither
@@ -123,8 +153,8 @@ counterparts:
   `CI_ONLY`.
 - `SUITE_DISPOSITION`, beside `STEP_DISPOSITION`.
 - `suite_lines(makefile_text)` — the lexical line enumeration described above. The
-  completeness anchor; reuses `_join_continuations`, strips a leading `@`, and
-  interprets nothing else.
+  completeness anchor; reuses `_join_continuations`, strips a leading `@`, drops a
+  `#` line only when it holds no `$(`, and interprets nothing else.
 - `line_targets(line)` — the per-line target proposal, reusing `_segments`,
   `_strip_inline_comment`, `_strip_shell_noise` and `_pytest_path_args`. Corroboration
   only.
@@ -189,6 +219,9 @@ Makefile text and workflow mapping as keyword arguments:
   (AC-0001)
 - a define line resolving to no entry where the line is `@`-prefixed and carries a
   suite after a `&&`, which is the case a syntactic `@` drop would hide (AC-0001)
+- a define line resolving to no entry where the line is a `#` comment containing
+  `$(shell ... pytest ...)`, which a content-blind comment drop would hide even
+  though Make expands and runs it (AC-0001)
 - an entry resolved by no define line (AC-0002)
 - `PR_GATED` naming a `paths`-filtered workflow, and one naming a
   `paths-ignore`-filtered workflow (AC-0003)
@@ -238,14 +271,16 @@ ledger.
 
 **Touches:** `tools/lint-ci-parity.py`
 
-**Tests:** goal-based check — `python3 tools/test-lint-ci-parity.py` stays green, and
-the docstring names all four residuals below.
+**Tests:** goal-based check — `python3 tools/test-lint-ci-parity.py` stays green,
+and the docstring names all five residuals below. Traces to no criterion, for the
+same round-1 finding-8 reason as T6.
 
 **Approach:** extend the module docstring's two-layer section to cover both rosters,
 and state the suite roster's own *what it does not prove*: corroboration is
 best-effort in both directions, not one-way like the forward gate's;
 `PR_GATED_IF` records a condition nobody evaluates, so a conditional gate may not
-run; a target key matches by written spelling, so a suite reached through a
+run; corroboration proves a step names the suite as a pytest operand, not that it
+executes it; a target key matches by written spelling, so a suite reached through a
 differently spelled path is not matched; and a `NO_PR_GATE` reason's *truth* is a
 human-review control, with only its presence checked.
 
@@ -261,20 +296,25 @@ not establish about pull-request coverage.
 **Tests:**
 - `python3 tools/lint-ci-parity.py` exits 0, which fails if either new step lacks a
   `STEP_DISPOSITION` entry (existing forward arm, unchanged) or if either suite's
-  entry still reads `NO_PR_GATE` (AC-0007's arm) — AC-0010, AC-0011
+  entry still reads `NO_PR_GATE` (AC-0007's arm)
 - `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py -q` stays
   green, confirming a workflow-only change moves neither plan digest
+- each new step invokes pytest on its suite, read off `build-check.yml` (AC-0010,
+  AC-0012), and each suite's roster entry reads `PR_GATED` naming that step
+  (AC-0011, AC-0013) — four checks, because a step present with no roster change and
+  a roster change with no step are different failures with different remedies
 - `python3 tools/lint-ci-parity.py` exits 0 against the repository with every
-  recipe line of the define dispositioned (AC-0012) — this is the task that completes
-  it, because T2 lands the roster and T5 lands the last two entries it corroborates
+  recipe line of the define dispositioned (AC-0014) — this is the task that
+  completes it, because T2 lands the roster and T5 lands the last two entries
 
 **Approach:** add two `gate-main` steps, their `STEP_DISPOSITION` entries as
 `LOCAL("test-after-build-check")`, and flip both `SUITE_DISPOSITION` entries to
 `PR_GATED` naming the new steps. Neither step may carry `if:` or
 `continue-on-error`, or AC-0005's arm rejects the claim it is meant to support.
 
-**Done when:** AC-0010 and AC-0011 hold — each entry reads `PR_GATED` naming its
-new step — and the lint corroborates both.
+**Done when:** AC-0010 through AC-0013 hold — each step invokes pytest on its suite
+and each roster entry reads `PR_GATED` naming that step — and the lint corroborates
+both entries.
 
 ### T6: `tools/AGENTS.md`
 
@@ -283,7 +323,9 @@ new step — and the lint corroborates both.
 **Touches:** `tools/AGENTS.md`
 
 **Tests:** goal-based check — the bullet names `SUITE_DISPOSITION` and
-`tools/lint-ci-parity.py`, and both resolve.
+`tools/lint-ci-parity.py`, and both resolve. Traces to no criterion: finding 8 of
+round 1 demoted this obligation out of the contract into Durable Outputs, because
+its only check is that a sentence exists.
 
 **Approach:** consolidate with the existing `STEP_DISPOSITION` bullet so the two
 obligations read as one pair in one place, rather than adding a second unrelated
@@ -296,7 +338,7 @@ beside the one for adding a workflow step.
 
 **Depends on:** T2, T3, T5
 
-**Tests:** goal-based check, run **differentially** per arm (AC-0013). For each arm
+**Tests:** goal-based check, run **differentially** per arm (AC-0015). For each arm
 named in AC-0001 through AC-0009: remove that arm from `tools/lint-ci-parity.py`,
 run `python3 tools/test-lint-ci-parity.py`, and record both its non-zero exit and
 which named case failed; then restore it and confirm the suite is green. The
@@ -307,7 +349,7 @@ arm whose removal leaves the suite green is a control that cannot fail; its case
 rewritten and re-probed before the arm is restored, because a case added to satisfy
 a count would have the same defect.
 
-**Done when:** AC-0013 holds — every arm's removal produced a non-zero exit — and
+**Done when:** AC-0015 holds — every arm's removal produced a non-zero exit — and
 `notes/verification-ledger.md` names the specific reddened case per arm, with the
 suite green again at the end.
 
@@ -321,7 +363,7 @@ suite green again at the end.
 - `python3 tools/test_workspace_status.py` and
   `python3 tools/test_workspace_status_cli.py` stay green
 - the entry whose `path` is `tools/repo/build_gate_chain.py` and whose `kind` is
-  `defect` appears once, under `[backlog].closed` (AC-0014)
+  `defect` appears once, under `[backlog].closed` (AC-0016)
 
 **Approach:** move the entry, carrying a comment recording where the fix landed,
 that `tools/repo/build_gate_chain.py` — the entry's own `path` — is untouched, that
@@ -375,3 +417,13 @@ entry before committing.
   they now read off the roster and lean on AC-0006 for the step. AC-0013 was
   restated differentially, because a self-test case that cannot fail satisfies
   "carries a case".
+- 2026-09-16: Round 3 found two further defects in round 2's repairs, both proven by
+  probe rather than argued. A recipe comment is not inert — GNU Make 3.81 expanded
+  and ran `# $(shell ... pytest ...)` under both `make` and `make -n` — so the
+  comment drop is now conditional on the line holding no `$(`. And AC-0006 was
+  claimed to force the named step to *reach* the suite; measured against
+  `_pytest_path_args`, `echo "python -m pytest <suite>"` extracts identically to a
+  real invocation, so the claim is narrowed to "names it as a pytest operand" and
+  execution became its own criterion. That last repair reinstates round 2's original
+  remedy: splitting the two gating criteria, which this plan had overridden with a
+  route-to-owner that silently dropped the execution obligation.

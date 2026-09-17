@@ -45,7 +45,10 @@ inside `run-test-suite` (`Makefile:572-695`) run under `make test` and
 required pull-request check. A pull request could be green on every check while
 those suites were red.
 
-Measured over the define's standalone route: of 114 gate targets, 56 are reached by
+Measured over the define as `test-unleased` expands it — the standalone `make test`
+route, which is the superset, because the composed
+`test-after-build-check-unleased` route only adds `--ignore=` operands and drops
+the third macro argument: of 114 gate targets, 56 are reached by
 a workflow whose `pull_request` trigger carries no path filter, 6 only conditionally
 (four behind `catalogue-tooling-ci-gates.yml`'s `paths-ignore`, one behind
 `build-check-windows.yml`'s `paths`, one behind `docs.yml`'s), and 52 by no
@@ -141,9 +144,9 @@ does or does not emit, so each is a compressible invariant verified by **TDD**
 through the existing self-test entry point `tools/test-lint-ci-parity.py`. That file
 runs its cases from `main()` via `tools/selftest_harness.py`, and each case supplies
 its own roster, workflow mapping and Makefile text as keyword arguments, so no case
-mutates module globals. The four criteria after them concern roster state, mutation
-sensitivity and backlog state rather than a violation string, and take the modes
-named below.
+mutates module globals. The seven criteria after them concern workflow content, roster
+state, mutation sensitivity and backlog state rather than a violation string, and
+take the modes named below.
 
 - **Roster completeness, both directions (AC-0001, AC-0002)** — TDD. Each direction is a
   distinct violation string with a distinct remedy, so each gets its own case. AC-0001's
@@ -157,24 +160,31 @@ named below.
   workflow step reaches, including the case where the only coverage route is
   `tools/repo/build_gate_chain.py`.
 - **Reason presence (AC-0008)** — TDD.
-- **The gate cannot be silently disconnected (AC-0009)** — TDD, at the **integration**
+- **Disconnecting the gate reddens a test (AC-0009)** — TDD, at the **integration**
   surface. The other cases call the check arm directly, so they stay green if the
   arm is never wired into `main()`. This one drives the command entry point against
-  a fixture root and asserts exit 1.
-- **The two newly gated suites (AC-0010, AC-0011)** — **goal-based check**, read off
-  the roster rather than off the lint's exit status. Omitting both the workflow step
-  and the roster change leaves a consistent `NO_PR_GATE` entry and a green lint, so
-  exit 0 alone does not establish these two; the `grep` for each entry's `PR_GATED`
-  does, and AC-0006's arm then forces the named step to exist and reach the suite.
-  That each new step also carries a `STEP_DISPOSITION` entry is not restated as a
-  criterion: the module's existing forward arm and `tools/AGENTS.md` own it.
-- **The repository's own roster is honest (AC-0012)** — **goal-based check**.
-- **The new arms can fail (AC-0013)** — TDD, verified **differentially**. One
+  a fixture root and asserts exit 1. It closes that one disconnection, not every
+  way a gate can be defeated.
+- **The two newly gated suites (AC-0010, AC-0011, AC-0012, AC-0013)** —
+  **goal-based check**, two criteria per suite because the two states fail
+  independently and have different remedies. The execution criteria (AC-0010,
+  AC-0012) are read off the workflow step; the disposition criteria (AC-0011,
+  AC-0013) off the roster. Omitting both halves leaves a consistent `NO_PR_GATE`
+  entry and a green lint, so the lint's exit status establishes neither.
+  AC-0006's arm narrows what is left: it forces the named step to carry the suite as
+  a **pytest operand**, which excludes a step naming the path in passing, but it
+  cannot prove execution — `echo "python -m pytest <suite>"` extracts identically to
+  a real invocation. Execution is therefore its own criterion, read by a human, not
+  a consequence claimed off corroboration. That each new step also carries a
+  `STEP_DISPOSITION` entry is not restated as a criterion: the module's existing
+  forward arm and `tools/AGENTS.md` own it.
+- **The repository's own roster is honest (AC-0014)** — **goal-based check**.
+- **The new arms can fail (AC-0015)** — TDD, verified **differentially**. One
   self-test case per arm asserts that arm's own violation string, so removing the arm
   removes the string and reddens a named case. The criterion is stated as the
   differential outcome rather than as the presence of a case, because a case that
   cannot fail satisfies presence.
-- **The recorded defect is retired (AC-0014)** — **goal-based check**.
+- **The recorded defect is retired (AC-0016)** — **goal-based check**.
 
 ## Acceptance Criteria
 
@@ -203,19 +213,20 @@ named below.
   carries an empty or whitespace-only reason.
 - [ ] **AC-0009.** `python3 tools/lint-ci-parity.py` invoked against a fixture root
   whose `run-test-suite` define carries an undispositioned recipe line exits 1.
-- [ ] **AC-0010.** `packs/frontend-engineering/tests/`'s `SUITE_DISPOSITION` entry
-  reads `PR_GATED` naming a step of `.github/workflows/build-check.yml`. AC-0006's
-  arm reddens unless that step reaches the suite, so this one predicate cannot hold
-  while the step is absent.
-- [ ] **AC-0011.** A step of `.github/workflows/build-check.yml` runs
-  `tools/test_local_ci_shared_test_deduplication.py`, and that suite's
-  `SUITE_DISPOSITION` entry reads `PR_GATED` naming it.
-- [ ] **AC-0012.** `python3 tools/lint-ci-parity.py` exits 0 against the repository, with every
+- [ ] **AC-0010.** A step of `.github/workflows/build-check.yml` invokes pytest on
+  `packs/frontend-engineering/tests/`.
+- [ ] **AC-0011.** `packs/frontend-engineering/tests/`'s `SUITE_DISPOSITION` entry
+  reads `PR_GATED` naming that step.
+- [ ] **AC-0012.** A step of `.github/workflows/build-check.yml` invokes pytest on
+  `tools/test_local_ci_shared_test_deduplication.py`.
+- [ ] **AC-0013.** `tools/test_local_ci_shared_test_deduplication.py`'s
+  `SUITE_DISPOSITION` entry reads `PR_GATED` naming that step.
+- [ ] **AC-0014.** `python3 tools/lint-ci-parity.py` exits 0 against the repository, with every
   recipe line of the `run-test-suite` define dispositioned.
-- [ ] **AC-0013.** For each check arm named in AC-0001 through AC-0009, removing
+- [ ] **AC-0015.** For each check arm named in AC-0001 through AC-0009, removing
   that arm from `tools/lint-ci-parity.py` makes `python3 tools/test-lint-ci-parity.py`
   exit non-zero.
-- [ ] **AC-0014.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
+- [ ] **AC-0016.** The `workspace.toml` entry whose `path` is `tools/repo/build_gate_chain.py`
   and whose `kind` is `defect` appears once, under `[backlog].closed`, and no
   `[backlog].open` entry restates it.
 
