@@ -104,6 +104,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existed only in this repository's generated copy, where every self-host run
   removed them.
 
+## [agentbundle][0.48.0] — 2026-09-22
+
+### Highlights
+
+- **You can now check a derived catalogue against its source without
+  touching a file.** `agentbundle catalogue sync --dry-run` prints what would
+  update, what would keep your edits behind a companion file, and what the
+  source no longer has. `agentbundle catalogue sync --check` answers whether
+  your catalogue still matches its source. Neither writes anything.
+
+### Added
+
+- `catalogue sync` accepts every `--source` form `init` does — a local path,
+  a `git+https://` URL, or a `catalogue+https://` descriptor — and names the
+  source catalogue only under `--attribution attributed`. It also warns,
+  without ever refusing, when a selected pack's version has moved in the
+  source.
+
+
 ## [core][2.26.33] — 2026-09-22
 
 ### Changed
