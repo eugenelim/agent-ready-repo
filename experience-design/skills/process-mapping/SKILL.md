@@ -64,7 +64,7 @@ Confirm all three before drafting; if any fails, resolve it first.
 
 - **Confusing frontstage and backstage.** This skill maps what the organisation does inside-out. What the customer experiences is `journey-mapping`'s domain. If a swimlane step is something the customer does, it belongs in the journey map, not here.
 - **Descending to L5 tasks.** L5 tasks are SOP and work-instruction territory. The swimlane works at L4 activity grain — cross-functional handoffs and decision gates, not the individual keystrokes or click sequences that make up a task. Stop at the handoff, not the sub-step.
-- **Reprinting APQC framework text or full BPMN XML.** Point to APQC PCF and BPMN 2.0 (OMG / ISO 19510) as standards; do not reproduce the PCF table, process categories, or BPMN element XML. The method borrows the vocabulary; the source stays authoritative.
+- **Reprinting APQC framework text or full BPMN XML.** Point to APQC PCF and BPMN 2.0 (OMG / ISO 19510) as standards; do not reproduce the PCF table, process categories, or BPMN element XML. Sources: see the pack README.
 - **Skipping the SIPOC.** A swimlane without a SIPOC has no agreed boundary. The SIPOC is what prevents the map from sprawling into adjacent processes or stopping short of the real outcome. Build it before the first lane.
 - **Producing only a diagram without the delta table.** The as-is→to-be delta table is the analytical output — the reason the map earns its keep. A swimlane alone without the delta table leaves the improvement logic implicit.
 - **Skipping the output-path surface step.** The resolved path is declared before the first write, every time.

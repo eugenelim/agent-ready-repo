@@ -67,7 +67,7 @@ A widget that does not answer any of the 3–5 named questions is a candidate fo
 Organize widgets into three tiers based on their role in answering the business questions:
 
 **Tier 1 — Primary KPIs (≤9 widgets)**
-The state signals a user checks first to know if anything requires attention. Each answers a binary: "Is this good or not?" Limit to 9 (Miller's Law — cognitive chunking boundary for at-a-glance processing). More than 9 primary KPIs means the screen has no primary signals; everything is equally important, which means nothing is.
+The state signals a user checks first to know if anything requires attention. Each answers a binary: "Is this good or not?" Limit to 9 — this pack's own cap for at-a-glance scanning. More than 9 primary KPIs means the screen has no primary signals; everything is equally important, which means nothing is.
 
 **Tier 2 — Secondary diagnostics**
 The widgets a user consults after a Tier 1 signal raises a question. These answer "why?" or "where?" — trend lines, breakdowns, distributions. Positioned after Tier 1 in the visual hierarchy.

@@ -214,7 +214,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "2.0.4"
+      "version": "2.0.6"
     },
     {
       "author": {
@@ -248,7 +248,7 @@
         "name": "eugenelim"
       },
       "category": "engineering",
-      "description": "Build the web surface, then prove it holds up. HTML, CSS, and JS with a real token system, WCAG 2.2 AA, and Core Web Vitals measured rather than asserted. A reviewer reads the diff for the regressions those three tend to hide.",
+      "description": "Build the web surface, then prove it holds up. HTML, CSS, and JS with a real token system, a WCAG 2.2 AA target, and Core Web Vitals measured rather than asserted. A reviewer reads the diff for the regressions those three tend to hide.",
       "displayName": "Frontend Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [

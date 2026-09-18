@@ -1,6 +1,6 @@
 ---
 name: identify-perspectives
-description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Fairly represents every significant view in proportion to its prominence, and surfaces every viable explanation before evaluating any of them. Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 ---
 
 # /identify-perspectives
@@ -44,17 +44,12 @@ Table — When presenting several items that share the same fields, render a Mar
 
 ## Methodology
 
-Two convergent disciplines:
-
-1. **Wikipedia NPOV (Neutral Point of View)** — fairly represent all
-   significant views proportionally to their prominence in reliable
-   sources. The pack borrows the *representation* discipline: every
-   significant camp gets named, not just the camp the model finds most
-   credible.
-
-2. **ACH (Analysis of Competing Hypotheses)** — surface all viable
-   explanations *before* evaluating any of them. ACH's failure mode is
-   premature dismissal; enumerating first protects against it.
+- **Fair representation.** Represent every significant view in
+  proportion to its prominence: every significant camp gets named, not
+  just the camp the model finds most credible.
+- **Enumerate before evaluating.** Surface all viable explanations
+  *before* evaluating any of them. Premature dismissal is the failure
+  mode; enumerating first protects against it.
 
 The output is a scaffold of camps, not a verdict on which is right.
 Evaluation is `/compare-hypotheses`'s job downstream.
@@ -73,7 +68,7 @@ Evaluation is `/compare-hypotheses`'s job downstream.
      hold the camp's position).
    - One adjacent or fringe variant the camp tolerates.
 4. **Look for missing camps** — quiet positions, dissenting minorities,
-   contrarian-but-credentialed. The biggest NPOV failure is
+   contrarian-but-credentialed. The biggest failure is
    *omission*, not bias.
 5. **Map the tensions** — for each pair of camps that genuinely
    disagree, decide whether the disagreement *resolves* (one camp is

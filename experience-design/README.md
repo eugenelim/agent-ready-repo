@@ -76,14 +76,14 @@ journey-mapping [paste the user's outcome and context]
 ```text
 user-flow [link to docs/design/journeys/onboarding.md]
 
-  screens  docs/design/screen-flows/onboarding.md
+  screens  docs/design/screens/onboarding-flow.md
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
   States per screen: default · loading · error · success · empty
 ```
 
 ```text
-experience-reviewer [link to docs/design/screen-flows/onboarding.md]
+experience-reviewer [link to docs/design/screens/onboarding-flow.md]
 
   Blocker  Welcome screen: empty state not designed
   Concern  Connect screen: error text has no recovery action
@@ -106,6 +106,17 @@ The reviewer runs forked — no authoring context. You act on its findings, then
 `design-review` (authoring-time) → `experience-reviewer` (independent cold review)
 
 Every skill ships portable **method**, not your stack: no UI-framework code, no values tables, no fixed token set, no pixel comps.
+
+---
+
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
+
+- **`journey-mapping`** — draws on Nielsen Norman Group's journey-mapping model (the canonical definition and the five components), Jeff Patton's user-story mapping (stages map roughly to Patton's user activities), and Teresa Torres's opportunity-solution tree (the journey's pains and opportunities feed the tree). See `references/journey-mapping.md` for the full grounding and links. Step 6's peak/dip/end marking follows Daniel Kahneman's peak-end rule: the overall judgment of an experience is disproportionately shaped by its most intense moment (positive or negative) and its end, not its average.
+- **`design-principles`** — steps 1–4 of the procedure map to NNGroup's 4-step design-principles model; step 5 (writing the principles doc) is this pack's own addition, not part of that model.
+- **`process-mapping`** — the method borrows vocabulary from APQC's Process Classification Framework (PCF) and BPMN 2.0 (OMG / ISO 19510); the source stays authoritative, and the skill's anti-pattern forbids reprinting PCF tables or BPMN element XML.
+- **`service-blueprint`** — informed by Nielsen Norman Group's service-blueprinting model; this pack's five-row layout is its own, and in NN/g's model the line of visibility is a divider rather than a row. See [NN/g: Service Blueprints](https://www.nngroup.com/articles/service-blueprints-definition/).
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: frontend-reviewer
-description: "Diff-level reviewer for HTML/CSS/JS diffs — forked context, read-only. Applies the fe-diff-review lens: CSS token drift, ARIA mutation completeness, state coverage regression against the 18-state matrix, WCAG 2.2 Focus Appearance and Target Size (the two manual-verification items automated tooling misses), CWV regression signals, and reader-visible layout failure read from the rendered page itself. Does not duplicate adversarial-reviewer (spec drift), quality-engineer (testability/observability), experience-reviewer (aesthetic taste), or security-reviewer (auth/secrets/input). Use in full-mode work-loop when the diff's primary output is HTML, CSS, or JS."
+description: "Diff-level reviewer for HTML/CSS/JS diffs — forked context, read-only. Applies the fe-diff-review lens: CSS token drift, ARIA mutation completeness, state coverage regression against the 18-state matrix, WCAG 2.2 Target Size (Minimum) (AA) and Focus Appearance (AAA enhancement) — the pack's two named manual-verification checks, with the WCAG 2.2 AA gap stated rather than implied covered — CWV regression signals, and reader-visible layout failure read from the rendered page itself. Does not duplicate adversarial-reviewer (spec drift), quality-engineer (testability/observability), experience-reviewer (aesthetic taste), or security-reviewer (auth/secrets/input). Use in full-mode work-loop when the diff's primary output is HTML, CSS, or JS."
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
@@ -136,21 +136,25 @@ absent states on components added in the diff.
 
 ### Lens 4 — WCAG 2.2 manual-verification items
 
-Automated tooling caps at `wcag21aa`. Two WCAG 2.2 AA criteria require manual
-inspection of the diff — flag these when the diff adds or changes interactive
-elements:
+This pack's automated tooling selects only the `wcag21aa` tag group. Two
+named checks require manual inspection of the diff — flag these when the
+diff adds or changes interactive elements:
 
-**2.4.11 Focus Appearance:** does the diff add or change focus styles?
+**2.5.8 Target Size (Minimum), AA:** does the diff add interactive elements
+smaller than 24×24 CSS pixels?
+- Flag: buttons or links with `width` or `height` set below 24px (or with
+  padding that would result in a target below 24px), unless the diff shows
+  a named exception applies (Equivalent, Inline, User Agent Control, or
+  Essential) or the spacing exception is met (a 24 CSS-pixel-diameter circle
+  centered on the target's bounding box does not intersect another target).
+- Flag: icon-only buttons with no visible target sizing (no explicit `min-width`
+  / `min-height` or padding that reaches 24px) and no named exception.
+
+**2.4.13 Focus Appearance, AAA enhancement (not part of the AA baseline):**
+does the diff add or change focus styles?
 - Flag: `outline: none` or `outline: 0` with no visible focus replacement.
 - Flag: a focus style that appears narrower than 2px or uses a low-contrast
   color (contrast ratio < 3:1 between focused and unfocused states).
-
-**2.5.8 Target Size Minimum:** does the diff add interactive elements smaller
-than 24×24 CSS pixels?
-- Flag: buttons or links with `width` or `height` set below 24px (or with
-  padding that would result in a target below 24px).
-- Flag: icon-only buttons with no visible target sizing (no explicit `min-width`
-  / `min-height` or padding that reaches 24px).
 
 **Report format:** file:line, the criterion, what is wrong.
 
