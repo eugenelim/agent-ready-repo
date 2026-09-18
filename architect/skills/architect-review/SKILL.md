@@ -55,7 +55,15 @@ If any check fails, push back rather than reviewing.
 
 1. **Identify the artifact type.** Read the paste; pick one:
    - Architecture assessment report → `references/rubric-assessment.md`
-   - Design doc (Google-style or close to it) → `references/rubric-design-doc.md`
+   - Design doc, at one of three architectural scopes, all routed to
+     `references/rubric-design-doc.md`:
+     - **application/system** — expect the zoom to stop at Container; a
+       component inventory or file/module mapping inside it is a finding.
+     - **subsystem** — expect the zoom to descend to internal elements and
+       the contracts the subsystem exposes.
+     - **architecture change** — the document is delta-shaped; it must name
+       the authoritative current-architecture artifact it is a delta from,
+       and a second embedded current-state assessment is itself a finding.
    - C4 Container / Context diagram → `references/rubric-c4-diagram.md`
    - Sequence diagram → `references/rubric-sequence-diagram.md`
    - State diagram → `references/rubric-state-diagram.md`
