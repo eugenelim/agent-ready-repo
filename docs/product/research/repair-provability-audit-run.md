@@ -937,3 +937,68 @@ stratum.
 **Still not a rate.** 17 of 61 cases, drawn in a frozen outcome-blind order, so
 these proportions are an interim observation on a partial draw and the remaining
 44 can move them.
+
+### Positions 11 to 15, and the finding at 100 adjudicated repairs
+
+Positions 11 to 15 carried **47 adjudicated repairs across five commits** — one
+bundles 17 findings, another 12. Outcome: **3 semantic kills, 1 structural kill,
+0 survives, 43 unmeasurable.** The semantic kills are `73bfe3be7` repair 2, where
+the reverted code wrote an absolute local path into the persisted plan file, and
+`3546f2c28` repair 1, where the reverted merge dropped an unrelated pre-existing
+JSON key (`KeyError: 'otherKey'`). The structural kill is `03f4d3ee5` repair 3:
+the refusal still fired and still had zero effect, and only the emitted code
+string moved from `proposer-role-invalid` to `actor-role-invalid`, with the other
+five parameter cases in the same test staying green.
+
+#### Running totals: 22 of 61 cases, 100 adjudicated repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 82 | 82% |
+| semantic kill | 11 | 11% |
+| survives | 5 | 5% |
+| structural kill | 2 | 2% |
+
+#### The audit's question is unaskable of 88% of these repairs
+
+This is the substantive result so far, and it comes from Worker A's predicates
+rather than from any outcome, so it is fixed before execution and cannot be an
+artifact of how an arm ran. Over the **99 repairs briefed across 20 cases**:
+
+| Worker A's frozen classification | Repairs | Share |
+| --- | ---: | ---: |
+| **no revertable source** — the repair changed no source hunk | **59** | **59.6%** |
+| **no discriminating oracle** — a source hunk exists, no co-changed control can tell | **28** | **28.3%** |
+| a real oracle proposed | 12 | 12.1% |
+
+**Only 12 of 99 shipped repairs can even be asked the audit's question.** The
+other 87 fail at one of two prior conditions: there is nothing to revert, or
+there is nothing that would notice.
+
+The 59.6% is a property of what this repository ships. Its product is
+instruction text, so a review round is answered by correcting prose, a register,
+a spec body, or the control itself — none of which has a source hunk whose
+reversal exercises a defect. The 28.3% is the more interesting half: a source
+hunk *does* exist, and the co-changed test still cannot distinguish the repair
+from its absence.
+
+**Repairs per case: mean 5.0, max 17, min 1.** The distribution is
+`{1:4, 2:5, 3:2, 4:1, 5:2, 7:1, 8:1, 10:1, 11:1, 12:1, 17:1}`. The design's
+one-repair-per-commit unit would have turned 99 outcomes into 20.
+
+#### A third instrument defect, in the executor's own driver
+
+The first pass over these arms piped the runner through `tail -26`, which
+truncated the `reverted OK` confirmation lines off three of the four arms. The
+outcomes were recorded without the guard that makes them trustworthy. The re-run
+then omitted the `--` separator, so no paths reached the runner and `set -u`
+aborted every arm — loudly, this time, which is the only reason it was caught
+immediately.
+
+Both passes are superseded by a full-capture run in which every arm prints one
+`reverted OK` line per in-commit path plus a count line, and all four were
+confirmed. **No arm is reported in this document whose revert confirmation was
+not actually read.** This is the same class as the two earlier harness defects
+and as the voided `git checkout` in the first run: the step either did not
+happen or was not visible, and the surrounding output still looked like a valid
+run.
