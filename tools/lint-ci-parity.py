@@ -876,9 +876,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(RFC-0082)"
         ),
     'packs/architect/tests/skills/architect-design/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the architect batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
         ),
     'packs/architect/tests/skills/architect-review/':
         NO_PR_GATE(
