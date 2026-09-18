@@ -49,8 +49,12 @@ first fixture."
 
 ## Decision
 
-We adopt RFC-0102's metadata block, its mutability split, and the shape lint
-that enforces both.
+We adopt RFC-0102's metadata block and its mutability split, and ship a shape
+lint that enforces the metadata block. The split is stated in the authoring
+surfaces and is not yet mechanically enforced: checking it needs a check on how
+a record *changed*, which the shape lint — a check on how a record *reads right
+now* — cannot perform. Rewriting `check-adr-immutability` to do that is
+recorded as follow-on work.
 
 - **D1:** A record's metadata is layered by what a program can check.
   `Status`, `Date`, `Areas`, `Reversibility`, and the four supersession fields

@@ -15,7 +15,7 @@ goes stale, and current state recorded as a decision never gets updated.
 | `product/` | What the product is doing today: direction, release history, and the briefs behind in-flight work | living |
 | `specs/` | The engineering contract for one feature, with its implementation plan | living while building, frozen once shipped |
 | `knowledge/` | Practitioner residue — patterns, gotchas and antipatterns scoped to a file glob | living |
-| `adr/` | Why we chose X over Y, one record per decision | frozen, save a small metadata block ([RFC-0102](rfc/0102-mechanically-checkable-adrs.md) § 4) it keeps writable |
+| `adr/` | Why we chose X over Y, one record per decision | frozen prose; `Status`, the supersession fields and `Areas` stay writable ([RFC-0102](rfc/0102-mechanically-checkable-adrs.md) § 4) |
 | `rfc/` | Should we change this? Open until accepted, rejected or withdrawn | governance |
 | `guides/` | How users use what we ship, in Diátaxis quadrants | living |
 

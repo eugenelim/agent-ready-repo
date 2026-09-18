@@ -144,7 +144,7 @@ conformance is reviewer-checked.
   ships `lint-adr-shape.py` (the `check-adr-shape` pull-request gate) as the
   mechanical ADR-status lint this ADR's Confirmation section named absent and
   deferred: "adding one is a separate, RFC-gated convention and is deferred —
-  until then, conformance is reviewer-checked." [ADR-0117](0117-adr-shape-lint-ships-blocking-not-advisory.md)
+  until then, conformance is reviewer-checked." [ADR-0117](0117-adr-metadata-is-mechanically-checkable-and-the-freeze-binds-prose.md)
   records that decision. On RFC-0102's authority, this ADR's `D5` — "Migration
   is forward-only — existing ADRs keep `Deciders` and are not rewritten" — is
   overridden: the corpus, including this ADR's own frontmatter, was migrated

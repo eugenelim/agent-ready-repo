@@ -24,6 +24,8 @@ The lint is invoked as a subprocess against the pack source path, not the
 
 from __future__ import annotations
 
+import collections
+import os
 import re
 import subprocess
 import sys
@@ -103,3 +105,44 @@ def test_the_bucket_totals_account_for_every_candidate() -> None:
         f"refused={refused} unreadable={unreadable} "
         f"(sum {read + refused + unreadable}) vs {expected} candidates"
     )
+
+
+def test_every_candidate_lands_in_exactly_one_bucket() -> None:
+    """AC-0005's "exactly one", asserted as a bijection rather than a sum.
+
+    The totals check above compares `read + refused + unreadable` against the
+    candidate count, which an entry counted twice while another is dropped
+    passes with the sum intact. That was its stated blind spot, and it existed
+    because a read entry emitted nothing to attribute.
+
+    With `ADR_SHAPE_ENTRY_LEDGER=1` the lint names every entry and its bucket,
+    so membership is observable per entry. This asserts three separate things
+    the sum cannot: no name appears twice, every candidate appears, and no
+    name appears that was not a candidate.
+    """
+    expected = {
+        entry.name
+        for entry in ADR_DIR.iterdir()
+        if entry.name.endswith(".md") and entry.name != "README.md"
+    }
+
+    env = dict(os.environ, ADR_SHAPE_ENTRY_LEDGER="1")
+    result = subprocess.run(
+        [sys.executable, str(LINT_SCRIPT), str(ADR_DIR)],
+        capture_output=True, text=True, env=env,
+    )
+
+    lines = [ln for ln in result.stderr.splitlines() if ln.startswith("entry: ")]
+    assert lines, "the entry ledger produced no lines; is the env var still read?"
+
+    pairs = [ln[len("entry: "):].rsplit(" -> ", 1) for ln in lines]
+    names = [name for name, _ in pairs]
+    buckets = {bucket for _, bucket in pairs}
+
+    duplicated = [n for n, c in collections.Counter(names).items() if c > 1]
+    assert not duplicated, f"counted in more than one bucket: {duplicated}"
+    assert set(names) == expected, (
+        f"missing: {sorted(expected - set(names))}; "
+        f"unexpected: {sorted(set(names) - expected)}"
+    )
+    assert buckets <= {"read", "refused", "unreadable"}, buckets

@@ -135,7 +135,7 @@ The skill then picks a short kebab-case filename from your description (`0007-pr
 
 ## Step 4 — Fill in frontmatter
 
-Status starts as `Proposed`. Today's date. `Decision-makers` are the people who own the call, identified however your team does — a name, a GitHub handle, or an email (don't assume GitHub handles unless your conventions require them); add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references, not prose; if a relationship needs explaining, that explanation goes in Context or References, not the frontmatter.
+Status starts as `Proposed`. Today's date. `Decision-makers` are the people who own the call, identified however your team does — a name, a GitHub handle, or an email (don't assume GitHub handles unless your conventions require them); add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references. A `Related` entry takes a brief parenthetical saying what the relationship *is* (see the shape below); what it must not take is the argument for that relationship. A clause fits; a paragraph belongs in Context or References.
 
 `Related:` is suggested, not checked: entries separated by `;`, each a bare ordinal or a `/`-joined pair — never a Markdown link — followed by a parenthetical gloss naming the relationship, with an em dash before a secondary clause, and no trailing period. For example: `RFC-NNNN` (the proposal this records); `ADR-NNNN` (the gate it rests on — the motivating evidence, and the split between what a scanner catches and what a reviewer catches); `ADR-NNNN / RFC-NNNN` (the modes this reuses).
 
@@ -183,6 +183,8 @@ ADRs differ from wiki-style docs in one load-bearing way: **once accepted, the p
 - **Attested** — `Date`, `Decision-makers`, and `Reversibility`. Frozen: they record who decided what, when, and how they judged it at the time, so rewriting them falsifies the record instead of correcting it.
 - **Frozen** — every prose section except `## Errata`.
 - **Append-only** — `## Errata`. Entries may be added; an entry already present may not be removed or rewritten.
+
+`Consulted` and `Informed` sit in no zone. The template lets you delete them when empty, and a field that may be absent can't be append-only — re-adding it later is exactly the line addition the sentinel values exist to avoid. So the four zones divide everything the record always carries, not literally every line in it.
 
 If the decision is reversed or revised, you write a *new* ADR that supersedes the old one: set the new record's `Supersedes:` to the old one's number, and the old record's `Status:` to `Superseded` with its `Superseded by:` naming the new one — two mirrored fields, not a compound value on one line. The old prose stays untouched; the new ADR carries the current reasoning.
 

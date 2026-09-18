@@ -585,7 +585,7 @@ only and are therefore not editable by this delivery and not follow-on work.
 - Process: ADR-0027's `D5` states existing ADRs keep `Deciders` and are not
   rewritten. The migration removed every `Deciders` key, so D5 is contradicted
   in fact; the override rests on RFC-0102's authority and is recorded on the
-  record itself by AC-0020's erratum rather than only here (source: user
+  record itself by AC-0016's erratum rather than only here (source: user
   direction 2026-09-17; `docs/adr/0027-*.md:47`).
 - Process: this spec registers as a queue entry under ini-002 Platform Core
   (source: user confirmation 2026-09-17).
