@@ -14,6 +14,7 @@ monkeypatch them by attribute name on this module without reaching into
 
 from __future__ import annotations
 
+import ast
 import json
 import shutil
 import sys
@@ -22,12 +23,20 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from agentbundle.catalogue import CatalogueError, resolve_catalogue
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
+    _OWNERSHIP_STATE_FILE,
     ReplayError,
     SelfHostedInitConfig,
     _is_attributed,
+    _is_safe_recipe_text,
+    _load_ownership_state,
+    _load_self_host_recipe,
+    _migrate_managed_paths,
+    _plan_stale_owned_paths,
     replay_derivation,
 )
+from agentbundle.config import PackState, State
 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+from agentbundle.safety import Tier, classify, companion_path
 
 if TYPE_CHECKING:
     import argparse
@@ -46,6 +55,175 @@ _CANNOT_ANSWER = 3
 # which is why the two get distinct fidelity tokens rather than one shared
 # "verified-digest" token.
 _DIGEST_BEARING_PREFIXES = ("archive+https://", "catalogue+https://")
+
+# `_plan_stale_owned_paths` decline tokens spec AC-0017 marks undecided — the
+# confinement refusal and the unreadable entry. Every other decline reason is
+# decided (compared) even though it declines removal. See that function's
+# docstring for the full reason set.
+_UNDECIDED_DECLINE_TOKENS = frozenset(
+    {"path-confinement-refused", "recorded-entry-unreadable"}
+)
+
+
+def _synthesize_state(recorded: dict[str, str | None]) -> State:
+    """Build the one-row ``State`` :func:`safety.classify` reads.
+
+    A null-sha entry is recorded with the ``"sha"`` key omitted rather than
+    present-and-``None`` — see plan.md's Design decisions: ``dict[str, str]``
+    carrying ``None`` is a type lie that survives only through
+    ``no_strict_optional`` and an ``Any`` hole.
+    """
+    files: dict[str, dict[str, str]] = {
+        path: ({"sha": sha} if sha is not None else {})
+        for path, sha in recorded.items()
+    }
+    return State(packs={("sync", "sync"): PackState(installed_version="0", files=files)})
+
+
+def _parse_decline_reason(reason: str) -> tuple[str, str] | None:
+    """Recover ``(path, token)`` from one ``_plan_stale_owned_paths`` reason.
+
+    Mirrors that function's fixed ``f"skipped removal of {rel_path!r}:
+    {token}"`` shape. Parsing failure returns ``None`` so the caller fails
+    closed to "uncompared" rather than misreporting a decided verdict.
+    """
+    prefix = "skipped removal of "
+    if not reason.startswith(prefix) or ": " not in reason:
+        return None
+    path_repr, _, token = reason[len(prefix) :].rpartition(": ")
+    if not path_repr:
+        return None
+    try:
+        path = ast.literal_eval(path_repr)
+    except (ValueError, SyntaxError):
+        return None
+    return (path, token) if isinstance(path, str) else None
+
+
+def _underivable_condition(target: Path, source: Path) -> str | None:
+    """Return spec AC-0009's underivable-selection condition, or ``None``.
+
+    Every condition AC-0009 enumerates is checked here, before any call that
+    would resolve an absent or discarded selection to the source's full
+    contents (``select_packs``/``_select_profiles`` widen to "every pack"
+    when passed ``None`` — exactly the widening AC-0009 forbids).
+    """
+    state_path = target / _OWNERSHIP_STATE_FILE
+    if not state_path.exists() and not state_path.is_symlink():
+        return "no state file at the target"
+
+    diagnostics: list[str] = []
+    raw_state = _load_ownership_state(target, diagnostics)
+    if raw_state is None:
+        return "the ownership-state loader could not return a state object"
+
+    if "recipe" not in raw_state:
+        return "the recorded state has no recipe key"
+
+    raw_recipe = raw_state["recipe"]
+    if not isinstance(raw_recipe, dict):
+        return "the recorded recipe is not a JSON object"
+
+    recipe = _load_self_host_recipe(raw_state, source, diagnostics)
+    if recipe is None:
+        # Every condition under which _load_self_host_recipe itself returns
+        # None (raw_state is None, no "recipe" key, recipe not a dict) is
+        # already handled above; reached only if that contract changes.
+        return "the recorded recipe could not be read"
+
+    if recipe.packs is None and recipe.profiles is None:
+        if "packs" in raw_recipe or "profiles" in raw_recipe:
+            return "the recorded packs or profiles selection was discarded"
+        return "the recorded recipe carries neither packs nor profiles"
+
+    return None
+
+
+def _classify_planned_paths(
+    target: Path,
+    old_state: dict[str, Any] | None,
+    planned_paths: set[str],
+) -> tuple[dict[str, int], list[tuple[str, str, str | None]]]:
+    """Classify every recorded and planned path, reconciling the seven counts.
+
+    Walks the raw ``managed_paths`` array exactly once: every entry lands in
+    exactly one bucket, so a silently dropped entry breaks the
+    ``compared + uncompared`` identity rather than passing it by
+    construction (spec AC-0016).
+    """
+    counts: dict[str, int] = {
+        "would_update": 0,
+        "would_companion": 0,
+        "untouched": 0,
+        "would_remove": 0,
+        "schema_1_inert": 0,
+        "compared": 0,
+        "uncompared": 0,
+    }
+    rows: list[tuple[str, str, str | None]] = []
+
+    managed_paths_raw = (old_state or {}).get("managed_paths", [])
+    if not isinstance(managed_paths_raw, list):
+        managed_paths_raw = []
+
+    migrated = _migrate_managed_paths(old_state or {})
+    # Entries _migrate_managed_paths drops outright (not a dict/str, or a
+    # dict with no "path" key) never reach either bucket below.
+    counts["uncompared"] += len(managed_paths_raw) - len(migrated)
+
+    recorded: dict[str, str | None] = {}
+    for entry in migrated:
+        path = entry.get("path", "")
+        sha = entry.get("sha256")
+        if not _is_safe_recipe_text(path) or path in recorded:
+            counts["uncompared"] += 1
+            continue
+        recorded[path] = sha if isinstance(sha, str) else None
+
+    state = _synthesize_state(recorded)
+    stale_paths = [path for path in recorded if path not in planned_paths]
+
+    for path in sorted(planned_paths):
+        tier = classify(path, target, state)
+        if tier is Tier.TIER_3:
+            counts["untouched"] += 1
+            rows.append((path, "untouched", None))
+            continue
+        counts["compared"] += 1
+        if tier is Tier.TIER_1:
+            counts["would_update"] += 1
+            rows.append((path, "would-update", None))
+        elif recorded.get(path) is None:
+            counts["schema_1_inert"] += 1
+            rows.append((path, "schema-1-inert", None))
+        else:
+            companion = str(companion_path(Path(path)))
+            counts["would_companion"] += 1
+            rows.append((path, "would-companion", companion))
+
+    if stale_paths:
+        removable, reasons = _plan_stale_owned_paths(
+            target, old_state or {}, planned_paths
+        )
+        removable_set = set(removable)
+        decline_tokens: dict[str, str] = {}
+        for reason in reasons:
+            parsed = _parse_decline_reason(reason)
+            if parsed is not None:
+                decline_tokens[parsed[0]] = parsed[1]
+        for path in stale_paths:
+            if path in removable_set:
+                counts["compared"] += 1
+                counts["would_remove"] += 1
+                rows.append((path, "would-remove", None))
+                continue
+            token = decline_tokens.get(path)
+            if token is None or token in _UNDECIDED_DECLINE_TOKENS:
+                counts["uncompared"] += 1
+            else:
+                counts["compared"] += 1
+
+    return counts, rows
 
 
 def _resolve_source(
@@ -93,6 +271,10 @@ def _plan_document(
     guides: str,
     source_raw: str,
     attributed: bool,
+    pack_names: list[str],
+    profile_names: list[str],
+    summary: dict[str, int],
+    verdict_rows: list[tuple[str, str, str | None]],
 ) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "command": "catalogue sync",
@@ -110,6 +292,17 @@ def _plan_document(
             "guides": guides,
             "provenance": "flags-and-defaults",
         },
+        "packs": pack_names,
+        "profiles": profile_names,
+        "summary": summary,
+        "verdicts": [
+            {
+                "path": path,
+                "verdict": verdict,
+                **({"companion": companion} if companion else {}),
+            }
+            for path, verdict, companion in verdict_rows
+        ],
     }
     if attributed:
         doc["source"] = source_raw
@@ -131,6 +324,20 @@ def _render_plan(doc: dict[str, Any], *, fmt: str) -> None:
     ]
     if "source" in doc:
         lines.append(f"source: {doc['source']}")
+    lines.append("packs: " + (", ".join(doc["packs"]) or "(none)"))
+    lines.append("profiles: " + (", ".join(doc["profiles"]) or "(none)"))
+    for row in doc["verdicts"]:
+        line = f"{row['verdict']}: {row['path']}"
+        if "companion" in row:
+            line += f" -> companion {row['companion']}"
+        lines.append(line)
+    counts = doc["summary"]
+    lines.append(
+        "counts: would-update={would_update} would-companion={would_companion} "
+        "untouched={untouched} would-remove={would_remove} "
+        "schema-1-inert={schema_1_inert} compared={compared} "
+        "uncompared={uncompared}".format(**counts)
+    )
     print("\n".join(lines))
 
 
@@ -211,6 +418,15 @@ def run(args: argparse.Namespace) -> int:
     )
 
     try:
+        condition = _underivable_condition(target, source_path)
+        if condition is not None:
+            return _refuse(
+                f"no recorded selection is derivable: {condition}",
+                attributed=attributed,
+                source_raw=source_raw,
+                fmt=fmt,
+                code=_CANNOT_ANSWER,
+            )
         replay = replay_derivation(cfg, interactive=False)
     except ReplayError:
         return _refuse(
@@ -238,6 +454,10 @@ def run(args: argparse.Namespace) -> int:
         )
 
     resolved_cfg = replay.config
+    planned_paths = set(replay.file_bytes.keys())
+    summary_counts, verdict_rows = _classify_planned_paths(
+        target, replay.old_state, planned_paths
+    )
     doc = _plan_document(
         target=target,
         dry_run=dry_run,
@@ -250,6 +470,10 @@ def run(args: argparse.Namespace) -> int:
         guides=resolved_cfg.guides,
         source_raw=source_raw,
         attributed=_is_attributed(resolved_cfg),
+        pack_names=replay.pack_names,
+        profile_names=replay.profile_names,
+        summary=summary_counts,
+        verdict_rows=verdict_rows,
     )
     _render_plan(doc, fmt=fmt)
     return _DIFFERENCE if replay.violations else _SUCCESS

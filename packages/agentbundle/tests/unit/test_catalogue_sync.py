@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from pathlib import Path
 
 import pytest
+from agentbundle import safety
+from agentbundle.catalogue_tooling import initialise_self_hosted as ish
 from agentbundle.cli import _build_parser
 from agentbundle.commands import catalogue_sync
 from agentbundle.https_catalogue import CatalogueArchiveResult
@@ -37,6 +40,35 @@ def _make_source(root: Path, *, pack_version: str = "1.0.0") -> Path:
     )
     (pack / "README.md").write_text("# Alpha\n", encoding="utf-8")
     return root
+
+
+def _write_minimal_sync_state(
+    target: Path,
+    *,
+    packs: list[str] | None = None,
+    managed_paths: list[dict] | None = None,
+) -> None:
+    """Write the minimal schema-3 state a derivable AC-0009 selection needs.
+
+    ``packs`` recorded (even the empty explicit list) is what makes the
+    recipe derivable -- an *absent* ``packs`` key, by contrast, is one of
+    AC-0009's underivable conditions.
+    """
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "3",
+                "managed_paths": managed_paths or [],
+                "recipe": {
+                    "packs": list(packs) if packs is not None else [],
+                    "profiles": [],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -287,12 +319,326 @@ def test_sync_cleans_up_extracted_directory_on_success_and_on_refusal(
 
 
 # ---------------------------------------------------------------------------
+# AC-0010, AC-0011, AC-0016: the Tier verdict per planned path, the companion
+# path, the reported selection, and the seven counts' identity.
+# ---------------------------------------------------------------------------
+
+# STUB: AC-0010
+def test_sync_reports_tier_verdict_and_selection(derived_tree, upstream, capsys):
+    from agentbundle.commands import catalogue_sync
+
+    (derived_tree / "packs" / "alpha" / "README.md").write_bytes(b"adopter\n")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", str(upstream), "--dry-run"]
+    )
+
+    catalogue_sync.run(args)
+
+    out = capsys.readouterr().out
+    assert "would-companion" in out
+    assert "packs/alpha/README.md" in out
+
+
+def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, capsys):
+    """Drive all five AC-0010 path states through one run and check the
+    reported verdict, the companion path, and the reported pack/profile
+    selection against the recorded recipe."""
+    (upstream / "packs" / "alpha" / "extra.md").write_bytes(b"legacy\n")
+    (derived_tree / "packs" / "alpha" / "extra.md").write_bytes(b"legacy\n")
+    (derived_tree / "packs" / "alpha" / "README.md").write_bytes(b"edited by the adopter\n")
+    (derived_tree / "packs" / "alpha" / "stale.md").write_bytes(b"stale\n")
+
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"].append({"path": "packs/alpha/extra.md", "sha256": None})
+    state["managed_paths"].append(
+        {
+            "path": "packs/alpha/stale.md",
+            "sha256": hashlib.sha256(b"stale\n").hexdigest(),
+        }
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    catalogue_sync.run(args)
+    doc = json.loads(capsys.readouterr().out)
+
+    verdicts_by_path = {row["path"]: row for row in doc["verdicts"]}
+    # recorded, present, sha matches -> would-update.
+    assert verdicts_by_path["packs/alpha/pack.toml"]["verdict"] == "would-update"
+    # recorded, present, sha differs -> would-companion, naming the
+    # safety.companion_path result (not a locally assembled string).
+    assert verdicts_by_path["packs/alpha/README.md"]["verdict"] == "would-companion"
+    assert verdicts_by_path["packs/alpha/README.md"]["companion"] == str(
+        safety.companion_path(Path("packs/alpha/README.md"))
+    )
+    # recorded, present, sha256: null -> schema-1-inert.
+    assert verdicts_by_path["packs/alpha/extra.md"]["verdict"] == "schema-1-inert"
+    # not recorded -> untouched.
+    assert verdicts_by_path["catalogue.toml"]["verdict"] == "untouched"
+    # recorded, absent from the current plan (source dropped it), unedited
+    # -> would-remove.
+    assert verdicts_by_path["packs/alpha/stale.md"]["verdict"] == "would-remove"
+    assert doc["summary"]["would_remove"] == 1
+
+    # The five states are mutually exclusive by construction: each path
+    # above landed in exactly one bucket.
+    assert {row["verdict"] for row in doc["verdicts"]} <= {
+        "would-update", "would-companion", "schema-1-inert", "untouched",
+        "would-remove",
+    }
+
+    # The reported selection equals the recorded recipe's.
+    assert doc["packs"] == ["alpha"]
+    assert doc["profiles"] == []
+
+
+# STUB: AC-0016
+def test_sync_reports_seven_counts_and_the_identity(derived_tree, upstream, capsys):
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+
+    catalogue_sync.run(args)
+    summary = json.loads(capsys.readouterr().out)["summary"]
+
+    assert set(summary) == {
+        "would_update", "would_companion", "untouched", "would_remove",
+        "schema_1_inert", "compared", "uncompared",
+    }
+    # The plan's literal stub illustration asserts `== 1`; derived_tree (T1)
+    # actually records two managed_paths entries, so the identity's
+    # denominator is read from the fixture rather than restated as a second
+    # literal that could drift from it — see the implementer report's
+    # Deviations section.
+    recorded_count = len(
+        json.loads(
+            (derived_tree / ".agentbundle" / "self-host-state.json").read_text(
+                encoding="utf-8"
+            )
+        )["managed_paths"]
+    )
+    assert summary["compared"] + summary["uncompared"] == recorded_count
+
+
+def test_sync_identity_accounts_for_malformed_and_unrenderable_entries(
+    derived_tree, upstream, capsys
+):
+    """The identity's denominator is the raw managed_paths array before
+    filtering; a malformed entry (no "path" key) and an unrenderable one
+    (a control character) both land in uncompared (spec AC-0016)."""
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    recorded_count_before = len(state["managed_paths"])
+    state["managed_paths"].append({"sha256": "z" * 64})
+    state["managed_paths"].append({"path": "packs/alpha/\x1b[2Kevil.md", "sha256": "z" * 64})
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    catalogue_sync.run(args)
+    summary = json.loads(capsys.readouterr().out)["summary"]
+
+    assert summary["compared"] + summary["uncompared"] == recorded_count_before + 2
+    assert summary["uncompared"] >= 2
+
+
+# ---------------------------------------------------------------------------
+# AC-0009: every underivable recorded-selection state, including every
+# ownership-state loader failure, exits the cannot-answer code with its
+# condition named.
+# ---------------------------------------------------------------------------
+
+def test_sync_no_state_file_exits_cannot_answer(derived_tree, upstream, capsys):
+    (derived_tree / ".agentbundle" / "self-host-state.json").unlink()
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert "no state file at the target" in capsys.readouterr().err
+
+
+def _drop_recipe_key(state: dict) -> None:
+    del state["recipe"]
+
+
+def _recipe_not_object(state: dict) -> None:
+    state["recipe"] = ["not-an-object"]
+
+
+def _recipe_without_packs_or_profiles(state: dict) -> None:
+    state["recipe"].pop("packs", None)
+    state["recipe"].pop("profiles", None)
+
+
+def _recipe_selection_discarded(state: dict) -> None:
+    state["recipe"]["packs"] = ["does-not-exist-in-source"]
+    state["recipe"].pop("profiles", None)
+
+
+AC_0009_RECIPE_MUTATIONS = {
+    "no-recipe-key": _drop_recipe_key,
+    "recipe-not-object": _recipe_not_object,
+    "neither-packs-nor-profiles": _recipe_without_packs_or_profiles,
+    "selection-discarded": _recipe_selection_discarded,
+}
+
+
+@pytest.mark.parametrize("case", sorted(AC_0009_RECIPE_MUTATIONS))
+def test_sync_ac0009_recipe_conditions_exit_cannot_answer(
+    derived_tree, upstream, capsys, case
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    AC_0009_RECIPE_MUTATIONS[case](state)
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert "no recorded selection is derivable" in capsys.readouterr().err
+
+
+def test_sync_ownership_state_confinement_refusal_exits_cannot_answer(
+    derived_tree, upstream, capsys
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    outside = derived_tree.parent / "outside-state.json"
+    outside.write_text(state_path.read_text(encoding="utf-8"), encoding="utf-8")
+    state_path.unlink()
+    try:
+        state_path.symlink_to(outside)
+    except OSError as exc:
+        pytest.skip(f"symlink unavailable: {exc}")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert (
+        "the ownership-state loader could not return a state object"
+        in capsys.readouterr().err
+    )
+
+
+def test_sync_ownership_state_invalid_utf8_exits_cannot_answer(
+    derived_tree, upstream, capsys
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state_path.write_bytes(b"\xff\xfe not valid utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert (
+        "the ownership-state loader could not return a state object"
+        in capsys.readouterr().err
+    )
+
+
+def test_sync_ownership_state_invalid_json_exits_cannot_answer(
+    derived_tree, upstream, capsys
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state_path.write_text("{not json", encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert (
+        "the ownership-state loader could not return a state object"
+        in capsys.readouterr().err
+    )
+
+
+def test_sync_ownership_state_non_object_document_exits_cannot_answer(
+    derived_tree, upstream, capsys
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state_path.write_text("[]", encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert (
+        "the ownership-state loader could not return a state object"
+        in capsys.readouterr().err
+    )
+
+
+def test_sync_ownership_state_io_failure_exits_cannot_answer(
+    derived_tree, upstream, capsys, monkeypatch
+):
+    def _raise_os_error(*_args, **_kwargs):
+        raise OSError("disk gremlin")
+
+    monkeypatch.setattr(ish, "read_confined_regular_file", _raise_os_error)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert (
+        "the ownership-state loader could not return a state object"
+        in capsys.readouterr().err
+    )
+
+
+def test_sync_ownership_state_recursion_exhaustion_exits_cannot_answer(
+    derived_tree, upstream, capsys, monkeypatch
+):
+    def _raise_recursion_error(*_args, **_kwargs):
+        raise RecursionError
+
+    monkeypatch.setattr(ish.json, "loads", _raise_recursion_error)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+    assert (
+        "the ownership-state loader could not return a state object"
+        in capsys.readouterr().err
+    )
+
+
+# ---------------------------------------------------------------------------
 # The whole-tree walk (spec AC-0015), reusing T4's helper rather than a copy.
 # T5's rows: a dry-run success and a resolution refusal reached via sync's
 # own dispatch, over-and-above T4's replay_derivation-level rows.
+#
+# Each case is a (setup, invoke) pair: `setup` prepares the target's
+# pre-existing tree (an already-derived catalogue's recorded state and any
+# adopter edits) *before* the walk's "before" snapshot, and `invoke` is the
+# only step that runs sync — the one step the walk holds to "no write".
+# T4/T5's original two rows need no target-side setup.
 # ---------------------------------------------------------------------------
 
-def _sync_dry_run_success_row(target: Path) -> None:
+def _no_target_setup(target: Path) -> None:
+    pass
+
+
+def _setup_success_target(target: Path) -> None:
+    # AC-0009: a target with no recorded selection is itself one of the
+    # underivable conditions, so this success row needs one recorded — T5
+    # predates that check and this setup supplies the minimal state it
+    # requires to still land on AC-0013's success row.
+    _write_minimal_sync_state(target, packs=["alpha"])
+
+
+def _invoke_sync_dry_run_success(target: Path) -> None:
     source = _make_source(target.parent / "sync-tree-walk-source")
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
@@ -300,7 +646,7 @@ def _sync_dry_run_success_row(target: Path) -> None:
     assert catalogue_sync.run(args) == 0
 
 
-def _sync_resolution_refusal_row(target: Path) -> None:
+def _invoke_sync_resolution_refusal(target: Path) -> None:
     missing = str(target.parent / "sync-tree-walk-missing-source")
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(target), "--source", missing, "--dry-run"]
@@ -308,10 +654,77 @@ def _sync_resolution_refusal_row(target: Path) -> None:
     assert catalogue_sync.run(args) == 3
 
 
+def _setup_would_companion_target(target: Path) -> None:
+    readme = target / "packs" / "alpha" / "README.md"
+    readme.parent.mkdir(parents=True, exist_ok=True)
+    readme.write_bytes(b"edited by the adopter\n")
+    _write_minimal_sync_state(
+        target,
+        packs=["alpha"],
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"# Alpha\n").hexdigest(),
+            }
+        ],
+    )
+
+
+def _invoke_sync_dry_run_would_companion(target: Path) -> None:
+    source = _make_source(target.parent / "sync-tree-walk-companion-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 0
+
+
+def _setup_would_remove_target(target: Path) -> None:
+    gone = target / "packs" / "alpha" / "gone.md"
+    gone.parent.mkdir(parents=True, exist_ok=True)
+    gone.write_bytes(b"stale content\n")
+    _write_minimal_sync_state(
+        target,
+        packs=["alpha"],
+        managed_paths=[
+            {
+                "path": "packs/alpha/gone.md",
+                "sha256": hashlib.sha256(b"stale content\n").hexdigest(),
+            }
+        ],
+    )
+
+
+def _invoke_sync_dry_run_would_remove(target: Path) -> None:
+    source = _make_source(target.parent / "sync-tree-walk-remove-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 0
+
+
+def _invoke_sync_dry_run_underivable_selection(target: Path) -> None:
+    # No state file at all -- one of AC-0009's own underivable conditions.
+    source = _make_source(target.parent / "sync-tree-walk-underivable-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+
+
 # Registry T5 adds to; later tasks extend it further rather than copying it.
+# Each value is a (setup, invoke) pair — see the section comment above.
 SYNC_TREE_WALK_CASES = {
-    "sync-dry-run-success": _sync_dry_run_success_row,
-    "sync-resolution-refusal": _sync_resolution_refusal_row,
+    "sync-dry-run-success": (_setup_success_target, _invoke_sync_dry_run_success),
+    "sync-resolution-refusal": (_no_target_setup, _invoke_sync_resolution_refusal),
+    "sync-dry-run-would-companion": (
+        _setup_would_companion_target, _invoke_sync_dry_run_would_companion,
+    ),
+    "sync-dry-run-would-remove": (
+        _setup_would_remove_target, _invoke_sync_dry_run_would_remove,
+    ),
+    "sync-dry-run-underivable-selection": (
+        _no_target_setup, _invoke_sync_dry_run_underivable_selection,
+    ),
 }
 
 
@@ -320,9 +733,11 @@ def test_sync_leaves_the_target_tree_unchanged(tmp_path, case):
     target = tmp_path / "target"
     target.mkdir()
     (target / "adopter-owned.txt").write_text("keep me\n", encoding="utf-8")
+    setup, invoke = SYNC_TREE_WALK_CASES[case]
+    setup(target)
     before = walk_target_tree(target)
 
-    SYNC_TREE_WALK_CASES[case](target)
+    invoke(target)
 
     after = walk_target_tree(target)
     assert after == before
