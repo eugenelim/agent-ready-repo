@@ -304,7 +304,3 @@ class TheContractReferenceNamesTheCurrentSections(unittest.TestCase):
         body = flat(read(_CONTRACT))
         self.assertNotIn("four sections — Objective, Boundaries", body)
         self.assertIn("Agent Rules, Testing Strategy, Acceptance Criteria", body)
-
-
-if __name__ == "__main__":
-    unittest.main()

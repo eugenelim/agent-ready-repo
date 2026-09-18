@@ -94,9 +94,10 @@ Write a spec for making the login test deterministic — one independently shipp
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 >
-> **Not every section is contract.** `Boundaries`, `Testing Strategy` and
+> **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
 > `Acceptance Criteria` are what a completion gate reads, and an amendment
-> changes them. `Objective`, `Durable Outputs`, `Follow-ons` and `Assumptions`
+> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
+> `Assumptions` are working material: they orient a reader and an author corrects them in place
 ```
 
 *The agent replaces every `<…>`. This is the template the skill writes from; the artifact continues in the same shape.*

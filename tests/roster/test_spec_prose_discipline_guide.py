@@ -53,7 +53,3 @@ class TheGuideNamesTheCurrentSpecSections(unittest.TestCase):
         # wording. The retired unconditional form is caught by the arm above.
         self.assertRegex(self.body, r"`Approach:`\s+only where")
         self.assertRegex(self.body, r"ordering or seam decision")
-
-
-if __name__ == "__main__":
-    unittest.main()

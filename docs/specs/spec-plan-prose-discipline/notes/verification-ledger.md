@@ -175,3 +175,42 @@ The installed projection was scaffolded, not just the pack source:
 directory and read with comments stripped. The emitted skeleton carries
 `## Outcome`, `## What Changes` and `## Agent Rules` with its three tiers, in
 that order, and no `## Objective` or `## Boundaries`.
+
+## Post-merge CI repair
+
+Four CI jobs failed on the first push; two root causes, one of them cascading
+through three jobs.
+
+**Cause 1 — a `__main__` guard in a pack skill test.**
+`tools/test_build_gate_chain.py::PackSkillPytestShapeTest` walks
+`packs/*/tests/skills/**/test*.py` for a top-level `if` whose test names
+`__name__`, and refuses it: pytest is the only runner that collects these.
+`test_artifact_prose_discipline.py` shipped with the guard. It failed Gate F
+and `gate-main`, and `make build-check` failed only because it requires
+`gate-main`. The guard was removed from the pack module and, for consistency,
+from the roster module the same rule does not reach.
+
+**Cause 2 — a stale verbatim excerpt in a guide.**
+`guides/core/how-to/write-the-contract.md` carries an `artifact_preview` whose
+fenced block must appear verbatim in the source it declares — here
+`assets/spec.md`. Rewriting the template's tier note broke it. The replacement
+was sliced live from the template rather than retyped, so the two cannot
+disagree by transcription.
+
+**Why the pre-push sweep missed both.** The step-8a anchor sweep greps the
+test suite for pins on the *content* of files being edited — hashes,
+snapshots, counted assertions. Neither of these is that shape. Cause 1 is a
+rule over the *shape of a new file*, which no grep of the edited files could
+find, because the new file did not exist when the sweep ran. Cause 2 is a pin
+on template content held in a **guide**, outside the test suite the sweep
+reads, and expressed as a fenced Markdown block rather than a string literal.
+
+Two additions worth carrying into the next change of this shape:
+- When a task **adds** a file, grep for rules over that file's directory
+  glob, not only for pins on the files being edited.
+- When editing a template, grep the whole tree for a verbatim excerpt of it —
+  `guides/` embeds template heads as reader previews, and a lint checks them.
+
+The tree-wide sweep run before pushing this repair found no further stale
+embed: every remaining hit is an existing spec, which this change does not
+retrofit.
