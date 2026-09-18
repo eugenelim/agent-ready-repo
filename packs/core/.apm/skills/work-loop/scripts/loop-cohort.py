@@ -20,6 +20,8 @@ Verb surface
     loop-cohort schedule check-current <spec-dir>
     loop-cohort record-attempt <spec-dir> --phase implement
                                --cycle-id <run_id>:<seq> --expect-run-id <uuid>
+    loop-cohort dispatch-receipt <spec-dir> --task <task-id> --wave-index <n>
+                               (--receipt | --decline <reason>) --expect-run-id <uuid>
     loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
     loop-cohort review classify --report <path> [--json]
@@ -71,6 +73,26 @@ SCHEMA_VERSION = 1
 
 PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
+
+# ── dispatch-receipt data model ───────────────────────────────────────────
+#
+# One durable, per-task assertion of who the controller says implemented a plan
+# task. A record is an assertion, not a proof: `--expect-run-id` pairs the caller
+# to the run and excludes a caller from another one, but it establishes no
+# identity, so any actor that can read `run_id` can write a record.
+RECEIPTS_KEY = "dispatch_receipts"
+# The container's key path, declared ONCE here. Everything that walks the
+# container derives its nesting depth from `len(RECEIPT_KEY_PATH)` rather than
+# from a literal: a restated depth is how a two-key predicate came to be checked
+# against a three-key data model, which classifies every valid container
+# malformed. On disk all three are JSON object-member names — the partition
+# digest text, the wave index in decimal string form, and the task identifier.
+RECEIPT_KEY_PATH = ("partition digest", "wave index", "task identifier")
+# Closed sets. Adding a decline reason changes what a wave exit will excuse and
+# needs sign-off, so this is deliberately not configurable.
+RECEIPT_KIND = "receipt"
+DECLINE_KIND = "decline"
+DECLINE_REASONS = ("no-implementer-installed", "human-directed")
 CLEAN_SUBSTRING = "Clean — ready to commit."
 INDETERMINATE_SENTINEL = "ADJUDICATION-INDETERMINATE"
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
@@ -437,6 +459,7 @@ except GuardsUnavailable as exc:
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
     non_negative_int = _guards_unavailable
+    _scalar = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
     _BOTH_CAUSES = ""
@@ -446,6 +469,10 @@ else:
     GuardResult = _g.GuardResult
     DEFAULTS = _g.DEFAULTS
     non_negative_int = _g.non_negative_int
+    # The guard layer's per-value length bound, reused rather than re-declared.
+    # This tool's own `_diag` neutralises control characters but applies NO length
+    # bound, so a state-derived value routed through it has no bound at all.
+    _scalar = _g._scalar
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
     read_state = _g.read_state
@@ -899,6 +926,11 @@ def begin_contract_amendment(
             "plan_hash": None,
             "schedule_waves": [],
             "current_wave_index": 0,
+            # Emptied explicitly, not left to the digest. An amendment raised at
+            # wave index zero re-schedules to the same partition, so its digest is
+            # unchanged and a digest-keyed drop alone would leave every pre-
+            # amendment record still accounting for a task the amendment reopened.
+            RECEIPTS_KEY: {},
             "completed_task_ids": completed,
             "completed_task_section_hashes": dict(completed_task_section_hashes),
             "completed_task_evidence": all_evidence,
@@ -1507,6 +1539,13 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
     state["current_wave_index"] = 0
+    # Creates the container when absent (cohort state written before receipts
+    # existed) and keeps only the live partition's records. `plan_hash` moves on
+    # any plan edit; the digest moves only when the partition does, so an edit
+    # that leaves the waves alone leaves every existing record accounting.
+    state[RECEIPTS_KEY] = receipts_for_partition(
+        state.get(RECEIPTS_KEY), partition_digest(waves)
+    )
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: schedule persisted for {spec_dir.name} "
@@ -1634,6 +1673,240 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
         f"wave advance: current_wave_index={idx} does not match "
         f"--from-index {n_arg} or {n_arg + 1}"
     )
+
+
+# ── dispatch receipts ─────────────────────────────────────────────────────
+
+
+def partition_digest(waves: object) -> str:
+    """Stable digest of one wave partition, a function of that value alone.
+
+    Records are held under this digest so a record written against a superseded
+    partition accounts for nothing. `default=repr` keeps the function total over
+    any value `schedule_waves` can hold, because a refusal that names the
+    malformed field must not be pre-empted by a serialization error.
+    """
+    payload = json.dumps(waves, sort_keys=True, separators=(",", ":"), default=repr)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def is_dispatch_record(value: object) -> bool:
+    """Total over any value: is this a record at all?
+
+    A mapping whose `kind` is `receipt`, or `decline` carrying a reason from the
+    closed set. Nothing else is a record. `isinstance` before the membership test
+    rather than a `try`: a non-string reason is *not* in the closed set, and that
+    is an answer, not an error — `x in frozenset` raises for an unhashable `x`.
+    """
+    if not isinstance(value, dict):
+        return False
+    kind = value.get("kind")
+    if kind == RECEIPT_KIND:
+        return True
+    if kind == DECLINE_KIND:
+        reason = value.get("reason")
+        return isinstance(reason, str) and reason in DECLINE_REASONS
+    return False
+
+
+def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:
+    """Name the first malformed position in the container, or None if well-formed.
+
+    Depth comes from `RECEIPT_KEY_PATH`, never from a literal. Total over every
+    value any position can hold, so the verb names a position instead of raising
+    an exception type at it.
+    """
+    if depth is None:
+        depth = len(RECEIPT_KEY_PATH)
+    level = len(RECEIPT_KEY_PATH) - depth
+    if depth == 0:
+        return None if is_dispatch_record(container) else "a record"
+    if not isinstance(container, dict):
+        return f"a mapping keyed by {RECEIPT_KEY_PATH[level]}"
+    for value in container.values():
+        nested = malformed_receipts_position(value, depth - 1)
+        if nested is not None:
+            return nested
+    return None
+
+
+def receipts_for_partition(container: object, digest: str) -> dict:
+    """The records `digest` holds, with every other partition's records dropped.
+
+    A record under any other partition digest accounts for no task, so `schedule`
+    persists only the live partition's subtree. A container that is not a mapping
+    is replaced rather than repaired in place: `schedule` writes the partition
+    these records are keyed by, so it is the one verb for which an unusable
+    container is not a state it must preserve.
+    """
+    if not isinstance(container, dict):
+        return {}
+    held = container.get(digest)
+    return {digest: held} if isinstance(held, dict) else {}
+
+
+def bounded_id_list(ids: list) -> str:
+    """Whole identifiers from a state-derived list, bounded and honest about it.
+
+    Every identifier reaches the stream through the guard layer's `_scalar`, which
+    is where the per-value bound lives; this function only chooses how many WHOLE
+    identifiers fit under it and discloses when it dropped any. A raw join would
+    be cut mid-identifier by that bound and present a fragment as a task name.
+    """
+    shown: list[str] = []
+    for candidate in ids:
+        attempt = ", ".join([*shown, str(candidate)])
+        if _scalar(attempt) != repr(attempt):  # the bound would have truncated it
+            break
+        shown.append(str(candidate))
+    rendered = _scalar(", ".join(shown))
+    if len(shown) < len(ids):
+        return f"{rendered} (partial list: {len(shown)} of {len(ids)} shown)"
+    return rendered
+
+
+def plan_dispatch_receipt(
+    state: dict,
+    *,
+    task_id: str,
+    wave_index: object,
+    receipt: bool,
+    decline: object,
+) -> tuple[dict | None, str | None]:
+    """Validate one dispatch receipt and return the state to persist.
+
+    Returns `(new_state, None)` on acceptance or `(None, reason)` on refusal, in
+    refuse-cheapest-first order: mutual exclusivity, reason code, index type and
+    range, usable partition, task membership. Pure — the caller owns the lock and
+    the write — so every refusal leaves `state.json` byte-identical.
+
+    The run identifier and the schema are validated by the caller through the
+    shared `validate_run_id`, which is cheaper still and shared with every other
+    run-scoped mutation.
+    """
+    if receipt and decline is not None:
+        return None, (
+            "dispatch-receipt: --receipt and --decline are mutually exclusive; "
+            "record one assertion per task"
+        )
+    if not receipt and decline is None:
+        return None, (
+            "dispatch-receipt: one of --receipt or --decline "
+            f"{list(DECLINE_REASONS)} is required"
+        )
+    if decline is not None and decline not in DECLINE_REASONS:
+        return None, (
+            f"dispatch-receipt: --decline {_scalar(decline)} is not an accepted "
+            f"reason; accepted: {', '.join(DECLINE_REASONS)}"
+        )
+
+    # Reuses the guard layer's non-negative-integer validation rather than adding a
+    # second integer predicate: that one rejects `bool` (which `isinstance(v, int)`
+    # accepts) and owns its message shape. The dict is the shape that helper reads.
+    index = non_negative_int({"--wave-index": wave_index}, "--wave-index", 0)
+    if isinstance(index, str):
+        return None, f"dispatch-receipt: {index}"
+
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return None, (
+            f"dispatch-receipt: schedule_waves is unusable ({_scalar(waves)}); "
+            "run schedule to persist a partition, or reset the pair"
+        )
+    # An absent container reads as the empty one: `init` and `schedule` both
+    # create it, so absence is cohort state written before receipts existed.
+    malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+    if malformed is not None:
+        return None, (
+            f"dispatch-receipt: {RECEIPTS_KEY} is malformed — expected {malformed} "
+            f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to rebuild "
+            "cohort state"
+        )
+
+    current = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(current, str):
+        return None, f"dispatch-receipt: {current}"
+    if current >= len(waves):
+        return None, (
+            f"dispatch-receipt: current_wave_index={current} is not an index into "
+            f"schedule_waves (len={len(waves)}); run reset to rebuild cohort state"
+        )
+    if index > current:
+        return None, (
+            f"dispatch-receipt: --wave-index {index} is above current_wave_index="
+            f"{current}; the run has not reached that wave"
+        )
+
+    wave = waves[index]
+    if (
+        not isinstance(wave, list)
+        or not wave
+        or not all(isinstance(task, str) for task in wave)
+    ):
+        return None, (
+            f"dispatch-receipt: schedule_waves[{index}] is malformed "
+            f"({_scalar(wave)}); expected a non-empty list of task identifiers"
+        )
+    if task_id not in wave:
+        return None, (
+            f"dispatch-receipt: {_scalar(task_id)} is not in wave {index}, which "
+            f"holds {bounded_id_list(wave)}"
+        )
+
+    record = (
+        {"kind": RECEIPT_KIND}
+        if receipt
+        else {"kind": DECLINE_KIND, "reason": decline}
+    )
+    updated = copy.deepcopy(state)
+    container = updated.get(RECEIPTS_KEY, {})
+    digest = partition_digest(waves)
+    # Keyed by the declared path. Writing the same triple twice replaces one
+    # record with an equal one, which is why the verb needs no idempotency key.
+    container.setdefault(digest, {}).setdefault(str(index), {})[task_id] = record
+    updated[RECEIPTS_KEY] = container
+    return updated, None
+
+
+@_locked("dispatch-receipt")
+def cmd_dispatch_receipt(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="dispatch-receipt")
+    if err is not None:
+        return err
+
+    # argv decoding, not validation: every acceptance decision stays with
+    # `non_negative_int` inside `plan_dispatch_receipt`, which is what rejects a
+    # negative, a float, a bool and a non-numeric spelling alike. Decoding here
+    # rather than through argparse `type=int` is what lets a non-integer reach
+    # that one validation instead of dying in the parser with a usage message.
+    raw_index: object = args.wave_index
+    with contextlib.suppress(TypeError, ValueError):
+        raw_index = int(raw_index)
+
+    updated, reason = plan_dispatch_receipt(
+        state,
+        task_id=args.task,
+        wave_index=raw_index,
+        receipt=args.receipt,
+        decline=args.decline,
+    )
+    if reason is not None:
+        return stop(reason)
+    write_state_atomic(spec_dir, updated)
+    kind = RECEIPT_KIND if args.receipt else f"{DECLINE_KIND} ({args.decline})"
+    print(
+        f"loop-cohort: dispatch-receipt recorded {kind} for {args.task} "
+        f"in wave {raw_index} of {spec_dir.name}"
+    )
+    return 0
 
 
 # ── record-attempt ────────────────────────────────────────────────────────
@@ -2616,6 +2889,31 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--cycle-id", required=True, dest="cycle_id")
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_record_attempt)
+
+    # dispatch-receipt
+    sp = sub.add_parser(
+        "dispatch-receipt",
+        help="record who the controller says implemented one plan task",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--task", required=True, help="plan task identifier, e.g. T3")
+    # A string, not `type=int`: the index is validated once, by the guard layer's
+    # non-negative-integer helper, so a non-integer must reach that validation
+    # instead of dying in the parser under a different message shape.
+    sp.add_argument(
+        "--wave-index", required=True, dest="wave_index",
+        help="wave index the task belongs to; at or below current_wave_index",
+    )
+    sp.add_argument(
+        "--receipt", action="store_true",
+        help="an implementer subagent implemented this task",
+    )
+    sp.add_argument(
+        "--decline", default=None, metavar="<reason>",
+        help=f"no subagent implemented it; reason from {list(DECLINE_REASONS)}",
+    )
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_dispatch_receipt)
 
     # wave (namespace with sub-verbs)
     sp_wave = sub.add_parser("wave", help="wave-advance and guard verbs")

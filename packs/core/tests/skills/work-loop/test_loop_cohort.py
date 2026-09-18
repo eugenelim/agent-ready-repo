@@ -3104,3 +3104,506 @@ def test_ac5_nested_fence_plan_stays_normalizable() -> None:
     same = (canonical_contract(base + "\n### T9\n\n- [ ] T9 done\n", ac_section_only=False)
             == canonical_contract(base + "\n### T9\n\n- [x] T9 done\n", ac_section_only=False))
     ok(name) if same else fail(name, "ticking a task after nested fences moved the digest")
+
+
+# ── dispatch-receipt (wave-complete dispatch receipts) ────────────────────
+#
+# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# `dispatch-receipt` verb. The verb writes one per-task assertion of who the
+# controller says implemented a plan task; every refusal must leave state.json
+# byte-identical, because nothing here has durable side-effect semantics.
+
+_RECEIPTS_KEY = _mod.RECEIPTS_KEY
+_KEY_PATH = _mod.RECEIPT_KEY_PATH
+
+
+def _receipts_state(
+    spec_dir: Path,
+    run_id: str,
+    *,
+    waves=None,
+    current: object = 0,
+    container: object = None,
+) -> dict:
+    """A scheduled state carrying the receipts container `init` now writes."""
+    state = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "plan_review_status": "approved",
+        "schedule_waves": [["T1", "T2"], ["T3"]] if waves is None else waves,
+        "current_wave_index": current,
+        _RECEIPTS_KEY: {} if container is None else container,
+    }
+    write_state(spec_dir, state)
+    return state
+
+
+def _record_at(state: dict, wave_index: int, task_id: str):
+    """The record for one task, read by walking the DECLARED key path.
+
+    The depth comes from the module's own `RECEIPT_KEY_PATH`, never from a
+    literal here: a reader hand-built at a literal depth ratifies the shape its
+    author assumed rather than the shape the declaration states, which is how a
+    two-key check coexisted with a three-key data model.
+    """
+    keys = [
+        _mod.partition_digest(state.get("schedule_waves", [])),
+        str(wave_index),
+        task_id,
+    ]
+    assert len(keys) == len(_KEY_PATH), "key path declaration changed shape"
+    node = state.get(_RECEIPTS_KEY)
+    for key in keys:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    return node
+
+
+def _refuses_without_writing(name: str, spec_dir: Path, argv, *, expect) -> None:
+    """Drive one refusal: non-zero, expected text, no exception type, no write."""
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, out, err = run_cohort(*argv)
+    blob = out + err
+    if rc == 0:
+        fail(name, f"expected non-zero; got 0 with {blob.strip()!r}")
+        return
+    for needle in expect:
+        if needle not in blob:
+            fail(name, f"expected {needle!r} in output; got {blob.strip()!r}")
+            return
+    for leak in ("Traceback", "TypeError", "KeyError", "AttributeError"):
+        if leak in blob:
+            fail(name, f"refusal surfaced an exception type ({leak}): {blob.strip()!r}")
+            return
+    if path.read_bytes() != before:
+        fail(name, "state.json changed on a refusing invocation")
+        return
+    ok(name)
+
+
+def test_dispatch_receipt_records_a_receipt(tmp: Path) -> None:
+    name = "dispatch-receipt-records-a-receipt"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id)
+    rc, out, err = run_cohort(
+        "dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+        "--receipt", "--expect-run-id", run_id,
+    )
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()!r}")
+        return
+    state = json.loads((spec_dir / "state.json").read_text())
+    record = _record_at(state, 0, "T1")
+    if record != {"kind": "receipt"}:
+        fail(name, f"expected a receipt at the declared key path; got {record!r}")
+        return
+    if not _mod.is_dispatch_record(record):
+        fail(name, "the written value is not a record by the module's own definition")
+        return
+    ok(name)
+
+
+@pytest.mark.parametrize("reason", ["no-implementer-installed", "human-directed"])
+def test_dispatch_receipt_records_each_closed_decline_reason(
+    tmp: Path, reason: str
+) -> None:
+    name = f"dispatch-receipt-decline-{reason}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id)
+    rc, _, err = run_cohort(
+        "dispatch-receipt", str(spec_dir), "--task", "T2", "--wave-index", "0",
+        "--decline", reason, "--expect-run-id", run_id,
+    )
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()!r}")
+        return
+    state = json.loads((spec_dir / "state.json").read_text())
+    record = _record_at(state, 0, "T2")
+    if record != {"kind": "decline", "reason": reason}:
+        fail(name, f"expected a {reason} decline; got {record!r}")
+        return
+    if not _mod.is_dispatch_record(record):
+        fail(name, "the written decline is not a record by the module's definition")
+        return
+    ok(name)
+
+
+def test_dispatch_receipt_accepts_the_current_and_a_lower_wave_index(tmp: Path) -> None:
+    """A repair round re-enters a wave the pointer has already passed in part."""
+    name = "dispatch-receipt-current-and-lower-index"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id, current=1)
+    for task, index in (("T3", "1"), ("T1", "0")):
+        rc, _, err = run_cohort(
+            "dispatch-receipt", str(spec_dir), "--task", task, "--wave-index", index,
+            "--receipt", "--expect-run-id", run_id,
+        )
+        if rc != 0:
+            fail(name, f"index {index} expected exit 0; got {rc}: {err.strip()!r}")
+            return
+    state = json.loads((spec_dir / "state.json").read_text())
+    if _record_at(state, 1, "T3") is None or _record_at(state, 0, "T1") is None:
+        fail(name, f"both records must be held; got {state[_RECEIPTS_KEY]!r}")
+        return
+    ok(name)
+
+
+def test_dispatch_receipt_refuses_an_index_above_the_pointer(tmp: Path) -> None:
+    """Accepting a future wave lets one pre-run batch discharge every later exit."""
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-index-above-pointer")
+    _receipts_state(spec_dir, run_id, current=0)
+    _refuses_without_writing(
+        "dispatch-receipt-index-above-pointer",
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T3", "--wave-index", "1",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("current_wave_index",),
+    )
+
+
+@pytest.mark.parametrize("raw", ["-1", "1.9", "abc", "true", ""])
+def test_dispatch_receipt_refuses_a_non_non_negative_integer_index(
+    tmp: Path, raw: str
+) -> None:
+    """Every spelling refuses through the guard layer's one integer validation."""
+    name = f"dispatch-receipt-index-{raw or 'empty'}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-bad-index")
+    _receipts_state(spec_dir, run_id)
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", raw,
+         "--receipt", "--expect-run-id", run_id),
+        expect=("--wave-index must be a non-negative integer",),
+    )
+
+
+def test_dispatch_receipt_index_validation_rejects_a_boolean() -> None:
+    """`isinstance(True, int)` is True, so a bool is the discriminating case.
+
+    Asserted at the verb's validation entry point because argv cannot carry a
+    Python bool: the CLI cases above cover the spellings a caller can type.
+    """
+    name = "dispatch-receipt-index-boolean"
+    state = {
+        "schema_version": 1, "run_id": "r", "schedule_waves": [["T1"]],
+        "current_wave_index": 0, _RECEIPTS_KEY: {},
+    }
+    updated, reason = _mod.plan_dispatch_receipt(
+        state, task_id="T1", wave_index=True, receipt=True, decline=None
+    )
+    if updated is not None or not reason:
+        fail(name, f"a boolean index must refuse; got {updated!r} / {reason!r}")
+        return
+    if "non-negative integer" not in reason or "bool" not in reason:
+        fail(name, f"refusal must name the bool it rejected; got {reason!r}")
+        return
+    ok(name)
+
+
+def test_dispatch_receipt_refuses_an_empty_partition(tmp: Path) -> None:
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-empty-partition")
+    _receipts_state(spec_dir, run_id, waves=[])
+    _refuses_without_writing(
+        "dispatch-receipt-empty-partition",
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("schedule_waves",),
+    )
+
+
+def test_dispatch_receipt_refuses_a_pointer_outside_the_partition(tmp: Path) -> None:
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-pointer-out-of-range")
+    _receipts_state(spec_dir, run_id, current=7)
+    _refuses_without_writing(
+        "dispatch-receipt-pointer-out-of-range",
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("current_wave_index",),
+    )
+
+
+def test_dispatch_receipt_refuses_a_receipt_and_a_decline_together(tmp: Path) -> None:
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-both-forms")
+    _receipts_state(spec_dir, run_id)
+    _refuses_without_writing(
+        "dispatch-receipt-both-forms",
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--decline", "human-directed", "--expect-run-id", run_id),
+        expect=("--receipt", "--decline"),
+    )
+
+
+def test_dispatch_receipt_refuses_neither_form(tmp: Path) -> None:
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-no-form")
+    _receipts_state(spec_dir, run_id)
+    _refuses_without_writing(
+        "dispatch-receipt-no-form",
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--expect-run-id", run_id),
+        expect=("--receipt",),
+    )
+
+
+def test_dispatch_receipt_refuses_a_reason_outside_the_closed_set(tmp: Path) -> None:
+    """The refusal names both accepted codes, so the caller needs no reference."""
+    name = "dispatch-receipt-reason-outside-closed-set"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id)
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--decline", "because-i-said-so", "--expect-run-id", run_id),
+        expect=("no-implementer-installed", "human-directed"),
+    )
+
+
+def test_dispatch_receipt_refuses_an_unknown_task_and_names_the_wave(tmp: Path) -> None:
+    name = "dispatch-receipt-unknown-task"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id)
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T9", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("T9", "T1", "T2"),
+    )
+
+
+def test_dispatch_receipt_bounds_and_discloses_a_long_identifier_list(tmp: Path) -> None:
+    """The verb's largest state-derived refusal: bounded, partial, whole ids only.
+
+    `loop-cohort`'s own diagnostic helper applies no length bound, so a raw join
+    would put the whole wave on stderr; the guard layer's per-value bound is the
+    tighter of the two and therefore the one that truncates.
+    """
+    name = "dispatch-receipt-bounded-identifier-list"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    wave = [f"T{i}-long-identifier-name" for i in range(1, 201)]
+    _receipts_state(spec_dir, run_id, waves=[wave, ["TZ"]])
+    rc, out, err = run_cohort(
+        "dispatch-receipt", str(spec_dir), "--task", "T-absent", "--wave-index", "0",
+        "--receipt", "--expect-run-id", run_id,
+    )
+    if rc == 0:
+        fail(name, "expected non-zero for a task outside the wave")
+        return
+    if len(err.strip().splitlines()) != 1:
+        fail(name, f"refusal must stay one line; got {err!r}")
+        return
+    if "partial list" not in err:
+        fail(name, f"truncation must be disclosed; got {err.strip()!r}")
+        return
+    if len(err) > 1000:
+        fail(name, f"refusal is unbounded at {len(err)} chars")
+        return
+    # Every identifier the refusal prints must be whole: no fragment of a task
+    # name may be presented as a task name.
+    printed = err.split("holds ")[1].split(" (partial list")[0].strip().strip("'")
+    for token in printed.split(", "):
+        if token not in wave:
+            fail(name, f"refusal printed a fragment rather than an identifier: {token!r}")
+            return
+    if out:
+        fail(name, f"a refusal must print nothing on stdout; got {out!r}")
+        return
+    ok(name)
+
+
+def test_dispatch_receipt_refuses_a_run_id_mismatch(tmp: Path) -> None:
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-run-id-mismatch")
+    _receipts_state(spec_dir, run_id)
+    _refuses_without_writing(
+        "dispatch-receipt-run-id-mismatch",
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", "not-the-run"),
+        expect=("run-id",),
+    )
+
+
+def test_dispatch_receipt_refuses_an_unsupported_schema(tmp: Path) -> None:
+    """Separate from the run-id case: the schema branch emits its own message.
+
+    The wave exit deliberately tolerates this state class; the verb refuses it,
+    as every other run-scoped mutation does.
+    """
+    name = "dispatch-receipt-unsupported-schema"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    state = _receipts_state(spec_dir, run_id)
+    state["schema_version"] = 99
+    write_state(spec_dir, state)
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("schema_version",),
+    )
+
+
+def test_dispatch_receipt_refusal_from_the_state_read_writes_nothing(tmp: Path) -> None:
+    """The byte-identical property covers the refusals raised by the read itself."""
+    name = "dispatch-receipt-unreadable-state"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "state.json").write_text("{not json", encoding="utf-8")
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("state.json",),
+    )
+
+
+def _malformed_container_cases() -> list[tuple[str, object]]:
+    """One hostile container per DECLARED depth, generated from the key path.
+
+    Depth 0 is the container itself; depth `len(KEY_PATH)` is the leaf a record
+    must occupy. Hand-building these at a literal depth is what let a predicate
+    that rejected every valid container pass a green walk.
+    """
+    cases = []
+    for depth in range(len(_KEY_PATH) + 1):
+        value: object = 5
+        for _ in range(depth):
+            value = {"k": value}
+        cases.append((f"depth-{depth}", value))
+    return cases
+
+
+@pytest.mark.parametrize("label,container", _malformed_container_cases())
+def test_dispatch_receipt_refuses_a_malformed_container(
+    tmp: Path, label: str, container: object
+) -> None:
+    name = f"dispatch-receipt-malformed-container-{label}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-malformed-container")
+    _receipts_state(spec_dir, run_id, container=container)
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=(_RECEIPTS_KEY, "malformed"),
+    )
+
+
+@pytest.mark.parametrize(
+    "label,waves",
+    [
+        # Derived from the well-formedness declaration's conjuncts, not sampled:
+        # `schedule_waves` a non-list, and the wave at the named index a
+        # non-list, an empty list, and a list carrying a non-string. Three wave
+        # shapes because a single non-list case leaves the other two unexercised.
+        ("schedule-waves-not-a-list", "nope"),
+        ("wave-not-a-list", ["nope", ["T3"]]),
+        ("wave-empty", [[], ["T3"]]),
+        ("wave-holds-a-non-string", [["T1", 5], ["T3"]]),
+    ],
+)
+def test_dispatch_receipt_refuses_a_malformed_partition(
+    tmp: Path, label: str, waves: object
+) -> None:
+    name = f"dispatch-receipt-malformed-partition-{label}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, "dispatch-receipt-malformed-partition")
+    _receipts_state(spec_dir, run_id, waves=waves)
+    _refuses_without_writing(
+        name,
+        spec_dir,
+        ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+         "--receipt", "--expect-run-id", run_id),
+        expect=("schedule_waves",),
+    )
+
+
+def test_dispatch_receipt_is_idempotent_for_one_triple(tmp: Path) -> None:
+    """The same triple twice exits zero twice and leaves exactly one record."""
+    name = "dispatch-receipt-idempotent"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id)
+    for attempt in (1, 2):
+        rc, _, err = run_cohort(
+            "dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+            "--receipt", "--expect-run-id", run_id,
+        )
+        if rc != 0:
+            fail(name, f"attempt {attempt} expected exit 0; got {rc}: {err.strip()!r}")
+            return
+    state = json.loads((spec_dir / "state.json").read_text())
+    digest = _mod.partition_digest(state["schedule_waves"])
+    holding = state[_RECEIPTS_KEY][digest]["0"]
+    if list(holding) != ["T1"]:
+        fail(name, f"expected exactly one record for the triple; got {holding!r}")
+        return
+    ok(name)
+
+
+def test_partition_digest_is_a_function_of_the_partition_alone() -> None:
+    """Equal partitions agree, different partitions differ, and it never raises."""
+    name = "partition-digest-function-of-the-partition"
+    waves = [["T1", "T2"], ["T3"]]
+    if _mod.partition_digest(waves) != _mod.partition_digest([["T1", "T2"], ["T3"]]):
+        fail(name, "an equal partition produced a different digest")
+        return
+    if _mod.partition_digest(waves) == _mod.partition_digest([["T1"], ["T2"], ["T3"]]):
+        fail(name, "a different partition produced the same digest")
+        return
+    if _mod.partition_digest([]) != _mod.partition_digest([]):
+        fail(name, "the empty partition is not stable")
+        return
+    # Total over hostile values: a refusal that names the malformed field must
+    # not be pre-empted by a serialization error inside the digest.
+    _mod.partition_digest({"not": "a list"})
+    _mod.partition_digest("nope")
+    ok(name)
+
+
+# STUB: the accounted-for predicate seam. T3 replaces this reading with the
+# shared predicate `check --phase wave-exit` and `wave advance` both apply.
+def test_a_single_recorded_receipt_reads_as_accounted_for(tmp: Path) -> None:
+    name = "single-receipt-reads-as-accounted-for"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    _receipts_state(spec_dir, run_id, waves=[["T1"], ["T2"]])
+    rc, _, err = run_cohort(
+        "dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+        "--receipt", "--expect-run-id", run_id,
+    )
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()!r}")
+        return
+    state = json.loads((spec_dir / "state.json").read_text())
+    unaccounted = [
+        task for task in state["schedule_waves"][0]
+        if not _mod.is_dispatch_record(_record_at(state, 0, task))
+    ]
+    if unaccounted:
+        fail(name, f"wave 0 must read as accounted for; unaccounted: {unaccounted}")
+        return
+    ok(name)

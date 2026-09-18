@@ -801,3 +801,210 @@ untouched.
 **`wave advance` has no golden row either.** No row's `argv[0]` is `wave` with
 `advance`, and the parity table's six families are all read-only verbs, so T3's
 coupling on the advancing branch is unconstrained by the fixture.
+
+---
+
+## 10. T2 — the record mutation and the record lifecycle, as built
+
+### 10.1 What landed, and where each declaration lives
+
+One new verb, one new template key, three touched lifecycle paths, all inside
+`loop-cohort.py` and its `assets/state.json`.
+
+| Declaration | Home | Consumers in T2 |
+| --- | --- | --- |
+| `RECEIPTS_KEY = "dispatch_receipts"` | `loop-cohort.py` beside `PHASES` | template key, verb, `schedule`, amendment |
+| `RECEIPT_KEY_PATH` (3 names) | same block | `malformed_receipts_position` depth, the verb's write, the tests' reader |
+| `RECEIPT_KIND` / `DECLINE_KIND` / `DECLINE_REASONS` | same block | `is_dispatch_record`, the reason-code refusal |
+| `partition_digest(waves)` | `loop-cohort.py` § dispatch receipts | the verb's write key, `schedule`'s pruning |
+| `is_dispatch_record(value)` | same | record definition, total over any value |
+| `malformed_receipts_position(container)` | same | the container's by-name refusal |
+| `receipts_for_partition(container, digest)` | same | `_schedule_run_impl` |
+| `bounded_id_list(ids)` | same | the task-membership refusal |
+| `plan_dispatch_receipt(state, …)` | same | `cmd_dispatch_receipt`, and the bool-index case directly |
+
+**The digest helper sits in `loop-cohort.py`, not in `_loop_guards.py`.** T2's
+`Touches` does not contain `_loop_guards.py`, and the guard layer cannot import
+this CLI (the dependency runs the other way, through `load_guards`). T3's
+`Touches` contains both files, so the single-sourced home the plan's approach
+note requires is reachable there: T3 relocates the helper into the guard module
+and rebinds it here beside `non_negative_int`. Recorded because it is a
+sequencing fact a reader of T3 needs, not a departure from the approach.
+
+### 10.2 Reuse, not addition — the `Cut before adding` search
+
+One bounded search for each thing the task could have written fresh:
+
+| Needed | Search | Outcome |
+| --- | --- | --- |
+| non-negative integer validation | `grep -n "non_negative_int" scripts/*.py` | reused `_loop_guards.non_negative_int`, called with a one-key dict so the `--wave-index` argument reaches the same predicate the state field does |
+| per-value length bound | `grep -n "_scalar\|_bounded\|_MAX_SCALAR" _loop_guards.py` | reused `_g._scalar`, newly bound at module level here; `_diag` was rejected because it applies no length bound (§ 3) |
+| one-line refusal contract | `stop()` / `_diag` already in `loop-cohort.py` | reused unchanged |
+| state lock | `@_locked(...)` decorator | reused; `dispatch-receipt` is the eleventh locked verb |
+| atomic write | `write_state_atomic` | reused |
+| record shape / key-path semantics | `walk_verdict_partition.py` § predicates | the walk's transcription of the spec was read and the implementation follows it; the walk stays the note's generator and is not imported by shipped code |
+
+Rung reached: 7 for the four new helpers (no existing repository solution
+computes a partition digest or walks this container), rung 2 for everything in
+the table above.
+
+### 10.3 The verb's refusal order, and what each refusal names
+
+Refuse-cheapest-first, with nothing written until every check passes:
+
+1. run identifier and schema — shared `validate_run_id` (also the `schema_version` refusal)
+2. `--receipt` / `--decline` mutual exclusivity, and neither-supplied
+3. decline reason membership — names both accepted codes
+4. `--wave-index` type — `non_negative_int`
+5. `schedule_waves` usable — non-empty list
+6. container well-formed — names the malformed position from `RECEIPT_KEY_PATH`
+7. `current_wave_index` type and range — `non_negative_int`, then `< len(waves)`
+8. `--wave-index` at or below the pointer
+9. the named wave's shape — non-empty list of strings
+10. task membership — names that wave's identifiers through `bounded_id_list`
+
+### 10.4 Observed stderr, one line per refusal class
+
+Captured by driving the real CLI against a scheduled two-wave fixture
+(`schedule_waves = [["T1","T2"],["T3"]]`, `current_wave_index = 0`):
+
+| Input | Exit | stderr (after the `loop-cohort: stop — ` prefix) |
+| --- | --- | --- |
+| `--wave-index 1` (above the pointer) | 1 | `dispatch-receipt: --wave-index 1 is above current_wave_index=0; the run has not reached that wave` |
+| `--receipt --decline human-directed` | 1 | `dispatch-receipt: --receipt and --decline are mutually exclusive; record one assertion per task` |
+| `--decline nope` | 1 | `dispatch-receipt: --decline 'nope' is not an accepted reason; accepted: no-implementer-installed, human-directed` |
+| `--task T9` | 1 | `dispatch-receipt: 'T9' is not in wave 0, which holds 'T1, T2'` |
+| `--wave-index abc` | 1 | `dispatch-receipt: --wave-index must be a non-negative integer, got str` |
+| `--wave-index -1` | 1 | `dispatch-receipt: --wave-index must be a non-negative integer, got -1` |
+| `--wave-index 1.9` | 1 | `dispatch-receipt: --wave-index must be a non-negative integer, got str` |
+
+The `-1` and `1.9` rows are the same helper reporting different halves of its
+contract: `-1` decodes to an `int` and is refused on range, `1.9` does not
+decode and is refused on type. Both messages come from `non_negative_int`, which
+is what the plan asked for.
+
+### 10.5 Two departures from a task row's literal method, each with its reason
+
+**`--wave-index` is decoded, not parsed by argparse.** The row asks that a
+negative, a boolean and a non-integer each refuse *through the guard layer's
+existing non-negative-integer validation*. `type=int` in the parser would make a
+non-integer die in argparse with a usage message instead, so the argument is
+taken as a string and `int()`-decoded in a suppressed block: every **acceptance**
+decision stays with `non_negative_int`. The decode is laxer than the validation
+about spelling — `int(" 3 ")`, `int("+3")` and `int("1_0")` all decode — and
+that is harmless, because each decodes to a non-negative integer the range check
+then bounds against the pointer.
+
+**The boolean case is asserted at the verb's validation entry point, not
+through argv.** A process argument cannot carry a Python `bool`, so
+`test_dispatch_receipt_index_validation_rejects_a_boolean` calls
+`plan_dispatch_receipt` directly. This is the discriminating case for reusing
+`non_negative_int` at all (§ 3), so it is asserted where it is reachable rather
+than dropped. The four spellings a caller can type run through the CLI.
+
+### 10.6 Container generation in the tests is derived, never hand-built
+
+`_malformed_container_cases()` in `test_loop_cohort.py` wraps one hostile value
+in `depth` mapping levels for every `depth` in `range(len(RECEIPT_KEY_PATH) + 1)`
+— four cases, the last one a non-record leaf at the declared depth. The reader
+`_record_at` builds its key list from the same declaration and asserts its
+length against it. Both are the rule § 4 of this ledger records: a hand-built
+container at a literal depth makes the oracle ratify its author's assumed shape.
+
+### 10.7 The `plan.md` edit that discriminates the lifecycle assertion
+
+`test_schedule_keeps_a_record_when_the_partition_is_unchanged` appends
+`"\nProse the contract hash must notice.\n"` to the plan between the two
+`schedule` runs and asserts three things in order: `plan_hash` moved,
+`schedule_waves` did not, and the container is byte-equal. Observed on the run:
+the assertion on `plan_hash` inequality holds, so the edit is not normalised
+away by `canonical_contract` and a `plan_hash`-keyed implementation reds here.
+
+### 10.8 Gate results for T2
+
+| Gate | Command | Result |
+| --- | --- | --- |
+| lint | `make lint-ruff lint-mypy` | pass — three ruff findings (`SIM401` ×2, `SIM105`) were raised on the first run against the new code and fixed in place |
+| suites | `python3 -m pytest` over the five files in T2's `Done when` | pass |
+| partition walk | `python3 docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` | exit 0, unchanged by this task |
+| projection parity | `FORCE=1 make build-self`, then `shasum -a 256` over the three copies | one digest per edited file across `.apm/`, `.claude/`, `.agents/` |
+
+### 10.9 A pre-existing projection drift this task did not land
+
+`FORCE=1 make build-self` also rewrites
+`.claude/skills/work-loop/references/supervisor-mode.md` and its `.agents/`
+twin, which are **stale at HEAD**: commit `13f3363dd` edited the `.apm/` source
+without regenerating. Measured at HEAD — `.apm/` is
+`cb60193b40a1e1f98…`, both projections are `d2b9302830005427b…`. The two files
+are outside T2's `Touches`, so they were restored to HEAD and the drift is left
+for its owner; any `build-self` run reproduces the fix.
+
+### 10.10 Mutation record for T2's clauses
+
+Each clause was deleted in the `.apm/` source, the named case re-run, the file
+restored from a byte copy, and the restore verified by digest
+(`66767ef3f77c7766…`, equal across all three copies). The suites are green
+again after each restore.
+
+| Clause removed | Case re-run | Observed |
+| --- | --- | --- |
+| `if index > current: …` — the wave-index upper bound | `test_dispatch_receipt_refuses_an_index_above_the_pointer` | **red**, 1 failed |
+| the `decline not in DECLINE_REASONS` membership check | `test_dispatch_receipt_refuses_a_reason_outside_the_closed_set` and `test_52_dispatch_receipt_records_and_refuses_through_the_cli` | **red**, 2 failed — the second is the CLI-parser entry path |
+| the partition digest, replaced by `plan_hash` in both consumers (`schedule`'s pruning and the verb's write key) | the three `schedule` lifecycle cases | **red at exactly the discriminating one**: `test_schedule_keeps_a_record_when_the_partition_is_unchanged` failed, the other two passed |
+
+The third row is the one worth reading. A `plan_hash`-keyed implementation
+satisfies "a changed partition drops the record" and "the container is present",
+because a partition change also changes `plan_hash`. Only the case with an
+intervening plan edit that leaves the waves alone separates the two keys — which
+is why that edit is in the fixture rather than a bare re-schedule.
+
+**What this record does not cover.** The removals above are the two the plan's
+inline proof names plus one design-level substitution. The malformed-position
+walk, the bounding helper and the container pruning are covered by their own
+cases but were not individually deleted; the spec's mutation obligation is
+discharged per task, and T5 owns the sweep across every clause this change adds.
+
+---
+
+## 10.11 Controller verification of T2, and one self-inflicted observation (T2)
+
+**How T2's claims were checked.** Every load-bearing claim in the implementer's
+report was re-derived rather than accepted. Scope: the twelve changed files are
+exactly T2's `Touches` plus this ledger. Three-copy parity: `loop-cohort.py`
+hashes `66767ef3f77c7766` and `state.json` `21178af1c9f9e2f1` across
+`.apm/`, `.claude/` and `.agents/`. The key set: importing the test module gives
+`EXPECTED_STATE_KEYS` 30 and the bundled template 30, equal as sets, the new key
+is `dispatch_receipts`, and it does not intersect `PHASE_TWO_KEYS`.
+
+**The `--wave-index` decode, probed through the real CLI.** The deviation claims
+a non-integer refuses *through* `non_negative_int` rather than in the parser, and
+that the decode is laxer only about spelling. Both hold:
+
+| Argument | Result |
+| --- | --- |
+| `abc`, empty, `3.5` | `--wave-index must be a non-negative integer, got str` |
+| `-1` | `--wave-index must be a non-negative integer, got -1` |
+| `1_0`, `+3`, `' 3 '` | decoded to 10, 3, 3, then refused by the range check |
+| `0` | recorded |
+
+The first probe of this proved nothing: it passed `--task-id`, which the verb
+does not accept, so all seven arguments died in argparse and the uniform output
+read as a refusal. The flag is `--task`. A probe whose failures all share one
+cause cannot discriminate, which is the same defect class as a timed probe that
+never fires.
+
+**A probe against the live run writes live state.** The `0` row above recorded a
+real receipt for T2 into this run's own `state.json`, under partition digest
+`5199712b035c4200`, wave key `"0"`, task `T2`. It is left in place: the record is
+substantively accurate — T2 was dispatched to an implementer and completed, and
+the probe supplied the matching `--expect-run-id`, so the write was authorized —
+and the skill forbids hand-editing `state.json`, which would be the worse
+remedy. What is wrong about it is its *provenance*: it was written during
+verification rather than at the dispatch moment the spec's EXECUTE step
+describes. Recorded here so no later reader treats it as evidence produced by the
+documented path.
+
+The reusable lesson: probe a mutation verb against a throwaway spec directory,
+not against the run you are executing. `state.json` is untracked, so the mistake
+leaves no commit and no diff to notice — the loudest signal available is this
+entry.

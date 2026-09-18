@@ -27,5 +27,6 @@
   "last_commit_sha": null,
   "worktrees": [],
   "last_review_record_operation_id": null,
-  "last_review_record_payload_digest": null
+  "last_review_record_payload_digest": null,
+  "dispatch_receipts": {}
 }

@@ -1033,3 +1033,84 @@ def test_agreement_property_holds_when_ids_are_unique():
     for label, text in AGREEMENT_PLANS.items():
         ids = [s.task_id for s in lc.walk_task_sections(text)]
         assert len(ids) == len(set(ids)), f"{label}: corpus must keep IDs unique"
+
+
+# ── the record lifecycle across `schedule` ─────────────────────────────────
+#
+# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+# lifecycle. `schedule` owns two of the three removal paths: a partition-
+# changing re-schedule drops stale records, a partition-preserving one keeps
+# them.
+
+_LIFECYCLE_PLAN = """\
+### T1: first
+**Depends on:** none
+### T2: second
+**Depends on:** T1
+"""
+
+
+def _lifecycle_fixture(tmp_path: Path) -> str:
+    """A scheduled cohort holding one receipt for T1 in wave 0."""
+    run_id = _seed_state(tmp_path)
+    (tmp_path / "plan.md").write_text(_LIFECYCLE_PLAN, encoding="utf-8", newline="\n")
+    r = _run_lc("schedule", str(tmp_path), "--expect-run-id", run_id, cwd=tmp_path)
+    assert r.returncode == 0, r.stderr
+    r = _run_lc(
+        "dispatch-receipt", str(tmp_path), "--task", "T1", "--wave-index", "0",
+        "--receipt", "--expect-run-id", run_id, cwd=tmp_path,
+    )
+    assert r.returncode == 0, r.stderr
+    return run_id
+
+
+def _state_of(tmp_path: Path) -> dict:
+    return _json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+
+
+def test_schedule_creates_the_receipts_container_when_absent(git_repo):
+    """`_seed_state` writes a two-key state, which is the pre-receipts shape."""
+    r = _schedule(git_repo, _PLAN)
+    assert r.returncode == 0, r.stderr
+    state = _state_of(git_repo)
+    assert lc.RECEIPTS_KEY in state, "schedule must leave the container present"
+    assert state[lc.RECEIPTS_KEY] == {}
+
+
+def test_schedule_keeps_a_record_when_the_partition_is_unchanged(git_repo):
+    """`plan_hash` moves, the partition does not — so the record must survive.
+
+    The intervening edit is what discriminates: without it a no-op re-schedule
+    satisfies the assertion, and an implementation keyed on `plan_hash` rather
+    than on the partition digest stays green.
+    """
+    run_id = _lifecycle_fixture(git_repo)
+    before = _state_of(git_repo)
+    edited = _LIFECYCLE_PLAN + "\nProse the contract hash must notice.\n"
+    (git_repo / "plan.md").write_text(edited, encoding="utf-8", newline="\n")
+    r = _run_lc("schedule", str(git_repo), "--expect-run-id", run_id, cwd=git_repo)
+    assert r.returncode == 0, r.stderr
+    after = _state_of(git_repo)
+    assert after["plan_hash"] != before["plan_hash"], "the edit must move plan_hash"
+    assert after["schedule_waves"] == before["schedule_waves"], "partition must hold"
+    assert after[lc.RECEIPTS_KEY] == before[lc.RECEIPTS_KEY], (
+        "a partition-preserving re-schedule must leave the record unchanged"
+    )
+    assert after[lc.RECEIPTS_KEY], "fixture must have written a record"
+
+
+def test_schedule_drops_a_record_when_the_partition_changes(git_repo):
+    run_id = _lifecycle_fixture(git_repo)
+    superseded = next(iter(_state_of(git_repo)[lc.RECEIPTS_KEY]))
+    (git_repo / "plan.md").write_text(
+        _LIFECYCLE_PLAN + "### T3: third\n**Depends on:** T2\n",
+        encoding="utf-8", newline="\n",
+    )
+    r = _run_lc("schedule", str(git_repo), "--expect-run-id", run_id, cwd=git_repo)
+    assert r.returncode == 0, r.stderr
+    after = _state_of(git_repo)
+    assert len(after["schedule_waves"]) == 3, "the partition must have changed"
+    assert superseded not in after[lc.RECEIPTS_KEY], (
+        "no record may survive under the superseded partition digest"
+    )
+    assert after[lc.RECEIPTS_KEY] == {}
