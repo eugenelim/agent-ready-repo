@@ -811,7 +811,8 @@
         "Response says the shipped spec does not block the change",
         "Response says the code is the truth once the spec is `Shipped`",
         "Response says a reversal is recorded in a decision record, not by rewriting the shipped spec",
-        "Response does not treat the shipped spec's content as a live requirement"
+        "Response does not treat the shipped spec's content as a live requirement",
+        "Response names what still survives the freeze — the status line's two licensed pointers and the body's deferral anchors — rather than saying a shipped spec obliges nothing"
       ]
     }
   ]
