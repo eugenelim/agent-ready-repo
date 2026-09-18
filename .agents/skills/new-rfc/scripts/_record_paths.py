@@ -238,9 +238,12 @@ def read_confined(
     Limit, stated rather than implied: identity is ``(st_dev, st_ino)``, and an
     inode freed by an unlink can be reissued to the file created next.  A
     substitution that happens to land on the reused inode therefore compares
-    equal.  This narrows the window to an attacker who can also win that race;
-    it does not make the read atomic, which nothing short of holding the
-    descriptor from listing through read would.
+    equal.  This is not hypothetical — on Linux, unlink-then-create commonly
+    reissues the same inode, so that substitution shape is *not* detected
+    there, while a rename over the target is.  The check catches substitution
+    by rename and by any allocation that lands elsewhere; it does not make the
+    read atomic, which nothing short of holding the descriptor from listing
+    through read would.
 
     Raises:
         EntryRefused: a confinement check failed (symlink, hard link, race, or
