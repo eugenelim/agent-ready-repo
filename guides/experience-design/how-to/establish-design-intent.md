@@ -158,6 +158,74 @@ date: "<YYYY-MM-DD>"
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
+### Make the direction discriminating
+
+The direction sheet turns a felt brief into choices that another designer can
+inspect. Ask for it directly:
+
+```
+Turn this visual brief into a direction sheet. Ground every choice in the
+audience and referents, then show what needs revision after a counterfactual
+check.
+```
+
+It records fifteen axes. The first seven are structural because structure
+carries at least as much of a first impression as colour does. Each commitment
+cell starts with its bracketed token or tokens, then says in prose what that
+choice means for this surface. `[platform-default]` means the platform's usual
+convention remains in force because you have not made a direction-specific
+choice. It is a recorded undecided state, never an empty cell.
+
+| Axis | Token vocabulary | This direction commits to |
+| --- | --- | --- |
+| Grid grammar | `[manuscript]` `[column]` `[modular]` `[hierarchical]` `[compound]` `[broken]` `[platform-default]`, then `[rigid]` `[relaxed]` `[platform-default]` | `[platform-default]` `[platform-default]` <track count; which transformations are permitted> |
+| Alignment and equilibrium | `[edge]` `[centred]` `[baseline]` `[platform-default]`, then `[symmetric]` `[asymmetric]` `[platform-default]` | `[platform-default]` `[platform-default]` <how many distinct axes> |
+| Spatial density | `[sparse]` `[comfortable]` `[dense]` `[platform-default]` | `[platform-default]` <information and group count per screenful> |
+| Whitespace distribution | `[compact]` `[even]` `[expansive]` `[platform-default]` | `[platform-default]` <macro margins, gutters, section gaps; micro spacing> |
+| Hierarchy and scale contrast | `[flat]` `[moderate]` `[steep]` `[platform-default]` | `[platform-default]` <hero dominance; span and size jumps> |
+| Containment and boundary strength | `[open-field]` `[ruled]` `[panelled]` `[carded]` `[platform-default]` | `[platform-default]` <whether overlap is permitted> |
+| Section and scroll rhythm | `[continuous]` `[episodic]` `[platform-default]`, then `[regular]` `[varied]` `[platform-default]` | `[platform-default]` `[platform-default]` <bleed cadence; pacing of a long page> |
+| Type voice | `[serif]` `[sans-geometric]` `[sans-humanist]` `[monospace]` `[mixed]` `[platform-default]` | `[platform-default]` <the weight and width range used> |
+| Type hierarchy | `[flat]` `[moderate]` `[dramatic]` `[platform-default]` | `[platform-default]` <the scale relationship; how many levels> |
+| Chromatic intensity | `[monochrome]` `[restrained]` `[saturated]` `[high-chroma]` `[platform-default]` | `[platform-default]` <how many hues; tonal range; where accent is spent> |
+| Form | `[rectilinear]` `[softened]` `[organic]` `[platform-default]` | `[platform-default]` <corner treatment across the scale; icon stroke character> |
+| Material and depth | `[flat]` `[layered]` `[deep]` `[platform-default]` | `[platform-default]` <how many elevation levels; how depth is signalled> |
+| Ornament and texture | `[none]` `[pattern]` `[grain]` `[illustration]` `[platform-default]` | `[platform-default]` <the ratio of image to text> |
+| Image treatment | `[photographic]` `[illustrative]` `[abstract]` `[none]` `[platform-default]` | `[platform-default]` <how images are cropped; how they are toned> |
+| Motion character | `[still]` `[productive]` `[expressive]` `[platform-default]` | `[platform-default]` <how far things move; relative duration; continuous or discrete> |
+
+#### Run the counterfactual check
+
+Take a similar brief through the same direction work. Anything that matches the
+generic default is a default, not a choice. Revise that axis or goal and record
+the generic result, the revision, and why the new direction suits this brief.
+An empty counterfactual table means the check has not run; it does not mean no
+revision was needed.
+
+Use the resulting direction when you review the screen. The authoring-time
+taste critique may call out a contradiction only when the recorded goal and
+its grounding referent support that call. It does not add a new preference.
+
+#### Start from a preset, then make it yours
+
+The three presets are useful precedent referents: Swiss / International
+Typographic for disciplined information order, editorial broadsheet for ranked
+stories and their relationships, and Bauhaus for function-led composition.
+Each is a starting direction, never a finished one. Add the persona, standards,
+and platform grounding for your surface, then run the counterfactual check.
+
+#### Audit several candidate directions
+
+When you have several candidates, run a divergence audit over their direction
+sheets. Compare only the bracketed token tuples on every axis, including both
+tokens in the three rows that have two independent parameters. Prose does not
+create a difference.
+
+The audit reports the closest pair across the set, not the average. A pair is
+distinct when it differs on at least six of the fifteen axes. If the closest
+pair falls below that mark, revise the named axes before you treat the set as
+meaningfully different.
+
 ## Run `design-system` — the token set
 
 **You type:**

@@ -84,6 +84,36 @@ Each taste finding follows the same shape as a heuristic finding:
   points to the grounded referent or platform standard as the warrant. Never a
   stack-specific implementation.
 
+## Reader-reported rating instruments
+
+Use these instruments to report perceived quality and perceived genericness
+alongside findings. They are reader-reported ratings, not a pass/fail gate, and
+they never override the quality floor.
+
+**VisAWI-S** is the short Visual Aesthetics of Websites Inventory. Report each
+facet as its own seven-point agreement response:
+
+- Simplicity — "Everything goes together on this site"
+- Diversity — "The layout is pleasantly varied"
+- Colorfulness — "The colour composition is attractive"
+- Craftsmanship — "The layout appears professionally designed"
+
+Use the **UEQ Novelty scale** as four seven-position semantic differentials
+between these poles:
+
+- dull / creative
+- conventional / inventive
+- usual / leading edge
+- conservative / innovative
+
+Report every item individually and never combine them into one score. A
+composite hides which facet is weak, and no validated composite exists for this
+pairing.
+
+VisAWI-S reads perceived quality; the UEQ Novelty scale reads perceived
+genericness. A surface can be well-crafted and still read as the default, and
+only the second instrument catches that.
+
 ## What this mode never does
 
 - **Reprints values.** The taste critique points to the grounded reference and

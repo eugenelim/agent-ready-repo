@@ -10,6 +10,7 @@
         "Runs the quality-floor pass (states, accessibility floor, reduced-motion) in addition to the heuristics, with accessibility misses starting at major",
         "Maps every finding to a single named usability principle or floor commitment",
         "Assigns a 0\u20134 severity to each finding and names the factors that set it",
+        "Reports VisAWI-S and the UEQ Novelty scale as individual rating items, never combining them into a single score",
         "Sorts findings worst-first and leads with a count-by-severity headline",
         "Recommendations are design intent, not stack-specific \u2014 no framework, CSS property, or literal value is prescribed"
       ]
