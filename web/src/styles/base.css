@@ -36,9 +36,32 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Display voice. The serif is the direction's stated differentiator against a
+   category that is sans-on-dark almost without exception, so it belongs on the
+   element defaults rather than on a handful of components that remember to ask
+   for it (marketing-site.md, Identity specificity / Type voice `[mixed]`).
+
+   `font-variation-settings` carries BOTH axes in one declaration: setting the
+   property at all resets `wght` to the face default, so an `opsz`-only
+   declaration would silently un-bold every heading on the site. The weights
+   are the ones the approved preview uses — 420 at display size, 480 at head
+   size — because a serif at 700/800 fills its counters and loses the openness
+   that made it the choice. `font-weight` is restated alongside each variation
+   setting so a fallback to Georgia, which has no variation axes, still gets a
+   weight. h4-h6 stay sans: they are field-level headings inside records, and
+   the direction asks for two clear jumps, not a ramp. */
 h1,
 h2,
-h3,
+h3 {
+  color: var(--ds-on-surface);
+  font-family: var(--ds-font-display);
+  font-variation-settings: 'opsz' var(--ds-opsz-head), 'wght' 480;
+  font-weight: 480;
+  line-height: var(--ds-lead-heading);
+  letter-spacing: var(--ds-track-heading);
+  text-wrap: balance;
+}
+
 h4,
 h5,
 h6 {
@@ -51,7 +74,8 @@ h6 {
 
 h1 {
   font-size: var(--ds-type-display);
-  font-weight: var(--ds-weight-heavy);
+  font-variation-settings: 'opsz' var(--ds-opsz-display), 'wght' 420;
+  font-weight: 420;
   line-height: var(--ds-lead-display);
   letter-spacing: var(--ds-track-display);
 }
@@ -68,13 +92,26 @@ p {
   line-height: var(--ds-lead-body);
 }
 
-a {
-  color: var(--ds-accent-deep);
-  text-decoration: none;
-}
+/* Neutral ink + a persistent underline is the site-wide link affordance — the
+   mark is reserved for state, so it can never be a link colour
+   (docs/design/direction/marketing-site.md, Owner decisions 2026-09-18).
 
-a:hover {
+   Underline-by-default is deliberate and stays the baseline: a prose link
+   added later gets a non-colour affordance for free instead of silently
+   relying on hue (WCAG 1.4.1). It is wrong only for links that already carry
+   their own affordance — a filled or bordered button, a nav row, a whole-card
+   target, a chip. Those opt out explicitly, near the component that owns the
+   shape, and each opt-out names the channel that replaces the underline.
+
+   `:where()` holds this at zero specificity so an opt-out is one ordinary
+   declaration in the component's scoped block: no `!important`, no
+   specificity ladder, and no dependence on stylesheet order. The trade is
+   that ANY author rule beats it, which is exactly the property we want for a
+   baseline that components are expected to override on purpose. */
+:where(a) {
+  color: var(--ds-on-surface);
   text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 code,
@@ -93,6 +130,27 @@ svg {
   max-width: 100%;
 }
 
+/* Markers off GLOBALLY — no list on this surface is bulleted or numbered by
+   the marker; rank and sequence are carried by rules, type and, where the
+   order is meaningful, an <ol>.
+   ─────────────────────────────────────────────────────────────────────────
+   THE OBLIGATION THIS CREATES, stated here because this declaration is what
+   creates it: Safari drops list semantics from a list styled `list-style:
+   none` — VoiceOver stops announcing "list, N items" and stops announcing
+   each item's position — and `role="list"` puts them back. Since this reset
+   reaches EVERY `ul`/`ol`, the role is owed by every `ul`/`ol`, not by the
+   handful an author remembered.
+
+   Before 2026-09-18 eight lists carried it and twenty-one did not, which is
+   the worst of both: the workaround was in the codebase, so it looked
+   handled, and it covered under a third of the lists it was for.
+
+   The rule is now mechanical and enforced: `src/test/list-semantics.test.ts`
+   fails if any `<ul>` or `<ol>` in `web/src` lacks `role="list"`.
+   `.htmlvalidate.cjs` exempts the role keyword `list` from
+   `no-redundant-role` for exactly this reason, and names the same two
+   conditions for removal: Safari preserving the semantics, or this
+   declaration going away. */
 ul,
 ol {
   list-style: none;
@@ -109,7 +167,9 @@ button {
   cursor: pointer;
 }
 
-/* Global focus ring — semantic token is neutral on light and amber on dark. */
+/* Global focus ring. `--ds-focus-ring` is display ink on paper (17.16:1 on
+   --ds-surface) and off-white on the one dark band (13.14:1 on --ds-hero-bg);
+   tokens.css carries the carrier lists and the measurements. */
 :focus-visible {
   outline: 2px solid var(--ds-focus-ring);
   outline-offset: 3px;
@@ -135,14 +195,22 @@ button {
   top: var(--ds-space-4);
   z-index: var(--ds-z-toast);
   padding: var(--ds-space-2) var(--ds-space-4);
-  background-color: var(--ds-accent);
-  color: var(--ds-cta-primary-fg);
+  background-color: var(--ds-on-surface);
+  color: var(--ds-surface);
+  /* A border in the fill's own ink. Invisible against the fill; load-bearing
+     under `forced-colors: active`, where the fill is forced to Canvas and
+     this becomes an opaque white block floating over white page text with no
+     edge at all. It is the first thing a keyboard user reaches, so its
+     boundary is not decoration. */
+  border: 1px solid var(--ds-on-surface);
   border-radius: var(--ds-radius-sm);
   font-weight: var(--ds-weight-semibold);
+  /* Opt out of the base underline: a solid record-ink block. Channel = fill +
+     radius + padding, not colour. Inverted ink measures 17.16:1. */
+  text-decoration: none;
   transform: translateY(-150%);
 }
 
 .skip-nav:focus {
   transform: translateY(0);
-  text-decoration: none;
 }

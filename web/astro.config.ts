@@ -17,6 +17,9 @@ export default defineConfig({
   base: '/agent-ready-repo',
   outDir: '../build',
   integrations: [
-    sitemap({ filter: (page) => !page.includes('primitives-fixture') }),
+    sitemap({
+      filter: (page) =>
+        !page.includes('primitives-fixture') && !page.includes('direction-preview'),
+    }),
   ],
 });

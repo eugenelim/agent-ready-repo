@@ -33,6 +33,7 @@ const switcherId = id ?? `ts-${items.map((i) => i.id ?? i.label).join('-').repla
     <div role="tablist" class="task-switcher__tablist" aria-label="Task tabs">
       {items.map((item, i) => (
         <button
+          type="button"
           role="tab"
           id={`${switcherId}-tab-${item.id ?? i}`}
           class:list={['task-switcher__tab', { 'task-switcher__tab--active': item.id === activeId }]}
@@ -110,6 +111,8 @@ const switcherId = id ?? `ts-${items.map((i) => i.id ?? i.label).join('-').repla
 
   .task-switcher__item,
   .task-switcher__tab {
+    display: inline-flex;
+    align-items: center;
     padding: var(--ds-space-3) var(--ds-space-4);
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-medium);
@@ -124,6 +127,7 @@ const switcherId = id ?? `ts-${items.map((i) => i.id ?? i.label).join('-').repla
     transition: color var(--ds-dur-quick) var(--ds-ease-std),
                 border-color var(--ds-dur-quick) var(--ds-ease-std);
     min-height: 44px;
+    box-sizing: border-box;
   }
 
   .task-switcher__item:hover,
@@ -131,11 +135,18 @@ const switcherId = id ?? `ts-${items.map((i) => i.id ?? i.label).join('-').repla
     color: var(--ds-on-surface);
   }
 
+  /* Active tab. The accent is withdrawn, so the state is carried by three
+     non-chromatic channels at once: a 2px SOLID bottom rule where every
+     inactive sibling has a transparent one, a weight step from medium to
+     semibold, and an ink step from muted to heading. Any one of them survives
+     a greyscale or monochrome render; the rule alone survives a weight
+     override. `aria-selected` / `aria-current` still carry it non-visually. */
   .task-switcher__item--active,
   .task-switcher__tab--active,
   .task-switcher__tab[aria-selected="true"] {
-    color: var(--ds-accent-deep);
-    border-bottom-color: var(--ds-accent);
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+    border-bottom-color: var(--ds-on-surface);
   }
 
   .task-switcher__item:focus-visible,

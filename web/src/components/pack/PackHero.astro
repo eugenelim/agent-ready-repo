@@ -1,6 +1,7 @@
 ---
 // Header section for /packs/[slug] detail pages. Light zone — pack detail pages
-// do not use a dark hero band; amber accents provide the visual anchor.
+// do not use a dark hero band; clearance-accent borders elsewhere on the page
+// provide the visual anchor.
 import StatusChip from '../primitives/StatusChip.astro';
 
 interface Props {
@@ -48,6 +49,7 @@ const { name, scope, tagline, skillCount } = Astro.props;
     font-size: var(--ds-type-sm);
     color: var(--ds-on-surface-muted);
     font-family: var(--ds-font-mono);
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   .pack-hero__name {

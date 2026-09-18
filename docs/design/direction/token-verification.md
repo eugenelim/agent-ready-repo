@@ -4,12 +4,27 @@ scope: verification
 surface: responsive-web
 verifies: web/src/styles/tokens.css
 direction: docs/design/direction/tech-site-amendment.md
-status: active
+status: invalidated
+invalidated-by: docs/design/direction/tech-site-amendment-palette.md
+invalidated-on: 2026-09-18
 gate: approve-aesthetic-direction (passed 2026-09-04)
-updated: 2026-09-04
+updated: 2026-09-18
 ---
 
 # Token verification — what the canvas needs that the system lacks
+
+> **[Invalidated 2026-09-18 — re-run, do not edit.]** This pass verified the
+> canvas against the *prior* token set, whose palette, radius scale and
+> vertical rhythm have all since been replaced by
+> `docs/design/direction/tech-site-amendment-palette.md`. Its central finding
+> ("no new semantic tokens") was true of a system that no longer exists — the
+> register direction adds rule, field-label and clearance roles and a
+> rule-pitch rhythm.
+>
+> Its three non-token findings may still hold and are worth re-reading, but
+> every token-level conclusion and every contrast figure below is stale.
+> Editing this document would blur a verification record with a different
+> system's verification; it is re-run against the new tokens instead.
 
 A verification pass, not a derivation. The instruction was to amend rather than
 re-establish, so the question is narrow: **what does the operating-model canvas

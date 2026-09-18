@@ -2599,8 +2599,12 @@ _REQUIRED_HOOKS = {
 # import no generated source. `test:e2e:gate` starts `npm run preview`
 # (web/playwright.config.ts) and, by docs/guides/how-to/verify-a-site-release.md,
 # requires both site builds first.
+# `social` regenerates the Open Graph card from `web/src/styles/tokens.css`,
+# which is a hand-maintained source, not a projected renderer input. A
+# `presocial` hook would run the generator for an input the script never reads
+# and would misstate the dependency. Exempt for the same reason as `preview`.
 _HOOK_EXEMPT = {
-    "web": {"preview", "test:e2e:gate"},
+    "web": {"preview", "test:e2e:gate", "social"},
     "docs-site": {"preview"},
 }
 

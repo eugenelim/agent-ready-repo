@@ -21,9 +21,16 @@ interface Props {
 const { items } = Astro.props;
 ---
 
-<div class="page-meta" role="list" aria-label="Page metadata">
+{/* Native <ul>/<li> rather than role="list"/role="listitem" on generic
+    elements: identical accessibility tree, no ARIA to keep in sync. The
+    explicit role="list" stays because base.css sets `list-style: none` on
+    every list, which makes Safari/VoiceOver drop list semantics. As of
+    2026-09-18 that is the rule for every list in `web/src`, not a per-
+    component choice — base.css states the obligation and
+    src/test/list-semantics.test.ts enforces it. */}
+<ul class="page-meta" role="list" aria-label="Page metadata">
   {items.map((item) => (
-    <span class="page-meta__item" role="listitem">
+    <li class="page-meta__item">
       {item.type === 'mode' && <ReadWriteBadge mode={item.value} />}
       {item.type === 'coverage' && <CoverageBadge coverage={item.value} detail={item.detail} />}
       {item.type === 'permission' && <PermissionBadge permission={item.permission} access={item.access} />}
@@ -33,9 +40,9 @@ const { items } = Astro.props;
       {item.type === 'prerequisite' && (
         <span class="page-meta__prereq">{item.label}</span>
       )}
-    </span>
+    </li>
   ))}
-</div>
+</ul>
 
 <style>
   .page-meta {
@@ -53,9 +60,9 @@ const { items } = Astro.props;
   .page-meta__skill {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
-    color: var(--ds-accent-deep);
-    background-color: var(--ds-accent-subtle);
-    padding: 0.1rem 0.5rem;
+    color: var(--ds-field-label);
+    border: 1px solid var(--ds-rule-hairline);
+    padding: 0.25rem 0.5rem;
     border-radius: var(--ds-radius-sm);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);

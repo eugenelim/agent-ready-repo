@@ -922,6 +922,160 @@ open = [
   # quietly work around it.
   # Unblocks when: ready now, but confirm the palette question first.
   # Merged 2026-08-17 into spec/site-shared-chrome after RFC-0089 and ADR-0085.
+  # STALE 2026-09-18 — the HAZARD above was accurate when written and no longer
+  # is, on both halves. (1) The rule it cites is gone: docs-site/AGENTS.md
+  # carried "Styling: the docs palette deliberately diverges from `web/`" with
+  # `do not "align" docs colors to web/'s amber system without a...` from commit
+  # 8238167a2 until db5a4ed08 ("simplify every AGENTS.md surface into a map")
+  # removed it. That file now holds no palette, colour or token rule, so there
+  # is no rule left to amend through an RFC. (2) web/ no longer has an amber
+  # system to align to — it moved to the register palette per
+  # docs/design/direction/tech-site-amendment-palette.md. The two palettes are
+  # still deliberately separate and docs-site/ is confirmed out of scope by the
+  # owner, so the boundary the HAZARD protected still stands; only its stated
+  # mechanism and its named colour are stale. Verified with `git log -S` against
+  # the file rather than inherited. This entry is closed, so the correction is a
+  # note rather than a rewrite — and it exists because this comment was cited as
+  # live authority in a design document before anyone re-read the file.
+
+  # ---------------------------------------------------------------------------
+  # Marketing-home editorial retrofit 2026-09-18 — deferred findings.
+  #
+  # Source: the paper-first editorial retrofit of web/ (direction
+  # docs/design/direction/marketing-site.md; evidence manifest
+  # docs/design/evidence/marketing-home-retrofit.md). Everything below was found
+  # with evidence attached and deliberately NOT fixed in that change. The
+  # manifest is the record; these are the items that outlived it.
+  # ---------------------------------------------------------------------------
+
+  # MAJOR. /catalogue/ is still built out of cards — .outcome-card, .role-card
+  # and .cat-card carry a tinted fill, a border and a radius, against a
+  # direction sheet whose Containment row reads "rules divide and rank; no
+  # cards, no tinted panels, no shadows, no overlap". This is the THIRD instance
+  # of one settled decision: the same contradiction was adjudicated and repaired
+  # on the homepage outcome band and again on /now/. Rated Major not Blocker
+  # because nothing is clipped and axe is clean at both widths; Major not Minor
+  # because it is the whole route's primary treatment. Fix is three card grids
+  # converted to ruled record lists, the pattern now shipped in
+  # PackCatalogue.astro and WhatYouInstall.astro — a layout change across four
+  # channels that earns its own review rather than riding along.
+  # Unblocks when: ready now.
+
+  # MODERATE. /now/ renders 122 unpaginated releases and is tens of viewport
+  # heights long. Information architecture, not styling: no pagination, no
+  # in-page contents, no return-to-top. The retrofit made the page lighter per
+  # release and therefore longer, so this got worse, not better.
+  # THE LENGTH FIGURE IS CONTESTED AND NEITHER IS CARRIED FORWARD. Two passes
+  # measured it and disagree: 61,638 CSS px / 402 KB at 390, and 75,240 CSS px /
+  # 160 KB at 320. Different viewport widths explain part of the height gap but
+  # not a 2.5x swing in transferred bytes, so at least one measurement is wrong
+  # about what it measured. Re-measure before quoting either; do not reconcile
+  # them by averaging or by preferring the later one.
+  # Unblocks when: ready now; decide pagination vs. progressive disclosure first.
+
+  # BLOCKED ON INSTRUMENT. The <ul role="list"> Safari/VoiceOver workaround is
+  # justified by documented behaviour and has never been verified in Safari.
+  # Playwright 1.63 removed page.accessibility, and ariaSnapshot is Playwright's
+  # own DOM computation — it returns the same answer in every engine, so it
+  # cannot see the difference this workaround exists for. WebKit-via-Playwright
+  # is NOT Safari for this purpose. Needs real Safari with VoiceOver, which is a
+  # manual check on a physical machine.
+  # Unblocks when: someone runs it on a Mac with VoiceOver.
+
+  # DEFERRED, TRIGGERED. Core Web Vitals are unmeasured. No field data exists
+  # and localhost timings are not a CWV measurement, so the manifest reports
+  # payload and request counts instead and says LCP/INP/CLS are unmeasured.
+  # Unblocks when: 28 days of field data after the retrofit deploys.
+
+  # OPEN. JSON-LD covers the homepage only (SoftwareApplication). /packs/* and
+  # /journeys/* are 44 further pages wanting per-page types — SoftwareApplication
+  # and HowTo respectively. Template-level work with its own schema decisions;
+  # scoped out of the retrofit deliberately rather than half-done.
+  # Unblocks when: ready now.
+
+  # OPEN, OWNER-ROUTED. The evidence manifest's two production fields record a
+  # handoff, not a review: security/privacy to security-reviewer and
+  # reliability/recovery to quality-engineer. The surface takes no user input,
+  # stores nothing and makes no third-party calls, so both are expected to close
+  # quickly — but neither has been performed, and the manifest says so rather
+  # than implying coverage.
+  # Unblocks when: the two reviewers are run.
+
+  # RECORDED EXCEPTION, NOT A DEFECT. The frontend-engineering multi-surface
+  # shell contract requires every surface of a product to draw from one token
+  # contract. docs-site/ is owner-scoped-out (decision 2026-09-18) and keeps its
+  # cobalt palette while web/ is now paper-first editorial. The two are one nav
+  # click apart via the Docs entry, so every "consistent across the product"
+  # claim dies at that click, and each independent change to either side widens
+  # the gap with nothing detecting it. Logged so the divergence is visible to
+  # whoever reopens the docs palette; not scheduled, because it is a standing
+  # owner decision rather than an open item.
+  # Unblocks when: n/a — reopen only if the owner revisits the docs palette.
+
+  # ---------------------------------------------------------------------------
+  # Found BY the closing verification pass, 2026-09-18. These are not retrofit
+  # regressions — they are defects the newly-exercised states and the new CSS
+  # gate revealed. Every one is a design or copy decision, which is why the
+  # verification pass recorded them rather than resolving them.
+  # ---------------------------------------------------------------------------
+
+  # MAJOR ON PAPER, INVISIBLE ON SCREEN. There is no print stylesheet anywhere
+  # in web/ — zero `@media print`, zero `@page`. Printed at A4 the home page is
+  # 9 sheets and: the dark footer is 0.82 of a sheet in solid ink, and with
+  # background graphics off (the print dialog's default) it near-vanishes at
+  # 1.42:1 brand-on-white; 64 links print with no `attr(href)` exposure, so a
+  # printed page loses every destination; the nav prints as a hamburger because
+  # A4 at 717px is below the 768 breakpoint; the copy button prints; 3 of the 4
+  # install variants are display:none on paper; and 7 of 8 page breaks cut
+  # through a block, splitting the adapter table mid-row and orphaning a heading
+  # from its body. Nothing here is caught by any screen gate.
+  # Unblocks when: ready now.
+
+  # MINOR. 0 of 28 interactive classes distinguish `:active` from `:hover`, so a
+  # press produces no feedback distinct from a pointer resting. All 28 do have a
+  # focus style, and all 12 hover changes are colour-only with nothing disclosed
+  # on hover alone — so this is a polish gap, not an accessibility one.
+  # Unblocks when: ready now.
+
+  # MINOR, NEEDS A SCALE DECISION. 11 off-scale font sizes survive the new
+  # stylelint gate, all in src/pages/direction-preview.astro: 11px x5 (no token
+  # exists), 13px x4 (--ds-type-mono-sm matches numerically, but one of the four
+  # sites is sans, so adopting it would make one token carry two meanings),
+  # 0.9375rem, and 1.0625rem. The gate is deliberately left RED on these rather
+  # than forced green; 6 sibling findings that were unambiguous token
+  # substitutions were fixed and verified computed-identical.
+  # Unblocks when: someone decides whether the type scale gains an 11px step and
+  # whether --ds-type-mono-sm may be used on a sans element.
+
+  # MINOR x3, route-level, found in the 80-capture matrix.
+  # (a) 7 of 22 /packs/* pages emit `...above.<a>Browse the catalogue</a>` with
+  #     no space, so readers see "above.Browse". It is in the markup, not a wrap
+  #     artefact, and it is a one-character fix in a template.
+  # (b) /packs/* at >=1100 leaves ~375px of the 1140px container unused down the
+  #     right edge.
+  # (c) /journeys/* at 320 wraps the hero meta line after a plain-text
+  #     separator, leaving it dangling. Channel 1 only.
+  # Unblocks when: ready now.
+
+  # HAZARD, NOT A TASK. web/AGENTS.md now sits EXACTLY on its 80-line cap. The
+  # next line added there fails tools/lint-agents-md.py. Anyone documenting the
+  # next dependency or command in that file must remove a line to add one.
+
+  # A GATE THAT NEVER FIRES. `npm run lint:css --prefix web` (stylelint with
+  # stylelint-declaration-strict-value, added 2026-09-18) is wired into NOTHING
+  # — not the Makefile, not any workflow. It works, it is mutation-proven, and
+  # it currently reports 11 real findings; it will never run in CI, so those
+  # findings cannot red a pull request and new hardcoded values cannot either.
+  # Deliberately NOT wired at merge time: adding a line to the Makefile's
+  # `run-test-suite` define obliges a SUITE_DISPOSITION entry in
+  # tools/lint-ci-parity.py naming the PR check that gates the suite, and the
+  # honest answer is probably NO_PR_GATE or PR_GATED_IF — `make test` runs via
+  # the dispatch-only test-corpus.yml, not on a pull request. That disposition
+  # is a human-review control whose reasons are checked for presence, not
+  # truth, so it wants a deliberate decision rather than a merge-time guess.
+  # Unblocks when: someone decides which check should gate CSS tokens, and
+  # writes the matching disposition.
+
 
   # tools/lint-guide-titles.py (added by spec/tech-site-polish-batch) found 9
   # guides whose frontmatter title and body H1 disagreed. The H1s were

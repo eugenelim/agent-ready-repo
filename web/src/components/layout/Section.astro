@@ -4,6 +4,16 @@
 // between bands. Alternating-band model from creative-direction.md.
 interface Props {
   tone?: 'surface' | 'surface-alt' | 'dark';
+  /**
+   * Turn on the annotation margin for this band.
+   *
+   * The band then carries a second column on the right holding the receipt
+   * for the claim beside it. A row opts in by carrying `annotation-row`;
+   * inside it, any `.receipt` is placed in the margin column. Rows that do
+   * not opt in are untouched, so the option costs a band nothing until a
+   * receipt exists for it.
+   */
+  annotated?: boolean;
   id?: string;
   labelledby?: string;
   'aria-label'?: string;
@@ -11,6 +21,7 @@ interface Props {
 }
 const {
   tone = 'surface',
+  annotated = false,
   id,
   labelledby,
   'aria-label': ariaLabel,
@@ -24,7 +35,7 @@ const {
   aria-labelledby={labelledby}
   aria-label={ariaLabel}
 >
-  <div class="section__inner">
+  <div class:list={['section__inner', annotated && 'section__inner--annotated']}>
     <slot />
   </div>
 </section>
@@ -34,14 +45,28 @@ const {
     padding-block: var(--ds-section-pad-y);
   }
 
+  /* Every paper band opens on a boundary rule. [ruled] containment says a
+     rule is structure and never decoration, and on a page that is paper
+     throughout the rule is the ONLY thing that divides two bands: the
+     alternating grounds are 1.08:1 apart, so where two same-tone bands
+     adjoin — and they do, `use-cases` and the adapter matrix are both
+     `surface` — there was no boundary at all and the two read as one long
+     band. This is the treatment the approved direction preview uses on
+     `.dp__band`. --ds-rule-boundary measures 3.53:1 on --ds-surface and
+     3.26:1 on --ds-surface-alt.
+
+     The dark close takes no rule: its ground change IS its boundary, and it
+     is the one place on the surface where that is true. */
   .section--surface {
     background-color: var(--ds-surface);
     color: var(--ds-on-surface-2);
+    border-top: 1px solid var(--ds-rule-boundary);
   }
 
   .section--surface-alt {
     background-color: var(--ds-surface-alt);
     color: var(--ds-on-surface-2);
+    border-top: 1px solid var(--ds-rule-boundary);
   }
 
   .section--dark {
@@ -53,5 +78,82 @@ const {
     max-width: var(--ds-content-max);
     margin-inline: auto;
     padding-inline: var(--ds-content-pad-x);
+  }
+
+  /* ── Annotation margin ──────────────────────────────────────────────
+     The register's load-bearing move: the receipt for a claim sits beside
+     the claim (docs/design/direction/tech-site-amendment-palette.md §2).
+
+     Three rules govern this block, and breaking any of them breaks the goal
+     the margin exists to serve:
+
+     1. DOM ORDER FIRST. The receipt is authored as a sibling immediately
+        after the claim it annotates. Everything below is VISUAL PLACEMENT
+        ONLY — `grid-column` moves a box, it does not move a node, so reading
+        order and focus order are already correct and WCAG 1.3.2 is satisfied
+        without a single extra attribute. Nothing here may reorder the DOM to
+        get a visual result.
+
+     2. NARROW VIEWPORTS DROP THE OVERRIDE, THEY DO NOT HIDE ANYTHING. Below
+        the breakpoint the margin simply does not exist, and the receipt
+        falls into its natural DOM position — in flow, beneath its claim, at
+        full size. `display: none`, `visibility: hidden`, `aria-hidden`,
+        `<details>`, a checkbox toggle and any other tap-to-reveal are
+        FORBIDDEN on a receipt at every width. This is not a style
+        preference: a receipt that disappears on a phone fails the reflow
+        item in the amendment's floor check and defeats the goal outright.
+        Tufte CSS, the most-copied sidenote recipe on the web, hides its
+        notes on mobile by default; that is the single most likely way to
+        build this wrong. Muted PRESENTATION is correct. Muted AVAILABILITY
+        is the anti-pattern. src/test/annotation-margin.test.ts holds it open.
+
+     3. CSS GRID ONLY. No floats, no absolute positioning, no JavaScript. A
+        floated or absolutely-positioned note is taken out of flow, which is
+        what makes every other sidenote recipe overlap or clip at some width.
+
+     The breakpoint is a literal because a media query cannot read a custom
+     property. 1100px is the first width at which a 64ch measure and a
+     --ds-annotation-col-min margin both fit inside --ds-content-max; see the
+     token's comment. Below it, content and margin would fight for space —
+     which is why the collapse is well above the usual tablet boundary. */
+  .section__inner--annotated :global(.annotation-row) {
+    display: grid;
+    /* A row declares its own content tracks; the margin is appended as the
+       last track, so the receipt's placement is the same for every row. */
+    grid-template-columns: var(--annotation-content-columns, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .section__inner--annotated :global(.annotation-row) > :global(.receipt) {
+    /* Narrow: no margin column exists. The receipt takes its DOM position —
+       the next row down, beneath its claim — at full size, never squeezed
+       into a leftover sliver. Which of the row's own content columns it
+       should line up under depends on how that row is built (a row with a
+       leading ordinal wants the second column, a single-column row the
+       first), so the row says; spanning the whole row is the default. */
+    grid-column: var(--annotation-receipt-column, 1 / -1);
+    margin-block-start: var(--ds-space-4);
+  }
+
+  @media (min-width: 1100px) {
+    .section__inner--annotated :global(.annotation-row) {
+      grid-template-columns:
+        var(--annotation-content-columns, minmax(0, 1fr))
+        minmax(var(--ds-annotation-col-min), 1fr);
+    }
+
+    .section__inner--annotated :global(.annotation-row) > :global(.receipt) {
+      /* The margin track, top row. Counted from the end so the row can
+         declare any number of content columns — and stated unconditionally,
+         because at this width the last track IS the margin. */
+      grid-column: -2 / -1;
+      grid-row: 1;
+      /* The content-to-margin gutter lives on the receipt rather than in a
+         `column-gap`, because a row-wide gap would also widen the gaps
+         BETWEEN the row's own content columns and pull them out of step with
+         the un-annotated rows beside them. */
+      padding-inline-start: var(--ds-annotation-gap);
+      margin-block-start: 0;
+    }
   }
 </style>

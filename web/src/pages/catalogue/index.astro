@@ -99,7 +99,7 @@ const roles = catalogueRoles.map((role) => {
         <li class="outcome-card" id={outcome.id}>
           <h3>{outcome.title}</h3>
           <p>{outcome.cataloguePromise}</p>
-          <ul class="outcome-card__packs" aria-label={`Packs for ${outcome.title}`}>
+          <ul class="outcome-card__packs" role="list" aria-label={`Packs for ${outcome.title}`}>
             {outcome.packs.map((pack) => (
               <li><a href={withBase(`/packs/${pack}/`)}>{pack}</a></li>
             ))}
@@ -157,9 +157,13 @@ const roles = catalogueRoles.map((role) => {
 
 <style>
   /* ── Hero ──────────────────────────────────────────────────────────── */
+  /* PAPER. The dark ground appears exactly once on the surface, at the
+     close (docs/design/direction/marketing-site.md, Owner decisions
+     2026-09-18). The page hero is not it, so the separation from the band
+     below comes from space and a rule, never from a change of ground. */
   .cat-hero {
-    background-color: var(--ds-hero-bg);
-    color: var(--ds-hero-fg);
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
     padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
   }
 
@@ -168,28 +172,35 @@ const roles = catalogueRoles.map((role) => {
     margin-inline: auto;
   }
 
+  /* An eyebrow is a FIELD LABEL. --ds-field-label measures 5.30:1 on
+     --ds-surface, clearing 1.4.3 for this 12px run. It is deliberately not
+     the mark: the mark means state and nothing else, and decorating an
+     eyebrow with it is the retired second job (tokens.css, --ds-clearance). */
   .cat-hero__eyebrow {
     display: inline-block;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
-    color: var(--ds-accent);
+    color: var(--ds-field-label);
     margin-bottom: var(--ds-space-4);
   }
 
+  /* No `font-weight` here. The element is an <h1>, so base.css already sets
+     the serif display face and carries BOTH variation axes; a `font-weight`
+     beside a `font-variation-settings` that names `wght` is overridden by it
+     on a variable face and only misleads the next reader. */
   .cat-hero__heading {
     font-size: var(--ds-type-display);
-    font-weight: var(--ds-weight-heavy);
     letter-spacing: var(--ds-track-display);
     line-height: var(--ds-lead-display);
     margin-bottom: var(--ds-space-5);
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
   }
 
   .cat-hero__body {
     font-size: var(--ds-type-body-lg);
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
     max-width: 62ch;
     line-height: var(--ds-lead-body);
     margin-bottom: var(--ds-space-5);
@@ -198,7 +209,7 @@ const roles = catalogueRoles.map((role) => {
   .cat-hero__body code {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    color: var(--ds-accent);
+    color: var(--ds-on-surface);
     background: none;
   }
 
@@ -246,13 +257,21 @@ const roles = catalogueRoles.map((role) => {
     gap: var(--ds-space-2);
   }
 
+  /* Opt out of the base underline: the chip is a ruled, rounded, padded block
+     in a wrapped chip row. The accent tint is withdrawn, so the channel is now
+     border + shape + mono face — still not colour. */
   .outcome-card__packs a {
-    background-color: var(--ds-accent-subtle);
-    border-radius: var(--ds-radius-pill);
+    /* Boundary rule rather than the hairline: this is a link with no
+       underline, so the border identifies the control and owes 3:1
+       (WCAG 1.4.11). Measured 3.39:1 on `--ds-surface`. */
+    border: 1px solid var(--ds-rule-boundary);
+    color: var(--ds-on-surface-2);
+    border-radius: var(--ds-radius-md);
     display: inline-block;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
-    padding: 0.2rem 0.6rem;
+    padding: 0.25rem 0.6rem;
+    text-decoration: none;
   }
 
   .role-grid {
@@ -271,7 +290,7 @@ const roles = catalogueRoles.map((role) => {
   }
 
   .role-grid a:hover {
-    border-color: var(--ds-accent);
+    border-color: var(--ds-on-surface);
   }
 
   .role-grid strong,
@@ -280,7 +299,7 @@ const roles = catalogueRoles.map((role) => {
   }
 
   .role-grid span {
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface-muted);
     font-size: var(--ds-type-sm);
     margin-top: var(--ds-space-2);
   }
@@ -309,7 +328,7 @@ const roles = catalogueRoles.map((role) => {
   }
 
   .cat-card:hover {
-    border-color: var(--ds-accent);
+    border-color: var(--ds-on-surface);
   }
 
   .cat-card__head {
@@ -358,11 +377,15 @@ const roles = catalogueRoles.map((role) => {
   .cat-card__detail-cta {
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
   }
 
+  /* The hover rule used to change the accent to itself, which was a no-op. The
+     card's own border darkens on hover; the CTA now picks up an underline so
+     the affordance is not carried by the border alone. */
   .cat-card__head:hover .cat-card__detail-cta {
-    color: var(--ds-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -11,7 +11,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "social": "node scripts/generate-social.mjs",
     "test": "vitest run",
+    "lint:css": "stylelint \"src/**/*.{css,astro}\"",
     "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts guidebook-walk.spec.ts",
     "predev": "python3 ../tools/build-site.py --renderer-inputs",
     "pretest": "python3 ../tools/build-site.py --renderer-inputs",
@@ -23,11 +25,16 @@
     "@vitest/ui": "5.0.0",
     "axe-core": "4.13.0",
     "jsdom": "30.0.1",
+    "postcss-html": "2.0.0",
+    "stylelint": "17.15.0",
+    "stylelint-declaration-strict-value": "1.12.1",
     "vitest": "5.0.0"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
     "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.0",
     "@fontsource/jetbrains-mono": "5.3.0",
     "astro": "7.3.2"
   },

@@ -44,7 +44,7 @@ const { summary, records = [], status, warnings = [], followUp = [] } = Astro.pr
     </div>
   )}
   {warnings.length > 0 && (
-    <ul class="expected-result__warnings" aria-label="Warnings">
+    <ul class="expected-result__warnings" role="list" aria-label="Warnings">
       {warnings.map((w) => <li>{w}</li>)}
     </ul>
   )}
@@ -119,11 +119,8 @@ const { summary, records = [], status, warnings = [], followUp = [] } = Astro.pr
   .expected-result__followup-action {
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
-    text-decoration: none;
-  }
-
-  .expected-result__followup-action:hover {
-    text-decoration: underline;
+    /* color / text-decoration now come from the global `a` rule in
+       base.css — this was a plain-text link still carrying the withdrawn
+       chromatic accent with no underline. */
   }
 </style>

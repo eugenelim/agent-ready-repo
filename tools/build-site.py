@@ -18,6 +18,7 @@ Usage:
   python tools/build-site.py --clean
 """
 import argparse
+import ast
 import json
 import re
 import shutil
@@ -2337,6 +2338,233 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
 
 
 # ---------------------------------------------------------------------------
+# Receipts
+# ---------------------------------------------------------------------------
+#
+# Every value below is counted from repository files at build time. Nothing
+# here is pasted from prose, and no count is written down twice.
+
+# The review loop's completion sentinel. A core agent that iterates a cold
+# review of a diff to a verdict declares it in its own frontmatter
+# `description`; the agents that do other work (write code, adjudicate
+# findings, review a contract rather than a diff) do not. That declaration —
+# not a filename list — is what selects the set, so adding a seventh agent
+# cannot silently leave this count behind.
+_REVIEW_SENTINEL = "Clean — ready to commit."
+
+_CORE_AGENTS_DIR = REPO_ROOT / "packs" / "core" / ".apm" / "agents"
+_ADAPTERS_REGISTRY = (
+    REPO_ROOT / "packages" / "agentbundle" / "agentbundle"
+    / "build" / "adapters" / "__init__.py"
+)
+_PACKS_DIR = REPO_ROOT / "packs"
+
+RECEIPTS_PROJECTION = REPO_ROOT / "web" / "src" / "lib" / "receipts.generated.json"
+
+
+def _agent_frontmatter(path: Path) -> dict[str, str]:
+    """Return the top-level scalar keys of one agent file's YAML frontmatter.
+
+    Only `key: value` lines at column zero are read. Nested blocks and list
+    bodies are skipped, which is all this caller needs: it reads `name` and
+    `description`, both of which are top-level scalars in every core agent.
+    """
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    fields: dict[str, str] = {}
+    for line in text[4:end].splitlines():
+        if not line or line[0].isspace():
+            continue
+        key, separator, value = line.partition(":")
+        if not separator:
+            continue
+        fields[key.strip()] = value.strip().strip('"')
+    return fields
+
+
+def discover_cold_reviewers(agents_dir: Path = _CORE_AGENTS_DIR) -> list[str] | None:
+    """Names of the core agents that iterate a cold diff review to `Clean`.
+
+    Selected by the declared review-loop sentinel in each agent's frontmatter
+    `description`, sorted by agent name.
+
+    Returns `None` when `agents_dir` is absent — a tree without the core pack
+    has no such receipt to publish. An empty result from a directory that IS
+    present is drift and raises, because that is the case where a stale number
+    would otherwise reach the page.
+    """
+    if not agents_dir.is_dir():
+        return None
+    names = [
+        fields["name"]
+        for path in sorted(agents_dir.glob("*.md"))
+        for fields in [_agent_frontmatter(path)]
+        if "name" in fields and _REVIEW_SENTINEL in fields.get("description", "")
+    ]
+    if not names:
+        raise ValueError(
+            f"{agents_dir}: no agent declares the review sentinel "
+            f"{_REVIEW_SENTINEL!r} — the receipt would publish an empty set"
+        )
+    return sorted(names)
+
+
+def discover_adapter_targets(registry: Path = _ADAPTERS_REGISTRY) -> list[str] | None:
+    """Contract names in `ADAPTERS` that project through an adapter module.
+
+    Read from the registry's source with `ast`, so no import side effect is
+    taken. An entry is counted only when its value is `<module>.project` — the
+    form a real adapter takes. `kiro` is excluded on that rule: it is bound to
+    a locally defined deprecation wrapper that forwards to `kiro_ide`, and
+    `kiro.py` itself is the implementation layer `kiro_cli` and `kiro_ide`
+    share, not a target the bundle installs into.
+
+    Returns `None` when the registry file is absent; an empty `ADAPTERS` in a
+    registry that IS present is drift and raises.
+    """
+    if not registry.is_file():
+        return None
+    tree = ast.parse(registry.read_text(encoding="utf-8"), filename=str(registry))
+    names: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.AnnAssign | ast.Assign):
+            continue
+        targets = [node.target] if isinstance(node, ast.AnnAssign) else node.targets
+        if not any(isinstance(t, ast.Name) and t.id == "ADAPTERS" for t in targets):
+            continue
+        if not isinstance(node.value, ast.Dict):
+            continue
+        for key, value in zip(node.value.keys, node.value.values, strict=True):
+            if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+                continue
+            if (
+                isinstance(value, ast.Attribute)
+                and value.attr == "project"
+                and isinstance(value.value, ast.Name)
+            ):
+                names.append(key.value)
+    if not names:
+        raise ValueError(f"{registry}: no `<module>.project` entries found in ADAPTERS")
+    return sorted(names)
+
+
+def discover_catalogue_packs(
+    packs_dir: Path = _PACKS_DIR,
+) -> tuple[list[str], list[str]] | None:
+    """Return (declared, published) pack directory names under `packs/`.
+
+    Declared: every directory carrying a `pack.toml`. Published: the declared
+    subset whose directory name does not start with `_`. The underscore prefix
+    is the repository-wide publication marker — `catalogue_tooling`'s packaging,
+    index generation, verification and lint passes all skip a pack directory on
+    exactly that test, so an underscore pack is declared but never shipped.
+
+    Returns `None` when no directory under `packs_dir` declares a `pack.toml`,
+    which is a tree that has no catalogue rather than one of size zero.
+    """
+    if not packs_dir.is_dir():
+        return None
+    declared = sorted(
+        path.name for path in packs_dir.iterdir() if (path / "pack.toml").is_file()
+    )
+    if not declared:
+        return None
+    published = [name for name in declared if not name.startswith("_")]
+    return declared, published
+
+
+def project_receipts() -> dict:
+    """Project the receipt records the marketing surface displays beside claims.
+
+    Each record names its machine key, its human label, one or more counted
+    values, the enumerated population behind those values, and the repository
+    path the count was walked from. A record whose source tree is absent is
+    omitted rather than published as zero.
+    """
+    receipts: list[dict] = []
+
+    reviewers = discover_cold_reviewers()
+    if reviewers is not None:
+        receipts.append({
+            "key": "reviewers",
+            "label": "Cold reviewers per diff",
+            "source": "packs/core/.apm/agents",
+            "values": [{
+                "key": "reviewers",
+                "label": "Core agents that iterate a diff review to Clean",
+                "value": len(reviewers),
+            }],
+            "items": reviewers,
+        })
+
+    adapters = discover_adapter_targets()
+    if adapters is not None:
+        receipts.append({
+            "key": "adapters",
+            "label": "Coding agents installed into",
+            "source": "packages/agentbundle/agentbundle/build/adapters",
+            "values": [{
+                "key": "adapters",
+                "label": "Adapter targets in the build registry",
+                "value": len(adapters),
+            }],
+            "items": adapters,
+        })
+
+    catalogue = discover_catalogue_packs()
+    if catalogue is not None:
+        declared, published = catalogue
+        skills = [
+            skill
+            for name in published
+            for skill in (_PACKS_DIR / name).rglob("SKILL.md")
+        ]
+        receipts.append({
+            "key": "catalogue",
+            "label": "Catalogue size",
+            "source": "packs",
+            "values": [
+                {
+                    "key": "publishedPacks",
+                    "label": "Packs published from packs/",
+                    "value": len(published),
+                },
+                {
+                    "key": "declaredPacks",
+                    "label": "Directories under packs/ carrying a pack.toml",
+                    "value": len(declared),
+                },
+                {
+                    "key": "publishedSkills",
+                    "label": "SKILL.md files in published packs",
+                    "value": len(skills),
+                },
+            ],
+            "items": published,
+        })
+
+    return {"schemaVersion": 1, "receipts": receipts}
+
+
+def generate_receipts_projection(
+    output: Path = RECEIPTS_PROJECTION,
+    dry_run: bool = False,
+) -> dict:
+    """Write the receipts renderer input; return the payload."""
+    payload = project_receipts()
+    if not dry_run:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+    return payload
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -2355,7 +2583,7 @@ def main() -> None:
         "--renderer-inputs",
         action="store_true",
         help=(
-            "Project the three generated renderer inputs and nothing else. "
+            "Project the four generated renderer inputs and nothing else. "
             "The npm pre-build/pre-test hooks call this: the inputs are not "
             "committed, so each entry point must be able to produce exactly "
             "what it imports without writing any other repository surface."
@@ -2379,7 +2607,8 @@ def main() -> None:
             shared_chrome_contract, dry_run=args.dry_run
         )
         _report_now_projection(changelog_src, dry_run=args.dry_run)
-        print("build-site: projected 3 renderer input(s)"
+        generate_receipts_projection(dry_run=args.dry_run)
+        print("build-site: projected 4 renderer input(s)"
               + (" (dry run)" if args.dry_run else ""))
         return
 
@@ -2399,6 +2628,7 @@ def main() -> None:
             shared_chrome_contract, dry_run=args.dry_run
         )
         _report_now_projection(changelog_src, dry_run=args.dry_run)
+        generate_receipts_projection(dry_run=args.dry_run)
         return
 
     packs_out = SITE_DOCS / "packs"
@@ -2465,6 +2695,9 @@ def main() -> None:
     generate_marketing_shared_chrome_projection(
         shared_chrome_contract, dry_run=args.dry_run
     )
+
+    print("build-site: projecting receipts …")
+    generate_receipts_projection(dry_run=args.dry_run)
 
     # Docs runs last in the load-bearing build order, so its generated input is
     # refreshed here, immediately before `npm run build --prefix docs-site`;

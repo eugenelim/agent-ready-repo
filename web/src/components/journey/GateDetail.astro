@@ -1,7 +1,7 @@
 ---
-// Gate detail card — Section 5 of the journey page. Light zone with amber left
-// border (task instruction: "amber-bordered gate cards on #fafaf9 background").
-// Uses <details>/<summary> for expandable what-to-check content — zero JS.
+// Gate detail card — Section 5 of the journey page. Light zone, bounded by a
+// record rule on its leading edge. Uses <details>/<summary> for expandable
+// what-to-check content — zero JS.
 
 import { decisionTargetId } from '../../lib/journey-decisions';
 
@@ -46,7 +46,7 @@ const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
     <div class="gate-card__body">
       <section class="gate-section">
         <h4 class="gate-section__title">What to check</h4>
-        <ul class="check-list">
+        <ul class="check-list" role="list">
           {gate.whatToCheck.map((item) => (
             <li class="check-list__item">
               <span class="check-box" aria-hidden="true">□</span>
@@ -78,7 +78,7 @@ const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
   .gate-card {
     background-color: var(--ds-surface-alt);
     border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
   }
 
@@ -132,19 +132,41 @@ const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
     color: var(--ds-on-surface-2);
   }
 
+  /* The trigger used to be marked open/closed by nothing at all: the native
+     marker is suppressed, and the accent colour was identical in both states.
+     A caret glyph now carries it — it is the state's only dedicated channel,
+     so it is a content swap rather than a rotation and survives
+     `prefers-reduced-motion` and a greyscale render alike. */
   .gate-card__summary {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-4);
     padding: var(--ds-space-4) var(--ds-space-6);
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     cursor: pointer;
     border-top: 1px solid var(--ds-border);
     list-style: none;
+    min-height: 44px;
+    box-sizing: border-box;
   }
 
   .gate-card__summary::-webkit-details-marker {
     display: none;
+  }
+
+  .gate-card__summary::after {
+    content: '\25b8';
+    font-size: var(--ds-type-h3);
+    line-height: 1;
+    color: var(--ds-on-surface-2);
+    flex-shrink: 0;
+  }
+
+  .gate-card__details[open] .gate-card__summary::after {
+    content: '\25be';
   }
 
   .gate-card__details[open] .gate-card__summary {
@@ -180,13 +202,16 @@ const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
   }
 
   .check-box {
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface-muted);
     font-weight: var(--ds-weight-bold);
     flex-shrink: 0;
   }
 
+  /* Was an accent-tinted block. The tint is withdrawn; the section is set off
+     by a hairline record rule instead, which is what the register uses to mark
+     a boundary. */
   .gate-section--consequence {
-    background-color: var(--ds-accent-subtle);
+    border: 1px solid var(--ds-rule-hairline);
     border-radius: var(--ds-radius-md);
     padding: var(--ds-space-4);
     margin: 0;

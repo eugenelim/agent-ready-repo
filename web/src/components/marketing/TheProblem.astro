@@ -1,14 +1,25 @@
 ---
-// Section 3 — THE PROBLEM. Light zone. Text is the whole section — no card,
+// ZONE 2 — THE PROBLEM. Paper (surface-alt). Text is the whole band — no card,
 // no icon. The whitespace is the emphasis (Hemingway iceberg).
+//
+// Two paragraphs, in this order, and the order is the point. The reader's COST
+// comes first — painkiller-first wants the cost stated before the insight —
+// and the product insight follows it unchanged. The second paragraph is the
+// page's best-written existing content: the 2026-09-18 amendment says it
+// MOVES and is PRECEDED, not rewritten
+// (docs/design/content/marketing-home.md § Three claims the guide makes).
 import Section from '../layout/Section.astro';
 ---
 
-<Section tone="surface" labelledby="problem-heading">
+<Section tone="surface-alt" id="the-problem" labelledby="problem-heading">
   <div class="problem">
     <h2 id="problem-heading" class="problem__headline">
-      An unattended loop makes unattended mistakes.
+      An agent that certifies its own work is not a teammate.
     </h2>
+    <p class="problem__cost">
+      So you review all of it, every time, yourself — and when the argument is
+      over, nothing on disk records what you agreed.
+    </p>
     <p class="problem__body">
       Agent coding tools have moved the leverage from the prompt to the loop. But a
       loop running unattended is also a loop making mistakes unattended — and it will
@@ -20,10 +31,20 @@ import Section from '../layout/Section.astro';
 
 <style>
   .problem {
-    max-width: 42ch;
+    max-width: 52ch;
   }
 
   .problem__headline {
+    margin-bottom: var(--ds-space-5);
+    max-width: 20ch;
+  }
+
+  /* The cost, ahead of the insight. Set at lead size and full display ink so
+     it reads as the band's first claim rather than as a standfirst to the
+     paragraph under it. */
+  .problem__cost {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface);
     margin-bottom: var(--ds-space-5);
   }
 

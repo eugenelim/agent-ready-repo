@@ -148,6 +148,7 @@ docs/knowledge/*.lock.stale-*
 # `make build-self` workflow rather than by a site build.
 web/src/lib/now-highlights.generated.json
 web/src/lib/shared-chrome.generated.json
+web/src/lib/receipts.generated.json
 docs-site/src/shared-chrome.generated.json
 
 # Mutation-sweep output. Written beside the package it sweeps so the path is

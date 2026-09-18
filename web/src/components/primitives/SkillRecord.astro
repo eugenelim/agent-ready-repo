@@ -45,10 +45,10 @@ const rows = [
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
-    background-color: var(--ds-accent-subtle);
+    color: var(--ds-on-surface-2);
+    border: 1px solid var(--ds-rule-hairline);
     display: inline-block;
-    padding: 0.1rem 0.5rem;
+    padding: 0.25rem 0.5rem;
     border-radius: var(--ds-radius-sm);
     margin-bottom: var(--ds-space-4);
     text-transform: uppercase;
@@ -69,7 +69,7 @@ const rows = [
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
     align-self: start;
-    padding-top: 0.15rem;
+    padding-top: 0.25rem;
   }
 
   .skill-record__value {
@@ -80,7 +80,7 @@ const rows = [
   }
 
   /* Mobile: stack each row as a definition block */
-  @media (max-width: 600px) {
+  @media (max-width: 640px) {
     .skill-record__rows {
       grid-template-columns: 1fr;
     }

@@ -38,7 +38,7 @@ const typeLabels: Record<string, string> = {
     padding: var(--ds-space-4) var(--ds-space-5);
     border: 1px solid var(--ds-border);
     border-radius: var(--ds-radius-md);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     background-color: var(--ds-surface-alt);
   }
 
@@ -62,12 +62,9 @@ const typeLabels: Record<string, string> = {
   .next-action__link {
     font-size: var(--ds-type-body);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
-    text-decoration: none;
-  }
-
-  .next-action__link:hover {
-    text-decoration: underline;
+    /* color / text-decoration now come from the global `a` rule in
+       base.css — this was a plain-text link still carrying the withdrawn
+       chromatic accent with no underline. */
   }
 
   .next-action__link:focus-visible {

@@ -25,7 +25,7 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
 
 <nav class="journey-rail" aria-label="Journey stages">
   <!-- Desktop: horizontal ordered list (≥768px) -->
-  <ol class="journey-rail__desktop">
+  <ol class="journey-rail__desktop" role="list">
     {stages.map((stage, i) => {
       const status = resolveStatus(stage, i);
       return (
@@ -127,9 +127,13 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
     flex: 1;
   }
 
-  /* Status variants */
+  /* Status variants. `--current` reads as current through four non-chromatic
+     channels: the 3px solid bottom rule below (inactive steps carry a
+     transparent one), the solid inverted index disc, the semibold label, and
+     `aria-current="step"`. `--complete` keeps the functional success role,
+     which the register amendment retains alongside the clearance mark. */
   .journey-rail__step--current {
-    border-bottom-color: var(--ds-accent);
+    border-bottom-color: var(--ds-on-surface);
   }
 
   .journey-rail__step--complete {
@@ -157,9 +161,15 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
   }
 
   .journey-rail__step--current .journey-rail__index {
-    background-color: var(--ds-accent);
-    color: var(--ds-cta-primary-fg);
-    border-color: var(--ds-accent);
+    /* Neutral ink fill, not the chroma accent. The register withdraws
+       chroma everywhere except the clearance stamp; this fill was left
+       over from the prior accent-driven palette and measured 3.14:1
+       against its near-black text — below the 4.5:1 floor.
+       `--ds-on-surface` (record-900) with `--ds-surface` (record-50) text
+       measures ~15.7:1. */
+    background-color: var(--ds-on-surface);
+    color: var(--ds-surface);
+    border-color: var(--ds-on-surface);
   }
 
   .journey-rail__step--complete .journey-rail__index {
@@ -176,7 +186,7 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
   }
 
   .journey-rail__step--current .journey-rail__label {
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     font-weight: var(--ds-weight-semibold);
   }
 
@@ -234,8 +244,14 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
     overflow: hidden;
   }
 
+  /* Mobile current step: a 2px record-ink frame against the 1px light border
+     every sibling carries, a neutral raised fill, and a literal "Current"
+     badge in the summary. Width and the word are the channels; the ink value
+     only reinforces them. The 1px width increase is absorbed by the existing
+     border box, so nothing reflows. */
   .journey-rail__accordion--current {
-    border-color: var(--ds-accent);
+    border-width: 2px;
+    border-color: var(--ds-on-surface);
   }
 
   .journey-rail__accordion--complete {
@@ -252,6 +268,8 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
     align-items: center;
     gap: var(--ds-space-2);
     padding: var(--ds-space-3) var(--ds-space-4);
+    min-height: 44px;
+    box-sizing: border-box;
     cursor: pointer;
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-medium);
@@ -264,8 +282,9 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
   }
 
   .journey-rail__accordion--current .journey-rail__summary {
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
+    background-color: var(--ds-surface-alt);
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
   }
 
   .journey-rail__accordion--complete .journey-rail__summary {
@@ -278,13 +297,15 @@ function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upc
     margin-left: auto;
     font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-semibold);
-    padding: 0.1rem 0.4rem;
+    padding: 0.25rem 0.4rem;
     border-radius: var(--ds-radius-sm);
   }
 
+  /* Inverted solid: record ground on record ink. The inversion is the channel
+     — no sibling badge on the rail is inverted — and it measures 15.72:1. */
   .journey-rail__current-badge {
-    color: var(--ds-accent-deep);
-    background-color: var(--ds-accent-subtle);
+    color: var(--ds-surface);
+    background-color: var(--ds-on-surface);
   }
 
   .journey-rail__decision-badge {

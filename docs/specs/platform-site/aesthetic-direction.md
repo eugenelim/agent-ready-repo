@@ -4,6 +4,21 @@
 **Scope:** Full platform site — marketing anchor (`/`) + per-pack journey pages (`/journeys/`) + reference docs (`/docs/`). The marketing homepage is the primary surface; docs must be visually consistent but are a secondary surface.  
 **Audience:** Senior engineers and engineering leads evaluating adoption of an AI operating model for their team.
 
+> **Partly superseded — read the amendments with this document.**
+> Two Living amendments are operative and this file is no longer sufficient on
+> its own:
+>
+> - `docs/design/direction/tech-site-amendment.md` (2026-09-04) — grows the hero
+>   visualization into the operating-model canvas and adds the goal
+>   **Portable whole** at rank 5.
+> - `docs/design/direction/tech-site-amendment-palette.md` (2026-09-18) —
+>   **withdraws the single chromatic accent from the brand layer** and adds the
+>   goal **Checked in public** at rank 6.
+>
+> Claims in this file that the amendments falsified are marked inline below as
+> **[Corrected]**. The original wording is kept so the record stays honest; it
+> is not authoritative where a correction follows it.
+
 ---
 
 ## Surface treatment decision (Stage 1.5 — resolved)
@@ -13,6 +28,23 @@
 - **Hero and footer:** dark canvas `#0b0e12` (neutral-cool near-black — not warm-brown, not navy)
 - **Content sections:** warm near-white `#fafaf9` (one-step warm offset, not clinical white)
 - **Accent:** single chromatic — amber-gold family. Outside the indigo/blue/teal/purple cluster that saturates the developer-tool space. Amber reads as precision, craft, and signal — not danger, not consumer warmth.
+
+> **[Corrected] — all three bullets.** See
+> `docs/design/direction/tech-site-amendment-palette.md`.
+>
+> - *"not navy"* was specified for the canvas and not held by the ramp above it.
+>   The elevated tiers derived from this decision (`#111520`, `#1a2035`,
+>   `#232b40`) are blue-violet, so the dark zone contradicts its own spec.
+> - *"Amber reads as … not danger"* does not survive measurement. The shipped
+>   accent sits roughly 8° from the token set's own **warning** role. A brand
+>   colour adjacent to the warning colour cannot carry that claim.
+> - *"Outside the … cluster"* located the genericness in the **hue**. It is in
+>   the **structure** — dark hero + high-contrast display type + one chromatic
+>   accent is itself the category's default voice, and this surface assembles it
+>   exactly. Escaping the hue cluster did not escape the formula.
+>
+> The alternating-band model survives but is re-grounded: dark and light are no
+> longer decorative alternation, they are **machine** and **record**.
 
 This is the model Neo4j executes most successfully among the references studied. It serves both the IC (hero reads as precision tool) and the engineering lead (content sections are enterprise-readable).
 
@@ -55,6 +87,19 @@ The visual language is derived from the product's nature, not borrowed wholesale
 
 **Violated by:** Looking like "yet another developer tool site" (the indigo/purple/teal cluster). Copying Vercel or Linear wholesale. Generic animated blob as the hero background treatment.
 
+> **[Corrected] — this violation clause is too narrow, and the gap let the
+> violation through.** Naming only the *hue* cluster meant a non-cluster hue
+> read as compliance. It was not: the surface still assembles the category's
+> default structure and sets it in Inter, which recognized guidance names as
+> "a convention, not a distinction."
+>
+> Read the clause as also violated by: adopting the genre's default structure
+> whatever the hue; and by substituting one borrowed reference for another —
+> monochrome restraint is Vercel's convention, so swapping to it satisfies
+> nothing. The goal asks for a language **derived from the product's nature**.
+> That derivation is recorded in
+> `docs/design/direction/tech-site-amendment-palette.md` § 2.
+
 - *Persona:* Returning visitor or peer recommendation — the person who was told "check this out." Needs to remember it as distinct.
 - *Precedent:* Neo4j's graph-visualization hero (concept = decoration, same object, no waste) — taking: identity derived from product structure. Leaving: Neo4j's enterprise-heavy customer-logo saturation strategy.
 - *Standards:* Brand differentiation through constraint specificity; decoration justified by product metaphor or cut entirely
@@ -92,6 +137,18 @@ Resolved trade-offs:
 ## Resolved decisions (formerly open questions)
 
 - **Amber-gold on docs surface:** Resolved. `--ds-accent` (`#e8952b`) is never used as body-text color on light backgrounds — contrast ratio is ~3.2:1, which fails WCAG 4.5:1 for body text. `--ds-accent-deep` (`#8b5e0a`) is the text-safe variant on light (verified ~6.0:1). Full swap list: 6 targeted changes to `extra.css` documented in `.context/design-system-foundations.md`.
+
+> **[Corrected] — superseded, and the figure was optimistic.** The amber family
+> is withdrawn; the single chroma is now a clearance mark meaning *a person
+> cleared this*. The mechanism this bullet describes — a display accent plus a
+> darker text-safe variant — survives as a pattern, with the stamp family in
+> place of amber.
+>
+> The recorded "verified ~6.0:1" was **measured at 5.43:1** during the
+> 2026-09-04 pass. It still cleared the floor, so no decision turned on it, but
+> the figure was derived from the token file rather than measured in a browser.
+> That is now a standing rule: ratios for this palette are verified in a
+> browser, not read off `tokens.css`.
 
 - **Hero pipeline visualization — static, not animated.** Rubric applied: ambient looping animations fail the cognitive-load test for task-focused audiences (Calabro 2024: 26% comprehension reduction; orienting reflex fires on every pulse cycle regardless of intent). The pipeline visualization is a static SVG with amber accent on gate nodes. One-shot on-load entrance (fade-in, 300ms) is acceptable; continuous looping is not. The amber radial glow in the hero background is static — not animated. `prefers-reduced-motion` still respected; the static treatment is already the canonical state.
 

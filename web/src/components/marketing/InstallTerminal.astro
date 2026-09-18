@@ -1,5 +1,12 @@
 ---
-// Section 7 — INSTALL. Light zone (surface-alt). CSS-only tabs via a radio
+// ZONE 7 — START IN ONE COMMAND. Paper (surface-alt), and the terminal block
+// inside it is PAPER TOO. It was the last dark device left on the page, and
+// the dark ground appears exactly once on this surface, at the close
+// (docs/design/direction/marketing-site.md, Owner decisions 2026-09-18). What
+// made it read as a terminal was the fill; what makes it read as a command
+// record now is the boundary rule and the mono face, which is [ruled]
+// containment doing the job [flat] material forbids a fill from doing.
+// CSS-only tabs via a radio
 // group — zero JavaScript for tab switching, keyboard-navigable (arrow keys
 // move between radios). Copy button uses a small JS snippet that reads the
 // currently-checked radio to collect the active panel's commands.
@@ -20,9 +27,12 @@ const tabs = [
 
   <div class="terminal">
     <div class="terminal__bar">
-      <span class="terminal__dot" aria-hidden="true"></span>
-      <span class="terminal__dot" aria-hidden="true"></span>
-      <span class="terminal__dot" aria-hidden="true"></span>
+      {/* The three chrome dots are gone with the dark fill. They were a
+          picture of a terminal window, and on a paper record they are
+          ornament with no job — which [none] ornament forbids and [flat]
+          material does not need. The bar keeps its rule and the copy
+          control, which are the parts that do something. */}
+      <p class="terminal__label">Install</p>
       <CopyButton class="install-copy-btn" label="Copy install commands" />
     </div>
 
@@ -92,9 +102,11 @@ const tabs = [
     margin-bottom: var(--ds-space-6);
   }
 
+  /* --ds-rule-boundary measures 3.26:1 on --ds-surface-alt, which is this
+     band's ground, so the block's own edge clears WCAG 1.4.11. */
   .terminal {
-    background-color: var(--ds-hero-bg);
-    border: 1px solid var(--ds-hero-border-card);
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-lg);
     overflow: hidden;
     max-width: 760px;
@@ -105,36 +117,28 @@ const tabs = [
     align-items: center;
     gap: var(--ds-space-2);
     padding: var(--ds-space-3) var(--ds-space-4);
-    border-bottom: 1px solid var(--ds-hero-border);
+    border-bottom: 1px solid var(--ds-rule-hairline);
   }
 
-  .terminal__dot {
-    width: 11px;
-    height: 11px;
-    border-radius: var(--ds-radius-pill);
-    background-color: var(--ds-hero-border-card);
+  /* A field label where the chrome dots were: it names the record instead
+     of picturing a window. --ds-field-label measures 5.30:1 on
+     --ds-surface. */
+  .terminal__label {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ds-field-label);
   }
 
-  /* Terminal-context theming for CopyButton — dark surface, hero palette.
-     Set as inherited custom properties on the bar rather than as descendant
-     selectors: CopyButton renders in its own component scope, so the previous
-     `.copy-btn.install-copy-btn { … }` block here never matched and the button
-     kept the light-zone palette on the dark terminal (12 px text at 3.43:1,
-     under the 4.5:1 floor). */
-  .terminal__bar {
-    --copy-btn-bg: var(--ds-hero-elevated);
-    --copy-btn-border: var(--ds-hero-border-card);
-    /* fg-2 for hierarchy against the terminal chrome. Both dark-zone tokens
-       clear the floor comfortably (fg-2 12.4:1, fg-muted 7.3:1 on the hero
-       ground); the 3.4:1 failure above came from the light-zone default
-       rendering, not from a dark-zone token being too dim. */
-    --copy-btn-fg: var(--ds-hero-fg-2);
-    --copy-btn-bg-hover: var(--ds-accent-subtle-dk);
-    --copy-btn-fg-hover: var(--ds-accent);
-    --copy-btn-bg-success: var(--ds-accent-subtle-dk);
-    --copy-btn-fg-success: var(--ds-accent);
-    --copy-btn-border-success: var(--ds-accent);
-  }
+  /* The dark-zone retint of CopyButton is DELETED, not adjusted. Every
+     property in it pointed at a `--ds-hero-*` token, and the whole block
+     existed because this carrier was dark; the carrier is paper now, so the
+     premise is gone and CopyButton's own light-zone defaults are already the
+     right ones (--ds-on-surface-muted 5.30:1 on --ds-surface, --ds-border
+     for the edge, --ds-on-surface on hover). Re-adding a themed slot here
+     would put a dark-ground value on a paper ground, which is the exact
+     inversion of the 3.43:1 defect the deleted block was written to fix. */
 
   .terminal__bar :global(.copy-btn.install-copy-btn) {
     margin-left: auto;
@@ -163,29 +167,34 @@ const tabs = [
   }
 
   .tabs__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     padding: var(--ds-space-3) var(--ds-space-5);
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-medium);
-    color: var(--ds-hero-fg-muted);
+    color: var(--ds-on-surface-muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     user-select: none;
+    box-sizing: border-box;
   }
 
   .tabs__label:hover {
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
   }
 
   .tabs__panels {
     flex-basis: 100%;
     width: 100%;
-    border-top: 1px solid var(--ds-hero-border);
+    border-top: 1px solid var(--ds-rule-hairline);
   }
 
   .tabs__panel {
     display: none;
     padding: var(--ds-space-5) var(--ds-space-5) var(--ds-space-6);
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     overflow-x: auto;
   }
 
@@ -195,13 +204,16 @@ const tabs = [
   }
 
   .terminal__line code {
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     background: none;
   }
 
+  /* 600, not 700: mono ships 400 and 600 only (see fonts.css), so 700 would
+     resolve to 600 and the declaration would describe something that does
+     not happen. */
   .terminal__prompt {
-    color: var(--ds-accent);
-    font-weight: var(--ds-weight-bold);
+    color: var(--ds-on-surface-muted);
+    font-weight: var(--ds-weight-semibold);
     font-family: var(--ds-font-mono);
   }
 
@@ -216,9 +228,13 @@ const tabs = [
   #install-tab-flagship:checked + .tabs__label,
   #install-tab-discovery:checked + .tabs__label,
   #install-tab-inception:checked + .tabs__label,
+  /* The active tab is carried by ink weight AND the 2px rule under it, not
+     by colour alone. --ds-on-surface measures 17.16:1 for the label and
+     17.16:1 for the rule against --ds-surface. */
   #install-tab-architect:checked + .tabs__label {
-    color: var(--ds-accent);
-    border-bottom-color: var(--ds-accent);
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+    border-bottom-color: var(--ds-on-surface);
   }
 
   /* Keyboard focus lands on the (hidden) radio — surface it on the label. */
@@ -231,6 +247,14 @@ const tabs = [
     margin-top: var(--ds-space-5);
     color: var(--ds-on-surface-muted);
     max-width: 60ch;
+  }
+
+  /* text-decoration now comes from the global `a` rule in base.css; this
+     link keeps its own color (muted, inherited from .install__note rather
+     than the global on-surface) and a wider underline offset. */
+  .install__note a {
+    color: inherit;
+    text-underline-offset: 0.18em;
   }
 
   @media (prefers-reduced-motion: reduce) {

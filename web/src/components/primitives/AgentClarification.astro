@@ -15,7 +15,7 @@ const { question, options = [], reason, blocked = false } = Astro.props;
 >
   <p class="agent-clarification__question">{question}</p>
   {options.length > 0 && (
-    <ul class="agent-clarification__options">
+    <ul class="agent-clarification__options" role="list">
       {options.map((opt) => <li>{opt}</li>)}
     </ul>
   )}

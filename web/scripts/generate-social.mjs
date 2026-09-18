@@ -1,18 +1,78 @@
 /**
  * Generates web/public/social.png — the 1200×630 Open Graph social card.
- * Run once from repo root: node web/scripts/generate-social.mjs
+ *
+ *   npm run social --prefix web      (or: node web/scripts/generate-social.mjs)
+ *
+ * Colours are READ FROM ../src/styles/tokens.css at run time. Nothing here
+ * hardcodes a hex. The card previously carried its own private copy of the
+ * palette, which is how it kept the withdrawn amber accent for months after
+ * the tokens dropped it.
+ *
+ * The card carries NO chroma. The single vermilion clearance mark
+ * (--ds-clearance-dk) means a human cleared something; a social card is not a
+ * receipt, so it does not get the mark
+ * (docs/design/direction/tech-site-amendment-palette.md).
  */
 
-import { createRequire } from 'module';
-import { writeFileSync, mkdirSync } from 'fs';
-import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
-
-const require = createRequire(import.meta.url);
-const puppeteer = require('/opt/homebrew/lib/node_modules/puppeteer/lib/puppeteer/puppeteer.js');
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const tokensPath = resolve(__dirname, '../src/styles/tokens.css');
 const outputPath = resolve(__dirname, '../public/social.png');
+
+/**
+ * Parse every `--name: value;` declaration out of tokens.css, then resolve
+ * `var(--other)` references transitively so a semantic token yields a literal.
+ *
+ * @param {string} css - contents of tokens.css
+ * @returns {Map<string, string>} token name (with leading `--`) -> literal value
+ */
+function readTokens(css) {
+  const raw = new Map();
+  // Strip comments first: they contain hexes in prose and would poison the scan.
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const [, name, value] of stripped.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    if (!raw.has(name)) raw.set(name, value.trim());
+  }
+  const resolved = new Map();
+  /** @param {string} name @param {number} depth @returns {string} */
+  const resolve_ = (name, depth = 0) => {
+    if (resolved.has(name)) return resolved.get(name);
+    const value = raw.get(name);
+    if (value === undefined) throw new Error(`tokens.css has no ${name}`);
+    if (depth > 10) throw new Error(`token reference cycle at ${name}`);
+    const out = value.replace(/var\((--[\w-]+)\)/g, (_, ref) => resolve_(ref, depth + 1));
+    resolved.set(name, out);
+    return out;
+  };
+  for (const name of raw.keys()) resolve_(name);
+  return resolved;
+}
+
+const tokens = readTokens(readFileSync(tokensPath, 'utf8'));
+/** @param {string} name @returns {string} */
+const t = (name) => {
+  const value = tokens.get(name);
+  if (value === undefined) throw new Error(`tokens.css has no ${name}`);
+  return value;
+};
+
+// The card's whole palette, every value from tokens.css. Dark zone only —
+// the machine ground, the record tones on it, and no accent.
+const palette = {
+  ground: t('--ds-hero-bg'),          // machine ground, green-black
+  heading: t('--ds-hero-fg'),         // primary text on dark
+  body: t('--ds-hero-fg-2'),          // secondary text on dark
+  eyebrow: t('--ds-hero-fg-muted'),   // muted label on dark
+  rule: t('--prim-record-50'),        // the record tone — the rule is a record mark, not an accent
+};
+// 'Inter Variable' ships via Fontsource for the site; a headless browser has
+// no access to it, so the rendered card falls through to the system stack
+// that --ds-font-sans already declares.
+const fontSans = t('--ds-font-sans');
 
 const html = `<!DOCTYPE html>
 <html>
@@ -23,43 +83,43 @@ const html = `<!DOCTYPE html>
   body {
     width: 1200px;
     height: 630px;
-    background: #0b0e12;
+    background: ${palette.ground};
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 80px 96px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: ${fontSans};
     overflow: hidden;
   }
   .eyebrow {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: ${t('--ds-weight-semibold')};
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #e8952b;
+    color: ${palette.eyebrow};
     margin-bottom: 28px;
   }
   .name {
     font-size: 64px;
-    font-weight: 800;
-    color: #f8fafc;
-    line-height: 1.05;
+    font-weight: ${t('--ds-weight-heavy')};
+    color: ${palette.heading};
+    line-height: ${t('--ds-lead-display')};
     margin-bottom: 32px;
-    letter-spacing: -0.02em;
+    letter-spacing: ${t('--ds-track-display')};
   }
   .tagline {
     font-size: 26px;
-    font-weight: 400;
-    color: rgba(248, 250, 252, 0.65);
+    font-weight: ${t('--ds-weight-regular')};
+    color: ${palette.body};
     line-height: 1.5;
     max-width: 700px;
   }
   .rule {
     width: 56px;
     height: 4px;
-    background: #e8952b;
+    background: ${palette.rule};
     margin-bottom: 36px;
-    border-radius: 2px;
+    border-radius: ${t('--ds-radius-sm')};
   }
 </style>
 </head>
@@ -71,14 +131,13 @@ const html = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const browser = await puppeteer.launch({ headless: true });
-const page = await browser.newPage();
-await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
-await page.setContent(html, { waitUntil: 'networkidle0' });
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+await page.setContent(html, { waitUntil: 'networkidle' });
 
 mkdirSync(dirname(outputPath), { recursive: true });
-const screenshot = await page.screenshot({ type: 'png' });
-writeFileSync(outputPath, screenshot);
+writeFileSync(outputPath, await page.screenshot({ type: 'png' }));
 
 await browser.close();
 console.log(`social.png written to ${outputPath}`);
+console.log(`palette from ${tokensPath}:`, palette);

@@ -29,9 +29,9 @@ const unprotectedFields = fields.filter((f) => !f.protected);
 const protectedFieldItems = fields.filter((f) => f.protected);
 ---
 
-<section class="write-confirmation" role="region" aria-label="Confirm write operation">
+<section class="write-confirmation" aria-label="Confirm write operation">
   <header class="write-confirmation__header">
-    <span class="write-confirmation__count" aria-label={`${writeCount} write${writeCount === 1 ? '' : 's'} pending`}>
+    <span class="write-confirmation__count">
       {writeCount} write{writeCount === 1 ? '' : 's'}
     </span>
     <p class="write-confirmation__consequence">{consequence}</p>
@@ -41,7 +41,7 @@ const protectedFieldItems = fields.filter((f) => f.protected);
     {objects.length > 0 && (
       <div class="write-confirmation__objects">
         <h3 class="write-confirmation__section-label">Objects</h3>
-        <ul class="write-confirmation__object-list">
+        <ul class="write-confirmation__object-list" role="list">
           {objects.map((obj) => <li>{obj}</li>)}
         </ul>
       </div>
@@ -66,7 +66,7 @@ const protectedFieldItems = fields.filter((f) => f.protected);
         <h3 class="write-confirmation__section-label">
           Protected — will not be changed
         </h3>
-        <ul class="write-confirmation__protected-list">
+        <ul class="write-confirmation__protected-list" role="list">
           {protectedFields.map((f) => <li>{f}</li>)}
           {protectedFieldItems.map((f) => <li>{f.label}</li>)}
         </ul>
@@ -83,7 +83,7 @@ const protectedFieldItems = fields.filter((f) => f.protected);
 <style>
   .write-confirmation {
     border: 1px solid var(--ds-state-warn-border);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
     background-color: var(--ds-state-warn-bg);
     display: flex;
@@ -106,7 +106,7 @@ const protectedFieldItems = fields.filter((f) => f.protected);
     font-weight: var(--ds-weight-semibold);
     background-color: var(--ds-state-warn-border);
     color: var(--ds-state-warn-fg);
-    padding: 0.1rem 0.5rem;
+    padding: 0.25rem 0.5rem;
     border-radius: var(--ds-radius-sm);
     flex-shrink: 0;
   }
@@ -222,7 +222,7 @@ const protectedFieldItems = fields.filter((f) => f.protected);
     outline-offset: 2px;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 640px) {
     .write-confirmation__field-list {
       grid-template-columns: 1fr;
     }

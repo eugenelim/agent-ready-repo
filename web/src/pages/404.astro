@@ -24,9 +24,13 @@ import { withBase } from '../lib/paths';
 </SiteLayout>
 
 <style>
+  /* PAPER. The dark ground appears exactly once on the surface, at the
+     close, and a 404 is not the close (marketing-site.md, Owner decisions
+     2026-09-18). Moving it also repairs `.notfound__cta--primary`, whose ink
+     fill measured 1.00:1 against the ink ground it used to sit on. */
   .notfound {
-    background-color: var(--ds-hero-bg);
-    color: var(--ds-hero-fg);
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
   }
 
   .notfound__inner {
@@ -35,22 +39,26 @@ import { withBase } from '../lib/paths';
     padding: var(--ds-space-10) var(--ds-content-pad-x);
   }
 
+  /* 600, not 800: mono ships 400 and 600 only (see fonts.css), so 800 would
+     resolve to 600 and the declaration would describe something that does not
+     happen. The figure is decorative and aria-hidden; the <h1> beside it
+     carries the message. */
   .notfound__code {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-display);
-    font-weight: var(--ds-weight-heavy);
-    color: var(--ds-accent);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
     line-height: 1;
     margin-bottom: var(--ds-space-4);
   }
 
   .notfound__headline {
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     margin-bottom: var(--ds-space-4);
   }
 
   .notfound__body {
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
     font-size: var(--ds-type-body-lg);
     max-width: 52ch;
     margin-bottom: var(--ds-space-6);
@@ -62,10 +70,18 @@ import { withBase } from '../lib/paths';
     gap: var(--ds-space-3);
   }
 
+  /* Opt out of the base underline: both variants are button-shaped in a
+     dedicated action row. Channel = fill + radius for the primary, a visible
+     1px border for the ghost. Neither relies on colour alone. */
   .notfound__cta {
-    display: inline-block;
-    padding: 0.7rem 1.6rem;
-    border-radius: var(--ds-radius-pill);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0.5rem 1.6rem;
+    border-radius: var(--ds-radius-md);
     font-weight: var(--ds-weight-semibold);
     border: 1px solid transparent;
   }
@@ -85,13 +101,17 @@ import { withBase } from '../lib/paths';
     border-color: var(--ds-cta-primary-bg-hover);
   }
 
+  /* The ghost pair is re-derived for paper, not inherited: --ds-cta-ghost-fg
+     is off-white and would measure 1.31:1 here. The light pair measures
+     17.16:1 for the label and 3.53:1 for the border, clearing 1.4.3 and
+     1.4.11. Hover is a border darkening, not a tint — a white-alpha fill
+     composites to nothing on paper. */
   .notfound__cta--ghost {
-    color: var(--ds-cta-ghost-fg);
-    border-color: var(--ds-cta-ghost-border);
+    color: var(--ds-cta-ghost-light-fg);
+    border-color: var(--ds-cta-ghost-light-border);
   }
 
   .notfound__cta--ghost:hover {
-    background-color: var(--ds-cta-ghost-bg-hover);
-    color: var(--ds-hero-fg);
+    border-color: var(--ds-on-surface);
   }
 </style>

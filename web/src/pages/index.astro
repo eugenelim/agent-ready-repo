@@ -1,23 +1,89 @@
 ---
+// The marketing home. Zone order is the settled sequence from the content
+// brief's 2026-09-18 amendment, and it is deliberate, not incidental:
+//
+//   1 Above the fold ......... Hero            headline, subhead, two CTAs,
+//                                              proof signal, friction line
+//   2 The problem ............ TheProblem      the reader's cost, then the
+//                                              existing product insight
+//   3 The model, once ........ TheModel        four actors, four verbs, one
+//                                              telling, no gate codes
+//   4 What you install ....... WhatYouInstall  files you can read and edit,
+//                                              and no hosted runtime
+//   5 Recognise your work .... PackCatalogue   the outcome router, relocated
+//                                              BELOW the problem
+//   6 Works with your agent .. AdapterMatrix   unchanged
+//   7 Start in one command ... InstallTerminal the one runnable thing
+//   8 Own the catalogue ...... BuildYourOrg    the one dark band; the footer
+//                                              is continuous with it
+//
+// Three components left the page and the repository with this change.
+// StatStrip's three figures were self-reported counts standing where the
+// brief asks for proof a sceptic can check. ThreeLoops and HumanGates told
+// the work lifecycle twice and between them carried eleven internal gate
+// identifiers onto a surface whose plain-language floor bars them; TheModel
+// tells it once, whole, and in the reader's words.
 import SiteLayout from '../components/layout/SiteLayout.astro';
+import { withBase } from '../lib/paths';
 import Hero from '../components/marketing/Hero.astro';
-import StatStrip from '../components/marketing/StatStrip.astro';
 import TheProblem from '../components/marketing/TheProblem.astro';
-import ThreeLoops from '../components/marketing/ThreeLoops.astro';
-import HumanGates from '../components/marketing/HumanGates.astro';
+import TheModel from '../components/marketing/TheModel.astro';
+import WhatYouInstall from '../components/marketing/WhatYouInstall.astro';
+import PackCatalogue from '../components/marketing/PackCatalogue.astro';
 import AdapterMatrix from '../components/marketing/AdapterMatrix.astro';
 import InstallTerminal from '../components/marketing/InstallTerminal.astro';
-import PackCatalogue from '../components/marketing/PackCatalogue.astro';
 import BuildYourOrg from '../components/marketing/BuildYourOrg.astro';
+
+// Structured data, HOMEPAGE ONLY this stage.
+//
+// `SoftwareApplication` rather than `Organization`: what this surface offers
+// is the `agentbundle` CLI and the packs it installs, not a company — there is
+// no organisation record to make claims about, and a type that does not match
+// the thing is worse than none. `offers` at price 0 is declared because
+// Google's software rich result needs one of offers / aggregateRating /
+// review, and the first is the only one this repository can state as fact.
+//
+// NOT DONE, deliberately: /packs/* and /journeys/* are 44 more pages and want
+// their own per-page types. They are a separate piece of work.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'agent-ready-repo',
+  alternateName: 'agentbundle',
+  applicationCategory: 'DeveloperApplication',
+  applicationSubCategory: 'Command-line tool',
+  operatingSystem: 'macOS, Linux, Windows',
+  url: new URL(Astro.url.pathname, Astro.site).href,
+  description:
+    'A spec-driven agentic build loop — mechanical gates, cold independent review, and a human merge decision — plus packs for the rest of software delivery.',
+  image: new URL(withBase('/social.png'), Astro.site).href,
+  // `softwareHelp` expects a CreativeWork, not a bare string, so the page is
+  // named as a WebPage node rather than left as a loose URL.
+  softwareHelp: {
+    '@type': 'WebPage',
+    name: 'Pack catalogue',
+    url: new URL(withBase('/catalogue/'), Astro.site).href,
+  },
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+};
 ---
 
 <SiteLayout title="agent-ready-repo — the supervised agentic build loop">
+  <script
+    slot="head"
+    type="application/ld+json"
+    set:html={JSON.stringify(structuredData)}
+    is:inline
+  />
   <Hero />
-  <StatStrip />
-  <PackCatalogue />
   <TheProblem />
-  <ThreeLoops />
-  <HumanGates />
+  <TheModel />
+  <WhatYouInstall />
+  <PackCatalogue />
   <AdapterMatrix />
   <InstallTerminal />
   <BuildYourOrg />

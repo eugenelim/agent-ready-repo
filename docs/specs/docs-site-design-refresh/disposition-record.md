@@ -34,6 +34,20 @@ the loop vs. surfaced to the human, per the work-loop self-coverage gate.
 - **Marketing-site palette divergence** — `web/` keeps amber/dark-hero
   while docs go cobalt. Re-skinning `web/` to match is a named follow-on
   decision in the PR description; not executed.
+
+  > **[Stale 2026-09-18 — premise gone, item still open.]** `web/` no longer
+  > keeps amber/dark-hero. It moved to the "register" palette — a green-black
+  > machine ground, a pale green-grey record ground, and a single vermilion
+  > clearance mark that is deliberately unused — per
+  > `docs/design/direction/tech-site-amendment-palette.md`. The named follow-on
+  > above ("re-skin `web/` to match") is therefore moot **as written**: the
+  > surface it would have re-skinned is gone.
+  >
+  > The divergence itself is unchanged and still open — the two palettes still
+  > differ, just not in the way recorded here. The owner confirmed on
+  > 2026-09-18 that `docs-site/` is **out of scope** and keeps its cobalt
+  > palette; separate palettes remain the standing position. Only this
+  > statement of fact is corrected; no disposition is reversed.
 - **Deferrals** — `docs-site-npm-sca-gap` (no SCA scanner repo-wide; docs
   now vendor mermaid's transitive tree) and `docs-site-print-styles`;
   recorded in `workspace.toml [backlog].open`.
