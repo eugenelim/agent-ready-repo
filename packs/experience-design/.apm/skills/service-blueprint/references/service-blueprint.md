@@ -1,9 +1,8 @@
-# Service blueprinting — the four-row method
+# Service blueprinting — the five-row method
 
 A service blueprint is a cross-functional diagram that maps every step in a
 customer journey to the employee actions, system calls, and internal support
-that make it happen. The method is defined and maintained by Nielsen Norman
-Group: https://www.nngroup.com/articles/service-blueprints-definition/
+that make it happen.
 
 ## Why a blueprint
 
@@ -14,12 +13,23 @@ contract between the experience layer and the build layer. The backstage column
 is the **slicing instrument**: each named backstage service is a candidate
 component for `architect` decomposition and an input to the spec LLD.
 
-## The four rows
+## The five rows
 
 Every column in the blueprint represents one step in the customer journey.
 Every row represents a different layer of the service. Read a column
 top-to-bottom to understand what happens at one moment; read a row
 left-to-right to understand one layer across the whole journey.
+
+### Evidence of service
+
+The physical or digital artifacts the customer **encounters or receives** at
+each frontstage touchpoint: confirmation screens, receipts, notification
+emails, error messages, printed documents, SMS confirmations. These are the
+tangible traces the service leaves in the customer's hands — often the only
+part of the blueprint the customer can see, keep, and share. Record this row
+directly above frontstage. Critical fail-points (see the procedure's step 5)
+need a designed evidence-of-service entry for the failure case, not just the
+success case.
 
 ### Frontstage
 
@@ -32,8 +42,8 @@ row comes directly from the journey's stages and actions (see
 ### Line of visibility
 
 The **structural boundary** separating what the customer sees from what they do
-not. It is not a row to fill in — it is a horizontal line drawn between
-frontstage and backstage. Making it explicit forces the blueprinter to decide
+not. It takes a row in the layout, between frontstage and backstage, but holds
+no content of its own — mark the line itself rather than filling its cells. Making it explicit forces the blueprinter to decide
 what is in view and what is hidden, and prevents frontstage items from silently
 depending on backstage items with no declared visibility.
 

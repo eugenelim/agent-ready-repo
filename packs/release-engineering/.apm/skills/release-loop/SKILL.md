@@ -155,9 +155,11 @@ Promotion up to the human gate is judged by **automated policy, not by a human**
    may **tighten** the bar but **not waive** it.
 3. **Flake < 2%**.
 
-**DORA** (deploy frequency, lead time, change-fail rate, MTTR, + the 2025 rework
-rate) is the **health signal** — read it to watch the loop's health over time;
-it is **explicitly not a per-promotion gate**.
+**DORA** (deployment frequency, lead time for changes, change failure
+rate, failed deployment recovery time, deployment rework rate) is the
+**health signal** — read it to watch the loop's health over time; it
+is **explicitly not a per-promotion gate**. Sources: see the pack
+README.
 
 ### The release-readiness gate — the launch PRR before G5
 
@@ -174,8 +176,8 @@ record** — the *launch* PRR — consolidating, for the changed surface:
 This is **distinct from the per-promotion canary SLO thresholds**: convergence
 judges a single deploy's success/error/latency; the readiness gate reads
 **budget-burn over the trailing window** — an exhausted budget is a
-**surface-to-human / halt-releases** signal (Google's error-budget policy), not an
-autonomous promote. The telemetry-derived fields entering the record are subject
+**surface-to-human / halt-releases** signal, not an autonomous
+promote. The telemetry-derived fields entering the record are subject
 to control (d) (advisory-until-validated, data-not-instructions) **before** they
 are recorded, so the pre-fill cannot launder an unvalidated or poisoned signal
 into the ratified record.
@@ -197,8 +199,10 @@ SLO document's metric expressions and resolves the field to one of **four states
 | `not-defined` | No `slos/<service>.yaml` found — absence is *recorded and visible*, never a silent pass |
 | `within-budget` | Budget consumption below warn threshold; passes cleanly |
 | `warning: <N>% remaining` | Below warn threshold but not exhausted — surfaces in PRR, non-blocking by default |
-| `exhausted: halt-releases` | Budget fully consumed — **surfaces to human as a blocking item at G5**; halt per Google's error-budget policy |
+| `exhausted: halt-releases` | Budget fully consumed — **surfaces to human as a blocking item at G5**; halt |
 | `query-failed` | Telemetry backend unreachable at gate time — surfaces, not a silent pass |
+
+Sources: see the pack README.
 
 The `warn_at` and `halt_at` thresholds are read from the SLO document's
 `error_budget_policy` block (defaults: halt at 100% consumed, warn below 25% remaining).
@@ -310,7 +314,7 @@ shape mirrors `discovery-loop`'s contract, extended for the deploy boundary):
   clean append, so the attestation cross-check is what closes the append-forge
   path). The control is the *attested channel*, not the slot's append-only-ness.
 - **(b) Decision log is a real audit trail.** Append-only, per-row actor
-  attestation, tamper-evidence, trusted timestamp (the DORA / compliance trail).
+  attestation, tamper-evidence, trusted timestamp. Sources: see the pack README.
   Because this pack **ships no engine**, the **harness-delegated branch is the
   shipped posture**: name the **omnigent immutable-log / HITL-store guarantee**
   relied on, and when the log is content-hash-chained, **anchor the chain *tip* in
@@ -543,7 +547,7 @@ Feature flags are the mechanism that decouples **deploy** (code ships to servers
 - **permission** (user/role scoped): service-dependent lifetime; must be documented in
   the SLO document or a companion policy record.
 
-OpenFeature (CNCF incubating project) provides the harness-neutral provider API. The lifecycle
+OpenFeature provides the harness-neutral provider API (Sources: see the pack README). The lifecycle
 states above are independent of any specific flag management system (LaunchDarkly,
 Unleash, or a custom system). **A `release` flag stuck at `deprecated` beyond 90 days
 is flag debt — surface it in the PRR.**
@@ -616,12 +620,17 @@ substitution detectable. A failed verification is a supply-chain integrity failu
    - If `type: file`: verify the DSSE envelope signature independently.
    - The attestation's `subject[].digest` must match `component_manifest[].image_ref`.
 
-3. **Level check.** Confirm the attestation meets **SLSA L2 minimum**: the provenance
-   is signed by a hosted build platform (not a local workstation); cosign keyless signing
-   via GitHub Actions OIDC + Fulcio satisfies L2. **SLSA L3** (isolated build environment
-   + signing key inaccessible to build steps) raises the bar further and is the aspiration
-   for prod-bound artifacts. If the attestation is absent or L1-only, surface to human
-   with severity `one-way-door` — the human decides whether to override.
+3. **Level check.** Confirm the attestation meets **SLSA v1.0 Build L2 minimum**: a
+   hosted build platform must itself generate the provenance, with verifiable
+   authenticity — e.g. via `actions/attest-build-provenance` or the
+   slsa-github-generator, not a local workstation. Cosign keyless signing (step 2
+   above) verifies the artifact's signature; it does not generate SLSA provenance
+   and does not by itself satisfy L2 — treat it as a complementary, separate
+   control. **SLSA L3** (isolated build environment + signing key inaccessible to
+   build steps) raises the bar further and is the aspiration for prod-bound
+   artifacts. If the attestation is absent, is not build-platform-generated, or is
+   L1-only, surface to human with severity `one-way-door` — the human decides
+   whether to override.
 
 **Failure action:** Write a `status: provenance-check-failed` entry to the decision log;
 surface to human with the specific mismatch detail (which check failed, what the digests

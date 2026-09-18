@@ -27,7 +27,7 @@ The two skills look adjacent and confuse readers regularly. The split is about *
 | --- | --- | --- |
 | Direction in time | Backward-looking record | Forward-looking proposal |
 | State of the decision | Made (or about to be made) | Under debate; may be rejected |
-| After acceptance | Body frozen at acceptance; `Status:` header still mutable | Body frozen at acceptance (status field mutable); spawns ADRs, specs, convention edits |
+| After acceptance | Prose frozen at acceptance; `Status`, the supersession fields, and `Areas` stay open (see [the mutability zones](#the-mutability-zones)) | Body frozen at acceptance (status field mutable); spawns ADRs, specs, convention edits |
 | Change mechanism | New ADR that *supersedes* the old; status of the old flips, body stays | Normal revision until accepted, frozen thereafter |
 
 If the call is already made (or you're recording one made in a meeting yesterday), it's an ADR. If you want a debate, it's an RFC — and the *accepted* RFC then produces one or more ADRs as follow-on. See [how to propose a change (RFC)](new-rfc.md) for the inverse view.
@@ -135,7 +135,9 @@ The skill then picks a short kebab-case filename from your description (`0007-pr
 
 ## Step 4 — Fill in frontmatter
 
-Status starts as `Proposed`. Today's date. `Decision-makers` are the people who own the call, identified however your team does — a name, a GitHub handle, or an email (don't assume GitHub handles unless your conventions require them); add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references, not prose; if a relationship needs explaining, that explanation goes in Context or References, not the frontmatter.
+Status starts as `Proposed`. Today's date. `Decision-makers` are the people who own the call, identified however your team does — a name, a GitHub handle, or an email (don't assume GitHub handles unless your conventions require them); add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references. A `Related` entry takes a brief parenthetical saying what the relationship *is* (see the shape below); what it must not take is the argument for that relationship. A clause fits; a paragraph belongs in Context or References.
+
+`Related:` is suggested, not checked: entries separated by `;`, each a bare ordinal or a `/`-joined pair — never a Markdown link — followed by a parenthetical gloss naming the relationship, with an em dash before a secondary clause, and no trailing period. For example: `RFC-NNNN` (the proposal this records); `ADR-NNNN` (the gate it rests on — the motivating evidence, and the split between what a scanner catches and what a reviewer catches); `ADR-NNNN / RFC-NNNN` (the modes this reuses).
 
 ## Step 5 — Draft the body sections
 
@@ -167,17 +169,24 @@ Run the same command with `--check` to find out whether it would change.
 
 ## Step 7 — Get sign-off, then mark Accepted (or Rejected)
 
-The skill leaves status as `Proposed` and tells you to flip it to `Accepted` once the decision-makers have signed off — usually in the same PR, sometimes in a follow-up commit. If the proposal is declined, mark it `Rejected` and keep the file: a recorded rejection stops the same option being re-proposed later. Once Accepted, the body is frozen. See the immutability mechanic below.
+The skill leaves status as `Proposed` and tells you to flip it to `Accepted` once the decision-makers have signed off — usually in the same PR, sometimes in a follow-up commit. If the proposal is declined, mark it `Rejected` and keep the file: a recorded rejection stops the same option being re-proposed later. Once Accepted, four zones govern what can still change — see [the mutability zones](#the-mutability-zones) below.
 
 ## Preview and confirm
 
 `new-adr` never writes silently. Before it creates the ADR file or touches the index, it shows you a preview — the proposed **identifier** (`ADR-NNNN`), the **status** (`Proposed`), the **target path** (absolute and repo-relative), the **index path** it will update, and the **drafted content** — and waits for your explicit confirmation. Nothing lands on disk until you approve. After it writes, it hands back a short **completion receipt**: the identifier, the file path, the index path, the status, the files changed, the owner (the decision-maker), and the next step — get sign-off, then flip to `Accepted`.
 
-## The immutability principle
+## The mutability zones
 
-ADRs differ from wiki-style docs in one load-bearing way: **once accepted, the body is never edited.** This is what makes ADRs a durable record rather than a moving target.
+ADRs differ from wiki-style docs in one load-bearing way: **once accepted, the prose is frozen.** This is what makes an ADR a durable record rather than a moving target. Four zones divide a record by content, not by lifecycle — all four apply to every accepted ADR at once:
 
-The status field can move: `Proposed` → `Accepted` or `Rejected`, and an Accepted ADR later to `Deprecated` (the decision no longer applies and nothing replaces it) or `Superseded by ADR-NNNN` (a specific later ADR replaces it). The body text stays put. If the decision is reversed or revised, you write a *new* ADR that supersedes the old one, with explicit cross-references in both directions, and update the old ADR's `Status:` header — *header only, body untouched*. The old text remains visible as historical record; the new ADR carries the current reasoning.
+- **Live** — `Status`, the supersession fields (`Supersedes`, `Supersedes in part`, `Superseded by`, `Superseded in part`), and `Areas`. Lists gain entries and keep every entry they already had; `Status` is a state rather than a list, so it's replaced in place — `Proposed` to `Accepted` or `Rejected`, and later to `Deprecated` or `Superseded`.
+- **Attested** — `Date`, `Decision-makers`, and `Reversibility`. Frozen: they record who decided what, when, and how they judged it at the time, so rewriting them falsifies the record instead of correcting it.
+- **Frozen** — every prose section except `## Errata`.
+- **Append-only** — `## Errata`. Entries may be added; an entry already present may not be removed or rewritten.
+
+`Consulted` and `Informed` sit in no zone. The template lets you delete them when empty, and a field that may be absent can't be append-only — re-adding it later is exactly the line addition the sentinel values exist to avoid. So the four zones divide everything the record always carries, not literally every line in it.
+
+If the decision is reversed or revised, you write a *new* ADR that supersedes the old one: set the new record's `Supersedes:` to the old one's number, and the old record's `Status:` to `Superseded` with its `Superseded by:` naming the new one — two mirrored fields, not a compound value on one line. The old prose stays untouched; the new ADR carries the current reasoning.
 
 This is the difference between an ADR and documentation. Documentation should match present truth; ADRs preserve why we *got here*.
 
@@ -197,7 +206,7 @@ A previously-accepted ADR no longer reflects the team's call. You do *not* edit 
 
 1. Run `new-adr` for the new decision. In Context, name the prior ADR you're superseding and what changed since it was written.
 2. Set the new ADR's frontmatter `Supersedes:` to the old ADR's number.
-3. After the new ADR is Accepted, update the old ADR's frontmatter `Status:` from `Accepted` to `Superseded by ADR-<NNNN>` — with the actual four-digit number of the new ADR substituted in. Leave the old body alone — it's history.
+3. After the new ADR is Accepted, update the old ADR's frontmatter: set `Status:` to `Superseded`, and `Superseded by:` to the new ADR's number — with the actual four-digit ordinal substituted in. Leave the old body alone — it's history.
 
 If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`new-rfc.md` § The RFC lifecycle](new-rfc.md#the-rfc-lifecycle) for the trigger conditions.
 
@@ -212,7 +221,7 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 :::
 
 :::caution
-**Editing an accepted ADR's body.** The body is frozen at acceptance. Status-only changes (`Accepted` → `Deprecated` | `Superseded by ADR-NNNN`) are the only edits permitted. Anything else is a *new* ADR that supersedes.
+**Editing an accepted ADR's prose.** The prose is frozen at acceptance — see [the mutability zones](#the-mutability-zones). Only `Status`, the supersession fields, and `Areas` stay open: `Status` is replaced in place (`Accepted` → `Deprecated` or `Superseded`, the latter paired with a `Superseded by:` entry). Anything else is a *new* ADR that supersedes.
 :::
 
 :::caution
@@ -251,7 +260,7 @@ the durable decision changes.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where ADRs sit in the wider doc hierarchy.
 - [`new-adr` skill](../../../packs/governance-extras/.apm/skills/new-adr/SKILL.md) — authoritative procedure (preconditions, template, pushback rules).
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure for the proposal skill.
-- [§ What an ADR records](#what-an-adr-records) — the immutability rule, status values, when-to-write tests.
+- [§ What an ADR records](#what-an-adr-records) — the mutability zones, status values, when-to-write tests.
 - [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.
 
 ## What an ADR records
@@ -259,22 +268,25 @@ the durable decision changes.
 > The `adr/README.md` index is generated from the records themselves, so it
 > cannot disagree with them. Regenerate it rather than editing a row.
 
-**What:** an immutable record of a decision and the context that produced it.
+**What:** a record of a decision and the context that produced it, whose prose is
+frozen after acceptance (see [the mutability zones](#the-mutability-zones)).
 "We chose Postgres over DynamoDB because <reasons>, accepting <tradeoffs>."
 
-**The key property of an ADR is that it is never edited after acceptance.**
-If a decision is reversed or revised, you write a new ADR that supersedes the
-old one and update the old one's status to `Superseded by ADR-NNNN`. The old
-text stays. This is the difference between an ADR and documentation: ADRs are
-history.
+**The key property of an ADR is that its prose is never edited after
+acceptance.** `Status`, the supersession fields, and `Areas` can still change
+— see [the mutability zones](#the-mutability-zones). If a decision is reversed
+or revised, you write a new ADR that supersedes the old one: the old record's
+`Status` becomes `Superseded` and its `Superseded by:` names the new one. The
+old prose stays. This is the difference between an ADR and documentation: ADRs
+are history.
 
 **Filename:** `NNNN-kebab-case-title.md`, e.g. `0007-use-postgres-for-primary-store.md`.
 Numbers are sequential and never reused.
 
 **Status values:** `Proposed` → `Accepted` or `Rejected`. An `Accepted` ADR may
 later become `Deprecated` (the decision no longer applies and nothing replaces
-it) or `Superseded by ADR-NNNN` (a specific later ADR replaces it). A `Rejected`
-ADR is kept as a record, never deleted.
+it) or `Superseded` (a specific later ADR replaces it, named in that record's
+`Superseded by:` field). A `Rejected` ADR is kept as a record, never deleted.
 
 **Template:** `assets/adr.md` in the `new-adr` skill that creates ADRs from it.
 

@@ -1,6 +1,6 @@
 ---
 name: operational-safety
-description: Progressive-disclosure operational-safety-depth modules for the work-loop. Holds failure-mode-keyed checklists the quality-engineer reviewer reasons from (state-and-idempotency, blast-radius, environment-isolation, cost-and-teardown, drift-and-rollback, observability-and-smoke), plus cloud-implementation-craft, the module also inlined into the implementer's EXECUTE brief. Each is grounded in standing operational taxonomy (AWS Well-Architected, Google SRE, the Terraform/Pulumi Day-1/Day-2 split). The orchestrator loads only the matching modules and inlines them into the reviewer's REVIEW brief when infra/destructive work or a persistent-representation / mixed-version deployment change is detected — and cloud-implementation-craft into the implementer's EXECUTE brief on infra-flavored work; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer and implementer reason from. Carves against security-checklists on the reliability-vs-security lens.
+description: Progressive-disclosure operational-safety-depth modules for the work-loop. Holds failure-mode-keyed checklists the quality-engineer reviewer reasons from (state-and-idempotency, blast-radius, environment-isolation, cost-and-teardown, drift-and-rollback, observability-and-smoke), plus cloud-implementation-craft, the module also inlined into the implementer's EXECUTE brief. The orchestrator loads only the matching modules and inlines them into the reviewer's REVIEW brief when infra/destructive work or a persistent-representation / mixed-version deployment change is detected — and cloud-implementation-craft into the implementer's EXECUTE brief on infra-flavored work; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer and implementer reason from. Carves against security-checklists on the reliability-vs-security lens.
 ---
 
 # Skill: operational-safety
@@ -152,14 +152,12 @@ ordinary code changed.
 | [`environment-isolation`](references/environment-isolation.md) | iterating against (or able to touch) production; shared vs throwaway/staging state — covers separate state/accounts | F3.3 |
 | [`cost-and-teardown`](references/cost-and-teardown.md) | provisions billable resources; ephemeral/per-iteration infra; teardown path — covers cost-ceiling-as-gate, destroy-on-fail, TTL, no orphans | F3.4, F3.5 |
 | [`drift-and-rollback`](references/drift-and-rollback.md) | long-lived infra that can drift; a deploy or stateful migration needing validation, reconciliation, or a defined code-and-data recovery path — covers read-only drift detection, known-good re-apply path | F1.4, F2.6 |
-| [`observability-and-smoke`](references/observability-and-smoke.md) | deploys a service / site / endpoint a user reaches, or rolls out a stateful migration that needs progress, stop, and recovery signals — covers active end-to-end probe, log access, health, verify-status, symptom→layer log playbook | F2.2; taxonomy follow-up |
+| [`observability-and-smoke`](references/observability-and-smoke.md) | deploys a service / site / endpoint a user reaches, or rolls out a stateful migration that needs progress, stop, and recovery signals — covers active end-to-end probe, log access, health, verify-status, symptom→layer log playbook | F2.2 |
 | [`cloud-implementation-craft`](references/cloud-implementation-craft.md) | authoring infra / a managed-runtime deployment / live interaction (**also inlined into the implementer's EXECUTE brief**) — **EXECUTE-craft**: least-privilege-but-sufficient permissions, timing/retry, packaging / entrypoint model, externalized config (also REVIEW) | Author·behavioral + packaging gap |
 
 `state-and-idempotency` (write-path convergence) and `drift-and-rollback`
-(divergence detection + recovery) are kept **deliberately separate** — every
-major operational taxonomy splits the two (AWS Well-Architected *Change
-Management* vs *Failure Management*; Google SRE *Release Engineering* vs
-*Incident Response*; Terraform `apply` vs `-refresh-only`; Pulumi Day-1 vs
-Day-2). `observability-and-smoke` is its own sixth module, not folded into
-reliability prose, because "load the real URL, confirm render, read the logs to
-debug a failed smoke" is a distinct active-probe + telemetry concern.
+(divergence detection + recovery) are kept **deliberately separate** (see the
+pack README for the taxonomy comparison). `observability-and-smoke` is its
+own sixth module, not folded into reliability prose, because "load the real
+URL, confirm render, read the logs to debug a failed smoke" is a distinct
+active-probe + telemetry concern.

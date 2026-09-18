@@ -49,6 +49,49 @@ date: "<YYYY-MM-DD>"
   - *Standards:* <…>
   - *Platform conventions:* <…>
 
+## Direction sheet
+
+<!-- Fifteen axes; the first seven are structural. Each cell OPENS with its
+     tokens in square brackets from that row's vocabulary, then prose
+     saying what it means here. Tokens are what the divergence audit compares;
+     the prose is not compared. Every cell ships filled with its
+     [platform-default] token — replace it, never blank it.
+     Arity is fixed, because the divergence audit compares complete tuples:
+     Grid grammar, Alignment and equilibrium, and Section and scroll rhythm
+     take exactly two ordered tokens; every other axis takes exactly one. -->
+
+| Axis | Token vocabulary | This direction commits to |
+| --- | --- | --- |
+| Grid grammar | `[manuscript]` `[column]` `[modular]` `[hierarchical]` `[compound]` `[broken]` `[platform-default]`, then `[rigid]` `[relaxed]` `[platform-default]` | `[platform-default]` `[platform-default]` <track count; which transformations are permitted> |
+| Alignment and equilibrium | `[edge]` `[centred]` `[baseline]` `[platform-default]`, then `[symmetric]` `[asymmetric]` `[platform-default]` | `[platform-default]` `[platform-default]` <how many distinct axes> |
+| Spatial density | `[sparse]` `[comfortable]` `[dense]` `[platform-default]` | `[platform-default]` <information and group count per screenful> |
+| Whitespace distribution | `[compact]` `[even]` `[expansive]` `[platform-default]` | `[platform-default]` <macro margins, gutters, section gaps; micro spacing> |
+| Hierarchy and scale contrast | `[flat]` `[moderate]` `[steep]` `[platform-default]` | `[platform-default]` <hero dominance; span and size jumps> |
+| Containment and boundary strength | `[open-field]` `[ruled]` `[panelled]` `[carded]` `[platform-default]` | `[platform-default]` <whether overlap is permitted> |
+| Section and scroll rhythm | `[continuous]` `[episodic]` `[platform-default]`, then `[regular]` `[varied]` `[platform-default]` | `[platform-default]` `[platform-default]` <bleed cadence; pacing of a long page> |
+| Type voice | `[serif]` `[sans-geometric]` `[sans-humanist]` `[monospace]` `[mixed]` `[platform-default]` | `[platform-default]` <the weight and width range used> |
+| Type hierarchy | `[flat]` `[moderate]` `[dramatic]` `[platform-default]` | `[platform-default]` <the scale relationship; how many levels> |
+| Chromatic intensity | `[monochrome]` `[restrained]` `[saturated]` `[high-chroma]` `[platform-default]` | `[platform-default]` <how many hues; tonal range; where accent is spent> |
+| Form | `[rectilinear]` `[softened]` `[organic]` `[platform-default]` | `[platform-default]` <corner treatment across the scale; icon stroke character> |
+| Material and depth | `[flat]` `[layered]` `[deep]` `[platform-default]` | `[platform-default]` <how many elevation levels; how depth is signalled> |
+| Ornament and texture | `[none]` `[pattern]` `[grain]` `[illustration]` `[platform-default]` | `[platform-default]` <the ratio of image to text> |
+| Image treatment | `[photographic]` `[illustrative]` `[abstract]` `[none]` `[platform-default]` | `[platform-default]` <how images are cropped; how they are toned> |
+| Motion character | `[still]` `[productive]` `[expressive]` `[platform-default]` | `[platform-default]` <how far things move; relative duration; continuous or discrete> |
+
+## Counterfactual check
+
+<!-- Name a comparator brief, work it through, and compare. Any part of this
+     direction that matches what the comparator produced is a default, not a
+     choice. Revise it, then record the change. An unnamed comparator or an
+     empty table means the check has not run — neither means nothing needed
+     revision. -->
+
+**Comparator brief:** <the similar brief you tested against — name it, so a
+reader can tell whether it was a real test or a convenient one>
+
+| Axis or goal | What the comparator produced | What it became | Why |
+| --- | --- | --- | --- |
+
 ## Dominant goal for arbitration
 
 <!-- The #1 goal, plus the recorded trade-offs: when two goals conflict on a

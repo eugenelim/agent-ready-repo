@@ -826,6 +826,8 @@ EXPECTED_SCRIPT_STEPS = [
     "packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py",
     ".claude/skills/new-adr/scripts/next-ordinal.py",
     ".claude/skills/new-adr/scripts/index-records.py",
+    "packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py",
+    ".claude/skills/new-adr/scripts/lint-adr-shape.py",
     ".claude/skills/new-rfc/scripts/index-records.py",
     ".claude/skills/new-rfc/scripts/next-ordinal.py",
     "packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py",
@@ -1349,6 +1351,11 @@ class BuildCheckChainTest(unittest.TestCase):
             if cwd is None and ".claude/skills/work-loop/scripts/lint-spec-status.py" in argv
         )
         self.assertEqual(lint_argv[-1], "--all")
+        adr_shape_argv = next(
+            argv for argv, cwd in seen
+            if cwd is None and ".claude/skills/new-adr/scripts/lint-adr-shape.py" in argv
+        )
+        self.assertEqual(adr_shape_argv[-1], "docs/adr")
 
 
 class ParserWiringTest(unittest.TestCase):

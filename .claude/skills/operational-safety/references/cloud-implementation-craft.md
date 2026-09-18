@@ -12,8 +12,7 @@
 > timeouts and sprinkled `sleep`s, no client cold-start tolerance, dependency
 > cycles fixed by trial) and the **packaging gap** from Author · structural (a
 > flat-package-root relative-import `ModuleNotFoundError` that passed locally and
-> failed on the managed runtime). Operational taxonomy: AWS Well-Architected
-> (least privilege; design for failure), Google SRE (handle overload, backoff).
+> failed on the managed runtime).
 > **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
 > surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
 

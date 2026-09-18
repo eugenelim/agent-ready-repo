@@ -131,7 +131,11 @@ product-slug: <replace-with-product-slug>
 ### Accessibility Evidence
 <!-- Required: pilot+ -->
 <!-- Pilot: accessibility requirements stated; known a11y gaps listed.
-     Production: complete WCAG 2.2 AA audit; automated + manual results. -->
+     Production: WCAG 2.2 AA is the target. Record the automated wcag21aa
+     result, the two named manual checks (2.5.8 Target Size (Minimum), AA;
+     2.4.13 Focus Appearance, AAA enhancement), and the stated WCAG 2.2 AA
+     gap (2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8) rather than claiming a
+     complete audit. -->
 
 ### Browser Behavior
 <!-- Required: production+ -->

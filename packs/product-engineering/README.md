@@ -109,6 +109,14 @@ The base paths are configurable — `[product] output_dir` and `[discovery] outp
 
 ---
 
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
+
+- **`explore-options`** — the Double Diamond and Design Sprint methodologies treat forced divergence as non-optional; this skill is the discovery loop's forcing function for that divergence step.
+
+---
+
 ## Cross-pack
 
 **Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `frame-intent` as strategic anchors. Absent means both skills degrade gracefully.

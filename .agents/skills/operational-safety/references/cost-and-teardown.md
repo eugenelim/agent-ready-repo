@@ -5,8 +5,7 @@
 > leave a paid-for resource running after the work is done.
 > **Grounded in:** F3.4 (cost is a first-class CI gate, not a post-deploy
 > surprise), F3.5 (tag-at-creation TTL + destroy-on-close prevents orphans;
-> destroy needs its own plan). Operational taxonomy: AWS Well-Architected Cost
-> Optimization; the ephemeral-environment lifecycle pattern.
+> destroy needs its own plan).
 > **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
 > surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
 

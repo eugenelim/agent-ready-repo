@@ -51,8 +51,10 @@ is complete — this skill reads, it does not write.
 - `states`: which of the 18 states were tested in the last run
 - `inspection observations`: what the rendered-page inspection saw, plus its
   result state and verdict
-- `a11y result`: the last pa11y/axe-core output plus manual-check outcomes
-  for WCAG 2.4.11 and 2.5.8
+- `a11y result`: the last pa11y/axe-core (`wcag21aa`) output plus manual-check
+  outcomes for WCAG 2.5.8 Target Size (AA) and 2.4.13 Focus Appearance (AAA
+  enhancement), and the stated WCAG 2.2 AA gap (2.4.11, 2.5.7, 3.2.6, 3.3.7,
+  3.3.8)
 - `perf result`: the last Lighthouse/CWV measurement
 - `known exceptions`: documented, accepted gaps with owners
 - `unverified items`: items that could not be verified in the last session
@@ -92,8 +94,9 @@ Return a structured summary with the following sections:
 
 **A11y gate:** [pass / fail / untested]
   - axe-core wcag21aa: [pass/fail/untested]
-  - manual 2.4.11 Focus Appearance: [pass/fail/untested]
-  - manual 2.5.8 Target Size Minimum: [pass/fail/untested]
+  - manual 2.5.8 Target Size (Minimum) (AA): [pass/fail/untested]
+  - manual 2.4.13 Focus Appearance (AAA enhancement): [pass/fail/untested]
+  - WCAG 2.2 AA gap: 2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8 not yet checked
 
 **CWV status:** [pass / fail / untested — LCP: <value>, INP: <value>, CLS: <value>]
 
@@ -120,7 +123,7 @@ If the surface has no evidence manifest, output:
 No prior gate run exists for this surface. Before starting new work, run
 `frontend-engineering` in `audit` mode to establish a baseline:
 - State matrix coverage
-- A11y gate (pa11y/axe-core + 2 manual checks)
+- A11y gate (pa11y/axe-core `wcag21aa` + 2 named manual checks, with the WCAG 2.2 AA gap recorded)
 - CSS token compliance grep
 - CWV measurement
 

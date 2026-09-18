@@ -66,6 +66,10 @@ EXPECTED_STATE_KEYS = {
     "completed_task_evidence",
     "amendment_history",
     "amendment_pending",
+    # Per-task dispatch receipts, keyed by partition digest, wave index and task
+    # identifier. Present from `init` so an absent container means one thing only:
+    # cohort state written before receipts existed, which the wave exit exempts.
+    "dispatch_receipts",
 }
 PHASE_TWO_KEYS = {
     "token_budget_used_pct",
@@ -261,6 +265,26 @@ class LoopCohortCliTest(unittest.TestCase):
         self._assert_cli(0, "schedule", str(spec_dir), "--expect-run-id", run_id)
         return spec_dir, run_id
 
+    def _accounted(self) -> tuple[Path, str]:
+        """`_scheduled()`, plus a dispatch record for every task in wave 0.
+
+        `schedule` leaves the receipts container present and empty, and
+        `wave advance`'s advancing branch refuses a wave whose tasks are not
+        accounted for — so a fixture that drives the advance needs records. The
+        task ids come from the persisted partition rather than from a literal
+        list, so a change to the fixture plan cannot leave this silently
+        recording nothing.
+        """
+        spec_dir, run_id = self._scheduled()
+        tasks = self._state(spec_dir)["schedule_waves"][0]
+        assert tasks, "the fixture partition has no tasks in wave 0"
+        for task in tasks:
+            self._assert_cli(
+                0, "dispatch-receipt", str(spec_dir), "--task", str(task),
+                "--wave-index", "0", "--receipt", "--expect-run-id", run_id,
+            )
+        return spec_dir, run_id
+
     def _reports(self, spec_dir: Path) -> tuple[Path, Path]:
         findings = spec_dir.parent / "findings.md"
         clean = spec_dir.parent / "clean.md"
@@ -425,27 +449,27 @@ class LoopCohortCliTest(unittest.TestCase):
         self._assert_cli(0, "wave", "check", str(spec_dir), "--expect", "more")
 
     def test_28_wave_advance_from_zero_succeeds(self) -> None:
-        spec_dir, run_id = self._scheduled()
+        spec_dir, run_id = self._accounted()
         self._assert_cli(
             0, "wave", "advance", str(spec_dir), "--from-index", "0", "--expect-run-id", run_id
         )
 
     def test_29_wave_advance_updates_current_index(self) -> None:
-        spec_dir, run_id = self._scheduled()
+        spec_dir, run_id = self._accounted()
         self._assert_cli(
             0, "wave", "advance", str(spec_dir), "--from-index", "0", "--expect-run-id", run_id
         )
         self.assertEqual(self._state(spec_dir)["current_wave_index"], 1)
 
     def test_30_wave_check_reports_last_at_index_one(self) -> None:
-        spec_dir, run_id = self._scheduled()
+        spec_dir, run_id = self._accounted()
         self._assert_cli(
             0, "wave", "advance", str(spec_dir), "--from-index", "0", "--expect-run-id", run_id
         )
         self._assert_cli(0, "wave", "check", str(spec_dir), "--expect", "last")
 
     def test_31_wave_advance_refuses_final_wave(self) -> None:
-        spec_dir, run_id = self._scheduled()
+        spec_dir, run_id = self._accounted()
         self._assert_cli(
             0, "wave", "advance", str(spec_dir), "--from-index", "0", "--expect-run-id", run_id
         )
@@ -1031,6 +1055,36 @@ class LoopCohortCliTest(unittest.TestCase):
         spec_dir, run_id = self._approved()
         self._assert_cli(0, "schedule", str(spec_dir), "--expect-run-id", run_id)
         self.assertEqual(self._state(spec_dir)["schedule_waves"], [["T1"], ["T2"]])
+
+    def test_51_init_and_schedule_leave_the_receipts_container_present(self) -> None:
+        """Present from `init` onwards, so an absent container means one thing.
+
+        Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+        lifecycle. An absent container is cohort state written before receipts
+        existed, which the wave exit exempts — so a fresh run must never show it.
+        """
+        spec_dir, _ = self._initialized()
+        self.assertEqual(self._state(spec_dir)["dispatch_receipts"], {})
+        spec_dir, _ = self._scheduled()
+        self.assertEqual(self._state(spec_dir)["dispatch_receipts"], {})
+
+    def test_52_dispatch_receipt_records_and_refuses_through_the_cli(self) -> None:
+        """The parser is what a controller reaches, so both verdicts run here."""
+        spec_dir, run_id = self._scheduled()
+        self._assert_cli(
+            0, "dispatch-receipt", str(spec_dir), "--task", "T1",
+            "--wave-index", "0", "--receipt", "--expect-run-id", run_id,
+        )
+        container = self._state(spec_dir)["dispatch_receipts"]
+        self.assertEqual(
+            [list(wave) for wave in container.values()], [["0"]],
+            f"one wave-index key must hold the record; got {container!r}",
+        )
+        self._assert_cli(
+            1, "dispatch-receipt", str(spec_dir), "--task", "T1",
+            "--wave-index", "0", "--decline", "not-a-reason",
+            "--expect-run-id", run_id, stderr_contains="no-implementer-installed",
+        )
 
     def test_50_schedule_unknown_dep_beats_cycle_refusal(self) -> None:
         """AC4: when a plan has both an unknown dep and a cycle, the unknown-dep

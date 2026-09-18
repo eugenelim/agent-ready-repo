@@ -16,17 +16,19 @@ moves; this document records which discipline is doing the work.
 STORM (Synthesis of Topic Outlines through Retrieval and
 Multi-perspective question-asking) — Stanford NLP, 2024 — builds
 Wikipedia-style topical outlines by surveying adjacent material and
-asking what sections such an article would need. STORM's load-bearing
-finding for this pack: **direct question-asking does not work well for
-source discovery**. Asking the LLM "who is authoritative on X"
-produces a training-data-shaped list; surveying adjacent material and
-letting authorities fall out of the citation pattern produces a better
-list. The discipline is **survey-by-adjacency**, and it is the
-methodology under `/source-map` and the outline-stage in `/build-outline`.
-Co-STORM (the moderator variant) contributes the **unused-snippet
-pass**: scan retrieved-but-uncited material at the end and consider
-one more query from the highest-signal unused snippet — that's the
-trail you almost left on the table.
+asking what sections such an article would need. This pack's reading of STORM, which the
+paper supports but does not itself state: **direct question-asking does
+not work well for source discovery**. Shao et al. (2024) reports that directly-prompted
+LLMs produce basic "What/When/Where" questions addressing only
+surface-level facts; STORM instead grounds its perspectives in the
+tables of contents of related Wikipedia articles rather than asking an
+LLM to name authorities, and its ablations show the ungrounded
+variants underperform. The discipline is **survey-by-adjacency**, and
+it is the methodology under `/source-map` and the outline-stage in
+`/build-outline`. Co-STORM (the moderator variant) contributes the
+**unused-snippet pass**: scan retrieved-but-uncited material at the
+end and consider one more query from the highest-signal unused
+snippet — that's the trail you almost left on the table.
 
 ## PRISMA
 

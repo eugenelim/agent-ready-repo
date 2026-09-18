@@ -11,25 +11,25 @@ The dry catalogue of every primitive in the `desk-research` pack. For the walkth
 
 ## Skills
 
-Eleven skills ship in the pack — seven episodic skills (below) and the four `research-project-*` lifecycle skills (under [Project mode](#project-mode)). The `name` and `description` below are reproduced verbatim from each skill's SKILL.md frontmatter (single- sourced — if the SKILL.md description changes, this reference is regenerated to match).
+Eleven skills ship in the pack — seven episodic skills (below) and the four `research-project-*` lifecycle skills (under [Project mode](#project-mode)). Each entry's `name` and `description` below are copied from that skill's SKILL.md frontmatter.
 
 ### identify-perspectives
 
 **name:** `identify-perspectives`.
 
-**description:** Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+**description:** Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Fairly represents every significant view in proportion to its prominence, and surfaces every viable explanation before evaluating any of them. Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 
 ### build-outline
 
 **name:** `build-outline`.
 
-**description:** Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/desk-research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
+**description:** Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/desk-research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PICO (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
 
 ### source-map
 
 **name:** `source-map`.
 
-**description:** Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that direct question-asking does not work well for source discovery. Produces `<topic-slug>-sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
+**description:** Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that ungrounded LLM question generation produces shallow, surface-level questions, so this skill grounds discovery in adjacent material instead. Produces `<topic-slug>-sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
 
 ### research
 
@@ -41,13 +41,13 @@ Eleven skills ship in the pack — seven episodic skills (below) and the four `r
 
 **name:** `devils-advocate`.
 
-**description:** Adversarially review a research artifact (`<topic-slug>-survey.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/desk-research` deep mode against `<topic-slug>-survey.md`; runs standalone against any user-supplied claim. Produces `<topic-slug>-counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
+**description:** Adversarially review a research artifact (`<topic-slug>-survey.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Uses an evidence-against column to catch premature closure, and asks what the other side says before calling it done. Auto-invoked by `/desk-research` deep mode against `<topic-slug>-survey.md`; runs standalone against any user-supplied claim. Produces `<topic-slug>-counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
 
 ### compare-hypotheses
 
 **name:** `compare-hypotheses`.
 
-**description:** Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis — the +81% parallelizable-task case from multi-agent research). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
+**description:** Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
 
 ### decision-archaeology
 
@@ -194,7 +194,7 @@ Cue tokens are advisory — the skill body documents which cues bias which behav
 The lifecycle axis: four skills that drive a sustained, multi-week investigation
 through `capture → digest → synthesize → feedback`. Phase progression is
 human-driven; no skill auto-advances. The `name` and `description` are
-reproduced verbatim from each SKILL.md frontmatter.
+copied from each SKILL.md frontmatter.
 
 ### research-project-start
 
@@ -275,7 +275,7 @@ nothing in the wild held the old name.)
 ### Source provenance axes (optional)
 
 Per-source frontmatter in `sources/` may carry two optional, independent
-Admiralty-style axes: `reliability` (source track record, A–F) and `credibility`
+axes: `reliability` (source track record, A–F) and `credibility`
 (corroboration of the specific claim, 1–6). They inform the analysis; the
 claim-level rail stays GRADE confidence + ≥3-source triangulation.
 

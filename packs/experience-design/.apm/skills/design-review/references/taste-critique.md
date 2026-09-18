@@ -84,6 +84,36 @@ Each taste finding follows the same shape as a heuristic finding:
   points to the grounded referent or platform standard as the warrant. Never a
   stack-specific implementation.
 
+## Reader-reported rating instruments
+
+Use these instruments to report perceived quality and perceived genericness
+alongside findings. They are reader-reported ratings, not a pass/fail gate, and
+they never override the quality floor.
+
+**VisAWI-S** is the short Visual Aesthetics of Websites Inventory. Report each
+facet as its own seven-point agreement response:
+
+- Simplicity — "Everything goes together on this site"
+- Diversity — "The layout is pleasantly varied"
+- Colorfulness — "The colour composition is attractive"
+- Craftsmanship — "The layout appears professionally designed"
+
+Use the **UEQ Novelty scale** as four seven-position semantic differentials
+between these poles:
+
+- dull / creative
+- conventional / inventive
+- usual / leading edge
+- conservative / innovative
+
+Report every item individually and never combine them into one score. A
+composite hides which facet is weak, and no validated composite exists for this
+pairing.
+
+VisAWI-S reads perceived quality; the UEQ Novelty scale reads perceived
+genericness. A surface can be well-crafted and still read as the default, and
+only the second instrument catches that.
+
 ## What this mode never does
 
 - **Reprints values.** The taste critique points to the grounded reference and
@@ -97,3 +127,16 @@ Each taste finding follows the same shape as a heuristic finding:
   self-review. Findings it produces should be treated as a draft checklist,
   not an independent verdict. The `experience-reviewer` agent provides the
   independent verdict.
+
+**Where these come from.** The four short-form items are VisAWI-S, the short
+Visual Aesthetics of Websites Inventory (Moshagen and Thielsch). The four word
+pairs are the Novelty scale of the User Experience Questionnaire (Laugwitz,
+Held and Schrepp), whose handbook defines the seven-position differential and
+its scoring.
+
+**What "one score" forbids.** Each instrument keeps its own published scoring —
+VisAWI-S was validated as a single four-item dimension, and UEQ reports Novelty
+as a scale mean. What is forbidden is averaging *across* the two instruments
+into one aesthetic number: quality and genericness are different questions, and
+a surface can score well on one while failing the other. That combination is
+exactly what these two instruments are here to keep apart.

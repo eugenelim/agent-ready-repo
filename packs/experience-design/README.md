@@ -109,6 +109,17 @@ Every skill ships portable **method**, not your stack: no UI-framework code, no 
 
 ---
 
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
+
+- **`journey-mapping`** — draws on Nielsen Norman Group's journey-mapping model (the canonical definition and the five components), Jeff Patton's user-story mapping (stages map roughly to Patton's user activities), and Teresa Torres's opportunity-solution tree (the journey's pains and opportunities feed the tree). See `references/journey-mapping.md` for the full grounding and links. Step 6's peak/dip/end marking follows Daniel Kahneman's peak-end rule: the overall judgment of an experience is disproportionately shaped by its most intense moment (positive or negative) and its end, not its average.
+- **`design-principles`** — steps 1–4 of the procedure map to NNGroup's 4-step design-principles model; step 5 (writing the principles doc) is this pack's own addition, not part of that model.
+- **`process-mapping`** — the method borrows vocabulary from APQC's Process Classification Framework (PCF) and BPMN 2.0 (OMG / ISO 19510); the source stays authoritative, and the skill's anti-pattern forbids reprinting PCF tables or BPMN element XML.
+- **`service-blueprint`** — informed by Nielsen Norman Group's service-blueprinting model; this pack's five-row layout is its own, and in NN/g's model the line of visibility is a divider rather than a row. See [NN/g: Service Blueprints](https://www.nngroup.com/articles/service-blueprints-definition/).
+
+---
+
 ## Cross-pack
 
 **Upstream — `product-strategy`:** When `ux-strategy.md` and `content-strategy.md` exist, `journey-mapping` and `content-design` read them as strategic anchors. Absent means the skills degrade gracefully.

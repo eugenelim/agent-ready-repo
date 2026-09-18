@@ -37,11 +37,15 @@ deliberately — never automatically — and only for a wave that clears the
 - **Disjointness half — on populated branches.** A clean `git merge-tree`
   file-disjointness check is only meaningful once the implementers have
   written and committed, so it is enforced at the **merge** step (step 5's
-  `git merge --no-ff` aborts on any collision — the loud backstop). Run
-  `loop-cohort dispatch-decision --branch <b> …` (categories auto-derived) as a
-  read-only **preview** of that check (it classifies each branch + runs
-  `wave_is_disjoint`, printing `parallel` or `serial`) before paying for a
-  merge you expect to abort.
+  `git merge --no-ff` aborts on any collision — the loud backstop). The
+  read-only **preview** of that check is `loop-cohort dispatch-decision
+  --branch <b> …` (categories auto-derived), which classifies each branch and
+  then calls `dispatch_decision(categories, merge_tree_clean=…)` to print
+  `parallel` or `serial`. Read that signature carefully: the function
+  **consumes** a merge-tree verdict its caller hands it — it does not compute
+  one, and no part of the shipped scripts runs `git merge-tree`. The producer
+  of that verdict is **unbuilt**, so the preview cannot be relied on for
+  disjointness; step 5's aborting merge is where the check actually runs.
 - **Even earlier — `Touches:` screen (optional).** If the plan's tasks declare
   `Touches:` globs, `loop-cohort schedule` prints `predicted-disjoint:
   yes|no|unknown` per wave. Treat a `no` as a reason to keep the wave serial
@@ -234,10 +238,16 @@ task set. (`schedule` runs once during the G-plan sequence and persists the
 wave list; re-calling it resets `current_wave_index` to 0, erasing prior `wave
 advance` progress.) Dispatch `implementer` tasks sequentially — **parallel fan-out
 (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1**;
-those verbs exit non-zero. After all wave tasks are done, fire `wave-complete`
+those verbs exit non-zero. Record one `dispatch-receipt` per task as you go.
+After all wave tasks are done, run the wave-exit check and fire `wave-complete`
 before proceeding to GATES:
 
 ```
+python '<skill-dir>/scripts/loop-cohort.py' dispatch-receipt docs/specs/<feature> \
+    --task <task-id> --wave-index <n> --receipt --expect-run-id <run_id>
+# Read-only. It refuses a wave exit whose tasks are unaccounted for, and prints
+# the absent-container notice the transition itself cannot carry.
+python '<skill-dir>/scripts/loop-cohort.py' check docs/specs/<feature> --phase wave-exit
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
 ```
 
@@ -249,6 +259,31 @@ yourself, sequentially, in task-id order. Note the degradation in the
 final summary so the user sees the loop ran without implementer dispatch.
 The missing capability is the subagent, not parallelism — the installed path
 is sequential too.
+
+Each task you execute yourself still needs its own record, so the wave can
+account for every task. Record it as a decline, not a receipt, and pick the
+reason from the closed set of two:
+
+- `no-implementer-installed` — what the controller records when no
+  `implementer`-matching subagent is installed in the consumer's IDE. This is
+  the code for the fallback this section describes.
+- `human-directed` — records a human instruction to skip implementer dispatch
+  for that task. It has no testable precondition: nothing on disk can confirm
+  the instruction, so this code asserts only that the controller was told.
+
+```
+python '<skill-dir>/scripts/loop-cohort.py' dispatch-receipt docs/specs/<feature> \
+    --task <task-id> --wave-index <n> --decline no-implementer-installed \
+    --expect-run-id <run_id>
+```
+
+**Unsupported `schema_version` is asymmetric, and the asymmetry stops the run.**
+Each half below is stated whole, because the exit half alone reads as permission
+to continue.
+
+- **The exit tolerates that class.** `check --phase wave-exit` passes any cohort state whose `schema_version` is not the supported one, before reading any other field, so a run that predates receipts still reaches its wave boundary.
+- **The verb refuses that class.** `dispatch-receipt`, like every mutation verb, stops with `unsupported schema_version=… (expected 1); run reset pair` and writes nothing, so no record can be added to that state.
+- **End to end, the run cannot pass the next wave boundary without a schema migration.** `wave advance` refuses on the same schema check, so the cohort wave pointer never moves however the exit itself decided. Migrate the state with the reset pair rather than reading the tolerated exit as progress.
 
 ## Cross-references
 

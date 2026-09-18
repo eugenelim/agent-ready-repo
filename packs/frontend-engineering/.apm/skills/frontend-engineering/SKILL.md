@@ -7,8 +7,8 @@ description: Load when a task's primary output is HTML, CSS, or JS. Provides des
 
 Load this skill when a task's primary output is HTML, CSS, or JS — a new page,
 component, slide deck, dashboard, email template, or any standalone web artifact.
-It carries the design pre-flight requirements (named aesthetic reference, seed
-token block, state matrix), the craft rules that govern EXECUTE, and the GATES
+It carries the design pre-flight requirements (design handoff read, named
+aesthetic reference, seed token block, state matrix), the craft rules that govern EXECUTE, and the GATES
 verification commands. It is not needed for incidental HTML edits to an existing
 surface already covered by a grounded aesthetic reference.
 
@@ -52,9 +52,100 @@ Proceed to the shared pre-flight (PLAN phase) regardless of mode. Mode-specific 
 
 ## PLAN phase — Shared Pre-flight (all modes)
 
-Complete all four steps before writing any code (create/retrofit) or running any gates (audit/verify). These are the shared foundation for all modes.
+Complete all five steps before writing any code (create/retrofit) or running any gates (audit/verify). These are the shared foundation for all modes.
+
+### 0. Design handoff read
+
+Read the adopter's design handoff before naming an aesthetic reference: when one
+resolves it names the direction, and step 1's canonical set is the fallback for a
+slot no artifact filled, not the default. **Read
+`references/design-handoff.md` first and follow it** — it is the contract, and
+carries the reasoning for every rule below.
+
+**1 — Resolve.** Read `[design] output_dir` from the adopter's
+`agentbundle-layout.toml`: repo-root file first, then user-profile when the
+repo-root one is absent or carries no `[design]` key. Quote the value you read —
+if you did not open a file, you have not resolved it. **Anchor it by the layout
+file's own location**, never the ambient working directory: a repo-root value is
+repo-root-relative (absolute allowed, warn as non-portable); a user-profile value
+must be an explicit absolute path (`~`-anchored is fine), and a relative value
+there is an Ask-first deviation. Neither branch yielding a `[design]` section is a
+named skip, `design handoff: no [design] section configured` — use the canonical
+set.
+
+**2 — Bind the slug.** `<slug>` is the slug the operator names; all three read
+paths resolve under it. Taking it from how the request was written is binding, not
+deriving — "the payment screen for our checkout flow" names `checkout`. State it.
+
+- No slug named → ask; only when no answer can be obtained is that a refusal.
+- Named slug not matching `^[a-z0-9]+(-[a-z0-9]+)*$`, or over 64 characters →
+  refusal **before any path is composed**. Refuse it; do not repair it — no
+  sanitizing, stripping, lowercasing or tidied alternative.
+
+**3 — Approve the root.**
+- At or beneath a reserved tree → refusal, **never confirmable**. Reserved: `.apm/`
+  and everything under it for a repository-sourced value; the agent host's
+  installed-skill directories for a user-profile value.
+- Repo-root value resolving outside the repository tree → explicit confirmation
+  before use.
+- User-profile value → approve against the declared absolute root that
+  configuration names.
+
+A **heightened root** is user-profile-sourced *or* outside the repository tree —
+the union, since either key alone leaves a case uncovered.
+
+**4 — Confine, by running the resolution.** Within the approved root means the
+realpath equals it or is a descendant component by component; a string prefix is
+not that test. Execute the resolution and read its output. Apply this predicate
+**and** the reserved-tree test at every resolved path — each directory component as
+enumeration reaches it, and each artifact path. An entry resolving out of the root
+is a confinement refusal at that entry, before its listing is surfaced or its
+depth counted.
+
+**5 — Bound the scan, in this order.** Enumerate a directory up to **200 entries**,
+resolving each as it is reached and checking depth; then at most **12** matching
+files; then **128 KiB** per file; at most **2** levels below `output_dir`. Exceeding
+any is a refusal naming which; when the cap truncates before a later entry is
+reached, the cap is the bound reported.
+
+**6 — Filter by `type:`, then read.** A file under a read path whose frontmatter
+`type:` is absent, unparseable, or not that path's literal is **not that artifact**:
+skip it, keep scanning — a skip, not a refusal, since design directories hold many
+kinds. A key a template declares but the file omits is recorded absent and the
+artifact consumed anyway; only `type:` is required.
+
+**7 — Confirm, under a heightened root.** Surface the approved root, the
+configuration file it came from, the artifact's `output_dir`-relative path, the
+source token, its first `# ` heading, and its frontmatter; then take explicit
+confirmation. Nothing here discriminates which product an artifact belongs to, so
+this is the whole control — never report belonging as mechanically confirmed.
+
+**Naming.** Every path surfaced or recorded is `output_dir`-relative plus one of
+two source tokens, `repository layout configuration` or `user-profile layout
+configuration`; neither is a path. The confinement refusal is the exception, since
+a path outside the root has no relative form.
+
+**What reaches the canonical set.** A slot with no conforming artifact is a named
+skip and step 1 fills that slot alone; a resolved directory with none in any slot
+is the second skip, `design handoff: no conforming artifact under <output_dir>`.
+Those skips are the only states that reach it.
+
+**Every refusal stops the whole read** and halts the mode in a named state.
+Record the matching name verbatim from the table in `references/design-handoff.md`
+§ The six refusals, so two runs of one failure do not report it two ways.
+
+After any of them: do not repair or normalize the rejected value; do not
+substitute another slug, artifact or output directory; do not downgrade to a skip;
+do not consult the canonical set for any slot; and discard whatever this read
+already extracted, so a refusal on the third artifact does not leave the first two
+feeding the code you write. These are instructions, not an enforced boundary, and
+a refusal cannot unread bytes already loaded — an adopter needing a guarantee
+enforces it outside the agent.
 
 ### 1. Named aesthetic reference
+
+Use the aesthetic direction step 0 resolved, when one did. The canonical set
+below is the fallback for a slot no handoff artifact filled.
 
 State a named product reference — not an adjective. The model has learned
 visual vocabulary from extensively documented products; vague adjectives
@@ -281,9 +372,9 @@ component variant does not.
 
 Record the completed contract in the spec before writing HTML.
 
-#### Steps 1–3. Proceed through the shared PLAN phase pre-flight
+#### Steps 0–3. Proceed through the shared PLAN phase pre-flight
 
-Run steps 1, 1b, 2, and 3 from the shared pre-flight above (aesthetic reference, genre routing, seed tokens, state matrix).
+Run steps 0, 1, 1b, 2, and 3 from the shared pre-flight above (design handoff read, aesthetic reference, genre routing, seed tokens, state matrix).
 
 #### EXECUTE and GATES
 
@@ -310,7 +401,7 @@ Before touching any code, run this inspection against the existing surface. Reco
 
 #### Step 2. Proceed through the shared PLAN phase pre-flight
 
-Run steps 1, 1b, 2, and 3 from the shared pre-flight (aesthetic reference, genre routing, seed tokens, state matrix). For retrofit work, focus the state matrix on states that are absent or broken — not a full re-enumeration unless the surface is substantially rebuilt.
+Run steps 0, 1, 1b, 2, and 3 from the shared pre-flight (design handoff read, aesthetic reference, genre routing, seed tokens, state matrix). For retrofit work, focus the state matrix on states that are absent or broken — not a full re-enumeration unless the surface is substantially rebuilt.
 
 #### EXECUTE and GATES
 
@@ -325,7 +416,7 @@ Use when reviewing an existing surface without writing code. The output is a str
 #### Audit procedure
 
 1. **Run the state matrix audit.** Compare the surface against all 18 states in the state matrix. For each applicable state, mark: Covered / Absent / Broken. Note the specific issue for Absent and Broken.
-2. **Run the accessibility audit.** Check against WCAG 2.2 AA. Use the GATES accessibility tools (pa11y or axe-core). Note which WCAG 2.2 success criteria require manual verification because tooling caps at wcag21aa.
+2. **Run the accessibility audit.** WCAG 2.2 AA is the target. Use the GATES accessibility tools (pa11y or axe-core, `--tags wcag21aa`), then run the named manual checks (`a11y-engineering` skill: 2.5.8 Target Size and 2.4.13 Focus Appearance). Record the stated WCAG 2.2 AA gap (2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8) rather than implying it is covered.
 3. **Check the CWV targets.** Measure or estimate LCP ≤2.5s / INP ≤200ms / CLS ≤0.1 at p75 (mobile and desktop separately where field data exists). Note any category over budget.
 4. **Run the brownfield inspection checklist.** Use the same 6-item checklist from retrofit mode.
 
@@ -346,7 +437,7 @@ Use when a completed surface needs gates run and an evidence manifest generated.
 Run the full GATES suite in order:
 
 1. **Structural HTML validation** (GATES phase step 1)
-2. **Accessibility audit** (GATES phase step 2) — note that WCAG 2.2 AA is our declared baseline; the tooling caps at wcag21aa; two success criteria require manual verification: 2.4.11 Focus Appearance and 2.5.8 Target Size Minimum
+2. **Accessibility audit** (GATES phase step 2) — WCAG 2.2 AA is our declared target; what is verified today is the axe/pa11y `wcag21aa` tag group plus two named manual checks (2.5.8 Target Size (Minimum), AA; 2.4.13 Focus Appearance, AAA enhancement). Not yet covered against the AA baseline: 2.4.11 Focus Not Obscured (Minimum), 2.5.7 Dragging Movements, 3.2.6 Consistent Help, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication (Minimum)
 3. **CSS token enforcement** (GATES phase step 3, if stylelint is configured)
 4. **Visual QA checklist** (GATES phase step 4) — confirm all 18 applicable states are present
 
@@ -422,7 +513,7 @@ the specific forms below are.
 
 ### Accessibility rules
 
-**Default baseline: WCAG 2.2 AA.** WCAG 2.2 AA is our baseline — it exceeds the WCAG 2.1 minimum currently cited by EU EAA, ADA, and AODA. Two success criteria are new in 2.2 and require manual verification because automated tooling (pa11y/axe-core) caps at wcag21aa: **2.4.11 Focus Appearance** (visible focus indicator with sufficient size and contrast) and **2.5.8 Target Size Minimum** (interactive targets ≥24×24 CSS pixels). Mark these explicitly in the evidence manifest under `a11y result`.
+**Default baseline: WCAG 2.2 AA.** WCAG 2.2 AA is our target — it exceeds the WCAG 2.1 AA minimum cited by the EU EAA and the US ADA (Title II), and the WCAG 2.0 AA minimum cited by Ontario's AODA. What is verified today is the `wcag21aa` tag group (pa11y/axe-core) plus two named manual checks: **2.5.8 Target Size (Minimum) (AA)** (interactive targets ≥24×24 CSS pixels, or a named exception) and **2.4.13 Focus Appearance (AAA enhancement, not part of the AA baseline)** (visible focus indicator with sufficient size and contrast). Not yet covered against the WCAG 2.2 AA baseline: 2.4.11 Focus Not Obscured (Minimum), 2.5.7 Dragging Movements, 3.2.6 Consistent Help, 3.3.7 Redundant Entry, and 3.3.8 Accessible Authentication (Minimum). Mark all of this explicitly in the evidence manifest under `a11y result`.
 
 **Browser policy: Baseline Widely Available.** Target only features in the Baseline Widely Available set (features shipping in all major browsers for at least 30 months). Check baseline status at web.dev/baseline before using any feature not in the baseline set.
 
@@ -542,7 +633,7 @@ npx axe "file:///$(pwd)/file.html" \
   --chrome-options="no-sandbox,disable-setuid-sandbox,disable-dev-shm-usage"
 ```
 
-Note: tooling currently caps at `wcag21aa` — WCAG 2.2 AA is our declared baseline (it exceeds the wcag21aa minimum). Two WCAG 2.2-only success criteria require **manual verification**: **2.4.11 Focus Appearance** and **2.5.8 Target Size Minimum**. Record the manual-check outcome in the evidence manifest under `a11y result`.
+Note: this command selects only the `wcag21aa` tag group — WCAG 2.2 AA is our declared target, and `wcag21aa` alone does not establish it. Run the two named manual checks in addition: **2.5.8 Target Size (Minimum) (AA)** and **2.4.13 Focus Appearance (AAA enhancement)**. Record the manual-check outcomes, and the stated WCAG 2.2 AA gap (2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8), in the evidence manifest under `a11y result`.
 
 ### 3. CSS token enforcement (optional — run if stylelint is already configured)
 
@@ -824,7 +915,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | states | Which of the 18 states were exercised during testing |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
 | inspection observations | What was seen in the captures, plus the rendered-page inspection **result state and verdict** (`completed`/`pass`, `completed`/`fail`, or a non-completed state). A value naming only filenames does not satisfy this field — `screenshots` already records that images exist; this field records what looking at them found. A completed inspection with nothing wrong is recorded as such, naming the routes and states inspected |
-| a11y result | Output of the accessibility gate (pa11y/axe-core); include manual-check outcome for WCAG 2.4.11 and 2.5.8 |
+| a11y result | Output of the accessibility gate (pa11y/axe-core, `wcag21aa`); include manual-check outcomes for WCAG 2.5.8 Target Size (AA) and 2.4.13 Focus Appearance (AAA enhancement), and the stated WCAG 2.2 AA gap (2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8) |
 | perf result | CWV measurement or Lighthouse score; include mobile and desktop values where available |
 | console/network result | No console errors; network requests match expected; no unexpected third-party calls |
 | analytics events | Confirmation of measurement events firing on primary action completion |
@@ -887,7 +978,7 @@ Multi-surface products must maintain coherence across surfaces. Apply these cons
 
 | Rationalisation | Reality |
 |---|---|
-| "Accessibility is a nice-to-have for now" | WCAG 2.2 AA is our baseline — it exceeds the WCAG 2.1 minimum currently cited by EU EAA, ADA, and AODA — and it is an engineering quality standard, not a feature |
+| "Accessibility is a nice-to-have for now" | WCAG 2.2 AA is our target — it exceeds the WCAG 2.1 AA minimum cited by the EU EAA and the US ADA, and the WCAG 2.0 AA minimum cited by Ontario's AODA — and it is an engineering quality standard, not a feature |
 | "We'll make it responsive later" | Retrofitting responsive design is 3× harder than building it from the start; skip this step only if the output is explicitly fixed-dimension (PPT/PDF) |
 | "This is just a prototype" | Prototypes become production code; the AI aesthetic baked in at prototype stage is the AI aesthetic shipped |
 | "The AI aesthetic is fine for now" | It signals low quality to every reviewer who sees it and anchors the design in a direction that is expensive to undo |

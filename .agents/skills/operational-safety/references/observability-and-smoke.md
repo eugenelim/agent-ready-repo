@@ -6,9 +6,7 @@
 > where "created" or "mutated" does not yet mean "works" and the rollout needs
 > an active probe plus the telemetry to debug a failed one.
 > **Grounded in:** F2.2 ("created" ≠ "works"; smoke / health checks are
-> mandatory before promotion); taxonomy follow-up — AWS Well-Architected
-> Operational Excellence (understand operational health), Google SRE monitoring
-> as a first-class practice.
+> mandatory before promotion).
 > **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
 > surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
 

@@ -1,15 +1,15 @@
 # ADR-0056: catalogue_tooling as the portable catalogue engine module
 
-**Status:** Accepted  
-**Date:** 2026-07-27  
-**Areas:** tooling, packaging  
-**Reversibility:** low  
-**Decision-makers:** eugenelim  
-**Supersedes:** none  
-**Supersedes in part:** none  
-**Superseded by:** none  
-**Superseded in part:** none  
-**Related:** none
+- **Status:** Accepted
+- **Date:** 2026-07-27
+- **Areas:** tooling, packaging
+- **Reversibility:** low
+- **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Context
 
@@ -56,7 +56,7 @@ surface; prior 0.x versions are internal to this repo).
 - Adopters running `pip install agentbundle` gain the portable checks without any
   tools/ dependency.
 
-**Revisit if:** a catalogue check cannot be placed cleanly on either side of the
+- **Revisit if:** a catalogue check cannot be placed cleanly on either side of the
 portable/repo-specific boundary (D2, D3), or `catalogue_tooling/` accumulates
 checks that are not correct for every repo using the adapter contract.
 

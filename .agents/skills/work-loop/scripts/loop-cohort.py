@@ -13,13 +13,15 @@ Verb surface
 ------------
     loop-cohort init <spec-dir> --run-id <uuid>
     loop-cohort identity <spec-dir> [--expect-run-id <uuid>] [--json]
-    loop-cohort check <spec-dir> --phase {implement,review,gates-failed}
+    loop-cohort check <spec-dir> --phase {implement,review,gates-failed,wave-exit}
     loop-cohort approve-plan <spec-dir> --expect-run-id <uuid>
     loop-cohort plan check-current <spec-dir> [--require-schedule]
     loop-cohort schedule <spec-dir> --expect-run-id <uuid>
     loop-cohort schedule check-current <spec-dir>
     loop-cohort record-attempt <spec-dir> --phase implement
                                --cycle-id <run_id>:<seq> --expect-run-id <uuid>
+    loop-cohort dispatch-receipt <spec-dir> --task <task-id> --wave-index <n>
+                               (--receipt | --decline <reason>) --expect-run-id <uuid>
     loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
     loop-cohort review classify --report <path> [--json]
@@ -59,6 +61,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from typing import NamedTuple
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -68,8 +71,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 SCHEMA_VERSION = 1
 
-PHASES = ("implement", "review", "gates-failed")
+# `wave-exit` is the phase the `wave-complete` transition consults. Nothing pins
+# this tuple, and the usage block above is a second, hand-maintained enumeration
+# of the same list — keep the two together.
+PHASES = ("implement", "review", "gates-failed", "wave-exit")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
+
 CLEAN_SUBSTRING = "Clean — ready to commit."
 INDETERMINATE_SENTINEL = "ADJUDICATION-INDETERMINATE"
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
@@ -436,6 +443,19 @@ except GuardsUnavailable as exc:
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
     non_negative_int = _guards_unavailable
+    _scalar = _guards_unavailable
+    # Unreachable placeholders, deliberately unusable. `main()` refuses at its
+    # single dispatch chokepoint before any verb body runs, so nothing reads
+    # these; a real value here would be a SECOND declaration of a constant the
+    # guard layer single-sources, which is the drift the relocation removed.
+    RECEIPTS_KEY = ""
+    RECEIPT_KEY_PATH = ()
+    RECEIPT_KIND = DECLINE_KIND = ""
+    DECLINE_REASONS = ()
+    partition_digest = is_dispatch_record = _guards_unavailable
+    malformed_receipts_position = receipts_for_partition = _guards_unavailable
+    wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
+    bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
     _BOTH_CAUSES = ""
@@ -445,6 +465,26 @@ else:
     GuardResult = _g.GuardResult
     DEFAULTS = _g.DEFAULTS
     non_negative_int = _g.non_negative_int
+    # The guard layer's per-value length bound, reused rather than re-declared.
+    # This tool's own `_diag` neutralises control characters but applies NO length
+    # bound, so a state-derived value routed through it has no bound at all.
+    _scalar = _g._scalar
+    # The dispatch-receipt data model, re-bound rather than re-declared. Its one
+    # home is the guard layer: this CLI loads that module, and the module cannot
+    # load this CLI, so a declaration shared with `check --phase wave-exit` can
+    # only live on that side of the dependency.
+    RECEIPTS_KEY = _g.RECEIPTS_KEY
+    RECEIPT_KEY_PATH = _g.RECEIPT_KEY_PATH
+    RECEIPT_KIND = _g.RECEIPT_KIND
+    DECLINE_KIND = _g.DECLINE_KIND
+    DECLINE_REASONS = _g.DECLINE_REASONS
+    partition_digest = _g.partition_digest
+    is_dispatch_record = _g.is_dispatch_record
+    malformed_receipts_position = _g.malformed_receipts_position
+    receipts_for_partition = _g.receipts_for_partition
+    wave_is_well_formed = _g.wave_is_well_formed
+    unaccounted_wave_tasks = _g.unaccounted_wave_tasks
+    bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
     read_state = _g.read_state
@@ -544,56 +584,97 @@ def parse_depends_on(field: str, local_task_ids):
     return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
 
 
+class _TaskSection(NamedTuple):
+    """One plan task's boundaries, as offsets into the plan text.
+
+    `start` opens the heading; `body_start` is just past it; `end` is where the
+    next task heading begins, or the end of the text for the final task.
+    """
+
+    task_id: str
+    start: int
+    body_start: int
+    end: int
+
+
+def walk_task_sections(text: str) -> list[_TaskSection]:
+    """Sole owner of the plan's task-section boundaries.
+
+    Every caller that needs to know which task owns a line resolves it here.
+    That is the point of the function rather than a convenience: the
+    unknown-dependency refusal in `detect_unknown_deps` must attribute a
+    `Depends on:` line to exactly the task `parse_plan` attributes it to. Were
+    the two to walk the boundaries separately and ever disagree, `schedule`
+    would refuse a plan it would otherwise have scheduled, or accept one whose
+    edges it then reads differently. Sharing the walk makes that agreement
+    structural instead of a coincidence maintained by hand.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    return [
+        _TaskSection(
+            task_id=m.group(1),
+            start=m.start(),
+            body_start=m.end(),
+            end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
+        )
+        for i, m in enumerate(matches)
+    ]
+
+
+def section_depends_field(text: str, section: _TaskSection) -> str | None:
+    """The raw `Depends on:` field value a task declares, or None.
+
+    Single-homed for the same reason as the walk above: the refusal and the
+    graph must read the same field text for the same task.
+    """
+    dm = DEPENDS_LINE_RE.search(text[section.body_start:section.end])
+    return dm.group(1) if dm else None
+
+
 def detect_unknown_deps(text: str, scan_task_ids: set[str] | None = None) -> list[tuple[str, str]]:
     """Return (task, dep) pairs naming an ID the plan does not contain.
 
     Dependencies always resolve against every task in `text`. `scan_task_ids`
     restricts which tasks' declarations are read; None reads all of them.
     """
-    matches = list(TASK_HEADING_RE.finditer(text))
+    sections = walk_task_sections(text)
     # Resolution set: ALL task IDs in the plan — never narrowed by the caller.
-    resolution_set = {m.group(1) for m in matches}
+    resolution_set = {s.task_id for s in sections}
     result: list[tuple[str, str]] = []
-    for i, m in enumerate(matches):
-        task_id = m.group(1)
-        if scan_task_ids is not None and task_id not in scan_task_ids:
+    for section in sections:
+        if scan_task_ids is not None and section.task_id not in scan_task_ids:
             continue
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        dm = DEPENDS_LINE_RE.search(text[m.end():end])
-        if not dm:
+        field = section_depends_field(text, section)
+        if field is None:
             continue
-        unknown = _local_dep_ids(dm.group(1)) - resolution_set
+        unknown = _local_dep_ids(field) - resolution_set
         for dep in sorted(unknown):
-            result.append((task_id, dep))
+            result.append((section.task_id, dep))
     return sorted(result)
 
 
 def parse_plan(text: str):
     """Extract ordered task IDs and dependency map from plan.md text."""
-    matches = list(TASK_HEADING_RE.finditer(text))
-    ordered = [m.group(1) for m in matches]
+    sections = walk_task_sections(text)
+    ordered = [s.task_id for s in sections]
     taskset = set(ordered)
     deps: dict[str, set] = {}
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        dm = DEPENDS_LINE_RE.search(text[m.end():end])
-        local, _ = parse_depends_on(dm.group(1), taskset) if dm else (set(), [])
-        deps[m.group(1)] = local
+    for section in sections:
+        field = section_depends_field(text, section)
+        local, _ = parse_depends_on(field, taskset) if field is not None else (set(), [])
+        deps[section.task_id] = local
     return ordered, deps
 
 
 def _task_sections(text: str) -> dict[str, str]:
     """Return exact authored task sections keyed by unique task ID."""
-    matches = list(TASK_HEADING_RE.finditer(text))
     sections: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        task_id = match.group(1)
-        if task_id in sections:
-            raise ValueError(f"duplicate task section {task_id}")
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        raw = text[match.start():end].replace("\r\n", "\n").replace("\r", "\n")
+    for section in walk_task_sections(text):
+        if section.task_id in sections:
+            raise ValueError(f"duplicate task section {section.task_id}")
+        raw = text[section.start:section.end].replace("\r\n", "\n").replace("\r", "\n")
         canonical = "\n".join(line.rstrip() for line in raw.split("\n")).rstrip() + "\n"
-        sections[task_id] = canonical
+        sections[section.task_id] = canonical
     return sections
 
 
@@ -857,6 +938,11 @@ def begin_contract_amendment(
             "plan_hash": None,
             "schedule_waves": [],
             "current_wave_index": 0,
+            # Emptied explicitly, not left to the digest. An amendment raised at
+            # wave index zero re-schedules to the same partition, so its digest is
+            # unchanged and a digest-keyed drop alone would leave every pre-
+            # amendment record still accounting for a task the amendment reopened.
+            RECEIPTS_KEY: {},
             "completed_task_ids": completed,
             "completed_task_section_hashes": dict(completed_task_section_hashes),
             "completed_task_evidence": all_evidence,
@@ -996,15 +1082,13 @@ def parse_touches(field: str):
 
 
 def parse_touches_by_task(text: str):
-    matches = list(TASK_HEADING_RE.finditer(text))
     out: dict[str, set] = {}
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        tm = TOUCHES_LINE_RE.search(text[m.end():end])
+    for section in walk_task_sections(text):
+        tm = TOUCHES_LINE_RE.search(text[section.body_start:section.end])
         if tm:
             globs = parse_touches(tm.group(1))
             if globs:
-                out[m.group(1)] = globs
+                out[section.task_id] = globs
     return out
 
 
@@ -1214,6 +1298,10 @@ def cmd_status(args: argparse.Namespace) -> int:
         "review_retry_count": state.get("review_retry_count", 0),
         "finding_fingerprints": state.get("finding_fingerprints", []),
         "previous_finding_fingerprints": state.get("previous_finding_fingerprints", []),
+        # Whether `check --phase wave-exit` enforces per-task accounting for this
+        # run. An absent container is the exemption, so absence is the one value
+        # that means "not enforced"; an empty container still enforces.
+        "dispatch_receipts_enforced": RECEIPTS_KEY in state,
     }
     if args.json:
         print(json.dumps(result))
@@ -1467,6 +1555,13 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
     state["current_wave_index"] = 0
+    # Creates the container when absent (cohort state written before receipts
+    # existed) and keeps only the live partition's records. `plan_hash` moves on
+    # any plan edit; the digest moves only when the partition does, so an edit
+    # that leaves the waves alone leaves every existing record accounting.
+    state[RECEIPTS_KEY] = receipts_for_partition(
+        state.get(RECEIPTS_KEY), partition_digest(waves)
+    )
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: schedule persisted for {spec_dir.name} "
@@ -1515,7 +1610,13 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     Note the guard reads state for EVERY phase including `implement` — this verb has
     always refused on a missing or malformed `state.json` before reaching the
-    `implement` stub, and the engine's `wave-complete` guard depends on that.
+    `implement` stub, and the always-run pre-PR hook, which runs that phase for
+    every spec directory, depends on that.
+
+    `--phase wave-exit` is the phase the engine's `wave-complete` guard consults.
+    Run it directly before firing that transition: on a state with no receipts
+    container it PASSES with a notice on stdout, and the engine cannot surface
+    that notice, because a passing guard carries no `reason`.
     """
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -1560,6 +1661,14 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
 
     n_arg = args.from_index
     waves = state.get("schedule_waves", [])
+    # Refuse a non-list partition by name. `len()` raised `TypeError` on one
+    # before this check existed, which is a crash rather than a refusal; no state
+    # that refuses today changes its reason, because this one crashed.
+    if not isinstance(waves, list):
+        return stop(
+            f"wave advance: schedule_waves is unusable ({_scalar(waves)}); run "
+            "schedule to persist a partition, or reset to rebuild cohort state"
+        )
     n = len(waves)
 
     if n == 0:
@@ -1576,8 +1685,48 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
             "use gates-clean to exit the final wave"
         )
 
-    idx = int(state.get("current_wave_index", 0))
+    # ONE declared reading of `current_wave_index`, shared with the accounting
+    # predicate below: the guard layer's non-negative-integer validation, which
+    # rejects `bool` as well as `"1"`, `1.9` and `None`. The `int(...)` this
+    # replaces accepted the first three and raised on the fourth, so the branch
+    # selector and the predicate decided the same field two different ways.
+    #
+    # Denying rather than advancing on a rejected value is required: the
+    # alternative launders. The exit refuses on the pointer row, one advance
+    # rewrites the pointer to a clean integer, and the skipped wave is then
+    # permanently unaccounted with the container intact — so `status` still
+    # reports the guard enforced.
+    idx = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(idx, str):
+        return stop(f"wave advance: {idx}; run reset to rebuild cohort state")
     if idx == n_arg:
+        # The advancing branch, and the only branch the accounting check applies
+        # to. The already-applied branch below is the documented crash-resume
+        # replay: the skill re-issues this verb on a `wave-passed` resume, so
+        # refusing there would turn a recovery into a dead end.
+        malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+        if malformed is not None:
+            return stop(
+                f"wave advance: {RECEIPTS_KEY} is malformed — expected {malformed} "
+                f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
+                "rebuild cohort state"
+            )
+        if not wave_is_well_formed(waves[n_arg]):
+            return stop(
+                f"wave advance: schedule_waves[{n_arg}] is malformed "
+                f"({_scalar(waves[n_arg])}); expected a non-empty list of task "
+                "identifiers; run reset to rebuild cohort state"
+            )
+        # The shared accounting predicate, which carries the absent-container
+        # exemption inside it — so a run whose cohort state predates receipts
+        # advances rather than being stranded mid-schedule.
+        unaccounted = unaccounted_wave_tasks(state, n_arg)
+        if unaccounted:
+            return stop(
+                f"wave advance: wave {n_arg} has tasks with no dispatch receipt: "
+                f"{bounded_id_list(unaccounted)}; record one per plan task with "
+                "dispatch-receipt"
+            )
         state["current_wave_index"] = n_arg + 1
         write_state_atomic(spec_dir, state)
         print(
@@ -1594,6 +1743,162 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
         f"wave advance: current_wave_index={idx} does not match "
         f"--from-index {n_arg} or {n_arg + 1}"
     )
+
+
+# ── dispatch receipts ─────────────────────────────────────────────────────
+
+
+# The data model — `RECEIPTS_KEY`, `RECEIPT_KEY_PATH`, the closed kind and reason
+# sets, `partition_digest`, `is_dispatch_record`, `malformed_receipts_position`,
+# `receipts_for_partition`, `wave_is_well_formed`, `unaccounted_wave_tasks` and
+# `bounded_id_list` — is declared once in `_loop_guards.py` and re-bound at the
+# top of this file. `check --phase wave-exit` and this verb have to agree about
+# the container key, the record shape and what "accounted for" means, and the
+# guard layer is the only side of the dependency both can reach.
+
+
+def plan_dispatch_receipt(
+    state: dict,
+    *,
+    task_id: str,
+    wave_index: object,
+    receipt: bool,
+    decline: object,
+) -> tuple[dict | None, str | None]:
+    """Validate one dispatch receipt and return the state to persist.
+
+    Returns `(new_state, None)` on acceptance or `(None, reason)` on refusal, in
+    refuse-cheapest-first order: mutual exclusivity, reason code, index type and
+    range, usable partition, task membership. Pure — the caller owns the lock and
+    the write — so every refusal leaves `state.json` byte-identical.
+
+    The run identifier and the schema are validated by the caller through the
+    shared `validate_run_id`, which is cheaper still and shared with every other
+    run-scoped mutation.
+    """
+    if receipt and decline is not None:
+        return None, (
+            "dispatch-receipt: --receipt and --decline are mutually exclusive; "
+            "record one assertion per task"
+        )
+    if not receipt and decline is None:
+        return None, (
+            "dispatch-receipt: one of --receipt or --decline "
+            f"{list(DECLINE_REASONS)} is required"
+        )
+    if decline is not None and decline not in DECLINE_REASONS:
+        return None, (
+            f"dispatch-receipt: --decline {_scalar(decline)} is not an accepted "
+            f"reason; accepted: {', '.join(DECLINE_REASONS)}"
+        )
+
+    # Reuses the guard layer's non-negative-integer validation rather than adding a
+    # second integer predicate: that one rejects `bool` (which `isinstance(v, int)`
+    # accepts) and owns its message shape. The dict is the shape that helper reads.
+    index = non_negative_int({"--wave-index": wave_index}, "--wave-index", 0)
+    if isinstance(index, str):
+        return None, f"dispatch-receipt: {index}"
+
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return None, (
+            f"dispatch-receipt: schedule_waves is unusable ({_scalar(waves)}); "
+            "run schedule to persist a partition, or reset the pair"
+        )
+    # An absent container reads as the empty one: `init` and `schedule` both
+    # create it, so absence is cohort state written before receipts existed.
+    malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+    if malformed is not None:
+        return None, (
+            f"dispatch-receipt: {RECEIPTS_KEY} is malformed — expected {malformed} "
+            f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to rebuild "
+            "cohort state"
+        )
+
+    current = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(current, str):
+        return None, f"dispatch-receipt: {current}"
+    if current >= len(waves):
+        return None, (
+            f"dispatch-receipt: current_wave_index={current} is not an index into "
+            f"schedule_waves (len={len(waves)}); run reset to rebuild cohort state"
+        )
+    if index > current:
+        return None, (
+            f"dispatch-receipt: --wave-index {index} is above current_wave_index="
+            f"{current}; the run has not reached that wave"
+        )
+
+    wave = waves[index]
+    # The declared predicate, not a restatement of it. A review found this
+    # spelled out inline while `wave_is_well_formed` sat re-bound above and
+    # `cmd_wave_advance` already called it — two copies of one predicate, in the
+    # change whose whole subject is that duplicated predicates drift apart.
+    if not wave_is_well_formed(wave):
+        return None, (
+            f"dispatch-receipt: schedule_waves[{index}] is malformed "
+            f"({_scalar(wave)}); expected a non-empty list of task identifiers"
+        )
+    if task_id not in wave:
+        return None, (
+            f"dispatch-receipt: {_scalar(task_id)} is not in wave {index}, which "
+            f"holds {bounded_id_list(wave)}"
+        )
+
+    record = (
+        {"kind": RECEIPT_KIND}
+        if receipt
+        else {"kind": DECLINE_KIND, "reason": decline}
+    )
+    updated = copy.deepcopy(state)
+    container = updated.get(RECEIPTS_KEY, {})
+    digest = partition_digest(waves)
+    # Keyed by the declared path. Writing the same triple twice replaces one
+    # record with an equal one, which is why the verb needs no idempotency key.
+    container.setdefault(digest, {}).setdefault(str(index), {})[task_id] = record
+    updated[RECEIPTS_KEY] = container
+    return updated, None
+
+
+@_locked("dispatch-receipt")
+def cmd_dispatch_receipt(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="dispatch-receipt")
+    if err is not None:
+        return err
+
+    # argv decoding, not validation: every acceptance decision stays with
+    # `non_negative_int` inside `plan_dispatch_receipt`, which is what rejects a
+    # negative, a float, a bool and a non-numeric spelling alike. Decoding here
+    # rather than through argparse `type=int` is what lets a non-integer reach
+    # that one validation instead of dying in the parser with a usage message.
+    raw_index: object = args.wave_index
+    with contextlib.suppress(TypeError, ValueError):
+        raw_index = int(raw_index)
+
+    updated, reason = plan_dispatch_receipt(
+        state,
+        task_id=args.task,
+        wave_index=raw_index,
+        receipt=args.receipt,
+        decline=args.decline,
+    )
+    if reason is not None:
+        return stop(reason)
+    write_state_atomic(spec_dir, updated)
+    kind = RECEIPT_KIND if args.receipt else f"{DECLINE_KIND} ({args.decline})"
+    print(
+        f"loop-cohort: dispatch-receipt recorded {kind} for {args.task} "
+        f"in wave {raw_index} of {spec_dir.name}"
+    )
+    return 0
 
 
 # ── record-attempt ────────────────────────────────────────────────────────
@@ -2576,6 +2881,31 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--cycle-id", required=True, dest="cycle_id")
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_record_attempt)
+
+    # dispatch-receipt
+    sp = sub.add_parser(
+        "dispatch-receipt",
+        help="record who the controller says implemented one plan task",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--task", required=True, help="plan task identifier, e.g. T3")
+    # A string, not `type=int`: the index is validated once, by the guard layer's
+    # non-negative-integer helper, so a non-integer must reach that validation
+    # instead of dying in the parser under a different message shape.
+    sp.add_argument(
+        "--wave-index", required=True, dest="wave_index",
+        help="wave index the task belongs to; at or below current_wave_index",
+    )
+    sp.add_argument(
+        "--receipt", action="store_true",
+        help="an implementer subagent implemented this task",
+    )
+    sp.add_argument(
+        "--decline", default=None, metavar="<reason>",
+        help=f"no subagent implemented it; reason from {list(DECLINE_REASONS)}",
+    )
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_dispatch_receipt)
 
     # wave (namespace with sub-verbs)
     sp_wave = sub.add_parser("wave", help="wave-advance and guard verbs")

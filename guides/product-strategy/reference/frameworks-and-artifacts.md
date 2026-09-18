@@ -47,7 +47,7 @@ One skill.
 
 | Skill | Framework | Artifact | Output path |
 | --- | --- | --- | --- |
-| `define-content-strategy` | Halvorson content strategy quad — Purpose + Process + Structure + Governance | `content-strategy.md` | `docs/product/shaping/` |
+| `define-content-strategy` | Purpose + Process + Structure + Governance — this pack's composite, informed by the content-strategy quad | `content-strategy.md` | `docs/product/shaping/` |
 
 ## Output path configuration
 

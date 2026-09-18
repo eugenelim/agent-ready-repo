@@ -185,6 +185,67 @@ def test_a_sentence_after_the_status_token_is_a_qualifying_clause(tmp_path):
     assert rows[0].split(" | ")[2] == "Superseded by ADR-0042"
 
 
+def test_a_bare_superseded_status_composes_the_pointer_from_its_own_field(tmp_path):
+    """AC-0013: a bare `Status: Superseded` plus a populated `Superseded by:`
+    still renders a supersession pointer, pinned independently of any one
+    record. `_status_token` alone cannot see the target once `Status` carries
+    only the lifecycle token."""
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        "- **Superseded by:** ADR-0042\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded by ADR-0042"
+
+
+def test_a_bare_superseded_status_with_no_pointer_field_stays_bare(tmp_path):
+    """No `Superseded by:` field: the bare token renders with nothing composed in."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: T", status="Superseded")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded"
+
+
+def test_a_none_valued_superseded_by_field_composes_nothing(tmp_path):
+    """The template's `none` sentinel names no target, so nothing is composed."""
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        "- **Superseded by:** none\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded"
+
+
+def test_a_superseded_by_value_with_both_escaping_classes_renders_inert(tmp_path):
+    """AC-0032: a value carrying both the cell-breaking set (`|[]<>`) and the
+    destination-terminating set (`) # ? ` whitespace`) in one value. A
+    single-class fixture cannot tell `_escape_cell` from `_escape_destination`:
+    both neutralize `|`/`[`/`]` (the destination escaper via percent-encoding),
+    so only a destination-only character exposes the wrong escaper -- it would
+    come out percent-encoded instead of literal. The status cell already runs
+    through `_escape_cell(status)`, so composing the pointer ahead of that call
+    is what makes this pass with no change to the emission code."""
+    value = "ADR-0109|[x]<y>(z) #h?"
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        f"- **Superseded by:** {value}\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    cell = rows[0].split(" | ")[2]
+    # Cell-breaking characters neutralized: raw `|` would split the row, raw
+    # `[`/`]` would open a link, raw `<`/`>` would open markup.
+    assert cell == r"Superseded by ADR-0109\|\[x\]&lt;y&gt;(z) #h?"
+    # Destination-terminating characters stay literal. Percent-encoding them
+    # (`%28`, `%23`) would prove `_escape_destination` ran instead -- wrong for
+    # a value that never becomes a link destination.
+    assert "(z) #h?" in cell
+    assert "%28" not in cell and "%23" not in cell and "%3F" not in cell.upper()
+
+
 def test_an_unfilled_date_placeholder_is_not_a_date(tmp_path):
     """A record still carrying the template's placeholder has no date."""
     _write(tmp_path, "0001-r.md", "ADR-0001: T", date="YYYY-MM-DD")
@@ -424,3 +485,82 @@ def test_an_unreadable_index_target_is_named_not_a_traceback(tmp_path):
     code, err = _main("--check", str(tmp_path))
     assert code != 0
     assert "cannot read" in err
+
+
+_SHIPPED_HELPERS = (
+    ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/_record_paths.py",
+    ROOT / "packs/governance-extras/.apm/skills/new-rfc/scripts/_record_paths.py",
+)
+
+
+def test_the_two_shipped_generator_copies_stay_byte_identical():
+    """They were identical until one skill's copy was changed alone.
+
+    Nothing pinned it, so the divergence passed every gate: the frozen-literal
+    check above runs each copy independently and never compares them. The
+    sibling `next-ordinal.py` pair has carried this assertion for longer
+    (`packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py`), and
+    the generator pair needs it for the same reason — one confinement change
+    landing in one copy leaves the other reading records the old way.
+    """
+    first, second = (path.read_bytes() for path in _SHIPPED_COPIES)
+    assert first == second
+
+
+def test_the_two_shipped_confinement_helpers_stay_byte_identical():
+    """One definition per shipped skill, kept identical rather than merged.
+
+    A single shared module is not reachable: each skill's scripts run standalone
+    from their own projected directory, and a pack-level `shared-libs/` is not
+    projected. Two copies is the shape the projection forces; this assertion is
+    what keeps "two copies" from becoming "two implementations".
+    """
+    first, second = (path.read_bytes() for path in _SHIPPED_HELPERS)
+    assert first == second
+
+
+def _render_one(tmp_path, field_line: str, newline: str = "\n") -> str:
+    """Render a one-record directory and return its status cell."""
+    (tmp_path / "0001-r.md").write_text(
+        "# ADR-0001: T\n\n- **Status:** Superseded\n- **Date:** 2026-01-01\n"
+        f"{field_line}\n", encoding="utf-8", newline=newline)
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    return rows[0].split(" | ")[2]
+
+
+def test_an_embedded_carriage_return_does_not_reach_the_status_cell(tmp_path):
+    """AC-0032's same-line pin, against the character that actually breaks it.
+
+    `_escape_cell` neutralizes no line break, and CommonMark treats a bare CR
+    as a line ending -- so a CR reaching the cell terminates the table row and
+    everything after it renders as page text. `.` under `re.MULTILINE` excludes
+    LF but *matches* CR, so the same-line read was not same-line for CR.
+
+    The value is refused rather than sanitised: a field carrying a control
+    character is malformed, and rendering a bare `Superseded` is the
+    fail-closed outcome.
+    """
+    cell = _render_one(tmp_path, "- **Superseded by:** ADR-0109\rINJECTED")
+    assert "\r" not in cell
+    assert "INJECTED" not in cell
+    assert cell == "Superseded"
+
+
+def test_a_crlf_record_still_reads_its_superseded_by_field(tmp_path):
+    """The discriminating negative for the test above.
+
+    Refusing every value with a CR in it would also refuse every field in a
+    CRLF checkout, which this repository supports. A trailing CR is a line
+    ending; only an embedded one is an injection.
+    """
+    cell = _render_one(
+        tmp_path, "- **Superseded by:** ADR-0109", newline="\r\n")
+    assert cell == "Superseded by ADR-0109"
+
+
+def test_an_empty_superseded_by_field_leaves_the_bare_token(tmp_path):
+    """A present-but-empty field composed a dangling `Superseded by ` pointer."""
+    cell = _render_one(tmp_path, "- **Superseded by:**")
+    assert cell == "Superseded"

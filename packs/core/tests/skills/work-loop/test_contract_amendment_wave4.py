@@ -917,3 +917,78 @@ def test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle() -> None:
     with pytest.raises(ValueError, match="T3->T99") as exc_info:
         cohort.schedule_unfinished_plan(plan, state)
     assert "cycle" not in str(exc_info.value)
+
+
+# ── dispatch receipts across an amendment ─────────────────────────────────
+#
+# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+# lifecycle. An amendment reopens the contract, so no record written before it
+# may account for a task after it.
+
+
+def _receipts_amendment_fixture(tmp_path: Path) -> tuple[object, Path, dict]:
+    """A wave-index-zero cohort holding one receipt, ready to be amended.
+
+    Index zero is the discriminating case: no task is completed, so the
+    re-scheduled partition is identical and its digest therefore unchanged. An
+    implementation that emptied the container only by re-keying on a new digest
+    passes every other lifecycle case and fails this one.
+    """
+    cohort = _load("loop-cohort.py")
+    spec_dir = tmp_path / "receipts-amendment"
+    spec_dir.mkdir()
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n## T1: first\n\n**Depends on:** none\n\nbuild one\n\n"
+        "## T2: second\n\n**Depends on:** T1\n\nbuild two\n",
+        encoding="utf-8",
+    )
+    plan_hash = cohort.sha256_canonical_contract(spec_dir / "plan.md")
+    waves = [["T1"], ["T2"]]
+    digest = cohort.partition_digest(waves)
+    state = {
+        "schema_version": 1,
+        "run_id": "run-current",
+        "plan_review_status": "approved",
+        "approved_spec_hash": "a" * 64,
+        "approved_plan_hash": plan_hash,
+        "plan_hash": plan_hash,
+        "schedule_waves": waves,
+        "current_wave_index": 0,
+        "completed_task_ids": [],
+        "completed_task_section_hashes": {},
+        "completed_task_evidence": {},
+        "amendment_history": [],
+        "amendment_pending": None,
+        cohort.RECEIPTS_KEY: {digest: {"0": {"T1": {"kind": "receipt"}}}},
+    }
+    _write_json(spec_dir / "state.json", state)
+    return cohort, spec_dir, state
+
+
+def test_amendment_leaves_the_receipts_container_empty(tmp_path: Path) -> None:
+    cohort, spec_dir, before = _receipts_amendment_fixture(tmp_path)
+    amended = cohort.apply_contract_amendment(
+        spec_dir,
+        expected_run_id="run-current",
+        owner_authority_ref="approval:scope-owner",
+        reason_ref="follow-on:owned-record",
+        completed_task_evidence={},
+        amendment_id="amendment-receipts-zero",
+    )
+
+    # The digest has not moved, so emptying the container is the only thing that
+    # can have removed the record.
+    unchanged_digest = cohort.partition_digest(before["schedule_waves"])
+    assert unchanged_digest in before[cohort.RECEIPTS_KEY]
+    assert amended[cohort.RECEIPTS_KEY] == {}, (
+        "an amendment must leave the receipts container empty"
+    )
+    persisted = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    assert persisted[cohort.RECEIPTS_KEY] == {}
+    assert cohort.RECEIPTS_KEY in persisted, "the container stays present, just empty"
+
+    # A re-schedule reproduces the same partition, and the pre-amendment record
+    # must not come back with it.
+    replayed = dict(persisted, schedule_waves=before["schedule_waves"])
+    assert cohort.partition_digest(replayed["schedule_waves"]) == unchanged_digest
+    assert replayed[cohort.RECEIPTS_KEY] == {}
