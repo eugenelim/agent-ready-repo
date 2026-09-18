@@ -1,7 +1,7 @@
 # Plan: spec and plan prose discipline
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/` and
   `docs/specs/new-rfc-readability/` are the two analogous deliveries — a
   skill's `SKILL.md` plus `assets/` template edited at pack source, projected

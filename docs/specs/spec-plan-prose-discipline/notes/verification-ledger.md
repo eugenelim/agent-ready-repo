@@ -111,3 +111,38 @@ recorded `approved_spec_hash`. The approvals are recorded in the artifacts
 themselves — `Status:` lines plus the two dated Changelog entries — which is
 the form a later reader reads. Review rounds ran as Codex reviewer sessions
 rather than installed subagents.
+
+## Delivery measurements
+
+**Template growth is authoring guidance, not reader surface.** A peer session
+flagged that the templates grew +47 lines net and asked whether the change
+moves reader cost the wrong way. Measured against `origin/main`, excluding
+HTML authoring comments, which never reach a filled-in artifact:
+
+| Template | Total lines | Emitted skeleton |
+| --- | --- | --- |
+| `assets/spec.md` | 285 → 324 (+39) | 59 → 60 (+1) |
+| `assets/plan.md` | 301 → 309 (+8) | 115 → 123 (+8) |
+
+Nearly all the growth is comment-only guidance. The reader's cost lives in the
+emitted corpus, and at that peer's measured per-artifact rates this change
+stops authoring roughly 11,600 lines of Assumptions audit trail across 404
+specs and 7,600 lines of plan drafting history across 330 plans, with up to
+13,900 more in task `Approach:` blocks where no ordering or seam decision
+exists. Those are forward numbers for new artifacts; nothing existing is
+retrofitted.
+
+**A lint reported, without failing, that AC-0014 was reworded with no changed
+assertion in `plan.md`.** The rewording is the `[goal-based]` / `[manual QA]`
+tagging added when the Testing Strategy split, not a changed obligation; T1's
+assertion naming AC-0014 still verifies what the criterion states. Recorded
+here rather than silenced.
+
+**Weak evidence pointing the other way, recorded and not acted on.** The same
+peer reported a correlation pass over 17 specs: larger `## Objective` went
+with fewer review findings (partial Spearman −0.49) and larger task
+`Approach:` with fewer rounds (−0.49), both controlling for total size. Every
+bootstrap interval crossed zero, and neither is a controlled comparison, so
+this is a lead rather than a result. It is noted because both directions
+oppose parts of this change; if either firms up, the two-sentence `Outcome`
+cap and the conditional `Approach:` are where to look.

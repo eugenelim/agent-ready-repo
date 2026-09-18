@@ -1,6 +1,6 @@
 # Spec: spec and plan prose discipline
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -166,81 +166,81 @@ group borrows the other's authority.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `[goal-based]` In `assets/plan.md`'s `## Changelog` section,
+- [x] **AC-0001.** `[goal-based]` In `assets/plan.md`'s `## Changelog` section,
   the lines matching `^- YYYY-MM-DD:` are exactly
   `- YYYY-MM-DD: spec approved by <handle>` then
   `- YYYY-MM-DD: plan approved by <handle>`, and that section contains neither
   `initial plan` nor `switched from approach`.
-- [ ] **AC-0002.** `[goal-based]` `assets/spec.md`'s `## Assumptions` section
+- [x] **AC-0002.** `[goal-based]` `assets/spec.md`'s `## Assumptions` section
   contains no `(source:` substring and does contain the literal `none`.
-- [ ] **AC-0003.** `[goal-based]` `assets/spec.md` contains the headings
+- [x] **AC-0003.** `[goal-based]` `assets/spec.md` contains the headings
   `## Outcome`, `## What Changes` and `## Agent Rules` — the first two in that
   order — together with `### Always do`, `### Ask first` and `### Never do`,
   and contains neither `## Objective` nor `## Boundaries`.
-- [ ] **AC-0004.** `[goal-based]` No file under
+- [x] **AC-0004.** `[goal-based]` No file under
   `packs/core/.apm/skills/new-spec/` contains
   `changelog of how the approach evolved`, ``outnumber its `Approach:` ``, or
   `comes *before* Approach`.
-- [ ] **AC-0005.** `[goal-based]` `SKILL.md` contains no
+- [x] **AC-0005.** `[goal-based]` `SKILL.md` contains no
   `user confirmation YYYY-MM-DD` citation form, and links
   `references/prose-discipline.md` from both the spec-body step and the
   plan-body step.
-- [ ] **AC-0006.** `[goal-based]`
+- [x] **AC-0006.** `[goal-based]`
   `packs/core/.apm/skills/new-spec/references/prose-discipline.md` exists and
   carries four `## ` sections: a signal-word scan, a structural-tell list, a
   restructure-not-word-swap rule, and a distinctiveness test.
-- [ ] **AC-0007.** `[goal-based]` That reference contains no
+- [x] **AC-0007.** `[goal-based]` That reference contains no
   instruction-position `exit`, `fail`, or `blocks`, and no numeric threshold.
   This establishes the absence of those forms and nothing more; whether the
   reference reads as advisory is AC-0015's. Running
   `tools/add-rendering-directives.py` leaves the reference byte-unchanged.
-- [ ] **AC-0008.** `[goal-based]` Each of
+- [x] **AC-0008.** `[goal-based]` Each of
   `packs/core/.apm/agents/{adversarial-reviewer,security-reviewer,quality-engineer}.md`
   and `packs/core/.apm/skills/work-loop/references/pre-execute-review.md`
   contains `Agent Rules` and `Boundaries` in the same sentence.
-- [ ] **AC-0009.** `[goal-based]`
+- [x] **AC-0009.** `[goal-based]`
   `guides/core/how-to/plan-and-execute-non-trivial-work.md` contains none of
   `Objective`, `Boundaries`, or ``before `Approach:` ``, and
   `references/spec-and-plan-contract.md` contains neither
   `four sections — Objective, Boundaries` nor `comes *before* Approach`.
-- [ ] **AC-0010.** `[goal-based]` `make build-self` leaves `git diff
+- [x] **AC-0010.** `[goal-based]` `make build-self` leaves `git diff
   --exit-code` empty over `.claude/` and `.agents/`.
-- [ ] **AC-0011.** `[goal-based]` `packs/core/pack.toml` and
+- [x] **AC-0011.** `[goal-based]` `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version string, one
   patch above `2.26.15`, and `docs/product/changelog.md` contains that string.
-- [ ] **AC-0012.** `[goal-based]`
+- [x] **AC-0012.** `[goal-based]`
   `packs/core/tests/skills/work-loop/test_plan_records_its_approval.py`,
   `packs/core/tests/pack/test_construction_time_razor.py`,
   `packs/core/tests/skills/new-spec/`, and
   `tests/roster/test_cognitive_load_repository_contract.py` all pass, and the
   first two are unchanged by this PR.
-- [ ] **AC-0013.** `[manual QA]` A reviewer reads the rewritten `## Changelog`
+- [x] **AC-0013.** `[manual QA]` A reviewer reads the rewritten `## Changelog`
   note and the rewritten `## Assumptions` note and records that each states its
   own rule without restating one another surface owns: the Changelog note
   defers approval *timing* to `work-loop`, and the Assumptions note defers the
   verify-before-filing discipline to `SKILL.md` step 3.
-- [ ] **AC-0014.** `[manual QA]` A reviewer reads `assets/plan.md`'s task shape
+- [x] **AC-0014.** `[manual QA]` A reviewer reads `assets/plan.md`'s task shape
   and records that the conditional `**Approach:**` rule states both halves
   followably — a named test for when to omit it, and a named test for when it
   is required — and that no surviving sentence elsewhere contradicts it.
-- [ ] **AC-0015.** `[manual QA]` A reviewer reads
+- [x] **AC-0015.** `[manual QA]` A reviewer reads
   `references/prose-discipline.md` against the `agentbundle:output-rendering`
   block inside `new-spec`'s own `SKILL.md` and records two verdicts: that the
   reference covers only what the block does not, citing the block as the owner
   of the form rules rather than repeating them; and that every instruction in
   it reads as advice an author weighs, with no imperative that a completion
   gate could be built to read.
-- [ ] **AC-0016.** `[manual QA]` A reviewer reads every sentence this change
+- [x] **AC-0016.** `[manual QA]` A reviewer reads every sentence this change
   replaced alongside its replacement and records that no obligation was lost —
   separately for the Changelog note, the Assumptions note, the two renamed spec
   sections, the `Approach:` rule, and each of the four consumer files.
-- [ ] **AC-0017.** `[goal-based]` `assets/spec.md`'s `## Assumptions` section
+- [x] **AC-0017.** `[goal-based]` `assets/spec.md`'s `## Assumptions` section
   names all four routing destinations for a settled fact: `Outcome`,
   `Agent Rules`, `## Design (LLD)` and `## Constraints`.
-- [ ] **AC-0018.** `[goal-based]` `references/spec-authoring-rubric.md`
+- [x] **AC-0018.** `[goal-based]` `references/spec-authoring-rubric.md`
   contains exactly one occurrence of `prose-discipline`, still opens with the
   words `Six failure classes`, and carries no `## 7.` heading.
-- [ ] **AC-0019.** `[manual QA]` A reviewer reads `assets/spec.md`'s `## Outcome`
+- [x] **AC-0019.** `[manual QA]` A reviewer reads `assets/spec.md`'s `## Outcome`
   and `## What Changes` guidance and records that the two-sentence cap is
   stated as something an author can apply, and that the `What Changes`
   guidance calls for a bulleted delta rather than a second telling of the
