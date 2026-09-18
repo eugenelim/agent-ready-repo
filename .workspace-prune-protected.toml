@@ -95,6 +95,7 @@ protected = [
   "docs/specs/shared-name",
   "docs/specs/shipped",
   "docs/specs/spec-a",
+  "docs/specs/spec-plan-prose-discipline",
   "docs/specs/status-projection-and-context-exclusion",
   "docs/specs/t4",
   "docs/specs/telemetry-sender-owns-its-configuration",

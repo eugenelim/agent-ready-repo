@@ -197,9 +197,18 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
         "## Changelog",
         (
-            "While the plan is `Drafting` and changes meaningfully, add a dated entry",
+            # The drafting half used to be "add a dated entry" while `Drafting`.
+            # The section now records approvals only, so no entry accrues during
+            # drafting and that clause has no referent. What the row must still
+            # pin is the same obligation from the other side: nothing but an
+            # approval belongs here at any point in the lifecycle.
+            "Approvals, and nothing else",
+            # The post-approval half, unchanged in substance.
+            "After approval this section is pinned like the rest of the plan",
             # Rule clause, not a router: names the ledger in words, no path. The
-            # template's path lives in its `Plan contract` region.
+            # template's path lives in its `Plan contract` region. One contiguous
+            # span including the prohibition -- pinning the redirection alone is
+            # satisfied by text that redirects somewhere else as well.
             "an execution observation goes to the verification ledger, not to a new changelog entry",
         ),
         (),
