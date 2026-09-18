@@ -7,8 +7,8 @@ description: Load when a task's primary output is HTML, CSS, or JS. Provides des
 
 Load this skill when a task's primary output is HTML, CSS, or JS — a new page,
 component, slide deck, dashboard, email template, or any standalone web artifact.
-It carries the design pre-flight requirements (named aesthetic reference, seed
-token block, state matrix), the craft rules that govern EXECUTE, and the GATES
+It carries the design pre-flight requirements (design handoff read, named
+aesthetic reference, seed token block, state matrix), the craft rules that govern EXECUTE, and the GATES
 verification commands. It is not needed for incidental HTML edits to an existing
 surface already covered by a grounded aesthetic reference.
 
@@ -52,9 +52,100 @@ Proceed to the shared pre-flight (PLAN phase) regardless of mode. Mode-specific 
 
 ## PLAN phase — Shared Pre-flight (all modes)
 
-Complete all four steps before writing any code (create/retrofit) or running any gates (audit/verify). These are the shared foundation for all modes.
+Complete all five steps before writing any code (create/retrofit) or running any gates (audit/verify). These are the shared foundation for all modes.
+
+### 0. Design handoff read
+
+Read the adopter's design handoff before naming an aesthetic reference: when one
+resolves it names the direction, and step 1's canonical set is the fallback for a
+slot no artifact filled, not the default. **Read
+`references/design-handoff.md` first and follow it** — it is the contract, and
+carries the reasoning for every rule below.
+
+**1 — Resolve.** Read `[design] output_dir` from the adopter's
+`agentbundle-layout.toml`: repo-root file first, then user-profile when the
+repo-root one is absent or carries no `[design]` key. Quote the value you read —
+if you did not open a file, you have not resolved it. **Anchor it by the layout
+file's own location**, never the ambient working directory: a repo-root value is
+repo-root-relative (absolute allowed, warn as non-portable); a user-profile value
+must be an explicit absolute path (`~`-anchored is fine), and a relative value
+there is an Ask-first deviation. Neither branch yielding a `[design]` section is a
+named skip, `design handoff: no [design] section configured` — use the canonical
+set.
+
+**2 — Bind the slug.** `<slug>` is the slug the operator names; all three read
+paths resolve under it. Taking it from how the request was written is binding, not
+deriving — "the payment screen for our checkout flow" names `checkout`. State it.
+
+- No slug named → ask; only when no answer can be obtained is that a refusal.
+- Named slug not matching `^[a-z0-9]+(-[a-z0-9]+)*$`, or over 64 characters →
+  refusal **before any path is composed**. Refuse it; do not repair it — no
+  sanitizing, stripping, lowercasing or tidied alternative.
+
+**3 — Approve the root.**
+- At or beneath a reserved tree → refusal, **never confirmable**. Reserved: `.apm/`
+  and everything under it for a repository-sourced value; the agent host's
+  installed-skill directories for a user-profile value.
+- Repo-root value resolving outside the repository tree → explicit confirmation
+  before use.
+- User-profile value → approve against the declared absolute root that
+  configuration names.
+
+A **heightened root** is user-profile-sourced *or* outside the repository tree —
+the union, since either key alone leaves a case uncovered.
+
+**4 — Confine, by running the resolution.** Within the approved root means the
+realpath equals it or is a descendant component by component; a string prefix is
+not that test. Execute the resolution and read its output. Apply this predicate
+**and** the reserved-tree test at every resolved path — each directory component as
+enumeration reaches it, and each artifact path. An entry resolving out of the root
+is a confinement refusal at that entry, before its listing is surfaced or its
+depth counted.
+
+**5 — Bound the scan, in this order.** Enumerate a directory up to **200 entries**,
+resolving each as it is reached and checking depth; then at most **12** matching
+files; then **128 KiB** per file; at most **2** levels below `output_dir`. Exceeding
+any is a refusal naming which; when the cap truncates before a later entry is
+reached, the cap is the bound reported.
+
+**6 — Filter by `type:`, then read.** A file under a read path whose frontmatter
+`type:` is absent, unparseable, or not that path's literal is **not that artifact**:
+skip it, keep scanning — a skip, not a refusal, since design directories hold many
+kinds. A key a template declares but the file omits is recorded absent and the
+artifact consumed anyway; only `type:` is required.
+
+**7 — Confirm, under a heightened root.** Surface the approved root, the
+configuration file it came from, the artifact's `output_dir`-relative path, the
+source token, its first `# ` heading, and its frontmatter; then take explicit
+confirmation. Nothing here discriminates which product an artifact belongs to, so
+this is the whole control — never report belonging as mechanically confirmed.
+
+**Naming.** Every path surfaced or recorded is `output_dir`-relative plus one of
+two source tokens, `repository layout configuration` or `user-profile layout
+configuration`; neither is a path. The confinement refusal is the exception, since
+a path outside the root has no relative form.
+
+**What reaches the canonical set.** A slot with no conforming artifact is a named
+skip and step 1 fills that slot alone; a resolved directory with none in any slot
+is the second skip, `design handoff: no conforming artifact under <output_dir>`.
+Those skips are the only states that reach it.
+
+**Every refusal stops the whole read** and halts the mode in a named state.
+Record the matching name verbatim from the table in `references/design-handoff.md`
+§ The six refusals, so two runs of one failure do not report it two ways.
+
+After any of them: do not repair or normalize the rejected value; do not
+substitute another slug, artifact or output directory; do not downgrade to a skip;
+do not consult the canonical set for any slot; and discard whatever this read
+already extracted, so a refusal on the third artifact does not leave the first two
+feeding the code you write. These are instructions, not an enforced boundary, and
+a refusal cannot unread bytes already loaded — an adopter needing a guarantee
+enforces it outside the agent.
 
 ### 1. Named aesthetic reference
+
+Use the aesthetic direction step 0 resolved, when one did. The canonical set
+below is the fallback for a slot no handoff artifact filled.
 
 State a named product reference — not an adjective. The model has learned
 visual vocabulary from extensively documented products; vague adjectives
@@ -281,9 +372,9 @@ component variant does not.
 
 Record the completed contract in the spec before writing HTML.
 
-#### Steps 1–3. Proceed through the shared PLAN phase pre-flight
+#### Steps 0–3. Proceed through the shared PLAN phase pre-flight
 
-Run steps 1, 1b, 2, and 3 from the shared pre-flight above (aesthetic reference, genre routing, seed tokens, state matrix).
+Run steps 0, 1, 1b, 2, and 3 from the shared pre-flight above (design handoff read, aesthetic reference, genre routing, seed tokens, state matrix).
 
 #### EXECUTE and GATES
 
@@ -310,7 +401,7 @@ Before touching any code, run this inspection against the existing surface. Reco
 
 #### Step 2. Proceed through the shared PLAN phase pre-flight
 
-Run steps 1, 1b, 2, and 3 from the shared pre-flight (aesthetic reference, genre routing, seed tokens, state matrix). For retrofit work, focus the state matrix on states that are absent or broken — not a full re-enumeration unless the surface is substantially rebuilt.
+Run steps 0, 1, 1b, 2, and 3 from the shared pre-flight (design handoff read, aesthetic reference, genre routing, seed tokens, state matrix). For retrofit work, focus the state matrix on states that are absent or broken — not a full re-enumeration unless the surface is substantially rebuilt.
 
 #### EXECUTE and GATES
 

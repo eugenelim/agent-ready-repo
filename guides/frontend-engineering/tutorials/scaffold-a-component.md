@@ -46,6 +46,15 @@ The skill loads. You are now in the PLAN phase.
 
 ## Step 2. Name the aesthetic reference
 
+The pre-flight's first step (step 0) reads a design handoff when your repository
+configures one. This tutorial does not, so that step records its skip —
+`design handoff: no [design] section configured` — and the aesthetic reference
+comes from the canonical set below. If your team does keep design work in a
+configured directory, read
+[Read the design handoff](../how-to/read-the-design-handoff.md) first: the
+direction would come from there and this step would name it rather than choose
+one.
+
 From the brief: **Linear** — professional SaaS, dark surface, high contrast,
 no gradients.
 

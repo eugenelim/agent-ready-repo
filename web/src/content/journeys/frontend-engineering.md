@@ -146,7 +146,7 @@ Common requests:
 ### 3. Implement or audit the surface
 
 - **You provide:** repository access, the route or component location, design-system constraints, and any existing token, a11y, performance, or rendering requirements.
-- **Agent does:** follows the implementation sequence for create or retrofit: named aesthetic reference, optional genre routing through the co-installed design pack, seed token block, state matrix, semantic HTML, CSS token discipline, responsive behavior, and public-surface checks where applicable. In audit mode, it reads the surface and reports findings without writing code.
+- **Agent does:** follows the implementation sequence for create or retrofit: reads the design handoff the adopter's `[design] output_dir` names when one resolves, then the aesthetic reference it carries or a canonical one, optional genre routing through the co-installed design pack, seed token block, state matrix, semantic HTML, CSS token discipline, responsive behavior, and public-surface checks where applicable. In audit mode, it reads the surface and reports findings without writing code.
 - **You do:** answer any product decision that changes the contract, such as what to preserve in a retrofit or which known debt is allowed as a ride-along.
 - **You decide:** accept scoped implementation decisions or keep them out of this change.
 - **Output:** implemented frontend work for create/retrofit, or an audit report for audit mode.
