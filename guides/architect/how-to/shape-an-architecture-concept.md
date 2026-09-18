@@ -56,7 +56,7 @@ The skill **steers off your `reference.md`** and is **knowledge-surface aware**.
 
 ## 2. Agree the concept before the doc
 
-The concept is a ≤½-page artifact (`architect-design/assets/concept.md`), and the skill **waits for you to agree the shape** before going further. It carries the shaping essentials and deliberately none of the design doc's heavy sections:
+The concept is a ≤½-page artifact (`architect-design/assets/concept.md`), and the skill **waits for you to agree the shape** before going further. It carries the shaping essentials and deliberately none of the full design doc's models:
 
 - **Problem & context** — the user-visible problem and why now, in two or three sentences.
 - **Constraints** — the hard edges: deadline, budget, team shape, regulatory, existing-system shape. At least one should be non-obvious.
@@ -72,12 +72,14 @@ Ground any load-bearing platform claim. For every managed service on a critical 
 ## 3. Stop at Stage 0, or continue only for unresolved trade-offs
 
 Once you agree the concept, it is a valid final artifact. Save it or keep it in
-chat, then stop if it resolves the decision. A full Google-style design doc is
-needed only when unresolved trade-offs still require it. In that case,
-`architect-design` offers the full doc — TL;DR, context, goals and non-goals,
-proposal, alternatives, risks, rollout, open questions — and converges it
-against review, auto-resolving mechanical findings and surfacing judgment calls
-as explicit decisions.
+chat, then stop if it resolves the decision. A full design doc is needed only
+when unresolved trade-offs still require it. In that case, `architect-design`
+resolves the architectural scope — a whole application or system, one
+subsystem, or a change to an existing architecture — and drafts from the
+model-first template that matches it, leading with the structural, runtime,
+contract, data, deployment, and quality models and following each with its
+rationale. It then converges the doc against review, auto-resolving mechanical
+findings and surfacing judgment calls as explicit decisions.
 
 When the doc captures discrete decisions — a technology choice, a structural commitment, an interface contract — `architect-design` ends by flagging them as ADR-worthy. Capture them with your ADR skill.
 

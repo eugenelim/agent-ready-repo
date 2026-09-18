@@ -1,3 +1,13 @@
+> **This template is not routed.** `architect-design` never selects this file
+> for a scope; it routes to one of three templates instead:
+>
+> - `application-system-design.md` — a whole application or system
+> - `subsystem-design.md` — one subsystem
+> - `architecture-change-design.md` — a change to an existing architecture
+>
+> This file is kept so an existing reference to this path keeps resolving.
+> Start new work from one of the three templates above.
+
 # <Title — one phrase a non-author can recall>
 
 **Author(s):** <names>

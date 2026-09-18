@@ -4,14 +4,13 @@
     {
       "id": 1,
       "prompt": "Design the system the user asked for and produce the design doc.",
-      "expected_output": "A Google-style design doc with the sections in order \u2014 TL;DR (\u22643 sentences), Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions \u2014 with Mermaid where structure helps. Alternatives are considered honestly (each rejected with a concrete reason), Non-goals do real scoping work, every named risk is paired with a mitigation, the rollout is reversible/staged, and the proposal reasons about the design (trade-offs, NFRs) rather than restating the request.",
+      "expected_output": "A scope-routed, model-first design document. The skill determines the architectural scope first \u2014 application/system, subsystem, or architecture change \u2014 and authors from the one template that scope calls for, rather than one fixed shape used for everything. In every modelled section, the model (a table or a Mermaid diagram) comes first and the prose that explains it comes after: the model carries the real elements, relationships, scenarios, and contracts, and the prose is rationale for that model rather than a restatement of the request.",
       "assertions": [
-        "Has all the required sections, in order (TL;DR, Context, Goals, Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions)",
-        "Non-goals do real scoping work, not filler",
-        "Considers at least two alternatives, each rejected with a concrete reason",
-        "Every named risk is paired with a mitigation",
-        "Proposes a reversible or staged rollout",
-        "Reasons about the design (trade-offs / NFRs), not just a restatement of the ask"
+        "Determines the architectural scope (application/system, subsystem, or architecture change) before authoring, and routes to the one template that scope calls for",
+        "In every modelled section, the model \u2014 a table or a Mermaid diagram \u2014 appears before the rationale prose that explains it",
+        "The model carries the primary content (real elements, relationships, scenarios, contracts); the rationale explains the model rather than restating the request",
+        "Diagrams use plain Mermaid flowchart / sequenceDiagram with explicit boundaries, element types, responsibilities, relationships, and a declared zoom \u2014 never C4Context, C4Container, or architecture-beta",
+        "Each section opens with the question it answers, and no section is filled with restated request text instead of a model"
       ]
     },
     {
@@ -28,10 +27,10 @@
     {
       "id": 3,
       "prompt": "Shape a one-page concept for a link-shortener service \u2014 I only want the concept, don't write the full design doc. I'm not going to continue past the concept this session. If you aren't saving a file, say so plainly.",
-      "expected_output": "A Stage-0 concept only \u2014 problem + constraints, one or two candidate shapes, provider or provider-class, and the top prioritized quality attributes \u2014 and nothing more: the agent does NOT proceed to the full Google-style design doc (no Proposal / Alternatives Considered / Rollout sections). Saving is offered, never forced, and stopping at the concept is honored. The response ends with a Stage-0 completion receipt that is exactly one of: 'Result: chat only; no file was created.' or the exact file path written plus a one-line note of what it contains.",
+      "expected_output": "A Stage-0 concept only \u2014 problem + constraints, one or two candidate shapes, provider or provider-class, and the top prioritized quality attributes \u2014 and nothing more: the agent does NOT proceed to the full scope-routed design document (no structural model, contracts and invariants, or rollout/migration/reversal section from any of the three routed templates). Saving is offered, never forced, and stopping at the concept is honored. The response ends with a Stage-0 completion receipt that is exactly one of: 'Result: chat only; no file was created.' or the exact file path written plus a one-line note of what it contains.",
       "assertions": [
-        "Produces a Stage-0 concept (problem + constraints + one or two candidate shapes + prioritized quality attributes), not a full design doc",
-        "Does not proceed to the full design doc \u2014 no Proposal / Alternatives Considered / Rollout sections are drafted",
+        "Produces a Stage-0 concept (problem + constraints + one or two candidate shapes + prioritized quality attributes), not a full design document",
+        "Does not proceed to the full design document \u2014 no structural model, contracts and invariants, or rollout/migration/reversal section is drafted",
         "Does not make saving the concept conditional on continuing to the full design-document stage",
         "Ends with an explicit completion receipt: either 'chat only; no file was created' or an exact file path with a one-line description of its contents"
       ]
@@ -93,6 +92,42 @@
         "Reuses the existing design when it resolves the current question",
         "Creates no new architecture artifact when no real choice remains",
         "Does not require Stage 0 or a full design after reuse resolves the question"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Design the whole checkout system — the web front end, the API, and the payments-partner integration behind it.",
+      "expected_output": "A design authored at application/system zoom. Its structural model types every element as Person, System, or Container only — there is no internal component breakdown of any container — and its runtime model traces at least one end-to-end user or event journey across those elements, both on the normal path and on a failure/recovery path. Every modelled section states its model (a table or a Mermaid diagram) before the prose that explains it. Implementation Mapping names product, repository, platform, and team, not individual files or internal modules, because this zoom stops at the container boundary and does not descend into a container's internals.",
+      "assertions": [
+        "Routes to the application/system template because the ask is a whole application or system, not one subsystem or a change to an existing one",
+        "The structural model types every element as Person, System, or Container — no internal component inventory of a container's insides",
+        "The runtime model traces an end-to-end user or event journey, not an internal call between components, across both a normal and a failure/recovery path",
+        "Each modelled section places its model before the rationale that explains it",
+        "Implementation Mapping names product, repository, platform, and team rather than individual files or internal modules"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Design the internals of the order-matching subsystem inside our trading platform — how does it decompose internally, and what does it guarantee to its callers?",
+      "expected_output": "A design authored at subsystem zoom, carrying its eleven sections in the fixed spine order: Scope and Context, Structural Model, Runtime Model, Contracts and Invariants, Data and State, Deployment and Operations, Quality Scenarios and Verification, Implementation Mapping, 'Decisions, Alternatives, and Risks', 'Rollout, Migration, and Reversal', and Open Questions. Every section opens with the question it answers, and every modelled section states its model before the rationale that explains it. Contracts and Invariants names each contract's parties, inputs/outputs, identity, compatibility rule, failure semantics, invariant, enforcement, and verification. Quality Scenarios and Verification names each scenario's source, stimulus, environment, artifact, response, and measurable target, plus the business consequence, the mechanism that achieves the response, and how it's verified.",
+      "assertions": [
+        "Routes to the subsystem template because the ask is one subsystem's internal decomposition and its guarantees to callers",
+        "The eleven sections appear in the fixed spine order, from Scope and Context through Open Questions",
+        "Each section opens with the question it answers, and every modelled section's model precedes its rationale",
+        "The Contracts and Invariants model names all nine required columns for each contract",
+        "The Quality Scenarios and Verification model names all six scenario parts plus business consequence, mechanism, and verification"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "We're changing how the notification subsystem delivers events — moving from synchronous callbacks to an async queue. Design the change.",
+      "expected_output": "A delta-shaped design against a named current-architecture baseline, carrying its eight sections: Scope and Baseline, Structural Change, Runtime Change, Contract and Invariant Change, Data/State Migration, Deployment/Operational Change, Quality Regression and Verification, and Build Mapping. It names the specific subsystem-design.md or application-system-design.md artifact this change is a delta from, links unchanged structure, runtime behavior, contracts, data shape, deployment, and quality posture rather than restating them, and never carries a second embedded current-state assessment alongside the one the baseline already holds. Every modelled section states its delta model — a table or diagram of what's added, removed, or modified — before the rationale that explains it.",
+      "assertions": [
+        "Routes to the architecture-change template because the ask is a change to an existing architecture, not a new whole design",
+        "Names the specific current-architecture artifact this change is a delta from",
+        "Links unchanged structure, runtime behavior, contracts, data shape, deployment, or quality posture rather than restating it, and carries no second embedded current-state assessment",
+        "Each modelled section places its delta model — what's added, removed, or modified — before the rationale that explains it",
+        "Covers the eight delta sections from Scope and Baseline through Build Mapping"
       ]
     },
     {
