@@ -262,6 +262,16 @@ class RoutingTableIsTotalAndDisjoint(unittest.TestCase):
                 with self.subTest(key=key, phrase=phrase):
                     self.assertIn(phrase, dest)
 
+    def test_the_residual_destination_sizes_its_spike_to_the_claim(self) -> None:
+        """AC-0017: the residual spike matches the cost of being wrong."""
+        residual = _flat(self._rows()["reaches-the-contract"])
+        proportionate = (
+            "The bounded spike is proportionate to what the claim's falsehood would cost."
+        )
+        self.assertIn(proportionate, residual)
+        with self.assertRaises(AssertionError):
+            self.assertIn(proportionate, residual.replace(proportionate, ""))
+
     def test_the_table_is_total_over_the_firing_predicate(self) -> None:
         """No load-bearing claim can fire the rule and match no routing input.
 

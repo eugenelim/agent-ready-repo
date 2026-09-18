@@ -93,7 +93,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
 
    | Routing input | Destination |
    | --- | --- |
-   | `reaches-the-contract` — any of the six above, unless a row below applies. This is the residual route, so no load-bearing claim is unrouted | Settle it **before approval**, by a bounded spike under the side-effect-free probe constraint above. After approval the contract is pinned, and a correction the work discovers may not be applicable to it at all. |
+   | `reaches-the-contract` — any of the six above, unless a row below applies. This is the residual route, so no load-bearing claim is unrouted | Settle it **before approval**, by a bounded spike under the side-effect-free probe constraint above. The bounded spike is proportionate to what the claim's falsehood would cost. After approval the contract is pinned, and a correction the work discovers may not be applicable to it at all. |
    | `unstarted-task-method` — it could change only the local method of a task that has not started, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. |
    | `cheap-with-an-oracle` — it is a cheap, reversible detail and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
 
@@ -539,6 +539,8 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      construction evidence and every `Tests` bullet traces to a criterion; every
      `Done when` observes what its own `Tests` require; no condition has two
      homes; every shared bound is defined once.
+     Every interface, type, symbol, or ownership decision named in `## Design
+     (LLD)` has an owning task.
    - **Restating an acceptance criterion.** A `Tests:` bullet that could be
      deleted and recovered by rereading the criteria carries no mechanism; the
      rule above beginning "Carry mechanism, never a restatement of a criterion"

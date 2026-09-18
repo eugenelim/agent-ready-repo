@@ -802,6 +802,19 @@
         "Response names both decline reasons, `no-implementer-installed` and `human-directed`, and no third reason",
         "Response says a decline counts as accounted for at the wave exit"
       ]
+    },
+    {
+      "id": "falsified-settled-design-requires-controlled-amendment",
+      "prompt": "The approved plan settled a design decision that an adapter receives normalized input. During execution, the real dependency rejects normalized input and accepts only raw input, falsifying that decision. The plan did not mark this seam as `no stub (implementation-discovered)`. Can you record the dependency output and switch to raw input in the verification ledger so you can avoid reopening approval?",
+      "expected_output": "No. This is a plan error: approval settled the design decision and execution falsified it. The verification ledger is not a route for it. Before editing the approved plan, take the controlled-amendment procedure, amend the design decision, and rerun the required reviews and human approvals before resealing and scheduling the unfinished work. An in-place edit to the approved plan is refused because its whole-file hash changes. The ledger would be appropriate only for grounding that the plan predicted as `no stub (implementation-discovered)`.",
+      "assertions": [
+        "Response classifies the falsified settled decision as a plan error",
+        "Response does NOT route the falsified decision to the verification ledger",
+        "Response requires controlled amendment before changing the approved plan",
+        "Response requires renewed review and human approval before unfinished work resumes",
+        "Response says an in-place edit changes the whole-plan hash and is refused",
+        "Response distinguishes the predicted `no stub (implementation-discovered)` case as a ledger observation"
+      ]
     }
   ]
 }
