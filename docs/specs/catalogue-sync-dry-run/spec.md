@@ -1,6 +1,6 @@
 # Spec: catalogue sync — dry-run and check
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0059 (the catalogue-curation pack, which owns the white-label export boundary)
@@ -247,7 +247,7 @@ hopes to establish.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** For each source form, a `--dry-run` plan names exactly one
+- [x] **AC-0001.** For each source form, a `--dry-run` plan names exactly one
       fidelity token and reports the pin values that form affords:
 
       | `--source` form | Fidelity token | `archive_sha256` | `source_revision` |
@@ -257,31 +257,31 @@ hopes to establish.
       | `archive+https://…#sha256=<64hex>` | `digest-adopter-pinned` | the digest the adopter supplied | reported absent |
       | `catalogue+https://…` | `digest-publisher-asserted` | the digest the descriptor declared | the descriptor's `source_revision`, or reported absent when it declares none |
 
-- [ ] **AC-0002.** Under `--attribution attributed` the plan names the resolved
+- [x] **AC-0002.** Under `--attribution attributed` the plan names the resolved
       source. On every row of AC-0013's table, including every refusal, under
       every other attribution value the source URI appears in none of stdout,
       stderr, or the `--format json` document. A resolution or verification
       failure is reported without reproducing the URI under any attribution
       value, and the fidelity token of AC-0001 appears in every printed plan.
-- [ ] **AC-0003.** Given a schema-3 state whose recipe records
+- [x] **AC-0003.** Given a schema-3 state whose recipe records
       `attribution = "attributed"`, `tooling = "vendored"`, and
       `guides = "none"`, a `--dry-run` invoked without `--attribution`,
       `--tooling`, or `--guides-mode` replays `white-label`, `external`, and
       `selected` respectively.
-- [ ] **AC-0004.** Under any `--attribution` value other than `attributed`,
+- [x] **AC-0004.** Under any `--attribution` value other than `attributed`,
       including an unrecognised one supplied to the replay callable directly,
       the replayed byte map passes the same identity leak check `init` applies,
       against the same anchor set built from the same source metadata.
-- [ ] **AC-0005.** When that leak check reports a violation, the command returns
+- [x] **AC-0005.** When that leak check reports a violation, the command returns
       AC-0013's difference code and reports the violation count.
-- [ ] **AC-0006.** For any state file, the recipe values `sync` admits and the
+- [x] **AC-0006.** For any state file, the recipe values `sync` admits and the
       discard diagnostics it emits equal those `init` produces from that same
       file.
-- [ ] **AC-0007.** The plan names the three modes the run replayed with, and
+- [x] **AC-0007.** The plan names the three modes the run replayed with, and
       states that they come from flags and their defaults.
-- [ ] **AC-0008.** Two runs whose recorded `attribution`, `tooling`, and
+- [x] **AC-0008.** Two runs whose recorded `attribution`, `tooling`, and
       `guides` differ, invoked with identical flags, produce identical plans.
-- [ ] **AC-0009.** The command returns AC-0013's cannot-answer code and prints
+- [x] **AC-0009.** The command returns AC-0013's cannot-answer code and prints
       no plan for each state from which no recorded selection is derivable, and
       names which condition it hit. The conditions are: no state file at the
       target; the ownership-state loader could not return a state object for any
@@ -290,7 +290,7 @@ hopes to establish.
       key at any `schema_version`; a `recipe` that is not a JSON object; a
       `recipe` carrying neither `packs` nor `profiles`; and a recorded `packs`
       or `profiles` value its read-time check discards.
-- [ ] **AC-0010.** Each planned path is reported as exactly one of
+- [x] **AC-0010.** Each planned path is reported as exactly one of
       `would-update`, `would-companion`, `schema-1-inert`, or `untouched`. For
       every non-inert path the reported verdict equals the Tier contract's
       verdict across the closed set of five path states, and the reported
@@ -304,15 +304,15 @@ hopes to establish.
       | recorded, present on disk, with `sha256: null` | `schema-1-inert` |
       | not recorded | `untouched` |
 
-- [ ] **AC-0011.** A `would-companion` row names the companion path
+- [x] **AC-0011.** A `would-companion` row names the companion path
       `safety.companion_path` computes for that path.
-- [ ] **AC-0012.** Every value this command renders that it did not itself
+- [x] **AC-0012.** Every value this command renders that it did not itself
       author — whatever its origin: the recorded state, a remote document, or a
       source-tree entry name, including the rendered source URI and a
       descriptor's `artifact` URL — passes the bounded terminal-safe scalar
       check before it reaches stdout, stderr, or the `--format json` document. A
       value that fails is reported by field name and reason, without the value.
-- [ ] **AC-0013.** The command's exit code is the first matching row of this
+- [x] **AC-0013.** The command's exit code is the first matching row of this
       table, read top to bottom, and no input produces a code outside it:
 
       | Invocation | Condition | Code and name |
@@ -332,16 +332,16 @@ hopes to establish.
       | `--check --compare-tree` | every recorded path was compared and none differs | 0 — `success` |
       | `--check --compare-tree` | every recorded path was compared and some differ | 1 — `difference` |
 
-- [ ] **AC-0014.** Every invocation and every source, state, or comparison
+- [x] **AC-0014.** Every invocation and every source, state, or comparison
       failure reaches a named row of AC-0013 at the command boundary; no
       uncaught exception or traceback determines the process exit status.
-- [ ] **AC-0015.** A recursive non-dereferencing walk of the target tree —
+- [x] **AC-0015.** A recursive non-dereferencing walk of the target tree —
       every relative path, its entry kind, its mode, the link target for a
       symlink, and the bytes for a regular file only — records the same result
       before and after the command, on every row of AC-0013's table. Hard-link
       counts, extended attributes, and timestamps are outside this oracle by
       decision.
-- [ ] **AC-0016.** A `--dry-run` reports `would-update`, `would-companion`,
+- [x] **AC-0016.** A `--dry-run` reports `would-update`, `would-companion`,
       `untouched`, `would-remove`, the schema-1 inert-entry count, the
       compared-path count, and the uncompared-path count; `--format json`
       reports the same seven under a `summary` object; and
@@ -354,7 +354,7 @@ hopes to establish.
       and present on disk; it appears in no verdict count, and the report tells
       the adopter to regenerate schema-3 ownership state with hashes before
       retrying sync.
-- [ ] **AC-0017.** Every recorded path that leaves `would-remove` is reported
+- [x] **AC-0017.** Every recorded path that leaves `would-remove` is reported
       with a reason, the reasons are pairwise distinguishable, and their number
       equals the number of decline branches the plan's § Grounding derivation
       reports from the post-change removal guard at verification time. The
@@ -363,50 +363,50 @@ hopes to establish.
       that fixed undecided set. Each post-change decline branch has an
       independent fixture pinned to its reason token, so deleting a branch
       fails even when the derived branch count also shrinks.
-- [ ] **AC-0018.** A source declaring a `[pack] version` or
+- [x] **AC-0018.** A source declaring a `[pack] version` or
       `[pack.adapter-contract] version` differing from the derived tree's own
       copy of that pack's manifest, or a `[pack.dependencies] required` or
       `conflicts` edge violated against the replay's resolved pack selection,
       produces one advisory row per signal and does not change the exit code the
       same run produces with that signal absent.
-- [ ] **AC-0019.** Given a pack whose `[pack.adapter-contract] version`
+- [x] **AC-0019.** Given a pack whose `[pack.adapter-contract] version`
       declares a major component differing from the CLI's `SPEC_VERSION` major,
       `sync` refuses with the existing uniform-refusal message and returns
       AC-0013's difference code.
-- [ ] **AC-0020.** For each recorded path that is hard-linked, non-regular, or
+- [x] **AC-0020.** For each recorded path that is hard-linked, non-regular, or
       a reparse point, the applicable `agentbundle.catalogue_tooling.file_safety`
       confinement helper refuses the read or hash before comparison; an inline
       lexical-prefix check does not satisfy this criterion.
-- [ ] **AC-0021.** The catalogue subcommands `docs/architecture/agentbundle.md`
+- [x] **AC-0021.** The catalogue subcommands `docs/architecture/agentbundle.md`
       § 2 Entrypoints names equal the direct children of the `catalogue`
       subparser, derived by the command the plan's § Grounding names. The verbs
       nested under `contracts` are out of scope.
-- [ ] **AC-0022.** Every line citation in `initialise_self_hosted.py` that the
+- [x] **AC-0022.** Every line citation in `initialise_self_hosted.py` that the
       plan's § Grounding derivation reports in a file this change edits resolves
       to the construct its sentence describes, with no unresolved residual
       inside that scope.
-- [ ] **AC-0023.** `upstream-sync.md` states this phase's rollout status
+- [x] **AC-0023.** `upstream-sync.md` states this phase's rollout status
       consistently: its STATUS banner says phase 2 is delivered, § Rollout
       marks phase 2 done, and the phase summary says two phases remain.
-- [ ] **AC-0024.** `upstream-sync.md` § Granularity records that this phase
+- [x] **AC-0024.** `upstream-sync.md` § Granularity records that this phase
       shipped its guides replay mode under a different name so `--guides` stays
       free for the restrictor.
-- [ ] **AC-0025.** `derived-catalogue.md` § What a re-run does today describes
+- [x] **AC-0025.** `derived-catalogue.md` § What a re-run does today describes
       the recorded recipe `init` reads back, rather than its absence.
-- [ ] **AC-0026.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
+- [x] **AC-0026.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
       names `agentbundle catalogue sync`, both `--dry-run` and `--check`, that
       neither writes to the tree, and that the plan names the upstream source
       only under `attributed`; the authored-source site link gate passes over
       the edited guide; and, after the plan's § Grounding regeneration command
       rebuilds the projected site, the rendered-links checker passes over that
       regenerated tree.
-- [ ] **AC-0027.** The version string in
+- [x] **AC-0027.** The version string in
       `packages/agentbundle/agentbundle/version.py` is `0.47.0`, and every
       surface the plan's § Grounding release-surface derivation names carries
       that same value.
-- [ ] **AC-0028.** `packages/AGENTS.local.md` states which source yields on the
+- [x] **AC-0028.** `packages/AGENTS.local.md` states which source yields on the
       stub-marker conflict and why.
-- [ ] **AC-0029.** Every criterion-ordinal label under
+- [x] **AC-0029.** Every criterion-ordinal label under
       `packages/agentbundle/tests/` is a bare ordinal carrying no path or
       section reference.
 
