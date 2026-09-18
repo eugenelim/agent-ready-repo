@@ -1,7 +1,7 @@
 # Plan: catalogue sync — dry-run and check
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/catalogue/upstream-sync.md` is the
   design of record; `state.md` and `derived-catalogue.md` carry current state;
   `docs/specs/self-host-state-schema-3/spec.md` is the phase-1 contract this
