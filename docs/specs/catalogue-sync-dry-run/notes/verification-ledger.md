@@ -419,3 +419,96 @@ output, so each brief must say so.
   both asserting the target is byte-identical before and after, including an
   adopter-owned file already present. The helper is imported from T4's module
   rather than copied.
+
+## Wave 5 — T6
+
+- **Date:** 2026-09-18
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:45`
+- **Worker:** the `implementer` subagent.
+
+### What was built
+
+`catalogue_sync.py` gained the AC-0009 underivable-selection guard
+(`_underivable_condition`, checked **before** `replay_derivation` so a discarded
+or absent selection can never widen to "every pack"), the Tier-verdict and
+seven-count reconciliation (`_classify_planned_paths`, built on `safety.State`
+plus `classify`, reusing T2's `_plan_stale_owned_paths` for the removal side),
+and `packs`/`profiles`/`summary`/`verdicts` rendering on both the table and JSON
+surfaces.
+
+### The count identity, and the evidence it can fail
+
+The denominator is `old_state["managed_paths"]` read **raw and unfiltered**.
+Entries `_migrate_managed_paths` drops contribute `len(raw) - len(migrated)` to
+`uncompared`; survivors failing `_is_safe_recipe_text`, or duplicating a seen
+path, also land there. `path-confinement-refused` and
+`recorded-entry-unreadable` stay `uncompared` per AC-0017's undecided partition.
+`untouched` is counted over planned paths that are not recorded at all, outside
+the identity's denominator.
+
+Proved failable by mutation: dropping the `uncompared` increment on the
+malformed branch produced `assert (2 + 1) == (2 + 2)` — the identity failing by
+exactly the dropped entry — then restored to 35/35 and 432/432.
+
+**Supervisor check on non-triviality:** the T1 fixture records more than zero
+`managed_paths`, so `compared + uncompared == 0` cannot satisfy the identity.
+That matters because the plan names the identity as this task's inline proof,
+and an identity over an empty denominator proves nothing.
+
+### The five path states, decided by the real classifier
+
+Driven through one `derived_tree` run, each landing in exactly one bucket:
+
+| path | recorded state | verdict |
+| --- | --- | --- |
+| `packs/alpha/pack.toml` | present, sha matches | Tier-1 → `would-update` |
+| `packs/alpha/README.md` | present, sha differs | Tier-2 → `would-companion` |
+| `packs/alpha/extra.md` | present, `sha256: null` | Tier-2 → `schema-1-inert` |
+| `catalogue.toml` | not recorded | Tier-3 → `untouched` |
+| `packs/alpha/stale.md` | recorded, dropped by source | → `would-remove` |
+
+The companion path is asserted against `safety.companion_path(...)`'s own
+output rather than a locally assembled string — verified in the test source.
+
+### AC-0009: every loader failure, not three of them
+
+All six `_load_ownership_state` `None` returns were driven — confinement
+refusal via a symlinked state file, invalid UTF-8, invalid JSON, a non-object
+document, an I/O error, and recursion exhaustion — each reporting "the
+ownership-state loader could not return a state object" and exiting 3. Plus no
+state file, no `recipe` key, a non-object recipe, a recipe with neither `packs`
+nor `profiles`, and a discarded selection.
+
+### Two deviations, both examined
+
+1. **The AC-0016 stub's literal `== 1` was not kept.** T1's committed
+   `derived_tree` records two `managed_paths` entries, not one, so the literal
+   was an artefact of a one-entry scratch fixture. The test now reads the
+   denominator from the state document on disk. **No amendment is owed:** the
+   pinned contract states the identity as `compared + uncompared ==
+   len(raw managed_paths)` (`spec.md:348`), and reading the real length conforms
+   to that more closely than the literal did. The comparison stays independent —
+   the length is read from the document, not from the command's output.
+2. **`_sync_dry_run_success_row`'s setup gained a minimal derivable state.**
+   T6's own AC-0009 guard makes "no state file" a cannot-answer, and T5's
+   success row predated that guard; without the fix the row would have regressed
+   from 0 to 3. Same test file, inside T6's `Touches`.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_sync.py` → **35 passed** (baseline 17).
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **432 passed**, no
+  regression.
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, 150 files.
+- Tree-walk rows added: `sync-dry-run-would-companion`,
+  `sync-dry-run-would-remove`, `sync-dry-run-underivable-selection`. The
+  registry was restructured to `(setup, invoke)` pairs so per-row fixtures land
+  before the "before" snapshot — without which the new stateful rows were
+  failing the no-write assertion for the wrong reason.
+
+### Noted, not fixed
+
+A recorded path appearing twice is counted as a second `uncompared` entry, since
+no unique verdict exists per duplicate raw entry. AC-0016's text does not
+require this and it is not separately tested; the implementation fails closed
+rather than under- or over-counting.
