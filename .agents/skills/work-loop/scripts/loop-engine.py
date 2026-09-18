@@ -864,10 +864,22 @@ def _guard_reason(prefix: str, result) -> str | None:
     return f"{prefix}: {result.reason}"
 
 
-def _guard_check_phase_implement(spec_dir: Path, engine_state: dict, _) -> str | None:
+def _guard_check_phase_wave_exit(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """The wave exit: every task in the current wave carries a dispatch record.
+
+    Replaces `check --phase implement` on this edge. `implement` stays as it is,
+    because the always-run pre-PR hook runs that phase for every spec directory
+    with no state-machine gate, so a refusal there would be a repository-wide
+    push gate rather than a wave gate.
+
+    This adapter cannot surface the guard's absent-container notice: a passing
+    `GuardResult` carries no `reason` and `_guard_reason` returns None for one.
+    The skill runs `loop-cohort check --phase wave-exit` immediately before
+    firing this transition, which is that notice's only caller.
+    """
     return _guard_reason(
-        "check --phase implement failed",
-        _guards().check_phase(spec_dir, phase="implement"),
+        "check --phase wave-exit failed",
+        _guards().check_phase(spec_dir, phase="wave-exit"),
     )
 
 
@@ -1009,7 +1021,7 @@ _GUARDS: dict[tuple[str, str], object] = {
     ("spec-plan", "plan-approved"): _guard_plan_approved,
     ("code", "plan-locked"): _guard_plan_locked_code,
     ("spec-plan", "plan-locked"): _guard_plan_locked_spec_plan,
-    ("code", "wave-complete"): _guard_check_phase_implement,
+    ("code", "wave-complete"): _guard_check_phase_wave_exit,
     ("code", "gates-failed"): _guard_check_phase_gates_failed,
     ("code", "wave-passed"): _guard_wave_check_more,
     ("code", "gates-clean"): _guard_wave_check_last,

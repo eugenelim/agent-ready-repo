@@ -1008,3 +1008,326 @@ The reusable lesson: probe a mutation verb against a throwaway spec directory,
 not against the run you are executing. `state.json` is untracked, so the mistake
 leaves no commit and no diff to notice — the loudest signal available is this
 entry.
+
+---
+
+## 11. T3 — the wave exit, the retarget, and the `wave advance` coupling, as built
+
+### 11.1 Where the shared declarations live, and why that direction
+
+The whole dispatch-receipt data model moved **out of `loop-cohort.py` and into
+`_loop_guards.py`**, which now holds one declaration of each name and exports it
+in `__all__`. `loop-cohort.py` re-binds every name beside `non_negative_int`,
+so no call site in that file changed.
+
+The direction is forced, not chosen. `loop-cohort.py` loads `_loop_guards.py`
+through `load_guards()`; the guard module's import allowlist and its own
+docstring forbid the reverse, and an 1,800-line argparse CLI cannot be imported
+by a read-only guard layer. `check --phase wave-exit` and the two mutations have
+to agree about the container key, the record shape and what "accounted for"
+means, so the only side of the dependency both can reach is the guard layer.
+§ 10.1 recorded this as the sequencing fact T3 would resolve; this is the
+resolution.
+
+| Declaration | Home after T3 | Consumers |
+| --- | --- | --- |
+| `RECEIPTS_KEY`, `RECEIPT_KEY_PATH`, `RECEIPT_KIND`, `DECLINE_KIND`, `DECLINE_REASONS` | `_loop_guards.py` | the verdict table, the verb, `schedule`, the amendment, `status` |
+| `partition_digest`, `is_dispatch_record`, `malformed_receipts_position`, `receipts_for_partition`, `bounded_id_list` | `_loop_guards.py` | same |
+| `wave_is_well_formed(wave)` | `_loop_guards.py` | the wave-malformed row, `wave advance`'s advancing branch |
+| `unaccounted_wave_tasks(state, wave_index)` — **the accounting predicate** | `_loop_guards.py` | `_wave_exit_verdict`'s last two rows, `wave advance`'s advancing branch |
+| `_wave_exit_verdict(state)` — the whole verdict table, all eight rows | `_loop_guards.py` | `check_phase(phase="wave-exit")` |
+| `plan_dispatch_receipt`, `cmd_dispatch_receipt` | `loop-cohort.py` (unmoved) | the verb |
+
+**The absent-container exemption sits inside `unaccounted_wave_tasks`**, as the
+spec requires, so `wave advance` inherits it. The guard's own
+container-absent row is decided *before* the predicate is ever called, which is
+why mutation M4 below reddens only the verb-side cases — the asymmetry is real
+and is now recorded rather than assumed.
+
+**The unsupported-schema row is inside `_wave_exit_verdict`, not beside it.**
+A first cut decided it in `check_phase`'s `wave-exit` branch and left the rest of
+the table in the helper; the partition test then failed, because one row was
+decided in a different function from the other seven and the helper could not be
+walked as the table. One function now holds all eight rows.
+
+### 11.2 `current_wave_index` has one declared reading
+
+`cmd_wave_advance` read `int(state.get("current_wave_index", 0))`. It now reads
+`non_negative_int(state, "current_wave_index", 0)` — the same helper the
+accounting predicate and the pointer row use — and refuses by name when that
+reading rejects the stored value. Observed through the real CLI, each leaving
+`state.json` byte-identical:
+
+| Stored `current_wave_index` | Old reading | New verdict |
+| --- | --- | --- |
+| `"1"` | accepted as `1` | `wave advance: current_wave_index must be a non-negative integer, got str; run reset to rebuild cohort state` |
+| `1.9` | accepted as `1` | `…got float…` |
+| `true` | accepted as `1` | `…got bool…` |
+| `null` | raised `TypeError` | `…got NoneType…` |
+
+The four cases are one test each, not one case, because the reading this
+replaces accepted the first three and raised on the fourth: a single case cannot
+show the change.
+
+`schedule_waves` gained a by-name refusal for a non-list too, ahead of the
+existing empty-partition refusal. `len()` raised `TypeError` on that state
+before, so no state that refuses today refuses with a different reason —
+the change is from a crash to a refusal.
+
+### 11.3 The verdict table, observed
+
+Driven against the real guard on a two-wave partition
+`[["T1","T2"],["T3"]]`, `current_wave_index = 0`:
+
+| Row | Verdict | Stream |
+| --- | --- | --- |
+| read refuses | exit 1 | `spec-dir cannot be examined: …` / the reader's own text |
+| schema unsupported | exit 0 | both streams empty |
+| malformed (empty partition) | exit 1 | `wave exit: schedule_waves is malformed ([]); … or if amendment_pending is set, complete the amendment with approve-plan and then schedule` |
+| malformed (container) | exit 1 | `wave exit: dispatch_receipts is malformed — expected a record at the partition digest/wave index/task identifier key path; run reset to rebuild cohort state` |
+| container absent | exit 0 | stdout `wave exit: dispatch_receipts is absent, so dispatch receipts are not enforced for this run` |
+| pointer invalid | exit 1 | `wave exit: current_wave_index must be a non-negative integer, got bool` / `…=5 is not an index into schedule_waves (len=2)…` |
+| wave malformed | exit 1 | `wave exit: schedule_waves[0] is malformed ([]); expected a non-empty list of task identifiers` |
+| accounted | exit 0 | both streams empty |
+| unaccounted | exit 1 | `wave exit: wave 0 has tasks with no dispatch receipt: 'T2'; record one per plan task with `loop-cohort dispatch-receipt`` |
+
+A decline whose reason is outside the closed set takes the **malformed** row,
+not the unaccounted row: the value is not a record at all, so the state is not
+well-formed. That matches the walk's oracle and the spec's wording, and it is
+the state mutation M2 flips.
+
+### 11.4 The in-suite partition walk agrees with the committed oracle, row for row
+
+`test_wave_exit_rows_partition_the_state_space_and_hold_their_verdicts` in
+`test_loop_guards.py` builds **17,864** states over every axis the spec's
+canonical list enumerates, asserts each matches exactly one row, and asserts the
+row's **declared verdict** against `_wave_exit_verdict`. The per-row counts are
+identical to the committed walk's, whose read axis doubles the domain:
+
+| Row | in-suite (17,864) | `walk_verdict_partition.py` (35,728) |
+| --- | --- | --- |
+| read refuses | n/a (own case) | 17,864 |
+| schema unsupported | 13,398 | 13,398 |
+| malformed | 3,829 | 3,829 |
+| container absent | 49 | 49 |
+| pointer invalid | 384 | 384 |
+| wave malformed | 108 | 108 |
+| accounted | 4 | 4 |
+| unaccounted | 92 | 92 |
+
+Two independent transcriptions of the rows — one in `docs/`, importing nothing
+from the implementation, one in the suite, over the implementation's own
+declarations — classify the same domain identically. `python3
+docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py`
+exits 0 unchanged; nothing in the walk was edited.
+
+**What the suite test adds over the walk:** the verdict. A wrong verdict is
+neither an overlap nor a gap, so the walk cannot see one; the suite test
+declares the expected `ok` and a substring per row and asserts both for every
+state in the domain. **What the walk adds over the suite test:** independence.
+The suite test's leaf predicates are the shared declarations the spec points at,
+so a defect inside one of those leaves is invisible to it — which is exactly
+what M2 demonstrates below.
+
+### 11.5 The reader's refusal vocabulary is surveyed from the source
+
+`test_the_readers_refusal_vocabulary_is_completely_surveyed` AST-walks
+`_require_spec_dir`, `_read_managed_bytes`, `read_managed_json`, `read_state`
+and `_state_or_reason` in `_loop_guards.py`, collects every reason template they
+compose, and asserts set equality against a constant in the test — both
+directions, so a new refusal kind fails and a stale entry fails too. Fifteen
+templates, `FileNotFoundError` excepted because it is re-raised rather than
+composed. This closes the half the walk's `ACQUISITION_REFUSALS` bound declares
+it cannot: a `docs/` script must not import the guard module, so completeness
+was owed here.
+
+Thirteen of those kinds are then constructed for real — absent spec dir, a
+spec dir that is a file, missing state, unparseable, non-object root, non-finite
+number, nested too deeply, invalid UTF-8, a directory at `state.json`, and an
+8 MiB+ document — and each is asserted to refuse with the **reader's** text
+rather than with this feature's `wave exit:` prefix, which is what shows the kind
+did not fall through to the table. A readable control state passes in the same
+case, so the assertion is not satisfied by a guard that refuses everything.
+
+### 11.6 Mutation record for T3's clauses
+
+Each mutation was applied to the `.apm/` source, the named cases re-run, and the
+file restored from a byte copy; the restore is verified by digest
+(`5ef73c459e4ba877…`) and the full `test_loop_guards.py` is green after each.
+
+| # | Clause removed or replaced | Cases re-run | Observed |
+| --- | --- | --- | --- |
+| M1 | the shared accounting predicate always reports nothing unaccounted | guard side and verb side together | **red in both, 8 failures.** Guard: `…partition_the_state_space_and_hold_their_verdicts`, `…verdict_per_row_through_the_guard`, `…names_every_unaccounted_task_and_no_accounted_one`, `…a_record_under_a_superseded_digest_accounts_for_nothing`, `…the_unaccounted_task_list_is_bounded_at_an_identifier_boundary`. Verb: `test_wave_exit_cli_verdict_per_row[unaccounted]`, `test_wave_exit_cli_refusal_names_no_accounted_task`, `test_wave_advance_refuses_an_unaccounted_wave_without_moving` |
+| M2 | `is_dispatch_record` loses its decline-reason clause, so a bad-reason decline becomes a record | `test_a_decline_reason_outside_the_closed_set_is_not_a_record` | **red, 1 failed.** The partition test stayed green, and so would the committed walk — see below |
+| M3 | the partition test's generated domain replaced by one example per row | the whole of `test_loop_guards.py` | **green, 144 passed.** Recorded as the demonstration that the domain, not the predicate, is what the control rests on |
+| M4 | the absent-container exemption removed from inside the accounting predicate | `test_loop_cohort.py -k wave_advance`, and `test_legal_wave_complete_to_code_verification` | **red on the verb only:** `test_wave_advance_advances_when_the_container_is_absent` and `test_wave_advance_normal`. The engine case stayed green, because the guard's container-absent row is decided before the predicate is called |
+| M5 | the unsupported-schema row moved below the shape rows | `test_loop_guards.py -k 'schema or partition_the_state or per_row'` | **red, 2 failed:** `…shares_implements_schema_exemption_and_siblings_do_not` and the partition test |
+
+**M1 is the single-sourcing evidence.** The spec says the criterion rests on
+single-sourcing and is not independently falsifiable — two copies of a predicate
+agree on the day they are written — so what is recorded is that removing the one
+declaration reddens named cases in *both* consumers together. A second copy
+would have left one of the two green.
+
+**M2 is the more interesting row.** Three controls did not see it:
+
+- the in-suite partition test, because its `malformed` leaf predicate *is*
+  `malformed_receipts_position`, which calls the mutated `is_dispatch_record`,
+  so the oracle moved with the code;
+- the committed walk, because it transcribes its own `is_record` and never
+  imports the implementation, so it cannot see an implementation defect at all;
+- T2's verb tests, because `plan_dispatch_receipt` checks
+  `decline not in DECLINE_REASONS` separately at its own refusal, which is a
+  different clause from the record definition.
+
+Only the named case flips, and it flips because the state's verdict changes from
+a refusal to an accounted pass. This is the shape the spec's testing strategy
+predicted: a per-row example whose state comes from the row cannot find a defect
+in the row's own predicate.
+
+**M4's asymmetry is the design, not a gap.** `wave advance` reaches the
+predicate with an absent container and must pass; the guard answers the same
+state one row earlier so it can print the not-enforced notice. Removing the
+exemption therefore reddens the verb and leaves the guard alone — which also
+means the exemption's *location* is load-bearing exactly as the spec words it.
+
+### 11.7 Deviations from T3's literal method, each with its reason
+
+**`__all__` grew by twelve names, and the pinned test was updated.** The task
+row does not mention `__all__`. `test_all_is_pinned_to_the_declared_surface`
+pins the guard module's public surface deliberately and its failure message
+instructs updating the list when the change is intentional. Exporting was chosen
+over the `non_negative_int` precedent of a module-private shared name because
+`__all__` is the loaders' *completeness* contract: a module truncated after
+`non_negative_int` would still satisfy the loader check while
+`_g.partition_digest` raised `AttributeError` inside a lock-holding verb. No
+new name begins with `check_`, so `test_the_six_guard_table_matches_all` is
+untouched.
+
+**No parity row was added to `test_loop_guards_parity.py`.** It is in T3's
+`Touches`, but § 7.3 established the file owes nothing for a new phase under the
+existing `check` verb, and a parity row cannot exist without a golden row — the
+replay reads `golden[key]` for every row it drives. The fixture is generated
+once and never regenerated, so adding a row is forbidden. The file is unchanged;
+its 49 rows, including the two byte-pinned `check/implement-*` rows, replay
+identically.
+
+**The engine's `_guard_check_phase_implement` was removed rather than given a
+caller.** The retarget left it with none; `grep` confirms
+`_guard_check_phase_wave_exit` is now the only `("code", "wave-complete")`
+guard and nothing else referenced the old symbol.
+
+**Test fixtures gained records, as the task row predicted.** Two helpers were
+added rather than four literal task lists: `_accounted()` in
+`test_loop_cohort_cli.py` and
+`record_dispatch_receipts_for_the_current_wave()` in `test_loop_engine.py`.
+Both read the task ids from the **persisted partition** rather than from a
+literal, so a change to a fixture plan cannot leave either recording nothing.
+`_accounted()` replaces `_scheduled()` at the four advancing-branch sites the
+survey named (lines 434, 440, 447, 454) and at the final-wave case that depends
+on the first advance succeeding; the other 27 `_scheduled()` sites are unchanged,
+because they never reach the advancing branch.
+
+### 11.8 The five live coupling statements, and what each says now
+
+`Done when` requires that no live, editable surface still assert that
+`check --phase implement` guards `wave-complete`. § 8.2's five, each rewritten:
+
+| # | Surface | Now says |
+| --- | --- | --- |
+| 1 | `_loop_guards.py` `check_phase` docstring | `implement`'s verdict must not move because **`tools/hooks/pre-pr.py`** runs it for every spec directory on every push and consumes the exit code; `wave-exit` is named as the phase the `wave-complete` transition consults |
+| 2 | `loop-cohort.py` `cmd_check` docstring | the always-run pre-PR hook depends on the missing/malformed refusal; a second paragraph documents `--phase wave-exit` as the transition's guard and why it is run directly before firing |
+| 3 | `test_loop_guards.py` `test_check_phase_reads_state_even_for_implement` docstring | names the pre-PR hook as the live consumer and states outright that `wave-complete` is guarded by `--phase wave-exit`, not by this phase |
+| 4 | `test_loop_engine.py` `test_legal_wave_complete_to_code_verification` docstring | `Requires: schedule check-current (pre-guard) + check --phase wave-exit (guard)`, plus why that fixture's containerless cohort state passes |
+| 5 | `loop-engine.py` guard table | `("code", "wave-complete"): _guard_check_phase_wave_exit` |
+
+`docs/specs/loop-infrastructure-phase-1/plan.md` still states the old coupling at
+six lines and **stays**: it is Shipped and frozen, this plan's Constraints
+require it unedited, and it is a historical account of Phase 1 rather than a
+live claim. `tests/roster/test_core_pre_pr_hook.py:190` is unchanged and remains
+true.
+
+Also updated, though not in the amended clause: `loop-cohort.py`'s module usage
+docstring, which is a second hand-maintained phase enumeration no test pins. It
+now reads `--phase {implement,review,gates-failed,wave-exit}`, and `PHASES`
+carries a comment pointing at it so the two move together.
+
+### 11.9 Gate results for T3
+
+| Gate | Command | Result |
+| --- | --- | --- |
+| lint | `make lint-ruff lint-mypy` | pass — one ruff finding (`C420`, a dict comprehension in the new partition test) was raised on the first run and fixed in place |
+| suites | `python3 -m pytest` over the seven files in T3's `Done when`, plus `test_loop_cohort_schedule.py` and `test_contract_amendment_wave4.py` | pass |
+| partition walk | `python3 docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py` | exit 0, 35,728 states, unchanged by this task |
+| projection parity | `FORCE=1 make build-self`, then `shasum -a 256` over the three copies | one digest per edited file: `_loop_guards.py` `5ef73c459e4ba877…`, `loop-cohort.py` `1a221d9494cca78f…`, `loop-engine.py` `477454deedf69e55…` |
+| projected-tree re-probe | the wave-exit check and `status --json` driven from `.apm/`, `.claude/` and `.agents/` against the same fixture | identical: exit 1 naming `'T2'` on the unaccounted state, `dispatch_receipts_enforced: true`; and with the container removed, exit 0 with the stdout notice and `false` |
+
+The probes ran against a throwaway git repository under the session scratchpad,
+never against this run's own spec directory — § 10.11 records what a probe
+against the live run costs.
+
+---
+
+## 11.9 Controller verification of T3
+
+Every load-bearing claim re-derived rather than accepted.
+
+**The oracle agreement is the result that matters.** `walk_verdict_partition.py`
+is unedited — `git diff` on it is empty — and still exits 0 over 35,728 states
+with 0 overlapping, 0 uncovered and every row reached. Its per-row counts
+(13,398 / 3,829 / 49 / 384 / 108 / 4 / 92) are identical to the in-suite walk's,
+and the in-suite walk drives the **shipping** `_wave_exit_verdict` rather than a
+re-transcription. So two independently written predicate sets — one transcribed
+from the spec's prose before the code existed, one the code that ships — agree
+over the same axes. That is the only genuinely independent check this spec has
+on its own implementation, and it holds.
+
+**`check --phase implement` is preserved.** Driven directly against five states
+the new rows discriminate — minimal readable, unsupported schema, empty
+`schedule_waves`, an unaccounted task with an empty container, and a malformed
+wave element — `implement` returns ok for all five. `wave-exit` answers
+False/True/False/False/True respectively and names the unaccounted task as
+`'T1'`. This matters because `tools/hooks/pre-pr.py` runs the `implement` leg for
+every spec directory on every push and consumes the exit code.
+
+**One row-order consequence, checked and accepted.** A malformed wave element
+with an **absent** container exits zero: row 4 (container absent) decides before
+row 6 (wave malformed) ever examines the wave. That is faithful to the table as
+written, and defensible — an absent container means the guard is not enforcing
+for that state, so not examining the wave is consistent rather than an oversight.
+Recorded because the passing verdict looks wrong until the row order is read.
+
+**Retarget.** `("code", "wave-complete")` now maps to
+`_guard_check_phase_wave_exit`. `_guard_check_phase_implement` is gone with no
+remaining reference in the scripts or the pack tests.
+
+**The amended clause is discharged.** All five live surfaces now carry zero
+statements coupling `implement` to `wave-complete`, counted per file:
+`_loop_guards.py`, `loop-cohort.py`, `loop-engine.py`, `test_loop_guards.py`,
+`test_loop_engine.py` — 0 each. The frozen
+`docs/specs/loop-infrastructure-phase-1/plan.md` still states it, which the
+clause's scope word permits and its Constraints require.
+
+**One reading of `current_wave_index`.** No `int(state.get("current_wave_index"`
+coercion remains in `loop-cohort.py`; both sites read
+`non_negative_int(state, "current_wave_index", 0)`.
+
+**Gates re-run here, not trusted.** `make lint-ruff lint-mypy` clean over 148
+source files. The seven-suite invocation from T3's `Done when`: 641 passed, 22
+subtests, 8m40s — the implementer reported 8m39s. Three-copy parity holds, one
+digest per edited file (`5ef73c459e4ba877`, `1a221d9494cca78f`,
+`477454deedf69e55`).
+
+**A mutation of the controller's choosing, not from the implementer's list.**
+`unaccounted_wave_tasks`' final comprehension replaced by `return list(wave)`,
+so the refusal names every task in the wave whether accounted or not. That
+reddens `test_wave_exit_names_every_unaccounted_task_and_no_accounted_one` and
+nothing else in the filtered set. The spec's criterion is that the refusal names
+every unaccounted task *and no accounted task*; the second half is the one a
+weaker control would drop, and it is the half this mutation removes. Source
+restored and parity re-verified afterwards.
+
+**The `__all__` pin edit is legitimate.** That test pins a hand-written literal
+set on purpose — its own docstring says a derived expectation would move with
+the code, which is the antipattern this spec keeps hitting. Adding the twelve new
+names to the literal is the intended way to edit it, not a weakening.

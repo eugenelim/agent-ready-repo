@@ -1612,7 +1612,9 @@ def test_guard_check_spec_status_fails_non_shipped(tmp: Path) -> None:
 def test_legal_wave_complete_to_code_verification(tmp: Path) -> None:
     """CODE-IMPLEMENTATION → wave-complete → CODE-VERIFICATION.
 
-    Requires: schedule check-current (pre-guard) + check --phase implement (guard).
+    Requires: schedule check-current (pre-guard) + check --phase wave-exit (guard).
+    The cohort state below carries no receipts container, which is the exemption
+    that keeps a run predating dispatch receipts able to finish.
     """
     name = "legal-wave-complete"
     run_id = str(uuid.uuid4())
@@ -2405,6 +2407,31 @@ def test_evals_json_shape() -> None:
 # ── Crash-window tests: session-resumption and idempotency coverage ─────────
 
 
+def record_dispatch_receipts_for_the_current_wave(spec_dir: Path, run_id: str) -> None:
+    """Account for every task in the current wave, so the wave exit passes.
+
+    `cohort init` and `schedule` both leave the receipts container present, and
+    `check --phase wave-exit` — the guard on the `wave-complete` transition out of
+    CODE-IMPLEMENTATION — refuses a wave with an unaccounted task. A fixture that
+    drives a real `init` -> `schedule` -> `wave-complete` sequence therefore has
+    to record one assertion per plan task, exactly as the controller does.
+
+    Task ids come from the persisted partition, never from a literal list, so a
+    change to a fixture plan cannot leave this recording nothing.
+    """
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    index = state["current_wave_index"]
+    tasks = state["schedule_waves"][index]
+    assert tasks, f"the fixture partition has no tasks in wave {index}"
+    for task in tasks:
+        rc, _, err = run_cohort(
+            "dispatch-receipt", str(spec_dir), "--task", str(task),
+            "--wave-index", str(index), "--receipt", "--expect-run-id", run_id,
+        )
+        if rc != 0:
+            raise RuntimeError(f"dispatch-receipt for {task} failed: {err}")
+
+
 def make_crash_window_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
     """Drive a fresh ≥2-wave run to CODE-VERIFICATION via real CLI.
 
@@ -2447,6 +2474,7 @@ def make_crash_window_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
     if rc_pl != 0:
         raise RuntimeError(f"make_crash_window_run: plan-locked failed: {err_pl}")
     # wave-complete: CODE-IMPLEMENTATION → CODE-VERIFICATION (wave 0 done)
+    record_dispatch_receipts_for_the_current_wave(spec_dir, run_id)
     rc_wc, _, err_wc = run_engine("transition", str(spec_dir), "wave-complete")
     if rc_wc != 0:
         raise RuntimeError(f"make_crash_window_run: wave-complete failed: {err_wc}")
@@ -2493,6 +2521,7 @@ def make_code_review_run(tmp: Path, feature: str) -> tuple[Path, str]:
     rc_pl, _, err_pl = run_engine("transition", str(spec_dir), "plan-locked")
     if rc_pl != 0:
         raise RuntimeError(f"make_code_review_run: plan-locked failed: {err_pl}")
+    record_dispatch_receipts_for_the_current_wave(spec_dir, run_id)
     run_engine("transition", str(spec_dir), "wave-complete")
     # gates-clean: CODE-VERIFICATION → CODE-REVIEW (at last wave)
     rc_gc, _, err_gc = run_engine("transition", str(spec_dir), "gates-clean")
@@ -3948,3 +3977,106 @@ def test_engine_names_only_in_process_python_siblings_and_never_spawns_python() 
     assert literals <= allowed, (
         f"the engine names other Python scripts: {sorted(literals - allowed)}"
     )
+
+
+# ── the wave exit reaches the real transition ─────────────────────────────
+#
+# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# `check --phase wave-exit` verdict. A guard that refuses only when called
+# directly would leave the real exit open, so the refusal is asserted through
+# `loop-engine transition` rather than against the guard.
+
+
+def _implementing_cohort_state(spec_dir: Path, run_id: str, feature: str,
+                               waves: list, index: int, container: object) -> None:
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(
+        run_id, feature, "code", "CODE-IMPLEMENTATION"))
+    extra = {
+        "plan_review_status": "approved",
+        "approved_spec_hash": sha256_canonical_contract(spec_dir / "spec.md"),
+        "approved_plan_hash": sha256_canonical_contract(spec_dir / "plan.md"),
+        "plan_hash": sha256_canonical_contract(spec_dir / "plan.md"),
+        "schedule_waves": waves,
+        "current_wave_index": index,
+        "implementation_retry_count": 0,
+        "max_implementation_retries": 5,
+        "dispatch_receipts": container,
+    }
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, feature, extra=extra))
+
+
+def _receipts_for(waves: list, index: int, tasks: list) -> dict:
+    """A container keyed by the guard layer's DECLARED key path."""
+    guards = _load_guards_module()
+    keys = [guards.partition_digest(waves), str(index)]
+    assert len(keys) + 1 == len(guards.RECEIPT_KEY_PATH), "key path changed shape"
+    return {keys[0]: {keys[1]: {t: {"kind": guards.RECEIPT_KIND} for t in tasks}}}
+
+
+def _load_guards_module():
+    import importlib.util
+    path = SCRIPT_DIR / "_loop_guards.py"
+    spec = importlib.util.spec_from_file_location("_loop_guards_for_engine_tests", str(path))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_wave_complete_is_refused_when_a_task_is_unaccounted(tmp: Path) -> None:
+    """The real transition, not the guard: one unaccounted task in the current wave."""
+    name = "wave-complete-refused-on-an-unaccounted-task"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1", "T2"], ["T3"]]
+    _implementing_cohort_state(spec_dir, run_id, name, waves, 0,
+                               _receipts_for(waves, 0, ["T1"]))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, err = run_engine("transition", str(spec_dir), "wave-complete")
+    if rc == 0:
+        fail(name, "the transition accepted a wave with an unaccounted task")
+    elif "T2" not in err:
+        fail(name, f"the refusal must name T2; got {err.strip()!r}")
+    elif path.read_bytes() != before:
+        fail(name, "engine-state.json moved despite the refusal")
+    else:
+        ok(name)
+    # The same state with T2 accounted must pass, or the assertion above is
+    # satisfied by a transition that refuses everything.
+    _implementing_cohort_state(spec_dir, run_id, name, waves, 0,
+                               _receipts_for(waves, 0, ["T1", "T2"]))
+    rc, _, err = run_engine("transition", str(spec_dir), "wave-complete")
+    if rc != 0:
+        fail(name, f"the accounted control state was refused: {err.strip()!r}")
+
+
+def test_the_wave_exit_verdict_is_about_the_wave_the_run_is_leaving(tmp: Path) -> None:
+    """The current wave, not the next one.
+
+    A controller that advanced the pointer first would otherwise satisfy the exit
+    against the next wave's empty denominator, so the distinguishing state has
+    the CURRENT wave unaccounted and the NEXT wave fully accounted.
+    """
+    name = "wave-exit-is-about-the-current-wave"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    waves = [["T1"], ["T2"]]
+    container = _receipts_for(waves, 1, ["T2"])
+    _implementing_cohort_state(spec_dir, run_id, name, waves, 0, container)
+    rc, out, err = run_cohort("check", str(spec_dir), "--phase", "wave-exit")
+    if rc == 0:
+        fail(name, "the exit passed on the next wave's records")
+        return
+    if "T1" not in err:
+        fail(name, f"the refusal must name the current wave's task; got {err.strip()!r}")
+        return
+    if "T2" in err:
+        fail(name, f"the refusal names a task in the next wave; got {err.strip()!r}")
+        return
+    rc, _, err = run_engine("transition", str(spec_dir), "wave-complete")
+    if rc == 0:
+        fail(name, "the transition accepted the same state")
+    else:
+        ok(name)

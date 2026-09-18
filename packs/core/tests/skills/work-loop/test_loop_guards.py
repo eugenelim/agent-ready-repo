@@ -2034,8 +2034,10 @@ def test_check_phase_reads_state_even_for_implement(g, spec) -> None:
     """`implement` is a stub, but NOT a total no-op.
 
     `cmd_check` has always called `read_state` before reaching it, so a missing or
-    malformed `state.json` refuses. The engine's `wave-complete` guard is this check,
-    so returning ok unconditionally would drop a live refusal.
+    malformed `state.json` refuses. `tools/hooks/pre-pr.py` runs this phase for every
+    spec directory on every push and consumes the exit code, so returning ok
+    unconditionally would drop a live refusal. The `wave-complete` transition is
+    guarded by `--phase wave-exit`, not by this phase.
     """
     assert g.check_phase(spec(), phase="implement").ok
     assert not g.check_phase(spec(no_state=True), phase="implement").ok
@@ -2341,6 +2343,12 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         "validate_run_id",
         # retry caps
         "DEFAULTS", "SCHEMA_VERSION",
+        # the dispatch-receipt data model, single-sourced here because the CLI
+        # loads this module and this module cannot load the CLI
+        "RECEIPTS_KEY", "RECEIPT_KEY_PATH", "RECEIPT_KIND", "DECLINE_KIND",
+        "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
+        "malformed_receipts_position", "receipts_for_partition",
+        "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
@@ -2418,3 +2426,601 @@ def test_every_loader_derives_completeness_from_all_not_an_enumeration() -> None
             f"{filename}'s load_guards reads __all__ but never compares it against "
             "dir(module) — a truncated module declares __all__ without defining it"
         )
+
+
+# ══ check --phase wave-exit: the verdict table ═════════════════════════════
+#
+# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# `check --phase wave-exit` verdict. The contract is that exactly one row
+# applies to any cohort state and the rows jointly cover every cohort state, so
+# branch order in the implementation is an optimisation rather than the thing
+# that decides behaviour. These cases assert both halves: the per-row verdicts,
+# and the partition over a generated domain.
+
+_ABSENT = object()
+
+# Row labels, matching the spec's order.
+_ROWS = (
+    "read-refuses", "schema-unsupported", "malformed", "container-absent",
+    "pointer-invalid", "wave-malformed", "accounted", "unaccounted",
+)
+
+# Per row: the expected `ok`, and a substring the refusal or notice must carry.
+# A partition walk alone cannot catch a row implemented with the wrong verdict —
+# a wrong verdict is neither an overlap nor a gap — so the expected verdict is
+# declared here and asserted for every state in the domain.
+_ROW_VERDICTS = {
+    "schema-unsupported": (True, ""),
+    "malformed": (False, "malformed"),
+    "container-absent": (True, "not enforced"),
+    "pointer-invalid": (False, "current_wave_index"),
+    "wave-malformed": (False, "malformed"),
+    "accounted": (True, ""),
+    "unaccounted": (False, "no dispatch receipt"),
+}
+
+
+def _wave_exit_state(g, **over) -> dict:
+    """A cohort state for the table, with the receipts container ABSENT by default."""
+    state = {
+        "schema_version": g.SCHEMA_VERSION, "run_id": "run-1",
+        "schedule_waves": [["T1", "T2"], ["T3"]], "current_wave_index": 0,
+    }
+    for key, value in over.items():
+        if value is _ABSENT:
+            state.pop(key, None)
+        else:
+            state[key] = value
+    return state
+
+
+def _keyed_container(g, waves, index, tasks, *, record=None, digest=None,
+                     wave_key=None, order=("d", "w", "t")) -> dict:
+    """A container keyed by the DECLARED path: digest, decimal index, task.
+
+    `digest`, `wave_key` and `order` exist so a case can construct the
+    wrong-key, wrong-form and wrong-order containers a mis-implemented lookup
+    would produce. Hand-building at a literal depth is what let a predicate that
+    rejected every valid container coexist with a green walk.
+    """
+    record = record or {"kind": g.RECEIPT_KIND}
+    parts = {
+        "d": digest if digest is not None else g.partition_digest(waves),
+        "w": wave_key if wave_key is not None else str(index),
+    }
+    leaves = {task: dict(record) for task in tasks}
+    return {parts[order[0]]: {parts[order[1]]: leaves}}
+
+
+def _accounted_state(g, **over) -> dict:
+    """The canonical passing state: every task in the current wave has a record."""
+    state = _wave_exit_state(g, **over)
+    waves = state["schedule_waves"]
+    index = state["current_wave_index"]
+    state[g.RECEIPTS_KEY] = _keyed_container(g, waves, index, waves[index])
+    return state
+
+
+def _matching_rows(g, state: dict, *, readable: bool = True) -> list[str]:
+    """Every row whose precondition `state` satisfies, encoded from the spec's WORDS.
+
+    Each row's precondition is written to STAND ALONE — no early return, no row
+    negating the one above it implicitly — so this can report two rows or none.
+    An encoding built from early returns can only ever report one row, which
+    makes the partition assertion vacuous; an encoding that carried a schema
+    clause the malformed row does not have hid a real overlap.
+
+    Bound: the leaf predicates are the shared declarations the spec points AT —
+    the guard layer's non-negative-integer validation, the declared key path,
+    and the accounting predicate. The independent transcription of the rows from
+    the spec's prose is `notes/walk_verdict_partition.py`, which imports nothing
+    from the implementation. What this adds over that walk is the verdict: a
+    wrong verdict is neither an overlap nor a gap, so the walk cannot see it.
+    """
+    hits = []
+    waves = state.get("schedule_waves", [])
+    container_present = g.RECEIPTS_KEY in state
+
+    if not readable:
+        hits.append("read-refuses")
+    supported = state.get("schema_version") == g.SCHEMA_VERSION
+    if readable and not supported:
+        hits.append("schema-unsupported")
+
+    live = readable and supported
+    well_formed = (
+        live
+        and isinstance(waves, list) and bool(waves)
+        and (not container_present
+             or g.malformed_receipts_position(state[g.RECEIPTS_KEY]) is None)
+    )
+    if live and not well_formed:
+        hits.append("malformed")
+
+    base = well_formed and container_present
+    if well_formed and not container_present:
+        hits.append("container-absent")
+
+    index = g.non_negative_int(state, "current_wave_index", 0)
+    pointer_valid = (
+        not isinstance(index, str)
+        and isinstance(waves, list)
+        and index < len(waves)
+    )
+    if base and not pointer_valid:
+        hits.append("pointer-invalid")
+
+    wave_ok = pointer_valid and g.wave_is_well_formed(waves[index])
+    if base and pointer_valid and not wave_ok:
+        hits.append("wave-malformed")
+    if base and pointer_valid and wave_ok:
+        hits.append(
+            "unaccounted" if g.unaccounted_wave_tasks(state, index) else "accounted"
+        )
+    return hits
+
+
+def _wave_exit_domain(g) -> list[dict]:
+    """The state domain, varying every axis the spec's canonical list enumerates.
+
+    `schedule_waves`, its element at the pointer, the container, a record's
+    `kind` AND `reason`, `schema_version` and `current_wave_index`, each by
+    presence, type and value. The read outcome is a separate two-valued axis
+    handled by its own case, because no row discriminates among the reader's
+    refusal kinds.
+
+    The container values are GENERATED from the declared key path — a correct
+    instance nested from it, then mutated at each depth with each hostile value —
+    never hand-built at a literal depth.
+    """
+    import itertools
+
+    live = [["T1"], ["T2"]]
+    stale = [["T1"], ["T2"], ["T3"]]
+    depth = len(g.RECEIPT_KEY_PATH)
+    hostile = (
+        42, "receipt", [], None, {}, {"kind": "bogus"},
+        {"kind": g.DECLINE_KIND},
+        {"kind": g.DECLINE_KIND, "reason": "made-up"},
+        # `kind` and `reason` by TYPE as well as presence and value: a predicate
+        # comparing `kind` without a type check stays green on the others, and a
+        # `reason` that is a list raises for `x in frozenset` rather than
+        # answering, which would falsify the totality the spec claims.
+        {"kind": 7}, {"kind": ["receipt"]},
+        {"kind": g.DECLINE_KIND, "reason": 7},
+        {"kind": g.DECLINE_KIND, "reason": [g.DECLINE_REASONS[0]]},
+    )
+
+    def nest(value, levels):
+        for _ in range(levels):
+            value = {"k": value}
+        return value
+
+    containers = [
+        _ABSENT,
+        nest({"kind": g.RECEIPT_KIND}, depth),
+        nest({"kind": g.DECLINE_KIND, "reason": g.DECLINE_REASONS[1]}, depth),
+        *[nest(value, level) for level in range(depth + 1) for value in hostile],
+        # Accounting shapes, keyed by the declaration: correct, a superseded
+        # digest, the integer wave key, a non-decimal wave key, and the reversed
+        # key order. Each is what a mis-implemented lookup would produce.
+        _keyed_container(g, live, 0, live[0]),
+        _keyed_container(g, live, 0, live[0],
+                         record={"kind": g.DECLINE_KIND,
+                                 "reason": g.DECLINE_REASONS[0]}),
+        _keyed_container(g, live, 0, []),
+        _keyed_container(g, live, 0, live[0], digest=g.partition_digest(stale)),
+        _keyed_container(g, live, 0, live[0], wave_key=0),
+        _keyed_container(g, live, 0, live[0], wave_key="wave-0"),
+        _keyed_container(g, live, 0, live[0], order=("w", "d", "t")),
+    ]
+    schedules = [
+        _ABSENT, [], [["T1"]], "notalist", [123], [["T1", 2]], live,
+        {"a": 1}, [[]], [[], ["T2"]], [["T1"], []],
+    ]
+    pointers = [_ABSENT, 0, 1, -1, True, "x", 1.0]
+    schemas = [g.SCHEMA_VERSION, 99, None, _ABSENT]
+
+    return [
+        _wave_exit_state(g, schedule_waves=sw, current_wave_index=idx,
+                         schema_version=schema, **{g.RECEIPTS_KEY: cont})
+        for sw, cont, idx, schema in itertools.product(
+            schedules, containers, pointers, schemas
+        )
+    ]
+
+
+def test_wave_exit_rows_partition_the_state_space_and_hold_their_verdicts(g) -> None:
+    """Exactly one row per state, every row reached, and each row's verdict asserted.
+
+    The domain is generated over arbitrary values at every position the
+    predicates read, not sourced from the row conditions: a domain sourced from
+    the table under test can exhibit an overlap but never a gap.
+    """
+    domain = _wave_exit_domain(g)
+    assert domain, "the domain generator produced no states — every check below is vacuous"
+
+    reached: dict[str, int] = dict.fromkeys(_ROWS, 0)
+    for state in domain:
+        rows = _matching_rows(g, state)
+        assert len(rows) == 1, f"state {state!r} matched rows {rows}"
+        row = rows[0]
+        reached[row] += 1
+        expect_ok, needle = _ROW_VERDICTS[row]
+        result = g._wave_exit_verdict(state)
+        assert result.ok is expect_ok, (
+            f"row {row} must exit {'zero' if expect_ok else 'non-zero'}; "
+            f"state={state!r} reason={result.reason!r} message={result.message!r}"
+        )
+        text = result.reason if not result.ok else (result.message or "")
+        assert needle in text, f"row {row} must name {needle!r}; got {text!r}"
+
+    unreached = [row for row in _ROWS if row != "read-refuses" and not reached[row]]
+    assert not unreached, f"rows never reached by the domain: {unreached}"
+
+
+def test_wave_exit_verdict_per_row_through_the_guard(g, spec) -> None:
+    """One case per row, asserting the verdict and the named field, via `check_phase`.
+
+    The table row and the guard entry point are different surfaces: the rows are
+    asserted over `_wave_exit_verdict` above, and this drives the same states
+    through the public guard, which is what the CLI and the engine reach.
+    """
+    waves = [["T1", "T2"], ["T3"]]
+    digest_of = g.partition_digest
+    cases = {
+        "read-refuses": (spec(no_state=True), False, "state.json"),
+        "schema-unsupported": (spec(schema_version=99, schedule_waves=waves), True, ""),
+        "malformed": (spec(schedule_waves=[], dispatch_receipts={}), False,
+                      "schedule_waves"),
+        "container-absent": (spec(schedule_waves=waves), True, "not enforced"),
+        "pointer-invalid": (spec(schedule_waves=waves, current_wave_index=9,
+                                 dispatch_receipts={}), False, "current_wave_index"),
+        "wave-malformed": (spec(schedule_waves=[[], ["T3"]],
+                                dispatch_receipts={}), False, "malformed"),
+        "accounted": (spec(schedule_waves=waves, dispatch_receipts={
+            digest_of(waves): {"0": {"T1": {"kind": "receipt"},
+                                     "T2": {"kind": "decline",
+                                            "reason": "human-directed"}}}}), True, ""),
+        "unaccounted": (spec(schedule_waves=waves, dispatch_receipts={
+            digest_of(waves): {"0": {"T1": {"kind": "receipt"}}}}), False, "T2"),
+    }
+    assert set(cases) == set(_ROWS), "a row lost its case"
+    for row, (d, expect_ok, needle) in cases.items():
+        result = g.check_phase(d, phase="wave-exit")
+        assert result.ok is expect_ok, f"row {row}: {result.reason!r}"
+        text = result.reason if not result.ok else (result.message or "")
+        assert needle in text, f"row {row} must name {needle!r}; got {text!r}"
+        if not result.ok:
+            assert not result.reason.startswith(g.INTERNAL_ERROR), (
+                f"row {row} crashed rather than refusing: {result.reason}"
+            )
+
+
+def test_wave_exit_names_every_unaccounted_task_and_no_accounted_one(g, spec) -> None:
+    """Three tasks, two accounted: the refusal names the third and neither of the two."""
+    waves = [["T1", "T2", "T3"], ["T4"]]
+    d = spec(schedule_waves=waves, dispatch_receipts={
+        g.partition_digest(waves): {"0": {
+            "T1": {"kind": "receipt"},
+            "T2": {"kind": "decline", "reason": "no-implementer-installed"},
+        }},
+    })
+    result = g.check_phase(d, phase="wave-exit")
+    assert not result.ok
+    assert "T3" in result.reason, result.reason
+    assert "T1" not in result.reason and "T2" not in result.reason, (
+        f"the refusal names an accounted task: {result.reason}"
+    )
+
+
+def test_a_decline_reason_outside_the_closed_set_is_not_a_record(g, spec) -> None:
+    """The malformed row decides it, and the refusal names the container.
+
+    Removing the reason check from the record definition would turn this state
+    into an accounted-for pass, so this case flips the verdict rather than only
+    changing the text.
+    """
+    waves = [["T1"], ["T2"]]
+    d = spec(schedule_waves=waves, dispatch_receipts={
+        g.partition_digest(waves): {"0": {"T1": {"kind": "decline",
+                                                 "reason": "because-i-said-so"}}},
+    })
+    result = g.check_phase(d, phase="wave-exit")
+    assert not result.ok, "a bad-reason decline must not account for its task"
+    assert g.RECEIPTS_KEY in result.reason and "malformed" in result.reason, result.reason
+
+
+def test_a_record_under_a_superseded_digest_accounts_for_nothing(g, spec) -> None:
+    waves = [["T1"], ["T2"]]
+    stale = g.partition_digest([["T1"], ["T2"], ["T3"]])
+    d = spec(schedule_waves=waves,
+             dispatch_receipts={stale: {"0": {"T1": {"kind": "receipt"}}}})
+    result = g.check_phase(d, phase="wave-exit")
+    assert not result.ok and "T1" in result.reason, result.reason
+
+
+def test_wave_exit_writes_nothing_for_any_row(g, spec) -> None:
+    """Every row whose state has a `state.json` leaves it byte-identical."""
+    waves = [["T1"], ["T2"]]
+    states = [
+        spec(schema_version=99, schedule_waves=waves),
+        spec(schedule_waves=[], dispatch_receipts={}),
+        spec(schedule_waves=waves),
+        spec(schedule_waves=waves, current_wave_index=9, dispatch_receipts={}),
+        spec(schedule_waves=[[], ["T2"]], dispatch_receipts={}),
+        spec(schedule_waves=waves, dispatch_receipts={
+            g.partition_digest(waves): {"0": {"T1": {"kind": "receipt"}}}}),
+        spec(schedule_waves=waves, dispatch_receipts={}),
+    ]
+    for d in states:
+        path = d / "state.json"
+        before = path.read_bytes()
+        g.check_phase(d, phase="wave-exit")
+        assert path.read_bytes() == before, f"the guard wrote to {path}"
+
+
+def test_implement_keeps_its_verdict_on_the_states_the_new_rows_distinguish(g, spec) -> None:
+    """`--phase implement` is unchanged, including where `wave-exit` now refuses.
+
+    The states the new rows distinguish are the only ones whose `implement`
+    verdict could have moved, and a refusal added to `implement` would be a
+    repository-wide pre-PR and pull-request gate rather than a wave gate.
+    """
+    waves = [["T1"], ["T2"]]
+    passing = [
+        spec(schema_version=99, schedule_waves=waves),
+        spec(schedule_waves=[], dispatch_receipts={}),
+        spec(schedule_waves=waves),
+        spec(schedule_waves=waves, current_wave_index=9, dispatch_receipts={}),
+        spec(schedule_waves=[[], ["T2"]], dispatch_receipts={}),
+        spec(schedule_waves=waves, dispatch_receipts={}),
+        spec(schedule_waves=waves, dispatch_receipts={"nope": 5}),
+    ]
+    for d in passing:
+        result = g.check_phase(d, phase="implement")
+        assert result.ok, f"implement refused a state it passes today: {result.reason}"
+        assert result.message == "", f"implement gained output: {result.message!r}"
+    # And the one refusal it has always had.
+    assert not g.check_phase(spec(no_state=True), phase="implement").ok
+
+
+def test_wave_exit_shares_implements_schema_exemption_and_siblings_do_not(g, spec) -> None:
+    """The discriminating pair for the widened exemption."""
+    unsupported = spec(schema_version=99, schedule_waves=[["T1"]],
+                       dispatch_receipts={"stale": 5})
+    # Reaches the table AND passes on it: a malformed container would refuse on a
+    # supported schema, so a row order that read the shape first would red here.
+    assert g.check_phase(unsupported, phase="wave-exit").ok
+    assert not g.check_phase(unsupported, phase="review").ok
+    assert not g.check_phase(unsupported, phase="gates-failed").ok
+
+
+def test_the_unaccounted_task_list_is_bounded_at_an_identifier_boundary(g, spec) -> None:
+    """Every identifier printed is whole, and the refusal says the list is partial."""
+    tasks = [f"T{i:03d}" for i in range(200)]
+    d = spec(schedule_waves=[tasks, ["Z1"]], dispatch_receipts={})
+    result = g.check_phase(d, phase="wave-exit")
+    assert not result.ok
+    assert "partial list" in result.reason, result.reason
+    printed = result.reason.split("receipt: ")[1].split("'")[1]
+    for fragment in printed.split(", "):
+        assert fragment in tasks, (
+            f"{fragment!r} is not a whole task identifier — the bound cut inside one"
+        )
+    assert len(printed.split(", ")) < len(tasks), "nothing was dropped; no bound applied"
+
+
+def test_a_state_derived_value_is_not_carried_whole_into_a_refusal(g, spec) -> None:
+    """Asserted on the stream, not on the helper: the bound has to be reached."""
+    huge = "W" * 5000
+    d = spec(schedule_waves=huge, dispatch_receipts={})
+    result = g.check_phase(d, phase="wave-exit")
+    assert not result.ok
+    assert huge not in result.reason, "an unbounded state-derived value reached a refusal"
+    assert len(result.reason) < 1000, f"reason is {len(result.reason)} chars"
+
+
+# ── the read-refusal row, and the reader's refusal vocabulary ──────────────
+
+# Every kind the guard's state acquisition can refuse with, read from
+# `_loop_guards.py` and asserted complete by the survey below. The read axis of
+# the partition is two-valued because no row discriminates among these kinds, and
+# what licenses that collapse is the assertion that each one lands on the
+# read-refusal row and nowhere else.
+_ACQUISITION_REFUSALS = (
+    "spec-dir cannot be examined: {exc}",
+    "spec-dir is not a directory: {spec_dir}",
+    "{label} cannot be examined: {exc}",
+    "{label} must be a regular file",
+    "{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit",
+    "{label} cannot be opened safely: {exc}",
+    "{label} changed while being opened",
+    "{label} could not be read safely: {exc}",
+    "{label} changed while being read",
+    "{label} contains the non-finite number {token}",
+    "{label} contains the non-finite number {_scalar(token)}",
+    "{label} is not valid UTF-8",
+    "{label} malformed: {exc.msg} at line {exc.lineno}",
+    "{label} is nested too deeply to parse",
+    "{label} root must be an object",
+)
+
+
+def _reader_refusal_templates() -> set[str]:
+    """Every refusal template the acquisition path can raise, read from the source.
+
+    Read from `_loop_guards.py` rather than from a list maintained beside the
+    walk: a hand-kept vocabulary that the reader outgrows leaves the survey green
+    while a refusal kind classifies nowhere. `FileNotFoundError` is re-raised
+    rather than composed, so it carries no template and is covered by the
+    missing-state case below.
+    """
+    import ast as _ast
+
+    tree = _ast.parse(GUARDS.read_text(encoding="utf-8"))
+    wanted = {"_require_spec_dir", "_read_managed_bytes", "read_managed_json",
+              "read_state", "_state_or_reason"}
+    found: set[str] = set()
+
+    def template(node) -> str | None:
+        if isinstance(node, _ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, _ast.JoinedStr):
+            parts = []
+            for value in node.values:
+                if isinstance(value, _ast.Constant):
+                    parts.append(str(value.value))
+                elif isinstance(value, _ast.FormattedValue):
+                    parts.append("{" + _ast.unparse(value.value) + "}")
+            return "".join(parts)
+        return None
+
+    for fn in _ast.walk(tree):
+        if not (isinstance(fn, (_ast.FunctionDef,)) and fn.name in wanted):
+            continue
+        for node in _ast.walk(fn):
+            if isinstance(node, _ast.Call) and isinstance(node.func, _ast.Name) \
+                    and node.func.id in {"ValueError", "ManagedContentError"} \
+                    and node.args:
+                text = template(node.args[0])
+                if text:
+                    found.add(text)
+            if isinstance(node, _ast.Return) and node.value is not None:
+                text = template(node.value)
+                if text:
+                    found.add(text)
+    return found
+
+
+def test_the_readers_refusal_vocabulary_is_completely_surveyed() -> None:
+    """Both directions, so neither a new refusal kind nor a stale entry hides.
+
+    The walk in the spec's notes proves each LISTED kind classifies to the
+    read-refusal row; only this closes the other half, which is that the list is
+    the reader's whole vocabulary. A `docs/` script cannot import the guard
+    module, so completeness is owed here.
+    """
+    from_source = _reader_refusal_templates()
+    assert from_source, "the AST survey found no refusal templates — it is looking wrong"
+    declared = set(_ACQUISITION_REFUSALS)
+    assert from_source == declared, (
+        "the state reader's refusal vocabulary changed.\n"
+        f"  in the source, not declared: {sorted(from_source - declared)}\n"
+        f"  declared, not in the source: {sorted(declared - from_source)}\n"
+        "Every kind must classify to the read-refusal row; add it and give it a case."
+    )
+
+
+def test_every_constructible_acquisition_refusal_takes_the_read_refusal_row(
+    g, spec, tmp_path: Path,
+) -> None:
+    """Each refusal the guard can be driven into lands on row 1, not on a table row.
+
+    Discriminating on the reason's own text: a state that reached the verdict
+    table refuses with this feature's `wave exit:` prefix, so a kind that fell
+    through to the table would be visible here rather than absorbed.
+    """
+    waves = [["T1"]]
+    cases: dict[str, Path] = {}
+
+    cases["spec-dir absent"] = tmp_path / "nowhere"
+    not_a_dir = tmp_path / "afile"
+    not_a_dir.write_text("x", encoding="utf-8")
+    cases["spec-dir is not a directory"] = not_a_dir
+    cases["missing"] = spec(no_state=True)
+
+    for label, payload in {
+        "unparseable": "{ not json",
+        "non-object root": "[1, 2]",
+        "non-finite number": '{"schema_version": 1, "n": Infinity}',
+        "nested too deeply": "[" * 3000 + "]" * 3000,
+    }.items():
+        d = spec(no_state=True)
+        (d / "state.json").write_text(payload, encoding="utf-8")
+        cases[label] = d
+
+    d = spec(no_state=True)
+    (d / "state.json").write_bytes(b'{"schema_version": 1, "f": "\xff\xfe"}')
+    cases["invalid utf-8"] = d
+
+    d = spec(no_state=True)
+    (d / "state.json").mkdir()
+    cases["not a regular file"] = d
+
+    d = spec(no_state=True)
+    (d / "state.json").write_text(
+        '{"schema_version": 1, "pad": "' + "p" * (8 * 1024 * 1024 + 16) + '"}',
+        encoding="utf-8",
+    )
+    cases["oversized"] = d
+
+    for label, target in cases.items():
+        result = g.check_phase(target, phase="wave-exit")
+        assert not result.ok, f"{label} was accepted by the wave exit"
+        assert not result.reason.startswith(g.INTERNAL_ERROR), (
+            f"{label} crashed rather than refusing: {result.reason}"
+        )
+        assert not result.reason.startswith("wave exit:"), (
+            f"{label} reached the verdict table instead of the read-refusal row: "
+            f"{result.reason}"
+        )
+    # Non-vacuity: a readable state must NOT take this row, or the assertion
+    # above is satisfied by a guard that refuses everything.
+    readable = g.check_phase(spec(schedule_waves=waves), phase="wave-exit")
+    assert readable.ok, f"the control state refused: {readable.reason}"
+
+
+# ── one declaration, not two copies ───────────────────────────────────────
+
+def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
+    """`loop-cohort.py` re-binds the model; it must not re-declare any of it.
+
+    The spec's single-sourcing criterion is not independently falsifiable by a
+    behaviour test — two copies of a predicate agree on the day they are written.
+    What is falsifiable is the ABSENCE of a second copy, which is this.
+    """
+    import ast as _ast
+
+    names = {
+        "RECEIPTS_KEY", "RECEIPT_KEY_PATH", "RECEIPT_KIND", "DECLINE_KIND",
+        "DECLINE_REASONS", "partition_digest", "is_dispatch_record",
+        "malformed_receipts_position", "receipts_for_partition",
+        "wave_is_well_formed", "unaccounted_wave_tasks", "bounded_id_list",
+    }
+    guards = load_guards()
+    missing = sorted(n for n in names if not hasattr(guards, n))
+    assert not missing, f"the guard layer does not declare {missing}"
+
+    tree = _ast.parse(COHORT.read_text(encoding="utf-8"))
+    offenders = []
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.FunctionDef) and node.name in names:
+            offenders.append(f"def {node.name} at line {node.lineno}")
+        if isinstance(node, _ast.Assign):
+            for target in node.targets:
+                if not (isinstance(target, _ast.Name) and target.id in names):
+                    continue
+                # A re-bind reads `_g.<name>`. The module-unavailable branch
+                # binds an unusable placeholder instead — an empty literal or
+                # the raising stub — which is not a declaration of the model:
+                # `main()` refuses at its dispatch chokepoint before any verb
+                # body can read one.
+                value = node.value
+                placeholder = (
+                    (isinstance(value, _ast.Constant) and not value.value)
+                    or (isinstance(value, _ast.Tuple) and not value.elts)
+                    or (isinstance(value, _ast.Name)
+                        and value.id == "_guards_unavailable")
+                )
+                rebind = (isinstance(value, _ast.Attribute)
+                          and isinstance(value.value, _ast.Name)
+                          and value.value.id == "_g")
+                if not (placeholder or rebind):
+                    offenders.append(
+                        f"{target.id} = {_ast.unparse(value)} at line {node.lineno}"
+                    )
+    assert not offenders, (
+        "loop-cohort.py re-declares part of the dispatch-receipt data model "
+        f"instead of re-binding it from the guard layer: {offenders}"
+    )
