@@ -82,7 +82,7 @@ For each goal you ground in step 3, name which qualities of the reference you ar
 
 ## Style presets
 
-The presets `assets/presets/swiss-international-typographic.md`, `assets/presets/editorial-broadsheet.md`, and `assets/presets/bauhaus.md` each supply the **precedent** referent only. A preset is never a finished direction: it still needs its persona, standards and platform grounding plus the counterfactual check.
+The `assets/presets` folder holds three pre-filled starting directions — Swiss / International Typographic, editorial broadsheet, and Bauhaus. Each supplies the **precedent** referent only. A preset is never a finished direction: it still needs its persona, standards and platform grounding plus the counterfactual check.
 
 ## Anti-patterns to refuse
 

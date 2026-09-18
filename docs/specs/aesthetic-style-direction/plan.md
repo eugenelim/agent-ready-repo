@@ -1,7 +1,7 @@
 # Plan: Aesthetic style — parameterised direction, counterfactual gate, and divergence audit
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule, § Security and
   authoring rules, § Self-hosting projection, and its Essential-commands block;
   `guides/AGENTS.md` § Essential commands; `docs/product/changelog.md`'s own
@@ -505,6 +505,14 @@ changelog entry.
   the warning travels with the copied file.
 
 ## Changelog
+
+- 2026-09-18: **delivered in light mode at the owner's direction**, without the
+  two G-plan human approvals. After five pre-EXECUTE review rounds the owner
+  chose to stop the contract loop and implement, on the finding that this
+  change is almost entirely prose and prose criteria do not mechanize. The spec
+  and plan therefore record the design rather than a gated contract; the
+  verification that actually ran is in `notes/verification-ledger.md` and the
+  gate output on the PR.
 
 - 2026-09-18: initial plan.
 - 2026-09-18: applied 7 sustained round-1 findings — version bump corrected to
