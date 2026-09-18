@@ -138,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the nearest real symbol inverted the gate's safety property, because that
   symbol is the advisory glob screen the same page says must never greenlight a
   parallel wave. The merge step remains the sole authority for disjointness.
+
 ## [experience-design][2.0.6] — 2026-09-18
 
 ### Highlights
