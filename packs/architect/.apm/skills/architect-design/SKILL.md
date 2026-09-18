@@ -1,15 +1,16 @@
 ---
 name: architect-design
-description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Shapes a one-page concept first, then produces a Google-style design doc (TL;DR, context, goals/non-goals, proposal, alternatives, risks, rollout, open questions), 2-5 pages, with Mermaid inline, and converges it against review. Cloud well-architected by construction (AWS/Azure/GCP and primitives providers like Hetzner). Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
+description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Shapes a one-page concept first, then authors from one of three model-first templates chosen by architectural scope — a whole application or system, one subsystem, or a change to an existing architecture — leading with the structural, runtime, contract, data, deployment and quality models and following each with its rationale, Mermaid inline, and converges it against review. Cloud well-architected by construction (AWS/Azure/GCP and primitives providers like Hetzner). Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
 metadata:
   boundaries: [filesystem_read_untrusted, filesystem_write, network_fetch]
 ---
 
 # Skill: architect-design
 
-Produce a Google-style design doc that names the problem, proposes a solution,
-considers alternatives honestly, and surfaces the risks the proposer least wants
-to write down — well-architected by construction, then converged against review.
+Produce a design document whose shape matches the architectural scope it
+answers at, leading with the model and following it with the rationale, so every
+architectural view has exactly one home — well-architected by construction, then
+converged against review.
 
 ## Output rendering
 
@@ -143,8 +144,8 @@ real choice remains, create no new artifact.
    Record exactly one value from that closed set — `knowledge provider unavailable`, `knowledge provider ambiguous`, `knowledge provider stale`, `knowledge provider ineligible`, `knowledge provider request out of scope`, `knowledge provider response refused`, `provider integrity unavailable` — and never a provider-authored string; `knowledge provider response refused` records a refused response. Cite returned `topic_ids` and provenance only where accepted envelope content is used.
    <!-- knowledge-provider-handoff:end -->
 
-3. **Determine scope.** Resolve architectural scope before anything else in
-   the procedure — altitude and document count both precede Stage 0 and any
+3. **Determine scope.** Resolve architectural scope before Stage 0 and
+   template selection — altitude and document count both precede any
    template choice.
 
    <!-- scope-determination:start — stable anchor; tests locate this stage by

@@ -10,6 +10,8 @@
 
 # Application/System Design — <one-phrase name>
 
+**Decision sought:** <the one decision this document asks the reader to
+make>
 **Author(s):** <names>
 **Status:** Draft | Under review | Accepted | Superseded
 **Last updated:** <YYYY-MM-DD>
@@ -100,7 +102,7 @@ sequenceDiagram
     actor Person
     participant Web
     participant Api
-    Note over Person,Api: Normal path — <journey name>
+    Note over Person,Api: Normal path — <journey name> · Question: <what this run answers> · Zoom: container
     Person->>Web: <action>
     Web->>Api: <request>
     Api-->>Web: <response>
@@ -113,7 +115,7 @@ sequenceDiagram
     participant Web
     participant Api
     participant External
-    Note over Person,External: Failure / recovery path — <journey name>
+    Note over Person,External: Failure / recovery path — <journey name> · Question: <what this run answers> · Zoom: container
     Person->>Web: <action>
     Web->>Api: <request>
     Api->>External: <call>

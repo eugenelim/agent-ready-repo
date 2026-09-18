@@ -56,7 +56,15 @@ Read the artifact and pick the genre, then walk that rubric:
   fidelity, evidence provenance, current-state coherence, attention-heat use,
   lens/scenario coverage, claim calibration and alternative explanations, and
   action traceability. Do not rescan the repository or reconstruct evidence.
-- Design doc (Google-style or close) — design-doc rubric.
+- Design doc, at one of three architectural scopes, all routed to the
+  design-doc rubric:
+  - **application/system** — expect the zoom to stop at Container; a
+    component inventory or file/module mapping inside it is a finding.
+  - **subsystem** — expect the zoom to descend to internal elements and
+    the contracts the subsystem exposes.
+  - **architecture change** — the document is delta-shaped; it must name
+    the authoritative current-architecture artifact it is a delta from,
+    and a second embedded current-state assessment is itself a finding.
 - C4 Container / Context diagram — C4 rubric.
 - Sequence diagram — sequence rubric.
 - State diagram — state rubric.

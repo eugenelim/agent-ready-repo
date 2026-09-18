@@ -149,6 +149,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   legacy `Boundaries` heading together, so a review of a spec written before
   this release still has a standard to measure against.
 
+## [architect][0.15.11] — 2026-09-18
+
+### Highlights
+
+- **Design docs now match the size of what they describe.** Writing about a
+  whole application or system, a single subsystem, or a change to an
+  existing architecture each gets its own template, so a reviewer no longer
+  has to fill in eight generic sections that half apply and skip the rest.
+- **Every modelled section leads with its model, not a page of prose about
+  it.** Each template opens with the question the section answers, and where
+  the section carries a diagram or table it puts that first and only then
+  explains why it looks that way — so a reader can see the shape of a
+  decision before reading the argument for it.
+- **A new rubric says how many documents a design needs, not just what goes
+  in one.** Six criteria decide whether a part of a subsystem deserves a
+  document of its own, so a design doesn't grow past its own boundary just
+  because a subsystem's story kept expanding, and a parent document says
+  plainly what it still owns once children split off.
+- **Existing links to the earlier design-doc template keep working.** It
+  stays at the same path and now says plainly what it is: a kept pointer to
+  the three templates, never chosen for a design itself.
+- **Design and review now speak the same three scopes.** The review checks
+  ask the same scope-shaped questions the templates were written to answer,
+  so a design that follows its template's model doesn't get marked down
+  against a checklist that expected different sections.
+
+### Added
+
+- `architect-design`: scope determination runs before Stage 0, resolving an
+  altitude — application/system, subsystem, or architecture change — and a
+  document count, both ahead of template choice.
+- `architect-design`: three new templates under `assets/` —
+  `application-system-design.md`, `subsystem-design.md`, and
+  `architecture-change-design.md`. The subsystem spine covers Scope and
+  Context, Structural Model, Runtime Model, Contracts and Invariants, Data
+  and State, Deployment and Operations, Quality Scenarios and Verification,
+  Implementation Mapping, "Decisions, Alternatives, and Risks",
+  "Rollout, Migration, and Reversal", and Open Questions. The application/system
+  template shares that spine at person/system/container zoom and omits
+  internal component and file/module detail. The architecture-change
+  template is delta-shaped and requires the authoritative current-state
+  artifact as its baseline.
+- `architect-design`: `references/decomposition-rubric.md` is new, with six
+  criteria (`D1`-`D6`) governing when a subsystem's part earns its own
+  document. A child qualifies on `D1` plus at least one other criterion,
+  `D1` also doubles as the recursion's stopping rule, and size alone is
+  never sufficient. It also states what a parent document retains once
+  children split out.
+
+### Changed
+
+- `architect-design`: `assets/design-doc.md` is retained at its existing
+  path and now states that it is an unrouted compatibility pointer to the
+  three routed templates; the procedure never selects it.
+- `architect-design`: structural sections use standard Mermaid
+  (`flowchart`, `sequenceDiagram`) with explicit boundaries and a declared
+  zoom, never the experimental `C4Context`, `C4Container`, or
+  `architecture-beta` directives.
+- `architect-design`: the general Appendix section is retired from the
+  templates; supporting evidence is cited or linked inline instead.
+- `architect-design`: `evals/evals.json` gains one eval per routed template
+  asserting each section's model precedes its rationale, and updates its
+  existing eval to require model-first, scope-routed output rather than the
+  retired eight-section shape.
+- `architect-review`: `SKILL.md`, `references/rubric-design-doc.md`, and the
+  `design-reviewer` agent route and check by the same three scopes as
+  `architect-design`, replacing the retired eight-section checklist.
+
 ## [architect][0.15.10] — 2026-09-18
 
 No `Highlights`: this release changes nothing a consumer of the pack can do.

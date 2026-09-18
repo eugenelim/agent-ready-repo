@@ -7,6 +7,8 @@
 
 # Architecture Change — <one-phrase name>
 
+**Decision sought:** <the one decision this document asks the reader to
+make>
 **Author(s):** <names>
 **Status:** Draft | Under review | Accepted | Superseded
 **Last updated:** <YYYY-MM-DD>
@@ -83,7 +85,7 @@ dual-run or migration behavior?
 sequenceDiagram
     participant Caller
     participant Changed
-    Note over Caller,Changed: Normal path after the change — <scenario name>
+    Note over Caller,Changed: Normal path after the change — <scenario name> · Question: <what this run answers> · Zoom: component
     Caller->>Changed: <request>
     Changed-->>Caller: <response>
 ```
@@ -93,7 +95,7 @@ sequenceDiagram
     participant Caller
     participant Changed
     participant Dependency
-    Note over Caller,Dependency: Failure / recovery path after the change — <scenario name>
+    Note over Caller,Dependency: Failure / recovery path after the change — <scenario name> · Question: <what this run answers> · Zoom: component
     Caller->>Changed: <request>
     Changed->>Dependency: <call>
     Dependency-->>Changed: <error>

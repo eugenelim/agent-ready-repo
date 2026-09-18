@@ -59,9 +59,25 @@ Before the full design doc is written, the agent drafts a ½-page concept: probl
 
 The concept gate costs one short read, 5–10 minutes. Redirecting at the concept gate costs nothing. Redirecting after a full Stage 1 doc costs a full write-up cycle. The asymmetry is the point.
 
-### Stage 1 — full design doc
+### Stage 1 — scope, then a model-first design doc
 
-After the concept is approved, the agent writes the full Google-style design doc: TL;DR → Context → Goals and Non-goals → Proposal → Alternatives Considered → Risks → Rollout → Open Questions. The doc is self-checked against `references/design-doc-rubric.md` before it is shown to the user.
+Before drafting, the agent resolves architectural **scope** — altitude and
+document count both precede the template choice. Altitude is exactly one of
+three: **application/system** (one deployable unit end to end), **subsystem**
+(one architecturally significant part carved out of a larger whole), or
+**architecture change** (a delta against an existing, running architecture).
+`references/decomposition-rubric.md` then decides document count on its
+criteria, not on the author's judgment alone.
+
+Scope selects one of three model-first templates —
+`assets/application-system-design.md`, `assets/subsystem-design.md`, or
+`assets/architecture-change-design.md` — each leading with the structural,
+runtime, contract, data, deployment, and quality models and following each
+model with its rationale, so every architectural view has exactly one home.
+`assets/design-doc.md` is kept only as an unrouted compatibility pointer for
+existing references to that path; the procedure never selects it. The doc is
+self-checked against `references/design-doc-rubric.md` before it is shown to
+the user.
 
 ### Stage 2 — convergence loop
 

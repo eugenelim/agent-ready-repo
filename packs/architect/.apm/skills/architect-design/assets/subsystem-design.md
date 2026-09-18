@@ -6,6 +6,8 @@
 
 # Subsystem Design — <one-phrase name>
 
+**Decision sought:** <the one decision this document asks the reader to
+make>
 **Author(s):** <names>
 **Status:** Draft | Under review | Accepted | Superseded
 **Last updated:** <YYYY-MM-DD>
@@ -87,7 +89,7 @@ something goes wrong?
 sequenceDiagram
     participant Caller
     participant Subsystem
-    Note over Caller,Subsystem: Normal path — <scenario name>
+    Note over Caller,Subsystem: Normal path — <scenario name> · Question: <what this run answers> · Zoom: component
     Caller->>Subsystem: <request>
     Subsystem-->>Caller: <response>
 ```
@@ -97,7 +99,7 @@ sequenceDiagram
     participant Caller
     participant Subsystem
     participant Dependency
-    Note over Caller,Dependency: Failure / recovery path — <scenario name>
+    Note over Caller,Dependency: Failure / recovery path — <scenario name> · Question: <what this run answers> · Zoom: component
     Caller->>Subsystem: <request>
     Subsystem->>Dependency: <call>
     Dependency-->>Subsystem: <error>
