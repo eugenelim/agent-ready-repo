@@ -1622,7 +1622,7 @@ verdict from "survivor" to "caught", so it is not hypothetical.
 | the index range check, **upper** end | `if index > current` → `… and False` | `test_dispatch_receipt_refuses_an_index_above_the_pointer` | **red, 1 failed** — `dispatch-receipt-index-above-pointer: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T3 in wave 1 …'` |
 | the index range check, **lower** end (the reused `non_negative_int`'s `raw < 0`) | `if raw < 0` → `… and False` | `test_dispatch_receipt_refuses_a_non_non_negative_integer_index[-1]` | **red, 1 failed** — `expected '--wave-index must be a non-negative integer' in output; got "loop-cohort: stop — dispatch-receipt: 'T1' is not in wave -1, which holds 'T3'"` |
 | the pointer-in-partition check | `if current >= len(waves)` → `… and False` | `test_dispatch_receipt_refuses_a_pointer_outside_the_partition` | **red, 1 failed** — `dispatch-receipt-pointer-out-of-range: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave 0 …'` |
-| the usable-partition check | `if not isinstance(waves, list) or not waves` → `(…) and False` | — | **GREEN. The one survivor — § 13.3** |
+| the usable-partition check | `if not isinstance(waves, list) or not waves` → `(…) and False` | — | **GREEN. The one survivor — § 13.3. Closed by T7.** |
 | the task-membership check | `if task_id not in wave` → `… and False` | `test_dispatch_receipt_refuses_an_unknown_task_and_names_the_wave` | **red, 1 failed** — `dispatch-receipt-unknown-task: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T9 in wave 0 …'` |
 
 The lower-end row reads oddly on purpose. `--wave-index -1` with the negative
@@ -1801,11 +1801,21 @@ The lint gate is what proves the restores reached the source rather than merely
 looking restored: a stranded `and False`, an orphaned block or a dangling name
 fails `ruff` or `mypy` before any test runs.
 
-### 13.9 What T5 does not discharge
+### 13.9 What T5 does not discharge, and who does
 
-The `Done when` for this task is that no row reports a green survival. § 13.3
-reports one. The clause is sound and the discriminating assertion is known and
-has been walked against both arms, but landing it edits
-`packs/core/tests/skills/work-loop/test_loop_cohort.py`, which is outside this
-task's one-file `Touches`, and `plan.md` is frozen. The verb's test file needs
-that one change before this task's criterion holds.
+§ 13.3 reports one green survival. The clause is sound and the discriminating
+assertion is known and has been walked against both arms, but landing it edits
+`packs/core/tests/skills/work-loop/test_loop_cohort.py`, outside this task's
+one-file `Touches`.
+
+**Resolved by amendment 0002 rather than left open.** T5 reported `blocked`, the
+owner chose to add a task, and the amendment made three changes: **T7** was added
+depending on T5 to land the assertion and supersede the row above; T6 was
+re-pointed from T5 to T7 so the release bump stays last; and this task's
+`Done when` was narrowed from "no row reports a green survival" to requiring
+every survival to name the task that closes it. The obligation moved, it was not
+dropped — T6 sits behind T7, so nothing ships with a survivor open.
+
+The row in § 13.2 now names T7, which is what discharges the narrowed clause.
+§ 13.3's analysis stays exactly as T5 wrote it: the survival is the finding, and
+a table edited to hide it would be worth less than one that records it.
