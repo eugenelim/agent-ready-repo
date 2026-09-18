@@ -88,6 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer repeats that list of mechanisms; it points at the rule beginning
   "Carry mechanism, never a restatement of a criterion", which states them
   once, so the two cannot drift apart again.
+- `adversarial-reviewer`, `quality-engineer`, `security-reviewer` and
+  `finding-adjudicator` now state that a finding's bold title takes backticks
+  rather than italics. The report parser rejects any `*` between the opening
+  and closing `**`, so a title quoting an italicised phrase parsed as zero
+  findings and the report was refused as `invalid (sustained-line-shape)` — a
+  reason code that reads as an unsound verdict rather than as markup, which
+  cost a review loop a stop to diagnose.
 
 ## [core][2.26.16] — 2026-09-18
 

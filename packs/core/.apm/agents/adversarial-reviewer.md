@@ -393,6 +393,11 @@ tiers, review every surface as contract; the mechanical test still applies.
 **3. <title>.** `path/to/file.ext:line`. <what's wrong>. Fix: <fix>.
 ```
 
+Use backticks, never italics, to quote a phrase inside a finding's bold
+title: the consuming parser rejects any `*` between the opening and closing
+`**`, and a title carrying one silently parses as zero findings. Emphasis
+after the closing `**` is fine.
+
 Omit empty sections. If everything's clean, output `Clean — ready to commit.`
 with no findings list and no praise padding.
 

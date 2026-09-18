@@ -118,6 +118,11 @@ def test_finding_adjudicator_source_contract() -> None:
     for grammar_rule in (
         "**Exactly one**",
         "Never wrap a sustained entry",
+        # An italicised phrase in a bold title parses as zero findings and the
+        # artifact classifies `invalid (sustained-line-shape)`, whose reason code
+        # points at the verdict rather than at the markup. Producer-stated or the
+        # next author rediscovers it by reading the regex.
+        "No `*` inside the bold title",
     ):
         assert grammar_rule in body, grammar_rule
 

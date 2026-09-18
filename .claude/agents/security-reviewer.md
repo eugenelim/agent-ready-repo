@@ -254,6 +254,11 @@ attack scenario in one sentence, and end with
 
 ```
 
+Use backticks, never italics, to quote a phrase inside a finding's bold
+title: the consuming parser rejects any `*` between the opening and closing
+`**`, and a title carrying one silently parses as zero findings. Emphasis
+after the closing `**` is fine.
+
 Omit empty sections. If everything's clean, output `Clean — ready to commit.`
 with no findings list and no praise padding.
 
