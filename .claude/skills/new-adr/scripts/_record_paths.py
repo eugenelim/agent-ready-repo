@@ -54,16 +54,21 @@ class CandidateEntry:
     classification and read is detected rather than silently followed.
     """
 
-    __slots__ = ("name", "path", "_stat")
+    __slots__ = ("name", "path", "_stat", "_error")
 
-    def __init__(self, name: str, path: Path, stat_result: os.stat_result):
+    def __init__(self, name: str, path: Path,
+                 stat_result: os.stat_result | None,
+                 error: OSError | None = None):
         self.name = name
         self.path = path
         self._stat = stat_result
+        self._error = error
 
     @property
-    def identity(self) -> tuple[int, int]:
-        """The ``(st_dev, st_ino)`` observed at listing time."""
+    def identity(self) -> tuple[int, int] | None:
+        """The ``(st_dev, st_ino)`` observed at listing time, if it was."""
+        if self._stat is None:
+            return None
         return (self._stat.st_dev, self._stat.st_ino)
 
     def stat(self, *, follow_symlinks: bool = False) -> os.stat_result:
@@ -77,6 +82,15 @@ class CandidateEntry:
         """
         if follow_symlinks:
             raise ValueError("follow_symlinks=True is not supported")
+        if self._error is not None:
+            # Re-raised here, not at listing time. Statting every entry while
+            # the directory is held open is what makes the identity
+            # trustworthy, but a single unstattable entry must not abort the
+            # scan: the caller classifies entry by entry and accounts each one,
+            # and an entry that fails here is reported and bucketed rather
+            # than taking the other candidates down with it.
+            raise self._error
+        assert self._stat is not None
         return self._stat
 
     def __repr__(self) -> str:  # pragma: no cover - diagnostic only
@@ -134,7 +148,10 @@ def list_candidate_entries(directory: Path) -> list[CandidateEntry]:
         out: list[CandidateEntry] = []
         for name in names:
             target = directory / name
-            out.append(CandidateEntry(name, target, target.lstat()))
+            try:
+                out.append(CandidateEntry(name, target, target.lstat()))
+            except OSError as exc:
+                out.append(CandidateEntry(name, target, None, exc))
         return out
 
     try:
@@ -154,7 +171,12 @@ def list_candidate_entries(directory: Path) -> list[CandidateEntry]:
             names = sorted(e.name for e in it)
         entries: list[CandidateEntry] = []
         for name in names:
-            inspected = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            try:
+                inspected = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            except OSError as exc:
+                entries.append(
+                    CandidateEntry(name, directory / name, None, exc))
+                continue
             entries.append(CandidateEntry(name, directory / name, inspected))
         return entries
     finally:
