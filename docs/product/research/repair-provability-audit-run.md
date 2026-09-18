@@ -1002,3 +1002,61 @@ not actually read.** This is the same class as the two earlier harness defects
 and as the voided `git checkout` in the first run: the step either did not
 happen or was not visible, and the surrounding output still looked like a valid
 run.
+
+### Positions 16 to 20: 48 repairs, not one executable oracle
+
+Five commits, **51 briefed repairs, zero executable arms.** Every repair was
+marked `NO REVERTABLE SOURCE` or `NO DISCRIMINATING ORACLE` by Worker A, so
+nothing was run. Position 16 is the gate case `b1e7d6864`, already scored a
+structural kill from a published predicate, so its 3 repairs are excluded and the
+batch contributes **48 unmeasurable**.
+
+**A batch of 48 uniform non-answers is where a worker can coast, so it was
+checked mechanically rather than accepted.** Worker B was briefed to flag any
+non-answer whose stated reason does not hold — a repair claiming no source hunk
+while its own revert field names one, or claiming no oracle while naming a
+control that plainly targets the dispatched defect. It flagged none. An
+independent structural scan over **all 150 briefed repairs** found **0
+contradictions** of that kind. Six repairs name a pytest target while marked
+`NO DISCRIMINATING ORACLE`, which is Worker A naming the nearest control for
+context and is not a contradiction.
+
+### Interim result at 26 of 61 cases
+
+144 unique repair outcomes across the 23 cases adjudicated in this run, deduped
+by case and repair index, with the three hand-picked gate cases and the
+out-of-stratum `ba5f33e92` excluded:
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 126 | 87.5% |
+| semantic kill | 11 | 7.6% |
+| survives | 5 | 3.5% |
+| structural kill | 2 | 1.4% |
+| **total** | **144** | |
+
+**The audit's question can be asked of 18 repairs — 12.5%.** Among those 18:
+
+| Among measurable repairs | Count | Share of 18 |
+| --- | ---: | ---: |
+| semantic kill — the control fires for the dispatched defect | 11 | 61% |
+| **survives — the control passes with the repair reverted** | **5** | **28%** |
+| structural kill — only an incidental break | 2 | 11% |
+
+So **7 of 18 measurable repairs, 39%, shipped without a control that fails for
+the dispatched defect.** That is the audit's answer in the form the design asked
+for, on a partial draw.
+
+**Two denominators, and the second is the one that answers the question.** On
+all 144 repairs the survival share is 3.5%, which reads as a rare problem. On the
+18 repairs where a control could have fired it is 28%, which does not. Neither
+number is wrong; they answer different questions. The design's own power note
+applies to the smaller one with force: **18 observations will not support a
+threshold anywhere near 10%**, and the gap between 3.5% and 28% is a warning
+about which denominator a reader will quote, not a result.
+
+**Still a partial draw.** 26 of 61 cases, in a frozen outcome-blind order, with
+35 cases left. The 87.5% unmeasurable share has been stable across five batches
+and is unlikely to move much. The 18-repair measurable subset is small enough
+that the remaining cases can still move the 61/28/11 split materially, so that
+split is the number to treat as provisional.
