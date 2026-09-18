@@ -120,7 +120,7 @@ If two modes plausibly fit, ask once which the user wants.
    ---
    config:
      theme: base        # default | forest | dark | neutral | base
-     layout: elk        # dagre (default) | elk — see mermaid-flowchart.md for venue caveats
+     layout: elk        # skill default: dagre | elk — see mermaid-flowchart.md for venue caveats
      look: handDrawn    # classic (default) | handDrawn
    ---
    ```

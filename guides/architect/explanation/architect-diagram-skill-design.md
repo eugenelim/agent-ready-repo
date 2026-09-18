@@ -45,12 +45,12 @@ than pixel-perfect layout.
 The skill's two primary direction defaults — `flowchart TB` for hierarchies
 and `flowchart LR` for flows — are grounded in how people read diagrams.
 
-Mermaid's flowchart renderer uses **dagre**, which implements the
-**Sugiyama layered graph framework** (Sugiyama et al. 1981). Sugiyama
-decomposes graph layout into three stages: cycle removal, rank assignment
-(which determines which layer each node sits on), and crossing minimisation
-(which determines node order within a layer). The `direction TB` / `direction
-LR` choice selects the rank axis — vertical or horizontal.
+Before Mermaid 12, Mermaid's flowchart renderer uses **dagre**, which
+implements the **Sugiyama layered graph framework** (Sugiyama et al. 1981).
+Sugiyama decomposes graph layout into three stages: cycle removal, rank
+assignment (which determines which layer each node sits on), and crossing
+minimisation (which determines node order within a layer). The `direction TB`
+/ `direction LR` choice selects the rank axis — vertical or horizontal.
 
 - **TB (top-to-bottom)** places nodes on horizontal ranks with edges
   flowing downward. This maps onto deployment hierarchies (region → VPC →
@@ -67,11 +67,11 @@ correct.
 
 ## Layout philosophy: dagre and ELK
 
-Mermaid's default layout engine is **dagre**, a JavaScript port of
-Graphviz's directed-graph layout. Dagre implements Sugiyama using a
-barycentric method for crossing minimisation and a simple coordinate
-assignment for node placement. It is fast, widely supported, and embedded in
-every Mermaid environment.
+Before Mermaid 12, the default layout engine is **dagre**, a JavaScript port
+of Graphviz's directed-graph layout. Mermaid 12 and later default to **ELK**.
+Dagre implements Sugiyama using a barycentric method for crossing
+minimisation and a simple coordinate assignment for node placement. It is
+fast, widely supported, and embedded in every Mermaid environment.
 
 For complex graphs with many parallel edges or large fan-outs, dagre's
 barycentric crossing minimiser can leave diagrams that look crowded. The
@@ -80,12 +80,15 @@ coordinate-assignment algorithm, which minimises edge bends while keeping
 nodes compact. The result is visually tighter graphs for complex topologies.
 
 The skill exposes ELK via the `config: {layout: elk}` frontmatter setting,
-but marks it with a venue caveat: ELK requires `@mermaid-js/layout-elk` to be
-loaded by the rendering environment. `mmdc` v11+ bundles it as a required
-dependency; Mermaid Live Editor and Mermaid Chart also load it. GitHub,
-Quarto, Joplin, and Obsidian core do not bundle it — the diagram renders but
-falls back to dagre silently. The skill's default is therefore dagre — it
-works everywhere — and ELK is an opt-in for confirmed venues.
+but marks it with a venue caveat. Before Mermaid 12, ELK requires
+`@mermaid-js/layout-elk` to be loaded by the rendering environment. These
+venue observations were made against Mermaid 11.x-era builds: `mmdc` v11+
+bundles it as a required dependency; Mermaid Live Editor and Mermaid Chart
+also load it. GitHub, Quarto, Joplin, and Obsidian core do not bundle it, so
+the diagram renders but falls back to dagre silently. A venue that ships
+Mermaid 12 or later bundles ELK and defaults to it, so it needs no separate
+layout package. The skill's default is still dagre — it works in an unknown
+venue — and ELK is an opt-in for confirmed venues.
 
 The `curve: step` orthogonal routing setting is the other major layout
 lever. Smooth Bézier curves (`basis`, the default) look good for general
@@ -184,9 +187,9 @@ they are equivalent in output.
 The skill's anti-pattern rules are not stylistic preferences. Each one has a
 specific failure mode it prevents:
 
-- **Invisible links (`A ~~~ B`)** are a symptom, not a solution. They exist
-  to force dagre to place nodes in a specific spatial relationship. The
-  underlying problem is always that the diagram has too many nodes for the
+- **Invisible links (`A ~~~ B`)** are a symptom, not a solution. When a
+  diagram uses dagre, they force nodes into a specific spatial relationship.
+  The underlying problem is always that the diagram has too many nodes for the
   layout engine to place sensibly. The fix is to split the diagram.
 - **Vague edge labels** (`"uses"`, `"calls"`) defeat the purpose of labeling.
   A label should communicate *what* crosses the edge — a protocol, a data

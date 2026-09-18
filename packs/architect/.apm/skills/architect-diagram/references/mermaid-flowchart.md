@@ -207,9 +207,9 @@ end
 
 **Critical constraint**: the direction override is silently ignored when any
 node inside the subgraph has an edge to a node *outside* that subgraph.
-Mermaid's dagre engine must resolve all ranks globally in that case and
-cannot honour the local override. Keep the override only on self-contained
-subgraphs with no external edges.
+When a flowchart uses dagre, its engine must resolve all ranks globally in
+that case and cannot honour the local override. Keep the override only on
+self-contained subgraphs with no external edges.
 
 Set `inheritDir: true` to make subgraphs without an explicit `direction`
 statement inherit the diagram's top-level direction:
@@ -268,12 +268,13 @@ there is no per-node size override. Use `\n` to force a line break in a label
 
 ## ELK renderer — for complex graphs
 
-Mermaid ships a second optional layout engine, **ELK** (Eclipse Layout
-Kernel), available as the npm package `@mermaid-js/layout-elk`. Where dagre
-uses a barycentric Sugiyama rank assignment, ELK's default strategy
+Mermaid supports **ELK** (Eclipse Layout Kernel) as a layout engine. Before
+Mermaid 12, ELK is available as the npm package `@mermaid-js/layout-elk`.
+Mermaid 12 and later bundle ELK and default to it. Where dagre uses a
+barycentric Sugiyama rank assignment, ELK's default strategy
 (`BRANDES_KOEPF`) implements the Brandes-Köpf 2002 coordinate-assignment
 algorithm — minimises edge bends and produces more compact, visually balanced
-graphs at the cost of an extra npm dependency.
+graphs. Before Mermaid 12, ELK carries the extra npm dependency.
 
 Enable it with YAML frontmatter:
 
@@ -296,9 +297,12 @@ flowchart LR
 | `mergeEdges` | `true` / `false` (default) | Bundle parallel edges — reduces clutter for hub-and-spoke graphs |
 | `nodePlacementStrategy` | `BRANDES_KOEPF` (default) · `LINEAR_SEGMENTS` · `NETWORK_SIMPLEX` · `SIMPLE` | `BRANDES_KOEPF`: compact + balanced (Brandes-Köpf 2002); `LINEAR_SEGMENTS`: consistent row alignment; `NETWORK_SIMPLEX`: stronger crossing minimisation at higher cost; `SIMPLE`: fast, lower quality |
 
-**Venue caveat — ELK availability varies by environment.** The ELK engine
-requires `@mermaid-js/layout-elk` to be loaded. When absent, the renderer
-silently falls back to dagre. Confirmed availability:
+**Venue caveat — ELK availability varies by Mermaid version and environment.**
+A build that does not bundle ELK, including every Mermaid release before 12,
+requires `@mermaid-js/layout-elk` to be loaded. When it is absent, the renderer
+silently falls back to dagre. Mermaid 12 and later bundle ELK and default to
+it, so they need no separate layout package. The table records observations
+made against Mermaid 11.x-era builds. Confirmed availability:
 
 | Venue | ELK available |
 | --- | --- |
@@ -306,7 +310,7 @@ silently falls back to dagre. Confirmed availability:
 | Mermaid Live Editor | Yes |
 | Mermaid Chart platform | Yes |
 | GitHub, Quarto, Joplin, Obsidian core | No — not bundled in their Mermaid build |
-| Self-hosted / custom installs | Depends — check whether `@mermaid-js/layout-elk` is installed |
+| Self-hosted / custom installs | Mermaid 12 and later bundle ELK; before Mermaid 12, install `@mermaid-js/layout-elk` |
 
 In venues where ELK is unavailable, tune `nodeSpacing` and `rankSpacing` instead.
 
