@@ -1524,7 +1524,7 @@ def test_read_confined_refuses_a_file_substituted_after_classification(
     assert decoy.lstat().st_ino != entry.identity[1], (
         "decoy shares the original's inode; this test cannot discriminate"
     )
-    os.replace(decoy, tmp_path / "a.md")
+    decoy.replace(tmp_path / "a.md")
 
     with pytest.raises(helper.EntryRefused, match="replaced after it was listed"):
         helper.read_confined(tmp_path, tmp_path / "a.md",
