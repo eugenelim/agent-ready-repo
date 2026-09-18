@@ -432,6 +432,11 @@ number in the earlier sections. All five reproduce on the nose:
 | **340** of them are merges | Finding 5 | **340** |
 | **959** landed with no merge commit | Finding 5 | **959** |
 
+> **Two of these five are artifacts — see the erratum at the end of this
+> section.** P0's candidate count is **131** and the baseless count is **15**
+> when the date cutoff is applied deterministically. The three first-parent
+> totals stand.
+
 The corrected base rule also turns out to be *unambiguous*, which Finding 6
 argued for but did not measure: across all 340 first-parent merges, **no commit
 falls inside more than one qualifying merge set**. Every merge-landed commit has
@@ -616,3 +621,100 @@ This run measures the instrument and the oracle, not repair provability. It
 establishes that the oracle reproduces and discriminates on a second independent
 implementation, and that the population is not yet reproducible. It says nothing
 about how often repairs ship with a control that can fail.
+
+### Erratum, same day: the calibration itself was not reproducible
+
+Recorded because this run's whole argument is that a number which cannot be
+recomputed is not a measurement, and the instrument committed that error first.
+
+**What happened.** The calibration script was re-run later in the same session,
+unchanged, against the same revision. It returned **131** P0 candidates where it
+had returned 130, and **15** baseless first-parent-line commits where it had
+returned 14. Nothing in the script or the repository history had changed.
+
+**Cause: `git log --until` is not a stable filter.** Two independent defects,
+both measured:
+
+1. **It answers differently across a `commit-graph` write.** A `commit-graph`
+   file was written at 16:07 on 2026-09-17 by this session's own `git worktree
+   add` and commit activity. Before it existed, `--until=2026-09-11` reported
+   2,281 non-merge commits; afterwards, 2,282.
+2. **It prunes the walk on non-monotonic committer dates.** Date-limited
+   traversal stops at the first out-of-range commit along a path, so a rebased
+   or cherry-picked commit whose committer date is later than its descendants'
+   cuts off everything behind it. At a `2026-09-12` cutoff `--until` reports
+   **2,292** non-merge commits where comparing `%cI` directly finds **2,362** —
+   a **70-commit under-count**, 3.0% of the corpus.
+
+Comparing `%cI` in Python instead is exact and order-free. On that basis:
+
+| Claim, as recorded above | Recorded | Deterministic | Verdict |
+| --- | ---: | ---: | --- |
+| P0 candidates | 130 | **131** | off by one |
+| baseless first-parent-line commits | 14 | **15** | off by one |
+| first-parent commits | 1,299 | **1,299** | reproduces |
+| of them, merges | 340 | **340** | reproduces |
+| landed with no merge commit | 959 | **959** | reproduces |
+
+So **three of the five reproduce, not five.** The three that do are pure
+first-parent counts with no date filter, which is why they are stable. The two
+that do not are the two that pass through the cutoff.
+
+**The headline finding is unaffected**, and this was checked rather than
+assumed. On the deterministic corpus P3 still selects **164** with **58** in
+`source + test`, the exhaustive sweep still returns exactly **10**
+configurations at 147, **none** of them the predicate as stated, and the best
+strata fit is still Δ=2 reachable only by dropping `adjudicat\w+` and
+`re-review`. The frozen selection order is also unchanged: the 58 SHAs are the
+same set and the digest
+`10c3aaace43af05a6f1fd62078dc3923752696f3222aec6e45397c441cca5b81` still holds.
+
+**The lesson is the audit's own thesis, in the instrument again.** "All five
+reproduce on the nose" was a claim that could not fail as written, because
+nothing re-ran it. It came out false within the hour, and only because the
+script happened to be run a second time for an unrelated reason. Any future
+population count in this audit must be computed without git date-limited
+traversal, and must be recomputed rather than quoted.
+
+### The missing step was hunted and not found
+
+The owner chose to recover the unrecorded step before scaling. It is **not
+recovered**, and the search space is now narrowed enough to say what it is not.
+
+The joint constraint is strong: the same step must drop **12** commits from
+P0's provable-base count of 116 and **17** from P3's 164. Twelve candidate
+criteria were measured against both. None matches:
+
+| Candidate criterion | Drops from P0's 116 | from P3's 164 |
+| --- | ---: | ---: |
+| octopus landing merge | 0 | 0 |
+| multiple merge bases (criss-cross) | 0 | 0 |
+| `B..R` empty | 0 | 0 |
+| `B == R` | 0 | 0 |
+| `B` not an ancestor of `R` | 31 | 43 |
+| branch contains a back-merge from main | 37 | 46 |
+| `R` not on the branch's own first-parent line | 0 | 0 |
+| `R` arrived via a sub-branch merge | 0 | 0 |
+| landing merge is not a `Merge pull request` | — | 0 |
+| subject has no conventional-commit prefix | — | 0 |
+| conventional type is `docs` / `chore` | — | 26 / 4 |
+| patch-id duplicates | — | 0 |
+| **required** | **12** | **17** |
+
+Four of these are worth keeping as settled facts rather than dead ends. There
+are **no** octopus merges, **no** criss-cross merge bases, **no** empty `B..R`
+ranges and **no** sub-branch arrivals anywhere in either population — so the
+base rule is cleaner than Finding 6 had to assume, and none of those is the
+missing step.
+
+The date-cutoff defect above explains the **off-by-one** in P0's candidate
+count. It does not explain the 12 or the 17: at the `2026-09-11` cutoff actually
+used, the traversal error is one commit, not twelve.
+
+**What this means for the owner decision.** Option 2 was chosen on the
+expectation that recovering the step would preserve the recorded 87.5%
+precision figure. That expectation is now weaker: twelve principled candidates
+are eliminated, the remaining explanations are unrecorded implementation
+behaviour in a harness that was not retained, and the instrument that produced
+the number has been shown to be unstable. Options 1 and 3 are unchanged and
+both remain available.
