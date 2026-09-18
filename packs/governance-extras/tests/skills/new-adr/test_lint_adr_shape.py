@@ -1483,3 +1483,62 @@ def test_an_oversized_d_id_is_reported_and_the_record_still_counted(tmp_path):
     counts = _parse_summary_counts(combined)
     assert counts["read"] == 1, counts
     assert code == 1
+
+
+def test_read_confined_refuses_a_file_substituted_after_classification(
+        tmp_path):
+    """The classification must bind the read.
+
+    `read_confined`'s own before/after pair proves only that the file did not
+    change between its stat and its open. A file swapped earlier — after
+    `classify_entry` called it regular — is simply observed in its replaced
+    state by that fresh stat, which then agrees with itself. Passing the
+    listing-time identity is what closes that gap.
+    """
+    helper = _load_helper()
+    (tmp_path / "a.md").write_text("ORIGINAL", encoding="utf-8")
+    entry = next(e for e in helper.list_candidate_entries(tmp_path)
+                 if e.name == "a.md")
+    assert helper.classify_entry(entry) == "regular"
+
+    (tmp_path / "a.md").unlink()
+    (tmp_path / "a.md").write_text("SUBSTITUTED", encoding="utf-8")
+
+    with pytest.raises(helper.EntryRefused, match="replaced after it was listed"):
+        helper.read_confined(tmp_path, tmp_path / "a.md",
+                             expect=entry.identity)
+
+
+def test_read_confined_still_reads_an_untouched_file(tmp_path):
+    """The discriminating negative: `expect` must not refuse the normal case.
+
+    Without this, the test above would also pass against an implementation
+    that refused every read.
+    """
+    helper = _load_helper()
+    (tmp_path / "b.md").write_text("FINE", encoding="utf-8")
+    entry = next(e for e in helper.list_candidate_entries(tmp_path)
+                 if e.name == "b.md")
+    assert helper.read_confined(
+        tmp_path, tmp_path / "b.md", expect=entry.identity) == b"FINE"
+
+
+def test_listing_carries_the_identity_it_observed(tmp_path):
+    """`identity` must be the listed file's own, not a re-stat at use time."""
+    helper = _load_helper()
+    target = tmp_path / "c.md"
+    target.write_text("x", encoding="utf-8")
+    entry = next(e for e in helper.list_candidate_entries(tmp_path)
+                 if e.name == "c.md")
+    observed = target.lstat()
+    assert entry.identity == (observed.st_dev, observed.st_ino)
+
+
+def test_candidate_entry_refuses_to_follow_a_symlink_on_stat(tmp_path):
+    """`stat(follow_symlinks=True)` would resolve the link this helper catches."""
+    helper = _load_helper()
+    (tmp_path / "d.md").write_text("x", encoding="utf-8")
+    entry = next(e for e in helper.list_candidate_entries(tmp_path)
+                 if e.name == "d.md")
+    with pytest.raises(ValueError):
+        entry.stat(follow_symlinks=True)

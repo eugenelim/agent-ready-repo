@@ -825,7 +825,10 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
             continue
 
         try:
-            raw_bytes = read_confined(root, entry_path)
+            # Pass the identity observed at listing time: without it the
+            # read verifies only its own stat/open pair and would happily
+            # read a file substituted after `classify` called it regular.
+            raw_bytes = read_confined(root, entry_path, expect=entry.identity)
         except EntryRefused as exc:
             print(f"warning: {entry.name}: refused: {exc}",
                   file=sys.stderr)
