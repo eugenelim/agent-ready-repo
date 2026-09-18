@@ -1,7 +1,7 @@
 # Plan: wave-complete dispatch receipts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0061 § Context (its Concern/Owner table carries
   the read-only-guard / explicit-mutation split this change sits inside);
   `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` `cmd_record_attempt`
@@ -943,11 +943,63 @@ tests/roster/test_verification_ledger_contract.py -q` passes.
   from intent rather than run.
 
 **Done when:** the ledger holds one row per clause, each naming a test and an
-observed failure, and no row reports a green survival.
+observed failure, and every row reporting a green survival names the task that
+closes it. Amendment 0002 narrowed this from "and no row reports a green
+survival": a survivor is closed by a discriminating assertion in a test file,
+and this task's `Touches` is the ledger alone, so the unnarrowed clause could
+not be discharged by the task carrying it. The obligation moved to T7, and T6
+sits behind T7, so nothing ships with a survivor open.
+
+### T7: The partition assertions discriminate the row they name
+
+**Depends on:** T5
+
+**Touches:** packs/core/tests/skills/work-loop/test_loop_cohort.py, docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md
+
+**Tests:**
+- Each malformed-partition case asserts the word its **own** row owns, carried
+  per parameter rather than once for the parametrized test. An empty partition
+  must assert the unusable-partition wording; a non-list partition must assert
+  it too; the wave-shape parameters must keep asserting `malformed`, because
+  their rows correctly say `malformed` and a shared expectation reddens them on
+  a green tree.
+
+**Approach:**
+- Added by amendment 0002. T5's sweep found one clause of the 34 it mutated
+  survived green — the verb's usable-partition check — because both driving
+  cases assert only the substring `schedule_waves`, which three different rows'
+  messages all contain. The clause is correct; the assertion cannot tell the
+  rows apart. This task lands the discriminating form T5 walked and reverted.
+- Take the per-parameter shape. T5 recorded that a single expectation for the
+  whole parametrized test reddens three wave-shape parameters on the unmutated
+  tree, so the parameter list needs its own expected word per case.
+- Re-run the survivor mutation after landing it, and record the row as caught,
+  superseding T5's green row rather than editing it. T5's table keeps the
+  survival, because the survival is the finding.
+- While here, check the sibling assertions T5 flagged as the same shape —
+  `test_wave_advance_refuses_a_malformed_partition`'s parameters — and give them
+  the same treatment where a row owns a distinct word. Do not widen beyond
+  assertions on rows this spec added.
+
+**Inline proof — this task's whole output is a control, so it proves itself.**
+- Positive: with the clause present, every case passes.
+- Consequential negative: with the clause neutralised, a named case fails. T5
+  measured 9 passed / 2 failed for the walked shape; this task reproduces that
+  against what it actually lands.
+- Neutralising proof: the mutation is the one T5 recorded as the survivor, so
+  the before and after are directly comparable on one clause.
+- Real entry path: the cases drive the `dispatch-receipt` CLI, not the validator.
+- Retires when: the verdict rows stop owning distinct wording, at which point a
+  per-row assertion has nothing to pin and the rows themselves need rework.
+
+**Done when:** every malformed-partition case names a word its own row owns; the
+suite is green on the unmutated tree; neutralising the usable-partition check
+fails at least one named case, with the observed text recorded; and the ledger
+carries a caught row superseding T5's green one.
 
 ### T6: The pack release surface agrees
 
-**Depends on:** T5
+**Depends on:** T7
 
 **Touches:** packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md
 
@@ -1148,6 +1200,23 @@ tools/test_build_site_routing.py -q` passes.
   docstring at `test_loop_engine.py:1615` missing from the list. The
   guard-table entry was already covered by the retarget clause, so the
   operative omission was the test docstring, which nothing else in T3 reached.
+- 2026-09-18: **amendment 0002**, adding a task. Authority:
+  [`notes/amendment-0002-owner-authority.md`](notes/amendment-0002-owner-authority.md).
+  Reason: § 13 of the verification ledger. T5's sweep applied 34 mutations and
+  33 reddened a named test; one survived green — the verb's usable-partition
+  check — because both driving cases assert only the substring `schedule_waves`,
+  which three different rows' messages all contain, so the case passes whichever
+  row refuses. The clause is correct and the assertion cannot discriminate.
+  T5's `Touches` is the ledger alone and the repair is a test edit, so the plan
+  anticipated the survivor (its `Approach` says one "returns to T2 or T3") while
+  its task graph could not express the repair, T2 and T3 being complete and
+  immutable. Three changes: T7 added, depending on T5, to land the
+  discriminating assertion T5 walked and reverted; T6 re-pointed from T5 to T7
+  so the release bump stays last; and T5's `Done when` narrowed to require every
+  green survival to name the task that closes it, which is the one started-task
+  edit and moves the obligation rather than dropping it. T1 through T4 stay
+  complete and immutable, and T5's table keeps the green row, because the
+  survival is the finding.
   Found by T1 rather than by a review round, which is what a discovery task is
   for; surfaced to the owner rather than reinterpreted, because a `Done when`
   clause is a verification obligation and contract.
