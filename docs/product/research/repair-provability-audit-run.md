@@ -401,3 +401,1408 @@ nothing about how often repairs ship with a control that can fail. The design's
 `## What this does not measure` section still stands unchanged, and its
 `## Transfer limits` section on the 307 goal-based verification declarations is
 untouched by this run.
+
+## Scale-up attempt, 2026-09-17: the oracle reproduces, the population does not
+
+- **Run date:** 2026-09-17, after PR #1353 merged as `f443b09ff`
+- **Against:** `origin/main` at `9d430418b`, the same revision the earlier
+  sections measure
+- **Verdict:** the three-case oracle gate **reproduces exactly** on an
+  independently rebuilt harness, and both harness requirements are confirmed a
+  second time by observation. **The frozen population does not reproduce.** P3
+  is documented above as 147 commits with 53 in `source + test`; the predicate
+  as stated selects **164 with 58 in `source + test`**, and no reading of it
+  tested here returns 147. So the 50 remaining cases were not drawn, because
+  the denominator of the headline rate is not yet a settled object.
+- **Cost:** zero model calls. Eight pytest runs in a throwaway detached
+  worktree, about 4 minutes of test time. No repository code was changed and no
+  commit was reverted outside that worktree, which was removed afterwards.
+
+### The harness is validated on five numbers it reproduces exactly
+
+The harness was rebuilt from scratch, because the first run retained no scripts.
+Before trusting it against P3, it was calibrated against every precisely stated
+number in the earlier sections. All five reproduce on the nose:
+
+| Claim, as recorded above | Section | Rebuilt harness |
+| --- | --- | --- |
+| P0 selects **130** candidates | Finding 2 | **130** |
+| **14** of the 130 are first-parent-line commits with no base | Finding 5 | **14** |
+| **1,299** first-parent commits | Finding 5 | **1,299** |
+| **340** of them are merges | Finding 5 | **340** |
+| **959** landed with no merge commit | Finding 5 | **959** |
+
+> **Two of these five are artifacts — see the erratum at the end of this
+> section.** P0's candidate count is **131** and the baseless count is **15**
+> when the date cutoff is applied deterministically. The three first-parent
+> totals stand.
+
+The corrected base rule also turns out to be *unambiguous*, which Finding 6
+argued for but did not measure: across all 340 first-parent merges, **no commit
+falls inside more than one qualifying merge set**. Every merge-landed commit has
+exactly one landing merge, so "earliest qualifying merge" and "the qualifying
+merge" name the same thing. That independently confirms Finding 6's correction.
+
+### The base filter above drops 12 commits it does not account for
+
+Finding 2 reports 130 candidates and **104** with a provable base. Finding 5
+reports that **14** of those 130 are first-parent-line commits which "have no
+base" under the design's rule. Those two statements do not agree: 130 − 14 is
+**116**, not 104.
+
+The rebuilt harness returns 116, and the 14 baseless commits it finds are
+*exactly* the 14 first-parent-line commits — the two sets are identical, not
+merely equal in size. So the arithmetic in Finding 5 reproduces and the headline
+104 in Finding 2 does not. Twelve commits were dropped by something the run
+does not record.
+
+This matters beyond bookkeeping. The same unrecorded step sits upstream of P3,
+so it is the most likely single cause of the 147-versus-164 gap.
+
+### P3's 147 is not reachable from the predicate as stated
+
+The predicate is recorded as: review vocabulary
+(`sustained|refuted|adjudicat\w+|re-review|adversarial review|round[- ]\d+|round \w+`),
+commit type not `feat`, and a repair verb in the subject
+(`repair|close[sd]?|closing|fix(es|ed)?|answer\w*`).
+
+Read faithfully — all seven vocabulary alternatives, case-insensitive, matched
+against the whole message, word-bounded, with the corrected base rule — it
+selects **164**, not 147:
+
+| | Recorded above | Rebuilt harness |
+| --- | ---: | ---: |
+| total | **147** | **164** |
+| source + test | **53** | **58** |
+| source only | 27 | 29 |
+| docs only | 30 | 34 |
+| test only | 37 | 43 |
+
+**1,016 predicate configurations were then tested exhaustively** — every one of
+the 127 non-empty subsets of the seven vocabulary alternatives, crossed with two
+repair-verb anchorings, two match fields (whole message, body below the subject)
+and the base filter on or off. Exactly **10 configurations return 147**. Not one
+of them is the predicate as stated: every one drops at least one vocabulary
+alternative, and they disagree about which.
+
+Adding the strata as a second constraint does not rescue it. Across those 10
+configurations crossed with six path rules, the best fit misses by 2 cases
+(53 / 27 / **31** / **36**) and gets there only by dropping `adjudicat\w+` and
+`re-review` — the two terms that most directly express "adjudicated review
+round", which is the predicate's whole point. No configuration reproduces all
+four strata. Reaching 147 requires mutilating the predicate, and the routes to
+it do not agree.
+
+**This is the same failure the first run found in the design, now in the
+replacement.** Finding 2 withdrew its own claim on the ground that a
+determinate predicate reproducing the design's strata exists. The predicate is
+determinate — a regex always is — but the *recorded counts* do not follow from
+the *recorded predicate*, which is exactly the property that made the design's
+113 unusable. A number that cannot be recomputed from its stated rule is not a
+frozen population, however precisely it is written down.
+
+### The three-case oracle gate reproduces exactly
+
+Every published expectation held, on a harness built without reference to the
+earlier implementation. The runner enforced the protocol mechanically: hard
+reset and clean, detached checkout, **printed and verified `HEAD`**, refusal to
+proceed on a dirty tree, and a per-path assertion that each named mirror
+actually changed.
+
+| Case | Expected | Observed | What decided it |
+| --- | --- | --- | --- |
+| `00df54200` | semantic kill | **semantic kill** | R passed first (23 passed). With all 3 mirrors reverted, the replay returned `1 != 0` and the guard said `review_retry_count 5 has reached max_review_retries 5` — the dispatched defect exactly. 5 of 23 tests failed. |
+| `b1e7d6864` | structural kill | **structural kill** | R passed first (95 passed). The unsafe input stayed rejected: `assertEqual(r.returncode, 2)` still passed. Only the reason changed — `plan_file_outside_root != plan_file_is_symlink`. 1 of 95 failed. |
+| `90cb9426e` | semantic kill on the AST repair | **semantic kill** | R passed first (9 passed). Reverting the walker made the lint report `1 skill(s) scanned, 0 finding(s)` — the fixture was scanned and the banned flags went undetected, so the pass is not a structural skip. |
+
+Because the predicates were frozen before this run and published above, no
+predicate could be written to fit a result. That is the freeze-before-observe
+discipline the gate exists to test, and it held a second time.
+
+### Both harness requirements confirmed again, by observation
+
+**1. Reverting one mirrored copy manufactures a false survivor.** In
+`00df54200` the repaired hunk is byte-identical in `.agents/skills/`,
+`.claude/skills/` and `packs/core/.apm/skills/`. Reverting only `.agents` was
+run as a deliberate control arm: **23 passed, exit 0.** The same suite that
+reports 5 failures when all three mirrors go back reports a clean pass when one
+does. A harness that reverts one copy records `survives` for a repair whose
+control fires.
+
+**2. Scored per repair, `90cb9426e` is one semantic kill and one repair with no
+control at all.** The two repairs were reverted in separate arms:
+
+| Arm | Reverted | Result |
+| --- | --- | --- |
+| A | AST walker only | 1 failure — the dispatched defect |
+| B | ACL/SID matching only | **9 passed, exit 0** |
+| C | both | 1 failure, identical to arm A |
+
+Arm B is the decisive one, and it is stronger evidence than the first run's
+byte-identical comparison. Reverting the Windows ACL repair **on its own** leaves
+the suite entirely green. That repair has no control in this test, and the
+reason is structural rather than incidental: the helper opens with
+`if os.name != "nt": return`, so on POSIX the reverted code never runs. Scored
+per commit the case reads `semantic kill` and the uncontrolled repair vanishes.
+
+**A third unit question surfaced, and it is not yet answered.** `b1e7d6864`
+answers *three* adjudicated findings, not one: the symlink rejection (P1,
+source), the SKILL.md consent language (P2, prose) and a dependency record in a
+new `packs/core/AGENTS.md` (P2, prose). Only the first has a source hunk this
+stratum's oracle can revert. So "one outcome per adjudicated repair" does not by
+itself say what to do with a repair whose oracle lives in a different stratum.
+Counting it as one case understates the commit; counting all three understates
+provability, because two of them were never in scope here. No outcome was
+recorded for those two.
+
+### Outcomes so far, and why they are still not a rate
+
+Scored per repair, the four adjudicated source repairs measured to date:
+
+| Outcome | Count |
+| --- | ---: |
+| semantic kill | 2 |
+| structural kill | 1 |
+| survives | 0 |
+| unmeasurable | 1 |
+| **denominator** | **4 repairs across 3 commits** |
+
+**This is not a rate and must not be read as one.** All three commits were
+hand-picked to span the outcome space, which is the opposite of a random draw.
+The design's own power limit also stands: at n≈39–53 this measurement can
+separate a widespread problem from a rare one and **will not support a threshold
+near 10%**.
+
+### The selection order is frozen now, before any outcome is seen
+
+So that the draw cannot later be reordered to favour a result, the order over
+the `source + test` stratum is fixed and recorded here:
+
+- **Population:** the faithful reading of P3 described above — 164 commits, 58
+  in `source + test`, on `origin/main` at `9d430418b`, committer date on or
+  before 2026-09-11.
+- **Order:** the 58 SHAs sorted, then shuffled with Python `random.Random(20260917)`.
+- **Digest:** `sha256` of the newline-joined order is
+  `10c3aaace43af05a6f1fd62078dc3923752696f3222aec6e45397c441cca5b81`.
+
+The three gate cases land at positions **21, 44 and 50** in that order. They are
+not front-loaded, which is the check that the order was not fitted to the cases
+already scored.
+
+If the owner settles on a different population, the order must be regenerated by
+the same recorded procedure and its digest published before any case is run.
+
+### What blocks the remaining 50
+
+One decision, and it belongs to the owner because it sets the denominator of the
+headline result.
+
+**Which population is frozen?** Three options, best first:
+
+1. **Adopt the faithful reading — 164 commits, 58 in `source + test`.** It
+   recomputes from its stated rule, which is the property 147 lacks. The cost is
+   that the recorded 87.5% precision was measured on a 16-case draw from the
+   147, so it transfers to the 164 by assumption rather than by measurement.
+2. **Recover the missing step.** Twelve commits vanish between Finding 2's 116
+   and its 104, and something similar most likely separates 164 from 147. If
+   that step is recoverable, 147 becomes reproducible and the precision figure
+   keeps its basis.
+3. **Re-derive and re-validate a fresh predicate.** Most defensible, and it
+   repeats work the earlier sections already paid for.
+
+Everything downstream is ready. The oracle discriminates, the runner enforces
+the mirror and clean-tree requirements mechanically, the environment needs only
+Python, pytest, git and PyYAML, and the per-case cost estimate of about 43
+minutes held on all three gate cases.
+
+### Transfer limit on this run
+
+This run measures the instrument and the oracle, not repair provability. It
+establishes that the oracle reproduces and discriminates on a second independent
+implementation, and that the population is not yet reproducible. It says nothing
+about how often repairs ship with a control that can fail.
+
+### Erratum, same day: the calibration itself was not reproducible
+
+Recorded because this run's whole argument is that a number which cannot be
+recomputed is not a measurement, and the instrument committed that error first.
+
+**What happened.** The calibration script was re-run later in the same session,
+unchanged, against the same revision. It returned **131** P0 candidates where it
+had returned 130, and **15** baseless first-parent-line commits where it had
+returned 14. Nothing in the script or the repository history had changed.
+
+**Cause: `git log --until` is not a stable filter.** Two independent defects,
+both measured:
+
+1. **It answers differently across a `commit-graph` write.** A `commit-graph`
+   file was written at 16:07 on 2026-09-17 by this session's own `git worktree
+   add` and commit activity. Before it existed, `--until=2026-09-11` reported
+   2,281 non-merge commits; afterwards, 2,282.
+2. **It prunes the walk on non-monotonic committer dates.** Date-limited
+   traversal stops at the first out-of-range commit along a path, so a rebased
+   or cherry-picked commit whose committer date is later than its descendants'
+   cuts off everything behind it. At a `2026-09-12` cutoff `--until` reports
+   **2,292** non-merge commits where comparing `%cI` directly finds **2,362** —
+   a **70-commit under-count**, 3.0% of the corpus.
+
+Comparing `%cI` in Python instead is exact and order-free. On that basis:
+
+| Claim, as recorded above | Recorded | Deterministic | Verdict |
+| --- | ---: | ---: | --- |
+| P0 candidates | 130 | **131** | off by one |
+| baseless first-parent-line commits | 14 | **15** | off by one |
+| first-parent commits | 1,299 | **1,299** | reproduces |
+| of them, merges | 340 | **340** | reproduces |
+| landed with no merge commit | 959 | **959** | reproduces |
+
+So **three of the five reproduce, not five.** The three that do are pure
+first-parent counts with no date filter, which is why they are stable. The two
+that do not are the two that pass through the cutoff.
+
+**The headline finding is unaffected**, and this was checked rather than
+assumed. On the deterministic corpus P3 still selects **164** with **58** in
+`source + test`, the exhaustive sweep still returns exactly **10**
+configurations at 147, **none** of them the predicate as stated, and the best
+strata fit is still Δ=2 reachable only by dropping `adjudicat\w+` and
+`re-review`. The frozen selection order is also unchanged: the 58 SHAs are the
+same set and the digest
+`10c3aaace43af05a6f1fd62078dc3923752696f3222aec6e45397c441cca5b81` still holds.
+
+**The lesson is the audit's own thesis, in the instrument again.** "All five
+reproduce on the nose" was a claim that could not fail as written, because
+nothing re-ran it. It came out false within the hour, and only because the
+script happened to be run a second time for an unrelated reason. Any future
+population count in this audit must be computed without git date-limited
+traversal, and must be recomputed rather than quoted.
+
+### The missing step was hunted and not found
+
+The owner chose to recover the unrecorded step before scaling. It is **not
+recovered**, and the search space is now narrowed enough to say what it is not.
+
+The joint constraint is strong: the same step must drop **12** commits from
+P0's provable-base count of 116 and **17** from P3's 164. Twelve candidate
+criteria were measured against both. None matches:
+
+| Candidate criterion | Drops from P0's 116 | from P3's 164 |
+| --- | ---: | ---: |
+| octopus landing merge | 0 | 0 |
+| multiple merge bases (criss-cross) | 0 | 0 |
+| `B..R` empty | 0 | 0 |
+| `B == R` | 0 | 0 |
+| `B` not an ancestor of `R` | 31 | 43 |
+| branch contains a back-merge from main | 37 | 46 |
+| `R` not on the branch's own first-parent line | 0 | 0 |
+| `R` arrived via a sub-branch merge | 0 | 0 |
+| landing merge is not a `Merge pull request` | — | 0 |
+| subject has no conventional-commit prefix | — | 0 |
+| conventional type is `docs` / `chore` | — | 26 / 4 |
+| patch-id duplicates | — | 0 |
+| **required** | **12** | **17** |
+
+Four of these are worth keeping as settled facts rather than dead ends. There
+are **no** octopus merges, **no** criss-cross merge bases, **no** empty `B..R`
+ranges and **no** sub-branch arrivals anywhere in either population — so the
+base rule is cleaner than Finding 6 had to assume, and none of those is the
+missing step.
+
+The date-cutoff defect above explains the **off-by-one** in P0's candidate
+count. It does not explain the 12 or the 17: at the `2026-09-11` cutoff actually
+used, the traversal error is one commit, not twelve.
+
+**What this means for the owner decision.** Option 2 was chosen on the
+expectation that recovering the step would preserve the recorded 87.5%
+precision figure. That expectation is now weaker: twelve principled candidates
+are eliminated, the remaining explanations are unrecorded implementation
+behaviour in a harness that was not retained, and the instrument that produced
+the number has been shown to be unstable. Options 1 and 3 are unchanged and
+both remain available.
+
+## Scaling run, 2026-09-17: the path rule was wrong for a skills repository
+
+The owner chose to adopt the faithful population and scale. Two corrections
+landed before any outcome was recorded, and both change what gets measured.
+
+### The stratum was frozen on a traditional-software path rule
+
+This repository publishes agent-context packs. The shipped product is
+instruction text — `SKILL.md`, `references/*.md`, `evals/evals.json` — plus the
+Python tooling that backs it. The first freeze used a rule that treated every
+`.md` as documentation, so it classified the repository's primary shipped
+artifact as docs. Finding 3 above already records that the independent hand
+check counted `SKILL.md` as source; that was read and then not applied.
+
+Holding the population at 164 and varying only the path rule:
+
+| Path rule | source + test | source only | docs only | test only |
+| --- | ---: | ---: | ---: | ---: |
+| code only, traditional | 44 | 23 | 40 | 57 |
+| code + config, the first freeze | 58 | 29 | 34 | 43 |
+| **code + shipped instructions** | **61** | **33** | **30** | **40** |
+
+**The count barely moves and the membership does.** The first freeze and the
+corrected rule agree on 54 cases, and disagree on 11 — 7 the corrected rule
+admits and 4 it drops. A denominator that shifts by 3 while a fifth of its
+members change is the worst kind of signal, because it reads as stable.
+
+The rule is now stated rather than tuned: a path is **source** when it sits in a
+shipped or executable tree (`packs/`, `.agents/`, `.claude/`, `.codex/`,
+`packages/`, `tools/`, `web/src/`, `.github/workflows/`) and is not a test;
+documentation (`docs/`, `guides/`) and planning metadata (`workspace.toml`) are
+not source; and a generated file is not source, because reverting a generated
+file proves nothing about a repair.
+
+**Re-frozen stratum: 61 cases.** Order = the 61 SHAs sorted, then shuffled with
+Python `random.Random(20260917)`. Digest of the newline-joined order:
+`582f7db16e3decfa311c3284ac2dba4dbf94c83add5a7e548c5805ff7f796c92`. The three
+gate cases land at positions 16, 47 and 52. The digest published earlier in this
+document, `10c3aaac…` over 58 cases, is **superseded**.
+
+### Two harness defects, both caught before they corrupted a result
+
+**1. "Revert every mirror" voided a measurable case.** Harness requirement 1
+says revert every mirrored copy or a false survivor is manufactured. That is
+still true, but it is not the whole rule. In `76d0ec70d` all three copies of
+`knowledge_store.py` are byte-identical at `R^` — established by blob id,
+`899857de…` for all three — and the commit changed **only** the `packs/core`
+copy, to `c554e926…`. The repair shipped to one of three mirrors. Demanding that
+all three come back refused an arm that was perfectly measurable.
+
+The corrected rule: **the revert set is the predicate's paths intersected with
+the paths the commit itself changed**, and the assertion is that every *in-commit*
+copy came back. A requested path the commit never touched carries no hunk and is
+skipped with a note. This keeps the false-survivor guard and stops it voiding
+single-mirror repairs.
+
+**2. An empty array aborted an arm while still looking like a run.** The runner
+ran under `set -u`, where macOS `bash` 3.2 treats an empty array expansion as an
+unbound variable. When every requested path was in the commit, the skip list was
+empty and the runner exited *before reverting anything* — after printing a
+verified `HEAD`. The visible output was a plausible prefix of a real arm. This is
+the same class as the voided `git checkout` recorded above: the step did not
+happen and the log did not say so.
+
+### Worker A earns its place in the protocol
+
+Two results from the first batches, both of which a single-worker harness would
+have missed.
+
+- It found a **fourth mirror** the executor's own detector missed:
+  `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, alongside
+  the three under `.agents/`, `.claude/` and `packs/core/.apm/`. The executor's
+  detector only matched known skill-directory prefixes, so a copy shipped inside
+  the Python package was invisible to it.
+- It returned the two valid non-answers freely rather than inventing oracles,
+  which is what makes the `unmeasurable` count trustworthy rather than a
+  residue.
+
+Worker B held the line in the other direction: twice it returned `neither`
+against a frozen signature and scored the repair `unmeasurable` rather than
+stretching a predicate to fit an observation.
+
+**One `unmeasurable` was the executor's fault, and the distinction matters.** In
+`76d0ec70d` the recorded observation omitted the failure text, so Worker B
+correctly refused to guess. That observation was re-taken and re-adjudicated,
+because the defect was in the *recording*, not in the predicate. By contrast
+`54ac40ab2` repair 2 stays `unmeasurable`: there Worker A's signature named an
+assertion that in fact passed, which is a predicate defect, and re-adjudicating
+it would be shopping for a verdict. Re-running an incomplete observation is
+recovery; re-running an unwelcome verdict is not.
+
+### First outcomes from the re-frozen draw, and a taxonomy that cannot hold them
+
+Positions 1 to 5 of the re-frozen order, plus one corrected observation from the
+earlier batch. **Five commits carried 32 adjudicated repairs** — 7, 10, 4, 2 and
+8 — which is the first hard evidence for how compound these repairs are. Scored
+per repair, as harness requirement 2 demands:
+
+| Outcome | Count |
+| --- | ---: |
+| semantic kill | 3 |
+| structural kill | 1 |
+| survives | 0 |
+| unmeasurable | 28 |
+| **total repairs** | **32** |
+
+The semantic kills are `4f118013b` repair 6 (the reverted code wrote nothing at
+all for an empty `output_dir`, so `assert err` failed on an empty stderr),
+`446473ebe` repair 2, and `76d0ec70d` repair 1 (`DID NOT RAISE
+KnowledgeStoreError` on all three parameter cases). The structural kill is
+`26f0950e2` repair 4: the unsafe input stayed rejected with exit 2 and only the
+`reason` value differed.
+
+**19 of the 28 unmeasurable have no revertable source hunk at all.** In a
+repository that publishes agent-context packs this is the dominant shape: the
+repair is to shipped prose, to a register, or to the control itself. `84a3a94c0`
+is the clearest case — eight adjudicated repairs, every one of them a correction
+to rubric and template text, none with a source hunk to reverse.
+
+#### The `survives` bin is empty, and it should not be
+
+Three repairs were executed and **the named control came back green with the
+repair reverted**. All three were scored `unmeasurable` rather than `survives`,
+on the ground that Worker A had pre-registered, before execution, that the
+control could not discriminate the repair:
+
+| Repair | Worker A's frozen reason, written before the run |
+| --- | --- |
+| `4f118013b` r1, mode-preservation | the test still seeds and expects `0o644` and does not assert the appended bytes, so a no-op still passes |
+| `4f118013b` r8, prefix confinement | the `R^` predicate also rejects the tested sibling path, so the control cannot tell delegation from duplicated logic |
+| `26f0950e2` r2, concurrent-write guard | despite its name the target tests simultaneous queue and active membership, not a write between the guarded read and the replacement |
+
+Each prediction was confirmed by the run. That is the freeze-before-observe
+protocol working exactly as intended — and then the taxonomy discards the result.
+
+**The design's four outcomes have no bin for "the control is green either
+way."** Its definitions are `survives` = "the intended test stays green" and
+`unmeasurable` = "the repair hunk, test mapping, environment, or failure
+attribution cannot be isolated." For these three the hunk is isolable, the
+environment is sound, and there is no failure to attribute. What Worker A
+identified is that the control passes with or without the repair.
+
+The two readings give opposite headlines:
+
+- **Read as `unmeasurable`:** 0 survives. The audit reports that it could not
+  tell, while its own worker has documented in writing that three shipped
+  controls pass with the repair removed.
+- **Read as `survives`:** 3 survives in 4 measurable repairs. `4f118013b` r1 is
+  the sharpest — "does not assert the appended bytes, so a no-op still passes"
+  is a verbatim description of a control that cannot fail, which is the precise
+  phenomenon this audit was built to count.
+
+`26f0950e2` r2 is genuinely different from the other two and may belong in
+`unmeasurable` on the design's own wording: there the objection is that the
+test's *name* misdescribes what it exercises, which is a test-mapping failure.
+The other two are not mapping failures. They are hollow controls.
+
+**This is a defect in the instrument, not in the workers.** Both did their jobs:
+A pre-registered vacuity and was right, B refused to reclassify against a frozen
+predicate. The outcome set is what cannot express the result. Recorded here
+without resolution, because which bin these fall in decides the audit's headline
+number and that is an owner decision, not an executor's.
+
+### Positions 6 to 10, and the recursion in `ac578faeb`
+
+Ten adjudicated repairs across five commits. **2 semantic kills, 0 structural,
+2 survives, 6 unmeasurable.** The semantic kills are `921721f38` repair 2, where
+reverting the projection made it accept a hook file named exactly `.kiro.hook`
+and `KiroIdeHookRefusal not raised`, and `ac578faeb` repair 1, where the
+architecture control reported two findings — `path observer resolve` and
+`hand-rolled path prefix check` — against a reverted `direct_install.py`.
+
+**`ac578faeb` is dispatched to "close controls that could not fail", and two of
+its own five repairs ship controls that do not fail.** Repair 3 is a hollow
+control: its scalar unknown-key case never exercises an unrepresentable ignored
+value, so the test is green either way. Repair 4 is a test-mapping failure: the
+control covers a category containing a skill, not one skill envelope containing
+another, which is the shape the repair addressed. Both were pre-registered by
+Worker A before execution and both were confirmed by the run.
+
+Each of those two arms reverted a **different single file** —
+`bounded_metadata.py` and `direct_source.py` — with the revert asserted in each,
+so neither green result is an un-applied arm. That check was not ceremonial: a
+green arm and a silently skipped revert print almost the same thing, and the
+runner had already produced exactly that false shape once in this run.
+
+### Running totals after 17 of 61 cases
+
+Scored per repair, excluding the three hand-picked gate cases:
+
+| Outcome | Count | Share of 53 |
+| --- | ---: | ---: |
+| unmeasurable | 39 | 73.6% |
+| semantic kill | 8 | 15.1% |
+| survives | 5 | 9.4% |
+| structural kill | 1 | 1.9% |
+| **total repairs** | **53** | |
+
+**These 17 cases carried 53 adjudicated repairs — 3.1 per case.** The design
+assumed one repair per commit and the first run's harness requirement 2 already
+corrected that, but the size of the correction is new: `84a3a94c0` alone bundles
+eight findings and `4f118013b` ten. A per-commit score would have compressed 53
+outcomes into 17 and lost every survival inside a commit that also produced a
+kill.
+
+**The `unmeasurable` share is the headline so far, and it is a property of the
+corpus rather than of the instrument.** The large majority are
+`NO REVERTABLE SOURCE`: the repair corrected shipped prose, a register, or the
+control itself, so there is no source hunk whose reversal could exercise a
+defect. That is what a repair looks like in a repository whose product is
+instruction text. It is not a measurement failure, but it does mean the audit's
+original question — does a shipped repair carry a control that would fail if the
+repair were reversed — is only *askable* of a minority of repairs in this
+stratum.
+
+**Still not a rate.** 17 of 61 cases, drawn in a frozen outcome-blind order, so
+these proportions are an interim observation on a partial draw and the remaining
+44 can move them.
+
+### Positions 11 to 15, and the finding at 100 adjudicated repairs
+
+Positions 11 to 15 carried **47 adjudicated repairs across five commits** — one
+bundles 17 findings, another 12. Outcome: **3 semantic kills, 1 structural kill,
+0 survives, 43 unmeasurable.** The semantic kills are `73bfe3be7` repair 2, where
+the reverted code wrote an absolute local path into the persisted plan file, and
+`3546f2c28` repair 1, where the reverted merge dropped an unrelated pre-existing
+JSON key (`KeyError: 'otherKey'`). The structural kill is `03f4d3ee5` repair 3:
+the refusal still fired and still had zero effect, and only the emitted code
+string moved from `proposer-role-invalid` to `actor-role-invalid`, with the other
+five parameter cases in the same test staying green.
+
+#### Running totals: 22 of 61 cases, 100 adjudicated repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 82 | 82% |
+| semantic kill | 11 | 11% |
+| survives | 5 | 5% |
+| structural kill | 2 | 2% |
+
+#### The audit's question is unaskable of 88% of these repairs
+
+This is the substantive result so far, and it comes from Worker A's predicates
+rather than from any outcome, so it is fixed before execution and cannot be an
+artifact of how an arm ran. Over the **99 repairs briefed across 20 cases**:
+
+| Worker A's frozen classification | Repairs | Share |
+| --- | ---: | ---: |
+| **no revertable source** — the repair changed no source hunk | **59** | **59.6%** |
+| **no discriminating oracle** — a source hunk exists, no co-changed control can tell | **28** | **28.3%** |
+| a real oracle proposed | 12 | 12.1% |
+
+**Only 12 of 99 shipped repairs can even be asked the audit's question.** The
+other 87 fail at one of two prior conditions: there is nothing to revert, or
+there is nothing that would notice.
+
+The 59.6% is a property of what this repository ships. Its product is
+instruction text, so a review round is answered by correcting prose, a register,
+a spec body, or the control itself — none of which has a source hunk whose
+reversal exercises a defect. The 28.3% is the more interesting half: a source
+hunk *does* exist, and the co-changed test still cannot distinguish the repair
+from its absence.
+
+**Repairs per case: mean 5.0, max 17, min 1.** The distribution is
+`{1:4, 2:5, 3:2, 4:1, 5:2, 7:1, 8:1, 10:1, 11:1, 12:1, 17:1}`. The design's
+one-repair-per-commit unit would have turned 99 outcomes into 20.
+
+#### A third instrument defect, in the executor's own driver
+
+The first pass over these arms piped the runner through `tail -26`, which
+truncated the `reverted OK` confirmation lines off three of the four arms. The
+outcomes were recorded without the guard that makes them trustworthy. The re-run
+then omitted the `--` separator, so no paths reached the runner and `set -u`
+aborted every arm — loudly, this time, which is the only reason it was caught
+immediately.
+
+Both passes are superseded by a full-capture run in which every arm prints one
+`reverted OK` line per in-commit path plus a count line, and all four were
+confirmed. **No arm is reported in this document whose revert confirmation was
+not actually read.** This is the same class as the two earlier harness defects
+and as the voided `git checkout` in the first run: the step either did not
+happen or was not visible, and the surrounding output still looked like a valid
+run.
+
+### Positions 16 to 20: 48 repairs, not one executable oracle
+
+Five commits, **51 briefed repairs, zero executable arms.** Every repair was
+marked `NO REVERTABLE SOURCE` or `NO DISCRIMINATING ORACLE` by Worker A, so
+nothing was run. Position 16 is the gate case `b1e7d6864`, already scored a
+structural kill from a published predicate, so its 3 repairs are excluded and the
+batch contributes **48 unmeasurable**.
+
+**A batch of 48 uniform non-answers is where a worker can coast, so it was
+checked mechanically rather than accepted.** Worker B was briefed to flag any
+non-answer whose stated reason does not hold — a repair claiming no source hunk
+while its own revert field names one, or claiming no oracle while naming a
+control that plainly targets the dispatched defect. It flagged none. An
+independent structural scan over **all 150 briefed repairs** found **0
+contradictions** of that kind. Six repairs name a pytest target while marked
+`NO DISCRIMINATING ORACLE`, which is Worker A naming the nearest control for
+context and is not a contradiction.
+
+### Interim result at 26 of 61 cases
+
+144 unique repair outcomes across the 23 cases adjudicated in this run, deduped
+by case and repair index, with the three hand-picked gate cases and the
+out-of-stratum `ba5f33e92` excluded:
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 126 | 87.5% |
+| semantic kill | 11 | 7.6% |
+| survives | 5 | 3.5% |
+| structural kill | 2 | 1.4% |
+| **total** | **144** | |
+
+**The audit's question can be asked of 18 repairs — 12.5%.** Among those 18:
+
+| Among measurable repairs | Count | Share of 18 |
+| --- | ---: | ---: |
+| semantic kill — the control fires for the dispatched defect | 11 | 61% |
+| **survives — the control passes with the repair reverted** | **5** | **28%** |
+| structural kill — only an incidental break | 2 | 11% |
+
+So **7 of 18 measurable repairs, 39%, shipped without a control that fails for
+the dispatched defect.** That is the audit's answer in the form the design asked
+for, on a partial draw.
+
+**Two denominators, and the second is the one that answers the question.** On
+all 144 repairs the survival share is 3.5%, which reads as a rare problem. On the
+18 repairs where a control could have fired it is 28%, which does not. Neither
+number is wrong; they answer different questions. The design's own power note
+applies to the smaller one with force: **18 observations will not support a
+threshold anywhere near 10%**, and the gap between 3.5% and 28% is a warning
+about which denominator a reader will quote, not a result.
+
+**Still a partial draw.** 26 of 61 cases, in a frozen outcome-blind order, with
+35 cases left. The 87.5% unmeasurable share has been stable across five batches
+and is unlikely to move much. The 18-repair measurable subset is small enough
+that the remaining cases can still move the 61/28/11 split materially, so that
+split is the number to treat as provisional.
+
+### Positions 21 to 25: prose with an oracle, and a structural pattern
+
+Three new cases (two of the five briefed were already scored and are excluded).
+**24 repairs: 0 semantic kills, 3 structural kills, 2 survives, 19
+unmeasurable.**
+
+**Shipped prose can carry an oracle, and the oracle need not discriminate.**
+These are the first arms in this run whose reverted source is instruction text
+rather than code, and both survived:
+
+| Repair | Reverted | Result |
+| --- | --- | --- |
+| `f9311c63d` r7 | all 3 mirrors of `close-work/SKILL.md` | `test_current_docs_form_one_closeout_story` stayed green |
+| `6590c8e84` r4 | `new-spec/references/spec-authoring-rubric.md` | `test_rubric_ships_derivations_and_cites_no_internal_locator` stayed green |
+
+This qualifies the no-revertable-source share reported above. Prose in this
+repository is sometimes pinned by a test — so the absence of an oracle is not a
+straightforward consequence of the product being text. When prose *is* pinned,
+the pin does not necessarily pin what the repair changed.
+
+**One reverted symbol can produce four failures and zero evidence.** In
+`f5ec8c395` all four tests failed identically with `AttributeError: module
+'okf_compiler' has no attribute '_REMOTE_ADDRESS'`: the reverted module does not
+define the symbol the tests reach for, so every test died before exercising any
+behaviour. Worker B scored three of those repairs `structural kill` and the
+fourth `unmeasurable`. Counted naively, four red tests would have read as strong
+evidence of a working control; in fact they carry none.
+
+**An unplanned reproducibility check.** This batch re-briefed two already-scored
+cases through a second, independent Worker A instance. For both `281b46dda` and
+`76d0ec70d` it produced the **same revert path and the same oracle** as the
+first instance. The predicate-freezing step is therefore reproducible across
+workers on at least these two cases, which nothing in the protocol had tested.
+
+### Running totals: 29 of 61 cases, 168 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 145 | 86.3% |
+| semantic kill | 11 | 6.5% |
+| survives | 7 | 4.2% |
+| structural kill | 5 | 3.0% |
+
+| Among the 23 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| semantic kill | 11 | 48% |
+| survives | 7 | 30% |
+| structural kill | 5 | 22% |
+
+**12 of 23 measurable repairs — 52% — shipped without a control that fails for
+the dispatched defect.** That figure was 39% one batch ago, on 18 observations.
+It moved 13 points on 5 new observations, which is exactly the instability
+flagged when it was first reported, and it is the reason this split is not yet a
+result. The 86.3% unmeasurable share, by contrast, has held within two points
+across six batches.
+
+### Positions 26 to 31: a 68-test suite that proves nothing
+
+Two new cases. **13 repairs: 0 semantic kills, 1 structural kill, 1 survives, 11
+unmeasurable.**
+
+`a93bbdec4` is the clearest survival in the run so far. The dispatched defect was
+that lock creation caught only `FileExistsError`, so a `PermissionError` or an
+ENOSPC would exit without the required structured JSON result. The co-changed
+test target is the whole of `tools/test_workspace_status.py` — **68 tests**. With
+all three mirrors of the repair reverted, **all 68 passed.**
+
+Worker A pre-registered the reason before execution: the co-changed file contains
+no case that makes lock-file `os.open` raise a non-`FileExistsError` `OSError`
+and asserts a JSON object with `reason == "lock_create_failed"`. A suite of 68
+co-changed tests, and not one of them touches the defect the repair answered.
+This is the shape the audit was built to find, and a count of co-changed tests
+would have scored it as unusually well covered.
+
+### Running totals: 31 of 61 cases, 181 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 156 | 86.2% |
+| semantic kill | 11 | 6.1% |
+| survives | 8 | 4.4% |
+| structural kill | 6 | 3.3% |
+
+| Among the 25 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| semantic kill | 11 | 44% |
+| survives | 8 | 32% |
+| structural kill | 6 | 24% |
+
+**The semantic-kill share is falling monotonically as the sample grows:** 61% of
+18, then 48% of 23, then 44% of 25. The complement — repairs shipping without a
+control that fails for the dispatched defect — has run 39%, 52%, 56%, and now
+stands at **14 of 25**. A monotone drift across three successive reports on a
+sample this small is not yet a trend to report as one, but it is the opposite of
+converging, and it is the reason the remaining 30 cases are worth running rather
+than extrapolating from here.
+
+The 86.2% unmeasurable share has now held within two points across seven
+batches, which is the one proportion in this run stable enough to quote.
+
+### Two defects in the executor's batch selection, and the fix
+
+Positions 21 to 25 re-briefed two already-scored cases, and the next batch
+re-briefed three, because batch selection was driven off raw frozen-order
+positions in the first instance and off a `remaining` list regenerated **while an
+adjudication was still being written** in the second. Both are the same defect:
+the selector could not see work in flight.
+
+The guard now excludes any case appearing in **any predicate file or any
+adjudication file**, so a case cannot be briefed twice regardless of what is
+mid-write. Excluding only scored cases was not enough, because the window
+between briefing and adjudication is exactly when the next batch gets selected.
+
+**The repeats produced evidence that was not designed for.** Three independent
+Worker A instances, given the same dossiers at different times with no shared
+state, produced the **same revert paths and the same oracles** for `281b46dda`,
+`76d0ec70d`, `f5ec8c395` and `6590c8e84`. Cross-worker reproducibility of the
+predicate-freezing step was untested by the protocol; it now has four cases of
+agreement behind it.
+
+### The richest batch, a borrowed failure, and an adjudication that covered 17 of 38
+
+Five new cases, **38 repairs, 12 revert arms.** Every arm had its revert applied
+and asserted; none was voided. Outcome: **3 semantic kills, 2 structural kills,
+8 survives, 25 unmeasurable.**
+
+#### A failure attributed to the wrong repair, caught by a differential arm
+
+Two arms on `f4e821163` failed on the *same test with the same assertion*. Arm 11
+reverted the three mirrors of `references/pre-execute-review.md` for repair 10;
+arm 10 reverted those **plus** the three mirrors of `work-loop/SKILL.md` for
+repair 3. Arm 11's revert set is a strict subset of arm 10's.
+
+So a differential arm was run: revert **only** the three `SKILL.md` mirrors — arm
+10 minus arm 11 — and run arm 10's own test. **It passed.** Arm 10's failure is
+fully explained by the hunk arm 11 isolates, and repair 3's own hunk has no
+control in the test frozen for it. Scored naively, repair 3 reads as a kill.
+
+This is harness requirement 2 established by measurement rather than by
+inspection. The prior run inferred the per-repair unit from a compound commit
+whose two halves produced byte-identical failures; here a subset arm produced an
+identical failure and the differential proved the attribution wrong.
+
+#### Six green arms, and the scale of the co-changed suites
+
+| Arm | Reverted | Result |
+| --- | --- | ---: |
+| `0abfde725` r4 | 3 mirrors of `close-work/SKILL.md` | **137 passed** |
+| `f4e821163` r2, r4 | `security-reviewer` definition across 3 adapters | **72 passed** |
+| `ef2877105` r2 | 4 paths | **57 passed** |
+| `ef2877105` r12 | 3 paths | **57 passed** |
+| `ef2877105` r1 | **7** paths incl. the `agentbundle/_data` copy | 3 passed |
+| `0abfde725` r3 | 2 paths | 1 passed |
+
+A count of co-changed tests would score `0abfde725` repair 4 as covered by 137
+tests. Every one of them passes with the repair reverted.
+
+#### The adjudication covered 17 of 38, and nothing would have noticed
+
+Worker B's first pass on this batch emitted **17 outcome blocks for 38 briefed
+repairs** — one case received none at all — and separately scored **six green
+arms `unmeasurable`**, against the standing owner decision that a control green
+with and without the repair is `survives`.
+
+**The coverage gap was the more dangerous of the two.** The tally keys on
+`(case, repair)`, so a missing block does not error: it silently reduces the
+denominator. The batch would have reported 17 outcomes as though 17 were all
+there were. That is this audit's own target failure class occurring in its
+instrument for the fourth time — a result that could not come out wrong because
+nothing checked it.
+
+Three changes, and the first is the one that matters:
+
+1. **A coverage gate** now diffs briefed repairs against scored ones and exits
+   non-zero, naming every missing repair. Run against the bad output it named all
+   21 holes. It runs after every adjudication.
+2. The batch was **re-chunked** into three briefs of 9, 14 and 15 repairs, each
+   stating its exact repair count and requiring a `COVERED: n` line. All three
+   returned full coverage and the merged result passes the gate at 38 of 38.
+3. Each chunk **re-states the `survives` rule** and names that green arms are
+   present in its material.
+
+Chunk size is the likely common cause: 38 repairs in one call pushed the worker
+into compressing, and the compression dropped both blocks and the rule. The
+re-run applied the rule to all seven green arms without further prompting.
+
+### Running totals: 36 of 61 cases, 219 repairs — survivals now exceed kills
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 181 | 82.6% |
+| **survives** | **16** | **7.3%** |
+| semantic kill | 14 | 6.4% |
+| structural kill | 8 | 3.7% |
+
+| Among the 38 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 16 | 42% |
+| semantic kill | 14 | 37% |
+| structural kill | 8 | 21% |
+
+**Survivals have overtaken semantic kills.** The share of measurable repairs
+shipping without a control that fails for the dispatched defect has now run
+**39%, 52%, 56%, 63%** across four successive reports — 24 of 38. It has risen at
+every single report and has not once moved toward its earlier value.
+
+That monotone rise is now the most important open question in this run, and it
+cuts two ways. It may be the true value emerging as the measurable subset grows
+from 18 to 38. It may also be that later batches are being adjudicated under a
+rule the earliest ones were not: the `survives` bin did not exist for the first
+two batches, and three of its members were re-binned by hand. **Both readings
+are live, and the 25 remaining cases are what separates them.**
+
+### Batch rem-c: a skip that could have been mistaken for coverage
+
+Five new cases, **30 repairs, 4 revert arms**, every revert asserted. Outcome:
+**2 semantic kills, 0 structural, 4 survives, 24 unmeasurable.** Both
+adjudication chunks returned full coverage and the merged result passes the gate
+at 30 of 30.
+
+**The trap this batch was a skip, not a failure.** Arm 4 reported `43 passed, 5
+skipped` — identically in baseline and treatment. A skipped test cannot fail, so
+five skips inside the co-changed file could have been the discriminating
+controls, which would make the arm `unmeasurable` for three repairs at once
+rather than a survival.
+
+They were checked. All five are **permanently-skipped stubs whose bodies were
+never written**:
+
+- replay the pending event when its `to` matches state
+- discard the pending event when its `to` mismatches state
+- crash-then-next-transition — pending from a prior crash must be replayed or
+  discarded at the top of the next `cmd_transition`, not lost
+- cross-spec — crash on spec-A then transition on spec-B must recover spec-A's
+  pending before writing spec-B's new event
+- graceful degradation — make `events.jsonl` append raise `PermissionError` and
+  assert the `engine-state.json` write still succeeds
+
+They cover crash recovery, not the three repairs in the arm, and `git show`
+confirms the commit never touched them. So they are not this case's oracle, and
+the adjudicator was told so explicitly. **They are recorded as a corpus fact:
+the loop engine's co-changed event suite ships five unwritten crash-recovery
+stubs.** `43 passed` is what that suite reports.
+
+**A distinct survival mechanism, specific to withdrawals.** `031c7e2f4` drops
+`retry_state` from the event line. Its three repairs all survive, and Worker A
+pre-registered a separate reason for each: the co-changed suite **deleted** the
+`retry_state` assertions and added no assertion that emitted events lack the
+field, no replacement for the lagging-round defect, and no retained check on
+event-key cardinality. For a removal repair, reverting restores the removed
+thing — and nothing asserts its absence. That is a different failure shape from
+the hollow controls seen earlier, where an assertion existed but could not
+discriminate.
+
+### Running totals: 41 of 61 cases, 249 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 205 | 82.3% |
+| survives | 20 | 8.0% |
+| semantic kill | 16 | 6.4% |
+| structural kill | 8 | 3.2% |
+
+| Among the 44 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 20 | 45% |
+| semantic kill | 16 | 36% |
+| structural kill | 8 | 18% |
+
+**The rising share has flattened.** Repairs shipping without a control that
+fails for the dispatched defect, across six successive reports:
+
+| Report | measurable n | no semantic control |
+| --- | ---: | ---: |
+| 26 cases | 18 | 39% |
+| 29 cases | 23 | 52% |
+| 31 cases | 25 | 56% |
+| 36 cases | 38 | 63% |
+| **41 cases** | **44** | **64%** |
+
+The jump from 39% to 63% happened while the measurable subset grew from 18 to
+38; adding six more observations moved it one point. **That flattening is
+evidence for the first of the two readings recorded earlier and against the
+second.** If the rise had been adjudication-rule drift — later batches scored
+under a `survives` bin the earliest ones lacked — it would keep climbing as more
+batches were scored under the newer rule. It did not. The value looks like it is
+settling near **28 of 44**.
+
+Twenty cases remain, so this is still not the final figure, but it is the first
+report where the headline moved by less than the sampling noise.
+
+### Batch rem-d: a second borrowed failure, caught by an automated subset check
+
+Five new cases, **39 repairs, 7 revert arms plus 1 differential**, every revert
+asserted. All three adjudication chunks returned full coverage; the gate passes
+at 39 of 39. Outcome: **5 semantic kills, 1 structural, 7 survives, 26
+unmeasurable.**
+
+**The subset check is now automated and it found a real one.** After the first
+borrowed failure, the driver was changed to compare every pair of arms on the
+same commit and warn when one revert set is a strict subset of another. It
+flagged three pairs here. Two were harmless — arm 3 is a subset of arm 2 but came
+back green, so arm 2's failure cannot be borrowed from it. The third was not:
+
+- Arm 6 reverted 7 paths for repair 4 — `workspace_status.py` **and**
+  `workspace_status_engine.py` across all mirrors including the
+  `agentbundle/_data` copy — and failed `test_a_fully_cooled_initiative_can_reach_closeout`.
+- Arm 7 reverted only the 3 `workspace_status.py` mirrors for repairs 7 and 8,
+  and failed **the same test**.
+- The differential reverted only arm 6 minus arm 7 — the four
+  `workspace_status_engine.py` mirrors — and **passed**.
+
+So arm 6's failure belongs entirely to the `workspace_status.py` change, and
+repair 4 has no control in the test frozen for it. Worker B scored it `survives`
+with `REASON: no co-changed control`, citing the differential.
+
+**Two borrowed failures in two consecutive batches makes this systematic, not
+anecdotal.** In a corpus averaging seven repairs per commit, arms drawn for
+different repairs routinely overlap, and the larger arm inherits the smaller
+arm's red test. Without a differential both would have scored as semantic kills.
+The pairwise subset warning is cheap and should be part of any future run of
+this design.
+
+One procedural note: the differential's first invocation returned exit 96 — the
+runner refusing because it saw no in-commit path, caused by a shell-expansion
+slip in the caller. It was re-run with the paths given explicitly rather than
+reading 96 as a result. The guard refusing is why that did not become a silent
+green arm.
+
+Chunk sizing was also tightened before running: a 26-repair chunk was split into
+two of 13, because 38 in one call is what produced the 17-of-38 truncation and 26
+is closer to that than to the 15 that worked.
+
+### Running totals: 46 of 61 cases, 288 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 231 | 80.2% |
+| survives | 27 | 9.4% |
+| semantic kill | 21 | 7.3% |
+| structural kill | 9 | 3.1% |
+
+| Among the 57 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 27 | 47% |
+| semantic kill | 21 | 37% |
+| structural kill | 9 | 16% |
+
+**The headline is now stable across a 13-observation increase.** Repairs
+shipping without a control that fails for the dispatched defect:
+
+| Report | measurable n | no semantic control |
+| --- | ---: | ---: |
+| 31 cases | 25 | 56% |
+| 36 cases | 38 | 63% |
+| 41 cases | 44 | 64% |
+| **46 cases** | **57** | **63%** |
+
+Three successive reports at 63%, 64%, 63% while the measurable subset grew from
+38 to 57. The earlier monotone rise has stopped and reversed by a point, which is
+what convergence looks like rather than drift. **36 of 57.**
+
+### Batch rem-e: a log destroyed by its own payload, and a prediction kept
+
+Five new cases, **43 repairs, 7 revert arms**, every baseline exiting 0 and every
+revert asserted. All three chunks returned full coverage; the gate passes at 43
+of 43. Outcome: **3 semantic kills, 5 structural kills, 1 survives, 34
+unmeasurable.** This is the first batch where structural kills outnumber semantic
+ones.
+
+**An instrumentation hazard not seen before: the test data wiped the log.**
+Four arms reported empty result lines. Several of these tests carry **ANSI escape
+sequences as their fixtures** — they exercise invisible code points and
+consent-surface repainting — and a raw `\x1b[2J[1;1H` in captured output clears
+the screen, erasing pytest's summary line from the log. The runs were sound; the
+*evidence* was destroyed by the payload under test. Those arms are reported from
+exit codes, which are unaffected, and the observation file says so explicitly so
+an adjudicator cannot read a blank line as a blank result.
+
+That is the fifth variant of one class in this run: **the step happened and the
+evidence did not survive.** The others were an unstable `git log --until`, a
+`git checkout` that silently did not happen, `set -u` aborting before a revert,
+and `tail` truncating the revert confirmations.
+
+**A prediction from the first run held.** `5ae6efe67` was scoped in the earlier
+session with the note that it "may have no semantic oracle at all" and that its
+co-changed test "fails only on a digest pin". Its arm failed at exactly
+`assert result["skill_digest"] == "sha256:" + skill_digest`, and Worker B scored
+it **structural kill** with `MATCHED: STRUCTURAL ONLY IF` — "this proves only a
+digest mismatch, not the entry-condition meaning." An inspection-only prediction
+made before any harness existed was confirmed by execution months later.
+
+Two further failures were symbol-shape breaks rather than behaviour:
+`TypeError: render_receipt() got an unexpected keyword argument 'removal_hint'`
+and `AttributeError: module 'agentbundle.catalogue_tooling.self_host_windows' has
+no attribute 'EXECUTED_FLOOR_LABELS'`. Both are the structural false-positive
+class the design ranked second among its validity threats.
+
+### Running totals: 51 of 61 cases, 331 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 265 | 80.1% |
+| survives | 28 | 8.5% |
+| semantic kill | 24 | 7.3% |
+| structural kill | 14 | 4.2% |
+
+| Among the 66 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 28 | 42% |
+| semantic kill | 24 | 36% |
+| structural kill | 14 | 21% |
+
+**Four successive reports at 63%, 64%, 63%, 64%** for repairs shipping without a
+control that fails for the dispatched defect, while the measurable subset grew
+from 38 to 66. **42 of 66.** The figure has been within one point of 63.5% for
+four reports and 28 added observations, which is as converged as a sample this
+size gets.
+
+### Batch rem-f: three instrument catches, and my convergence claim was wrong
+
+Five new cases, **55 repairs, 16 revert arms plus 1 differential** — the largest
+batch. Every arm: baseline exit 0, revert applied and asserted. All five
+adjudication chunks returned full coverage; the gate passes at 55 of 55. Outcome:
+**3 semantic kills, 3 structural kills, 18 survives, 31 unmeasurable.**
+
+#### A mangled invocation that read as "no change"
+
+Arms 12, 13 and 14 exited **4** — a pytest usage error — in *both* baseline and
+treatment. Worker A had written `-k 'expr or expr'` in those test fields, and the
+driver dropped the quoting, so `or` was passed as a path and **the tests never
+ran**. Identical exit codes in both arms is precisely what a survival looks like
+in a summary that reports only "same result". The runner now invokes through
+`eval` so inner quoting survives; all three were re-run with baseline exit 0 and
+all three fail on revert. An exhaustive scan of every arm log in the audit
+confirms **only these three** were affected.
+
+#### Subtest failures were being undercounted
+
+Arms 1 and 7 report failures as `SUBFAILED`, the pytest-subtests form, not
+`FAILED`. The summary counted zero failures for an arm with four real ones. Only
+these two arms in the whole run are affected, so earlier batch figures stand, but
+the corrected counts are what reached the adjudicator.
+
+#### A third borrowed-failure geometry, which the existing check could not see
+
+Arms 5 and 6 ran the **same test** and failed with an **identical message**.
+Their revert sets **overlap without either containing the other**: both include
+the three `loop-engine.py` mirrors, while arm 5 adds `_loop_guards.py` and arm 6
+adds `loop-cohort.py`. The strict-subset check said nothing.
+
+The differential — reverting **only the three shared `loop-engine.py` mirrors** —
+reproduces the identical failure. So the failure belongs to the shared hunk and
+neither repair 2 nor repair 3 has an isolable control. Worker B scored both
+`unmeasurable` rather than `survives`, which is the right bin: the design
+reserves `unmeasurable` for a failure whose attribution cannot be isolated, and
+that is distinct from a control observed green.
+
+**Three distinct borrowed-failure geometries have now appeared**, all inflating
+provability in the flattering direction:
+
+| Geometry | First seen | Detection |
+| --- | --- | --- |
+| strict subset of another arm | `f4e821163` | differential on superset minus subset |
+| several repairs sharing one revert set | throughout | attribution handed to the adjudicator |
+| overlap without containment | `3e217ba0e` | differential on the shared paths |
+
+The pairwise check now warns on **any shared path**, because subset-only was
+demonstrably insufficient.
+
+### Running totals: 56 of 61 cases, 386 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 296 | 76.7% |
+| survives | 46 | 11.9% |
+| semantic kill | 27 | 7.0% |
+| structural kill | 17 | 4.4% |
+
+| Among the 90 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 46 | 51% |
+| semantic kill | 27 | 30% |
+| structural kill | 17 | 19% |
+
+**The convergence claim recorded in the previous section was premature and is
+withdrawn.** That section said four reports within one point of 63.5% was "as
+converged as a sample this size gets". Adding 24 measurable observations moved
+the figure **six points, to 70%** — 63 of 90 repairs shipping without a control
+that fails for the dispatched defect.
+
+| Report | measurable n | no semantic control |
+| --- | ---: | ---: |
+| 36 cases | 38 | 63% |
+| 41 cases | 44 | 64% |
+| 46 cases | 57 | 63% |
+| 51 cases | 66 | 64% |
+| **56 cases** | **90** | **70%** |
+
+Four consecutive readings inside a one-point band was not convergence; it was a
+plateau that a single large batch broke. The lesson is the audit's own: a
+statistic that has stopped moving has not been shown to be stable, it has only
+not yet been disturbed. **What is safe to say is the coarse claim the design
+scoped for — this is widespread, not rare — and that survivals outnumber semantic
+kills by roughly 1.7 to 1.** A point estimate to the nearest percent is not
+supported.
+
+## The audit completes: all 61 cases, 424 repairs
+
+- **Completed:** 2026-09-18
+- **Population:** the faithful reading of P3 — 164 commits on `origin/main` at
+  `9d430418b`, committer date on or before 2026-09-11 — stratum `source + test`
+  re-frozen at 61 cases under the stated skills-codebase path rule, drawn in the
+  order digested as `582f7db1…`
+- **Scored:** 424 repair outcomes across 58 cases, deduplicated by case and
+  repair index. The three hand-picked gate cases and the out-of-stratum
+  `ba5f33e92` are excluded.
+
+### The result
+
+| Outcome | Count | Share of 424 |
+| --- | ---: | ---: |
+| unmeasurable | 305 | 71.9% |
+| **survives** | **55** | 13.0% |
+| semantic kill | 35 | 8.3% |
+| structural kill | 29 | 6.8% |
+
+| Among the 119 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| **survives** | **55** | **46%** |
+| semantic kill | 35 | 29% |
+| structural kill | 29 | 24% |
+
+**84 of 119 measurable repairs — 71% — shipped without a control that fails for
+the dispatched defect.** Only 29% carry a control that fires for the defect the
+repair was dispatched against. Survivals outnumber semantic kills 1.6 to 1.
+
+The audit's question was askable of **28.1%** of repairs. The other 71.9% fail a
+prior condition: no revertable source hunk, or no co-changed control that could
+discriminate the repair from its absence.
+
+### A late defect that moved the headline, and what it cost
+
+**Two entire batches were reported in this document as having zero executable
+arms. That was false.** Those Worker A instances wrapped their `TEST` and
+`REVERT` fields in backticks, and the executor's parser required a `TEST` field
+to begin with the literal `python3 -m pytest`. It silently rejected every one.
+
+**32 executable repairs were dropped — a third of the measurable subset.** The
+earlier figures of 90 measurable repairs and 78.8% unmeasurable were artifacts
+of that bug. Recovering them moved the measurable share from 21.2% to 28.1% and
+the no-semantic-control share from 70% to 71%.
+
+The direction matters more than the magnitude. Every one of the recovered arms
+was *newly measurable*, so the bug had been inflating the unmeasurable count —
+making the corpus look less testable than it is, while leaving the survival
+share almost unchanged. Had the bug gone the other way it would have flattered
+the codebase.
+
+### Claims made in this document and later withdrawn
+
+Recorded because an audit of unfalsifiable claims has no standing to hide its
+own.
+
+| Claim | Fate |
+| --- | --- |
+| "All five calibration numbers reproduce on the nose" | **False.** Two were artifacts of an unstable `git log --until`; three reproduce. |
+| P3 selects 147 with 53 in `source + test` | **Not reproducible** from its stated rule; the faithful reading gives 164 / 58, later 61 under a corrected path rule. |
+| Four reports within one point of 63.5% is "as converged as a sample this size gets" | **Withdrawn.** 24 more observations moved it six points. |
+| `c-16-20` has "51 briefed repairs, zero executable arms" | **False.** 14 were executable; a parser bug hid them. |
+| `rem-g` has "38 repairs, zero arms" | **False.** 18 were executable. |
+
+### Sixteen instrument defects, one shape
+
+The defects found in the measuring apparatus during this run, nearly all of one
+shape — **a step did not happen, or its evidence did not survive, and the output
+still looked like a valid run**:
+
+`git log --until` unstable across a `commit-graph` write and pruning on
+non-monotonic committer dates · a path rule built for traditional code ·
+"revert every mirror" voiding a single-mirror repair · `set -u` aborting before
+a revert on an empty array · `tail` truncating revert confirmations · a driver
+dropping the `--` separator · an adjudication covering 17 of 38 with no error ·
+a `pgrep` waiter matching its own command line · batch selection blind to
+in-flight work, twice · `-k 'a or b'` losing its quoting so tests never ran
+while both arms exited 4 identically · `SUBFAILED` subtest failures counted as
+zero · a backtick-rejecting parser dropping 32 arms · `git clean -fd` leaving
+ignored files until a tree went dirty · several incompatible pytest invocations
+merged into one command line · a borrowed-failure check that tested only strict
+subsets · and, in the first run, a `git checkout` that silently did not happen.
+
+**The instrument produced more instances of this audit's target failure class
+than the corpus produced semantic kills in its first six batches.** That is the
+single most transferable finding here, and it is not a joke at the harness's
+expense: every one of these was caught by a guard, a gate, or a cross-check that
+had to be *added after* the failure it catches. None was caught by intending to
+be careful.
+
+### Four borrowed-failure geometries
+
+In a corpus averaging seven adjudicated repairs per commit, arms drawn for
+different repairs routinely overlap, and a larger arm inherits a smaller arm's
+red test. Four instances were found and resolved by differential arms:
+`f4e821163`, `76df2db04`, `3e217ba0e` and `abdd25258`. Three geometries appeared
+— strict subset, shared revert set, and overlap without containment — and the
+detector had to be widened twice. **All four would have scored as kills**, so
+this bias runs in the direction that flatters the codebase.
+
+`abdd25258` is the instructive one: the differential showed repair 1's failure on
+one test was borrowed, *and* that repair 1 has a genuine control in a second
+test. Differentials separate attribution; they do not simply demote.
+
+### What the design got right, and what it got wrong
+
+**Right.** The four outcomes are close to sufficient. The freeze-before-observe
+protocol works and is cheap: across 13 batches no frozen predicate was rewritten
+to fit a result, and two workers repeatedly refused to stretch one. The
+`n ≈ 39–53` power note was accurate — this supports "widespread, not rare" and
+nothing finer. The instrumentation gate it demanded is what caught the base-rule
+defect in the first run.
+
+**Wrong.** The unit: one repair per commit, against a measured mean of about
+seven and a maximum of 26. The population: 113 never reproduced, and neither did
+its replacement. The path rule: unstated, and the strata swing by a factor of
+1.4 across defensible readings. The premise: the design assumes the question is
+generally askable, and in this repository it is askable of 28%.
+
+**Missing.** A bin for "the control is green either way" — the design's
+`survives` had to be read as covering it by owner decision, because filing a
+documented hollow control under `unmeasurable` deletes the finding. And any
+provision for compound commits beyond "one outcome per repair", which is
+necessary but not sufficient without differential arms.
+
+### Transfer limits
+
+This measures the `source + test` stratum only — 61 of 164 commits. P3's
+precision is about 87.5%, so roughly one selected commit in eight may not be a
+repair event at all, and that error is not propagated into the figures above.
+The three remaining strata — source only, docs only, test only — are unmeasured
+and carry different oracles. Nothing here speaks to whether a repair was written
+test-first, which the design already excluded.
+
+The headline is a proportion of *measurable* repairs in one stratum of one
+repository whose product is instruction text. **What transfers is not 71%. What
+transfers is that a co-changed test is weak evidence of a control, that the
+largest co-changed suites in this corpus were the least discriminating, and that
+measuring this at all requires an apparatus that fails in exactly the way the
+thing being measured does.**
+
+## Extension: do the controls live outside the repair commit?
+
+- **Run:** 2026-09-18, after the main audit closed
+- **Why:** the main result measures **co-changed** controls only. A repository's
+  safety net also includes tests that already existed, so the headline could not
+  distinguish *weak controls* from *controls living elsewhere than the repair
+  commit*. That was the largest hole in the result and it is cheap to close.
+
+### Scope and rule, both fixed before running
+
+The subject is every repair Worker A marked `NO DISCRIMINATING ORACLE` while
+naming a real revertable source hunk — a source change exists and the commit's
+own control cannot tell the repair from its absence. That is **113 distinct
+repairs across 38 cases**, grouped into 76 arms by commit, revert set and owning
+suite.
+
+The oracle follows the design's own stratum-2 wording — *"run the recoverable
+pre-existing affected tests"* — rather than the owning package's whole suite. A
+test file counts as **affected** when, at `R`, it references a reverted module by
+basename or dotted import path, and **test files the commit itself changed are
+excluded**, because a failure in one of those is a co-changed control and not the
+question. Whole-package runs were rejected for two reasons: `packages/agentbundle/tests`
+measures **446 seconds** per invocation, so 23 arms on it would have cost about
+5.7 hours; and a whole-package run admits tests that cannot be affected, which
+inflates unrelated reds — the structural false-positive class the design ranks
+second among its threats.
+
+**The rule is lexical, and the result is reported as such.** A test reaching the
+module transitively, or by invoking a CLI that loads it, does not match. An empty
+affected set therefore means *no pre-existing test names this module*, not *nothing
+exercises it*, and those arms are scored `unmeasurable` rather than
+`no external control`.
+
+### The result
+
+| Outcome | Count | Share of 113 |
+| --- | ---: | ---: |
+| **external control** — a pre-existing test fires for the dispatched defect | **0** | **0.0%** |
+| external structural — a pre-existing test fires only incidentally | 2 | 1.8% |
+| no external control — every affected pre-existing test stayed green | 59 | 52.2% |
+| unmeasurable | 52 | 46.0% |
+
+Of the **61 measurable** repairs: **0** have an external control, 2 fire
+structurally, and 59 have none. A pre-existing test fired at all in **2 of 113**
+cases, and in neither case did it exercise the dispatched defect.
+
+The 52 unmeasurable split cleanly: **46** are the lexically-empty arms above, and
+**6** sit in arms whose baseline was red before any reversion.
+
+### The hole closes in the direction of the original finding
+
+**For repairs whose co-changed control cannot discriminate, not one pre-existing
+test catches the defect either.** The controls do not live elsewhere. The main
+audit's figures were not understating provability by ignoring the wider suite.
+
+This is the outcome most likely to have been produced by motivated reasoning, so
+the guards are worth naming: the affected-test rule, the four outcome bins and
+the lexical caveat were all written **before any arm ran**, the adjudicator was a
+fresh worker briefed that this is a different question from the main audit and
+told not to re-open its verdicts, and it was asked to **flag any repair where the
+rule did not hold** — for instance where Worker A itself named a pre-existing
+test the rule excluded. It flagged none across 113 repairs.
+
+### A refinement for red-baseline suites
+
+The four whole-package-scale arms all had a **red baseline**: at `R`, before any
+reversion, `packages/agentbundle/tests` is not green in a detached worktree
+because its `make build-check` and self-hosted-init tests need a built tree this
+harness never builds. The protocol makes a red baseline `unmeasurable`, and that
+is the default applied.
+
+One case was still measurable, by differencing rather than by exit code. Where
+the treatment's failing **set** is identical to the baseline's, the reversion
+demonstrably contributed nothing. Where it is a strict **superset**, the
+difference is attributable. Three arms were identical; one — `4e270684e` repair
+14 — gained exactly one failure,
+`test_direct_source_state.py::test_interrupted_install_leaves_unowned_projection`,
+against a pre-existing baseline failure in
+`test_build_derivation_claude_plugins.py` that was excluded.
+
+That inference assumes the baseline failures are deterministic. **They were not
+re-run to confirm stability**, so a set-difference result is weaker evidence than
+a green-baseline arm, and it is recorded as such.
+
+### Two further bookkeeping corrections
+
+**The candidate count is 113, not 114.** `6590c8e84` repair 4 of 7 appears twice
+in the candidate file because it was briefed twice during the batch-selection
+race recorded earlier. A coverage check keyed on `(case, repair)` found the
+duplicate, 0 missing and 0 unbriefed.
+
+**An arm summary was taken while an arm was still running.** The first pass over
+the 41 cheap arms reported 40 results for 41 blocks, because the summariser ran
+before the last arm finished. The missing arm was completed and is included. This
+is the same shape as the earlier defects: a count that looked complete because
+nothing compared it to what was expected.
