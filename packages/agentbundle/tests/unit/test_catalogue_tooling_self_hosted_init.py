@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tomllib
@@ -2411,3 +2412,190 @@ def test_schema_two_state_still_removes_owned_stale_path(tmp_path: Path) -> None
 
     assert result.ok
     assert not stale.exists()
+
+
+# ---------------------------------------------------------------------------
+# T4: replay_derivation — the derivation replay is one implementation,
+# callable without writing (spec AC-0004, AC-0005, AC-0006, AC-0015)
+# ---------------------------------------------------------------------------
+
+# STUB: AC-0015
+def test_replay_derivation_writes_nothing_to_target(tmp_path, self_hosted_source):
+    target = tmp_path / "derived-new"
+    cfg = ish.SelfHostedInitConfig(target=target, source=self_hosted_source)
+
+    result = ish.replay_derivation(cfg)
+
+    assert result.file_bytes
+    assert not target.exists()
+
+
+def test_replay_derivation_flags_leak_under_any_non_attributed_value(
+    tmp_path: Path,
+) -> None:
+    """AC-0004/AC-0005: driven against the callable directly. A value the
+    in-memory transform never rewrites (cfg.owner_email stays unset) leaks
+    through under white-label and under an unrecognised attribution value
+    supplied straight to the replay callable — the same identity leak check
+    ``init`` applies, over the same anchor set built from the same source
+    metadata, reports the same violation both times.
+    """
+    source = tmp_path / "leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+
+    for attribution in ("white-label", "not-a-real-attribution-mode"):
+        cfg = ish.SelfHostedInitConfig(
+            target=tmp_path / f"target-{attribution}",
+            source=source,
+            attribution=attribution,
+        )
+
+        replay = ish.replay_derivation(cfg)
+
+        assert replay.violations, attribution
+        assert any(v.anchor == "maintainer_email" for v in replay.violations)
+        assert not (tmp_path / f"target-{attribution}").exists()
+
+
+def test_replay_derivation_recipe_admission_matches_init_and_sync_callers(
+    derived_tree, self_hosted_source
+) -> None:
+    """AC-0006, differential. ``sync`` always replays with
+    ``interactive=False``; ``init`` replays with the default ``True``. Off a
+    TTY — the only way this suite runs — both resolve identically, so the
+    recipe values and discard diagnostics one state file admits must match
+    exactly between the two callers; a fixed expected list would let either
+    drift while staying green against its own copy.
+    """
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["recipe"]["owner_email"] = "not-an-email"
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    cfg = ish.SelfHostedInitConfig(
+        target=derived_tree, source=self_hosted_source, attribution="attributed"
+    )
+
+    as_init = ish.replay_derivation(cfg)
+    as_sync = ish.replay_derivation(cfg, interactive=False)
+
+    assert as_init.diagnostics == as_sync.diagnostics
+    assert any("owner_email" in d for d in as_init.diagnostics)
+    assert as_init.pack_names == as_sync.pack_names
+    assert as_init.profile_names == as_sync.profile_names
+    assert as_init.recorded_recipe == as_sync.recorded_recipe
+
+
+# ---------------------------------------------------------------------------
+# The whole-tree walk (spec AC-0015). Non-dereferencing: relative path, entry
+# kind, mode, symlink target, and bytes for a regular file only. Hard-link
+# counts, extended attributes, and timestamps are outside this oracle by
+# decision. T4 introduces the helper and this task's reachable rows; every
+# later task parametrises its own no-write case against this same helper
+# rather than copying it.
+# ---------------------------------------------------------------------------
+
+
+def walk_target_tree(root: Path) -> dict[str, dict[str, object]]:
+    """Return a non-dereferencing snapshot of every entry under ``root``."""
+    if not root.exists() and not root.is_symlink():
+        return {}
+    snapshot: dict[str, dict[str, object]] = {}
+    for dirpath, dirnames, filenames in os.walk(str(root), followlinks=False):
+        dp = Path(dirpath)
+        for name in [*dirnames, *filenames]:
+            entry = dp / name
+            rel = entry.relative_to(root).as_posix()
+            st = entry.lstat()
+            if entry.is_symlink():
+                kind = "symlink"
+            elif entry.is_dir():
+                kind = "dir"
+            elif entry.is_file():
+                kind = "file"
+            else:
+                kind = "other"
+            snapshot[rel] = {
+                "kind": kind,
+                "mode": stat.S_IMODE(st.st_mode),
+                "target": os.readlink(entry) if kind == "symlink" else None,
+                "bytes": entry.read_bytes() if kind == "file" else None,
+            }
+    return snapshot
+
+
+def _replay_success_row(target: Path) -> None:
+    source = _make_source(target.parent)
+    cfg = ish.SelfHostedInitConfig(target=target, source=source)
+    replay = ish.replay_derivation(cfg)
+    assert not replay.violations
+
+
+def _replay_identity_leak_row(target: Path) -> None:
+    source = target.parent / "no-write-leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+    cfg = ish.SelfHostedInitConfig(target=target, source=source)
+    replay = ish.replay_derivation(cfg)
+    assert replay.violations
+
+
+def _replay_source_validation_failure_row(target: Path) -> None:
+    source = target.parent / "no-write-source-without-catalogue-toml"
+    source.mkdir()
+    cfg = ish.SelfHostedInitConfig(target=target, source=source)
+    with pytest.raises(ish.ReplayError):
+        ish.replay_derivation(cfg)
+
+
+# Registry other tasks extend with their own (label, scenario) rows against
+# spec AC-0013's exit-code table, reusing walk_target_tree rather than a copy.
+TREE_WALK_CASES = {
+    "replay-success": _replay_success_row,
+    "replay-identity-leak-violation": _replay_identity_leak_row,
+    "replay-source-validation-failure": _replay_source_validation_failure_row,
+}
+
+
+@pytest.mark.parametrize("case", sorted(TREE_WALK_CASES))
+def test_replay_derivation_leaves_the_target_tree_unchanged(
+    tmp_path: Path, case: str
+) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "adopter-owned.txt").write_text("keep me\n", encoding="utf-8")
+    before = walk_target_tree(target)
+
+    TREE_WALK_CASES[case](target)
+
+    after = walk_target_tree(target)
+    assert after == before

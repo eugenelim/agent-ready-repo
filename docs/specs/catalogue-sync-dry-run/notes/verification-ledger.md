@@ -236,3 +236,84 @@ edit, and the test command chained after it still printed `1 passed`, which
 evidenced nothing. The file's SHA-256 was confirmed unchanged at
 `546ce645c24dda76da934b44b32e0eebae9a612465de3221f6e7c98b6aa06ba7`. A failable
 edit must not be chained with the step that reads its result.
+
+## Wave 3 — T4
+
+- **Date:** 2026-09-17
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:41`
+- **Worker:** the `implementer` subagent.
+
+### What was built
+
+`replay_derivation(cfg, *, interactive=True) -> DerivationReplay` lifts steps
+1–9 out of `init_self_hosted`, which is now its caller plus steps 10–14 reading
+everything through `replay.*`.
+
+### Deviations from the task's `Approach`, recorded here because the plan is pinned
+
+The plan's contract block makes `Approach` working material "corrected in place
+as the work teaches", but `plan.md` is hash-pinned from `plan-locked` onward, so
+these are recorded in the ledger — which that same contract names as the home
+for execution observations — rather than by editing a frozen plan.
+
+1. **`DerivationReplay` carries 14 fields, not the 8 the `Approach` names.** The
+   extra six — `source_meta`, `source`, `old_state`, `field_collection_mode`,
+   `recorded_recipe`, and the split of "selections" into `pack_names` and
+   `profile_names` — all existed in the original function body between steps 1
+   and 9 and are read by steps 10–14. Without them `init_self_hosted` cannot
+   keep working unchanged, which is T4's `Done when`.
+2. **A new `ReplayError(cfg, messages)`** carries the steps 1–6 precondition
+   failures, since `replay_derivation`'s contract is to return a
+   `DerivationReplay` and those are hard stops before one exists.
+   `init_self_hosted` catches it and rebuilds the identical
+   `SelfHostedInitResult`.
+3. **`leak_scan_result` is not carried** on the replay; it is derivable from
+   `violations`, and `init_self_hosted` still builds it locally as before.
+
+### The phase-3 boundary — verified, not taken on report
+
+The two constructs reserved for phase 3 are **untouched**, confirmed by grepping
+the diff rather than by reading the worker's claim:
+
+- the `CONFLICT` abort, now at `:1608-1611`;
+- the unconditional overwrite, now at `:1618-1638`.
+
+`git diff -U0` over `initialise_self_hosted.py` contains **no** line mentioning
+`CONFLICT`, `conflict_plans`, `commit_files` or `owned_planned`. Both constructs
+have now moved twice across T2 and T4, which is why they are named semantically
+in every brief instead of by the line numbers the original constraint used.
+
+### The whole-tree walk helper
+
+`walk_target_tree(root)` in `test_catalogue_tooling_self_hosted_init.py:2514`.
+Verified non-dereferencing: `os.walk(..., followlinks=False)` with
+`entry.lstat()`, recording per relative path the entry kind, `stat.S_IMODE`, the
+symlink target via `os.readlink`, and bytes for regular files only. No
+timestamp, hard-link count or extended attribute is recorded, matching AC-0015's
+stated exclusions.
+
+Parametrised through a `TREE_WALK_CASES` registry over the three AC-0013 rows
+T4 can reach without a CLI: `replay-success`,
+`replay-identity-leak-violation`, and `replay-source-validation-failure`. Later
+tasks import the helper and add their own rows rather than copying a walk.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **432 passed** in 32s
+  (426 + 6 new), and **zero skipped** under `-rs`. That last check matters
+  because the suite carries a POSIX-only `st_nlink` skip guard for T2's
+  hard-link confinement case; it does not fire on this platform, so AC-0020's
+  oracle really runs.
+- `pytest …/test_catalogue_init_cli_self_hosted.py` → **16 passed**, untouched
+  by the diff.
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, 149 files.
+- Test-file diff is **188 insertions, 0 deletions**, so "no assertion edited"
+  holds mechanically.
+
+### Note carried forward to T5
+
+The AC-0015 stub calls `replay_derivation(cfg)` and therefore runs with
+`interactive=True`; it passes because the test environment is not a TTY, so the
+prompt path resolves to defaults anyway. Nothing yet exercises
+`interactive=False` through the replay. T5's command module is what must pass
+`interactive=False`, and T5's own AC-0003 case is what will observe it.

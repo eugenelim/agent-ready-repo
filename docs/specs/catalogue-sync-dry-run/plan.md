@@ -460,6 +460,13 @@ cases are green.
   URI absent under every non-`attributed` mode (spec AC-0002).
 - An explicit target and an omitted one resolving to the current directory.
 - The extracted directory is gone on the succeeding and each refusing path.
+- A `--dry-run` over a state whose recipe records `attribution = "attributed"`,
+  `tooling = "vendored"` and `guides = "none"`, invoked with none of the three
+  mode flags, reports the replayed modes as `white-label`, `external` and
+  `selected` (spec AC-0003). **This is the case that makes AC-0003 fail in one
+  step:** T3's case sits at the `collect_fields` seam, where the violation is
+  inexpressible because `_SelfHostRecipeInput` carries no mode field, so a
+  recorded mode reaching output can only be observed through the whole command.
 - T5's rows added to the tree-walk parametrisation.
 
 ```python
