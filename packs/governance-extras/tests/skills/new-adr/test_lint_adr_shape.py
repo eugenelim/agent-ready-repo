@@ -1512,8 +1512,19 @@ def test_read_confined_refuses_a_file_substituted_after_classification(
                  if e.name == "a.md")
     assert helper.classify_entry(entry) == "regular"
 
-    (tmp_path / "a.md").unlink()
-    (tmp_path / "a.md").write_text("SUBSTITUTED", encoding="utf-8")
+    # Substitute by renaming a DIFFERENT file over the original, not by
+    # unlink-then-create. `os.replace` carries the source's own inode, so the
+    # replacement is guaranteed to differ. Unlink-then-create is not: Linux
+    # reissues the just-freed inode to the next file, so the replacement
+    # compares equal and this assertion passed on macOS and failed on CI.
+    # That is the documented limit of identity comparison, and it must not be
+    # what this test depends on.
+    decoy = tmp_path / "decoy.md"
+    decoy.write_text("SUBSTITUTED", encoding="utf-8")
+    assert decoy.lstat().st_ino != entry.identity[1], (
+        "decoy shares the original's inode; this test cannot discriminate"
+    )
+    os.replace(decoy, tmp_path / "a.md")
 
     with pytest.raises(helper.EntryRefused, match="replaced after it was listed"):
         helper.read_confined(tmp_path, tmp_path / "a.md",
