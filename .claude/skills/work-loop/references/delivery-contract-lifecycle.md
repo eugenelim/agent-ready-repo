@@ -11,7 +11,8 @@ plan is drafting, pinned from plan approval, frozen once the spec is `Shipped`,
 when the code becomes the truth. A frozen spec no longer constrains how the system
 behaves: later work that contradicts one is recorded in the code, and in a
 decision record when it reverses a decision, never by rewriting the shipped
-spec — though its own status line, errata, and register anchors stay obliged.
+spec — though its status line still takes the two pointers that contract
+licenses, and the deferral anchors its body names still have to resolve.
 Full contract: the `new-spec` skill's `references/spec-and-plan-contract.md`,
 under `**Lifecycle:**` and § *A spec directory freezes as a unit, when the spec
 ships*.
