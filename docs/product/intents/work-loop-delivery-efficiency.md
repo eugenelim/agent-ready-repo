@@ -98,6 +98,25 @@ moved it.
    gate. Scaling any of them without one would repeat the failure this design's
    own gate exists to prevent.
 
+   **What it unlocks, and what it forecloses.** The § Outcome guardrail says
+   mandatory assurance coverage must not worsen. That guardrail had **no
+   instrument**: with no baseline, no efficiency change could ever be shown to
+   violate it. There is now a baseline on a population frozen by a published
+   digest, drawn in an order fixed before any outcome was seen, so a candidate
+   below can be re-scored against it and can come out worse. The run also leaves
+   a reusable rig — frozen draw, a predicate-freezing worker separated from the
+   adjudicator, a coverage gate, and differential arms for compound commits —
+   together with a catalogue of sixteen ways this class of measurement lies,
+   which is what makes a later scoring run evidence rather than assertion.
+
+   **Biggest hole in the result.** It measures **co-changed** controls only. The
+   repository's safety net also includes pre-existing tests, so the figures
+   cannot distinguish weak controls from controls that live outside the repair
+   commit. The cheap test is to re-run the arms Worker A marked *source hunk
+   exists, no discriminating co-changed control* — roughly a quarter of the 424,
+   already frozen and dossiered — against the full relevant suite rather than the
+   named test. That needs no new population and no new gate.
+
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then
@@ -118,6 +137,9 @@ moved it.
    direct evidence for trigger-driven sections. The same measurement sets this
    candidate's precondition — an authoring-guidance change must be scored on
    frozen cases before it ships, because the last one lost a guardrail.
+   **That precondition is now satisfied in kind:** the completed audit at rank 1
+   leaves the frozen-case scoring rig and its calibration, so this candidate no
+   longer waits on an instrument.
 4. **Impact 5 — Selective exact context and revision-bound reuse** *(held;
    displaced upward)*: review each unchanged contract baseline once; supply
    touched-path rules, affected dependencies, and exact governing bytes on
@@ -127,6 +149,11 @@ moved it.
    failure-directed gates during repair, cache deterministic results per
    revision, avoid unchanged retries, run one full relevant gate at convergence,
    and leave repository-wide confirmation to CI where policy permits.
+   **Constrained by the rank-1 result**, which matters most here because this is
+   the largest apparent saving: the co-changed test is the least informative
+   signal in the corpus, so trimming gates toward *touched* tests would optimise
+   toward noise. Any trimming rule this candidate proposes has to keep a signal
+   the audit showed can fail.
 6. **Impact 8 — Decouple orchestration from assurance** *(held; displaced
    upward)*: reserve cohort and state-machine machinery for multi-session,
    multi-worker, dependent-wave, irreversible, or migration work; allow high
