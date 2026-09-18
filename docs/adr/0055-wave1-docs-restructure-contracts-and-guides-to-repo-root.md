@@ -1,15 +1,15 @@
 # ADR-0055: Wave 1 docs restructure — lift contracts/ and guides/ to repo root
 
-**Status:** Accepted  
-**Date:** 2026-07-26  
-**Areas:** documentation, packaging  
-**Reversibility:** high  
-**Decision-makers:** eugenelim  
-**Supersedes:** none  
-**Supersedes in part:** none  
-**Superseded by:** none  
-**Superseded in part:** none  
-**Related:** none
+- **Status:** Accepted
+- **Date:** 2026-07-26
+- **Areas:** documentation, packaging
+- **Reversibility:** high
+- **Decision-makers:** eugenelim
+- **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
+- **Related:** none
 
 ## Context
 
@@ -36,7 +36,7 @@ Consequences:
 
 ## Consequences
 
-**Revisit if:** a later wave of the docs restructuring moves more of `docs/` to the repository root, or adopter seeds must scaffold the new root locations instead of `docs/guides/` (D4).
+- **Revisit if:** a later wave of the docs restructuring moves more of `docs/` to the repository root, or adopter seeds must scaffold the new root locations instead of `docs/guides/` (D4).
 
 ## Alternatives considered
 

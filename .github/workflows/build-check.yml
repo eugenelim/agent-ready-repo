@@ -706,6 +706,21 @@ jobs:
           tests/roster/test_experience_design_guide_agreement.py
           tests/roster/test_experience_design_write_declaration_and_containment.py
           tests/roster/test_experience_design_artifact_folder_registry.py
+      # checkable-adr-metadata AC-0011: test_index_records.py exercises the
+      # confinement assertions that T1 refactored into the shared helper.  CI
+      # does not auto-discover roster tests, so without this step the helper's
+      # confinement behaviour can regress into a merge with every required gate
+      # green.
+      - name: pytest decision-record index generator (roster-owned)
+        run: python -m pytest tests/roster/test_index_records.py
+
+      # checkable-adr-metadata AC-0005 + AC-0011: the real docs/adr corpus is
+      # partitioned exhaustively by the ADR shape lint (read + refused +
+      # unreadable accounts for every candidate).  CI does not auto-discover
+      # roster tests, so without this step that partition can regress
+      # unobserved into a merge with every required gate green.
+      - name: pytest ADR shape lint corpus partition (roster-owned)
+        run: python -m pytest tests/roster/test_lint_adr_shape_corpus.py
 
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
       # helper, uninstall --dry-run/--yes/confirm, install --force confirm +

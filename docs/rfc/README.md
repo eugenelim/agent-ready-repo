@@ -102,3 +102,4 @@
 | 0099 | [Cut before adding and artifact shaping](0099-cut-before-adding-and-artifact-shaping.md) | Accepted | 2026-08-27 | 2026-08-27 |
 | 0100 | [Adopter- and org-supplied grounding for platform, framework, and verification context](0100-adopter-and-org-supplied-grounding.md) | Accepted | 2026-06-25 | 2026-06-25 |
 | 0101 | [Pack config and operation log](0101-pack-config-and-oplog.md) | Accepted | 2026-07-27 | 2026-07-28 |
+| 0102 | [An ADR's metadata is checkable, and the freeze binds its prose](0102-mechanically-checkable-adrs.md) | Accepted | 2026-09-16 | 2026-09-17 |

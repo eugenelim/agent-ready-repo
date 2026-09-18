@@ -276,7 +276,7 @@ not in a terminal documentation wave.
 
 ## Recording corrections (Errata / Amendments)
 
-This skill is the sole home of this convention. Use `## Errata` for a Frozen RFC
+This skill is the sole home of this convention for RFCs. Use `## Errata` for a Frozen RFC
 (Accepted/Rejected) and `## Amendments` for an in-flight Open RFC; they never coexist,
 and Amendments renames to Errata on acceptance. Entries are append-only: a later entry
 supersedes an earlier one by being later, and entries are never deleted.

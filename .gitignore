@@ -11,6 +11,9 @@ agentbundle-layout.toml
 !packs/**/evals/files/agentbundle-layout.toml
 
 # Work-loop session state — per-spec scratch, never committed.
+# The engine writes the run id to a repo-root temp file; it was committed once
+# (392e7c35a) because nothing ignored it and the task used `git add -A`.
+.loop-runid.tmp
 docs/specs/**/state.json
 docs/specs/**/engine-state.json
 docs/specs/**/state-*.json

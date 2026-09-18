@@ -26,6 +26,7 @@ protected = [
   "docs/specs/broken",
   "docs/specs/caf",
   "docs/specs/canonical",
+  "docs/specs/checkable-adr-metadata",
   "docs/specs/child",
   "docs/specs/childb",
   "docs/specs/chosen",
