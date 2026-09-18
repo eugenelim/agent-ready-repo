@@ -19,9 +19,24 @@ from agentbundle.https_catalogue import CatalogueArchiveResult
 # parametrises against the same walk, per plan.md § Construction tests.
 from tests.unit.test_catalogue_tooling_self_hosted_init import walk_target_tree
 
+# T9's fixture pack declaring adapter-contract major 1 (spec AC-0019); every
+# pack shipped in this repository declares major 0, so this fixture is what
+# makes that refusal able to fail.
+FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "catalogue_sync"
+
 
 def _make_source(root: Path, *, pack_version: str = "1.0.0") -> Path:
     """Create a minimal valid source catalogue tree at ``root``."""
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        f'version = "{pack_version}"\n',
+    )
+
+
+def _make_source_with_pack_toml(root: Path, pack_toml_text: str) -> Path:
+    """Create a minimal source catalogue whose one pack declares *pack_toml_text*."""
     root.mkdir(parents=True)
     (root / "catalogue.toml").write_text(
         '[catalogue]\n'
@@ -32,12 +47,7 @@ def _make_source(root: Path, *, pack_version: str = "1.0.0") -> Path:
     )
     pack = root / "packs" / "alpha"
     pack.mkdir(parents=True)
-    (pack / "pack.toml").write_text(
-        '[pack]\n'
-        'name = "alpha"\n'
-        f'version = "{pack_version}"\n',
-        encoding="utf-8",
-    )
+    (pack / "pack.toml").write_text(pack_toml_text, encoding="utf-8")
     (pack / "README.md").write_text("# Alpha\n", encoding="utf-8")
     return root
 
@@ -615,6 +625,205 @@ def test_sync_ownership_state_recursion_exhaustion_exits_cannot_answer(
 
 
 # ---------------------------------------------------------------------------
+# AC-0018, AC-0019, AC-0020: compatibility warns and never refuses, the
+# existing spec-version gate still refuses, and the derived-tree baseline
+# manifest read goes through the declared confinement helper.
+# ---------------------------------------------------------------------------
+
+# STUB: AC-0018
+def test_moved_pack_version_warns_without_changing_exit_code(
+    derived_tree, upstream_with_bumped_pack, capsys
+):
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", str(upstream_with_bumped_pack), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    assert "pack version" in capsys.readouterr().out
+
+
+def _source_pack_version_unchanged(root: Path) -> Path:
+    return _make_source(root, pack_version="1.0.0")
+
+
+def _source_pack_version_bumped(root: Path) -> Path:
+    return _make_source(root, pack_version="1.1.0")
+
+
+def _source_dependency_satisfied(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n',
+    )
+
+
+def _source_dependency_unmet(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[[pack.dependencies.required]]\n'
+        'catalogue = "upstream-catalogue"\n'
+        'pack = "beta"\n'
+        'version = ">=1.0.0"\n',
+    )
+
+
+def _source_adapter_contract_version_unchanged(root: Path) -> Path:
+    # derived_tree's own copy of packs/alpha/pack.toml declares no
+    # `[pack.adapter-contract]` table at all, so the matching absent arm
+    # is a source that likewise declares none.
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n',
+    )
+
+
+def _source_adapter_contract_version_changed(root: Path) -> Path:
+    # Major 0 — agrees with this CLI's own SPEC_VERSION major, so this stays
+    # a warn-only signal rather than tripping AC-0019's refusal gate.
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[pack.adapter-contract]\n'
+        'version = "0.2"\n',
+    )
+
+
+def _source_dependency_conflicts_absent(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n',
+    )
+
+
+def _source_dependency_conflicts_violated(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[[pack.dependencies.conflicts]]\n'
+        'catalogue = "upstream-catalogue"\n'
+        'pack = "alpha"\n'
+        'version = ">=1.0.0"\n',
+    )
+
+
+# Each value is (signal-absent builder, signal-present builder, a substring
+# that appears only in the present arm's output). Two arms per signal: the
+# absent arm's exit code is pinned to the literal 0 (a healthy run succeeds),
+# and the present arm's exit code is compared against the absent arm's rather
+# than against a second literal — so drift in either direction fails. AC-0018
+# names four signals, so this parametrisation carries all four rather than
+# a representative subset: a shared comparison code path is exactly where a
+# missing arm would let one signal's row silently drop while another passes.
+COMPATIBILITY_SIGNAL_BUILDERS = {
+    "pack-version-changed": (
+        _source_pack_version_unchanged, _source_pack_version_bumped,
+        "pack version",
+    ),
+    "adapter-contract-version-changed": (
+        _source_adapter_contract_version_unchanged,
+        _source_adapter_contract_version_changed,
+        "adapter-contract version",
+    ),
+    "required-dependency-unmet": (
+        _source_dependency_satisfied, _source_dependency_unmet,
+        "required dependency",
+    ),
+    "conflicts-dependency-violated": (
+        _source_dependency_conflicts_absent, _source_dependency_conflicts_violated,
+        "conflict with",
+    ),
+}
+
+
+@pytest.mark.parametrize("signal", sorted(COMPATIBILITY_SIGNAL_BUILDERS))
+def test_compatibility_signal_warns_without_changing_exit_code(
+    derived_tree, tmp_path, capsys, signal
+):
+    absent_builder, present_builder, marker = COMPATIBILITY_SIGNAL_BUILDERS[signal]
+
+    absent_source = absent_builder(tmp_path / f"{signal}-absent")
+    args_absent = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", str(absent_source), "--dry-run"]
+    )
+    exit_absent = catalogue_sync.run(args_absent)
+    out_absent = capsys.readouterr().out
+
+    present_source = present_builder(tmp_path / f"{signal}-present")
+    args_present = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", str(present_source), "--dry-run"]
+    )
+    exit_present = catalogue_sync.run(args_present)
+    out_present = capsys.readouterr().out
+
+    assert exit_absent == 0  # the constant pin: a healthy run succeeds
+    assert exit_present == exit_absent  # warn-only: the signal never moves the code
+    assert marker not in out_absent
+    assert marker in out_present
+
+
+def test_sync_refuses_when_adapter_contract_major_mismatches(derived_tree, tmp_path, capsys):
+    """Spec AC-0019: a pack declaring a differing adapter-contract major
+    refuses via the existing uniform-refusal gate, returning AC-0013's
+    difference code — distinct from AC-0018's warn-only signals above."""
+    pack_toml_text = (
+        FIXTURES / "adapter_contract_major_mismatch" / "pack.toml"
+    ).read_text(encoding="utf-8")
+    source = _make_source_with_pack_toml(
+        tmp_path / "adapter-contract-major-mismatch-source", pack_toml_text
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 1
+    assert "incompatible pack" in capsys.readouterr().err
+
+
+def test_sync_reads_derived_tree_baseline_through_the_confinement_helper(
+    derived_tree, upstream_with_bumped_pack, monkeypatch, capsys
+):
+    """Spec AC-0020: the derived-tree baseline manifest read goes through the
+    declared ``file_safety`` helper. Patching it to always refuse must make
+    the pack-version signal disappear — an inline lexical-prefix check would
+    not observe this patch and the test would still pass."""
+    monkeypatch.setattr(
+        catalogue_sync,
+        "read_confined_regular_file",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            catalogue_sync.UnsafeContentError("patched refusal")
+        ),
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", str(upstream_with_bumped_pack), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    assert "pack version" not in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
 # The whole-tree walk (spec AC-0015), reusing T4's helper rather than a copy.
 # T5's rows: a dry-run success and a resolution refusal reached via sync's
 # own dispatch, over-and-above T4's replay_derivation-level rows.
@@ -711,6 +920,21 @@ def _invoke_sync_dry_run_underivable_selection(target: Path) -> None:
     assert catalogue_sync.run(args) == 3
 
 
+def _invoke_sync_dry_run_adapter_contract_refusal(target: Path) -> None:
+    # T9: a selected pack's adapter-contract major differing from the CLI's
+    # refuses (spec AC-0019) — the row this task adds to the walk.
+    pack_toml_text = (
+        FIXTURES / "adapter_contract_major_mismatch" / "pack.toml"
+    ).read_text(encoding="utf-8")
+    source = _make_source_with_pack_toml(
+        target.parent / "sync-tree-walk-adapter-contract-source", pack_toml_text
+    )
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 1
+
+
 # Registry T5 adds to; later tasks extend it further rather than copying it.
 # Each value is a (setup, invoke) pair — see the section comment above.
 SYNC_TREE_WALK_CASES = {
@@ -724,6 +948,9 @@ SYNC_TREE_WALK_CASES = {
     ),
     "sync-dry-run-underivable-selection": (
         _no_target_setup, _invoke_sync_dry_run_underivable_selection,
+    ),
+    "sync-dry-run-adapter-contract-refusal": (
+        _setup_success_target, _invoke_sync_dry_run_adapter_contract_refusal,
     ),
 }
 

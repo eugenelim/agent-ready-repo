@@ -512,3 +512,89 @@ A recorded path appearing twice is counted as a second `uncompared` entry, since
 no unique verdict exists per duplicate raw entry. AC-0016's text does not
 require this and it is not separately tested; the implementation fails closed
 rather than under- or over-counting.
+
+## Wave 5 — T9
+
+- **Date:** 2026-09-18
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:45`
+- **Worker:** the `implementer` subagent, over two passes.
+
+### What was built
+
+Four warn-only compatibility signals rendered as advisory rows that never change
+the exit code (AC-0018), plus `check_spec_version_gate` reused verbatim for the
+adapter-contract-major refusal (AC-0019). New in `catalogue_sync.py`:
+`compatibility_warnings`, `check_adapter_contract_gate`, `_pack_toml_from_replay`
+and `_read_baseline_pack_toml`. A fixture pack declaring adapter-contract major
+`1` lives at
+`packages/agentbundle/tests/fixtures/catalogue_sync/adapter_contract_major_mismatch/pack.toml`,
+because every pack shipped in this repository declares major 0 — without it the
+refusal could not fail.
+
+### The four signals, each with both arms
+
+| Signal | Marker | Absent arm | Present arm |
+| --- | --- | --- | --- |
+| `pack-version-changed` | `pack version` | 0 (constant pin) | 0 |
+| `adapter-contract-version-changed` | `adapter-contract version` | 0 | 0 |
+| `required-dependency-unmet` | `required dependency` | 0 | 0 |
+| `conflicts-dependency-violated` | `conflict with` | 0 | 0 |
+
+Each pair asserts `exit_absent == 0` and then `exit_present == exit_absent`, so
+the pair cannot both drift to the same wrong value. The present arm's
+adapter-contract version declares major 0, so AC-0019's gate does not also fire
+and contaminate the warn-only observation.
+
+### Refusing the "shared code path" argument found dead code
+
+The first pass parametrised only two of the four signals, on the grounds that
+adapter-contract-version "shares the same comparison code path as pack-version,
+so a third arm would test the same branch shape rather than a new one."
+
+That was refused: AC-0018 pins the property **per signal** — "one advisory row
+per signal" — not per code path, and a shared path is where divergence hides
+because the two signals read different manifest keys.
+
+Sending it back established the signal **could never fire**. The comparison
+required *both* sides to declare a version string, and `derived_tree`'s baseline
+declares no `[pack.adapter-contract]` table at all, so the branch was
+unreachable. The missing test arm was concealing dead production code, and the
+"same branch shape" claim was false — the branch was never entered. The
+comparison now fires whenever either side declares, showing `absent` for the
+missing side. No advisory template's wording changed.
+
+### The AC-0020 oracle has the right pass direction
+
+The derived-tree baseline read goes through the declared helper:
+
+```python
+baseline_bytes = read_confined_regular_file(target, baseline_path)
+```
+
+`test_sync_reads_derived_tree_baseline_through_the_confinement_helper`
+monkeypatches that exact name on `catalogue_sync` to raise `UnsafeContentError`
+and asserts the pack-version signal disappears. An inline lexical-prefix check
+would not observe the patch, so the test fails a mutation an inline substitute
+would pass — which is the distinction AC-0020 exists to draw.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_sync.py` → **43 passed** (35 → 41 → 43 across the two
+  passes). The four compatibility arms pass under `-k compatibility_signal`.
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **432 passed**, no
+  regression and no identity-leak trip from the new advisory strings.
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, 150 files.
+- Tree-walk row added: `sync-dry-run-adapter-contract-refusal`, proving the
+  target is byte-identical across a refusal as well as a success.
+- **Sdist boundary re-checked.** `packages/AGENTS.md` warns that a test in this
+  published tree reading a repository path "passes locally and fails the sdist
+  artifact gate". Three tasks have added tests here since T2's roster move, so
+  the suite, the unit conftest and the fixture-set test were swept: no `docs/`
+  read, no repository-root walk, and the new fixture resolves inside the package
+  tree.
+
+### Noted, not fixed
+
+`commands/verify.py`'s dependency-graph walk and `install.py`'s
+`validate_dependencies_required` each re-parse `pack.toml` per pack rather than
+sharing one confined-read seam. Outside T9's `Touches`.
