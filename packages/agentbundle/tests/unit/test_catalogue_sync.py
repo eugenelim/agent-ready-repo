@@ -625,6 +625,359 @@ def test_sync_ownership_state_recursion_exhaustion_exits_cannot_answer(
 
 
 # ---------------------------------------------------------------------------
+# AC-0012: every value this command renders that it did not itself author is
+# routed through the bounded terminal-safe scalar check before it reaches any
+# output surface. One rejecting case per value kind the sink-class probe
+# (docs/specs/catalogue-sync-dry-run/notes/grounding/probe-sink-class.py)
+# enumerates: the field name and reason appear, the value never does. The
+# pass direction alone cannot distinguish an applied check from an absent
+# one, so each case drives a genuinely hostile value through the real
+# command rather than asserting the check function in isolation.
+# ---------------------------------------------------------------------------
+
+# STUB: AC-0012 (value kind: managed_path)
+def test_unrenderable_recorded_value_is_reported_by_field_not_value(
+    derived_tree, upstream, capsys
+):
+    from agentbundle.commands import catalogue_sync
+
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"].append(
+        {"path": "packs/alpha/\x1b[2Kevil.md", "sha256": "z" * 64}
+    )
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+
+    catalogue_sync.run(args)
+    captured = capsys.readouterr()
+
+    assert "managed_paths" in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+# value kind: planned_path -- a source-tree entry name, not a recorded one.
+def test_sync_rejects_hostile_planned_path(derived_tree, tmp_path, capsys):
+    source = tmp_path / "hostile-planned-path-source"
+    _make_source(source)
+    (source / "packs" / "alpha" / "evil\x1b[31m.md").write_bytes(b"data\n")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "planned_paths" in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+# value kind: companion_path -- a computed value, checked at its own render
+# site rather than trusted because its input path already passed.
+def test_sync_rejects_hostile_companion_path(derived_tree, upstream, monkeypatch, capsys):
+    (derived_tree / "packs" / "alpha" / "README.md").write_bytes(b"edited by the adopter\n")
+    monkeypatch.setattr(
+        catalogue_sync, "companion_path", lambda _path: "AGENTS\x1b[31m.upstream.md"
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "companion_path" in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+# value kind: archive_sha256 -- resolved from the fetched descriptor, not
+# authored by this command. A leading-space violation, not a control
+# character: `--format json` escapes a raw control byte on the way out, so
+# a control-character marker would still look absent from the *serialized*
+# text even with the check removed, and the case would not discriminate.
+# A boundary (whitespace) violation survives JSON's own escaping unchanged,
+# so its presence or absence in the captured text genuinely tracks whether
+# this command's own check ran.
+def test_sync_rejects_hostile_archive_sha256(derived_tree, tmp_path, monkeypatch, capsys):
+    extracted = tmp_path / "extracted-hostile-sha"
+    _make_source(extracted)
+    hostile_sha = " " + "a" * 63
+    monkeypatch.setattr(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256=hostile_sha,
+        ),
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", "catalogue+https://example.com/channel.json",
+         "--dry-run", "--format", "json"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "rejected archive_sha256" in captured.out + captured.err
+    assert hostile_sha not in captured.out + captured.err
+
+
+# value kind: source_revision, in both its tag and SHA forms -- the same
+# sink, driven with a representative hostile value of each shape. Same
+# boundary-violation rationale as the archive_sha256 case above.
+@pytest.mark.parametrize(
+    "hostile_revision",
+    ["v1.2.3 ", " " + "a" * 39],
+    ids=["tag-form", "sha-form"],
+)
+def test_sync_rejects_hostile_source_revision(
+    derived_tree, tmp_path, monkeypatch, capsys, hostile_revision
+):
+    extracted = tmp_path / "extracted-hostile-revision"
+    _make_source(extracted)
+    monkeypatch.setattr(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256="b" * 64,
+            source_revision=hostile_revision,
+        ),
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", "catalogue+https://example.com/channel.json",
+         "--dry-run", "--format", "json"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "rejected source_revision" in captured.out + captured.err
+    assert hostile_revision not in captured.out + captured.err
+
+
+# value kind: source_uri -- the rendered source, named only under attributed.
+def test_sync_rejects_hostile_source_uri(derived_tree, upstream, monkeypatch, capsys):
+    hostile_uri = "git+https://github.com/example\x1b[31m/repo@main"
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", lambda _uri: upstream)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", hostile_uri,
+         "--attribution", "attributed", "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "rejected source" in captured.out + captured.err
+    assert hostile_uri not in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+def _source_pack_version_hostile(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0\\u001b[31mHOSTILE"\n',
+    )
+
+
+# value kind: pack_version -- the source manifest's own [pack] version text.
+def test_sync_rejects_hostile_pack_version(derived_tree, tmp_path, capsys):
+    source = _source_pack_version_hostile(tmp_path / "hostile-pack-version-source")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "pack_version" in captured.out + captured.err
+    assert "HOSTILE" not in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+def _source_adapter_contract_version_hostile(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[pack.adapter-contract]\n'
+        'version = "0.2\\u001b[31mHOSTILE"\n',
+    )
+
+
+# value kind: adapter_contract_version -- same manifest, the other field.
+def test_sync_rejects_hostile_adapter_contract_version(derived_tree, tmp_path, capsys):
+    source = _source_adapter_contract_version_hostile(
+        tmp_path / "hostile-adapter-contract-source"
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "adapter_contract_version" in captured.out + captured.err
+    assert "HOSTILE" not in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+def _source_dependency_hostile(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[[pack.dependencies.required]]\n'
+        'catalogue = "upstream-catalogue"\n'
+        'pack = "beta\\u001b[31mHOSTILE"\n'
+        'version = ">=1.0.0"\n',
+    )
+
+
+# value kind: dependency_edge_name -- a dependency edge's declared pack name.
+def test_sync_rejects_hostile_dependency_edge_name(derived_tree, tmp_path, capsys):
+    source = _source_dependency_hostile(tmp_path / "hostile-dependency-source")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "dependency_edge_name" in captured.out + captured.err
+    assert "HOSTILE" not in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+# ---------------------------------------------------------------------------
+# AC-0007, AC-0008: the replayed modes and their provenance are named, and
+# two runs whose recorded modes differ, invoked with identical flags,
+# produce byte-identical plans.
+# ---------------------------------------------------------------------------
+
+def test_sync_recorded_modes_do_not_affect_the_plan(derived_tree, upstream, capsys):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+
+    args_first = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args_first) == 0
+    first = capsys.readouterr().out
+    doc = json.loads(first)
+    assert doc["modes"] == {
+        "attribution": "white-label", "tooling": "external",
+        "guides": "selected", "provenance": "flags-and-defaults",
+    }
+
+    state["recipe"].update(attribution="attributed", tooling="vendored", guides="none")
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args_second = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args_second) == 0
+    second = capsys.readouterr().out
+
+    assert first == second  # byte equality, not mere similarity
+
+
+# ---------------------------------------------------------------------------
+# The `--format json` document's content on each refusing row of spec
+# AC-0013 that sync's own dispatch reaches today (T8 owns the ordered, total
+# table over every row, including the `--check` comparison rows).
+# ---------------------------------------------------------------------------
+
+def test_sync_json_document_shape_on_malformed_compare_tree_without_check(
+    derived_tree, upstream, capsys
+):
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--compare-tree", "--format", "json"]
+    )
+    assert catalogue_sync.run(args) == 2
+    doc = json.loads(capsys.readouterr().out)
+    assert doc == {"ok": False, "error": "--compare-tree requires --check"}
+
+
+def test_sync_json_document_shape_on_malformed_symlink_target(
+    derived_tree, upstream, tmp_path, capsys
+):
+    link = tmp_path / "symlinked-target"
+    try:
+        link.symlink_to(derived_tree)
+    except OSError as exc:
+        pytest.skip(f"symlink unavailable: {exc}")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(link), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args) == 2
+    doc = json.loads(capsys.readouterr().out)
+    assert doc["ok"] is False
+    assert "symlink" in doc["error"]
+
+
+def test_sync_json_document_shape_on_cannot_answer_resolution_refusal(
+    derived_tree, capsys
+):
+    # `git+ssh://` is refused by `resolve_catalogue` itself (a `CatalogueError`)
+    # -- the resolution half of AC-0002's refusal set, reused here for its
+    # JSON shape rather than a local path, which `resolve_catalogue` accepts
+    # unconditionally and only ``replay_derivation`` later finds unverifiable.
+    source_uri = "git+ssh://git@example.com/example-owner/example-repo.git"
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", source_uri,
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args) == 3
+    doc = json.loads(capsys.readouterr().out)
+    assert doc == {"ok": False, "error": "source could not be resolved"}
+
+
+def test_sync_json_document_shape_on_cannot_answer_verification_refusal(
+    derived_tree, tmp_path, capsys
+):
+    unverifiable_source = tmp_path / "unverifiable-source"
+    unverifiable_source.mkdir()  # no catalogue.toml -> ReplayError
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(unverifiable_source),
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args) == 3
+    doc = json.loads(capsys.readouterr().out)
+    assert doc == {"ok": False, "error": "source could not be verified"}
+
+
+def test_sync_json_document_shape_on_cannot_answer_no_recorded_selection(
+    derived_tree, upstream, capsys
+):
+    (derived_tree / ".agentbundle" / "self-host-state.json").unlink()
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args) == 3
+    doc = json.loads(capsys.readouterr().out)
+    assert doc["ok"] is False
+    assert "no recorded selection is derivable" in doc["error"]
+
+
+# ---------------------------------------------------------------------------
 # AC-0018, AC-0019, AC-0020: compatibility warns and never refuses, the
 # existing spec-version gate still refuses, and the derived-tree baseline
 # manifest read goes through the declared confinement helper.

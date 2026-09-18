@@ -757,3 +757,117 @@ consistent.
 two-phases-remain sentence and confirm each is true of the merged behaviour. A
 documentation claim written ahead of its subject and never re-checked is how a
 banner outlives its accuracy.
+
+## Wave 6 — T7
+
+- **Date:** 2026-09-18
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:47`
+- **Worker:** the `implementer` subagent.
+
+### What was built
+
+`_safe_scalar(field, value, rejections)` in `catalogue_sync.py`, with every
+unauthored rendered value routed through it: recorded `managed_paths`,
+source-tree `planned_paths`, `companion_path`, `archive_sha256`,
+`source_revision`, the source URI, and each unauthored manifest field in
+`compatibility_warnings`. Rejections collect into one list per run and surface
+as `doc["rejections"]` and a table line — by field name and reason, never the
+value. It reuses `_is_safe_recipe_text` rather than writing a second scalar
+check, so T7 adds a control **site**, not a control.
+
+The two malformed-invocation branches were folded onto `_refuse`, so
+`--compare-tree` without `--check` and a symlink target now produce a JSON
+document too. That is T7's own `Tests` bullet — "the `--format json` document's
+content on each refusing row" — rather than scope creep.
+
+### The worker found a vacuity in its own tests, and the supervisor re-proved the fix
+
+Two hostile-value cases first used a raw `\x1b` under `--format json`.
+`json.dumps` escapes control bytes to ``, so a substring check against the
+raw hostile string **passed with the check removed** — precisely the failure the
+plan warns about, where "the pass direction cannot distinguish an applied check
+from an absent one". The worker caught it by running the differential proof
+rather than assuming, then redesigned the hostile value as a **boundary
+violation** — leading and trailing whitespace on a 63-character digest — which
+survives JSON's own escaping, so a leak is genuinely visible.
+
+Re-proved independently by the supervisor: replacing line 558's
+`_safe_scalar("archive_sha256", …)` with a pass-through fails
+`test_sync_rejects_hostile_archive_sha256`, and the failure output shows
+`"rejections": []` with the raw padded value reaching the document. The file was
+restored from a pre-mutation copy and its SHA-256 re-verified as
+`8ac34ed9e4c7f0e6e7d518bfcdd5110a990358ee013488b8c6f8c066550a9554`; 59 passed
+after restoration.
+
+This is the general trap: **an escaping sink downstream of the control makes a
+control-character leak test vacuous.** A boundary the sink does not normalise —
+length, or surrounding whitespace — is the observable that survives.
+
+### Two of the twelve sink-class members have no sink, and that is a disposition, not a gap
+
+`probe-sink-class.py` enumerates twelve value kinds. Ten are drivable and each
+has a rejecting case asserting the field name and reason appear and the value
+does not. Two are not drivable: `schema_version` and `artifact_url`. Confirmed
+by the supervisor — neither `artifact_uri` nor `schema_version` is referenced
+anywhere in `catalogue_sync.py`, so neither reaches stdout, stderr or the JSON
+document.
+
+**AC-0012 is satisfied for both, by its own scoping.** The criterion reads
+"Every value this command **renders** that it did not itself author … including
+the rendered source URI and a descriptor's `artifact` URL". The class is scoped
+by rendering; a value that reaches no output surface is not in it. The
+"including" clause names the artifact URL as in-class *if rendered*, and it is
+not.
+
+What over-specified was T7's own `Tests` bullet, which sources its domain from
+the § Grounding probe's enumeration — the set of *potential* members — rather
+than from what the command renders. The probe is deliberately broader so that a
+future phase adding a sink inherits a ready case.
+
+The worker declined to invent a rendering surface to manufacture a test, and
+that was right: surfacing the descriptor's `artifact` URL is a design decision
+with a security dimension, since it discloses source infrastructure and AC-0002
+requires the source URI to be absent under every non-`attributed` mode. It would
+need attribution-gating, which is a choice no task here owns.
+
+**Carried forward:** if any later phase renders either value, it inherits
+AC-0012's obligation for it, and the probe already enumerates the case.
+
+### A real AC-0012 gap outside this change's reach, measured
+
+`check_spec_version_gate` in `commands/_common.py` — shared with `install` and
+`upgrade`, and named by AC-0019 as the existing uniform refusal to reuse rather
+than reimplement — prints:
+
+```python
+f"error: pack declares adapter-contract version {declared!r} …"
+```
+
+`declared` is the pack's own `[pack.adapter-contract] version`, an unauthored
+third-party value, and it reaches stderr without passing the terminal-safe
+check. So on that one refusing row AC-0012's routing does not hold.
+
+The exposure is narrower than it first appears, and worth stating precisely:
+`!r` applies `repr()`, which escapes control characters, so the
+terminal-injection half is incidentally neutralised. What `repr()` does **not**
+do is enforce AC-0012's length bound of 4096, so an over-long declared version
+is printed in full.
+
+Not fixed here: `commands/_common.py` is outside T7's `Touches`, the message is
+shared with two other subcommands, and AC-0019 directs reuse as-is. It is a
+candidate § Follow-ons entry for the owner — distinct from the existing
+read-time-constraint follow-on, because this one is about a shared refusal
+message rather than the recorded fields.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_sync.py` → **59 passed** (baseline 43, +16).
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **432 passed**, no
+  regression and no identity-leak trip from the new field names and reasons.
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, 150 files.
+- `probe-sink-class.py` → exit 0, twelve members admitted benign and rejecting
+  hostile, length bound exact, residual none. **The kill condition did not
+  fire.**
+- AC-0008's identical-plans assertion is **byte equality** of the two captured
+  stdout strings across two runs whose recorded modes differ — not a structural
+  or subset comparison.

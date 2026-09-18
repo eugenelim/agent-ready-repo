@@ -86,6 +86,28 @@ def _synthesize_state(recorded: dict[str, str | None]) -> State:
     return State(packs={("sync", "sync"): PackState(installed_version="0", files=files)})
 
 
+def _safe_scalar(field: str, value: str | None, rejections: list[str]) -> str | None:
+    """Return *value* when it passes the bounded terminal-safe scalar check.
+
+    Spec AC-0012: every value this command renders that it did not itself
+    author, whatever its origin, is routed through this gate before it
+    reaches stdout, stderr, or the ``--format json`` document. A rejection
+    names the field and the reason and never reproduces the value — so
+    ``rejections`` accumulates a fixed message, not *value* itself.
+
+    ``value=None`` is not a hostile value (an absent pin is reported as
+    "absent", not rejected), so it passes through unchanged.
+    """
+    if value is None:
+        return None
+    if _is_safe_recipe_text(value):
+        return value
+    rejections.append(
+        f"rejected {field}: value failed the terminal-safe scalar check"
+    )
+    return None
+
+
 def _parse_decline_reason(reason: str) -> tuple[str, str] | None:
     """Recover ``(path, token)`` from one ``_plan_stale_owned_paths`` reason.
 
@@ -149,6 +171,7 @@ def _classify_planned_paths(
     target: Path,
     old_state: dict[str, Any] | None,
     planned_paths: set[str],
+    rejections: list[str],
 ) -> tuple[dict[str, int], list[tuple[str, str, str | None]]]:
     """Classify every recorded and planned path, reconciling the seven counts.
 
@@ -156,6 +179,12 @@ def _classify_planned_paths(
     exactly one bucket, so a silently dropped entry breaks the
     ``compared + uncompared`` identity rather than passing it by
     construction (spec AC-0016).
+
+    Spec AC-0012: a recorded path (``managed_paths``) and a source-tree entry
+    name (``planned_paths`` — a path the replay planned from the *source*,
+    not the recorded state) are both unauthored input, so both are routed
+    through the terminal-safe check before they can reach a printed row;
+    a rejection is appended to *rejections* by field name only.
     """
     counts: dict[str, int] = {
         "would_update": 0,
@@ -181,10 +210,32 @@ def _classify_planned_paths(
     for entry in migrated:
         path = entry.get("path", "")
         sha = entry.get("sha256")
-        if not _is_safe_recipe_text(path) or path in recorded:
+        if not _is_safe_recipe_text(path):
+            counts["uncompared"] += 1
+            rejections.append(
+                "rejected managed_paths: entry failed the terminal-safe "
+                "scalar check"
+            )
+            continue
+        if path in recorded:
             counts["uncompared"] += 1
             continue
         recorded[path] = sha if isinstance(sha, str) else None
+
+    # `planned_paths` names come from the replayed *source* tree, not the
+    # recorded state — a source-tree entry name is unauthored input too
+    # (spec AC-0012), so it is filtered the same way before it can reach a
+    # printed row.
+    safe_planned_paths: set[str] = set()
+    for path in planned_paths:
+        if _is_safe_recipe_text(path):
+            safe_planned_paths.add(path)
+        else:
+            rejections.append(
+                "rejected planned_paths: entry failed the terminal-safe "
+                "scalar check"
+            )
+    planned_paths = safe_planned_paths
 
     state = _synthesize_state(recorded)
     stale_paths = [path for path in recorded if path not in planned_paths]
@@ -203,7 +254,13 @@ def _classify_planned_paths(
             counts["schema_1_inert"] += 1
             rows.append((path, "schema-1-inert", None))
         else:
-            companion = str(companion_path(Path(path)))
+            # `safety.companion_path` is a computed value derived from an
+            # already-checked *path*, but spec AC-0012 is origin-agnostic —
+            # it is routed through the same gate at its own render site
+            # rather than trusted because its input already passed.
+            companion = _safe_scalar(
+                "companion_path", str(companion_path(Path(path))), rejections
+            )
             counts["would_companion"] += 1
             rows.append((path, "would-companion", companion))
 
@@ -289,7 +346,10 @@ def _read_baseline_pack_toml(target: Path, name: str) -> dict[str, Any] | None:
 
 
 def compatibility_warnings(
-    target: Path, pack_names: list[str], file_bytes: dict[str, bytes]
+    target: Path,
+    pack_names: list[str],
+    file_bytes: dict[str, bytes],
+    rejections: list[str],
 ) -> list[str]:
     """Advisory rows for spec AC-0018 — warn-only, never change the exit code.
 
@@ -299,6 +359,10 @@ def compatibility_warnings(
     and evaluates ``[pack.dependencies]`` ``required``/``conflicts`` edges
     against the replay's resolved selection. One row per signal; a signal
     that is absent contributes nothing.
+
+    Every compared value here is unauthored — a source or baseline
+    manifest's own text (spec AC-0012) — so a hostile one is reported to
+    *rejections* by field name rather than embedded in an advisory line.
     """
     selected = set(pack_names)
     warnings: list[str] = []
@@ -321,15 +385,23 @@ def compatibility_warnings(
 
         source_version = source_pack.get("version")
         baseline_version = baseline_pack.get("version")
-        if (
-            isinstance(source_version, str)
-            and isinstance(baseline_version, str)
-            and source_version != baseline_version
-        ):
-            warnings.append(
-                f"advisory: pack version differs for {name!r} — derived tree "
-                f"carries {baseline_version!r}, source declares {source_version!r}"
+        if isinstance(source_version, str) and isinstance(baseline_version, str):
+            safe_source_version = _safe_scalar(
+                "pack_version", source_version, rejections
             )
+            safe_baseline_version = _safe_scalar(
+                "pack_version", baseline_version, rejections
+            )
+            if (
+                safe_source_version is not None
+                and safe_baseline_version is not None
+                and safe_source_version != safe_baseline_version
+            ):
+                warnings.append(
+                    f"advisory: pack version differs for {name!r} — derived "
+                    f"tree carries {safe_baseline_version!r}, source "
+                    f"declares {safe_source_version!r}"
+                )
 
         source_contract = source_pack.get("adapter-contract", {})
         baseline_contract = baseline_pack.get("adapter-contract", {})
@@ -341,22 +413,47 @@ def compatibility_warnings(
             if isinstance(baseline_contract, dict)
             else None
         )
+        safe_source_contract_version = (
+            _safe_scalar("adapter_contract_version", source_contract_version, rejections)
+            if isinstance(source_contract_version, str)
+            else None
+        )
+        safe_baseline_contract_version = (
+            _safe_scalar("adapter_contract_version", baseline_contract_version, rejections)
+            if isinstance(baseline_contract_version, str)
+            else None
+        )
+        source_contract_hostile = (
+            isinstance(source_contract_version, str)
+            and safe_source_contract_version is None
+        )
+        baseline_contract_hostile = (
+            isinstance(baseline_contract_version, str)
+            and safe_baseline_contract_version is None
+        )
         # Either side may omit `[pack.adapter-contract]` entirely — the field
         # is optional (unlike `[pack] version`), so "differs" has to compare
         # against an absent baseline too, not only a baseline that also
-        # declares one.
-        if source_contract_version != baseline_contract_version and (
-            isinstance(source_contract_version, str)
-            or isinstance(baseline_contract_version, str)
+        # declares one. A hostile value on either side is already reported
+        # to *rejections* above; the comparison itself is skipped rather
+        # than risking a display built from a value that failed the check.
+        if (
+            not source_contract_hostile
+            and not baseline_contract_hostile
+            and safe_source_contract_version != safe_baseline_contract_version
+            and (
+                isinstance(safe_source_contract_version, str)
+                or isinstance(safe_baseline_contract_version, str)
+            )
         ):
             baseline_display = (
-                baseline_contract_version
-                if isinstance(baseline_contract_version, str)
+                safe_baseline_contract_version
+                if isinstance(safe_baseline_contract_version, str)
                 else "absent"
             )
             source_display = (
-                source_contract_version
-                if isinstance(source_contract_version, str)
+                safe_source_contract_version
+                if isinstance(safe_source_contract_version, str)
                 else "absent"
             )
             warnings.append(
@@ -373,19 +470,25 @@ def compatibility_warnings(
             if not isinstance(entry, dict):
                 continue
             dep_name = entry.get("pack")
-            if isinstance(dep_name, str) and dep_name not in selected:
+            if not isinstance(dep_name, str):
+                continue
+            safe_dep_name = _safe_scalar("dependency_edge_name", dep_name, rejections)
+            if safe_dep_name is not None and safe_dep_name not in selected:
                 warnings.append(
                     f"advisory: pack {name!r} declares a required dependency on "
-                    f"{dep_name!r}, which the resolved selection does not include"
+                    f"{safe_dep_name!r}, which the resolved selection does not include"
                 )
         for entry in deps.get("conflicts") or []:
             if not isinstance(entry, dict):
                 continue
             dep_name = entry.get("pack")
-            if isinstance(dep_name, str) and dep_name in selected:
+            if not isinstance(dep_name, str):
+                continue
+            safe_dep_name = _safe_scalar("dependency_edge_name", dep_name, rejections)
+            if safe_dep_name is not None and safe_dep_name in selected:
                 warnings.append(
                     f"advisory: pack {name!r} declares a conflict with "
-                    f"{dep_name!r}, which the resolved selection includes"
+                    f"{safe_dep_name!r}, which the resolved selection includes"
                 )
 
     return warnings
@@ -441,7 +544,19 @@ def _plan_document(
     summary: dict[str, int],
     verdict_rows: list[tuple[str, str, str | None]],
     compatibility: list[str],
+    rejections: list[str],
 ) -> dict[str, Any]:
+    """Build the plan document, following ``upgrade._build_json_doc``'s
+    ``summary``-carrying shape and vocabulary.
+
+    Spec AC-0012: ``archive_sha256``, ``source_revision`` and — under
+    ``attributed`` — the source URI are all unauthored (resolved from a
+    remote document or the adopter's own ``--source`` flag rather than
+    written by this command), so each is routed through the terminal-safe
+    check here, at the one place they are assembled for rendering.
+    """
+    safe_archive_sha256 = _safe_scalar("archive_sha256", archive_sha256, rejections)
+    safe_source_revision = _safe_scalar("source_revision", source_revision, rejections)
     doc: dict[str, Any] = {
         "command": "catalogue sync",
         "target": str(target),
@@ -449,8 +564,8 @@ def _plan_document(
         "check": check,
         "fidelity": fidelity_token,
         "pin": {
-            "archive_sha256": archive_sha256,
-            "source_revision": source_revision,
+            "archive_sha256": safe_archive_sha256,
+            "source_revision": safe_source_revision,
         },
         "modes": {
             "attribution": attribution,
@@ -472,7 +587,10 @@ def _plan_document(
         ],
     }
     if attributed:
-        doc["source"] = source_raw
+        safe_source = _safe_scalar("source", source_raw, rejections)
+        if safe_source is not None:
+            doc["source"] = safe_source
+    doc["rejections"] = list(rejections)
     return doc
 
 
@@ -493,6 +611,8 @@ def _render_plan(doc: dict[str, Any], *, fmt: str) -> None:
         lines.append(f"source: {doc['source']}")
     lines.append("packs: " + (", ".join(doc["packs"]) or "(none)"))
     lines.append("profiles: " + (", ".join(doc["profiles"]) or "(none)"))
+    for line in doc.get("rejections", []):
+        lines.append(line)
     for line in doc.get("compatibility", []):
         lines.append(line)
     for row in doc["verdicts"]:
@@ -523,45 +643,66 @@ def _refuse(
     Never reproduces the underlying exception text: it may embed the raw
     source value (a local path is, after all, its own URI), which spec
     AC-0002 forbids surfacing outside ``attributed`` mode. Only a fixed
-    reason and, when attributed, the source itself are ever printed.
+    reason and, when attributed, the source itself are ever printed — and
+    even then only once it passes AC-0012's terminal-safe check, same as
+    every other unauthored value this command renders.
     """
+    rejections: list[str] = []
+    safe_source = _safe_scalar("source", source_raw, rejections) if attributed else None
     if fmt == "json":
         doc: dict[str, Any] = {"ok": False, "error": reason}
         if attributed:
-            doc["source"] = source_raw
+            if safe_source is not None:
+                doc["source"] = safe_source
+            else:
+                doc["rejections"] = rejections
         print(json.dumps(doc, indent=2))
     else:
         print(f"error: {reason}", file=sys.stderr)
         if attributed:
-            print(f"  source: {source_raw}", file=sys.stderr)
+            if safe_source is not None:
+                print(f"  source: {safe_source}", file=sys.stderr)
+            else:
+                for line in rejections:
+                    print(f"  {line}", file=sys.stderr)
     return code
 
 
 def run(args: argparse.Namespace) -> int:
     target_raw: str = args.target
-    target_path = Path(target_raw)
-    if target_path.is_symlink():
-        print(
-            f"error: target {target_raw!r} is a symlink. Provide a direct path.",
-            file=sys.stderr,
-        )
-        return _MALFORMED
-    target = target_path.resolve()
-
     source_raw: str = args.source
-
     dry_run = bool(args.dry_run)
     check = bool(args.check)
     compare_tree = bool(args.compare_tree)
-    if compare_tree and not check:
-        print("error: --compare-tree requires --check", file=sys.stderr)
-        return _MALFORMED
-
     attribution: str = args.attribution or "white-label"
     tooling: str = args.tooling or "external"
     guides: str = args.guides_mode or "selected"
     fmt: str = args.format
     attributed = attribution == "attributed"
+
+    # Rendering is bounded on all three channels (stdout, stderr, and the
+    # `--format json` document) from the first refusal onward — every
+    # branch below reaches `_refuse`, never a bespoke print, so a malformed
+    # invocation gets the same JSON-aware shape as every other refusal.
+    target_path = Path(target_raw)
+    if target_path.is_symlink():
+        return _refuse(
+            f"target {target_raw!r} is a symlink. Provide a direct path.",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_MALFORMED,
+        )
+    target = target_path.resolve()
+
+    if compare_tree and not check:
+        return _refuse(
+            "--compare-tree requires --check",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_MALFORMED,
+        )
 
     cleanup: Callable[[], None] | None = None
     try:
@@ -632,10 +773,19 @@ def run(args: argparse.Namespace) -> int:
 
     resolved_cfg = replay.config
     planned_paths = set(replay.file_bytes.keys())
+    # One shared rejections list: every value this command did not itself
+    # author — a recorded path, a source-tree entry name, a manifest's own
+    # version string, the resolved digest/revision, and the source URI
+    # itself — is routed through the terminal-safe check before it can
+    # reach any output surface (spec AC-0012), and every rejection lands
+    # here regardless of which stage produced it.
+    rejections: list[str] = []
     summary_counts, verdict_rows = _classify_planned_paths(
-        target, replay.old_state, planned_paths
+        target, replay.old_state, planned_paths, rejections
     )
-    compatibility = compatibility_warnings(target, replay.pack_names, replay.file_bytes)
+    compatibility = compatibility_warnings(
+        target, replay.pack_names, replay.file_bytes, rejections
+    )
     doc = _plan_document(
         target=target,
         dry_run=dry_run,
@@ -653,6 +803,7 @@ def run(args: argparse.Namespace) -> int:
         summary=summary_counts,
         verdict_rows=verdict_rows,
         compatibility=compatibility,
+        rejections=rejections,
     )
     _render_plan(doc, fmt=fmt)
     return _DIFFERENCE if replay.violations else _SUCCESS
