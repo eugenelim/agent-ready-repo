@@ -533,6 +533,23 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Published adopter guidance about Mermaid's layout engine is falsified by
+  # upstream, independently of what this repository pins. Measured 2026-09-18
+  # against mermaid 12.0.0's own bundled default config:
+  # `guides/architect/explanation/architect-diagram-skill-design.md` states
+  # "Mermaid's default layout engine is **dagre**" (line 70) and that "ELK
+  # requires `@mermaid-js/layout-elk` to be loaded by the rendering environment"
+  # (line 83). In 12.0.0 the default resolves to `elk` and ELK ships bundled, so
+  # both sentences are wrong for any adopter on mermaid >=12. Dagre is still
+  # embedded everywhere, so the skill's "works everywhere" reason survives; what
+  # does not is the venue caveat, since ELK no longer needs a separate package on
+  # a normal build. Found while assessing dependabot #1320,
+  # which was declined: the bump is not taken, so nothing in this repository
+  # depends on fixing this, which is exactly why it needs recording rather than
+  # riding along. The fix is a version-scoped correction to the guide, not a
+  # change to the skill's dagre default, which is still the right default for a
+  # diagram that must render in an unknown venue.
+  {slug = "architect-diagram-guide-states-pre-12-mermaid-layout-defaults", source = "dependabot-assessment/2026-09-18 (#1320 declined)"},
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified
