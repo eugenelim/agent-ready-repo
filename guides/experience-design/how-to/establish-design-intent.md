@@ -171,8 +171,10 @@ check.
 
 It records fifteen axes. The first seven are structural because structure
 carries at least as much of a first impression as colour does. Each commitment
-cell starts with its bracketed token or tokens, then says in prose what that
-choice means for this surface. `[platform-default]` means the platform's usual
+cell starts with its bracketed tokens, then says in prose what that
+choice means for this surface. Grid grammar, alignment and equilibrium, and
+section and scroll rhythm take two ordered tokens; every other axis takes one.
+`[platform-default]` means the platform's usual
 convention remains in force because you have not made a direction-specific
 choice. It is a recorded undecided state, never an empty cell.
 
@@ -196,11 +198,12 @@ choice. It is a recorded undecided state, never an empty cell.
 
 #### Run the counterfactual check
 
-Take a similar brief through the same direction work. Anything that matches the
-generic default is a default, not a choice. Revise that axis or goal and record
-the generic result, the revision, and why the new direction suits this brief.
-An empty counterfactual table means the check has not run; it does not mean no
-revision was needed.
+Name a comparator — a similar brief you could plausibly have been given — and
+take it through the same direction work. Anything that matches what the
+comparator produced is a default, not a choice. Revise that axis or goal, then
+record the comparator, what it produced, the revision, and why the new
+direction suits this brief. An unnamed comparator or an empty table means the
+check has not run; neither means no revision was needed.
 
 Use the resulting direction when you review the screen. The authoring-time
 taste critique may call out a contradiction only when the recorded goal and
