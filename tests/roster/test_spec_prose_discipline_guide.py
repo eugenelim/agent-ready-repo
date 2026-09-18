@@ -30,6 +30,12 @@ class TheGuideNamesTheCurrentSpecSections(unittest.TestCase):
         self.body = flat(GUIDE.read_text(encoding="utf-8"))
 
     def test_the_retired_section_names_are_gone(self) -> None:
+        # Bare words, deliberately: AC-0009 states this as a closed list of
+        # three strings, and the guide has no ordinary-English use of either
+        # noun today. The cost is that an unrelated sentence introducing the
+        # word "objective" would red this arm. Accepted: a spurious red on a
+        # guide edit is cheap and visible, and a heading-shaped pattern would
+        # miss the prose references that are the actual risk here.
         for stale in ("Objective", "Boundaries", "before `Approach:`"):
             with self.subTest(stale=stale):
                 self.assertNotIn(stale, self.body)
@@ -42,10 +48,11 @@ class TheGuideNamesTheCurrentSpecSections(unittest.TestCase):
                 self.assertIn(current, self.body)
 
     def test_the_conditional_approach_rule_replaced_the_unconditional_one(self) -> None:
-        self.assertIn(
-            "an `Approach:` only where the task carries an ordering or seam decision",
-            self.body,
-        )
+        # Two conditions rather than one exact sentence: a harmless rewrite of
+        # the guide should not red an arm whose subject is the rule, not the
+        # wording. The retired unconditional form is caught by the arm above.
+        self.assertRegex(self.body, r"`Approach:`\s+only where")
+        self.assertRegex(self.body, r"ordering or seam decision")
 
 
 if __name__ == "__main__":

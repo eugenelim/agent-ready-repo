@@ -175,7 +175,11 @@ class NoSurfaceStatesTheRetiredRules(unittest.TestCase):
     )
 
     def test_no_file_under_the_skill_carries_a_stale_phrase(self) -> None:
-        for path in sorted(_SKILL_DIR.rglob("*.md")):
+        targets = sorted(_SKILL_DIR.rglob("*.md"))
+        # An empty glob makes every subTest below vacuous, which is the same
+        # hole `TheSlicerIsNotVacuous` closes for the section slicer.
+        self.assertGreaterEqual(len(targets), 4, f"no markdown found under {_SKILL_DIR}")
+        for path in targets:
             body = flat(read(path))
             for phrase in self.STALE:
                 with self.subTest(path=path.name, phrase=phrase):
@@ -233,18 +237,23 @@ class TheProseReferenceIsAdvisory(unittest.TestCase):
         opening = self.body[: self.body.index("## The signal-word scan")]
         self.assertIn("Advisory guidance, never a gate", opening)
 
-    def test_it_carries_no_gate_vocabulary(self) -> None:
-        # Establishes the absence of these forms and nothing more. Whether the
-        # reference *reads* as advisory is AC-0015's recorded verdict, which no
-        # word list can settle.
+    def test_it_carries_none_of_three_named_gate_words(self) -> None:
+        # Exactly these three, which is AC-0007's closed list. It does not
+        # establish that the reference is non-gating: "required", "must" and
+        # any other imperative pass here. Whether the reference *reads* as
+        # advisory is AC-0015's recorded verdict, which no word list settles.
         for word in ("exit", "fail", "blocks"):
             with self.subTest(word=word):
                 self.assertNotIn(word, self.body.lower())
 
-    def test_it_states_no_numeric_threshold(self) -> None:
-        # Threshold-shaped, not digit-shaped: the file cites rubric "class 6".
+    def test_it_states_no_digit_shaped_threshold(self) -> None:
+        # Digit-shaped only, and threshold-shaped rather than any digit,
+        # because the file cites rubric "class 6". A spelled-out bound
+        # ("at least three") passes, and the arm is named for that limit
+        # rather than claiming the file states no threshold at all.
         thresholds = re.findall(
-            r"\b(?:at least|no more than|under|over|fewer than|within)\s+\d|\d+\s*%", self.body
+            r"\b(?:at least|no more than|under|over|fewer than|within)\s+\d"
+            r"|\d+\s*(?:%|percent)", self.body
         )
         self.assertEqual([], thresholds)
 

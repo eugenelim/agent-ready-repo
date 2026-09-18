@@ -146,3 +146,32 @@ bootstrap interval crossed zero, and neither is a controlled comparison, so
 this is a lead rather than a result. It is noted because both directions
 oppose parts of this change; if either firms up, the two-sentence `Outcome`
 cap and the conditional `Approach:` are where to look.
+
+## Quality-engineer pass
+
+Reviewer: `codex exec`, `gpt-5.6-terra`, reasoning effort high, read-only,
+scoped to the two new test modules. Returned four Concerns and one Nit; none
+was a Blocker.
+
+| Finding | Disposition |
+| --- | --- |
+| Gate-vocabulary arm named for a property it cannot establish | repair-the-artifact — renamed to `test_it_carries_none_of_three_named_gate_words`, with the limit stated in the arm |
+| Numeric-threshold arm misses spelled-out and `percent` forms | repair-the-artifact — renamed to `test_it_states_no_digit_shaped_threshold`; `percent` added to the pattern |
+| The guide's exact-sentence pin reds on a harmless rewrite | repair-the-artifact — split into the two conditions the rule turns on |
+| Bare-word `Objective` / `Boundaries` check can red on ordinary prose | accept-as-proportionate — AC-0009 states this as a closed list of three strings, the guide has no ordinary use of either noun, and a heading-shaped pattern would miss the prose references that are the real risk. Reason recorded in the arm |
+| The stale-phrase glob passes vacuously on an empty result | repair-the-artifact — promoted from Nit and fixed, because it is the same vacuity hole the module's own guard class exists to close |
+
+The first two findings are the review's third and fourth instance of one
+class: a check named for more than it establishes. Adversarial round 1 found
+it in AC-0007, round 2 found the same overclaim surviving in the plan's T1,
+and this pass found it twice more in arm names. The class is worth naming:
+when the property is a judgement, the arm's *name* is where the overclaim
+hides, because the assertion itself is honest and only the label lies.
+
+## Artifact exercised
+
+The installed projection was scaffolded, not just the pack source:
+`.claude/skills/new-spec/assets/{spec.md,plan.md}` were copied to a scratch
+directory and read with comments stripped. The emitted skeleton carries
+`## Outcome`, `## What Changes` and `## Agent Rules` with its three tiers, in
+that order, and no `## Objective` or `## Boundaries`.
