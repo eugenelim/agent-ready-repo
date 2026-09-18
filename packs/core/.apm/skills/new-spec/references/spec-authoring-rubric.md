@@ -37,6 +37,12 @@ by hand is degraded at the point of writing, whatever you knew when you wrote
 it — so read the text as a stranger would, and treat a hand-restated rule as a
 defect on sight rather than as evidence you applied it.
 
+Prose quality is a different axis and is not a seventh class here: these six
+are about whether a review loop converges, not about whether the artifact
+reads as written by someone who decided something. That belongs to
+the sibling `prose-discipline.md`, which is advisory and gates
+nothing.
+
 **A repair is the likeliest source of the next defect**, because it is written
 in the belief that the rule is now understood. After changing a rule or a
 criterion, run two checks on the part you did *not* touch:

@@ -224,7 +224,7 @@ def test_material_revision_invalidates_but_nonmaterial_correction_retains_result
     """The caller, rather than the reviewer, owns review-result lifecycle."""
     text = _flat(NEW_SPEC)
 
-    assert "material edit to Objective, Boundaries, Acceptance Criteria, Testing Strategy" in text
+    assert "material edit to Outcome, Agent Rules, Acceptance Criteria, Testing Strategy" in text
     assert "invalidates the result and requires a fresh shaping review" in text
     assert "pre-seal, nonmaterial wording, formatting, or evidence-link correction without redispatch" in text
 

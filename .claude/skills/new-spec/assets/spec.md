@@ -13,34 +13,51 @@
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 >
-> **Not every section is contract.** `Boundaries`, `Testing Strategy` and
+> **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
 > `Acceptance Criteria` are what a completion gate reads, and an amendment
-> changes them. `Objective`, `Durable Outputs`, `Follow-ons` and `Assumptions`
-> are working material: they orient a reader and an author corrects them in place
+> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
+> `Assumptions` are working material: they orient a reader and an author corrects them in place
 > as the work teaches, without an amendment and without a review round. A review
 > finding against working material is advisory — it cannot block, because nothing
 > gates the text it cites. Marking the tiers is the spec's job; honouring them
 > when a finding is adjudicated is the reviewing surface's.
 
 <!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Objective, Boundaries, Testing
-Strategy, Acceptance Criteria, and Assumptions to the depth the durable work
-requires. The sibling plan carries the implementation and verification strategy.
+behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
+Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
+requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
 Eligible direct-light work does not create this artifact. -->
 
 <!-- **Present tense, as-built.** Write every body section below as if the
 feature already exists and always worked this way — no "will be", no
 "previously X, now Y", no deprecation timelines, no version-stamped history.
 The body describes the current contract; decision history lives in ADRs and the
-changelog. This applies to the spec body only — `plan.md` keeps its own
-changelog of how the approach evolved. -->
+release changelog. `plan.md` holds to the same rule: its `## Changelog` records
+approvals, not how the approach evolved. -->
 
-## Objective
+## Outcome
 
 <!--
-One paragraph. What are we building, who is the user, and what does success
-look like for them? Frame from the user's perspective, not the implementer's.
-Implementation detail belongs in `plan.md`.
+Two sentences, no more. The first names who this is for and what they get; the
+second says what success looks like for them. Frame from their perspective,
+not the implementer's, and leave implementation detail to `plan.md`. The cap is
+the point: an outcome that needs a third sentence is usually carrying a delta,
+which belongs in the section below, or a mechanism, which belongs in the plan.
+-->
+
+## What Changes
+
+<!--
+The delta, as bullets, for a human landing on this spec cold. It sits here —
+above every contract section — because a reader's first question is what moves,
+and a paragraph of Outcome does not answer it scannably.
+
+One bullet per change, each naming the thing that moves and where it lives. No
+rationale, no mechanism, no restating the Outcome in list form: a reader who
+stops after this section should know the shape of the change and nothing they
+would have to unlearn.
+
+- <what moves> — <where it lives>
 -->
 
 ## Durable Outputs
@@ -73,7 +90,7 @@ surface before implementation approval.
 | --- | --- | --- | --- | --- | --- |
 | <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
 
-## Boundaries
+## Agent Rules
 
 The three-tier guard that keeps an implementing agent inside the lines.
 *Always do* applies without asking; *Ask first* requires human sign-off
@@ -226,7 +243,7 @@ mere design detail:
 
 - A criterion names an observable outcome. Naming a function's parameters, a
   helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Objective guidance and `SKILL.md`'s design-doc anti-pattern for
+  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
   the document-level distinction.
 
 - [ ] <observable outcome>
@@ -267,19 +284,41 @@ reference. Do not use this section to hide unfinished accepted intent.
 ## Assumptions
 
 <!--
-Audit trail for the assumption-surfacing checkpoint that ran when this
-spec was drafted (see `new-spec` SKILL.md step 3). Each item names how
-it was settled. This section is *not* the contract — it's the frame the
-contract was written under. The contract lives above (Objective,
-Boundaries, Testing Strategy, Acceptance Criteria).
+What is still unresolved, and nothing else. Each item is a question the
+contract rests on that nobody has answered yet — so a reader sees the open
+questions instead of scrolling a list of facts that are already settled.
 
-Format: `- <category>: <fact> (source: <path | URL | probe | user
-confirmation YYYY-MM-DD>)`
+A fact you settled is not an assumption, and how you checked it is not
+recorded here: that was the assumption checkpoint's evidence (`new-spec`
+SKILL.md step 3), and its job ended when the fact entered the contract. Route
+each settled fact by what it does. A fact that bounds what this delivery does
+goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
+into the plan's `## Design (LLD)` or `## Constraints`. There is no third
+destination, and nothing is left behind here as a receipt.
 
-- Technical: <fact> (source: <…>)
-- Process: <fact> (source: <…>)
-- Product: <fact> (source: user confirmation YYYY-MM-DD)
+Unresolved comes in two shapes, and both belong here.
 
-If an assumption later turns out wrong, fix the spec body in the same
-PR and add a one-line note here recording what changed and why.
+An **open question** — something that could still be answered:
+`- <category>: <open question> — <what it would change> (settled by: <who or
+what can answer it>)`
+
+A **named gap** — something that will not be answered on this delivery, such
+as a dependency that is absent or a corpus that is unreachable:
+`- <category>: <what is missing> — <what is therefore ungrounded>`
+
+Write `none` when nothing is unresolved. An empty section and an unexamined
+one read the same.
+
+- Technical: <open question> — <what it would change> (settled by: <…>)
+- Product: <what is missing> — <what is therefore ungrounded>
+
+When an item is settled later, route the fact to its destination above and
+delete the line. An item still here at approval is a known gap in the
+contract, recorded on purpose.
+
+A settled fact that later turns out wrong is a different event, and it does
+not come back here. Fix it where it lives — the spec body, or the plan's
+design — in the same PR that finds it, and say in that PR what changed. The
+correction belongs in the artifact the fact was doing work in, not in a note
+about the checkpoint that filed it.
 -->

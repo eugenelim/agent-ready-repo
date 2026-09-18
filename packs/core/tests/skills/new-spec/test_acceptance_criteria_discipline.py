@@ -147,7 +147,11 @@ RULES = (
     (
         "relocate-before-reducing",
         "skill",
-        "One ratio, two causes, opposite remedies.",
+        # Reworded when `Approach:` became conditional: the old phrase named a
+        # Tests-to-Approach line ratio, and a task may now have no `Approach:`
+        # at all, so the ratio it described cannot always exist. The rule it
+        # protects -- relocate design prose rather than cut it -- is unchanged.
+        "Relocate it to `## Design (LLD)` rather than cutting it",
     ),
     (
         "owner-gets-decision-facts",

@@ -15,8 +15,9 @@ docs/specs/<feature>/
                     verification-ledger.md when execution produces an observation
 ```
 
-**`spec.md` is the contract.** Its four sections — Objective, Boundaries,
-Testing Strategy, Acceptance Criteria — together define what "done" means.
+**`spec.md` is the contract.** Three sections define what "done" means —
+Agent Rules, Testing Strategy, Acceptance Criteria — read in the frame that
+Outcome and What Changes set above them.
 The Acceptance Criteria list the observable outcomes that close the spec
 (the gate, not an afterthought); the Testing Strategy names the verification
 mode for each, and the artifact that verifies it lives where that mode
@@ -202,7 +203,7 @@ the artifacts that verify it have different shapes and different lifecycles:
 
 - **The contract** lives in `spec.md` — Acceptance Criteria name the
   observable outcomes; Testing Strategy names the verification mode for
-  each (TDD / goal-based check / visual / manual QA); Boundaries names the
+  each (TDD / goal-based check / visual / manual QA); Agent Rules names the
   rails. Any valid implementation must satisfy every criterion. The
   contract is stable against *implementation* change (that's the whole
   point); it evolves with *spec* (behavioural) change during the spec's
@@ -213,10 +214,10 @@ the artifacts that verify it have different shapes and different lifecycles:
   Criteria in concrete form. They are *revisable* if one turns out to
   over-specify an internal detail the plan changed.
 
-Within a plan task, the **Tests** subsection comes *before* Approach. Tests
-drive implementation, not the other way around. Red-green-refactor: write
-the failing test, make it pass, refactor — separate commits for each when
-the change is non-trivial.
+Within a plan task, **Tests** leads: tests drive implementation, not the other
+way around. `Approach:` is conditional and `assets/plan.md` owns when it is
+written. Red-green-refactor: write the failing test, make it pass, refactor —
+separate commits for each when the change is non-trivial.
 
 **Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN carries the exact test code
 as the task's compilable, validated red **stub** — as much of the real failing

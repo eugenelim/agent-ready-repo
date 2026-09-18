@@ -176,12 +176,13 @@ fixture-internal detail, and a finished edge-case matrix remain build-time
 guidance and cannot prevent `Clean`.
 
 When the **structural-change** trigger fires, the reviewer checks the plan
-against the spec's **Boundaries** section (defined by the `new-spec` skill's
-bundled `spec.md` template) — primarily `Never do` for hard structural rules and
+against the spec's **Agent Rules** section — headed `Boundaries` in specs
+authored before this rename, and defined either way by the `new-spec` skill's
+bundled `spec.md` template — primarily `Never do` for hard structural rules and
 `Ask first` for the ones that require sign-off; `Always do` for positive defaults
-the plan must honour. If `Boundaries` is empty, that's the finding to surface
-first — an empty Boundaries section is a spec-stage gap, **not** a fallback cue.
-Only when the spec has no Boundaries section at all (an unmigrated template, say)
+the plan must honour. If that section is empty, that's the finding to surface
+first — an empty one is a spec-stage gap, **not** a fallback cue.
+Only when the spec carries neither heading (an unmigrated template, say)
 fall back, in order, to: the PLAN step's **declined-pattern register**, and the
 effective repository guidance's approval and action rules (when installed
 elsewhere, follow the adopter's own headings and mapped sources).

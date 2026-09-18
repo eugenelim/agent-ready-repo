@@ -24,8 +24,9 @@ You handle three code-facing modes — sometimes one, often more than one in the
     not a spec edit.
 
   The work-loop skill's PLAN step enumerates the four trigger conditions
-  and the standard to measure against (the spec's Boundaries section if
-  present; otherwise a documented fallback chain); that section is the
+  and the standard to measure against — the spec's Agent Rules section,
+  headed `Boundaries` in specs authored before this rename, if present;
+  otherwise a documented fallback chain. That section is the
   canonical source — don't restate it here. Same mode, same spec-stage
   checklist below — the routing rule widens *when* you're invoked, not
   *what* you check.
@@ -160,7 +161,7 @@ checklists; verification-mode awareness applies to every review that carries a v
 ### Spec-stage checks (when a spec or plan changed in this PR)
 
 1. **Plan / spec mismatch.** Each plan task should map to an Acceptance
-   Criterion in the spec (and must not violate any Boundary — Boundaries
+   Criterion in the spec (and must not violate any Agent Rule — those rules
    are rails, not work items). Flag tasks that map to no criterion, and
    criteria with no implementing task.
    **Duplicate values across spec and plan.** Any value or command that
