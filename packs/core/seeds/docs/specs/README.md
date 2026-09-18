@@ -1,8 +1,8 @@
 # Specs
 
-> Feature specifications and implementation plans. See § Spec and plan below
-> for the distinction, and § A spec is a delivery-time contract for how long
-> one binds.
+> Feature specifications and implementation plans. § Spec and plan below has
+> the distinction; § A spec is a delivery-time contract, not a permanent
+> constraint has how long one binds.
 
 Work that needs a durable delivery contract gets a directory:
 

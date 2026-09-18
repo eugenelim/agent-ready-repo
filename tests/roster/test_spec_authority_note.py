@@ -7,11 +7,12 @@ two drift silently unless something compares them. The note tells a reader that
 a shipped spec is the record of an agreement rather than a standing constraint,
 which is only worth saying if every adopter meets the same words.
 
-Section bodies are compared, not whole files. The two files legitimately differ
-elsewhere and may differ again — `packs/AGENTS.md` forbids shipped pack content
-from citing this repository's own records, so the seed can never carry a live
-copy's internal citation. Equality is asserted where the contract is, and the
-presence arm keeps a section that was deleted from both from passing as equal.
+Section bodies are compared, not whole files, because the two copies may
+diverge outside this section: `packs/AGENTS.md` forbids shipped pack content
+from citing this repository's own records, so the seed can never carry an
+internal citation a live copy is free to add. Equality is asserted where the
+contract is, and the presence arm keeps a section that was deleted from both
+from passing as equal.
 
 Clauses are matched against whitespace-normalised text, so re-wrapping a
 paragraph does not redden a note that is fully present. Not detected, and named

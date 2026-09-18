@@ -6,9 +6,9 @@ spec, and the work-loop's amendment reference described how a contract is
 amended without saying what binds it or for how long. Both clauses are prose,
 so each is asserted individually — a heading alone is not a check.
 
-Not detected, and named so the blind spot is visible: a clause moved into an
-HTML comment or a fenced code block still satisfies `flat()`, which collapses
-the whole file rather than the prose alone.
+Not detected, and named so the blind spots are visible: `flat()` collapses the
+whole file, so a clause moved into an HTML comment, into a fenced code block,
+or out of the section its comment names still satisfies the assertion.
 """
 from __future__ import annotations
 
@@ -46,8 +46,10 @@ LIFECYCLE_CLAUSES = (
     "frozen once the spec is `Shipped`",
     "A frozen spec no longer constrains how the system behaves",
     "never by rewriting the shipped spec",
-    # The freeze is not total: the record's own metadata stays obliged.
-    "its own status line, errata, and register anchors stay obliged",
+    # The freeze is not total, but only the contract's two licensed pointers
+    # and the body's deferral anchors survive it — there is no errata carrier.
+    "its status line still takes the two pointers that contract licenses",
+    "the deferral anchors its body names still have to resolve",
     # The full rule lives in one place, and the pointer has to resolve there.
     "`references/spec-and-plan-contract.md`, under `**Lifecycle:**` and "
     "§ *A spec directory freezes as a unit, when the spec ships*",

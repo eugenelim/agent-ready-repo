@@ -92,7 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `work-loop`: `references/delivery-contract-lifecycle.md` opens by naming what
   a delivery contract binds and for how long — living while the plan is
   drafting, pinned from plan approval, frozen once the spec is `Shipped`, whose
-  own status line, errata, and register anchors stay obliged — and points at the
+  status line still takes the two licensed pointers and whose deferral anchors
+  still have to resolve — and points at the
   `new-spec` skill's `references/spec-and-plan-contract.md` for the full rule.
   The amendment machinery below it already assumed those stages without stating
   them.
