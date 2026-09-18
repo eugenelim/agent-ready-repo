@@ -404,6 +404,18 @@ def _prompt(prompt_text: str) -> str:
         return ""
 
 
+def _resolve_field(prompt_text: str, default: str, *, interactive: bool) -> str:
+    """Return default without prompting when not interactive.
+
+    A replay caller (``interactive=False``) never reaches ``_prompt``: the
+    resolved value must come from a flag or that flag's safe default, never
+    from a recorded recipe read back through a prompt seed.
+    """
+    if not interactive:
+        return default
+    return _prompt(prompt_text) or default
+
+
 def _recipe_diagnostic(field_name: str, reason: str) -> str:
     """Describe a discarded state value without echoing attacker-controlled text."""
     return (
@@ -518,11 +530,15 @@ def collect_fields(
     cfg: SelfHostedInitConfig,
     source_meta: dict[str, Any],
     recipe: _SelfHostRecipeInput | None = None,
+    *,
+    interactive: bool = True,
 ) -> SelfHostedInitConfig:
     """Return a resolved copy of cfg with defaults filled in.
 
-    TTY-gated: prompts for missing required fields when stdin is a TTY;
-    falls back to derived defaults when not a TTY.
+    TTY-gated: prompts for missing required fields when stdin is a TTY and
+    ``interactive`` is True; falls back to derived defaults otherwise. A
+    replay caller passes ``interactive=False`` so a recorded recipe value
+    never reaches the prompt seed on a TTY.
     """
     cat = source_meta.get("catalogue", {})
 
@@ -530,16 +546,19 @@ def collect_fields(
     name = cfg.name
     if not name:
         default_name = recipe.name or _derive_name(cfg.target)
-        name = _prompt(f"Catalogue name [{default_name}]: ") or default_name
+        name = _resolve_field(
+            f"Catalogue name [{default_name}]: ", default_name, interactive=interactive
+        )
 
     display_name = cfg.display_name
     if not display_name:
         default_display_name = recipe.display_name or (
             name.replace("-", " ").replace("_", " ").title()
         )
-        display_name = (
-            _prompt(f"Display name [{default_display_name}]: ")
-            or default_display_name
+        display_name = _resolve_field(
+            f"Display name [{default_display_name}]: ",
+            default_display_name,
+            interactive=interactive,
         )
 
     description = cfg.description
@@ -549,8 +568,10 @@ def collect_fields(
             recipe.description
             or f"A self-hosted catalogue derived from {src_name}."
         )
-        description = (
-            _prompt(f"Description [{default_description}]: ") or default_description
+        description = _resolve_field(
+            f"Description [{default_description}]: ",
+            default_description,
+            interactive=interactive,
         )
 
     owner_name = cfg.owner_name
@@ -561,7 +582,9 @@ def collect_fields(
             if recipe.owner_name is not None
             else "Owner name: "
         )
-        owner_name = _prompt(owner_prompt) or default_owner_name
+        owner_name = _resolve_field(
+            owner_prompt, default_owner_name, interactive=interactive
+        )
 
     owner_email = cfg.owner_email
     if not owner_email:
@@ -571,7 +594,9 @@ def collect_fields(
             if recipe.owner_email is not None
             else "Owner email: "
         )
-        owner_email = _prompt(email_prompt) or default_owner_email
+        owner_email = _resolve_field(
+            email_prompt, default_owner_email, interactive=interactive
+        )
 
     preferred_adapter = (
         cfg.preferred_adapter

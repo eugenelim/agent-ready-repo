@@ -184,3 +184,55 @@ cannot be demonstrated on this host; the symlink is the available analogue.
   `make lint-ruff` with 38 errors from generated Python; it was untracked with
   zero tracked files and was removed. Later dispatches were told not to set a
   worktree-local `TMPDIR`, and none did.
+
+## Wave 2 — T3
+
+- **Date:** 2026-09-17
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:33`
+- **Worker:** the `implementer` subagent, running in the supervisor's
+  environment rather than a sandbox. This removed the recurring 43-failure
+  temp-cleanup artefact that every Codex dispatch had reported.
+
+### What was built
+
+`collect_fields(cfg, source_meta, recipe=None, *, interactive=True)` plus one
+local helper `_resolve_field(prompt_text, default, *, interactive)`. All five
+`_prompt` call sites — `name`, `display_name`, `description`, `owner_name`,
+`owner_email` — route through it, and it returns the default unprompted when
+`interactive=False`. The remaining config fields never called `_prompt` and are
+unchanged.
+
+`_is_attributed` was not touched and remains the sole attribution gate.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **426 passed** in 29s
+  (baseline 425; +1 for the stub).
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, 149 files.
+- The test file's diff is **30 insertions, 0 deletions**, so T3's "no assertion
+  edited" condition holds mechanically rather than by assertion.
+
+### A verification-depth limit, found by mutation and recorded rather than hidden
+
+T3's stub asserts the right outcome but **cannot fail for its criterion in one
+step.** Mutating `collect_fields` to prefer a recorded attribution left the test
+passing, because `_SelfHostRecipeInput` carries nine fields and no mode, so the
+attribute does not exist and the read falls through. `_load_self_host_recipe`
+drops the recorded modes before `collect_fields` is reached, so that dataclass —
+not `collect_fields` — is what enforces "the modes never come from state".
+
+AC-0003's own text describes a **`--dry-run` invocation**, and a search of the
+plan found AC-0003 named in exactly two places, both inside T3. No task drove
+the invocation the criterion describes. The contract-alignment lint could not
+see this, because it checks only that some task names each criterion, not that
+the naming task's seam can express the violation.
+
+Amendment 004 adds the end-to-end case to T5, where the verb first exists.
+
+### Process note
+
+One mutation attempt here was invalid: a script asserted out before applying its
+edit, and the test command chained after it still printed `1 passed`, which
+evidenced nothing. The file's SHA-256 was confirmed unchanged at
+`546ce645c24dda76da934b44b32e0eebae9a612465de3221f6e7c98b6aa06ba7`. A failable
+edit must not be chained with the step that reads its result.
