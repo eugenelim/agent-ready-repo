@@ -1116,3 +1116,67 @@ It moved 13 points on 5 new observations, which is exactly the instability
 flagged when it was first reported, and it is the reason this split is not yet a
 result. The 86.3% unmeasurable share, by contrast, has held within two points
 across six batches.
+
+### Positions 26 to 31: a 68-test suite that proves nothing
+
+Two new cases. **13 repairs: 0 semantic kills, 1 structural kill, 1 survives, 11
+unmeasurable.**
+
+`a93bbdec4` is the clearest survival in the run so far. The dispatched defect was
+that lock creation caught only `FileExistsError`, so a `PermissionError` or an
+ENOSPC would exit without the required structured JSON result. The co-changed
+test target is the whole of `tools/test_workspace_status.py` — **68 tests**. With
+all three mirrors of the repair reverted, **all 68 passed.**
+
+Worker A pre-registered the reason before execution: the co-changed file contains
+no case that makes lock-file `os.open` raise a non-`FileExistsError` `OSError`
+and asserts a JSON object with `reason == "lock_create_failed"`. A suite of 68
+co-changed tests, and not one of them touches the defect the repair answered.
+This is the shape the audit was built to find, and a count of co-changed tests
+would have scored it as unusually well covered.
+
+### Running totals: 31 of 61 cases, 181 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 156 | 86.2% |
+| semantic kill | 11 | 6.1% |
+| survives | 8 | 4.4% |
+| structural kill | 6 | 3.3% |
+
+| Among the 25 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| semantic kill | 11 | 44% |
+| survives | 8 | 32% |
+| structural kill | 6 | 24% |
+
+**The semantic-kill share is falling monotonically as the sample grows:** 61% of
+18, then 48% of 23, then 44% of 25. The complement — repairs shipping without a
+control that fails for the dispatched defect — has run 39%, 52%, 56%, and now
+stands at **14 of 25**. A monotone drift across three successive reports on a
+sample this small is not yet a trend to report as one, but it is the opposite of
+converging, and it is the reason the remaining 30 cases are worth running rather
+than extrapolating from here.
+
+The 86.2% unmeasurable share has now held within two points across seven
+batches, which is the one proportion in this run stable enough to quote.
+
+### Two defects in the executor's batch selection, and the fix
+
+Positions 21 to 25 re-briefed two already-scored cases, and the next batch
+re-briefed three, because batch selection was driven off raw frozen-order
+positions in the first instance and off a `remaining` list regenerated **while an
+adjudication was still being written** in the second. Both are the same defect:
+the selector could not see work in flight.
+
+The guard now excludes any case appearing in **any predicate file or any
+adjudication file**, so a case cannot be briefed twice regardless of what is
+mid-write. Excluding only scored cases was not enough, because the window
+between briefing and adjudication is exactly when the next batch gets selected.
+
+**The repeats produced evidence that was not designed for.** Three independent
+Worker A instances, given the same dossiers at different times with no shared
+state, produced the **same revert paths and the same oracles** for `281b46dda`,
+`76d0ec70d`, `f5ec8c395` and `6590c8e84`. Cross-worker reproducibility of the
+predicate-freezing step was untested by the protocol; it now has four cases of
+agreement behind it.
