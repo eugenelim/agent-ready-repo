@@ -12,6 +12,11 @@ elsewhere and may differ again — `packs/AGENTS.md` forbids shipped pack conten
 from citing this repository's own records, so the seed can never carry a live
 copy's internal citation. Equality is asserted where the contract is, and the
 presence arm keeps a section that was deleted from both from passing as equal.
+
+Clauses are matched against whitespace-normalised text, so re-wrapping a
+paragraph does not redden a note that is fully present. Not detected, and named
+so the blind spot is visible: a clause moved into an HTML comment, and a fenced
+block whose first line starts with `# `, which also ends the section early.
 """
 from __future__ import annotations
 
@@ -30,14 +35,19 @@ HEADING = "## A spec is a delivery-time contract, not a permanent constraint"
 #: single whole-section comparison would hold the two files together while
 #: letting them agree on a note that had lost its point.
 CLAUSES = (
-    "once the feature\nships it freezes and the code becomes the truth",
+    "once the feature ships it freezes and the code becomes the truth",
     "is the system moving on, not a rule being broken",
-    "correct\nit by superseding it, and record the erratum where the original cites it",
+    "correct it by superseding it, not by editing the body",
+    "record the erratum where the original cites it",
 )
 
 
 def section(body: str, heading: str) -> str:
-    """The text under `heading`, up to the next heading of any level."""
+    """The text under `heading`, up to the next heading of any level.
+
+    Returned verbatim: `test_the_live_and_seed_notes_are_identical` compares
+    wrapping too, and only the clause arms normalise whitespace.
+    """
     start = body.find(heading)
     if start == -1:
         return ""
@@ -55,7 +65,8 @@ def test_the_spec_readme_carries_the_delivery_time_contract_note(
     assert HEADING in body, f"{path} lost the delivery-time-contract heading"
     under = section(body, HEADING)
     assert under, f"{path} carries the heading with no body under it"
-    missing = [clause for clause in CLAUSES if clause not in under]
+    flat = " ".join(under.split())
+    missing = [clause for clause in CLAUSES if clause not in flat]
     assert missing == [], f"{path} lost {missing}"
 
 

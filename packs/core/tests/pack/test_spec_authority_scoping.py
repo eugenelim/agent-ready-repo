@@ -5,6 +5,10 @@ Two consumers formed the opposite belief because neither stated the limit:
 spec, and the work-loop's amendment reference described how a contract is
 amended without saying what binds it or for how long. Both clauses are prose,
 so each is asserted individually — a heading alone is not a check.
+
+Not detected, and named so the blind spot is visible: a clause moved into an
+HTML comment or a fenced code block still satisfies `flat()`, which collapses
+the whole file rather than the prose alone.
 """
 from __future__ import annotations
 
@@ -27,10 +31,11 @@ def flat(path: Path) -> str:
 
 REVIEWER_CLAUSES = (
     # Read-order step 2: which spec is the standard, and what the others are.
-    "That spec is the standard; every other spec is delivery history, "
-    "not current-state authority.",
+    "That spec is the standard; a spec that has shipped or been archived is "
+    "delivery history, not current-state authority.",
+    # A live unshipped peer contract stays inside the standard.
     "A change contradicting one is a finding only if it also breaks the "
-    "targeted spec, a cited ADR, or working code.",
+    "targeted spec, a live unshipped spec, a cited ADR, or working code.",
     # Drift check 5: the same scoping, where the finding is actually raised.
     "**Spec drift.** This check is about the targeted spec only.",
 )
@@ -39,10 +44,13 @@ LIFECYCLE_CLAUSES = (
     "living while the plan is drafting",
     "pinned from plan approval",
     "frozen once the spec is `Shipped`",
-    "A frozen spec constrains nothing",
+    "A frozen spec no longer constrains how the system behaves",
     "never by rewriting the shipped spec",
-    # The full rule lives in one place; this page must keep pointing at it.
-    "`references/spec-and-plan-contract.md` § Lifecycle",
+    # The freeze is not total: the record's own metadata stays obliged.
+    "its own status line, errata, and register anchors stay obliged",
+    # The full rule lives in one place, and the pointer has to resolve there.
+    "`references/spec-and-plan-contract.md`, under `**Lifecycle:**` and "
+    "§ *A spec directory freezes as a unit, when the spec ships*",
 )
 
 

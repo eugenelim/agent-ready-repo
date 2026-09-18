@@ -1,7 +1,8 @@
 # Specs
 
-> Feature specifications and implementation plans. See
-> § Spec and plan below for the distinction and lifecycle.
+> Feature specifications and implementation plans. See § Spec and plan below
+> for the distinction, and § A spec is a delivery-time contract for how long
+> one binds.
 
 Work that needs a durable delivery contract gets a directory:
 
@@ -57,4 +58,5 @@ pointer, its status, and its hard dependencies.
 A spec records what we agreed to build when we agreed it; once the feature
 ships it freezes and the code becomes the truth. An older spec that disagrees
 with today's change is the system moving on, not a rule being broken — correct
-it by superseding it, and record the erratum where the original cites it.
+it by superseding it, not by editing the body, and record the erratum where the
+original cites it.
