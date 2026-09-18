@@ -294,7 +294,7 @@ plan is `Drafting` its current text is the only version anyone acts on, so a
 dated account of how it got there is the draft narration `spec.md`'s
 present-tense rule already refuses, one document over. After approval this
 section is pinned like the rest of the plan, and an execution observation goes
-to the verification ledger.
+to the verification ledger, not to a new changelog entry.
 
 **Each approval is an entry.** The two forms are given at the end of this
 note — one per gate, a real date, the approver's own handle. Both live here
