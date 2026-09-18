@@ -317,3 +317,105 @@ The AC-0015 stub calls `replay_derivation(cfg)` and therefore runs with
 prompt path resolves to defaults anyway. Nothing yet exercises
 `interactive=False` through the replay. T5's command module is what must pass
 `interactive=False`, and T5's own AC-0003 case is what will observe it.
+
+## Wave 4 — T5
+
+- **Date:** 2026-09-18
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:43`
+- **Worker:** the `implementer` subagent.
+
+### What was built
+
+`agentbundle catalogue sync [TARGET] --source <uri>` registered in `cli.py`
+beside `init`, implemented in the new `commands/catalogue_sync.py`, with 17
+tests in the new `test_catalogue_sync.py`. The command calls
+`replay_derivation(cfg, interactive=False)` — always explicitly, never the
+default — so a TTY cannot seed a prompt from this read-only path. The extracted
+directory of a digest-bearing fetch is cleaned in a `finally:` block, so it goes
+on the success path, on a `ReplayError` refusal, and on any other exception
+alike.
+
+The four source forms and their fidelity tokens:
+
+| `--source` form | dispatch | token |
+| --- | --- | --- |
+| local filesystem path | `resolve_catalogue` | `local-path` |
+| `git+https://` | `resolve_catalogue` | `git-tls` |
+| `archive+https://…#sha256=<64hex>` | `fetch_catalogue_archive_with_provenance` | `digest-adopter-pinned` |
+| `catalogue+https://` | `fetch_catalogue_archive_with_provenance` | `digest-publisher-asserted` |
+
+The two digest forms carry distinct tokens because the digest's provenance
+differs: the adopter supplies it in the URI fragment, versus the publisher
+asserting it in a descriptor the same origin serves.
+
+`--dry-run` and `--check` are an argparse mutually exclusive group with
+`required=True`, and `--source` is `required=True`, so "neither or both" and an
+omitted source are parser-level refusals rather than hand-written checks.
+
+### AC-0003's end-to-end case is load-bearing — proved by mutation
+
+`test_sync_dry_run_replays_flag_modes_not_recorded_ones` writes
+`attribution="attributed"`, `tooling="vendored"`, `guides="none"` into the
+derived tree's state, invokes the real parser with none of the three mode flags,
+and asserts the printed plan shows `white-label`, `external`, `selected`.
+
+Mutating `run()` to fall back to a recorded mode produced the red the criterion
+needs:
+
+```
+AssertionError: assert 'white-label' in 'fidelity: local-path
+modes: attribution=attributed tooling=external guides=selected …'
+```
+
+This is what T3's seam could not do, and it is the reason amendment 004 put the
+case here.
+
+### A real defect the identity leak check caught, reproduced by the supervisor
+
+The `--source` help text first read "**Upstream catalogue** URI: …", which
+collided case-insensitively with a fixture's `display_name = "Upstream
+Catalogue"` in three unrelated `vendored`-mode tests. Those fixtures copy the
+whole live `agentbundle/` tree — `cli.py` included — into a derived catalogue and
+run the real leak check over it, so a help string became a reported identity
+leak.
+
+Reproduced deliberately rather than taken on report: reinstating the wording
+gives **3 failed, 429 passed**; the reworded text gives **432 passed**. The
+three casualties name nothing the change touched —
+`test_init_self_hosted_vendored_copies_tooling`,
+`test_self_hosted_init_cli_materialises_runnable_conformance[vendored]`, and
+`test_credbroker_source_travels_in_both_tooling_modes[vendored]` — so without
+the mechanism the failure reads as a regression in the copy machinery. No test
+was edited to make it pass; the wording changed.
+
+**Carried forward:** any new help text, prose default, epilog or error message
+in `cli.py` or a command module can trip this. T6, T7 and T9 all add rendered
+output, so each brief must say so.
+
+### Two deviations, disclosed
+
+1. **`--check` is registered and parses, but `run()` answers it with a fixed
+   cannot-answer and an explicit reason** rather than a real comparison. The
+   ordered, total exit table is T8's declared work, and implementing it here
+   would duplicate that task. Verified safe for T8: **no test asserts the
+   placeholder text, and no test asserts `--check` behaviour at all**, so T8 can
+   implement the real table without editing an assertion.
+2. The `--dry-run` identity-leak row's wiring (`violations` → difference code)
+   is present because the replay already computes it, though T5's own bullets do
+   not exercise it at the CLI level — § Testing Strategy assigns AC-0004 and
+   AC-0005 to the callable.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_sync.py` → **17 passed**.
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **432 passed**,
+  baseline unchanged. `…/test_catalogue_init_cli_self_hosted.py` → **16 passed**.
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, **150**
+  source files, up from 149 with the new module.
+- `derive-subcommands.py` → 10 direct subcommands including `sync`, against the
+  recorded pre-change baseline of 9. § Grounding said T5 was expected to add
+  one, and an unchanged count would have been the failure.
+- Tree-walk rows added: `sync-dry-run-success` and `sync-resolution-refusal`,
+  both asserting the target is byte-identical before and after, including an
+  adopter-owned file already present. The helper is imported from T4's module
+  rather than copied.
