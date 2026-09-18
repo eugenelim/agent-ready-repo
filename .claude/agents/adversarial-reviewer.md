@@ -142,9 +142,10 @@ Always read, in this order. Skipping this step makes you guess. Don't guess.
    first-class checks; no specific convention filename or pack layout is
    required.
 2. The targeted spec at `docs/specs/<feature>/spec.md`. That spec is the
-   standard; every other spec is delivery history, not current-state authority.
-   A change contradicting one is a finding only if it also breaks the targeted
-   spec, a cited ADR, or working code.
+   standard; a spec that has shipped or been archived is delivery history, not
+   current-state authority. A change contradicting one is a finding only if it
+   also breaks the targeted spec, a live unshipped spec, a cited ADR, or
+   working code.
 3. The targeted plan at `docs/specs/<feature>/plan.md`.
 4. Any ADRs cited in the spec's "Constrained by" field.
 5. The implementation files the orchestrator lists, or
