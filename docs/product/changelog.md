@@ -138,6 +138,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the nearest real symbol inverted the gate's safety property, because that
   symbol is the advisory glob screen the same page says must never greenlight a
   parallel wave. The merge step remains the sole authority for disjointness.
+## [frontend-engineering][0.3.0] — 2026-09-18
+
+### Highlights
+
+- The frontend pre-flight now reads the design handoff your team already wrote,
+  instead of picking an aesthetic direction of its own. Point `[design]
+  output_dir` at your design directory and it takes the aesthetic direction, the
+  per-screen brief and the token taxonomy from there. Its own canonical reference
+  list is now only the fallback, and only for a slot no artifact filled.
+- It keys on no section name inside your files. Design templates are scaffolds
+  people edit, so a reader that looked for named sections would find nothing in
+  most real documents — it takes the first heading, the frontmatter as it finds
+  it, and the body whole.
+- A file under a read path that is not the artifact — a different `type:`, a
+  draft, another kind of design record — is skipped and the scan continues.
+  A design directory holding many kinds of document is expected, not an error.
+- When the directory is a personal vault or anywhere outside the repository, it
+  asks you about each artifact before using it, and shows you what it found.
+  Nothing in these files says which product they belong to, so that confirmation
+  is the check — it is never reported as though a test had passed.
+- Every refusal stops the whole read and halts, by name. It does not tidy up a
+  bad value, pick a different file, quietly downgrade to a skip, or fall back to
+  the canonical list. [Read the design handoff](/guides/frontend-engineering/how-to/read-the-design-handoff/)
+  says what each skip and each refusal means, and where the limits are.
+
+### Added
+
+- Shared pre-flight step 0, `Design handoff read`, run by all four modes. It
+  resolves `[design] output_dir` across the repo-root and user-profile branches,
+  validates the slug before composing any path, approves the root with a
+  reserved-tree refusal, compares on resolved path components at every component
+  as enumeration reaches it, enforces read bounds in a stated order, filters by
+  frontmatter `type:`, and takes per-artifact confirmation under a heightened
+  root.
+- `references/design-handoff.md`, the reading contract: the three read paths with
+  their required `type:` literals, what is taken from each file, and what `type:`
+  does and does not establish.
+- `guides/frontend-engineering/how-to/read-the-design-handoff.md`, with its index
+  row.
+- A repository test holding that contract to the real design tree, so a contract
+  that mishandles a file in it fails a gate rather than a review.
+
+### Changed
+
+- The pre-flight is five steps. The new step is numbered 0, so steps 1, 1b, 2 and
+  3 keep their numbers and every reference to them stays true.
 
 ## [experience-design][2.0.6] — 2026-09-18
 

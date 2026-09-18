@@ -77,15 +77,25 @@ read before using it. If you did not open a file, you have not resolved it.
   is missing, empty, or not a string → **named refusal**, not a skip.
 
 **Bind the slug.** `<slug>` is the surface or product slug the operator names for
-the surface being built. Elicit it when the request carries none. All three read
-paths resolve under that one slug.
+the surface being built. All three read paths resolve under that one slug.
 
-- A slug that does not match `^[a-z0-9]+(-[a-z0-9]+)*$`, or exceeds 64 characters
-  → **named refusal, raised before any path is composed.** Refuse it; do not
-  repair it. Do not sanitize it, strip the offending characters, or derive a
-  replacement from the product name or anything else in the request. Say which
-  rule it broke and ask for a conforming one.
-- No slug obtainable after elicitation → **named refusal.** Do not guess one.
+Taking it from how the operator wrote the request is binding, not deriving: a
+request for "the payment screen for our checkout flow" names `checkout`, and
+using it is correct. State the slug you bound so the operator can see it.
+
+- The request names no slug → ask for one. Only when no answer can be obtained —
+  an unattended run, say — is that a **named refusal**. Do not invent one to
+  proceed.
+- The slug the operator named does not match `^[a-z0-9]+(-[a-z0-9]+)*$`, or
+  exceeds 64 characters → **named refusal, raised before any path is composed.**
+
+  Refuse it; do not repair it. This is the one place the rule bites: having
+  rejected a slug, do not sanitize it, strip the offending characters, lowercase
+  it, or offer a tidied version and carry on. Say which rule it broke and ask for
+  a conforming one. The failure this prevents is a real one — given a slug
+  carrying traversal segments, an agent substituted a tidy slug of its own and
+  completed the run, so the operator asked for one name and silently received
+  another while the control reported success.
 
 **Approve the root before reading anything under it.**
 
@@ -162,10 +172,22 @@ resolved directory with no conforming artifact in any slot is the second
 directory-level skip, `design handoff: no conforming artifact under <output_dir>`.
 Those skips are the only states that reach it.
 
-**Every refusal stops the whole read.** There are six, and every failure above is
-an instance of one: a reserved-tree hit at any resolved path; a confinement
-failure at any resolved path; a non-conforming or unobtainable slug; a missing or
-refused confirmation; a breached bound; a dependency failure.
+**Every refusal stops the whole read.** There are six. Record the matching name
+verbatim, as you would a skip — each is written here so two runs of the same
+failure do not report it two different ways:
+
+| Refusal | Record |
+| --- | --- |
+| Reserved tree at any resolved path | `design handoff: reserved tree — <output_dir>-relative path> (<source token>)` |
+| Confinement failure at any resolved path | `design handoff: outside the approved root — resolved to <resolved path>` |
+| Slug non-conforming, or none obtainable | `design handoff: slug rejected — <which rule it broke>` |
+| Confirmation missing or refused | `design handoff: confirmation declined — <output_dir>-relative path> (<source token>)` |
+| A bound exceeded | `design handoff: bound exceeded — <which bound> at <output_dir>-relative path>` |
+| A dependency failure | `design handoff: could not read <what> — <why>` |
+
+The confinement refusal is the one that names an absolute path, because a path
+outside the approved root has no meaningful relative form; every other refusal
+names its subject relative to `output_dir` plus the configuration source token.
 
 On any of them, halt the mode in a named state the operator must resolve. Do not
 repair or normalize the rejected value. Do not substitute another slug, artifact,
