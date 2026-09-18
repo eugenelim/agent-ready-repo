@@ -66,6 +66,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.26.18] — 2026-09-18
 
+### Highlights
+
+- **A shipped spec is the record of what was agreed, not a rule the code must
+  keep obeying.** An agent that meets an older spec disagreeing with today's
+  change now reads that as the system moving on, and says so instead of raising
+  it as a defect. The spec directory your repository is seeded with says the
+  same thing in plain words, so a person opening it meets the limit of a spec's
+  authority beside its conventions.
+
 ### Changed
 
 - `docs/specs/README.md` seed: a new closing section says a spec records what
