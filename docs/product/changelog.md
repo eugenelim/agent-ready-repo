@@ -64,6 +64,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.18] — 2026-09-18
+
+### Highlights
+
+- **A design decision in a plan now names the task that builds it.** Every
+  `## Design (LLD)` sub-section carries an `Owned by:` field alongside its
+  existing `Traces to:`, and the pre-review walk checks that every interface,
+  type, symbol or ownership decision has an owning task. The traversal runs
+  one way only — design down to tasks — because over a third of tasks have no
+  design origin and a reverse rule would fire on every one of them.
+- **A plan that uses the field gets its ownership checked.** Once any
+  sub-section carries `Owned by:`, the contract-alignment lint reports a
+  body-bearing sub-section that names no task, and a named task that no
+  heading defines. A plan written before the field is reported as predating
+  it, never failed, so existing plans need no migration.
+- **The plan template no longer promises an edit the engine refuses.** It
+  said an implementer corrects the design in place "without an amendment";
+  approval hashes the whole plan, so that edit was always rejected. The
+  permission is now bounded to before approval, and the two post-approval
+  cases are named: grounding for a seam the plan marked
+  `no stub (implementation-discovered)` goes to the verification ledger, and
+  a settled decision that execution falsified is a plan error taking
+  controlled amendment.
+- **A review finding is now classified by cause depth before it is answered.**
+  A finding whose cause is a design decision repairs the design and every
+  task that decision owns, rather than patching the one place it was spotted.
+
+### Added
+
+- Five conditional design prompts in the plan template: concurrency and
+  transaction boundaries, stable error classes and retryability, a concrete
+  observability surface, backfill checkpointing and cutover validation, and
+  named test seams for crossed boundaries. Each scaffolds only when the
+  spec's `Shape:` selects its sub-section.
+
+### Changed
+
+- The contract-alignment lint's task pattern accepts a lettered task-ID
+  suffix, so a `T2a` heading now enters the set of defined tasks it resolves
+  against.
+
 ## [core][2.26.17] — 2026-09-18
 
 ### Highlights

@@ -21,6 +21,9 @@ The rules, all mechanical:
      -- a criterion whose assertion did not follow it. Its base revision
      defaults to the merge-base with the default branch; `--since` names one
      explicitly and `--no-since` declines it.
+  10. each populated Design (LLD) sub-section in a participating plan names an
+      owning task
+  11. each task named by an Owned by field is defined in that plan
 
 Rule 5 is scoped to task entries -- a task's 'Tests:' and 'Done when:'
 blocks -- and not to the whole document. The weaker form, "does this identifier
@@ -45,9 +48,9 @@ revision rather than waiting to be given one: a rule whose input is optional is
 a rule that does not run, and its no-input line prints beside a zero finding
 count where the summary reads as a pass.
 
-The summary's 'partial (rules with no input: ...)' clause lists rules 5, 7, 8
-and 9 when they had no input, grouped by spec; its count is of specs, not of
-rules. Rule 4 is deliberately absent even when it is half-applied -- see
+The summary's 'partial (rules with no input: ...)' clause lists plan-gated
+rules and rule 9 when they had no input, grouped by spec; its count is of
+specs, not of rules. Rule 4 is deliberately absent even when it is half-applied -- see
 PLAN_GATED -- so the clause is not the complete account of what did not run.
 Any entry in it is an un-run rule, never a clean result. Rule 9's entry states
 which input it lacked; rules 5, 7 and 8 name themselves only, because a
@@ -83,6 +86,9 @@ FINDING_KINDS = {
     "no-spec": "no spec.md",
     "broken-entry": "entry has an unterminated code span",
     "stale-assertion": "was reworded with no changed assertion in",
+    "unowned-design": "has no Owned by task ID",
+    "undefined-owner": "names an undefined task ID",
+    "predating-owner": "predates the Owned by field",
 }
 
 # Findings are listed up to this many, then grouped by spec with an exact
@@ -98,7 +104,13 @@ FINDING_CAP = 20
 # partially applied rather than unapplied, and listing it would claim a rule ran
 # on nothing when half of it ran. A rule that silently runs on nothing is the
 # partial-read-as-clean failure this module exists to detect in other artifacts.
-PLAN_GATED = ("no-task-entry", "derived-item", "broken-entry")
+PLAN_GATED = (
+    "no-task-entry",
+    "derived-item",
+    "broken-entry",
+    "unowned-design",
+    "undefined-owner",
+)
 
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)
 CRITERION_LINE = re.compile(r"- \[[ x]\] \*\*(AC-\d{4})\.\*\* ")
@@ -111,7 +123,7 @@ MALFORMED = re.compile(r"\b(?:AC|VI)-(?!\d{4}\b)[A-Za-z0-9]+\b")
 # Rollout, Risks, the Changelog -- so a criterion named in the changelog is
 # credited to a task entry. That is the mention-anywhere form rule 5 exists to
 # eliminate, reappearing inside rule 5.
-TASK = re.compile(r"^### (T\d+)\b(.*?)(?=^### T\d+\b|^## |\Z)", re.M | re.S)
+TASK = re.compile(r"^### (T\d+[a-z]?)\b(.*?)(?=^### T\d+[a-z]?\b|^## |\Z)", re.M | re.S)
 # A field block ends at the next *field label* -- bold, capitalised, colon --
 # not at any bold capital. A bold identifier such as `**XX-0000.**` opens a case
 # bullet, not a field, and treating it as a boundary truncated a task's Tests
@@ -133,6 +145,15 @@ RUN = re.compile(r"`+")
 GROUP_ITEM = re.compile(r"^- \*\*(.+?)\*\*", re.M | re.S)
 RETIRED_HEADING = re.compile(r"^## Retired identifiers\s*$", re.M)
 RETIRED_ENTRY = re.compile(r"^[-*]\s+`?((?:AC|VI)-\d{4})`?\s*$", re.M)
+LLD_SUBSECTION = re.compile(r"^### (.+?)\n(.*?)(?=^### |\Z)", re.M | re.S)
+# The template documents this field inside an HTML comment; an authored plan
+# writes it as plain text. One declaration, two renderings, one pattern.
+OWNED_BY = re.compile(
+    r"^(?:Owned by:[ \t]*(?P<plain>[^<>\n]*?)"
+    r"|<!--[ \t]*Owned by:[ \t]*(?P<wrapped>.*?)[ \t]*-->)[ \t]*$",
+    re.M,
+)
+OWNED_TASK = re.compile(r"\bT\d+[a-z]?\b")
 
 
 def _section(text: str, heading: str) -> str:
@@ -180,6 +201,49 @@ def task_entries(plan: str) -> dict[str, list[str]]:
         for ident in set(CRITERION_REF.findall(scope)):
             named.setdefault(ident, []).append(task)
     return named
+
+
+def design_ownership(plan: str) -> tuple[bool, list[tuple[str, str, list[str]]]]:
+    """Return whether the plan uses ``Owned by:``, and each LLD field's IDs.
+
+    A plan opts in when any Design (LLD) sub-section carries the field, even
+    when that field is empty. Empty sub-sections do not need an owner, but once
+    a plan opts in every sub-section with body text does.
+    """
+    ownership: list[tuple[str, str, list[str]]] = []
+    participating = False
+    for title, body in LLD_SUBSECTION.findall(_section(plan, "Design (LLD)")):
+        fields = [plain or wrapped
+                  for plain, wrapped in OWNED_BY.findall(body)]
+        participating = participating or bool(fields)
+        ownership.append((title, body, OWNED_TASK.findall("\n".join(fields))))
+    return participating, ownership
+
+
+def design_ownership_findings(rel: str, plan: str) -> tuple[list[str], list[str]]:
+    """Rules 10 and 11, as failing findings and reported-not-failing notes.
+
+    Split out because both the labelled and unlabelled paths run it: ownership
+    is decided from the plan alone and never from the spec's criteria, so
+    gating it on the criterion grammar would silence it for most of a corpus.
+    """
+    if not plan:
+        return [], []
+    participating, sections = design_ownership(plan)
+    if not participating:
+        return [], [f"{rel}/plan.md: {FINDING_KINDS['predating-owner']}"]
+    findings: list[str] = []
+    defined_tasks = {task for task, _ in TASK.findall(plan)}
+    for title, body, owners in sections:
+        if body.strip() and not owners:
+            findings.append(f"{rel}/plan.md: {title} {FINDING_KINDS['unowned-design']}")
+        for task in owners:
+            if task not in defined_tasks:
+                findings.append(
+                    f"{rel}/plan.md: {title} {task} "
+                    f"{FINDING_KINDS['undefined-owner']}"
+                )
+    return findings, []
 
 
 def unterminated(entry: str) -> bool:
@@ -525,7 +589,16 @@ def check(spec_dir: Path, root: Path | None = None,
 
     criteria = CRITERION.findall(spec)
     if not criteria:
-        return [], False, [], []              # forward-only: unlabelled specs are skipped
+        # Forward-only: unlabelled specs are skipped by the criterion rules,
+        # which have nothing to map. The ownership rules read the plan alone,
+        # so they still run -- returning here left them unreachable for every
+        # spec predating the identifier grammar, which is most of the corpus.
+        owned, owned_reported = design_ownership_findings(_rel(spec_dir, root), plan)
+        # `ran` stays False: the criterion rules did not run, and the summary's
+        # checked-versus-skipped count is what tells a caller that. Ownership
+        # findings still surface, because they were decided from the plan.
+        ownership_rules = ["unowned-design", "undefined-owner"]
+        return owned, False, [] if plan else ownership_rules, owned_reported
 
     findings: list[str] = []
     if plan_refusal:
@@ -578,6 +651,10 @@ def check(spec_dir: Path, root: Path | None = None,
                 hint = (" (mentioned in plan, but not in a task entry)"
                         if ident in mentioned else "")
                 findings.append(f"{rel}/plan.md: {ident} {FINDING_KINDS['no-task-entry']}{hint}")
+
+        owned, owned_reported = design_ownership_findings(rel, plan)
+        findings.extend(owned)
+        reported.extend(owned_reported)
 
     groups = verification_groups(spec)                            # rule 6
     for ident in criteria:

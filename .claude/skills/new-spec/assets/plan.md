@@ -15,8 +15,11 @@
 >
 > **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
 > completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
-> and `Risks` are working material: an implementer corrects them in place as the
-> work teaches, without an amendment and without a review round. Treating them as
+> and `Risks` are working material that an implementer corrects in place only
+> before approval: approval hashes the whole plan. After approval, grounding for
+> a seam recorded as `no stub (implementation-discovered)` goes to the
+> verification ledger; a settled design decision that execution falsified is a
+> plan error that follows the controlled-amendment procedure. Treating them as
 > contract is how a review spends a round on prose no gate consumes — the
 > measured share is over half the plan's lines. `Grounding` stays *recorded*,
 > because a per-task resolution that nobody wrote is not grounding; what it stops
@@ -125,42 +128,61 @@ Delete every sub-heading the shape doesn't select. -->
 ### Design decisions
 <!-- optional — the load-bearing choices and the alternatives rejected, one line
 of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Data & schema
 <!-- optional — entities, fields, types, ownership, migrations, retention.
 Traces to: <AC(s)> · <contracts/…>. -->
+<!-- When this feature migrates existing data, name backfill checkpointing,
+restartability, and cutover validation. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Interfaces & contracts
 <!-- optional — the surfaces this feature exposes or consumes (REST API, event
 interface, BFF, RPC). Point at the `contracts/<type>/` file each implements.
 Traces to: <AC(s)> · <contracts/…>. -->
+<!-- When this feature crosses a boundary, name a test seam for each
+crossed boundary. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Component / module decomposition
 <!-- optional — the parts and their responsibilities; what's new vs. reused; for
 UI, the component tree. Traces to: <AC(s)> · <contracts/…>. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### State & control flow
 <!-- optional — state model and transitions; sequencing across components; for
 UI, screen states and navigation. Traces to: <AC(s)> · <contracts/…>. -->
+<!-- When state changes concurrently, name concurrency, consistency,
+locking, atomicity, and transaction boundaries. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Behavior & rules
 <!-- optional — the business and validation rules and the decisions they drive.
 Traces to: <AC(s)> · <contracts/…>. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Failure, edge cases & resilience
 <!-- optional — what can go wrong and the response: retries, fallbacks, timeouts,
 partial failure, idempotency, degraded modes. Traces to: <AC(s)> · <contracts/…>. -->
+<!-- When external failures are possible, name stable error classes,
+retryability, and external failure mapping. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Quality attributes (NFRs)
 <!-- optional — how the design meets each NFR-with-a-bar from the spec's
 Acceptance Criteria (performance, accessibility, security posture, operability).
 Traces to: <AC(s)> · <contracts/…>. -->
+<!-- When this feature needs operational visibility, name a concrete
+observability surface. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Dependencies & integration
 <!-- optional — external systems, services, and libraries this design leans on,
 and the coupling between them. (Reuse `Depends on:` / `Touches:` on the tasks
 below for *execution* ordering; this sub-section is for *design*-level coupling.)
 Traces to: <AC(s)> · <contracts/…>. -->
+<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 > **Rollout & deployment** — the tenth design dimension — is **not** a
 > sub-heading here. It is realized by [`## Rollout`](#rollout) below (infra,

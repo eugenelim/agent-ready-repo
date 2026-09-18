@@ -195,6 +195,32 @@ def flattened(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").split())
 
 
+_PLAN_REVIEW_TRAVERSALS = (
+    "Every criterion has construction evidence and every `Tests` bullet traces to a criterion;",
+    "every `Done when` observes what its own `Tests` require;",
+    "no condition has two homes;",
+    "every shared bound is defined once.",
+    "Every interface, type, symbol, or ownership decision named in `## Design (LLD)` has an owning task.",
+)
+
+
+def assert_plan_review_traversals(body: str) -> None:
+    """Require the plan-review pass to cover its original four checks and LLD ownership."""
+    for traversal in _PLAN_REVIEW_TRAVERSALS:
+        assert traversal in body
+
+
+def test_plan_review_traversal_covers_design_decision_ownership() -> None:
+    assert_plan_review_traversals(flattened(SKILL))
+
+
+def test_plan_review_traversal_rejects_missing_design_decision_ownership() -> None:
+    body = flattened(SKILL).replace(_PLAN_REVIEW_TRAVERSALS[-1], "")
+
+    with pytest.raises(AssertionError):
+        assert_plan_review_traversals(body)
+
+
 @pytest.mark.parametrize(("rule_id", "owner", "phrase"), RULES, ids=[rule[0] for rule in RULES])
 def test_acceptance_criterion_rule_has_one_owner(
     rule_id: str, owner: str, phrase: str

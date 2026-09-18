@@ -78,6 +78,25 @@ PLAN = """\
 **Done when:** the AC-0002 bullet lands.
 """
 
+OWNERSHIP_PLAN = """\
+# Plan: fixture
+
+## Design (LLD)
+
+### Design decisions
+
+The first decision is recorded.
+Owned by: T1
+
+### Data & schema
+
+The second decision is recorded.
+Owned by: T2
+
+## Tasks
+
+""" + PLAN
+
 
 def _tree(root: Path, spec: str = SPEC, plan: str | None = PLAN) -> Path:
     """Write one fixture spec directory and return the repository root."""
@@ -211,6 +230,153 @@ def _subject_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _check(root: Path, plan: str | None = OWNERSHIP_PLAN):
+    """Run the check API so return-tier placement is part of each assertion."""
+    _tree(root, plan=plan)
+    subject = _subject_module()
+    return subject.check(root / "docs" / "specs" / "fixture", root)
+
+
+def test_participating_lld_subsection_without_an_owner_fails(root):
+    plan = OWNERSHIP_PLAN.replace("Owned by: T2\n", "", 1)
+    findings, ran, skipped, reported = _check(root, plan)
+    assert ran
+    assert "unowned-design" not in skipped
+    assert "undefined-owner" not in skipped
+    assert not reported
+    assert any("Data & schema has no Owned by task ID" in finding for finding in findings)
+
+
+def test_an_empty_owned_by_field_fails(root):
+    plan = OWNERSHIP_PLAN.replace("Owned by: T2", "Owned by:")
+    findings, _, _, _ = _check(root, plan)
+    assert any("Data & schema has no Owned by task ID" in finding for finding in findings)
+
+
+def test_an_undefined_owned_by_task_fails(root):
+    plan = OWNERSHIP_PLAN.replace("Owned by: T2", "Owned by: T99")
+    findings, _, _, _ = _check(root, plan)
+    assert any("Data & schema T99 names an undefined task ID" in finding for finding in findings)
+
+
+def test_lld_ownership_allows_an_empty_subsection_and_unowned_task(root):
+    plan = OWNERSHIP_PLAN.replace("Owned by: T2", "Owned by: T1").replace(
+        "## Tasks", "### Empty sub-section\n\n## Tasks")
+    findings, ran, skipped, reported = _check(root, plan)
+    assert ran
+    assert not findings
+    assert "unowned-design" not in skipped
+    assert "undefined-owner" not in skipped
+    assert not reported
+
+
+def test_lld_ownership_does_not_fail_a_plan_without_design(root):
+    findings, ran, skipped, reported = _check(root, PLAN)
+    assert ran
+    assert not findings
+    assert "unowned-design" not in skipped
+    assert "undefined-owner" not in skipped
+    assert reported == ["docs/specs/fixture/plan.md: predates the Owned by field"]
+
+
+def test_lld_ownership_reports_a_plan_with_no_owned_by_field_as_predating(root):
+    plan = OWNERSHIP_PLAN.replace("Owned by: T1\n", "", 1).replace("Owned by: T2\n", "", 1)
+    findings, ran, skipped, reported = _check(root, plan)
+    assert ran
+    assert not findings
+    assert "unowned-design" not in skipped
+    assert "undefined-owner" not in skipped
+    assert reported == ["docs/specs/fixture/plan.md: predates the Owned by field"]
+
+
+@pytest.mark.parametrize("plan", [None, ""])
+def test_lld_ownership_rules_have_no_input_only_for_empty_plan_text(root, plan):
+    _, _, skipped, _ = _check(root, plan)
+    assert {"unowned-design", "undefined-owner"} <= set(skipped)
+
+
+def test_lld_ownership_rules_have_no_input_for_a_refused_plan(root, tmp_path_factory):
+    _tree(root, plan=OWNERSHIP_PLAN)
+    outside = tmp_path_factory.mktemp("outside") / "plan.md"
+    outside.write_text("not a plan", encoding="utf-8")
+    plan = root / "docs" / "specs" / "fixture" / "plan.md"
+    plan.unlink()
+    plan.symlink_to(outside)
+    subject = _subject_module()
+    _, _, skipped, _ = subject.check(plan.parent, root)
+    assert {"unowned-design", "undefined-owner"} <= set(skipped)
+
+
+def test_lld_ownership_rules_are_applied_for_nonempty_predating_plan(root):
+    _, _, skipped, _ = _check(root, PLAN)
+    assert "unowned-design" not in skipped
+    assert "undefined-owner" not in skipped
+
+
+def test_lettered_task_heading_resolves_owned_by_task(root):
+    plan = OWNERSHIP_PLAN.replace("### T2:", "### T2a:").replace(
+        "Owned by: T2", "Owned by: T2a")
+    findings, _, _, _ = _check(root, plan)
+    assert not any("names an undefined task ID" in finding for finding in findings)
+
+
+# A lone lettered task. It carries BOTH criteria and nothing precedes it,
+# because `^### T\\d+\\b` does not match `### T2a` -- so with a preceding `T1`
+# the unrecognised heading is absorbed into T1's body and its criteria still
+# look covered. Isolating the task is what makes losing suffix support red.
+SUFFIX_ONLY_PLAN = """\
+# Plan: fixture
+
+### T2a: Do the only thing
+
+**Tests:**
+- **AC-0001.** Assert the first thing.
+- **AC-0002.** Assert the second thing.
+
+**Done when:** both bullets land.
+"""
+
+
+def test_a_lettered_task_still_satisfies_the_task_entry_rule(root):
+    """Widening the task pattern must not strand rule 5.
+
+    The suffix case above proves the owner rule resolves `T2a`. That is the new
+    rule. Rule 5 reads the same pattern to decide which task entry names a
+    criterion, so a `T2a` heading the pattern missed would leave its criteria
+    looking uncovered -- a regression in a rule this change never set out to
+    touch. The task stands alone so no earlier task can absorb it.
+    """
+    findings, _, _, _ = _check(root, SUFFIX_ONLY_PLAN)
+    assert not any("is named by no task entry" in f for f in findings), findings
+
+
+def test_the_suffix_regression_case_reds_without_suffix_support(root):
+    """The arm above is only worth its name if it can fail.
+
+    Dropping the suffix from the heading is what losing suffix support looks
+    like from rule 5's side: no task is recognised, so both criteria report as
+    named by no task entry.
+    """
+    findings, _, _, _ = _check(root, SUFFIX_ONLY_PLAN.replace("### T2a:", "### Xa:"))
+    assert [f for f in findings if "is named by no task entry" in f]
+
+
+def test_an_unlabelled_spec_reports_only_the_ownership_rules_as_input_less(root):
+    """The unlabelled branch names the two rules it starved, and no others.
+
+    Returning the whole plan-gated tuple here would claim the three criterion
+    rules were starved of input, when they did not run because the spec is
+    unlabelled -- which the checked-versus-skipped count already says. An
+    equality assertion is required: a subset check passes on the wrong tuple.
+    """
+    unlabelled = SPEC.replace("**AC-0001.** ", "").replace("**AC-0002.** ", "")
+    _tree(root, spec=unlabelled, plan="")
+    subject = _subject_module()
+    _, ran, no_input, _ = subject.check(root / "docs" / "specs" / "fixture", root)
+    assert ran is False
+    assert no_input == ["unowned-design", "undefined-owner"]
 
 
 @pytest.mark.parametrize("ref", ["--output=/tmp/x", "-p", "--exec=sh", "--upload-pack=sh"])
@@ -941,7 +1107,13 @@ def test_a_correctly_retired_criterion_passes(root):
 # the value under test. A hand-list is the right shape at this one site: the
 # drift it used to cause is now caught by comparing it against the subject's own
 # tuple in the same case, which reads them as two independent statements.
-PLAN_GATED_RULES = {"no-task-entry", "derived-item", "broken-entry"}
+PLAN_GATED_RULES = {
+    "no-task-entry",
+    "derived-item",
+    "broken-entry",
+    "unowned-design",
+    "undefined-owner",
+}
 
 
 def test_a_directory_with_no_spec_is_its_own_state_and_root_relative(root):
@@ -1123,7 +1295,9 @@ def test_a_flood_of_findings_is_capped_with_an_exact_remainder(root):
     result = _run(_many_bad(root))
     assert result.returncode == 1
     lines = result.stdout.splitlines()
-    assert len(lines) < 40, f"capped output must stay small:\n{len(lines)} lines"
+    # The plans predate `Owned by:`, so their separately capped reporting
+    # channel adds at most FINDING_CAP notes to the capped failing channel.
+    assert len(lines) < 60, f"capped output must stay small:\n{len(lines)} lines"
     assert "not listed; re-run with --verbose" in result.stdout
     assert "more finding(s) in docs/specs/" in result.stdout, (
         "the remainder must be grouped by spec, since a flat cut-off hides which "
