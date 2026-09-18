@@ -1,7 +1,7 @@
 # Plan: wave-complete dispatch receipts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0061 § Context (its Concern/Owner table carries
   the read-only-guard / explicit-mutation split this change sits inside);
   `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` `cmd_record_attempt`
@@ -793,9 +793,18 @@ classifiers; the partition walk is a negative control.**
   `.apm/` file are byte-identical before finishing.
 
 **Done when:** every assertion above is green, including the transition-level
-one; no statement in the tree still asserts that `check --phase implement`
-guards the `wave-complete` transition (three do today: `check_phase`'s
-docstring, `cmd_check`'s docstring, and a docstring in `test_loop_guards.py`);
+one; no **live, editable** surface still asserts that `check --phase implement`
+guards the `wave-complete` transition. Five assert it today, measured
+exhaustively in § 8.2 of the verification ledger rather than sampled:
+`_loop_guards.py:1194` (`check_phase`'s docstring), `loop-cohort.py:1558`
+(`cmd_check`'s docstring), `test_loop_guards.py:2037` (a docstring),
+`loop-engine.py:1012` (the guard-table entry, which the retarget clause below
+already changes), and `test_loop_engine.py:1615` (a docstring). The scope word
+is load-bearing: `docs/specs/loop-infrastructure-phase-1/plan.md` states the
+same coupling at six lines and is Shipped and frozen, which this plan's
+Constraints require unedited, so an unscoped clause could never be discharged.
+That frozen statement is a recorded historical account of Phase 1, not a live
+claim about the guard, and it stays;
 `_guard_check_phase_implement` is either removed or given a caller, since
 retargeting the guard table leaves it with neither; the three copies of each
 edited `.apm/` file hash equal; and
@@ -1124,6 +1133,24 @@ tools/test_build_site_routing.py -q` passes.
   acquisition vocabulary was an inert constant; it now carries the
   read-refusal row's scope as an assertion that reddens under a widened
   `readable`.
+- 2026-09-17: **amendment 0001**, the first controlled contract amendment on this
+  plan. Authority:
+  [`notes/amendment-0001-owner-authority.md`](notes/amendment-0001-owner-authority.md).
+  Reason: § 8.2 of the verification ledger. T1 had already completed and its
+  section is immutable; the amendment preserved it with an evidence binding and
+  cleared the schedule, so rescheduling emits T2 onward and treats T1 as met.
+  One clause changed. T3's `Done when` required that *no statement in the tree*
+  assert the `implement`/`wave-complete` coupling, which could never be
+  discharged: `loop-infrastructure-phase-1/plan.md` states it at six lines and
+  is Shipped and frozen, and this plan's Constraints require it unedited. The
+  clause now reaches live, editable surfaces and names all five of them, where
+  it had named three — T1's exhaustive read found `loop-engine.py:1012` and a
+  docstring at `test_loop_engine.py:1615` missing from the list. The
+  guard-table entry was already covered by the retarget clause, so the
+  operative omission was the test docstring, which nothing else in T3 reached.
+  Found by T1 rather than by a review round, which is what a discovery task is
+  for; surfaced to the owner rather than reinterpreted, because a `Done when`
+  clause is a verification obligation and contract.
 - 2026-09-17: revised from review round 10, run on two Codex reviewers with
   disjoint focus sets. Both blockers on the contract lane were drift from the
   round-9 repairs themselves. The Boundaries sentence stating that an empty

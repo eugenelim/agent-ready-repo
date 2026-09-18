@@ -1,6 +1,6 @@
 # Spec: wave-complete dispatch receipts
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md) (Option A: `loop-engine` owns read-only guard enforcement, `loop-cohort` owns skill-invoked mutations); `loop-infrastructure-phase-1` (Shipped and frozen — its plan declares `check --phase implement` a Phase-1 compatibility stub, whose semantics this spec preserves); `work-loop-in-process-guards` (Shipped and frozen — it owns the in-process guard surface this spec extends)
