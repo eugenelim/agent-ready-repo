@@ -64,6 +64,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.17] — 2026-09-18
+
+### Highlights
+
+- **A plan now names the production code each of its checks drives.** A task's
+  `Tests:` bullet already owed the suite it lives in, the fixture carrying a
+  join key, and the shipped assertion the change moves; it now owes the
+  production code the check exercises as well. A reader of a plan written from
+  here on can see what each check is meant to hold against without opening the
+  test.
+
+### Changed
+
+- `new-spec`: `SKILL.md` step 5 adds the production seam a check drives to the
+  list of mechanisms a `Tests:` bullet must name, alongside the suite and its
+  location, the fixture carrying a join key, and the shipped assertion the
+  change moves. A bullet that names no production code leaves an implementer
+  unable to tell what the assertion is meant to hold against. Naming an honest
+  proxy for a property the oracle cannot reach stays a separate obligation in
+  the same step.
+- `new-spec`: `SKILL.md` step 5's **Restating an acceptance criterion** bullet
+  no longer repeats that list of mechanisms; it points at the rule beginning
+  "Carry mechanism, never a restatement of a criterion", which states them
+  once, so the two cannot drift apart again.
+
 ## [core][2.26.16] — 2026-09-18
 
 ### Highlights
