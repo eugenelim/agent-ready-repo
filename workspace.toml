@@ -1398,17 +1398,6 @@ open = [
   # Unblocks now; no dependency.
   { path = "packs/core/.apm/skills/work-loop/scripts/loop-engine.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Serialise the wave-exit verdict against the cohort mutation that can invalidate it: the guard reads state.json under the engine lock while wave advance moves current_wave_index under the cohort lock, so a concurrent advance lets a wave exit with no dispatch receipt through sanctioned verbs alone", needs = [] },
 
-  # Found 2026-09-18 by the post-gates quality review of the same spec.
-  # `malformed_receipts_position` discards the keys it walks, so a refusal for a
-  # malformed leaf names only the expected shape at the declared key-path depth.
-  # With many records held, an operator cannot tell which partition, wave or task
-  # holds the bad value from the output alone. The refusal is correct and fails
-  # closed; what is missing is the locator. Not closed here because it changes a
-  # helper's return shape and every caller's message, and the bounding criterion
-  # applies to whatever it prints -- its own change with its own tests.
-  # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Name the offending key path when a receipts record is malformed: malformed_receipts_position discards keys while recursing, so the refusal says what shape was expected but not which wave or task holds the bad leaf", needs = [] },
-
   # Found 2026-09-18 by the post-gates adversarial review of the same spec. The
   # unsupported-schema verdict row is worded as preserving the `wave-complete`
   # transition's verdict for that state class. It does not, and cannot:
@@ -1430,7 +1419,7 @@ open = [
   # open. Do NOT close this by loosening the preflight, which the reviewer
   # proposed -- that widens what every transition accepts.
   # Unblocks now; no dependency.
-  { path = "docs/specs/wave-complete-dispatch-receipts/spec.md", kind = "chore", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md" }, summary = "Reword the unsupported-schema verdict row's rationale: it claims to preserve the wave-complete transition's verdict, but the run-id preflight refuses that state class before any event guard runs, so the row only ever decides the direct check invocation", needs = [] },
+  { path = "docs/specs/wave-complete-dispatch-receipts/spec.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md" }, summary = "Reword the unsupported-schema verdict row's rationale: it claims to preserve the wave-complete transition's verdict, but the run-id preflight refuses that state class before any event guard runs, so the row only ever decides the direct check invocation", needs = [] },
 
   # A wave exit that passes with no receipts container, or with every task
   # declined, leaves no record an after-the-fact reader can find: the read-only
@@ -1439,53 +1428,9 @@ open = [
   # status also refuses when schema_version is unsupported, so for the oldest
   # state class the guard tolerates, only the stdout notice remains.
   # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
+  { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
 ]
 
-# Resolved repo-durable items. Kept rather than deleted so a reader who arrives
-# from a stale reference finds the disposition instead of a silent gap.
-#
-# Still empty, and the pr-gate-suite-disposition delivery found out why the first
-# time anyone tried to use it: `_append_lifecycle_findings` requires a closed
-# defect's own `path` artifact to carry `Status: Closed` and a `Resolution:` of
-# fixed, declined or superseded. Two open defect entries have `.py` paths, and a
-# code file cannot honestly carry either field, so those defects can be removed
-# but not retired here. Recorded in
-# docs/specs/pr-gate-suite-disposition/notes/verification-ledger.md; settling the
-# convention is its own decision.
-closed = [
-  # Closed 2026-09-17 by folding it into
-  # docs/specs/wave-complete-dispatch-receipts rather than deferring it. It was
-  # registered as a follow-on of that spec, then absorbed on the owner's
-  # instruction: a wave exit that refuses an unaccounted wave is worth little
-  # while `wave advance` steps past the same wave unchecked, so the guard's
-  # value depended on this entry staying open. The coupling applies the same
-  # accounting predicate on the branch that moves the pointer, and deliberately
-  # not on the branch that recognises the move as already applied, because the
-  # skill documents the verb as idempotent and session-resumption re-issues it
-  # on a wave-passed resume -- refusing there would turn crash recovery into a
-  # dead end. That residual window is disclosed in the spec's Boundaries and in
-  # its Acceptance Criteria under "Leaving a wave", which state the
-  # already-applied branch's pass verdict at contract strength. Disposition:
-  # contracted, not shipped -- the spec is Draft, so what closed is this
-  # entry's status as a deferred follow-on, not the code.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Pair leaving a wave index with that wave being accounted for: loop-cohort wave advance is not coupled to the wave-exit check, so advancing before the exit fires moves the guard's denominator and the skipped wave is never checked", needs = [] },
-  # Closed 2026-09-17 in core 2.26.11. `walk_task_sections` is now the sole
-  # owner of the task-section boundary walk and `section_depends_field` the sole
-  # owner of the `Depends on:` field lookup; `detect_unknown_deps`, `parse_plan`,
-  # `_task_sections`, and `parse_touches_by_task` all consume them, so the
-  # refusal and the graph cannot disagree about which task owns a line. Agreement
-  # is proved rather than asserted: a property check over a fixture corpus
-  # asserts that each task's declared IDs are exactly the edges the graph carries
-  # plus the IDs the refusal reports unknown, and it reddens when either
-  # consumer's boundary is perturbed independently. The deliberate asymmetry is
-  # preserved and separately pinned -- the field is still read only up to its
-  # first `(`, so a parenthetical ID is neither scheduled as an edge nor reported
-  # as unknown. Before/after comparison over all 423 repository plans showed zero
-  # behavioural differences. The duplicate-heading hazard the property surfaced
-  # is registered as its own open defect above.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
-]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-007 · Catalogue Contracts, Composition, Semantics, and Discovery

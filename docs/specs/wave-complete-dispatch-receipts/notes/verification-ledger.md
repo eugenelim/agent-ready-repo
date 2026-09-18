@@ -2241,3 +2241,67 @@ The three cases that reddened are T7's per-parameter `owned` expectations. So th
 branch already had a control that discriminates — the risk was bounded — but a
 control that exists and a mutation that is *recorded* are different claims, and
 the criterion asks for the second.
+
+---
+
+## 19. Two repository rules CI caught that local gates could not
+
+`gate-main` failed on the first push with two defects. `make build-check` also
+showed red, but only as the aggregator reporting gate-main — one real failure,
+not two. Both defects were mine, and neither is reachable from the local gate
+(`make lint-ruff lint-mypy`) or from any suite this delivery ran.
+
+### 19.1 A branch may bump the pack by exactly ONE patch
+
+`tests/roster/` asserts the declared pack version is exactly `base + 1` patch
+against the merge-base, because the pack reserves minor for new primitives and
+major for removals. The merge-base declared `2.26.14`, so this branch may only
+declare **2.26.15** — and it declared `2.26.17`, having numbered each of its
+three changesets separately during two rebases.
+
+**The rule is that a branch is one release, however many changesets it carries.**
+The three changelog entries are now one `[core][2.26.15]` entry whose Highlights,
+Added, Changed and Fixed sections carry all three, and both manifests read
+`2.26.15`.
+
+This is the third distinct way the version surface has bitten this delivery. The
+first was a collision (main took the number this branch had assigned); the second
+was a stray empty heading from a rebase; this one is a cardinality rule. All
+three share a cause: the version was chosen when the work was done rather than
+derived from the merge-base immediately before pushing.
+
+### 19.2 `[backlog].closed` is not an archive for completed entries
+
+The register's fail-closed `duplicate_membership` rule admits **one membership
+per path across the whole file**, and it counts `closed` alongside `open`. This
+branch had put two completed defects into `closed` on the same path as a live
+`open` entry — three memberships on `loop-cohort.py`.
+
+Reading the rule rather than guessing at a fix mattered, because the first two
+things I believed were both wrong:
+
+- I concluded the `closed` array was my own invention, since `origin/main` has
+  zero entries. It is not — several specs reference it.
+- I then assumed an archival array was simply unsupported. Also wrong, and the
+  real contract is narrower: `backlog.closed` admits only `kind = "defect"`
+  **and** requires the referenced artifact to carry `Status: Closed` plus a
+  resolution in `{fixed, declined, superseded}`. It is for a canonical defect
+  artifact, not a source file. `workspace-backlog-reconciliation/spec.md` states
+  the practice outright: deletion, and "`[backlog].closed` has stayed empty
+  across the project's history while entries have come and gone from `open`."
+
+So both entries were deleted, with the closure evidence where it already lived —
+the changelog and this ledger. A third entry was also invalid: `backlog.open`
+admits `{intent, research, design, brief, spec, defect}` and not `chore`, so the
+rationale follow-on is now `kind = "defect"`, which is accurate for a shipped
+spec carrying a false rationale.
+
+### 19.3 What this says about the local gate
+
+The repository's stated local gate is `make lint-ruff lint-mypy`, with everything
+heavier on CI, and that division is deliberate. Both defects here are
+register-and-release-surface rules that only `tests/roster/` enforces — 1716
+tests, 8m10s, which is why it is not the local gate. The lesson is not "run more
+locally"; it is that a delivery touching `workspace.toml` or a pack version
+should run `tests/roster/` once before pushing, because those two files are
+exactly what that suite owns.

@@ -64,9 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.17] — 2026-09-18
+## [core][2.26.15] — 2026-09-18
 
 ### Highlights
+
 
 - **A wave can no longer be signed off without saying who did the work.** The
   step that closes a wave used to pass no matter what: it returned success for
@@ -88,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
 - `loop-cohort dispatch-receipt <spec-dir> --task <id> --wave-index <n>
   (--receipt | --decline <reason>) --expect-run-id <id>` records one per-task
   receipt or decline. Declines take `no-implementer-installed` or
@@ -103,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+
 - The `wave-complete` transition out of `CODE-IMPLEMENTATION` now consults
   `check --phase wave-exit`. `check --phase implement` is unchanged and keeps
   its exact verdict for every state it passes today, which matters because the
@@ -116,10 +119,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selector and the accounting check, instead of two readings that disagreed on
   `"1"`, `1.9`, `True` and `None`.
 
-## [core][2.26.16] — 2026-09-17
-
-### Changed
-
 - The work-loop scheduler now resolves which plan task owns a `Depends on:`
   line in exactly one place. Four functions used to walk the plan's task-section
   boundaries separately, including the unknown-dependency refusal and the
@@ -132,9 +131,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is unchanged: compared across every plan in this repository, the consolidated
   walk produces identical output.
 
-## [core][2.26.15] — 2026-09-17
-
 ### Fixed
+
 
 - The supervisor-mode parallel-dispatch reference named a disjointness check
   that does not exist. It now names `dispatch_decision`, states that the
