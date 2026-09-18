@@ -1098,6 +1098,82 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _init_p.set_defaults(func=_lazy("catalogue_init"))
 
+    # catalogue sync
+    _sync_p = cat_subs.add_parser(
+        "sync",
+        help=(
+            "Preview what taking later upstream changes would do to a "
+            "derived catalogue. Read-only: writes nothing."
+        ),
+    )
+    _sync_p.add_argument(
+        "target",
+        nargs="?",
+        default=".",
+        help=(
+            "Derived catalogue directory to measure against. Defaults to "
+            "the current directory."
+        ),
+    )
+    _sync_p.add_argument(
+        "--source",
+        required=True,
+        help=(
+            "Source catalogue URI to sync from: a local path, git+https://, "
+            "archive+https://...#sha256=<64hex>, or catalogue+https://."
+        ),
+    )
+    _sync_p.add_argument(
+        "--attribution",
+        choices=("white-label", "attributed"),
+        default=None,
+        help=(
+            "Identity mode replayed for this run. "
+            "'white-label': zero upstream trace in the plan. "
+            "'attributed': the resolved source is named in the plan. "
+            "Default: white-label."
+        ),
+    )
+    _sync_p.add_argument(
+        "--tooling",
+        choices=("external", "vendored"),
+        default=None,
+        help="Tooling mode replayed for this run. Default: external.",
+    )
+    _sync_p.add_argument(
+        "--guides-mode",
+        choices=("none", "selected"),
+        default=None,
+        dest="guides_mode",
+        help="Guides replay mode for this run. Default: selected.",
+    )
+    _sync_p.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="Output format: table (default, human-readable) or json (machine-readable).",
+    )
+    _sync_mode = _sync_p.add_mutually_exclusive_group(required=True)
+    _sync_mode.add_argument(
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        help="Print the plan a sync would carry out. Writes nothing.",
+    )
+    _sync_mode.add_argument(
+        "--check",
+        action="store_true",
+        dest="check",
+        help="Answer whether the tree is current. Writes nothing.",
+    )
+    _sync_p.add_argument(
+        "--compare-tree",
+        action="store_true",
+        dest="compare_tree",
+        help="With --check, compare every recorded path against the tree.",
+    )
+    _sync_p.set_defaults(func=_lazy("catalogue_sync"))
+
     # catalogue index
     _ci_p = cat_subs.add_parser(
         "index",
