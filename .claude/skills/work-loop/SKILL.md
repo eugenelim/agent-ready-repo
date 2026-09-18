@@ -298,11 +298,16 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     **`code` mode** (implementation work):
     ```bash
-    # 1. Spec approver writes Status: Approved in spec.md.
+    # 1. Spec approver writes Status: Approved in spec.md, and adds the
+    #    spec-approval entry to plan.md's Changelog (form: the plan
+    #    template's Changelog note).
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
     # → PLAN-HUMAN-GATE; pending_human_wait: true
 
-    # 2. Plan approver writes Status: Approved in plan.md.
+    # 2. Plan approver writes Status: Approved in plan.md, and adds the
+    #    plan-approval entry to its Changelog in the SAME edit — step 3
+    #    pins plan content and splices out only the status token, so an
+    #    entry written after it invalidates the baseline hash.
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED; pending_human_wait: false
 
@@ -322,11 +327,16 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     **`spec-plan` mode** (spec/plan-only work — no implementation tasks):
     ```bash
-    # 1. Spec approver writes Status: Approved in spec.md.
+    # 1. Spec approver writes Status: Approved in spec.md, and adds the
+    #    spec-approval entry to plan.md's Changelog (form: the plan
+    #    template's Changelog note).
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
     # → PLAN-HUMAN-GATE
 
-    # 2. Plan approver writes Status: Approved in plan.md.
+    # 2. Plan approver writes Status: Approved in plan.md, and adds the
+    #    plan-approval entry to its Changelog in the SAME edit — step 3
+    #    pins plan content and splices out only the status token, so an
+    #    entry written after it invalidates the baseline hash.
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED
 

@@ -13,15 +13,15 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
    `schedule_waves`, `review_retry_count`, `implementation_retry_count`.
 4. If `pending_human_wait` is true, inspect the persisted artifact status before deciding whether to wait:
-   - **`SPEC-HUMAN-GATE`** — read `spec.md` Status: `Draft` → continue waiting; `Approved` → fire `spec-approved` immediately (crash-recovery: approver wrote Approved before the session ended); `Implementing` or `Shipped` → **Surface and stop** (spec advanced past approval without completing the plan gate — describe the state and wait for direction); `Archived` → **Surface and stop** (terminal — this spec will not proceed through the approval gates).
-   - **`PLAN-HUMAN-GATE`** — read `plan.md` Status: `Drafting` → continue waiting; `Approved` → fire `plan-approved` immediately (crash-recovery); `Executing` or `Done` → **Surface and stop** (plan advanced past approval state).
+   - **`SPEC-HUMAN-GATE`** — read `spec.md` Status: `Draft` → continue waiting; `Approved` → check `plan.md`'s Changelog carries the spec-approval entry, then fire `spec-approved` (crash-recovery: approver wrote Approved before the session ended). Status `Approved` with no entry → **Surface and stop**: the approver's handle cannot be inferred, and pinning an approval nobody is recorded as having given is the gap the entry exists to close; `Implementing` or `Shipped` → **Surface and stop** (spec advanced past approval without completing the plan gate — describe the state and wait for direction); `Archived` → **Surface and stop** (terminal — this spec will not proceed through the approval gates).
+   - **`PLAN-HUMAN-GATE`** — read `plan.md` Status: `Drafting` → continue waiting; `Approved` → check its Changelog carries the plan-approval entry, then fire `plan-approved` (crash-recovery). Status `Approved` with no entry → **Surface and stop**, for the reason above; `Executing` or `Done` → **Surface and stop** (plan advanced past approval state).
    - **`CODE-HUMAN-GATE`** → wait for the human merge decision; no artifact to inspect.
 5. Route by `last_event` to pick up where the session left off:
 
    | `last_event` | `state` | Action |
    |---|---|---|
-   | `reviewers-clean` | `SPEC-HUMAN-GATE` | Apply step 4 spec-gate check first. If `Draft`: wait — spec approver writes `Status: Approved` in spec.md, then fire `spec-approved`. |
-   | `spec-approved` | `PLAN-HUMAN-GATE` | Apply step 4 plan-gate check first. If `Drafting`: wait — plan approver writes `Status: Approved` in plan.md, then fire `plan-approved`. |
+   | `reviewers-clean` | `SPEC-HUMAN-GATE` | Apply step 4 spec-gate check first. If `Draft`: wait — spec approver writes `Status: Approved` in spec.md **and adds the spec-approval entry to plan.md's Changelog in the same edit**, then fire `spec-approved`. |
+   | `spec-approved` | `PLAN-HUMAN-GATE` | Apply step 4 plan-gate check first. If `Drafting`: wait — plan approver writes `Status: Approved` in plan.md **and adds the plan-approval entry to its Changelog in the same edit**, then fire `plan-approved`. |
    | `plan-approved` | `SPEC-PLAN-APPROVED` | Both approved. Proceed to cohort operations: `approve-plan` + (code mode) `schedule` + `plan-locked`. No second human signal needed. |
    | `plan-locked` | `CODE-IMPLEMENTATION` | New-sequence code run. EXECUTE proceeds normally. Write `Status: Implementing` before code. |
    | `plan-locked` | `DONE` | Spec-plan terminal. If implementation is later requested: **Surface** — describe the destructive reset and wait for explicit confirmation, then `loop-cohort reset` + `loop-engine reset`, then re-init with `--mode code` (spec.md and plan.md are preserved). |
