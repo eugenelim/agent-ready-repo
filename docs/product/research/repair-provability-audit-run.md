@@ -1180,3 +1180,96 @@ state, produced the **same revert paths and the same oracles** for `281b46dda`,
 `76d0ec70d`, `f5ec8c395` and `6590c8e84`. Cross-worker reproducibility of the
 predicate-freezing step was untested by the protocol; it now has four cases of
 agreement behind it.
+
+### The richest batch, a borrowed failure, and an adjudication that covered 17 of 38
+
+Five new cases, **38 repairs, 12 revert arms.** Every arm had its revert applied
+and asserted; none was voided. Outcome: **3 semantic kills, 2 structural kills,
+8 survives, 25 unmeasurable.**
+
+#### A failure attributed to the wrong repair, caught by a differential arm
+
+Two arms on `f4e821163` failed on the *same test with the same assertion*. Arm 11
+reverted the three mirrors of `references/pre-execute-review.md` for repair 10;
+arm 10 reverted those **plus** the three mirrors of `work-loop/SKILL.md` for
+repair 3. Arm 11's revert set is a strict subset of arm 10's.
+
+So a differential arm was run: revert **only** the three `SKILL.md` mirrors — arm
+10 minus arm 11 — and run arm 10's own test. **It passed.** Arm 10's failure is
+fully explained by the hunk arm 11 isolates, and repair 3's own hunk has no
+control in the test frozen for it. Scored naively, repair 3 reads as a kill.
+
+This is harness requirement 2 established by measurement rather than by
+inspection. The prior run inferred the per-repair unit from a compound commit
+whose two halves produced byte-identical failures; here a subset arm produced an
+identical failure and the differential proved the attribution wrong.
+
+#### Six green arms, and the scale of the co-changed suites
+
+| Arm | Reverted | Result |
+| --- | --- | ---: |
+| `0abfde725` r4 | 3 mirrors of `close-work/SKILL.md` | **137 passed** |
+| `f4e821163` r2, r4 | `security-reviewer` definition across 3 adapters | **72 passed** |
+| `ef2877105` r2 | 4 paths | **57 passed** |
+| `ef2877105` r12 | 3 paths | **57 passed** |
+| `ef2877105` r1 | **7** paths incl. the `agentbundle/_data` copy | 3 passed |
+| `0abfde725` r3 | 2 paths | 1 passed |
+
+A count of co-changed tests would score `0abfde725` repair 4 as covered by 137
+tests. Every one of them passes with the repair reverted.
+
+#### The adjudication covered 17 of 38, and nothing would have noticed
+
+Worker B's first pass on this batch emitted **17 outcome blocks for 38 briefed
+repairs** — one case received none at all — and separately scored **six green
+arms `unmeasurable`**, against the standing owner decision that a control green
+with and without the repair is `survives`.
+
+**The coverage gap was the more dangerous of the two.** The tally keys on
+`(case, repair)`, so a missing block does not error: it silently reduces the
+denominator. The batch would have reported 17 outcomes as though 17 were all
+there were. That is this audit's own target failure class occurring in its
+instrument for the fourth time — a result that could not come out wrong because
+nothing checked it.
+
+Three changes, and the first is the one that matters:
+
+1. **A coverage gate** now diffs briefed repairs against scored ones and exits
+   non-zero, naming every missing repair. Run against the bad output it named all
+   21 holes. It runs after every adjudication.
+2. The batch was **re-chunked** into three briefs of 9, 14 and 15 repairs, each
+   stating its exact repair count and requiring a `COVERED: n` line. All three
+   returned full coverage and the merged result passes the gate at 38 of 38.
+3. Each chunk **re-states the `survives` rule** and names that green arms are
+   present in its material.
+
+Chunk size is the likely common cause: 38 repairs in one call pushed the worker
+into compressing, and the compression dropped both blocks and the rule. The
+re-run applied the rule to all seven green arms without further prompting.
+
+### Running totals: 36 of 61 cases, 219 repairs — survivals now exceed kills
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 181 | 82.6% |
+| **survives** | **16** | **7.3%** |
+| semantic kill | 14 | 6.4% |
+| structural kill | 8 | 3.7% |
+
+| Among the 38 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 16 | 42% |
+| semantic kill | 14 | 37% |
+| structural kill | 8 | 21% |
+
+**Survivals have overtaken semantic kills.** The share of measurable repairs
+shipping without a control that fails for the dispatched defect has now run
+**39%, 52%, 56%, 63%** across four successive reports — 24 of 38. It has risen at
+every single report and has not once moved toward its earlier value.
+
+That monotone rise is now the most important open question in this run, and it
+cuts two ways. It may be the true value emerging as the measurable subset grows
+from 18 to 38. It may also be that later batches are being adjudicated under a
+rule the earliest ones were not: the `survives` bin did not exist for the first
+two batches, and three of its members were re-binned by hand. **Both readings
+are live, and the 25 remaining cases are what separates them.**
