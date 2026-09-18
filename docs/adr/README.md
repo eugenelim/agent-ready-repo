@@ -119,3 +119,4 @@
 | 0115 | [The loop-telemetry sender is a separately installed distribution, not pack content](0115-loop-telemetry-sender-is-a-separately-installed-distribution.md) | Accepted | 2026-09-12 |
 | 0116 | [`creative-direction` writes to `direction/`, retiring `aesthetic/`](0116-creative-direction-writes-to-direction-folder-retiring-aesthetic.md) | Accepted | 2026-09-16 |
 | 0117 | [ADR metadata is mechanically checkable, and the freeze binds prose, not metadata](0117-adr-metadata-is-mechanically-checkable-and-the-freeze-binds-prose.md) | Accepted | 2026-09-17 |
+| 0118 | [`architect-design` authors from three scope-routed model-first templates, not one generic design doc](0118-architect-design-scope-routed-model-first-templates.md) | Proposed | 2026-09-18 |
