@@ -1060,3 +1060,59 @@ about which denominator a reader will quote, not a result.
 and is unlikely to move much. The 18-repair measurable subset is small enough
 that the remaining cases can still move the 61/28/11 split materially, so that
 split is the number to treat as provisional.
+
+### Positions 21 to 25: prose with an oracle, and a structural pattern
+
+Three new cases (two of the five briefed were already scored and are excluded).
+**24 repairs: 0 semantic kills, 3 structural kills, 2 survives, 19
+unmeasurable.**
+
+**Shipped prose can carry an oracle, and the oracle need not discriminate.**
+These are the first arms in this run whose reverted source is instruction text
+rather than code, and both survived:
+
+| Repair | Reverted | Result |
+| --- | --- | --- |
+| `f9311c63d` r7 | all 3 mirrors of `close-work/SKILL.md` | `test_current_docs_form_one_closeout_story` stayed green |
+| `6590c8e84` r4 | `new-spec/references/spec-authoring-rubric.md` | `test_rubric_ships_derivations_and_cites_no_internal_locator` stayed green |
+
+This qualifies the no-revertable-source share reported above. Prose in this
+repository is sometimes pinned by a test — so the absence of an oracle is not a
+straightforward consequence of the product being text. When prose *is* pinned,
+the pin does not necessarily pin what the repair changed.
+
+**One reverted symbol can produce four failures and zero evidence.** In
+`f5ec8c395` all four tests failed identically with `AttributeError: module
+'okf_compiler' has no attribute '_REMOTE_ADDRESS'`: the reverted module does not
+define the symbol the tests reach for, so every test died before exercising any
+behaviour. Worker B scored three of those repairs `structural kill` and the
+fourth `unmeasurable`. Counted naively, four red tests would have read as strong
+evidence of a working control; in fact they carry none.
+
+**An unplanned reproducibility check.** This batch re-briefed two already-scored
+cases through a second, independent Worker A instance. For both `281b46dda` and
+`76d0ec70d` it produced the **same revert path and the same oracle** as the
+first instance. The predicate-freezing step is therefore reproducible across
+workers on at least these two cases, which nothing in the protocol had tested.
+
+### Running totals: 29 of 61 cases, 168 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 145 | 86.3% |
+| semantic kill | 11 | 6.5% |
+| survives | 7 | 4.2% |
+| structural kill | 5 | 3.0% |
+
+| Among the 23 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| semantic kill | 11 | 48% |
+| survives | 7 | 30% |
+| structural kill | 5 | 22% |
+
+**12 of 23 measurable repairs — 52% — shipped without a control that fails for
+the dispatched defect.** That figure was 39% one batch ago, on 18 observations.
+It moved 13 points on 5 new observations, which is exactly the instability
+flagged when it was first reported, and it is the reason this split is not yet a
+result. The 86.3% unmeasurable share, by contrast, has held within two points
+across six batches.
