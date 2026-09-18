@@ -553,10 +553,13 @@ home.
   the version AC-0027 fixes (user confirmation 2026-09-17).
 - Process: a change under `packages/agentbundle/agentbundle/` needs an
   `Engine-Change-RFC:` footer; phase 1 used `RFC-0059`.
-- Process: the stub-marker conflict between `docs/CONVENTIONS.md` and
-  `packages/AGENTS.local.md` is resolved at the scoped rule's owner by exempting
-  a bare criterion ordinal in a test comment, which three suites already carry
-  (user confirmation 2026-09-17).
+- Process: the stub-marker conflict between the repository's
+  decision-venue rule and `packages/AGENTS.local.md` is resolved at the scoped
+  rule's owner by exempting a bare criterion ordinal in a test comment, which
+  three suites already carry (user confirmation 2026-09-17). The conflicting
+  rule was stated in `docs/CONVENTIONS.md` when this was decided; that file was
+  retired upstream and its obligations re-homed, so the reference is to the rule
+  rather than to the retired file.
 - Process: a repository-level assertion cannot live in
   `packages/agentbundle/tests/`, which ships inside the sdist, so AC-0021,
   AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, and AC-0029

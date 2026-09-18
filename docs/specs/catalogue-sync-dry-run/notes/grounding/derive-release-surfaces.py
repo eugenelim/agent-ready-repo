@@ -12,14 +12,21 @@ def main() -> int:
     try:
         package_rules = read_text("packages/AGENTS.md")
         coupling = read_text("docs/guides/explanation/release-coupling.md")
-        conventions = read_text("docs/CONVENTIONS.md")
         package_config = tomllib.loads(read_text("packages/agentbundle/pyproject.toml"))
         required = "Non-cosmetic package changes update both `version.py` and `pyproject.toml`."
         trigger = "Adding a new `agentbundle catalogue <sub>` command"
         if required not in package_rules or trigger not in coupling:
             return fail("version-bump rule or CLI release trigger is absent")
-        if "published package also keeps its own `CHANGELOG.md`" not in conventions:
-            return fail("published-package changelog coupling is absent")
+        # `docs/CONVENTIONS.md` was retired upstream (#1345, "retire
+        # docs/CONVENTIONS.md and re-home every obligation it carried"), so the
+        # published-package changelog coupling this derivation used to read from
+        # it is no longer readable there. Its re-homed operative location could
+        # not be found in `packages/AGENTS.md`, root `AGENTS.md`,
+        # `release-coupling.md`, or the work-loop skill; RFC-0095 D2 still states
+        # the decision, but an accepted RFC is a decision record rather than an
+        # operative rule, so this derivation does not cite it as one. The two
+        # checks below remain live, and the package CHANGELOG surface stays
+        # grounded in them plus the package's own declared metadata.
         package = package_config.get("project", {})
         if package.get("name") != "agentbundle":
             return fail("agentbundle package metadata is absent")
