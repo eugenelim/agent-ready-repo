@@ -117,6 +117,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   legacy `Boundaries` heading together, so a review of a spec written before
   this release still has a standard to measure against.
 
+## [architect][0.15.9] — 2026-09-18
+
+### Highlights
+
+- **Choose the right Mermaid layout for your renderer.** The diagram guidance
+  now explains that releases before Mermaid 12 default to dagre and need a
+  separate ELK package, while Mermaid 12 and later default to bundled ELK.
+
+### Fixed
+
+- `architect-diagram`: names which Mermaid versions each layout and packaging
+  statement applies to.
+
 ## [core][2.26.15] — 2026-09-18
 
 ### Highlights
