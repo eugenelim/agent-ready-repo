@@ -9,8 +9,7 @@ description: Use to generate multiple candidate product shapes before the discov
 This is the discovery loop's **divergence** stage (pre-G1.5), and it exists because
 every other phase of the gate ladder is *convergent* — left alone the loop locks
 onto the first coherent framing and commits early (**myopic-greedy commitment**,
-the loop's headline risk). The Double Diamond and Design Sprint treat forced
-divergence as non-optional; this skill is that forcing function.
+the loop's headline risk). Sources: see the pack README.
 
 It is **prompt-only** (CHARTER Principle 3): no engine, no scorer, no candidate
 generator script — the agent following this body writes the candidates as

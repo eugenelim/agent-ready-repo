@@ -26,7 +26,7 @@ Use this index when you have found the `frontend-engineering` pack and need the 
 
 ## What this pack holds you to
 
-The shared frontend quality floor is state coverage, WCAG 2.2 AA, token discipline, and an evidence manifest for completed create, retrofit, or verify work.
+The shared frontend quality floor is state coverage, a WCAG 2.2 AA target (see the [pack reference](reference/frontend-engineering.md) for what is verified today versus the stated gap), token discipline, and an evidence manifest for completed create, retrofit, or verify work.
 
 The pack does not claim to replace security or reliability review. Frontend review routes auth, secrets, user input, reliability, and broader product-design concerns to the appropriate reviewer or owner.
 

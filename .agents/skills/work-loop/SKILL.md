@@ -539,7 +539,7 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`experience-reviewer`** — diff changes what a reader or adopter sees (full-mode only). Pass rendered output + grounded aesthetic reference and constraints — not the code diff. Its confirm-before-reviewing gate requires the grounded reference. For web: run the build, describe key pages from output. Fallback absent: named skip.
 
-- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
+- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 AA Target Size, AAA Focus Appearance, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
 
 - **`design-reviewer`** — only when an architect-pack integration explicitly
   activates it for an architecture artifact inside this work-loop. Pass the

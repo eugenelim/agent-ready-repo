@@ -228,3 +228,45 @@ Experience mapping sits upstream of the experience-design pack's `journey-mappin
 - **Cross-reference notes:** added to `packs/product-engineering/` and `packs/experience-design/` READMEs noting the upstream pack and cross-pack routing contract
 - **Reconcile RFC-0062:** update RFC-0062's two references from `product-strategist pack` → `product-strategy pack` (RFC-0062 D5 and Reviewer brief "Not in scope")
 - **Journey update:** `docs/product/journeys/product-strategist-sets-direction.md` — updated to reflect the complete 9-skill set, new stages (Stakeholder Research Synthesis, Experience & Content Strategy), and cross-pack routing contract detail; status `proposed` → `planned`
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, Approver-signed.
+
+- **2026-09-17 (Approver: eugenelim) — Two framework citations in this RFC name
+  parts their sources do not.** Both were found by walking the pack's skills
+  back to their cited sources. Neither changes a decision in this RFC; both
+  change what the pack tells a reader to go and read.
+
+  **(a) Levy's fourth tenet — this RFC contradicts itself.**
+  § Evidence & prior art cites *UX Strategy* **2nd ed. (O'Reilly, 2021)** and
+  names its four tenets correctly, ending in **frictionless UX**. § Proposal
+  (Pillar 2) and the Pillar 2 row of the § Skill set (v1) table both end the same
+  list in **killer UX design**, which is the **1st edition's (2015)** name for
+  that tenet. Decision row D6 names the framework without naming its parts and is
+  unaffected. The
+  implementation followed the two wrong lines, so `define-ux-strategy` and its
+  `evals/evals.json`, `docs/specs/product-strategy-pack/plan.md`, and two
+  `guides/product-strategy/` pages all shipped the superseded name. The 2nd-edition name is correct and is
+  what this RFC intended, since it is what its own source note records. The
+  skill, its eval file and both guides are repaired; `plan.md` is `Status: Done`
+  and is left as the historical record of what was built.
+
+  **(b) Brain Traffic's 2018 quad — the named parts belong to neither published
+  quad.** Four places in this RFC name *Purpose + Process + Structure +
+  Governance* and attribute them to the content-strategy quad: decision row D3,
+  § Proposal (Pillar 3, which spells each part out), the Pillar 3 row of the
+  § Skill set (v1) table, and § Evidence & prior art, which gives them as the
+  2018 revision. Decision row D7 grounds the skill in "the Halvorson content
+  strategy quad" without listing parts, and is wrong in the same way. Brain
+  Traffic's own announcement of that revision names
+  **Editorial Strategy / Experience Design / Content Structure / Process Design**
+  ([braintraffic.com/blog/new-thinking-brain-traffics-content-strategy-quad](https://www.braintraffic.com/blog/new-thinking-brain-traffics-content-strategy-quad)),
+  and the 2012 Halvorson-and-Rach quad it revised is *Substance / Structure /
+  Workflow / Governance*. *Purpose + Process + Structure + Governance* is this
+  pack's own composite and always was; attributing it to either published quad
+  sends a reader to a source that contradicts the artifact in front of them.
+  `define-content-strategy` now states the composite as a composite and names
+  both published quads beside it. ADR-0053 D3 and D7 carry the same
+  misattribution and take a matching erratum.

@@ -137,7 +137,7 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 | `tone-of-voice` | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
 | `copy-direction` | Content brief + tone-of-voice brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
 | `user-flow` | Journey + content brief | Screen inventory, transitions, per-screen briefs | Which screens exist, what state each handles, how they connect |
-| `service-blueprint` | Journey + screen flow | Blueprint (frontstage / backstage / support) | What services back each screen action |
+| `service-blueprint` | Journey + screen flow | Blueprint (evidence of service / frontstage / line of visibility / backstage / support) | What services back each screen action |
 | `process-mapping` | Internal workflow | As-is / to-be process (SIPOC, swimlane, pain register) | What the internal operations look like, where waste is |
 | `design-principles` | Journey insights | 3–5 named principles with arbitration tests | The decision rules that hold screens to a shared standard |
 
@@ -267,7 +267,7 @@ This is the same scope decision as `architect` and `desk-research`. Compare with
 The `product-strategy` pack is the strategic anchor this pack builds on. Before `journey-mapping` runs, a strategist may have committed:
 
 - `ux-strategy.md` (vision → goals + measures → plan) — read by `journey-mapping` as the stated rationale for the journey.
-- `content-strategy.md` (Halvorson quad: Purpose + Process + Structure + Governance) — read by `content-design` for organizational governance intent.
+- `content-strategy.md` (Purpose + Process + Structure + Governance — the product-strategy pack's own composite, informed by the content-strategy quad but not identical to either published version) — read by `content-design` for organizational governance intent.
 
 Both inputs are optional; the skills degrade gracefully when absent. With them, the design thread has explicit strategic grounding; without them, it must infer intent from the stated user and outcome.
 

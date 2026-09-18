@@ -105,9 +105,9 @@ pip-tools is minimal and composable (requirements.in → compiled
 requirements.txt); no virtualenv management; very stable.
 ```
 
-The `reliability` and `credibility` lines are optional Admiralty-style
-provenance grades — how much the source has earned trust, and how well its
-specific claim is corroborated. You can skip them; they only add signal.
+The `reliability` and `credibility` lines are optional provenance grades — how
+much the source has earned trust, and how well its specific claim is
+corroborated. You can skip them; they only add signal.
 
 ## Step 3 — build the digest
 

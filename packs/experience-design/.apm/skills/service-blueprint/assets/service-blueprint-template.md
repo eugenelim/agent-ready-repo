@@ -24,6 +24,7 @@ date: "<YYYY-MM-DD>"
 
 | Row | Step 1: <name> | Step 2: <name> | Step 3: <name> | … |
 | --- | --- | --- | --- | --- |
+| **Evidence of service** (what the customer receives or encounters) | | | | |
 | **Frontstage** (customer actions + touchpoints) | | | | |
 | ············· LINE OF VISIBILITY ············· | | | | |
 | **Backstage** (employee + system actions, hidden from customer) | | | | |

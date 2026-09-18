@@ -1,6 +1,6 @@
 ---
 name: a11y-engineering
-description: Deep accessibility engineering beyond automated tooling — focus management architecture, ARIA role correctness under dynamic mutation, live-region discipline, keyboard contract specification, and manual WCAG 2.2 AA verification for the two criteria automated tools miss. Triggers on "audit this surface for accessibility beyond axe", "fix the focus management in this modal flow", "define the keyboard and screen-reader contract for this data grid", "verify WCAG 2.2 AA manually".
+description: Deep accessibility engineering beyond automated tooling — focus management architecture, ARIA role correctness under dynamic mutation, live-region discipline, keyboard contract specification, and manual checks for WCAG 2.2 Target Size (Minimum) (AA) and Focus Appearance (AAA enhancement), plus a stated gap against the WCAG 2.2 AA baseline. Triggers on "audit this surface for accessibility beyond axe", "fix the focus management in this modal flow", "define the keyboard and screen-reader contract for this data grid", "verify WCAG 2.2 AA manually".
 ---
 
 # Skill: a11y-engineering
@@ -50,29 +50,41 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
 
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
-## The two automated-tooling gaps
+## Manual checks against the WCAG 2.2 AA baseline
 
-Automated accessibility tools (pa11y, axe-core) cap at `wcag21aa`. Two WCAG
-2.2 success criteria are new in 2.2 and require manual verification:
+Automated accessibility tools in this pack (pa11y, axe-core) are invoked with
+`--tags wcag21aa` — the WCAG 2.1 AA tag group. Two manual checks are named
+today:
 
-**2.4.11 Focus Appearance (AA):** A keyboard focus indicator must have a minimum
-area of at least the perimeter of the unfocused component × 2 CSS pixels, and
-must have a contrast ratio of at least 3:1 between the focused and unfocused
-states. Automated tools cannot measure focus ring geometry or perform
-focused/unfocused contrast comparison — this check is always manual.
+**2.5.8 Target Size (Minimum) (AA):** A pointer target must contain a 24×24
+CSS-pixel area unless an exception applies. axe-core does ship a
+`target-size` rule (tagged `wcag22aa`/`wcag258`), but it is disabled by
+default and returns "needs review" rather than pass/fail — it does not
+replace manual verification. See the checklist below for the spacing
+exception and the other named exceptions.
 
-**2.5.8 Target Size Minimum (AA):** Interactive targets must be at least
-24×24 CSS pixels. If a target is smaller than 24×24, the spacing around it
-(to the nearest adjacent interactive element or page edge) must be at least
-24px in all directions. Automated tools cannot reliably measure spacing between
-adjacent interactive elements — this check is always manual.
+**2.4.13 Focus Appearance (AAA enhancement, not part of the AA baseline):** A
+keyboard focus indicator must have a minimum area of at least the perimeter
+of the unfocused component × 2 CSS pixels, and must have a contrast ratio of
+at least 3:1 between the focused and unfocused states. Automated tools cannot
+measure focus ring geometry or perform focused/unfocused contrast
+comparison — this check is always manual.
 
-Mark both explicitly in the evidence manifest under `a11y result`:
+**Stated gap — WCAG 2.2 AA baseline:** WCAG 2.2 AA is this pack's declared
+target, but the `wcag21aa` tag group plus these two manual checks do not
+cover every WCAG 2.2 AA criterion. Not yet covered: 2.4.11 Focus Not
+Obscured (Minimum), 2.5.7 Dragging Movements, 3.2.6 Consistent Help, 3.3.7
+Redundant Entry, and 3.3.8 Accessible Authentication (Minimum). Closing this
+gap is separate work; note it in the evidence manifest rather than implying
+it is covered.
+
+Mark all of this explicitly in the evidence manifest under `a11y result`:
 ```
 a11y result:
   axe-core wcag21aa: [pass/fail + finding count]
-  manual 2.4.11 Focus Appearance: [pass/fail + notes]
-  manual 2.5.8 Target Size Minimum: [pass/fail + notes]
+  manual 2.5.8 Target Size (Minimum) (AA): [pass/fail + notes]
+  manual 2.4.13 Focus Appearance (AAA enhancement): [pass/fail/untested + notes]
+  WCAG 2.2 AA gap: 2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8 not yet checked
 ```
 
 ---
@@ -307,7 +319,26 @@ position 1."
 
 ## Manual verification checklist
 
-### WCAG 2.4.11 Focus Appearance
+### WCAG 2.5.8 Target Size (Minimum) — AA
+
+For every interactive element on the surface:
+
+- [ ] Touch/click targets are at least **24×24 CSS pixels**, OR
+- [ ] If smaller than 24×24, apply the spacing exception: a 24 CSS-pixel-
+  diameter circle centered on the target's bounding box does not intersect
+  another target, or another undersized target's circle, OR
+- [ ] One of the named exceptions applies: **Equivalent** (an adjacent target
+  achieves the same result), **Inline** (the target is in a sentence or
+  block of text), **User Agent Control** (size is not modified by the
+  author), or **Essential** (a specific size is required to convey
+  information)
+
+**Measurement:** Open DevTools, use the element inspector to read the
+computed `width` and `height`. For the spacing exception, check whether a
+24px-diameter circle centered on each undersized target's bounding box
+overlaps an adjacent target's circle.
+
+### WCAG 2.4.13 Focus Appearance — AAA enhancement, not part of the AA baseline
 
 For every interactive element on the surface:
 
@@ -321,18 +352,6 @@ For every interactive element on the surface:
 **Measurement:** Open DevTools, tab to the element, measure the computed
 `outline` or `box-shadow`. Verify contrast with a contrast checker using the
 actual computed focus color against the background adjacent to the indicator.
-
-### WCAG 2.5.8 Target Size Minimum
-
-For every interactive element on the surface:
-
-- [ ] Touch/click targets are at least **24×24 CSS pixels**, OR
-- [ ] If smaller than 24×24, the **offset** (distance to the nearest
-  adjacent interactive element) is at least **24px** in all directions
-
-**Measurement:** Open DevTools, use the element inspector to read the
-computed `width` and `height`. For offset measurement, check the layout
-by measuring the gap between adjacent interactive elements.
 
 ---
 

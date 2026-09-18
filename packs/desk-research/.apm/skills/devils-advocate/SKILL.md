@@ -1,6 +1,6 @@
 ---
 name: devils-advocate
-description: Adversarially review a research artifact (`<topic-slug>-survey.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/desk-research` deep mode against `<topic-slug>-survey.md`; runs standalone against any user-supplied claim. Produces `<topic-slug>-counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
+description: Adversarially review a research artifact (`<topic-slug>-survey.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Uses an evidence-against column to catch premature closure, and asks what the other side says before calling it done. Auto-invoked by `/desk-research` deep mode against `<topic-slug>-survey.md`; runs standalone against any user-supplied claim. Produces `<topic-slug>-counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
 ---
 
 # /devils-advocate
@@ -103,16 +103,14 @@ confidence-change proposals, tensions, and verdicts.
 
 Two convergent disciplines:
 
-1. **ACH evidence-against column** — Analysis of Competing Hypotheses
-   forces the analyst to list evidence *against* each hypothesis,
-   alongside evidence for. The discipline catches premature closure:
-   the model finds three supporting sources, stops, declares done. ACH
-   refuses that move.
+1. **Evidence-against column** — forces the analyst to list evidence
+   *against* each hypothesis, alongside evidence for. The discipline
+   catches premature closure: the model finds three supporting
+   sources, stops, declares done. This discipline refuses that move.
 
-2. **GIJN investigative-journalism practice** — Global Investigative
-   Journalism Network's standard rule: before publication, ask "what
-   does the other side say?" and seek it out. The pack borrows the
-   *seek-the-other-side* discipline as a final-step gate.
+2. **Seek-the-other-side** — before publication, ask "what does the
+   other side say?" and seek it out. The pack borrows this as a
+   final-step gate. Sources: see the pack README.
 
 ## Procedure
 
@@ -141,7 +139,7 @@ Two convergent disciplines:
      situation.
 6. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited counter-material and consider one more query from the
-   highest-signal unused snippet (Co-STORM contribution).
+   highest-signal unused snippet. Sources: see the pack README.
 7. **Write `<topic-slug>-counterpoints.md`**, linking back to the source
    artifact. `<topic-slug>` matches the survey it reviews; the naming rule
    lives in the `/desk-research` skill body (§ Typed, topic-named artifacts).

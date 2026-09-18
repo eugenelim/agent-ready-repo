@@ -50,7 +50,7 @@ in (or moving into) the `digest` phase.
 
 ## The synthesis matrix — emergent, constructed columns
 
-`synthesis-matrix.md` is a **concept matrix** (Webster & Watson): **rows are
+`synthesis-matrix.md` is a **concept matrix**: **rows are
 sources, columns are concepts**. The columns are **constructed from the
 material** — grounded-theory open coding — **not chosen from a fixed pillar
 set**. You read the sources, notice the dimensions they actually speak to, and
@@ -86,7 +86,7 @@ revision with a dated memo so the reasoning trail is auditable.
 
 ## Provenance
 
-Sources carry the optional Admiralty `reliability` / `credibility` axes from
+Sources carry the optional `reliability` / `credibility` axes from
 `/desk-research-project-start`; use them to weight a source's contribution in the
 matrix and memos. They **inform** the analysis — the claim-level rail stays
 **GRADE confidence + ≥3-source triangulation** at synthesis time.

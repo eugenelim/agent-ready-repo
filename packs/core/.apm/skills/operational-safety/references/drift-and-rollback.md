@@ -6,16 +6,13 @@
 > reconciliation, and recovery for both code and already-mutated data.
 > **Grounded in:** F1.4 (drift detection is read-only and separable from
 > remediation; auto-remediation default is contested), F2.6 (no atomic
-> rollback — re-apply the prior known-good config). Operational taxonomy: AWS
-> Well-Architected Failure Management; Google SRE Incident Response; Pulumi
-> Day-2 drift detection + remediation.
+> rollback — re-apply the prior known-good config).
 > **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
 > surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
 
 This is the **divergence-detection-and-recovery** lens — deliberately separate
-from `state-and-idempotency`'s write-path convergence (every major operational
-taxonomy splits the two). Detection is safe, frequent, and read-only; recovery
-is mutating and gated.
+from `state-and-idempotency`'s write-path convergence. Detection is safe,
+frequent, and read-only; recovery is mutating and gated.
 
 ## Implementation checks
 

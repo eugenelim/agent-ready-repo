@@ -61,7 +61,7 @@ reduced-motion states.
 
 ## Step 2. Accessibility audit
 
-Run both automated tools and the two manual checks.
+Run the automated tools, then the two named manual checks.
 
 **Automated (run either or both):**
 
@@ -77,10 +77,26 @@ npx axe "file:///$(pwd)/page.html" \
 
 **How to read the output:**
 - Each finding shows the WCAG success criterion (e.g., `WCAG2AA.Principle1.Guideline1_4.1_4_3`), the failing element, and a description. Fix blockers (contrast violations, missing labels) before anything else.
-- Findings tagged `wcag21aa` are WCAG 2.1 AA violations. Note that WCAG 2.2 AA is the declared baseline — all 2.1 findings are also 2.2 findings.
-- After automated tools pass, two WCAG 2.2 criteria still require manual checks.
+- Findings tagged `wcag21aa` are WCAG 2.1 AA violations, selected by the
+  `--tags wcag21aa` flag above — this is one WCAG 2.1 AA tag group, not a
+  complete WCAG 2.1 or 2.2 gate.
+- After automated tools run, run the two named manual checks below. WCAG 2.2
+  AA is the declared target; the automated gate plus these two checks do not
+  cover every WCAG 2.2 AA criterion (see the stated gap below).
 
-**Manual check 1 — WCAG 2.4.11 Focus Appearance:**
+**Manual check 1 — WCAG 2.5.8 Target Size (Minimum), AA:**
+For every interactive element, measure in DevTools:
+- Is the target at least 24×24 CSS pixels? Or, if smaller, does a
+  24 CSS-pixel-diameter circle centered on its bounding box avoid
+  intersecting another target (or another undersized target's circle)?
+- Does a named exception apply instead (Equivalent, Inline, User Agent
+  Control, or Essential)?
+
+Record: pass / fail for each interactive element type, noting any exception
+applied.
+
+**Manual check 2 — WCAG 2.4.13 Focus Appearance, AAA enhancement (not part
+of the AA baseline):**
 For every interactive element, tab to it and inspect:
 - Is a focus indicator visible?
 - Is the focus ring at least 2px in width?
@@ -88,16 +104,15 @@ For every interactive element, tab to it and inspect:
 
 Record: pass / fail for each interactive element type.
 
-**Manual check 2 — WCAG 2.5.8 Target Size Minimum:**
-For every interactive element, measure in DevTools:
-- Is the target at least 24×24 CSS pixels? Or if smaller, does it have
-  24px of spacing from the nearest adjacent interactive element?
-
-Record: pass / fail for each interactive element type.
+**Stated gap — WCAG 2.2 AA baseline:** the automated gate and these two
+manual checks do not establish 2.4.11 Focus Not Obscured (Minimum), 2.5.7
+Dragging Movements, 3.2.6 Consistent Help, 3.3.7 Redundant Entry, or 3.3.8
+Accessible Authentication (Minimum). Record this as an open gap rather than
+implying complete WCAG 2.2 AA coverage.
 
 **What this catches:** missing labels, contrast failures, missing focus
-styles, unlabeled form controls, live-region problems, and the two WCAG 2.2
-items automated tools miss.
+styles, unlabeled form controls, live-region problems, and the two named
+WCAG 2.2 manual checks above.
 
 ---
 
@@ -200,8 +215,9 @@ inspection observations: [what was seen in the captures; result state; verdict]
 
 a11y result:
   pa11y/axe-core wcag21aa: [pass/fail + finding count]
-  manual 2.4.11 Focus Appearance: [pass/fail + notes]
-  manual 2.5.8 Target Size Minimum: [pass/fail + notes]
+  manual 2.5.8 Target Size (Minimum) (AA): [pass/fail + notes]
+  manual 2.4.13 Focus Appearance (AAA enhancement): [pass/fail/untested + notes]
+  WCAG 2.2 AA gap: 2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8 not yet checked
 perf result: [LCP / INP / CLS values from Lighthouse; mobile and desktop]
 console/network result: [console error count; unexpected third-party calls]
 analytics events: [which measurement events were verified]
