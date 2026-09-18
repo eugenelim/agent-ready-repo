@@ -1567,3 +1567,145 @@ not yet been disturbed. **What is safe to say is the coarse claim the design
 scoped for — this is widespread, not rare — and that survivals outnumber semantic
 kills by roughly 1.7 to 1.** A point estimate to the nearest percent is not
 supported.
+
+## The audit completes: all 61 cases, 424 repairs
+
+- **Completed:** 2026-09-18
+- **Population:** the faithful reading of P3 — 164 commits on `origin/main` at
+  `9d430418b`, committer date on or before 2026-09-11 — stratum `source + test`
+  re-frozen at 61 cases under the stated skills-codebase path rule, drawn in the
+  order digested as `582f7db1…`
+- **Scored:** 424 repair outcomes across 58 cases, deduplicated by case and
+  repair index. The three hand-picked gate cases and the out-of-stratum
+  `ba5f33e92` are excluded.
+
+### The result
+
+| Outcome | Count | Share of 424 |
+| --- | ---: | ---: |
+| unmeasurable | 305 | 71.9% |
+| **survives** | **55** | 13.0% |
+| semantic kill | 35 | 8.3% |
+| structural kill | 29 | 6.8% |
+
+| Among the 119 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| **survives** | **55** | **46%** |
+| semantic kill | 35 | 29% |
+| structural kill | 29 | 24% |
+
+**84 of 119 measurable repairs — 71% — shipped without a control that fails for
+the dispatched defect.** Only 29% carry a control that fires for the defect the
+repair was dispatched against. Survivals outnumber semantic kills 1.6 to 1.
+
+The audit's question was askable of **28.1%** of repairs. The other 71.9% fail a
+prior condition: no revertable source hunk, or no co-changed control that could
+discriminate the repair from its absence.
+
+### A late defect that moved the headline, and what it cost
+
+**Two entire batches were reported in this document as having zero executable
+arms. That was false.** Those Worker A instances wrapped their `TEST` and
+`REVERT` fields in backticks, and the executor's parser required a `TEST` field
+to begin with the literal `python3 -m pytest`. It silently rejected every one.
+
+**32 executable repairs were dropped — a third of the measurable subset.** The
+earlier figures of 90 measurable repairs and 78.8% unmeasurable were artifacts
+of that bug. Recovering them moved the measurable share from 21.2% to 28.1% and
+the no-semantic-control share from 70% to 71%.
+
+The direction matters more than the magnitude. Every one of the recovered arms
+was *newly measurable*, so the bug had been inflating the unmeasurable count —
+making the corpus look less testable than it is, while leaving the survival
+share almost unchanged. Had the bug gone the other way it would have flattered
+the codebase.
+
+### Claims made in this document and later withdrawn
+
+Recorded because an audit of unfalsifiable claims has no standing to hide its
+own.
+
+| Claim | Fate |
+| --- | --- |
+| "All five calibration numbers reproduce on the nose" | **False.** Two were artifacts of an unstable `git log --until`; three reproduce. |
+| P3 selects 147 with 53 in `source + test` | **Not reproducible** from its stated rule; the faithful reading gives 164 / 58, later 61 under a corrected path rule. |
+| Four reports within one point of 63.5% is "as converged as a sample this size gets" | **Withdrawn.** 24 more observations moved it six points. |
+| `c-16-20` has "51 briefed repairs, zero executable arms" | **False.** 14 were executable; a parser bug hid them. |
+| `rem-g` has "38 repairs, zero arms" | **False.** 18 were executable. |
+
+### Sixteen instrument defects, one shape
+
+The defects found in the measuring apparatus during this run, nearly all of one
+shape — **a step did not happen, or its evidence did not survive, and the output
+still looked like a valid run**:
+
+`git log --until` unstable across a `commit-graph` write and pruning on
+non-monotonic committer dates · a path rule built for traditional code ·
+"revert every mirror" voiding a single-mirror repair · `set -u` aborting before
+a revert on an empty array · `tail` truncating revert confirmations · a driver
+dropping the `--` separator · an adjudication covering 17 of 38 with no error ·
+a `pgrep` waiter matching its own command line · batch selection blind to
+in-flight work, twice · `-k 'a or b'` losing its quoting so tests never ran
+while both arms exited 4 identically · `SUBFAILED` subtest failures counted as
+zero · a backtick-rejecting parser dropping 32 arms · `git clean -fd` leaving
+ignored files until a tree went dirty · several incompatible pytest invocations
+merged into one command line · a borrowed-failure check that tested only strict
+subsets · and, in the first run, a `git checkout` that silently did not happen.
+
+**The instrument produced more instances of this audit's target failure class
+than the corpus produced semantic kills in its first six batches.** That is the
+single most transferable finding here, and it is not a joke at the harness's
+expense: every one of these was caught by a guard, a gate, or a cross-check that
+had to be *added after* the failure it catches. None was caught by intending to
+be careful.
+
+### Four borrowed-failure geometries
+
+In a corpus averaging seven adjudicated repairs per commit, arms drawn for
+different repairs routinely overlap, and a larger arm inherits a smaller arm's
+red test. Four instances were found and resolved by differential arms:
+`f4e821163`, `76df2db04`, `3e217ba0e` and `abdd25258`. Three geometries appeared
+— strict subset, shared revert set, and overlap without containment — and the
+detector had to be widened twice. **All four would have scored as kills**, so
+this bias runs in the direction that flatters the codebase.
+
+`abdd25258` is the instructive one: the differential showed repair 1's failure on
+one test was borrowed, *and* that repair 1 has a genuine control in a second
+test. Differentials separate attribution; they do not simply demote.
+
+### What the design got right, and what it got wrong
+
+**Right.** The four outcomes are close to sufficient. The freeze-before-observe
+protocol works and is cheap: across 13 batches no frozen predicate was rewritten
+to fit a result, and two workers repeatedly refused to stretch one. The
+`n ≈ 39–53` power note was accurate — this supports "widespread, not rare" and
+nothing finer. The instrumentation gate it demanded is what caught the base-rule
+defect in the first run.
+
+**Wrong.** The unit: one repair per commit, against a measured mean of about
+seven and a maximum of 26. The population: 113 never reproduced, and neither did
+its replacement. The path rule: unstated, and the strata swing by a factor of
+1.4 across defensible readings. The premise: the design assumes the question is
+generally askable, and in this repository it is askable of 28%.
+
+**Missing.** A bin for "the control is green either way" — the design's
+`survives` had to be read as covering it by owner decision, because filing a
+documented hollow control under `unmeasurable` deletes the finding. And any
+provision for compound commits beyond "one outcome per repair", which is
+necessary but not sufficient without differential arms.
+
+### Transfer limits
+
+This measures the `source + test` stratum only — 61 of 164 commits. P3's
+precision is about 87.5%, so roughly one selected commit in eight may not be a
+repair event at all, and that error is not propagated into the figures above.
+The three remaining strata — source only, docs only, test only — are unmeasured
+and carry different oracles. Nothing here speaks to whether a repair was written
+test-first, which the design already excluded.
+
+The headline is a proportion of *measurable* repairs in one stratum of one
+repository whose product is instruction text. **What transfers is not 71%. What
+transfers is that a co-changed test is weak evidence of a control, that the
+largest co-changed suites in this corpus were the least discriminating, and that
+measuring this at all requires an apparatus that fails in exactly the way the
+thing being measured does.**
