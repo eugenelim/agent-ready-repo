@@ -17,11 +17,11 @@ The pack rests on seven disciplines from mature fields — academic research, in
 
 ### STORM
 
-Stanford's Synthesis of Topic Outlines through Retrieval and Multi-perspective question-asking builds Wikipedia-style topical outlines by surveying adjacent material and asking what sections such an article would need. The load-bearing finding: **direct question- asking does not work well for source discovery**. Asking the LLM "who is authoritative on X" produces a generic, training-data-shaped list. Surveying adjacent material and letting authorities fall out of the citation pattern produces a better one. This is the methodology under `/source-map`. Co-STORM (the moderator variant) contributes the **unused-snippet pass** — scan retrieved-but-uncited material at the end and consider one more query from the highest-signal unused snippet.
+Stanford's Synthesis of Topic Outlines through Retrieval and Multi-perspective question-asking builds Wikipedia-style topical outlines by surveying adjacent material and asking what sections such an article would need. The load-bearing finding: **direct question-asking does not work well for source discovery**. Directly-prompted LLMs produce basic "What/When/Where" questions addressing only surface-level facts; STORM instead grounds its perspectives in the tables of contents of related Wikipedia articles, and its ablations show the ungrounded variants underperform. Surveying adjacent material and letting authorities fall out of the citation pattern produces a better one. This is the methodology under `/source-map`. Co-STORM (the moderator variant) contributes the **unused-snippet pass** — scan retrieved-but-uncited material at the end and consider one more query from the highest-signal unused snippet.
 
-### PRISMA
+### PICO and PRISMA
 
-Preferred Reporting Items for Systematic Reviews and Meta-Analyses — the standard for reporting clinical systematic reviews since 2009 — contributes two disciplines. **PICO** (Population, Intervention, Comparison, Outcome) is a decomposition shape that generalises beyond medicine: every research question has a target, a variable, an alternative, and a criterion. PICO is the mechanic under `/build-outline`. The **triangulation discipline** — a finding must rest on multiple independent studies — supplies the ≥3 independent sources rule for `/desk-research` standard and deep modes.
+**PICO** (Population, Intervention, Comparison, Outcome) is a decomposition shape from evidence-based medicine — not from PRISMA — that generalises beyond medicine: every research question has a target, a variable, an alternative, and a criterion. PICO is the mechanic under `/build-outline`. Preferred Reporting Items for Systematic Reviews and Meta-Analyses is a separate, later discipline — the standard for reporting clinical systematic reviews since 2009 — and contributes the **triangulation discipline**: a finding must rest on multiple independent studies, supplying the ≥3 independent sources rule for `/desk-research` standard and deep modes.
 
 ### ACH
 
@@ -77,7 +77,7 @@ The pack ships two subagents — `evidence-retriever` and `source-extractor` —
 - A UC Berkeley study reporting ~79% handoff-failure rate on multi-agent reasoning tasks.
 - arXiv 2604.02460: single-agent outperforms multi-agent at equal token budget on multi-hop reasoning.
 
-Retrieval, in contrast, is parallelizable and context-bounded — exactly the +81% parallelizable-task case the multi-agent literature identifies. The two subagents do retrieval-and-condense; reasoning stays in the main session.
+Retrieval, in contrast, is parallelizable and context-bounded — exactly the case that parallelises well per-hypothesis. The two subagents do retrieval-and-condense; reasoning stays in the main session.
 
 ### Flat directory layout
 

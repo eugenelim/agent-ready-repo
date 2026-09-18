@@ -514,7 +514,7 @@ def _plant_contended(state_file: Path) -> Path:
 # STUB: AC15
 def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
     """The WIRING, not the module: a module-level timeout test proves nothing
-    about whether each verb was actually wrapped. All TEN locked verbs."""
+    about whether each verb was actually wrapped. All ELEVEN locked verbs."""
     root = tmp / "refuse"
     root.mkdir(parents=True)
     repo = _init_git_repo(root)
@@ -535,6 +535,9 @@ def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
         (COHORT, cohort_state, "record-attempt",
          ["record-attempt", str(spec_dir), "--phase", "implement",
           "--cycle-id", f"{run_id}:1", "--expect-run-id", run_id]),
+        (COHORT, cohort_state, "dispatch-receipt",
+         ["dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
+          "--receipt", "--expect-run-id", run_id]),
         (COHORT, cohort_state, "review record",
          ["review", "record", str(spec_dir), "--fingerprint", "a" * 40,
           "--expect-run-id", run_id]),

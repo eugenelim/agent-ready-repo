@@ -1,12 +1,13 @@
 # ADR-0023: The "three reviewers" ceiling scopes the core code-review lenses
 
-- **Status:** Superseded by [ADR-0042](0042-agent-additions-keyed-to-loop-and-work-type.md). ADR-0042 keeps this ADR's core holding (the ceiling binds the core code-review gate) and generalizes the rest into a loop/work-type-keyed agent-addition policy.
+- **Status:** Superseded
 - **Date:** 2026-06-14
 - **Areas:** review, governance
 - **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
 - **Supersedes in part:** none
+- **Superseded by:** ADR-0042
 - **Superseded in part:** none
 - **Related:** RFC-0032 (architect `design-reviewer` subagent); **ADR-0042 (the superseding
   agent-addition policy)**; `docs/CHARTER.md` (Scope non-goal "Not a

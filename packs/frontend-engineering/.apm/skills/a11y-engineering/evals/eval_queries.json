@@ -16,7 +16,15 @@
     "should_trigger": true
   },
   {
+    "query": "Check WCAG 2.4.13 Focus Appearance on our focus rings",
+    "should_trigger": true
+  },
+  {
     "query": "Check WCAG 2.4.11 Focus Appearance on our focus rings",
+    "should_trigger": true
+  },
+  {
+    "query": "Check WCAG 2.4.11 Focus Not Obscured on our sticky header covering focused elements",
     "should_trigger": true
   },
   {

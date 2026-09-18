@@ -182,8 +182,7 @@ durable-but-separate path and link it from the brief.
 ## Source provenance — optional, additive axes
 
 When sources are captured into `sources/` (by `/source-map` or by hand), each
-source file's frontmatter MAY carry two **optional, independent** grading axes,
-modelled on the Admiralty/NATO scale:
+source file's frontmatter MAY carry two **optional, independent** grading axes:
 
 - `reliability` — the source's track record (A–F: how much the *source* has
   earned trust over time).
@@ -192,9 +191,9 @@ modelled on the Admiralty/NATO scale:
 
 These **inform** the existing rail; they do not replace it. The claim-level rail
 stays **GRADE confidence + ≥3-source triangulation** (per the `/research`
-confidence schema). wiki-kit's binary Two-Source Rule is folded into
-triangulation, not shipped as a separate gate. Both axes are optional — a
-project that ignores them loses nothing but the extra provenance signal.
+confidence schema). The binary two-source check is folded into triangulation,
+not shipped as a separate gate. Both axes are optional — a project that ignores
+them loses nothing but the extra provenance signal.
 
 ## Existing skills reused as phase operations
 

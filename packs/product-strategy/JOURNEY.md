@@ -46,7 +46,7 @@ skills:
     description: "Produces a committed ux-strategy.md (vision → goals+measures → plan) using the NN/g three-layer model and Gothelf/Seiden OKR-linked UX framing — the experience anchor that journey-mapping and user-flow read from."
     humanTouches: 0
   - name: define-content-strategy
-    description: "Produces a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance) — the organizational governance layer that the experience-design pack's content-design skill consumes."
+    description: "Produces a committed content-strategy.md in four parts (Purpose + Process + Structure + Governance — this pack's own composite, informed by the content-strategy quad) — the organizational governance layer that the experience-design pack's content-design skill consumes."
     humanTouches: 0
 humanGates:
   - id: approve-strategy-situation

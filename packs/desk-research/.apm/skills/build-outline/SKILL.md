@@ -1,6 +1,6 @@
 ---
 name: build-outline
-description: Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/desk-research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
+description: Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/desk-research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PICO (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
 ---
 
 # /build-outline
@@ -49,11 +49,11 @@ Two convergent disciplines:
    the *survey-then-decompose* shape: decomposition follows from what
    adjacent material covers, not from what the model assumes.
 
-2. **PRISMA PICO** — the systematic-review framework decomposes a
-   clinical question along four axes: Population, Intervention,
-   Comparison, Outcome. PICO generalises beyond medicine: every
-   research question has a target, a variable, an alternative, and a
-   criterion. The pack borrows the *axis-decomposition* shape.
+2. **PICO** — decomposes a question along four axes: Population,
+   Intervention, Comparison, Outcome. PICO generalises beyond
+   medicine: every research question has a target, a variable, an
+   alternative, and a criterion. The pack borrows the
+   *axis-decomposition* shape. Sources: see the pack README.
 
 ## Procedure
 
@@ -93,8 +93,8 @@ Two convergent disciplines:
 Sub-question rationales are arguments, not assertions — mark
 `[synthesis]` when they integrate across cited material, `[inference]`
 when they deduce from precedent. Citations attach when a sub-question
-is justified by a specific source (e.g., "PRISMA recommends this
-decomposition" → cite the PRISMA handbook).
+is justified by a specific source (e.g., "PICO recommends this
+decomposition" → cite the source).
 
 ## Depth cues
 

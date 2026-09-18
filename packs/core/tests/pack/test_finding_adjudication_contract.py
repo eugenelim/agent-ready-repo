@@ -1319,8 +1319,17 @@ def test_evidence_retry_is_closed_accounted_and_independently_authored() -> None
         "one independently authored replacement adjudication",
         "The controller never copies or merges prior verdicts",
         "fire `wave-complete`, run GATES, and return through `gates-clean` to REVIEW",
+        # Ordered against the fire instruction below: the pre-exit check has to
+        # precede the transition at this site, and a whole-file substring would
+        # pass with the sentence moved anywhere in the document.
+        "Run `loop-cohort check <spec-dir> --phase wave-exit` immediately before "
+        "that transition",
     ):
         assert required in post
+
+    assert post.index("--phase wave-exit` immediately before that transition") < post.index(
+        "fire `wave-complete`, run GATES, and return through `gates-clean` to REVIEW"
+    )
 
     for required in (
         "fifth supplied path",

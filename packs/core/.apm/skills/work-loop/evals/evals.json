@@ -37,13 +37,14 @@
     {
       "id": "phase1-sequential-wave-routing",
       "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
-      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
+      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. That advance is not unconditional: it refuses a wave whose tasks are not accounted for, so wave 0's every task must already carry a `loop-cohort dispatch-receipt` record \u2014 `--receipt` or `--decline <reason>`. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
       "assertions": [
         "Response mentions `loop-engine transition` with the `wave-passed` event",
         "Response mentions `loop-cohort wave advance` with `--from-index` and `--expect-run-id`",
         "Response does NOT invoke `worktree`, `dispatch-decision`, or `auto-parallel`",
         "Response follows the sequential path (one wave at a time)",
-        "Response does NOT call `loop-cohort wave check` as a prerequisite (engine guard handles this)"
+        "Response does NOT call `loop-cohort wave check` as a prerequisite (engine guard handles this)",
+        "Response states the accounting precondition: the advance refuses a wave whose tasks are not accounted for"
       ]
     },
     {
@@ -73,10 +74,11 @@
     {
       "id": "phase1-last-event-routing",
       "prompt": "You resume a work-loop session and `loop-engine status` shows `last_event: 'wave-passed'` and `state: 'CODE-IMPLEMENTATION'`. What does this tell you and what is the correct next action?",
-      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` \u2014 this call is idempotent and safe to replay; (3) then proceed to implement the tasks in the current (next) wave.",
+      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` \u2014 replaying an advance that already landed is a no-op, but if it did not land this is the advancing branch, which refuses a wave whose tasks are not accounted for, so record any missing `dispatch-receipt` first; (3) then proceed to implement the tasks in the current (next) wave.",
       "assertions": [
         "Response reads `last_event_context.completed_wave_index` to determine the completed wave",
         "Response re-issues `wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` before proceeding",
+        "Response does not describe the advance as unconditionally safe to replay, and names the accounting precondition for the advancing branch",
         "Response proceeds to implement the current wave's tasks after advancing",
         "Response uses `last_event` as the routing signal, not re-deriving state from scratch"
       ]
@@ -775,6 +777,30 @@
         "Response kills the hand-written validator with the standard-library rung",
         "Response states the accepted requirement in the rung's place for the decline no rung covers",
         "Response does not fit a rung to a decline no rung explains"
+      ]
+    },
+    {
+      "id": "dispatch-decision-consumes-a-merge-tree-verdict",
+      "prompt": "In the supervisor-mode parallel path, does `dispatch-decision` establish that a wave's branches are file-disjoint? Explain what it checks.",
+      "expected_output": "No. `dispatch_decision(categories, merge_tree_clean=...)` consumes a merge-tree verdict its caller supplies; it does not compute one. No shipped script runs `git merge-tree`, so the producer of that verdict is unbuilt and the preview cannot establish disjointness. The merge-tree check enforced at the merge step, where `git merge --no-ff` aborts on any collision, stays the sole authority.",
+      "assertions": [
+        "Says `dispatch_decision` consumes a merge-tree verdict rather than computing one",
+        "Says no shipped script invokes `git merge-tree`, so that producer is unbuilt",
+        "Keeps the merge step as the sole authority for disjointness",
+        "Does NOT claim a `wave_is_disjoint` check exists",
+        "Does NOT treat the preview as a greenlight for parallel dispatch"
+      ]
+    },
+    {
+      "id": "dispatch-receipt-authorship-and-decline-codes",
+      "prompt": "In full-mode supervisor work, which command records that a plan task was implemented, who runs it, and what do you record for a task you had to implement yourself?",
+      "expected_output": "`loop-cohort dispatch-receipt <spec-dir> --task <task-id> --wave-index <n> (--receipt | --decline <reason>) --expect-run-id <run_id>`, once per plan task. The controller records it; an `implementer` subagent never records its own, because the receipt is the controller's assertion about who it dispatched. Use `--receipt` when an `implementer` implemented the task. For a task you implemented yourself, record a decline with one of exactly two reasons: `no-implementer-installed` when no `implementer`-matching subagent is installed, or `human-directed` when a human instructed you to skip implementer dispatch (that one has no testable precondition). A receipt and a decline both count as accounted for, which is what `check --phase wave-exit` and the advancing branch of `wave advance` require.",
+      "assertions": [
+        "Response names `loop-cohort dispatch-receipt` with `--task`, `--wave-index`, and `--expect-run-id`",
+        "Response says the controller records it and an `implementer` does not record its own",
+        "Response names `--receipt` for an implementer-run task",
+        "Response names both decline reasons, `no-implementer-installed` and `human-directed`, and no third reason",
+        "Response says a decline counts as accounted for at the wave exit"
       ]
     }
   ]

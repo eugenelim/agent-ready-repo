@@ -34,7 +34,7 @@ Expected output: a scoped improvement path, implemented changes when authorized,
 
 ## Audit
 
-Use audit when you want a read-only report. The agent checks applicable states, WCAG 2.2 AA expectations, Core Web Vitals targets, asset-budget categories, and brownfield risks without editing code.
+Use audit when you want a read-only report. The agent checks applicable states, progress against the WCAG 2.2 AA target, Core Web Vitals targets, asset-budget categories, and brownfield risks without editing code.
 
 Expected output: a prioritized findings list with concrete recommendations and no production writes.
 
@@ -50,7 +50,7 @@ Expected output: a gate-by-gate evidence manifest that separates pass, fail, kno
 
 ## Skill inventory
 
-Frontend Engineering installs 9 skills covering the full build journey from design handoff to shipped component: the create/retrofit/audit/verify workflow (`frontend-engineering`), CSS token system architecture (`token-architecture`), deep accessibility engineering beyond automated tooling (`a11y-engineering`), Core Web Vitals measurement and remediation (`fe-performance`), rendering strategy selection (`rendering-strategy`), component API design (`component-contract`), responsive layout craft (`responsive-layout`), CSS architecture at scale (`css-architecture`), and surface orientation (`fe-status`). A forked-context `frontend-reviewer` agent provides a diff-level review for HTML/CSS/JS diffs covering CSS token drift, ARIA mutation completeness, state coverage regression, and the two WCAG 2.2 manual-verification items automated tooling misses.
+Frontend Engineering installs 9 skills covering the full build journey from design handoff to shipped component: the create/retrofit/audit/verify workflow (`frontend-engineering`), CSS token system architecture (`token-architecture`), deep accessibility engineering beyond automated tooling (`a11y-engineering`), Core Web Vitals measurement and remediation (`fe-performance`), rendering strategy selection (`rendering-strategy`), component API design (`component-contract`), responsive layout craft (`responsive-layout`), CSS architecture at scale (`css-architecture`), and surface orientation (`fe-status`). A forked-context `frontend-reviewer` agent provides a diff-level review for HTML/CSS/JS diffs covering CSS token drift, ARIA mutation completeness, state coverage regression, and the two named WCAG 2.2 manual checks (2.5.8 Target Size (Minimum), AA; 2.4.13 Focus Appearance, AAA enhancement).
 
 **Co-install with `experience-design` for full genre routing.** The main `frontend-engineering` skill includes a genre-routing step that loads the appropriate XD discipline skill: `conversion-design` for marketing surfaces, `documentation-design` for docs sites, and `analytical-design` for dashboards. This step requires the `experience-design` pack. Without it, `frontend-engineering` records a named skip and proceeds; the skip is honest accounting, not a failure. Install both packs to get the full pre-flight.
 

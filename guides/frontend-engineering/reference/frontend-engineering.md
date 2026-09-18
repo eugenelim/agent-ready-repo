@@ -18,8 +18,9 @@ This page gives one-line descriptions and the correct trigger for each.
 
 The entry point for all frontend work. Four modes — create (new surface),
 retrofit (improving existing), audit (review only), verify (run gates).
-Provides the design pre-flight (named aesthetic reference, genre routing,
-seed token block, state matrix), craft rules, GATES verification commands,
+Provides the design pre-flight (design handoff read, named aesthetic
+reference, genre routing, seed token block, state matrix), craft rules,
+GATES verification commands,
 and evidence manifest format. Load this skill whenever a task's primary output
 is HTML, CSS, or JS.
 
@@ -47,9 +48,9 @@ not seeding a token block for a single surface (the seed block in
 
 Deep accessibility engineering beyond automated tooling — focus management
 architecture, ARIA role correctness under dynamic mutation, live-region
-discipline, keyboard contract specification, and manual WCAG 2.2 AA
-verification for the two criteria automated tools miss (2.4.11 Focus
-Appearance, 2.5.8 Target Size).
+discipline, keyboard contract specification, and manual checks for WCAG 2.2
+Target Size (Minimum) (AA) and Focus Appearance (AAA enhancement), plus a
+stated gap against the WCAG 2.2 AA baseline.
 
 **Load when:** accessibility is the primary task — a dedicated audit,
 retrofitting broken patterns, or designing a complex interaction
@@ -136,7 +137,7 @@ repository under review.
 | CSS token drift | Hardcoded hex/rgba/px/rem values where `--ds-*` tokens should be used |
 | ARIA mutation completeness | `aria-expanded`, `aria-selected`, `aria-sort`, `aria-checked` set in HTML but never updated in JS |
 | State coverage regression | States from the 18-state matrix present before the diff but absent after |
-| WCAG 2.2 manual items | 2.4.11 Focus Appearance (ring size and contrast), 2.5.8 Target Size (touch target ≥24×24 CSS px) |
+| WCAG 2.2 manual items | 2.5.8 Target Size (touch target ≥24×24 CSS px, or a named exception), AA; 2.4.13 Focus Appearance (ring size and contrast), AAA enhancement |
 | CWV regression signals | Synchronous scripts, unsized images, lazy LCP candidates, route chunk size increase >10KB |
 | Reader-visible layout failure | Read from the captures, not the diff: one element covering another, content cut off at the top of the content area at rest, content outside its container, a control too small to hit, text that cannot be read. Severity comes from the pack's finding-class table; where a failure fits more than one class, the most severe wins |
 
@@ -160,7 +161,9 @@ a silent pass.
 All surfaces built with this pack are held to one shared quality floor:
 
 1. Handle all applicable states from the 18-state matrix.
-2. WCAG 2.2 AA — automated `wcag21aa` gate plus two manual checks
-   (2.4.11 and 2.5.8).
+2. WCAG 2.2 AA is the target. What is verified today is the automated
+   `wcag21aa` gate plus two named manual checks (2.5.8 Target Size (Minimum),
+   AA; 2.4.13 Focus Appearance, AAA enhancement). Not yet covered against the
+   AA baseline: 2.4.11, 2.5.7, 3.2.6, 3.3.7, 3.3.8.
 3. Token discipline — no hardcoded values outside the `:root` primitive block.
 4. Evidence manifest — completion requires a manifest.

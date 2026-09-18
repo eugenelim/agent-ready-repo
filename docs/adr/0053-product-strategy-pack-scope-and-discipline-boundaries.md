@@ -71,3 +71,20 @@ Experience mapping is closer in character to journey-mapping (experience-design 
 - `docs/backlog.md` receives two new open entries (growth-strategy-pack, experience-mapping-extension) and one resolved thread (content-strategy in content-strategy-and-marketing-copy-lens).
 
 **Revisit if:** the `growth-strategy-pack` (OQ1) or `experience-mapping-extension` (OQ2) backlog entries come up for resolution, which would reopen D4's v1 exclusion and the pack's discipline boundary; or the `product-strategy` intent level in `product-engineering` is renamed, which ends the vocabulary shadowing D1 accepted.
+
+## Errata
+
+- **2026-09-17 (Decision-maker: eugenelim) — D3 and D7 attribute this pack's own composite to the Halvorson
+  quad.** Both name the content-strategy framework as "Halvorson quad: Purpose +
+  Process + Structure + Governance". Those four parts are neither published
+  quad. Halvorson and Rach's 2012 quad is *Substance / Structure / Workflow /
+  Governance*; Brain Traffic's 2018 revision is *Editorial Strategy / Experience
+  Design / Content Structure / Process Design*
+  ([braintraffic.com/blog/new-thinking-brain-traffics-content-strategy-quad](https://www.braintraffic.com/blog/new-thinking-brain-traffics-content-strategy-quad)).
+  *Purpose + Process + Structure + Governance* is this pack's own composite.
+
+  The decision D3 and D7 record — content strategy as a third pillar, delivered
+  by one skill — is unaffected; only the attribution beside it was wrong.
+  `define-content-strategy` now presents those four parts as the pack's
+  composite and names both published quads beside it. RFC-0063 carries the
+  matching erratum, which also corrects a second miscitation in that RFC.

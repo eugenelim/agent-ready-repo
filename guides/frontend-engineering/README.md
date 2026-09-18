@@ -17,6 +17,7 @@ Use this index when you have found the `frontend-engineering` pack and need the 
 |---|---|---|
 | Confirm what the pack is for | [Pack overview](/packs/frontend-engineering/) | The four jobs, expected outputs, install command, and route into this guide tree |
 | See the end-to-end workflow before starting | [Frontend engineering journey](/journeys/frontend-engineering/) | Mode choice, contract approval, implementation or audit path, gates, evidence manifest, and frontend review in order |
+| Honour design work your team already produced | [Read the design handoff](how-to/read-the-design-handoff.md) | What the pre-flight reads from your design directory, what it ignores, what each skip and refusal means, and the limits of every control |
 | Decide whether a new or changed surface needs a contract | [Write a page or screen contract](how-to/page-screen-contract.md) | A full 12-field contract, proportional subset, or explicit no-contract decision |
 | Set or verify performance policy | [Performance targets](reference/performance-targets.md) | Fixed CWV targets, prioritized asset-budget categories, and project-specific numeric-ceiling decisions |
 | Audit an existing page or component without writing code | [Run a frontend audit](how-to/run-an-audit.md) | A findings report and baseline evidence manifest for the existing surface |
@@ -26,7 +27,7 @@ Use this index when you have found the `frontend-engineering` pack and need the 
 
 ## What this pack holds you to
 
-The shared frontend quality floor is state coverage, WCAG 2.2 AA, token discipline, and an evidence manifest for completed create, retrofit, or verify work.
+The shared frontend quality floor is state coverage, a WCAG 2.2 AA target (see the [pack reference](reference/frontend-engineering.md) for what is verified today versus the stated gap), token discipline, and an evidence manifest for completed create, retrofit, or verify work.
 
 The pack does not claim to replace security or reliability review. Frontend review routes auth, secrets, user input, reliability, and broader product-design concerns to the appropriate reviewer or owner.
 

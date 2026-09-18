@@ -192,6 +192,9 @@ python '<skill-dir>/scripts/review-artifact.py' validate \
   --expected-sha256 <first-validator-digest>
 ```
 
+Run `loop-cohort check <spec-dir> --phase wave-exit` immediately before that
+transition: it reads the dispatch receipts, refuses a wave exit whose tasks are
+unaccounted for, and prints the absent-container notice the transition cannot.
 Re-enter the existing post-GATES path: fire `wave-complete`, run GATES, and
 return through `gates-clean` to REVIEW. Then dispatch the adjudicator with the
 unchanged raw report, target/scope, reviewer role, governing authority, and the
@@ -261,7 +264,8 @@ python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --operation-id <run-id>:<seq>
 ```
 
-Then FIX, fire `wave-complete`, rerun GATES, and re-enter REVIEW. Do not record
+Then FIX, run `loop-cohort check <spec-dir> --phase wave-exit`, fire
+`wave-complete`, rerun GATES, and re-enter REVIEW. Do not record
 an adversarial clean before specialist reviewers finish. On final raw clean, use
 `--direct-clean-file` only for the byte-exact sentinel; use
 `--structural-clean-file` only after its own raw classification accepts the

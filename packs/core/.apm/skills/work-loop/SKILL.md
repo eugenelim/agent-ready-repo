@@ -298,11 +298,16 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     **`code` mode** (implementation work):
     ```bash
-    # 1. Spec approver writes Status: Approved in spec.md.
+    # 1. Spec approver writes Status: Approved in spec.md, and adds the
+    #    spec-approval entry to plan.md's Changelog (form: the plan
+    #    template's Changelog note).
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
     # → PLAN-HUMAN-GATE; pending_human_wait: true
 
-    # 2. Plan approver writes Status: Approved in plan.md.
+    # 2. Plan approver writes Status: Approved in plan.md, and adds the
+    #    plan-approval entry to its Changelog in the SAME edit — step 3
+    #    pins plan content and splices out only the status token, so an
+    #    entry written after it invalidates the baseline hash.
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED; pending_human_wait: false
 
@@ -322,11 +327,16 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     **`spec-plan` mode** (spec/plan-only work — no implementation tasks):
     ```bash
-    # 1. Spec approver writes Status: Approved in spec.md.
+    # 1. Spec approver writes Status: Approved in spec.md, and adds the
+    #    spec-approval entry to plan.md's Changelog (form: the plan
+    #    template's Changelog note).
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
     # → PLAN-HUMAN-GATE
 
-    # 2. Plan approver writes Status: Approved in plan.md.
+    # 2. Plan approver writes Status: Approved in plan.md, and adds the
+    #    plan-approval entry to its Changelog in the SAME edit — step 3
+    #    pins plan content and splices out only the status token, so an
+    #    entry written after it invalidates the baseline hash.
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED
 
@@ -384,7 +394,7 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 **When a spec exists, bump its status to `Implementing`** if currently `Draft` or `Approved`. Do this before writing any code. Direct-light has no spec status to write; its decision record must already be complete before the first implementation write.
 
 **Sequential implementer dispatch.** In full mode, when `loop-cohort schedule`
-emits a plan task and an `implementer` subagent is installed, dispatch it once per plan task, with one implementer at a time. The controller supplies the execution root and retains scheduling, state transitions, final gates, review, retry, and closeout.
+emits a plan task and an `implementer` subagent is installed, dispatch it once per plan task, with one implementer at a time. The controller supplies the execution root and retains scheduling, state transitions, final gates, review, retry, and closeout — including one `loop-cohort dispatch-receipt` once per plan task, `--receipt` when an `implementer` implemented it and `--decline <reason>` when none did. The controller records it; an `implementer` does not record its own, because the receipt is the controller's assertion about who it dispatched, and a subagent asserting its own dispatch records nothing the controller did not already know.
 
 Match discipline to verification mode:
 - **TDD** — red-green-refactor; commit each step if non-trivial. After the full-mode engine enters `CODE-IMPLEMENTATION`, materialize the approved stub from `plan.md` unchanged in the repository test location, verify byte identity, prove the intended red, and then fill deferred assertions; don't rewrite from scratch. Direct-light writes its red test here because it has no durable plan stub.
@@ -439,6 +449,9 @@ Don't move past a failing gate by editing the gate. On failure → FIX.
 # More waves remain — fire wave-passed, advance cohort wave pointer, return to EXECUTE:
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-passed \
     --wave-index <n>   # guard: wave check --expect more
+# Accounting precondition: the advancing branch refuses a wave whose tasks are not accounted for
+# — every task in wave <n> needs a dispatch-receipt record, receipt or decline.
+# Re-issuing an advance that already landed stays a no-op.
 python '<skill-dir>/scripts/loop-cohort.py' wave advance docs/specs/<feature> \
     --from-index <n> --expect-run-id <run_id>
 
@@ -529,7 +542,7 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`experience-reviewer`** — diff changes what a reader or adopter sees (full-mode only). Pass rendered output + grounded aesthetic reference and constraints — not the code diff. Its confirm-before-reviewing gate requires the grounded reference. For web: run the build, describe key pages from output. Fallback absent: named skip.
 
-- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
+- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 AA Target Size, AAA Focus Appearance, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
 
 - **`design-reviewer`** — only when an architect-pack integration explicitly
   activates it for an architecture artifact inside this work-loop. Pass the
@@ -593,13 +606,16 @@ response:
   ```
   python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> blocker-applied
   # Apply the fix, then fire wave-complete (gates-clean/gates-failed are legal
-  # only from CODE-VERIFICATION, not CODE-IMPLEMENTATION).
+  # only from CODE-VERIFICATION, not CODE-IMPLEMENTATION). Run the wave-exit
+  # check first: it prints the absent-container notice the transition cannot.
+  python '<skill-dir>/scripts/loop-cohort.py' check docs/specs/<feature> --phase wave-exit
   python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
   # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
   ```
 - **Further in-intent review unit:** when an included discovery needs its own
   independently reviewed unit, use the same `blocker-applied` return edge,
-  then apply that unit, fire `wave-complete`, and run GATES, REVIEW, and the
+  then apply that unit, run `loop-cohort check <spec-dir> --phase wave-exit`,
+  fire `wave-complete`, and run GATES, REVIEW, and the
   human gate again. A separate review unit does not defer or complete the
   original accepted intent.
 
@@ -622,7 +638,9 @@ python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id> \
     --operation-id <run_id>:<seq>
 # Apply the specialist's fixes, then fire wave-complete (required to reach
-# CODE-VERIFICATION before gates-clean/gates-failed).
+# CODE-VERIFICATION before gates-clean/gates-failed). Run the wave-exit check
+# first: it prints the absent-container notice the transition cannot.
+python '<skill-dir>/scripts/loop-cohort.py' check docs/specs/<feature> --phase wave-exit
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
 # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
 ```

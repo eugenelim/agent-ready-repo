@@ -1,6 +1,6 @@
 ---
 name: compare-hypotheses
-description: Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis — the +81% parallelizable-task case from multi-agent research). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
+description: Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
 ---
 
 # /compare-hypotheses
@@ -68,11 +68,11 @@ the analyst who weighs evidence asymmetrically across hypotheses.
 
 ## Parallel retrieval
 
-On Claude Code, hypotheses-by-evidence is a +81% parallelizable-task
-case: each hypothesis can be evaluated independently against the same
-source pool. Dispatch N parallel `evidence-retriever` subagents — one
-per hypothesis — and synthesise the returned per-hypothesis evidence
-into the matrix.
+On Claude Code, hypotheses-by-evidence parallelises well: each
+hypothesis can be evaluated independently against the same source
+pool. Dispatch N parallel `evidence-retriever` subagents — one per
+hypothesis — and synthesise the returned per-hypothesis evidence into
+the matrix.
 
 On hosts without subagent support, fall back to sequential evaluation.
 

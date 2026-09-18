@@ -86,8 +86,8 @@ screens, and `process-mapping` for internal operations.
 **Use when:** “Show which backstage services and teams support every step of
 this customer journey.”
 
-**Returns:** a four-part service blueprint covering frontstage, line of
-visibility, backstage, and support. Writes
+**Returns:** a five-row service blueprint covering evidence of service,
+frontstage, line of visibility, backstage, and support. Writes
 `<output_dir>/blueprints/<slug>.md` with `type: service-blueprint`.
 
 **Routes away:** service strategy, initiative framing, and implementation of

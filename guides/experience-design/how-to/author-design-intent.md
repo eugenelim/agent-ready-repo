@@ -57,8 +57,8 @@ transition resolves and every action has a backing service. It never stops at
 
 > "Blueprint the services behind these screens."
 
-`service-blueprint` lays out frontstage / line-of-visibility / backstage /
-support. The backstage column is the slicing instrument you hand to `architect`
+`service-blueprint` lays out evidence-of-service / frontstage /
+line-of-visibility / backstage / support. The backstage column is the slicing instrument you hand to `architect`
 and `contracts` by-name — or, when those aren't installed, it names the services
 textually so the thread still holds.
 

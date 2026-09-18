@@ -1,6 +1,6 @@
 [pack]
 name = "iac-terraform"
-version = "0.1.9"
+version = "0.1.10"
 description = "Describe the infrastructure you want; get Terraform you would be willing to review. Cloud-agnostic, gated on a written decision, and it stops at the plan — applying is still yours."
 readme = "README.md"
 display_name = "IaC (Terraform)"
@@ -28,8 +28,13 @@ pack = "governance-extras"
 # Requires the governance-index template, `new-adr` infrastructure mode, and
 # extension-contract convention introduced in governance-extras 0.9; all three
 # are unchanged in 0.10, which retired the `update-conventions` skill this pack
-# never used (RFC-0091). Bumped so the range admits the minor actually shipped.
-version = "^0.10"
+# never used (RFC-0091), and unchanged in 0.11, which made ADR metadata
+# mechanically checkable (RFC-0102). This pack delegates ADR authoring to
+# `new-adr` rather than embedding its template or parsing records, so a richer
+# template reaches it as new fields on records the skill writes, not as a
+# contract change here; `new-adr/references/infra-decisions.md` and infra mode
+# are untouched by that release. Bumped so the range admits the minor shipped.
+version = "^0.11"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

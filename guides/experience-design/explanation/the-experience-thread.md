@@ -41,11 +41,11 @@ The skills compose along that thread, each connecting to the next by a named
 seam (every skill declares its inputs and what consumes it):
 
 - **`journey-mapping`** — the outside-in journey: stages × actions,
-  emotions, pains, peak moments (Kahneman peak-end). Carries `evidence-level`
-  (observational / survey-backed / assumption-based) and a `surface-genre`
-  confirmation. The thread's head.
+  emotions, pains, peak/dip/end moments (Kahneman peak-end rule; see the pack
+  README). Carries `evidence-level` (observational / survey-backed /
+  assumption-based) and a `surface-genre` confirmation. The thread's head.
 - **`design-principles`** — turns journey insights into 3–5 named, testable
-  design principles (NNGroup 4-step model). Consumed by `creative-direction`,
+  design principles. Consumed by `creative-direction`,
   `information-architecture`, `content-design`, and `design-review`.
 - **`user-flow`** — the journey's screens *sequenced*, with transitions
   and error/edge flows, a per-screen state matrix (with `surface-genre:`

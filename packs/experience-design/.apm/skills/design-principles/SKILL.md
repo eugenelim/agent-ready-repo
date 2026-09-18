@@ -58,7 +58,7 @@ Form: **[Imperative verb] + [what] + [why/for whom]**
 
 ## Procedure
 
-Steps 1–4 are NNGroup's 4-step model; map each to its stage label before writing principles. Step 5 is this pack's write step, not part of that model.
+Map steps 1–4 to their stage labels before writing principles. Step 5 is this pack's own write step. Sources: see the pack README.
 
 1. **Identify core product values → insight.** From the journey map's pains and highest-opportunity moments: what does this product owe its users? List 5–8 candidate values as raw statements ("users feel anxious during the upload wait"). These are observations, not principles yet.
 

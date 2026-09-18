@@ -212,6 +212,14 @@ for the route and scope differences.
 
 ---
 
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
+
+- **`operational-safety`** — the module set (`state-and-idempotency`, `blast-radius`, `environment-isolation`, `cost-and-teardown`, `drift-and-rollback`, `observability-and-smoke`, `cloud-implementation-craft`) is this pack's own composite; no single published taxonomy owns it. `state-and-idempotency` and `drift-and-rollback` are kept deliberately separate. This pack has not verified that AWS Well-Architected, Google SRE, Terraform, and Pulumi each draw the same split the way the skill describes it — flagging as unverified rather than asserting it: AWS Well-Architected's *Change Management* vs *Failure Management*, Google SRE's *Release Engineering* vs *Incident Response*, Terraform's `apply` vs `-refresh-only`, and Pulumi's Day-1 vs Day-2 are a taxonomy-section pair, a publication-topic pair, a CLI-flag pair, and a lifecycle-vocabulary pair respectively — four unlike things, not one confirmed published split.
+
+---
+
 - **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.
 - **Go deeper:** the `core` guides in `guides/core/`.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).

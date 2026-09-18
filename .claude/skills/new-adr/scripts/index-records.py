@@ -16,6 +16,7 @@ placeholder text, so ``--type`` is required there.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import pathlib
 import re
@@ -24,6 +25,77 @@ import subprocess
 import sys
 import tempfile
 import urllib.parse
+
+# ── Shared confinement helper ─────────────────────────────────────────────────
+# Loaded by path so skills/scripts/ is never put on sys.path (packs/AGENTS.md).
+# The precedent — including the refuse-on-failure posture — is
+# check-spec-status.py:69-114.
+
+SCRIPT_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent
+
+
+class _HelperUnavailable(RuntimeError):
+    """`_record_paths.py` could not be loaded; every operation must refuse."""
+
+
+_helper_module: object = None
+
+
+def _load_helper() -> object:
+    """Load the sibling ``_record_paths.py`` by path, once per process.
+
+    Refuses and raises ``_HelperUnavailable`` for every failure mode: a path
+    that does not resolve, an ``exec_module`` that raises, a ``None`` spec or
+    loader, and a module missing an expected entry point.  A silent fallback
+    to a direct scan would let a broken control ship undetected.
+    """
+    global _helper_module
+    if _helper_module is not None:
+        return _helper_module
+    path = SCRIPT_DIR / "_record_paths.py"
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise _HelperUnavailable(
+            f"cannot load {path}: {exc}. Restore the file or re-run "
+            "`make build-self`."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise _HelperUnavailable(
+            f"cannot load {path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
+        )
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(
+            "new_adr_record_paths_ir", str(path)
+        )
+        if spec is None or spec.loader is None:
+            raise _HelperUnavailable(
+                f"cannot load {path}: no import spec. Restore the file or "
+                "re-run `make build-self`."
+            )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+    except _HelperUnavailable:
+        raise
+    except BaseException as exc:
+        raise _HelperUnavailable(
+            f"cannot load {path}: {type(exc).__name__}: {exc}. Restore the "
+            "file or re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous
+    for name in ("list_candidate_entries", "classify_entry", "read_confined"):
+        if not hasattr(module, name):
+            raise _HelperUnavailable(
+                f"cannot load {path}: missing entry point {name!r}. Restore "
+                "the file or re-run `make build-self`."
+            )
+    _helper_module = module
+    return module
+
 
 # Git reads these from the environment and would answer for another repository.
 _GIT_REDIRECT_VARIABLES = (
@@ -78,8 +150,14 @@ def _field(text: str, name: str) -> str | None:
     matches a newline, so an empty field would capture the following line as its
     value — which is how a Decision weight line reached a Closed date column.
     """
-    match = re.search(rf"^-?[ \t]*\*\*{re.escape(name)}:\*\*[ \t]*(.*?)[ \t]*$",
-                      text, re.MULTILINE)
+    # The value class excludes every control character, not just LF. `.` under
+    # MULTILINE still matches CR, and CommonMark treats a bare CR as a line
+    # ending — so a record-controlled value carrying one would terminate its
+    # table row downstream, where no cell escaper neutralizes a line break.
+    match = re.search(
+        rf"^-?[ \t]*\*\*{re.escape(name)}:\*\*[ \t]*"
+        r"([^\x00-\x1f\x7f]*?)[ \t]*\r?$",
+        text, re.MULTILINE)
     if match is None:
         return None
     value = match.group(1).split("<!--")[0].strip()
@@ -102,6 +180,30 @@ def _status_token(text: str) -> str | None:
         raw = raw[: cut.start()]
     # A supersession pointer is part of the token, but its link markup is not.
     return re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", raw).strip()
+
+
+def _display_status(body: str, status: str) -> str:
+    """The status token, with a bare `Superseded` pointer composed in.
+
+    A record's supersession target lives in its own `Superseded by:` field, not
+    in `Status`, so a bare-token record carries the pointer nowhere
+    `_status_token` can see. Composed here, ahead of the caller's
+    `_escape_cell(status)` call, the result travels the same escaping path as
+    every other record-controlled cell -- no change to the emission code. Read
+    same-line only, like every other field this generator reads, on a
+    deliberately narrower contract than a shape lint's block-aware reader.
+    This generator runs standalone and cannot assume the field was validated
+    upstream, so an absent, unfilled, or `none` value leaves the bare token
+    untouched rather than composing a pointer to nothing.
+    """
+    if status != "Superseded":
+        return status
+    target = _field(body, "Superseded by")
+    if (target is None or target == _UNFILLED
+            or not target.strip()
+            or target.strip().lower() == "none"):
+        return status
+    return f"{status} by {target}"
 
 
 _BACKTICK_RUN = re.compile(r"`+")
@@ -187,27 +289,41 @@ def _git_added(directory: pathlib.Path, name: str) -> str:
 def _records(directory: pathlib.Path, pattern: re.Pattern[str],
              prefix: re.Pattern[str]) -> list[tuple[int, str, str]]:
     """Every record in the directory as (ordinal, filename, body)."""
+    rp = _load_helper()
     found: list[tuple[int, str, str]] = []
-    for entry in sorted(directory.iterdir(), key=lambda p: p.name):
-        if entry.suffix != ".md":
+    try:
+        entries = rp.list_candidate_entries(directory)  # type: ignore[union-attr]
+    except (OSError, rp.EntryRefused) as error:  # type: ignore[union-attr]
+        _warn(f"{directory}: cannot list ({error})")
+        return found
+    for entry in entries:
+        if not entry.name.endswith(".md"):
             continue
-        # One lstat, not is_symlink()/is_file(): those return False on any
-        # OSError, so an entry removed between listing and classification would
-        # be treated as a regular file and read.
+        # classify_entry uses stat(follow_symlinks=False), not is_symlink()/
+        # is_file(): those return False on any OSError, so an entry removed
+        # between listing and classification would be treated as a regular file.
         try:
-            mode = entry.lstat().st_mode
+            kind = rp.classify_entry(entry)  # type: ignore[union-attr]
         except OSError as error:
             _warn(f"{entry.name}: cannot classify ({error})")
             continue
-        if stat.S_ISLNK(mode):
+        if kind == "symlink":
             _warn(f"{entry.name}: record-looking symlink refused")
             continue
-        if not stat.S_ISREG(mode):
-            # A FIFO or device would block read_text() with no timeout.
+        if kind != "regular":
+            # A FIFO or device would block on read without a timeout.
             _warn(f"{entry.name}: not a regular file")
             continue
         try:
-            body = entry.read_text(encoding="utf-8")
+            # `expect` binds this read to the entry that was listed and
+            # classified; the read's own before/after pair cannot see a
+            # substitution that happened before it was called.
+            raw = rp.read_confined(  # type: ignore[union-attr]
+                directory, pathlib.Path(entry.path), expect=entry.identity)
+            body = raw.decode("utf-8")
+        except rp.EntryRefused as error:  # type: ignore[union-attr]
+            _warn(f"{entry.name}: refused ({error})")
+            continue
         except (OSError, UnicodeDecodeError) as error:
             _warn(f"{entry.name}: unreadable ({error})")
             continue
@@ -257,6 +373,8 @@ def render(directory, record_type: str | None = None) -> str:
         if status is None:
             _warn(f"{name}: no Status field")
             status = ""
+        else:
+            status = _display_status(body, status)
         cells = [f"{ordinal:04d}",
                  f"[{_escape_cell(title)}]({_escape_destination(name)})",
                  _escape_cell(status)]
@@ -299,6 +417,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="record type; required when the directory holds no records")
     parser.add_argument("dir")
     args = parser.parse_args(argv)
+
+    try:
+        _load_helper()
+    except _HelperUnavailable as error:
+        _warn(str(error))
+        return 1
 
     supplied = pathlib.Path(args.dir)
     try:

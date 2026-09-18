@@ -6,11 +6,6 @@
 > or production environment.
 > **Grounded in:** F3.1 (parse the plan structurally; gate on destroy/replace
 > counts), F3.2 (decouple proposer identity from approver identity).
-> Operational taxonomy: the destructive-op-needs-human-approval rule already in
-> the repository guidance's destructive/irreversible action rules.
-> **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
-> surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
-
 The cost of a wrong line here is the highest in the loop — a single misjudged
 replace can drop a production datastore. Gate on **what the plan will actually
 destroy**, not on a hopeful read of the diff.

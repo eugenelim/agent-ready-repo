@@ -95,6 +95,15 @@ which is what lets the outer loop run autonomously up to the human line.
 - **The harness** — omnigent supplies ephemeral envs, the human-in-the-loop
   option-card pause, and cost policies; the loop is expressed harness-neutrally.
 
+## Where these methods come from
+
+Framework names are the procedure; the following is provenance only — where `release-loop`'s external references come from.
+
+- **DORA health signal** — the current metric set, per DORA's own site: deployment frequency, lead time for changes, change failure rate, failed deployment recovery time (renamed from MTTR in 2023), and deployment rework rate (added in the 2024 Accelerate State of DevOps Report).
+- **Error-budget halt policy** — the exhausted-budget halt-releases behaviour follows Google's error-budget policy.
+- **Decision-log audit trail** — the append-only, per-row attestation, tamper-evidence, and trusted-timestamp discipline follows the DORA / compliance-trail convention.
+- **Feature-flag provider API** — OpenFeature is a CNCF incubating project.
+
 ## Usage
 
 Hand the deploy-ready whole to `release-lead` after `work-loop` reaches G4

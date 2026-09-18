@@ -63,7 +63,7 @@ The artifact — `ux-strategy.md` — is read by the experience-design pack's `j
 
 ### Pillar 3 — Content strategy
 
-`define-content-strategy` produces the organizational and governance layer above per-surface content work: Purpose (why content exists), Process (how it is produced), Structure (how it is organized), and Governance (who decides). This is the Halvorson content strategy quad.
+`define-content-strategy` produces the organizational and governance layer above per-surface content work: Purpose (why content exists), Process (how it is produced), Structure (how it is organized), and Governance (who decides). These four are this pack's own composite. They are informed by the content-strategy quad but match neither published version of it: Halvorson and Rach's 2012 quad is Substance / Structure / Workflow / Governance, and Brain Traffic's 2018 revision is Editorial Strategy / Experience Design / Content Structure / Process Design.
 
 The artifact — `content-strategy.md` — is read by the experience-design pack's `content-design` skill for organizational governance intent. It sets the constraints `content-design` operates within, not the per-surface copy itself.
 
@@ -123,7 +123,7 @@ A SWOT that ships with example strengths produces a SWOT with those examples car
 
 ### Frameworks are named, not reprinted
 
-Each skill references its source framework by name (SWOT, Porter's Five Forces, Halvorson content strategy quad) and defines the procedure for applying it. The frameworks themselves are not reprinted — they are published and authoritative. Reprinting them would create a maintenance burden and an accuracy risk.
+Each skill references its source framework by name (SWOT, Porter's Five Forces, the content-strategy quad) and defines the procedure for applying it. Where a skill's parts are its own composite rather than the source's, it says so at the point of citation — an attribution to a framework that names different parts sends a reader to a source that contradicts the artifact in front of them. The frameworks themselves are not reprinted — they are published and authoritative. Reprinting them would create a maintenance burden and an accuracy risk.
 
 ---
 

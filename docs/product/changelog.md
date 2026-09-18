@@ -64,6 +64,222 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.15] — 2026-09-18
+
+### Highlights
+
+- **A wave can no longer be signed off without saying who did the work.** The
+  step that closes a wave used to pass no matter what: it returned success for
+  any state it could read, so a wave whose tasks were never dispatched looked
+  exactly like one where every task was done. It now asks for one short record
+  per task in the wave — either "this was dispatched" or a declared reason it
+  was not — and refuses the exit by name when a record is missing, listing the
+  tasks it could not account for rather than a count. The sibling command that
+  steps the wave pointer forward asks for the same thing, so the check cannot be
+  walked around by moving the pointer first.
+- **Nothing already in flight breaks.** A run whose state predates this feature
+  carries no records at all, and the exit passes it with a notice saying
+  enforcement is off rather than blocking it, so an upgrade mid-run still
+  finishes. `loop-cohort status` reports whether records are being enforced.
+- **A run that genuinely has no implementer can still proceed.** A wave task can
+  be declined for one of two declared reasons — no implementer is installed, or
+  a human directed the work another way — and a declined task counts as
+  accounted for.
+
+### Added
+
+- `loop-cohort dispatch-receipt <spec-dir> --task <id> --wave-index <n>
+  (--receipt | --decline <reason>) --expect-run-id <id>` records one per-task
+  receipt or decline. Declines take `no-implementer-installed` or
+  `human-directed`; the set is closed and the verb names both when it refuses.
+- `loop-cohort check <spec-dir> --phase wave-exit`, a read-only guard over an
+  eight-row verdict table whose rows partition every cohort state, so exactly
+  one row decides any given state.
+- `dispatch_receipts` in the cohort state template, keyed by partition digest,
+  then wave index, then task identifier. `schedule` creates it and keeps only
+  the live partition's records; a contract amendment empties it.
+- `dispatch_receipts_enforced` in `loop-cohort status`, in both the default and
+  `--json` forms.
+
+### Changed
+
+- The `wave-complete` transition out of `CODE-IMPLEMENTATION` now consults
+  `check --phase wave-exit`. `check --phase implement` is unchanged and keeps
+  its exact verdict for every state it passes today, which matters because the
+  pre-push hook runs that phase for every spec directory and reads its exit
+  code.
+- `loop-cohort wave advance` refuses on the branch that moves the pointer when a
+  task in the wave being left has no record. The branch that recognises an
+  already-applied advance still exits zero, because a crash-recovery replay
+  re-issues the command and refusing there would strand the run.
+- `current_wave_index` is read through one validation shared by the branch
+  selector and the accounting check, instead of two readings that disagreed on
+  `"1"`, `1.9`, `True` and `None`.
+
+- The work-loop scheduler now resolves which plan task owns a `Depends on:`
+  line in exactly one place. Four functions used to walk the plan's task-section
+  boundaries separately, including the unknown-dependency refusal and the
+  dependency graph the refusal has to agree with; if those two walks had ever
+  drifted apart, `schedule` would have refused a plan it would otherwise have
+  scheduled, or accepted one whose edges it then read differently. They now
+  share one owner, so that agreement is structural. A `Depends on:` field is
+  still read only up to its first `(`, so an ID inside parenthetical prose stays
+  commentary — neither scheduled as an edge nor reported as unknown. Behaviour
+  is unchanged: compared across every plan in this repository, the consolidated
+  walk produces identical output.
+
+### Fixed
+
+- The supervisor-mode parallel-dispatch reference named a disjointness check
+  that does not exist. It now names `dispatch_decision`, states that the
+  function is handed a merge-tree verdict rather than computing one, and says
+  that the verdict's producer is unbuilt — no shipped script runs
+  `git merge-tree`. Reading the old sentence and resolving the missing name to
+  the nearest real symbol inverted the gate's safety property, because that
+  symbol is the advisory glob screen the same page says must never greenlight a
+  parallel wave. The merge step remains the sole authority for disjointness.
+
+## [frontend-engineering][0.3.0] — 2026-09-18
+
+### Highlights
+
+- The frontend pre-flight now reads the design handoff your team already wrote,
+  instead of picking an aesthetic direction of its own. Point `[design]
+  output_dir` at your design directory and it takes the aesthetic direction, the
+  per-screen brief and the token taxonomy from there. Its own canonical reference
+  list is now only the fallback, and only for a slot no artifact filled.
+- It keys on no section name inside your files. Design templates are scaffolds
+  people edit, so a reader that looked for named sections would find nothing in
+  most real documents — it takes the first heading, the frontmatter as it finds
+  it, and the body whole.
+- A file under a read path that is not the artifact — a different `type:`, a
+  draft, another kind of design record — is skipped and the scan continues.
+  A design directory holding many kinds of document is expected, not an error.
+- When the directory is a personal vault or anywhere outside the repository, it
+  asks you about each artifact before using it, and shows you what it found.
+  Nothing in these files says which product they belong to, so that confirmation
+  is the check — it is never reported as though a test had passed.
+- Every refusal stops the whole read and halts, by name. It does not tidy up a
+  bad value, pick a different file, quietly downgrade to a skip, or fall back to
+  the canonical list. [Read the design handoff](../../guides/frontend-engineering/how-to/read-the-design-handoff.md)
+  says what each skip and each refusal means, and where the limits are.
+
+### Added
+
+- Shared pre-flight step 0, `Design handoff read`, run by all four modes. It
+  resolves `[design] output_dir` across the repo-root and user-profile branches,
+  validates the slug before composing any path, approves the root with a
+  reserved-tree refusal, compares on resolved path components at every component
+  as enumeration reaches it, enforces read bounds in a stated order, filters by
+  frontmatter `type:`, and takes per-artifact confirmation under a heightened
+  root.
+- `references/design-handoff.md`, the reading contract: the three read paths with
+  their required `type:` literals, what is taken from each file, and what `type:`
+  does and does not establish.
+- `guides/frontend-engineering/how-to/read-the-design-handoff.md`, with its index
+  row.
+- A repository test holding that contract to the real design tree, so a contract
+  that mishandles a file in it fails a gate rather than a review.
+
+### Changed
+
+- The pre-flight is five steps. The new step is numbered 0, so steps 1, 1b, 2 and
+  3 keep their numbers and every reference to them stays true.
+
+## [experience-design][2.0.6] — 2026-09-18
+
+### Highlights
+
+- **Compare creative directions on shared terms.** Each direction now records its commitments across fifteen named axes, including seven structural axes, so teams can identify a meaningful difference instead of arguing from taste.
+- **Test whether a direction is distinctive before carrying it forward.** A counterfactual pass reworks a similar brief, then records changes wherever the result falls back to a generic default.
+- **Start with a named visual direction.** Swiss / International Typographic, editorial broadsheet, and Bauhaus directions provide ready-made starting points for exploration.
+- **Check that candidate directions truly diverge.** A divergence audit identifies the closest pair, showing whether the options differ in substance rather than only on average.
+- **Review a surface through two published instruments.** Design reviews can now rate perceived quality and perceived genericness separately.
+
+## [core][2.26.14] — 2026-09-17
+
+### Highlights
+
+- **A plan now records who approved it, and when.** Approving a spec and plan
+  froze the contract and left no trace in the artifacts of when that happened or
+  on whose authority. Reading a shipped delivery months later, you could not
+  tell which claims were in the contract at approval and which arrived during
+  the work — the plan's own history started at drafting and resumed at
+  execution, with the gate itself unmarked. Each approval is now a dated entry
+  in the plan's changelog, written by the approver in the same edit that sets
+  the status.
+
+### Changed
+
+- The plan template fixes the entry's form; `work-loop`'s G-plan sequence owns
+  when each is written. The plan entry lands in the same edit as
+  `Status: Approved`, because the next step pins the plan's content and splices
+  out only the status token — an entry added afterwards invalidates the
+  baseline.
+
+## [iac-terraform][0.1.10] — 2026-09-17
+
+### Changed
+
+- The required `governance-extras` range widens to `^0.11`. This pack asks
+  `new-adr` to author its infrastructure ADRs rather than carrying a copy of
+  the template or reading records itself, so the richer metadata block that
+  release adds arrives as extra fields on the records `new-adr` writes. The
+  infrastructure mode and its reference material are the same as before.
+
+## [governance-extras][0.11.0] — 2026-09-17
+
+### Highlights
+
+- **New ADRs now record how easy a decision is to reverse and which areas it
+  touches.** The `new-adr` template adds `Reversibility` and `Areas` fields,
+  plus four supersession fields that stay `none` until a decision is actually
+  reversed. Coining an `Areas` value nothing else in your `docs/adr` directory
+  already uses now asks for your explicit confirmation first, so a typo does
+  not quietly start a new label on its own.
+- **Reversing a decision no longer means editing the old record.** Point a new
+  ADR's `Supersedes:` field at the one it replaces; the old record's own
+  `Status` and `Superseded by:` fields pick up the link. Its text stays as
+  written — history, not something the new decision rewrites — and the
+  generated index shows the pointer from both records.
+- **A shape check for your own decision records.** `new-adr` and `new-rfc`
+  bundle a script that reads every record's metadata block and reports
+  anything missing, unmatched, or shaped wrong, over the whole directory in
+  one pass rather than stopping at the first problem.
+- **Correcting an accepted decision has one place to write it.** Add a dated
+  entry under `## Errata` instead of editing the decision itself; entries are
+  only ever added, never rewritten or removed.
+
+### Added
+
+- `new-adr` bundles `lint-adr-shape.py`, checking every ADR's metadata block
+  against fifteen shape rules — required fields present, a bare `Status`
+  token rather than a compound value, a supersession entry matched by its
+  mirrored counterpart on the other record, a duplicate decision ID among
+  others — and reporting every finding it finds, not only the first.
+- The ADR template adds `Areas`, `Reversibility`, and four supersession fields
+  (`Supersedes`, `Superseded by`, `Supersedes in part`, `Superseded in part`),
+  each defaulting to `none`. The template states which parse tier each field
+  belongs to and the authoring transformation: substitute every placeholder,
+  delete the guidance comments.
+- `new-adr` gains a `## Errata` convention: a dated, append-only section for
+  correcting what an accepted ADR meant, without rewriting its decision.
+
+### Changed
+
+- `new-adr`'s write gate checks a drafted `Areas` value against the tokens
+  already in use in the target directory and asks for explicit confirmation
+  before coining one none of them use.
+- The generated ADR and RFC index now reads a bare `Status` token plus a
+  `Superseded by:` field to render a supersession pointer, rather than a
+  compound `Superseded by ADR-NNNN` value inside `Status` itself.
+- `new-adr` and `new-rfc` state the four zones a record moves through after
+  acceptance — Live (`Status`, the supersession fields, `Areas`), Attested
+  (`Date`, `Decision-makers`, `Reversibility`, frozen), Frozen (prose, frozen
+  except `## Errata`), and Append-only (`## Errata`) — replacing the earlier
+  rule that only a status change was ever permitted, which did not describe
+  the metadata block's own fields.
+
 ## [core][2.26.13] — 2026-09-17
 
 ### Highlights

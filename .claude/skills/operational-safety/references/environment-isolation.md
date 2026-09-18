@@ -4,11 +4,6 @@
 > that is, or could touch, production — or where the iteration loop needs a
 > safe place to fail that is not prod.
 > **Grounded in:** F3.3 (environment isolation by account/state boundary).
-> Operational taxonomy: AWS multi-account-per-stage; separate state backends as
-> the IaC-level isolation enforcement.
-> **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
-> surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
-
 Iterate **away from prod**. The strongest isolation unit is the
 account / subscription / project boundary; separate state enforces it in IaC.
 The agentic refinement loop — apply, observe, fix, re-apply — belongs in a
