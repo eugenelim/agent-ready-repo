@@ -2019,6 +2019,36 @@ def test_recorded_value_seeds_prompt_but_typed_reply_wins(
     assert result.name == "typed-name"
 
 
+# STUB: AC-0003
+def test_collect_fields_replays_flag_modes_not_recorded_ones(
+    derived_tree, self_hosted_source, monkeypatch
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["recipe"].update(
+        attribution="attributed", tooling="vendored", guides="none"
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    diagnostics = []
+    raw_state = ish._load_ownership_state(derived_tree, diagnostics)
+    recipe = ish._load_self_host_recipe(raw_state, self_hosted_source, diagnostics)
+    cfg = ish.SelfHostedInitConfig(
+        target=derived_tree, source=self_hosted_source
+    )
+    monkeypatch.setattr(
+        ish,
+        "_prompt",
+        lambda _prompt: (_ for _ in ()).throw(AssertionError("prompted")),
+    )
+
+    resolved = ish.collect_fields(cfg, {"catalogue": {}}, recipe, interactive=False)
+
+    assert resolved.attribution == "white-label"
+    assert resolved.tooling == "external"
+    assert resolved.guides == "selected"
+
+
 @pytest.mark.parametrize(
     ("field", "hostile"),
     [
