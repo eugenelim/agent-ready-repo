@@ -1489,6 +1489,7 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 active  = [
 ]
 shipped = [
+  {path = "docs/specs/catalogue-sync-dry-run/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "c1d4fbf1614c4ac4e173e06a7a623b54d2422343"}, summary = "agentbundle catalogue sync --dry-run and --check: resolve, replay, classify, and plan with no write path", needs = []},
   {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
   {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
@@ -1514,7 +1515,6 @@ queue   = [
   # of record; this entry queues the one phase, not the rollout. Phase 1
   # (docs/specs/self-host-state-schema-3/spec.md) is Shipped and unregistered,
   # so needs is empty rather than pointing at a spec this file cannot resolve.
-  {path = "docs/specs/catalogue-sync-dry-run/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "c1d4fbf1614c4ac4e173e06a7a623b54d2422343"}, summary = "agentbundle catalogue sync --dry-run and --check: resolve, replay, classify, and plan with no write path", needs = []},
 ]
 
 ["ini-007".brief_queue]
