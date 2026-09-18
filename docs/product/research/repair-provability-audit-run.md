@@ -1351,3 +1351,74 @@ settling near **28 of 44**.
 
 Twenty cases remain, so this is still not the final figure, but it is the first
 report where the headline moved by less than the sampling noise.
+
+### Batch rem-d: a second borrowed failure, caught by an automated subset check
+
+Five new cases, **39 repairs, 7 revert arms plus 1 differential**, every revert
+asserted. All three adjudication chunks returned full coverage; the gate passes
+at 39 of 39. Outcome: **5 semantic kills, 1 structural, 7 survives, 26
+unmeasurable.**
+
+**The subset check is now automated and it found a real one.** After the first
+borrowed failure, the driver was changed to compare every pair of arms on the
+same commit and warn when one revert set is a strict subset of another. It
+flagged three pairs here. Two were harmless — arm 3 is a subset of arm 2 but came
+back green, so arm 2's failure cannot be borrowed from it. The third was not:
+
+- Arm 6 reverted 7 paths for repair 4 — `workspace_status.py` **and**
+  `workspace_status_engine.py` across all mirrors including the
+  `agentbundle/_data` copy — and failed `test_a_fully_cooled_initiative_can_reach_closeout`.
+- Arm 7 reverted only the 3 `workspace_status.py` mirrors for repairs 7 and 8,
+  and failed **the same test**.
+- The differential reverted only arm 6 minus arm 7 — the four
+  `workspace_status_engine.py` mirrors — and **passed**.
+
+So arm 6's failure belongs entirely to the `workspace_status.py` change, and
+repair 4 has no control in the test frozen for it. Worker B scored it `survives`
+with `REASON: no co-changed control`, citing the differential.
+
+**Two borrowed failures in two consecutive batches makes this systematic, not
+anecdotal.** In a corpus averaging seven repairs per commit, arms drawn for
+different repairs routinely overlap, and the larger arm inherits the smaller
+arm's red test. Without a differential both would have scored as semantic kills.
+The pairwise subset warning is cheap and should be part of any future run of
+this design.
+
+One procedural note: the differential's first invocation returned exit 96 — the
+runner refusing because it saw no in-commit path, caused by a shell-expansion
+slip in the caller. It was re-run with the paths given explicitly rather than
+reading 96 as a result. The guard refusing is why that did not become a silent
+green arm.
+
+Chunk sizing was also tightened before running: a 26-repair chunk was split into
+two of 13, because 38 in one call is what produced the 17-of-38 truncation and 26
+is closer to that than to the 15 that worked.
+
+### Running totals: 46 of 61 cases, 288 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 231 | 80.2% |
+| survives | 27 | 9.4% |
+| semantic kill | 21 | 7.3% |
+| structural kill | 9 | 3.1% |
+
+| Among the 57 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 27 | 47% |
+| semantic kill | 21 | 37% |
+| structural kill | 9 | 16% |
+
+**The headline is now stable across a 13-observation increase.** Repairs
+shipping without a control that fails for the dispatched defect:
+
+| Report | measurable n | no semantic control |
+| --- | ---: | ---: |
+| 31 cases | 25 | 56% |
+| 36 cases | 38 | 63% |
+| 41 cases | 44 | 64% |
+| **46 cases** | **57** | **63%** |
+
+Three successive reports at 63%, 64%, 63% while the measurable subset grew from
+38 to 57. The earlier monotone rise has stopped and reversed by a point, which is
+what convergence looks like rather than drift. **36 of 57.**
