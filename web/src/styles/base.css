@@ -167,9 +167,24 @@ button {
   cursor: pointer;
 }
 
+/* No outline at rest. CSS initialises `outline-width` to `medium`, which
+   Chromium computes as 3px even while `outline-style` is `none` — so an
+   element with no visible outline still reports a 3px width. That made the
+   focus ring measure THINNER at focus (2px) than at rest (3px), and the
+   browser gate's "must GAIN an indicator" check reads width. Declaring 0 here
+   states what is actually painted; it changes no pixel. */
+:where(*) {
+  outline-width: 0;
+}
+
 /* Global focus ring. `--ds-focus-ring` is display ink on paper (17.16:1 on
    --ds-surface) and off-white on the one dark band (13.14:1 on --ds-hero-bg);
-   tokens.css carries the carrier lists and the measurements. */
+   tokens.css carries the carrier lists and the measurements.
+
+   Zero specificity above means this wins without `!important`. Note the ring
+   colour equals `currentColor` on most carriers now the ground is paper, so
+   the width change is the only signal the gate can read — keep it wider than
+   the resting 0 and do not narrow it below 2px. */
 :focus-visible {
   outline: 2px solid var(--ds-focus-ring);
   outline-offset: 3px;
