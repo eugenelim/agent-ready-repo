@@ -1575,3 +1575,237 @@ contract test and searched the reference for each. All six reported MISSING —
 because what I had extracted were the test's own docstrings and path constants,
 which were never in the reference file. A probe whose misses all share one cause
 cannot distinguish a real one. Reading the diff answered it in one step.
+
+---
+
+## 13. T5 — every clause proved by its own removal
+
+**What this section is.** One row per clause T2 and T3 added, naming the
+mutation, the case that turned red, and the observed failure text. It supersedes
+nothing: § 10.10 and § 11.6 are each task's own inline proof, and § 10.10 said in
+so many words that T5 owes the sweep across every clause. Thirty-four mutations
+were applied, thirty-three reddened a named case and **one survived green**.
+
+### 13.1 Method, and the two ways it can go wrong
+
+Each mutation was applied to the `.apm/` source alone, one targeted case set was
+run, and the file was restored from a byte copy taken before the first mutation.
+The restore is verified by digest after every single mutation, not at the end:
+`loop-cohort.py` `1a221d9494cca78f` and `_loop_guards.py` `5ef73c459e4ba877`.
+`make build-self` was never run, so the two adapter projections stayed at the
+committed bytes throughout — which is why three-copy parity is a gate here and
+not a formality. No probe touched this run's own spec directory.
+
+Two failure modes were watched for by name.
+
+**A red for the wrong reason.** A mutation that produces a `SyntaxError`, an
+import error or a collection error has proved nothing about the clause, because
+the assertion never ran. This spec's own history has that mistake in it, so the
+harness classifies every run: it scans the output for `SyntaxError`,
+`IndentationError`, `ImportError`, `ModuleNotFoundError` and collection errors
+before it is allowed to call a non-zero exit a red. Every mutation below is
+shaped as an added `and False`, a rebound value or an inserted call — never a
+deletion that could leave a dangling block — and no run tripped that classifier.
+
+**A filter too narrow to see the defect.** Recorded in § 13.4; it changed one
+verdict from "survivor" to "caught", so it is not hypothetical.
+
+### 13.2 The verb's clauses — `plan_dispatch_receipt` and `cmd_dispatch_receipt`
+
+| Clause | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| the run-identifier check | `err = _validate_run_id(...)` → `err = None` | `test_dispatch_receipt_refuses_a_run_id_mismatch`, `test_dispatch_receipt_refuses_an_unsupported_schema` | **red, 2 failed** — `dispatch-receipt-run-id-mismatch: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave 0 of dispatch-receipt-run-id-mismatch'` |
+| the mutual-exclusivity check | `if receipt and decline is not None` → `… and False` | `test_dispatch_receipt_refuses_a_receipt_and_a_decline_together` | **red, 1 failed** — `dispatch-receipt-both-forms: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave 0 of dispatch-receipt-both-forms'` |
+| its neither-form half | `if not receipt and decline is None` → `… and False` | `test_dispatch_receipt_refuses_neither_form` | **red, 1 failed** — `dispatch-receipt-no-form: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded decline (None) for T1 in wave 0 of dispatch-receipt-no-form'` |
+| the verb's reason-code check | `decline not in DECLINE_REASONS` → `… and False` | `test_dispatch_receipt_refuses_a_reason_outside_the_closed_set` | **red, 1 failed** — `dispatch-receipt-reason-outside-closed-set: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded decline (because-i-said-so) for T1 in wave 0 …'` |
+| the index type check | `if isinstance(index, str): return None, …` → `index = 0` | `test_dispatch_receipt_refuses_a_non_non_negative_integer_index` (4 params), `test_dispatch_receipt_index_validation_rejects_a_boolean` | **red, 6 failed** — `dispatch-receipt-index--1: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave -1 of dispatch-receipt-bad-index'` |
+| the index range check, **upper** end | `if index > current` → `… and False` | `test_dispatch_receipt_refuses_an_index_above_the_pointer` | **red, 1 failed** — `dispatch-receipt-index-above-pointer: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T3 in wave 1 …'` |
+| the index range check, **lower** end (the reused `non_negative_int`'s `raw < 0`) | `if raw < 0` → `… and False` | `test_dispatch_receipt_refuses_a_non_non_negative_integer_index[-1]` | **red, 1 failed** — `expected '--wave-index must be a non-negative integer' in output; got "loop-cohort: stop — dispatch-receipt: 'T1' is not in wave -1, which holds 'T3'"` |
+| the pointer-in-partition check | `if current >= len(waves)` → `… and False` | `test_dispatch_receipt_refuses_a_pointer_outside_the_partition` | **red, 1 failed** — `dispatch-receipt-pointer-out-of-range: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave 0 …'` |
+| the usable-partition check | `if not isinstance(waves, list) or not waves` → `(…) and False` | — | **GREEN. The one survivor — § 13.3** |
+| the task-membership check | `if task_id not in wave` → `… and False` | `test_dispatch_receipt_refuses_an_unknown_task_and_names_the_wave` | **red, 1 failed** — `dispatch-receipt-unknown-task: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T9 in wave 0 …'` |
+
+The lower-end row reads oddly on purpose. `--wave-index -1` with the negative
+check off decodes to `-1`, indexes `schedule_waves[-1]` — the *last* wave — and
+then refuses on task membership. So the clause's absence is not a missing
+refusal but a refusal about the wrong wave, which is why the assertion that
+catches it is the one pinned to the message text rather than to the exit code.
+
+### 13.3 The survivor: the usable-partition check
+
+Removing it leaves **499 passed** across `test_loop_cohort.py`,
+`test_loop_guards.py`, `test_loop_cohort_cli.py` and
+`test_loop_cohort_schedule.py` — no narrowing, the four suites whole, 6m47s. The
+clause is therefore **not verified** by the suite as T2 left it.
+
+The cause is a non-discriminating assertion, not a missing case. Two cases do
+drive the clause, and both assert only a non-zero exit and the substring
+`schedule_waves`:
+
+- `test_dispatch_receipt_refuses_an_empty_partition` — with the clause gone,
+  `waves == []` falls to the next row, which refuses with
+  `current_wave_index=0 is not an index into schedule_waves (len=0)`. That
+  message also contains `schedule_waves`.
+- `test_dispatch_receipt_refuses_a_malformed_partition[schedule-waves-not-a-list]`
+  — with the clause gone, `waves == "nope"` survives `len()`, `"nope"[0]`
+  yields `"n"`, and the wave row refuses with
+  `schedule_waves[0] is malformed ('n')`. That also contains `schedule_waves`.
+
+Both halves of the conjunct land on a *different* row whose message happens to
+carry the expected word. The substring is a property of three rows, so it cannot
+tell them apart.
+
+**The discriminating assertion, run rather than proposed.** Pinning each case to
+the word its own row owns — `unusable` for the usable-partition row, `malformed`
+for the wave rows — was applied to `test_loop_cohort.py` and walked against both
+arms before being reverted:
+
+| Arm | Result |
+| --- | --- |
+| strengthened assertion, clause **present** | 9 passed |
+| strengthened assertion, clause **removed** | **2 failed** — `test_dispatch_receipt_refuses_an_empty_partition` and `test_dispatch_receipt_refuses_a_malformed_partition[schedule-waves-not-a-list-nope-unusable]`, both `expected 'unusable' in output` |
+
+It needs the expected word carried **per parameter**, not added to the whole
+list. The first shape tried — `expect=("schedule_waves", "unusable")` for every
+row of `test_dispatch_receipt_refuses_a_malformed_partition` — went red on the
+three wave-shape parameters with the clause *present*, because those rows
+correctly refuse with `malformed` and were never about the usable-partition row
+at all. A remedy that reddens on the unmutated tree is a false control, so the
+parameter list grew a third element instead.
+
+The change is not landed: T5 `Touches` the ledger only, and `plan.md` is frozen,
+so the edit belongs to whoever reopens the verb's test file. The clause itself is
+correct — what is missing is a control that can fail.
+
+### 13.4 The shared record model, and a filter that nearly hid a defect
+
+| Clause | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| the partition-digest match inside `unaccounted_wave_tasks` | records merged across every digest, so a record under any partition counts | `test_a_record_under_a_superseded_digest_accounts_for_nothing` | **red, 1 failed** — `AssertionError: None`; the assertion prints `result.reason`, and `None` is what a *passing* result carries, so the guard accepted a superseded record |
+| the guard's reason-code check in `is_dispatch_record` | `return isinstance(reason, str) and reason in DECLINE_REASONS` → `return True` | `test_a_decline_reason_outside_the_closed_set_is_not_a_record` | **red, 1 failed** — `AssertionError: a bad-reason decline must not account for its task` |
+| `malformed_receipts_position`'s non-mapping row | `return f"a mapping keyed by {RECEIPT_KEY_PATH[level]}"` → `return None` | `test_dispatch_receipt_refuses_a_malformed_container[depth-0/1/2]`, `test_wave_advance_refuses_a_malformed_container[depth-0/1/2]` | **red, 6 failed** — `dispatch-receipt-malformed-container-depth-0: expected 'dispatch_receipts' in output; got 'Traceback (most recent call last): …'` |
+| its leaf row (`"a record"`) | `return None if is_dispatch_record(container) else "a record"` → `return None` | `…refuses_a_malformed_container[depth-3]` for both verbs | **red, 2 failed** — `dispatch-receipt-malformed-container-depth-3: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave 0 …'` |
+| the recursion that reaches every nested position | the `for value in container.values()` walk → `return None` | `…refuses_a_malformed_container[depth-1/2/3]` for both verbs | **red, 6 failed** — `dispatch-receipt-malformed-container-depth-1: expected non-zero; got 0 with 'loop-cohort: dispatch-receipt recorded receipt for T1 in wave 0 …'` |
+| depth read from `RECEIPT_KEY_PATH`, never a literal | `depth = len(RECEIPT_KEY_PATH)` → `depth = 2` | 12 cases across `test_loop_cohort.py` and `test_loop_cohort_cli.py`, among them `test_dispatch_receipt_is_idempotent_for_one_triple`, `test_wave_advance_accepts_a_fully_accounted_wave`, `test_28_wave_advance_from_zero_succeeds` | **red, 19 failed** — `dispatch-receipt-current-and-lower-index: index 0 expected exit 0; got 1: 'loop-cohort: stop — dispatch-receipt: dispatch_receipts is malformed — expected a record at the partition digest/wave index/task identifier key path; run reset to rebuild cohort state'` |
+
+The non-mapping row is the one to read. Its removal does not produce a wrong
+refusal — it produces a **traceback**, because the container then reaches code
+that assumes a mapping. The clause exists to name a position rather than raise an
+exception type at one, and the observed output is the crash it prevents. The
+assertion that failed is the test's own `expected 'dispatch_receipts' in output`,
+not a collection error, so this is a red for the right reason.
+
+**The restated-depth mutation is the near miss.** Under the targeted filter it
+came back **9 passed — green** — and the first reading was that no case pins the
+depth to its declaration. That reading was wrong. The filter had selected
+`test_dispatch_receipt_records_a_receipt` and the malformed-container
+parameters, and every one of those starts from an *empty* container: with
+`depth = 2` the walk over `{}` never recurses, so the wrong depth is
+unobservable. The defect needs a container holding a real record at full depth.
+Re-run against the four suites whole, it reddens 19 cases.
+
+The lesson is the one that made the survivor above hard to see, in a second
+guise: a filter chosen from the clause's name selects the cases that mention the
+clause, not the cases that can see it fail. A green under a narrow filter is a
+statement about the filter.
+
+### 13.5 The wave-exit verdict table, row by row
+
+`notes/walk_verdict_partition.py` names eight rows. `R1-read-refuses` is decided
+upstream in `_state_or_reason` and is pre-existing T1a code, not a clause T2 or
+T3 added; the other seven are the table's own branches, and each was mutated
+separately. Two branches — the pointer's type check and its range check — both
+resolve to the walk's `R5-pointer-invalid`, so eight mutations cover seven rows.
+All cases are in `test_loop_guards.py`.
+
+| Walk row | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| `R2-schema-unsupported` | the `schema_version != SCHEMA_VERSION` pass → `if False` | `…rows_partition_the_state_space_and_hold_their_verdicts`, `test_wave_exit_shares_implements_schema_exemption_and_siblings_do_not` | **red, 2 failed** — `row schema-unsupported must exit zero; state={'schema_version': 99, 'run_id': 'run-1'} reason='wave exit: schedule_waves is malformed ([]); expected a non-empty list of waves …'` |
+| `R3-malformed` (partition half) | `if not isinstance(waves, list) or not waves` → `(…) and False` | `…rows_partition_the_state_space_and_hold_their_verdicts` | **red, 1 failed** — `row malformed must exit non-zero; state={'schema_version': 1, 'run_id': 'run-1'} reason=None message='wave exit: dispatch_receipts is absent, so dispatch receipts are not enforced for this run'` |
+| `R3-malformed` (container half) | `if malformed is not None` → `… and False` | `…rows_partition_the_state_space_and_hold_their_verdicts` | **red, 1 failed** — `row malformed must name 'malformed'; got "wave exit: wave 0 has tasks with no dispatch receipt: 'T1'; record one per plan task with …"` |
+| `R4-container-absent` | `if container_absent` → `… and False` | `…rows_partition_the_state_space_and_hold_their_verdicts`, `test_wave_exit_verdict_per_row_through_the_guard` | **red, 2 failed** — `row container-absent must name 'not enforced'; got ''` |
+| `R5-pointer-invalid` (type) | `if isinstance(index, str): return refusal` → `index = 0` | `…rows_partition_the_state_space_and_hold_their_verdicts` | **red, 1 failed** — `row pointer-invalid must name 'current_wave_index'; got "wave exit: wave 0 has tasks with no dispatch receipt: 'T1'; …"` |
+| `R5-pointer-invalid` (range) | `if index >= len(waves): return refusal` → `index = 0` | `…rows_partition_the_state_space_and_hold_their_verdicts`, `test_wave_exit_verdict_per_row_through_the_guard` | **red, 2 failed** — `row pointer-invalid must name 'current_wave_index'; got "wave exit: wave 0 has tasks with no dispatch receipt: 'T1'; …"` |
+| `R6-wave-malformed` | `if not wave_is_well_formed(wave)` → `… and False` | `…rows_partition_the_state_space_and_hold_their_verdicts`, `test_wave_exit_verdict_per_row_through_the_guard` | **red, 2 failed** — `row wave-malformed must exit non-zero; state={… 'schedule_waves': [123] …} reason=None message=''` |
+| `R7-accounted` | the terminal `GuardResult(ok=True, message="")` → a forced refusal | `…rows_partition_the_state_space_and_hold_their_verdicts`, `test_wave_exit_verdict_per_row_through_the_guard` | **red, 2 failed** — `row accounted must exit zero; state={… 'dispatch_receipts': {'3dad663680…': {'0': {'T1': {'kind': 'receipt'}}}}} reason='wave exit: forced refusal' message=None` |
+| `R8-unaccounted` | `if unaccounted` → `… and False` | the two above, plus `test_wave_exit_names_every_unaccounted_task_and_no_accounted_one` and `test_the_unaccounted_task_list_is_bounded_at_an_identifier_boundary` | **red, 4 failed** — `row unaccounted must exit non-zero; state={… 'schedule_waves': [['T1']] …} reason=None message=''` |
+
+Both container rows — `R3`'s container half and `R4` — matter separately, and the
+`R3` row shows why the order is load-bearing rather than cosmetic. With the
+malformed-container refusal switched off, a malformed container does not merely
+pass: it reaches the accounting predicate, which reads no record at the digest
+level and reports the whole wave unaccounted. The state still refuses, under the
+*wrong* row and a reason that tells the operator to record receipts for a wave
+whose container is broken. Only an assertion on the reason text separates those
+two, which is the same discrimination the survivor in § 13.3 lacks.
+
+The `R7-accounted` anchor missed on its first attempt: the string was written
+with the f-string split across two source lines, and the file has it on one.
+That is a patch miss, not a mutation — the harness refuses to run a test when the
+anchor text is absent or matches more than once, so it reported the miss instead
+of reporting a red. Re-anchored and re-run, the row reddens as above.
+
+### 13.6 `wave advance`, including both inverted pass clauses
+
+All cases are in `test_loop_cohort.py`.
+
+| Clause | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| the accounting check on the advancing branch | `if unaccounted` → `… and False` | `test_wave_advance_refuses_an_unaccounted_wave_without_moving`, `test_wave_advance_bounds_the_unaccounted_list_at_an_identifier_boundary` | **red, 2 failed** — `wave-advance-refuses-an-unaccounted-wave: expected non-zero; got 0 with 'loop-cohort: wave advance 0 → 1 for wave-advance-refuses-an-unaccounted-wave'` |
+| **its absence from the already-applied branch — a pass, so INVERTED**: the branch made to apply the check | the accounting check inserted into `if idx == n_arg + 1:` | `test_wave_advance_replays_on_the_already_applied_branch` | **red, 1 failed** — `wave-advance-already-applied-ignores-accounting: the replay must exit 0; got 1: 'loop-cohort: stop — wave advance: wave 0 has tasks with no dispatch receipt'` |
+| the precedence of the verb's existing refusals over it | the accounting check hoisted above the partition, index and final-wave rows | `test_wave_advance_existing_refusals_are_decided_first[final-wave-1-over3-final]` | **red, 1 failed** — `wave-advance-precedence-final-wave: expected 'final wave' in output; got 'loop-cohort: stop — wave advance: wave 1 has tasks with no dispatch receipt'` |
+| the one shared reading of `current_wave_index` | `non_negative_int(...)` → the `int(...)` it replaced | `test_wave_advance_refuses_an_unusable_pointer[string-1]`, `[float-1.9]`, `[bool-True]` | **red, 3 failed** — `wave-advance-unusable-pointer-string: expected non-zero; got 0 with 'loop-cohort: wave advance already applied (current_wave_index=1) for wave-advance-unusable-pointer-string'` |
+| **the absent-container exemption inside the shared predicate — a pass, so INVERTED**: the advancing branch made to refuse an absent container | `if RECEIPTS_KEY not in state: return []` → `… pass`, so every task reads unaccounted | `test_wave_advance_advances_when_the_container_is_absent`, `test_wave_advance_normal` | **red, 2 failed** — `wave-advance-normal: expected exit 0; got 1` |
+
+The two inverted rows are the ones a mutation list drops, because neither clause
+is a refusal to delete. Both redden named cases, so neither exemption ships
+unverified.
+
+The shared-reading row also shows the laundering the T3 comment names. With the
+old `int(...)` back, `current_wave_index = "1"` coerces to `1`, `wave advance
+--from-index 0` sees `idx == n_arg + 1`, and the verb prints **"already
+applied"** and exits 0 — a wave silently skipped with the container intact, which
+is exactly the state `status` would go on reporting as enforced.
+
+### 13.7 `schedule`, the amendment, and `status`
+
+| Clause | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| `schedule`'s container creation | the `state[RECEIPTS_KEY] = receipts_for_partition(...)` write removed | `test_schedule_creates_the_receipts_container_when_absent` | **red, 1 failed** — `AssertionError: schedule must leave the container present` |
+| `schedule`'s stale-record pruning, creation kept | `receipts_for_partition(...)` → `state.get(RECEIPTS_KEY) or {}` | `test_schedule_drops_a_record_when_the_partition_changes` | **red, 1 failed** — `AssertionError: no record may survive under the superseded partition digest` |
+| the amendment's explicit container clearing | `RECEIPTS_KEY: {}` → `RECEIPTS_KEY: state.get(RECEIPTS_KEY, {})` | `test_amendment_leaves_the_receipts_container_empty` | **red, 1 failed** — `AssertionError: an amendment must leave the receipts container empty` |
+| the `status` key `dispatch_receipts_enforced` | `RECEIPTS_KEY in state` → `True` | `test_status_reports_whether_receipts_are_enforced[False]` | **red, 1 failed** — `status-receipts-enforced-False: --json reported True` |
+
+The two `schedule` mutations are deliberately separate. One write does two jobs —
+create the container when absent, and drop every superseded partition's records —
+and a single mutation of the whole statement cannot say which job any case
+depends on. Removing it entirely reddens only the creation case; replacing it
+with a plain default keeps creation green and reddens only the pruning case. Each
+job has its own control.
+
+### 13.8 Gate results for T5
+
+| Gate | Result |
+| --- | --- |
+| `git status --porcelain` | one path modified, this ledger |
+| `make lint-ruff lint-mypy` | pass (see below) |
+| `python3 notes/walk_verdict_partition.py` | exit 0 — 35728 states, 0 overlapping, 0 uncovered, all eight rows reached |
+| confirming run, all five mutated suites, after every restore | **527 passed, 22 subtests passed in 318.72s** |
+| three-copy parity | `loop-cohort.py` `1a221d9494cca78f` and `_loop_guards.py` `5ef73c459e4ba877`, equal across `packs/core/.apm/`, `.claude/` and `.agents/` |
+
+`test_loop_cohort.py` was also mutated, in § 13.3's remedy walk. It is not a
+projected file, so it has one copy; it is back at `f0f8213ca66776e1`, the byte
+value it was read at.
+
+The lint gate is what proves the restores reached the source rather than merely
+looking restored: a stranded `and False`, an orphaned block or a dangling name
+fails `ruff` or `mypy` before any test runs.
+
+### 13.9 What T5 does not discharge
+
+The `Done when` for this task is that no row reports a green survival. § 13.3
+reports one. The clause is sound and the discriminating assertion is known and
+has been walked against both arms, but landing it edits
+`packs/core/tests/skills/work-loop/test_loop_cohort.py`, which is outside this
+task's one-file `Touches`, and `plan.md` is frozen. The verb's test file needs
+that one change before this task's criterion holds.
