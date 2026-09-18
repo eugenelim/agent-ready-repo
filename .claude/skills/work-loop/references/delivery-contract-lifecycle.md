@@ -4,6 +4,15 @@ This reference owns the work-loop details for controlled contract amendments and
 the bounded evidence handoff to `close-work`. The main skill owns when these gates
 fire; this page owns their complete payload and recovery rules.
 
+## What a delivery contract binds, and for how long
+
+A spec and plan bind this delivery, not the repository forever: living while the
+plan is drafting, pinned from plan approval, frozen once the spec is `Shipped`,
+when the code becomes the truth. A frozen spec constrains nothing — later work
+that contradicts one is recorded in the code, and in a decision record when it
+reverses a decision, never by rewriting the shipped spec. Full contract: the
+`new-spec` skill's `references/spec-and-plan-contract.md` § Lifecycle.
+
 ## Rejected planning gates
 
 If the spec is rejected, fire `spec-rejected` from `SPEC-HUMAN-GATE` to return to
