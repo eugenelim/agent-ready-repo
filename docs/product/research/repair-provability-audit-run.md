@@ -1479,3 +1479,91 @@ control that fails for the dispatched defect, while the measurable subset grew
 from 38 to 66. **42 of 66.** The figure has been within one point of 63.5% for
 four reports and 28 added observations, which is as converged as a sample this
 size gets.
+
+### Batch rem-f: three instrument catches, and my convergence claim was wrong
+
+Five new cases, **55 repairs, 16 revert arms plus 1 differential** — the largest
+batch. Every arm: baseline exit 0, revert applied and asserted. All five
+adjudication chunks returned full coverage; the gate passes at 55 of 55. Outcome:
+**3 semantic kills, 3 structural kills, 18 survives, 31 unmeasurable.**
+
+#### A mangled invocation that read as "no change"
+
+Arms 12, 13 and 14 exited **4** — a pytest usage error — in *both* baseline and
+treatment. Worker A had written `-k 'expr or expr'` in those test fields, and the
+driver dropped the quoting, so `or` was passed as a path and **the tests never
+ran**. Identical exit codes in both arms is precisely what a survival looks like
+in a summary that reports only "same result". The runner now invokes through
+`eval` so inner quoting survives; all three were re-run with baseline exit 0 and
+all three fail on revert. An exhaustive scan of every arm log in the audit
+confirms **only these three** were affected.
+
+#### Subtest failures were being undercounted
+
+Arms 1 and 7 report failures as `SUBFAILED`, the pytest-subtests form, not
+`FAILED`. The summary counted zero failures for an arm with four real ones. Only
+these two arms in the whole run are affected, so earlier batch figures stand, but
+the corrected counts are what reached the adjudicator.
+
+#### A third borrowed-failure geometry, which the existing check could not see
+
+Arms 5 and 6 ran the **same test** and failed with an **identical message**.
+Their revert sets **overlap without either containing the other**: both include
+the three `loop-engine.py` mirrors, while arm 5 adds `_loop_guards.py` and arm 6
+adds `loop-cohort.py`. The strict-subset check said nothing.
+
+The differential — reverting **only the three shared `loop-engine.py` mirrors** —
+reproduces the identical failure. So the failure belongs to the shared hunk and
+neither repair 2 nor repair 3 has an isolable control. Worker B scored both
+`unmeasurable` rather than `survives`, which is the right bin: the design
+reserves `unmeasurable` for a failure whose attribution cannot be isolated, and
+that is distinct from a control observed green.
+
+**Three distinct borrowed-failure geometries have now appeared**, all inflating
+provability in the flattering direction:
+
+| Geometry | First seen | Detection |
+| --- | --- | --- |
+| strict subset of another arm | `f4e821163` | differential on superset minus subset |
+| several repairs sharing one revert set | throughout | attribution handed to the adjudicator |
+| overlap without containment | `3e217ba0e` | differential on the shared paths |
+
+The pairwise check now warns on **any shared path**, because subset-only was
+demonstrably insufficient.
+
+### Running totals: 56 of 61 cases, 386 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 296 | 76.7% |
+| survives | 46 | 11.9% |
+| semantic kill | 27 | 7.0% |
+| structural kill | 17 | 4.4% |
+
+| Among the 90 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 46 | 51% |
+| semantic kill | 27 | 30% |
+| structural kill | 17 | 19% |
+
+**The convergence claim recorded in the previous section was premature and is
+withdrawn.** That section said four reports within one point of 63.5% was "as
+converged as a sample this size gets". Adding 24 measurable observations moved
+the figure **six points, to 70%** — 63 of 90 repairs shipping without a control
+that fails for the dispatched defect.
+
+| Report | measurable n | no semantic control |
+| --- | ---: | ---: |
+| 36 cases | 38 | 63% |
+| 41 cases | 44 | 64% |
+| 46 cases | 57 | 63% |
+| 51 cases | 66 | 64% |
+| **56 cases** | **90** | **70%** |
+
+Four consecutive readings inside a one-point band was not convergence; it was a
+plateau that a single large batch broke. The lesson is the audit's own: a
+statistic that has stopped moving has not been shown to be stable, it has only
+not yet been disturbed. **What is safe to say is the coarse claim the design
+scoped for — this is widespread, not rare — and that survivals outnumber semantic
+kills by roughly 1.7 to 1.** A point estimate to the nearest percent is not
+supported.
