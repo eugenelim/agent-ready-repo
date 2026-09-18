@@ -211,7 +211,7 @@ answer rather than as a durable follow-on.
   is durability for an adopter's hand-tracked dotfile, and adding one here would
   introduce a failure mode on a legitimate write (source: those two files).
 - Technical: the helper has three callers — `initialise.py:520`,
-  `initialise_self_hosted.py:1117`, and `initialise_self_hosted.py:1477` — all
+  `initialise_self_hosted.py:1167`, and `initialise_self_hosted.py:1623` — all
   reaching it through the `atomic_write` alias at `initialise.py:564` (source:
   repository-wide grep for `atomic_write`).
 - Technical: the package targets Python `>=3.11` (source:

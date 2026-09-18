@@ -142,6 +142,29 @@ the recreated catalogue.
 
 ---
 
+## Check a derived catalogue against its source
+
+`agentbundle catalogue sync` compares a derived catalogue against its source
+catalogue. Both of its modes are read-only — neither writes a file to the
+target:
+
+```bash
+# Preview the plan sync would apply: which files would update, which would
+# get a `.upstream.<ext>` companion because you edited them, and which the
+# source no longer has.
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --dry-run
+
+# Answer whether the target still matches the source, without printing a plan.
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --check
+```
+
+The plan names the source catalogue only when the target's recorded
+`--attribution` is `attributed`. Under the default `white-label`, the plan
+and its output never disclose the source's identity — the same rule `init`
+follows for the files it writes.
+
+---
+
 ## Guide inclusion
 
 Use `--guides selected` (default) to copy `guides/_shared/` from the source, or

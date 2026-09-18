@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.48.0] — 2026-09-18
+
+### Added
+
+- `catalogue sync` — checks a derived catalogue against its source without
+  writing a file. `--dry-run` prints the plan: which files would update,
+  which would keep your edits behind a `.upstream.<ext>` companion, and which
+  the source no longer has. `--check` answers whether your catalogue still
+  matches its source. Both accept every `--source` form `init` does — a
+  local path, a `git+https://` URL, or a `catalogue+https://` descriptor —
+  and the plan names the source catalogue only under `--attribution
+  attributed`. Sync also warns, without ever refusing, when a selected
+  pack's version has moved in the source.
 ## [0.47.0] — 2026-09-16
 
 ### Removed

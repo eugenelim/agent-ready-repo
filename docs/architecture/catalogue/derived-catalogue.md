@@ -156,20 +156,26 @@ Re-running `init` at an existing target is the only update path that exists,
 and it is not safe for a tree the adopter has edited:
 
 - **Managed files are overwritten unconditionally**
-  (`initialise_self_hosted.py:1145`). No hash is compared, no companion is
+  (`initialise_self_hosted.py:1623`). No hash is compared, no companion is
   written, nothing is reported. Adopter edits are lost.
-- **One unmanaged file aborts the whole run** (`:1137`). `classify_conflicts`
+- **One unmanaged file aborts the whole run** (`:1611`). `classify_conflicts`
   runs over every planned file absent from the ownership state, and any
   pre-existing one is a `CONFLICT` that fails the command.
 - **Stale removal disagrees with both.** `_remove_stale_owned_paths` compares
   the recorded `sha256` and skips any file whose content moved, so deletion
   respects adopter edits while updating does not.
-- **The recipe is not remembered.** State records adapters but not the selected
-  packs, profiles, guides mode, attribution mode, or identity fields.
-  `collect_fields` re-derives identity from the *source*, so a re-run with
-  fewer flags rewrites the adopter's `catalogue.toml` from upstream defaults.
+- **The recipe is remembered and read back.** State records the selected
+  packs, profiles, and identity fields; `collect_fields` falls back to the
+  recorded value — `packs=cfg.packs if cfg.packs is not None else
+  recipe.packs`, and the same pattern for profiles and every identity field —
+  whenever the caller passes none of its own, so a re-run with fewer flags
+  keeps the adopter's selection instead of re-deriving it from source. The
+  attribution, tooling, and guides modes are the one exception: those always
+  resolve from an explicit flag or its safe default, never from the recorded
+  recipe, so a recorded mode can never reach a replay silently.
 - **The source is local-only.** `commands/catalogue_init.py:202` does
   `Path(source_raw).resolve()`. The URI forms `resolve_catalogue()` already
   supports are unreachable from `init`.
 
-[`upstream-sync.md`](upstream-sync.md) is the planned answer to all five.
+[`upstream-sync.md`](upstream-sync.md) is the design of record for `sync`,
+the verb that answers these failures without changing `init` itself.

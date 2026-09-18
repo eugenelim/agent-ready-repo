@@ -598,3 +598,162 @@ would pass — which is the distinction AC-0020 exists to draw.
 `commands/verify.py`'s dependency-graph walk and `install.py`'s
 `validate_dependencies_required` each re-parse `pack.toml` per pack rather than
 sharing one confined-read seam. Outside T9's `Touches`.
+
+## Dead-code and stale-claim sweep (2026-09-18)
+
+Run at the owner's instruction after T9, over the surfaces this change created,
+before T7 and T8.
+
+### Dead code: one instance, already killed
+
+A sweep of `commands/catalogue_sync.py` parsed every module-level definition and
+searched the package, its tests and `tests/` for references. **All 19
+definitions are referenced.** The sweep's raw counts for `_refuse` and `run` are
+noise — a bare-name search collides with those names across 577 files, so those
+two numbers carry no information and are not evidence of anything.
+
+Reachability was then checked for the one class a reference count cannot see: an
+exit-code constant no path returns. Both `_MALFORMED` branches are reachable — a
+symlinked target, and `--compare-tree` supplied with `--dry-run`, which
+satisfies the required mutually exclusive group while leaving `check` false.
+
+The only genuinely dead branch found in this change was T9's
+adapter-contract-version comparison, which required both sides to declare a
+version string against a baseline that declares no such table. It was killed in
+T9 and now fires whenever either side declares.
+
+### Stale claims caused by this change: four citations, all inside T10
+
+T2, T3 and T4 each shifted `initialise_self_hosted.py`, so every line citation
+to it is suspect. A repository sweep found eight, in seven files plus one frozen
+test-corpus copy.
+
+Four are in files T10's `Touches` names — two in
+`docs/specs/atomic-write-symlink-harden/spec.md`, one in its `plan.md`, and the
+`:1623` pair in `upstream-sync.md` and `derived-catalogue.md`. T10 re-pins those
+and reads each at its new line, since an absence check passes against a wrong
+re-pin.
+
+### Stale claims this change did not cause: three, measured not assumed
+
+Three citations sit in specs outside this change. Each was compared against the
+file as it stood at the merge-base (`7ccbb5df1`) to establish whether this work
+broke it:
+
+| Citation | Cited as | At the merge-base | Verdict |
+| --- | --- | --- | --- |
+| `docs/specs/agentbundle-engine-stragglers/spec.md:80` → `:173` | `next_steps: list[str]` | `"release": self.release,` | already wrong |
+| `docs/specs/catalogue-test-carve-out/spec.md:252` → `:807` | the engine spec's tests-exclusion edit | `replacements: list[tuple[str, str]] = []` | already wrong |
+| `docs/specs/self-host-state-schema-3/plan.md:89` → `:430-431` | `select_packs` returning everything on a falsy filter | a different function's signature and docstring | already wrong |
+
+None of the three was correct before this change, so none is drift this change
+introduced. They are left as they are: AC-0022 scopes the resolve-to-construct
+obligation to "a file this change edits", and § Follow-ons already owns "A
+repository-wide citation lint" — whose recorded reason for being a follow-on is
+that the predicate is not mechanisable at repository scope, because a bare
+`` `:NNNN` `` inherits its filename from a preceding sentence and no
+line-oriented pattern resolves that.
+
+Correcting them is also not the mechanical re-pin the freeze carve-out permits.
+A re-pin preserves a meaning that has moved; these three assert things the cited
+lines never said, so fixing them means deciding what each of three other specs
+intended — three contracts this change has no authority over.
+
+The eighth hit,
+`packs/core/tests/skills/work-loop/fixtures/corpus/024-agentbundle-engine-stragglers/spec.md:80`,
+is a frozen test-corpus fixture and must not be edited at all; it carries the
+same already-wrong `:173` citation as its source spec.
+
+**Recorded here so the sweep is not re-derived later.** These are the three
+instances the repository-wide citation follow-on would find first.
+
+## Wave 5 — T10
+
+- **Date:** 2026-09-18
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:45`
+- **Worker:** the `implementer` subagent.
+
+### Citations re-pinned, and read at their new lines
+
+AC-0022's oracle is resolution, not absence — an absence check passes against a
+wrong re-pin — so each was opened and read by the supervisor independently:
+
+| Citation | Was | Now | What the line says |
+| --- | --- | --- | --- |
+| `upstream-sync.md`, `derived-catalogue.md` | `:1145` | `:1623` | `atomic_write(dest, content)` — the unconditional owned-file write |
+| both, bare | `:1137` | `:1611` | `return _fail(*(msgs or ["conflict detected in target directory"]))` — the `CONFLICT` abort |
+| `atomic-write-symlink-harden/spec.md` | `:1117` | `:1167` | `atomic_write(` inside `_write_ownership_state` |
+| that spec and its plan | `:1477` | `:1623` | the same owned-file overwrite |
+
+No stale number from the previous set survives in any of the four files. The
+re-pin inside a `Shipped` spec is the meaning-preserving mechanical rewrite
+`docs/CONVENTIONS.md:178-185` permits.
+
+### Release surfaces
+
+`0.46.1` → **`0.47.0`**, a minor bump because a new public CLI verb is a feature
+and a release-coupling trigger. The derivation names five surfaces and all five
+carry the new version: `version.py`, `pyproject.toml`, the package changelog,
+`docs/product/changelog.md`, and `README-pypi.md`.
+
+Both release headings are topmost: `## [0.47.0] — 2026-09-18` above `[0.46.1]`
+in the package changelog, and `## [agentbundle][0.47.0] — 2026-09-18` directly
+under `## [Unreleased]` in the product changelog, above the prior `[core]` entry.
+
+The derivation's two unclassified candidates were dispositioned rather than left
+open: documentation for a new command is not itself a release surface, and the
+release-automation tag assertion is a check rather than a place a version is
+written.
+
+**One false alarm, checked and closed.** `README-pypi.md` still carries
+`## What's new in 0.46.1`, which looked like a missed surface. It is not: the
+README keeps a rolling history of these sections — 27 before this change, 28
+after — and the 0.47.0 section was prepended at the top. The roster test's
+`f"What's new in {expected}" in readme` is a presence check over that history,
+so it is satisfied correctly rather than vacuously.
+
+### Entrypoint list, matched to the derivation
+
+Before: eight verbs, omitting **both** `sync` and `index`. After: the ten
+`derive-subcommands.py` reports, with the nested `contracts` verbs correctly
+excluded per AC-0021.
+
+The missing `index` was a **pre-existing** stale claim, not drift this change
+introduced — worth recording so the fix is not misread as cleaning up after
+ourselves.
+
+### Supervisor verification
+
+- All four citation re-pins opened and confirmed against their constructs.
+- Entrypoint list byte-compared against the derivation's output.
+- `pytest tools/test_documentation_entry_links.py` → **2 passed**, over authored
+  `guides/**`.
+- `lint-spec-status.py --root .` → clean metadata, 4 specs changed.
+- `pytest tests/roster/test_okf_catalogue_discovery.py` → **5 passed**. This is
+  dispatched explicitly because no pull request triggers it.
+- `make lint-ruff` → All checks passed.
+- `pytest …/test_catalogue_sync.py` → **43 passed**, baseline held.
+- Exactly the 12 files in T10's `Touches` are modified, and nothing else.
+  `build-site.py` ran clean and wrote only gitignored projection paths, so no
+  generated artefact rode along in the commit.
+- The rendered-links gate was reported clean over the regenerated tree at
+  87,271 links across 311 pages; the supervisor did not re-run it, since it
+  requires a full `bootstrap-sites` plus site build.
+
+### An obligation this task cannot discharge, carried forward
+
+T10 wrote the STATUS banner's "phase 2 is delivered" and the "two phases remain"
+sentence because AC-0023's oracle is textual and T10's dependency edge reaches
+only T4 and T5. But the schedule places T10 in wave 5 and T7 and T8 in waves 6
+and 7, so at the moment those words were written `--check` still answered "check
+is not yet implemented".
+
+This is a plan ordering artefact, not a defect in T10: the plan schedules the
+"delivered" announcement two waves before the work it announces. Nothing merges
+in between — it is one branch and one pull request — so the end state is
+consistent.
+
+**Carried forward:** after T8 lands, re-read the STATUS banner and the
+two-phases-remain sentence and confirm each is true of the merged behaviour. A
+documentation claim written ahead of its subject and never re-checked is how a
+banner outlives its accuracy.
