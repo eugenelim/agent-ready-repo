@@ -802,6 +802,17 @@
         "Response names both decline reasons, `no-implementer-installed` and `human-directed`, and no third reason",
         "Response says a decline counts as accounted for at the wave exit"
       ]
+    },
+    {
+      "id": "a-shipped-spec-is-not-a-live-constraint",
+      "prompt": "A spec under docs/specs/ shipped months ago and says the exporter writes CSV. My change makes it write Parquet instead. Is that a violation I have to fix or reverse?",
+      "expected_output": "No. A spec binds its own delivery, not the repository forever: it is living while the plan is drafting, pinned from plan approval, and frozen once it is `Shipped`. From that point the code is the truth and the spec is the record of what was agreed, not a description of current behaviour. Change the code, and record the reversal in a decision record — never by rewriting the shipped spec. What a frozen spec still obliges is its own status line, errata, and register anchors.",
+      "assertions": [
+        "Response says the shipped spec does not block the change",
+        "Response says the code is the truth once the spec is `Shipped`",
+        "Response says a reversal is recorded in a decision record, not by rewriting the shipped spec",
+        "Response does not treat the shipped spec's content as a live requirement"
+      ]
     }
   ]
 }
