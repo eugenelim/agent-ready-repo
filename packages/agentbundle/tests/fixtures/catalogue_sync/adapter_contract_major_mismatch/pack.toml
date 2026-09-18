@@ -1,0 +1,6 @@
+[pack]
+name = "alpha"
+version = "1.0.0"
+
+[pack.adapter-contract]
+version = "1.0"

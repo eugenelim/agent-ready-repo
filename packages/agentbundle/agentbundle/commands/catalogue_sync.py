@@ -18,10 +18,15 @@ import ast
 import json
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 from agentbundle.catalogue import CatalogueError, resolve_catalogue
+from agentbundle.catalogue_tooling.file_safety import (
+    UnsafeContentError,
+    read_confined_regular_file,
+)
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _OWNERSHIP_STATE_FILE,
     ReplayError,
@@ -34,6 +39,7 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _plan_stale_owned_paths,
     replay_derivation,
 )
+from agentbundle.commands._common import check_spec_version_gate
 from agentbundle.config import PackState, State
 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
 from agentbundle.safety import Tier, classify, companion_path
@@ -226,6 +232,165 @@ def _classify_planned_paths(
     return counts, rows
 
 
+def _pack_toml_from_replay(name: str, file_bytes: dict[str, bytes]) -> dict[str, Any] | None:
+    """Parse the source's planned ``pack.toml`` for *name*, or ``None``.
+
+    ``file_bytes`` is the replay's already-confined read (see
+    ``_collect_bytes`` in ``initialise_self_hosted.py``); this parses it
+    without a second filesystem read.
+    """
+    content = file_bytes.get(f"packs/{name}/pack.toml")
+    if content is None:
+        return None
+    try:
+        return tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return None
+
+
+def check_adapter_contract_gate(
+    pack_names: list[str], file_bytes: dict[str, bytes]
+) -> int | None:
+    """Refuse when a selected pack's adapter-contract major differs from the
+    CLI's own (spec AC-0019).
+
+    Reuses ``check_spec_version_gate`` — the existing uniform-refusal gate
+    every other pack-manifest consumer calls — rather than re-implementing
+    the major-version comparison. Returns the gate's refusal code, or
+    ``None`` when every selected pack's major agrees (or declares none).
+    """
+    for name in pack_names:
+        pack_toml = _pack_toml_from_replay(name, file_bytes)
+        if pack_toml is None:
+            continue
+        gate = check_spec_version_gate(pack_toml)
+        if gate is not None:
+            return gate
+    return None
+
+
+def _read_baseline_pack_toml(target: Path, name: str) -> dict[str, Any] | None:
+    """Read the derived tree's own copy of *name*'s manifest, or ``None``.
+
+    Goes through the declared ``file_safety`` confinement helper rather than
+    an inline path check (spec AC-0020) — a new pack the derived tree does
+    not yet carry has no baseline to compare, which reads the same as any
+    other confinement refusal: no signal.
+    """
+    baseline_path = target / "packs" / name / "pack.toml"
+    try:
+        baseline_bytes = read_confined_regular_file(target, baseline_path)
+    except UnsafeContentError:
+        return None
+    try:
+        return tomllib.loads(baseline_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return None
+
+
+def compatibility_warnings(
+    target: Path, pack_names: list[str], file_bytes: dict[str, bytes]
+) -> list[str]:
+    """Advisory rows for spec AC-0018 — warn-only, never change the exit code.
+
+    Compares each selected pack's ``[pack] version`` and
+    ``[pack.adapter-contract] version`` against the derived tree's own copy
+    of that pack's manifest (read through :func:`_read_baseline_pack_toml`),
+    and evaluates ``[pack.dependencies]`` ``required``/``conflicts`` edges
+    against the replay's resolved selection. One row per signal; a signal
+    that is absent contributes nothing.
+    """
+    selected = set(pack_names)
+    warnings: list[str] = []
+    source_tomls: dict[str, dict[str, Any]] = {}
+
+    for name in pack_names:
+        source_toml = _pack_toml_from_replay(name, file_bytes)
+        if source_toml is None:
+            continue
+        source_tomls[name] = source_toml
+
+        baseline_toml = _read_baseline_pack_toml(target, name)
+        if baseline_toml is None:
+            continue
+
+        source_pack = source_toml.get("pack", {})
+        baseline_pack = baseline_toml.get("pack", {})
+        if not isinstance(source_pack, dict) or not isinstance(baseline_pack, dict):
+            continue
+
+        source_version = source_pack.get("version")
+        baseline_version = baseline_pack.get("version")
+        if (
+            isinstance(source_version, str)
+            and isinstance(baseline_version, str)
+            and source_version != baseline_version
+        ):
+            warnings.append(
+                f"advisory: pack version differs for {name!r} — derived tree "
+                f"carries {baseline_version!r}, source declares {source_version!r}"
+            )
+
+        source_contract = source_pack.get("adapter-contract", {})
+        baseline_contract = baseline_pack.get("adapter-contract", {})
+        source_contract_version = (
+            source_contract.get("version") if isinstance(source_contract, dict) else None
+        )
+        baseline_contract_version = (
+            baseline_contract.get("version")
+            if isinstance(baseline_contract, dict)
+            else None
+        )
+        # Either side may omit `[pack.adapter-contract]` entirely — the field
+        # is optional (unlike `[pack] version`), so "differs" has to compare
+        # against an absent baseline too, not only a baseline that also
+        # declares one.
+        if source_contract_version != baseline_contract_version and (
+            isinstance(source_contract_version, str)
+            or isinstance(baseline_contract_version, str)
+        ):
+            baseline_display = (
+                baseline_contract_version
+                if isinstance(baseline_contract_version, str)
+                else "absent"
+            )
+            source_display = (
+                source_contract_version
+                if isinstance(source_contract_version, str)
+                else "absent"
+            )
+            warnings.append(
+                f"advisory: adapter-contract version differs for {name!r} — "
+                f"derived tree carries {baseline_display!r}, source "
+                f"declares {source_display!r}"
+            )
+
+    for name, source_toml in source_tomls.items():
+        deps = source_toml.get("pack", {}).get("dependencies", {})
+        if not isinstance(deps, dict):
+            continue
+        for entry in deps.get("required") or []:
+            if not isinstance(entry, dict):
+                continue
+            dep_name = entry.get("pack")
+            if isinstance(dep_name, str) and dep_name not in selected:
+                warnings.append(
+                    f"advisory: pack {name!r} declares a required dependency on "
+                    f"{dep_name!r}, which the resolved selection does not include"
+                )
+        for entry in deps.get("conflicts") or []:
+            if not isinstance(entry, dict):
+                continue
+            dep_name = entry.get("pack")
+            if isinstance(dep_name, str) and dep_name in selected:
+                warnings.append(
+                    f"advisory: pack {name!r} declares a conflict with "
+                    f"{dep_name!r}, which the resolved selection includes"
+                )
+
+    return warnings
+
+
 def _resolve_source(
     source_uri: str,
 ) -> tuple[Path, str, str | None, str | None, Callable[[], None] | None]:
@@ -275,6 +440,7 @@ def _plan_document(
     profile_names: list[str],
     summary: dict[str, int],
     verdict_rows: list[tuple[str, str, str | None]],
+    compatibility: list[str],
 ) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "command": "catalogue sync",
@@ -295,6 +461,7 @@ def _plan_document(
         "packs": pack_names,
         "profiles": profile_names,
         "summary": summary,
+        "compatibility": compatibility,
         "verdicts": [
             {
                 "path": path,
@@ -326,6 +493,8 @@ def _render_plan(doc: dict[str, Any], *, fmt: str) -> None:
         lines.append(f"source: {doc['source']}")
     lines.append("packs: " + (", ".join(doc["packs"]) or "(none)"))
     lines.append("profiles: " + (", ".join(doc["profiles"]) or "(none)"))
+    for line in doc.get("compatibility", []):
+        lines.append(line)
     for row in doc["verdicts"]:
         line = f"{row['verdict']}: {row['path']}"
         if "companion" in row:
@@ -453,11 +622,20 @@ def run(args: argparse.Namespace) -> int:
             code=_CANNOT_ANSWER,
         )
 
+    # Spec AC-0019 — a selected pack's adapter-contract major differing from
+    # the CLI's own refuses uniformly, via the same gate every other pack-
+    # manifest consumer calls. Unlike AC-0018's warnings below, this changes
+    # the exit code and prints no plan.
+    gate_code = check_adapter_contract_gate(replay.pack_names, replay.file_bytes)
+    if gate_code is not None:
+        return gate_code
+
     resolved_cfg = replay.config
     planned_paths = set(replay.file_bytes.keys())
     summary_counts, verdict_rows = _classify_planned_paths(
         target, replay.old_state, planned_paths
     )
+    compatibility = compatibility_warnings(target, replay.pack_names, replay.file_bytes)
     doc = _plan_document(
         target=target,
         dry_run=dry_run,
@@ -474,6 +652,7 @@ def run(args: argparse.Namespace) -> int:
         profile_names=replay.profile_names,
         summary=summary_counts,
         verdict_rows=verdict_rows,
+        compatibility=compatibility,
     )
     _render_plan(doc, fmt=fmt)
     return _DIFFERENCE if replay.violations else _SUCCESS
