@@ -32,11 +32,16 @@
 - What escaped-defect and post-merge rework measures prove that savings did not merely defer quality cost?
 - What benefit-and-cost rubric and evidence floor should govern decisions to retain, adjust, combine, defer, supersede, or close backlog work?
 - Which existing lifecycle operation owns each backlog disposition, and how should the process distinguish low-value work from valuable work whose benefit is merely unmeasured or delayed?
-- Should the deterministic repair-provability audit get a queue presence? It is
-  the designated next investigation and is registered nowhere, which is the most
-  likely reason the ranking's first position has produced no movement. This
+- Should the follow-on to the deterministic repair-provability audit get a queue
+  presence? **The premise this question used to carry is refuted.** It read that
+  the audit was registered nowhere and that this was "the most likely reason the
+  ranking's first position has produced no movement". The audit then ran to
+  completion on 2026-09-18 — 424 adjudicated repairs — while still registered
+  nowhere, so absent registration did not block it. What the result does imply is
+  an unshaped change: making the work-loop mutation-proof trigger mechanical
+  rather than self-assessed. That is what a queue presence would now be for. This
   intent is Accepted and therefore cannot itself join an active or backlog
-  collection, so any registration has to attach to the audit or to a child.
+  collection, so any registration has to attach to that follow-on or to a child.
 - Should `loop-contract-item-identity-mechanism` be registered? It is the only
   child with no workspace presence at all.
 - Does `spec-review-validation-guidance` belong in this tree? It carries no
@@ -55,25 +60,63 @@ moved it.
 
 1. **Deterministic repair-provability audit.** Pinned to first place by the
    2026-09-10 owner decision recorded below, which this refresh does not
-   revisit. **Started 2026-09-17 and blocked at its own instrumentation gate.**
-   The [first run](../research/repair-provability-audit-run.md) reached the
-   10-case gate the design requires and failed it: the population criterion
-   admitted 10 of 10 cases under one reading and 1 of 10 under another, and the
-   strict reading rejects three of the four cases the design names as its
-   selection method. A second round then found a determinate predicate — wider
-   review vocabulary, commit type not `feat`, repair verb in the subject — that
-   is **87.5% precise on a fresh draw from its own selection** and reproduces the
-   design's strata shares within 4.4 points, at 147 cases with 53 in
-   `source + test` against the design's 39. That predicate is fit to freeze. A
-   three-case oracle gate then **passed**: with predicates frozen before
-   execution, the oracle separated two semantic kills from one structural kill,
-   and every frozen predicate anticipated its outcome. Two harness requirements
-   came out of it — revert every mirrored copy of a hunk, and score provability
-   per repair rather than per commit, since a compound commit hid an uncontrolled
-   repair inside a semantic kill. **The rate is still unmeasured:** three
-   hand-picked cases span the outcome space and estimate no frequency. It remains
-   first because it is still the measurement everything below it waits on, and it
-   is now ready to scale at roughly 43 minutes per case.
+   revisit. **Ran 2026-09-17 to 2026-09-18 and completed.** The
+   [run](../research/repair-provability-audit-run.md) owns the method, every
+   correction, and the limits; this entry records only the result and what it
+   changes for the candidates below.
+
+   **Result.** 424 adjudicated repairs across 58 cases of the `source + test`
+   stratum. The audit's question is askable of **28%** of repairs; the rest have
+   no revertable source hunk or no co-changed control that could discriminate
+   the repair from its absence. Of the 119 measurable repairs, **84 — 71% —
+   shipped without a control that fails for the dispatched defect**, and
+   survivals outnumber semantic kills 1.6 to 1. The design's `n ≈ 39–53` power
+   note holds: this supports *widespread rather than rare* and nothing finer, so
+   the percentage is not a threshold to plan against.
+
+   **What it changes for the candidates below.** Two things, both load-bearing.
+   A co-changed test is weak evidence of a control — the largest co-changed
+   suites in the corpus were the least discriminating, with 137, 72 and 68 tests
+   staying green against a reverted repair — so any candidate that proposes to
+   trust or count co-changed tests needs a different signal. And the repository
+   already ships the instrument that would catch this: the work-loop skill's
+   `references/mutation-proof.md` specifies the exact procedure, including a
+   section on a test that cannot fail, but it is loaded on a **self-assessed
+   trigger** — the repair author
+   decides whether their own control needs proving. Making that trigger
+   mechanical is the smallest change the result implies, and it is unshaped.
+
+   **Cost, for planning the ones below.** 13 batches, each one predicate-freezing
+   worker call plus one to three adjudication calls, and no model cost for the
+   measurement itself. Wall-clock was not instrumented, so no hourly figure is
+   claimed. The design's estimate of 43 minutes per case is the wrong unit
+   rather than the wrong number: cases carried a mean of about seven adjudicated
+   repairs and a maximum of 26, and cost tracks repairs.
+
+   **Unmeasured.** The three remaining strata — source only (33), docs only (30),
+   test only (40) — carry different oracles, none validated by an instrumentation
+   gate. Scaling any of them without one would repeat the failure this design's
+   own gate exists to prevent.
+
+   **What it unlocks, and what it forecloses.** The § Outcome guardrail says
+   mandatory assurance coverage must not worsen. That guardrail had **no
+   instrument**: with no baseline, no efficiency change could ever be shown to
+   violate it. There is now a baseline on a population frozen by a published
+   digest, drawn in an order fixed before any outcome was seen, so a candidate
+   below can be re-scored against it and can come out worse. The run also leaves
+   a reusable rig — frozen draw, a predicate-freezing worker separated from the
+   adjudicator, a coverage gate, and differential arms for compound commits —
+   together with a catalogue of sixteen ways this class of measurement lies,
+   which is what makes a later scoring run evidence rather than assertion.
+
+   **Biggest hole in the result.** It measures **co-changed** controls only. The
+   repository's safety net also includes pre-existing tests, so the figures
+   cannot distinguish weak controls from controls that live outside the repair
+   commit. The cheap test is to re-run the arms Worker A marked *source hunk
+   exists, no discriminating co-changed control* — roughly a quarter of the 424,
+   already frozen and dossiered — against the full relevant suite rather than the
+   named test. That needs no new population and no new gate.
+
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then
@@ -94,6 +137,9 @@ moved it.
    direct evidence for trigger-driven sections. The same measurement sets this
    candidate's precondition — an authoring-guidance change must be scored on
    frozen cases before it ships, because the last one lost a guardrail.
+   **That precondition is now satisfied in kind:** the completed audit at rank 1
+   leaves the frozen-case scoring rig and its calibration, so this candidate no
+   longer waits on an instrument.
 4. **Impact 5 — Selective exact context and revision-bound reuse** *(held;
    displaced upward)*: review each unchanged contract baseline once; supply
    touched-path rules, affected dependencies, and exact governing bytes on
@@ -103,6 +149,11 @@ moved it.
    failure-directed gates during repair, cache deterministic results per
    revision, avoid unchanged retries, run one full relevant gate at convergence,
    and leave repository-wide confirmation to CI where policy permits.
+   **Constrained by the rank-1 result**, which matters most here because this is
+   the largest apparent saving: the co-changed test is the least informative
+   signal in the corpus, so trimming gates toward *touched* tests would optimise
+   toward noise. Any trimming rule this candidate proposes has to keep a signal
+   the audit showed can fail.
 6. **Impact 8 — Decouple orchestration from assurance** *(held; displaced
    upward)*: reserve cohort and state-machine machinery for multi-session,
    multi-worker, dependent-wave, irreversible, or migration work; allow high
