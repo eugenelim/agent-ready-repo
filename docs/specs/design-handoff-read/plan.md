@@ -1,7 +1,7 @@
 # Plan: design-handoff-read
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Security and authoring rules, which
   binds every pack, and root `AGENTS.md`'s non-waivable list. Analogous
   implementation: `packs/experience-design/.apm/skills/copy-direction/SKILL.md`

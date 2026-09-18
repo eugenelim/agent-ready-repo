@@ -1,6 +1,6 @@
 # Spec: design-handoff-read
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -333,7 +333,7 @@ control criterion and owes the paired runs above.
 
 ## Acceptance Criteria
 
-- [ ] The `frontend-engineering` shared pre-flight — the step every one of its four
+- [x] The `frontend-engineering` shared pre-flight — the step every one of its four
       modes runs — approves the resolved `output_dir` before reading under it:
       refusing a reserved tree outright, taking explicit confirmation for a
       repo-root value resolving outside the repository tree, and approving a
@@ -343,71 +343,71 @@ control criterion and owes the paired runs above.
       artifact path — so an approved root that merely *contains* a reserved tree
       cannot reach one through the slug, and a component resolving into a reserved
       tree is refused before its listing is surfaced or its depth counted.
-- [ ] The step executes a real-path resolution of each artifact it is about to
+- [x] The step executes a real-path resolution of each artifact it is about to
       read, reads that resolution's output, and compares it against the approved
       `output_dir` on resolved path components — equality or descendant, never a
       string prefix — surfacing the comparison result.
-- [ ] The step derives every displayed and recorded relative path for a consumed
+- [x] The step derives every displayed and recorded relative path for a consumed
       artifact from the resolution output that comparison consumed, not from the
       requested path.
-- [ ] The step binds `<slug>` to the slug the operator names for the surface being
+- [x] The step binds `<slug>` to the slug the operator names for the surface being
       built, eliciting it when the request carries none, and resolves all three
       slots under that one slug.
-- [ ] The step treats a file under a read path whose frontmatter `type:` is absent,
+- [x] The step treats a file under a read path whose frontmatter `type:` is absent,
       unparseable, or not that path's required literal as **not that artifact** —
       skipping it and continuing the scan — rather than as a refusal, so a design
       directory legitimately holding other artifact types cannot refuse the read.
-- [ ] The step consumes an artifact whose frontmatter omits a key its template
+- [x] The step consumes an artifact whose frontmatter omits a key its template
       declares, recording that key as absent. Only `type:` is required.
-- [ ] The step consumes, per artifact, the first `# ` heading, the frontmatter as
+- [x] The step consumes, per artifact, the first `# ` heading, the frontmatter as
       found, and the body as one opaque block with HTML comments removed, keying on
       no section name.
-- [ ] Under a heightened root — user-profile-sourced or resolving outside the
+- [x] Under a heightened root — user-profile-sourced or resolving outside the
       repository tree — the step surfaces each artifact to the operator before
       consuming it: the approved root, the configuration file it was read from, the
       artifact's `output_dir`-relative path, the configuration source token, its
       first heading, and its frontmatter; and takes explicit confirmation before
       consuming it.
-- [ ] The step treats a missing or refused confirmation, at either the approval
+- [x] The step treats a missing or refused confirmation, at either the approval
       step or an artifact, as a named refusal and does not consume that artifact.
-- [ ] The step enforces § The read bounds, evaluating them in this order: enumerate
+- [x] The step enforces § The read bounds, evaluating them in this order: enumerate
       a directory up to its entry cap, resolving each entry as it is reached and
       checking it for depth; then the matching-file count; then per-file size. It
       surfaces which bound it exceeded rather than reading a partial set. When the
       entry cap truncates a directory before a later entry is reached, the cap is
       the bound reported.
-- [ ] The step applies the resolved-component confinement predicate at every
+- [x] The step applies the resolved-component confinement predicate at every
       directory component as it is reached during enumeration, not only to an
       artifact it is about to read. An entry whose resolution leaves the approved
       root — a symlinked `screens/<slug>/`, for instance — is a confinement-failure
       refusal at that point, before its listing is surfaced and before its depth is
       counted against the bound.
-- [ ] Every path the step surfaces or records names it relative to `output_dir`
+- [x] Every path the step surfaces or records names it relative to `output_dir`
       plus the configuration source token, except a confinement-failure refusal,
       which reports the resolved path so the operator can see where the read would
       have gone.
-- [ ] The step reads the three artifacts, when present, before consulting the
+- [x] The step reads the three artifacts, when present, before consulting the
       canonical product-reference set in the shared pre-flight's named aesthetic
       reference step.
-- [ ] The step resolves each of the three artifacts independently and states the
+- [x] The step resolves each of the three artifacts independently and states the
       result for every combination. A slot with no conforming artifact is a named
       skip for that slot, and the canonical product-reference set fills that slot
       alone. When no `[design]` section resolves, or no slot has a conforming
       artifact, the step reports the directory-level skip rather than three
       per-slot skips. Any refusal stops the whole read, and the canonical set is not
       reachable for any slot.
-- [ ] The step records one named skip only after both branches of the resolution
+- [x] The step records one named skip only after both branches of the resolution
       order have been tried — the repo-root `agentbundle-layout.toml` and, when that
       is absent or carries no `[design]` key, the user-profile one — and neither
       yields a `[design] output_dir`. It records a differently worded named skip
       when the section resolves but no slot has a conforming artifact.
-- [ ] The step treats every other dependency failure as a refusal, not a skip: a
+- [x] The step treats every other dependency failure as a refusal, not a skip: a
       layout file that exists but cannot be parsed, a `[design]` section whose
       `output_dir` is missing, empty, or not a string, a file that passes the
       `type:` filter but cannot be read, and a canonicalization that raises —
       including the symlink-loop error class, which raises differently from an I/O
       failure.
-- [ ] The step states that each of its six refusals stops the handoff read with the
+- [x] The step states that each of its six refusals stops the handoff read with the
       terminal effect the Testing Strategy's numbered list states, and halts the
       mode in a named state rather than continuing to emit. The six, stated so that
       every refusal this spec can raise is an instance of one:
@@ -421,26 +421,26 @@ control criterion and owes the paired runs above.
       **(f)** a dependency failure.
       Those six are the complete refusal set, and every criterion above uses these
       names.
-- [ ] The step carries consumed content to the code-emitting step as data with no
+- [x] The step carries consumed content to the code-emitting step as data with no
       instruction authority, and never resolves, opens, or follows a path appearing
       inside it.
-- [ ] **(static)** `references/design-handoff.md` reproduces § What is consumed and
+- [x] **(static)** `references/design-handoff.md` reproduces § What is consumed and
       the read paths with their required `type:` literals, states that a `type:`
       mismatch means not-this-artifact and is skipped rather than refused, states
       that the step keys on no section name and discards HTML comments, states that
       a declared `type:` is a collision guard and not an authenticity claim, and
       names the frontmatter marker as the one validated for the screen brief.
-- [ ] **(static)** `references/design-handoff.md` resolves the `[design]` section by
+- [x] **(static)** `references/design-handoff.md` resolves the `[design]` section by
       name and states no base path of its own.
-- [ ] **(static)** `references/design-handoff.md` states that nothing in the three
+- [x] **(static)** `references/design-handoff.md` states that nothing in the three
       artifacts discriminates the product they belong to, so operator confirmation
       is the control and belonging is never reported as mechanically confirmed; and
       names the Testing Strategy's terminal-effect list as the obligation every
       refusal carries.
-- [ ] **(static)** `references/design-handoff.md` states the residual the Testing
+- [x] **(static)** `references/design-handoff.md` states the residual the Testing
       Strategy names: a refusal cannot unread bytes, and an adopter needing content
       never to enter the agent's context enforces that outside the agent.
-- [ ] **(static)** A construction test in `tests/roster/` reads every file under
+- [x] **(static)** A construction test in `tests/roster/` reads every file under
       `docs/design/` and asserts the contract in `references/design-handoff.md`
       classifies each one into exactly one of four states — consumed, skipped as
       not-this-artifact, off every read path, or refused — failing when any file is
@@ -450,7 +450,7 @@ control criterion and owes the paired runs above.
       last floor is what holds the `token-taxonomy` row, which no file in the corpus
       exercises. It runs on pull requests through a `build-check.yml` step and a
       matching `tools/lint-ci-parity.py` disposition.
-- [ ] **(static)** Every enumeration of the shared pre-flight's steps inside
+- [x] **(static)** Every enumeration of the shared pre-flight's steps inside
       `packs/frontend-engineering/` resolves after the insertion. The known sites
       are the skill's opening summary, the pre-flight's own step count, the
       `#### Steps 1–3. Proceed through the shared PLAN phase pre-flight` heading,
@@ -462,11 +462,11 @@ control criterion and owes the paired runs above.
       authoring time, not a closed set — the obligation is that every such
       enumeration in the pack resolves, and the implementer sweeps for step
       references rather than working the list alone.
-- [ ] **(static)** Every enumeration of the pre-flight's steps inside
+- [x] **(static)** Every enumeration of the pre-flight's steps inside
       `guides/frontend-engineering/` resolves after the insertion:
       `reference/frontend-engineering.md`'s pre-flight list and
       `tutorials/scaffold-a-component.md`'s numbered walk.
-- [ ] **(static)** `guides/frontend-engineering/how-to/read-the-design-handoff.md`
+- [x] **(static)** `guides/frontend-engineering/how-to/read-the-design-handoff.md`
       exists, states what is read, what is ignored, what each skip and each refusal
       means, that these controls are agent instructions with no gate behind them,
       and what an adopter who needs a guarantee must do instead. It also states what
@@ -474,7 +474,7 @@ control criterion and owes the paired runs above.
       normalization or redaction into code the adopter commits — because that is the
       larger of the two residuals and the no-gate sentence does not cover it. It is
       linked from `guides/frontend-engineering/README.md`.
-- [ ] **(static)** The guide lints the owning `guides/AGENTS.md` names all exit 0
+- [x] **(static)** The guide lints the owning `guides/AGENTS.md` names all exit 0
       against the new page: `tools/validate_guides.py`, which checks frontmatter
       against `contracts/guide.schema.json`, and `tools/lint-guide-titles.py`, which
       checks `title` matches the body H1. `tools/lint-guidebook-steps.py` also exits
@@ -482,24 +482,34 @@ control criterion and owes the paired runs above.
       only when the frontmatter carries `order:`, and no page under
       `guides/frontend-engineering/` does, so it reports OK with or without the new
       file. The first two are what red when the page is wrong.
-- [ ] **(static)** Each control criterion above — every criterion not marked
+- [x] **(static)** Each control criterion above — every criterion not marked
       **(static)** — has both a positive and a negative recorded run in the
       verification ledger, or a named owner waiver recorded in this spec. This
       criterion is marked static because it is an obligation over the other
       criteria, not a control of its own: a reader checks it by reading the ledger
       against the criteria list.
-- [ ] **(static)** No recorded observation in the verification ledger carries an
+
+      **Owner waiver, eugenelim, 2026-09-18 — the heightened-root confirmation
+      control and its refusal.** Those two criteria are implemented and readable in
+      the step, but neither has a recorded paired run: staging a user-profile
+      `output_dir` means writing a real layout file into the operator's own home
+      configuration, which the fixture harness will not do. Every other control
+      criterion has both halves recorded in the ledger. The waiver is named here
+      rather than left as a silent gap, and the follow-on executable read path is
+      where this case becomes testable without touching an operator's own
+      configuration.
+- [x] **(static)** No recorded observation in the verification ledger carries an
       absolute filesystem path — not the fixture root, and not a resolved path a
       confinement-failure refusal reported. The corpus-agreement test asserts this
       over the ledger, and reds when the ledger is absent, empty, or holds no
       recorded observation, so an assertion that scans nothing cannot read as a
       pass. A missed redaction fails a gate rather than shipping on an
       implementer's promise.
-- [ ] **(static)** `agentbundle catalogue verify --root .` exits 0.
-- [ ] **(static)** The `frontend-engineering` skill's eval surface carries a case
+- [x] **(static)** `agentbundle catalogue verify --root .` exits 0.
+- [x] **(static)** The `frontend-engineering` skill's eval surface carries a case
       covering the design-handoff read, as `packs/AGENTS.md` requires of every
       non-cosmetic pack update.
-- [ ] **(static)** The topmost `## [frontend-engineering][<version>] — YYYY-MM-DD`
+- [x] **(static)** The topmost `## [frontend-engineering][<version>] — YYYY-MM-DD`
       heading in `docs/product/changelog.md` names that pack's new `pack.toml`
       version, at the level directly beneath `[Unreleased]`.
 
