@@ -56,7 +56,7 @@ _APPROVED_SHARED_CHROME_GROUPS = (
 _APPROVED_SHARED_CHROME_DESTINATIONS = {
     "product": ("Product", "/", "internal"),
     "product-home": ("Product home", "/", "internal"),
-    "how-it-works": ("How it works", "/#three-loops", "internal"),
+    "how-it-works": ("How it works", "/#the-model", "internal"),
     "use-cases": ("Use cases", "/#use-cases", "internal"),
     "catalogue": ("Catalogue", "/catalogue/", "internal"),
     "now": ("Now", "/now/", "internal"),
@@ -2603,8 +2603,15 @@ _REQUIRED_HOOKS = {
 # which is a hand-maintained source, not a projected renderer input. A
 # `presocial` hook would run the generator for an input the script never reads
 # and would misstate the dependency. Exempt for the same reason as `preview`.
+# `lint:css` is exempt on the same ground. Stylelint extracts the `<style>`
+# blocks from `src/**/*.{css,astro}` through `postcss-html`; it never resolves
+# a frontmatter `import`, and the projected inputs are `.json`, which its glob
+# does not match. Verified by moving `web/src/lib/shared-chrome.generated.json`
+# aside and re-running the script: identical output, same 11 token errors, no
+# module-resolution error. A `prelint:css` hook would therefore project an
+# input this script cannot read.
 _HOOK_EXEMPT = {
-    "web": {"preview", "test:e2e:gate", "social"},
+    "web": {"preview", "test:e2e:gate", "social", "lint:css"},
     "docs-site": {"preview"},
 }
 

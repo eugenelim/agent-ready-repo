@@ -21,7 +21,7 @@ test('resolves docs chrome from declared kind rather than target hostname shape'
 
 test('marks docs root as page and nested docs as location without fragment state', () => {
   const docs = { id: 'docs', label: 'Docs', target: '/docs/', kind: 'internal' } as const;
-  const fragment = { id: 'how-it-works', label: 'How it works', target: '/#three-loops', kind: 'internal' } as const;
+  const fragment = { id: 'how-it-works', label: 'How it works', target: '/#the-model', kind: 'internal' } as const;
   assert.equal(docsChromeCurrent(docs, '/docs/'), 'page');
   assert.equal(docsChromeCurrent(docs, '/docs/getting-started/install/'), 'location');
   assert.equal(docsChromeCurrent(fragment, '/'), undefined);
