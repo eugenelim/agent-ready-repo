@@ -129,7 +129,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    - **Product** — who this serves and where the feature ends. No
      canonical local source; goes straight to Unverified. Don't
      fabricate confirmation.
-   - **Process** — review cadence, who signs off on **Boundaries**
+   - **Process** — review cadence, who signs off on **Agent Rules**
      (especially the `Never do` subsection), how the spec moves Draft
      → Approved. Canonical sources are the repository-mapped contribution and
      workflow guidance, recent accepted specs for shape precedent, and prior
@@ -184,7 +184,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    absence as an Unverified assumption. See step 5 for the corpus obligation.
 
    **Surface the Unverified list and wait** for human confirmation or
-   correction before writing into `Objective`, `Boundaries`,
+   correction before writing into `Outcome`, `What Changes`, `Agent Rules`,
    `Testing Strategy`, or `Acceptance Criteria`. If Unverified is
    empty, surface the Verified list with the highest-stakes item
    called out and ask the user to confirm *that one specifically* — a
@@ -194,13 +194,18 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    Only once Unverified has been signed off (or the highest-stakes
    Verified item confirmed, if Unverified was empty):
 
-   - Copy the now-confirmed assumption list into the spec's
-     `## Assumptions` section as a flat list — one bullet per item,
-     each citing how it was settled. Verified entries keep their
-     canonical source (path / URL / probe summary); previously-
-     Unverified entries cite `user confirmation YYYY-MM-DD` with
-     today's date. The chat block was the working surface; the spec
-     section is the audit trail.
+   - Route every settled item to where it does work, and leave nothing
+     behind. A fact that bounds what the delivery does goes into `Outcome`
+     or `Agent Rules`; a fact that shapes how it is built goes into the
+     plan's `## Design (LLD)` or `## Constraints`. Neither destination
+     records how you checked it: the citation was this checkpoint's
+     evidence, and it stops carrying weight once the fact is in the
+     contract.
+   - Write only what is still unresolved into the spec's `## Assumptions`
+     section — the open question, what it would change, and who can settle
+     it — or `none`. A settled fact is not an assumption, and a list of
+     settled ones buries the items a reader has to act on. The chat block
+     was the working surface; it is not copied anywhere.
    - Write the spec's `Constrained by:` header from any Verified
      items that name an ADR or RFC the feature must cite. The header
      lands before any body section; Verified items don't gate the
@@ -233,7 +238,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      defines a stricter rule.
 
 3a. **Plan durable outputs before approving the contract.** A durable spec
-   carries a repository-specific Durable outputs section before Boundaries.
+   carries a repository-specific Durable outputs section before Agent Rules.
    It is not a fixed file checklist. Assess these candidate roles against the
    actual application and repository: user-facing promise, current product
    truth, current architecture, decision rationale, interface compatibility,
@@ -279,17 +284,24 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    read the proposed surface, choose a shareable established destination or
    retain the record. This is an approval record, not a new published schema.
 
-4. Fill in the spec — including the **Testing Strategy** section. Push
-   back hard on these failure modes:
-   - **Objective is vague.** "It should be fast" is not an objective.
+4. Fill in the spec — including the **Testing Strategy** section. Read
+   [`references/prose-discipline.md`](references/prose-discipline.md) while
+   writing the body: it is advisory, gates nothing, and covers what the
+   managed output-rendering block above does not. Push back hard on these
+   failure modes:
+   - **Outcome is vague.** "It should be fast" is not an outcome.
      "Returns within 200ms at p99 for payloads under 1KB" is. Every
-     user-visible outcome named in the Objective must be precise
-     enough that a test could be derived from it.
+     user-visible outcome named in `Outcome` must be precise enough that a
+     test could be derived from it, within the two-sentence cap — a cap met by
+     cutting vagueness, never by cutting a needed fact.
+   - **What Changes restates the Outcome.** The section carries the delta as
+     bullets for a reader landing cold: what moves, and where it lives. A
+     bulleted re-telling of the Outcome leaves that reader still asking.
    - **Testing Strategy left as the template's mode list.** The
      template shows three modes (TDD, goal-based, manual QA); naming
-     them without pairing each user-visible outcome from the Objective
+     them without pairing each user-visible outcome from `Outcome`
      with a mode and a one-sentence why isn't a strategy.
-   - **Boundaries left empty.** The three subsections — `Always do`,
+   - **Agent Rules left empty.** The three subsections — `Always do`,
      `Ask first`, `Never do` — keep an implementing agent inside the
      lines. Make the user name at least one entry per subsection, and
      at least one *structural* entry under `Never do` (no new top-level
@@ -322,9 +334,9 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      history in the body. Mixed tenses make an agent reading the spec
      guess wrong about what is current; a present-tense body reads as a
      clean description of the contract as it stands. Decision history
-     lives in ADRs and the changelog, not the spec body — the plan
-     (`plan.md`) is the one exception, since it carries its own changelog
-     of how the approach evolved.
+     lives in ADRs and the release changelog, not the spec body. `plan.md`
+     holds to the same rule: its `## Changelog` records approvals, not how
+     the approach evolved.
 
    While writing Testing Strategy, sanity-check that each TDD-mode AC is
    concrete enough to *stub* — see `work-loop`'s
@@ -341,7 +353,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    If the feature exposes **no** interface surface, skip it: the spec→plan path
    runs unchanged.
 
-   - **Detect & confirm the type.** From the Objective's interface-facing
+   - **Detect & confirm the type.** From the Outcome's interface-facing
      Acceptance Criteria, auto-detect whether the feature exposes a contract
      surface and of **which type** — a synchronous REST API (`openapi`), an
      **event interface** (`asyncapi`), an RPC service (`proto`), a GraphQL schema
@@ -406,8 +418,9 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    Criteria — settle two design-readiness questions and weave the result into the spec.
 
    If the experience-design pack is absent (`creative-direction` and `design-review`
-   unavailable): **proceed and note it** in the spec's Assumptions —
-   `experience-design pack not installed; design intent for this surface is ungrounded` —
+   unavailable): **proceed and note it** in the spec's Assumptions, in that
+   section's named-gap form —
+   `Technical: experience-design pack not installed — design intent for this surface is ungrounded` —
    then skip the rest of this step. Absence is a named gap, not a silent pass.
 
    - **Check for a grounded aesthetic reference.** Search the repo for an aesthetic-
@@ -422,7 +435,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      Findings from the existing surface establish the design debt the implementation
      must clear — surfacing them as explicit ACs is better than discovering them post-ship.
    - **Weave design intent into the spec.** Once design-readiness is settled:
-     - In the **Objective**: name the primary user task the surface supports *and* the
+     - In the **Outcome**: name the primary user task the surface supports *and* the
        aesthetic goal from the grounded reference it must satisfy.
      - In the **Acceptance Criteria**: include at least one design-intent AC whose
        outcome is observable from the rendered surface — not derivable from the code.
@@ -441,7 +454,9 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    that includes a user-facing screen or flow, apply the same design-readiness questions
    to that sub-surface — it is not covered automatically.
 
-5. Fill in the plan second. The plan should:
+5. Fill in the plan second, under the same
+   [`references/prose-discipline.md`](references/prose-discipline.md) pass.
+   The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Map tasks and construction tests to the spec's Durable outputs so the
      implementation can hand `close-work` planned output evidence instead of a
@@ -453,12 +468,15 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      MIXED and DEEP work decomposes into dependency-ordered layers, each
      independently reviewable and leaving the repository working. Ambiguous
      shape is DEEP.
-   - Carry **construction tests** per task — `Tests:` before `Approach:`
-     in each task, designed up front. "We'll test it" is not a strategy.
-   - Treat these as author-side smells, not gates: a plan substantially longer
-     than its spec, or a task whose `Tests:` lines outnumber its `Approach:`
-     lines, is specifying rather than strategising. Around 2×, stop and reduce
-     duplicated detail before review.
+   - Carry **construction tests** per task — `Tests:` leads each task,
+     designed up front. "We'll test it" is not a strategy.
+   - Write a task's `Approach:` only when it carries a decision `Tests:` and
+     `Done when:` do not show — an ordering decision, or a seam decision.
+     Where those two already say what to build and how it is observed, omit
+     the field; the template owns the rule.
+   - Treat this as an author-side smell, not a gate: a plan substantially
+     longer than its spec is specifying rather than strategising. Around 2×,
+     stop and reduce duplicated detail before review.
    - Carry mechanism, never a restatement of a criterion. A `Tests:` bullet
      names what the implementer cannot infer — which suite proves a property and
      where it lives, which fixture carries which join key, which shipped assertion
@@ -489,7 +507,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      produce mock-shape tests on config-shape tasks and untested
      invariants on logic-shape tasks.
    - **Tasks without spec mapping.** Each task should reference which
-     behavior from the spec's Objective it implements, and the Testing
+     behavior from the spec's Outcome it implements, and the Testing
      Strategy mode for that behavior. Orphan tasks are scope creep in
      disguise; behaviors with no implementing task are gaps.
    - **Grounded plan detail.** Keep observable behavior in the spec. Put exact
@@ -508,14 +526,14 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      never task information.
    - **`Done when` points at the task's own `Tests` and never restates them.** A
      copy is narrower than its target the moment either one moves.
-   - **An obligation a completion gate must read belongs in `Tests`.** Approach
-     is instruction, and no gate observes it.
+   - **An obligation a completion gate must read belongs in `Tests`.**
+     `Approach:` is instruction, and no gate observes it.
    - **A claim about what a check proves names the comparison its oracle
      performs.** Where the oracle cannot perform it, name the proxy instead of
      claiming the stronger property.
-   - **When `Tests:` outruns `Approach:`, read the excess before cutting it.**
-     Prose explaining why an assertion takes its shape is design: relocate it.
-     Reduce only genuine surplus. One ratio, two causes, opposite remedies.
+   - **Prose explaining why an assertion takes its shape is design.**
+     Relocate it to `## Design (LLD)` rather than cutting it; reduce only
+     genuine surplus.
    - **Walk the whole plan once before review.** Every criterion has
      construction evidence and every `Tests` bullet traces to a criterion; every
      `Done when` observes what its own `Tests` require; no condition has two
@@ -557,7 +575,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    unavailable`; leave the spec at `Draft`. `BLOCKED` is a lifecycle receipt,
    not a shaping-reviewer result. Resolve findings until it returns `Clean`. A
    missing reviewer, consequential grounding gap, or unresolved finding is
-   `BLOCKED`: do not seek approval. A material edit to Objective, Boundaries, Acceptance
+   `BLOCKED`: do not seek approval. A material edit to Outcome, Agent Rules, Acceptance
    Criteria, Testing Strategy, governing constraints, or the
    contract/construction separation invalidates the result and requires a fresh
    shaping review; the lifecycle owner may record a pre-seal, nonmaterial
@@ -727,7 +745,7 @@ advisory: it informs the next round, and nothing else reads it.
 - Writing a spec that reads like a design doc (full of implementation) → the
   spec is the contract, not the design. Move implementation detail to
   `plan.md`.
-- Skipping Boundaries → mandatory section. Each of the three
+- Skipping Agent Rules → mandatory section. Each of the three
   subsections needs at least one entry.
 - Writing into the spec body before the Unverified list has been
   confirmed → the headers can stay scaffolded; the bodies are the

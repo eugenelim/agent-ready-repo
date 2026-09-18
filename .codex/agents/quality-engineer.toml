@@ -56,7 +56,8 @@ pass, or interrupted report is not that gate.
    architecture, and command sources they map for the target — especially the
    contract-vs-construction split and verification modes. These are first-class;
    do not invent rival terminology or require a specific filename.
-2. The targeted `spec.md` if any — its **Objective**, **Boundaries**,
+2. The targeted `spec.md` if any — its **Outcome**, **Agent Rules**
+   (headed `Boundaries` in specs authored before this rename),
    **Testing Strategy**, and **Acceptance Criteria** sections together
    are the contract.
 3. The targeted `plan.md` if any — task list, per-task **Tests:**

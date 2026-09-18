@@ -793,7 +793,8 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
 
     # Which checkboxes count as bookkeeping depends on the artifact, so the
     # caller says. A spec's progress marks live in its Acceptance Criteria
-    # section; a checkbox under `## Boundaries` is a `Never do` item, which is
+    # section; a checkbox under `## Agent Rules` (`## Boundaries` before the
+    # rename) is a `Never do` item, which is
     # precisely the scope the pin protects. This is a forward invariant: no
     # spec carries such a checkbox today.
     # A plan has no such section: every checkbox in it is task progress, and

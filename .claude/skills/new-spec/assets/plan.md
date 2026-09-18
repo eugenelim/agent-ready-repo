@@ -173,9 +173,18 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 **Phrase each task as a verifiable goal, not a procedure.** The task name
 *is* the success criterion: *"Add validation"* → *"All invalid-input tests
 pass"*; *"Refactor X"* → *"Tests for X green before and after; public
-surface unchanged"*. **Within each task, `Tests:` comes before `Approach:`** —
-tests drive implementation, not the other way around. Use red-green-refactor
-with separate commits when the change is non-trivial.
+surface unchanged"*. Tests drive implementation, not the other way around, so
+`Tests:` leads every task. Use red-green-refactor with separate commits when
+the change is non-trivial.
+
+**`Approach:` is conditional.** Write one when the task carries a decision a
+reader cannot infer from `Tests:` and `Done when:` — an *ordering* decision
+(step B must follow step A for a reason the tests do not show) or a *seam*
+decision (which module, which existing helper, which boundary). Omit it when
+those two fields already say what to build and how it is observed: an
+`Approach:` that restates them is a second home for the same instruction, and
+no completion gate reads it. The field order is unchanged where it appears —
+`Tests:`, then `Approach:`, then `Done when:`.
 
 **Every task must declare `Depends on:` explicitly** — list prior task IDs
 or `none`. Don't omit the field; "obvious from order" is the failure mode
@@ -235,9 +244,9 @@ could pick it up and complete it without follow-up questions:
      one compilable red contract-surface assertion (`stub: true`). It need not
      encode the finished edge-case matrix. -->
 
-**Approach:**
-- <step 1>
-- <step 2>
+**Approach:** <omit this field unless the task carries an ordering or seam
+decision the two fields around it do not show>
+- <the decision, and why this way>
 
 **Done when:** <name a concrete observable — specific test green, gate
   passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
@@ -280,22 +289,21 @@ slow the database", "this changes a behavior X teams depend on".
 ## Changelog
 
 <!--
-While the plan is `Drafting` and changes meaningfully, add a dated entry. This
-isn't bureaucracy — it's how a reviewer (or a returning agent) understands why
-the current plan looks different from yesterday's plan. After approval this
-section is pinned like the rest of the plan: an execution observation goes to
-the verification ledger, not to a new changelog entry.
+Approvals, and nothing else. Drafting history does not belong here: while the
+plan is `Drafting` its current text is the only version anyone acts on, so a
+dated account of how it got there is the draft narration `spec.md`'s
+present-tense rule already refuses, one document over. After approval this
+section is pinned like the rest of the plan, and an execution observation goes
+to the verification ledger.
 
-**Each approval is an entry.** Write
-`- YYYY-MM-DD: spec approved by <handle>` and
-`- YYYY-MM-DD: plan approved by <handle>` — one per gate, real date, the
-approver's own handle. Both live here because the plan carries the only dated
-history in the spec directory. Without them nothing in the artifacts says when
+**Each approval is an entry.** The two forms are given at the end of this
+note — one per gate, a real date, the approver's own handle. Both live here
+because the plan carries the only dated history in the spec directory. Without them nothing in the artifacts says when
 the contract froze or on whose authority, so a later reader cannot tell which
 claims were in it at approval and which arrived afterwards. `work-loop`'s
 G-plan sequence owns *when* each is written and why the order matters; this
 template owns only the form.
 
-- YYYY-MM-DD: initial plan
-- YYYY-MM-DD: switched from approach A to B because <reason>
+- YYYY-MM-DD: spec approved by <handle>
+- YYYY-MM-DD: plan approved by <handle>
 -->
