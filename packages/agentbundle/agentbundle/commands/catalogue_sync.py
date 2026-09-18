@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import shutil
 import sys
 import tomllib
@@ -26,6 +27,7 @@ from agentbundle.catalogue import CatalogueError, resolve_catalogue
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
+    sha256_confined_regular_file,
 )
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _OWNERSHIP_STATE_FILE,
@@ -47,8 +49,9 @@ from agentbundle.safety import Tier, classify, companion_path
 if TYPE_CHECKING:
     import argparse
 
-# Exit codes — spec AC-0013. T5 implements the rows this task's replay reaches;
-# T8 owns the ordered, total predicate table over every row.
+# Exit codes — spec AC-0013's ordered, total table. `run()` and its two
+# `--check` helpers implement every row as a sequence of first-match-wins
+# predicates; see each function's docstring for the rows it owns.
 _SUCCESS = 0
 _DIFFERENCE = 1
 _MALFORMED = 2
@@ -69,6 +72,11 @@ _DIGEST_BEARING_PREFIXES = ("archive+https://", "catalogue+https://")
 _UNDECIDED_DECLINE_TOKENS = frozenset(
     {"path-confinement-refused", "recorded-entry-unreadable"}
 )
+
+# spec AC-0013's `--check` (no `--compare-tree`) rows: the recorded pin's
+# `archive_sha256` must be exactly a 64-character lowercase hex string, or it
+# is treated as absent/malformed and the row reads cannot-answer.
+_HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
 def _synthesize_state(recorded: dict[str, str | None]) -> State:
@@ -494,6 +502,185 @@ def compatibility_warnings(
     return warnings
 
 
+def _compare_recorded_entry(target: Path, entry: object) -> bool | None:
+    """One `--check --compare-tree` comparison for a single raw ``managed_paths``
+    entry. Returns ``True`` when the on-disk content differs from the
+    recorded digest, ``False`` when it matches, and ``None`` when the entry
+    could not be compared at all — spec AC-0013's "any recorded path could
+    not be compared" reads this ``None``.
+
+    Every malformed shape (not a dict, no ``path``, no ``sha256``, a hostile
+    path) and every confinement failure (escaping, hard-linked, non-regular,
+    a reparse point, or simply absent) is folded into the same ``None`` —
+    compare-tree's table row does not distinguish *why* an entry could not be
+    compared, only that it could not.
+    """
+    if not isinstance(entry, dict):
+        return None
+    rel_path = entry.get("path")
+    recorded_sha = entry.get("sha256")
+    if (
+        not isinstance(rel_path, str)
+        or not rel_path
+        or not _is_safe_recipe_text(rel_path)
+        or not isinstance(recorded_sha, str)
+        or not recorded_sha
+    ):
+        return None
+    try:
+        on_disk_sha = sha256_confined_regular_file(target, target / rel_path)
+    except UnsafeContentError:
+        return None
+    return on_disk_sha != recorded_sha
+
+
+def _report_check_result(
+    result: str,
+    *,
+    attributed: bool,
+    source_raw: str,
+    fmt: str,
+    code: int,
+) -> int:
+    """Report a `--check` answer that is not a refusal: "current" or "differs".
+
+    Mirrors `_refuse`'s shape — the source is named only under `attributed`,
+    and only after the same terminal-safe check every other unauthored value
+    passes (spec AC-0002, AC-0012) — so a `--check` answer carries the same
+    guarantees as every other output this command renders.
+    """
+    rejections: list[str] = []
+    safe_source = _safe_scalar("source", source_raw, rejections) if attributed else None
+    if fmt == "json":
+        doc: dict[str, Any] = {"ok": True, "result": result}
+        if attributed:
+            if safe_source is not None:
+                doc["source"] = safe_source
+            else:
+                doc["rejections"] = rejections
+        print(json.dumps(doc, indent=2))
+    else:
+        print(f"check: {result}")
+        if attributed:
+            if safe_source is not None:
+                print(f"  source: {safe_source}")
+            else:
+                for line in rejections:
+                    print(f"  {line}")
+    return code
+
+
+def _check_digest_only(
+    target: Path,
+    *,
+    resolved_archive_sha256: str | None,
+    attributed: bool,
+    source_raw: str,
+    fmt: str,
+) -> int:
+    """Spec AC-0013's `--check`, no `--compare-tree`, rows: compare the
+    recorded pin's `archive_sha256` against the resolved source's own
+    verified digest. A local-path or `git+https://` source never affords one,
+    so it cannot-answers before the recorded pin is even read.
+    """
+    if resolved_archive_sha256 is None:
+        return _refuse(
+            "the resolved source affords no verified archive_sha256",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    diagnostics: list[str] = []
+    raw_state = _load_ownership_state(target, diagnostics)
+    pin = raw_state.get("pin") if isinstance(raw_state, dict) else None
+    recorded = pin.get("archive_sha256") if isinstance(pin, dict) else None
+
+    if not isinstance(recorded, str) or _HEX64.fullmatch(recorded) is None:
+        return _refuse(
+            "the recorded archive_sha256 is absent, or is not a "
+            "64-character lowercase hex string",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    if recorded == resolved_archive_sha256:
+        return _report_check_result(
+            "current",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_SUCCESS,
+        )
+    return _report_check_result(
+        "differs",
+        attributed=attributed,
+        source_raw=source_raw,
+        fmt=fmt,
+        code=_DIFFERENCE,
+    )
+
+
+def _check_compare_tree(
+    target: Path,
+    *,
+    attributed: bool,
+    source_raw: str,
+    fmt: str,
+) -> int:
+    """Spec AC-0013's `--check --compare-tree` rows, plus this mode's share of
+    the recorded-path-container-not-an-array row. The resolved source is
+    never read here — see plan.md's Follow-ons: `--check --compare-tree`
+    answers entirely from the recorded state and the target tree.
+    """
+    diagnostics: list[str] = []
+    raw_state = _load_ownership_state(target, diagnostics)
+    container: object = (
+        raw_state.get("managed_paths", []) if isinstance(raw_state, dict) else []
+    )
+
+    if not isinstance(container, list):
+        return _refuse(
+            "the recorded-path container is not an array",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+    if not container:
+        return _refuse(
+            "the recorded path set is empty",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    any_differs = False
+    for entry in container:
+        outcome = _compare_recorded_entry(target, entry)
+        if outcome is None:
+            return _refuse(
+                "a recorded path could not be compared",
+                attributed=attributed,
+                source_raw=source_raw,
+                fmt=fmt,
+                code=_CANNOT_ANSWER,
+            )
+        any_differs = any_differs or outcome
+
+    return _report_check_result(
+        "differs" if any_differs else "current",
+        attributed=attributed,
+        source_raw=source_raw,
+        fmt=fmt,
+        code=_DIFFERENCE if any_differs else _SUCCESS,
+    )
+
+
 def _resolve_source(
     source_uri: str,
 ) -> tuple[Path, str, str | None, str | None, Callable[[], None] | None]:
@@ -668,6 +855,121 @@ def _refuse(
     return code
 
 
+def _run_dry_run(
+    *,
+    target: Path,
+    source_path: Path,
+    fidelity_token: str,
+    archive_sha256: str | None,
+    source_revision: str | None,
+    attribution: str,
+    tooling: str,
+    guides: str,
+    dry_run: bool,
+    attributed: bool,
+    source_raw: str,
+    fmt: str,
+) -> int:
+    """Spec AC-0013's `--dry-run` rows: no recorded selection derivable, the
+    recorded-path container not an array, source verification failure, the
+    identity leak check, the adapter-contract gate, and — reaching none of
+    those — a printed plan and the success or difference code.
+    """
+    cfg = SelfHostedInitConfig(
+        target=target,
+        source=source_path,
+        tooling=tooling,
+        attribution=attribution,
+        guides=guides,
+        dry_run=dry_run,
+    )
+
+    condition = _underivable_condition(target, source_path)
+    if condition is not None:
+        return _refuse(
+            f"no recorded selection is derivable: {condition}",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    # Spec AC-0013/AC-0014: a recorded `managed_paths` that is not an array
+    # cannot be interpreted at all — distinct from a malformed *entry* inside
+    # an otherwise-array container, which AC-0016 routes to "uncompared".
+    # Checked here, before any plan can be printed, rather than left to
+    # `_classify_planned_paths`'s own defensive coercion to an empty list.
+    diagnostics: list[str] = []
+    raw_state = _load_ownership_state(target, diagnostics)
+    managed_paths_container: object = (
+        raw_state.get("managed_paths", []) if isinstance(raw_state, dict) else []
+    )
+    if not isinstance(managed_paths_container, list):
+        return _refuse(
+            "the recorded-path container is not an array",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    try:
+        replay = replay_derivation(cfg, interactive=False)
+    except ReplayError:
+        return _refuse(
+            "source could not be verified",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    # Spec AC-0019 — a selected pack's adapter-contract major differing from
+    # the CLI's own refuses uniformly, via the same gate every other pack-
+    # manifest consumer calls. Unlike AC-0018's warnings below, this changes
+    # the exit code and prints no plan.
+    gate_code = check_adapter_contract_gate(replay.pack_names, replay.file_bytes)
+    if gate_code is not None:
+        return gate_code
+
+    resolved_cfg = replay.config
+    planned_paths = set(replay.file_bytes.keys())
+    # One shared rejections list: every value this command did not itself
+    # author — a recorded path, a source-tree entry name, a manifest's own
+    # version string, the resolved digest/revision, and the source URI
+    # itself — is routed through the terminal-safe check before it can
+    # reach any output surface (spec AC-0012), and every rejection lands
+    # here regardless of which stage produced it.
+    rejections: list[str] = []
+    summary_counts, verdict_rows = _classify_planned_paths(
+        target, replay.old_state, planned_paths, rejections
+    )
+    compatibility = compatibility_warnings(
+        target, replay.pack_names, replay.file_bytes, rejections
+    )
+    doc = _plan_document(
+        target=target,
+        dry_run=dry_run,
+        check=False,
+        fidelity_token=fidelity_token,
+        archive_sha256=archive_sha256,
+        source_revision=source_revision,
+        attribution=resolved_cfg.attribution,
+        tooling=resolved_cfg.tooling,
+        guides=resolved_cfg.guides,
+        source_raw=source_raw,
+        attributed=_is_attributed(resolved_cfg),
+        pack_names=replay.pack_names,
+        profile_names=replay.profile_names,
+        summary=summary_counts,
+        verdict_rows=verdict_rows,
+        compatibility=compatibility,
+        rejections=rejections,
+    )
+    _render_plan(doc, fmt=fmt)
+    return _DIFFERENCE if replay.violations else _SUCCESS
+
+
 def run(args: argparse.Namespace) -> int:
     target_raw: str = args.target
     source_raw: str = args.source
@@ -684,6 +986,12 @@ def run(args: argparse.Namespace) -> int:
     # `--format json` document) from the first refusal onward — every
     # branch below reaches `_refuse`, never a bespoke print, so a malformed
     # invocation gets the same JSON-aware shape as every other refusal.
+    #
+    # An omitted `--source`, and neither or both of `--dry-run`/`--check`,
+    # never reach this function at all: both are `argparse` requirements
+    # (`--source` is `required=True`; the two flags form a `required=True`
+    # mutually exclusive group), so `argparse` itself exits 2 — spec
+    # AC-0013's malformed code — before `run()` is ever called.
     target_path = Path(target_raw)
     if target_path.is_symlink():
         return _refuse(
@@ -717,93 +1025,50 @@ def run(args: argparse.Namespace) -> int:
             fmt=fmt,
             code=_CANNOT_ANSWER,
         )
-
-    cfg = SelfHostedInitConfig(
-        target=target,
-        source=source_path,
-        tooling=tooling,
-        attribution=attribution,
-        guides=guides,
-        dry_run=dry_run,
-    )
-
-    try:
-        condition = _underivable_condition(target, source_path)
-        if condition is not None:
-            return _refuse(
-                f"no recorded selection is derivable: {condition}",
-                attributed=attributed,
-                source_raw=source_raw,
-                fmt=fmt,
-                code=_CANNOT_ANSWER,
-            )
-        replay = replay_derivation(cfg, interactive=False)
-    except ReplayError:
+    except Exception:
+        # Spec AC-0014: a resolver exception is a named row too — never an
+        # uncaught traceback deciding the process exit status. Every
+        # resolver-specific failure this module knows about is already
+        # `CatalogueError`; anything else is still "could not be resolved"
+        # from this command's point of view.
         return _refuse(
-            "source could not be verified",
+            "source could not be resolved",
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
             code=_CANNOT_ANSWER,
+        )
+
+    try:
+        if check:
+            if compare_tree:
+                return _check_compare_tree(
+                    target,
+                    attributed=attributed,
+                    source_raw=source_raw,
+                    fmt=fmt,
+                )
+            return _check_digest_only(
+                target,
+                resolved_archive_sha256=archive_sha256,
+                attributed=attributed,
+                source_raw=source_raw,
+                fmt=fmt,
+            )
+        return _run_dry_run(
+            target=target,
+            source_path=source_path,
+            fidelity_token=fidelity_token,
+            archive_sha256=archive_sha256,
+            source_revision=source_revision,
+            attribution=attribution,
+            tooling=tooling,
+            guides=guides,
+            dry_run=dry_run,
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
         )
     finally:
         if cleanup is not None:
             cleanup()
-
-    # `--check` without a comparison mechanism is not yet implemented: T8
-    # owns the ordered, total exit-code table over every AC-0013 row,
-    # including the digest and tree comparisons this row would need. Answer
-    # conservatively with "cannot answer" rather than inventing a verdict.
-    if check:
-        return _refuse(
-            "check is not yet implemented",
-            attributed=attributed,
-            source_raw=source_raw,
-            fmt=fmt,
-            code=_CANNOT_ANSWER,
-        )
-
-    # Spec AC-0019 — a selected pack's adapter-contract major differing from
-    # the CLI's own refuses uniformly, via the same gate every other pack-
-    # manifest consumer calls. Unlike AC-0018's warnings below, this changes
-    # the exit code and prints no plan.
-    gate_code = check_adapter_contract_gate(replay.pack_names, replay.file_bytes)
-    if gate_code is not None:
-        return gate_code
-
-    resolved_cfg = replay.config
-    planned_paths = set(replay.file_bytes.keys())
-    # One shared rejections list: every value this command did not itself
-    # author — a recorded path, a source-tree entry name, a manifest's own
-    # version string, the resolved digest/revision, and the source URI
-    # itself — is routed through the terminal-safe check before it can
-    # reach any output surface (spec AC-0012), and every rejection lands
-    # here regardless of which stage produced it.
-    rejections: list[str] = []
-    summary_counts, verdict_rows = _classify_planned_paths(
-        target, replay.old_state, planned_paths, rejections
-    )
-    compatibility = compatibility_warnings(
-        target, replay.pack_names, replay.file_bytes, rejections
-    )
-    doc = _plan_document(
-        target=target,
-        dry_run=dry_run,
-        check=check,
-        fidelity_token=fidelity_token,
-        archive_sha256=archive_sha256,
-        source_revision=source_revision,
-        attribution=resolved_cfg.attribution,
-        tooling=resolved_cfg.tooling,
-        guides=resolved_cfg.guides,
-        source_raw=source_raw,
-        attributed=_is_attributed(resolved_cfg),
-        pack_names=replay.pack_names,
-        profile_names=replay.profile_names,
-        summary=summary_counts,
-        verdict_rows=verdict_rows,
-        compatibility=compatibility,
-        rejections=rejections,
-    )
-    _render_plan(doc, fmt=fmt)
-    return _DIFFERENCE if replay.violations else _SUCCESS

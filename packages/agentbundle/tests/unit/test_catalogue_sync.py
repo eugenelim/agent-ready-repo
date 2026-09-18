@@ -1177,6 +1177,329 @@ def test_sync_reads_derived_tree_baseline_through_the_confinement_helper(
 
 
 # ---------------------------------------------------------------------------
+# AC-0013, AC-0014: the exit-code table is total and disjoint. One input per
+# row, plus the boundary cases that establish totality (a resolver exception,
+# malformed input, and the scalar recorded-path container) rather than
+# relying on first-match-wins ordering to provide it.
+# ---------------------------------------------------------------------------
+
+# STUB: AC-0013
+def test_check_returns_cannot_answer_when_pin_has_no_digest(
+    derived_tree, upstream, capsys
+):
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--check"]
+    )
+
+    assert catalogue_sync.run(args) == 3
+    assert "archive_sha256" in capsys.readouterr().err
+
+
+# Row: "any: the invocation is malformed" — --compare-tree without --check
+# and a symlinked target are already covered by AC-0002/AC-0007's tests
+# above; "an omitted --source" and "neither or both of --dry-run and
+# --check" are argparse-level refusals (both flags required) and never
+# reach run() at all, per the comment in run() itself.
+
+# Row: "any: source could not be resolved or its integrity could not be
+# verified" — a CatalogueError case is covered above (AC-0002's resolution-
+# refusal tests); this is AC-0014's second boundary case, a *non*-
+# CatalogueError exception from the resolver, which must still reach a named
+# row rather than propagate as an uncaught traceback.
+def test_sync_resolver_exception_reaches_cannot_answer_without_a_traceback(
+    derived_tree, upstream, monkeypatch, capsys
+):
+    def _raise(_uri):
+        raise RuntimeError("unexpected resolver failure")
+
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _raise)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 3
+
+
+# Row: "--dry-run: the identity leak check reported a violation" — AC-0004
+# and AC-0005 drive this at the replay-callable level; this is the row's
+# CLI-level case, the one AC-0013's table itself binds to a code.
+#
+# Uses a fresh minimal-state target rather than `derived_tree`: that
+# fixture's recorded recipe already carries a real `owner_email`, and
+# `collect_fields`'s non-interactive default seeds the identity transform
+# from it, which neutralises this exact anchor before the leak check ever
+# runs — a target with no recorded owner fields is what leaves the anchor
+# untransformed and the leak observable.
+def test_sync_identity_leak_violation_returns_difference_code(tmp_path, capsys):
+    target = tmp_path / "target"
+    target.mkdir()
+    _write_minimal_sync_state(target, packs=["alpha"])
+
+    source = tmp_path / "leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 1
+
+
+# Row: "--dry-run or --check --compare-tree: the recorded-path container is
+# not an array". The recipe stays derivable (packs=["alpha"]) — this is what
+# separates a container that cannot be iterated at all from a malformed
+# *entry*, which AC-0016 routes to "uncompared" instead.
+def test_sync_scalar_managed_paths_container_cannot_answer_and_prints_no_plan(
+    derived_tree, upstream, capsys
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"] = 0
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args_dry_run = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args_dry_run) == 3
+    dry_run_captured = capsys.readouterr()
+    assert dry_run_captured.out == ""
+    assert "not an array" in dry_run_captured.err
+
+    args_check = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+    assert catalogue_sync.run(args_check) == 3
+    check_captured = capsys.readouterr()
+    assert check_captured.out == ""
+    assert "not an array" in check_captured.err
+
+
+# Rows: "--check, no --compare-tree" — the four malformed-or-absent
+# archive_sha256 shapes, and the success/difference comparison once a valid
+# recorded digest is in play. `0` and `{}` are not strings at all; the row's
+# condition is about absence or a malformed shape, not only a wrong length.
+@pytest.mark.parametrize(
+    "recorded_sha256",
+    ["", 0, {}, "a" * 63],
+    ids=["empty-string", "zero", "empty-object", "63-char-hex"],
+)
+def test_sync_check_cannot_answer_on_malformed_recorded_digest(
+    derived_tree, tmp_path, monkeypatch, capsys, recorded_sha256
+):
+    extracted = tmp_path / "extracted-malformed-digest"
+    _make_source(extracted)
+    monkeypatch.setattr(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256="c" * 64,
+        ),
+    )
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["pin"]["archive_sha256"] = recorded_sha256
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", "catalogue+https://example.com/channel.json", "--check"]
+    )
+
+    assert catalogue_sync.run(args) == 3
+    assert "archive_sha256" in capsys.readouterr().err
+    assert not extracted.exists()
+
+
+def test_sync_check_cannot_answer_when_source_affords_no_verified_digest(
+    derived_tree, upstream, capsys
+):
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--check"]
+    )
+
+    assert catalogue_sync.run(args) == 3
+    assert "no verified archive_sha256" in capsys.readouterr().err
+
+
+def test_sync_check_reports_success_when_recorded_digest_matches(
+    derived_tree, tmp_path, monkeypatch, capsys
+):
+    extracted = tmp_path / "extracted-digest-match"
+    _make_source(extracted)
+    digest = "d" * 64
+    monkeypatch.setattr(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256=digest,
+        ),
+    )
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["pin"]["archive_sha256"] = digest
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", "catalogue+https://example.com/channel.json", "--check"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    assert not extracted.exists()
+
+
+def test_sync_check_reports_difference_when_recorded_digest_differs(
+    derived_tree, tmp_path, monkeypatch, capsys
+):
+    extracted = tmp_path / "extracted-digest-differs"
+    _make_source(extracted)
+    monkeypatch.setattr(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256="e" * 64,
+        ),
+    )
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["pin"]["archive_sha256"] = "f" * 64
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree),
+         "--source", "catalogue+https://example.com/channel.json", "--check"]
+    )
+
+    assert catalogue_sync.run(args) == 1
+
+
+# Rows: "--check --compare-tree" over four trees — clean, edited, an empty
+# recorded set, and a partially dropped recorded set. The last two are what
+# separate "nothing differs" (success) from "nothing was compared"
+# (cannot-answer); a test that only covers clean and edited cannot tell them
+# apart, which is why all four are driven rather than a representative pair.
+def test_sync_check_compare_tree_reports_success_on_clean_tree(
+    derived_tree, upstream, capsys
+):
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+
+
+def test_sync_check_compare_tree_reports_difference_on_edited_tree(
+    derived_tree, upstream, capsys
+):
+    (derived_tree / "packs" / "alpha" / "README.md").write_bytes(
+        b"edited by the adopter\n"
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+
+    assert catalogue_sync.run(args) == 1
+
+
+def test_sync_check_compare_tree_cannot_answer_on_empty_recorded_set(
+    derived_tree, upstream, capsys
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"] = []
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+
+    assert catalogue_sync.run(args) == 3
+
+
+def test_sync_check_compare_tree_cannot_answer_when_a_recorded_path_is_dropped(
+    derived_tree, upstream, capsys
+):
+    # One of the two recorded paths (packs/alpha/pack.toml) still matches;
+    # the other was dropped from disk entirely. This must NOT read as
+    # "nothing differs" — it must cannot-answer, because not every recorded
+    # path could be compared.
+    (derived_tree / "packs" / "alpha" / "README.md").unlink()
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+
+    assert catalogue_sync.run(args) == 3
+
+
+def test_sync_no_invocation_produces_a_code_outside_the_four(
+    derived_tree, upstream, tmp_path, capsys
+):
+    """Every case this module drives anywhere returns one of the four codes
+    AC-0013 declares — never a fifth."""
+    codes: set[int] = set()
+
+    args_dry_run = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    codes.add(catalogue_sync.run(args_dry_run))
+    capsys.readouterr()
+
+    args_malformed = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--compare-tree"]
+    )
+    codes.add(catalogue_sync.run(args_malformed))
+    capsys.readouterr()
+
+    args_check_no_digest = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--check"]
+    )
+    codes.add(catalogue_sync.run(args_check_no_digest))
+    capsys.readouterr()
+
+    args_compare_success = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+    codes.add(catalogue_sync.run(args_compare_success))
+    capsys.readouterr()
+
+    (derived_tree / "packs" / "alpha" / "README.md").write_bytes(b"edited\n")
+    args_compare_differs = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--check", "--compare-tree"]
+    )
+    codes.add(catalogue_sync.run(args_compare_differs))
+    capsys.readouterr()
+
+    assert codes <= {0, 1, 2, 3}
+    assert codes == {0, 1, 2, 3}  # this exact run reaches all four codes
+
+
+# ---------------------------------------------------------------------------
 # The whole-tree walk (spec AC-0015), reusing T4's helper rather than a copy.
 # T5's rows: a dry-run success and a resolution refusal reached via sync's
 # own dispatch, over-and-above T4's replay_derivation-level rows.
@@ -1288,6 +1611,100 @@ def _invoke_sync_dry_run_adapter_contract_refusal(target: Path) -> None:
     assert catalogue_sync.run(args) == 1
 
 
+# T8's own rows: the `--check` digest-only and `--compare-tree` paths, the
+# scalar recorded-path container, and the identity leak's difference code
+# reached through sync's own dispatch rather than the replay callable.
+
+def _invoke_sync_check_no_compare_tree_cannot_answer(target: Path) -> None:
+    # A local-path source affords no verified digest, so this is
+    # AC-0013's row 7 — reached before the recorded pin is even read.
+    source = _make_source(target.parent / "sync-tree-walk-check-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--check"]
+    )
+    assert catalogue_sync.run(args) == 3
+
+
+def _setup_check_compare_tree_success_target(target: Path) -> None:
+    pack_toml = target / "packs" / "alpha" / "pack.toml"
+    pack_toml.parent.mkdir(parents=True, exist_ok=True)
+    pack_toml.write_bytes(b'[pack]\nname = "alpha"\nversion = "1.0.0"\n')
+    _write_minimal_sync_state(
+        target,
+        packs=["alpha"],
+        managed_paths=[
+            {
+                "path": "packs/alpha/pack.toml",
+                "sha256": hashlib.sha256(pack_toml.read_bytes()).hexdigest(),
+            }
+        ],
+    )
+
+
+def _invoke_sync_check_compare_tree_success(target: Path) -> None:
+    source = _make_source(target.parent / "sync-tree-walk-compare-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--check", "--compare-tree"]
+    )
+    assert catalogue_sync.run(args) == 0
+
+
+def _setup_check_compare_tree_cannot_answer_target(target: Path) -> None:
+    _write_minimal_sync_state(target, packs=["alpha"], managed_paths=[])
+
+
+def _invoke_sync_check_compare_tree_cannot_answer(target: Path) -> None:
+    source = _make_source(
+        target.parent / "sync-tree-walk-compare-empty-source"
+    )
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--check", "--compare-tree"]
+    )
+    assert catalogue_sync.run(args) == 3
+
+
+def _setup_dry_run_scalar_container_target(target: Path) -> None:
+    _write_minimal_sync_state(target, packs=["alpha"])
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"] = 0
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+
+def _invoke_sync_dry_run_scalar_container_cannot_answer(target: Path) -> None:
+    source = _make_source(target.parent / "sync-tree-walk-scalar-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 3
+
+
+def _invoke_sync_dry_run_identity_leak_difference(target: Path) -> None:
+    source = target.parent / "sync-tree-walk-leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    assert catalogue_sync.run(args) == 1
+
+
 # Registry T5 adds to; later tasks extend it further rather than copying it.
 # Each value is a (setup, invoke) pair — see the section comment above.
 SYNC_TREE_WALK_CASES = {
@@ -1304,6 +1721,24 @@ SYNC_TREE_WALK_CASES = {
     ),
     "sync-dry-run-adapter-contract-refusal": (
         _setup_success_target, _invoke_sync_dry_run_adapter_contract_refusal,
+    ),
+    "sync-check-no-compare-tree-cannot-answer": (
+        _setup_success_target, _invoke_sync_check_no_compare_tree_cannot_answer,
+    ),
+    "sync-check-compare-tree-success": (
+        _setup_check_compare_tree_success_target,
+        _invoke_sync_check_compare_tree_success,
+    ),
+    "sync-check-compare-tree-cannot-answer": (
+        _setup_check_compare_tree_cannot_answer_target,
+        _invoke_sync_check_compare_tree_cannot_answer,
+    ),
+    "sync-dry-run-scalar-container-cannot-answer": (
+        _setup_dry_run_scalar_container_target,
+        _invoke_sync_dry_run_scalar_container_cannot_answer,
+    ),
+    "sync-dry-run-identity-leak-difference": (
+        _setup_success_target, _invoke_sync_dry_run_identity_leak_difference,
     ),
 }
 

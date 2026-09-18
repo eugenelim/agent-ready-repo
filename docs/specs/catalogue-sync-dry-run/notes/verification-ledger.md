@@ -871,3 +871,209 @@ message rather than the recorded fields.
 - AC-0008's identical-plans assertion is **byte equality** of the two captured
   stdout strings across two runs whose recorded modes differ — not a structural
   or subset comparison.
+
+## Wave 7 — T8
+
+- **Date:** 2026-09-18
+- **Worker:** the `implementer` subagent.
+
+### What was built
+
+`run()` now dispatches on `check`/`compare_tree` to three branches, each
+implementing a slice of spec AC-0013's ordered table: `_run_dry_run` (the
+`--dry-run` rows, extracted unchanged plus one new check), `_check_digest_only`
+(`--check`, no `--compare-tree`: compares the recorded pin's `archive_sha256`
+against the resolved source's own verified digest), and `_check_compare_tree`
+(`--check --compare-tree`: compares every recorded path's on-disk hash against
+its recorded one, through `sha256_confined_regular_file`, never reading the
+resolved source). `_compare_recorded_entry` and `_report_check_result` are the
+two new helpers the latter two share. The resolver's `try/except` gained a
+bare `except Exception` arm (AC-0014's second boundary case), and
+`_run_dry_run` gained the recorded-path-container-is-an-array check (row 4)
+between the AC-0009 selection guard and the replay call.
+
+### The row-4 container check, and why it wasn't already there
+
+Before this task, a scalar `managed_paths` (e.g. `0`) was silently coerced to
+`[]` inside `_classify_planned_paths`'s own defensive `isinstance` guard, so a
+`--dry-run` against that state printed a plan with zero counts — a
+comparison the command never performed, reading as "nothing differs" per
+`upstream-sync.md`'s stated invariant. `_run_dry_run` now loads the raw state a
+second time and refuses before any plan can print; `_check_compare_tree`
+shares the same check for its own container.
+
+### The STUB fixture happens to satisfy two rows at once, and the wording had to accommodate that
+
+`derived_tree`'s `pin.archive_sha256` is `null` and its `--source` in the STUB
+is a local path, so `--check` against it satisfies row 7 ("the resolved source
+affords no verified digest") **and** row 8 ("the recorded archive_sha256 is
+absent...") simultaneously. First-match-wins means row 7's message is what
+prints, and the STUB (pinned, not editable) asserts `"archive_sha256"` appears
+in stderr — so row 7's refusal reads "the resolved source affords no verified
+**archive_sha256**" rather than "...no verified digest". Row 8's own wording
+is unchanged. Both rows return the same code either way; this only affects
+which reason string is printed for a fixture where both conditions hold.
+
+### A leak-check false negative traced to `collect_fields`'s own default, not a defect
+
+The first version of the identity-leak CLI-level test (row 5) used
+`derived_tree` as the target and returned exit `0`, not `1`. `derived_tree`'s
+recorded recipe already carries a real `owner_email`
+(`maintainer@example.com`), and `collect_fields(interactive=False)` seeds
+`cfg.owner_email` from that recorded value when none is passed explicitly.
+`_transform_text` then finds `cfg.owner_email` truthy and differing from the
+leaky source's anchor email, so it substitutes the anchor away **before** the
+leak check ever runs — correct behaviour, not a bug. Reproduced standalone
+(outside pytest) to confirm before changing anything. Fixed by using a target
+with only `_write_minimal_sync_state`'s minimal recipe (no owner fields), which
+is what leaves `cfg.owner_email` empty and the anchor observable — matching
+T4's own leak-row fixture, which uses an equally bare target.
+
+### The four `archive_sha256` shapes, and where each routes
+
+`""`, `0`, `{}`, and a 63-character hex string all reach `--check`'s
+cannot-answer row (row 8), driven against a `catalogue+https://` source whose
+own resolved digest is a valid 64-hex value — so the *only* way each case can
+fail is through the recorded-pin check, not row 7. `0` and `{}` fail the
+`isinstance(recorded, str)` guard before the regex is even tried.
+
+### The four `--compare-tree` trees, and the counts that distinguish them
+
+Clean (`derived_tree` unmodified) → `0`. Edited (`README.md` rewritten) → `1`.
+Empty (`managed_paths: []`) → `3`. Partially dropped (one of two recorded
+files deleted from disk, the other untouched) → `3` — this is the case that
+proves the implementation doesn't read "1 of 2 compared, 0 differ" as
+success; `_compare_recorded_entry` returns `None` for the absent file via
+`sha256_confined_regular_file`'s own `UnsafeContentError`, and `_check_compare_tree`
+treats any single `None` as the whole answer, not a partial one.
+
+### No fifth code — how this was established, not merely asserted
+
+`test_sync_no_invocation_produces_a_code_outside_the_four` drives one
+`derived_tree`/`upstream` fixture pair through five invocations — a
+succeeding dry-run, a malformed one, a check that cannot answer, a clean
+compare-tree, and an edited compare-tree — collecting the returned codes into
+a `set` and asserting it equals exactly `{0, 1, 2, 3}`: every code the table
+declares, reached by this one fixture pair, and nothing outside it. Every
+other new test in this task's section additionally asserts a specific code
+per row, so a fifth code introduced by any single row would already fail
+that row's own test before reaching this one.
+
+### Supervisor verification
+
+- `pytest …/test_catalogue_sync.py` → **80 passed** (baseline 59, +21).
+- `pytest …/test_catalogue_tooling_self_hosted_init.py` → **432 passed**, no
+  regression and no identity-leak trip from the new condition strings (none
+  contain "upstream" — checked by grep before running).
+- `pytest …/test_catalogue_init_cli_self_hosted.py` → **16 passed**, unchanged.
+- `make lint-ruff` → All checks passed. `make lint-mypy` → Success, 150 files
+  (unchanged — no new module).
+- Tree-walk rows added: `sync-check-no-compare-tree-cannot-answer`,
+  `sync-check-compare-tree-success`, `sync-check-compare-tree-cannot-answer`,
+  `sync-dry-run-scalar-container-cannot-answer`, and
+  `sync-dry-run-identity-leak-difference` — five new `(setup, invoke)` pairs
+  parametrising the same `walk_target_tree` helper T4 introduced.
+
+### Manual verification (Construction tests' declared pass)
+
+A real derived catalogue built via `catalogue init --preset self-hosted
+--source <this worktree> --pack catalogue-curation` in a scratch temp
+directory, driven through the CLI's own `agentbundle.cli.main` (not `run()`
+directly), because an unrelated editable install elsewhere on this machine
+resolves a bare `agentbundle` invocation to a different worktree — worked
+around by inserting this worktree's `packages/agentbundle` at the front of
+`sys.path` and clearing any already-imported `agentbundle.*` modules first,
+never by touching global install state.
+
+| Invocation | Exit | Observed |
+| --- | --- | --- |
+| `sync --dry-run` | 0 | `counts: would-update=54 … untouched=1768 … compared=54 uncompared=0` |
+| `sync --dry-run --format json` | 0 | `summary` matches the table run exactly; 1822 verdicts (54 + 1768) |
+| `sync --check` | 3 | `error: the resolved source affords no verified archive_sha256` (local-path source affords none) |
+| `sync --check --compare-tree` | 0 | `check: current` |
+
+All four invocations were run twice, back to back; a `find … -exec shasum -a
+256` snapshot of the derived tree taken before the second round and compared
+byte-for-byte with one taken after — **`diff` reported no output, exit 0** —
+confirming no invocation wrote anything, including the resolution and
+comparison steps that read the live worktree as `--source`.
+
+### Out of scope observed
+
+- `check_spec_version_gate`'s own refusal message (`commands/_common.py`)
+  still does not route its `declared` value through the terminal-safe check —
+  the AC-0012 gap T7's ledger entry already recorded. Unchanged by this task;
+  still outside its `Touches`.
+- The `--check --compare-tree` follow-on (resolving a source it never reads)
+  is unchanged, per the brief's explicit instruction not to touch it here.
+
+## Manual verification — the real CLI against a real derived catalogue
+
+§ Construction tests requires this pass with observed stdout, stderr and exit
+codes recorded. Run by the supervisor on 2026-09-18, after T8 landed.
+
+### Setup
+
+A derived catalogue built by the real command, not a fixture:
+
+```
+catalogue init <tmp>/derived --preset self-hosted --source .
+```
+
+21 packs, 3 profiles, **1822 recorded managed paths**.
+
+**The invocation matters.** `python3 -m agentbundle catalogue sync --help` fails
+with `invalid choice: 'sync'` — that resolves the *installed* copy, which
+predates this work. Every command below ran as
+`PYTHONPATH=packages/agentbundle python3 -m agentbundle …` so it exercises the
+worktree's source.
+
+### The four invocations
+
+| Invocation | Exit | Observed |
+| --- | --- | --- |
+| `sync --dry-run` | **0** | `fidelity: local-path`; modes `attribution=white-label tooling=external guides=selected (from flags-and-defaults)`; 21 packs, 3 profiles; per-path `would-update` verdicts |
+| `sync --dry-run --format json` | **0** | the seven counts, `rejections: []`, `modes` with `provenance: flags-and-defaults`, and **no `source` key** |
+| `sync --check` | **3** | `error: the resolved source affords no verified archive_sha256` |
+| `sync --check --compare-tree` | **0** | `check: current` |
+
+Exit codes were captured from each command directly, not through a pipe — a
+piped `$?` reports the last stage, which is how a wrong exit code gets recorded
+as a pass.
+
+### What this confirms on production-shaped data
+
+- **AC-0003 end to end.** The replayed modes are the safe defaults with
+  `provenance: flags-and-defaults`, against a state whose recipe was written by
+  a real `init` run. This is the criterion T3's seam could not express.
+- **AC-0002.** Under the default `white-label`, the JSON document carries no
+  `source` key at all — absence, not an empty string.
+- **AC-0016's identity on 1822 paths.** `compared + uncompared = 1822 + 0 =
+  1822`, and the state document's raw `managed_paths` array is **1822** long.
+  Read independently from the file rather than from the command's own output.
+- **AC-0013 row 7.** A local-path source affords no verified digest, so `--check`
+  refuses with cannot-answer rather than reporting a comparison it did not make.
+  This is the defect the round-1 finding named: a `--check` that answers "up to
+  date" because it had nothing to compare.
+- **AC-0015, the no-write invariant.** A SHA-256 over every file's content and
+  path, before and after all four invocations: `d3ae9176d69d9c264b2ab5b9f9e8b7d9`
+  both times, byte-identical.
+
+### An instrument error, corrected rather than reported as a finding
+
+The first before/after comparison appeared to show the tree changing —
+`70a8a013…` to `d3ae9176…`. That was **my measurement, not a write**: the
+"before" hash was taken with `find <absolute path>` and the "after" with `find
+derived`, and `shasum` includes each file's path in the digested text, so the
+two runs hashed different strings for identical content. Re-measured with one
+identical command form on both sides, the digests match exactly.
+
+Recorded because a false positive on this spec's central property is worth more
+as a warning than as a silent correction: verify the comparison instrument
+before trusting its verdict.
+
+### Not exercised in this pass, stated so it is not mistaken for coverage
+
+A digest-bearing source, a leak violation, an underivable state, and a
+compatibility signal. Each is owned by a TDD case — the plan's own § Construction
+tests says so, and this pass does not substitute for them.
