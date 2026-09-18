@@ -37,11 +37,15 @@ deliberately — never automatically — and only for a wave that clears the
 - **Disjointness half — on populated branches.** A clean `git merge-tree`
   file-disjointness check is only meaningful once the implementers have
   written and committed, so it is enforced at the **merge** step (step 5's
-  `git merge --no-ff` aborts on any collision — the loud backstop). Run
-  `loop-cohort dispatch-decision --branch <b> …` (categories auto-derived) as a
-  read-only **preview** of that check (it classifies each branch + runs
-  `wave_is_disjoint`, printing `parallel` or `serial`) before paying for a
-  merge you expect to abort.
+  `git merge --no-ff` aborts on any collision — the loud backstop). The
+  read-only **preview** of that check is `loop-cohort dispatch-decision
+  --branch <b> …` (categories auto-derived), which classifies each branch and
+  then calls `dispatch_decision(categories, merge_tree_clean=…)` to print
+  `parallel` or `serial`. Read that signature carefully: the function
+  **consumes** a merge-tree verdict its caller hands it — it does not compute
+  one, and no part of the shipped scripts runs `git merge-tree`. The producer
+  of that verdict is **unbuilt**, so the preview cannot be relied on for
+  disjointness; step 5's aborting merge is where the check actually runs.
 - **Even earlier — `Touches:` screen (optional).** If the plan's tasks declare
   `Touches:` globs, `loop-cohort schedule` prints `predicted-disjoint:
   yes|no|unknown` per wave. Treat a `no` as a reason to keep the wave serial
