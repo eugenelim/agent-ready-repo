@@ -1273,3 +1273,81 @@ from 18 to 38. It may also be that later batches are being adjudicated under a
 rule the earliest ones were not: the `survives` bin did not exist for the first
 two batches, and three of its members were re-binned by hand. **Both readings
 are live, and the 25 remaining cases are what separates them.**
+
+### Batch rem-c: a skip that could have been mistaken for coverage
+
+Five new cases, **30 repairs, 4 revert arms**, every revert asserted. Outcome:
+**2 semantic kills, 0 structural, 4 survives, 24 unmeasurable.** Both
+adjudication chunks returned full coverage and the merged result passes the gate
+at 30 of 30.
+
+**The trap this batch was a skip, not a failure.** Arm 4 reported `43 passed, 5
+skipped` — identically in baseline and treatment. A skipped test cannot fail, so
+five skips inside the co-changed file could have been the discriminating
+controls, which would make the arm `unmeasurable` for three repairs at once
+rather than a survival.
+
+They were checked. All five are **permanently-skipped stubs whose bodies were
+never written**:
+
+- replay the pending event when its `to` matches state
+- discard the pending event when its `to` mismatches state
+- crash-then-next-transition — pending from a prior crash must be replayed or
+  discarded at the top of the next `cmd_transition`, not lost
+- cross-spec — crash on spec-A then transition on spec-B must recover spec-A's
+  pending before writing spec-B's new event
+- graceful degradation — make `events.jsonl` append raise `PermissionError` and
+  assert the `engine-state.json` write still succeeds
+
+They cover crash recovery, not the three repairs in the arm, and `git show`
+confirms the commit never touched them. So they are not this case's oracle, and
+the adjudicator was told so explicitly. **They are recorded as a corpus fact:
+the loop engine's co-changed event suite ships five unwritten crash-recovery
+stubs.** `43 passed` is what that suite reports.
+
+**A distinct survival mechanism, specific to withdrawals.** `031c7e2f4` drops
+`retry_state` from the event line. Its three repairs all survive, and Worker A
+pre-registered a separate reason for each: the co-changed suite **deleted** the
+`retry_state` assertions and added no assertion that emitted events lack the
+field, no replacement for the lagging-round defect, and no retained check on
+event-key cardinality. For a removal repair, reverting restores the removed
+thing — and nothing asserts its absence. That is a different failure shape from
+the hollow controls seen earlier, where an assertion existed but could not
+discriminate.
+
+### Running totals: 41 of 61 cases, 249 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 205 | 82.3% |
+| survives | 20 | 8.0% |
+| semantic kill | 16 | 6.4% |
+| structural kill | 8 | 3.2% |
+
+| Among the 44 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 20 | 45% |
+| semantic kill | 16 | 36% |
+| structural kill | 8 | 18% |
+
+**The rising share has flattened.** Repairs shipping without a control that
+fails for the dispatched defect, across six successive reports:
+
+| Report | measurable n | no semantic control |
+| --- | ---: | ---: |
+| 26 cases | 18 | 39% |
+| 29 cases | 23 | 52% |
+| 31 cases | 25 | 56% |
+| 36 cases | 38 | 63% |
+| **41 cases** | **44** | **64%** |
+
+The jump from 39% to 63% happened while the measurable subset grew from 18 to
+38; adding six more observations moved it one point. **That flattening is
+evidence for the first of the two readings recorded earlier and against the
+second.** If the rise had been adjudication-rule drift — later batches scored
+under a `survives` bin the earliest ones lacked — it would keep climbing as more
+batches were scored under the newer rule. It did not. The value looks like it is
+settling near **28 of 44**.
+
+Twenty cases remain, so this is still not the final figure, but it is the first
+report where the headline moved by less than the sampling noise.
