@@ -56,159 +56,91 @@ Complete all five steps before writing any code (create/retrofit) or running any
 
 ### 0. Design handoff read
 
-Before naming an aesthetic reference, read the adopter's design handoff. When one
-resolves it names the direction; the canonical reference set in step 1 is the
-fallback for a slot no artifact filled, not the default.
+Read the adopter's design handoff before naming an aesthetic reference: when one
+resolves it names the direction, and step 1's canonical set is the fallback for a
+slot no artifact filled, not the default. **Read
+`references/design-handoff.md` first and follow it** — it is the contract, and
+carries the reasoning for every rule below.
 
-`references/design-handoff.md` is the contract: which files are this handoff,
-what is taken from each, and what `type:` does and does not establish. Read it
-before this step, and follow it — the paragraphs below add the resolution,
-approval and failure rules, not a second copy of the extraction contract.
+**1 — Resolve.** Read `[design] output_dir` from the adopter's
+`agentbundle-layout.toml`: repo-root file first, then user-profile when the
+repo-root one is absent or carries no `[design]` key. Quote the value you read —
+if you did not open a file, you have not resolved it. **Anchor it by the layout
+file's own location**, never the ambient working directory: a repo-root value is
+repo-root-relative (absolute allowed, warn as non-portable); a user-profile value
+must be an explicit absolute path (`~`-anchored is fine), and a relative value
+there is an Ask-first deviation. Neither branch yielding a `[design]` section is a
+named skip, `design handoff: no [design] section configured` — use the canonical
+set.
 
-**Resolve the directory.** Read `[design] output_dir` from the adopter's
-`agentbundle-layout.toml`: the repo-root file first, then the user-profile file
-when the repo-root one is absent or carries no `[design]` key. Quote the value you
-read before using it. If you did not open a file, you have not resolved it.
+**2 — Bind the slug.** `<slug>` is the slug the operator names; all three read
+paths resolve under it. Taking it from how the request was written is binding, not
+deriving — "the payment screen for our checkout flow" names `checkout`. State it.
 
-**Anchor `output_dir` by the layout file's own location**, never against the
-ambient working directory: a **repo-root** file's `output_dir` is
-**repo-root-relative** (an absolute value is permitted but warn it as
-non-portable); a **user-profile** file's `output_dir` **must be an explicit
-absolute path** (`~`-anchored is fine), and a relative value there is an
-Ask-first deviation, never silently resolved. Without this the approved root is
-whatever the ambient cwd makes it, so an agent sitting in a sibling checkout that
-also carries a design tree reads that one, reads as in-tree, and never reaches the
-heightened-root branch.
+- No slug named → ask; only when no answer can be obtained is that a refusal.
+- Named slug not matching `^[a-z0-9]+(-[a-z0-9]+)*$`, or over 64 characters →
+  refusal **before any path is composed**. Refuse it; do not repair it — no
+  sanitizing, stripping, lowercasing or tidied alternative.
 
-- No `agentbundle-layout.toml` and no `[design]` section after **both** branches
-  have been tried → named skip, `design handoff: no [design] section configured`.
-  Use the canonical reference set.
-- A layout file that exists but cannot be parsed, or a `[design] output_dir` that
-  is missing, empty, or not a string → **named refusal**, not a skip.
+**3 — Approve the root.**
+- At or beneath a reserved tree → refusal, **never confirmable**. Reserved: `.apm/`
+  and everything under it for a repository-sourced value; the agent host's
+  installed-skill directories for a user-profile value.
+- Repo-root value resolving outside the repository tree → explicit confirmation
+  before use.
+- User-profile value → approve against the declared absolute root that
+  configuration names.
 
-**Bind the slug.** `<slug>` is the surface or product slug the operator names for
-the surface being built. All three read paths resolve under that one slug.
+A **heightened root** is user-profile-sourced *or* outside the repository tree —
+the union, since either key alone leaves a case uncovered.
 
-Taking it from how the operator wrote the request is binding, not deriving: a
-request for "the payment screen for our checkout flow" names `checkout`, and
-using it is correct. State the slug you bound so the operator can see it.
+**4 — Confine, by running the resolution.** Within the approved root means the
+realpath equals it or is a descendant component by component; a string prefix is
+not that test. Execute the resolution and read its output. Apply this predicate
+**and** the reserved-tree test at every resolved path — each directory component as
+enumeration reaches it, and each artifact path. An entry resolving out of the root
+is a confinement refusal at that entry, before its listing is surfaced or its
+depth counted.
 
-- The request names no slug → ask for one. Only when no answer can be obtained —
-  an unattended run, say — is that a **named refusal**. Do not invent one to
-  proceed.
-- The slug the operator named does not match `^[a-z0-9]+(-[a-z0-9]+)*$`, or
-  exceeds 64 characters → **named refusal, raised before any path is composed.**
+**5 — Bound the scan, in this order.** Enumerate a directory up to **200 entries**,
+resolving each as it is reached and checking depth; then at most **12** matching
+files; then **128 KiB** per file; at most **2** levels below `output_dir`. Exceeding
+any is a refusal naming which; when the cap truncates before a later entry is
+reached, the cap is the bound reported.
 
-  Refuse it; do not repair it. This is the one place the rule bites: having
-  rejected a slug, do not sanitize it, strip the offending characters, lowercase
-  it, or offer a tidied version and carry on. Say which rule it broke and ask for
-  a conforming one. The failure this prevents is a real one — given a slug
-  carrying traversal segments, an agent substituted a tidy slug of its own and
-  completed the run, so the operator asked for one name and silently received
-  another while the control reported success.
+**6 — Filter by `type:`, then read.** A file under a read path whose frontmatter
+`type:` is absent, unparseable, or not that path's literal is **not that artifact**:
+skip it, keep scanning — a skip, not a refusal, since design directories hold many
+kinds. A key a template declares but the file omits is recorded absent and the
+artifact consumed anyway; only `type:` is required.
 
-**Approve the root before reading anything under it.**
+**7 — Confirm, under a heightened root.** Surface the approved root, the
+configuration file it came from, the artifact's `output_dir`-relative path, the
+source token, its first `# ` heading, and its frontmatter; then take explicit
+confirmation. Nothing here discriminates which product an artifact belongs to, so
+this is the whole control — never report belonging as mechanically confirmed.
 
-- The root, or any path reached later, at or beneath a reserved tree → **named
-  refusal, never confirmable.** Reserved trees are `.apm/` and everything under it
-  for a repository-sourced value, and the agent host's installed-skill directories
-  for a user-profile value.
-- A repo-root value whose realpath falls outside the repository tree → take
-  explicit confirmation before use. The root is then **heightened**.
-- A user-profile value → approve it against the declared absolute root that
-  configuration names. It is **heightened** whether or not it resolves in-tree.
-- Approval refused or failed → **named refusal**, before any artifact is read.
+**Naming.** Every path surfaced or recorded is `output_dir`-relative plus one of
+two source tokens, `repository layout configuration` or `user-profile layout
+configuration`; neither is a path. The confinement refusal is the exception, since
+a path outside the root has no relative form.
 
-A **heightened root** is one that is user-profile-sourced *or* resolves outside
-the repository tree. Either alone leaves a case uncovered: a cloned repository's
-own configuration can name an absolute path outside the tree, and a user-profile
-root can resolve inside it.
-
-**Compare on resolved path components, and run the resolution.** Within the
-approved root means the realpath is that root or a descendant of it component by
-component. A string prefix is not that test. Execute the resolution and read its
-output; do not reason about the path. A check phrased as "confirm" is skipped on
-some runs, and every skip reads outside the approved root.
-
-Apply the predicate — and the reserved-tree test — at **every** resolved path:
-each directory component as enumeration reaches it, and each artifact path.
-
-- An entry whose resolution leaves the approved root → **named
-  confinement-failure refusal at that entry**, before its listing is surfaced or
-  its depth counted.
-- An artifact path not equal to, or a descendant of, the approved root → **named
-  confinement-failure refusal**, reporting the resolved path so the operator can
-  see where the read would have gone.
-
-**Enforce the bounds, in this order.** Enumerate a directory up to **200 entries**,
-resolving each entry as it is reached and checking its depth; then at most **12**
-matching files; then at most **128 KiB** per file; at most **2** directory levels
-below `output_dir`. Exceeding any of them is a **named refusal** that says which
-bound. When the entry cap truncates a directory before a later entry is reached,
-the cap is the bound reported.
-
-**Filter by `type:`, then read.** A file under a read path whose frontmatter
-`type:` is absent, unparseable, or not that path's required literal is **not that
-artifact**: skip it and keep scanning. This is a skip, not a refusal — a design
-directory legitimately holds many artifact kinds.
-
-- A frontmatter key a template declares but the file omits → record it absent and
-  consume the artifact anyway. Only `type:` is required.
-- A type-matched file that cannot be read, or a canonicalization that raises —
-  including a symlink loop, which raises differently from an I/O failure →
-  **named refusal**, not a skip.
-
-**Under a heightened root, confirm each artifact before using it.** Show the
-approved root, the configuration file it was read from, the artifact's path
-relative to `output_dir`, the configuration source token, its first `# ` heading,
-and its frontmatter. Then take explicit confirmation.
-
-- Confirmation missing or refused → **named refusal.** Do not consume that
-  artifact, and do not treat it as a skip.
-
-Nothing in these artifacts discriminates which product they belong to, so this
-confirmation is the whole control. Never report belonging as mechanically
-confirmed.
-
-**Name every path the same way.** A path you surface or record is written relative
-to `output_dir` plus one of exactly two configuration source tokens —
-`repository layout configuration` or `user-profile layout configuration`. Neither
-is a path. The one exception is a confinement-failure refusal, which reports the
-resolved path because a path outside the root has no meaningful relative form.
-
-**What reaches the canonical reference set.** A slot with no conforming artifact
-is a named skip for that slot, and step 1's canonical set fills that slot alone. A
-resolved directory with no conforming artifact in any slot is the second
-directory-level skip, `design handoff: no conforming artifact under <output_dir>`.
+**What reaches the canonical set.** A slot with no conforming artifact is a named
+skip and step 1 fills that slot alone; a resolved directory with none in any slot
+is the second skip, `design handoff: no conforming artifact under <output_dir>`.
 Those skips are the only states that reach it.
 
-**Every refusal stops the whole read.** There are six. Record the matching name
-verbatim, as you would a skip — each is written here so two runs of the same
-failure do not report it two different ways:
+**Every refusal stops the whole read** and halts the mode in a named state.
+Record the matching name verbatim from the table in `references/design-handoff.md`
+§ The six refusals, so two runs of one failure do not report it two ways.
 
-| Refusal | Record |
-| --- | --- |
-| Reserved tree at any resolved path | `design handoff: reserved tree — `<output_dir>`-relative path (<source token>)` |
-| Confinement failure at any resolved path | `design handoff: outside the approved root — resolved to <resolved path>` |
-| Slug non-conforming, or none obtainable | `design handoff: slug rejected — <which rule it broke>` |
-| Confirmation missing or refused | `design handoff: confirmation declined — `<output_dir>`-relative path (<source token>)` |
-| A bound exceeded | `design handoff: bound exceeded — <which bound> at `<output_dir>`-relative path` |
-| A dependency failure — including a `[design] output_dir` that is missing, empty, or not a string | `design handoff: could not read <what> — <why>` |
-
-The confinement refusal is the one that names an absolute path, because a path
-outside the approved root has no meaningful relative form; every other refusal
-names its subject relative to `output_dir` plus the configuration source token.
-
-On any of them, halt the mode in a named state the operator must resolve. Do not
-repair or normalize the rejected value. Do not substitute another slug, artifact,
-or output directory. Do not downgrade the refusal to a skip. Do not consult the
-canonical reference set for any slot. Discard whatever this read already
-extracted, so a refusal on the third artifact does not leave the first two feeding
-the code you write.
-
-These are instructions, not an enforced boundary, and a refusal cannot unread
-bytes already loaded. An adopter needing a guarantee enforces it outside the
-agent.
+After any of them: do not repair or normalize the rejected value; do not
+substitute another slug, artifact or output directory; do not downgrade to a skip;
+do not consult the canonical set for any slot; and discard whatever this read
+already extracted, so a refusal on the third artifact does not leave the first two
+feeding the code you write. These are instructions, not an enforced boundary, and
+a refusal cannot unread bytes already loaded — an adopter needing a guarantee
+enforces it outside the agent.
 
 ### 1. Named aesthetic reference
 

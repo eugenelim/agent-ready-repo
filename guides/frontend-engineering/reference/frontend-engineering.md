@@ -18,9 +18,9 @@ This page gives one-line descriptions and the correct trigger for each.
 
 The entry point for all frontend work. Four modes — create (new surface),
 retrofit (improving existing), audit (review only), verify (run gates).
-Provides the design pre-flight (design handoff read, named aesthetic reference,
-genre routing, seed token block, state matrix), craft rules, GATES verification
-commands,
+Provides the design pre-flight (design handoff read, named aesthetic
+reference, genre routing, seed token block, state matrix), craft rules,
+GATES verification commands,
 and evidence manifest format. Load this skill whenever a task's primary output
 is HTML, CSS, or JS.
 

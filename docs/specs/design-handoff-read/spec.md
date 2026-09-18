@@ -213,9 +213,17 @@ directory of many non-matching entries would otherwise be walked in full first.
 ## The terminal-effect obligation
 
 The Testing Strategy's numbered list is the canonical enumeration of what a
-refusal must not do afterwards. Every other statement of it — in this spec, the
-plan, `references/design-handoff.md`, and the guide — names that list rather than
-restating its items.
+refusal must not do afterwards. Every other statement of it **inside this
+repository** — this spec and the plan — names that list rather than restating its
+items.
+
+**The shipped pack is the stated exception.** `packs/AGENTS.md` forbids shipped
+pack content from citing this catalogue's internal records, and an adopter reading
+`references/design-handoff.md` or the guide has no access to this spec, so a
+pointer would resolve to nothing for the only audience those files have. Both
+therefore state the obligation in full. That is a portability copy rather than
+drift — but it is a second full statement, nothing mechanical compares the two,
+and an edit to one will not move the other. Recorded rather than left implicit.
 
 ## Boundaries
 
@@ -435,8 +443,9 @@ control criterion and owes the paired runs above.
 - [x] **(static)** `references/design-handoff.md` states that nothing in the three
       artifacts discriminates the product they belong to, so operator confirmation
       is the control and belonging is never reported as mechanically confirmed; and
-      names the Testing Strategy's terminal-effect list as the obligation every
-      refusal carries.
+      carries the terminal-effect obligation in full, under the portability
+      exception § The terminal-effect obligation records, so a reader can check it
+      without access to this repository.
 - [x] **(static)** `references/design-handoff.md` states the residual the Testing
       Strategy names: a refusal cannot unread bytes, and an adopter needing content
       never to enter the agent's context enforces that outside the agent.

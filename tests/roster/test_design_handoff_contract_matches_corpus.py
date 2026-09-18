@@ -61,7 +61,7 @@ OFF_EVERY_READ_PATH = "off-every-read-path"
 # leading separator and does not match.
 ABSOLUTE_PATH_RE = re.compile(
     r"""(?x)
-    (?<![A-Za-z0-9._/-])            # ...at a token boundary, so `docs/design/`
+    (?<![A-Za-z0-9._/*-])           # ...at a token boundary, so `docs/design/`
     /(?!/)[A-Za-z0-9._-]+/          # POSIX absolute: /<segment>/   is not a hit
     | ~/                            # home-anchored
     | [A-Za-z]:[\\/]              # Windows drive
@@ -90,6 +90,7 @@ KNOWN_GOOD_LINES = (
     "measured over docs/design/ on 2026-09-18",
     "see `references/design-handoff.md`",
     "a ratio of 1/3 and a path shape like direction/<slug>.md",
+    "triggered for `packs/**/.apm/skills/**`",
 )
 
 
@@ -177,15 +178,13 @@ def test_contract_carries_exactly_the_three_artifact_rows(contract):
     """
     assert contract, "no rows parsed from the reference's read-path table"
     assert len(contract) == 3, f"expected three artifact rows, parsed {len(contract)}"
-    assert {row["read_path"] for row in contract} == {
-        "direction/<slug>.md",
-        "screens/<slug>/<screen>.md",
-        "tokens/<slug>.md",
-    }
-    assert {row["type"] for row in contract} == {
-        "creative-direction",
-        "screen-flow-brief",
-        "token-taxonomy",
+    # Paired, not two independent sets. Comparing `{read_path}` and `{type}`
+    # separately lets a swap between two rows satisfy both — verified by
+    # mutation, it left every classification assertion green.
+    assert {(row["read_path"], row["type"]) for row in contract} == {
+        ("direction/<slug>.md", "creative-direction"),
+        ("screens/<slug>/<screen>.md", "screen-flow-brief"),
+        ("tokens/<slug>.md", "token-taxonomy"),
     }
 
 
@@ -215,25 +214,42 @@ def test_every_corpus_file_lands_in_exactly_one_state(contract, corpus_files, sl
 
 
 @pytest.mark.parametrize(
-    ("slug", "expected_matched", "expected_off_path"),
-    [("team-orientation", 7, 35), ("tech-site-amendment", 1, 41)],
+    ("slug", "expected_matched"),
+    [
+        (
+            "team-orientation",
+            {
+                "screens/team-orientation/guides-index.md",
+                "screens/team-orientation/internal-case-route.md",
+                "screens/team-orientation/marketing-home.md",
+                "screens/team-orientation/operating-model-canvas.md",
+                "screens/team-orientation/operating-model-canvas-composition.md",
+                "screens/team-orientation/path-page.md",
+                "screens/team-orientation/search-results.md",
+            },
+        ),
+        ("tech-site-amendment", {"direction/tech-site-amendment.md"}),
+    ],
 )
-def test_per_slug_counts_match_the_measured_corpus(
-    contract, corpus_files, slug, expected_matched, expected_off_path
+def test_the_matched_set_is_exactly_what_the_read_paths_reach(
+    contract, corpus_files, slug, expected_matched
 ):
-    """Counts are per bound slug, never over the slug union.
+    """Assert the matched set by name, and derive off-path from it.
 
-    The union figure (9 matched / 33 off-path) is produced by no single run, so
-    asserting it would fail under both slugs.
+    Pinning a total instead would red whenever anyone adds a design document
+    anywhere in the tree — a failure that says nothing about the contract. The
+    matched set only changes when a read path or a `type:` literal changes, which
+    is what this module is for.
     """
-    matched = sum(
-        1
+    matched = {
+        p.relative_to(CORPUS).as_posix()
         for p in corpus_files
         if _classify(p.relative_to(CORPUS).as_posix(), p, contract, slug)
         != OFF_EVERY_READ_PATH
-    )
-    off_path = len(corpus_files) - matched
-    assert (matched, off_path) == (expected_matched, expected_off_path)
+    }
+    assert matched == expected_matched
+    off_path = len(corpus_files) - len(matched)
+    assert off_path == len(corpus_files) - len(expected_matched)
 
 
 def test_some_corpus_file_is_consumed(contract, corpus_files):

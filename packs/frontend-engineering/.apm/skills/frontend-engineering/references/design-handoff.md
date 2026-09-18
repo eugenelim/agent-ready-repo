@@ -119,6 +119,26 @@ traversal segments, an agent substituted a tidy slug of its own and completed th
 run, so the operator asked for one name and silently received another while the
 control reported success.
 
+## The six refusals
+
+Every refusal ends the whole read and halts the mode in a named state. Record the
+matching name verbatim, so two runs of one failure do not report it two ways:
+
+| Refusal | Record |
+| --- | --- |
+| Reserved tree at any resolved path | `design handoff: reserved tree — <relative path> (<source token>)` |
+| Confinement failure at any resolved path | `design handoff: outside the approved root — resolved to <resolved path>` |
+| Slug non-conforming, or none obtainable | `design handoff: slug rejected — <which rule it broke>` |
+| Confirmation missing or refused | `design handoff: confirmation declined — <relative path> (<source token>)` |
+| A bound exceeded | `design handoff: bound exceeded — <which bound> at <relative path>` |
+| A dependency failure — an unparseable layout file, an `output_dir` missing, empty or not a string, an unreadable type-matched file, a canonicalization that raises including a symlink loop | `design handoff: could not read <what> — <why>` |
+
+After any of them: do not repair or normalize the rejected value; do not
+substitute another slug, artifact or output directory; do not downgrade the
+refusal to a skip; do not consult the canonical product-reference set for any
+slot; and discard whatever the read already extracted, so a refusal on the third
+artifact does not leave the first two feeding the emitted code.
+
 ## The limit of everything on this page
 
 These are instructions to an agent. No gate enforces them, and a skipped check

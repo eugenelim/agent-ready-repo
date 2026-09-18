@@ -458,10 +458,11 @@ floor that cannot be shown to red is not a floor.
   of four states — consumed, skipped as not-this-artifact, off every read path, or
   refused. "Off every read path" is its own state, not folded into the `type:`
   skip: conflating the two would let a widened read path still classify everything
-  as skipped. The expected count is **per bound slug**, not over the slug union:
-  of 42 files, `team-orientation` matches 7 and leaves 35 off-path, and
-  `tech-site-amendment` matches 1 and leaves 41. The union figure of 33 is produced
-  by no parametrized run and must not be asserted.
+  as skipped. The expectation is the **matched set by name, per bound slug** —
+  `team-orientation` reaches the seven files under its `screens/` directory,
+  `tech-site-amendment` the one direction artifact — with off-path derived from it.
+  A pinned total would red whenever anyone adds a design document anywhere in the
+  tree, a failure that says nothing about the contract.
 - Floor: the test fails when the parsed contract is empty, when the corpus walk
   finds no files, when no file lands in the consumed state, or when the parsed
   contract does not carry exactly three artifact rows with the read paths and

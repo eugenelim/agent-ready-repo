@@ -101,7 +101,7 @@ own "proceed to step 2" inside genre routing, and the tutorial's "(step 1b —
 requires experience-design)". A renumbering insertion would have falsified all
 three, two of them outside this pack's skill.
 
-Five sites did change: the skill's opening summary, the five-step count, the
+Seven sites did change: the skill's opening summary, the five-step count, the
 `Steps 0–3` heading, both mode "run steps" lines, `JOURNEY.md`'s implementation
 sequence, and `pack.toml`'s starter prompt and expected result. A sweep for
 `step 1, 1b` / `all four steps` / `Steps 1–3` across `packs/frontend-engineering/`
@@ -250,11 +250,28 @@ mentions. That grep is the spec's own stated closing condition.
 | `validate_guides` / `lint-guide-titles` / `check-guide-index` / `lint-guidebook-steps` | all exit 0 |
 | `lint-spec-status --root .` | clean |
 
-`agentbundle catalogue lint --root . --deep` reports 73 findings, including one
-`CAT-S003` on this skill's `SKILL.md`. Measured both ways: the count and that
-finding are identical with this change stashed, so both are the pre-existing
-baseline on `origin/main`, not a regression from the ~150 lines step 0 adds. The
-skill was already over that ceiling.
+**Correction — an earlier row here recorded a false measurement.** It claimed
+`CAT-S003` on this skill's `SKILL.md` was pre-existing, "measured both ways", and
+that conclusion was wrong. The probe used `git stash`, which does not stash
+*committed* work, and step 0 was already committed when it ran — so the "baseline"
+still contained the change. The finding count was 73 either way, which looked
+clean, but the count was never the discriminator: `ok` versus `FAIL` was, and the
+probe compared counts.
+
+Re-measured against a pristine `origin/main` worktree: that copy is 912 body
+lines, produces zero ERRORs, and `lint --deep` exits **ok**. Step 0 pushed the
+body past the 1000-line hard threshold and turned the run into a **FAIL** — a
+regression this change introduced, on a job `.github/workflows/docs.yml` triggers
+for `packs/**/.apm/skills/**`.
+
+Repaired by compressing step 0 to its operative sequence and moving the refusal
+name table and the rationale into `references/design-handoff.md`, which is where
+the reasoning already lived. `lint --deep` now exits `ok: 73 finding(s)`, matching
+`origin/main`.
+
+The general lesson, recorded because it cost a false all-clear: a stash-based
+baseline is only a baseline for uncommitted work, and a finding **count** is not a
+gate result.
 
 **What is not covered by a gate.** The step's prose is read by no gate — that is
 stated in the spec, the reference and the adopter guide. The corpus test holds the
@@ -334,3 +351,43 @@ recurring one level down.
 
 Also repaired: three refusal templates carried an unbalanced `<…>` placeholder an
 agent is told to reproduce verbatim.
+
+## Post-implementation adversarial review, 2026-09-18
+
+Twelve findings, five blockers. All repaired. Three are worth recording.
+
+**The roster test ran on no pull request.** `tests/AGENTS.md` names three edits
+that adding a `tests/roster/` file obliges, and none had been made — so the
+suite executed nowhere, an acceptance criterion asserted it ran on pull requests
+through a `build-check.yml` step, and the changelog told adopters a mishandled
+file "fails a gate rather than a review". None of that was true, and
+`test_two_sided_prune_closure_invariant` was already red because of the missing
+manifest entry. All three edits are in: the workflow step, the
+`lint-ci-parity.py` disposition, and `.workspace-prune-protected.toml`. That
+closure test is 47/47 and `lint-ci-parity` exits 0.
+
+This is the third control in this slice found to be a control that could not
+fail, and the second I authored. Its criterion read as satisfied because the test
+existed and passed locally; nothing checked that anything ran it.
+
+**The structural floor could not see a row swap.** It compared
+`{read_path}` and `{type}` as two independent sets, so exchanging the
+`creative-direction` and `token-taxonomy` literals between two rows satisfied
+both — verified by mutation, every classification assertion stayed green. It now
+compares `(read_path, type)` pairs, and the same mutation reds.
+
+**A pinned total would have red on unrelated corpus growth.** The per-slug floors
+asserted `(7, 35)` and `(1, 41)` over a tree this repository writes to, so any new
+design document anywhere would have failed a contract test with a count mismatch
+saying nothing about the contract. The matched set is now asserted by name and
+off-path derived from it, so only a read-path or `type:` change moves it.
+
+Also repaired: a spec criterion required the reference to *name* the
+terminal-effect list while the reference states it in full — the portability
+resolution the ledger recorded but the spec was never amended for; and the
+minor-versus-patch justification, an eval line re-encoded by a JSON round-trip,
+and a rewrap orphan.
+
+**One correction to this ledger's own earlier entry** is recorded above, under the
+closeout section: the CAT-S003 measurement was wrong and the finding was a
+regression, not a pre-existing one.
