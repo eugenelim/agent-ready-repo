@@ -1077,3 +1077,141 @@ before trusting its verdict.
 A digest-bearing source, a leak violation, an underivable state, and a
 compatibility signal. Each is owned by a TDD case — the plan's own § Construction
 tests says so, and this pass does not substitute for them.
+
+## Code review round — 17 findings, 13 sustained, and the repair
+
+- **Date:** 2026-09-18
+- **Run:** `b9900572-04c5-40b5-ac46-a02ea5b54bd5`, cycle `:49`
+- **Reviewers:** three Codex lanes with disjoint focus sets — adversarial (spec
+  conformance and whether the load-bearing controls can fail), security
+  (implementation pass on the boundary), quality (cost to live with the code).
+  All three left the tree unmutated.
+
+### Outcome
+
+| Lane | Raw | Sustained | Refuted | Indeterminate |
+| --- | --- | --- | --- | --- |
+| adversarial | 6 | 4 (2 Blocker, 2 Major) | 1 | 1 |
+| security | 6 | 5 (2 High, 3 Medium) | 1 | 0 |
+| quality | 5 | 4 (2 Concern, 2 Nit) | 0 | 1 |
+| **total** | **17** | **13** | **2** | **2** |
+
+Thirteen sustained findings deduplicated to **nine repairs**, because two pairs
+shared a premise: the classify boundary (a Blocker and a High at the same line)
+and the missing violation count (a Blocker and a Concern on the same defect).
+
+### Adjudication changed the outcome twice, not just the count
+
+Both refutations mattered, and both prescribed remedies would have introduced
+defects:
+
+- **The exit-table predicate order was refuted.** AC-0013 binds the *exit code*,
+  and both collisions the reviewer exhibited resolve to the same code on either
+  row. Worse, the prescribed fix — moving source validation ahead of the
+  selection guard — would run `replay_derivation` before AC-0009's guard, which
+  § Never do forbids because a discarded or absent selection widens to the
+  source's full contents.
+- **The non-list dependency remedy was corrected.** The reviewer proposed a
+  command-boundary `except Exception` emitting a refusal. That would return
+  cannot-answer for an input AC-0013 assigns to the **success** row and change
+  the exit code AC-0018 pins for a compatibility signal. The correct fix is to
+  extend the `isinstance` guard and add no handler.
+- **The leaked-tarball finding was refuted:** `https_catalogue.py` returns only
+  the extraction directory, so `archive_path` never reaches this caller. It is
+  pre-existing, shared with three prior callers, in a file this change does not
+  modify.
+
+### Two owner resolutions, 2026-09-18
+
+**An omitted `sha256` key is an explicit null — inert and compared.** Current
+behaviour is correct and no code repair is owed. The deciding fact came out of
+adjudication: the schema-1 migration normalises a bare-string entry to exactly
+`{"path": …, "sha256": None}`, so an omitted key and an explicit null arrive
+**indistinguishable**, and routing them to different buckets would mean
+distinguishing states the state document cannot represent.
+
+AC-0016's wording does not say which bucket an omitted key takes. The reading is
+recorded **here** rather than as a criterion erratum: the behaviour conforms
+under the owner's reading, and amending the criterion's wording would cost a
+re-approval whose re-schedule rewinds the loop (see below).
+
+**The adapter-contract row owes no JSON document.** AC-0019 specifies the
+shipped behaviour — the existing uniform-refusal message plus the difference
+code — AC-0002 and AC-0016 impose nothing further on that row, and § Follow-ons
+already defers the machine surface for this pair of exit-1 rows with "which rows
+carry it" explicitly the owner's call. The narrowing comment in the test file is
+therefore conformant, not an implementation shortcut.
+
+### The nine repairs
+
+1. **One guard discharges a Blocker and a High.** `_screen_recorded_path` runs
+   `lstat` and `sha256_confined_regular_file` purely to validate confinement
+   **before** `classify` is reached, so a symlink, dangling symlink, hard link,
+   FIFO or directory is refused and routed to `uncompared`. This closes both the
+   AC-0020 confinement bypass and the uncaught `IsADirectoryError`, because a
+   directory is not a regular file. `safety.py` is unmodified and no parallel
+   Tier entry point was added — § Always do and § Never do require
+   `safety.classify` stay the single Tier implementation.
+   It screens only *recorded* paths and lets a truly-absent path through, because
+   `classify`'s "absent → Tier-1" needs that case; screening never-recorded
+   paths would manufacture false refusals.
+2. **The violation count reaches both surfaces** — `doc["violations"]` and a
+   table line — discharging AC-0005's second conjunct, which was previously
+   unreported anywhere.
+3. **`_is_attributed` is the only attribution gate again.** `run()` builds one
+   config and derives disclosure from it; the inline `attribution ==
+   "attributed"` equality and the separately threaded boolean are gone.
+   Verified: one `_is_attributed` call site remains.
+4. Pack and profile names route through `_safe_scalar` into the shared
+   `rejections` list.
+5. The target routes through `_safe_scalar`, and the symlink refusal no longer
+   interpolates the value.
+6. The `isinstance` guard covers `required` and `conflicts`; **no** boundary
+   handler was added, so the run still prints its plan and exits 0 with a
+   malformed signal contributing nothing.
+7. Five missing rows added to the no-write parametrisation, 11 → 16.
+8. The recorded-planned-but-absent state added to the five-state test.
+9. The exact seven count values pinned, **and** the table compared against the
+   JSON `summary` from one run — the oracle AC-0016 itself names, which existed
+   nowhere.
+
+Two Nits are left advisory by owner choice: the unconsumed
+`DerivationReplay.anchors` field, and an exit-code test whose name claims more
+reach than its body drives.
+
+### Supervisor verification — both mutation proofs re-run independently
+
+The worker reported both; they were re-run here rather than accepted, because a
+repaired control is worth nothing until its failure has been observed.
+
+| Mutation | Before the repair | After |
+| --- | --- | --- |
+| a write injected on the digest-bearing `--check` path | invisible — 11 passed | **3 failed**, on exactly `sync-check-digest-differs`, `sync-check-digest-matches`, `sync-check-digest-source-no-recorded-pin` |
+| `safety.classify` returns Tier-2 for an absent recorded path | invisible — 1 passed | **1 failed** — `would-companion` ≠ `would-update` |
+
+Both files were restored from pre-mutation copies and re-verified by SHA-256:
+`catalogue_sync.py` at `568122ca011f2847e33909996060b2cf` and `safety.py` at
+`2583cd5c151bb44b92f1d9f6a60c810f`.
+
+Gates after the repair: `test_catalogue_sync.py` **92 passed** (from 80),
+`test_catalogue_tooling_self_hosted_init.py` **432 passed**,
+`test_catalogue_init_cli_self_hosted.py` **16 passed**, `make lint-ruff` clean,
+`make lint-mypy` clean at 150 files. Exactly the two in-scope files modified.
+
+### A mechanical fact about the loop, found while pricing the erratum
+
+`completed_task_ids` held `['T0', 'T1', 'T2', 'T3']` at this point — exactly the
+four tasks whose `--completed-evidence-ref` was supplied during amendments 002
+and 004. **Nothing else populates it**: not `wave advance`, not `wave-complete`.
+T4 through T8 were complete in fact and absent from the record.
+
+`schedule` filters by that field (`loop-cohort.py:1425` and
+`schedule_unfinished_plan` at `:638`), so a re-schedule taken now would hand back
+five waves starting at **T4** — not an empty schedule, but a silent rewind past
+five finished tasks, the same failure shape as the amendment-002 index error with
+a different cause.
+
+That is why the AC-0016 reading is recorded in this ledger instead of as a
+criterion erratum: the amendment path's cost here is a rewind that needs five
+manual advances to repair, for a wording clarification whose behaviour is already
+correct.

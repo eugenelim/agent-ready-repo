@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from agentbundle import safety
@@ -350,14 +351,22 @@ def test_sync_reports_tier_verdict_and_selection(derived_tree, upstream, capsys)
     assert "packs/alpha/README.md" in out
 
 
-def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, capsys):
-    """Drive all five AC-0010 path states through one run and check the
-    reported verdict, the companion path, and the reported pack/profile
-    selection against the recorded recipe."""
+def _setup_five_path_states(derived_tree: Path, upstream: Path) -> None:
+    """Drive all five AC-0010 path states into one target/source pair.
+
+    Shared by the per-verdict test below and the seven-count identity test,
+    so the two can't drift into checking different fixtures under the same
+    name.
+    """
     (upstream / "packs" / "alpha" / "extra.md").write_bytes(b"legacy\n")
     (derived_tree / "packs" / "alpha" / "extra.md").write_bytes(b"legacy\n")
     (derived_tree / "packs" / "alpha" / "README.md").write_bytes(b"edited by the adopter\n")
     (derived_tree / "packs" / "alpha" / "stale.md").write_bytes(b"stale\n")
+    # AC-0010 row 2: recorded, absent on disk -> would-update. Still planned
+    # by the source (so it stays in `planned_paths`) and recorded with a
+    # real digest, but never created under the target -- no companion file
+    # here, unlike every other recorded path this fixture drives.
+    (upstream / "packs" / "alpha" / "missing-on-disk.md").write_bytes(b"once-installed\n")
 
     state_path = derived_tree / ".agentbundle" / "self-host-state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -368,7 +377,20 @@ def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, ca
             "sha256": hashlib.sha256(b"stale\n").hexdigest(),
         }
     )
+    state["managed_paths"].append(
+        {
+            "path": "packs/alpha/missing-on-disk.md",
+            "sha256": hashlib.sha256(b"once-installed\n").hexdigest(),
+        }
+    )
     state_path.write_text(json.dumps(state), encoding="utf-8")
+
+
+def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, capsys):
+    """Drive all five AC-0010 path states through one run and check the
+    reported verdict, the companion path, and the reported pack/profile
+    selection against the recorded recipe."""
+    _setup_five_path_states(derived_tree, upstream)
 
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
@@ -380,6 +402,11 @@ def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, ca
     verdicts_by_path = {row["path"]: row for row in doc["verdicts"]}
     # recorded, present, sha matches -> would-update.
     assert verdicts_by_path["packs/alpha/pack.toml"]["verdict"] == "would-update"
+    # recorded, absent on disk -> would-update (AC-0010 row 2; distinct from
+    # the present-and-matching row above, so this is not the same assertion
+    # under a different path).
+    assert verdicts_by_path["packs/alpha/missing-on-disk.md"]["verdict"] == "would-update"
+    assert "companion" not in verdicts_by_path["packs/alpha/missing-on-disk.md"]
     # recorded, present, sha differs -> would-companion, naming the
     # safety.companion_path result (not a locally assembled string).
     assert verdicts_by_path["packs/alpha/README.md"]["verdict"] == "would-companion"
@@ -407,25 +434,119 @@ def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, ca
     assert doc["profiles"] == []
 
 
-# STUB: AC-0016
-def test_sync_reports_seven_counts_and_the_identity(derived_tree, upstream, capsys):
+# ---------------------------------------------------------------------------
+# Security finding 2 / adversarial finding 2: a recorded-and-planned path is
+# screened through the file_safety confinement helper before it ever reaches
+# `safety.classify`, which reads the on-disk entry with a raw, symlink-
+# following, hard-link-blind open. Every case below is a shape `classify`
+# itself cannot safely resolve.
+# ---------------------------------------------------------------------------
+
+def test_sync_directory_where_recorded_file_expected_is_uncompared_not_a_crash(
+    derived_tree, upstream, capsys
+):
+    """A directory sitting where a recorded regular file is expected must
+    not crash `run()` with `IsADirectoryError` (AC-0014) — it is screened
+    out before `classify` and counted `uncompared` instead of getting a
+    verdict row (AC-0016/AC-0017)."""
+    readme = derived_tree / "packs" / "alpha" / "README.md"
+    readme.unlink()
+    readme.mkdir()
+    (readme / "nested.txt").write_text("oops\n", encoding="utf-8")
+
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
          "--dry-run", "--format", "json"]
     )
 
-    catalogue_sync.run(args)
+    assert catalogue_sync.run(args) == 0
+    doc = json.loads(capsys.readouterr().out)
+    verdicts_by_path = {row["path"]: row for row in doc["verdicts"]}
+    assert "packs/alpha/README.md" not in verdicts_by_path
+    assert doc["summary"]["uncompared"] >= 1
+
+
+def test_sync_symlinked_recorded_path_is_uncompared_not_followed(
+    derived_tree, upstream, capsys
+):
+    """A symlink at a recorded path must not have its destination's bytes
+    decide the Tier verdict — it is refused before `classify` ever reads
+    through it, even when the destination's content would otherwise match
+    the recorded digest exactly."""
+    readme = derived_tree / "packs" / "alpha" / "README.md"
+    destination = derived_tree / "packs" / "alpha" / "real-content.md"
+    destination.write_bytes(readme.read_bytes())  # matches the recorded sha
+    readme.unlink()
+    try:
+        readme.symlink_to(destination)
+    except OSError as exc:
+        pytest.skip(f"symlink unavailable: {exc}")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    doc = json.loads(capsys.readouterr().out)
+    verdicts_by_path = {row["path"]: row for row in doc["verdicts"]}
+    assert "packs/alpha/README.md" not in verdicts_by_path
+    assert doc["summary"]["uncompared"] >= 1
+
+
+def _parse_rendered_counts(table_out: str) -> dict[str, int]:
+    """Recover the seven counts from `_render_plan`'s fixed ``counts:`` line.
+
+    Mirrors that line's exact ``key=value`` shape rather than re-deriving
+    the counts a second way, so this is a format-equality check, not a
+    second computation that could independently agree by chance.
+    """
+    counts_line = next(
+        line for line in table_out.splitlines() if line.startswith("counts:")
+    )
+    parsed: dict[str, int] = {}
+    for token in counts_line[len("counts: "):].split():
+        key, value = token.split("=")
+        parsed[key.replace("-", "_")] = int(value)
+    return parsed
+
+
+# STUB: AC-0016
+def test_sync_reports_seven_counts_and_the_identity(derived_tree, upstream, capsys):
+    """Quality finding 3: pin the exact seven values on the five-path-state
+    fixture (which already carries a schema-1-inert entry), and compare the
+    table's rendered counts against the JSON `summary` from the same run —
+    AC-0016's own named oracle. A per-bucket mis-attribution keeps every
+    verdict row correct, so only this exact-value and cross-surface check
+    can catch it; the identity alone (compared + uncompared == recorded
+    count) cannot."""
+    _setup_five_path_states(derived_tree, upstream)
+
+    args_table = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream), "--dry-run"]
+    )
+    assert catalogue_sync.run(args_table) == 0
+    table_counts = _parse_rendered_counts(capsys.readouterr().out)
+
+    args_json = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(upstream),
+         "--dry-run", "--format", "json"]
+    )
+    assert catalogue_sync.run(args_json) == 0
     summary = json.loads(capsys.readouterr().out)["summary"]
 
-    assert set(summary) == {
-        "would_update", "would_companion", "untouched", "would_remove",
-        "schema_1_inert", "compared", "uncompared",
+    expected = {
+        "would_update": 2,
+        "would_companion": 1,
+        "untouched": 1,
+        "would_remove": 1,
+        "schema_1_inert": 1,
+        "compared": 5,
+        "uncompared": 0,
     }
-    # The plan's literal stub illustration asserts `== 1`; derived_tree (T1)
-    # actually records two managed_paths entries, so the identity's
-    # denominator is read from the fixture rather than restated as a second
-    # literal that could drift from it — see the implementer report's
-    # Deviations section.
+    assert summary == expected
+    assert table_counts == expected
+
     recorded_count = len(
         json.loads(
             (derived_tree / ".agentbundle" / "self-host-state.json").read_text(
@@ -858,6 +979,132 @@ def test_sync_rejects_hostile_dependency_edge_name(derived_tree, tmp_path, capsy
     assert "\x1b" not in captured.out + captured.err
 
 
+# value kind: packs -- a selected pack's own directory name (a source-tree
+# entry name AC-0012 names expressly), reached via an explicit-but-empty
+# recorded selection: `select_packs` treats `[]` the same as `None` and
+# resolves to every source pack directory.
+def test_sync_rejects_hostile_pack_name(tmp_path, capsys):
+    target = tmp_path / "target"
+    target.mkdir()
+    _write_minimal_sync_state(target, packs=None)
+
+    source = tmp_path / "hostile-pack-name-source"
+    _make_source(source)
+    hostile_pack = source / "packs" / "evil\x1b[31m"
+    hostile_pack.mkdir(parents=True)
+    (hostile_pack / "pack.toml").write_text(
+        '[pack]\nname = "evil"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "packs" in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+# value kind: profiles -- a selected profile's own file stem, same
+# select-all-on-empty-selection reachability as the packs case above.
+def test_sync_rejects_hostile_profile_name(tmp_path, capsys):
+    target = tmp_path / "target"
+    target.mkdir()
+    _write_minimal_sync_state(target, packs=None)
+
+    source = tmp_path / "hostile-profile-name-source"
+    _make_source(source)
+    profiles_dir = source / "profiles"
+    profiles_dir.mkdir()
+    (profiles_dir / "evil\x1b[31m.toml").write_text(
+        '[profile]\nname = "evil"\n', encoding="utf-8"
+    )
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    assert "profiles" in captured.out + captured.err
+    assert "\x1b" not in captured.out + captured.err
+
+
+# value kind: target -- the resolved `--target` path, an argv value of the
+# same provenance as `--source` (which this module already routes).
+def test_sync_rejects_hostile_target(tmp_path, capsys):
+    target = tmp_path / "evil\x1b[31m-target"
+    target.mkdir()
+    _write_minimal_sync_state(target, packs=["alpha"])
+    source = tmp_path / "hostile-target-source"
+    _make_source(source)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run",
+         "--format", "json"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    captured = capsys.readouterr()
+    doc = json.loads(captured.out)
+    assert doc["target"] is None
+    assert any("rejected target" in line for line in doc["rejections"])
+    assert "\x1b" not in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Security finding 5: `[pack.dependencies] required`/`conflicts` is a valid
+# TOML scalar as well as an array. An unguarded non-list container must be
+# skipped and reported, and the run must still print its plan and exit 0 —
+# AC-0013's success row, undisturbed by AC-0018's warn-only signals.
+# ---------------------------------------------------------------------------
+
+def _source_dependency_required_not_a_list(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[pack.dependencies]\n'
+        'required = 1\n',
+    )
+
+
+def _source_dependency_conflicts_not_a_list(root: Path) -> Path:
+    return _make_source_with_pack_toml(
+        root,
+        '[pack]\n'
+        'name = "alpha"\n'
+        'version = "1.0.0"\n'
+        '\n'
+        '[pack.dependencies]\n'
+        'conflicts = "not-an-array"\n',
+    )
+
+
+@pytest.mark.parametrize(
+    "builder,field",
+    [
+        (_source_dependency_required_not_a_list, "dependency_required"),
+        (_source_dependency_conflicts_not_a_list, "dependency_conflicts"),
+    ],
+    ids=["required", "conflicts"],
+)
+def test_sync_malformed_dependency_container_reports_and_still_succeeds(
+    derived_tree, tmp_path, capsys, builder, field
+):
+    source = builder(tmp_path / f"malformed-{field}-source")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(derived_tree), "--source", str(source), "--dry-run"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    assert field in capsys.readouterr().out
+
+
 # ---------------------------------------------------------------------------
 # AC-0007, AC-0008: the replayed modes and their provenance are named, and
 # two runs whose recorded modes differ, invoked with identical flags,
@@ -1255,10 +1502,15 @@ def test_sync_identity_leak_violation_returns_difference_code(tmp_path, capsys):
     )
 
     args = _build_parser().parse_args(
-        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run",
+         "--format", "json"]
     )
 
     assert catalogue_sync.run(args) == 1
+    # AC-0005: the command reports the violation count on top of the exit
+    # code — one hit, `packs/alpha/README.md`'s `maintainer_email` anchor.
+    doc = json.loads(capsys.readouterr().out)
+    assert doc["violations"] == 1
 
 
 # Row: "--dry-run or --check --compare-tree: the recorded-path container is
@@ -1705,6 +1957,106 @@ def _invoke_sync_dry_run_identity_leak_difference(target: Path) -> None:
     assert catalogue_sync.run(args) == 1
 
 
+# Adversarial finding 5: five more AC-0013 rows the registry above omitted —
+# row 1 (a malformed invocation reachable through `run()`), rows 9-11 (the
+# three digest-bearing `--check` rows; every registered `--check` row above
+# uses a local-path source, which refuses at row 8 before the recorded pin is
+# ever read), and row 14 (`--check --compare-tree`, some differ).
+
+def _invoke_sync_malformed_compare_tree_without_check(target: Path) -> None:
+    # AC-0013 row 1: `--compare-tree` without `--check` is malformed and
+    # never reaches the recorded state or the source at all.
+    source = _make_source(target.parent / "sync-tree-walk-malformed-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--dry-run", "--compare-tree"]
+    )
+    assert catalogue_sync.run(args) == 2
+
+
+def _invoke_sync_check_digest_source_no_recorded_pin(target: Path) -> None:
+    # AC-0013 row 9: a digest-bearing source (so `_check_digest_only` reads
+    # past its own "no verified digest" row), but the recorded pin carries
+    # no `archive_sha256` at all -- `_setup_success_target`'s minimal state
+    # never writes a "pin" key.
+    extracted = _make_source(target.parent / "sync-tree-walk-check-no-pin-source")
+    with patch.object(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256="9" * 64,
+        ),
+    ):
+        args = _build_parser().parse_args(
+            ["catalogue", "sync", str(target),
+             "--source", "catalogue+https://example.com/channel.json", "--check"]
+        )
+        assert catalogue_sync.run(args) == 3
+
+
+_TREE_WALK_RECORDED_DIGEST = "1" * 64
+
+
+def _setup_check_digest_recorded_target(target: Path) -> None:
+    _write_minimal_sync_state(target, packs=["alpha"])
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["pin"] = {"archive_sha256": _TREE_WALK_RECORDED_DIGEST}
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+
+def _invoke_sync_check_digest_matches(target: Path) -> None:
+    # AC-0013 row 10: the recorded digest equals the resolved source's own
+    # verified digest.
+    extracted = _make_source(
+        target.parent / "sync-tree-walk-check-digest-match-source"
+    )
+    with patch.object(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri,
+            archive_sha256=_TREE_WALK_RECORDED_DIGEST,
+        ),
+    ):
+        args = _build_parser().parse_args(
+            ["catalogue", "sync", str(target),
+             "--source", "catalogue+https://example.com/channel.json", "--check"]
+        )
+        assert catalogue_sync.run(args) == 0
+
+
+def _invoke_sync_check_digest_differs(target: Path) -> None:
+    # AC-0013 row 11: the recorded digest differs from the resolved source's.
+    extracted = _make_source(
+        target.parent / "sync-tree-walk-check-digest-differ-source"
+    )
+    with patch.object(
+        catalogue_sync,
+        "fetch_catalogue_archive_with_provenance",
+        lambda uri: CatalogueArchiveResult(
+            path=extracted, artifact_uri=uri, archive_sha256="2" * 64,
+        ),
+    ):
+        args = _build_parser().parse_args(
+            ["catalogue", "sync", str(target),
+             "--source", "catalogue+https://example.com/channel.json", "--check"]
+        )
+        assert catalogue_sync.run(args) == 1
+
+
+def _invoke_sync_check_compare_tree_differs(target: Path) -> None:
+    # AC-0013 row 14: `--check --compare-tree`, every recorded path
+    # compared and some differ. Reuses `_setup_would_companion_target`'s
+    # recorded-vs-edited README, which is exactly this shape.
+    source = _make_source(target.parent / "sync-tree-walk-compare-differs-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--check", "--compare-tree"]
+    )
+    assert catalogue_sync.run(args) == 1
+
+
 # Registry T5 adds to; later tasks extend it further rather than copying it.
 # Each value is a (setup, invoke) pair — see the section comment above.
 SYNC_TREE_WALK_CASES = {
@@ -1739,6 +2091,21 @@ SYNC_TREE_WALK_CASES = {
     ),
     "sync-dry-run-identity-leak-difference": (
         _setup_success_target, _invoke_sync_dry_run_identity_leak_difference,
+    ),
+    "sync-malformed-compare-tree-without-check": (
+        _no_target_setup, _invoke_sync_malformed_compare_tree_without_check,
+    ),
+    "sync-check-digest-source-no-recorded-pin": (
+        _setup_success_target, _invoke_sync_check_digest_source_no_recorded_pin,
+    ),
+    "sync-check-digest-matches": (
+        _setup_check_digest_recorded_target, _invoke_sync_check_digest_matches,
+    ),
+    "sync-check-digest-differs": (
+        _setup_check_digest_recorded_target, _invoke_sync_check_digest_differs,
+    ),
+    "sync-check-compare-tree-differs": (
+        _setup_would_companion_target, _invoke_sync_check_compare_tree_differs,
     ),
 }
 
