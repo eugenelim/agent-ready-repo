@@ -58,5 +58,6 @@ pointer, its status, and its hard dependencies.
 A spec records what we agreed to build when we agreed it; once the feature
 ships it freezes and the code becomes the truth. An older spec that disagrees
 with today's change is the system moving on, not a rule being broken — correct
-it by superseding it, not by editing the body, and record the erratum where the
-original cites it.
+it by superseding it, not by editing the body: the supersession goes on its
+status line, and the correction a reader needs goes in the living document that
+cites it.

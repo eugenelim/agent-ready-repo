@@ -39,7 +39,9 @@ CLAUSES = (
     "once the feature ships it freezes and the code becomes the truth",
     "is the system moving on, not a rule being broken",
     "correct it by superseding it, not by editing the body",
-    "record the erratum where the original cites it",
+    # Both carriers the contract defines, and neither is the frozen body.
+    "the supersession goes on its status line",
+    "the correction a reader needs goes in the living document that cites it",
 )
 
 

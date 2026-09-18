@@ -600,6 +600,15 @@ jobs:
       - name: pytest design-handoff contract vs the real design corpus (roster-owned)
         run: python -m pytest tests/roster/test_design_handoff_contract_matches_corpus.py
 
+      # spec-authority note: the live docs/specs/README.md and its packs/core
+      # seed must carry the same delivery-time-contract section, and nothing
+      # syncs them — the seed is Excluded from the self-host check. Reading
+      # both puts the guard above any one pack's test tree, so it is
+      # roster-owned; naming it here attributes a failure to this contract
+      # rather than to the 40-suite step that also collects it.
+      - name: pytest spec-authority note live/seed parity (roster-owned)
+        run: python -m pytest tests/roster/test_spec_authority_note.py
+
       # package-pytest-pythonpath: each distribution under packages/ carries its
       # own [tool.pytest.ini_options], which SHADOWS the root table rather than
       # merging with it, so a suite whose table omits `pythonpath` imports an
@@ -673,10 +682,10 @@ jobs:
       # packs/core, packs/architect and packs/agent-skill-engineering plus
       # docs/, guides/, packages/agentbundle/_data/ and workspace.toml, so
       # lint-pack-test-boundary forbids it from any one pack's test tree. CI
-      # does not auto-discover roster tests, and `pytest tests/` reaches this
-      # module only through `make test` / `test-after-build-check`, which no CI
-      # job runs — so without this step the contract's 16 criteria are enforced
-      # on a local `make ci` and nowhere else.
+      # does not auto-discover roster tests one by one; this job's bulk
+      # `pytest tests/ -q` step does collect the module, so without this step
+      # the contract's 16 criteria would still run but a failure would be
+      # reported against forty other suites instead of against this contract.
       - name: pytest agent-skill-engineering consumer integrations (roster-owned)
         run: >-
           python -m pytest
@@ -699,10 +708,10 @@ jobs:
       # well as packs/, and the write-declaration and artifact-folder-registry
       # controls read packs/experience-design plus its sibling surfaces, so
       # lint-pack-test-boundary forbids all three from the pack's test tree.
-      # CI does not auto-discover roster tests, and `pytest tests/` reaches
-      # them only through test-after-build-check, which no CI job runs — so
-      # without this step the declaration, containment and registry guarantees
-      # gate on no pull request at all.
+      # CI does not auto-discover roster tests one by one; this job's bulk
+      # `pytest tests/ -q` step does collect them, so without this step the
+      # declaration, containment and registry guarantees would still run but a
+      # failure would name the bulk step rather than these three contracts.
       - name: pytest experience-design output-addressing contracts (roster-owned)
         run: >-
           python -m pytest

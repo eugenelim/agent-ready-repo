@@ -26,11 +26,14 @@ pack is pack-local and should re-anchor at the pack instead of moving.
 
 ## Roster is not auto-discovered
 
-`pytest tests/` reaches these files; a pull request does not. Adding
-`tests/roster/test_x.py` obliges three further edits, each guarded separately:
+`gate-main` collects the whole roster through one bulk `python -m pytest tests/ -q`
+step (`.github/workflows/build-check.yml`), so a new file does run on a pull
+request — but a failure is reported against a step that runs forty other suites
+with it. Adding `tests/roster/test_x.py` obliges three further edits, each
+guarded separately:
 
-1. a step in `.github/workflows/build-check.yml` naming the file — without it the
-   suite runs on no pull request at all, and stays green by never executing;
+1. a step in `.github/workflows/build-check.yml` naming the file, so its failure
+   is attributed to the contract it holds rather than to the bulk step;
 2. a matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`.
    `LOCAL("test-after-build-check")` is the right value for roster, because that
    target's `run-test-suite` includes `pytest tests/ -q`;

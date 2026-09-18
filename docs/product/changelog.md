@@ -79,8 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `docs/specs/README.md` seed: a new closing section says a spec records what
   was agreed when it was agreed, freezes when the feature ships, and is
-  corrected by superseding it rather than by editing the body. The sentence
-  that carried the freeze rule alone is folded into it. An adopter reading the
+  corrected by superseding it rather than by editing the body — the
+  supersession on its status line, the correction in the living document that
+  cites it. The sentence that carried the freeze rule alone is folded into it. An adopter reading the
   directory now meets the limit of a spec's authority beside its conventions.
 - `adversarial-reviewer`: read-order step 2 scopes "the standard" to the
   targeted spec and names a shipped or archived spec delivery history rather
