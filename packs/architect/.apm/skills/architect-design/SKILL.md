@@ -143,7 +143,34 @@ real choice remains, create no new artifact.
    Record exactly one value from that closed set — `knowledge provider unavailable`, `knowledge provider ambiguous`, `knowledge provider stale`, `knowledge provider ineligible`, `knowledge provider request out of scope`, `knowledge provider response refused`, `provider integrity unavailable` — and never a provider-authored string; `knowledge provider response refused` records a refused response. Cite returned `topic_ids` and provenance only where accepted envelope content is used.
    <!-- knowledge-provider-handoff:end -->
 
-3. **Shape the concept first (Stage 0).** Before the full doc, draft a
+3. **Determine scope.** Resolve architectural scope before anything else in
+   the procedure — altitude and document count both precede Stage 0 and any
+   template choice.
+
+   <!-- scope-determination:start — stable anchor; tests locate this stage by
+        these markers, not by a heading or step number, so renumbering the
+        procedure cannot silently move the boundary. -->
+   **Altitude** is exactly one of three, and what tells them apart is what
+   the document is *about*:
+   - **application/system** — the design covers one deployable application,
+     service, or system boundary end to end: everything that ships and
+     operates together as one unit.
+   - **subsystem** — the design covers one architecturally significant part
+     carved out of a larger system: a component with its own runtime,
+     contracts, and operational surface, decomposed from a wider whole rather
+     than standing alone.
+   - **architecture change** — the design is a delta against an existing
+     architecture rather than a fresh one: it changes what is already built
+     and running, and requires the authoritative current-architecture artifact
+     as its baseline before any change is proposed.
+
+   **Document count** is not the author's own call. Walk
+   `references/decomposition-rubric.md` and let its criteria decide whether
+   this effort produces one document or several linked ones; do not split or
+   merge documents on judgement alone.
+   <!-- scope-determination:end -->
+
+4. **Shape the concept first (Stage 0).** Before the full doc, draft a
    ≤½-page concept from `assets/concept.md` — problem + constraints, 1–2
    candidate shapes, provider / provider-class, top 2–3 prioritized quality
    attributes (rank by business-importance × architectural-risk) — and
@@ -180,7 +207,7 @@ real choice remains, create no new artifact.
    doc, and saving one never requires continuing to Stage 1. Create a full
    design only when unresolved trade-offs still require it. When the user
    stops (or asks to save the concept), offer to save it using the **same
-   path resolution as step 7 below** — `assets/concept.md` written into
+   path resolution as step 8 below** — `assets/concept.md` written into
    `<output_dir>/<topic-slug>/` — then **emit a Stage-0 completion receipt**,
    exactly one of:
    - **Chat only** — `Result: chat only; no file was created.`
@@ -188,13 +215,25 @@ real choice remains, create no new artifact.
      it contains (problem + constraints + candidate shape(s) + prioritized
      quality attributes).
 
-4. **Draft inline.** Use the skeleton in `assets/design-doc.md` (load it
-   when you start the draft). Sections in order: TL;DR (≤3 sentences),
-   Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks,
-   Rollout, Open Questions. Embed Mermaid diagrams where structural
-   reasoning genuinely needs a picture — not as decoration.
+5. **Select the template, then draft inline.**
 
-5. **Self-check against the rubric** in `references/design-doc-rubric.md`.
+   <!-- template-selection:start -->
+   Load the template that matches the altitude resolved in the scope step
+   above — not `assets/design-doc.md`, which this procedure does not route
+   to:
+   - **application/system** → `assets/application-system-design.md`
+   - **subsystem** → `assets/subsystem-design.md`
+   - **architecture change** → `assets/architecture-change-design.md`
+
+   `assets/design-doc.md` is retained for backward compatibility only; it is
+   not routed to by this procedure.
+   <!-- template-selection:end -->
+
+   Follow the loaded template's own section order and opening questions.
+   Embed Mermaid diagrams where structural reasoning genuinely needs a
+   picture — not as decoration.
+
+6. **Self-check against the rubric** in `references/design-doc-rubric.md`.
    Walk it line by line; fix what fails before showing the draft.
    For every component and boundary, name the current goal, constraint, or
    prioritized quality attribute that justifies it. Remove unsupported
@@ -212,14 +251,14 @@ real choice remains, create no new artifact.
    cross-cutting decisions use
    `concepts/foundations/decisions-constraints-and-cross-cutting-concerns.md`.
 
-6. **Converge against review.** After the full draft, run
+7. **Converge against review.** After the full draft, run
    `references/convergence-loop.md`: obtain a review pass (from
    `architect-review` if installed, else your embedded rubric self-check),
    **auto-resolve mechanical findings without asking**, re-review, repeat to
    the pass cap / stasis escape. **Never auto-resolve a judgment finding** —
    surface the tradeoff / risk / low-confidence calls as explicit decisions.
 
-7. **Offer to save — role-aware, per-effort folder.** The semantic role is
+8. **Offer to save — role-aware, per-effort folder.** The semantic role is
    `architecture-design`; it is distinct from `current-architecture` and
    `decision-record`. Saving is optional and begins by naming exactly one
    operating mode:
@@ -258,7 +297,7 @@ real choice remains, create no new artifact.
    **per-effort folder**: `<destination>/<topic-slug>/` where `<topic-slug>`
    is a short (~2–5 word) kebab-case slug derived from the design doc's
    title. The design doc, diagrams, and notes all go inside that folder —
-   not as a loose file beside it. A Stage-0 concept saved on its own (step 3)
+   not as a loose file beside it. A Stage-0 concept saved on its own (step 4)
    shares this same effort folder, so a later full doc lands beside it.
 
    **Save confinement contract.** A Stage-0 or full-design save stays inside
@@ -281,7 +320,7 @@ real choice remains, create no new artifact.
    Any refusal, ambiguity, absence, unsafe path, or unresolved handoff has zero
    effects.
 
-8. **Decision-moment prompt.** If the doc captures one or more discrete
+9. **Decision-moment prompt.** If the doc captures one or more discrete
    decisions (technology choice, structural commitment, interface
    contract), end with one sentence: *"<N> decision(s) here look
    ADR-worthy — capture them with your ADR skill?"* Don't couple to a
