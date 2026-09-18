@@ -881,3 +881,59 @@ A pre-registered vacuity and was right, B refused to reclassify against a frozen
 predicate. The outcome set is what cannot express the result. Recorded here
 without resolution, because which bin these fall in decides the audit's headline
 number and that is an owner decision, not an executor's.
+
+### Positions 6 to 10, and the recursion in `ac578faeb`
+
+Ten adjudicated repairs across five commits. **2 semantic kills, 0 structural,
+2 survives, 6 unmeasurable.** The semantic kills are `921721f38` repair 2, where
+reverting the projection made it accept a hook file named exactly `.kiro.hook`
+and `KiroIdeHookRefusal not raised`, and `ac578faeb` repair 1, where the
+architecture control reported two findings — `path observer resolve` and
+`hand-rolled path prefix check` — against a reverted `direct_install.py`.
+
+**`ac578faeb` is dispatched to "close controls that could not fail", and two of
+its own five repairs ship controls that do not fail.** Repair 3 is a hollow
+control: its scalar unknown-key case never exercises an unrepresentable ignored
+value, so the test is green either way. Repair 4 is a test-mapping failure: the
+control covers a category containing a skill, not one skill envelope containing
+another, which is the shape the repair addressed. Both were pre-registered by
+Worker A before execution and both were confirmed by the run.
+
+Each of those two arms reverted a **different single file** —
+`bounded_metadata.py` and `direct_source.py` — with the revert asserted in each,
+so neither green result is an un-applied arm. That check was not ceremonial: a
+green arm and a silently skipped revert print almost the same thing, and the
+runner had already produced exactly that false shape once in this run.
+
+### Running totals after 17 of 61 cases
+
+Scored per repair, excluding the three hand-picked gate cases:
+
+| Outcome | Count | Share of 53 |
+| --- | ---: | ---: |
+| unmeasurable | 39 | 73.6% |
+| semantic kill | 8 | 15.1% |
+| survives | 5 | 9.4% |
+| structural kill | 1 | 1.9% |
+| **total repairs** | **53** | |
+
+**These 17 cases carried 53 adjudicated repairs — 3.1 per case.** The design
+assumed one repair per commit and the first run's harness requirement 2 already
+corrected that, but the size of the correction is new: `84a3a94c0` alone bundles
+eight findings and `4f118013b` ten. A per-commit score would have compressed 53
+outcomes into 17 and lost every survival inside a commit that also produced a
+kill.
+
+**The `unmeasurable` share is the headline so far, and it is a property of the
+corpus rather than of the instrument.** The large majority are
+`NO REVERTABLE SOURCE`: the repair corrected shipped prose, a register, or the
+control itself, so there is no source hunk whose reversal could exercise a
+defect. That is what a repair looks like in a repository whose product is
+instruction text. It is not a measurement failure, but it does mean the audit's
+original question — does a shipped repair carry a control that would fail if the
+repair were reversed — is only *askable* of a minority of repairs in this
+stratum.
+
+**Still not a rate.** 17 of 61 cases, drawn in a frozen outcome-blind order, so
+these proportions are an interim observation on a partial draw and the remaining
+44 can move them.
