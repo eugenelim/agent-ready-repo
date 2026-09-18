@@ -139,6 +139,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   symbol is the advisory glob screen the same page says must never greenlight a
   parallel wave. The merge step remains the sole authority for disjointness.
 
+## [experience-design][2.0.6] — 2026-09-18
+
+### Highlights
+
+- **Compare creative directions on shared terms.** Each direction now records its commitments across fifteen named axes, including seven structural axes, so teams can identify a meaningful difference instead of arguing from taste.
+- **Test whether a direction is distinctive before carrying it forward.** A counterfactual pass reworks a similar brief, then records changes wherever the result falls back to a generic default.
+- **Start with a named visual direction.** Swiss / International Typographic, editorial broadsheet, and Bauhaus directions provide ready-made starting points for exploration.
+- **Check that candidate directions truly diverge.** A divergence audit identifies the closest pair, showing whether the options differ in substance rather than only on average.
+- **Review a surface through two published instruments.** Design reviews can now rate perceived quality and perceived genericness separately.
+
 ## [core][2.26.14] — 2026-09-17
 
 ### Highlights
