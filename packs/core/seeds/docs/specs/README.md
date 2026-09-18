@@ -48,9 +48,13 @@ end `Archived`. A plan's moves `Drafting` → `Approved` → `Executing` → `Do
 The two vocabularies are separate: plan words in a spec, or spec words in a
 plan, are a mistake a status lint can catch.
 
-A shipped spec freezes. Correct it by superseding it, not by editing the body,
-and record the erratum where the original cites it.
-
 `workspace.toml` is a lifecycle index over these directories, not a second
 requirements store. What a spec obliges lives in the spec; the index carries a
 pointer, its status, and its hard dependencies.
+
+## A spec is a delivery-time contract, not a permanent constraint
+
+A spec records what we agreed to build when we agreed it; once the feature
+ships it freezes and the code becomes the truth. An older spec that disagrees
+with today's change is the system moving on, not a rule being broken — correct
+it by superseding it, and record the erratum where the original cites it.

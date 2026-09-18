@@ -1,8 +1,7 @@
 # Specs
 
 > Feature specifications and implementation plans. See
-> § Spec and plan below
-> for the spec / plan distinction and lifecycle.
+> § Spec and plan below for the distinction and lifecycle.
 
 Work that needs a durable delivery contract gets a directory:
 
@@ -15,11 +14,10 @@ docs/specs/<feature>/
 
 ## Why there is no index
 
-Specs are discovered by listing this directory. There is no index table, because
-an index over a document corpus is generated from that corpus or it does not
-exist, and a spec index had no reader: nothing in the repository instructed an
-agent to read one, while 216 instructions told it to write one. See
-[ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md).
+Specs are discovered by listing this directory. An index over a document
+corpus is generated from that corpus or it does not exist — a hand-maintained
+one drifts from the specs it describes, and every change to it collides with
+every other branch that touches a spec.
 
 ## Adding a new spec
 
@@ -50,9 +48,13 @@ end `Archived`. A plan's moves `Drafting` → `Approved` → `Executing` → `Do
 The two vocabularies are separate: plan words in a spec, or spec words in a
 plan, are a mistake a status lint can catch.
 
-A shipped spec freezes. Correct it by superseding it, not by editing the body,
-and record the erratum where the original cites it.
-
 `workspace.toml` is a lifecycle index over these directories, not a second
 requirements store. What a spec obliges lives in the spec; the index carries a
 pointer, its status, and its hard dependencies.
+
+## A spec is a delivery-time contract, not a permanent constraint
+
+A spec records what we agreed to build when we agreed it; once the feature
+ships it freezes and the code becomes the truth. An older spec that disagrees
+with today's change is the system moving on, not a rule being broken — correct
+it by superseding it, and record the erratum where the original cites it.

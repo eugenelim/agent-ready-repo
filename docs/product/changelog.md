@@ -64,6 +64,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.18] — 2026-09-18
+
+### Changed
+
+- `docs/specs/README.md` seed: a new closing section says a spec records what
+  was agreed when it was agreed, freezes when the feature ships, and is
+  corrected by superseding it rather than by editing the body. The sentence
+  that carried the freeze rule alone is folded into it. An adopter reading the
+  directory now meets the limit of a spec's authority beside its conventions.
+- `adversarial-reviewer`: read-order step 2 scopes "the standard" to the
+  targeted spec and names every other spec delivery history rather than
+  current-state authority, and drift check 5 opens with the same scoping. A
+  change that contradicts an unrelated shipped spec is a finding only when it
+  also breaks the targeted spec, a cited ADR, or working code — previously
+  neither surface said which spec it meant, and reviewers read shipped specs
+  as live constraints.
+- `work-loop`: `references/delivery-contract-lifecycle.md` opens by naming what
+  a delivery contract binds and for how long — living while the plan is
+  drafting, pinned from plan approval, frozen once the spec is `Shipped` — and
+  points at the `new-spec` skill's `references/spec-and-plan-contract.md`
+  § Lifecycle for the full rule. The amendment machinery below it already
+  assumed those stages without stating them.
+
 ## [core][2.26.17] — 2026-09-18
 
 ### Highlights
