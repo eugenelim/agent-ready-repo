@@ -718,3 +718,166 @@ are eliminated, the remaining explanations are unrecorded implementation
 behaviour in a harness that was not retained, and the instrument that produced
 the number has been shown to be unstable. Options 1 and 3 are unchanged and
 both remain available.
+
+## Scaling run, 2026-09-17: the path rule was wrong for a skills repository
+
+The owner chose to adopt the faithful population and scale. Two corrections
+landed before any outcome was recorded, and both change what gets measured.
+
+### The stratum was frozen on a traditional-software path rule
+
+This repository publishes agent-context packs. The shipped product is
+instruction text — `SKILL.md`, `references/*.md`, `evals/evals.json` — plus the
+Python tooling that backs it. The first freeze used a rule that treated every
+`.md` as documentation, so it classified the repository's primary shipped
+artifact as docs. Finding 3 above already records that the independent hand
+check counted `SKILL.md` as source; that was read and then not applied.
+
+Holding the population at 164 and varying only the path rule:
+
+| Path rule | source + test | source only | docs only | test only |
+| --- | ---: | ---: | ---: | ---: |
+| code only, traditional | 44 | 23 | 40 | 57 |
+| code + config, the first freeze | 58 | 29 | 34 | 43 |
+| **code + shipped instructions** | **61** | **33** | **30** | **40** |
+
+**The count barely moves and the membership does.** The first freeze and the
+corrected rule agree on 54 cases, and disagree on 11 — 7 the corrected rule
+admits and 4 it drops. A denominator that shifts by 3 while a fifth of its
+members change is the worst kind of signal, because it reads as stable.
+
+The rule is now stated rather than tuned: a path is **source** when it sits in a
+shipped or executable tree (`packs/`, `.agents/`, `.claude/`, `.codex/`,
+`packages/`, `tools/`, `web/src/`, `.github/workflows/`) and is not a test;
+documentation (`docs/`, `guides/`) and planning metadata (`workspace.toml`) are
+not source; and a generated file is not source, because reverting a generated
+file proves nothing about a repair.
+
+**Re-frozen stratum: 61 cases.** Order = the 61 SHAs sorted, then shuffled with
+Python `random.Random(20260917)`. Digest of the newline-joined order:
+`582f7db16e3decfa311c3284ac2dba4dbf94c83add5a7e548c5805ff7f796c92`. The three
+gate cases land at positions 16, 47 and 52. The digest published earlier in this
+document, `10c3aaac…` over 58 cases, is **superseded**.
+
+### Two harness defects, both caught before they corrupted a result
+
+**1. "Revert every mirror" voided a measurable case.** Harness requirement 1
+says revert every mirrored copy or a false survivor is manufactured. That is
+still true, but it is not the whole rule. In `76d0ec70d` all three copies of
+`knowledge_store.py` are byte-identical at `R^` — established by blob id,
+`899857de…` for all three — and the commit changed **only** the `packs/core`
+copy, to `c554e926…`. The repair shipped to one of three mirrors. Demanding that
+all three come back refused an arm that was perfectly measurable.
+
+The corrected rule: **the revert set is the predicate's paths intersected with
+the paths the commit itself changed**, and the assertion is that every *in-commit*
+copy came back. A requested path the commit never touched carries no hunk and is
+skipped with a note. This keeps the false-survivor guard and stops it voiding
+single-mirror repairs.
+
+**2. An empty array aborted an arm while still looking like a run.** The runner
+ran under `set -u`, where macOS `bash` 3.2 treats an empty array expansion as an
+unbound variable. When every requested path was in the commit, the skip list was
+empty and the runner exited *before reverting anything* — after printing a
+verified `HEAD`. The visible output was a plausible prefix of a real arm. This is
+the same class as the voided `git checkout` recorded above: the step did not
+happen and the log did not say so.
+
+### Worker A earns its place in the protocol
+
+Two results from the first batches, both of which a single-worker harness would
+have missed.
+
+- It found a **fourth mirror** the executor's own detector missed:
+  `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, alongside
+  the three under `.agents/`, `.claude/` and `packs/core/.apm/`. The executor's
+  detector only matched known skill-directory prefixes, so a copy shipped inside
+  the Python package was invisible to it.
+- It returned the two valid non-answers freely rather than inventing oracles,
+  which is what makes the `unmeasurable` count trustworthy rather than a
+  residue.
+
+Worker B held the line in the other direction: twice it returned `neither`
+against a frozen signature and scored the repair `unmeasurable` rather than
+stretching a predicate to fit an observation.
+
+**One `unmeasurable` was the executor's fault, and the distinction matters.** In
+`76d0ec70d` the recorded observation omitted the failure text, so Worker B
+correctly refused to guess. That observation was re-taken and re-adjudicated,
+because the defect was in the *recording*, not in the predicate. By contrast
+`54ac40ab2` repair 2 stays `unmeasurable`: there Worker A's signature named an
+assertion that in fact passed, which is a predicate defect, and re-adjudicating
+it would be shopping for a verdict. Re-running an incomplete observation is
+recovery; re-running an unwelcome verdict is not.
+
+### First outcomes from the re-frozen draw, and a taxonomy that cannot hold them
+
+Positions 1 to 5 of the re-frozen order, plus one corrected observation from the
+earlier batch. **Five commits carried 32 adjudicated repairs** — 7, 10, 4, 2 and
+8 — which is the first hard evidence for how compound these repairs are. Scored
+per repair, as harness requirement 2 demands:
+
+| Outcome | Count |
+| --- | ---: |
+| semantic kill | 3 |
+| structural kill | 1 |
+| survives | 0 |
+| unmeasurable | 28 |
+| **total repairs** | **32** |
+
+The semantic kills are `4f118013b` repair 6 (the reverted code wrote nothing at
+all for an empty `output_dir`, so `assert err` failed on an empty stderr),
+`446473ebe` repair 2, and `76d0ec70d` repair 1 (`DID NOT RAISE
+KnowledgeStoreError` on all three parameter cases). The structural kill is
+`26f0950e2` repair 4: the unsafe input stayed rejected with exit 2 and only the
+`reason` value differed.
+
+**19 of the 28 unmeasurable have no revertable source hunk at all.** In a
+repository that publishes agent-context packs this is the dominant shape: the
+repair is to shipped prose, to a register, or to the control itself. `84a3a94c0`
+is the clearest case — eight adjudicated repairs, every one of them a correction
+to rubric and template text, none with a source hunk to reverse.
+
+#### The `survives` bin is empty, and it should not be
+
+Three repairs were executed and **the named control came back green with the
+repair reverted**. All three were scored `unmeasurable` rather than `survives`,
+on the ground that Worker A had pre-registered, before execution, that the
+control could not discriminate the repair:
+
+| Repair | Worker A's frozen reason, written before the run |
+| --- | --- |
+| `4f118013b` r1, mode-preservation | the test still seeds and expects `0o644` and does not assert the appended bytes, so a no-op still passes |
+| `4f118013b` r8, prefix confinement | the `R^` predicate also rejects the tested sibling path, so the control cannot tell delegation from duplicated logic |
+| `26f0950e2` r2, concurrent-write guard | despite its name the target tests simultaneous queue and active membership, not a write between the guarded read and the replacement |
+
+Each prediction was confirmed by the run. That is the freeze-before-observe
+protocol working exactly as intended — and then the taxonomy discards the result.
+
+**The design's four outcomes have no bin for "the control is green either
+way."** Its definitions are `survives` = "the intended test stays green" and
+`unmeasurable` = "the repair hunk, test mapping, environment, or failure
+attribution cannot be isolated." For these three the hunk is isolable, the
+environment is sound, and there is no failure to attribute. What Worker A
+identified is that the control passes with or without the repair.
+
+The two readings give opposite headlines:
+
+- **Read as `unmeasurable`:** 0 survives. The audit reports that it could not
+  tell, while its own worker has documented in writing that three shipped
+  controls pass with the repair removed.
+- **Read as `survives`:** 3 survives in 4 measurable repairs. `4f118013b` r1 is
+  the sharpest — "does not assert the appended bytes, so a no-op still passes"
+  is a verbatim description of a control that cannot fail, which is the precise
+  phenomenon this audit was built to count.
+
+`26f0950e2` r2 is genuinely different from the other two and may belong in
+`unmeasurable` on the design's own wording: there the objection is that the
+test's *name* misdescribes what it exercises, which is a test-mapping failure.
+The other two are not mapping failures. They are hollow controls.
+
+**This is a defect in the instrument, not in the workers.** Both did their jobs:
+A pre-registered vacuity and was right, B refused to reclassify against a frozen
+predicate. The outcome set is what cannot express the result. Recorded here
+without resolution, because which bin these fall in decides the audit's headline
+number and that is an owner decision, not an executor's.
