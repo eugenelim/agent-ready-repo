@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source catalogue only under `--attribution attributed`. It also warns,
   without ever refusing, when a selected pack's version has moved in the
   source.
+
 ## [core][2.26.16] — 2026-09-18
 
 ### Highlights
