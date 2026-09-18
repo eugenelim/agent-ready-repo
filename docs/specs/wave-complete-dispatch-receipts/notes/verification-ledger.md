@@ -2029,3 +2029,215 @@ duplicate the scan reports, `core 2.3.0`, is pre-existing on `origin/main`.
 `make lint-ruff lint-mypy` clean over 148 source files. `lint-spec-status --all`
 clean over 482 specs. The partition walk exits 0. Three-copy parity holds for all
 three edited scripts after the rebase. No conflict marker anywhere in the tree.
+
+---
+
+## 16. Post-gates review fan-out, and what it changed
+
+Three Codex reviewers with disjoint focus sets — adversarial (implementation vs
+contract), security (the guarding control), quality engineering (testability,
+observability, maintainability). Nine findings. Each premise was re-derived
+against the tree before disposition.
+
+### 16.1 Sustained and fixed
+
+| Finding | Evidence | Fix |
+| --- | --- | --- |
+| A predicate is declared once and restated inline | `plan_dispatch_receipt` spelled out `not isinstance(wave, list) or not wave or not all(isinstance(task, str) ...)` while `wave_is_well_formed` sat re-bound at `loop-cohort.py:485` and `cmd_wave_advance` already called it at 1714 | the consumer calls the predicate |
+| The single-sourcing check could not see a restated body | its AST walk rejected a re-*declaration* by name, so an inline copy passed | it now asserts both consumers **call** `wave_is_well_formed` |
+| "Every unaccounted task" was tested with one | three tasks, two accounted, so a refusal printing only its first would pass — the word "every" was the untested half | four tasks, two unaccounted, both asserted present |
+| Two refusals named no recovery route | an invalid pointer type, and the malformed-wave row | both name the schedule/reset route their siblings do |
+| `state-schema.md` stated the wrong enforcement start | it said the container "appears the first time `dispatch-receipt` writes a record"; `init` creates it empty and `schedule` restores it | corrected — a new run is enforced from the start, and the exemption covers only pre-container state |
+
+The restated predicate is the one worth naming twice. The duplication it
+introduced is the exact failure this spec exists to prevent, shipped inside the
+change that argues against it, and it survived every earlier round because the
+control written to forbid it was checking for the wrong shape.
+
+### 16.2 Both strengthened controls were proved able to fail
+
+| Mutation | Result |
+| --- | --- |
+| `unaccounted_wave_tasks(...)[:1]` — name only the first missing task | 2 failed, including the strengthened case |
+| restore the inline restatement of the wave predicate | 1 failed: `test_the_receipt_data_model_has_exactly_one_declaration` |
+
+Neither mutation failed anything before these fixes. Sources restored and
+verified by digest (`a2127a3c76e48a87`, `e99e9cde3c4e679c`).
+
+### 16.3 Declined, with the reasoning
+
+**The unsupported-schema row cannot decide the transition.** The reviewer filed
+this as a blocker: `_run_id_preflight` runs on every transition and refuses an
+unsupported cohort `schema_version` before any event guard. True — and
+**pre-existing**. The same rejection and the same preflight call exist at the
+merge-base, so the transition's verdict for that class is unchanged, which is
+exactly what the criterion requires. What is wrong is the row's stated *reason*:
+it claims to preserve the transition's verdict when the preflight does that. The
+obligation is met; the explanation is not. Registered as a wording chore rather
+than amended, because a third amendment cycle for one explanatory clause is
+disproportionate.
+
+The reviewer's remedy — "let `wave-complete` pair the run ID without rejecting
+the cohort schema" — is **refused on the merits**. It loosens what every
+transition accepts, to make a row reachable that the design does not need
+reachable there.
+
+**Unrelated changes in the diff.** The reviewer found the task-section boundary
+consolidation and the `dispatch_decision` correction traceable to no task in this
+spec. Correct, and not a defect: the branch carries three changesets the owner
+asked for as separate commits, of which this spec is the third. The PR names all
+three.
+
+**Deferred with a registered follow-on:** the check-then-act race between the
+guard's read and the transition's commit (an atomicity property ADR-0061 assigns
+to Option B), and the malformed-record locator. Both carry their full mechanism
+in `workspace.toml`.
+
+### 16.4 A note on the fan-out itself
+
+Every reviewer's remedy was additive, and one was actively unsafe. That is the
+third time in this delivery a prescribed remedy has been wrong while the finding
+was right, so the pattern is worth stating: reviewers here are reliable about
+the defect and unreliable about the fix. Two of the nine findings were closed by
+*deleting* something — a restated predicate and a false sentence — which no
+reviewer proposed.
+
+---
+
+## 17. The deletion pass, and why it cuts nothing
+
+Review loops are additive: across thirteen rounds every reviewer's remedy was
+"add a criterion" and not one proposed a cut, so the criteria went 26 to 68. The
+repository's own guidance is to run an explicit deletion pass against the review
+output before asking for approval. It ran. Method and result, so that a pass
+reporting nothing is not mistaken for a pass that never happened.
+
+**Where the growth actually is**, by the section each criterion sits under:
+
+| Criteria | Section |
+| --- | --- |
+| 21 | the `check --phase wave-exit` verdict |
+| 13 | the `dispatch-receipt` verb |
+| 9 | leaving a wave |
+| 7 | controller-facing surfaces |
+| 6 | reporting and reaching the check |
+| 5 | the record lifecycle |
+| 4 | what accounts for a task |
+| 2 | the verb and the unsupported-schema class |
+| 1 | proof |
+
+**The finding: this is not scope creep, it is one mechanism at row
+granularity.** Nearly a third of the set is the verdict table stated row by row
+plus its partition, domain and reachability properties. That form was not a
+reviewer's invention — round 3 established that prose criteria cannot specify a
+lookup table, after its blockers turned out to be criteria that overlapped with
+opposite consequents. Collapsing those 21 back into prose would reintroduce the
+defect they were written to fix.
+
+**No criterion was found that traces to nothing.** Two conditions also weaken the
+case for cutting now in a way they would not have before approval: every
+criterion is implemented, and the verdict rows, the accounting predicate and the
+verb's refusals were each proved by their own removal (§ 13, § 14, § 16.2). A cut
+here would delete shipped, verified behaviour rather than save unbuilt work.
+
+**What the pass does recommend, for the next time the spec is legitimately
+open:** consider whether the row-level criteria can be carried as one table plus
+a stated partition property, rather than one criterion per row. That is a
+representation change with the same obligations, not a reduction in scope, so it
+belongs to a future edit and not to this delivery.
+
+The honest limitation: this pass was run after approval, when the spec is frozen
+and cutting a criterion would need a third amendment. Its leverage was always at
+pre-approval, which is where the guidance puts it, and where this delivery did
+not run it.
+
+---
+
+## 16.5 Adjudication of the post-gates fan-out
+
+Each report went to `finding-adjudicator` independently. Two verdicts changed
+how a finding is carried; none changed a fix.
+
+**The adversarial report adjudicated clean** — all three findings refuted. Two
+details worth keeping:
+
+- It established the pre-existence of the schema preflight **without a revision
+  read**, which its envelope forbids: the frozen Shipped
+  `work-loop-in-process-guards` contract pins both `check_identity`'s refusal on
+  `schema_version != 1` and the `_run_id_preflight` call onto it. An independent
+  route to the same fact the author had checked by reading the merge-base.
+- It found the rationale slip has **two** locations, not the one the author
+  recorded — the row's own rationale and a second reading "the exit's tolerance
+  buys the transition, not the run". The registered chore now names both, with
+  the instruction to fix both or neither, because one reworded and one left is
+  how this class survives a repair.
+
+**The security report's finding is sustained at ADVISORY tier and the deferral
+held.** Two facts from that adjudication tighten the follow-on, and one corrects
+the author's own framing:
+
+- It needs **two concurrent processes** on one spec directory, and is **not
+  reachable from the sequential single-controller flow**. The author had
+  described it to the owner as the thing to weigh before merge, which overstated
+  it; advisory with a specified follow-on is the accurate framing.
+- The reviewer's remedy is **not safe as prescribed**, confirming the author's
+  refusal on independent grounds: holding the cohort lock across the whole
+  transition commit nests a two-lock hold spanning the FSM lookup, plan-hash
+  pre-guard, event guard and outbox finalisation, which `_statelock` requires be
+  provably bounded, and asserts a fixed lock order without establishing no other
+  site takes the pair in the opposite order.
+- It specified the follow-on rather than leaving it a gesture: the required
+  outcome is that a `wave-complete` verdict about wave `n` cannot discharge a
+  commit once cohort state no longer names wave `n`, under four constraints — no
+  engine write to cohort state, no `pending_transition` or idempotency key, any
+  lock hold provably inside `_statelock`'s budget with a globally fixed
+  acquisition order, and a regression test forcing the interleaving.
+
+**On the quality report's count finding.** The clause it said had no mutation row
+was the inline *duplicate* the same report's next finding identified. Removing
+the duplicate leaves one clause, and that clause does have a row — `R6-wave
+-malformed`, mutated to `… and False`, recorded red with two failures. So the
+finding is answered by deletion rather than by adding a row, which is the second
+time in this fan-out that the repair was to remove something no reviewer
+proposed removing.
+
+---
+
+## 18. The mutation row the Proof criterion was missing, and the author's error
+
+The quality report's count finding was adjudicated **sustained at blocker tier**,
+against the author's disposition. The author had reasoned that removing the
+inline duplicate of `wave_is_well_formed` left no separate clause needing a
+mutation row. That was wrong, and the adjudicator named the confusion exactly:
+**single-sourcing a predicate's body does not merge the refusal branches that
+call it.** Three branches call `wave_is_well_formed` — `_wave_exit_verdict`'s,
+the verb's in `plan_dispatch_receipt`, and `cmd_wave_advance`'s. The
+`R6-wave-malformed` row mutates the guard's call site, so it reports nothing
+about the verb's branch. The Proof criterion is a gated acceptance criterion and
+asks for a row per clause, so the verb's branch owed one.
+
+The reviewer's count component was also right and the author wrong a second
+time: the ledger carries **34** rows, matching the claim. The reviewer's 33 came
+from reading § 13.5 as eight rows where it lists nine.
+
+**The row, in § 13.2's shape:**
+
+| Clause | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| the verb's current-wave well-formedness branch, `plan_dispatch_receipt` | `if not wave_is_well_formed(wave)` → `… and False` | `test_dispatch_receipt_refuses_a_malformed_partition` at the `wave-not-a-list`, `wave-empty` and `wave-holds-a-non-string` parameters | **red, 3 failed** — `dispatch-receipt-malformed-partition-wave-not-a-list: expected 'schedule_waves' in output; got "loop-cohort: stop — dispatch-receipt: 'T1' is not in wave 0, which holds 'n, o, p, e'"` |
+
+Source restored and verified at digest `e99e9cde3c4e679c`.
+
+**What the observed failure shows is worth more than the row.** With the clause
+neutralised, `schedule_waves = ["nope", ["T3"]]` leaves `wave = "nope"`, and the
+task-membership check downstream treats the string as a sequence — reporting that
+wave 0 "holds `'n, o, p, e'`". The clause is not defensive decoration; without it
+a malformed wave reaches a check that answers nonsense confidently. That is the
+strongest argument in this ledger for the row-per-clause discipline the Proof
+criterion imposes, and it only appeared because an adjudicator refused the
+author's reasoning.
+
+The three cases that reddened are T7's per-parameter `owned` expectations. So the
+branch already had a control that discriminates — the risk was bounded — but a
+control that exists and a mutation that is *recorded* are different claims, and
+the criterion asks for the second.

@@ -1830,11 +1830,11 @@ def plan_dispatch_receipt(
         )
 
     wave = waves[index]
-    if (
-        not isinstance(wave, list)
-        or not wave
-        or not all(isinstance(task, str) for task in wave)
-    ):
+    # The declared predicate, not a restatement of it. A review found this
+    # spelled out inline while `wave_is_well_formed` sat re-bound above and
+    # `cmd_wave_advance` already called it — two copies of one predicate, in the
+    # change whose whole subject is that duplicated predicates drift apart.
+    if not wave_is_well_formed(wave):
         return None, (
             f"dispatch-receipt: schedule_waves[{index}] is malformed "
             f"({_scalar(wave)}); expected a non-empty list of task identifiers"

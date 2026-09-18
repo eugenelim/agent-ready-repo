@@ -2698,8 +2698,15 @@ def test_wave_exit_verdict_per_row_through_the_guard(g, spec) -> None:
 
 
 def test_wave_exit_names_every_unaccounted_task_and_no_accounted_one(g, spec) -> None:
-    """Three tasks, two accounted: the refusal names the third and neither of the two."""
-    waves = [["T1", "T2", "T3"], ["T4"]]
+    """Four tasks, two accounted: BOTH unaccounted are named and neither accounted one is.
+
+    Two unaccounted rather than one, deliberately. A review found this case
+    carried a single missing task, which a refusal that printed only its *first*
+    unaccounted task would have passed — so the word "every" in this test's own
+    name was the untested half. The long-list case covers truncation above the
+    interpolation bound; this one covers completeness below it.
+    """
+    waves = [["T1", "T2", "T3", "T4"], ["T5"]]
     d = spec(schedule_waves=waves, dispatch_receipts={
         g.partition_digest(waves): {"0": {
             "T1": {"kind": "receipt"},
@@ -2708,7 +2715,10 @@ def test_wave_exit_names_every_unaccounted_task_and_no_accounted_one(g, spec) ->
     })
     result = g.check_phase(d, phase="wave-exit")
     assert not result.ok
-    assert "T3" in result.reason, result.reason
+    for task in ("T3", "T4"):
+        assert task in result.reason, (
+            f"the refusal omits unaccounted task {task}: {result.reason}"
+        )
     assert "T1" not in result.reason and "T2" not in result.reason, (
         f"the refusal names an accounted task: {result.reason}"
     )
@@ -2993,6 +3003,29 @@ def test_the_receipt_data_model_has_exactly_one_declaration() -> None:
     assert not missing, f"the guard layer does not declare {missing}"
 
     tree = _ast.parse(COHORT.read_text(encoding="utf-8"))
+
+    # Every consumer must CALL the shared predicate, not spell it out again.
+    # A review found `plan_dispatch_receipt` restating `wave_is_well_formed`'s
+    # three-part body inline while the helper sat re-bound in the same module
+    # and its sibling consumer already called it. The check below rejects a
+    # re-declaration by name; it could not see a restated body, so this pins the
+    # call instead — the property that actually keeps the copies from drifting.
+    for consumer in ("plan_dispatch_receipt", "cmd_wave_advance"):
+        fn = next(
+            (n for n in _ast.walk(tree)
+             if isinstance(n, _ast.FunctionDef) and n.name == consumer),
+            None,
+        )
+        assert fn is not None, f"{consumer} is missing from loop-cohort.py"
+        called = {
+            c.func.id for c in _ast.walk(fn)
+            if isinstance(c, _ast.Call) and isinstance(c.func, _ast.Name)
+        }
+        assert "wave_is_well_formed" in called, (
+            f"{consumer} does not call wave_is_well_formed; a restated copy of "
+            "the predicate is how the two drift apart"
+        )
+
     offenders = []
     for node in _ast.walk(tree):
         if isinstance(node, _ast.FunctionDef) and node.name in names:

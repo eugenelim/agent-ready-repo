@@ -1,7 +1,7 @@
 # Plan: wave-complete dispatch receipts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0061 § Context (its Concern/Owner table carries
   the read-only-guard / explicit-mutation split this change sits inside);
   `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py` `cmd_record_attempt`

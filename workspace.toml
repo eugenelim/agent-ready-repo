@@ -1351,6 +1351,87 @@ open = [
   # it would look like a control without being one. Unblocks now; no dependency.
   { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
 
+  # Found 2026-09-18 by the post-gates security review of
+  # docs/specs/wave-complete-dispatch-receipts. The wave-exit guard reads
+  # `state.json` while the engine holds only `engine-state.json.lock`, and
+  # `loop-cohort wave advance` mutates `current_wave_index` while holding
+  # `state.json.lock`. The two locks are distinct files, so nothing serialises
+  # the guard's read against a cohort mutation. In a two-wave run a
+  # `wave-complete` whose guard approved accounted wave 0 can commit
+  # CODE-VERIFICATION after a concurrent advance moved the pointer to
+  # unaccounted wave 1, and `gates-clean` then sees wave 1 as final -- so wave 1
+  # exits with no record, using only sanctioned verbs and no `state.json` write.
+  # This is introduced by the receipts change: before it the guard was a stub
+  # with no accounting to race. It is NOT one of the four off-switches the spec
+  # discloses, all of which need a direct state write. Not closed in this
+  # delivery because a guard verdict that must stay valid until another layer
+  # commits is an atomicity property, which ADR-0061 assigns to Option B and its
+  # absent `pending_transition` schema; the reviewer's remedy -- the engine
+  # taking the cohort lock across its transition -- crosses the ownership split
+  # that ADR draws and would need its own design and deadlock analysis.
+  #
+  # Adjudicated 2026-09-18 by finding-adjudicator: sustained at ADVISORY tier,
+  # and the author's deferral held. Two facts from that adjudication bound this
+  # entry. It needs two concurrent processes on one spec directory and is NOT
+  # reachable from the sequential single-controller flow -- `_statelock.py`'s own
+  # docstring names concurrent verbs on one spec directory as the class the lock
+  # exists to close, and this is that shape across two lock domains. And the
+  # reviewer's prescribed remedy is NOT SAFE as written: holding the cohort lock
+  # across the engine's whole transition commit nests a two-lock hold spanning
+  # the FSM lookup, plan-hash pre-guard, event guard and outbox finalisation,
+  # which `_statelock.py:88-93` requires be provably inside
+  # `timeout < maximum hold < stale_after`, and it asserts a fixed lock order
+  # without establishing no other site takes the pair in the opposite order. Do
+  # not adopt it; it trades a narrow window for an unanalysed deadlock and
+  # lock-expiry surface.
+  #
+  # Required outcome: a `wave-complete` verdict about wave `n` cannot discharge a
+  # commit once cohort state no longer names wave `n`. Constraints: no engine
+  # write to cohort state (ADR-0061 D3); no `pending_transition`, idempotency key
+  # or crash-safe replay (the spec's Never do); any added lock hold provably
+  # inside `_statelock`'s budget with a globally fixed acquisition order; and a
+  # regression test that forces the interleaving. At least four defensible
+  # mechanisms exist -- engine-held cohort lock, post-guard re-validation under
+  # the cohort lock, a pointer-generation compare-and-swap token, or disclosure
+  # as a fifth Boundaries residual -- and nothing external chooses among them,
+  # which is why the tier is advisory rather than blocker.
+  # Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-engine.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Serialise the wave-exit verdict against the cohort mutation that can invalidate it: the guard reads state.json under the engine lock while wave advance moves current_wave_index under the cohort lock, so a concurrent advance lets a wave exit with no dispatch receipt through sanctioned verbs alone", needs = [] },
+
+  # Found 2026-09-18 by the post-gates quality review of the same spec.
+  # `malformed_receipts_position` discards the keys it walks, so a refusal for a
+  # malformed leaf names only the expected shape at the declared key-path depth.
+  # With many records held, an operator cannot tell which partition, wave or task
+  # holds the bad value from the output alone. The refusal is correct and fails
+  # closed; what is missing is the locator. Not closed here because it changes a
+  # helper's return shape and every caller's message, and the bounding criterion
+  # applies to whatever it prints -- its own change with its own tests.
+  # Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Name the offending key path when a receipts record is malformed: malformed_receipts_position discards keys while recursing, so the refusal says what shape was expected but not which wave or task holds the bad leaf", needs = [] },
+
+  # Found 2026-09-18 by the post-gates adversarial review of the same spec. The
+  # unsupported-schema verdict row is worded as preserving the `wave-complete`
+  # transition's verdict for that state class. It does not, and cannot:
+  # `_run_id_preflight` runs on every transition and its identity guard refuses
+  # an unsupported cohort `schema_version` before any event guard is reached.
+  # That behaviour predates this change -- the same rejection and the same
+  # preflight call exist at the merge-base -- so the transition's verdict really
+  # is unchanged, and the criterion holds; only its stated reason is wrong. The
+  # row does decide the direct `check --phase wave-exit` invocation the skill
+  # instructs before each fire. The slip has TWO locations, not one: the row's
+  # own rationale and a second instance reading "buys the transition, not the
+  # run" -- found by the adjudicator, which also confirmed the pre-existence
+  # independently of a revision read, via the frozen Shipped
+  # `work-loop-in-process-guards` contract that pins both `check_identity`'s
+  # refusal on `schema_version != 1` and the `_run_id_preflight` call onto it.
+  # Fix both or neither; one reworded and one left is how this class survives. Recorded rather than amended: the obligation is
+  # met and a third amendment cycle to reword one explanatory clause would be
+  # disproportionate. Correct the wording the next time the spec is legitimately
+  # open. Do NOT close this by loosening the preflight, which the reviewer
+  # proposed -- that widens what every transition accepts.
+  # Unblocks now; no dependency.
+  { path = "docs/specs/wave-complete-dispatch-receipts/spec.md", kind = "chore", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md" }, summary = "Reword the unsupported-schema verdict row's rationale: it claims to preserve the wave-complete transition's verdict, but the run-id preflight refuses that state class before any event guard runs, so the row only ever decides the direct check invocation", needs = [] },
+
   # A wave exit that passes with no receipts container, or with every task
   # declined, leaves no record an after-the-fact reader can find: the read-only
   # guard cannot write, and a durable side effect on a transition is ADR-0061

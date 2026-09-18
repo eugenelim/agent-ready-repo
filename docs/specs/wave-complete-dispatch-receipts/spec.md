@@ -1,6 +1,6 @@
 # Spec: wave-complete dispatch receipts
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md) (Option A: `loop-engine` owns read-only guard enforcement, `loop-cohort` owns skill-invoked mutations); `loop-infrastructure-phase-1` (Shipped and frozen — its plan declares `check --phase implement` a Phase-1 compatibility stub, whose semantics this spec preserves); `work-loop-in-process-guards` (Shipped and frozen — it owns the in-process guard surface this spec extends)
@@ -248,51 +248,51 @@ stable function of that value alone, so it changes exactly when the partition
 changes. Each record is held under the partition digest, wave index, and task
 identifier current when it was written.
 
-- [ ] A record accounts for its task when it is held under the digest of the
+- [x] A record accounts for its task when it is held under the digest of the
       current wave partition. A decline's reason is not re-checked here: a
       reason outside the closed set makes the value not a record at all, so the
       state is not well-formed and the malformed row decides it. Stating it in
       both places would leave the second clause dominated — unable to decide
       any state, and unable to redden when removed.
-- [ ] A record held under any other partition digest accounts for no task.
-- [ ] A record written to `state.json`, serialized, and read back still
+- [x] A record held under any other partition digest accounts for no task.
+- [x] A record written to `state.json`, serialized, and read back still
       accounts for its task.
-- [ ] Editing `plan.md` in a way that leaves `schedule_waves` unchanged, then
+- [x] Editing `plan.md` in a way that leaves `schedule_waves` unchanged, then
       re-scheduling, leaves every existing record still accounting for its task.
 
 ### The record lifecycle
 
-- [ ] `loop-cohort init` leaves the receipts container present in cohort state.
-- [ ] `loop-cohort schedule` leaves the receipts container present in cohort
+- [x] `loop-cohort init` leaves the receipts container present in cohort state.
+- [x] `loop-cohort schedule` leaves the receipts container present in cohort
       state.
-- [ ] A `loop-cohort schedule` run whose resulting partition equals the one a
+- [x] A `loop-cohort schedule` run whose resulting partition equals the one a
       record was written under leaves that record present and unchanged.
-- [ ] A `loop-cohort schedule` run whose resulting partition differs from the
+- [x] A `loop-cohort schedule` run whose resulting partition differs from the
       one a record was written under leaves no record under the superseded
       digest.
-- [ ] A contract amendment leaves the receipts container empty, so no record
+- [x] A contract amendment leaves the receipts container empty, so no record
       written before the amendment accounts for a task after it — including when
       the amendment is raised at wave index zero with no completed tasks, where
       the re-scheduled partition is identical and its digest therefore unchanged.
 
 ### The `dispatch-receipt` verb
 
-- [ ] Recording a receipt for a task in the named wave, with a matching run
+- [x] Recording a receipt for a task in the named wave, with a matching run
       identifier, exits zero and leaves that task accounted for.
-- [ ] Recording a decline for a task in the named wave, with a matching run
+- [x] Recording a decline for a task in the named wave, with a matching run
       identifier and a reason from the closed set, exits zero and leaves that
       task accounted for.
-- [ ] Recording against the current wave index, and against any lower wave index
+- [x] Recording against the current wave index, and against any lower wave index
       the current schedule contains, exits zero.
-- [ ] Recording against a wave index above the current wave index exits
+- [x] Recording against a wave index above the current wave index exits
       non-zero, so a wave the run has not yet reached cannot be recorded
       against.
-- [ ] Recording against a wave index that is not a non-negative integer, by the
+- [x] Recording against a wave index that is not a non-negative integer, by the
       guard layer's existing validation, exits non-zero.
-- [ ] Recording when the current partition is empty, or when the current wave
+- [x] Recording when the current partition is empty, or when the current wave
       index is not a valid index into it, exits non-zero and names the unusable
       partition rather than raising.
-- [ ] Whenever `schedule_waves`, the wave element at the named index, or the
+- [x] Whenever `schedule_waves`, the wave element at the named index, or the
       receipts container holds a value outside the declared well-formed shape,
       the verb refuses by name rather than raising. The container is included
       because the verb reads and writes it, so it is a position the verb can
@@ -300,15 +300,15 @@ identifier current when it was written.
       values are derived from the same key-path and well-formedness declarations
       that generate the guard's predicate, so neither side's coverage can be
       generated without the other's.
-- [ ] Requesting a receipt and a decline in one invocation exits non-zero.
-- [ ] A decline reason outside the closed set exits non-zero and names the
+- [x] Requesting a receipt and a decline in one invocation exits non-zero.
+- [x] A decline reason outside the closed set exits non-zero and names the
       accepted set.
-- [ ] A task identifier the named wave does not contain exits non-zero and names
+- [x] A task identifier the named wave does not contain exits non-zero and names
       the task identifiers that wave does contain.
-- [ ] A run identifier that does not match cohort state exits non-zero.
-- [ ] On every invocation of the verb that exits non-zero, for any reason,
+- [x] A run identifier that does not match cohort state exits non-zero.
+- [x] On every invocation of the verb that exits non-zero, for any reason,
       `state.json` is byte-identical to its content before the invocation.
-- [ ] Recording the same partition digest, wave index, and task identifier twice
+- [x] Recording the same partition digest, wave index, and task identifier twice
       exits zero both times and leaves exactly one record for that triple.
 
 ### Leaving a wave
@@ -321,17 +321,17 @@ applied: the skill documents the verb as idempotent and re-issues it on a
 `wave-passed` resume, so refusing on the already-applied branch would turn a
 crash-recovery replay into a dead end.
 
-- [ ] `loop-cohort wave advance --from-index n`, on the branch where
+- [x] `loop-cohort wave advance --from-index n`, on the branch where
       `current_wave_index` equals `n` and the pointer therefore moves, exits
       non-zero when any task in wave `n` is not accounted for, and names every
       such task.
-- [ ] That refusal leaves `state.json` byte-identical to its content before the
+- [x] That refusal leaves `state.json` byte-identical to its content before the
       invocation, so the pointer does not move.
-- [ ] On the branch where `current_wave_index` already equals `n + 1`, the verb
+- [x] On the branch where `current_wave_index` already equals `n + 1`, the verb
       exits zero regardless of whether wave `n` is accounted for, because the
       documented crash-resume replay re-issues it after the pointer has moved
       and a refusal there would strand the run.
-- [ ] The accounting predicate `wave advance` applies is the same one
+- [x] The accounting predicate `wave advance` applies is the same one
       `check --phase wave-exit` applies, from one declaration, so the two
       cannot disagree about whether a wave is accounted for. The absent-
       container exemption is part of that declaration, not a separate guard-
@@ -340,32 +340,32 @@ crash-recovery replay into a dead end.
       the day they are written. What is falsifiable is the absence of a second
       copy, so the mutation record carries the removal of the shared
       declaration and names the cases in both consumers that redden together.
-- [ ] `loop-cohort wave advance --from-index n`, on the branch where the pointer
+- [x] `loop-cohort wave advance --from-index n`, on the branch where the pointer
       moves and the receipts container is absent, exits zero and advances, so a
       run whose cohort state predates receipts is not stranded mid-schedule.
       Without this the coupling would refuse every in-flight run at its next
       wave boundary, which no migration step exists to repair.
-- [ ] The branch selector and the accounting predicate read
+- [x] The branch selector and the accounting predicate read
       `current_wave_index` through one declared reading: the guard layer's
       existing non-negative-integer validation. `cmd_wave_advance` today reads
       it as `int(state.get("current_wave_index", 0))`, which accepts `"1"`,
       `1.9` and `True` and raises on `None`, while the predicate's validation
       rejects all four — so which branch runs and whether the wave can be
       accounted for are currently decided by different readings of one field.
-- [ ] When that reading rejects the stored `current_wave_index`, the verb exits
+- [x] When that reading rejects the stored `current_wave_index`, the verb exits
       non-zero and names the field, and the pointer does not move. Denying
       rather than advancing is required because the alternative launders: the
       exit refuses on the pointer row, one advance rewrites the pointer to a
       clean integer, and the skipped wave is then permanently unaccounted with
       the container intact, so `status` still reports the guard enforced.
-- [ ] Every position the advancing branch reads — `schedule_waves`, the wave
+- [x] Every position the advancing branch reads — `schedule_waves`, the wave
       element at the index, `current_wave_index`, and the receipts container —
       refuses by name rather than raising, and the refusal names `reset` as the
       recovery when the unusable value is in cohort state the verbs cannot
       rewrite. The container is included because the advancing branch now reads
       it to apply the accounting predicate, which makes it a position the verb
       can raise on.
-- [ ] The verb's existing refusals — a non-matching run identifier, an empty
+- [x] The verb's existing refusals — a non-matching run identifier, an empty
       partition, a negative `--from-index`, a `--from-index` at or past the end
       of the partition, the final wave, and a `current_wave_index` matching
       neither `n` nor `n + 1` — keep their current verdicts and are decided
@@ -381,10 +381,10 @@ what the verb does for that same class is a criterion rather than an inherited
 detail: leaving it unstated would let the exit ask for a record the controller
 cannot write.
 
-- [ ] `loop-cohort dispatch-receipt` refuses a state whose `schema_version` is
+- [x] `loop-cohort dispatch-receipt` refuses a state whose `schema_version` is
       not the supported value, as every other cohort mutation does, and names
       the schema as the reason.
-- [ ] That asymmetry is stated in `references/state-schema.md`, on the
+- [x] That asymmetry is stated in `references/state-schema.md`, on the
       `schema_version` field row, and in `references/supervisor-mode.md`
       § Single-agent fallback beside the decline codes: the exit
       tolerates the class and the verb refuses it, so on the oldest state the
@@ -474,7 +474,7 @@ partition. Naming the shared preconditions once is deliberate: an earlier draft
 asserted that each row negated the rows above it without writing those
 negations, and two rows then covered the same state with opposite verdicts.
 
-- [ ] The guard's state acquisition refuses, for any reason in the refusal
+- [x] The guard's state acquisition refuses, for any reason in the refusal
       vocabulary of the surface the guard actually invokes: exits non-zero and
       names that reason on stderr. That surface is wider than the state read it
       wraps — it first resolves the spec directory, which refuses when the
@@ -485,7 +485,7 @@ negations, and two rows then covered the same state with opposite verdicts.
       number are each refusals. A non-object root in particular *parses*, and a
       spec-directory refusal precedes parsing entirely, so a row worded around
       either parsing or the read alone leaves states satisfying no row at all.
-- [ ] The state is readable and its `schema_version` is not the supported
+- [x] The state is readable and its `schema_version` is not the supported
       value:
       exits zero and prints nothing to stdout or stderr. This row exists so the
       transition's verdict is *preserved* for that state class, not merely
@@ -495,44 +495,44 @@ negations, and two rows then covered the same state with opposite verdicts.
       otherwise land on a refusing row below, on the shape of a field an
       unsupported schema leaves unspecified — which is the breakage this design
       exists to prevent.
-- [ ] The state is readable, the schema is supported but the state is not
+- [x] The state is readable, the schema is supported but the state is not
       well-formed: exits non-zero and names the malformed field on stderr,
       rather than surfacing an exception type.
-- [ ] The state is readable, the schema is supported, the state is well-formed,
+- [x] The state is readable, the schema is supported, the state is well-formed,
       and the receipts container is absent: exits zero and names the absent
       container on stdout.
-- [ ] The state is readable, the schema is supported, the state is well-formed,
+- [x] The state is readable, the schema is supported, the state is well-formed,
       the container is present, and the pointer is not valid: exits non-zero
       and names the invalid pointer on stderr.
-- [ ] The state is readable, the schema is supported, the state is well-formed,
+- [x] The state is readable, the schema is supported, the state is well-formed,
       the container is present, the pointer is valid, and the current wave is
       not well-formed: exits non-zero and names the malformed wave on stderr.
-- [ ] The state is readable, the schema is supported, the state is well-formed,
+- [x] The state is readable, the schema is supported, the state is well-formed,
       the container is present, the pointer is valid, the current wave is
       well-formed, and every task in the current wave is accounted for: exits
       zero and prints nothing to stdout or stderr.
-- [ ] The state is readable, the schema is supported, the state is well-formed,
+- [x] The state is readable, the schema is supported, the state is well-formed,
       the container is present, the pointer is valid, the current wave is
       well-formed, and at least one task in the current wave is not accounted
       for: exits non-zero and names on stderr every such task, and no accounted
       task, subject to the identifier-list property below.
-- [ ] Any state-derived list of identifiers in a refusal, from either the guard
+- [x] Any state-derived list of identifiers in a refusal, from either the guard
       or the verb, names identifiers up to the guard layer's per-value
       interpolation bound — the tighter of the two bounds in play, and
       therefore the one that truncates. Where it truncates, the refusal states
       that the list is partial and cuts only at an identifier boundary, so no
       fragment of an identifier is presented as a task name.
-- [ ] Every value the guard or the verb interpolates into a refusal — whether
+- [x] Every value the guard or the verb interpolates into a refusal — whether
       read from `state.json` or supplied as an argument — passes through the
       guard layer's existing length-bounding helper, so no refusal carries an
       unbounded value. `loop-cohort`'s own diagnostic helper neutralises control
       characters but applies no length bound.
-- [ ] No cohort state satisfies the preconditions of two of the verdict rows
+- [x] No cohort state satisfies the preconditions of two of the verdict rows
       above.
-- [ ] No cohort state satisfies the preconditions of none of the verdict rows
+- [x] No cohort state satisfies the preconditions of none of the verdict rows
       above.
-- [ ] Every verdict row above is satisfied by some cohort state.
-- [ ] The states the three preceding criteria are checked over are constructed by
+- [x] Every verdict row above is satisfied by some cohort state.
+- [x] The states the three preceding criteria are checked over are constructed by
       varying the outcome of the cohort state read across **whether it returned
       a state or refused**, and the presence, type, and value of
       `schedule_waves`, of its
@@ -548,74 +548,74 @@ negations, and two rows then covered the same state with opposite verdicts.
       reader's whole vocabulary — that list is maintained by hand, so
       completeness is the survey's obligation, not the walk's, and the
       instrument states the bound where the assertion lives.
-- [ ] The container values in that domain are generated from the declared key
+- [x] The container values in that domain are generated from the declared key
       path — a correctly nested instance built from the declaration, then
       mutated at each depth with each hostile value — rather than hand-built at
       a literal depth. A hand-built container makes the walk's oracle ratify the
       shape its author constructed instead of the shape the declaration states,
       which is how a green walk coexisted with a predicate that rejected every
       valid container.
-- [ ] For every row above whose state has a `state.json`, that file is
+- [x] For every row above whose state has a `state.json`, that file is
       byte-identical before and after a `check --phase wave-exit` invocation.
-- [ ] The `wave-complete` transition out of `CODE-IMPLEMENTATION` is refused
+- [x] The `wave-complete` transition out of `CODE-IMPLEMENTATION` is refused
       when the guard refuses.
-- [ ] `check --phase wave-exit` reaches the verdict table for a state whose
+- [x] `check --phase wave-exit` reaches the verdict table for a state whose
       `schema_version` is not the supported value, rather than refusing before
       the table, by sharing the exemption `check --phase implement` already has.
-- [ ] No state whose `schema_version` is not the supported value and for which
+- [x] No state whose `schema_version` is not the supported value and for which
       `check --phase implement` exits zero today causes the `wave-complete`
       transition to exit non-zero after this change.
-- [ ] `check --phase review` and `check --phase gates-failed` still refuse a
+- [x] `check --phase review` and `check --phase gates-failed` still refuse a
       state whose `schema_version` is not the supported value.
-- [ ] `check --phase implement` returns the same exit code and the same streams
+- [x] `check --phase implement` returns the same exit code and the same streams
       as it does before this change, for the golden parity replay of that phase
       and for one state per row of the table above — the states the new rows
       distinguish being the only ones whose verdict could have moved.
 
 ### Reporting and reaching the check
 
-- [ ] Every *site* that instructs firing the `wave-complete` transition also
+- [x] Every *site* that instructs firing the `wave-complete` transition also
       instructs running `loop-cohort check --phase wave-exit` immediately
       before it, counted per site rather than per file. Some of these files
       carry more than one firing site, so a file-level check would let an
       uninstrumented site be absorbed by a covered sibling in the same file.
       The count is not stored here: the criterion below compares two counts
       both measured from the tree, which is what survives a site being added.
-- [ ] The count of instrumented sites equals the count of firing sites, so
+- [x] The count of instrumented sites equals the count of firing sites, so
       adding a firing site later without its check fails rather than passing
       silently.
-- [ ] GATES carries no such instruction: GATES fires `wave-passed`,
+- [x] GATES carries no such instruction: GATES fires `wave-passed`,
       `gates-clean` and `gates-failed`, and runs after the `wave-complete`
       transition rather than before it.
 <!-- Why the criterion above exists, rather than a criterion itself: the
 engine's guard adapter discards a passing guard's text, so the transition alone
 cannot surface the absent-container notice and the pre-transition run is its
 only caller. Nothing can red for a rationale, so it is not a checkbox. -->
-- [ ] The verdict that pre-transition run reports is about the wave the run is
+- [x] The verdict that pre-transition run reports is about the wave the run is
       leaving — the wave `current_wave_index` names at the moment the check
       runs. A controller that advances the pointer first therefore does not
       satisfy this against the next wave's empty denominator.
-- [ ] `loop-cohort status` reports whether dispatch receipts are enforced for
+- [x] `loop-cohort status` reports whether dispatch receipts are enforced for
       the run, in both its default output and its `--json` output.
-- [ ] A record written by `loop-cohort dispatch-receipt` is counted by
+- [x] A record written by `loop-cohort dispatch-receipt` is counted by
       `check --phase wave-exit` in the same run, with no intervening
       re-schedule.
 
 ### Controller-facing surfaces
 
-- [ ] `SKILL.md` § Step 2. EXECUTE names the literal
+- [x] `SKILL.md` § Step 2. EXECUTE names the literal
       `loop-cohort dispatch-receipt` as required once per plan task.
-- [ ] `SKILL.md` § Step 2. EXECUTE states that the controller records it and
+- [x] `SKILL.md` § Step 2. EXECUTE states that the controller records it and
       that an `implementer` subagent does not record its own.
-- [ ] `references/supervisor-mode.md` § Single-agent fallback names
+- [x] `references/supervisor-mode.md` § Single-agent fallback names
       `no-implementer-installed` as the decline the controller records when no
       `implementer` subagent is installed.
-- [ ] `references/supervisor-mode.md` § Single-agent fallback names
+- [x] `references/supervisor-mode.md` § Single-agent fallback names
       `human-directed` as recording a human instruction with no testable
       precondition.
-- [ ] `references/state-schema.md` names the receipts container and states that
+- [x] `references/state-schema.md` names the receipts container and states that
       an absent container means the guard does not enforce.
-- [ ] Every controller-facing surface that instructs `loop-cohort wave advance`
+- [x] Every controller-facing surface that instructs `loop-cohort wave advance`
       states the accounting precondition: the advance refuses a wave whose
       tasks are not accounted for. Required because `evals/evals.json` answers
       that the call "is idempotent and safe to replay" and
@@ -623,7 +623,7 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
       both true of the already-applied branch and both misleading about the
       advancing branch after this change. The eval answers that describe the
       call are updated in the same task.
-- [ ] `references/session-resumption.md` carries a row for a resume that finds
+- [x] `references/session-resumption.md` carries a row for a resume that finds
       `amendment_pending` set, routing to `approve-plan` and then `schedule`.
       Required because the wave-exit check hard-refuses an empty partition and
       that field is the only state distinguishing the amendment crash window
@@ -632,7 +632,7 @@ only caller. Nothing can red for a rationale, so it is not a checkbox. -->
 
 ### Proof
 
-- [ ] A mutation record names each removed guard and verb clause, the test that
+- [x] A mutation record names each removed guard and verb clause, the test that
       turned red, and the observed failure, with no clause whose removal left
       the suite green.
 

@@ -1434,7 +1434,14 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
 
     index = non_negative_int(state, "current_wave_index", 0)
     if isinstance(index, str):
-        return GuardResult(ok=False, reason=f"wave exit: {index}")
+        # `non_negative_int` returns its reason as a string. It names the field
+        # and the bad value but owns no recovery route, so add the one every
+        # sibling refusal here names: the value is in cohort state, which only
+        # `reset` rebuilds.
+        return GuardResult(
+            ok=False,
+            reason=f"wave exit: {index}; run reset to rebuild cohort state",
+        )
     if index >= len(waves):
         return GuardResult(
             ok=False,
@@ -1451,7 +1458,9 @@ def _wave_exit_verdict(state: dict) -> GuardResult:
             ok=False,
             reason=(
                 f"wave exit: schedule_waves[{index}] is malformed "
-                f"({_scalar(wave)}); expected a non-empty list of task identifiers"
+                f"({_scalar(wave)}); expected a non-empty list of task "
+                "identifiers — run schedule to rebuild the partition, or reset "
+                "to rebuild cohort state"
             ),
         )
 
