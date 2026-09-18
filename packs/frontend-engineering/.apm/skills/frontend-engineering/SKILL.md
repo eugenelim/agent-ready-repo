@@ -70,6 +70,16 @@ approval and failure rules, not a second copy of the extraction contract.
 when the repo-root one is absent or carries no `[design]` key. Quote the value you
 read before using it. If you did not open a file, you have not resolved it.
 
+**Anchor `output_dir` by the layout file's own location**, never against the
+ambient working directory: a **repo-root** file's `output_dir` is
+**repo-root-relative** (an absolute value is permitted but warn it as
+non-portable); a **user-profile** file's `output_dir` **must be an explicit
+absolute path** (`~`-anchored is fine), and a relative value there is an
+Ask-first deviation, never silently resolved. Without this the approved root is
+whatever the ambient cwd makes it, so an agent sitting in a sibling checkout that
+also carries a design tree reads that one, reads as in-tree, and never reaches the
+heightened-root branch.
+
 - No `agentbundle-layout.toml` and no `[design]` section after **both** branches
   have been tried → named skip, `design handoff: no [design] section configured`.
   Use the canonical reference set.
@@ -178,12 +188,12 @@ failure do not report it two different ways:
 
 | Refusal | Record |
 | --- | --- |
-| Reserved tree at any resolved path | `design handoff: reserved tree — <output_dir>-relative path> (<source token>)` |
+| Reserved tree at any resolved path | `design handoff: reserved tree — `<output_dir>`-relative path (<source token>)` |
 | Confinement failure at any resolved path | `design handoff: outside the approved root — resolved to <resolved path>` |
 | Slug non-conforming, or none obtainable | `design handoff: slug rejected — <which rule it broke>` |
-| Confirmation missing or refused | `design handoff: confirmation declined — <output_dir>-relative path> (<source token>)` |
-| A bound exceeded | `design handoff: bound exceeded — <which bound> at <output_dir>-relative path>` |
-| A dependency failure | `design handoff: could not read <what> — <why>` |
+| Confirmation missing or refused | `design handoff: confirmation declined — `<output_dir>`-relative path (<source token>)` |
+| A bound exceeded | `design handoff: bound exceeded — <which bound> at `<output_dir>`-relative path` |
+| A dependency failure — including a `[design] output_dir` that is missing, empty, or not a string | `design handoff: could not read <what> — <why>` |
 
 The confinement refusal is the one that names an absolute path, because a path
 outside the approved root has no meaningful relative form; every other refusal

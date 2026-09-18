@@ -150,7 +150,7 @@ Strategy, read off that run's own output.
 
 | Fixture | Refusal recorded | Repaired? | Substituted? | Downgraded to a skip? | Canonical set consulted? | Halted? |
 | --- | --- | --- | --- | --- | --- | --- |
-| Symlinked `direction/` resolving outside the root | `design handoff: outside the approved root — resolved to <FIXTURE-ROOT>/n3_outside/direction` | No | No | No | No | Yes |
+| Symlinked `direction/` resolving outside the root | `design handoff: outside the approved root — resolved to <FIXTURE-ROOT>` plus the sibling segment `n3_outside`, `direction` | No | No | No | No | Yes |
 | Unparseable layout file | `design handoff: could not read agentbundle-layout.toml — TOML parse error …` | No — the malformed TOML was left as found | No | No | No | Yes |
 | `[design]` with no `output_dir` value | Refusal, not a skip — the section exists, so the no-section skip does not apply | No | No | No | No | Yes |
 | 261 entries in one directory and a 1.5 MB artifact | `design handoff: bound exceeded — 200-entry directory enumeration cap at screens/checkout` | No — did not truncate the listing and proceed | No | No | No | Yes |
@@ -280,7 +280,7 @@ this branch's work. Against the merge base the change is 17 files.
 **The conflict resolution introduced a defect the renderer cannot show.** Main
 added a `core` entry directly beneath `[Unreleased]` the same day. Keeping both
 entries, the resolution left the two headings welded with no blank line between
-them. CommonMark renders that identically to a correct file and the `/now/`
+them. CommonMark renders that identically to a correct file and the `now`
 projection is blank-line blind, so nothing a reader or the site build sees would
 have reported it. `tools/test_build_site_routing.py::test_every_changelog_section_is_separated`
 failed on it, which is the only reason it was caught — and the reason every gate
@@ -289,3 +289,48 @@ was re-run after the rebase rather than trusting the pre-rebase results.
 The frontend-engineering entry remains the topmost heading for that artifact, at
 `##`, which is what the criterion requires. Position relative to another
 artifact's same-day entry is not part of it.
+
+## Post-implementation security review, 2026-09-18
+
+Eight findings, one blocker. Three are worth recording beyond their repair.
+
+**The ledger guard could not fail, and I wrote it.** The absolute-path check added
+in round five — the repair that turned the redaction promise into a gate — was
+measured against nine known-bad forms and caught **three**. Its Windows arm
+required two literal backslashes and its UNC arm four, because `\\\\` inside a raw
+string is not what it looks like, so neither could ever fire. Its POSIX arm was an
+allowlist of six roots, so a volume mount, an `etc`, a `usr`, a `mnt` and a CI
+workspace root all passed. And it required the match to follow whitespace or a
+bracket, so a `key=value` phrasing — the exact shape this ledger uses for a
+resolved value — evaded it.
+
+It passed every run because the ledger happened to contain one home-directory
+path preceded by a space. The nine forms it must catch are pinned in the test
+rather than quoted here, since writing them out is itself a recording the guard
+now refuses — which is the guard working.
+
+This is the failure class the whole slice is written against, produced inside the
+control built to prevent it, in a session that had already recorded the class five
+times. The pattern is now a shape rather than a list of roots, and
+`test_the_absolute_path_pattern_matches_known_bad_forms` pins it against nine bad
+forms and four good ones, so narrowing it later fails loudly. Strengthening it
+immediately flagged two lines the old one had passed.
+
+**The anchoring rule was missing entirely.** A relative `output_dir` had no stated
+anchor, so the approved root would be resolved against the ambient working
+directory — and an agent sitting in a sibling checkout that also carries a design
+tree would read that one, see it as in-tree, and never reach the heightened-root
+branch. RFC-0040 Decision 9 pins the rule, `workspace_mcp.py` implements it, and
+three sibling packs ship it verbatim; this step had no anchoring language at all.
+None of the thirteen fixture runs could have caught it: every fixture root was an
+absolute path. Now stated in step 0, matching the sibling packs.
+
+**A refusal fell outside the closed set.** A missing, empty or non-string
+`output_dir` was declared a refusal with no member of the six-name table covering
+it — the dependency row said "could not read", and the file read fine. The adopter
+guide had quietly supplied the mapping the enforcement point lacked. That row now
+names the case, and it is the same defect the naming table was added to close,
+recurring one level down.
+
+Also repaired: three refusal templates carried an unbalanced `<…>` placeholder an
+agent is told to reproduce verbatim.

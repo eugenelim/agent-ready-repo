@@ -47,12 +47,49 @@ CONSUMED = "consumed"
 SKIPPED_NOT_THIS_ARTIFACT = "skipped-not-this-artifact"
 OFF_EVERY_READ_PATH = "off-every-read-path"
 
-# A location-bearing prefix in recorded evidence. Matches a POSIX absolute path
-# only when it looks like a real filesystem location, so that a repository-relative
-# path written in prose (`docs/design/...`) and a bare `/` in ordinary text do not
-# trip it.
+# A location-bearing value in recorded evidence.
+#
+# Written as a shape rather than a list of known roots. An earlier version
+# enumerated six POSIX prefixes and required the match to follow whitespace or a
+# bracket; measured, six of seven known-bad forms evaded it — `/Volumes/...`,
+# `/etc/...`, `output_dir=/Users/...`, and both Windows arms, whose `\\\\` in a
+# raw string demanded two literal backslashes and could never fire. A guard that
+# cannot fail is the thing this module exists to prevent, so
+# `test_the_absolute_path_pattern_matches_known_bad_forms` now pins it.
+#
+# A repository-relative path in prose (`docs/design/...`, `packs/...`) has no
+# leading separator and does not match.
 ABSOLUTE_PATH_RE = re.compile(
-    r"(?:(?<=\s)|^|[`(\[])(?:/(?:Users|home|private|var|tmp|opt)/|~/|[A-Za-z]:\\\\|\\\\\\\\)"
+    r"""(?x)
+    (?<![A-Za-z0-9._/-])            # ...at a token boundary, so `docs/design/`
+    /(?!/)[A-Za-z0-9._-]+/          # POSIX absolute: /<segment>/   is not a hit
+    | ~/                            # home-anchored
+    | [A-Za-z]:[\\/]              # Windows drive
+    | \\\\[A-Za-z0-9._-]+       # UNC
+    | file://                       # file URL
+    """
+)
+
+# One line per platform form the guard must catch. Kept beside the pattern so a
+# future edit that narrows it fails loudly instead of going quiet.
+KNOWN_BAD_LINES = (
+    "root was /Users/alice/vault/design",
+    "output_dir=/Users/alice/vault",
+    "|/private/tmp/fixture/design|",
+    "resolved to /Volumes/external/design",
+    "/etc/something",
+    r"C:\\Users\\alice\\design",
+    r"\\\\server\\share\\design",
+    "~/Documents/vault",
+    "file:///Users/alice/vault",
+)
+
+# Lines the guard must NOT flag, so it stays usable on ordinary prose.
+KNOWN_GOOD_LINES = (
+    "the contract lives in packs/frontend-engineering/.apm/skills/",
+    "measured over docs/design/ on 2026-09-18",
+    "see `references/design-handoff.md`",
+    "a ratio of 1/3 and a path shape like direction/<slug>.md",
 )
 
 
@@ -229,6 +266,20 @@ def test_a_foreign_type_under_a_read_path_is_skipped_not_consumed(
         "no path-matched file carries a foreign `type:` — the skip rule is "
         "unwitnessed by this corpus and the differential arm below is vacuous"
     )
+
+
+def test_the_absolute_path_pattern_matches_known_bad_forms():
+    """The ledger guard is only as good as its pattern, so pin the pattern.
+
+    Without this, narrowing the regex silently turns the ledger floor into a
+    check that passes on everything — which is exactly what the first version of
+    it did for six of these nine forms.
+    """
+    missed = [line for line in KNOWN_BAD_LINES if not ABSOLUTE_PATH_RE.search(line)]
+    assert not missed, f"guard does not catch: {missed}"
+
+    flagged = [line for line in KNOWN_GOOD_LINES if ABSOLUTE_PATH_RE.search(line)]
+    assert not flagged, f"guard flags ordinary prose: {flagged}"
 
 
 def test_the_verification_ledger_records_no_absolute_path():
