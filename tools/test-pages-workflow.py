@@ -73,10 +73,14 @@ REQUIRED_PATHS = (
 PLUGIN_SUITES = (
     "docs-site/src/plugins/rehype-scrollable-tables.test.ts",
     "docs-site/src/components/shared-chrome.test.ts",
+    "docs-site/src/components/footer-mermaid-config.test.ts",
+    "docs-site/src/dependency-pins.test.ts",
 )
 EXPECTED_PLUGIN_SCRIPT = (
     "node --test src/plugins/rehype-scrollable-tables.test.ts"
     " src/components/shared-chrome.test.ts"
+    " src/components/footer-mermaid-config.test.ts"
+    " src/dependency-pins.test.ts"
 )
 PACKAGE_JSON = "docs-site/package.json"
 

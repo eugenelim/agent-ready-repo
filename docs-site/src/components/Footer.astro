@@ -123,6 +123,21 @@ const pathname = Astro.url.pathname.startsWith(docsBase)
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: 'strict',
+        // mermaid 12 moved the default layout engine from dagre to ELK, which
+        // re-lays out every node and edge of the published three-loops
+        // flowchart. Nothing in the repository reads a rendered diagram's
+        // geometry, so that change would ship unobserved — hence stating the
+        // engine here rather than inheriting it. Which engine lays the diagram
+        // out is a design decision, not a dependency bump.
+        //
+        // Only `layout` is stated. mermaid 12's release notes also announce a
+        // `neo` look and a `redux-color` theme as new defaults, but measured
+        // against 12.0.0 the effective defaults are still `look: 'classic'`
+        // and `theme: 'default'` — so pinning those would pin nothing. Measure
+        // before adding a pin here; the release notes overstate this one.
+        //
+        // src/components/footer-mermaid-config.test.ts holds this.
+        layout: 'dagre',
         theme: dark ? 'dark' : 'neutral',
         // The dark theme leaves edge-label backgrounds light; pin them to
         // the dark surface token so labels sit flush on the diagram ground.

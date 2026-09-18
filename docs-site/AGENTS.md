@@ -24,8 +24,7 @@ npm run build --prefix docs-site
 - Anchor a reader or navigation decision on [the prime journey](../docs/design/journeys/team-orientation-future-state.md),
   not a content brief: this surface owns its stages 4-5, `web/` owns 1-3, and
   changing a stage re-gates through `approve-journey`.
-- Generate content before starting the docs development server.
-- The repository, not Starlight, checks rendered internal links after both builds.
+- The repository, not Starlight, link-checks both builds: `make site-link-check`.
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in
   both themes, and reduced-motion behavior.
 - Run `python3 tools/lint-npm-allow-scripts.py`; when it fires, add a reviewed
@@ -47,12 +46,14 @@ npm run build --prefix docs-site
   now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
   `.mermaid-diagram[data-mermaid]` — so keep at least one fence in the
   published corpus, or the plugin becomes unverifiable again.
-- Under an agent, `astro dev` forks a detached server and returns at once, recorded
-  in `.astro/` — so the server § Build tells you to start is not the process you
-  launched. A *live* orphan blocks the next start on *any* port, and deleting the
-  record frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop
-  --root docs-site`. `--root` is load-bearing — astro resolves the project from the
-  working directory, not `--prefix`; without it the command reports nothing running.
+- mermaid 12.0.0 needed two statements. `Footer.astro` states `layout: 'dagre'` — 12 made
+  ELK the default and no gate reads diagram geometry; its comment holds the measurement,
+  `footer-mermaid-config.test.ts` the pin. `package.json` overrides `lodash-es` to `4.18.1`,
+  deduping `chevrotain`'s blocked `4.17.23` onto what the tree ran; retire when chevrotain
+  admits `>4.17.23`, keep it exact.
+- Generate content before starting the docs dev server. Under an agent `astro dev` forks a
+  detached server, so the one § Build names is not the one you launched (`web/AGENTS.md` has
+  the mechanism); stop it with `npm exec --prefix docs-site -- astro dev stop --root docs-site`.
 - After a Starlight upgrade, re-verify integration contracts against the vendored
   components. 0.42 swapped `<starlight-menu-button>` and its `aria-expanded` for
   the native popover API, silently breaking `PageFrame.astro`'s CSS reveal and
@@ -76,5 +77,4 @@ npm run build --prefix docs-site
 
 ## Deeper pointers
 
-Use `make site-link-check` for rendered-link verification. Current site architecture
-belongs in `docs/architecture/`; style and component implementation stays with code.
+Current site architecture belongs in `docs/architecture/`; component detail stays with code.

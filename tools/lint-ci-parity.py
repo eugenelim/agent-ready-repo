@@ -1299,8 +1299,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     "npm run test:plugins":
         NO_PR_GATE(
-            "A real test suite — `node --test` over two `.test.ts` files, per "
-            "docs-site/package.json — and the one that proves completeness "
+            "A real test suite — `node --test` over the `.test.ts` files "
+            "`tools/test-pages-workflow.py` pins, per docs-site/package.json — "
+            "and the one that proves completeness "
             "cannot be keyed on extracted targets, since it yields no path "
             "operand. No pull-request workflow runs it; `make test` does."
         ),
