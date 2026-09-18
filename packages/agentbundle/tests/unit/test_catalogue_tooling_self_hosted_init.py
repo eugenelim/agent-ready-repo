@@ -13,6 +13,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from agentbundle.catalogue_tooling import initialise_self_hosted as ish
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _VENDORED_ENGINE_EXCLUDE,
     _VENDORED_PACK_EXCLUDE,
@@ -846,6 +847,179 @@ def test_path_confinement_against_crafted_state(tmp_path: Path) -> None:
     result2 = init_self_hosted(cfg)
     assert result2.ok
     assert escape_file.exists()  # path confinement: traversal rejected
+
+
+# ---------------------------------------------------------------------------
+# T2 — stale-owned-path planning
+# ---------------------------------------------------------------------------
+
+_STALE_DECLINE_FIXTURES = (
+    ("malformed", "", None, set(), "malformed-recorded-path", "decided"),
+    (
+        "current",
+        "current.md",
+        b"current\n",
+        {"current.md"},
+        "path-remains-current",
+        "decided",
+    ),
+    (
+        "escaping",
+        "../outside.md",
+        None,
+        set(),
+        "path-confinement-refused",
+        "undecided",
+    ),
+    (
+        "absent",
+        "absent.md",
+        None,
+        set(),
+        "recorded-path-absent",
+        "decided",
+    ),
+    (
+        "no-sha",
+        "no-sha.md",
+        b"schema one\n",
+        set(),
+        "missing-recorded-sha256",
+        "decided",
+    ),
+    (
+        "modified",
+        "modified.md",
+        b"edited\n",
+        set(),
+        "recorded-sha256-mismatch",
+        "decided",
+    ),
+    (
+        "unreadable",
+        "unreadable.md",
+        None,
+        set(),
+        "recorded-entry-unreadable",
+        "undecided",
+    ),
+)
+
+_UNDECIDED_STALE_DECLINE_REASONS = {
+    "path-confinement-refused",
+    "recorded-entry-unreadable",
+}
+
+
+def test_plan_stale_owned_paths_names_every_decline(tmp_path):
+    doomed = tmp_path / "packs" / "gone.md"
+    doomed.parent.mkdir(parents=True)
+    doomed.write_bytes(b"upstream\n")
+    (tmp_path / "packs" / "nosha.md").write_bytes(b"n\n")
+    old_state = {
+        "managed_paths": [
+            {"path": "packs/gone.md",
+             "sha256": hashlib.sha256(b"upstream\n").hexdigest()},
+            {"path": "", "sha256": "x" * 64},
+            {"path": "packs/absent.md", "sha256": "y" * 64},
+            {"path": "packs/nosha.md", "sha256": None},
+        ]
+    }
+
+    removable, reasons = ish._plan_stale_owned_paths(tmp_path, old_state, set())
+
+    assert removable == ["packs/gone.md"]
+    assert len({r.split(": ", 1)[1] for r in reasons}) == len(reasons)
+    assert doomed.exists()
+
+
+@pytest.mark.parametrize(
+    ("case", "relative", "contents", "current_paths", "reason", "classification"),
+    _STALE_DECLINE_FIXTURES,
+)
+def test_plan_stale_owned_paths_has_pinned_decline_reason(
+    tmp_path: Path,
+    case: str,
+    relative: str,
+    contents: bytes | None,
+    current_paths: set[str],
+    reason: str,
+    classification: str,
+) -> None:
+    """Each guard branch keeps its independently pinned reason token."""
+    if case == "unreadable":
+        outside = tmp_path / "outside.md"
+        outside.write_bytes(b"owned\n")
+        try:
+            os.link(outside, tmp_path / relative)
+        except OSError:
+            pytest.skip("hard links are unavailable")
+    elif contents is not None:
+        recorded = tmp_path / relative
+        recorded.parent.mkdir(parents=True, exist_ok=True)
+        recorded.write_bytes(contents)
+    recorded_sha = (
+        None
+        if case == "no-sha"
+        else hashlib.sha256(b"owned\n").hexdigest()
+    )
+    old_state = {"managed_paths": [{"path": relative, "sha256": recorded_sha}]}
+
+    removable, reasons = ish._plan_stale_owned_paths(tmp_path, old_state, current_paths)
+
+    assert removable == []
+    assert reasons == [f"skipped removal of {relative!r}: {reason}"]
+
+
+@pytest.mark.parametrize("unsafe_kind", ("hard-link", "non-regular", "reparse-point"))
+def test_plan_stale_owned_paths_refuses_unsafe_entries_through_hash_helper(
+    tmp_path: Path, unsafe_kind: str
+) -> None:
+    """The confined hash, rather than a lexical prefix check, rejects unsafe leaves."""
+    relative = f"{unsafe_kind}.md"
+    recorded = tmp_path / relative
+    if unsafe_kind == "hard-link":
+        outside = tmp_path / "outside.md"
+        outside.write_bytes(b"owned\n")
+        try:
+            os.link(outside, recorded)
+        except OSError:
+            pytest.skip("hard links are unavailable")
+    elif unsafe_kind == "non-regular":
+        if not hasattr(os, "mkfifo"):
+            pytest.skip("FIFOs are unavailable")
+        os.mkfifo(recorded)
+    else:
+        safe_leaf = tmp_path / "safe.md"
+        safe_leaf.write_bytes(b"owned\n")
+        try:
+            recorded.symlink_to(safe_leaf)
+        except OSError:
+            pytest.skip("reparse-point links are unavailable")
+
+    # An inline lexical check admits every fixture, including the real link.
+    (tmp_path / relative).relative_to(tmp_path)
+    old_state = {
+        "managed_paths": [
+            {"path": relative, "sha256": hashlib.sha256(b"owned\n").hexdigest()}
+        ]
+    }
+
+    removable, reasons = ish._plan_stale_owned_paths(tmp_path, old_state, set())
+
+    assert removable == []
+    assert reasons == [f"skipped removal of {relative!r}: recorded-entry-unreadable"]
+
+
+def test_plan_stale_owned_paths_decline_fixture_metadata_is_consistent() -> None:
+    """Each independently pinned fixture has distinct, classified metadata."""
+    tokens = [fixture[4] for fixture in _STALE_DECLINE_FIXTURES]
+    assert len(tokens) == len(set(tokens))
+    assert {
+        fixture[4]
+        for fixture in _STALE_DECLINE_FIXTURES
+        if fixture[5] == "undecided"
+    } == _UNDECIDED_STALE_DECLINE_REASONS
 
 
 def test_external_skill_survives_self_hosting(tmp_path: Path) -> None:

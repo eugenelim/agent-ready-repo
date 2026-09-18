@@ -581,6 +581,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest catalogue Wave 4 live contracts (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest catalogue-sync decline branch alignment (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest consolidated-pack-layout installer append (RFC-0040)":
         LOCAL("test-after-build-check"),
     "pytest kiro drop-warning contract":

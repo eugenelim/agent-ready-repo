@@ -35,6 +35,8 @@ from agentbundle.build.user_libs import PACKAGE_SUBPATH as _USER_LIBS_PACKAGE_SU
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
+    sha256_confined_regular_file,
+    validate_confined_directory,
 )
 from agentbundle.catalogue_tooling.identity import (
     BINARY_EXT,
@@ -1040,68 +1042,91 @@ def _migrate_managed_paths(old_state: dict) -> list[dict]:
     return result
 
 
-def _remove_stale_owned_paths(
+def _plan_stale_owned_paths(
     target: Path,
     old_state: dict,
     current_paths: set[str],
 ) -> tuple[list[str], list[str]]:
-    """Remove stale owned paths (in old state, not in new plan) with guards.
+    """Plan safe removal of stale owned paths and report every decline.
 
-    Path confinement: rejects entries whose resolved path escapes target.
-    SHA guard: skips entries whose on-disk sha256 differs from recorded
-    (user-modified), or whose recorded sha256 is None (schema-1 migration).
+    The confined hash helper rejects escaping, link-like, non-regular, and
+    unreadable entries before comparison.  A reason is emitted for each entry
+    that cannot leave this guard as removable.
 
-    Returns (removed_paths, warning_messages).
+    Returns ``(removable_paths, decline_reasons)`` in recorded-path order.
     """
-    removed: list[str] = []
-    warnings: list[str] = []
+    removable: list[str] = []
+    reasons: list[str] = []
 
     paths_with_sha = _migrate_managed_paths(old_state)
-    target_resolved = target.resolve()
 
     for entry in paths_with_sha:
         rel_path = entry.get("path", "")
         recorded_sha = entry.get("sha256")
 
-        if not rel_path or rel_path in current_paths:
+        if not rel_path:
+            reasons.append(
+                "skipped removal of '': malformed-recorded-path"
+            )
             continue
-
-        # Path confinement guard.
-        try:
-            candidate = (target / rel_path).resolve()
-            candidate.relative_to(target_resolved)
-        except (ValueError, OSError):
-            warnings.append(
-                f"skipped removal of {rel_path!r}: path resolves outside target directory"
+        if rel_path in current_paths:
+            reasons.append(
+                f"skipped removal of {rel_path!r}: path-remains-current"
             )
             continue
 
         target_file = target / rel_path
+        try:
+            validate_confined_directory(target, target_file.parent)
+        except UnsafeContentError:
+            reasons.append(
+                f"skipped removal of {rel_path!r}: path-confinement-refused"
+            )
+            continue
         if not target_file.exists():
+            reasons.append(
+                f"skipped removal of {rel_path!r}: recorded-path-absent"
+            )
             continue
 
         # SHA guard: skip if no recorded sha256 (migrated from schema 1).
         if recorded_sha is None:
-            warnings.append(
-                f"skipped removal of {rel_path!r}: "
-                "no recorded sha256 (migrated from schema 1 — cannot verify ownership)"
+            reasons.append(
+                f"skipped removal of {rel_path!r}: missing-recorded-sha256"
             )
             continue
 
         # SHA guard: skip if on-disk content differs (user edited the file).
         try:
-            on_disk_sha = hashlib.sha256(target_file.read_bytes()).hexdigest()
-        except OSError:
+            on_disk_sha = sha256_confined_regular_file(target, target_file)
+        except UnsafeContentError:
+            reasons.append(
+                f"skipped removal of {rel_path!r}: recorded-entry-unreadable"
+            )
             continue
         if on_disk_sha != recorded_sha:
-            warnings.append(
-                f"skipped removal of {rel_path!r}: "
-                "on-disk sha256 differs from recorded value (file may have been modified)"
+            reasons.append(
+                f"skipped removal of {rel_path!r}: recorded-sha256-mismatch"
             )
             continue
 
+        removable.append(rel_path)
+
+    return removable, reasons
+
+
+def _remove_stale_owned_paths(
+    target: Path,
+    old_state: dict,
+    current_paths: set[str],
+) -> tuple[list[str], list[str]]:
+    """Remove only the stale paths admitted by :func:`_plan_stale_owned_paths`."""
+    removable, warnings = _plan_stale_owned_paths(target, old_state, current_paths)
+    removed: list[str] = []
+
+    for rel_path in removable:
         try:
-            target_file.unlink()
+            (target / rel_path).unlink()
             removed.append(rel_path)
         except OSError as exc:
             warnings.append(f"failed to remove {rel_path!r}: {exc}")
