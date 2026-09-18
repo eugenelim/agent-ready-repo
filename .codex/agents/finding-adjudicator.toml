@@ -204,7 +204,7 @@ source identifier and severity. Never wrap a sustained entry:
 ```
 
 The consuming parser is strict, and a malformed entry stops the whole loop
-rather than degrading. Three rules make the difference:
+rather than degrading. Four rules make the difference:
 
 - **Exactly one** `` `<path>:<line>` `` anchor, immediately after the closing
   `**`, and immediately followed by a period. The fingerprint that identifies
@@ -216,6 +216,12 @@ rather than degrading. Three rules make the difference:
   period. Never write `` `a.py:1` and `b.py:2`. `` or place a parenthetical
   between the anchor and its period.
 - Never wrap a sustained entry across lines, and end it with `Fix: ` plus text.
+- **No `*` inside the bold title.** The parser's title segment rejects any
+  asterisk between the opening and closing `**`, so a title that italicises a
+  quoted phrase parses as zero findings and the artifact classifies
+  `invalid (sustained-line-shape)` — a reason code that reads as an unsound
+  verdict rather than as markup. Quote a phrase in a title with backticks.
+  Emphasis after the closing `**` is unconstrained.
 
 Do not use numbered lists anywhere else in the report. Do not place refuted or
 indeterminate reasoning in the main-loop result.

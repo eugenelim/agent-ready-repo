@@ -479,12 +479,13 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      stop and reduce duplicated detail before review.
    - Carry mechanism, never a restatement of a criterion. A `Tests:` bullet
      names what the implementer cannot infer — which suite proves a property and
-     where it lives, which fixture carries which join key, which shipped assertion
-     this change moves — because the criteria are the checklist and a repeat
-     creates a second home with nothing keeping the two in sync. Paste-test the
-     whole plan except `## Constraints` and the durable-output map: if a passage
-     could move into the spec without looking out of place, it is either already
-     there or belongs there, and either way it does not belong in the plan.
+     where it lives, the production seam the check drives, which fixture carries
+     which join key, which shipped assertion this change moves — because the
+     criteria are the checklist and a repeat creates a second home with nothing
+     keeping the two in sync. Paste-test the whole plan except
+     `## Constraints` and the durable-output map: if a passage could move into
+     the spec without looking out of place, it is either already there or
+     belongs there, and either way it does not belong in the plan.
    - When the spec's subject is third-party, untrusted, or otherwise externally
      authored input and a criterion specifies a refusal, draft into the plan's
      first tasks a corpus task that runs the specified rules against recorded real
@@ -538,11 +539,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      construction evidence and every `Tests` bullet traces to a criterion; every
      `Done when` observes what its own `Tests` require; no condition has two
      homes; every shared bound is defined once.
-   - **Restating an acceptance criterion.** The criteria are the checklist. A
-     `Tests:` bullet names a mechanism the implementer cannot infer: the suite
-     and its location, the fixture carrying a join key, or a shipped assertion
-     that moves. Repeating a criterion creates a second home for that fact with
-     nothing to keep it in sync.
+   - **Restating an acceptance criterion.** A `Tests:` bullet that could be
+     deleted and recovered by rereading the criteria carries no mechanism; the
+     rule above beginning "Carry mechanism, never a restatement of a criterion"
+     says what to name instead.
    - **Open AC as delivery debt.** A newly `Shipped` spec has every final
      acceptance criterion checked. If required accepted work remains, the spec
      stays `Implementing` across sessions. If the work is separable, pause,

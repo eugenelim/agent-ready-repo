@@ -199,6 +199,17 @@
         "The consequence of being wrong is the discriminator, not the claim's subject matter",
         "An ordinary fact moving none of the six consequences is verified by the step's ordinary means and filed, with no routing decision owed and no fixed check count"
       ]
+    },
+    {
+      "id": "tests-bullet-names-the-production-seam",
+      "prompt": "A plan task verifies that a command renderer refuses an unsafe path. Its Tests: bullet reads \"tests/renderer/test_safe_command.py -- asserts the rendered command is safe for a hostile path\", naming the suite it lives in but no production code. Review the bullet against the step's mechanism rule.",
+      "expected_output": "The bullet names no production seam: nothing in it says which production code the check drives, so an implementer cannot tell what the assertion is meant to hold against. The bullet must name the production seam the check drives, alongside the suite and its location. Naming an honest proxy for a property the oracle cannot reach is a separate obligation in the same step and does not substitute for naming the seam.",
+      "assertions": [
+        "Identifies that the bullet names no production seam",
+        "States the consequence: an implementer cannot tell which production code the check must drive",
+        "Requires the bullet to name the production seam the check drives",
+        "Does not treat naming the test's own suite or fixture as satisfying the seam obligation"
+      ]
     }
   ]
 }
