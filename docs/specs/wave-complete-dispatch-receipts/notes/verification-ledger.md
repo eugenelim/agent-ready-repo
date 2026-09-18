@@ -1331,3 +1331,40 @@ restored and parity re-verified afterwards.
 set on purpose — its own docstring says a derived expectation would move with
 the code, which is the antipattern this spec keeps hitting. Adding the twelve new
 names to the literal is the intended way to edit it, not a weakening.
+
+---
+
+## 11.10 The guard's first real firing, on this run (manual QA)
+
+The change ships something a controller invokes, so it was exercised end to end
+through the documented path on live state rather than only in the suite. The
+observed output, in order:
+
+**It refused, correctly, before anything was recorded.** T3 had been dispatched
+to an implementer subagent and no receipt had been written, so the wave-exit
+check and the transition it now guards both refused:
+
+```
+loop-cohort: stop — wave exit: wave 1 has tasks with no dispatch receipt: 'T3';
+  record one per plan task with `loop-cohort dispatch-receipt`
+loop-engine: stop — check --phase wave-exit failed: wave exit: wave 1 has tasks
+  with no dispatch receipt: 'T3'; ...
+```
+
+`check` exited 1 and the transition did not fire. This is the defect the spec was
+written for, reproduced against the loop that was building the fix: the wave exit
+had been passing unconditionally, and this is the first time it has not.
+
+**Then it passed, once the record existed.** `dispatch-receipt --task T3
+--wave-index 1 --receipt` recorded, `check --phase wave-exit` exited 0 silently,
+and `wave-complete` → `wave-passed` → `wave advance 1 → 2` all fired.
+
+Both halves matter. A guard that only ever passes is the condition this spec
+calls an off-switch, and a guard that only ever refuses would have blocked its
+own delivery. The pair was observed on one run, minutes apart, with the record
+as the only thing that changed.
+
+Note on provenance, for symmetry with § 10.11: T3's receipt is accurate — an
+implementer subagent was dispatched for T3 and returned — and was written by the
+documented verb at the documented moment, unlike T2's, which a probe wrote during
+verification.
