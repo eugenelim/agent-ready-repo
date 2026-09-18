@@ -1165,8 +1165,30 @@ open = [
   # pre-existing functions, which the root AGENTS.md "Cut before adding" and
   # "keep unrelated discoveries out of the current change" rules place outside
   # that change's accepted scope, and the extraction shape is not determined.
-  # Unblocks now; no dependency.
-  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Give the plan task-section boundary walk one owner: four functions in loop-cohort.py each re-derive which task owns a Depends on: line, and the unknown-dependency refusal must agree with the graph parse_plan builds or the scheduler refuses a plan it would then schedule differently", needs = [] },
+  # Found 2026-09-17 by the agreement property written to close the
+  # boundary-walk consolidation above (core 2.26.11). Not a regression from that
+  # change: the property was run against all 423 `docs/specs/*/plan.md` files
+  # and the before/after comparison on the same corpus showed zero behavioural
+  # differences, so this predates the consolidation and the consolidation simply
+  # made it visible. `parse_plan` keys its dependency map by task ID, so when a
+  # plan heads two sections with the same ID the later section overwrites the
+  # earlier one's edges. In `local-gate-ci-parity/plan.md` a `## T6 evidence
+  # (observed output)` section collides with `### T6`, which declares
+  # `T1, T2, T3`; T6 therefore schedules with no dependencies at all, in wave 0
+  # beside the T1 and T2 it needs and ahead of T3. Two of 423 plans carry a
+  # duplicate heading (`local-gate-ci-parity` T6, `sequential-implementer-dispatch`
+  # T0). Nothing refuses it on a fresh `schedule`: `_task_sections` does raise
+  # `duplicate task section`, but only `validate_completed_task_sections` calls
+  # it and that returns early unless the run already carries completed-task
+  # pins, so the refusal exists and is unreachable in the case that needs it.
+  # Today's behaviour is pinned by
+  # `test_duplicate_task_heading_drops_the_earlier_sections_edges`, so a change
+  # is deliberate rather than silent. NOT folded into the consolidation: adding
+  # a refusal widens a published guard's refusal set, which is a behaviour
+  # change owing its own specification and acceptance criterion, and the root
+  # AGENTS.md rule on keeping unrelated discoveries out of the current change
+  # places it outside a consolidation chore. Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/loop-cohort-unknown-dependency-refusal/spec.md" }, summary = "Refuse or disambiguate a duplicate plan task heading: parse_plan keys deps by task ID so a second section with the same ID silently drops the first section's declared edges and the task schedules as if it depended on nothing, and the duplicate-section refusal that would catch it is only reachable once completed-task pins exist", needs = [] },
   # The 22-of-67 convention-obligation cost measured by the review-economics
   # spike has no owner. Of 67 findings sustained across its six paired cases, 22
   # were unmet repository obligations rather than defects in the logic the change
@@ -1311,21 +1333,104 @@ open = [
   # tests, on a published skill's public seam -- so it is its own change with
   # its own review, not a ride-along here.
   { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
+
+  # Found 2026-09-17 by the pre-EXECUTE review of
+  # docs/specs/wave-complete-dispatch-receipts. The entries below are limits
+  # that spec discloses and deliberately does not close, each recorded there
+  # under Follow-ons with the reasoning. They are registered here so the spec's
+  # references resolve to real entries rather than to an intention. A fourth
+  # limit -- the uncoupled `wave advance` -- was folded into the spec instead
+  # and sits in `closed`.
+  #
+  # gates-failed, findings-remain and blocker-applied all re-enter
+  # CODE-IMPLEMENTATION without moving current_wave_index, so the first pass's
+  # records satisfy every later exit for that wave -- and a repair round is
+  # where the controller most often works alone. Not closed in the receipts
+  # spec because scoping a record to a round needs a counter advancing on all
+  # three edges, and implementation_retry_count advances on one, so building on
+  # it would look like a control without being one. Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Require a repair round to carry its own dispatch assertion: three transition edges re-enter code implementation without moving the wave pointer, so a wave's exit is discharged a second time by the first pass's records", needs = [] },
+
+  # Found 2026-09-18 by the post-gates security review of
+  # docs/specs/wave-complete-dispatch-receipts. The wave-exit guard reads
+  # `state.json` while the engine holds only `engine-state.json.lock`, and
+  # `loop-cohort wave advance` mutates `current_wave_index` while holding
+  # `state.json.lock`. The two locks are distinct files, so nothing serialises
+  # the guard's read against a cohort mutation. In a two-wave run a
+  # `wave-complete` whose guard approved accounted wave 0 can commit
+  # CODE-VERIFICATION after a concurrent advance moved the pointer to
+  # unaccounted wave 1, and `gates-clean` then sees wave 1 as final -- so wave 1
+  # exits with no record, using only sanctioned verbs and no `state.json` write.
+  # This is introduced by the receipts change: before it the guard was a stub
+  # with no accounting to race. It is NOT one of the four off-switches the spec
+  # discloses, all of which need a direct state write. Not closed in this
+  # delivery because a guard verdict that must stay valid until another layer
+  # commits is an atomicity property, which ADR-0061 assigns to Option B and its
+  # absent `pending_transition` schema; the reviewer's remedy -- the engine
+  # taking the cohort lock across its transition -- crosses the ownership split
+  # that ADR draws and would need its own design and deadlock analysis.
+  #
+  # Adjudicated 2026-09-18 by finding-adjudicator: sustained at ADVISORY tier,
+  # and the author's deferral held. Two facts from that adjudication bound this
+  # entry. It needs two concurrent processes on one spec directory and is NOT
+  # reachable from the sequential single-controller flow -- `_statelock.py`'s own
+  # docstring names concurrent verbs on one spec directory as the class the lock
+  # exists to close, and this is that shape across two lock domains. And the
+  # reviewer's prescribed remedy is NOT SAFE as written: holding the cohort lock
+  # across the engine's whole transition commit nests a two-lock hold spanning
+  # the FSM lookup, plan-hash pre-guard, event guard and outbox finalisation,
+  # which `_statelock.py:88-93` requires be provably inside
+  # `timeout < maximum hold < stale_after`, and it asserts a fixed lock order
+  # without establishing no other site takes the pair in the opposite order. Do
+  # not adopt it; it trades a narrow window for an unanalysed deadlock and
+  # lock-expiry surface.
+  #
+  # Required outcome: a `wave-complete` verdict about wave `n` cannot discharge a
+  # commit once cohort state no longer names wave `n`. Constraints: no engine
+  # write to cohort state (ADR-0061 D3); no `pending_transition`, idempotency key
+  # or crash-safe replay (the spec's Never do); any added lock hold provably
+  # inside `_statelock`'s budget with a globally fixed acquisition order; and a
+  # regression test that forces the interleaving. At least four defensible
+  # mechanisms exist -- engine-held cohort lock, post-guard re-validation under
+  # the cohort lock, a pointer-generation compare-and-swap token, or disclosure
+  # as a fifth Boundaries residual -- and nothing external chooses among them,
+  # which is why the tier is advisory rather than blocker.
+  # Unblocks now; no dependency.
+  { path = "packs/core/.apm/skills/work-loop/scripts/loop-engine.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Serialise the wave-exit verdict against the cohort mutation that can invalidate it: the guard reads state.json under the engine lock while wave advance moves current_wave_index under the cohort lock, so a concurrent advance lets a wave exit with no dispatch receipt through sanctioned verbs alone", needs = [] },
+
+  # Found 2026-09-18 by the post-gates adversarial review of the same spec. The
+  # unsupported-schema verdict row is worded as preserving the `wave-complete`
+  # transition's verdict for that state class. It does not, and cannot:
+  # `_run_id_preflight` runs on every transition and its identity guard refuses
+  # an unsupported cohort `schema_version` before any event guard is reached.
+  # That behaviour predates this change -- the same rejection and the same
+  # preflight call exist at the merge-base -- so the transition's verdict really
+  # is unchanged, and the criterion holds; only its stated reason is wrong. The
+  # row does decide the direct `check --phase wave-exit` invocation the skill
+  # instructs before each fire. The slip has TWO locations, not one: the row's
+  # own rationale and a second instance reading "buys the transition, not the
+  # run" -- found by the adjudicator, which also confirmed the pre-existence
+  # independently of a revision read, via the frozen Shipped
+  # `work-loop-in-process-guards` contract that pins both `check_identity`'s
+  # refusal on `schema_version != 1` and the `_run_id_preflight` call onto it.
+  # Fix both or neither; one reworded and one left is how this class survives. Recorded rather than amended: the obligation is
+  # met and a third amendment cycle to reword one explanatory clause would be
+  # disproportionate. Correct the wording the next time the spec is legitimately
+  # open. Do NOT close this by loosening the preflight, which the reviewer
+  # proposed -- that widens what every transition accepts.
+  # Unblocks now; no dependency.
+  { path = "docs/specs/wave-complete-dispatch-receipts/spec.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md" }, summary = "Reword the unsupported-schema verdict row's rationale: it claims to preserve the wave-complete transition's verdict, but the run-id preflight refuses that state class before any event guard runs, so the row only ever decides the direct check invocation", needs = [] },
+
+  # A wave exit that passes with no receipts container, or with every task
+  # declined, leaves no record an after-the-fact reader can find: the read-only
+  # guard cannot write, and a durable side effect on a transition is ADR-0061
+  # Option B, which needs the absent pending_transition schema. loop-cohort
+  # status also refuses when schema_version is unsupported, so for the oldest
+  # state class the guard tolerates, only the stdout notice remains.
+  # Unblocks now; no dependency.
+  { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
 ]
 
-# Resolved repo-durable items. Kept rather than deleted so a reader who arrives
-# from a stale reference finds the disposition instead of a silent gap.
-#
-# Still empty, and the pr-gate-suite-disposition delivery found out why the first
-# time anyone tried to use it: `_append_lifecycle_findings` requires a closed
-# defect's own `path` artifact to carry `Status: Closed` and a `Resolution:` of
-# fixed, declined or superseded. Two open defect entries have `.py` paths, and a
-# code file cannot honestly carry either field, so those defects can be removed
-# but not retired here. Recorded in
-# docs/specs/pr-gate-suite-disposition/notes/verification-ledger.md; settling the
-# convention is its own decision.
-closed = [
-]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-007 · Catalogue Contracts, Composition, Semantics, and Discovery

@@ -64,6 +64,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.15] — 2026-09-18
+
+### Highlights
+
+- **A wave can no longer be signed off without saying who did the work.** The
+  step that closes a wave used to pass no matter what: it returned success for
+  any state it could read, so a wave whose tasks were never dispatched looked
+  exactly like one where every task was done. It now asks for one short record
+  per task in the wave — either "this was dispatched" or a declared reason it
+  was not — and refuses the exit by name when a record is missing, listing the
+  tasks it could not account for rather than a count. The sibling command that
+  steps the wave pointer forward asks for the same thing, so the check cannot be
+  walked around by moving the pointer first.
+- **Nothing already in flight breaks.** A run whose state predates this feature
+  carries no records at all, and the exit passes it with a notice saying
+  enforcement is off rather than blocking it, so an upgrade mid-run still
+  finishes. `loop-cohort status` reports whether records are being enforced.
+- **A run that genuinely has no implementer can still proceed.** A wave task can
+  be declined for one of two declared reasons — no implementer is installed, or
+  a human directed the work another way — and a declined task counts as
+  accounted for.
+
+### Added
+
+- `loop-cohort dispatch-receipt <spec-dir> --task <id> --wave-index <n>
+  (--receipt | --decline <reason>) --expect-run-id <id>` records one per-task
+  receipt or decline. Declines take `no-implementer-installed` or
+  `human-directed`; the set is closed and the verb names both when it refuses.
+- `loop-cohort check <spec-dir> --phase wave-exit`, a read-only guard over an
+  eight-row verdict table whose rows partition every cohort state, so exactly
+  one row decides any given state.
+- `dispatch_receipts` in the cohort state template, keyed by partition digest,
+  then wave index, then task identifier. `schedule` creates it and keeps only
+  the live partition's records; a contract amendment empties it.
+- `dispatch_receipts_enforced` in `loop-cohort status`, in both the default and
+  `--json` forms.
+
+### Changed
+
+- The `wave-complete` transition out of `CODE-IMPLEMENTATION` now consults
+  `check --phase wave-exit`. `check --phase implement` is unchanged and keeps
+  its exact verdict for every state it passes today, which matters because the
+  pre-push hook runs that phase for every spec directory and reads its exit
+  code.
+- `loop-cohort wave advance` refuses on the branch that moves the pointer when a
+  task in the wave being left has no record. The branch that recognises an
+  already-applied advance still exits zero, because a crash-recovery replay
+  re-issues the command and refusing there would strand the run.
+- `current_wave_index` is read through one validation shared by the branch
+  selector and the accounting check, instead of two readings that disagreed on
+  `"1"`, `1.9`, `True` and `None`.
+
+- The work-loop scheduler now resolves which plan task owns a `Depends on:`
+  line in exactly one place. Four functions used to walk the plan's task-section
+  boundaries separately, including the unknown-dependency refusal and the
+  dependency graph the refusal has to agree with; if those two walks had ever
+  drifted apart, `schedule` would have refused a plan it would otherwise have
+  scheduled, or accepted one whose edges it then read differently. They now
+  share one owner, so that agreement is structural. A `Depends on:` field is
+  still read only up to its first `(`, so an ID inside parenthetical prose stays
+  commentary — neither scheduled as an edge nor reported as unknown. Behaviour
+  is unchanged: compared across every plan in this repository, the consolidated
+  walk produces identical output.
+
+### Fixed
+
+- The supervisor-mode parallel-dispatch reference named a disjointness check
+  that does not exist. It now names `dispatch_decision`, states that the
+  function is handed a merge-tree verdict rather than computing one, and says
+  that the verdict's producer is unbuilt — no shipped script runs
+  `git merge-tree`. Reading the old sentence and resolving the missing name to
+  the nearest real symbol inverted the gate's safety property, because that
+  symbol is the advisory glob screen the same page says must never greenlight a
+  parallel wave. The merge step remains the sole authority for disjointness.
+
 ## [core][2.26.14] — 2026-09-17
 
 ### Highlights

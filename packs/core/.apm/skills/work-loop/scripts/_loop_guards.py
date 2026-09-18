@@ -86,6 +86,19 @@ __all__ = [
     # shared state defaults
     "DEFAULTS",
     "SCHEMA_VERSION",
+    # dispatch-receipt data model, declared once for the guard and the CLI
+    "RECEIPTS_KEY",
+    "RECEIPT_KEY_PATH",
+    "RECEIPT_KIND",
+    "DECLINE_KIND",
+    "DECLINE_REASONS",
+    "partition_digest",
+    "is_dispatch_record",
+    "malformed_receipts_position",
+    "receipts_for_partition",
+    "wave_is_well_formed",
+    "unaccounted_wave_tasks",
+    "bounded_id_list",
     # the six read-only guards
     "check_identity",
     "check_plan_current",
@@ -1182,16 +1195,306 @@ def non_negative_int(state: dict, field: str, default):
     return raw
 
 
+# ── dispatch-receipt data model ───────────────────────────────────────────
+#
+# One durable, per-task assertion of who the controller says implemented a plan
+# task. A record is an assertion, not a proof: `--expect-run-id` pairs the caller
+# to the run and excludes a caller from another one, but it establishes no
+# identity, so any actor that can read `run_id` can write a record.
+#
+# This block is the SINGLE home for the data model. It lives in the guard layer
+# rather than in `loop-cohort.py` because the dependency runs one way — the CLI
+# loads this module, this module cannot load the CLI — and both the read-only
+# `check --phase wave-exit` guard and the `dispatch-receipt` / `wave advance`
+# mutations have to agree about the container key, the record shape and what
+# "accounted for" means. `loop-cohort.py` re-binds these names beside
+# `non_negative_int`, so a second declaration cannot exist to drift from this one.
+RECEIPTS_KEY = "dispatch_receipts"
+# The container's key path, declared ONCE here. Everything that walks the
+# container derives its nesting depth from `len(RECEIPT_KEY_PATH)` rather than
+# from a literal: a restated depth is how a two-key predicate came to be checked
+# against a three-key data model, which classifies every valid container
+# malformed. On disk all three are JSON object-member names — the partition
+# digest text, the wave index in decimal string form, and the task identifier.
+RECEIPT_KEY_PATH = ("partition digest", "wave index", "task identifier")
+# Closed sets. Adding a decline reason changes what a wave exit will excuse and
+# needs sign-off, so this is deliberately not configurable.
+RECEIPT_KIND = "receipt"
+DECLINE_KIND = "decline"
+DECLINE_REASONS = ("no-implementer-installed", "human-directed")
+
+
+def partition_digest(waves: object) -> str:
+    """Stable digest of one wave partition, a function of that value alone.
+
+    Records are held under this digest so a record written against a superseded
+    partition accounts for nothing. `default=repr` keeps the function total over
+    any value `schedule_waves` can hold, because a refusal that names the
+    malformed field must not be pre-empted by a serialization error.
+    """
+    payload = json.dumps(waves, sort_keys=True, separators=(",", ":"), default=repr)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def is_dispatch_record(value: object) -> bool:
+    """Total over any value: is this a record at all?
+
+    A mapping whose `kind` is `receipt`, or `decline` carrying a reason from the
+    closed set. Nothing else is a record. `isinstance` before the membership test
+    rather than a `try`: a non-string reason is *not* in the closed set, and that
+    is an answer, not an error — `x in frozenset` raises for an unhashable `x`.
+    """
+    if not isinstance(value, dict):
+        return False
+    kind = value.get("kind")
+    if kind == RECEIPT_KIND:
+        return True
+    if kind == DECLINE_KIND:
+        reason = value.get("reason")
+        return isinstance(reason, str) and reason in DECLINE_REASONS
+    return False
+
+
+def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:
+    """Name the first malformed position in the container, or None if well-formed.
+
+    Depth comes from `RECEIPT_KEY_PATH`, never from a literal. Total over every
+    value any position can hold, so a caller names a position instead of raising
+    an exception type at it.
+    """
+    if depth is None:
+        depth = len(RECEIPT_KEY_PATH)
+    level = len(RECEIPT_KEY_PATH) - depth
+    if depth == 0:
+        return None if is_dispatch_record(container) else "a record"
+    if not isinstance(container, dict):
+        return f"a mapping keyed by {RECEIPT_KEY_PATH[level]}"
+    for value in container.values():
+        nested = malformed_receipts_position(value, depth - 1)
+        if nested is not None:
+            return nested
+    return None
+
+
+def receipts_for_partition(container: object, digest: str) -> dict:
+    """The records `digest` holds, with every other partition's records dropped.
+
+    A record under any other partition digest accounts for no task, so `schedule`
+    persists only the live partition's subtree. A container that is not a mapping
+    is replaced rather than repaired in place: `schedule` writes the partition
+    these records are keyed by, so it is the one verb for which an unusable
+    container is not a state it must preserve.
+    """
+    if not isinstance(container, dict):
+        return {}
+    held = container.get(digest)
+    return {digest: held} if isinstance(held, dict) else {}
+
+
+def wave_is_well_formed(wave: object) -> bool:
+    """A wave is a non-empty list of task identifiers. Total over any value.
+
+    Non-empty matters and is not fussiness: an empty wave makes "every task in
+    the current wave is accounted for" vacuously true over zero tasks, so the
+    exit would pass silently on a partition the amendment crash window can
+    leave behind.
+    """
+    return (
+        isinstance(wave, list)
+        and bool(wave)
+        and all(isinstance(task, str) for task in wave)
+    )
+
+
+def unaccounted_wave_tasks(state: dict, wave_index: int) -> list[str]:
+    """Every task in wave `wave_index` that no record accounts for.
+
+    THE accounting predicate, declared once. `check --phase wave-exit` and
+    `loop-cohort wave advance`'s advancing branch both consult this function, so
+    the two cannot disagree about whether a wave is accounted for.
+
+    The absent-container exemption lives HERE, inside the predicate, rather than
+    beside it in either consumer: cohort state written before receipts existed
+    carries no container, and a run already in flight when this shipped has to
+    be able to finish. Every consumer inherits the exemption by calling this.
+
+    Precondition, which both consumers establish by refusing first and which each
+    covers with its own named row: `schedule_waves` is a non-empty list, the
+    container is absent or well-formed, `wave_index` is a valid index into the
+    partition, and the wave there is well-formed. For a state that violates it
+    this returns no tasks, so no consumer may reach this function before its own
+    malformed and pointer rows have run.
+    """
+    if RECEIPTS_KEY not in state:
+        return []
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not 0 <= wave_index < len(waves):
+        return []
+    wave = waves[wave_index]
+    if not wave_is_well_formed(wave):
+        return []
+    held = state.get(RECEIPTS_KEY)
+    # Keyed by the declared path, read total: any level that is not a mapping
+    # holds no record, which leaves every task in the wave unaccounted rather
+    # than raising at a position a caller has already refused by name.
+    for key in (partition_digest(waves), str(wave_index)):
+        held = held.get(key) if isinstance(held, dict) else None
+    if not isinstance(held, dict):
+        return list(wave)
+    return [task for task in wave if not is_dispatch_record(held.get(task))]
+
+
+def bounded_id_list(ids: list) -> str:
+    """Whole identifiers from a state-derived list, bounded and honest about it.
+
+    Every identifier reaches the stream through `_scalar`, which is where the
+    per-value bound lives; this function only chooses how many WHOLE identifiers
+    fit under it and discloses when it dropped any. A raw join would be cut
+    mid-identifier by that bound and present a fragment as a task name.
+    """
+    shown: list[str] = []
+    for candidate in ids:
+        attempt = ", ".join([*shown, str(candidate)])
+        if _scalar(attempt) != repr(attempt):  # the bound would have truncated it
+            break
+        shown.append(str(candidate))
+    rendered = _scalar(", ".join(shown))
+    if len(shown) < len(ids):
+        return f"{rendered} (partial list: {len(shown)} of {len(ids)} shown)"
+    return rendered
+
+
+# The phases that skip cohort schema validation, so a pre-Phase-1 `state.json`
+# does not break the always-run pre-PR hook. `implement` has always been exempt;
+# `wave-exit` joins it because it guards the `wave-complete` transition that
+# `implement` used to guard, and a run in flight from before receipts existed must
+# reach the verdict table rather than being refused on its schema version.
+_SCHEMA_EXEMPT_PHASES = frozenset({"implement", "wave-exit"})
+
+
+def _wave_exit_verdict(state: dict) -> GuardResult:
+    """The wave-exit verdict table, one row per precondition set.
+
+    Each row's precondition is written to stand alone rather than to negate the
+    rows above it: the contract is that exactly one row applies to any cohort
+    state, and branch order here is an optimisation rather than the thing that
+    decides behaviour. `notes/walk_verdict_partition.py` in this feature's spec
+    directory is the committed oracle for that partition.
+
+    Called only for a READABLE state: the read-refusal row is decided upstream,
+    by `_state_or_reason`, whose refusal vocabulary is wider than this table
+    reads.
+    """
+    # The unsupported-schema row passes BEFORE any shape is read, not merely
+    # reaching the table. Sharing `implement`'s exemption from schema validation
+    # only guarantees the state gets here; `implement` returns ok for any readable
+    # state, so the table could otherwise land a state it passes today on a
+    # refusing row below, using the shape of a field an unsupported schema leaves
+    # unspecified. That is the breakage this row exists to prevent.
+    if state.get("schema_version") != SCHEMA_VERSION:
+        return GuardResult(ok=True, message="")
+
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"wave exit: schedule_waves is malformed ({_scalar(waves)}); "
+                "expected a non-empty list of waves — run schedule to persist a "
+                "partition, or if amendment_pending is set, complete the amendment "
+                "with approve-plan and then schedule"
+            ),
+        )
+    container_absent = RECEIPTS_KEY not in state
+    if not container_absent:
+        malformed = malformed_receipts_position(state.get(RECEIPTS_KEY))
+        if malformed is not None:
+            return GuardResult(
+                ok=False,
+                reason=(
+                    f"wave exit: {RECEIPTS_KEY} is malformed — expected {malformed} "
+                    f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
+                    "rebuild cohort state"
+                ),
+            )
+    # The absent-container row is decided after well-formedness so the two cannot
+    # both apply, and its notice rides the passing result's `message`, which
+    # `cmd_check` prints on stdout. The engine cannot surface it: a passing
+    # `GuardResult` may not carry a `reason`, and `_guard_reason` returns None for
+    # any passing result — which is why the skill runs this check immediately
+    # before firing the transition rather than relying on the transition alone.
+    if container_absent:
+        return GuardResult(
+            ok=True,
+            message=(
+                f"wave exit: {RECEIPTS_KEY} is absent, so dispatch receipts are "
+                "not enforced for this run"
+            ),
+        )
+
+    index = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(index, str):
+        # `non_negative_int` returns its reason as a string. It names the field
+        # and the bad value but owns no recovery route, so add the one every
+        # sibling refusal here names: the value is in cohort state, which only
+        # `reset` rebuilds.
+        return GuardResult(
+            ok=False,
+            reason=f"wave exit: {index}; run reset to rebuild cohort state",
+        )
+    if index >= len(waves):
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"wave exit: current_wave_index={_scalar(index)} is not an index "
+                f"into schedule_waves (len={len(waves)}); run reset to rebuild "
+                "cohort state"
+            ),
+        )
+
+    wave = waves[index]
+    if not wave_is_well_formed(wave):
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"wave exit: schedule_waves[{index}] is malformed "
+                f"({_scalar(wave)}); expected a non-empty list of task "
+                "identifiers — run schedule to rebuild the partition, or reset "
+                "to rebuild cohort state"
+            ),
+        )
+
+    unaccounted = unaccounted_wave_tasks(state, index)
+    if unaccounted:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"wave exit: wave {index} has tasks with no dispatch receipt: "
+                f"{bounded_id_list(unaccounted)}; record one per plan task with "
+                "`loop-cohort dispatch-receipt`"
+            ),
+        )
+    return GuardResult(ok=True, message="")
+
+
 @contained
 def check_phase(spec_dir: Path, *, phase: str,
                 allow_review_retry_cap_override: bool = False) -> GuardResult:
-    """Implementation and review retry caps.
+    """Implementation and review retry caps, and the wave-exit verdict table.
 
     Reads state FIRST, for every phase including `implement`. `cmd_check` has always
     called `read_state` before reaching the `implement` stub, so `check --phase
     implement` is not a total no-op: it refuses on a missing or malformed
     `state.json`. Returning `ok` unconditionally for `implement` would drop a live
-    refusal that the `wave-complete` guard depends on.
+    refusal that `tools/hooks/pre-pr.py` depends on — that hook runs this phase for
+    every `docs/specs/*/state.json` on every push, ungated by engine state, and
+    consumes the exit code, so `implement`'s verdict is a repository-wide pre-PR and
+    pull-request gate and must not move.
+
+    `wave-exit` is the phase the `wave-complete` transition out of
+    CODE-IMPLEMENTATION consults. It carries the per-task dispatch-receipt
+    accounting, which deliberately does NOT live in `implement` for the reason
+    above.
 
     `allow_review_retry_cap_override` waives the **review** cap only, and only for
     a caller that asked for it. It is named for that one cap rather than for both
@@ -1205,9 +1508,9 @@ def check_phase(spec_dir: Path, *, phase: str,
     if reason is not None:
         return GuardResult(ok=False, reason=reason)
 
-    # The `implement` phase skips schema validation so pre-Phase-1 state files do not
+    # The exempt phases skip schema validation so pre-Phase-1 state files do not
     # break the hook; phases that actually evaluate counters reject incompatible state.
-    if phase != "implement" and state.get("schema_version") != SCHEMA_VERSION:
+    if phase not in _SCHEMA_EXEMPT_PHASES and state.get("schema_version") != SCHEMA_VERSION:
         sv = state.get("schema_version")
         return GuardResult(
             ok=False,
@@ -1220,6 +1523,11 @@ def check_phase(spec_dir: Path, *, phase: str,
     if phase == "implement":
         # Phase-1 compatibility stub: exits 0 for any readable Phase-1 state.
         return GuardResult(ok=True, message="")
+
+    if phase == "wave-exit":
+        # The whole verdict table lives in one function, including its
+        # unsupported-schema row, so no row is decided in two places.
+        return _wave_exit_verdict(state)
 
     if phase == "gates-failed":
         count = non_negative_int(state, "implementation_retry_count", 0)
