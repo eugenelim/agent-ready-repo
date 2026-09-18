@@ -803,6 +803,20 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
     refused_count = 0
     unreadable_count = 0
 
+    # AC-0005 requires every candidate to land in EXACTLY ONE outcome. The
+    # summary counts alone cannot show that: an entry counted twice while
+    # another is dropped leaves the sum intact, and a read entry otherwise
+    # emits nothing to attribute. This opt-in ledger makes per-entry
+    # membership observable so the partition can be asserted as a bijection.
+    # An environment variable rather than a flag, because the gate step's
+    # argv is pinned and an undefined flag on a blocking control is its own
+    # hazard.
+    ledger = os.environ.get("ADR_SHAPE_ENTRY_LEDGER") == "1"
+
+    def account(name: str, bucket: str) -> None:
+        if ledger:
+            print(f"entry: {name} -> {bucket}", file=sys.stderr)
+
     for entry in candidates:
         # Join against the resolved root, not `entry.path`: os.scandir echoes
         # back whatever the caller supplied, so a relative argument such as the
@@ -815,6 +829,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
             print(f"warning: cannot classify {entry.name}: {exc}",
                   file=sys.stderr)
             unreadable_count += 1
+            account(entry.name, "unreadable")
             continue
 
         if kind != "regular":
@@ -822,6 +837,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
             print(f"warning: {entry.name}: refused ({kind})",
                   file=sys.stderr)
             refused_count += 1
+            account(entry.name, "refused")
             continue
 
         try:
@@ -833,11 +849,13 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
             print(f"warning: {entry.name}: refused: {exc}",
                   file=sys.stderr)
             refused_count += 1
+            account(entry.name, "refused")
             continue
         except OSError as exc:
             print(f"warning: {entry.name}: unreadable: {exc}",
                   file=sys.stderr)
             unreadable_count += 1
+            account(entry.name, "unreadable")
             continue
 
         try:
@@ -846,10 +864,12 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
             print(f"warning: {entry.name}: unreadable (not UTF-8): {exc}",
                   file=sys.stderr)
             unreadable_count += 1
+            account(entry.name, "unreadable")
             continue
 
         rec = _parse(entry_path, text)
         read_bucket.append(rec)
+        account(entry.name, "read")
 
     # Build record map (ordinal → record) for cross-record checks
     records: dict[str, _Record] = {}
