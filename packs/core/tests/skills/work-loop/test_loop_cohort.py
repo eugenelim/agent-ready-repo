@@ -3317,7 +3317,10 @@ def test_dispatch_receipt_refuses_an_empty_partition(tmp: Path) -> None:
         spec_dir,
         ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
          "--receipt", "--expect-run-id", run_id),
-        expect=("schedule_waves",),
+        # `unusable` is the usable-partition row's own word. `schedule_waves`
+        # alone appears in three rows' messages, so with the clause removed an
+        # empty partition falls to the pointer row and this case still passes.
+        expect=("schedule_waves", "unusable"),
     )
 
 
@@ -3513,20 +3516,28 @@ def test_dispatch_receipt_refuses_a_malformed_container(
 
 
 @pytest.mark.parametrize(
-    "label,waves",
+    "label,waves,owned",
     [
         # Derived from the well-formedness declaration's conjuncts, not sampled:
         # `schedule_waves` a non-list, and the wave at the named index a
         # non-list, an empty list, and a list carrying a non-string. Three wave
         # shapes because a single non-list case leaves the other two unexercised.
-        ("schedule-waves-not-a-list", "nope"),
-        ("wave-not-a-list", ["nope", ["T3"]]),
-        ("wave-empty", [[], ["T3"]]),
-        ("wave-holds-a-non-string", [["T1", 5], ["T3"]]),
+        #
+        # Third element: the word this parameter's own refusal row owns, carried
+        # per parameter rather than once for the test. A non-list partition is
+        # refused by the usable-partition row (`unusable`); the wave shapes are
+        # refused by the wave row (`malformed`). One shared expectation cannot
+        # be both — asserting `unusable` for every row reddens the three wave
+        # shapes on an unmutated tree, and asserting only `schedule_waves`
+        # cannot fail at all, because three rows' messages carry it.
+        ("schedule-waves-not-a-list", "nope", "unusable"),
+        ("wave-not-a-list", ["nope", ["T3"]], "malformed"),
+        ("wave-empty", [[], ["T3"]], "malformed"),
+        ("wave-holds-a-non-string", [["T1", 5], ["T3"]], "malformed"),
     ],
 )
 def test_dispatch_receipt_refuses_a_malformed_partition(
-    tmp: Path, label: str, waves: object
+    tmp: Path, label: str, waves: object, owned: str
 ) -> None:
     name = f"dispatch-receipt-malformed-partition-{label}"
     run_id = str(uuid.uuid4())
@@ -3537,7 +3548,7 @@ def test_dispatch_receipt_refuses_a_malformed_partition(
         spec_dir,
         ("dispatch-receipt", str(spec_dir), "--task", "T1", "--wave-index", "0",
          "--receipt", "--expect-run-id", run_id),
-        expect=("schedule_waves",),
+        expect=("schedule_waves", owned),
     )
 
 
@@ -3871,15 +3882,18 @@ def test_wave_advance_refuses_a_malformed_container(
     )
 
 
-@pytest.mark.parametrize("label,waves", [
+@pytest.mark.parametrize("label,waves,owned", [
     # Derived from the well-formedness declaration's conjuncts, not sampled.
-    ("schedule-waves-not-a-list", "nope"),
-    ("wave-not-a-list", ["nope", ["T3"]]),
-    ("wave-empty", [[], ["T3"]]),
-    ("wave-holds-a-non-string", [["T1", 5], ["T3"]]),
+    # Third element as above: the word this parameter's own row owns. The verb
+    # refuses a non-list partition as `unusable` and a malformed wave as
+    # `malformed`, and `schedule_waves` is common to both.
+    ("schedule-waves-not-a-list", "nope", "unusable"),
+    ("wave-not-a-list", ["nope", ["T3"]], "malformed"),
+    ("wave-empty", [[], ["T3"]], "malformed"),
+    ("wave-holds-a-non-string", [["T1", 5], ["T3"]], "malformed"),
 ])
 def test_wave_advance_refuses_a_malformed_partition(
-    tmp: Path, label: str, waves: object
+    tmp: Path, label: str, waves: object, owned: str
 ) -> None:
     name = f"wave-advance-malformed-partition-{label}"
     run_id = str(uuid.uuid4())
@@ -3889,7 +3903,7 @@ def test_wave_advance_refuses_a_malformed_partition(
         name, spec_dir,
         ("wave", "advance", str(spec_dir), "--from-index", "0",
          "--expect-run-id", run_id),
-        expect=("schedule_waves", "reset"),
+        expect=("schedule_waves", "reset", owned),
     )
 
 

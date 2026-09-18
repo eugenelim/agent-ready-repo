@@ -1819,3 +1819,167 @@ dropped — T6 sits behind T7, so nothing ships with a survivor open.
 The row in § 13.2 now names T7, which is what discharges the narrowed clause.
 § 13.3's analysis stays exactly as T5 wrote it: the survival is the finding, and
 a table edited to hide it would be worth less than one that records it.
+
+## 14. T7 — the partition assertions discriminate the row they name
+
+**What this section is.** The caught row that supersedes § 13.2's one green row.
+It does not edit any section T1–T5 wrote: § 13.2 keeps the green verdict and
+§ 13.3 keeps the survivor analysis, because the survival is the finding. This
+section records what closed it.
+
+### 14.1 Reuse, not addition — the `Cut before adding` search
+
+One bounded search over `test_loop_cohort.py` for an existing way to carry a
+per-row expectation: `grep -n "_refuses_without_writing\|expect="`. It found
+`_refuses_without_writing(name, spec_dir, argv, *, expect)` (line 3163), whose
+`expect` is already an iterable of needles checked one by one. So the
+discriminating word needed no helper, no new assertion function and no
+parametrize indirection — the change stops at rung 2, reusing that helper and
+adding a third element to two existing parameter lists.
+
+### 14.2 The assertion shape that landed
+
+The expected word is carried **per parameter**, as a third element named
+`owned`, not once for the parametrized test:
+
+```python
+@pytest.mark.parametrize(
+    "label,waves,owned",
+    [
+        ("schedule-waves-not-a-list", "nope", "unusable"),
+        ("wave-not-a-list", ["nope", ["T3"]], "malformed"),
+        ("wave-empty", [[], ["T3"]], "malformed"),
+        ("wave-holds-a-non-string", [["T1", 5], ["T3"]], "malformed"),
+    ],
+)
+def test_dispatch_receipt_refuses_a_malformed_partition(
+    tmp: Path, label: str, waves: object, owned: str
+) -> None:
+    ...
+    _refuses_without_writing(..., expect=("schedule_waves", owned))
+```
+
+`test_dispatch_receipt_refuses_an_empty_partition` is not parametrized, so it
+takes the word directly: `expect=("schedule_waves", "unusable")`.
+
+Why the third element rather than one expectation for the test: § 13.3 recorded
+that `expect=("schedule_waves", "unusable")` applied to the whole list reddens
+the three wave-shape parameters on an **unmutated** tree, because those rows
+correctly refuse with `malformed`. A remedy that fails on green is itself a false
+control, so each parameter names the word its own row owns.
+
+### 14.3 The caught row, superseding § 13.2's green one
+
+| Clause | Mutation | Red case | Observed |
+| --- | --- | --- | --- |
+| the usable-partition check | `if not isinstance(waves, list) or not waves` → `(…) and False` | `test_dispatch_receipt_refuses_an_empty_partition`, `test_dispatch_receipt_refuses_a_malformed_partition[schedule-waves-not-a-list-nope-unusable]` | **red, 2 failed** — `dispatch-receipt-empty-partition: expected 'unusable' in output; got 'loop-cohort: stop — dispatch-receipt: current_wave_index=0 is not an index into schedule_waves (len=0); run reset to rebuild cohort state'`, and `dispatch-receipt-malformed-partition-schedule-waves-not-a-list: expected 'unusable' in output; got "loop-cohort: stop — dispatch-receipt: schedule_waves[0] is malformed ('n'); expected a non-empty list of task identifiers"` |
+
+Both observed messages are the fall-through rows § 13.3 predicted — the pointer
+row for `[]` and the wave row for `"nope"` — so the before and after are on one
+clause and the failure is the discrimination, not a new case.
+
+**Both arms, measured on the filter `-k partition`:**
+
+| Arm | Result |
+| --- | --- |
+| landed assertion, clause **present** | **13 passed** (5.8–6.1s) |
+| landed assertion, clause **removed** | **2 failed, 11 passed** |
+
+§ 13.3's walk reported 9 passed / 2 failed on a narrower selection; the two
+failing cases are the same two, and the passing count differs only because this
+filter also selects the four `wave advance` partition parameters, the
+pointer-outside case and the two container-adjacent cases.
+
+**A red for the right reason.** The mutation is an added `and False`, never a
+deletion, so no run produced `SyntaxError`, `IndentationError`, an import error
+or a collection error; the failures are the test's own `expected 'unusable' in
+output` assertion. No mutation had to be reshaped.
+
+### 14.4 The sibling `wave advance` parameters, given the same treatment
+
+`test_wave_advance_refuses_a_malformed_partition` carried the same
+non-discriminating shape: `expect=("schedule_waves", "reset")`, where both the
+verb's non-list row and its wave row carry both words. It now takes `owned` per
+parameter on the same four labels — `unusable` for the non-list partition,
+`malformed` for the three wave shapes — leaving `expect=("schedule_waves",
+"reset", owned)`.
+
+That strengthening was proved able to fail rather than asserted: neutralising
+`wave advance`'s own non-list check (`if not isinstance(waves, list)` →
+`… and False`) gives **1 failed, 3 passed** —
+`wave-advance-malformed-partition-schedule-waves-not-a-list: expected 'unusable'
+in output; got "loop-cohort: stop — wave advance: schedule_waves[0] is malformed
+('n'); expected a non-empty list of task identifiers; run reset to rebuild cohort
+state"`. So the sibling rows discriminate too.
+
+Nothing beyond those two parametrized tests and the empty-partition case
+changed. The rows this spec did not add keep their assertions: `wave advance`'s
+`schedule_waves is empty` refusal predates this spec, so widening to it would
+have exceeded the amendment's scope.
+
+### 14.5 The clause itself was not touched
+
+`loop-cohort.py` is unchanged. Both mutations were applied to the `packs/core/.apm/`
+copy alone and restored from a byte copy taken before the first one, with the
+restore verified by digest after each: `1a221d9494cca78f`, equal across
+`packs/core/.apm/`, `.claude/` and `.agents/`. `make build-self` was never run,
+so the two adapter projections stayed at the committed bytes. No probe touched
+this run's own spec directory.
+
+### 14.6 Gate results for T7
+
+| Gate | Result |
+| --- | --- |
+| `git status --porcelain` | two paths modified, exactly this task's `Touches` |
+| `make lint-ruff lint-mypy` | pass — `All checks passed!`, `Success: no issues found in 148 source files` |
+| `python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort.py -q` | **202 passed in 158.66s** |
+| the same file under the survivor mutation | **2 failed, 11 passed** on `-k partition` (§ 14.3) |
+| `python3 notes/walk_verdict_partition.py` | exit 0 |
+| three-copy parity | `loop-cohort.py` `1a221d9494cca78f` across all three copies |
+
+§ 13.2's row now reads as closed: the clause it names has a control that fails
+when the clause is removed and passes when it is present.
+
+---
+
+## 14.9 Controller verification of T7
+
+**The survivor is closed, reproduced independently.** The exact clause that
+survived T5's sweep, mutated the same way, over `-k partition`:
+
+| Arm | Result |
+| --- | --- |
+| clause present | 13 passed, 189 deselected |
+| clause neutralised | **2 failed**, 11 passed |
+
+The two named failures are
+`test_dispatch_receipt_refuses_an_empty_partition` and
+`test_dispatch_receipt_refuses_a_malformed_partition[schedule-waves-not-a-list-nope-unusable]`.
+Before T7 the same mutation left 266 tests passing. Source restored to
+`1a221d9494cca78f` and verified by digest.
+
+**The green arm matters as much as the red one.** 13 passed with the clause
+present means the remedy is not the false control T5 caught in its own first
+shape, which reddened three wave-shape parameters on an unmutated tree.
+
+**The sibling control fires too.** Neutralising `cmd_wave_advance`'s own
+`isinstance(waves, list)` guard gives 1 failed, 30 passed, naming
+`test_wave_advance_refuses_a_malformed_partition[schedule-waves-not-a-list-nope-unusable]`.
+
+**Scope and gates.** Exactly two files changed, both in `Touches`;
+`loop-cohort.py` has an empty diff, which is the point — the clause was correct
+and only its assertion was weak. `make lint-ruff lint-mypy` clean over 148
+source files; the whole module 202 passed in 2m44s; the walk exits 0; three-copy
+parity holds.
+
+**A probe of mine that proved nothing, recorded for the pattern.** Checking the
+sibling control, I mutated "the later of the two" `isinstance(waves, list)`
+lines without checking which function held it, and hit
+`plan_dispatch_receipt`'s clause again rather than `cmd_wave_advance`'s. The
+filtered cases passed, which read as "the sibling control does not fire". Four
+lines in the file match that pattern, in `begin_contract_amendment`,
+`apply_contract_amendment`, `cmd_wave_advance` and `plan_dispatch_receipt`.
+Mapping each line to its enclosing function before mutating is one command and
+removes the whole class. This is the third probe in this delivery whose first
+shape could not discriminate; the common cause each time was an anchor chosen by
+position rather than by identity.
