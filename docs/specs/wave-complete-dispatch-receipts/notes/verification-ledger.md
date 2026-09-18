@@ -1983,3 +1983,49 @@ Mapping each line to its enclosing function before mutating is one command and
 removes the whole class. This is the third probe in this delivery whose first
 shape could not discriminate; the common cause each time was an anchor chosen by
 position rather than by identity.
+
+---
+
+## 15. T6 — the release surface, and a real version collision (controller)
+
+**T6 was not dispatched.** It is a three-file version bump whose only real risk
+is collision against the remote, and the controller held that context from having
+done the rebases. A subagent would have had to rediscover it. Recorded as a
+deviation from the one-implementer-per-task pattern, with the reason.
+
+**The collision was real, and it was the second-order form.** Before T6 the
+branch declared `2.26.14` and carried changelog entries for `2.26.13` and
+`2.26.14`, both assigned during an earlier rebase when main's highest was
+`2.26.12`. By the time T6 ran, `origin/main` declared `2.26.14` itself and
+carried entries for both `2.26.13` and `2.26.14`. So **both** numbers this branch
+had taken were also taken upstream, and two different code states shared one
+version string.
+
+This is exactly why the obligation says to derive the version immediately before
+pushing rather than when the work is done. Deriving it early is not a small
+inefficiency — it produces a number that is silently wrong later.
+
+**Resolution.** Rebased onto the new main with `rerere` disabled, then renumbered
+in rebase order: the supervisor-mode fix to `2.26.15`, the boundary-walk
+consolidation to `2.26.16`, and T6's own bump for this spec's work to
+`2.26.17`, with both manifests reading `2.26.17` and that entry topmost.
+
+**Two rebase artifacts, the same shape as the first rebase produced.** A stray
+empty `## [core][2.26.13]` heading immediately above a real one, and a body line
+running straight into main's next heading with no blank between. Both come from
+git resolving adjacent single-line changes in a file where every entry starts
+with the same prefix. Neither would fail a gate — an empty heading is valid
+Markdown and the roster test pins only that the manifests match the *topmost*
+entry — so the loud signal is reading the ordering back:
+
+```
+2.26.17, 2.26.16, 2.26.15, 2.26.14, 2.26.13, 2.26.12, 2.26.11
+```
+
+Descending with no duplicates among the versions this branch touched. The one
+duplicate the scan reports, `core 2.3.0`, is pre-existing on `origin/main`.
+
+**Gates.** T6's `Done when` suites: 100 passed, 1 skipped in 3.9s.
+`make lint-ruff lint-mypy` clean over 148 source files. `lint-spec-status --all`
+clean over 482 specs. The partition walk exits 0. Three-copy parity holds for all
+three edited scripts after the rebase. No conflict marker anywhere in the tree.
