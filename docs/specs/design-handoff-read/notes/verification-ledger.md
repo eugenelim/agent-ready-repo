@@ -391,3 +391,27 @@ and a rewrap orphan.
 **One correction to this ledger's own earlier entry** is recorded above, under the
 closeout section: the CAT-S003 measurement was wrong and the finding was a
 regression, not a pre-existing one.
+
+## CI failure — a changelog link no local gate reads, 2026-09-18
+
+The first CI run was 34 pass, one fail: `rendered-site-links: 1 broken target
+across 1 page`.
+
+The changelog's Highlights block linked the new guide with a site-root-anchored
+href — a leading slash, then `guides/frontend-engineering/how-to/`, then the page
+slug. Starlight serves the docs under a `docs` prefix, so a site-root href
+resolves to nothing and the emitted changelog page carried a dead link. Every
+other guide link in that file uses the repo-relative `../../guides/....md` form,
+which `build-site.py` rewrites; mine invented a site-root path.
+
+**Why no local gate caught it.** The link audit runs against the *emitted* site,
+which needs `make bootstrap-sites` and `make site-build` — neither is in the local
+gate set this spec's plan names, and the plan's verification section says to run
+only the targeted suites. Reproduced locally by building the site: the checker
+named the page, the link and the missing target exactly.
+
+**Cause confirmed by reverting, not by inference.** Restoring the absolute form
+reproduced `1 broken target across 1 page` on the emitted
+changelog page; restoring the fix returned `88629 links across 313
+pages; clean`. A link that merely *looks* right in Markdown is not evidence, and
+neither is a green run after a change — the differential is.

@@ -161,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is the check — it is never reported as though a test had passed.
 - Every refusal stops the whole read and halts, by name. It does not tidy up a
   bad value, pick a different file, quietly downgrade to a skip, or fall back to
-  the canonical list. [Read the design handoff](/guides/frontend-engineering/how-to/read-the-design-handoff/)
+  the canonical list. [Read the design handoff](../../guides/frontend-engineering/how-to/read-the-design-handoff.md)
   says what each skip and each refusal means, and where the limits are.
 
 ### Added
