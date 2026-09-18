@@ -12,17 +12,52 @@ SKILL = (
 )
 
 
+# Explicit anchors in SKILL.md, not neighbouring prose. Positional delimiters
+# (a heading, a step number, the block's own opening sentence) move whenever the
+# procedure is restructured, and every assertion below would then silently run
+# against the wrong span instead of failing. These markers are HTML comments, so
+# no heading rewrite can relocate them and nothing reaches a rendered surface.
+START_MARKER = "<!-- knowledge-provider-handoff:start"
+END_MARKER = "<!-- knowledge-provider-handoff:end -->"
+
+
 def _section() -> str:
     """Return architect-design's bounded provider-consumer instructions."""
     text = SKILL.read_text(encoding="utf-8")
-    return text.split("Only when the task concerns a skill", 1)[1].split(
-        "3. **Shape the concept first", 1
-    )[0]
+    assert text.count(START_MARKER) == 1, (
+        f"{SKILL} must carry exactly one {START_MARKER!r} anchor"
+    )
+    assert text.count(END_MARKER) == 1, (
+        f"{SKILL} must carry exactly one {END_MARKER!r} anchor"
+    )
+    body = text.split(START_MARKER, 1)[1].split(END_MARKER, 1)[0]
+    # Drop the start marker's own comment body so the guidance inside it is
+    # never mistaken for the instructions under test.
+    return body.split("-->", 1)[1]
 
 
 def _flat(text: str) -> str:
     """Make prose assertions insensitive to line wrapping."""
     return re.sub(r"\s+", " ", text)
+
+
+def test_provider_discovery_is_restricted_to_agent_extension_tasks() -> None:
+    """The block opens by bounding when the provider may be reached at all.
+
+    The previous `_section()` split on this sentence, so deleting it raised
+    rather than failed. Locating the block by marker removes that incidental
+    guard, so the restriction is asserted directly: widening the opening to an
+    unconditional "use ordinary capability discovery" must fail here.
+    """
+    section = _flat(_section())
+    assert (
+        "Only when the task concerns a skill, a skill script or evaluation, "
+        "agent-loop orchestration, a hook, or a plugin, use ordinary capability "
+        "discovery to resolve a capability exposing "
+        "`agent-skill-engineering-reference/v1`; do not invoke it otherwise or "
+        "resolve it by the owning pack's product name, installation path, or "
+        "generated router path."
+    ) in section
 
 
 def test_selection_fails_closed_before_provider_invocation() -> None:

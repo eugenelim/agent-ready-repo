@@ -117,6 +117,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   legacy `Boundaries` heading together, so a review of a spec written before
   this release still has a standard to measure against.
 
+## [architect][0.15.10] — 2026-09-18
+
+No `Highlights`: this release changes nothing a consumer of the pack can do.
+`architect-design` produces the same output from the same instructions; the
+change is enabling work for the scope-routed authoring model recorded in
+ADR-0118.
+
+### Changed
+
+- `architect-design`: `SKILL.md` gains a `knowledge-provider-handoff` HTML
+  comment marker either side of the bounded provider-consumer instructions. The
+  markers are anchors for the pack's own tests and render to nothing; no
+  instruction text changed.
+- `architect-design` tests: the provider-consumer boundary suite locates that
+  block by those markers instead of by a neighbouring heading and step number,
+  so restructuring the procedure fails the suite loudly rather than moving every
+  assertion onto the wrong text.
+- `architect-design` tests: the authority contract asserts the frontmatter's
+  key set, skill name, exact `metadata.boundaries` list, and both ends of the
+  description — the invocation scope and trigger list that open it, and the
+  refusal clause that closes it — replacing equality against the whole
+  frontmatter string. It still fails on `allowed-tools:`, a widened boundary,
+  an added top-level or metadata key, a renamed skill, and routing text
+  prepended to or appended onto the description. It no longer fails when the
+  description's middle is reworded: the sentence saying what the skill
+  produces, and the cloud well-architected claim, are both free.
+
 ## [architect][0.15.9] — 2026-09-18
 
 ### Highlights
