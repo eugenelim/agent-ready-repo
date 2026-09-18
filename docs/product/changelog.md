@@ -85,6 +85,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   out only the status token — an entry added afterwards invalidates the
   baseline.
 
+## [iac-terraform][0.1.10] — 2026-09-17
+
+### Changed
+
+- The required `governance-extras` range widens to `^0.11`. This pack asks
+  `new-adr` to author its infrastructure ADRs rather than carrying a copy of
+  the template or reading records itself, so the richer metadata block that
+  release adds arrives as extra fields on the records `new-adr` writes. The
+  infrastructure mode and its reference material are the same as before.
+
 ## [governance-extras][0.11.0] — 2026-09-17
 
 ### Highlights
