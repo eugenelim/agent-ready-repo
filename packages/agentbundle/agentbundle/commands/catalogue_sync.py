@@ -136,6 +136,39 @@ def _parse_decline_reason(reason: str) -> tuple[str, str] | None:
     return (path, token) if isinstance(path, str) else None
 
 
+def _screen_recorded_path(target: Path, path: str) -> bool:
+    """Screen a recorded-and-planned *path* before it reaches `safety.classify`.
+
+    Security finding 2 / adversarial finding 2: `classify`'s own on-disk read
+    (`safety.sha256_file`) is a raw `path.open("rb")` — it follows a symlink
+    to its destination's bytes, hashes a hard link, and raises
+    `IsADirectoryError` when a directory sits where a recorded regular file
+    is expected. Screening through the declared `file_safety` confinement
+    helper first, rather than reimplementing any part of the Tier contract,
+    keeps `safety.classify` the single Tier implementation (§ Always do,
+    § Never do) while refusing every one of those shapes before it is ever
+    reached.
+
+    A path with **no** on-disk entry at all is not screened here and always
+    passes: `classify`'s own "absent on disk -> Tier-1 (about to write)"
+    resolution depends on being able to tell a truly absent path apart from
+    a present-but-unsafe one, and only a present entry can be unsafe. A
+    dangling symlink is a *present* entry (its own `lstat` succeeds) even
+    though `Path.exists()` reports it absent, so it is screened and refused
+    like every other symlink rather than silently read as "absent".
+    """
+    full = target / path
+    try:
+        full.lstat()
+    except OSError:
+        return True
+    try:
+        sha256_confined_regular_file(target, full)
+    except UnsafeContentError:
+        return False
+    return True
+
+
 def _underivable_condition(target: Path, source: Path) -> str | None:
     """Return spec AC-0009's underivable-selection condition, or ``None``.
 
@@ -249,6 +282,14 @@ def _classify_planned_paths(
     stale_paths = [path for path in recorded if path not in planned_paths]
 
     for path in sorted(planned_paths):
+        # Screen only when `path` is recorded — that is exactly when
+        # `classify` would otherwise touch the filesystem (a path outside
+        # `state.projected_paths()` returns Tier-3 with no on-disk read at
+        # all, so screening it would only manufacture a false
+        # `path-confinement-refused` for an ordinary untouched entry).
+        if path in recorded and not _screen_recorded_path(target, path):
+            counts["uncompared"] += 1
+            continue
         tier = classify(path, target, state)
         if tier is Tier.TIER_3:
             counts["untouched"] += 1
@@ -474,7 +515,21 @@ def compatibility_warnings(
         deps = source_toml.get("pack", {}).get("dependencies", {})
         if not isinstance(deps, dict):
             continue
-        for entry in deps.get("required") or []:
+
+        # Security finding 5: `required`/`conflicts` is a valid TOML scalar
+        # (e.g. `required = 1`) as well as an array. Iterating an
+        # unguarded non-list container raises `TypeError` — an uncaught
+        # exception AC-0014 forbids deciding the process exit status. A
+        # malformed container is reported by field name into *rejections*
+        # and contributes no warning row; it must never refuse the run
+        # (AC-0013's dry-run success row) or move the exit code (AC-0018).
+        required = deps.get("required")
+        if required is not None and not isinstance(required, list):
+            rejections.append(
+                "rejected dependency_required: value is not an array"
+            )
+            required = []
+        for entry in required or []:
             if not isinstance(entry, dict):
                 continue
             dep_name = entry.get("pack")
@@ -486,7 +541,14 @@ def compatibility_warnings(
                     f"advisory: pack {name!r} declares a required dependency on "
                     f"{safe_dep_name!r}, which the resolved selection does not include"
                 )
-        for entry in deps.get("conflicts") or []:
+
+        conflicts = deps.get("conflicts")
+        if conflicts is not None and not isinstance(conflicts, list):
+            rejections.append(
+                "rejected dependency_conflicts: value is not an array"
+            )
+            conflicts = []
+        for entry in conflicts or []:
             if not isinstance(entry, dict):
                 continue
             dep_name = entry.get("pack")
@@ -731,22 +793,38 @@ def _plan_document(
     summary: dict[str, int],
     verdict_rows: list[tuple[str, str, str | None]],
     compatibility: list[str],
+    violations: int,
     rejections: list[str],
 ) -> dict[str, Any]:
     """Build the plan document, following ``upgrade._build_json_doc``'s
     ``summary``-carrying shape and vocabulary.
 
-    Spec AC-0012: ``archive_sha256``, ``source_revision`` and — under
-    ``attributed`` — the source URI are all unauthored (resolved from a
-    remote document or the adopter's own ``--source`` flag rather than
-    written by this command), so each is routed through the terminal-safe
-    check here, at the one place they are assembled for rendering.
+    Spec AC-0012: ``archive_sha256``, ``source_revision``, ``target``, every
+    ``pack_names``/``profile_names`` entry, and — under ``attributed`` — the
+    source URI are all unauthored (resolved from a remote document, the
+    replayed source tree, or the adopter's own ``--target``/``--source``
+    flags rather than written by this command), so each is routed through
+    the terminal-safe check here, at the one place they are assembled for
+    rendering.
+
+    Spec AC-0005: ``violations`` (the identity leak check's count) is
+    carried into the document so both this table and the ``--format json``
+    surface report it, not only the exit code it also selects.
     """
     safe_archive_sha256 = _safe_scalar("archive_sha256", archive_sha256, rejections)
     safe_source_revision = _safe_scalar("source_revision", source_revision, rejections)
+    safe_target = _safe_scalar("target", str(target), rejections)
+    safe_pack_names = [
+        name for name in pack_names
+        if _safe_scalar("packs", name, rejections) is not None
+    ]
+    safe_profile_names = [
+        name for name in profile_names
+        if _safe_scalar("profiles", name, rejections) is not None
+    ]
     doc: dict[str, Any] = {
         "command": "catalogue sync",
-        "target": str(target),
+        "target": safe_target,
         "dry_run": dry_run,
         "check": check,
         "fidelity": fidelity_token,
@@ -760,9 +838,10 @@ def _plan_document(
             "guides": guides,
             "provenance": "flags-and-defaults",
         },
-        "packs": pack_names,
-        "profiles": profile_names,
+        "packs": safe_pack_names,
+        "profiles": safe_profile_names,
         "summary": summary,
+        "violations": violations,
         "compatibility": compatibility,
         "verdicts": [
             {
@@ -796,6 +875,7 @@ def _render_plan(doc: dict[str, Any], *, fmt: str) -> None:
     ]
     if "source" in doc:
         lines.append(f"source: {doc['source']}")
+    lines.append(f"violations: {doc['violations']}")
     lines.append("packs: " + (", ".join(doc["packs"]) or "(none)"))
     lines.append("profiles: " + (", ".join(doc["profiles"]) or "(none)"))
     for line in doc.get("rejections", []):
@@ -958,12 +1038,13 @@ def _run_dry_run(
         tooling=resolved_cfg.tooling,
         guides=resolved_cfg.guides,
         source_raw=source_raw,
-        attributed=_is_attributed(resolved_cfg),
+        attributed=attributed,
         pack_names=replay.pack_names,
         profile_names=replay.profile_names,
         summary=summary_counts,
         verdict_rows=verdict_rows,
         compatibility=compatibility,
+        violations=len(replay.violations),
         rejections=rejections,
     )
     _render_plan(doc, fmt=fmt)
@@ -980,7 +1061,22 @@ def run(args: argparse.Namespace) -> int:
     tooling: str = args.tooling or "external"
     guides: str = args.guides_mode or "selected"
     fmt: str = args.format
-    attributed = attribution == "attributed"
+    # Security finding 1 (owner decision 2026-09-17): `_is_attributed` is the
+    # single attribution gate. A second, independently-shaped check (e.g. an
+    # inline `attribution == "attributed"` equality) is a defect even when it
+    # currently agrees with this one, because nothing then constrains the two
+    # to keep agreeing as either side changes. `target`/`source` are the only
+    # required fields; the ones this decision actually reads —
+    # `attribution` — are flag-derived, never the recorded recipe (AC-0003).
+    attribution_cfg = SelfHostedInitConfig(
+        target=Path(target_raw),
+        source=Path(source_raw),
+        tooling=tooling,
+        attribution=attribution,
+        guides=guides,
+        dry_run=dry_run,
+    )
+    attributed = _is_attributed(attribution_cfg)
 
     # Rendering is bounded on all three channels (stdout, stderr, and the
     # `--format json` document) from the first refusal onward — every
@@ -995,7 +1091,7 @@ def run(args: argparse.Namespace) -> int:
     target_path = Path(target_raw)
     if target_path.is_symlink():
         return _refuse(
-            f"target {target_raw!r} is a symlink. Provide a direct path.",
+            "rejected target: value is a symlink. Provide a direct path.",
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
