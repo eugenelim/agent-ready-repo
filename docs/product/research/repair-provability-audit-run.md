@@ -1422,3 +1422,60 @@ shipping without a control that fails for the dispatched defect:
 Three successive reports at 63%, 64%, 63% while the measurable subset grew from
 38 to 57. The earlier monotone rise has stopped and reversed by a point, which is
 what convergence looks like rather than drift. **36 of 57.**
+
+### Batch rem-e: a log destroyed by its own payload, and a prediction kept
+
+Five new cases, **43 repairs, 7 revert arms**, every baseline exiting 0 and every
+revert asserted. All three chunks returned full coverage; the gate passes at 43
+of 43. Outcome: **3 semantic kills, 5 structural kills, 1 survives, 34
+unmeasurable.** This is the first batch where structural kills outnumber semantic
+ones.
+
+**An instrumentation hazard not seen before: the test data wiped the log.**
+Four arms reported empty result lines. Several of these tests carry **ANSI escape
+sequences as their fixtures** — they exercise invisible code points and
+consent-surface repainting — and a raw `\x1b[2J[1;1H` in captured output clears
+the screen, erasing pytest's summary line from the log. The runs were sound; the
+*evidence* was destroyed by the payload under test. Those arms are reported from
+exit codes, which are unaffected, and the observation file says so explicitly so
+an adjudicator cannot read a blank line as a blank result.
+
+That is the fifth variant of one class in this run: **the step happened and the
+evidence did not survive.** The others were an unstable `git log --until`, a
+`git checkout` that silently did not happen, `set -u` aborting before a revert,
+and `tail` truncating the revert confirmations.
+
+**A prediction from the first run held.** `5ae6efe67` was scoped in the earlier
+session with the note that it "may have no semantic oracle at all" and that its
+co-changed test "fails only on a digest pin". Its arm failed at exactly
+`assert result["skill_digest"] == "sha256:" + skill_digest`, and Worker B scored
+it **structural kill** with `MATCHED: STRUCTURAL ONLY IF` — "this proves only a
+digest mismatch, not the entry-condition meaning." An inspection-only prediction
+made before any harness existed was confirmed by execution months later.
+
+Two further failures were symbol-shape breaks rather than behaviour:
+`TypeError: render_receipt() got an unexpected keyword argument 'removal_hint'`
+and `AttributeError: module 'agentbundle.catalogue_tooling.self_host_windows' has
+no attribute 'EXECUTED_FLOOR_LABELS'`. Both are the structural false-positive
+class the design ranked second among its validity threats.
+
+### Running totals: 51 of 61 cases, 331 repairs
+
+| Outcome | Count | Share |
+| --- | ---: | ---: |
+| unmeasurable | 265 | 80.1% |
+| survives | 28 | 8.5% |
+| semantic kill | 24 | 7.3% |
+| structural kill | 14 | 4.2% |
+
+| Among the 66 measurable repairs | Count | Share |
+| --- | ---: | ---: |
+| survives | 28 | 42% |
+| semantic kill | 24 | 36% |
+| structural kill | 14 | 21% |
+
+**Four successive reports at 63%, 64%, 63%, 64%** for repairs shipping without a
+control that fails for the dispatched defect, while the measurable subset grew
+from 38 to 66. **42 of 66.** The figure has been within one point of 63.5% for
+four reports and 28 added observations, which is as converged as a sample this
+size gets.
