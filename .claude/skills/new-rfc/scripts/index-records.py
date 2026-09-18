@@ -315,7 +315,11 @@ def _records(directory: pathlib.Path, pattern: re.Pattern[str],
             _warn(f"{entry.name}: not a regular file")
             continue
         try:
-            raw = rp.read_confined(directory, pathlib.Path(entry.path))  # type: ignore[union-attr]
+            # `expect` binds this read to the entry that was listed and
+            # classified; the read's own before/after pair cannot see a
+            # substitution that happened before it was called.
+            raw = rp.read_confined(  # type: ignore[union-attr]
+                directory, pathlib.Path(entry.path), expect=entry.identity)
             body = raw.decode("utf-8")
         except rp.EntryRefused as error:  # type: ignore[union-attr]
             _warn(f"{entry.name}: refused ({error})")
