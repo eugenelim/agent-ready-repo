@@ -203,8 +203,16 @@ class _Record:
 # ── Parsing ─────────────────────────────────────────────────────────────────────
 
 def _strip_comment(s: str) -> str:
-    """Strip a trailing <!-- … --> HTML comment and surrounding whitespace."""
-    return re.sub(r"\s*<!--.*?-->\s*$", "", s).strip()
+    """Strip a trailing <!-- … --> HTML comment and surrounding whitespace.
+
+    `re.DOTALL` is load-bearing, not tidiness. `_read_field_value`'s Form 2
+    returns `"\n".join(parts)`, so this receives genuinely multi-line text —
+    and without DOTALL, `.` stops at a newline, leaving a multi-line comment
+    in the value. A `Revisit if:` block holding only guidance comments would
+    then read as content and ADR-S012 would pass a record with no real
+    Revisit-if line at all.
+    """
+    return re.sub(r"\s*<!--.*?-->\s*$", "", s, flags=re.DOTALL).strip()
 
 
 def _read_field_value(lines: list[str], i: int, same_line: str) -> str:

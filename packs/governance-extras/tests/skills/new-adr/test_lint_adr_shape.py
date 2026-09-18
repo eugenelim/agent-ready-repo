@@ -356,10 +356,21 @@ def _write_dir(tmp_path: pathlib.Path, files: dict[str, str]) -> pathlib.Path:
 
 
 def _conforming() -> dict[str, str]:
-    """Return {filename: content} for the three conforming fixture records."""
+    """Return {filename: content} for the three conforming fixture records.
+
+    Each fixture is joined from a literal name rather than a comprehension
+    variable. `tools/lint-pack-test-boundary.py` resolves path expressions
+    lexically, and a comprehension binds its target in its own scope, so
+    `_FIXTURES_DIR / name` is unresolvable to that walk and reads as a reach
+    above the pack even though `_FIXTURES_DIR` is pack-local.
+    """
     return {
-        name: (_FIXTURES_DIR / name).read_text(encoding="utf-8")
-        for name in ("0001-basic.md", "0002-superseder.md", "0003-superseded.md")
+        "0001-basic.md": (
+            _FIXTURES_DIR / "0001-basic.md").read_text(encoding="utf-8"),
+        "0002-superseder.md": (
+            _FIXTURES_DIR / "0002-superseder.md").read_text(encoding="utf-8"),
+        "0003-superseded.md": (
+            _FIXTURES_DIR / "0003-superseded.md").read_text(encoding="utf-8"),
     }
 
 
@@ -1542,3 +1553,34 @@ def test_candidate_entry_refuses_to_follow_a_symlink_on_stat(tmp_path):
                  if e.name == "d.md")
     with pytest.raises(ValueError):
         entry.stat(follow_symlinks=True)
+
+
+def test_s012_rejects_a_revisit_block_holding_only_a_multiline_comment(tmp_path):
+    """A multi-line HTML comment is not Revisit-if content.
+
+    `_read_field_value`'s Form 2 joins its lines with newlines, so the value
+    reaching `_strip_comment` is genuinely multi-line. Without `re.DOTALL` the
+    comment survives the strip, the value reads as non-empty, and ADR-S012
+    passes a record whose Revisit-if line is guidance the author never
+    replaced. Flagged by CodeQL as `py/bad-tag-filter`.
+    """
+    body = _minimal().replace(
+        "- **Revisit if:** something changes",
+        "**Revisit if:**\n\n<!--\nstate the condition that would reopen this\n-->",
+    )
+    d = _write_dir(tmp_path, {"0001-a.md": body})
+    code, out, err = _run(d)
+    assert "ADR-S012" in _extract_codes(out + err), out + err
+    assert code == 1
+
+
+def test_s012_still_accepts_a_real_revisit_block_with_a_trailing_comment(
+        tmp_path):
+    """The discriminating negative: stripping must not eat real content."""
+    body = _minimal().replace(
+        "- **Revisit if:** something changes",
+        "**Revisit if:**\n\n- the vendor changes its terms\n<!--\nguidance\n-->",
+    )
+    d = _write_dir(tmp_path, {"0001-a.md": body})
+    code, out, err = _run(d)
+    assert "ADR-S012" not in _extract_codes(out + err), out + err
