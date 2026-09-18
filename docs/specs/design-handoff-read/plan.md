@@ -1,7 +1,7 @@
 # Plan: design-handoff-read
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` § Security and authoring rules, which
   binds every pack, and root `AGENTS.md`'s non-waivable list. Analogous
   implementation: `packs/experience-design/.apm/skills/copy-direction/SKILL.md`
@@ -587,6 +587,8 @@ configured gains the handoff on upgrade.
 
 ## Changelog
 
+- 2026-09-18: plan approved by eugenelim
+- 2026-09-18: spec approved by eugenelim
 - 2026-09-18 — Pre-approval review round 6. Twenty-five findings raised, eleven
   blockers; twenty-four sustained, one refuted. The refutation matters as much as
   the sustains: "T3 stages no fixture for eight criteria" was refuted because T3's
