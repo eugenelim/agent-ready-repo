@@ -55,25 +55,44 @@ moved it.
 
 1. **Deterministic repair-provability audit.** Pinned to first place by the
    2026-09-10 owner decision recorded below, which this refresh does not
-   revisit. **Started 2026-09-17 and blocked at its own instrumentation gate.**
-   The [first run](../research/repair-provability-audit-run.md) reached the
-   10-case gate the design requires and failed it: the population criterion
-   admitted 10 of 10 cases under one reading and 1 of 10 under another, and the
-   strict reading rejects three of the four cases the design names as its
-   selection method. A second round then found a determinate predicate — wider
-   review vocabulary, commit type not `feat`, repair verb in the subject — that
-   is **87.5% precise on a fresh draw from its own selection** and reproduces the
-   design's strata shares within 4.4 points, at 147 cases with 53 in
-   `source + test` against the design's 39. That predicate is fit to freeze. A
-   three-case oracle gate then **passed**: with predicates frozen before
-   execution, the oracle separated two semantic kills from one structural kill,
-   and every frozen predicate anticipated its outcome. Two harness requirements
-   came out of it — revert every mirrored copy of a hunk, and score provability
-   per repair rather than per commit, since a compound commit hid an uncontrolled
-   repair inside a semantic kill. **The rate is still unmeasured:** three
-   hand-picked cases span the outcome space and estimate no frequency. It remains
-   first because it is still the measurement everything below it waits on, and it
-   is now ready to scale at roughly 43 minutes per case.
+   revisit. **Ran 2026-09-17 to 2026-09-18 and completed.** The
+   [run](../research/repair-provability-audit-run.md) owns the method, every
+   correction, and the limits; this entry records only the result and what it
+   changes for the candidates below.
+
+   **Result.** 424 adjudicated repairs across 58 cases of the `source + test`
+   stratum. The audit's question is askable of **28%** of repairs; the rest have
+   no revertable source hunk or no co-changed control that could discriminate
+   the repair from its absence. Of the 119 measurable repairs, **84 — 71% —
+   shipped without a control that fails for the dispatched defect**, and
+   survivals outnumber semantic kills 1.6 to 1. The design's `n ≈ 39–53` power
+   note holds: this supports *widespread rather than rare* and nothing finer, so
+   the percentage is not a threshold to plan against.
+
+   **What it changes for the candidates below.** Two things, both load-bearing.
+   A co-changed test is weak evidence of a control — the largest co-changed
+   suites in the corpus were the least discriminating, with 137, 72 and 68 tests
+   staying green against a reverted repair — so any candidate that proposes to
+   trust or count co-changed tests needs a different signal. And the repository
+   already ships the instrument that would catch this: the work-loop skill's
+   `references/mutation-proof.md` specifies the exact procedure, including a
+   section on a test that cannot fail, but it is loaded on a **self-assessed
+   trigger** — the repair author
+   decides whether their own control needs proving. Making that trigger
+   mechanical is the smallest change the result implies, and it is unshaped.
+
+   **Cost, for planning the ones below.** 13 batches, each one predicate-freezing
+   worker call plus one to three adjudication calls, and no model cost for the
+   measurement itself. Wall-clock was not instrumented, so no hourly figure is
+   claimed. The design's estimate of 43 minutes per case is the wrong unit
+   rather than the wrong number: cases carried a mean of about seven adjudicated
+   repairs and a maximum of 26, and cost tracks repairs.
+
+   **Unmeasured.** The three remaining strata — source only (33), docs only (30),
+   test only (40) — carry different oracles, none validated by an instrumentation
+   gate. Scaling any of them without one would repeat the failure this design's
+   own gate exists to prevent.
+
 2. **Impact 3 — Backlog economics and pruning** *(rose from rank 3)*: inventory
    backlog work attributable to the loop; compare expected avoided risk or user
    benefit with carrying, shaping, review, delivery, and maintenance cost; then
