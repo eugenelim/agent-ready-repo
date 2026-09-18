@@ -1,10 +1,12 @@
 # Upstream sync for a derived catalogue
 
-> **STATUS: PLANNED.** The `sync` verb does not exist; no phase of it is
-> implemented. The one prerequisite that changed `init` instead has shipped —
-> see § Shipped: credbroker source follows its pack. Everything else here
-> records the designed architecture for `agentbundle catalogue sync` so the
-> spec and plan that build it have one place to disagree with.
+> **STATUS: PHASE 2 DELIVERED.** `agentbundle catalogue sync` exists, with
+> `--dry-run` and `--check` and no write path. The one earlier prerequisite
+> that changed `init` instead has also shipped — see § Shipped: credbroker
+> source follows its pack. Two phases remain: the apply path plus the scoping
+> flags, then package sync. Everything else here records the designed
+> architecture for those two phases so the spec and plan that build them have
+> one place to disagree with.
 >
 > Current-state context: [`derived-catalogue.md`](derived-catalogue.md) and
 > [`state.md`](state.md).
@@ -82,7 +84,7 @@ therefore preserved by reuse, not by a parallel implementation.
 
 ### Stage 3 — classify, never overwrite
 
-The unconditional write at `initialise_self_hosted.py:1145` is replaced by
+The unconditional write at `initialise_self_hosted.py:1623` is replaced by
 `safety.classify(relpath, root, state)`:
 
 | Tier | Condition | Action |
@@ -91,7 +93,7 @@ The unconditional write at `initialise_self_hosted.py:1145` is replaced by
 | Tier-2 | on-disk `sha256` differs — adopter edited it | `safety.write_companion` → `<name>.upstream.<ext>` |
 | Tier-3 | path absent from state | leave untouched, report |
 
-The `CONFLICT` abort at `:1137` becomes a Tier-3 row in the plan. Every write
+The `CONFLICT` abort at `:1611` becomes a Tier-3 row in the plan. Every write
 goes through `safety.write_jailed`, so the path jail is not optional; source
 reads keep using the confined helpers in `catalogue_tooling.file_safety`.
 
@@ -113,6 +115,11 @@ mechanism.
 `--package <name>` each restrict the run to that subtree. Absent all four, the
 run covers the recorded recipe. `catalogue.toml`, `tests/conformance/`, and the
 identity fields are derivation-wide and move only with a full sync.
+
+Phase 2 deliberately does not claim `--guides` for its own guides replay mode:
+`catalogue sync --guides-mode none|selected` is the flag that ships now, so
+`--guides` above stays free for this restrictor rather than being taken early
+by an unrelated meaning.
 
 `--package` has two valid names, not one: `agentbundle` (present in vendored
 mode) and `credbroker` (present whenever the `credential-brokers` pack is
@@ -192,7 +199,7 @@ contracts unchanged; removing the new verb restores the status quo exactly.
    restored the drift gate in derived catalogues whether or not `sync` ever
    ships. See § Shipped: credbroker source follows its pack.
 
-Phase 1 is complete. Three phases remain, in this order:
+Phase 2 is complete. Two phases remain, in this order:
 
 1. ~~**State schema 3**~~ — **done**. `init` writes the recipe and pin fields.
    `init --source` takes a local path only: it resolves the argument as a
@@ -201,8 +208,8 @@ Phase 1 is complete. Three phases remain, in this order:
    § Stage 1's local-clone row, and its `source_revision` and `archive_sha256`
    are null. A source form that affords a resolved ref or a digest first
    reaches the pin when `sync` resolves it in phase 2.
-2. **`sync` with `--dry-run` and `--check` only** — resolve, replay, classify,
-   and plan, with no write path.
+2. ~~**`sync` with `--dry-run` and `--check` only**~~ — **done**. Resolve,
+   replay, classify, and plan, with no write path.
 3. **The apply path**, plus the scoping flags.
 4. **Package sync** — both `packages/` subtrees a derived catalogue can carry,
    `agentbundle` (vendored mode only) and `credbroker`. Last, because the

@@ -23,6 +23,18 @@ instead of citing where it was decided. IETF RFC numbers never start with `0`; t
 catalogue's internal ordinals are zero-padded. Runtime message text is often pinned
 by tests, so rename the message and its assertion together.
 
+**One exemption: a bare `AC-NNNN` label in a test comment or docstring.** An
+acceptance-criterion ordinal names a criterion inside the repository that owns
+the test, not a decision venue, so it discloses nothing an adopter reading the
+suite could act on — unlike an RFC or ADR ordinal, which points at a governance
+record, or a spec path, which points at a file the sdist does not ship. The
+TDD stub contract in
+[`spec-and-plan-contract.md`](../packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md)
+§ Stub → EXECUTE handoff requires the marker so a materialised stub can be
+traced to the criterion it earns its red from, and three suites already carry
+it. Keep the
+label bare: `AC-0017`, never a path or a section reference alongside it.
+
 ## Engine-Change-RFC requirement
 
 Changes under `packages/agentbundle/agentbundle/` or `packs/credential-brokers/**`

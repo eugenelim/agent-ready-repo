@@ -7,12 +7,14 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tomllib
 from pathlib import Path
 
 import pytest
+from agentbundle.catalogue_tooling import initialise_self_hosted as ish
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _VENDORED_ENGINE_EXCLUDE,
     _VENDORED_PACK_EXCLUDE,
@@ -846,6 +848,179 @@ def test_path_confinement_against_crafted_state(tmp_path: Path) -> None:
     result2 = init_self_hosted(cfg)
     assert result2.ok
     assert escape_file.exists()  # path confinement: traversal rejected
+
+
+# ---------------------------------------------------------------------------
+# T2 — stale-owned-path planning
+# ---------------------------------------------------------------------------
+
+_STALE_DECLINE_FIXTURES = (
+    ("malformed", "", None, set(), "malformed-recorded-path", "decided"),
+    (
+        "current",
+        "current.md",
+        b"current\n",
+        {"current.md"},
+        "path-remains-current",
+        "decided",
+    ),
+    (
+        "escaping",
+        "../outside.md",
+        None,
+        set(),
+        "path-confinement-refused",
+        "undecided",
+    ),
+    (
+        "absent",
+        "absent.md",
+        None,
+        set(),
+        "recorded-path-absent",
+        "decided",
+    ),
+    (
+        "no-sha",
+        "no-sha.md",
+        b"schema one\n",
+        set(),
+        "missing-recorded-sha256",
+        "decided",
+    ),
+    (
+        "modified",
+        "modified.md",
+        b"edited\n",
+        set(),
+        "recorded-sha256-mismatch",
+        "decided",
+    ),
+    (
+        "unreadable",
+        "unreadable.md",
+        None,
+        set(),
+        "recorded-entry-unreadable",
+        "undecided",
+    ),
+)
+
+_UNDECIDED_STALE_DECLINE_REASONS = {
+    "path-confinement-refused",
+    "recorded-entry-unreadable",
+}
+
+
+def test_plan_stale_owned_paths_names_every_decline(tmp_path):
+    doomed = tmp_path / "packs" / "gone.md"
+    doomed.parent.mkdir(parents=True)
+    doomed.write_bytes(b"upstream\n")
+    (tmp_path / "packs" / "nosha.md").write_bytes(b"n\n")
+    old_state = {
+        "managed_paths": [
+            {"path": "packs/gone.md",
+             "sha256": hashlib.sha256(b"upstream\n").hexdigest()},
+            {"path": "", "sha256": "x" * 64},
+            {"path": "packs/absent.md", "sha256": "y" * 64},
+            {"path": "packs/nosha.md", "sha256": None},
+        ]
+    }
+
+    removable, reasons = ish._plan_stale_owned_paths(tmp_path, old_state, set())
+
+    assert removable == ["packs/gone.md"]
+    assert len({r.split(": ", 1)[1] for r in reasons}) == len(reasons)
+    assert doomed.exists()
+
+
+@pytest.mark.parametrize(
+    ("case", "relative", "contents", "current_paths", "reason", "classification"),
+    _STALE_DECLINE_FIXTURES,
+)
+def test_plan_stale_owned_paths_has_pinned_decline_reason(
+    tmp_path: Path,
+    case: str,
+    relative: str,
+    contents: bytes | None,
+    current_paths: set[str],
+    reason: str,
+    classification: str,
+) -> None:
+    """Each guard branch keeps its independently pinned reason token."""
+    if case == "unreadable":
+        outside = tmp_path / "outside.md"
+        outside.write_bytes(b"owned\n")
+        try:
+            os.link(outside, tmp_path / relative)
+        except OSError:
+            pytest.skip("hard links are unavailable")
+    elif contents is not None:
+        recorded = tmp_path / relative
+        recorded.parent.mkdir(parents=True, exist_ok=True)
+        recorded.write_bytes(contents)
+    recorded_sha = (
+        None
+        if case == "no-sha"
+        else hashlib.sha256(b"owned\n").hexdigest()
+    )
+    old_state = {"managed_paths": [{"path": relative, "sha256": recorded_sha}]}
+
+    removable, reasons = ish._plan_stale_owned_paths(tmp_path, old_state, current_paths)
+
+    assert removable == []
+    assert reasons == [f"skipped removal of {relative!r}: {reason}"]
+
+
+@pytest.mark.parametrize("unsafe_kind", ("hard-link", "non-regular", "reparse-point"))
+def test_plan_stale_owned_paths_refuses_unsafe_entries_through_hash_helper(
+    tmp_path: Path, unsafe_kind: str
+) -> None:
+    """The confined hash, rather than a lexical prefix check, rejects unsafe leaves."""
+    relative = f"{unsafe_kind}.md"
+    recorded = tmp_path / relative
+    if unsafe_kind == "hard-link":
+        outside = tmp_path / "outside.md"
+        outside.write_bytes(b"owned\n")
+        try:
+            os.link(outside, recorded)
+        except OSError:
+            pytest.skip("hard links are unavailable")
+    elif unsafe_kind == "non-regular":
+        if not hasattr(os, "mkfifo"):
+            pytest.skip("FIFOs are unavailable")
+        os.mkfifo(recorded)
+    else:
+        safe_leaf = tmp_path / "safe.md"
+        safe_leaf.write_bytes(b"owned\n")
+        try:
+            recorded.symlink_to(safe_leaf)
+        except OSError:
+            pytest.skip("reparse-point links are unavailable")
+
+    # An inline lexical check admits every fixture, including the real link.
+    (tmp_path / relative).relative_to(tmp_path)
+    old_state = {
+        "managed_paths": [
+            {"path": relative, "sha256": hashlib.sha256(b"owned\n").hexdigest()}
+        ]
+    }
+
+    removable, reasons = ish._plan_stale_owned_paths(tmp_path, old_state, set())
+
+    assert removable == []
+    assert reasons == [f"skipped removal of {relative!r}: recorded-entry-unreadable"]
+
+
+def test_plan_stale_owned_paths_decline_fixture_metadata_is_consistent() -> None:
+    """Each independently pinned fixture has distinct, classified metadata."""
+    tokens = [fixture[4] for fixture in _STALE_DECLINE_FIXTURES]
+    assert len(tokens) == len(set(tokens))
+    assert {
+        fixture[4]
+        for fixture in _STALE_DECLINE_FIXTURES
+        if fixture[5] == "undecided"
+    } == _UNDECIDED_STALE_DECLINE_REASONS
 
 
 def test_external_skill_survives_self_hosting(tmp_path: Path) -> None:
@@ -1845,6 +2020,36 @@ def test_recorded_value_seeds_prompt_but_typed_reply_wins(
     assert result.name == "typed-name"
 
 
+# STUB: AC-0003
+def test_collect_fields_replays_flag_modes_not_recorded_ones(
+    derived_tree, self_hosted_source, monkeypatch
+):
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["recipe"].update(
+        attribution="attributed", tooling="vendored", guides="none"
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    diagnostics = []
+    raw_state = ish._load_ownership_state(derived_tree, diagnostics)
+    recipe = ish._load_self_host_recipe(raw_state, self_hosted_source, diagnostics)
+    cfg = ish.SelfHostedInitConfig(
+        target=derived_tree, source=self_hosted_source
+    )
+    monkeypatch.setattr(
+        ish,
+        "_prompt",
+        lambda _prompt: (_ for _ in ()).throw(AssertionError("prompted")),
+    )
+
+    resolved = ish.collect_fields(cfg, {"catalogue": {}}, recipe, interactive=False)
+
+    assert resolved.attribution == "white-label"
+    assert resolved.tooling == "external"
+    assert resolved.guides == "selected"
+
+
 @pytest.mark.parametrize(
     ("field", "hostile"),
     [
@@ -2207,3 +2412,190 @@ def test_schema_two_state_still_removes_owned_stale_path(tmp_path: Path) -> None
 
     assert result.ok
     assert not stale.exists()
+
+
+# ---------------------------------------------------------------------------
+# T4: replay_derivation — the derivation replay is one implementation,
+# callable without writing (spec AC-0004, AC-0005, AC-0006, AC-0015)
+# ---------------------------------------------------------------------------
+
+# STUB: AC-0015
+def test_replay_derivation_writes_nothing_to_target(tmp_path, self_hosted_source):
+    target = tmp_path / "derived-new"
+    cfg = ish.SelfHostedInitConfig(target=target, source=self_hosted_source)
+
+    result = ish.replay_derivation(cfg)
+
+    assert result.file_bytes
+    assert not target.exists()
+
+
+def test_replay_derivation_flags_leak_under_any_non_attributed_value(
+    tmp_path: Path,
+) -> None:
+    """AC-0004/AC-0005: driven against the callable directly. A value the
+    in-memory transform never rewrites (cfg.owner_email stays unset) leaks
+    through under white-label and under an unrecognised attribution value
+    supplied straight to the replay callable — the same identity leak check
+    ``init`` applies, over the same anchor set built from the same source
+    metadata, reports the same violation both times.
+    """
+    source = tmp_path / "leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+
+    for attribution in ("white-label", "not-a-real-attribution-mode"):
+        cfg = ish.SelfHostedInitConfig(
+            target=tmp_path / f"target-{attribution}",
+            source=source,
+            attribution=attribution,
+        )
+
+        replay = ish.replay_derivation(cfg)
+
+        assert replay.violations, attribution
+        assert any(v.anchor == "maintainer_email" for v in replay.violations)
+        assert not (tmp_path / f"target-{attribution}").exists()
+
+
+def test_replay_derivation_recipe_admission_matches_init_and_sync_callers(
+    derived_tree, self_hosted_source
+) -> None:
+    """AC-0006, differential. ``sync`` always replays with
+    ``interactive=False``; ``init`` replays with the default ``True``. Off a
+    TTY — the only way this suite runs — both resolve identically, so the
+    recipe values and discard diagnostics one state file admits must match
+    exactly between the two callers; a fixed expected list would let either
+    drift while staying green against its own copy.
+    """
+    state_path = derived_tree / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["recipe"]["owner_email"] = "not-an-email"
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    cfg = ish.SelfHostedInitConfig(
+        target=derived_tree, source=self_hosted_source, attribution="attributed"
+    )
+
+    as_init = ish.replay_derivation(cfg)
+    as_sync = ish.replay_derivation(cfg, interactive=False)
+
+    assert as_init.diagnostics == as_sync.diagnostics
+    assert any("owner_email" in d for d in as_init.diagnostics)
+    assert as_init.pack_names == as_sync.pack_names
+    assert as_init.profile_names == as_sync.profile_names
+    assert as_init.recorded_recipe == as_sync.recorded_recipe
+
+
+# ---------------------------------------------------------------------------
+# The whole-tree walk (spec AC-0015). Non-dereferencing: relative path, entry
+# kind, mode, symlink target, and bytes for a regular file only. Hard-link
+# counts, extended attributes, and timestamps are outside this oracle by
+# decision. T4 introduces the helper and this task's reachable rows; every
+# later task parametrises its own no-write case against this same helper
+# rather than copying it.
+# ---------------------------------------------------------------------------
+
+
+def walk_target_tree(root: Path) -> dict[str, dict[str, object]]:
+    """Return a non-dereferencing snapshot of every entry under ``root``."""
+    if not root.exists() and not root.is_symlink():
+        return {}
+    snapshot: dict[str, dict[str, object]] = {}
+    for dirpath, dirnames, filenames in os.walk(str(root), followlinks=False):
+        dp = Path(dirpath)
+        for name in [*dirnames, *filenames]:
+            entry = dp / name
+            rel = entry.relative_to(root).as_posix()
+            st = entry.lstat()
+            if entry.is_symlink():
+                kind = "symlink"
+            elif entry.is_dir():
+                kind = "dir"
+            elif entry.is_file():
+                kind = "file"
+            else:
+                kind = "other"
+            snapshot[rel] = {
+                "kind": kind,
+                "mode": stat.S_IMODE(st.st_mode),
+                "target": os.readlink(entry) if kind == "symlink" else None,
+                "bytes": entry.read_bytes() if kind == "file" else None,
+            }
+    return snapshot
+
+
+def _replay_success_row(target: Path) -> None:
+    source = _make_source(target.parent)
+    cfg = ish.SelfHostedInitConfig(target=target, source=source)
+    replay = ish.replay_derivation(cfg)
+    assert not replay.violations
+
+
+def _replay_identity_leak_row(target: Path) -> None:
+    source = target.parent / "no-write-leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+    cfg = ish.SelfHostedInitConfig(target=target, source=source)
+    replay = ish.replay_derivation(cfg)
+    assert replay.violations
+
+
+def _replay_source_validation_failure_row(target: Path) -> None:
+    source = target.parent / "no-write-source-without-catalogue-toml"
+    source.mkdir()
+    cfg = ish.SelfHostedInitConfig(target=target, source=source)
+    with pytest.raises(ish.ReplayError):
+        ish.replay_derivation(cfg)
+
+
+# Registry other tasks extend with their own (label, scenario) rows against
+# spec AC-0013's exit-code table, reusing walk_target_tree rather than a copy.
+TREE_WALK_CASES = {
+    "replay-success": _replay_success_row,
+    "replay-identity-leak-violation": _replay_identity_leak_row,
+    "replay-source-validation-failure": _replay_source_validation_failure_row,
+}
+
+
+@pytest.mark.parametrize("case", sorted(TREE_WALK_CASES))
+def test_replay_derivation_leaves_the_target_tree_unchanged(
+    tmp_path: Path, case: str
+) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "adopter-owned.txt").write_text("keep me\n", encoding="utf-8")
+    before = walk_target_tree(target)
+
+    TREE_WALK_CASES[case](target)
+
+    after = walk_target_tree(target)
+    assert after == before

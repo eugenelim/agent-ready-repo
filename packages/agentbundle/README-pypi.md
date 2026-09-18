@@ -14,6 +14,19 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.48.0
+
+`agentbundle catalogue sync` is a new command. It checks a derived catalogue
+against its source without changing any file. `--dry-run` prints what would
+update, what would keep your edits behind a `.upstream.<ext>` companion file,
+and what the source no longer has. `--check` answers whether your catalogue
+still matches its source.
+
+Sync accepts every source form `catalogue init` does — a local path, a
+`git+https://` URL, or a `catalogue+https://` descriptor — and reports which
+of those affords a verified digest. It also warns, without ever blocking the
+run, when a selected pack's version has moved in the source.
+
 ## What's new in 0.47.0
 
 **Removed:** the work-loop telemetry resolver. `jsonl-otlp-export` now reads
