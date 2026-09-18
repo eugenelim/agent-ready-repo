@@ -68,7 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-
 - **A wave can no longer be signed off without saying who did the work.** The
   step that closes a wave used to pass no matter what: it returned success for
   any state it could read, so a wave whose tasks were never dispatched looked
@@ -89,7 +88,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-
 - `loop-cohort dispatch-receipt <spec-dir> --task <id> --wave-index <n>
   (--receipt | --decline <reason>) --expect-run-id <id>` records one per-task
   receipt or decline. Declines take `no-implementer-installed` or
@@ -104,7 +102,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--json` forms.
 
 ### Changed
-
 
 - The `wave-complete` transition out of `CODE-IMPLEMENTATION` now consults
   `check --phase wave-exit`. `check --phase implement` is unchanged and keeps
@@ -132,7 +129,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   walk produces identical output.
 
 ### Fixed
-
 
 - The supervisor-mode parallel-dispatch reference named a disjointness check
   that does not exist. It now names `dispatch_decision`, states that the
