@@ -64,6 +64,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.16] — 2026-09-18
+
+### Highlights
+
+- **A spec now opens with what changes, not with an essay.** The Objective
+  section is renamed Outcome and capped at two sentences — who this is for,
+  and what success looks like for them — and a new What Changes section sits
+  right under it carrying the delta as bullets. A reader landing on a spec
+  cold gets the shape of the change in the first screen instead of hunting
+  for it.
+- **Boundaries is now called Agent Rules.** Same three tiers, same meaning,
+  a name that says what the section does. Specs written before this keep the
+  old heading and stay valid: every reviewer that reads the section now
+  recognises both names.
+- **The Assumptions section holds open questions only.** It used to be an
+  audit trail — every fact the author checked, with a citation for how. Those
+  facts now go where they do work: a fact that bounds the delivery goes into
+  the spec body, a fact that shapes how it is built goes into the plan's
+  design. What is left in Assumptions is what nobody has answered yet, so a
+  reader sees the gaps instead of scrolling settled ground.
+- **A plan's Changelog records approvals and nothing else.** The dated diary
+  of how the approach evolved is gone; the two approval entries, which are the
+  only record of when the contract froze and on whose authority, stay exactly
+  as they were.
+- **A plan task writes an Approach only when it has a decision to record.**
+  Where a task's Tests and Done when already say what to build and how it is
+  observed, the Approach was restating them. It is now written for an ordering
+  or a seam decision a reader cannot otherwise infer.
+- **New advisory guidance on prose that reads as generated.** A
+  prose-discipline reference gives the author a signal-word scan, a list of
+  canned rhetorical shapes, and the rule that the repair is restructuring
+  rather than swapping synonyms. It is advice, never a gate, and it defers the
+  form rules to the output-rendering block each skill already carries.
+
+### Changed
+
+- `new-spec`: `assets/spec.md` renames `## Objective` to `## Outcome`, adds
+  `## What Changes`, renames `## Boundaries` to `## Agent Rules`, and rewrites
+  `## Assumptions` to unresolved items only, in two admitted shapes — an open
+  question and a named gap.
+- `new-spec`: `assets/plan.md` drops drafting history from `## Changelog` and
+  makes a task's `**Approach:**` conditional on an ordering or seam decision.
+- `new-spec`: `SKILL.md` step 3 routes each settled fact to the spec body or
+  the plan's design instead of copying the confirmed list into `## Assumptions`
+  with citations; steps 4 and 5 point at the new
+  `references/prose-discipline.md`.
+- `new-spec`: `references/spec-authoring-rubric.md` gains one pointer to that
+  reference and keeps its six convergence classes.
+- `adversarial-reviewer`, `security-reviewer`, `quality-engineer` and
+  `work-loop`'s `references/pre-execute-review.md` name `Agent Rules` and the
+  legacy `Boundaries` heading together, so a review of a spec written before
+  this release still has a standard to measure against.
+
 ## [core][2.26.15] — 2026-09-18
 
 ### Highlights

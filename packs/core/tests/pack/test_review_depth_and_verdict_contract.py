@@ -51,8 +51,9 @@ LEGACY_REVIEW_MODES = """You handle three code-facing modes — sometimes one, o
     not a spec edit.
 
   The work-loop skill's PLAN step enumerates the four trigger conditions
-  and the standard to measure against (the spec's Boundaries section if
-  present; otherwise a documented fallback chain); that section is the
+  and the standard to measure against — the spec's Agent Rules section,
+  headed `Boundaries` in specs authored before this rename, if present;
+  otherwise a documented fallback chain. That section is the
   canonical source — don't restate it here. Same mode, same spec-stage
   checklist below — the routing rule widens *when* you're invoked, not
   *what* you check.
