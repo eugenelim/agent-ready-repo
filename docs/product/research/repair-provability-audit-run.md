@@ -1709,3 +1709,100 @@ transfers is that a co-changed test is weak evidence of a control, that the
 largest co-changed suites in this corpus were the least discriminating, and that
 measuring this at all requires an apparatus that fails in exactly the way the
 thing being measured does.**
+
+## Extension: do the controls live outside the repair commit?
+
+- **Run:** 2026-09-18, after the main audit closed
+- **Why:** the main result measures **co-changed** controls only. A repository's
+  safety net also includes tests that already existed, so the headline could not
+  distinguish *weak controls* from *controls living elsewhere than the repair
+  commit*. That was the largest hole in the result and it is cheap to close.
+
+### Scope and rule, both fixed before running
+
+The subject is every repair Worker A marked `NO DISCRIMINATING ORACLE` while
+naming a real revertable source hunk — a source change exists and the commit's
+own control cannot tell the repair from its absence. That is **113 distinct
+repairs across 38 cases**, grouped into 76 arms by commit, revert set and owning
+suite.
+
+The oracle follows the design's own stratum-2 wording — *"run the recoverable
+pre-existing affected tests"* — rather than the owning package's whole suite. A
+test file counts as **affected** when, at `R`, it references a reverted module by
+basename or dotted import path, and **test files the commit itself changed are
+excluded**, because a failure in one of those is a co-changed control and not the
+question. Whole-package runs were rejected for two reasons: `packages/agentbundle/tests`
+measures **446 seconds** per invocation, so 23 arms on it would have cost about
+5.7 hours; and a whole-package run admits tests that cannot be affected, which
+inflates unrelated reds — the structural false-positive class the design ranks
+second among its threats.
+
+**The rule is lexical, and the result is reported as such.** A test reaching the
+module transitively, or by invoking a CLI that loads it, does not match. An empty
+affected set therefore means *no pre-existing test names this module*, not *nothing
+exercises it*, and those arms are scored `unmeasurable` rather than
+`no external control`.
+
+### The result
+
+| Outcome | Count | Share of 113 |
+| --- | ---: | ---: |
+| **external control** — a pre-existing test fires for the dispatched defect | **0** | **0.0%** |
+| external structural — a pre-existing test fires only incidentally | 2 | 1.8% |
+| no external control — every affected pre-existing test stayed green | 59 | 52.2% |
+| unmeasurable | 52 | 46.0% |
+
+Of the **61 measurable** repairs: **0** have an external control, 2 fire
+structurally, and 59 have none. A pre-existing test fired at all in **2 of 113**
+cases, and in neither case did it exercise the dispatched defect.
+
+The 52 unmeasurable split cleanly: **46** are the lexically-empty arms above, and
+**6** sit in arms whose baseline was red before any reversion.
+
+### The hole closes in the direction of the original finding
+
+**For repairs whose co-changed control cannot discriminate, not one pre-existing
+test catches the defect either.** The controls do not live elsewhere. The main
+audit's figures were not understating provability by ignoring the wider suite.
+
+This is the outcome most likely to have been produced by motivated reasoning, so
+the guards are worth naming: the affected-test rule, the four outcome bins and
+the lexical caveat were all written **before any arm ran**, the adjudicator was a
+fresh worker briefed that this is a different question from the main audit and
+told not to re-open its verdicts, and it was asked to **flag any repair where the
+rule did not hold** — for instance where Worker A itself named a pre-existing
+test the rule excluded. It flagged none across 113 repairs.
+
+### A refinement for red-baseline suites
+
+The four whole-package-scale arms all had a **red baseline**: at `R`, before any
+reversion, `packages/agentbundle/tests` is not green in a detached worktree
+because its `make build-check` and self-hosted-init tests need a built tree this
+harness never builds. The protocol makes a red baseline `unmeasurable`, and that
+is the default applied.
+
+One case was still measurable, by differencing rather than by exit code. Where
+the treatment's failing **set** is identical to the baseline's, the reversion
+demonstrably contributed nothing. Where it is a strict **superset**, the
+difference is attributable. Three arms were identical; one — `4e270684e` repair
+14 — gained exactly one failure,
+`test_direct_source_state.py::test_interrupted_install_leaves_unowned_projection`,
+against a pre-existing baseline failure in
+`test_build_derivation_claude_plugins.py` that was excluded.
+
+That inference assumes the baseline failures are deterministic. **They were not
+re-run to confirm stability**, so a set-difference result is weaker evidence than
+a green-baseline arm, and it is recorded as such.
+
+### Two further bookkeeping corrections
+
+**The candidate count is 113, not 114.** `6590c8e84` repair 4 of 7 appears twice
+in the candidate file because it was briefed twice during the batch-selection
+race recorded earlier. A coverage check keyed on `(case, repair)` found the
+duplicate, 0 missing and 0 unbriefed.
+
+**An arm summary was taken while an arm was still running.** The first pass over
+the 41 cheap arms reported 40 results for 41 blocks, because the summariser ran
+before the last arm finished. The missing arm was completed and is included. This
+is the same shape as the earlier defects: a count that looked complete because
+nothing compared it to what was expected.
