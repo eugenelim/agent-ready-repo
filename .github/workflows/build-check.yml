@@ -631,6 +631,14 @@ jobs:
           tests/roster/test_rfc0099_activation_coverage.py
           tests/roster/test_rfc0099_fixture_register.py
 
+      # load-bearing-claim routing surfaces: AC-0001 sweeps every Markdown file
+      # under packs/core/.apm/skills and guides/, and AC-0002's second pointer
+      # surface is the adopter how-to under guides/core/, so
+      # lint-pack-test-boundary forbids both arms from packs/core/tests. CI does
+      # not auto-discover roster tests, so keep this one explicit.
+      - name: pytest load-bearing-claim routing surfaces (roster-owned)
+        run: python -m pytest tests/roster/test_load_bearing_claim_routing_surfaces.py
+
       # tdd-stub lifecycle: the PLAN-proof / EXECUTE-materialization boundary
       # spans packs/core, docs/, guides/, tools/, and docs-site/, so it is
       # roster-owned rather than pack-owned. CI does not auto-discover roster

@@ -77,7 +77,8 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 ### What to expect
 
 1. The skill scaffolds `docs/specs/<feature>/spec.md` and `plan.md` from the bundled templates.
-2. It drafts assumption candidates across Technical / Product / Process categories, runs **one targeted check per candidate** (a repo read, a web lookup, or a read-only probe), then **stops** and emits an `ASSUMPTIONS I'M MAKING:` block split into `Verified` (each with a one-line citation of the check) and `Unverified` (each needing your input). The check happens before the bullet gets filed, not after.
+2. It drafts assumption candidates across Technical / Product / Process categories, **verifies each before filing it** (a repo read, a web lookup, or a read-only probe — not a sweep), then **stops** and emits an `ASSUMPTIONS I'M MAKING:` block split into `Verified` (each with a one-line citation of the check) and `Unverified` (each needing your input). The check happens before the bullet gets filed, not after.
+   Some candidates cannot be settled at the checkpoint. The skill's assumptions step owns what happens to one — when its routing rule fires, and where the claim goes — under the anchor `load-bearing-claim-routing`. Read it there; this guide states neither, so the two cannot drift.
 3. You read the Unverified list and confirm or revise. If the Unverified list is empty, the skill surfaces the Verified list with the highest-stakes item called out and asks you to confirm *that one specifically* — a vague "looks good" doesn't count.
 4. Spec body fills in: Objective, Boundaries (including at least one structural `Never do`), Testing Strategy with a verification mode per outcome, Acceptance Criteria.
 5. Plan body fills in: tasks with `Tests:` before `Approach:`, explicit `Depends on:`, verification mode per task.

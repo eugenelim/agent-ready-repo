@@ -240,7 +240,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
      DEEP work is decomposed into dependency-ordered layers, each independently
      reviewable and leaving the repository working. Ambiguous shape is DEEP.
      Use the task graph to name the boundaries; do not invent tasks to make PRs.
-6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)).
+6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)). The `new-spec` assumptions step owns claim routing, under the anchor `load-bearing-claim-routing`.
 7. **Pick the verification mode for each task** before writing code:
    - **TDD** — compressible invariant (pure functions, state machines, protocols). When a spec and plan exist, record ACs + Testing Strategy and exact stub code in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
    - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
