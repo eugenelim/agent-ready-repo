@@ -13,7 +13,9 @@ date: "2026-09-18"
 
 ## Formal commitments
 
-- Build from function-led construction, simple balanced geometry, and a limited set of geometric primitives.
+- Build from function-led construction and a limited set of geometric primitives — the circle and the diagonal belong as much as the square.
+- Compose asymmetrically. Bauhaus typography belongs to the New Typography: Bayer's and Moholy-Nagy's work sets type off-axis, and centred symmetry is the convention it was reacting against.
+- Let planes overlap. Depth comes from layered fields of colour, not from shadow.
 - Integrate typography with the composition rather than laying it on top.
 - Apply applied-art and industrial-production logic to repeated parts and their relationships.
 - Treat colour and spatial composition as formal studies.
@@ -29,20 +31,20 @@ Function-led cultural, educational, or product surfaces where composition itself
 
 ## Direction sheet
 
-| Axis | Token vocabulary | This direction commits to |
-| --- | --- | --- |
-| Grid grammar | `[manuscript]` `[column]` `[modular]` `[hierarchical]` `[compound]` `[broken]`, then `[rigid]` `[relaxed]` | `[modular]` `[rigid]` A limited set of repeated modules supports function-led construction; transformations preserve the governing geometry. |
-| Alignment and equilibrium | `[edge]` `[centred]` `[baseline]`, then `[symmetric]` `[asymmetric]` | `[centred]` `[symmetric]` Simple balanced geometry uses a shared centre and a small set of relationships. |
-| Spatial density | `[sparse]` `[comfortable]` `[dense]` | `[comfortable]` Each screenful gives geometric and typographic relationships room to read as a formal study. |
-| Whitespace distribution | `[compact]` `[even]` `[expansive]` | `[even]` Margins, gutters, section gaps, and micro spacing follow the same compositional logic as the forms. |
-| Hierarchy and scale contrast | `[flat]` `[moderate]` `[steep]` | `[moderate]` Functional priority shapes the span and size jumps without detaching type from composition. |
-| Containment and boundary strength | `[open-field]` `[ruled]` `[panelled]` `[carded]` | `[open-field]` Geometric relationships group content; overlap is not permitted. |
-| Section and scroll rhythm | `[continuous]` `[episodic]`, then `[regular]` `[varied]` | `[episodic]` `[varied]` Each section is a distinct formal study while recurring construction keeps the whole coherent. |
-| Type voice | `[serif]` `[sans-geometric]` `[sans-humanist]` `[monospace]` `[mixed]` | `[sans-geometric]` Geometric sans-serif type participates in the composition as a functional element. |
-| Type hierarchy | `[flat]` `[moderate]` `[dramatic]` | `[moderate]` A limited set of levels expresses use without overwhelming the geometric order. |
-| Chromatic intensity | `[monochrome]` `[restrained]` `[saturated]` `[high-chroma]` | `[saturated]` Colour relationships serve formal study; no historical shorthand is mandatory. |
-| Form | `[rectilinear]` `[softened]` `[organic]` | `[rectilinear]` Straight-edged construction governs repeated forms; other primitives appear only when they clarify the composition. |
-| Material and depth | `[flat]` `[layered]` `[deep]` | `[flat]` Form and spatial composition, rather than depth, communicate construction. |
-| Ornament and texture | `[none]` `[pattern]` `[grain]` `[illustration]` | `[none]` Every visible element must have a functional or compositional job. |
-| Image treatment | `[photographic]` `[illustrative]` `[abstract]` `[none]` | `[abstract]` Abstract compositions extend the formal study without substituting decoration for function. |
-| Motion character | `[still]` `[productive]` `[expressive]` | `[productive]` Discrete changes clarify a construction or relationship and do not become spectacle. |
+| Axis | This direction commits to |
+| --- | --- |
+| Grid grammar | `[modular]` `[rigid]` A limited set of repeated modules supports function-led construction; transformations preserve the governing geometry. |
+| Alignment and equilibrium | `[edge]` `[asymmetric]` Type and fields sit off a dominant edge; symmetry is the convention this direction rejects. |
+| Spatial density | `[sparse]` Few elements per screenful, each carrying compositional weight. |
+| Whitespace distribution | `[expansive]` Generous ground lets the constructed forms read as placed, not packed. |
+| Hierarchy and scale contrast | `[steep]` Large display forms sit against small functional type. |
+| Containment and boundary strength | `[panelled]` Colour fields act as blocks; overlap between them is permitted and expressive. |
+| Section and scroll rhythm | `[episodic]` `[varied]` Each section is a distinct formal study while recurring construction keeps the whole coherent. |
+| Type voice | `[sans-geometric]` Geometric sans-serif type participates in the composition as a functional element. |
+| Type hierarchy | `[dramatic]` A wide jump between display and functional text. |
+| Chromatic intensity | `[saturated]` Colour relationships serve formal study; no historical shorthand is mandatory. |
+| Form | `[softened]` Geometric primitives include the circle, so the form language is not purely rectilinear. |
+| Material and depth | `[layered]` Overlapping planes carry depth; no simulated elevation. |
+| Ornament and texture | `[pattern]` Geometric construction itself is the surface interest, never applied decoration. |
+| Image treatment | `[abstract]` Abstract compositions extend the formal study without substituting decoration for function. |
+| Motion character | `[productive]` Discrete changes clarify a construction or relationship and do not become spectacle. |

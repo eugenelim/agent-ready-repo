@@ -51,11 +51,14 @@ date: "<YYYY-MM-DD>"
 
 ## Direction sheet
 
-<!-- Fifteen axes; the first seven are structural. Each cell OPENS with one or
-     more tokens in square brackets from that row's vocabulary, then prose
+<!-- Fifteen axes; the first seven are structural. Each cell OPENS with its
+     tokens in square brackets from that row's vocabulary, then prose
      saying what it means here. Tokens are what the divergence audit compares;
      the prose is not compared. Every cell ships filled with its
-     [platform-default] token — replace it, never blank it. -->
+     [platform-default] token — replace it, never blank it.
+     Arity is fixed, because the divergence audit compares complete tuples:
+     Grid grammar, Alignment and equilibrium, and Section and scroll rhythm
+     take exactly two ordered tokens; every other axis takes exactly one. -->
 
 | Axis | Token vocabulary | This direction commits to |
 | --- | --- | --- |
@@ -77,12 +80,16 @@ date: "<YYYY-MM-DD>"
 
 ## Counterfactual check
 
-<!-- Work through a similar brief and compare. Any part of this direction that
-     matches what any similar brief would produce is a default, not a choice.
-     Revise it, then record what changed. An empty table means the check has
-     not run — it does not mean nothing needed revision. -->
+<!-- Name a comparator brief, work it through, and compare. Any part of this
+     direction that matches what the comparator produced is a default, not a
+     choice. Revise it, then record the change. An unnamed comparator or an
+     empty table means the check has not run — neither means nothing needed
+     revision. -->
 
-| Axis or goal | What the generic default was | What it became | Why |
+**Comparator brief:** <the similar brief you tested against — name it, so a
+reader can tell whether it was a real test or a convenient one>
+
+| Axis or goal | What the comparator produced | What it became | Why |
 | --- | --- | --- | --- |
 
 ## Dominant goal for arbitration

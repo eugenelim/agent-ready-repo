@@ -127,3 +127,16 @@ only the second instrument catches that.
   self-review. Findings it produces should be treated as a draft checklist,
   not an independent verdict. The `experience-reviewer` agent provides the
   independent verdict.
+
+**Where these come from.** The four short-form items are VisAWI-S, the short
+Visual Aesthetics of Websites Inventory (Moshagen and Thielsch). The four word
+pairs are the Novelty scale of the User Experience Questionnaire (Laugwitz,
+Held and Schrepp), whose handbook defines the seven-position differential and
+its scoring.
+
+**What "one score" forbids.** Each instrument keeps its own published scoring —
+VisAWI-S was validated as a single four-item dimension, and UEQ reports Novelty
+as a scale mean. What is forbidden is averaging *across* the two instruments
+into one aesthetic number: quality and genericness are different questions, and
+a surface can score well on one while failing the other. That combination is
+exactly what these two instruments are here to keep apart.
