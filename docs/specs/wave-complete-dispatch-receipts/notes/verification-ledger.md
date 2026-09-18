@@ -1368,3 +1368,210 @@ Note on provenance, for symmetry with § 10.11: T3's receipt is accurate — an
 implementer subagent was dispatched for T3 and returned — and was written by the
 documented verb at the documented moment, unlike T2's, which a probe wrote during
 verification.
+
+## 12. T4 — the controller-facing surfaces, as written and as checked
+
+T4 is prose plus one eval case, so its evidence is a set of scoped commands over
+the edited surfaces plus a probe of the verbs the prose describes. Nothing here
+edits § 8, § 10 or § 11.
+
+### 12.1 The firing sites were discovered, not counted
+
+The coupling criterion covers every *site* that instructs firing
+`wave-complete`. A stored count decays the first time a site is added, so the
+check discovers them: it splits each surface into regions (a blank-line block, a
+top-level list item, or a table row, with a fenced block attached to the prose
+that introduces it), keeps the regions that carry a fire instruction, and
+requires `--phase wave-exit` to appear before that region's last fire mention.
+
+Seven sites were discovered, and they are exactly the seven the plan names:
+
+| Surface | Site | Shape |
+| --- | --- | --- |
+| `SKILL.md` | changes-requested | bullet + fenced block |
+| `SKILL.md` | further in-intent review unit | running prose in a bullet |
+| `SKILL.md` | specialist adjudication | prose + fenced block |
+| `references/supervisor-mode.md` | Phase 1 supervisor procedure | prose + fenced block |
+| `references/session-resumption.md` | `reviewers-clean` / `CODE-HUMAN-GATE` | table cell |
+| `references/finding-adjudication.md` | post-GATES re-entry | running prose |
+| `references/finding-adjudication.md` | FIX re-entry | running prose |
+
+All seven passed. The checked region differs by shape, as the plan predicted:
+the two fenced-block sites carry the check as its own command line immediately
+above the transition line; the four prose sites and the one table cell carry it
+as a proximity condition inside the same bullet, sentence, or cell.
+
+Two shapes had to be handled explicitly, and both were found by running the
+check rather than by reading it. `supervisor-mode.md` separates its introducing
+sentence from its fenced block with a blank line while `SKILL.md` does not, so a
+splitter that only handles the second shape reported the supervisor site as
+uninstrumented when it was not. And a region's *last* fire mention is the
+operative one: the changes-requested and specialist sites each mention
+`wave-complete` three times — a prose summary, a comment, and the command — and
+comparing against the first mention would have demanded the check above the
+summary sentence.
+
+### 12.2 The check can fail, per site
+
+A control that passes on the finished text proves nothing on its own, so each
+site was mutated and the check re-run:
+
+| Mutation | Result |
+| --- | --- |
+| Drop every check line from `SKILL.md` | 3 sites missing |
+| Drop it from `supervisor-mode.md` | 1 site missing |
+| Drop it from `finding-adjudication.md` | 1 site missing |
+| Drop the check clause from the `reviewers-clean` cell, keeping the row | 1 site missing |
+
+The fourth mutation had to be written by hand. Deleting the whole line, as the
+first three do, removes the table row itself, and a site that no longer exists
+cannot be reported as uninstrumented — the check went quiet rather than failing.
+That is the shape of an instrument that reads as a pass, so the row was mutated
+in place instead: the check instruction removed, the fire instruction left
+standing. It then failed as it should.
+
+### 12.3 Each remaining scoped check, as a command
+
+- `## Step 2. EXECUTE`, sliced between the two headings: carries the literal
+  `loop-cohort dispatch-receipt`, `once per plan task`, and the authorship
+  sentence ("The controller records it; an `implementer` does not record its
+  own"). Both existing EXECUTE pins — `once per plan task` and `one implementer
+  at a time` — are the vocabulary the new sentence reuses, and the
+  verification-ledger pointer is untouched.
+- `## Step 3. GATES`, sliced between its heading and `## Step 4. REVIEW`:
+  `! grep -q -- '--phase wave-exit'` succeeds. GATES runs after the transition,
+  so a pre-exit instruction there would fire too late.
+- `## Single-agent fallback`: names `no-implementer-installed` and
+  `human-directed`, and carries the schema asymmetry as three whole statements.
+- The `state.json` field table: a single `dispatch_receipts` row states the
+  container, its three-key path, both record kinds, and the absence rule.
+- The `schema_version` row and `## Single-agent fallback` each carry all three
+  halves — the exit tolerates the class, the verb refuses it, and end to end the
+  run cannot pass the next wave boundary without a schema migration.
+- `references/session-resumption.md`: one row keyed on `amendment_pending`
+  routing to `approve-plan` then `schedule`.
+- Every surface that instructs `wave advance` states the accounting
+  precondition. "Instructs" is decided by the call appearing together with
+  `--from-index`, which the verb requires, so an instruction to run it is
+  separated from a passing mention of how it behaves. Four instruction surfaces
+  were found — `SKILL.md` § GATES, the `wave-passed` resumption row, and two
+  eval cases — and all four state it. No surface still calls the call
+  unconditionally safe to replay; the one surviving `(idempotent)` marking
+  belongs to `record-attempt`, a different verb, which is idempotent by
+  cycle-id.
+- `evals/evals.json` parses, holds 69 cases, and the new
+  `dispatch-receipt-authorship-and-decline-codes` case names both calls, the
+  authorship rule, and both decline codes.
+
+### 12.4 The prose was checked against the real emitter
+
+Every claim the prose makes about the verbs was run on a throwaway spec
+directory, never against this run's live state. Observed, in order:
+
+| Claim | Observed |
+| --- | --- |
+| Absent container does not enforce, and says so | `wave exit: dispatch_receipts is absent, so dispatch receipts are not enforced for this run`, exit 0 |
+| `status` reports it | `dispatch_receipts_enforced: false` before the first record, `true` after |
+| The flag is `--task` | `--task-id` dies in the parser: `the following arguments are required: --task` |
+| The decline set is closed at two | `--decline 'other-reason' is not an accepted reason; accepted: no-implementer-installed, human-directed` |
+| The exit refuses an unaccounted wave | `wave exit: wave 1 has tasks with no dispatch receipt: 'T2'` |
+| The exit tolerates an unsupported schema | exit 0, silent |
+| The verb refuses one | `dispatch-receipt: unsupported schema_version=0 (expected 1); run reset pair` |
+| End to end the run stops | `wave advance: unsupported schema_version=0 (expected 1)` — the pointer cannot move, so the tolerated exit buys nothing |
+| The empty-partition refusal names the amendment route | `expected a non-empty list of waves — run schedule to persist a partition, or if amendment_pending is set, complete the amendment with approve-plan and then schedule` |
+
+The last row is why the `amendment_pending` resumption route is worth a row: the
+refusal already names that recovery, and until now no document described it.
+
+### 12.5 The pinned adjudication sentence: which edit was taken
+
+`test_finding_adjudication_contract.py` asserts the literal "fire
+`wave-complete`, run GATES, and return through `gates-clean` to REVIEW" as a
+substring of the whitespace-flattened file. Two edits were admissible. **The
+inserting edit was taken** — a new sentence above it carrying the check — and
+the pinned sentence is unchanged, so the existing assertion still passes on its
+original literal. The rewriting edit was not needed and would have retired that
+literal.
+
+The same test now also pins the inserted sentence, and pins it *ordered* against
+the sentence it precedes. A whole-file substring assertion would pass with the
+new sentence moved anywhere in the document, which is the coupling the criterion
+is about.
+
+### 12.6 Gates and ceilings
+
+- `make lint-ruff lint-mypy`: clean.
+- `python3 -m pytest packs/core/tests/skills/work-loop/test_reference_routing.py
+  packs/core/tests/pack/test_finding_adjudication_contract.py
+  packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py
+  tests/roster/test_verification_ledger_contract.py -q`: 94 passed.
+- `python3 -m pytest packs/core/tests/skills/work-loop packs/core/tests/pack -q`:
+  1399 passed, 5 skipped, 46 subtests passed. Run because the surfaces T4 edits
+  are read by suites outside the `Done when` list, and a pin found after the
+  fact reads as an unrelated gate failure.
+- `python3 notes/walk_verdict_partition.py`: exits 0, 35 728 states, one row
+  each, every row reached — unchanged by a prose task, and re-run to show it.
+- `SKILL.md` moved from 899 to 907 lines, 889 to 897 body lines. The
+  skill-spec lint errors above 1000 body lines and warns above 500; the file was
+  already in the warning band and is 103 lines below the error ceiling. Four of
+  the eight added lines are the two pre-exit command lines and their comments, so
+  the reference files absorbed the rest of the prose.
+- `evals/evals.json`: 17 insertions, 3 deletions. Written with
+  `json.dump(..., indent=2)` at the default `ensure_ascii=True`, so the file's
+  existing `—` escapes stayed escaped and the diff stayed at the
+  three touched cases instead of becoming a whole-file reflow.
+- The three copies of each edited `.apm/` file hash equal after
+  `FORCE=1 make build-self`; parity was read from the hashes rather than from the
+  exit code.
+
+---
+
+## 12.9 Controller verification of T4
+
+**Scope.** Twenty files: T4's nineteen `Touches` entries plus this ledger.
+
+**The seven firing sites, read rather than counted.** Every site carries the
+pre-exit check immediately before the fire instruction, verified by reading each
+region rather than by trusting a count:
+
+| Surface | Site | Shape |
+| --- | --- | --- |
+| `SKILL.md` | changes-requested | summary prose, then a block whose check precedes the transition |
+| `SKILL.md` | further-in-intent-unit | check named inline in the prose |
+| `SKILL.md` | specialist-adjudication | summary prose, then check-then-transition |
+| `supervisor-mode.md` | Phase-1 procedure | prose, then check-then-transition |
+| `session-resumption.md` | `reviewers-clean` row | check in the cell before the fire |
+| `finding-adjudication.md` | post-GATES re-entry | check sentence before the fire sentence |
+| `finding-adjudication.md` | FIX re-entry | check named inline before the fire |
+
+The summary-prose-then-authoritative-block shape is the file's existing
+convention, so a reader following the block gets the check; the prose above it
+is a recap, not a competing instruction.
+
+**The contract-test edit is a strengthening.** It adds the new literal to a
+required-substring set *and* asserts
+`post.index(check) < post.index(fire)`. Tested by a mutation of the
+controller's choosing: **moving** the check sentence to after the fire sentence,
+leaving both present, so a whole-file substring pin still passes. Only the
+ordering assertion fires —
+`test_evidence_retry_is_closed_accounted_and_independently_authored` fails.
+That is the half a weaker pin would not have.
+
+**The line-count ceiling, measured not assumed.** `skill_spec_lint.py` errors
+with `CAT-S003` above **1000** body lines and warns above 500. The work-loop
+SKILL.md body is **896** lines, so it sits in the warning band with 104 lines of
+headroom before the error. The earlier working belief that this file sat *on* the
+CAT-S003 ceiling conflated the warning with the error.
+
+**Everything else.** `evals.json` parses with 69 cases and its diff is +17/-3,
+so the `ensure_ascii=False` whole-file re-escape trap was avoided. Three-copy
+parity holds for all six edited `.apm/` files. `make lint-ruff lint-mypy` clean
+over 148 source files. T4's `Done when` suite set gives 94 passed in 23s against
+a reported 23.5s. The partition walk still exits 0.
+
+**One probe of mine that proved nothing, recorded for the pattern.** Checking
+whether the pinned prose survived, I grepped every long string literal out of the
+contract test and searched the reference for each. All six reported MISSING —
+because what I had extracted were the test's own docstrings and path constants,
+which were never in the reference file. A probe whose misses all share one cause
+cannot distinguish a real one. Reading the diff answered it in one step.
