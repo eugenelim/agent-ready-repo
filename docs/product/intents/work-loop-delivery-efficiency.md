@@ -32,11 +32,16 @@
 - What escaped-defect and post-merge rework measures prove that savings did not merely defer quality cost?
 - What benefit-and-cost rubric and evidence floor should govern decisions to retain, adjust, combine, defer, supersede, or close backlog work?
 - Which existing lifecycle operation owns each backlog disposition, and how should the process distinguish low-value work from valuable work whose benefit is merely unmeasured or delayed?
-- Should the deterministic repair-provability audit get a queue presence? It is
-  the designated next investigation and is registered nowhere, which is the most
-  likely reason the ranking's first position has produced no movement. This
+- Should the follow-on to the deterministic repair-provability audit get a queue
+  presence? **The premise this question used to carry is refuted.** It read that
+  the audit was registered nowhere and that this was "the most likely reason the
+  ranking's first position has produced no movement". The audit then ran to
+  completion on 2026-09-18 — 424 adjudicated repairs — while still registered
+  nowhere, so absent registration did not block it. What the result does imply is
+  an unshaped change: making the work-loop mutation-proof trigger mechanical
+  rather than self-assessed. That is what a queue presence would now be for. This
   intent is Accepted and therefore cannot itself join an active or backlog
-  collection, so any registration has to attach to the audit or to a child.
+  collection, so any registration has to attach to that follow-on or to a child.
 - Should `loop-contract-item-identity-mechanism` be registered? It is the only
   child with no workspace presence at all.
 - Does `spec-review-validation-guidance` belong in this tree? It carries no
