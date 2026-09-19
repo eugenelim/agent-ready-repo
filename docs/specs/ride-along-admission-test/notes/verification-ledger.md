@@ -649,3 +649,33 @@ exit 0. `python3 -m pytest packs/core/tests/pack/ -q` → 249 passed, exit 0.
 exit 0. `python3 tools/lint-pack-test-boundary.py`,
 `python3 tools/lint-ci-parity.py`, `python3 tools/lint-agents-md.py` → each
 exit 0. `make lint-ruff lint-mypy` → exit 0.
+
+## 2026-09-19 — the human gate's record names no artifact
+
+**Found twice, independently.** The security review raised it as Concern 6
+("'The human gate's own record' is an undefined artifact"). When those
+findings were written up, four Blockers were fixed and two Concerns routed to
+Follow-ons; this one fell between and was neither. T7's installed-artifact
+walk then rediscovered half of it from the other direction: driving a
+direct-run owner-answer discovery through the installed
+`.claude/skills/work-loop/SKILL.md`, the reader reaches "record the question
+in the human gate's own record" and cannot act on it, because connecting that
+phrase to the pull request opened at `CODE-HUMAN-GATE` needs a
+cross-reference the shipped text does not make.
+
+**Why it matters more than its size.** The human-gate route exists because
+the owner chose it to make an owner's answer reachable on a direct
+invocation — the most common way the loop is started. A route whose
+destination is undefined is not operable, so the Blocker that choice was
+meant to close is only half closed.
+
+**Owner decision, 2026-09-19 (eugenelim).** Name the artifact: the pull
+request the loop already opens at that gate. Rejected: deferring it, which
+would ship a dead branch on the common path; and additionally closing the
+reply-nonce half, which needs an attribution design call and does not fit the
+remaining body budget.
+
+**Scope.** C2 only, at its four sites, plus reprojection. The reply-nonce
+half — an answer counts when the reply "names the question", where the
+question is text the agent itself wrote — stays open and routes through
+`work-intake` with the other items.
