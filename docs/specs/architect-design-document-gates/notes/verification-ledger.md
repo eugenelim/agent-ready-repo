@@ -203,10 +203,12 @@ moves from T2 to T4a, which is the task that creates the document.
 
 ## Owner decision — a task to carry the prechecks into the reviewer's two homes
 
-> **Superseded 2026-09-19** by *Owner decision — `design-reviewer.md` is not a
-> precheck carrier* below, which narrows T4b to one reviewer home. The pending
-> amendment's `reason_ref` points here; read both sections together, and take
-> the scope from the later one.
+> **Superseded 2026-09-19.** The decision in force is *Owner decision — the
+> prechecks hold in the authoring rubric alone*, the last section of this
+> file: the prechecks bind to the authoring rubric only and T4b is withdrawn.
+> An intermediate position sits between this section and that one; skip it.
+> The pending amendment's `reason_ref` points here, which is why this banner
+> names the final decision directly rather than the next one.
 
 2026-09-19. T4 reported, correctly, that the contract and the plan disagree,
 and did not widen its own scope to paper over it.
@@ -339,6 +341,46 @@ precheck is a narrowing hint for whoever reads a document closely first,
 which is the author; a reviewer needs each gate's identifier, severity, tag
 and question to return a verdict, and both reviewer homes already carry those.
 
-**What this costs.** Nothing shipped changes. T3 already placed the prechecks
-in the authoring rubric and that work stands; the reviewer homes keep the
-gate table T4 shipped. The withdrawn work is T4b alone, which had not started.
+**What this costs.** No shipped file is edited, but one shipped sentence
+becomes permanently false, so the cost is not zero.
+
+`packs/architect/.apm/agents/design-reviewer.md:148` tells a reviewer to read
+`architect-review/references/rubric-design-doc.md` "for the fuller per-gate
+text and prechecks". Measured today, that rubric carries zero occurrences of
+`precheck` and no per-gate bodies at all — its gate section is the same table
+and the same `DA5` sentence the agent already holds, plus an intro paragraph.
+So the pointer was already false on both halves when T4 shipped it, and this
+decision removes the only route by which it would have become true.
+
+Nothing reds. AC-0054 requires only that the agent *state* it reads that
+rubric for fuller per-gate text; no criterion and no test checks that the
+target holds any. That is the defect class — a pointer whose target is never
+verified — and it is why the falsity survived a passing gate chain.
+
+This is out of the contract's scope rather than free: the contract requires
+the pointer, not the target's depth, and no remaining task owns the agent
+file. It is recorded as follow-on 4 below, to land after T7 with the other
+three. T3's authoring-rubric prechecks stand and the reviewer homes keep T4's
+gate table; the withdrawn work is T4b alone, which had not started.
+
+## Follow-on 4 — the agent's degradation pointer promises depth that is not there
+
+**Found:** 2026-09-19, verifying the T4b withdrawal.
+
+`design-reviewer.md:148` promises "fuller per-gate text and prechecks" in
+`rubric-design-doc.md`. That rubric has neither, and under the decision above
+it never will. A reviewer who follows the pointer at baseline depth finds
+nothing more than the agent already gave them.
+
+Two repairs are open, and the choice is the owner's: correct the agent's
+sentence to promise only what the reviewing rubric holds, or give the
+reviewing rubric the per-gate depth the sentence claims. The first is
+consistent with the decision above; the second reopens what that decision
+closed.
+
+Whichever is chosen also needs AC-0054 revisited, because AC-0054 is what
+requires the pointer, and it pins the agent's statement without pinning the
+target. A criterion that requires a claim about another file should reach
+that file.
+
+This is unbounded by the spec/plan contract and does not block T4a or T7.

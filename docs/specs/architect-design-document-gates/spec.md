@@ -74,8 +74,9 @@ than `Implementation Mapping`, and `DA7` fires only where there are diagrams.
   confinement
 - A confinement and refusal contract for that script — required `--root`,
   canonicalized boundary, regular files under 1 MiB, escaped output
-- Seven hybrid prechecks and judgment-only `DA5` — reviewer checks in three
-  homes
+- Seven hybrid prechecks and judgment-only `DA5` — reviewer checks in
+  `architect-design/references/design-doc-rubric.md`, the authoring rubric,
+  which is the one home they hold in
 - The ten gate identifiers, tags and severities — under the existing
   `## Cross-cutting` heading of `architect-design/references/design-doc-rubric.md`
   and `architect-review/references/rubric-design-doc.md`, and a section of
@@ -83,7 +84,7 @@ than `Implementation Mapping`, and `DA7` fires only where there are diagrams.
 - Gate-identifier and severity parity across those three homes —
   `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
 - A filled reference document the prechecks are walked against —
-  `packs/architect/tests/skills/architect-design/testdata/filled-subsystem-design.md`
+  `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`
 - Per-gate verdict reporting — `architect-design/SKILL.md` step 6 and
   `references/convergence-loop.md`
 
@@ -434,7 +435,8 @@ and never reflowed, so a group's list is not always contiguous.
 
 ### The prechecks the hybrids carry
 
-Each criterion below names the one place it holds. The homes are stated per
+Each criterion below names where it holds — one place, except AC-0050, whose
+own text makes its home a recorded either/or. The homes are stated per
 criterion rather than derived from a rule, because this group is not
 homogeneous: it mixes rubric text, testdata files and recorded manual walks,
 and a rule general enough to cover all three was wrong about some of them
@@ -459,9 +461,9 @@ already puts `DA5`'s judgement-alone sentence in all three homes, so a
 reviewer can tell judgment-only from hybrid without a precheck anywhere in
 sight.
 
-AC-0036 and AC-0037 could not have crossed in any case: `DA7` and `DA8` carry
-their identifier, severity and tag on a checklist item only the authoring
-rubric owns.
+The authoring rubric is where AC-0036 and AC-0037 belong for a second,
+independent reason: `DA7` and `DA8` carry their identifier, severity and tag
+on a checklist item only that rubric owns.
 
 - [ ] **AC-0035.** `DA6`'s precheck rejects a `Revision History` or
       `Decision Log` heading in the document body.
