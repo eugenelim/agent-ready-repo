@@ -412,19 +412,49 @@ Match discipline to verification mode:
 
 **Scope:** implement the smallest coherent unit toward the goal. Note unrelated finds in `notes/` for later.
 
-<!-- Bundled-fixes carve-out — canonical site. Mirrored by
-     implementer.md (operating envelope) and adversarial-reviewer.md
-     (scope check #4). Keep all three in sync. -->
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 **Bundled-fixes carve-out.** Ride-alongs are admitted by verifiability, not
 locality. "The change" = the current plan task for the executor; the merged PR
-diff for the reviewer. List each under a standalone `Bundled fixes:` section (append below standard
-template content; do not modify the template). Tier 1 reproducible work must
-state its command and produce a zero diff on re-run; it may span the
-repository. Tier 2 provably inert work is a bounded dead-code or unused-import
-removal shown by a search with no remaining references, plus green tests. Tier 3 hand-made work remains same-area, same-concern,
-visibly smaller, and mechanical. All tiers fail closed on a design call or
-behavior change. In supervisor mode, the dispatch brief must explicitly
-authorize the carve-out.
+diff for the reviewer. List each under a standalone `Bundled fixes:` section
+(append below standard template content; do not modify the template).
+
+A change may ride along when all three hold: (i) it fires no risk trigger on
+its own, so it would run in light mode standalone; (ii) it involves no
+behavior change and no unresolved design call, and where a design call was
+resolved, that resolution changes no convention, contract, or published
+interface; and (iii) you can state how it was verified — a command with a
+zero diff on re-run, a search with no remaining references, or a comparison
+against a named authority that the change agrees with.
+
+A change that sets or alters a value, a wording, a threshold, or a default
+presents a choice, however obvious the option you took. Where a change
+presents a choice and you cannot point to the citation or to the answer,
+there is an unresolved design call; not remembering a rule that applies is
+an unresolved design call, not the absence of one. A design call is
+resolved only by a citation or by an owner's answer. A citation is a shipped
+rule, an accepted decision record, a convention document, or the commit
+whose message records the decision; applying a recorded answer is a lookup,
+not a decision, and it needs no human. An owner's answer is given in one
+line, in-session, and is recorded with its question in the `Bundled fixes:`
+entry of your report, or of the pull request when you are not reporting to
+a supervisor. Where a dispatch brief carries exactly one attendance
+declaration, follow it: attended means ask there, unattended means do not
+ask. In every other case — no brief, a brief silent on attendance, or a
+brief declaring both — record the question in the human gate's own record
+and read the reply; an answer counts only when the reply names the
+question, and a reply that does not name it is the observation that no
+answer was given. Do not probe for a human, and do not pause the loop for a
+reply beyond the stop it already makes. Where a resolution would change a
+convention, a contract, or a published interface, the record is the
+deliverable — which is why clause (ii) refuses it. Where no citation exists
+and no answer was given, the item falls out: capture it with
+`blocked_on: decision` and move on, without asking again, guessing, or
+treating the absence as a blocker on the loop.
+
+In supervisor mode, the dispatch brief must explicitly authorize the
+carve-out.
 
 **Simplify pass.** After this task's GATES are green, shrink the diff: inline a single-use helper, delete orphaned code, collapse needless indirection, drop parameters no caller varies. Scope to new code only; leave tests DAMP. In Claude Code, `/simplify` performs this (optional accelerant, never a dependency).
 
@@ -664,12 +694,13 @@ result; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
 | Matches | Include now | Add it to the current plan or session. |
 | Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
 | Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Does not match | Include now, ride-along eligible | Admit it under the bundled-fixes carve-out. This is not a scope change: a ride-along alters no acceptance criterion and moves no contract pin. |
 | Does not match | Do not include | Exclude it with no durable follow-on by default. |
 | Unclear | — | Ask the owner before acting. |
 
 Only the owner may narrow or waive an accepted intent. A matching discovery
 may share the current review unit only when the accepted contract authorizes it
-and it qualifies under the bundled-fixes tiers. Otherwise, it is the next
+and it qualifies under the bundled-fixes carve-out. Otherwise, it is the next
 independently reviewed unit in the same session: use the existing human-gate
 `blocker-applied` return edge, then run GATES, REVIEW, and the human gate again.
 
@@ -762,7 +793,7 @@ repairing its generator or dropping it.
   GATES and REVIEW after each fix; use the next review unit when it cannot
   safely share this one.
 - **Concerns** → apply now only when authorized by the accepted contract and
-  bundled-fixes tiers; matching work that cannot share this unit moves to the next.
+  the bundled-fixes carve-out; matching work that cannot share this unit moves to the next.
 - **Nits** → never fix automatically. Defer an unacted Nit in `findings[]` with
   its citation and `status: deferred`; adjudicate only when the thread intends to
   mutate. Before any edit, promote `effective_severity` to at least Concern if
@@ -773,7 +804,7 @@ repairing its generator or dropping it.
   `work-intake`; do not create a `[backlog].open` entry or `(deferred: <slug>)`
   marker merely because this loop did not include the work.
 
-**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture learnings](#capture-learnings).
+**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture](#capture).
 
 ### Review verdict record
 
@@ -816,7 +847,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   recipe, explanation if it introduces a concept. The spec workflow is not done
   until those are updated.
 - [ ] Conventional commit format used; no force-push to shared branches.
-- [ ] Learnings captured per [Capture learnings](#capture-learnings).
+- [ ] Every scratch note from this session's DECIDE passes was routed to a destination per [Capture](#capture).
 - [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,
   and reviewable behavior and test lines for each intended PR or stack layer.
   Above 2,000 reviewable behavior and test lines, record review shape. WIDE
@@ -833,7 +864,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
 4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
 5. **Light mode:** return to GATES, then re-review under the rounds rule in [`references/light-mode.md`](references/light-mode.md).
 
-## Capture learnings
+## Capture
 
 Before the PR is opened: *What would have made this work materially better —
 more correct, complete, reliable, recoverable, secure, privacy-preserving,
@@ -846,9 +877,32 @@ attributes.
 
 Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
 
-- **Review scratch notes** from this session's DECIDE passes. For each:
-  generalisable beyond this PR and would have changed the approach → route it
-  through the `project-knowledge` public seam; otherwise discard it.
+A captured item carries its discriminator: the one fact the decision turns
+on, not just the location. "Four sites use a 13px literal" is a locator;
+"the third of them is the only sans one, so the shared token does not fit
+it" is an item. Supply the discriminator before capturing; an item you
+cannot give one to is not ready to capture, and it goes to the destination
+its actual state names. A locator nobody can action looks like tracked work
+and is not. Disposing an item now is cheaper than recording it: a recorded
+item pays a tracking cost, a context-refresh cost, and often a new session,
+and then still needs a discriminator that close-time reconstruction from
+the diff cannot recover. A slightly longer loop is the cheaper option, and
+capturing a ready-now item is a loss.
+
+- **Review scratch notes** from this session's DECIDE passes. Anything
+  generalisable that would have changed the approach goes to the
+  `project-knowledge` public seam, and the examples below are instances of
+  that; the seam is additive. Then, where the note names a defect, take the
+  first destination that applies and stop: a ride-along-eligible defect is
+  dispatched now, grouped with related fixes sharing a file or a seam, over
+  the human gate's `blocker-applied` return edge; a defect blocked on a
+  decision, an instrument, or elapsed time is captured; a ready-now defect
+  that is not ride-along eligible becomes the next independently reviewed
+  unit in this session, over that same edge, where ready-now means it can be
+  finished this session without a decision nobody present will make; and any
+  defect left — one resting on taste, or one with no stated arbiter — is
+  discarded. A note that names no defect is done once the seam has taken it,
+  and discarded if it had nothing for the seam either.
 
   Use semantic-gate triage before writing anything. Route or discard normative
   material first, then invoke the public `project-knowledge` producer profile.

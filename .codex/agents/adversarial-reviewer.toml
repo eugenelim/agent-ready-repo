@@ -246,21 +246,54 @@ checklists; verification-mode awareness applies to every review that carries a v
    content constraints to all user-visible channels — an AC that forbids
    internal paths on stdout is violated if the caller sees a full traceback
    with those paths on stderr.
-<!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
-     Keep all three sites (this file, work-loop/SKILL.md,
-     implementer.md operating envelope) in sync when changing the
-     gates. -->
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 4. **Scope.** Does the diff contain changes outside the plan? Each
    out-of-scope change is a Blocker until justified, extracted, or
    listed in the PR description's `Bundled fixes:` section. Authorized
-   ride-alongs are admitted by verifiability, not locality. Tier 1
-   reproducible work states its command and has a zero diff on re-run; it may
-   span the repository. Tier 2 provably inert work is a bounded dead-code or
-   unused-import removal shown by a search with no remaining references,
-   plus green tests. Tier 3 hand-made work keeps same-area,
-   same-concern, visibly smaller, mechanical limits. All tiers fail closed on a
-   design call or behavior change. Treat any claimed ride-along lacking its
-   required Tier 1 or Tier 2 evidence, or exceeding Tier 3's limits, as a
+   ride-alongs are admitted by verifiability, not locality.
+
+   A change may ride along when all three hold: (i) it fires no risk
+   trigger on its own, so it would run in light mode standalone; (ii)
+   it involves no behavior change and no unresolved design call, and
+   where a design call was resolved, that resolution changes no
+   convention, contract, or published interface; and (iii) you can
+   state how it was verified — a command with a zero diff on re-run, a
+   search with no remaining references, or a comparison against a
+   named authority that the change agrees with.
+
+   A change that sets or alters a value, a wording, a threshold, or a
+   default presents a choice, however obvious the option you took.
+   Where a change presents a choice and you cannot point to the
+   citation or to the answer, there is an unresolved design call; not
+   remembering a rule that applies is an unresolved design call, not
+   the absence of one. A design call is resolved only by a citation or
+   by an owner's answer. A citation is a shipped rule, an accepted
+   decision record, a convention document, or the commit whose message
+   records the decision; applying a recorded answer is a lookup, not a
+   decision, and it needs no human. An owner's answer is given in one
+   line, in-session, and is recorded with its question in the
+   `Bundled fixes:` entry of your report, or of the pull request when
+   you are not reporting to a supervisor. Where a dispatch brief
+   carries exactly one attendance declaration, follow it: attended
+   means ask there, unattended means do not ask. In every other case —
+   no brief, a brief silent on attendance, or a brief declaring both —
+   record the question in the human gate's own record and read the
+   reply; an answer counts only when the reply names the question, and
+   a reply that does not name it is the observation that no answer was
+   given. Do not probe for a human, and do not pause the loop for a
+   reply beyond the stop it already makes. Where a resolution would
+   change a convention, a contract, or a published interface, the
+   record is the deliverable — which is why clause (ii) refuses it.
+   Where no citation exists and no answer was given, the item falls
+   out: capture it with `blocked_on: decision` and move on, without
+   asking again, guessing, or treating the absence as a blocker on the
+   loop.
+
+   The risk triggers are the canonical block in `work-loop/SKILL.md`
+   (§ Select: light or full mode); a mirror names the skill and lists
+   no trigger. Treat any claimed ride-along failing this test as a
    Blocker.
 5. **Spec drift.** This check is about the targeted spec only. If the
    implementation differs from that spec, the spec must be updated in the same

@@ -122,14 +122,53 @@ not edit `state.json` or invoke `git worktree` directly.
    `{task_id, branch, path, status: "in-progress", report_path: null}`
    entry to `state.json.worktrees`, atomically.
 
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 2. **Dispatch implementers in parallel** per the
    [parallel-dispatch discipline](#parallel-dispatch-discipline) below.
    Each brief includes: the task
    ID, the plan-task body, the worktree path, paths to the spec +
    plan, and an explicit **bundled-fixes authorization line** —
    "Bundled fixes authorized per the carve-out in `work-loop/SKILL.md`
-   (EXECUTE phase); apply same-area, same-concern, mechanical
-   ride-alongs only and report under `Bundled fixes:` in your output."
+   (EXECUTE phase). A change may ride along when all three hold: (i) it
+   fires no risk trigger on its own, so it would run in light mode
+   standalone; (ii) it involves no behavior change and no unresolved
+   design call, and where a design call was resolved, that resolution
+   changes no convention, contract, or published interface; and (iii)
+   you can state how it was verified — a command with a zero diff on
+   re-run, a search with no remaining references, or a comparison
+   against a named authority that the change agrees with. A change
+   that sets or alters a value, a wording, a threshold, or a default
+   presents a choice, however obvious the option you took. Where a
+   change presents a choice and you cannot point to the citation or to
+   the answer, there is an unresolved design call; not remembering a
+   rule that applies is an unresolved design call, not the absence of
+   one. A design call is resolved only by a citation or by an owner's
+   answer. A citation is a shipped rule, an accepted decision record, a
+   convention document, or the commit whose message records the
+   decision; applying a recorded answer is a lookup, not a decision,
+   and it needs no human. An owner's answer is given in one line,
+   in-session, and is recorded with its question in the
+   `Bundled fixes:` entry of your report, or of the pull request when
+   you are not reporting to a supervisor. Where a dispatch brief
+   carries exactly one attendance declaration, follow it: attended
+   means ask there, unattended means do not ask. In every other case —
+   no brief, a brief silent on attendance, or a brief declaring both —
+   record the question in the human gate's own record and read the
+   reply; an answer counts only when the reply names the question, and
+   a reply that does not name it is the observation that no answer was
+   given. Do not probe for a human, and do not pause the loop for a
+   reply beyond the stop it already makes. Where a resolution would
+   change a convention, a contract, or a published interface, the
+   record is the deliverable — which is why clause (ii) refuses it.
+   Where no citation exists and no answer was given, the item falls
+   out: capture it with `blocked_on: decision` and move on, without
+   asking again, guessing, or treating the absence as a blocker on the
+   loop. The risk triggers are the canonical block in
+   `work-loop/SKILL.md` (§ Select: light or full mode); a mirror names
+   the skill and lists no trigger. This run is <attended|unattended>.
+   Report each ride-along under `Bundled fixes:` in your output."
    If a particular task should run without the carve-out (e.g. a
    high-blast-radius migration), omit the authorization line; the
    implementer defaults to no-carve-out and routes everything to
@@ -191,7 +230,9 @@ not edit `state.json` or invoke `git worktree` directly.
    under the carve-out. After merge succeeds, collect those lines
    from every ready report, dedupe by exact-string match (falling
    back to operator judgment when two lines describe the same change
-   in different words), and emit a single `Bundled fixes:` section
+   in different words, never merging two entries whose recorded
+   questions differ, nor two whose recorded answers to the same
+   question differ), and emit a single `Bundled fixes:` section
    in the PR description below the standard template. If no
    implementer landed ride-alongs, omit the section.
 
