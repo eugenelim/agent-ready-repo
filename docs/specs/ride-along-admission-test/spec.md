@@ -103,7 +103,14 @@ agent that never notices a design call would otherwise satisfy clause (ii)
 without reaching any of the rest. Every sentence is site-independent, because
 `supervisor-mode.md` reproduces this inside a brief the supervisor pastes into
 a subagent prompt, where a word like "this file" would refer to nothing the
-reader holds.
+reader holds. Its fallback names the run's own report surface for the same
+reason, and generically on purpose. The three contexts that reach that branch
+produce different records — a full run opens a pull request at its human
+gate, a direct-light run ends with a handoff and no gate at all, and a
+subagent given a pasted brief reports to its supervisor and owns neither the
+parent loop nor its pull request. Naming any one of them left the other two
+writing nowhere; naming the surface a run already reports to is true in all
+three and needs no reader to know which mode they are in.
 
 > A change that sets or alters a value, a wording, a threshold, or a default
 > presents a choice, however obvious the option you took. Where a change
@@ -124,7 +131,8 @@ reader holds.
 > brief carries exactly one attendance declaration, follow it: attended means
 > ask there, unattended means do not ask. In every other case — no brief, a
 > brief silent on attendance, or a brief declaring both — record the question
-> in the human gate's own record and read the reply; an answer counts only
+> wherever this run reports its result, and read the reply given there; an
+> answer counts only
 > when the reply names the question, and a reply that does not name it is the
 > observation that no answer was given. Do not probe for a human, and do not
 > pause the loop for a reply beyond the stop it already makes. An

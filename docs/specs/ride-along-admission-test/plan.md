@@ -626,9 +626,54 @@ installed-projection manual-QA walk is **not** required here: it reads the
 projections T7 regenerates, so requiring it before T7 would make the graph
 unschedulable. T7 owns it.
 
+### T9: C2 names the artifact the direct-run branch writes to
+
+**Depends on:** none — T1–T8 are complete and frozen; this is the correction
+task the amendment procedure requires instead of editing them.
+
+**Touches:** packs/core/tests/pack/test_ride_along_admission_test.py,
+packs/core/.apm/skills/work-loop/SKILL.md,
+packs/core/.apm/agents/implementer.md,
+packs/core/.apm/agents/adversarial-reviewer.md,
+packs/core/.apm/skills/work-loop/references/supervisor-mode.md
+
+**Tests:** verification mode: TDD. C2 is pinned by equality at four sites, so
+`test_c2_is_identical_across_the_four_sites` reds the moment the module's
+canonical `C2` constant is updated, and greens only when all four sites carry
+the new wording.
+- Update the canonical `C2` constant first and record the observed failure.
+  The red is **one** assertion, not four: the identity check compares the
+  extracted value against the constant and stops at the first mismatch, so it
+  names one site. `test_clauses_sit_in_their_hosts` stays green throughout —
+  it reads C2's opening words, which this amendment does not change, so
+  placement never moves. Claiming either a four-site red or two red tests
+  would be describing a failure the control cannot produce.
+- `packs/core/tests/pack/` and `tests/roster/test_capture_rename_guide.py`
+  stay green afterwards.
+
+**Approach:**
+- The change is a near-swap: "the human gate's own record" becomes "wherever
+  this run reports its result". The surrounding sentence, the reply-naming
+  rule, and the fall-out sentence are unchanged.
+- Generic rather than named, deliberately. Three contexts reach this branch
+  and each has a different record: a full run's pull request, a direct-light
+  run's handoff, and a briefed subagent's report to its supervisor. An
+  earlier draft named the pull request and left the other two writing
+  nowhere. The surface a run reports to is the one noun true in all three.
+- The reply-nonce half of the same security Concern is **not** in scope: an
+  answer still counts when the reply names the question, and the question is
+  still text the agent wrote. That needs an attribution mechanism and a
+  decision the owner has deferred to `work-intake`.
+
+**Done when:** all four sites carry the amended C2 verbatim, the pack and
+roster suites are green, `work-loop/SKILL.md`'s body is at most 1,000 lines
+with the count recorded, and `python3 tools/lint-agents-md.py`,
+`python3 tools/lint-pack-test-boundary.py`, `python3 tools/lint-ci-parity.py`
+and `make lint-ruff lint-mypy` each exit 0 read unfiltered.
+
 ### T7: Projections match the changed sources
 
-**Depends on:** T8
+**Depends on:** T9
 
 **Touches:** .claude/, .agents/, .codex/
 
@@ -711,3 +756,5 @@ deployment sequencing. Nothing here is irreversible.
   controlled amendment, which closes four Blockers introduced by removing
   locality and six from the implementation review. Amendment review reached
   `Clean — ready to commit.` in two rounds.
+- 2026-09-19: spec and plan re-approved by eugenelim after the third
+  controlled amendment, which names the surface C2 fallback writes to.

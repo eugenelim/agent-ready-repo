@@ -679,3 +679,37 @@ remaining body budget.
 half — an answer counts when the reply "names the question", where the
 question is text the agent itself wrote — stays open and routes through
 `work-intake` with the other items.
+
+## 2026-09-19 — T9: C2's fallback names a surface that exists in every context
+
+**Red first, and it matched the plan's corrected claim exactly.** Updating the
+module's canonical `C2` constant before touching any site produced **one**
+failing assertion — `test_c2_is_identical_across_the_four_sites` — with
+`test_clauses_sit_in_their_hosts` green throughout, because C2's opening
+words do not change and placement never moves. An earlier draft of T9 claimed
+four site-reds and two red tests; the control cannot produce either, and the
+plan was corrected before execution rather than after.
+
+**Two attempts at the artifact, and why the second is generic.** "The human
+gate's own record" named nothing. "The pull request this loop opens at its
+human gate" named one of three contexts and left the other two writing
+nowhere: a direct-light run ends with a handoff and no gate, and a subagent
+given a pasted brief reports to its supervisor and owns neither the parent
+loop nor its pull request. The shipped wording — "wherever this run reports
+its result" — is the one noun true in all three, and needs no reader to know
+which mode they are in.
+
+**Controller executed this task; no implementer was dispatched.** It is a
+one-sentence swap at four sites plus the canonical constant, which the FIX
+step assigns to the controller: a diagnosis that hands back a bounded fix is
+the fix. Recorded as `--decline human-directed` rather than as a receipt.
+
+**Method note.** The first landing wrapped the replacement at the wrong width,
+leaving a 109-character line in files that wrap near 76. Caught by measuring
+the added lines rather than by reading them; re-wrapped to a 79-character
+maximum. The identity assertions passed either way, because they normalize
+whitespace — so the suite could not have caught this, and did not.
+
+**Gates:** 252 passed; `lint-agents-md`, `lint-pack-test-boundary`,
+`lint-ci-parity`, `make lint-ruff lint-mypy` each exit 0; body = 982 lines,
+18 under the cap.
