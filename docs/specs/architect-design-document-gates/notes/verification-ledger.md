@@ -203,9 +203,8 @@ moves from T2 to T4a, which is the task that creates the document.
 
 ## Owner decision — a task to carry the prechecks into the reviewer's two homes
 
-> **Superseded 2026-09-19.** The decision in force is *Owner decision — the
-> prechecks hold in the authoring rubric alone*, the last section of this
-> file: the prechecks bind to the authoring rubric only and T4b is withdrawn.
+> **Superseded 2026-09-19.** The decision in force is the section titled
+> *Owner decision — the prechecks hold in the authoring rubric alone*: the prechecks bind to the authoring rubric only and T4b is withdrawn.
 > An intermediate position sits between this section and that one; skip it.
 > The pending amendment's `reason_ref` points here, which is why this banner
 > names the final decision directly rather than the next one.
@@ -359,11 +358,10 @@ verified — and it is why the falsity survived a passing gate chain.
 
 This is out of the contract's scope rather than free: the contract requires
 the pointer, not the target's depth, and no remaining task owns the agent
-file. It is recorded as follow-on 4 below, to land after T7 with the other
-three. T3's authoring-rubric prechecks stand and the reviewer homes keep T4's
+file. It is recorded below and in the spec's `## Follow-ons`, to land after T7. T3's authoring-rubric prechecks stand and the reviewer homes keep T4's
 gate table; the withdrawn work is T4b alone, which had not started.
 
-## Follow-on 4 — the agent's degradation pointer promises depth that is not there
+## Follow-on — the agent's degradation pointer promises depth that is not there
 
 **Found:** 2026-09-19, verifying the T4b withdrawal.
 

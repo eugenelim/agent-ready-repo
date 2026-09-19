@@ -74,9 +74,11 @@ than `Implementation Mapping`, and `DA7` fires only where there are diagrams.
   confinement
 - A confinement and refusal contract for that script — required `--root`,
   canonicalized boundary, regular files under 1 MiB, escaped output
-- Seven hybrid prechecks and judgment-only `DA5` — reviewer checks in
+- Seven hybrid prechecks — author-side narrowing hints in
   `architect-design/references/design-doc-rubric.md`, the authoring rubric,
-  which is the one home they hold in
+  which is the one home they hold in. Judgment-only `DA5` carries none, and
+  its judgement-alone sentence is a separate obligation in all three homes
+  (AC-0034)
 - The ten gate identifiers, tags and severities — under the existing
   `## Cross-cutting` heading of `architect-design/references/design-doc-rubric.md`
   and `architect-review/references/rubric-design-doc.md`, and a section of
@@ -661,6 +663,18 @@ on a checklist item only that rubric owns.
       `FORCE=1 make build-self` and records architect at `0.15.12`.
 
 ## Follow-ons
+
+- Architect pack maintainers: `packs/architect/.apm/agents/design-reviewer.md`
+  tells a reviewer to read `architect-review/references/rubric-design-doc.md`
+  "for the fuller per-gate text and prechecks". That rubric carries no
+  per-gate bodies and no prechecks, so the pointer resolves to nothing fuller
+  than the agent already holds. It was false when shipped, and binding the
+  prechecks to the authoring rubric alone removes the route by which it would
+  have become true. Nothing reds: AC-0054 pins the agent's statement and no
+  criterion or test reaches the target. Either correct the agent's sentence to
+  promise only what that rubric holds, or give the rubric the depth the
+  sentence claims; whichever is chosen, AC-0054 should reach the target rather
+  than only the claim about it.
 
 - Repository maintainers: root `AGENTS.md:154` names
   `agentbundle.catalogue_tooling.file_safety` as the blessed confinement

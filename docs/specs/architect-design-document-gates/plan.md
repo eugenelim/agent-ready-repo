@@ -523,7 +523,10 @@ that task.
   cannot serve as the corpus (AC-0045).
 - `DA3` is driven over the reference document and must report nothing
   (AC-0018). This is the clean half of the paragraph budget, placed here for
-  the reason T2's `Tests:` records.
+  the reason T2's `Tests:` records. `test_gate_text.py` loads
+  `scripts/check_document_architecture.py` to do it, the same way
+  `test_gate_script.py` does: the text/script split is about what each suite
+  asserts, not a bar on importing the module.
 - The reference document's measured word count is compared against the
   derivation's 2,178-word density figure and must sit within 20% (AC-0025).
   This is what gives AC-0024 an oracle: recomputing 2,178 × 1.5 → 3,300 is
@@ -536,10 +539,14 @@ that task.
   (`tools/lint-pack-test-boundary.py` check 8), and a test asserting that the
   spec says something makes the spec its own comparison value.
 - The defect document states in its own body that it is deliberately
-  non-conforming, and the plan records how a repository-wide Markdown reader
-  tells it apart: `tools/lint-agents-md.py:547` walks `rglob("*.md")` and
-  excludes on the path parts `fixtures` and `tests`, neither of which
-  `testdata/` matches (AC-0050).
+  non-conforming, and this task **records the choice AC-0050 asks for**, which
+  is what that criterion accepts as satisfaction — its own text ends "the
+  choice is recorded either way". The choice recorded is the first branch,
+  unwidened: `tools/lint-agents-md.py` excludes a path only when **both**
+  `fixtures` and `tests` appear in its parts, so `testdata/` is not excluded,
+  and the collision stays latent because that sweep looks only for a
+  risk-trigger marker no planted defect carries. The predicate is not widened
+  and no task touches `tools/`; the ledger carries the reasoning (AC-0050).
 - A defect document is committed at `testdata/precheck-defects.md` carrying
   one planted defect per precheck (AC-0049), and `test_gate_text.py` asserts
   it names all seven.
@@ -547,17 +554,15 @@ that task.
   `notes/verification-ledger.md`: no precheck fires on the reference document
   (AC-0046), and every precheck fires on its planted defect (AC-0051). One
   direction alone is satisfied by a precheck that never fires on anything.
-- A scan over every artifact this delivery commits requires no real
-  home-directory path or account name, across transcripts, recorded blocks,
-  fixtures and corpus files alike (AC-0043), and the plan names where a
-  standing check for that class lives rather than leaving it to review.
-  Every transcript and recorded block this task commits is
-  host-clean: the
-  root path is written as a placeholder, never as a real absolute path
+- Every artifact this task commits is host-clean — transcripts, recorded
+  blocks, the reference document and the defect document alike — with each
+  root path written as a placeholder and never as a real absolute path
   (AC-0043). `--root` is required, so a typed transcript otherwise carries an
   operator's account name into a published repository, which root
-  `AGENTS.md` § Security considerations forbids — five ledgers under
-  `docs/specs/*/notes/` already carry one.
+  `AGENTS.md` § Security considerations forbids; five ledgers under
+  `docs/specs/*/notes/` already carry one. The scan is over this task's own
+  diff, not the tree: no standing tree-wide check for that class exists, and
+  the spec's `## Follow-ons` is where that gap is recorded.
 - **The branch's `packs/architect/.apm/agents/design-reviewer.md` is copied to
   `.claude/agents/design-reviewer.md`, the agent is dispatched** against the
   reference document, its returned block is recorded in the ledger showing ten
