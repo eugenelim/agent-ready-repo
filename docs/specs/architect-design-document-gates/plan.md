@@ -1,7 +1,7 @@
 # Plan: architect-design document-architecture gates
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0118 `D5` fixes the gate set and its
   mechanizability. The governing implementation is
   `packs/core/.apm/skills/close-work/scripts/` — a skill that carries a
