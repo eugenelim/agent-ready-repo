@@ -522,4 +522,21 @@ The body above is frozen. Corrections are recorded here.
   have let any WIDE-shaped change avoid decomposition on reproducibility proof
   alone rather than only mechanically uniform work. The qualifier is restored at
   every routing site. Approver: eugenelim.
+- **2026-09-19 — the three ride-along tiers (§ Vocabulary, § Tail-triage lane)
+  are replaced by a single three-clause admission test plus a clause defining
+  when a design call counts as resolved.** Three reasons. First, Tier 3
+  contradicted the carve-out's own headline: the carve-out opens
+  "verifiability, not locality," Tier 1 says a ride-along "may span the
+  repository," and Tier 3 reimposes "same-area, same-concern" — locality is
+  abandoned and reimposed in the same paragraph. Second, "visibly smaller" is
+  ambiguous between "smaller than the main change" and "net-negative line
+  count"; under the second reading a one-character missing-space fix is
+  inadmissible, and an ambiguous admission gate is read restrictively every
+  time. Third, the tiers excluded a real, verifiable class: a correction whose
+  fix differs per site, so no single command reproduces it (not Tier 1), that
+  is not dead code (not Tier 2), and that spans files (not Tier 3). The
+  replacement clause also admits a design call already resolved — by a
+  citation or by an owner's in-session answer — while still refusing to
+  resolve a convention, contract, or published-interface question itself,
+  because there the record is the deliverable. Approver: eugenelim.
 

@@ -694,6 +694,7 @@ result; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
 | Matches | Include now | Add it to the current plan or session. |
 | Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
 | Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Does not match | Include now, ride-along eligible | Admit it under the bundled-fixes carve-out. This is not a scope change: a ride-along alters no acceptance criterion and moves no contract pin. |
 | Does not match | Do not include | Exclude it with no durable follow-on by default. |
 | Unclear | — | Ask the owner before acting. |
 
