@@ -6,9 +6,11 @@ spec, and the work-loop's amendment reference described how a contract is
 amended without saying what binds it or for how long. Both clauses are prose,
 so each is asserted individually — a heading alone is not a check.
 
-Not detected, and named so the blind spots are visible: `flat()` collapses the
-whole file, so a clause moved into an HTML comment, into a fenced code block,
-or out of the section its comment names still satisfies the assertion.
+Not detected, and named so the blind spots are visible: every arm here matches
+a substring of a whole file, so a clause moved into an HTML comment, into a
+fenced code block, or out of the section its comment names still satisfies the
+assertion. `POINTER_TARGETS` is hand-maintained beside the pointer it covers, so
+a target added to that paragraph and not to the tuple is undetected too.
 """
 from __future__ import annotations
 
@@ -65,10 +67,10 @@ LIFECYCLE_CLAUSES = (
 
 
 #: Every target the lifecycle pointer names, as the contract writes it. Pinning
-#: the pointer's own wording cannot catch a renamed target, and three of these
-#: four are guarded only by roster suites this pack cannot read; the bold label
-#: was guarded nowhere, so renaming it would dangle the pointer with every gate
-#: green.
+#: the pointer's own wording cannot catch a renamed target. Four of these five
+#: also have roster guards this pack cannot read, so the duplication is what an
+#: adopter gets; the fifth, the bold label, was guarded nowhere, so renaming it
+#: would have dangled the pointer with every gate green.
 POINTER_TARGETS = (
     "**Lifecycle:** specs are",
     "### A spec directory freezes as a unit, when the spec ships",
