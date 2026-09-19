@@ -528,7 +528,7 @@ against a non-compliant fixture and against the shipped templates — are in
   home-directory path or account name, across transcripts, recorded blocks,
   fixtures and corpus files alike (AC-0043), and the plan names where a
   standing check for that class lives rather than leaving it to review
-  (AC-0078). Every transcript and recorded block this task commits is
+  Every transcript and recorded block this task commits is
   host-clean: the
   root path is written as a placeholder, never as a real absolute path
   (AC-0043). `--root` is required, so a typed transcript otherwise carries an

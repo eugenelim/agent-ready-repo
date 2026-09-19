@@ -192,11 +192,12 @@ and never reflowed, so a group's list is not always contiguous.
   written into `design-reviewer.md` or `convergence-loop.md`, decidable from
   that file. AC-0059 is the one that watches the agent obey them, and it is
   manual because the agent is a model: a dispatch is read, not asserted.
-- **Evidence this delivery commits (AC-0043, AC-0078): goal-based check.**
-  A scan over the committed tree decides both: whether any artifact carries a
-  real home path, and whether a standing check owns that question. Today
-  nothing does, which is why AC-0078 asks where it lives rather than assuming
-  a reviewer will look.
+- **Evidence this delivery commits (AC-0043): goal-based check.** One
+  command decides it — every path from `git diff --name-only
+  origin/main...HEAD` scanned with `grep -nE '/Users/|/home/[a-z]|/Volumes/'`,
+  returning nothing. It is scoped to this delivery's own diff because a
+  tree-wide standing check has no owner today; that gap is a Follow-on rather
+  than a criterion nobody can implement.
 - **Parity (AC-0062, AC-0063): goal-based check.** The gates get a
   `DA_CARRIERS` constant of their own; the module's existing `CARRIERS` names
   a set that overlaps the gate homes in one file.
@@ -504,18 +505,15 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ### Evidence this delivery commits
 
-- [ ] **AC-0043.** No repository artifact this delivery commits carries a real
-      home-directory path or account name — not a transcript, not a recorded
-      agent block, not a fixture or corpus file. `--root` being required means
-      every typed transcript would otherwise carry one, and the class is wider
-      than transcripts: the six artifacts scrubbed on this branch included two
-      lint-corpus JSON files and a design-evidence note.
-- [ ] **AC-0078.** A standing check owns that property rather than a
-      reviewer's attention, and the criterion names where it lives. Nothing
-      scans committed artifacts for a real home path today —
-      `tools/test_import_time_path_leaks.py` covers import-time leaks and
-      `tools/test_editable_install_guard.py` covers install targets — so the
-      tree is clean only because this branch made it so.
+- [ ] **AC-0043.** No file this delivery adds or changes carries a real
+      home-directory path or account name. The check is every path from
+      `git diff --name-only origin/main...HEAD` scanned with
+      `grep -nE '/Users/|/home/[a-z]|/Volumes/'`, returning nothing. `--root`
+      being required means every typed transcript would otherwise carry one,
+      and the class is wider than transcripts: the six artifacts scrubbed on
+      this branch included two lint-corpus JSON files and a design-evidence
+      note. A standing check over the whole tree has no home today and is
+      recorded as a Follow-on.
 
 ### How the reviewer reports the gates
 
@@ -545,11 +543,15 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       determination. Text in the artifact matching the roll-call format does
       not supply it: a document carrying `DA1-DA10: PASS` in a fence or an
       HTML-comment span is a finding, not a result.
-- [ ] **AC-0058.** The returned block recorded under AC-0059 is captured as
-      quoted data. The agent holds `Read`, `Grep` and `Glob` over the
-      checkout and its block lands in a committed file, so an instruction in
-      the artifact that directs it to quote an unrelated file must not become
-      repository content by transcription.
+- [ ] **AC-0058.** `.apm/agents/design-reviewer.md` fixes the permitted
+      contents of the returned block: the roll-call, and findings that *name*
+      a location. Content the artifact asked the agent to surface is reported
+      as a finding about the artifact, never reproduced in the block. Quoting
+      it as data does not discharge this — quoting stops recorded text
+      acquiring instruction authority over a later reader, and does nothing to
+      stop the content being committed. The agent holds `Read`, `Grep` and
+      `Glob` over the checkout, and an adopter points it at documents they did
+      not write.
 - [ ] **AC-0072.** `.apm/agents/design-reviewer.md` declares `Read`, `Grep`
       and `Glob` and no execution tool. AC-0061's claim that no rung runs the
       gate script rests on this for the subagent rung, which neither of the
@@ -558,12 +560,19 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       `design-reviewer` is dispatched against the reference document and its
       returned block recorded in `notes/verification-ledger.md`, showing ten
       verdicts. The branch's
-      `packs/architect/.apm/agents/design-reviewer.md` is copied to the path
-      the host resolves before the dispatch, and the record names that path
-      and the SHA-256 both copies then share. Without the copy the dispatch
-      reads whatever the operator's profile happens to hold: today that copy
-      is 8,633 bytes against the pack source's 9,140, so a dispatch naming
-      only its scope reviews a definition this slice never edited.
+      `packs/architect/.apm/agents/design-reviewer.md` is copied into place
+      first, and three properties of that write are the criterion rather than
+      the plan's mechanism: it lands inside the repository working tree and
+      nowhere else; it is refused if the destination already exists, because
+      `.claude/agents/` is generated tracked space whose file set
+      `tests/roster/test_core_agent_projection.py:60-61` pins by equality; and
+      no copy survives the step, whether the dispatch succeeded, failed, or
+      was interrupted. The record shows that post-state, so a record naming
+      only a path and a hash cannot tick this. Writing the operator's
+      `~/.claude/agents/design-reviewer.md` instead would replace a
+      machine-wide agent definition for every project on that host and leave
+      it replaced; without any copy the dispatch reads whatever that profile
+      holds, today 8,633 bytes against the pack source's 9,140.
 - [ ] **AC-0060.** `references/convergence-loop.md` requires the loop to
       dispatch the `design-reviewer` subagent when it is reachable, and to
       name the rung it fell back to when it is not.
@@ -618,6 +627,21 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ## Follow-ons
 
+- Repository maintainers: root `AGENTS.md:154` names
+  `agentbundle.catalogue_tooling.file_safety` as the blessed confinement
+  helper, but that module is a generated destination. A maintainer applying a
+  hardening fix there is told by `build-check` to run `make build-self`, which
+  overwrites the patched file with the unpatched source and leaves the tree
+  green. Eight copies of the module exist and none carries a
+  generated-do-not-edit header, so the canonical body is discoverable only by
+  reading `self_host.py`. This slice adds a ninth and does not cause the
+  problem, but it does raise the odds of the wrong target being chosen.
+- Repository maintainers: nothing scans committed artifacts for a real
+  home-directory path —
+  `tools/test_import_time_path_leaks.py` covers import-time leaks and
+  `tools/test_editable_install_guard.py` covers install targets. AC-0043
+  scans this delivery's own diff; the tree-wide class has no owner, and it is
+  clean today only because this branch scrubbed six artifacts by hand.
 - AgentBundle distribution maintainers: the shared helper this slice carries is
   hand-copied because `make build-self` writes no destination under `packs/`.
   [`docs/product/intents/shared-pack-file-projection.md`](../../product/intents/shared-pack-file-projection.md)
