@@ -640,3 +640,56 @@ a misdirected script path in `rubric-design-doc.md`, the file-wide DA5 parity
 assertions, and a changelog overclaim). Each is fixed on
 `eugenelim/architect-slice-2`; this entry records only the one this ledger
 was already tracking as an open follow-on.
+
+## Owner decision — amend three criteria whose stated oracles the tree refutes
+
+**Date:** 2026-09-19. Raised by the delivery review at the CODE-REVIEW gate.
+
+**What was wrong.** Three criteria state a number or a procedure that does not
+hold. In each case the criterion's *substance* holds and only its stated
+oracle is wrong, which is the worst shape: the criterion reads as verified and
+cannot be.
+
+- **AC-0024.** Its reproduction — strip frontmatter, strip HTML-comment spans,
+  replace every `<…>` placeholder with a space, count `[A-Za-z0-9]` tokens —
+  yields **388**, not the 752 it records. Measured on this tree: 752 appears
+  only when `<…>` is read as *not* spanning a newline (`<[^<>\n]*>`), and that
+  decisive detail, worth 364 words, is the one the criterion never states.
+  Its stated rationale is separately false: it claims substituting the empty
+  string "joins its neighbours and gives a different figure", but space and
+  empty both give **752** under the single-line reading, so the note explains
+  nothing.
+- **AC-0043.** Its scan returns **19** hits over this delivery's diff. Every
+  one is either the pattern quoting itself or a path already scrubbed to the
+  `<user>` placeholder — that is, the oracle matches its own remedy. No real
+  account name is present, so the substance holds and the check cannot show it.
+- **AC-0059.** It cites the pack source at 9,140 bytes; the file is **12,287**,
+  having grown with T3's and T4's gate content.
+
+**Decision.** Amend all three so each states something true and re-derivable,
+rather than defer them or tick them on an erratum. The reasoning is that the
+spec is the durable artifact and the ledger is the one that stops being read
+once the spec ships, so a false statement left in the criteria tier outlives
+any note about it. A deferral token would have the same effect, because it
+marks the criterion unmet without correcting what it says.
+
+**The replacements, each measured before being written.**
+
+- AC-0024 carries a runnable command that actually yields 752, with the
+  single-line placeholder reading stated explicitly, and the false
+  empty-vs-space rationale removed.
+- AC-0043's scan becomes `/(Users|home)/[A-Za-z0-9._-]+/|/Volumes/[A-Za-z0-9._-]+`,
+  which requires a real name segment. Proven differentially: it returns
+  nothing over this delivery's diff, and still matches a planted
+  `/Users/realname/secret`. Absence alone would not have shown it still works.
+- AC-0059 drops its byte figures. A criterion that pins a file's size goes
+  stale whenever that file is edited, which is what happened here; the point
+  it makes — the operator profile's copy is a different, smaller definition —
+  does not need a number.
+
+**Scope note on the release.** Three shipped `.apm/` files changed after the
+`0.15.12` version bump, which would normally mean one version string naming
+two code states. It does not here: the branch has no upstream, so `0.15.12`
+has never left it, and the fixes fold into that version rather than needing
+`0.15.13`. `FORCE=1 make build-self` was re-run and the adapter projections
+are current.
