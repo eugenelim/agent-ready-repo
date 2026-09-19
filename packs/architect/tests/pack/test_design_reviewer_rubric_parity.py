@@ -137,6 +137,32 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
+def _da5_own_text(text: str) -> str:
+    """Return only the carrier's own `DA5` definition, never the whole file.
+
+    A `DA1`-`DA10` sentence living anywhere else in a carrier — e.g. the same
+    text relocated onto `DA8` — must fall outside what this returns, or the
+    move would still pass. `design-doc-rubric.md` gives every gate its own
+    `#### `DA<n>`` heading, so that heading's body is unambiguous. The other
+    two carriers give every gate only a table row, plus one freestanding
+    paragraph for `DA5` right after the table; that paragraph, identified by
+    its own opening clause, is the whole of what they say about `DA5` alone.
+    """
+    heading = re.search(r"^#### `DA5`\s*$", text, re.M)
+    if heading is not None:
+        start = heading.end()
+        following = re.search(r"^#{2,4} ", text[start:], re.M)
+        end = start + following.start() if following else len(text)
+        return text[start:end]
+    marker = re.search(r"`DA5`'s verdict", text)
+    assert marker, "no `DA5` definition found in this carrier"
+    para_start = text.rfind("\n\n", 0, marker.start())
+    para_start = 0 if para_start == -1 else para_start + 2
+    para_end = text.find("\n\n", marker.start())
+    para_end = len(text) if para_end == -1 else para_end
+    return text[para_start:para_end]
+
+
 class ArchitectRubricParityTests(unittest.TestCase):
     def test_every_carrier_exists(self) -> None:
         for path in CARRIERS:
@@ -200,14 +226,19 @@ class DocumentArchitectureGateParityTests(unittest.TestCase):
     def test_da5_states_the_reviewers_judgement_with_no_automated_measure(
         self,
     ) -> None:
-        """AC-0034 in all three homes; the two measure-name tokens stay absent."""
+        """AC-0034 in all three homes; the two measure-name tokens stay absent.
+
+        Scoped to `DA5`'s own definition in each carrier — the same sentence
+        relocated onto `DA8` would still pass a whole-file `assertIn`, which
+        is not the property AC-0034 names.
+        """
         for path in DA_CARRIERS:
-            text = _flat(path.read_text(encoding="utf-8"))
+            body = _flat(_da5_own_text(path.read_text(encoding="utf-8")))
             with self.subTest(carrier=path.name):
-                self.assertIn("is the reviewer's judgement", text)
-                self.assertIn("no automated measure", text)
-                self.assertNotIn("similarity score", text)
-                self.assertNotIn("distance metric", text)
+                self.assertIn("is the reviewer's judgement", body)
+                self.assertIn("no automated measure", body)
+                self.assertNotIn("similarity score", body)
+                self.assertNotIn("distance metric", body)
 
 
 class DesignReviewerOutputContractTests(unittest.TestCase):
