@@ -143,8 +143,11 @@ Always read, in this order. Skipping this step makes you guess. Don't guess.
    convention, workflow, and command sources they map for the target. These are
    first-class checks; no specific convention filename or pack layout is
    required.
-2. The targeted spec at `docs/specs/<feature>/spec.md`. The spec is the
-   standard.
+2. The targeted spec at `docs/specs/<feature>/spec.md`. That spec is the
+   standard; a spec that has shipped or been archived is delivery history, not
+   current-state authority. A change contradicting one is a finding only if it
+   also breaks the targeted spec, a live unshipped spec, a cited ADR, or
+   working code.
 3. The targeted plan at `docs/specs/<feature>/plan.md`.
 4. Any ADRs cited in the spec's "Constrained by" field.
 5. The implementation files the orchestrator lists, or
@@ -260,8 +263,9 @@ checklists; verification-mode awareness applies to every review that carries a v
    design call or behavior change. Treat any claimed ride-along lacking its
    required Tier 1 or Tier 2 evidence, or exceeding Tier 3's limits, as a
    Blocker.
-5. **Spec drift.** If the implementation differs from the spec, the spec
-   must be updated in the same PR. Otherwise it's drift, not done. *Semantic*
+5. **Spec drift.** This check is about the targeted spec only. If the
+   implementation differs from that spec, the spec must be updated in the same
+   PR. Otherwise it's drift, not done. *Semantic*
    drift (does the behavior match the contract?) is your judgment call — but
    four *metadata* invariants are concrete; check each by name (the contract
    they measure against is pinned in the `new-spec` skill's
