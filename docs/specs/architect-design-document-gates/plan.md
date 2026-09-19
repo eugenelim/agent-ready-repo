@@ -34,9 +34,15 @@
 
 ## Approach
 
-The gating change lands first, so every later commit is proven by the pull
-request rather than by a dispatch. The script follows, because the rubric text
-then describes behaviour that exists. The three rubric homes and the parity
+**Precondition, already in the branch.** `packs/architect/tests/skills/architect-design/`
+reached CI only through the dispatch-only `test-corpus.yml`, so a suite added
+to it proved nothing on a pull request. Commit `81663a467` put the directory
+in `build-check.yml`'s carve-out step (`:435`) and flipped its
+`tools/lint-ci-parity.py` disposition to `PR_GATED` (`:878-882`). Every task
+below rests on that; none of them re-does it.
+
+The script comes first, because the rubric text then describes behaviour that
+exists. The three rubric homes and the parity
 test move in one commit: a home written without the comparison that reads it
 is the drift this slice exists to stop. The filled reference document lands
 before the prechecks are trusted. Release closure is last.
@@ -225,34 +231,18 @@ considerations blesses that helper, so declining it would be the deviation.
 
 ## Tasks
 
-### T1: the architect-design suite runs on a pull request
-
-**Depends on:** none
-
-**Touches:** .github/workflows/build-check.yml, tools/lint-ci-parity.py
-
-**Tests:**
-- `python3 tools/lint-ci-parity.py` exits 0. It drives both roster directions
-  over `.github/workflows/build-check.yml`'s step list and the
-  `STEP_DISPOSITION` table in the lint itself: a step covering a suite whose
-  entry says `NO_PR_GATE` fails (AC-0001), and a disposition naming no real
-  step fails (AC-0002).
-- no stub (goal-based)
-
-**Done when:** the lint exits 0 and the carve-out step names the directory.
-
-**Note:** this landed in commit `81663a467` before approval —
-`build-check.yml:435` names the directory and `tools/lint-ci-parity.py:878-882`
-carries the matching `PR_GATED` disposition. The task stays in the plan
-because every later task rests on it for pull-request evidence.
-
 ### T2: the gate script refuses what it cannot read and reds on what it can
 
-**Depends on:** T1
+**Depends on:** none
 
 **Touches:** packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py, packs/architect/tests/skills/architect-design/test_gate_script.py, packs/architect/.apm/skills/architect-design/SKILL.md
 
 **Tests:**
+- `python3 tools/lint-ci-parity.py` exits 0, which is what makes every
+  assertion below count on a pull request: it drives both roster directions
+  over `build-check.yml`'s step list and the lint's own `STEP_DISPOSITION`
+  table, failing when a step covers a suite whose entry says `NO_PR_GATE`
+  (AC-0001) and when a disposition names no real step (AC-0002).
 - `test_gate_script.py` loads `check_document_architecture.py` by
   `importlib.util.spec_from_file_location` under the pack-unique name
   `architect_design_gate_script`, matching `test_profile_repo.py:23`. A bare
@@ -386,21 +376,36 @@ against a non-compliant fixture and against the shipped templates — are in
 
 **Depends on:** T4
 
-**Touches:** packs/architect/tests/skills/architect-design/testdata/filled-subsystem-design.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
+**Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
 
 **Tests:**
-- A reference document authored from `assets/subsystem-design.md` with every
-  placeholder replaced by real content is committed at
-  `testdata/filled-subsystem-design.md`, and `test_gate_text.py` asserts it
-  carries no `<…>` placeholder token, so a half-filled skeleton cannot serve
-  as the corpus (AC-0044).
+- The reference document is committed at
+  `testdata/telemetry-endpoint-default-design.md`, and `test_gate_text.py`
+  asserts it carries no `<…>` placeholder token, so a half-filled skeleton
+  cannot serve as the corpus (AC-0044).
 - Each of the seven prechecks is walked by hand against that document and the
   walk written to `notes/verification-ledger.md` (AC-0045).
 - no stub (manual QA for the walk, goal-based for the document)
 
 **Approach:**
-- The document carries real content rather than filler. A precheck walked
-  against filler measures the filler's shape.
+- **The corpus is real pending design work, not a fixture.** It is the
+  subsystem design for layer 5 of the telemetry endpoint cascade —
+  `catalogue.toml` `[pack-defaults.core]` baked into
+  `_data/install-defaults.toml`, the one layer of the five in
+  `docs/product/intents/catalogue-level-telemetry-endpoint-default.md`
+  § Future state that no component can currently read. Layers 1-4 shipped with
+  `telemetry-sender-owns-its-configuration`; `loop-telemetry-export` is
+  Shipped and `jsonl-otlp-exporter` is Approved, so the exporter works and an
+  enterprise still cannot configure it once for all its users.
+- It is a subsystem design because it has a subsystem's shape: a precedence
+  chain with a stated fall-through rule, a trust boundary between enterprise,
+  repository and user scope, a standard-library-only consumer constraint, and
+  an explicit refusal of authenticated endpoints. A design written to exercise
+  a rubric would have none of those.
+- The document lands only in `testdata/`. A second copy under `docs/` would
+  give one design two homes, and a pack test cannot read `docs/` —
+  `tools/lint-pack-test-boundary.py` check 8 refuses it. Promotion to an
+  accepted design artifact belongs to the telemetry intent's own owner.
 
 **Done when:** the reference document is committed, the seven-precheck walk is
 in the verification ledger, and no precheck fired.
@@ -500,9 +505,9 @@ subsection.
   a revert is a revert.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** T1 first, so the rest is proven by the pull
-  request rather than by a dispatch. T7 last, because the changelog entry
-  describes the finished set and `make build-self` refuses a dirty tree.
+- **Deployment sequencing:** T7 last, because the changelog entry describes
+  the finished set and `make build-self` refuses a dirty tree. Nothing else
+  is ordered by deployment; the task graph's dependencies carry the rest.
 
 ## Risks
 

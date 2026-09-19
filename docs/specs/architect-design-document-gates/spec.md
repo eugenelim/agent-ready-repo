@@ -164,10 +164,10 @@ cannot drift apart.
 
 ### Pull-request gating
 
-- [ ] **AC-0001.** `.github/workflows/build-check.yml` runs
+- [x] **AC-0001.** `.github/workflows/build-check.yml` runs
       `packs/architect/tests/skills/architect-design/` inside its
       `pytest catalogue-test carve-out destinations (RFC-0082)` step.
-- [ ] **AC-0002.** `tools/lint-ci-parity.py` records that suite as `PR_GATED`
+- [x] **AC-0002.** `tools/lint-ci-parity.py` records that suite as `PR_GATED`
       naming that step, and the lint exits 0.
 
 ### The shipped mechanical gate
@@ -321,10 +321,12 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       evidence rather than linking it — `Appendix`, `References`, `Evidence`.
 - [ ] **AC-0043.** Each of the seven prechecks states that its verdict is the
       reviewer's.
-- [ ] **AC-0044.** A filled reference document, authored from
-      `assets/subsystem-design.md` with every placeholder replaced by real
-      content, exists at
-      `packs/architect/tests/skills/architect-design/testdata/filled-subsystem-design.md`.
+- [ ] **AC-0044.** A reference document exists at
+      `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`,
+      authored from `assets/subsystem-design.md` and carrying the subsystem
+      design for the layer-5 enterprise telemetry endpoint default that
+      `docs/product/intents/catalogue-level-telemetry-endpoint-default.md`
+      frames. It holds no `<…>` placeholder token.
 - [ ] **AC-0045.** No precheck fires on that reference document, and each of
       the seven is walked against it with the walk recorded.
 - [ ] **AC-0046.** The precheck corpus excludes `assets/*.md`, and each
@@ -395,6 +397,12 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
   and `deploy_action`. `architect-assess` already ships `profile_repo.py`
   under the same three boundaries. Adding an execution value, or recording
   that shipped scripts sit outside that convention, is a separate change.
+- AgentBundle distribution maintainers: the reference document this delivery
+  writes is a design for the layer-5 enterprise telemetry endpoint default,
+  and it lands as the gates' corpus rather than as an accepted design. Whether
+  that design is adopted, reshaped, or dropped belongs to
+  `docs/product/intents/catalogue-level-telemetry-endpoint-default.md` and to
+  the owner it names, jointly with `credential-pack-defaults-projection`.
 - architect pack maintainer: slice 3, tracked by ADR-0118 — the system-shape
   and workload axes and the conditional ports-and-adapters view.
 - architect pack maintainer: `packs/architect/tests/skills/architect-review/`
@@ -403,11 +411,11 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ## Assumptions
 
-- Technical: no design document authored by this skill exists in the
-  repository — the filled reference document this delivery writes is the only
-  corpus the prechecks and `DA3` are measured against, so their false-positive
-  rate against real authored output is ungrounded until the skill has produced
-  some.
+- Technical: one design document authored by this skill exists after this
+  delivery — the telemetry endpoint-default reference — so the prechecks'
+  false-positive rate rests on a single document written by the same delivery
+  that wrote them, and stays ungrounded against output another author
+  produced.
 - Product: whether an adopter runs the gate script at all is unknown — the
   pack ships no telemetry, so `DA3` and `DA10`'s value to an adopter rests on
   the reviewer checks they back rather than on observed script use.
