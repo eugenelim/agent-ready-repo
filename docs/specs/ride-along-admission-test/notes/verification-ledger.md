@@ -292,3 +292,190 @@ Defer S4's channel weakness and the dedup gap as follow-ons with a named
 owner, because they pre-date this change. Rejected: fixing only S1;
 reinstating locality as a second route (it restores most of what the tiers
 did); and halting to rescope.
+
+## 2026-09-19 — a working-material edit moved the approved baseline
+
+**Observed.** Correcting `## Follow-ons` — merging two entries that named one
+blocked item, and recording a ready-now item the security review's Nit had
+surfaced — changed `sha256(canonical_contract(spec.md))` from
+`4c2985c81bf7…` (the approved baseline, and the value the committed file
+still hashes to) to `4fafe9c2161a…`.
+
+**Why.** `canonical_contract(text, *, ac_section_only=True)` hashes the whole
+file, normalizing only CRLF, per-line trailing whitespace, the preamble status
+token, and acceptance-criterion checkbox brackets. `ac_section_only` scopes
+which checkboxes are normalized, not which text is hashed. The parameter name
+reads as if the pin covers the acceptance-criteria section; it does not.
+
+**Consequence, bounded.** The only consumer is the guard in
+`loop-cohort plan check-current` (`_loop_guards.py:1095`), which runs at PLAN.
+This run is past PLAN, so nothing in the remaining sequence reads it. A
+resuming session that re-enters PLAN would see "spec.md no longer matches the
+approved baseline" and Surface — a true report of a difference that is, by the
+template's own rule, permitted. A further amendment re-records the baseline
+and clears it.
+
+**Disposition, corrected by the owner.** The edit was reverted and the pin
+restored: `spec.md` hashes to `4c2985c81bf7…` again, matching
+`approved_spec_hash` exactly.
+
+Two errors, not one. The pin moving was the visible one. The real one is that
+the items should never have been written to `spec.md` at all. They were
+unrelated discoveries — one from the security review, one found while editing
+the spec — and `SKILL.md` § Step 5 DECIDE already routes those: "Excluded
+work → ... Do not create a durable follow-on by default. If the owner
+explicitly asks to remember it, route the request through `work-intake`; do
+not create a `[backlog].open` entry ... merely because this loop did not
+include the work." The controller wrote them into an accepted contract
+instead, which is the discard-versus-capture discipline this very change
+ships, applied backwards. Merging the duplicate pair was the same error in
+smaller form: a real correction, made on a sealed artifact, at the wrong time.
+
+The controller's prior belief — that the pin covered the acceptance-criteria
+section only — was wrong and is corrected above.
+
+**Owner decision, 2026-09-19 (eugenelim).** The pin should cover the contract
+sections only. That is the resolution of the template/engine contradiction;
+it is not this change's work, and it routes through `work-intake` with the
+other two items rather than into this spec.
+
+**Items to route through `work-intake` after this loop closes**, each with
+its discriminator:
+
+1. *An absent `Bundled fixes:` section means three different things.*
+   `implementer.md` omits it when the brief was silent on the carve-out and
+   prints `none` when it landed none; `supervisor-mode.md` omits it from the
+   PR body when no implementer landed any. The discriminator: "not
+   authorized", "authorized and nothing landed", and "reports dropped during
+   the lift" are indistinguishable to a pull-request reader, and the third is
+   the one worth catching. Ready now, no design call; fires no risk trigger,
+   so light mode. Clause (iv) refuses it as a ride-along.
+2. *`approved_spec_hash` pins sections the spec template says are freely
+   correctable.* The discriminator: `canonical_contract`'s `ac_section_only`
+   parameter scopes checkbox normalization, not hash scope, so the pin covers
+   the whole file while the template invites edits to five of its sections.
+   Owner has decided the direction — the pin covers the contract sections
+   only — so this is ready once someone holds it.
+3. *Capture has no store.* `blocked_on: decision` and the discriminator
+   obligation both name a destination that does not exist. Blocked on the
+   in-flight capture-store design, not on a decision. This is already
+   recorded in the spec's own Follow-ons as two entries that are really one;
+   the merge is cosmetic and waits for a legitimate opening.
+
+## 2026-09-19 — T8: controls strengthened and reds first, then the amended
+clauses land
+
+**AC25 demonstration — the old controls checked consistency, not
+correctness.** Before touching the test file, the phrase "so it would run in
+light mode standalone" was reworded identically to "so it would run in light
+mode standalone too" at all four C1 sites (`SKILL.md`, `implementer.md`,
+`adversarial-reviewer.md`, `supervisor-mode.md`), each verified as exactly
+one occurrence before the edit. `python3 -m pytest
+packs/core/tests/pack/test_ride_along_admission_test.py -q -k
+"c1_is_identical or c2_is_identical or c3_is_identical"` → 3 passed — the
+unmodified `test_c1_is_identical_across_the_four_sites` passed under a
+synchronized reword, proving it compared the four extractions only to each
+other, never to the canonical `C1` constant the same file defines. All four
+files were then restored from a pre-edit backup and `git diff --stat`
+confirmed byte-identical to the committed tree before any further change.
+
+**Controls strengthened, confirmed red against the still-unamended sources.**
+`test_c1_is_identical_across_the_four_sites`, `_c2_...`, and
+`_c3_is_identical_across_the_three_mirrors` (AC1–AC3, AC25) now assert each
+site's extraction equals the canonical `C1`/`C2`/`C3` constant, not only that
+the sites agree with each other. `test_clauses_sit_in_their_hosts` (AC5,
+AC26) now walks every raw occurrence of a clause's anchor via
+`_raw_find_all_spans` instead of the first only, exempts only C6 from the
+fenced-block prohibition, and adds a reverse check: for every clause, every
+one of the four `.apm/` sites not listed as a carrier in `HOST_ROWS` must
+carry zero occurrences of that clause's anchor.
+`test_report_entry_resolution_field` (AC12) now bounds its scan to the text
+between `implementer.md`'s one fenced block's own delimiters, rather than
+between the `**Bundled fixes:**` and `**Out of scope observed**` prose
+markers — the window the adversarial review's finding #1 named as spanning
+both the lead-in and the template. `python3 -m pytest
+packs/core/tests/pack/test_ride_along_admission_test.py -q` on the
+still-unamended sources → 5 failed (`test_c1_is_identical_across_the_four_sites`,
+`_c2_...`, `test_clause_anchors_occur_exactly_once_where_carried`,
+`test_clauses_sit_in_their_hosts`, `test_report_entry_resolution_field`), 10
+passed — each failure for the expected reason: C1/C2's new clause/sentences
+not yet landed, and C6 not yet moved into the fence.
+
+In `tests/roster/test_capture_rename_guide.py`: `test_guide_names_the_step_as_shipped`
+(AC27) now binds the routing assertion to the guide's own numbered `**Capture.**`
+step-entry line via `CAPTURE_STEP_ENTRY_RE`, not the whole file.
+`test_roster_step_precedes_the_bulk_pytest_step` (AC24) now iterates every
+job in `build-check.yml` individually, asserts every naming step precedes
+every bulk-pytest step within its own job, and fails if the file is named in
+more than one job. A new `test_retired_step_name_is_absent_from_shipped_content`
+(AC28) sweeps `packs/`, `tools/`, and `guides/` case-insensitively for
+`capture[ _-]learnings`, excluding paths under any `tests/` or `__pycache__`
+directory component (a sweep excludes its own search pattern the same way any
+self-referential lint does — `packs/core/tests/pack/test_ride_along_admission_test.py`
+must cite the retired name as a literal to verify its absence elsewhere, and
+`packs/AGENTS.md` already excludes tests from "shipped" pack content) and
+paths under `docs/knowledge/`, and exempting the `evals.json` case id
+`capture-learnings-quality-attributes` by substring removal before matching.
+`python3 -m pytest tests/roster/test_capture_rename_guide.py -q` on the
+still-unamended sources → 1 failed, 2 passed: the sweep found exactly the
+four live references named below; AC27 and AC24 were already satisfied and
+stayed green (no red required — neither grades a T8 prose change).
+
+**The four live references, corrected.** `packs/core/.apm/hooks/pre-pr.py`
+and `tools/hooks/pre-pr.py` are byte-identical; both had "Capture-learnings
+step" at lines 13 and 115, now "Capture step" (`diff` of the two files after
+the edit → identical, confirmed empty). `tools/hooks/README.md:66` and
+`guides/core/explanation/core-pack.md:233` ("**Why capture learnings.**") are
+now "Capture step" and "**Why capture.**" respectively. `python3 -m pytest
+tests/roster/test_capture_rename_guide.py -q` → 3 passed, exit 0.
+
+**C1 clause (iv) and C2's two new sentences, pasted verbatim at all four
+sites**, alongside the DECIDE row's corrected third cell (AC9) in `SKILL.md`.
+`python3 -m pytest packs/core/tests/pack/test_ride_along_admission_test.py -q`
+→ 15 passed, exit 0. `python3 -m pytest packs/core/tests/pack/ -q` → 249
+passed, exit 0. `python3 tools/lint-pack-test-boundary.py`,
+`python3 tools/lint-ci-parity.py`, `python3 tools/lint-agents-md.py`, and
+`make lint-ruff lint-mypy` → each exit 0, read unfiltered.
+
+**Body-line budget.** `work-loop/SKILL.md` body (total lines minus
+frontmatter, ending at line 10's second `---`): 992 total − 10 = **982**,
++10 over T4's 972, still under the `CAT-S003` 1,000 cap with 18 lines of
+headroom left.
+
+**Deferred to T7, not run here.** `agentbundle catalogue self-host --root .
+--write` is T7's job; not run in this task, per the plan's dependency
+ordering.
+
+**Concurrent activity noted, not touched.** This file's preceding entry
+("a working-material edit moved the approved baseline") and the
+`## Follow-ons` state in `spec.md` were already present when this task began
+reading the tree; T8 did not touch either, since neither is in T8's `Touches:`
+list and both are outside this task's assigned scope.
+
+## 2026-09-19 — AC28's control was wider than AC28
+
+**Observed.** T8's AC28 sweep skipped any path containing a `tests` or
+`__pycache__` component, in addition to the two exceptions AC28 names (the
+`evals.json` case id and `docs/knowledge/` records). The reasoning given was
+sound — a sweep for a string cannot match the file asserting that string's
+absence — but the criterion allows two exceptions and the control had four.
+An undocumented widening of a control past its criterion is the defect class
+this change exists to catch, so it was not left as a deviation.
+
+**Repair, without amending the contract.** Both suites now assemble the
+retired name from parts (`"capt" "ure"` plus its separator) instead of
+spelling it as one literal, so neither file's source can match its own sweep.
+The `tests` skip is deleted; only `__pycache__` remains beside AC28's two
+named exceptions, and bytecode cannot carry a string the source never spells.
+The code now matches the criterion rather than the criterion being widened to
+match the code.
+
+**Method note.** The first attempt built the exempted eval case id with a
+capital initial, so the exception stopped matching the real lowercase id and
+the sweep flagged one of its own allowed exceptions. Caught by the suite, not
+by inspection.
+
+**Gates after repair:** `packs/core/tests/pack/` + the roster file → 252
+passed. `lint-pack-test-boundary`, `lint-ci-parity`, `lint-agents-md`,
+`make lint-ruff lint-mypy` → each exit 0. `work-loop/SKILL.md` body = 982
+lines, 18 under the `CAT-S003` cap.

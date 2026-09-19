@@ -10,7 +10,7 @@ a PR — the same way regardless of which agent tool you use:
 
 What it runs:
   - ``lint-knowledge.py`` over ``docs/knowledge/patterns.jsonl`` — the
-    knowledge base the work-loop's Capture-learnings step appends to. The
+    knowledge base the work-loop's Capture step appends to. The
     file is yours and the gate that validates it ships with it, so there is
     nothing to wire. Skipped cleanly when the file is absent.
   - ``loop-cohort.py check <spec-dir>`` for each ``docs/specs/*/state.json``,
@@ -112,7 +112,7 @@ def main() -> int:
 
     # --- Knowledge-base gate (ships with `core`) -----------------------------
     # `docs/knowledge/patterns.jsonl` is seeded into your repo and appended to
-    # by the work-loop's Capture-learnings step, so the gate that validates it
+    # by the work-loop's Capture step, so the gate that validates it
     # ships too — nothing to wire by hand.
     knowledge_file = Path("docs/knowledge/patterns.jsonl")
     lint_knowledge = _find_work_loop_script("lint-knowledge.py")

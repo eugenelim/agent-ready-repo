@@ -230,7 +230,7 @@ work-loop skill).
 
 **Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
 
-**Why capture learnings.** A loop that finishes without updating *some*
+**Why capture.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.

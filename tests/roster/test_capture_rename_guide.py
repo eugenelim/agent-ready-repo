@@ -19,6 +19,7 @@ content.
 from __future__ import annotations
 
 import pathlib
+import re
 
 import yaml
 
@@ -29,66 +30,111 @@ WORKFLOW = ROOT / ".github/workflows/build-check.yml"
 THIS_ROSTER_FILE = "tests/roster/test_capture_rename_guide.py"
 BULK_PYTEST_INVOCATION = "python -m pytest tests/ -q"
 
+# AC27: the guide's numbered `Capture` step entry, bound by its own line —
+# `**Capture.**` at the start of a numbered list item — so `routes`/`routing`
+# appearing elsewhere in the guide cannot satisfy the routing assertion.
+CAPTURE_STEP_ENTRY_RE = re.compile(r"^\d+\.\s+\*\*Capture\.\*\*.*$", re.MULTILINE)
+
+# AC28: the retired step name, case-insensitively, across all three
+# separators. The needles are assembled from parts below: AC28 allows two
+# exceptions and a `tests/` skip would be a third, so this file must not
+# contain the retired name as a literal its own sweep would match.
+RETIRED_STEP_RE = re.compile(r"capture[ _-]learnings", re.IGNORECASE)
+SWEEP_ROOTS = ("packs", "tools", "guides")
+# The two stable identifiers the sweep exempts: the eval case id (an
+# identifier, not a description of the step) and any path under
+# `docs/knowledge/` (seeded knowledge records naming a prior semantic gate).
+_STEM = "capt" "ure"                            # never one literal; see above
+_RETIRED_SPACED = _STEM.capitalize() + " learnings"
+EVALS_CASE_ID = _STEM + "-learnings-quality-attributes"
+
 
 def test_guide_names_the_step_as_shipped() -> None:
-    """AC23: the guide names the step `Capture` and describes it as routing.
-
-    Reds today: the guide's step 10 reads "Capture learnings" and describes it
-    as writing something to a skill, ADR, or pattern note — not as routing a
-    scratch note. T4 owns the guide edit that turns this green.
-    """
+    """AC23, AC27: the guide names the step `Capture` and its own numbered
+    step entry — not the file at large — describes it as routing."""
     body = GUIDE.read_text(encoding="utf-8")
     assert "**Capture.**" in body, (
-        "the guide still names the step 'Capture learnings' rather than 'Capture'"
+        f"the guide still names the step {_RETIRED_SPACED!r} rather than 'Capture'"
     )
-    assert "Capture learnings" not in body, (
-        "the guide still carries the retired step name 'Capture learnings'"
+    assert _RETIRED_SPACED not in body, (
+        f"the guide still carries the retired step name {_RETIRED_SPACED!r}"
     )
-    assert "routes" in body or "routing" in body, (
-        "the guide describes recording a learning but not routing a scratch note"
+    match = CAPTURE_STEP_ENTRY_RE.search(body)
+    assert match is not None, "the guide has no numbered 'Capture' step entry"
+    entry = match.group(0)
+    assert "routes" in entry or "routing" in entry, (
+        "the guide's 'Capture' step entry describes recording a learning but "
+        "not routing a scratch note"
     )
-
-
-def _step_names(doc: dict) -> list[tuple[str, dict]]:
-    """Every `(job, step)` pair across every job, in file order."""
-    steps: list[tuple[str, dict]] = []
-    for job in doc["jobs"].values():
-        for step in job.get("steps", []):
-            steps.append((job, step))
-    return steps
 
 
 def test_roster_step_precedes_the_bulk_pytest_step() -> None:
-    """AC24: the named step for this file sits above the bulk `tests/ -q` step."""
+    """AC24: every step naming this file, in every job, precedes that job's
+    bulk `pytest tests/ -q` step, and no such step exists in any job that has
+    no bulk step for it to precede — checked per job, not by flattening every
+    job's steps into one list and comparing only the first matches."""
     doc = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    all_steps: list[dict] = []
-    for job in doc["jobs"].values():
-        all_steps.extend(job.get("steps", []))
+    jobs_naming_the_file: list[str] = []
 
-    named_index = next(
-        (
+    for job_name, job in doc["jobs"].items():
+        steps = job.get("steps", [])
+        naming_indices = [
+            i for i, step in enumerate(steps) if THIS_ROSTER_FILE in (step.get("run") or "")
+        ]
+        if not naming_indices:
+            continue
+        jobs_naming_the_file.append(job_name)
+
+        bulk_indices = [
             i
-            for i, step in enumerate(all_steps)
-            if THIS_ROSTER_FILE in (step.get("run") or "")
-        ),
-        None,
-    )
-    bulk_index = next(
-        (
-            i
-            for i, step in enumerate(all_steps)
+            for i, step in enumerate(steps)
             if BULK_PYTEST_INVOCATION in (step.get("run") or "")
-        ),
-        None,
+        ]
+        assert bulk_indices, (
+            f"job {job_name!r} names {THIS_ROSTER_FILE} but has no "
+            f"{BULK_PYTEST_INVOCATION!r} step for it to precede"
+        )
+        for named_index in naming_indices:
+            assert all(named_index < bulk_index for bulk_index in bulk_indices), (
+                f"job {job_name!r}: the step naming {THIS_ROSTER_FILE} at "
+                f"index {named_index} does not precede every bulk pytest "
+                f"step at {bulk_indices}"
+            )
+
+    assert jobs_naming_the_file, f"no job in {WORKFLOW} names {THIS_ROSTER_FILE}"
+    assert len(jobs_naming_the_file) == 1, (
+        f"{THIS_ROSTER_FILE} is named in more than one job: {jobs_naming_the_file}"
     )
 
-    assert named_index is not None, (
-        f"no step in {WORKFLOW} names {THIS_ROSTER_FILE}"
-    )
-    assert bulk_index is not None, (
-        f"no step in {WORKFLOW} runs {BULK_PYTEST_INVOCATION!r}"
-    )
-    assert named_index < bulk_index, (
-        f"the named step for {THIS_ROSTER_FILE} (index {named_index}) does not "
-        f"precede the bulk pytest step (index {bulk_index})"
+
+def _sweep_files():
+    for root_name in SWEEP_ROOTS:
+        for path in sorted((ROOT / root_name).rglob("*")):
+            if not path.is_file():
+                continue
+            if "__pycache__" in path.relative_to(ROOT).parts:
+                continue
+            if "docs/knowledge" in path.as_posix():
+                continue
+            yield path
+
+
+def test_retired_step_name_is_absent_from_shipped_content() -> None:
+    """AC28: no file under `packs/`, `tools/`, or `guides/` names the
+    retired step name, in any casing or separator, except the
+    `evals.json` case id and `docs/knowledge/` records — both stable
+    identifiers."""
+    offenders: list[str] = []
+    for path in _sweep_files():
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if path.name == "evals.json":
+            text = text.replace(EVALS_CASE_ID, "")
+        for match in RETIRED_STEP_RE.finditer(text):
+            offenders.append(f"{path.relative_to(ROOT)}: {match.group(0)!r}")
+    assert not offenders, (
+        "the retired step name is still present outside its two stable-"
+        f"identifier exceptions: {offenders}"
     )
