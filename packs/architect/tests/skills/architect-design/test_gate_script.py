@@ -709,3 +709,52 @@ def test_skill_states_the_agent_does_not_invoke_the_gate_script() -> None:
     assert "check_document_architecture.py" in skill_text
     assert "does not invoke" in skill_text
     assert "human author" in skill_text and "adopter" in skill_text
+
+
+# The sentence-initial rule is stated as "any non-space opens a sentence",
+# with the non-boundaries neutralised by masking beforehand. These two tables
+# are the intent: the first says what MUST register a boundary, the second
+# what must NOT. An enumerated allowlist of opening characters was tried and
+# withdrawn -- its holes (a markdown link, a parenthesis, an underscore, a
+# non-Latin capital) each silently dropped a boundary, which is the
+# under-count DA3 exists to catch.
+
+_MUST_SPLIT = (
+    ("markdown link", "One. [Two](x) here. [Three](x) here. [Four](x) here."),
+    ("parenthesis", "One. (Two) here. (Three) here. (Four) here."),
+    ("underscore emphasis", "One. _Two_ here. _Three_ here. _Four_ here."),
+    ("en dash", "One. – Two here. – Three here. – Four here."),
+    ("cyrillic capital", "One. Аb cd. Бb cd. Вb cd."),
+    ("greek capital", "One. Αb cd. Βb cd. Γb cd."),
+    ("contraction", "It works. It doesn't. Third one here. Fourth one here."),
+    ("possessive", "Read it. That is the reviewer's. Third here. Fourth here."),
+    ("single-letter name", "We chose X over Y. It says so. A third. A fourth."),
+)
+
+_MUST_NOT_SPLIT = (
+    ("decimal", "Latency is 1.5 ms. That is fine.", 2),
+    ("e.g.", "See e.g. the model. It holds.", 2),
+    ("i.e. and etc.", "Use i.e. this, etc. and stop. Next one.", 2),
+    ("version string", "Use v1.2.3 here. Done.", 2),
+    ("lowercase label", "a. `DA1` one. `DA2` two. `DA3` three. `DA4` four.", 4),
+)
+
+
+@pytest.mark.parametrize("label,paragraph", _MUST_SPLIT, ids=[c[0] for c in _MUST_SPLIT])
+def test_da3_registers_a_boundary_whatever_opens_the_next_sentence(
+    label: str, paragraph: str
+) -> None:
+    gate = _load_gate()
+    assert gate.count_sentences(paragraph) == 4, label
+
+
+@pytest.mark.parametrize(
+    "label,paragraph,expected",
+    _MUST_NOT_SPLIT,
+    ids=[c[0] for c in _MUST_NOT_SPLIT],
+)
+def test_da3_does_not_register_a_boundary_on_a_masked_period(
+    label: str, paragraph: str, expected: int
+) -> None:
+    gate = _load_gate()
+    assert gate.count_sentences(paragraph) == expected, label

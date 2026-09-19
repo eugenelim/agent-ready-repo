@@ -552,9 +552,12 @@ on a checklist item only that rubric owns.
       decidable: a bare `/Users/` matches both the `<user>` placeholder this
       delivery scrubs paths *to* and any prose quoting the pattern itself, so
       a looser pattern reports its own remedy as a leak. Prove it
-      differentially — the scan returns nothing here and still matches a
-      planted `/Users/realname/secret`, because a pattern matching nothing at
-      all would satisfy this criterion too. `--root`
+      differentially: the scan returns nothing over the tracked tree, and a
+      throwaway file outside it — holding a home path with a real name
+      segment — still matches. The probe must live outside the scanned set,
+      or it becomes the hit it was written to rule out. Absence alone proves
+      nothing here, because a pattern matching nothing would satisfy this
+      criterion too. `--root`
       being required means every typed transcript would otherwise carry one,
       and the class is wider than transcripts: the six artifacts scrubbed on
       this branch included two lint-corpus JSON files and a design-evidence

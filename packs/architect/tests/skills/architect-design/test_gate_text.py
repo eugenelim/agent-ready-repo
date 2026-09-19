@@ -65,6 +65,7 @@ def _load_gate() -> ModuleType:
     spec.loader.exec_module(module)
     return module
 
+
 # The seven hybrids that carry a precheck. `DA5` is judgment-only and carries
 # none; `DA3` and `DA10` are mechanical and the script decides them directly.
 PRECHECK_GATES = ("DA1", "DA2", "DA4", "DA6", "DA7", "DA8", "DA9")

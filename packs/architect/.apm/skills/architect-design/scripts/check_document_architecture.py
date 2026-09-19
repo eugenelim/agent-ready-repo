@@ -228,21 +228,17 @@ def prose_paragraphs(text: str) -> Iterator[tuple[int, str]]:
 
 _ABBREVIATIONS = ("e.g.", "i.e.", "etc.", "vs.")
 _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
-_INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]\.(?=\s)")
-_SENTENCE_INITIAL_CLASS = (
-    r"[A-Z0-9"  # ASCII capitals and digits
-    r"`"  # inline code
-    r"\"'“‘"  # straight and curly opening quotes
-    r"\*"  # markdown emphasis/bold marker
-    r"—"  # em dash
-    r"À-ÖØ-Þ"  # Latin-1 Supplement capitals
-    r"☀-➿"  # dingbats and misc symbols (emoji-adjacent)
-    r"\U0001f300-\U0001faff"  # emoji blocks
-    r"]"
-)
-_SENTENCE_BOUNDARY_PATTERN = re.compile(
-    r"[.!?]+(?=\s+" + _SENTENCE_INITIAL_CLASS + r")"
-)
+# Only a LOWERCASE lone letter is an enumeration label (`a.`, `b.`). An
+# uppercase one is far more often a single-letter name ending a sentence
+# ("...over Y. The record...") than an initial, and masking it drops a real
+# boundary. The apostrophe classes keep a contraction or possessive
+# ("doesn't.", "reviewer's.") from reading as a lone letter.
+_INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
+# Any non-space opens a sentence. An allowlist of sentence-initial characters
+# has unbounded holes -- a markdown link, a parenthesis or a non-Latin capital
+# each silently drop a boundary -- and the cases that must NOT split are
+# already neutralised by the masking above.
+_SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+(?=\s+\S)")
 
 
 def _mask_initial(match: re.Match[str]) -> str:

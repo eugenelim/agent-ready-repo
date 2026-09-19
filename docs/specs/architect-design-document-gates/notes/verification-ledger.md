@@ -680,8 +680,11 @@ marks the criterion unmet without correcting what it says.
   empty-vs-space rationale removed.
 - AC-0043's scan becomes `/(Users|home)/[A-Za-z0-9._-]+/|/Volumes/[A-Za-z0-9._-]+`,
   which requires a real name segment. Proven differentially: it returns
-  nothing over this delivery's diff, and still matches a planted
-  `/Users/realname/secret`. Absence alone would not have shown it still works.
+  nothing over this delivery's diff, and a throwaway file written outside the
+  tracked tree, carrying a home path with a real name segment, still matches.
+  The probe is kept out of the repository deliberately — written into a
+  tracked file it becomes the hit it exists to rule out, which is how the
+  first attempt at this criterion failed review.
 - AC-0059 drops its byte figures. A criterion that pins a file's size goes
   stale whenever that file is edited, which is what happened here; the point
   it makes — the operator profile's copy is a different, smaller definition —
@@ -693,3 +696,35 @@ two code states. It does not here: the branch has no upstream, so `0.15.12`
 has never left it, and the fixes fold into that version rather than needing
 `0.15.13`. `FORCE=1 make build-self` was re-run and the adapter projections
 are current.
+
+## Erratum — four ledger figures the tree no longer produces
+
+**Date:** 2026-09-19, from the closing review.
+
+- The reference document's recorded word count of 2,096 (ratio 0.9624) was
+  taken at `4c913e5cd`; the document grew at `eaf90c258` and `count_words`
+  now gives **2,113**, ratio **0.970**. AC-0025 holds at either figure — both
+  sit well inside the 0.80–1.20 window — but the recorded number is the one
+  the tree stopped producing.
+- The reference-versus-defect diff is recorded as eight hunks. It shows
+  **seven**: the `DA6` and `DA9` defects are both appended at the file end
+  and land in one hunk. AC-0049's substance is unchanged — eight logical
+  edits, nothing else differs — but the hunk count is not the observable it
+  was written as.
+- The AC-0046 walk table's `DA7` row describes the question and zoom as
+  living "in prose beside" the diagram. `b5557ff83` removed that prose and
+  `eaf90c258` moved it into a mermaid `title:` block. The superseding
+  re-walk is recorded above; the table row describes a document state that
+  no longer exists.
+- The note correcting AC-0059's byte figures now reads against a criterion
+  that carries none, the amendment having removed them.
+
+Recorded rather than silently corrected, because a figure that moved is
+evidence about how the delivery ran.
+
+## Superseded — the first AC-0043 record
+
+The earlier AC-0043 section runs the retired loose pattern
+`'/Users/|/home/[a-z]|/Volumes/'` and explains its hits away by `Touches:`
+scope. Both the pattern and that reasoning are replaced by the amended
+criterion and the record above. Read the later one.
