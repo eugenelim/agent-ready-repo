@@ -382,3 +382,164 @@ target. A criterion that requires a claim about another file should reach
 that file.
 
 This is unbounded by the spec/plan contract and does not block T4a or T7.
+
+## T4a — the prechecks walked against a document, not a template
+
+Two files are committed at `testdata/`:
+`telemetry-endpoint-default-design.md` (the reference corpus, AC-0045) and
+`precheck-defects.md` (the planted-defect variant, AC-0049). Both are
+authored from `assets/subsystem-design.md` and describe the layer-5
+enterprise-telemetry-endpoint-default subsystem
+`docs/product/intents/catalogue-level-telemetry-endpoint-default.md` frames.
+
+**Reference document, measured.** `check_document_architecture.py`'s own
+`count_words`, loaded the same way `test_gate_text.py` and
+`test_gate_script.py` both load it:
+
+```
+word count: 2096
+ratio vs the 2,178-word density figure: 0.9624   (AC-0025's 20% window: 0.80–1.20)
+DA3 over-budget paragraphs: none
+evaluate_target(...) findings: []
+```
+
+Zero `DA3` findings and zero `DA10` findings (2,096 words is well under the
+3,300-word bound), satisfying AC-0018. The word count sits inside the 20%
+window, satisfying AC-0025.
+
+**Defect document, diffed against the reference document.** `diff -u` between
+the two files shows exactly eight hunks: the leading HTML-comment header
+(swapped from the corpus-baseline note to the deliberately-non-conforming
+declaration — framing, not a planted defect) and one hunk per precheck —
+`DA1`, `DA2`, `DA4`, `DA6`, `DA7`, `DA8`, `DA9`. No other line differs. This
+is the reading of AC-0049's "exactly those seven edits and nothing else"
+this task adopted: the seven content edits are the defects; the header is
+metadata that necessarily differs because the two files serve opposite
+purposes, and AC-0049 itself requires the defect document to "state in its
+own body that it is deliberately non-conforming" — that statement has to
+live somewhere, and the header is where the reference document's own
+AC-0044 note already lives.
+
+### AC-0046 — no precheck fires on the reference document (walked by hand)
+
+| Precheck | Mechanism used to walk it | Fires? |
+| --- | --- | --- |
+| `DA1` (future-tense/prior-state) | Scanned the body for `will be`, `previously`, `used to`, and any deprecation date | No |
+| `DA2` (unnamed cross-reference) | Scanned the body for the eight closed-list phrases | No |
+| `DA4` (model before prose) | Read the first block after each modelled section's opening question | Every section's first block is `<!-- model -->`; no |
+| `DA6` (Revision History / Decision Log) | Scanned headings | No such heading | No |
+| `DA7` (diagram states one question, one zoom) | Read every diagram: section 1 and 2's rationale each name the diagram's question and zoom in prose beside it; both section 3 sequence diagrams carry `Question:`/`Zoom:` in their `Note` line | No |
+| `DA8` (mapping row resolves to a modelled element) | Compared Implementation Mapping's three "Semantic element" values against Structural Model's three element names | All three match | No |
+| `DA9` (evidence-accumulating heading) | Scanned headings for `Appendix`, `References`, `Evidence` | No such heading | No |
+
+Command used for the mechanical half (DA1/DA2/DA6/DA9 token scans, and the
+DA8 name comparison):
+
+```
+python3 - <<'PY'
+from pathlib import Path
+import re
+text = Path("<repo-root>/packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md").read_text(encoding="utf-8")
+# token scans against each precheck's closed list; see test_gate_text.py's
+# own DA1/DA2/DA6/DA9 token lists for the exact strings used
+PY
+```
+
+stdout for that scan: no token from any of the four closed lists is present.
+`DA4` and `DA7` were walked by reading the document's structure directly
+(the first block after each opening question; the presence of a stated
+question and zoom beside every diagram), because neither is a fixed-string
+scan.
+
+### AC-0051 — every precheck fires on the planted defect (walked by hand)
+
+| Precheck | Location of the planted defect | Fires? |
+| --- | --- | --- |
+| `DA1` | Section 1 rationale: `already-shipped` → `previously-shipped` | Yes — `previously` present |
+| `DA2` | Section 6 rationale: `in section 2` → `as described above` | Yes — `as described above` present, names no target |
+| `DA4` | Section 2: a prose sentence ("The subsystem is composed of three cooperating elements.") inserted between the opening question and `<!-- model -->` | Yes — first block after the question is prose, not the model |
+| `DA6` | `## Revision History` heading added near the end of the body | Yes — heading present |
+| `DA7` | Section 3's first sequence diagram: the `Note` line's `· Question: ... · Zoom: component` clause removed | Yes — that diagram states no question or zoom |
+| `DA8` | Implementation Mapping row renamed `Merge Projector` → `Config Merge Service`, which section 2's Structural Model does not name | Yes — the row resolves to no modelled element |
+| `DA9` | `## Evidence` heading added at the end of the body | Yes — heading present |
+
+Same scan command as above, run against `precheck-defects.md` instead:
+`DA1`, `DA2`, `DA6` and `DA9`'s tokens are each present exactly once; `DA4`'s
+structural check finds prose before the model in section 2 only; `DA7`'s
+diagram-by-diagram read finds the first sequence diagram's `Note` line
+carries no `Question:`/`Zoom:` clause; `DA8`'s name comparison finds
+`Config Merge Service` absent from the three Structural Model names.
+
+### AC-0043 — host-cleanliness over this task's diff
+
+Command:
+
+```
+git diff --name-only origin/main...HEAD | while read -r f; do
+  [ -f "$f" ] && grep -nE '/Users/|/home/[a-z]|/Volumes/' "$f"
+done
+```
+
+Every hit returned belongs to a file outside this task's `Touches:` (other
+specs' verification ledgers and evidence JSON already scrubbed to the
+`<user>` placeholder convention, and `spec.md`'s own restatement of the
+grep pattern). Both files this task adds —
+`testdata/telemetry-endpoint-default-design.md` and
+`testdata/precheck-defects.md` — return zero hits, and this file (the
+ledger entry above this line) uses `<repo-root>` throughout rather than a
+real path.
+
+### AC-0050 — the defect document's placement relative to the repository-wide sweep
+
+Recorded per `plan.md`'s T4a `Tests:`: the choice is the first branch,
+unwidened. `tools/lint-agents-md.py:94-95`'s `_is_fixture` excludes a path
+only when **both** `fixtures` and `tests` appear in its `Path.parts`.
+`testdata/precheck-defects.md`'s parts are `("packs", "architect", "tests",
+"skills", "architect-design", "testdata", "precheck-defects.md")` — it
+carries `tests` but not `fixtures`, so `_is_fixture` returns `False` and the
+file is not excluded from that sweep's `rglob("*.md")` walk. The collision
+stays latent, exactly as the plan predicted, because the sweep this
+predicate feeds (10g, the risk-trigger marker check) looks for the literal
+`<!-- risk-triggers:start` marker, which no planted defect in this file
+carries. No file under `tools/` is touched by this task, and the predicate
+is not widened — the alternative the criterion offers is recorded here, not
+taken, because widening `_is_fixture` to match `testdata/` would be a
+change to a shared repository-wide lint on a task whose `Touches:` names no
+`tools/` file.
+
+### AC-0059 — the design-reviewer copy/removal, dispatch left to the controller
+
+This implementer session is itself a subagent and cannot dispatch another
+subagent (`design-reviewer`), so the roll-call dispatch this criterion asks
+for is **not** performed here. What follows is the copy/removal mechanics
+the criterion also pins, exercised and recorded so the controller's own
+dispatch has a verified starting state to run against, and so a record
+naming only a path and a hash does not stand in for the post-state:
+
+1. **Pre-state.** `.claude/agents/design-reviewer.md` did not exist before
+   this step (`ls` exited non-zero). The destination was therefore not
+   refused — the refusal branch AC-0059 requires when the destination
+   already exists was not exercised on this run, because nothing was there
+   to refuse.
+2. **Copy.** `packs/architect/.apm/agents/design-reviewer.md` was copied to
+   `.claude/agents/design-reviewer.md`, inside the repository working tree
+   and nowhere else — never to `~/.claude/agents/`. Both files are 12,287
+   bytes and share the SHA-256 digest
+   `d2335bb7d2ba1cdb1493f1bbac11d25f4ecdd7a462b3f3b902d271acf5c7598b`.
+3. **No dispatch.** No `design-reviewer` invocation happened in this
+   session. The reference document was not reviewed, and no returned block
+   exists to record.
+4. **Removal.** The copy was deleted immediately after step 2, in the same
+   step and before any dispatch was attempted. `ls
+   .claude/agents/design-reviewer.md` exits non-zero afterward, and `git
+   status --short .claude/` shows no change — `.claude/agents/` is back to
+   its pre-step content, matching `tests/roster/test_core_agent_projection.py:60-61`'s
+   equality pin.
+
+**What remains for the controller.** Repeat the copy (refusing if the
+destination already exists), dispatch `design-reviewer` against
+`testdata/telemetry-endpoint-default-design.md`, record the returned block
+here showing ten `DA1`-`DA10` verdicts, and remove the copy in the same
+step regardless of outcome. Until that dispatch is recorded, T4a's `Done
+when:` clause requiring "the dispatched review's returned block in the
+ledger showing ten verdicts" is open.

@@ -14,8 +14,11 @@ the gate boundary is what keeps each criterion attributable to its own gate.
 
 from __future__ import annotations
 
+import importlib.util
 import re
+import sys
 from pathlib import Path
+from types import ModuleType
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 RUBRIC = (
@@ -35,6 +38,32 @@ CONVERGENCE_LOOP = (
     / "references"
     / "convergence-loop.md"
 )
+GATE_SCRIPT = (
+    PACK_ROOT / ".apm" / "skills" / "architect-design" / "scripts" / "check_document_architecture.py"
+)
+TESTDATA = Path(__file__).resolve().parent / "testdata"
+REFERENCE_DOCUMENT = TESTDATA / "telemetry-endpoint-default-design.md"
+DEFECT_DOCUMENT = TESTDATA / "precheck-defects.md"
+
+# The seven identifiers each carrying a planted defect in DEFECT_DOCUMENT —
+# same set as PRECHECK_GATES below, named again here so AC-0049's own test
+# does not depend on that constant existing for an unrelated reason.
+DEFECT_GATES = ("DA1", "DA2", "DA4", "DA6", "DA7", "DA8", "DA9")
+
+
+def _load_gate() -> ModuleType:
+    """Load the DA3/DA10 gate script from its repository path, never by bare import.
+
+    Matches `test_gate_script.py`'s loader under the same pack-unique name:
+    the text/script split here is about what each suite asserts, not a bar
+    on importing the module (T4a's `Tests:` in `plan.md`).
+    """
+    spec = importlib.util.spec_from_file_location("architect_design_gate_script", GATE_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["architect_design_gate_script"] = module
+    spec.loader.exec_module(module)
+    return module
 
 # The seven hybrids that carry a precheck. `DA5` is judgment-only and carries
 # none; `DA3` and `DA10` are mechanical and the script decides them directly.
@@ -411,3 +440,78 @@ def test_convergence_loop_states_what_the_shipped_script_costs_and_does_not_cost
     assert "pure-prose and zero-config" in body
     assert "costs the loop nothing" in body
     assert "it decides neither the other" in body
+
+
+# --- T4a: the prechecks walked against a document, not a template ---------
+#
+# AC-0045, AC-0018, AC-0025 and AC-0044 are the mechanically decidable half of
+# T4a. AC-0046 and AC-0051 — whether a precheck *fires* — are not decidable
+# from a fixed set of tokens without also re-deciding a reviewer's judgment
+# call, so they are walked by hand and recorded in
+# `docs/specs/architect-design-document-gates/notes/verification-ledger.md`
+# rather than asserted here.
+
+_PLACEHOLDER_TOKEN_PATTERN = re.compile(r"<(?!!--)[^>\n]+>")
+
+
+def test_reference_document_carries_no_placeholder_token() -> None:
+    """AC-0045: a half-filled skeleton cannot serve as the corpus.
+
+    Excludes an HTML comment (`<!-- ... -->`) from the scan: the template's
+    own placeholder shape is a bare `<...>` slot like `<element name>`, never
+    a comment marker, and the reference document's own corpus-baseline note
+    is carried in one.
+    """
+    text = REFERENCE_DOCUMENT.read_text(encoding="utf-8")
+    assert _PLACEHOLDER_TOKEN_PATTERN.findall(text) == []
+
+
+def test_da3_reports_no_finding_on_the_reference_document() -> None:
+    """AC-0018: the clean half of the paragraph budget, against an authored
+    document rather than the shipped templates (see `plan.md`'s T2 `Tests:`
+    for why the corpus moved here)."""
+    gate = _load_gate()
+    findings = gate.evaluate_target(PACK_ROOT, REFERENCE_DOCUMENT)
+    da3_findings = [finding for finding in findings if finding.gate == "DA3"]
+    assert da3_findings == []
+
+
+def test_reference_document_word_count_sits_within_20_percent_of_the_derivation() -> None:
+    """AC-0025: gives AC-0024's derivation an oracle independent of its own
+    arithmetic."""
+    gate = _load_gate()
+    text = REFERENCE_DOCUMENT.read_text(encoding="utf-8")
+    word_count = gate.count_words(text)
+    density_figure = 2178
+    assert abs(word_count - density_figure) / density_figure <= 0.20, word_count
+
+
+def _reference_document_header() -> str:
+    """Return the reference document's leading HTML-comment header."""
+    text = REFERENCE_DOCUMENT.read_text(encoding="utf-8")
+    match = re.match(r"\A<!--(.*?)-->", text, re.DOTALL)
+    assert match, "reference document carries no leading HTML-comment header"
+    return _flat(match.group(1))
+
+
+def test_reference_document_header_states_its_corpus_purpose_governs_an_edit() -> None:
+    """AC-0044: a baseline, so an edit nobody re-walks invalidates the walk."""
+    header = _reference_document_header()
+    assert "baseline" in header
+    assert "re-walk of all seven prechecks" in header
+    assert "fresh record" in header
+
+
+def test_defect_document_names_all_seven_prechecks() -> None:
+    """AC-0049: one planted defect per precheck; the document names all seven
+    so the walk it backs is attributable rather than incidental."""
+    text = DEFECT_DOCUMENT.read_text(encoding="utf-8")
+    for gate_id in DEFECT_GATES:
+        assert gate_id in text, gate_id
+    assert set(DEFECT_GATES) == set(PRECHECK_GATES)
+
+
+def test_defect_document_states_it_is_deliberately_non_conforming() -> None:
+    """AC-0049's second half: the document says so in its own body."""
+    text = DEFECT_DOCUMENT.read_text(encoding="utf-8")
+    assert "deliberately non-conforming" in text.lower() or "Deliberately non-conforming" in text
