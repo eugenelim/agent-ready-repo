@@ -517,19 +517,26 @@ against a non-compliant fixture and against the shipped templates — are in
 **Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
 
 **Tests:**
-- `test_design_reviewer_rubric_parity.py` asserts each of the seven precheck
-  bodies is present in the reviewing rubric, scoped to that gate's own
-  `#### DA<n>` section body rather than to the file (AC-0035, AC-0036,
-  AC-0037, AC-0038, AC-0039, AC-0040, AC-0041); that each states its verdict
-  is the reviewer's (AC-0042); and that each states it applies to an authored
-  document rather than to a template (AC-0047, the per-precheck half —
-  AC-0047's corpus-exclusion half is a property of the `DA9` walk and is
-  verified in T4a, not here). The existing per-carrier identifier, severity
-  and tag assertions must still pass unchanged over all three `DA_CARRIERS`
-  entries.
+- `test_design_reviewer_rubric_parity.py` asserts each of the **five**
+  crossing precheck bodies is present in the reviewing rubric, scoped to that
+  gate's own ``#### `DA<n>` `` section body rather than to the file (AC-0035,
+  AC-0038, AC-0039, AC-0040, AC-0041); that each states its verdict is the
+  reviewer's (AC-0042); and that each states it applies to an authored
+  document rather than to a template (AC-0047). `DA9`'s body additionally
+  carries AC-0047's corpus-exclusion clause — the corpus excludes
+  `assets/*.md`, so `assets/design-doc.md` never reaches the `Appendix`
+  trigger — mirroring the authoring rubric's shipped sentence.
+- AC-0036 and AC-0037 are **not** in that list: the amended group preamble
+  scopes `DA7` and `DA8` to the authoring rubric, because their obligation is
+  an identifier, severity and tag on a checklist item only that rubric owns.
+  Copying their bodies across would assert a tag the reviewing rubric's
+  corresponding items do not carry.
 - A negative assertion requires `DA5` to carry no precheck in the reviewing
-  rubric (AC-0048), which is the count that keeps judgment-only distinct once
-  every hybrid has one.
+  rubric (AC-0048's reviewer-side half). A ``#### `DA5` `` body is permitted
+  and expected: the authoring rubric gives `DA5` one precisely so it can state
+  the absence, and the negative assertion needs a body to scope to.
+  The existing per-carrier identifier, severity and tag assertions must still
+  pass unchanged over all three `DA_CARRIERS` entries.
 - no stub (goal-based)
 
 **Approach:**
@@ -544,24 +551,27 @@ against a non-compliant fixture and against the shipped templates — are in
   reviewing rubric gains a `#### DA<n>` body per hybrid gate under its
   existing gate table — the structure the authoring rubric already uses — so
   the assertions scope to a body rather than to the file.
-- **Why `design-reviewer.md` is not a carrier here.** AC-0054 is shipped and
-  frozen: the agent states that its inlined gate set is baseline depth and
-  that it reads `rubric-design-doc.md` *for the fuller per-gate text and
-  prechecks*. Inlining the seven prechecks into the agent would make that
-  shipped sentence false. The group preamble's "all three homes" cannot
-  override it — the same preamble spans AC-0045, which requires a file under
-  `tests/.../testdata/` and so cannot hold in a rubric home at all. The
-  distinction the preamble exists to protect already holds in the agent
-  without prechecks: `design-reviewer.md` carries `DA5`'s judgement-alone
-  sentence inline, so a reviewer reading only the agent can still tell
-  judgment-only from hybrid.
+- **Why `design-reviewer.md` is not a carrier here.** AC-0054 requires the
+  agent to state that its inlined gate set is baseline depth and that it reads
+  `rubric-design-doc.md` for the fuller per-gate text. That is a pointer, and
+  the amended group preamble makes it the agent's whole relationship to the
+  prechecks: the agent stays at baseline depth and the fuller text it points
+  at is the reviewing rubric's. AC-0054 does not itself mention prechecks, and
+  the agent's file is editable — neither is the reason. The reason is that a
+  second condensed copy in the agent would duplicate what the pointer already
+  reaches, and AC-0054's degradation design exists so it does not have to.
 
-**Done when:** `packs/architect/tests/pack/` and
-`packs/architect/tests/skills/architect-design/` both pass, and
-`rubric-design-doc.md` carries a `#### DA<n>` body for each of the seven
-hybrid gates and none for `DA5`. A file-wide word count is not the
-observable: `design-doc-rubric.md` and `design-reviewer.md` already contain
-`precheck`, so their presence distinguishes no post-T4b state.
+**Done when:** `packs/architect/tests/pack/` passes, and
+`rubric-design-doc.md` carries a ``#### `DA<n>` `` body — the backticked
+heading form the authoring rubric uses — for each of `DA1`, `DA2`, `DA4`,
+`DA6` and `DA9`, each holding that gate's precheck, with no precheck under
+`DA5`. A file-wide word count is not the observable: `design-doc-rubric.md`
+and `design-reviewer.md` already contain `precheck`, so its presence
+distinguishes no post-T4b state.
+
+The combined run over `packs/architect/tests/skills/architect-design/` is the
+controller's, not this task's: T4a writes that directory in the same wave, so
+an implementer running it here would be measuring a tree mid-edit.
 
 ### T4a: the prechecks are walked against a document, not a template
 

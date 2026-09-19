@@ -433,10 +433,26 @@ and never reflowed, so a group's list is not always contiguous.
 
 ### The prechecks the hybrids carry
 
-Each criterion in this group holds in all three homes named in the group
-above. A precheck present only in the authoring rubric would leave the two
-homes a reviewer reads unable to tell a hybrid from judgment-only `DA5`, which
-is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
+Each criterion in this group holds in the authoring rubric. A criterion also
+holds in `architect-review/references/rubric-design-doc.md`, the home a
+reviewer reads, **unless its own text scopes it to the authoring rubric**.
+Three are so scoped: AC-0036 and AC-0037, because `DA7` and `DA8` carry their
+identifier, severity and tag on a checklist item the authoring rubric owns;
+and AC-0048's count of seven, which is over the authoring rubric's full set.
+The reviewing rubric therefore carries five precheck bodies, and AC-0048's
+reviewer-side obligation is the negative alone — `DA5` carries none.
+
+`.apm/agents/design-reviewer.md` carries the gate set at baseline depth and
+points at the reviewing rubric for the fuller per-gate text, which is what
+AC-0054 already requires of it. The prechecks reach it by that pointer rather
+than by a copy, so it is not a precheck carrier.
+
+The reason these criteria bind a second home is ownership, not signal. A
+criterion bound to a home no task writes is an obligation with no owner.
+Telling a hybrid from judgment-only `DA5` is **not** the reason: AC-0034
+already puts `DA5`'s judgement-alone sentence in all three homes, so that
+distinction holds in each of them. What the reviewing rubric lacks is the
+precheck text itself.
 
 - [ ] **AC-0035.** `DA6`'s precheck rejects a `Revision History` or
       `Decision Log` heading in the document body.

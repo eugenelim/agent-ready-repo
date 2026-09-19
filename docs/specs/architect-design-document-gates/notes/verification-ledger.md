@@ -203,13 +203,17 @@ moves from T2 to T4a, which is the task that creates the document.
 
 ## Owner decision — a task to carry the prechecks into the reviewer's two homes
 
+> **Superseded 2026-09-19** by *Owner decision — `design-reviewer.md` is not a
+> precheck carrier* below, which narrows T4b to one reviewer home. The pending
+> amendment's `reason_ref` points here; read both sections together, and take
+> the scope from the later one.
+
 2026-09-19. T4 reported, correctly, that the contract and the plan disagree,
 and did not widen its own scope to paper over it.
 
 **The gap.** The prechecks group's preamble binds every criterion in it to all
-three rubric homes, with the reason stated: a precheck present only in the
-authoring rubric leaves the two homes a reviewer actually reads unable to tell
-a hybrid from judgment-only `DA5`, because all eight carry 🧭. Measured by
+three rubric homes, and no task writes two of them — an obligation with no
+owner. Measured by
 `grep -o precheck` (case-sensitive, counting occurrences not lines), the word
 appears 15 times in `design-doc-rubric.md`, zero times in
 `architect-review/references/rubric-design-doc.md`, and once in
@@ -221,6 +225,15 @@ appears 15 times in `design-doc-rubric.md`, zero times in
 > (15 `precheck` plus 5 `Precheck`). The corrected figure and its counting
 > rule are above. The zero and the one reproduce as stated, so the gap this
 > paragraph establishes is unchanged — only the supporting figure was wrong.
+>
+> **Second erratum, same date.** This paragraph also gave the preamble's
+> reason as the two reviewer homes being "unable to tell a hybrid from
+> judgment-only `DA5`". That is false. AC-0034 requires `DA5`'s
+> judgement-alone sentence in all three homes and T4 shipped it:
+> `design-doc-rubric.md:224`, `rubric-design-doc.md:183` and
+> `design-reviewer.md:142` each carry it verbatim. The distinction holds in
+> every home. The gap is ownership — criteria bound to homes no task writes —
+> and the sentence above now states it that way.
 
 **Why no task can close it.** The plan assigns AC-0035 through AC-0042 to T3,
 whose `Touches:` reaches `design-doc-rubric.md` alone. T4 owns the other two
@@ -245,27 +258,39 @@ task rather than a widening of T4.
 homes a reviewer reads. Review of the amendment found that doing so
 contradicts a frozen criterion, so the owner was asked which homes T4b writes.
 
-**The conflict.** AC-0054 is shipped by the completed T4 and its section is
-immutable. It requires `design-reviewer.md` to state that its inlined gate set
-is baseline depth and that it reads `architect-review/references/rubric-design-doc.md`
-*for the fuller per-gate text and prechecks*. That sentence locates the
-prechecks in the reviewing rubric and has the agent point at them. Inlining
-the seven prechecks into the agent would make it false, and it cannot be
-edited.
+**Correction, before the decision.** This section first recorded the conflict
+as AC-0054 requiring the agent to read the rubric *"for the fuller per-gate
+text and prechecks"*, and the agent's file as frozen. Both were wrong.
+AC-0054 (`spec.md:537-541`) contains the word "precheck" zero times; it says
+"for the fuller per-gate text". The phrase "and prechecks" is in the shipped
+file alone (`design-reviewer.md:148`). And only T4's *plan section* is
+hash-pinned — the agent file is editable by a later task, which is why T4b's
+original `Touches:` could name it. The owner was re-asked on the corrected
+facts and kept the same scope; what follows is the ground that survives.
 
-**Why the group preamble does not override it.** The prechecks group's
-preamble binds "each criterion in this group" to all three homes, but the
-group runs AC-0035 through AC-0051 and so also covers AC-0045, which requires
-a file at `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`.
-A criterion demanding a testdata file cannot hold in a rubric home, so the
-preamble is over-broad and cannot be read literally against a specific,
-shipped criterion.
+**The conflict.** AC-0054 has the agent hold the gate set at baseline depth
+and point at `architect-review/references/rubric-design-doc.md` for the
+fuller per-gate text. Its degradation design already gives the agent a route
+to precheck depth without carrying it, so a condensed second copy in the
+agent would duplicate what the pointer reaches.
 
-**Why nothing is lost.** The preamble's stated reason is that a reviewer must
-be able to tell a hybrid from judgment-only `DA5`. `design-reviewer.md`
-already carries that distinction inline — "DA5's verdict is the reviewer's
-judgement alone; no automated measure decides it" — so a reviewer reading only
-the agent retains it without carrying seven prechecks.
+**Why the preamble was amended rather than reinterpreted.** A ledger note
+cannot narrow a contract, so the preamble itself was amended in this
+amendment. It needed amending on its own evidence: AC-0036 and AC-0037 say in
+their own text that `DA7` and `DA8` carry their identifier, severity and tag
+on *the authoring rubric's* existing checklist item, so two criteria inside
+the group cannot hold in three homes by their own wording. The reviewing
+rubric's corresponding items carry no identifier, severity or tag, so copying
+those two bodies across would assert something untrue. Five prechecks cross,
+not seven.
+
+**Why nothing is lost.** Not because the agent carries `DA5`'s
+judgement-alone sentence — the reviewing rubric carries it too, under
+AC-0034, so that argument would equally dissolve T4b's remaining home and
+proves too much. What the agent keeps is its AC-0054 pointer: a reviewer
+needing precheck depth reads the reviewing rubric, which is exactly where T4b
+puts it. The agent degrades in depth, never to nothing, which is the
+behaviour AC-0054 specifies.
 
 **Decision.** T4b writes `rubric-design-doc.md` only. `design-reviewer.md` is
 left final at T4 and its AC-0054 pointer stays true.
