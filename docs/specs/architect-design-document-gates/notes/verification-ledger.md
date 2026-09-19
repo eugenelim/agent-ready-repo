@@ -200,3 +200,31 @@ reason AC-0047 already keeps `assets/*.md` out of the precheck corpus. With an
 authored corpus there are no placeholders, so AC-0081, AC-0082 and AC-0083 are
 removed and the under-count path does not exist. The clean half of AC-0018
 moves from T2 to T4a, which is the task that creates the document.
+
+## Owner decision — a task to carry the prechecks into the reviewer's two homes
+
+2026-09-19. T4 reported, correctly, that the contract and the plan disagree,
+and did not widen its own scope to paper over it.
+
+**The gap.** The prechecks group's preamble binds every criterion in it to all
+three rubric homes, with the reason stated: a precheck present only in the
+authoring rubric leaves the two homes a reviewer actually reads unable to tell
+a hybrid from judgment-only `DA5`, because all eight carry 🧭. Measured, the
+word "precheck" appears 19 times in `design-doc-rubric.md`, zero times in
+`architect-review/references/rubric-design-doc.md`, and once in
+`design-reviewer.md`; no `#### DA6` body exists in either of the latter two.
+
+**Why no task can close it.** The plan assigns AC-0035 through AC-0042 to T3,
+whose `Touches:` reaches `design-doc-rubric.md` alone. T4 owns the other two
+homes and was never given those criteria. An obligation spanning three files
+has one owning task that touches one of them. That is a plan error execution
+falsified, which is the controlled-amendment path.
+
+**What the owner chose.** Amend, adding a new task that carries the seven
+precheck bodies into the reviewing rubric and the agent, over the alternative
+of narrowing the obligation to the authoring rubric. Narrowing would be
+cheaper to implement and would discard the reason the preamble gives: the
+reviewer's two homes would keep the 🧭 tag with nothing behind it.
+
+Completed task sections cannot be edited, so this is a new dependency-ordered
+task rather than a widening of T4.
