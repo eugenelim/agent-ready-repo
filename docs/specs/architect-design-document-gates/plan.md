@@ -385,11 +385,14 @@ earlier draft of this plan cited it as governing.
   the test, one per false-positive source in Design → Failure (AC-0019,
   AC-0020, AC-0021), and at 3 and 4 sentences, pinning the budget on both
   sides (AC-0017).
-- **`test_da3_reports_no_finding_in_any_shipped_asset` is removed**, along with
-  the `AC-0018` reference in its section header. It globs `ASSETS_DIR` and
-  asserts the clean corpus AC-0018 no longer states, and it is red on
-  `assets/design-doc.md:25` today. A withdrawn criterion that survives as a
-  live assertion is the withdrawal half-done.
+- **`test_da3_reports_no_finding_in_any_shipped_asset` is removed**, along
+  with the stale `AC-0018` reference in its section header and the
+  `ASSETS_DIR` module constant, whose only consumer it is. That criterion is
+  verified in T4a now, not here. The test asserts the clean corpus AC-0018 no
+  longer states and is red on `assets/design-doc.md:25` today; a withdrawn
+  criterion surviving as a live assertion is the withdrawal half-done, and
+  ruff does not flag an unused module-level assignment, so the constant would
+  outlive it silently.
 - **The clean-corpus half belongs to T4a**, not here: AC-0018 runs against the
   reference document, which T4a creates. T4a already depends on this task
   through T3 and T4, so a clean-corpus check placed here could never see that

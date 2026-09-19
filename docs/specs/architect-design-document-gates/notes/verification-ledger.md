@@ -64,6 +64,17 @@ Exit code: **1** (one `DA3` finding, no refusal).
 
 ## AC-0018 fails against real, already-shipped content — a plan/asset gap, not a script defect
 
+> **Superseded 2026-09-19.** Everything in this section describes AC-0018 as
+> it stood before the amendment, when its clean corpus was `assets/*.md`. That
+> is no longer the contract. In particular: the argument below that
+> `test_da3_reports_no_finding_in_any_shipped_asset` "asserts AC-0018
+> faithfully" and must not be weakened is **reversed** — the plan now obliges
+> T2 to delete that test, because the criterion it asserts no longer exists.
+> The two routes offered at the end of this section were not the route taken;
+> a third was, and it is recorded under *The placeholder rule was withdrawn*
+> below. Read this section as the observation that started the amendment, not
+> as current obligation.
+
 AC-0018 requires zero `DA3` findings across every `*.md` under
 `architect-design/assets/`, "including … the `design-doc.md` compatibility
 pointer: a prose paragraph is a prose paragraph whatever the document routes
@@ -102,9 +113,19 @@ resolved unilaterally.
 
 ## Owner decision — amend AC-0019 rather than edit the asset
 
-This section is the `owner_authority_ref` and `reason_ref` the in-flight
-amendment names in `state.json`. It carries the whole decision, including its
-reversal, so the reference resolves to what the amendment actually does.
+This section is the in-flight amendment's **`reason_ref`**, which `state.json`
+records as a working-tree path, so it resolves to the text below and tells the
+current truth.
+
+Its **`owner_authority_ref` is different and cannot be corrected**:
+`state.json` pins it to `git:61a5db98f#owner-decision-amend-ac-0019`, and that
+revision carries the pre-correction text — it authorises adding the
+placeholder exclusion, rests on the false `AC-0024` claim, and says nothing
+about the reversal. An auditor following the recorded authority lands on
+approval for a change this delivery no longer makes. The authority for what
+the amendment actually delivers is the 2026-09-19 reversal recorded below;
+re-issuing the transition with corrected references is refused by the
+procedure, which rejects a second amendment carrying changed authority facts.
 
 **2026-09-18 — first decision.** T2 reported AC-0018 red on
 `assets/design-doc.md:25`, a `<…>` placeholder holding four sentences. The
@@ -130,8 +151,11 @@ exclusion this section originally authorised is **not** in the contract;
 AC-0019 carries its pre-amendment list.
 
 **Disposition of `assets/design-doc.md:25`.** The paragraph stays as it is. It
-is no longer detected, because the shipped templates are no longer `DA3`'s
-clean corpus, and it needs no follow-on: a placeholder holding four sentences
+is still detected — the script reports it, and the shipped-templates CLI run
+that `spec.md` keeps as a standing manual-QA artifact reproduces it at exit 1.
+What changed is that no criterion asserts against it: the templates are no
+longer `DA3`'s clean corpus. The recorded exit-1 run is therefore expected
+output, not a regression. It needs no follow-on: a placeholder holding four sentences
 is a template instructing its author, which is what a template is for. The
 plan/reality gap this ledger opened for it is closed by that, not left waiting
 on a trigger that no longer fires.
