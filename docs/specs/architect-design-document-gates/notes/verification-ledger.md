@@ -99,3 +99,31 @@ brief did not authorize the bundled-fixes carve-out. This is recorded here as
 a plan/reality gap for a controlled amendment — either widening T2's
 `Touches:` to include the one-paragraph fix, or a follow-on task — rather than
 resolved unilaterally.
+
+## Owner decision — amend AC-0019 rather than edit the asset
+
+2026-09-19. The scope owner authorised a controlled contract amendment in
+response to the AC-0018 failure above.
+
+**What was measured before deciding.** One `<…>` placeholder span across all
+five shipped assets carries more than three sentences:
+`assets/design-doc.md:25`, at four. No other asset has one.
+
+**Why the amendment rather than the one-line asset edit.** The contract is
+inconsistent with itself, and the asset edit would leave that intact. AC-0024
+already strips every `<…>` placeholder when `DA10` counts words, and AC-0047
+already states that a template's unfilled placeholder is the slot a check asks
+an author to fill rather than content to judge. AC-0019's `DA3` exclusion list
+omits placeholders alone. Splitting the one placeholder would make the suite
+green while leaving `DA3` judging template instructions, so the next template
+edit that writes a four-sentence instruction reds again.
+
+**What the amendment changes.** AC-0019 gains a `<…>` placeholder span to its
+non-prose list. AC-0018's claim is unaffected: every asset stays in the glob,
+and a placeholder simply is not a prose paragraph.
+
+**Correction to this spec's own evidence.** The probe that produced the
+"zero false positives across the shipped assets" claim during authoring
+skipped any line beginning with `<`, so it never examined a placeholder and
+could not have found this. The claim was true of what that probe measured and
+false of what it asserted; T2's parser is correct and the probe was not.
