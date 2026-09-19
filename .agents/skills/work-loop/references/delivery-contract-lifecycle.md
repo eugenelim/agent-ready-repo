@@ -93,6 +93,16 @@ observation there needs no amendment to either approved artifact. A genuine
 specification or plan error is different and still follows the controlled
 amendment procedure above.
 
+A declared discovery is an observation, not an error. When a plan recorded a
+seam as `no stub (implementation-discovered)`, grounding that arrives during
+implementation goes in the verification ledger. The plan predicted the
+discovery, so recording it amends neither approved artifact.
+
+A falsified settled decision is an error. When approval settled a design
+decision and execution falsifies it, the plan is wrong and takes the controlled
+amendment procedure above. The verification ledger is not a route for a
+settled decision that execution falsified.
+
 ## Completion evidence handoff
 
 Before declaring an implementation review unit complete, prepare a bounded handoff
