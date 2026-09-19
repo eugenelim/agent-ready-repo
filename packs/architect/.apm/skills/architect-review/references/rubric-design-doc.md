@@ -158,6 +158,31 @@ check under those headings reaches it, and their absence is never a finding.
 - [ ] Failure modes and observability hooks named.
 - [ ] Cost shape named (when material).
 
+### Document-architecture gates
+
+The same ten gates `architect-design`'s authoring rubric walks at the
+self-check, walked again here at review. A severity orders which fix an
+author makes first, in the same vocabulary the author already used — 🟥
+blocker, 🟧 major, 🟨 minor. 🔧 marks a gate
+`scripts/check_document_architecture.py` decides directly; 🧭 marks a gate
+the reviewer decides.
+
+| ID | Tag | Severity | Asks |
+| --- | --- | --- | --- |
+| `DA1` | 🧭 | 🟨 | Is the body written in the present tense? |
+| `DA2` | 🧭 | 🟧 | Does every cross-reference name its target? |
+| `DA3` | 🔧 | 🟨 | Does any prose paragraph run past three sentences? |
+| `DA4` | 🧭 | 🟧 | Does each model come before the prose explaining it? |
+| `DA5` | 🧭 | 🟥 | Does each concern live in exactly one place? |
+| `DA6` | 🧭 | 🟨 | Have settled decisions been removed from the body? |
+| `DA7` | 🧭 | 🟧 | Does each diagram state one question at one zoom? |
+| `DA8` | 🧭 | 🟥 | Can the reader build from the models plus the mapping? |
+| `DA9` | 🧭 | 🟨 | Is evidence linked rather than piled into the document? |
+| `DA10` | 🔧 | 🟧 | Is the document over the size bound? |
+
+`DA5`'s verdict is the reviewer's judgement alone; no automated measure
+decides it.
+
 ## Decomposition
 
 A document covering several subsystems is judged against six criteria for

@@ -78,25 +78,26 @@ mean reviewing blind: the reviewer needs the concept and constraints to judge
 fit, but not the narrative of how the draft was reached (that narrative is what
 biases it toward agreeing).
 
-## Where the review comes from — degrade gracefully
+## Where the review comes from — dispatch when reachable, name the fallback
 
-- **`design-reviewer` subagent installed (preferred)** → dispatch it as a
+- **`design-reviewer` subagent reachable (preferred)** → dispatch it as a
   forked-context review — rung 1 of *Reviewer independence* above — seeded with
   the artifact + concept + constraints (never the authoring chain-of-thought).
   It returns the verdict + severity- *and* mechanical/judgment-tagged findings
   this loop consumes, in genuine isolation from the context that authored the
-  draft. This is the strongest source; prefer it when available.
-- **`architect-review` installed** → obtain the review from its well-architected
-  / lens mode (it returns severity- *and* mechanical/judgment-tagged findings —
-  the signal this loop consumes). Same rubric as the subagent, but in-thread —
-  use the strongest isolation available per the ladder above.
-- **`architect-review` not installed** → loop against `architect-design`'s own
-  **embedded rubric self-check**: walk `design-doc-rubric.md` and
-  `nfr-checklist.md`, plus the selected generated quality-lens,
-  trade-off/sensitivity, and quality-scenario concepts, and apply
-  the same mechanical-vs-judgment test to each gap you find. The loop is **never
-  a hard dependency** on the second skill — it does not error or require it, it
-  degrades.
+  draft. This is the strongest source; dispatch it whenever it is reachable.
+- **Subagent unreachable, `architect-review` installed** → this is the rung
+  the loop fell back to: obtain the review from its well-architected / lens
+  mode (it returns severity- *and* mechanical/judgment-tagged findings — the
+  signal this loop consumes). Same rubric as the subagent, but in-thread — use
+  the strongest isolation available per the ladder above.
+- **Neither reachable** → this is the final fallback rung: loop against
+  `architect-design`'s own **embedded rubric self-check**: walk
+  `design-doc-rubric.md` and `nfr-checklist.md`, plus the selected generated
+  quality-lens, trade-off/sensitivity, and quality-scenario concepts, and
+  apply the same mechanical-vs-judgment test to each gap you find. The loop is
+  **never a hard dependency** on the second skill — it does not error or
+  require it, it degrades.
 
 The mechanical-vs-judgment test, restated for the degraded path: a gap is
 **mechanical** when its fix is fully determined by the spine or a stated
