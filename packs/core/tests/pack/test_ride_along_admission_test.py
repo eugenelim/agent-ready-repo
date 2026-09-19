@@ -36,8 +36,11 @@ IMPLEMENTER = APM_ROOT / "agents" / "implementer.md"
 ADVERSARIAL = APM_ROOT / "agents" / "adversarial-reviewer.md"
 SUPERVISOR_MODE = APM_ROOT / "skills" / "work-loop" / "references" / "supervisor-mode.md"
 EVALS_JSON = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
-REPO_ROOT = PACK_ROOT.parent.parent
-GUIDE = REPO_ROOT / "guides" / "core" / "explanation" / "core-pack.md"
+
+# AC23's guide check is not here. It reads `guides/core/explanation/core-pack.md`,
+# which sits above this pack, and `tools/lint-pack-test-boundary.py` forbids a
+# pack test climbing out of its own pack. It lives in
+# `tests/roster/test_capture_rename_guide.py` instead.
 
 FOUR_SITES: tuple[Path, ...] = (SKILL, IMPLEMENTER, ADVERSARIAL, SUPERVISOR_MODE)
 THREE_MIRRORS: tuple[Path, ...] = (IMPLEMENTER, ADVERSARIAL, SUPERVISOR_MODE)
@@ -457,17 +460,4 @@ def test_no_eval_prompt_names_the_old_section() -> None:
     named_old = [prompt for prompt in prompts if "Capture learnings" in prompt]
     assert not named_old, (
         f"eval prompts still name the retired 'Capture learnings' section: {named_old}"
-    )
-
-
-def test_guide_names_the_step_as_shipped() -> None:
-    raw = _text(GUIDE)
-    assert "**Capture learnings.**" not in raw, (
-        "the guide still names the step 'Capture learnings'"
-    )
-    match = re.search(r"\*\*Capture\.\*\*(.*?)(?=\n\d+\.|\Z)", raw, re.DOTALL)
-    assert match is not None, "the guide has no '**Capture.**' step entry"
-    body = re.sub(r"\s+", " ", match.group(1))
-    assert "scratch note" in body, (
-        "the guide's Capture entry does not describe routing a scratch note"
     )
