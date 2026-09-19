@@ -472,6 +472,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest merge-driver behaviour (AC2-AC4)":
         LOCAL("test-after-build-check"),
+    "Pull-request template installer and release checker":
+        LOCAL("test-after-build-check"),
         "pytest guides sidebar generation":
             LOCAL("test-after-build-check"),
         "pytest journey editorial decisions":
@@ -1090,6 +1092,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_merge_driver_behaviour.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest merge-driver behaviour (AC2-AC4)"
+        ),
+    'tools/test_pull_request_template_adoption.py':
+        PR_GATED(
+            "build-check.yml / gate-main / Pull-request template installer and "
+            "release checker"
+        ),
+    'tools/test_check_core_release.py':
+        PR_GATED(
+            "build-check.yml / gate-main / Pull-request template installer and "
+            "release checker"
         ),
     'tools/test_workspace_status.py':
         PR_GATED(

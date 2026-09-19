@@ -64,6 +64,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.20] — 2026-09-18
+
+### Highlights
+
+- **A pull-request template ships with the pack.** `work-loop` now carries
+  `assets/pull-request-template.md`, with a copy step for GitHub and for GitLab
+  in the adapt-to-project guide. It is not installed for you: a repository that
+  already has a pull-request convention keeps it. The template states three
+  things that do not belong in a body — what you tried, the method behind a
+  result, and the diff restated — in comments that do not render, so an author
+  reads them while writing and a reviewer never sees them.
+- **The template ships with no checklist.** Its verification section asks for
+  commands and their observed results, which a checkbox cannot supply.
+- **A `Review focus` section is available and optional.** It names the one
+  decision the author wants checked, as a question about the code.
+- **Worked pull-request bodies and writing rules.** A new
+  `references/pr-authoring.md` carries seven rules and two worked bodies of
+  different size, so the shape is shown scaling down rather than only described.
+- **The end of a run asks before it offers.** `work-loop` decides whether it can
+  open a pull request from the exit status of `gh api user` and the value of
+  `viewerPermission`, and when either refuses it completes the checklist and
+  says nothing. A blocked credential store makes `gh auth status` report an
+  invalid token and `gh repo view` report a connection failure, so neither
+  message states the cause — an exit status makes no such claim.
+
 ## [core][2.26.19] — 2026-09-18
 
 ### Highlights
