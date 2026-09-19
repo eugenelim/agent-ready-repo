@@ -572,9 +572,63 @@ criterion. AC18 and AC19 are read from `evals.json` rather than executed, as
 the spec's Testing Strategy states, and the changelog's Highlights block
 states the reader-visible change in plain words.
 
+### T8: The review findings are repaired at every surface they reach
+
+**Depends on:** none — T1–T6 are complete and frozen; this is the correction
+task the amendment procedure requires instead of editing them.
+
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md,
+packs/core/.apm/agents/implementer.md,
+packs/core/.apm/agents/adversarial-reviewer.md,
+packs/core/.apm/skills/work-loop/references/supervisor-mode.md,
+packs/core/.apm/hooks/pre-pr.py, tools/hooks/pre-pr.py, tools/hooks/README.md,
+guides/core/explanation/core-pack.md,
+packs/core/tests/pack/test_ride_along_admission_test.py,
+tests/roster/test_capture_rename_guide.py
+
+**Tests:** verification mode: TDD for every criterion below; the control
+changes come first and must red before the prose and code they grade.
+- AC25: each of AC1–AC3's assertions compares the extraction against the
+  canonical constant already defined in the test module, not only across
+  sites. Red first by rewording a clause identically at all four sites and
+  confirming the current assertions pass — that demonstration goes in the
+  ledger.
+- AC26: AC4's count and AC5's host check iterate every occurrence, and a
+  clause found in a non-carrying file fails.
+- AC12 and AC5: C6 moves inside the fenced report template; the AC5 check
+  exempts C6 from the fence clause and only from it.
+- AC27: the roster guide assertion binds to the `Capture` step entry.
+- AC24: the step-order check is per-job and covers every naming step.
+- AC28: a sweep over `packs/`, `tools/` and `guides/` for the retired step
+  name in every casing and separator, allowing only the `evals.json` case id
+  and `docs/knowledge/` records.
+- C1's clause (iv), C2's citation-independence and inert-in-content
+  sentences, and the corrected DECIDE row land at all four sites; AC1–AC5 and
+  AC9 stay green afterwards.
+
+**Approach:**
+- Clause (iv) is the structural replacement for what locality supplied by
+  accident. Write it fail-closed: an undecidable file is in scope.
+- Four live references survive, not three: `packs/core/.apm/hooks/pre-pr.py:13,115`,
+  `tools/hooks/pre-pr.py:13,115`, `tools/hooks/README.md:66`, and
+  `guides/core/explanation/core-pack.md:233` ("Why capture learnings"), which
+  T4 missed because it corrected only step 10 at line 124. The original sweep
+  used a case-sensitive pattern that could not match the capitalised
+  hyphenated spelling, and a second pass scoped to one line missed a second
+  hit in the same file; AC28's sweep is case-insensitive over all three
+  separators and covers whole files, so neither variant of the miss recurs.
+
+**Done when:** every criterion above passes; `python3 tools/lint-pack-test-boundary.py`,
+`python3 tools/lint-ci-parity.py`, `python3 tools/lint-agents-md.py` and
+`make lint-ruff lint-mypy` each exit 0 read unfiltered; `work-loop/SKILL.md`'s
+body is at most 1,000 lines with the measured count in the ledger. The
+installed-projection manual-QA walk is **not** required here: it reads the
+projections T7 regenerates, so requiring it before T7 would make the graph
+unschedulable. T7 owns it.
+
 ### T7: Projections match the changed sources
 
-**Depends on:** T6
+**Depends on:** T8
 
 **Touches:** .claude/, .agents/, .codex/
 
@@ -590,8 +644,12 @@ states the reader-visible change in plain words.
   bare command without `--check` writes rather than reports, so it cannot be
   the verification step.
 
-**Done when:** `agentbundle catalogue self-host --check --root .` exits clean
-and `git status` shows no unstaged projection.
+**Done when:** `agentbundle catalogue self-host --check --root .` exits clean,
+`git status` shows no unstaged projection, and the manual-QA walk is recorded
+in the verification ledger — three worked discoveries driven through the
+**installed** `.claude/skills/work-loop/SKILL.md`, one resolved by citation,
+one needing an owner answer at the human gate, and one in a
+declared-unattended dispatch, each with the route it took.
 
 ## Rollout
 
@@ -649,3 +707,7 @@ deployment sequencing. Nothing here is irreversible.
   review reached `Clean — ready to commit.` in three rounds (4, then 2, then
   0 findings).
 - 2026-09-19: plan re-approved by eugenelim after the controlled amendment.
+- 2026-09-19: spec and plan re-approved by eugenelim after the second
+  controlled amendment, which closes four Blockers introduced by removing
+  locality and six from the implementation review. Amendment review reached
+  `Clean — ready to commit.` in two rounds.
