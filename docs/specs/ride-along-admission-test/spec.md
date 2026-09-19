@@ -70,11 +70,21 @@ that makes it actionable.
 
 ## The shipped clauses
 
-These seven paragraphs are the outcome this change delivers. The criteria take
-them as their subject; the plan implements them and does not restate them.
-Each is pinned as an exact string, so a criterion about it is decided by
-equality rather than by reading. None of them names another by label: the
-labels below are this spec's handles, not shipped text.
+These seven paragraphs are the outcome this change delivers. None of them
+names another by label: the labels below are this spec's handles, not shipped
+text.
+
+**Only C1 and C2 are contract.** They carry the admission test and the rule
+deciding when a design call is resolved, so a reword of either changes what an
+agent may do, and an acceptance criterion pins each by equality. C3 through C7
+are working material: their wording is corrected in place as the work teaches,
+and their protection is the content pin already in
+`packs/core/tests/pack/test_ride_along_admission_test.py` rather than a
+checkbox here. That split is deliberate and was made late. An earlier draft
+pinned all seven as contract, and three review rounds found the same class of
+defect each time — a control accepting more than its criterion states —
+because most of those criteria could only be argued, never red. This
+template's own guidance names that shape and predicts it will not converge.
 
 **C1 — the admission test.** Carried at all four sites. Clause (ii) is the
 sole home of the judgement bound, including the refusal, so an agent applying
@@ -126,8 +136,7 @@ three and needs no reader to know which mode they are in.
 > change produced is not a resolution, however early in the session it
 > landed. Applying a recorded answer is a lookup, not a
 > decision, and it needs no human. An owner's answer is given in one line, in-session, and is recorded
-> with its question in the `Bundled fixes:` entry of your report, or of the
-> pull request when you are not reporting to a supervisor. Where a dispatch
+> with its question in the `Bundled fixes:` entry. Where a dispatch
 > brief carries exactly one attendance declaration, follow it: attended means
 > ask there, unattended means do not ask. In every other case — no brief, a
 > brief silent on attendance, or a brief declaring both — record the question
@@ -241,11 +250,11 @@ literal markers a check finds the host by.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Published agent behaviour | Applicable — four shipped surfaces change how an agent admits and disposes of a noticed fix | `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/agents/implementer.md`, `packs/core/.apm/agents/adversarial-reviewer.md`, `packs/core/.apm/skills/work-loop/references/supervisor-mode.md` | work-loop maintainer | AC1–AC14 hold; `packs/core/tests/pack/test_ride_along_admission_test.py` passes | Every clause sits in its host at every site it belongs to, and the projections match |
-| Decision rationale | Applicable — replaces a decision an Accepted RFC made | `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata | RFC Approver | AC15: dated entry, Approver-signed, body above unchanged | The erratum names what the tiers are replaced by and why |
-| Release history | Applicable — published pack content changes | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md` | release owner | AC16, AC17 | Version and release note agree, and the declared version is above every `[core]` version the changelog already held |
-| Reusable learning | Applicable — the pack ships an eval harness that must track non-cosmetic changes | `packs/core/.apm/skills/work-loop/evals/evals.json` | work-loop maintainer | AC18, AC19 | One case grades dispatch over discard; one grades the unattended fall-out |
-| Adopter documentation | Applicable — the published guide describes this step by its old name and old job | `guides/core/explanation/core-pack.md` | work-loop maintainer | AC23 | The guide names the step as shipped and describes what it now routes |
+| Published agent behaviour | Applicable — four shipped surfaces change how an agent admits and disposes of a noticed fix | `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/agents/implementer.md`, `packs/core/.apm/agents/adversarial-reviewer.md`, `packs/core/.apm/skills/work-loop/references/supervisor-mode.md` | work-loop maintainer | AC1–AC12 hold; `packs/core/tests/pack/test_ride_along_admission_test.py` passes | Every clause sits in its host at every site it belongs to, and the projections match |
+| Decision rationale | Applicable — replaces a decision an Accepted RFC made | `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata | RFC Approver | AC13: dated entry, Approver-signed, body above unchanged | The erratum names what the tiers are replaced by and why |
+| Release history | Applicable — published pack content changes | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md` | release owner | AC14 | Version and release note agree, and the declared version is above every `[core]` version the changelog already held |
+| Reusable learning | Applicable — the pack ships an eval harness that must track non-cosmetic changes | `packs/core/.apm/skills/work-loop/evals/evals.json` | work-loop maintainer | AC15 | One case grades dispatch over discard; one grades the unattended fall-out |
+| Adopter documentation | Applicable — the published guide describes this step by its old name and old job | `guides/core/explanation/core-pack.md` | work-loop maintainer | AC12 | The guide names the step as shipped and describes what it now routes |
 | Interface compatibility | Not applicable | — | — | — | No contract surface, schema, or CLI signature changes |
 | Operations | Not applicable | — | — | — | No runtime, deployment, or persisted state changes |
 
@@ -259,12 +268,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Change the four `.apm/` sources and regenerate the adapter projections with
   `agentbundle catalogue self-host --root . --write`.
-- Paste C1–C5 exactly as § The shipped clauses states them; any wording change
-  is a change at every site that carries them.
-- Place each clause inside its § Host markers structure, never inside an HTML
-  comment or a fenced block.
+- Paste C1 and C2 exactly as § The shipped clauses states them, and change
+  this spec's text in the same edit, because AC3 compares against it. C3–C7
+  are working material: keep them synchronised across their sites, which the
+  suite pins, and correct their wording in place without an amendment.
+- Place C1 and C2 inside their § Host markers structure, never inside an HTML
+  comment or a fenced block. The suite holds C3–C7 to the same placement
+  without a criterion doing so.
 - Write every shipped clause site-independently: no "this file", no label like
-  "C2", nothing that assumes the reader holds the document it sits in.
+  "C2", no phrase assuming the reader owns the artifact it names — that is
+  what put a reviewer's own output contract in conflict with C2 once.
 - Bump `packs/core` in both `pack.toml` and `.claude-plugin/plugin.json` to the
   same value.
 
@@ -302,54 +315,51 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **Clause identity, placement, and uniqueness (AC1–AC6): TDD.** These are
-  compressible invariants over file content, so one test decides them and it
-  is written before the edit. Its own adequacy is the subject of AC8.
-- **Retired vocabulary absence (AC7): TDD, same test.** A substring sweep over
-  the four files; written red, because six of the seven tokens are present
-  today.
-- **Control adequacy (AC8): TDD.** The criterion is a property of the test
-  itself, checked by applying five named mutations and observing red. Anyone
-  holding the spec can re-run it, unlike a record that a mutation once
-  happened.
-- **Prose obligations (AC9–AC13): goal-based check.** Each names an exact
-  string — the disposition sentence, C4, C5, C6, C7 — at a named anchor; an
-  equality assertion in the same test file decides it and there is no logic
-  to drive.
-- **Routing behaviour (AC14): goal-based check.** Five worked notes are read
-  against C4 as written; the check is which destinations C4's own additive
-  rule and ordered sequence reach, not a judgement about the note. It is a
-  recorded walk rather than an assertion, because C4's destinations are prose
-  and no oracle decides them — the walk is what a reader can reproduce.
-- **Governance and release records (AC15–AC17): goal-based check.** A diff
-  bounded at a heading, and two version comparisons against the changelog.
-- **Step placement (AC24): goal-based check.** `tools/lint-ci-parity.py`
-  decides a roster step's registration and disposition but not its position,
-  so nothing existing reaches this. The check parses
-  `build-check.yml` and compares two step indices. It is a criterion rather
-  than a construction note precisely because no owner enforces it: a named
-  step below the fail-fast bulk step never runs and attributes nothing.
-- **The rename and its references (AC20–AC23): goal-based check.** A heading
-  present, an old heading absent, every in-file anchor resolving, and two
-  prose surfaces naming the step as shipped. A dangling anchor is the failure
-  that ships quietly, which is why AC21 checks resolution rather than
-  spelling.
-- **Eval cases (AC18, AC19): goal-based check.** Presence and assertions are
-  read from `evals.json`; the register is not executed here.
-- **The shipped behaviour itself (Outcome): visual / manual QA.** `work-loop`
-  is an artifact a user invokes. Read the rendered installed skill and walk
-  three worked discoveries through the changed EXECUTE and
-  `## Capture` text end to end — one resolved by citation, one
-  needing an owner answer in a direct run that reaches the human gate, one
-  needing an owner answer in a declared-unattended dispatch — recording the
-  route each takes.
+- **C1 and C2 identity, placement, uniqueness (AC1, AC2, AC4, AC5, AC6):
+  TDD**, in `packs/core/tests/pack/test_ride_along_admission_test.py`.
+- **Agreement with this spec (AC3): TDD**, in
+  `tests/roster/test_capture_rename_guide.py` — not the pack suite, because
+  `lint-pack-test-boundary` forbids a pack test reading `docs/`. AC3 is what
+  stops the control proving only that the copies agree with one another.
+- **Retired vocabulary absence (AC7, AC12): TDD.** Substring sweeps, compared
+  case-insensitively over normalised text — a case-sensitive sweep over raw
+  text already missed four live references once in this change.
+- **Control adequacy (AC8): TDD.** A property of the test itself, checked by
+  applying six named mutations and observing red. Re-runnable by anyone
+  holding the spec, and re-run against the tree as shipped rather than
+  against an earlier state of the controls.
+- **Prose obligations (AC9, AC10, AC11): goal-based check.** Exact strings
+  and resolvable anchors at named locations.
+- **Governance and release (AC13, AC14): goal-based check.** A diff bounded
+  at a heading and a version comparison against the changelog.
+- **Eval register (AC15): goal-based check.** Read from `evals.json` with the
+  standard library, in the same pass that reads it for anything else; the
+  register is not executed here.
+- **Evidence (AC16): goal-based check.** The ledger is the artifact a later
+  maintainer re-derives from, so a criterion whose mode is goal-based is met
+  only when its command and output are recorded, not when it merely held.
+- **The shipped behaviour (Outcome): visual / manual QA.** Three worked
+  discoveries driven through the **installed** projection — one resolved by
+  citation, one needing an owner answer where no brief declares attendance,
+  one in a declared-unattended dispatch — exercising the wording that ships,
+  not an earlier draft of it.
 
-Body-line headroom and projection freshness are not criteria here: `CAT-S003`
-(`catalogue lint --root . --deep`, run by the `docs` workflow on `packs/**`)
-and the self-host drift check (`build-check-windows.yml`) already own them on
-every pack-content change.
+C3 through C7 have no criterion. They are working material pinned by the
+suite; see § The shipped clauses for why that split was made.
+
+Body-line headroom and projection freshness are not criteria here:
+`CAT-S003` (`catalogue lint --root . --deep`, run by the `docs` workflow on
+`packs/**`) and the self-host drift check (`build-check-windows.yml`) already
+own them on every pack-content change.
 
 ## Acceptance Criteria
+
+Sixteen criteria, down from twenty-eight. The twelve removed pinned the
+wording of C3 through C7 and the shape of the controls over them; each could
+be argued but not red, and three review rounds spent themselves on that set
+without converging. They are not lost: C3–C7 are still pinned by equality in
+`packs/core/tests/pack/test_ride_along_admission_test.py`, which is where an
+obligation whose only check is that a sentence exists belongs.
 
 - [ ] **AC1.** C1 appears in `packs/core/.apm/skills/work-loop/SKILL.md`,
   `packs/core/.apm/agents/implementer.md`,
@@ -358,105 +368,80 @@ every pack-content change.
   same text in all four once each whitespace run is collapsed to one space.
 - [ ] **AC2.** C2 appears in those same four files, and is the same text in
   all four under the same normalisation.
-- [ ] **AC3.** C3 appears in `implementer.md`, `adversarial-reviewer.md`, and
-  `supervisor-mode.md`, and is the same text in all three under the same
-  normalisation.
-- [ ] **AC4.** The opening words of each of C1, C2, and C3 occur exactly once
-  in each file that § The shipped clauses says carries that clause, and not
-  at all in the files it does not.
-- [ ] **AC5.** Each occurrence of C1, C2, C3, C4, C5, and C7 sits inside the
-  § Host markers structure for its site, and inside no HTML comment and no
-  fenced block. C6 is checked the same way for its host, its occurrence
-  count, and the HTML-comment prohibition; it is exempt from the
-  fenced-block prohibition and from nothing else, because AC12 places it
-  inside the report template, which is a fence, and the two criteria would
-  otherwise be unsatisfiable together.
+- [ ] **AC3.** C1 and C2 each match the text this spec states in § The
+  shipped clauses, not merely each other, so a reword applied identically at
+  every site fails.
+- [ ] **AC4.** The opening words of C1 and of C2 occur exactly once in each of
+  those four files.
+- [ ] **AC5.** Every occurrence of C1 and C2 sits inside the § Host markers
+  structure for its site, and inside no HTML comment and no fenced block.
 - [ ] **AC6.** Each of the four files carries an HTML comment containing
   `Bundled-fixes carve-out`, and each such comment names all four sites as
   `work-loop/SKILL.md`, `implementer.md`, `adversarial-reviewer.md`, and
   `work-loop/references/supervisor-mode.md`.
 - [ ] **AC7.** None of `Tier 1`, `Tier 2`, `Tier 3`, `same-area`,
   `same-concern`, `visibly smaller`, or `bundled-fixes tiers` appears in any
-  of the four files.
+  of the four files, compared case-insensitively over whitespace-normalised
+  text so a wrapped or re-cased occurrence cannot pass.
 - [ ] **AC8.** `packs/core/tests/pack/test_ride_along_admission_test.py` reds
-  under each of these five mutations, applied one at a time to the complete
-  tree, and each mutation's record names the assertion that caught it:
-  changing one interior word of C1 in exactly one file; adding a second copy
-  of C1 to exactly one file; moving one file's C1 out of its host into an
-  adjacent HTML comment; rewording C3 in exactly one mirror; and changing one
+  under each of these mutations, applied one at a time to the complete tree,
+  each record naming the assertion that caught it and quoting the message it
+  emitted: changing one interior word of C1 in exactly one file; changing one
+  interior word of C2 in exactly one file; adding a second copy of C1 to
+  exactly one file; moving one file's C1 out of its host into an adjacent
+  HTML comment; rewording C1 identically at all four sites; and changing one
   carve-out comment back to naming three sites.
 - [ ] **AC9.** The DECIDE intent-fit routing table in `SKILL.md` carries a row
   whose first two cells are `Does not match` and `Include now, ride-along
   eligible`, and whose third cell reads `Admit it only if it passes every
   clause of the bundled-fixes carve-out. That test decides, not this row: a
   change failing any clause needs the owner's scope change like any other.`
-- [ ] **AC10.** The DECIDE scratch-note bullet inside `## Capture` reads
-  exactly C4.
-- [ ] **AC11.** `## Capture` contains C5, and the string
+- [ ] **AC10.** `SKILL.md` carries a `## Capture` heading and no
+  `## Capture learnings` heading, no link in that file targets
+  `#capture-learnings`, and every link targeting `#capture` resolves.
+- [ ] **AC11.** `## Capture`'s scratch-note bullet names five destinations —
+  the `project-knowledge` seam as an additive route, immediate dispatch, the
+  session's next reviewed unit, capture, and discard — and both discard
+  branches: a defect resting on taste or with no stated arbiter, and a note
+  naming no defect that had nothing for the seam. The string
   `otherwise discard it` does not appear in that section.
-- [ ] **AC12.** C6 appears inside `implementer.md`'s fenced `Bundled fixes:`
-  report-entry template, as part of the placeholder describing what an entry
-  states, and the check reads only the text between that fence's delimiters.
-- [ ] **AC13.** The `Bundled fixes:` lifting step in `supervisor-mode.md`
-  contains exactly C7.
-- [ ] **AC14.** Applying C4 to each of these five scratch notes reaches the
-  named destinations and no others, with every earlier destination excluding
-  the note by its own stated condition: a ready-now, non-generalisable defect
-  with a stated arbiter that fires a risk trigger on its own reaches the
-  next-reviewed-unit destination; the same defect with verification that
-  cannot be stated reaches the same one; a ride-along candidate whose only bar
-  is an unresolved design call with no citation and no answer reaches capture;
-  a pure lesson with no defect attached reaches the seam and nothing else; and
-  a generalisable, decision-blocked defect reaches both the seam and capture.
-- [ ] **AC15.** `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata
-  carries a new dated entry recording that the three ride-along tiers are
-  replaced by C1 and C2 and why, signed `Approver: eugenelim`, with every line
-  above the `## Errata` heading unchanged from the merge base with
-  `origin/main`.
-- [ ] **AC16.** `packs/core/pack.toml` and
-  `packs/core/.claude-plugin/plugin.json` declare the same version, and that
-  version is exactly one patch above the highest `[core]` version appearing in
-  `docs/product/changelog.md` before this change, and higher than every
-  `[core]` version appearing there.
-- [ ] **AC17.** The topmost release heading in `docs/product/changelog.md` is
-  `## [core][<the AC16 version>] — <an ISO date matching \d{4}-\d{2}-\d{2}>`
-  and its entry carries a `### Highlights` block.
-- [ ] **AC18.** `packs/core/.apm/skills/work-loop/evals/evals.json` carries a
-  case whose prompt is a mechanically verifiable fix noticed outside the plan
-  task, and whose assertions require the answer to admit and dispatch it
-  rather than discard or defer it.
-- [ ] **AC19.** `evals.json` carries a case whose prompt is a ride-along
-  candidate blocked on a cheap owner decision in a declared-unattended
-  dispatch, and whose assertions require the answer to capture it with
-  `blocked_on: decision` without asking, waiting, guessing, or blocking the
-  loop.
-- [ ] **AC20.** `packs/core/.apm/skills/work-loop/SKILL.md` carries a
-  `## Capture` heading and no `## Capture learnings` heading, and no link in
-  that file targets `#capture-learnings`.
-- [ ] **AC21.** Every in-file link in `SKILL.md` that targets the renamed
-  section resolves to a heading present in the file.
-- [ ] **AC22.** `packs/core/.apm/skills/work-loop/evals/evals.json` contains
-  no case whose prompt names a `Capture learnings` section.
-- [ ] **AC23.** `guides/core/explanation/core-pack.md` names the step
-  `Capture` and describes it as routing a scratch note, not only as recording
-  a learning.
-- [ ] **AC24.** Every CI step naming AC23's check by filename appears earlier
-  in `.github/workflows/build-check.yml`, within the same job, than that
-  job's `python -m pytest tests/ -q` step, and no step naming it appears in
-  any other job.
-- [ ] **AC25.** AC1–AC3 compare each extracted clause against the canonical
-  text this spec states, not only against the other sites' extractions, so a
-  reword applied identically at every site fails.
-- [ ] **AC26.** AC4's count and AC5's placement hold for **every** occurrence
-  of a clause in a carrying file, not only the first, and a clause occurring
-  in a file § The shipped clauses does not list as carrying it fails.
-- [ ] **AC27.** AC23's routing assertion is bound to the guide's `Capture`
-  step entry, not satisfied by the words `routes` or `routing` appearing
-  anywhere else in the file.
-- [ ] **AC28.** No file under `packs/`, `tools/`, or `guides/` names the
-  retired step, in any casing or separator — `Capture learnings`,
-  `capture-learnings`, `Capture-learnings` — except the `evals.json` case id
-  and `docs/knowledge/` records, which are stable identifiers.
+- [ ] **AC12.** No file under `packs/`, `tools/`, or `guides/` names the
+  retired step, in any casing or separator, except the `evals.json` case id.
+  That is the control's only exemption — `docs/knowledge/` records keep the
+  name as a stable gate identifier but lie outside the swept roots, so
+  exempting them would be unreachable. The control fails rather than skips on
+  a file it cannot read.
+- [ ] **AC13.** `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata
+  carries a dated entry that states the number of clauses C1 actually ships,
+  names C2's subject, gives at least one reason the tiers were replaced, ends
+  `Approver: eugenelim`, and adds no line above the `## Errata` heading
+  against the merge base with `origin/main`.
+- [ ] **AC14.** `packs/core/pack.toml` and
+  `packs/core/.claude-plugin/plugin.json` declare the same version, exactly
+  one patch above the highest `[core]` version in `docs/product/changelog.md`
+  before this change, and the topmost release heading in that file is
+  `## [core][<that version>] — <an ISO date>` carrying a `### Highlights`
+  block.
+- [ ] **AC15.** `evals.json` carries two cases, read with the standard
+  library rather than a regex. The first names a fix outside the plan task
+  and states, in its prompt, a fact establishing each of C1's four clauses;
+  its assertions require the answer to dispatch rather than discard or defer.
+  The second names a declared-unattended dispatch whose only bar is an owner
+  decision; its assertions require `blocked_on: decision` and forbid asking,
+  waiting, guessing, and treating the item as a blocker.
+- [ ] **AC16.** The verification ledger records, against the tree as shipped:
+  AC8's mutation set with each emitted message; the goal-based checks behind
+  AC13 and AC14 with the commands run and their output; the three
+  installed-artifact discoveries exercising the wording actually projected —
+  one resolved by citation, one needing an owner answer where no brief
+  declares attendance, one in a declared-unattended dispatch; and a walk of
+  `## Capture` against these five notes, each reaching the named destination
+  and no other: a ready-now non-generalisable defect with a stated arbiter
+  that fires a risk trigger → next reviewed unit; the same defect with
+  unstateable verification → next reviewed unit; a ride-along whose only bar
+  is an unresolved design call with no citation and no answer → capture; a
+  pure lesson → the seam alone; a generalisable decision-blocked defect →
+  the seam and capture.
 
 ## Follow-ons
 

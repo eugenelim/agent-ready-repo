@@ -671,9 +671,127 @@ with the count recorded, and `python3 tools/lint-agents-md.py`,
 `python3 tools/lint-pack-test-boundary.py`, `python3 tools/lint-ci-parity.py`
 and `make lint-ruff lint-mypy` each exit 0 read unfiltered.
 
+### T10: The contract shrinks to what can red, and three errors are corrected
+
+**Depends on:** none
+
+**Touches:** packs/core/.apm/agents/adversarial-reviewer.md,
+packs/core/.apm/agents/implementer.md,
+packs/core/.apm/skills/work-loop/SKILL.md,
+packs/core/.apm/skills/work-loop/references/supervisor-mode.md,
+docs/rfc/0090-change-sizing-and-decomposition.md,
+packs/core/.apm/skills/work-loop/evals/evals.json,
+packs/core/tests/pack/test_ride_along_admission_test.py,
+tests/roster/test_capture_rename_guide.py,
+.workspace-prune-protected.toml
+
+**Tests:** modes are per work item, not per task.
+- **TDD** for AC3, AC7, AC8 and AC12, matching the spec's Testing Strategy.
+  - `test_pinned_clauses_match_the_spec` (AC3) — `stub: true`; the exact
+    block is below, compiled and red-validated from disposable scratch, with
+    no repository test file written during PLAN.
+  - `test_retired_locality_vocabulary_is_absent` (AC7) — no new stub: the
+    assertion exists in the shipped suite and this task changes its
+    comparison. Red validation: wrap `visibly smaller` across a line break in
+    a scratch copy of one of the four files and confirm the current raw
+    substring check passes where the normalised one fails.
+  - `test_c1_is_identical_across_the_four_sites` and
+    `test_clauses_sit_in_their_hosts` (AC8) — no new stub; both exist. Red
+    validation: apply each of AC8's six mutations in turn and record the
+    assertion and the message it emits.
+  - `test_retired_step_name_is_absent_from_shipped_content` (AC12) — no new
+    stub; it exists. Red validation: place an unreadable byte sequence in a
+    swept file and confirm the current control skips it where the repaired
+    one fails.
+- **Goal-based check** for the erratum (AC13) and the eval cases (AC15):
+  `no stub (goal-based)`. Both are content at a named path decided by a
+  command, with no callable seam to stub.
+- **Goal-based check** for the prune entry: `no stub (goal-based)`.
+  `tests/AGENTS.md` obliges a `.workspace-prune-protected.toml` entry when a
+  roster test names a `docs/specs/<slug>` path as a literal, which AC3's new
+  assertion does. A construction test re-derives that list, so the check is
+  that it passes.
+- **AC3** is new and needs a new binding. The pack test cannot read `docs/`
+  under `lint-pack-test-boundary`, so the assertion comparing C1 and C2
+  against this spec's § The shipped clauses blockquotes lives in
+  `tests/roster/test_capture_rename_guide.py`, which may read both trees.
+  Stub entry: `test_pinned_clauses_match_the_spec` (AC3), `stub: true`,
+  compiled and red-validated from disposable scratch; repository test file
+  not written during PLAN. Block:
+
+  ```python
+  # STUB: AC3
+  SPEC = ROOT / "docs" / "specs" / "ride-along-admission-test" / "spec.md"
+
+  def test_pinned_clauses_match_the_spec() -> None:
+      """C1 and C2 in the pack module equal this spec's blockquotes."""
+      import importlib.util
+      spec_blocks = _shipped_clause_blockquotes(SPEC)   # C1, C2 by order
+      module = _load_pack_module()                       # by unique name
+      for label, text in (("C1", module.C1), ("C2", module.C2)):
+          assert _flat(text) == _flat(spec_blocks[label]), (
+              f"{label} in the pack test module diverges from spec.md "
+              f"§ The shipped clauses"
+          )
+  # END STUB: AC3
+  ```
+
+  The three helpers are new and local to the roster module:
+  `_shipped_clause_blockquotes(path)` parses § The shipped clauses into
+  `{label: text}` by reading each `**C<n> — …**` heading and the blockquote
+  that follows it; `_load_pack_module()` imports
+  `packs/core/tests/pack/test_ride_along_admission_test.py` under a unique
+  module name per `packs/AGENTS.md`; `_flat(text)` collapses whitespace runs
+  the way both suites already do. Compile and red are validated from
+  disposable scratch before the repository test file is written: red it by
+  changing one word of C1 in `spec.md` alone and confirming this assertion is
+  the only failure.
+- **AC7** becomes case-insensitive over normalised text; red it by wrapping
+  `visibly smaller` across a line break in a scratch copy.
+- **AC12**'s sweep drops the `__pycache__` skip and fails rather than
+  continues on an unreadable file, leaving exactly the two named exemptions.
+- **AC8** gains two mutations (a C2 interior word, and an identical reword of
+  C1 at all four sites) and requires the emitted message, not just the
+  assertion name.
+- **AC15**'s dispatch case gains the clause (iv) establishment its prompt
+  currently omits.
+- The assertions pinning C3–C7 stay exactly as they are. They are no longer
+  criteria; they are the content pin those clauses keep.
+
+**Approach:**
+- Nothing blocks this task. T1–T6, T8 and T9 are complete and frozen; T7 is
+  pending because its wave closed through `gates-clean` rather than a wave
+  advance, so the cohort does not count it complete, and it re-runs after
+  this task. That belongs here and not in `Depends on:`, which
+  `loop-cohort schedule` parses as a comma-separated list of task IDs and
+  ranges — prose naming other tasks there is read as real edges, which is how
+  an earlier draft of this line produced a T10↔T7 cycle.
+- C2 loses "of your report, or of the pull request when you are not reporting
+  to a supervisor". That phrase told a reader the record was theirs to write,
+  which contradicts `adversarial-reviewer.md`'s own output contract — it
+  permits only severity sections or the clean sentinel, and C2 is hosted
+  there as a rule the reviewer *applies*, not one it follows.
+- The erratum says "three-clause"; C1 has carried four since clause (iv)
+  landed. The entry is corrected in place rather than superseded by a second
+  entry: it is unmerged, so it is still being authored, and RFC-0055's
+  immutability applies to published corrections.
+- `plan.md:471` — T4's pinned `Tests:` field — says "`## Capture learnings`
+  contains C5" and is wrong. It cannot be repaired: the amendment procedure
+  forbids editing a completed task section. It is recorded in the ledger as a
+  frozen error, which is the only disposition available.
+
+**Done when:** every criterion except AC16's installed-artifact half holds;
+`packs/core/tests/pack/`, `tests/roster/`, `lint-pack-test-boundary`,
+`lint-ci-parity`, `lint-agents-md` and `make lint-ruff lint-mypy` are each
+clean read unfiltered; and the ledger carries AC16's mutation set, its two
+goal-based command records, and the five-note `## Capture` walk. The three
+installed-artifact discoveries are **not** required here — they read the
+projection T7 regenerates, so requiring them before T7 would make the graph
+unschedulable, as an earlier draft of T8 did. T7 owns them.
+
 ### T7: Projections match the changed sources
 
-**Depends on:** T9
+**Depends on:** T10
 
 **Touches:** .claude/, .agents/, .codex/
 
@@ -758,3 +876,6 @@ deployment sequencing. Nothing here is irreversible.
   `Clean — ready to commit.` in two rounds.
 - 2026-09-19: spec and plan re-approved by eugenelim after the third
   controlled amendment, which names the surface C2 fallback writes to.
+- 2026-09-19: spec and plan re-approved by eugenelim after the fourth
+  controlled amendment, which cut the contract from 28 criteria to 16 and
+  demoted C3-C7 to working material. Review reached clean in four rounds.

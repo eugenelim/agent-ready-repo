@@ -758,3 +758,30 @@ shipping with the limits merely recorded; and not merging.
    output contract permits only severity sections or the clean sentinel.
    Carrying one clause verbatim into hosts with different output contracts
    produced a contradiction the verbatim rule cannot see.
+
+## 2026-09-19 — prose in a machine-read field produced a dependency cycle
+
+**Observed.** `loop-cohort schedule` refused: "dependency cycle among
+unfinished tasks: T10, T7". T10 declared `**Depends on:** none — T1–T6, T8
+and T9 are complete and frozen. T7 is pending…". The field is parsed as a
+comma-separated list of task IDs and ranges, so the scheduler read `T1-T6`,
+`T8`, `T9` and `T7` out of the explanation as real edges, and T7 already
+depended on T10. The template says parenthetical prose after the IDs is
+ignored; an em-dash clause is not parenthetical.
+
+**Repair.** `**Depends on:** none`, with the explanation moved into
+`Approach:`, where prose is read by people rather than by the scheduler.
+
+**Cost, recorded because it was not free.** The fix edited an already-approved
+plan, so `approve-plan` refused with "artifact changed since approval". The
+documented cohort-only recovery — reset, init, approve-plan, schedule — was
+run as written. It cleared `completed_task_ids`, which held T1, T1b, T2, T3,
+T4, T5, T6, T8 and T9, so the new schedule lists all ten tasks across seven
+waves. The work those tasks did is committed and unaffected; what was lost is
+the cohort's record that they ran. Receipts are re-recorded as the waves are
+walked, which is honest — the dispatches did happen — but the wave indices in
+the earlier receipts no longer correspond to this schedule.
+
+**The pre-reset state is preserved** at the session scratchpad as
+`state-before-reset.json`, so the original completion record and its wave
+indices remain recoverable.
