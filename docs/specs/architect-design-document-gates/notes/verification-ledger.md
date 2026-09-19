@@ -617,3 +617,26 @@ criterion requires the reference document to be a *good* design; AC-0045
 requires it filled and placeholder-free, AC-0046 requires no precheck to fire
 on it. Both hold. Recorded here so a later reader does not mistake the silence
 for an oversight.
+
+## Resolved — the agent's degradation pointer now promises only what the rubric holds
+
+**Date:** 2026-09-19. Closes the "Follow-on — the agent's degradation pointer
+promises depth that is not there" section above, chosen from its own two open
+repairs: correct the agent's sentence rather than reopen the withdrawn T4b
+depth.
+
+`design-reviewer.md:148` read "for the fuller per-gate text and prechecks";
+the words "and prechecks" are deleted, leaving "for the fuller per-gate
+text" — exactly what `rubric-design-doc.md` holds, measured in the section
+above at zero `precheck` occurrences and no per-gate bodies. AC-0054 requires
+only the pointer's existence, not the target's depth, and the pointer still
+names `rubric-design-doc.md` for the fuller per-gate text, so AC-0054 still
+holds after the edit.
+
+A delivery review of the finished slice raised this and eight other findings
+in the same pass (escaped-refusal injection, the DA3 sentence-boundary
+undercount, the `--root .` CLI join, the AC-0070 closed-set eval assertion,
+a misdirected script path in `rubric-design-doc.md`, the file-wide DA5 parity
+assertions, and a changelog overclaim). Each is fixed on
+`eugenelim/architect-slice-2`; this entry records only the one this ledger
+was already tracking as an open follow-on.

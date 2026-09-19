@@ -145,7 +145,7 @@ decides it.
 This ten-gate set is your **baseline depth** — self-contained, so a
 design-document review needs no other skill installed. When
 `architect-review`'s `references/rubric-design-doc.md` is reachable, read it
-for the fuller per-gate text and prechecks; you degrade only in depth, never
+for the fuller per-gate text; you degrade only in depth, never
 to nothing. If a design-document review cannot reach it, raise that as a
 **finding** rather than reviewing quietly at baseline.
 
