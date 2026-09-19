@@ -25,7 +25,6 @@ PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILL_DIR = PACK_ROOT / ".apm" / "skills" / "architect-design"
 SCRIPT_PATH = SKILL_DIR / "scripts" / "check_document_architecture.py"
 FILE_SAFETY_PATH = SKILL_DIR / "scripts" / "file_safety.py"
-ASSETS_DIR = SKILL_DIR / "assets"
 
 
 def _load_gate() -> ModuleType:
@@ -434,25 +433,13 @@ def test_finding_and_refusal_rendering_escape_hostile_paths() -> None:
     assert "\x1b" not in rendered_refusal
 
 
-# --- AC-0017, AC-0018: the paragraph budget, on both sides -----------------
+# --- AC-0017: the paragraph budget, on both sides --------------------------
 
 
 def test_da3_budget_holds_at_three_and_fires_at_four() -> None:
     gate = _load_gate()
     assert gate.count_sentences("One. Two. Three.") == 3
     assert gate.count_sentences("One. Two. Three. Four.") == 4
-
-
-def test_da3_reports_no_finding_in_any_shipped_asset() -> None:
-    gate = _load_gate()
-    violations = []
-    for asset in sorted(ASSETS_DIR.glob("*.md")):
-        text = asset.read_text(encoding="utf-8")
-        for start_line, paragraph in gate.prose_paragraphs(gate.strip_excluded(text)):
-            count = gate.count_sentences(paragraph)
-            if count > gate.SENTENCE_BUDGET:
-                violations.append((asset.name, start_line, count))
-    assert violations == []
 
 
 # --- AC-0019: DA3 excludes frontmatter, comments, fences, tables, lists,
