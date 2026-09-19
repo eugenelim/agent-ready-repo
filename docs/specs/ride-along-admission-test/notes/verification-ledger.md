@@ -237,3 +237,58 @@ Every mutation reds; none was papered over. Each file was restored from an
 explicit pre-mutation backup and diffed byte-identical against it before the
 next mutation, and the suite was confirmed green (15 passed) after the last
 revert.
+
+## 2026-09-19 — REVIEW: six adversarial findings and four introduced security Blockers
+
+**Adversarial implementation review** (`.context/reviews/<run>/7-impl-adversarial-reviewer-raw.md`),
+six Blockers, all sustained on inspection:
+
+1. AC12 does not hold. C6 sits beside the report template, not in it, and the
+   control's scan window spans both, so it passes while the template carries
+   nothing.
+2. The clause controls compare the four extractions to each other, never to
+   the canonical `C1`/`C2`/`C3` constants the same file defines. A
+   synchronised reword at every site passes green: the control proves
+   consistency, not correctness.
+3. The roster control matches `routes|routing` anywhere in the guide and
+   flattens all CI jobs, so AC23 or AC24 can be broken while it passes.
+4. The rename left live shipped references. `packs/core/.apm/hooks/pre-pr.py:13,115`,
+   `tools/hooks/pre-pr.py:13,115` and `tools/hooks/README.md:66` say
+   `Capture-learnings`. The controller's rename sweep searched
+   `Capture learnings|capture-learnings` and missed the capitalised hyphenated
+   form — a case-sensitive pattern over a name with three spellings.
+5. The plan's post-T7 manual-QA walk of the installed artifact was not run.
+6. No security review had been recorded for an agent-authority change.
+
+**Security review** (`llm-agent` + `agentic-skills` modules inlined), four
+Blockers **introduced by this change**, four Concerns, one Nit:
+
+- **S1 (Blocker, introduced).** C1 does not exclude agent-guidance surfaces.
+  An unplanned edit to `SKILL.md`, `implementer.md`, `adversarial-reviewer.md`
+  or `supervisor-mode.md` fires no risk trigger, reads as "no behaviour
+  change" because the artifact is prose, and satisfies clause (iii) by
+  comparison — so an agent may rewrite the text bounding its own unplanned
+  write authority. Locality blocked this by construction; removing it removed
+  the block without replacing it.
+- **S2 (Blocker, introduced).** A citation may be authored by the same change
+  that cites it. In the worktree case the implementer is the commit owner, so
+  it writes the commit message that "records the decision" and then cites it.
+- **S3 (Blocker, introduced).** The new DECIDE row discharges the owner
+  scope-change gate on the assertion that a ride-along "alters no acceptance
+  criterion and moves no contract pin" — which C1 never tests.
+- **S4 (Blocker, pre-existing, worsened).** The carve-out grant is
+  unauthenticated in-band prose and denial is by omission, so authorization
+  text inside any content the implementer reads re-grants it. This change
+  widens the forged grant from same-area to repository-spanning.
+- Concerns: attendance decided by counting declarations over an undelimited
+  brief; "the human gate's own record" names no artifact and the reply nonce
+  is text the agent wrote; the `blocked_on: decision` store is undesigned and
+  the path is barred from surfacing; post-merge dedup can drop a landed
+  mutation from the PR body.
+
+**Owner decision, 2026-09-19 (eugenelim).** Fix the four introduced Blockers
+now — S1, S2, S3 and the six adversarial findings — by amending C1 and C2.
+Defer S4's channel weakness and the dedup gap as follow-ons with a named
+owner, because they pre-date this change. Rejected: fixing only S1;
+reinstating locality as a second route (it restores most of what the tiers
+did); and halting to rescope.
