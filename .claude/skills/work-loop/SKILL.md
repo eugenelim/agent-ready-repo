@@ -675,6 +675,17 @@ independently reviewed unit in the same session: use the existing human-gate
 
 **Execution-path check.** Before routing any finding to `apply`: confirm the fix reaches a live code path — grep for callers or trace the entry point. A guard that no caller exercises doesn't close a finding; a test that drives a mock seam instead of the real entry point doesn't count.
 
+Before taking a ladder answer, classify every sustained finding's cause as
+`task-level` or `LLD-level`; an unresolved cause depth authorizes no repair.
+For an `LLD-level` cause, take `repair-the-generator`: instances are the
+tasks named in the implicated sub-section's `Owned by:` field. Traverse only
+down from the LLD decision to those tasks, never tasks up to the LLD. Route a
+correction by its kind, per
+[delivery-contract-lifecycle.md](references/delivery-contract-lifecycle.md):
+grounding arriving for a `no stub (implementation-discovered)` seam goes to
+the verification ledger, and a settled decision the work falsified is a plan
+error taking controlled amendment. Neither edits the sealed plan.
+
 An author answering a sustained finding walks this ladder in order. Take the
 first answer that applies, then stop; do not evaluate the rest. A sustained
 finding does not by itself require an edit.

@@ -1,0 +1,197 @@
+---
+// ZONE 3 — THE MODEL, ONCE AND WHOLE. Paper (surface).
+//
+// This band replaces `ThreeLoops` and `HumanGates`, which between them told
+// the work lifecycle twice and the team lifecycle never, and carried eleven
+// internal gate identifiers onto a page whose plain-language floor bars them
+// (docs/design/copy/marketing-home.md § Plain-language floor notes).
+//
+// What it must be, from the 2026-09-18 amendment to the content brief: FOUR
+// ACTORS, each named with its OWN VERB, in ONE TELLING, in order — and the
+// sequence has to be sayable as one sentence before it is expanded. The
+// sentence is the standfirst; the four entries are that same sentence
+// expanded, in the same order, with nothing new smuggled in. NO GATE CODES,
+// anywhere in this file.
+//
+// Only the third actor carries a receipt. That is not an oversight and not a
+// gap to be filled: a receipt has to be followable to a real generated
+// artifact, and prose or restated copy in the margin violates the goal that
+// put the margin there. Three of the four actors have no such artifact
+// behind them, so their margin stays empty, which is the honest result.
+import Section from '../layout/Section.astro';
+import Receipt from '../primitives/Receipt.astro';
+import { withBase } from '../../lib/paths';
+
+interface Actor {
+  /** The actor, as the reader would name it out loud. */
+  who: string;
+  /** Its own verb — no two entries may share one. */
+  does: string;
+  body: string;
+  /** Key in receipts.generated.json, when this entry has a followable one. */
+  receipt?: string;
+}
+
+const actors: Actor[] = [
+  {
+    who: 'The agent',
+    does: 'writes',
+    body:
+      'It works from a spec and a plan you approved before any code existed, and every step it takes is one you can throw away. Nothing it does on its own is hard to undo.',
+  },
+  {
+    who: 'Mechanical checks',
+    does: 'decide',
+    body:
+      'Lint, types and tests run on the change, and their result is a verdict rather than an opinion. The agent cannot talk its way past a red one, and it does not get to mark its own work green.',
+  },
+  {
+    who: 'Reviewers who did not write the code',
+    does: 'read',
+    body:
+      'The diff goes to reviewers that share no context with the author and none with each other. Each reads the repository’s own guidance, attacks the change along its own lens, and keeps reporting findings until it has none left.',
+    receipt: 'reviewers',
+  },
+  {
+    who: 'You',
+    does: 'decide what is hard to undo',
+    body:
+      'Merging, shipping, and accepting a plan are yours. The loop runs up to each of those and stops, with the reason in front of you. It never asks for permission it has already taken.',
+  },
+];
+---
+
+<Section tone="surface" id="the-model" labelledby="model-heading" annotated>
+  <h2 id="model-heading" class="model__headline">
+    Four steps, and the last one is yours.
+  </h2>
+  <p class="model__sentence">
+    The agent does the reversible work, mechanical checks decide whether it is
+    green, reviewers who did not write the code read the diff, and a person
+    makes every decision that is hard to undo.
+  </p>
+
+  <ol class="model__list" role="list">
+    {actors.map((a, i) => (
+      <li class:list={['actor', a.receipt && 'annotation-row']}>
+        <span class="actor__n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+        <div class="actor__body">
+          <h3 class="actor__who">
+            {a.who} <span class="actor__does">{a.does}</span>
+          </h3>
+          <p class="actor__desc">{a.body}</p>
+        </div>
+        {/* DOM order is the contract: the receipt is the sibling immediately
+            after the entry body that carries the claim. Section.astro's
+            annotation margin only moves the BOX at wide widths, so reading
+            and focus order are already correct (WCAG 1.3.2). */}
+        {a.receipt && <Receipt receipt={a.receipt} />}
+      </li>
+    ))}
+  </ol>
+
+  <a class="model__link" href={withBase('/journeys/core/')}>
+    Follow one change through all four <span aria-hidden="true">→</span>
+  </a>
+</Section>
+
+<style>
+  .model__headline {
+    margin-bottom: var(--ds-space-5);
+    max-width: 20ch;
+  }
+
+  /* The whole lifecycle as one sentence, before it is expanded. Lead size and
+     display ink: it is the band's claim, and the list below it is the same
+     claim at higher resolution. */
+  .model__sentence {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface);
+    max-width: 62ch;
+    margin-bottom: var(--ds-space-8);
+  }
+
+  .model__list {
+    display: grid;
+    gap: var(--ds-space-7);
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .actor {
+    display: flex;
+    gap: var(--ds-space-5);
+    align-items: flex-start;
+  }
+
+  /* An annotated entry is a grid rather than a flex row, because the receipt
+     needs a track to be placed into. The content tracks reproduce the flex
+     row exactly — the ordinal, then the body — so an annotated entry lines up
+     with its un-annotated neighbours. Section.astro appends the margin track
+     and places the receipt; this declares only the row's own content. */
+  .actor.annotation-row {
+    /* `max-content`, not `auto`: below the margin's breakpoint there is no
+       `fr` track in the row, and an `auto` track absorbs ALL the leftover
+       space, shoving the annotated entry's body hundreds of pixels right of
+       its neighbours. `max-content` sizes the ordinal to the ordinal. */
+    --annotation-content-columns: max-content minmax(0, 100%);
+    /* Below the breakpoint the receipt stacks under the entry BODY rather
+       than under the ordinal, so it lines up with the claim it annotates
+       instead of hanging into the ordinal's gutter. */
+    --annotation-receipt-column: 2 / -1;
+    column-gap: var(--ds-space-5);
+  }
+
+  .actor__n {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-h3);
+    /* 600, not 800: mono ships two weights (see fonts.css). */
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .actor__body {
+    max-width: 62ch;
+  }
+
+  .actor__who {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  /* The verb, marked as the thing that differs between entries. Mono and a
+     field label, not chroma — the mark means state and nothing else. */
+  .actor__does {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-regular);
+    letter-spacing: 0.02em;
+    color: var(--ds-field-label);
+  }
+
+  .actor__desc {
+    color: var(--ds-on-surface-2);
+  }
+
+  .model__link {
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-body-lg);
+    /* colour / text-decoration come from the global `a` rule in base.css. */
+  }
+
+  @media (max-width: 640px) {
+    .actor {
+      flex-direction: column;
+      gap: var(--ds-space-2);
+    }
+
+    /* `flex-direction` does not reach a grid, so the annotated entry stacks
+       by collapsing to one content track. The receipt keeps spanning the row
+       and keeps its DOM position — beneath the claim. */
+    .actor.annotation-row {
+      --annotation-content-columns: minmax(0, 1fr);
+      --annotation-receipt-column: 1 / -1;
+      row-gap: var(--ds-space-2);
+    }
+  }
+</style>

@@ -65,18 +65,49 @@ An **optional, shape-pruned** section in `plan.md`, placed **before `## Tasks`**
 | # | Sub-heading | What it captures |
 | --- | --- | --- |
 | 1 | Design decisions | Load-bearing choices and the alternatives rejected |
-| 2 | Data & schema | Entities, fields, types, ownership, migrations, retention |
-| 3 | Interfaces & contracts | Surfaces exposed/consumed (REST, events, BFF, RPC) |
+| 2 | Data & schema | Entities, fields, types, ownership, migrations, retention. When the feature migrates existing data: backfill checkpointing, restartability, cutover validation |
+| 3 | Interfaces & contracts | Surfaces exposed/consumed (REST, events, BFF, RPC). When the feature crosses a boundary: a named test seam per crossed boundary |
 | 4 | Component / module decomposition | The parts, their responsibilities, new vs. reused |
-| 5 | State & control flow | State model, transitions, sequencing; UI navigation |
+| 5 | State & control flow | State model, transitions, sequencing; UI navigation. When state changes concurrently: concurrency, consistency, locking, atomicity, transaction boundaries |
 | 6 | Behavior & rules | Business and validation rules |
-| 7 | Failure, edge cases & resilience | Retries, fallbacks, timeouts, idempotency, degraded modes |
-| 8 | Quality attributes (NFRs) | How the design meets each NFR-with-a-bar |
+| 7 | Failure, edge cases & resilience | Retries, fallbacks, timeouts, idempotency, degraded modes. When external failures are possible: stable error classes, retryability, external failure mapping |
+| 8 | Quality attributes (NFRs) | How the design meets each NFR-with-a-bar. When the feature needs operational visibility: a concrete observability surface |
 | 9 | Dependencies & integration | External systems/services/libraries and their coupling |
 
 The **tenth** design category — **rollout & deployment** — is *not* a Design sub-heading. It is realized by the plan's expanded `## Rollout` section (infrastructure, external-system integration, deployment sequencing). Cross-link it from the Design sub-sections; never duplicate it.
 
 Each sub-section **traces to the acceptance criteria it satisfies and the `contracts/` it implements** — so the design is always anchored to something verifiable. No acceptance criterion lives in the design; the spec keeps the contract. (A user-visible UI state and an NFR with a pass/fail bar each *rise* to the spec as acceptance criteria; the per-screen and per-NFR design sits here.)
+
+Each sub-section also carries **`Owned by:`** — the task IDs that implement its
+decisions, comma-separated, each matching `T<number>` with an optional lettered
+suffix. `Traces to:` points up at the contract; `Owned by:` points down at the
+work, so a design decision that nothing builds is visible before execution
+starts.
+
+The edge runs **one way only**. A design decision names its tasks; a task never
+has to cite a design decision. Over a third of tasks have no design origin —
+release, gate, documentation, projection and test-only work answers to
+`## Durable Outputs` and the acceptance criteria instead. Measured on this
+catalogue's own corpus: 921 of 2,511 tasks, 36.7%, sit in the 183 plans that
+carry no design section at all, so a reverse rule would fire on every one of
+them.
+
+Once any `## Design (LLD)` sub-section of a plan carries `Owned by:`,
+`lint-contract-item-alignment.py` checks that plan: every sub-section with body content must name at least one task ID,
+and every named ID must match a task heading in that plan. A plan that carries
+the field nowhere is reported as predating it, never failed, so no existing
+plan needs migrating. The lint checks the **declared field**; whether every
+design decision genuinely has an owner is the pre-review walk's question, not
+the lint's.
+
+Before approval, the design is working material an implementer corrects in
+place. After approval it is not: the approval digest hashes the whole plan, so
+an in-place edit moves the hash and the transition guard refuses it. Two cases
+then route differently — grounding that arrives for a seam the plan recorded as
+`no stub (implementation-discovered)` goes to the verification ledger, because
+the plan predicted that discovery; a design decision approval settled and
+execution falsified is a plan error taking the controlled-amendment procedure.
+The ledger is not a route for the second.
 
 At closeout, the LLD is treated as mixed delivery material. Policy, trade-offs,
 rejected alternatives, current ownership, state/control flow, security

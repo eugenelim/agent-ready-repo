@@ -57,14 +57,14 @@ const readableDate = (iso: string) => {
     <a class="now-empty__link" href={changelogHref}>Read the changelog</a>
   </div>
 ) : (
-  <ol class="now-list">
+  <ol class="now-list" role="list">
     {groups.map((group) => (
       <li class="now-release">
         <div class="now-release__meta">
           <span class="now-release__name">{releaseLabel(group)}</span>
           <time class="now-release__date" datetime={group.date}>{readableDate(group.date)}</time>
         </div>
-        <ul class="now-release__highlights">
+        <ul class="now-release__highlights" role="list">
           {group.highlights.map((highlight) => (
             <li class="now-highlight">
               {highlight.segments.map((segment) => (
@@ -85,21 +85,50 @@ const readableDate = (iso: string) => {
 )}
 
 <style>
-  /* ── Releases ──────────────────────────────────────────────────────── */
+  /* ── Releases ──────────────────────────────────────────────────────────
+     A ruled record list, not a stack of tinted boxes. The release used to
+     carry `--ds-surface-alt`, a border and `--ds-radius-md`, which
+     contradicted three axes of the direction sheet at once: `[ruled]`
+     containment ("rules divide and rank; no cards, no tinted panels"),
+     `[flat]` material ("separation comes from rules, space and alignment")
+     and `[none]` ornament. The homepage's outcome band had exactly the same
+     contradiction and it was resolved the same way; this surface is one
+     route from it, so the two now read as one site.
+
+     The shape is PackCatalogue's `.work-records` / `.work-record` and
+     WhatYouInstall's `.units__list` / `.unit`: rules on the record's TOP
+     edge, the list closing on its own bottom rule, and space doing the work
+     the padding box used to do. --ds-rule-boundary measures 3.53:1 on
+     --ds-surface, which is this band's ground. */
+
+  /* `minmax(0, 1fr)`, not the implicit `auto` track. A grid item's automatic
+     minimum size is its MIN-CONTENT size, and a grid track is not clamped by
+     its container, so the release grew to whatever its longest unbreakable
+     run demanded and pushed the page past the viewport. Measured at the
+     supported 320px minimum: document scrollWidth 349 against a 320 client
+     width — a live WCAG 1.4.10 Reflow failure, and the same state as 1280px
+     at 400% zoom. Stating the track minimum as 0 lets the release shrink to
+     the band. Retained through the restyle: dropping the fill and the border
+     does not change a track's intrinsic minimum. */
   .now-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: var(--ds-space-6);
+    grid-template-columns: minmax(0, 1fr);
+    border-bottom: 1px solid var(--ds-rule-boundary);
   }
 
+  /* Vertical rhythm is now padding on the record, not a grid `gap` between
+     boxes: a gap would put daylight between a record and the rule that is
+     supposed to bound it. */
   .now-release {
-    background-color: var(--ds-surface-alt);
-    border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
-    border-radius: var(--ds-radius-md);
-    padding: var(--ds-space-6);
+    padding-block: var(--ds-space-6);
+    border-top: 1px solid var(--ds-rule-hairline);
+  }
+
+  .now-release:first-child {
+    border-top: 1px solid var(--ds-rule-boundary);
   }
 
   .now-release__meta {
@@ -113,6 +142,7 @@ const readableDate = (iso: string) => {
   .now-release__name {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-sm);
+    font-variant-numeric: tabular-nums lining-nums;
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-on-surface);
   }
@@ -122,6 +152,7 @@ const readableDate = (iso: string) => {
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
     color: var(--ds-on-surface-2);
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   .now-release__highlights {
@@ -131,10 +162,28 @@ const readableDate = (iso: string) => {
     gap: var(--ds-space-4);
   }
 
+  /* The second half of the 320px reflow fix, and it is load-bearing on its
+     own — clamping the track alone only moves the overflow inside the box.
+     The arithmetic, recomputed against the ruled layout: at 320px the
+     horizontal margin is `clamp(1.25rem, 5vw, 2.5rem)` = 20px a side, so the
+     band is 280px; the record no longer has horizontal padding, so this
+     list's 16px indent (below 640px) leaves 264px for the text — 72px more
+     than the 192px the boxed layout left. The longest highlight's
+     min-content width is 239px, an unbreakable identifier, so it still
+     overruns a 320px band without this declaration and no amount of track
+     clamping helps.
+
+     `anywhere` rather than `break-word` because only `anywhere` is counted
+     in intrinsic sizing: `break-word` would still report a 239px min-content
+     and the grid item would still be sized by it. Precedent on this surface
+     is `.hero__proof`, which carries the same declaration for the same
+     reason. It is inherited, so the `<code>` and `<strong>` runs inside a
+     highlight break too. */
   .now-highlight {
     font-size: var(--ds-type-body);
     color: var(--ds-on-surface-2);
     line-height: var(--ds-lead-body);
+    overflow-wrap: anywhere;
   }
 
   .now-highlight strong {
@@ -143,17 +192,39 @@ const readableDate = (iso: string) => {
   }
 
   .now-release__source {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-medium);
   }
 
-  /* ── Empty state ───────────────────────────────────────────────────── */
+  /* Below the first canonical breakpoint the record's vertical padding and
+     the highlight indent both step down one stop. The indent is the measure
+     argument: it returns 8px to a 320px band's text column. The vertical
+     step is rhythm, not reflow — 32px of padding above and below each record
+     is generous on a phone where the rule is already doing the separating. */
+  @media (max-width: 640px) {
+    .now-release {
+      padding-block: var(--ds-space-5);
+    }
+
+    .now-release__highlights {
+      padding-left: var(--ds-space-4);
+    }
+  }
+
+  /* ── Empty state ───────────────────────────────────────────────────────
+     Same treatment, and for the same reason. This is the branch an adopter
+     fork with no released Highlights lands on, so it is the first thing that
+     reader sees on this route; rendering it as the one tinted, rounded panel
+     on a paper surface would make the fork's empty site look like a
+     different site. Bounded by the same pair of rules a one-record list
+     would be, so the two branches occupy the same shape. */
   .now-empty {
-    background-color: var(--ds-surface-alt);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-md);
-    padding: var(--ds-space-6);
+    padding-block: var(--ds-space-6);
+    border-top: 1px solid var(--ds-rule-boundary);
+    border-bottom: 1px solid var(--ds-rule-boundary);
   }
 
   .now-empty__text {

@@ -1,7 +1,8 @@
 ---
 // Section 1 — Pack hero for journey pages. Light zone (no dark band on journey
-// pages — task instruction: "all journey pages are light zone #fafaf9 with
-// amber-bordered gate cards"). Amber accents provide visual weight.
+// pages — journey pages are light zone: the record). Weight comes from record
+// ink and ruled boundaries; chroma is reserved for clearance and functional
+// state, so nothing here is tinted.
 import { withBase } from '../../lib/paths';
 import StatusChip from '../primitives/StatusChip.astro';
 
@@ -26,7 +27,12 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
     </div>
     <h1 class="journey-hero__name">{name}</h1>
     <p class="journey-hero__tagline">{tagline}</p>
-    <div class="journey-hero__stats" aria-label="Session statistics">
+    {/* `role="group"`. The `aria-label` was on a bare <div>, whose implicit
+        role is `generic`, and ARIA in HTML forbids a name on `generic` — every
+        assistive technology DROPS it, so the label was rendering to nobody.
+        `group` is the role this actually is: a set of related stats read as a
+        unit, named once. */}
+    <div class="journey-hero__stats" role="group" aria-label="Session statistics">
       <span class="stat"><strong>{skillCount}</strong> skills</span>
       <span class="stat-sep" aria-hidden="true">·</span>
       <span class="stat"><strong>{humanTouches}</strong> {humanTouches === 1 ? 'human gate' : 'human gates'}</span>
@@ -60,7 +66,7 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
   .journey-hero__name {
     font-size: var(--ds-type-display);
     font-weight: var(--ds-weight-heavy);
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     letter-spacing: var(--ds-track-display);
     line-height: var(--ds-lead-display);
     margin-bottom: var(--ds-space-4);
@@ -103,12 +109,15 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
   .btn-primary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
     gap: var(--ds-space-2);
     background-color: var(--ds-cta-primary-bg);
     color: var(--ds-cta-primary-fg);
     font-weight: var(--ds-weight-semibold);
-    padding: 0.7rem 1.6rem;
-    border-radius: var(--ds-radius-pill);
+    padding: 0.5rem 1.6rem;
+    border-radius: var(--ds-radius-md);
     text-decoration: none;
     transition: background-color var(--ds-dur-moderate) var(--ds-ease-std);
   }
@@ -120,18 +129,21 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
   .btn-ghost {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
     gap: var(--ds-space-2);
     color: var(--ds-cta-ghost-light-fg);
     font-weight: var(--ds-weight-semibold);
-    padding: 0.7rem 1.6rem;
-    border-radius: var(--ds-radius-pill);
+    padding: 0.5rem 1.6rem;
+    border-radius: var(--ds-radius-md);
     border: 1px solid var(--ds-cta-ghost-light-border);
     text-decoration: none;
     transition: background-color var(--ds-dur-moderate) var(--ds-ease-std);
   }
 
   .btn-ghost:hover {
-    background-color: var(--ds-accent-subtle);
+    background-color: var(--ds-border);
   }
 
   @media (prefers-reduced-motion: reduce) {

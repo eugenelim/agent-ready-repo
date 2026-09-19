@@ -2,6 +2,7 @@
 // Section 6 — WORKS WITH YOUR AGENT. Light zone. h3, not h2 — this is a trust
 // checkpoint, not a major section. Data from index.md adapter table.
 import Section from '../layout/Section.astro';
+import Receipt from '../primitives/Receipt.astro';
 
 const capabilities = ['Skills', 'Subagents', 'Hooks', 'Commands'];
 const agents = [
@@ -15,48 +16,72 @@ const agents = [
 ];
 ---
 
-<Section tone="surface" labelledby="adapters-heading">
-  <h3 id="adapters-heading" class="adapters__headline">One install. Every major agent.</h3>
+<Section tone="surface" labelledby="adapters-heading" annotated>
+  <div class="annotation-row adapters__record">
+    {/* One grid item: the claim and the table that states it. The annotation
+        row is ONE LEVEL UP from the claim for a reason — a receipt placed in a
+        row whose items are the claim's own children would have to span sibling
+        rows of an implicitly-sized grid, and `grid-row: 1 / -1` resolves `-1`
+        against the EXPLICIT grid, which has no rows. */}
+    <div class="adapters__claim">
+      <h3 id="adapters-heading" class="adapters__headline">One install. Every major agent.</h3>
 
-  <div
-    class="adapters__scroll"
-    role="region"
-    aria-label="Adapter capability matrix (scrollable)"
-    tabindex="0"
-  >
-    <table class="adapters__table">
-      <thead>
-        <tr>
-          <th scope="col">Agent</th>
-          {capabilities.map((c) => <th scope="col">{c}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {agents.map((a) => (
-          <tr>
-            <th scope="row">{a.name}</th>
-            {a.caps.map((has) => (
-              <td>
-                {has ? (
-                  <><span class="cap cap--yes" aria-hidden="true">✓</span><span class="visually-hidden">Yes</span></>
-                ) : (
-                  <><span class="cap cap--no" aria-hidden="true">—</span><span class="visually-hidden">No</span></>
-                )}
-              </td>
+      <section
+        class="adapters__scroll"
+        aria-label="Adapter capability matrix (scrollable)"
+        tabindex="0"
+      >
+        <table class="adapters__table">
+          <thead>
+            <tr>
+              <th scope="col">Agent</th>
+              {capabilities.map((c) => <th scope="col">{c}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {agents.map((a) => (
+              <tr>
+                <th scope="row">{a.name}</th>
+                {a.caps.map((has) => (
+                  <td>
+                    {has ? (
+                      <><span class="cap cap--yes" aria-hidden="true">✓</span><span class="visually-hidden">Yes</span></>
+                    ) : (
+                      <><span class="cap cap--no" aria-hidden="true">—</span><span class="visually-hidden">No</span></>
+                    )}
+                  </td>
+                ))}
+              </tr>
             ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+          </tbody>
+        </table>
+      </section>
 
-  <p class="adapters__note">
-    Switch adapters with one flag. Your skills, subagents, and hooks project into the
-    layout each agent expects.
-  </p>
+      <p class="adapters__note">
+        Switch adapters with one flag. Your skills, subagents, and hooks project into the
+        layout each agent expects.
+      </p>
+    </div>
+    {/* DOM order is the contract: the receipt is the sibling immediately after
+        the block carrying the claim it evidences. Section.astro's annotation
+        margin only moves the BOX at wide widths, so reading and focus order
+        are already correct (WCAG 1.3.2). */}
+    <Receipt receipt="adapters" />
+  </div>
 </Section>
 
 <style>
+  /* The claim takes the band; the margin takes its declared minimum.
+     `100%` rather than an `fr`: the margin track is `minmax(--ds-annotation-
+     col-min, 1fr)` in Section.astro, so an `fr` here would split the band in
+     half and leave the receipt column floating in the middle of the measure.
+     A percentage growth limit lets the claim absorb every pixel the margin
+     does not need, which pins the receipt to exactly --ds-annotation-col-min
+     and flush to the content's right edge in every annotated band. */
+  .adapters__record {
+    --annotation-content-columns: minmax(0, 100%);
+  }
+
   .adapters__headline {
     margin-bottom: var(--ds-space-6);
   }
@@ -92,9 +117,10 @@ const agents = [
   .adapters__table thead th {
     background-color: var(--ds-surface-alt);
     font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    color: var(--ds-on-surface-muted);
+    /* Sentence case, minimal tracking — a field label, not a decorative
+       uppercase eyebrow (docs/design/direction/tech-site-amendment-palette.md). */
+    letter-spacing: 0.02em;
+    color: var(--ds-field-label);
     font-weight: var(--ds-weight-semibold);
   }
 
@@ -116,7 +142,7 @@ const agents = [
   }
 
   .cap--yes {
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     font-weight: var(--ds-weight-bold);
   }
 

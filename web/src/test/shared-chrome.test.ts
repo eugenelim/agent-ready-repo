@@ -89,7 +89,7 @@ describe('currentState', () => {
   });
 
   it('never claims current state for a homepage fragment', () => {
-    for (const target of ['/#three-loops', '/#use-cases', '/#install']) {
+    for (const target of ['/#the-model', '/#use-cases', '/#install']) {
       expect(at(link({ target }), '/agent-ready-repo/')).toBeUndefined();
     }
   });

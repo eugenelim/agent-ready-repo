@@ -45,7 +45,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
       <!-- Skills -->
       <div class="pack-section">
         <h2 class="pack-section__title">Skills in this pack</h2>
-        <ul class="skills-list">
+        <ul class="skills-list" role="list">
           {data.skills.map((skill) => (
             <li class="skill-item">
               <code class="skill-name">{skill}</code>
@@ -192,7 +192,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     margin-top: var(--ds-space-5);
     padding: var(--ds-space-4) var(--ds-space-5);
     background-color: var(--ds-surface-alt);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-sm);
   }
 
@@ -203,9 +203,9 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
   }
 
   .pack-description :global(code) {
-    padding: 0.1rem 0.4rem;
-    color: var(--ds-accent-deep);
-    background-color: var(--ds-accent-subtle);
+    padding: 0.25rem 0.4rem;
+    color: var(--ds-on-surface);
+    border: 1px solid var(--ds-rule-hairline);
     border-radius: var(--ds-radius-sm);
   }
 
@@ -258,14 +258,22 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     display: inline-block;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
+    border: 1px solid var(--ds-rule-hairline);
+    color: var(--ds-on-surface-2);
     padding: 0.25rem 0.6rem;
     border-radius: var(--ds-radius-sm);
   }
 
+  /* PAPER. A command block is a FIELD on the page, not a second ground: the
+     dark ground appears exactly once, at the close (marketing-site.md, Owner
+     decisions 2026-09-18). What made it read as a block was the fill; what
+     makes it read as a field now is the boundary rule, which is the
+     direction's [ruled] containment. --ds-rule-boundary measures 3.53:1 on
+     --ds-surface and 3.26:1 on --ds-surface-alt, clearing WCAG 1.4.11 on
+     either band this block lands in. */
   .install-block {
-    background-color: var(--ds-hero-bg);
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
     padding: var(--ds-space-5) var(--ds-space-6);
     margin-bottom: var(--ds-space-3);
@@ -274,7 +282,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
   .install-block__code {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     line-height: var(--ds-lead-mono);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -313,7 +321,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     overflow-wrap: anywhere;
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 640px) {
     .install-block__plugin-row {
       flex-direction: column;
       align-items: flex-start;
@@ -333,7 +341,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-medium);
-    padding: 0.3rem 0.7rem;
+    padding: 0.25rem 0.7rem;
     cursor: pointer;
     transition:
       background-color var(--ds-dur-quick) var(--ds-ease-std),
@@ -342,15 +350,26 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
   }
 
   .install-copy-btn:hover {
-    background-color: var(--ds-accent-subtle-dk);
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
+    border-color: var(--ds-hero-fg);
+    color: var(--ds-hero-fg);
   }
 
-  .install-copy-btn--success {
-    background-color: var(--ds-accent-subtle-dk);
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
+  /* Confirmed copy. The button's own label swaps to "Copied!" in the click
+     handler, so the state is announced in words; the visual channel here is a
+     filled inversion — record ground behind machine ink — which hover never
+     produces, so the two states cannot be confused without colour.
+
+     The doubled class is load-bearing. A click leaves the pointer ON the
+     button, so `:hover` is still matching when the success class lands; at
+     equal weight the more specific hover rule won, and it sets the text to the
+     same white this rule sets the fill to. Measured white-on-white, 1:1, for
+     the full two seconds the confirmation is up. Both selectors are needed:
+     the plain one for a keyboard activation with no pointer over the button. */
+  .install-copy-btn.install-copy-btn--success,
+  .install-copy-btn.install-copy-btn--success:hover {
+    background-color: var(--ds-hero-fg);
+    border-color: var(--ds-hero-fg);
+    color: var(--ds-hero-bg);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -366,7 +385,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     gap: var(--ds-space-4);
     background-color: var(--ds-surface-alt);
     border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
     padding: var(--ds-space-6);
     text-decoration: none;
@@ -375,8 +394,8 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
   }
 
   .journey-link:hover {
-    border-color: var(--ds-accent);
-    border-left-color: var(--ds-accent);
+    border-color: var(--ds-on-surface);
+    border-left-color: var(--ds-on-surface);
   }
 
   .journey-link__label {
@@ -395,7 +414,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
 
   .journey-link__arrow {
     font-size: var(--ds-type-h3);
-    color: var(--ds-accent);
+    color: var(--ds-on-surface);
     flex-shrink: 0;
   }
 
@@ -414,7 +433,7 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     letter-spacing: var(--ds-track-label);
     background-color: var(--ds-border);
     color: var(--ds-on-surface-muted);
-    padding: 0.1rem 0.5rem;
+    padding: 0.25rem 0.5rem;
     border-radius: var(--ds-radius-sm);
     margin-bottom: var(--ds-space-3);
   }
@@ -428,7 +447,9 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
   .docs-link {
     font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-body-lg);
-    color: var(--ds-accent-deep);
+    /* color / text-decoration now come from the global `a` rule in
+       base.css — this explicit override was the last plain-text link on
+       the site still rendering the withdrawn chromatic accent. */
   }
 
   @media (prefers-reduced-motion: reduce) {

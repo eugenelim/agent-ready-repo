@@ -18,6 +18,16 @@ ambition, Identity specificity — the alternating-band surface model, the singl
 amber accent, and the resolved decisions on colour mode and hero animation all
 **stand unchanged**. None is restated here; a reader needs both documents.
 
+> **[Superseded in part — 2026-09-18.]** The sentence above is no longer true of
+> the accent. `docs/design/direction/tech-site-amendment-palette.md` withdraws
+> the amber family and adds the goal **Checked in public** at rank 6. Two
+> consequences land on *this* document: the canvas's "amber accent on gate
+> nodes" mechanism is withdrawn in favour of shape and weight (§1 and §3 here),
+> and the accent-carrier contrast analysis in this document's quality-floor
+> check is re-derived against the new palette. Everything else here — the
+> canvas scope, the rail metaphor, **Portable whole**, and both arbitration
+> entries — stands unchanged.
+
 No goal is re-ranked. That is deliberate: three of the three findings below turn
 out to be resolvable *inside* the existing arbitration rather than by changing
 it, and the fourth adds one goal without displacing any.

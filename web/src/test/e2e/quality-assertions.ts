@@ -471,10 +471,11 @@ export async function expectLandmarkKeyboardReachable(
  * WCAG contrast ratio between two opaque colours.
  *
  * Callers must pass an already-composited background. Compositing is not
- * optional bookkeeping: `--ds-accent-subtle` is `#e8952b1a`, an 8-digit hex whose
- * trailing `1a` is a 10% alpha channel. Treating that as an opaque fill reports
- * 2.37:1 for the resting decision chip, which renders at 4.59:1 — a fabricated
- * failure. `compositedBackground` below does the layering.
+ * optional bookkeeping: a translucent fill such as `--prim-white-10`
+ * (`rgba(255, 255, 255, 0.10)`) reaches this function as an 8-digit hex whose
+ * trailing byte is the alpha channel. Treating that as an opaque fill measures
+ * the tint instead of what the eye sees over the carrier beneath it, which
+ * fabricates a failure. `compositedBackground` below does the layering.
  */
 function contrastRatio(fg: readonly number[], bg: readonly number[]): number {
   const channel = (c: number): number => {

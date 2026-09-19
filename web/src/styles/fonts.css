@@ -1,0 +1,129 @@
+/* ==========================================================================
+   Self-hosted webfaces — LATIN SUBSETS ONLY.
+
+   These @font-face rules are declared here rather than imported from the
+   Fontsource aggregate stylesheets (`@fontsource-variable/inter/wght.css`
+   and friends), because those aggregates declare every subset the upstream
+   family ships: Cyrillic, Cyrillic-ext, Greek, Greek-ext and Vietnamese on an
+   English-only surface. Each rule below is copied verbatim from its package
+   stylesheet with the `url()` rebased onto a bare package specifier; only the
+   subset selection differs.
+
+   Measured, and worth writing down because it is counter-intuitive:
+   dropping the non-Latin declarations saves ZERO fetched bytes. `unicode-range`
+   already gated them, so no browser rendering this site ever requested one.
+   What it saves is CSS text and emitted build assets, and what it buys is that
+   the declared set and the fetched set are now the same thing — so the next
+   person reading the font cost reads the real number.
+
+   The fetched cost is the Latin files themselves. Measured on disk, Latin
+   subset only, in this checkout:
+
+     Inter Variable wght ........................  48,256 B
+     JetBrains Mono 400 .........................  21,168 B
+     JetBrains Mono 600 .........................  21,860 B
+     Newsreader Variable opsz .................. 132,000 B
+     -----------------------------------------------------
+     total ..................................... 223,284 B  (223.3 KB)
+
+   JETBRAINS MONO IS TWO WEIGHTS, 400 AND 600, AND THAT IS DELIBERATE.
+   The 500, 700 and 800 declarations were deleted in stage 2 of the paper-first
+   retrofit. Mono is this direction's FIELD face — commands, identifiers,
+   labels and evidence lines — and a field face needs one regular and one
+   emphasis, not a ramp. The four weights the home page actually fetched
+   (400/500/600/700) cost 86,768 B between them; two cost 43,028 B, which is
+   43,740 B back. That saving is what funds Newsreader, whose Latin opsz file
+   is 132,000 B and which is the direction's differentiator, so the trade is a
+   ramp nobody can see side by side for the one face the reader will notice.
+
+   Consequence to respect when editing: asking for `font-weight: 500` or `700`
+   in mono no longer gets you that weight. The browser falls back to 400 or
+   600 and the emphasis step you meant silently changes. Every mono consumer in
+   `web/src` was moved onto 400 or 600 when the weights were cut; a new one must
+   pick one of the two rather than assume the ramp is still there.
+   ========================================================================== */
+
+/* ── @fontsource-variable/inter · wght.css ── */
+/* inter-latin-ext-wght-normal */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+/* inter-latin-wght-normal */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* ── @fontsource/jetbrains-mono · 400.css ── */
+/* jetbrains-mono-latin-ext-400-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-400-normal.woff2') format('woff2'), url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-400-normal.woff') format('woff');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+/* jetbrains-mono-latin-400-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2') format('woff2'), url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff') format('woff');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* ── @fontsource/jetbrains-mono · 600.css ── */
+/* jetbrains-mono-latin-ext-600-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-600-normal.woff2') format('woff2'), url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-600-normal.woff') format('woff');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+/* jetbrains-mono-latin-600-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2') format('woff2'), url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff') format('woff');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* ── @fontsource-variable/newsreader · opsz.css ── */
+/* newsreader-latin-ext-opsz-normal */
+@font-face {
+  font-family: 'Newsreader Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('@fontsource-variable/newsreader/files/newsreader-latin-ext-opsz-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+/* newsreader-latin-opsz-normal */
+@font-face {
+  font-family: 'Newsreader Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+

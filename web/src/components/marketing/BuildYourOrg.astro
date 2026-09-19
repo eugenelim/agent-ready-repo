@@ -1,13 +1,19 @@
 ---
-// Section 9 — BUILD YOUR ORG. Dark zone (footer-adjacent closer). Renders
-// immediately above the dark SiteFooter, so the two merge into one continuous
-// dark band — the only second dark band, reading as closure not interruption
-// (creative-direction.md / homepage-screen-flow.md §9).
+// ZONE 8 — OWN THE CATALOGUE. A LIGHT band in its own right, on the alternate
+// paper ground, and the last content band before the footer
+// (docs/design/direction/marketing-site.md, Owner decisions 2026-09-18:
+// '"Own the catalogue" is a light band, not part of the close'). It was built
+// dark and continuous with the footer, and merging the two cost the band its
+// job: a call-out that dissolves into the site furniture reads as furniture.
+//
+// The commitment that the dark ground appears EXACTLY ONCE is unchanged, and
+// it is why this move is admissible — the footer is now the sole carrier of
+// that ground, and the sole close.
 import Section from '../layout/Section.astro';
 import { withBase } from '../../lib/paths';
 ---
 
-<Section tone="dark" labelledby="org-heading">
+<Section tone="surface-alt" labelledby="org-heading">
   <div class="org">
     <h2 id="org-heading" class="org__headline">Own the catalogue your team runs.</h2>
     <p class="org__body">
@@ -27,40 +33,69 @@ import { withBase } from '../../lib/paths';
     max-width: 64ch;
   }
 
+  /* No `font-weight`. base.css gives h2 the serif display face and carries
+     BOTH variation axes; on a variable face `font-variation-settings` wins
+     over `font-weight`, so an 800 here would describe nothing. */
   .org__headline {
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     font-size: var(--ds-type-display);
-    font-weight: var(--ds-weight-heavy);
     line-height: var(--ds-lead-display);
     letter-spacing: var(--ds-track-display);
     margin-bottom: var(--ds-space-5);
   }
 
   .org__body {
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
     font-size: var(--ds-type-body-lg);
     margin-bottom: var(--ds-space-6);
   }
 
   .org__body code {
-    background-color: var(--ds-accent-subtle-dk);
-    color: var(--ds-accent);
-    padding: 0.1rem 0.4rem;
+    color: var(--ds-on-surface);
+    padding: 0.25rem 0.4rem;
     border-radius: var(--ds-radius-sm);
   }
 
+  /* Opt out of the base underline: a filled block. Channel = fill + radius +
+     padding, not colour. `gap` restores the space before the arrow that
+     inline-flex collapses out of the markup's whitespace text node.
+
+     RE-DERIVED for paper, not inherited. The band was dark, so this control
+     took the dark-band CTA pair (paper fill, ink label). On the alternate
+     paper ground that pairing is paper-on-paper and the control disappears,
+     which is the same 1.00:1 defect the dark pair was created to fix, in the
+     other direction. It takes the PAPER pair now:
+       fill #14120f on --ds-surface-alt #efece5 ... 15.85:1 (control vs ground)
+       text #f7f5f0 on fill #14120f ............... 17.16:1 (label vs fill)
+       hover fill #2e2a24 on --ds-surface-alt ..... 12.09:1
+     All three clear 1.4.11 (3:1) and 1.4.3 (4.5:1). The focus ring comes from
+     :root now — ink #14120f on #efece5, 15.85:1 — because the carrier is no
+     longer in the `.section--dark` set. */
   .org__cta {
-    display: inline-block;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    min-height: 44px;
+    box-sizing: border-box;
     background-color: var(--ds-cta-primary-bg);
     color: var(--ds-cta-primary-fg);
     font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-body);
-    padding: 0.7rem 1.6rem;
-    border-radius: var(--ds-radius-pill);
+    padding: 0.5rem 1.6rem;
+    border-radius: var(--ds-radius-md);
+    /* A border in the fill's own colour — invisible here, load-bearing under
+       `forced-colors: active`, which forces the fill to Canvas and would
+       leave this control as an undecorated run of LinkText. Same pattern and
+       same reason as `.hero__cta--primary` and `.nav__cta`. `box-sizing:
+       border-box` above absorbs it, so the 44px target is unchanged. */
+    border: 1px solid var(--ds-cta-primary-bg);
   }
 
   .org__cta:hover {
     background-color: var(--ds-cta-primary-bg-hover);
+    border-color: var(--ds-cta-primary-bg-hover);
     text-decoration: none;
   }
 </style>

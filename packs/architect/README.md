@@ -28,7 +28,7 @@ Map checkpoint — correct a boundary, or say “continue”.
 | “Assess architecture and provide an action plan.” | A standard current-state assessment, bounded investigations, and traced action waves |
 | “Give me a quick architecture survey; stop before drill-down.” | A correctable map, evidence coverage, attention heat, and recommended investigations |
 | “Do a deep launch-readiness assessment; ask before runtime access.” | A standard assessment extended with separately authorized operational or experimental evidence |
-| “How should we design the replacement?” | A Stage-0 concept, full design doc, and convergence through `architect-design` |
+| “How should we design the replacement?” | A Stage-0 concept, then a model-first design doc from the template matching its scope, and convergence through `architect-design` |
 | “Draw the current deployment topology.” | A self-checked Mermaid diagram through `architect-diagram` |
 | “Review this assessment report.” | An evidence-and-methodology critique through `architect-review` or the cold-context reviewer |
 

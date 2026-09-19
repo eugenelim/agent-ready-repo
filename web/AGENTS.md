@@ -63,12 +63,14 @@ input.
   co-deployed sites are deliberately on different engines; do not assume output
   parity when moving content between them.
 - Define the viewport meta tag once in `src/components/layout/SiteLayout.astro`; never duplicate it.
+- CSS token enforcement is `stylelint` + `stylelint-declaration-strict-value` + `postcss-html`, declared in `web/package.json`; `stylelint.config.mjs` owns which literals stay legal and why.
 
 ## Essential commands
 
 ```bash
 npm run build --prefix web
 npm run test:e2e:gate --prefix web
+npm run lint:css --prefix web
 ```
 
 ## Deeper pointers

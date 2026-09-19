@@ -1,0 +1,720 @@
+---
+// noindex — direction preview fixture. Renders the 2026-09-18 editorial
+// direction (docs/design/direction/marketing-site.md) in the face and the hero
+// figure the owner chose: Newsreader, with the typeset transcript to the right
+// of the reading column.
+//
+// It USED to declare its own complete parallel token layer — 20 raw colours and
+// 92 raw pixel values shadowing `--ds-*` role for role, with the two radii
+// retyped from the shipped values. That layer is folded into `tokens.css` and
+// deleted; this route now consumes the same semantic tokens the site does, so
+// the preview and the site can no longer drift apart silently.
+//
+// It imports tokens.css (custom-property declarations only — nothing there
+// paints) and fonts.css, and still imports no site COMPONENT, so the two
+// surfaces stay independent in markup.
+import '../styles/fonts.css';
+import '../styles/tokens.css';
+
+import receipts from '../lib/receipts.generated.json';
+
+interface ReceiptValue {
+  key: string;
+  label: string;
+  value: number;
+}
+interface Receipt {
+  key: string;
+  label: string;
+  source: string;
+  values: ReceiptValue[];
+  items: string[];
+}
+
+/**
+ * The inline evidence line that replaces the withdrawn annotation margin.
+ * Read from the generated receipt set, never hardcoded: if the reviewer roster
+ * changes, this line changes with it or the page fails to build.
+ */
+const reviewers = (receipts.receipts as Receipt[]).find((r) => r.key === 'reviewers');
+if (!reviewers) {
+  throw new Error('direction-preview: receipts.generated.json has no "reviewers" receipt');
+}
+const reviewerCount = reviewers.values[0].value;
+const reviewerNames = reviewers.items.join(', ');
+const reviewerSource = reviewers.source;
+
+/**
+ * The transcript figure — one loop run, stopping.
+ *
+ * Every value is a STATE, not a quantity. A measured count (the suite's pass
+ * total, say) would be correct on the day it was read and wrong the next time
+ * a test is added, and the figure has no generator behind it to re-read one
+ * from. `pass` is re-derivable by running the gate and never decays.
+ */
+const transcriptGates = [
+  { field: 'spec', state: 'accepted' },
+  { field: 'lint', state: 'pass' },
+  { field: 'typecheck', state: 'pass' },
+  { field: 'tests', state: 'pass' },
+] as const;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Direction preview — Newsreader, typeset transcript</title>
+    <meta
+      name="description"
+      content="Development preview of the editorial direction in Newsreader, with the typeset transcript figure. Not indexed, not linked from the site."
+    />
+  </head>
+  <body class="dp-page">
+    <p class="dp-page__note">
+      Direction preview — not a site page. One hero in the chosen display face,
+      Newsreader, with the chosen hero figure, the typeset transcript. Nothing on
+      this route is shared with the live site.
+    </p>
+
+    <article class="dp dp--fig dp--fig-b" data-face="Newsreader">
+      <p class="dp__badge">Direction preview — Newsreader · typeset transcript</p>
+
+      {/* ── nav row ─────────────────────────────────────────────── */}
+      <header class="dp__nav">
+        <div class="dp__col">
+          <div class="dp__navrow">
+            <span class="dp__wordmark">agent-ready-repo</span>
+            <nav class="dp__navlinks" aria-label="Preview navigation">
+              <span>Catalogue</span>
+              <span>Journeys</span>
+              <span>Now</span>
+              <span>Docs</span>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* ── hero: reading column, then the transcript figure ────── */}
+      <section class="dp__hero dp__hero--fig">
+        <div class="dp__col dp__col--split">
+          <div class="dp__lede">
+            <p class="dp__eyebrow">
+              <span class="dp__eyebrow-rule" aria-hidden="true" />
+              Spec-driven build loop
+            </p>
+            <h1 class="dp__display">
+              Your agents write the code. The decisions you can't undo stay yours.
+            </h1>
+            <p class="dp__deck">
+              Reversible agent work, then mechanical checks, then reviewers who
+              didn't write the code, then you.
+            </p>
+            <div class="dp__controls">
+              <span class="dp__control dp__control--filled">Install the core pack</span>
+              <span class="dp__control dp__control--text">Read what it writes</span>
+            </div>
+            <p class="dp__fineprint">
+              Claude Code, Codex, Cursor, Copilot, Gemini, Kiro. Switch agents,
+              keep the loop.
+            </p>
+          </div>
+
+          <figure class="dp__figure">
+            <div class="dp__rec">
+              <p class="dp__rec-title">web &middot; work-loop</p>
+              <dl class="dp__rec-group">
+                {transcriptGates.map((row) => (
+                  <div class="dp__rec-row">
+                    <dt>{row.field}</dt>
+                    <dd>{row.state}</dd>
+                  </div>
+                ))}
+              </dl>
+              <dl class="dp__rec-group">
+                <div class="dp__rec-row">
+                  <dt>adversarial-reviewer</dt>
+                  <dd>returned</dd>
+                  <dd class="dp__rec-note">findings returned — the loop repeats</dd>
+                </div>
+                <div class="dp__rec-row">
+                  <dt>quality-engineer</dt>
+                  <dd>waiting</dd>
+                </div>
+                <div class="dp__rec-row">
+                  <dt>security-reviewer</dt>
+                  <dd>waiting</dd>
+                </div>
+              </dl>
+              <dl class="dp__rec-group dp__rec-group--held">
+                <div class="dp__rec-row dp__rec-row--held">
+                  <dt>merge</dt>
+                  <dd>HELD</dd>
+                  <dd class="dp__rec-note">awaiting a person</dd>
+                </div>
+              </dl>
+              <p class="dp__rec-source">
+                {reviewerCount} cold reviewers — {reviewerNames} &middot; {reviewerSource}
+              </p>
+            </div>
+
+            <figcaption class="dp__figcap">
+              Typeset transcript — selectable text · one loop run, stopping
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      {/* ── content band ────────────────────────────────────────── */}
+      <section class="dp__band">
+        <div class="dp__col">
+          <h2 class="dp__head">Review is the gate, not the suggestion</h2>
+          <p class="dp__body">
+            A diff leaves the implementer and goes to reviewers that share no
+            context with it and no context with each other. Each one reads the
+            repository's own guidance, attacks the change along its own lens, and
+            reports findings until it has none left. The loop does not advance on
+            an assurance; it advances on a clean report from every lens, and then
+            it stops and asks you.
+          </p>
+          <p class="dp__evidence">
+            {reviewerCount} cold reviewers per diff — {reviewerNames} &middot;{' '}
+            {reviewerSource}
+          </p>
+        </div>
+      </section>
+
+      {/* ── close band — the one dark ground ────────────────────── */}
+      <section class="dp__close">
+        <div class="dp__col">
+          <p class="dp__eyebrow dp__eyebrow--dark">
+            <span class="dp__eyebrow-rule" aria-hidden="true" />
+            Install
+          </p>
+          <h2 class="dp__closehead">
+            One command, and you can read every file it wrote.
+          </h2>
+          <p class="dp__command">uvx agentbundle install core</p>
+        </div>
+      </section>
+    </article>
+
+    <style is:global>
+      /* ═══════════════════════════════════════════════════════════════════
+         Direction preview — scoped to `.dp` (and the `.dp-page` body).
+         Every custom property below is declared on `.dp`, NOT on `:root`, so
+         no value here can be inherited by a real site page. This file is the
+         only consumer.
+
+         The palette is no longer declared here. Every colour resolves to a
+         `--ds-*` semantic token in `src/styles/tokens.css`, which carries the
+         measured ratio beside each value.
+         ═══════════════════════════════════════════════════════════════════ */
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body.dp-page {
+        margin: 0;
+        background: var(--ds-surface);
+        color: var(--ds-on-surface-2);
+        font-family: var(--ds-font-sans);
+      }
+
+      .dp-page__note {
+        margin: 0;
+        padding: 16px 40px;
+        background: var(--ds-hero-bg);
+        color: var(--ds-hero-fg);
+        font-family: var(--ds-font-mono);
+        font-size: var(--ds-type-xs);
+        line-height: 1.6;
+      }
+
+      /* Every value below resolves to a `--ds-*` semantic token declared in
+         tokens.css. The former `--paper-*` / `--mark-*` / `--close-*` /
+         `--dp-*` declarations are gone: they were the same ramp under
+         different names, and the two radii (6px, 2px) were --ds-radius-md and
+         --ds-radius-sm retyped. The two values with no semantic equivalent —
+         the preview gutter and the preview measure — are written literally
+         where they are used rather than promoted to a namespace of two. */
+      .dp {
+        display: block;
+        background: var(--ds-surface);
+        color: var(--ds-on-surface-2);
+        border-top: 1px solid var(--ds-rule-boundary); /* variant boundary */
+      }
+
+      /* One reading column. One left axis. No second column, no margin,
+         no aside — the annotation track is withdrawn. */
+      .dp__col {
+        max-width: 1120px;
+        margin: 0;
+        padding-inline: 40px;
+      }
+
+      .dp *,
+      .dp *::before,
+      .dp *::after {
+        box-sizing: border-box;
+      }
+
+      /* Preview scaffolding, not part of the direction. Its underline divides
+         the badge strip from the article and reports no state, so it keeps the
+         decorative hairline token. */
+      .dp__badge {
+        margin: 0;
+        padding: 8px 40px;
+        background: var(--ds-surface-alt);
+        border-bottom: 1px solid var(--ds-rule-hairline);
+        font-family: var(--ds-font-mono);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ds-on-surface-muted);
+      }
+
+      /* ── nav row ──────────────────────────────────────────────────────── */
+      .dp__nav {
+        background: var(--ds-surface);
+        padding-block: 24px;
+      }
+
+      /* The rule under the nav row is the navigation component's own lower
+         boundary — it is what tells a sighted reader where the chrome ends and
+         the page begins, and it is the line a "you are here" state would be
+         carried on. That makes it a user-interface component boundary under
+         WCAG 1.4.11, owing 3:1, not a decorative divider owing 1.8:1. It reads
+         paper-300 (3.53:1 on paper-50), not paper-200 (2.05:1). */
+      .dp__navrow {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 32px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--ds-rule-boundary);
+      }
+
+      .dp__wordmark {
+        font-family: var(--ds-font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--ds-on-surface);
+      }
+
+      .dp__navlinks {
+        display: flex;
+        gap: 24px;
+        font-family: var(--ds-font-sans);
+        font-size: 13px;
+        font-weight: 450;
+        color: var(--ds-on-surface-muted);
+      }
+
+      /* ── hero ─────────────────────────────────────────────────────────── */
+      .dp__hero {
+        background: var(--ds-surface);
+        padding-block: 96px 112px;
+      }
+
+      /* An eyebrow is a FIELD LABEL and its rule is a NEUTRAL RULE. Both
+         were the mark until stage 2, which is the use the owner decision of
+         2026-09-18 retires: the mark means state and nothing else — a
+         refusal, a hold, a block. Two jobs is exactly how the amber accent
+         failed, and one job is what makes the HELD row below the loudest
+         thing on the page.
+           --ds-field-label   #6b655b on --ds-surface ....... 5.30:1 (text)
+           --ds-rule-boundary #8a8172 on --ds-surface ....... 3.53:1 (rule)
+         On the close band the same two roles are re-derived rather than
+         inherited, because a paper-tuned label would vanish there:
+           --ds-hero-fg-muted #938d82 on --ds-hero-bg ....... 5.67:1 (text)
+           --ds-rule-boundary #8a8172 on --ds-hero-bg ....... 4.86:1 (rule)
+         `font-weight: 600`, not 500: mono ships two weights now. */
+      .dp__eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 32px;
+        font-family: var(--ds-font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ds-field-label);
+      }
+
+      .dp__eyebrow-rule {
+        display: block;
+        width: 40px;
+        height: 2px;
+        background: var(--ds-rule-boundary);
+      }
+
+      .dp__eyebrow--dark {
+        color: var(--ds-hero-fg-muted);
+      }
+
+      .dp__eyebrow--dark .dp__eyebrow-rule {
+        background: var(--ds-rule-boundary);
+      }
+
+      /* Serif display. `font-variation-settings` carries BOTH axes: setting it
+         at all would otherwise reset `wght` to the face default. */
+      .dp__display {
+        margin: 0 0 32px;
+        max-width: 18ch;
+        font-family: var(--ds-font-display);
+        font-variation-settings: 'opsz' var(--ds-opsz-display), 'wght' 420;
+        font-weight: 420;
+        font-size: clamp(2.75rem, 6.4vw, 5.25rem);
+        line-height: 1.02;
+        letter-spacing: -0.022em;
+        color: var(--ds-on-surface);
+        text-wrap: balance;
+      }
+
+      .dp__deck {
+        margin: 0 0 40px;
+        max-width: 61ch; /* renders ~72 chars in Inter; 66ch measured 77.8 */
+        font-family: var(--ds-font-sans);
+        font-size: var(--ds-type-body-lg);
+        font-weight: 400;
+        line-height: 1.6;
+        color: var(--ds-on-surface-2);
+      }
+
+      .dp__controls {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 40px;
+      }
+
+      .dp__control {
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--ds-font-sans);
+        font-size: 0.9375rem;
+        font-weight: 500;
+      }
+
+      .dp__control--filled {
+        padding: 12px 24px;
+        background: var(--ds-on-surface);
+        color: var(--ds-surface);
+        border-radius: var(--ds-radius-md); /* controls */
+      }
+
+      .dp__control--text {
+        padding: 12px 0;
+        color: var(--ds-on-surface-2);
+        border-bottom: 1px solid var(--ds-rule-boundary);
+      }
+
+      .dp__fineprint {
+        margin: 0;
+        font-family: var(--ds-font-mono);
+        font-size: var(--ds-type-xs);
+        line-height: 1.7;
+        color: var(--ds-on-surface-muted);
+      }
+
+      /* ── content band ─────────────────────────────────────────────────── */
+      .dp__band {
+        background: var(--ds-surface-alt);
+        border-top: 1px solid var(--ds-rule-boundary); /* boundary rule */
+        padding-block: 88px 96px;
+      }
+
+      .dp__head {
+        margin: 0 0 24px;
+        max-width: 24ch;
+        font-family: var(--ds-font-display);
+        font-variation-settings: 'opsz' var(--ds-opsz-head), 'wght' 480;
+        font-weight: 480;
+        font-size: clamp(1.75rem, 2.6vw, 2.375rem);
+        line-height: 1.14;
+        letter-spacing: -0.014em;
+        color: var(--ds-on-surface);
+      }
+
+      /* Generous measure, one column. Verified in the browser, not assumed:
+         61ch renders 71.9 characters here. `ch` is the `0` advance, which is
+         wider than an average lowercase glyph, so the two numbers differ. */
+      .dp__body {
+        margin: 0 0 16px;
+        max-width: 61ch; /* renders ~72 chars in Inter; 66ch measured 77.8 */
+        font-family: var(--ds-font-sans);
+        font-size: 1.0625rem;
+        line-height: 1.68;
+        color: var(--ds-on-surface-2);
+      }
+
+      /* Inline evidence — a byline under its claim, in the reading path.
+         Not a card, not an aside, no fill, no border box. */
+      .dp__evidence {
+        margin: 0;
+        padding-top: 8px;
+        max-width: 61ch; /* renders ~72 chars in Inter; 66ch measured 77.8 */
+        border-top: 1px solid var(--ds-rule-hairline); /* decorative hairline inside one record — 1.89:1 on --ds-surface-alt */
+        font-family: var(--ds-font-mono);
+        font-size: var(--ds-type-xs);
+        line-height: 1.7;
+        color: var(--ds-on-surface-muted);
+      }
+
+      /* ── close band — the one dark ground ─────────────────────────────── */
+      .dp__close {
+        background: var(--ds-hero-bg);
+        color: var(--ds-hero-fg);
+        padding-block: 96px 104px;
+      }
+
+      .dp__closehead {
+        margin: 0 0 32px;
+        max-width: 22ch;
+        font-family: var(--ds-font-display);
+        font-variation-settings: 'opsz' var(--ds-opsz-head), 'wght' 440;
+        font-weight: 440;
+        font-size: clamp(1.75rem, 3vw, 2.75rem);
+        line-height: 1.1;
+        letter-spacing: -0.016em;
+        color: var(--ds-hero-fg);
+      }
+
+      .dp__command {
+        display: inline-block;
+        margin: 0;
+        padding: 12px 16px;
+        border: 1px solid var(--ds-rule-hairline-dk);
+        border-radius: var(--ds-radius-sm); /* fields */
+        font-family: var(--ds-font-mono);
+        font-size: 13px;
+        color: var(--ds-hero-fg);
+      }
+
+      /* ── narrow ───────────────────────────────────────────────────────── */
+      @media (max-width: 720px) {
+        .dp__col,
+        .dp__badge,
+        .dp-page__note {
+          padding-inline: 24px;
+        }
+
+        .dp__deck,
+        .dp__body,
+        .dp__evidence {
+          max-width: 60ch;
+        }
+
+        .dp__navrow {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+        .dp__navlinks {
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .dp__hero {
+          padding-block: 56px 64px;
+        }
+
+        .dp__display {
+          max-width: none;
+        }
+
+        .dp__controls {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+        .dp__band {
+          padding-block: 56px 64px;
+        }
+
+        .dp__close {
+          padding-block: 56px 64px;
+        }
+      }
+      /* ═══════════════════════════════════════════════════════════════════
+         Hero figure — the typeset transcript, beside the reading column.
+         No new colour is introduced below: every value resolves to a custom
+         property already declared on `.dp`. Measured against the hero ground
+         --ds-surface #f7f5f0 — --ds-on-surface 17.16:1, --ds-on-surface-2
+         13.09:1, --ds-on-surface-muted 5.30:1, --ds-clearance 7.58:1,
+         --ds-rule-boundary 3.53:1, --ds-field-label 5.30:1.
+         --ds-rule-hairline measures 2.05:1 and is therefore never used for a
+         meaningful line in this section.
+         ═══════════════════════════════════════════════════════════════════ */
+
+      .dp__hero--fig {
+        padding-block: 80px 96px;
+      }
+
+      /* The reading column keeps the left axis; the figure is an image track
+         beside it, not a second column of prose. */
+      .dp__col--split {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        gap: 64px;
+        align-items: start;
+      }
+
+      .dp__col--split .dp__display {
+        max-width: 16ch;
+        font-size: clamp(2.25rem, 4vw, 3.5rem);
+      }
+
+      .dp__col--split .dp__deck {
+        max-width: 48ch;
+      }
+
+      .dp__figure {
+        margin: 0;
+      }
+
+      .dp__figcap {
+        margin: 16px 0 0;
+        padding-top: 8px;
+        max-width: 420px;
+        border-top: 1px solid var(--ds-rule-boundary); /* 3.53:1 on --ds-surface */
+        font-family: var(--ds-font-mono);
+        font-size: 11px;
+        line-height: 1.7;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ds-on-surface-muted); /* 5.30:1 on --ds-surface */
+      }
+
+      /* ── the register ─────────────────────────────────────────────────── */
+      .dp__rec {
+        max-width: 420px;
+        font-family: var(--ds-font-mono);
+        font-size: 13px;
+        line-height: 1.75;
+        color: var(--ds-on-surface-2);
+      }
+
+      .dp__rec-title {
+        margin: 0 0 6px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ds-on-surface-muted);
+      }
+
+      .dp__rec-group {
+        margin: 0;
+        padding-block: 10px;
+        border-top: 1px solid var(--ds-rule-boundary);
+      }
+
+      .dp__rec-group:first-of-type {
+        border-top: 2px solid var(--ds-on-surface);
+      }
+
+      /* A grid, not a flex row: a gloss under a field is a SECOND <dd> for
+         the same <dt>, and the only element a <dl> may contain besides
+         dt/dd is a <div> wrapping a name-value group. The gloss used to be a
+         <p> here, which is invalid HTML and a serious axe `definition-list`
+         violation — caught on the hero's copy of this figure, repaired in
+         both. */
+      .dp__rec-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: baseline;
+        column-gap: 24px;
+      }
+
+      .dp__rec-row dt {
+        color: var(--ds-on-surface-muted);
+      }
+
+      .dp__rec-row dd {
+        margin: 0;
+        text-align: right;
+        color: var(--ds-on-surface);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dp__rec-row dd.dp__rec-note {
+        margin: 0;
+        grid-column: 1 / -1;
+        text-align: left;
+        padding-left: 16px;
+        font-size: var(--ds-type-xs);
+        color: var(--ds-on-surface-muted);
+      }
+
+      /* HELD is the point of the transcript. It is carried by case, weight and the
+         line under it — the mark is the last of the four signals, never the
+         only one (WCAG 1.4.1). The rule above it gains weight, not chroma. */
+      .dp__rec-group--held {
+        border-top: 2px solid var(--ds-on-surface);
+      }
+
+      .dp__rec-row--held dt {
+        color: var(--ds-on-surface);
+        font-weight: 600;
+      }
+
+      /* The mark's ONE remaining use in the whole of web/src. It is never the
+         only signal: case, weight and the heavier rule above the group carry
+         HELD as well (WCAG 1.4.1). */
+      .dp__rec-row--held dd {
+        color: var(--ds-clearance); /* 7.58:1 on --ds-surface */
+        font-weight: 600;
+        letter-spacing: 0.08em;
+      }
+
+      .dp__rec-source {
+        margin: 12px 0 0;
+        padding-top: 8px;
+        border-top: 1px solid var(--ds-rule-boundary);
+        font-size: 11px;
+        line-height: 1.7;
+        color: var(--ds-on-surface-muted);
+      }
+
+      /* ── figure: narrow ─────────────────────────────────────────────── */
+      @media (max-width: 1024px) {
+        .dp__col--split {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 48px;
+        }
+
+        .dp__col--split .dp__display {
+          max-width: 18ch;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .dp__hero--fig {
+          padding-block: 56px 64px;
+        }
+
+        .dp__figcap,
+        .dp__rec {
+          max-width: none;
+        }
+
+        .dp__rec {
+          font-size: var(--ds-type-xs);
+        }
+
+        .dp__col--split .dp__display {
+          max-width: none;
+        }
+      }
+
+    </style>
+  </body>
+</html>

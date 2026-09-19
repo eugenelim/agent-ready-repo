@@ -56,9 +56,13 @@ const groups = projection.groups as readonly NowGroup[];
 
 <style>
   /* ── Hero ──────────────────────────────────────────────────────────── */
+  /* PAPER. The dark ground appears exactly once on the surface, at the
+     close (docs/design/direction/marketing-site.md, Owner decisions
+     2026-09-18). The page hero is not it, so the separation from the band
+     below comes from space and a rule, never from a change of ground. */
   .now-hero {
-    background-color: var(--ds-hero-bg);
-    color: var(--ds-hero-fg);
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
     padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
   }
 
@@ -67,28 +71,35 @@ const groups = projection.groups as readonly NowGroup[];
     margin-inline: auto;
   }
 
+  /* An eyebrow is a FIELD LABEL. --ds-field-label measures 5.30:1 on
+     --ds-surface, clearing 1.4.3 for this 12px run. It is deliberately not
+     the mark: the mark means state and nothing else, and decorating an
+     eyebrow with it is the retired second job (tokens.css, --ds-clearance). */
   .now-hero__eyebrow {
     display: inline-block;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
-    color: var(--ds-accent);
+    color: var(--ds-field-label);
     margin-bottom: var(--ds-space-4);
   }
 
+  /* No `font-weight` here. The element is an <h1>, so base.css already sets
+     the serif display face and carries BOTH variation axes; a `font-weight`
+     beside a `font-variation-settings` that names `wght` is overridden by it
+     on a variable face and only misleads the next reader. */
   .now-hero__heading {
     font-size: var(--ds-type-display);
-    font-weight: var(--ds-weight-heavy);
     letter-spacing: var(--ds-track-display);
     line-height: var(--ds-lead-display);
     margin-bottom: var(--ds-space-5);
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
   }
 
   .now-hero__body {
     font-size: var(--ds-type-body-lg);
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
     max-width: 62ch;
     line-height: var(--ds-lead-body);
   }

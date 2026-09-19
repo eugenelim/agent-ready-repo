@@ -26,7 +26,7 @@ skills:
     description: "Maps and pressure-tests the implemented architecture through Frame, Map, Focus, Investigate, Act, and Close."
     humanTouches: 3
   - name: architect-design
-    description: "Shapes a Stage-0 concept, writes a Google-style design doc, and converges it against review."
+    description: "Shapes a Stage-0 concept, authors a model-first design doc from the template matching its architectural scope, and converges it against review."
     humanTouches: 2
   - name: architect-diagram
     description: "Draws the system, flow, state, data model, or deployment topology in Mermaid."

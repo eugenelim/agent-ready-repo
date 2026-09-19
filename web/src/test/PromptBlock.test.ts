@@ -20,7 +20,7 @@ describe('PromptBlock', () => {
     expect(html).toContain('Summarize this PR');
   });
 
-  it('has an amber left border (accent class marker)', async () => {
+  it('has a clearance-accent left border (accent class marker)', async () => {
     const html = await render({ prompt: 'test' });
     const dom = new JSDOM(html);
     const block = dom.window.document.querySelector('.prompt-block');

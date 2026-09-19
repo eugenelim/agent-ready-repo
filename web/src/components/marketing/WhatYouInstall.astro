@@ -1,0 +1,157 @@
+---
+// ZONE 4 — WHAT YOU INSTALL. Paper (surface-alt).
+//
+// New band. Two claims, and the second is one this surface has never made:
+//
+//  1. Ownership stated as FILES, not as a licence. "Files you can read, diff
+//     and edit" is concrete where "you own it" is abstract
+//     (docs/design/content/marketing-home.md, 2026-09-18 amendment, claim 3).
+//  2. There is NO HOSTED RUNTIME between the reader and those files. It
+//     answers data residency, lock-in and vendor dependency in one clause,
+//     and it is checkable by the same test zone 2 applies — look at the
+//     files (same amendment, claim 2).
+//
+// The paths are the real projection targets the adapters write, not an
+// illustration: see `packages/agentbundle/agentbundle/build/adapters/`, whose
+// module docstrings enumerate them primitive by primitive.
+import Section from '../layout/Section.astro';
+import { withBase } from '../../lib/paths';
+
+interface Unit {
+  what: string;
+  where: string;
+  body: string;
+}
+
+const units: Unit[] = [
+  {
+    what: 'Skills',
+    where: '<name>/SKILL.md',
+    body: 'A procedure your agent reads before it starts. Plain markdown, in your repository, in your diff.',
+  },
+  {
+    what: 'Subagents',
+    where: '<name>.md',
+    body: 'The reviewers, each with its own lens and its own tool list. You can read exactly what one is told to look for.',
+  },
+  {
+    what: 'Commands and hooks',
+    where: '<name>.md, <name>.sh',
+    body: 'The entry points you type, and the scripts that run around them. Ordinary files; ordinary review.',
+  },
+];
+---
+
+<Section tone="surface-alt" id="what-you-install" labelledby="install-what-heading">
+  <div class="units">
+    <h2 id="install-what-heading" class="units__headline">
+      What lands is files you can read, diff and edit.
+    </h2>
+    <p class="units__lead">
+      Installing writes into the layout your agent already looks in:{' '}
+      <code>.claude/</code>, <code>.agents/</code>, <code>.cursor/</code> and
+      the rest, one per adapter. There is no hosted runtime between you and
+      those files — nothing phones anywhere to run your loop, and nothing you
+      install stops working because a service did.
+    </p>
+
+    <dl class="units__list">
+      {units.map((u) => (
+        <div class="unit">
+          <dt class="unit__head">
+            <span class="unit__what">{u.what}</span>
+            <code class="unit__where">{u.where}</code>
+          </dt>
+          <dd class="unit__body">{u.body}</dd>
+        </div>
+      ))}
+    </dl>
+
+    <p class="units__note">
+      They are yours after they land. Edit one and the tooling treats your copy
+      as yours — an upgrade drops its update rather than overwriting you, and
+      uninstalling removes only what it put there.{' '}
+      <a href={withBase('/docs/guides/_shared/how-to/upgrade-packs/')}>
+        How edited copies are handled
+      </a>.
+    </p>
+  </div>
+</Section>
+
+<style>
+  .units {
+    max-width: 68ch;
+  }
+
+  .units__headline {
+    margin-bottom: var(--ds-space-5);
+    max-width: 22ch;
+  }
+
+  .units__lead {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-7);
+    max-width: 62ch;
+  }
+
+  .units__lead code {
+    color: var(--ds-on-surface);
+    background: none;
+  }
+
+  /* A list of records, ruled. No cards, no tinted panels — [ruled]
+     containment: a rule is structure and never decorates. */
+  .units__list {
+    border-top: 1px solid var(--ds-rule-boundary);
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .unit {
+    padding-block: var(--ds-space-4);
+    border-bottom: 1px solid var(--ds-rule-hairline);
+  }
+
+  .unit__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .unit__what {
+    color: var(--ds-on-surface);
+    font-size: var(--ds-type-h3);
+    font-family: var(--ds-font-display);
+    font-variation-settings: 'opsz' var(--ds-opsz-head), 'wght' 480;
+    font-weight: 480;
+    letter-spacing: var(--ds-track-heading);
+  }
+
+  /* The projected path, as a field. --ds-field-label measures 5.30:1 on
+     --ds-surface and 4.89:1 on --ds-surface-alt, which is the ground this
+     band sits on; both clear 1.4.3. */
+  .unit__where {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    letter-spacing: 0.02em;
+    color: var(--ds-field-label);
+  }
+
+  .unit__body {
+    margin: 0;
+    color: var(--ds-on-surface-2);
+    max-width: 62ch;
+  }
+
+  .units__note {
+    color: var(--ds-on-surface-muted);
+    max-width: 62ch;
+  }
+
+  .units__note a {
+    color: inherit;
+    text-underline-offset: 0.18em;
+  }
+</style>

@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.18] — 2026-09-18
+## [core][2.26.19] — 2026-09-18
 
 ### Highlights
 
@@ -100,6 +100,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `new-spec` skill's `references/spec-and-plan-contract.md` for the full rule.
   The amendment machinery below it already assumed those stages without stating
   them.
+
+## [core][2.26.18] — 2026-09-18
+
+### Highlights
+
+- **A design decision in a plan now names the task that builds it.** Every
+  `## Design (LLD)` sub-section carries an `Owned by:` field alongside its
+  existing `Traces to:`, and the pre-review walk checks that every interface,
+  type, symbol or ownership decision has an owning task. The traversal runs
+  one way only — design down to tasks — because over a third of tasks have no
+  design origin and a reverse rule would fire on every one of them.
+- **A plan that uses the field gets its ownership checked.** Once any
+  sub-section carries `Owned by:`, the contract-alignment lint reports a
+  body-bearing sub-section that names no task, and a named task that no
+  heading defines. A plan written before the field is reported as predating
+  it, never failed, so existing plans need no migration.
+- **The plan template no longer promises an edit the engine refuses.** It
+  said an implementer corrects the design in place "without an amendment";
+  approval hashes the whole plan, so that edit was always rejected. The
+  permission is now bounded to before approval, and the two post-approval
+  cases are named: grounding for a seam the plan marked
+  `no stub (implementation-discovered)` goes to the verification ledger, and
+  a settled decision that execution falsified is a plan error taking
+  controlled amendment.
+- **A review finding is now classified by cause depth before it is answered.**
+  A finding whose cause is a design decision repairs the design and every
+  task that decision owns, rather than patching the one place it was spotted.
+
+### Added
+
+- Five conditional design prompts in the plan template: concurrency and
+  transaction boundaries, stable error classes and retryability, a concrete
+  observability surface, backfill checkpointing and cutover validation, and
+  named test seams for crossed boundaries. Each scaffolds only when the
+  spec's `Shape:` selects its sub-section.
+
+### Changed
+
+- The contract-alignment lint's task pattern accepts a lettered task-ID
+  suffix, so a `T2a` heading now enters the set of defined tasks it resolves
+  against.
 
 ## [core][2.26.17] — 2026-09-18
 
@@ -185,6 +226,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `work-loop`'s `references/pre-execute-review.md` name `Agent Rules` and the
   legacy `Boundaries` heading together, so a review of a spec written before
   this release still has a standard to measure against.
+
+## [architect][0.15.11] — 2026-09-18
+
+### Highlights
+
+- **Design docs now match the size of what they describe.** Writing about a
+  whole application or system, a single subsystem, or a change to an
+  existing architecture each gets its own template, so a reviewer no longer
+  has to fill in eight generic sections that half apply and skip the rest.
+- **Every modelled section leads with its model, not a page of prose about
+  it.** Each template opens with the question the section answers, and where
+  the section carries a diagram or table it puts that first and only then
+  explains why it looks that way — so a reader can see the shape of a
+  decision before reading the argument for it.
+- **A new rubric says how many documents a design needs, not just what goes
+  in one.** Six criteria decide whether a part of a subsystem deserves a
+  document of its own, so a design doesn't grow past its own boundary just
+  because a subsystem's story kept expanding, and a parent document says
+  plainly what it still owns once children split off.
+- **Existing links to the earlier design-doc template keep working.** It
+  stays at the same path and now says plainly what it is: a kept pointer to
+  the three templates, never chosen for a design itself.
+- **Design and review now speak the same three scopes.** The review checks
+  ask the same scope-shaped questions the templates were written to answer,
+  so a design that follows its template's model doesn't get marked down
+  against a checklist that expected different sections.
+
+### Added
+
+- `architect-design`: scope determination runs before Stage 0, resolving an
+  altitude — application/system, subsystem, or architecture change — and a
+  document count, both ahead of template choice.
+- `architect-design`: three new templates under `assets/` —
+  `application-system-design.md`, `subsystem-design.md`, and
+  `architecture-change-design.md`. The subsystem spine covers Scope and
+  Context, Structural Model, Runtime Model, Contracts and Invariants, Data
+  and State, Deployment and Operations, Quality Scenarios and Verification,
+  Implementation Mapping, "Decisions, Alternatives, and Risks",
+  "Rollout, Migration, and Reversal", and Open Questions. The application/system
+  template shares that spine at person/system/container zoom and omits
+  internal component and file/module detail. The architecture-change
+  template is delta-shaped and requires the authoritative current-state
+  artifact as its baseline.
+- `architect-design`: `references/decomposition-rubric.md` is new, with six
+  criteria (`D1`-`D6`) governing when a subsystem's part earns its own
+  document. A child qualifies on `D1` plus at least one other criterion,
+  `D1` also doubles as the recursion's stopping rule, and size alone is
+  never sufficient. It also states what a parent document retains once
+  children split out.
+
+### Changed
+
+- `architect-design`: `assets/design-doc.md` is retained at its existing
+  path and now states that it is an unrouted compatibility pointer to the
+  three routed templates; the procedure never selects it.
+- `architect-design`: structural sections use standard Mermaid
+  (`flowchart`, `sequenceDiagram`) with explicit boundaries and a declared
+  zoom, never the experimental `C4Context`, `C4Container`, or
+  `architecture-beta` directives.
+- `architect-design`: the general Appendix section is retired from the
+  templates; supporting evidence is cited or linked inline instead.
+- `architect-design`: `evals/evals.json` gains one eval per routed template
+  asserting each section's model precedes its rationale, and updates its
+  existing eval to require model-first, scope-routed output rather than the
+  retired eight-section shape.
+- `architect-review`: `SKILL.md`, `references/rubric-design-doc.md`, and the
+  `design-reviewer` agent route and check by the same three scopes as
+  `architect-design`, replacing the retired eight-section checklist.
 
 ## [architect][0.15.10] — 2026-09-18
 

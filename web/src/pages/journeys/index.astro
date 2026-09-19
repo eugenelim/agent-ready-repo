@@ -108,7 +108,7 @@ const rest = Object.keys(taglineMap)
       Each one hands a named artifact to the next, so you can stop after any of
       them and still know what you are holding.
     </p>
-    <ol class="journeys-grid journeys-grid--ordered">
+    <ol class="journeys-grid journeys-grid--ordered" role="list">
       {sequence.map((j, i) => (
         <li class="journey-card journey-card--step">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
@@ -136,7 +136,7 @@ const rest = Object.keys(taglineMap)
       These run beneath the four disciplines — the plan, review, and merge gates
       every piece of work passes through.
     </p>
-    <ul class="journeys-grid">
+    <ul class="journeys-grid" role="list">
       {loops.map((j) => (
         <li class="journey-card journey-card--loop">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
@@ -158,7 +158,7 @@ const rest = Object.keys(taglineMap)
       Optional additions. None of these is a step in the sequence — reach for one
       when a particular piece of work calls for it.
     </p>
-    <ul class="journeys-grid">
+    <ul class="journeys-grid" role="list">
       {rest.map((j) => (
         <li class="journey-card journey-card--optional">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
@@ -174,9 +174,13 @@ const rest = Object.keys(taglineMap)
 
 <style>
   /* ── Hero ──────────────────────────────────────────────────────────── */
+  /* PAPER. The dark ground appears exactly once on the surface, at the
+     close (docs/design/direction/marketing-site.md, Owner decisions
+     2026-09-18). The page hero is not it, so the separation from the band
+     below comes from space and a rule, never from a change of ground. */
   .journeys-hero {
-    background-color: var(--ds-hero-bg);
-    color: var(--ds-hero-fg);
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
     padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
   }
 
@@ -185,28 +189,35 @@ const rest = Object.keys(taglineMap)
     margin-inline: auto;
   }
 
+  /* An eyebrow is a FIELD LABEL. --ds-field-label measures 5.30:1 on
+     --ds-surface, clearing 1.4.3 for this 12px run. It is deliberately not
+     the mark: the mark means state and nothing else, and decorating an
+     eyebrow with it is the retired second job (tokens.css, --ds-clearance). */
   .journeys-hero__eyebrow {
     display: inline-block;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
-    color: var(--ds-accent);
+    color: var(--ds-field-label);
     margin-bottom: var(--ds-space-4);
   }
 
+  /* No `font-weight` here. The element is an <h1>, so base.css already sets
+     the serif display face and carries BOTH variation axes; a `font-weight`
+     beside a `font-variation-settings` that names `wght` is overridden by it
+     on a variable face and only misleads the next reader. */
   .journeys-hero__heading {
     font-size: var(--ds-type-display);
-    font-weight: var(--ds-weight-heavy);
     letter-spacing: var(--ds-track-display);
     line-height: var(--ds-lead-display);
     margin-bottom: var(--ds-space-5);
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
   }
 
   .journeys-hero__body {
     font-size: var(--ds-type-body-lg);
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
     max-width: 62ch;
     line-height: var(--ds-lead-body);
   }
@@ -260,14 +271,14 @@ const rest = Object.keys(taglineMap)
   .journey-card {
     background-color: var(--ds-surface-alt);
     border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 4px solid var(--ds-on-surface);
     border-radius: var(--ds-radius-md);
     padding: var(--ds-space-6);
     transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
   }
 
   .journey-card:hover {
-    border-color: var(--ds-accent);
+    border-color: var(--ds-on-surface);
   }
 
   .journey-card__link {
@@ -294,18 +305,21 @@ const rest = Object.keys(taglineMap)
   .journey-card__cta {
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
   }
 
   /* ── Three relationships, three signatures ──────────────────────────── */
   /* The groups previously shared one card treatment, so without their headings
      they collapsed into a single collection. The left edge now carries the
-     relationship: an accent bar plus a numeral for the ordered sequence, a muted
-     bar for the loops that run underneath it, and no bar for optional
-     additions. */
+     relationship: a heavy record-ink bar plus a numeral for the ordered
+     sequence, a lighter boundary rule for the loops that run underneath it, and
+     a hairline for optional additions. The differentiator is bar WEIGHT and
+     ink value, never hue — `--ds-on-surface-2` was within a hair of
+     `--ds-on-surface` and would have collapsed the distinction once the accent
+     was withdrawn from the ordered bar. */
 
   .journey-card--loop {
-    border-left-color: var(--ds-on-surface-2);
+    border-left-color: var(--ds-rule-boundary);
   }
 
   .journey-card--optional {
@@ -315,7 +329,7 @@ const rest = Object.keys(taglineMap)
 
   .journey-card--optional:hover,
   .journey-card--loop:hover {
-    border-color: var(--ds-accent);
+    border-color: var(--ds-on-surface);
   }
 
   /* ── Sequence step cards ────────────────────────────────────────────── */
@@ -331,8 +345,9 @@ const rest = Object.keys(taglineMap)
     font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-semibold);
     letter-spacing: var(--ds-track-label);
-    color: var(--ds-accent-deep);
+    color: var(--ds-field-label);
     margin-bottom: var(--ds-space-2);
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   .journeys-group__onward {

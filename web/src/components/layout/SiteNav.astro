@@ -1,5 +1,13 @@
 ---
-// Primary navigation. Dark zone — continuous with the hero below it, no gap.
+// Primary navigation. PAPER — continuous with the hero below it, no gap. The
+// dark ground appears exactly once on the surface, at the close, and this is
+// not it (docs/design/direction/marketing-site.md, Owner decisions 2026-09-18
+// § "The nav and footer move to paper").
+// The bar's lower boundary is a RULE, not a change of ground: it is what tells
+// a sighted reader where the chrome ends and the page begins, and it is the
+// line an aria-current state is read against, so it is a user-interface
+// component boundary owing 3:1 under WCAG 1.4.11 rather than a decorative
+// divider owing nothing. --ds-rule-boundary measures 3.53:1 on --ds-surface.
 // Mobile menu is a <details>/<summary> disclosure: zero JavaScript.
 // Nav structure:
 //   Logo | approved shared destinations | [Try the build loop →]
@@ -18,7 +26,7 @@ const current = (link: ChromeLink) =>
   <div class="nav__inner">
     <a class="nav__logo" href={homeHref}>agent-ready-repo</a>
 
-    <ul class="nav__links">
+    <ul class="nav__links" role="list">
       {links.map((l) => (
         <li><a class="nav__link" href={chromeHref(l)} aria-current={current(l)}>{l.label}</a></li>
       ))}
@@ -31,7 +39,7 @@ const current = (link: ChromeLink) =>
       <summary class="nav__toggle" aria-label="Toggle navigation menu">
         <span class="nav__burger" aria-hidden="true"></span>
       </summary>
-      <ul class="nav__drawer">
+      <ul class="nav__drawer" role="list">
         {links.map((l) => (
           <li><a class="nav__link" href={chromeHref(l)} aria-current={current(l)}>{l.label}</a></li>
         ))}
@@ -45,8 +53,8 @@ const current = (link: ChromeLink) =>
 
 <style>
   .nav {
-    background-color: var(--ds-hero-bg);
-    color: var(--ds-hero-fg);
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface);
     position: relative;
   }
 
@@ -58,11 +66,18 @@ const current = (link: ChromeLink) =>
     align-items: center;
     justify-content: space-between;
     gap: var(--ds-space-5);
+    border-bottom: 1px solid var(--ds-rule-boundary);
   }
 
+  /* Opt out of the base underline: the wordmark is the only bold mono
+     700-weight run in the bar and owns the top-left slot. Channel = weight +
+     typeface + position, not colour. */
   .nav__logo {
-    color: var(--ds-hero-fg);
-    font-weight: var(--ds-weight-bold);
+    text-decoration: none;
+    color: var(--ds-on-surface);
+    /* 600, not 700: mono ships two weights now and 700 falls back to 600
+       anyway — stating it is what keeps the declaration honest. */
+    font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-body-lg);
     letter-spacing: var(--ds-track-heading);
     font-family: var(--ds-font-mono);
@@ -70,7 +85,7 @@ const current = (link: ChromeLink) =>
 
   .nav__logo:hover {
     text-decoration: none;
-    color: var(--ds-accent);
+    color: var(--ds-on-surface-2);
   }
 
   .nav__links {
@@ -80,36 +95,57 @@ const current = (link: ChromeLink) =>
     margin: 0;
   }
 
+  /* Opt out of the base underline: a nav row is its own affordance — five
+     evenly spaced items in the bar, at 500 against 400 body text, with the
+     current page additionally underlined below. Channel = position in the
+     nav group + weight, not colour. */
   .nav__link {
-    color: var(--ds-hero-fg-2);
+    text-decoration: none;
+    color: var(--ds-on-surface-2);
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-medium);
   }
 
   .nav__link:hover {
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     text-decoration: none;
   }
 
   .nav__link[aria-current] {
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     font-weight: var(--ds-weight-semibold);
     text-decoration: underline;
     text-underline-offset: 0.3em;
   }
 
+  /* Opt out of the base underline: this is a filled pill. Channel = fill +
+     radius + padding, not colour. (inline-block, so the markup's whitespace
+     before the arrow survives — no `gap` needed here.) */
   .nav__cta {
+    text-decoration: none;
     display: inline-block;
     background-color: var(--ds-cta-primary-bg);
     color: var(--ds-cta-primary-fg);
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
-    padding: 0.55rem 1.1rem;
-    border-radius: var(--ds-radius-pill);
+    padding: 0.5rem 1.1rem;
+    border-radius: var(--ds-radius-md);
+    /* A BORDER in the fill's own colour, so the control's edge is drawn twice
+       — once as fill, once as a border — and survives a repaint that keeps
+       only one of them. Invisible here (border and fill are the same ink);
+       load-bearing under `forced-colors: active`, which forces every
+       `background-color` to Canvas and would otherwise leave this control as
+       an undecorated run of LinkText with no fill, no border and, because it
+       opts out of the underline above, no non-colour affordance at all.
+       Measured under Chromium's forced-colors emulation, 2026-09-18: the
+       border repaints to LinkText and the block edge comes back. Same
+       pattern, same reason, as `.hero__cta--primary`. */
+    border: 1px solid var(--ds-cta-primary-bg);
   }
 
   .nav__cta:hover {
     background-color: var(--ds-cta-primary-bg-hover);
+    border-color: var(--ds-cta-primary-bg-hover);
     text-decoration: none;
   }
 
@@ -138,7 +174,7 @@ const current = (link: ChromeLink) =>
     display: block;
     width: 22px;
     height: 2px;
-    background-color: var(--ds-hero-fg);
+    background-color: var(--ds-on-surface);
     content: '';
     position: relative;
   }
@@ -151,6 +187,27 @@ const current = (link: ChromeLink) =>
   .nav__burger::after {
     position: absolute;
     top: 7px;
+  }
+
+  /* The three bars are PAINTED, not bordered — a 2px-high box filled with
+     `background-color` — and that is the one drawing technique on this
+     surface that `forced-colors: active` erases: it forces every
+     `background-color` to Canvas, so all three bars go white on white and
+     the only route into the mobile menu disappears at every width below
+     768px. Verified against Chromium's forced-colors emulation at 390px,
+     2026-09-18: without this block `getComputedStyle` reports
+     `rgb(255, 255, 255)` on the bar and its two pseudo-elements.
+     `CanvasText` is the system pair for the forced ground, so the icon comes
+     back at full contrast whichever high-contrast theme is in use.
+     The X state is untouched on purpose: `.nav__mobile[open] .nav__burger`
+     below is more specific, and `transparent` is one of the few colours
+     forced-colors preserves, so the middle bar still drops out when open. */
+  @media (forced-colors: active) {
+    .nav__burger,
+    .nav__burger::before,
+    .nav__burger::after {
+      background-color: CanvasText;
+    }
   }
 
   /* X state: move icon regardless of motion preference; transition is motion-only. */
@@ -197,8 +254,11 @@ const current = (link: ChromeLink) =>
       left: 0;
       right: 0;
       top: 100%;
-      background-color: var(--ds-hero-bg);
-      border-top: 1px solid var(--ds-hero-border);
+      background-color: var(--ds-surface);
+      /* The drawer overlays the page, so its own edges have to be visible
+         against the paper it covers — a white-alpha hairline composites to
+         ~1.1:1 here and would leave the panel edgeless. */
+      border-bottom: 1px solid var(--ds-rule-boundary);
       padding: var(--ds-space-5) var(--ds-content-pad-x) var(--ds-space-6);
       z-index: var(--ds-z-overlay);
     }
@@ -216,7 +276,7 @@ const current = (link: ChromeLink) =>
       width: 100%;
       min-height: 44px;
       padding-block: var(--ds-space-2);
-      border-bottom: 1px solid var(--ds-hero-border);
+      border-bottom: 1px solid var(--ds-rule-hairline);
     }
 
     .nav__drawer .nav__cta {

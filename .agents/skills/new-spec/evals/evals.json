@@ -210,6 +210,18 @@
         "Requires the bullet to name the production seam the check drives",
         "Does not treat naming the test's own suite or fixture as satisfying the seam obligation"
       ]
+    },
+    {
+      "id": "lld-ownership-traces-downward-with-declared-field-lint",
+      "prompt": "A plan's `## Design (LLD)` subsection names an interface and says `Owned by: T2, T4a`; another body-bearing LLD subsection omits `Owned by:`. Task headings define T2, T4a, and T7, but T7 cites no LLD decision. Explain the pre-review walk and what lint-contract-item-alignment.py decides. Does T7 need to cite a design decision before review can proceed?",
+      "expected_output": "The pre-review walk traverses from every LLD interface, type, symbol, or ownership decision down to an owning task. It repairs the body-bearing LLD subsection that omits `Owned by:`. Because the plan uses the field, lint-contract-item-alignment.py checks declared-field integrity: each body-bearing LLD subsection names at least one task ID and every named ID has a task heading. The lint does not decide whether every semantic design decision has an owner; that remains the walk's review question. T7 needs no LLD citation: there is no reverse task-to-design obligation.",
+      "assertions": [
+        "Traverses ownership from LLD decisions down to tasks",
+        "Requires an Owned by field for the body-bearing LLD subsection once the plan carries the field",
+        "Limits lint-contract-item-alignment.py to declared-field completeness and task-heading existence",
+        "Keeps semantic ownership coverage as a pre-review walk question rather than a lint verdict",
+        "Rejects a reverse obligation requiring T7 to cite an LLD decision"
+      ]
     }
   ]
 }
