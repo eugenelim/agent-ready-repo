@@ -68,6 +68,11 @@ asks an author to fill, so a walk against them measures the template.
   pack's eval harness.
 - **`packs/AGENTS.local.md:26-40`** — marketplace regeneration, free-standing
   changelog entry, explicit Highlights verdict.
+- **`tests/AGENTS.md` § Roster is not auto-discovered** — the byte-identity
+  module under `tests/roster/` obliges a `build-check.yml` step naming it and
+  a matching `STEP_DISPOSITION` of `LOCAL("test-after-build-check")` in
+  `tools/lint-ci-parity.py`. It names no `docs/specs/<slug>` literal, so it
+  owes no `.workspace-prune-protected.toml` entry.
 - **`docs/specs/architect-design-scope-templates/spec.md` is frozen at
   `Shipped` and this slice does not touch it.** `DA7` and `DA8` attach an
   identifier to the checklist items its AC-0026 and AC-0027 describe, leaving
@@ -210,9 +215,11 @@ spawning an interpreter:
   whitespace and a capital, after masking the abbreviation set and decimals by
   literal replacement. The pattern carries no nested quantifier and no
   alternation inside a repetition.
-- `read_target(root, path, max_bytes)` — the one place a file is opened. It
-  canonicalizes, checks the prefix, checks file type and link count, checks
-  size, and raises one refusal type carrying the path and the reason.
+- `read_target(root, path, max_bytes)` — the one place a file is opened, and
+  a thin wrapper over the vendored `read_confined_regular_file`. It translates
+  that helper's `UnsafeContentError` into the gate's own refusal type carrying
+  the path and the reason, and adds nothing to the confinement: a second
+  implementation beside a blessed one is a second thing to keep correct.
 
 ### Failure, edge cases & resilience
 Owned by: T2.
@@ -243,31 +250,40 @@ so one finding occupies one line.
 ### Dependencies & integration
 Owned by: T2.
 
-**Standard library only. No `agentbundle`, conditionally or otherwise.**
+**A vendored projection of `file_safety.py`, loaded as a co-located sibling.**
 
-The precedent is `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`,
-not `profile_repo.py`. It is the same shape as this script — a skill-shipped
-lint handed paths by a caller — and its whole import list is `argparse`, `os`,
-`re`, `subprocess`, `sys`, `pathlib`. Its `_read_confined` (`:281-302`) is
-twelve lines: `resolve(strict=True)`, a containment re-check on the resolved
-path, a refusal for a symlink or anything that is not a regular file, and a
-read that catches `OSError` and `UnicodeDecodeError`.
+The repository ships three patterns for a pack script that needs confinement,
+not the two an earlier draft of this plan weighed. `profile_repo.py` imports
+`agentbundle.catalogue_tooling.file_safety` when it is importable and
+hand-rolls the same checks when it is not. `new-spec`'s
+`lint-contract-item-alignment.py` hand-rolls a twelve-line `_read_confined`
+and cites nothing. And `packs/core/.apm/skills/work-loop/scripts/` and
+`.../close-work/scripts/` each carry a byte-identical 19KB vendored copy of
+the canonical module, loaded as a sibling — `test_close_work.py:233` pins that
+the load resolves to the projection, and a `tests/roster/` check pins the
+byte identity.
 
-`profile_repo.py`'s optional `agentbundle` import is the wrong model here for
-two reasons. It walks a tree, so it *discovers* paths and a symlink inside the
-tree redirects it somewhere the caller never named — a threat this script does
-not have, because every path is one the caller typed. And the conditional
-import creates a second code path that CI never exercises: in this repository
-the helper imports, so the branch adopters actually run is the one the suite
-sees least. Root `AGENTS.md` blesses the helper for repository tooling; a
-script projected into an adopter install cannot reach it.
+This script takes the third. It needs no `agentbundle` import, so the
+adopter-install constraint holds and the `Never do` rule is untouched; it has
+one code path, so the conditional import's untested-branch problem does not
+arise; and it inherits `read_confined_regular_file`'s full depth rather than a
+re-implementation of part of it.
 
-The checks stay. `packs/AGENTS.md` § Security and authoring rules requires
-canonicalize-then-re-check before every read, and `_read_confined`'s docstring
-gives the reason this shape needs it: "`..` rejection and `~` expansion do not
-stop an in-boundary symlink pointing out … because this tool is handed paths
-by a caller." Adding the size bound and the FIFO refusal to that twelve-line
-shape is what this script needs, and it needs no dependency to get them.
+**Correcting the reason an earlier draft recorded.** That draft declined the
+helper because "a script projected into an adopter install cannot reach it".
+That is false, and the repository refutes it twice over — the two vendored
+copies under `packs/core/` are exactly such a reach. The real cost is
+different: 19KB of carried code and a projection that can go stale, which is
+why AC-0074 attaches the byte-identity pin and its roster obligations. Leaving
+the false reason in place would hand a future pack script a refuted precedent.
+
+**What the helper gives that the twelve-line shape does not.** `O_NOFOLLOW` on
+the open, an `os.fstat` re-check of `(st_dev, st_ino)` and the link count
+against what was stat'd, and a bound applied to the read rather than to
+`st_size`. `lint-contract-item-alignment.py:281-302` is check-then-act and has
+none of them; it is the weaker of the two standard-library shapes here, and an
+earlier draft of this plan cited it as governing.
+
 
 ## Tasks
 
@@ -275,7 +291,7 @@ shape is what this script needs, and it needs no dependency to get them.
 
 **Depends on:** none
 
-**Touches:** packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py, packs/architect/tests/skills/architect-design/test_gate_script.py, packs/architect/.apm/skills/architect-design/SKILL.md
+**Touches:** packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py, packs/architect/.apm/skills/architect-design/scripts/file_safety.py, packs/architect/tests/skills/architect-design/test_gate_script.py, packs/architect/.apm/skills/architect-design/SKILL.md, tests/roster/test_architect_design_gate_file_safety_projection.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
 **Tests:**
 - `test_gate_script.py` loads `check_document_architecture.py` by
@@ -284,9 +300,20 @@ shape is what this script needs, and it needs no dependency to get them.
   `import` would bind whichever `scripts/` directory reached `sys.path` first
   (AC-0001).
 - The module's import set is read with `ast` and compared against
-  `sys.stdlib_module_names`, so any non-stdlib import fails — including
-  `agentbundle`, which would pass a runtime smoke test in this repository and
-  fail in every adopter install (AC-0002).
+  `sys.stdlib_module_names` plus the one co-located sibling, so any other
+  import fails — including `agentbundle`, which would pass a runtime smoke
+  test in this repository and fail in every adopter install (AC-0002).
+- `scripts/file_safety.py` is asserted byte-identical to
+  `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py`
+  (AC-0073), and the assertion lives in
+  `tests/roster/test_architect_design_gate_file_safety_projection.py` with its
+  two roster obligations discharged (AC-0074). Architect already carries a
+  sibling precedent at
+  `tests/roster/test_architect_assess_profiler_integration.py`, which pins
+  `profile_repo._safe_read` against the canonical helper's behaviour.
+- `read_target` is driven to confirm it delegates: a `UnsafeContentError` from
+  the helper becomes the gate's refusal type carrying the path and reason, and
+  the helper is not re-implemented beside it (AC-0011, AC-0012).
 - `main()`'s stream setup is driven with `sys.stdout` patched by a recorder
   that requires `reconfigure` to be its first call; asserting the call
   happened would pass on a script that printed first (AC-0003).
@@ -467,8 +494,12 @@ against a non-compliant fixture and against the shipped templates — are in
   operator's account name into a published repository, which root
   `AGENTS.md` § Security considerations forbids — five ledgers under
   `docs/specs/*/notes/` already carry one.
-- **The agent is dispatched against the reference document** and its returned
-  block recorded in the ledger, which must show ten verdicts (AC-0059). The
+- **The branch's `packs/architect/.apm/agents/design-reviewer.md` is copied to
+  the path the host resolves, then the agent is dispatched** against the
+  reference document and its returned block recorded in the ledger, which must
+  show ten verdicts (AC-0059). Copying first is the whole point: without it
+  the dispatch reads whatever the operator's profile holds, which today is
+  8,633 bytes against the pack source's 9,140. The
   agent resolves from either scope a host reads: `.claude/agents/` in the
   repository, or the operator's user profile. This repository sets
   `catalogue.toml:21` `self-host = false`, so architect's agent is absent from

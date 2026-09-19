@@ -142,9 +142,12 @@ the built artifact rather than for a criterion. Identifiers are assigned once
 and never reflowed, so a group's list is not always contiguous.
 
 - **The shipped mechanical gate (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005,
-  AC-0006, AC-0007): TDD.** An exit code is the whole interface a CI caller
+  AC-0006, AC-0007, AC-0073, AC-0074): TDD.** An exit code is the whole interface a CI caller
   sees, and exit-code precedence across a multi-target run is the part a
-  single-target test never reaches.
+  single-target test never reaches. AC-0073 and AC-0074 are the vendored
+  projection and its byte-identity pin: a carried copy of a security module
+  that drifts from its source is worse than no copy, because its name says it
+  is current, so the pin is a roster check rather than a reviewer's habit.
 - **What the gate refuses to read (AC-0008, AC-0009, AC-0010, AC-0011,
   AC-0012, AC-0013, AC-0014, AC-0015, AC-0016): TDD, except AC-0016.** Each
   refusal is driven by a real filesystem entry and asserts the refusal
@@ -209,8 +212,23 @@ and never reflowed, so a group's list is not always contiguous.
 
 - [ ] **AC-0001.** `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
       implements `DA3` and `DA10`.
-- [ ] **AC-0002.** The script imports only the Python standard library. It
-      does not import `agentbundle`, conditionally or otherwise.
+- [ ] **AC-0002.** The script imports only the Python standard library and
+      one co-located sibling. It does not import `agentbundle`, conditionally
+      or otherwise — an adopter install has no such package.
+- [ ] **AC-0073.** `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`
+      is a vendored projection of
+      `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py`,
+      byte-identical to it, loaded as a co-located sibling. This is the
+      pattern `packs/core/.apm/skills/work-loop/scripts/` and
+      `.../close-work/scripts/` already ship, and it is what lets the script
+      use the blessed confinement helpers with no `agentbundle` import and one
+      code path.
+- [ ] **AC-0074.** A `tests/roster/` check pins that byte identity, and the
+      roster obligations `tests/AGENTS.md` attaches to a new roster module are
+      discharged: a `build-check.yml` step naming the file and a matching
+      `STEP_DISPOSITION` entry of `LOCAL("test-after-build-check")` in
+      `tools/lint-ci-parity.py`. A vendored security module that drifts from
+      its source is worse than none, because its name says it is current.
 - [ ] **AC-0003.** The script reconfigures `sys.stdout` and `sys.stderr` to
       UTF-8 before its first write to either.
 - [ ] **AC-0004.** The script exits 0 when it reports no finding, 1 when it
@@ -232,23 +250,22 @@ and never reflowed, so a group's list is not always contiguous.
       directory, whose real path is not under the canonicalized root, is
       refused, and the refusal names the out-of-root reason rather than a
       file-type reason.
-- [ ] **AC-0011.** A target that is not a confined regular file is refused.
-      The check does not stop at the stat: the file is opened with
-      `O_NOFOLLOW`, and the descriptor is re-verified by `os.fstat` against
-      the `(st_dev, st_ino)` pair and the link count that were checked, so an
-      entry swapped between the stat and the open is refused rather than read.
-      `stat.S_ISREG` plus a hard-link count of one is the predicate; every
-      other entry kind fails it. Four kinds are exercised
+- [ ] **AC-0011.** A target that is not a confined regular file is refused,
+      by `read_confined_regular_file` from the vendored module rather than by
+      a re-implementation. That helper opens with `O_NOFOLLOW`, re-verifies
+      the descriptor by `os.fstat` against the `(st_dev, st_ino)` pair and
+      link count that were stat'd, and refuses anything that is not a
+      single-link regular file — so an entry swapped between the stat and the
+      open is refused rather than read. Four kinds are exercised
       directly, being the four a test on Linux and macOS can build — a
       directory, a FIFO, a symbolic link, and a file with a second hard link.
       A character device, a block device and a socket are covered by the same
       predicate and not exercised; an NTFS reparse point is unbuildable on
       either runner and is not claimed.
-- [ ] **AC-0012.** A target larger than 1,048,576 bytes is refused. The bound
-      holds at read time — the read asks for one byte more than the budget and
-      refuses a short-read miss — not only against `st_size`, which a
-      concurrent writer appending to the file makes stale without any
-      attacker present. The bound is
+- [ ] **AC-0012.** A target larger than 1,048,576 bytes is refused, by the
+      same helper's `max_bytes` argument, which bounds the read itself rather
+      than trusting `st_size` — a figure a concurrent writer makes stale with
+      no attacker present. The bound is
       `architect-assess/scripts/profile_repo.py`'s `DEFAULT_MAX_FILE_BYTES`;
       a document at `DA10`'s bound is roughly 16,000 bytes, so the budget is
       about 65 times the largest document the gate expects.
@@ -472,14 +489,13 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 - [ ] **AC-0059.** The roll-call contract is exercised, not only asserted:
       `design-reviewer` is dispatched against the reference document and its
       returned block recorded in `notes/verification-ledger.md`, showing ten
-      verdicts. The record names the resolved file's path and its SHA-256,
-      and that digest equals the branch's
-      `packs/architect/.apm/agents/design-reviewer.md` at dispatch time. A
-      host resolves the agent from project scope or from the operator's user
-      profile, and those copies drift: today the user-profile copy is 8,633
-      bytes against the pack source's 9,140, so a dispatch that names only its
-      scope can satisfy this criterion while reviewing a definition this slice
-      never edited.
+      verdicts. The branch's
+      `packs/architect/.apm/agents/design-reviewer.md` is copied to the path
+      the host resolves before the dispatch, and the record names that path
+      and the SHA-256 both copies then share. Without the copy the dispatch
+      reads whatever the operator's profile happens to hold: today that copy
+      is 8,633 bytes against the pack source's 9,140, so a dispatch naming
+      only its scope reviews a definition this slice never edited.
 - [ ] **AC-0060.** `references/convergence-loop.md` requires the loop to
       dispatch the `design-reviewer` subagent when it is reachable, and to
       name the rung it fell back to when it is not.

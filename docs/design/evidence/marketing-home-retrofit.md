@@ -296,7 +296,7 @@ whole remainder of the 18-state matrix.
 
 **One hundred and seventy-two captures and two PDFs**, all in the session
 scratchpad
-(`/private/tmp/claude-501/-Users-eu-gene-lim-orca-workspaces-agent-ready-repo-marketing-work/f785c095-4962-4d5c-a91d-4d673099e457/scratchpad/`).
+(`/private/tmp/claude-501/-Users-<user>-orca-workspaces-agent-ready-repo-marketing-work/f785c095-4962-4d5c-a91d-4d673099e457/scratchpad/`).
 
 The 16-capture matrix on `/`. Every capture carries all five required fields;
 none is missing a field, so none is unusable.
