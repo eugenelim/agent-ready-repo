@@ -93,8 +93,14 @@ class Refusal(Exception):
         self.reason = reason
 
     def render(self) -> str:
-        """Render this refusal for stderr, with the path escaped."""
-        return f"{self.path!r}: refused: {self.reason}"
+        """Render this refusal for stderr, with the path and reason both escaped.
+
+        `reason` can embed the caller-supplied path again (`read_target`
+        builds it from `str(exc)`), so it is escaped here too, not only
+        `path`: a raw newline or ANSI escape inside either field must not
+        reach the terminal or forge a second output line.
+        """
+        return f"{self.path!r}: refused: {self.reason!r}"
 
 
 @dataclass(frozen=True)

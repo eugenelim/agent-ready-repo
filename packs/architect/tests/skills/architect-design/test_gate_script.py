@@ -433,6 +433,28 @@ def test_finding_and_refusal_rendering_escape_hostile_paths() -> None:
     assert "\x1b" not in rendered_refusal
 
 
+def test_a_real_refusal_reason_escapes_a_hostile_filename(tmp_path: Path) -> None:
+    """A benign-reason `Refusal` cannot catch this: `reason` embeds the path too.
+
+    `read_target` builds its reason from `str(exc)`, and the vendored helper's
+    exception text embeds the confined-relative path — so a hostile on-disk
+    filename must not leak a raw control byte through `reason`, not only
+    through `path`.
+    """
+    gate = _load_gate()
+    root = tmp_path / "root"
+    root.mkdir()
+    hostile_name = "evil\n\x1b[31mFAKE\x1b[0m.md"
+    hostile = root / hostile_name
+    os.mkfifo(hostile)  # not a regular file: the refusal reason embeds its name
+    with pytest.raises(gate.Refusal) as excinfo:
+        gate.read_target(root, hostile, gate.MAX_BYTES)
+    assert hostile_name in excinfo.value.reason, "the reason must still name the file"
+    rendered = excinfo.value.render()
+    assert "\n" not in rendered
+    assert "\x1b" not in rendered
+
+
 # --- AC-0017: the paragraph budget, on both sides --------------------------
 
 
