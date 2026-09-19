@@ -109,14 +109,22 @@ response to the AC-0018 failure above.
 five shipped assets carries more than three sentences:
 `assets/design-doc.md:25`, at four. No other asset has one.
 
-**Why the amendment rather than the one-line asset edit.** The contract is
-inconsistent with itself, and the asset edit would leave that intact. AC-0024
-already strips every `<…>` placeholder when `DA10` counts words, and AC-0047
-already states that a template's unfilled placeholder is the slot a check asks
-an author to fill rather than content to judge. AC-0019's `DA3` exclusion list
-omits placeholders alone. Splitting the one placeholder would make the suite
-green while leaving `DA3` judging template instructions, so the next template
-edit that writes a four-sentence instruction reds again.
+**Why the amendment rather than the one-line asset edit.** Splitting the one
+placeholder would make the suite green while leaving `DA3` judging template
+instructions, so the next template edit that writes a four-sentence
+instruction reds again. That recurrence is the justification.
+
+**Correction, 2026-09-19.** The decision was originally recorded with a second
+reason that is false: that the contract was inconsistent because "AC-0024
+already strips every `<…>` placeholder when `DA10` counts words". It does not.
+AC-0023 is `DA10`'s counting rule and removes YAML frontmatter and
+HTML-comment spans only; AC-0024's placeholder strip belongs to the one-off
+command that measured the 752-word scaffolding figure, not to the gate. The
+owner approved on a framing that carried that false claim. The recurrence
+argument above is unaffected and is the whole justification. AC-0047 supplies
+the principle that a placeholder is an author's slot rather than content to
+judge; it does not supply a rule about span shape, and its own remedy for
+template placeholders is corpus exclusion, which AC-0018 refuses for `DA3`.
 
 **What the amendment changes.** AC-0019 gains a `<…>` placeholder span to its
 non-prose list. AC-0018's claim is unaffected: every asset stays in the glob,

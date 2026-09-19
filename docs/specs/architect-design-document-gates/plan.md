@@ -211,7 +211,11 @@ spawning an interpreter:
   Both gates consume its output; nothing else defines the shared exclusion.
 - `prose_paragraphs(text)` — yields `(start_line, text)` per blank-line
   separated run that is not a fence, table row, list item, block quote or
-  heading. A fence is tracked as a span, because a table row inside a fenced
+  heading, with placeholder spans masked out of each surviving run.
+  **The placeholder mask lives here, not in `strip_excluded`.** That helper is
+  shared with `DA10`, whose counting rule (AC-0023) keeps placeholders, so
+  moving the mask into it would change `DA10`'s counts and break AC-0025's
+  20% window against the 2,178 figure. A fence is tracked as a span, because a table row inside a fenced
   block is not a table row.
 - `count_sentences(paragraph)` — splits on terminal punctuation followed by
   whitespace and a capital, after masking the abbreviation set and decimals by
@@ -240,7 +244,16 @@ report comes to cover a file nobody looked at.
 The parser's false-positive sources are each a test: an abbreviation
 mid-sentence, a decimal, a heading directly above wrapped prose, a multi-line
 HTML comment containing four sentences, a fenced block containing a
-pipe-delimited line, a nested list continuation line.
+pipe-delimited line, a nested list continuation line, and a multi-line `<…>`
+placeholder — `assets/design-doc.md:25` is the live one.
+
+**The placeholder exclusion needs its negative half, or it becomes a false
+negative.** Three cases where angle brackets are ordinary content and `DA3`
+must still read the prose: a `<` followed by a space, which is how the
+templates write a comparison (`application-system-design.md:35` carries
+`"p95 < 200ms at 10x current load"`); an autolink; and an HTML tag. A rule
+that scanned forward for a closing `>` would swallow every line after such a
+`<`, and a `DA3` that silently reads nothing is worse than one that reds.
 
 The refusal set, and why each entry is there:
 
@@ -385,8 +398,11 @@ earlier draft of this plan cited it as governing.
 - `prose_paragraphs` and `count_sentences` are driven over every `*.md` under
   `architect-design/assets/` by glob, requiring zero findings (AC-0018); over
   fixtures built in the test, one per false-positive source in Design →
-  Failure, the multi-line `<…>` placeholder among them (AC-0019, AC-0020,
-  AC-0021); and at 3 and 4 sentences, pinning the
+  Failure (AC-0019, AC-0020, AC-0021); a case pinning that a placeholder
+  sharing a line with real sentences masks only itself and leaves that prose
+  countable (AC-0081); and one fixture per negative case in
+  the same section — the spaced comparison, the autolink, the HTML tag — each
+  of which `DA3` must still report (AC-0082, AC-0083); and at 3 and 4 sentences, pinning the
   budget on both sides (AC-0017).
 - `count_words` is asserted at exactly the bound and one over (AC-0023), and
   the finding renderer asserted to carry path, line and count (AC-0022).

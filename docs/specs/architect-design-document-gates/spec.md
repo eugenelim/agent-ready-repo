@@ -167,8 +167,13 @@ and never reflowed, so a group's list is not always contiguous.
   static property of the pattern — an elapsed-time bound on a shared runner is
   a flake. AC-0016 is a text assertion.
 - **`DA3` — paragraph budget (AC-0017, AC-0018, AC-0019, AC-0020, AC-0021,
-  AC-0022): TDD.** A compressible invariant over text, its budget pinned on
-  both sides, shown red on a non-compliant fixture before it is trusted.
+  AC-0022, AC-0081, AC-0082, AC-0083): TDD.** A compressible invariant over
+  text, its budget pinned on both sides, shown red on a non-compliant fixture
+  before it is trusted. The placeholder exclusion is pinned in both
+  directions: AC-0081 fixes what a span is, and AC-0082 and AC-0083 fix what
+  it is not, because a widened exclusion fails silently — a `DA3` that reads
+  nothing reports nothing, and the shipped templates write `p95 < 200ms` in
+  ordinary prose.
 - **`DA10` — size trigger (AC-0023, AC-0024, AC-0025, AC-0026, AC-0027): TDD
   for the count, goal-based for the text.** AC-0025 is what gives AC-0024 an
   oracle: the derivation is compared against the reference document's measured
@@ -354,14 +359,31 @@ and never reflowed, so a group's list is not always contiguous.
       paragraph whatever the document routes to, so the glob carries no
       exclusion.
 - [ ] **AC-0019.** `DA3` treats none of these as prose: YAML frontmatter, a
-      fenced code block, an HTML-comment span, a `<…>` placeholder span
-      including one spanning several lines, a Markdown table row, a list item,
-      a block quote, an ATX heading. The placeholder entry keeps this list
-      consistent with the rest of the contract: AC-0024 strips every `<…>`
-      placeholder when `DA10` counts words, and AC-0047 states that an
-      unfilled placeholder is the slot a check asks an author to fill rather
-      than content to judge. A placeholder is the template's instruction to
-      its author, and an authored document has none left.
+      fenced code block, an HTML-comment span, a placeholder span as AC-0081
+      defines it, a Markdown table row, a list item, a block quote, an ATX
+      heading. A placeholder is the template's instruction to its author, and
+      an authored document has none left, which is the principle AC-0047
+      states. `DA10` is unaffected: AC-0023 keeps its counting rule as it is,
+      because a placeholder's words are words on the page and `DA10` measures
+      the page.
+- [ ] **AC-0081.** A placeholder span opens at a `<` immediately followed by a
+      non-space character and closes at the first `>` on the same line. It is
+      masked, not paragraph-disqualifying: the span is removed and the prose
+      around it stays prose, so a placeholder sharing a line with real
+      sentences does not exempt them.
+- [ ] **AC-0082.** These are not placeholder spans, and `DA3` still reads the
+      prose carrying them: a `<` followed by a space, which is how the shipped
+      templates write a comparison — `application-system-design.md:35` carries
+      `"p95 < 200ms at 10x current load"`; an autolink such as
+      `<https://example.test/x>`; and an HTML tag such as `<details>` or
+      `</details>`.
+- [ ] **AC-0083.** An unterminated `<` never consumes past its own line. The
+      several-line placeholder in `assets/design-doc.md:25` is excluded
+      because each of its lines is inside a `<`…`>` pair once the paragraph is
+      joined, not by a span that runs until some later `>`. A rule that
+      scanned forward for a closing `>` would delete every line between a
+      `p95 < 200ms` and the next `>`, which is a silent `DA3` miss and the
+      failure this gate exists to prevent.
 - [ ] **AC-0020.** `DA3` counts a sentence boundary across `e.g.`, `i.e.`,
       `etc.`, `vs.` and a decimal number without splitting at their periods.
 - [ ] **AC-0021.** A heading on the line immediately above wrapped prose
