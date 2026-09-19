@@ -135,3 +135,30 @@ and a placeholder simply is not a prose paragraph.
 skipped any line beginning with `<`, so it never examined a placeholder and
 could not have found this. The claim was true of what that probe measured and
 false of what it asserted; T2's parser is correct and the probe was not.
+
+## AC-0081 walked against the case it was written for
+
+2026-09-19. The first draft of AC-0081 scoped a placeholder span to a source
+line — "closes at the first `>` on the same line". Walked against
+`assets/design-doc.md:25`, the case that motivated the amendment, that rule
+fails: line 25 opens the placeholder and the closing `>` is two lines later,
+so no span is found and the four-sentence placeholder stays prose. The
+amendment would not have done its job.
+
+The rule now scopes the span to the **joined paragraph**, after
+`prose_paragraphs` has joined the wrapped lines. The paragraph boundary is
+what bounds a runaway span, since a blank line ends the paragraph.
+
+**Measured after the correction**, over all five shipped assets:
+
+| Check | Result |
+| --- | --- |
+| `DA3` findings across `assets/*.md` | 0 |
+| `The p95 < 200ms budget holds. Two. Three. Four.` | 4 sentences, counted |
+| `See <https://example.test/x> for detail. Two. Three. Four.` | 4 sentences, counted |
+| `Use <details> to fold it. Two. Three. Four.` | 4 sentences, counted |
+
+An autolink and an HTML tag do open a span under this rule and are masked.
+That is harmless for a sentence count, so AC-0082 states the outcome — the
+surrounding prose is still read — rather than claiming they are not spans,
+which the implementation would contradict.

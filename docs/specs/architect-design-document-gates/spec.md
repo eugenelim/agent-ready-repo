@@ -366,24 +366,36 @@ and never reflowed, so a group's list is not always contiguous.
       states. `DA10` is unaffected: AC-0023 keeps its counting rule as it is,
       because a placeholder's words are words on the page and `DA10` measures
       the page.
-- [ ] **AC-0081.** A placeholder span opens at a `<` immediately followed by a
-      non-space character and closes at the first `>` on the same line. It is
-      masked, not paragraph-disqualifying: the span is removed and the prose
-      around it stays prose, so a placeholder sharing a line with real
+- [ ] **AC-0081.** A placeholder span is found **in the joined paragraph**,
+      after `prose_paragraphs` has joined a blank-line-separated run of
+      wrapped lines into one string. It opens at a `<` immediately followed by
+      a non-space character and closes at the first `>` after it in that
+      string. Source-line scoping would not work: the case that motivated this
+      amendment, `assets/design-doc.md:25`, opens on one line and closes two
+      lines later, so a same-line rule leaves it unexcluded. The span is
+      masked, not paragraph-disqualifying — the span is removed and the prose
+      around it stays prose, so a placeholder sharing a paragraph with real
       sentences does not exempt them.
-- [ ] **AC-0082.** These are not placeholder spans, and `DA3` still reads the
-      prose carrying them: a `<` followed by a space, which is how the shipped
-      templates write a comparison — `application-system-design.md:35` carries
+- [ ] **AC-0082.** `DA3` reads and counts the prose carrying any of these,
+      rather than losing it: a `<` followed by a space, which is how the
+      shipped templates write a comparison —
+      `application-system-design.md:35` carries
       `"p95 < 200ms at 10x current load"`; an autolink such as
-      `<https://example.test/x>`; and an HTML tag such as `<details>` or
-      `</details>`.
-- [ ] **AC-0083.** An unterminated `<` never consumes past its own line. The
-      several-line placeholder in `assets/design-doc.md:25` is excluded
-      because each of its lines is inside a `<`…`>` pair once the paragraph is
-      joined, not by a span that runs until some later `>`. A rule that
-      scanned forward for a closing `>` would delete every line between a
-      `p95 < 200ms` and the next `>`, which is a silent `DA3` miss and the
-      failure this gate exists to prevent.
+      `<https://example.test/x>`; and an HTML tag such as `<details>`. The
+      criterion is the outcome, not the mechanism. The space test keeps a
+      comparison from opening a span at all. An autolink and a tag do open one
+      and are masked, which is harmless for a sentence count and mildly
+      helpful — masking `<https://x.test/a.b>` removes a period that would
+      otherwise read as a boundary. What must not happen is the surrounding
+      sentences going uncounted.
+- [ ] **AC-0083.** A `<` with no `>` after it in the joined paragraph masks
+      nothing and stays ordinary content. The paragraph boundary is the bound
+      that keeps a span from running away: `prose_paragraphs` splits on a
+      blank line, so no span can reach past one however the brackets fall. Two
+      properties follow and both are pinned — an unterminated `<` leaves its
+      paragraph fully readable, and a `p95 < 200ms` earlier in a paragraph
+      that happens to carry a later `>` still opens no span, because AC-0082's
+      space test decides the opener.
 - [ ] **AC-0020.** `DA3` counts a sentence boundary across `e.g.`, `i.e.`,
       `etc.`, `vs.` and a decimal number without splitting at their periods.
 - [ ] **AC-0021.** A heading on the line immediately above wrapped prose
