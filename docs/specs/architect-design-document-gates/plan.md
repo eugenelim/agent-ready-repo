@@ -1,7 +1,7 @@
 # Plan: architect-design document-architecture gates
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0118 `D5` fixes the gate set and its
   mechanizability. The governing implementation is
   `packs/core/.apm/skills/close-work/scripts/` — a skill that carries a
@@ -508,6 +508,40 @@ against a non-compliant fixture and against the shipped templates — are in
 **Done when:** `packs/architect/tests/pack/` and
 `packs/architect/tests/skills/architect-design/` both pass.
 
+### T4b: the prechecks reach the two homes a reviewer reads
+
+**Depends on:** T4
+
+**Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/.apm/agents/design-reviewer.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
+
+**Tests:**
+- `test_design_reviewer_rubric_parity.py` asserts each of the seven precheck
+  bodies is present in **every** `DA_CARRIERS` entry, scoped to that gate's
+  own section body rather than to the file (AC-0035, AC-0036, AC-0037,
+  AC-0038, AC-0039, AC-0040, AC-0041), and that each states its verdict is the
+  reviewer's (AC-0042). The existing per-carrier identifier, severity and tag
+  assertions must still pass unchanged.
+- A negative assertion requires `DA5` to carry no precheck in any carrier
+  (AC-0047), which is the count that keeps judgment-only distinct once every
+  hybrid has one.
+- no stub (goal-based)
+
+**Approach:**
+- **Why this is a task and not a widening of T4.** T4 is complete and its
+  section cannot be edited, so the correction is a new dependency-ordered
+  task. The obligation itself is not new: the prechecks group's preamble binds
+  every criterion in it to all three homes, and the plan assigned those
+  criteria to T3, whose `Touches:` reaches only the authoring rubric. The
+  three-home obligation therefore had no owning task that could satisfy it.
+- The precheck text already exists in `design-doc-rubric.md`'s `#### DA<n>`
+  bodies. Carry the same obligations across rather than re-authoring them; the
+  homes may condense the prose, but a reviewer reading either one must be able
+  to tell a hybrid from `DA5` without opening the authoring rubric.
+
+**Done when:** `packs/architect/tests/pack/` and
+`packs/architect/tests/skills/architect-design/` both pass, and the word
+`precheck` appears in all three `DA_CARRIERS` entries.
+
 ### T4a: the prechecks are walked against a document, not a template
 
 **Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/testdata/precheck-defects.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
@@ -629,7 +663,7 @@ span.
 
 ### T7: the pack release closes
 
-**Depends on:** T2, T3, T4, T4a, T5
+**Depends on:** T2, T3, T4, T4b, T4a, T5
 
 **Touches:** packs/architect/pack.toml, packs/architect/.claude-plugin/plugin.json, docs/product/changelog.md, packs/architect/.apm/skills/architect-design/evals/evals.json, .claude-plugin/marketplace.json
 
