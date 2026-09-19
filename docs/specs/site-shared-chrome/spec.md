@@ -1,6 +1,16 @@
 # Spec: Site shared chrome
 
-- **Status:** Shipped
+- **Status:** Shipped (§ Approved content and behavior's How it works
+  destination was retargeted `/#three-loops` → `/#the-model` on 2026-09-18,
+  when PR #1372 deleted the `ThreeLoops` component and with it the
+  `#three-loops` fragment; the two values below are rewritten under the
+  mechanical link-rename carve-out. The carve-out's test — does a reader's
+  understanding of what was DECIDED change — is met because the decision was
+  that How it works lands on the homepage section explaining the model, and
+  only that section's fragment moved: § Shared destination groups' separate
+  Docs row `The three loops → /docs/getting-started/three-loops/` is untouched
+  and still resolves, so nothing here retires the three-loops concept. Not a
+  supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -57,7 +67,7 @@ Starlight reading experience and independent palette.
 
 Render this exact order and destination contract:
 
-1. **How it works** → `/#three-loops`
+1. **How it works** → `/#the-model`
 2. **Use cases** → `/#use-cases`
 3. **Catalogue** → `/catalogue/`
 4. **Now** → `/now/`
@@ -76,7 +86,7 @@ Both renderer-specific footers use these exact groups and order:
 
 | Group | Label | Target |
 | --- | --- | --- |
-| Product | How it works | `/#three-loops` |
+| Product | How it works | `/#the-model` |
 | Product | Use cases | `/#use-cases` |
 | Product | Catalogue | `/catalogue/` |
 | Product | Packs | `/packs/` |
