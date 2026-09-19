@@ -36,11 +36,10 @@ _file_safety_module: Any = None
 def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> Any:
     """Load a co-located module by path, refusing a link-like or incomplete one.
 
-    Mirrors `packs/core/.apm/skills/close-work/scripts/close_work.py`'s
-    `_load_regular_sibling`. `packs/AGENTS.md` § Writing pack tests forbids
-    binding a sibling `scripts/` module by bare name — several skills ship a
-    same-named `file_safety.py`, and a bare import binds whichever directory
-    reached `sys.path` first — so this loads by
+    Several skills ship a same-named `file_safety.py`, so this binds the
+    module by path rather than by bare name — a bare import would bind
+    whichever directory reached `sys.path` first, and cache that choice for
+    every later importer — using
     `importlib.util.spec_from_file_location` under a private module name
     instead.
     """
