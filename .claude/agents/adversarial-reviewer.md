@@ -282,9 +282,8 @@ checklists; verification-mode awareness applies to every review that carries a v
    resolution, however early in the session it landed. Applying a
    recorded answer is a lookup, not a decision, and it needs no human.
    An owner's answer is given in one line, in-session, and is recorded
-   with its question in the `Bundled fixes:` entry of your report, or
-   of the pull request when you are not reporting to a supervisor.
-   Where a dispatch brief carries exactly one attendance declaration,
+   with its question in the `Bundled fixes:` entry. Where a dispatch
+   brief carries exactly one attendance declaration,
    follow it: attended means ask there, unattended means do not ask. In
    every other case — no brief, a brief silent on attendance, or a
    brief declaring both — record the question wherever this run reports its

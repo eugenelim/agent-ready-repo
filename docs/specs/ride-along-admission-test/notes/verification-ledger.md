@@ -956,3 +956,214 @@ own docstring.
 `make lint-ruff lint-mypy` → each exit 0. `work-loop/SKILL.md` body = 980
 lines, 20 under the cap. RFC-0090 now reads "four-clause".
 `.workspace-prune-protected.toml` carries the spec directory.
+
+## 2026-09-19 — T7 (second walk, against the shipped wording)
+
+**Projections regenerated, re-run after T8–T10's edits.** `python3 -m
+agentbundle catalogue self-host --root . --write` → exit 0
+(`catalogue self-host --write: ok`); ten files came out modified —
+`.agents/skills/work-loop/SKILL.md`, `.agents/skills/work-loop/evals/evals.json`,
+`.agents/skills/work-loop/references/supervisor-mode.md`,
+`.claude/agents/adversarial-reviewer.md`, `.claude/agents/implementer.md`,
+`.claude/skills/work-loop/SKILL.md`, `.claude/skills/work-loop/evals/evals.json`,
+`.claude/skills/work-loop/references/supervisor-mode.md`,
+`.codex/agents/adversarial-reviewer.toml`, `.codex/agents/implementer.toml` —
+more than the first walk's eight, because T8–T10 landed clause (iv), the C2
+citation-independence rewrite, the C2 fallback's final wording, and the
+byte-not-text sweep since the last write. No file outside `.claude/`,
+`.agents/`, `.codex/` changed. `python3 -m agentbundle catalogue self-host
+--check --root .` → exit 0 (`catalogue self-host --check: ok`), with only the
+documented `dry-run does not compare packaged runtime pairs` notice and
+`[info] unclassified` lines for unrelated `docs/design/` content — neither
+bears on this task. `git status --porcelain` after the write shows only the
+ten files above as modified, all under `.claude/`, `.agents/`, `.codex/`.
+
+**Confirmed: both `.claude/skills/work-loop/SKILL.md` and
+`.agents/skills/work-loop/SKILL.md` carry C1's four clauses and the current
+C2, byte-identical to `packs/core/.apm/skills/work-loop/SKILL.md`** — checked
+by diffing the span from `**Bundled-fixes carve-out**` through `Where no
+citation exists and no answer` across all three files: zero-line diff in
+both. This is the specific risk this task named: C2 changed twice since the
+last projection (`the human gate's own record` → `the pull request this loop
+opens at its human gate` → `wherever this run reports its result`, per the
+`T9` and `the human gate's record names no artifact` entries above), and a
+stale copy would have gone undetected by a check run before regenerating.
+`grep -c "Clause (iv) fails closed"` and `grep -c "wherever this run"` each
+return `1` in both projected files.
+
+**The manual-QA walk, second pass.** Driven against the installed
+`.claude/skills/work-loop/SKILL.md`'s EXECUTE carve-out and `## Capture`
+text (lines 423–453 and 875–913 as written), not the pack source, reading
+only what those sections say and marking anywhere a route required
+reasoning the words themselves do not supply. Same assumption as the first
+walk, held across all three: the touched file (a helper's docstring in
+discovery 1; the sibling constants in discoveries 2 and 3) is ordinary
+application code, not a skill, agent definition, hook, command, or anything
+one of those loads, and not itself a file stating this test, so clause (iv)
+is not in play in any of the three — an assumption because none of the
+scenarios name the file's role, and leaving it undecidable would make clause
+(iv)'s fail-closed default refuse all three outright.
+
+1. **Resolved by citation.** A helper's docstring states a default a
+   shipped, pre-existing convention document contradicts; the convention
+   document predates the branch; the one-line fix aligns the docstring to
+   it.
+   - **C1:** (i) passes — a docstring correction fires no risk trigger in
+     `SKILL.md`'s canonical block. (ii) passes because the design call is
+     *recognized and resolved*, not absent: altering a stated default is
+     exactly what C2's first sentence names ("a change that sets or alters a
+     value, a wording, a threshold, or a default presents a choice, however
+     obvious the option you took"), and the resolution changes no
+     convention, contract, or published interface — it aligns the docstring
+     *to* the existing convention rather than against it. (iii) passes —
+     verified by comparison against the convention document, a named
+     authority the change agrees with. (iv) passes under the held
+     assumption.
+   - **C2 route:** citation. "A citation is a shipped rule, an accepted
+     decision record, a convention document, or the commit whose message
+     records the decision" covers the convention document by name.
+   - **The trap, checked deliberately.** C2 also requires: "It must already
+     exist independently of the change that cites it: it resolves at this
+     change's merge base with the branch it will merge into, and no commit
+     on this branch authored it." The installed text states this test's
+     *shape* in prose — predates the merge base, not authored on this
+     branch — but supplies no procedure for establishing either fact: no
+     named command, no pointer to checking history against a merge-base, no
+     worked example of what "authored on this branch" looks like in
+     practice. In this scenario the fact is handed to the reader directly
+     ("predates the branch" is given in the prompt, not derived from
+     `SKILL.md`'s words), so the rule is applied by lookup against a
+     supplied fact, not derived from the shipped text. A reader who did not
+     already know when the document was last touched relative to the merge
+     base would find nothing in the installed carve-out telling them how to
+     find out — that is a real gap, distinct from the other two discoveries,
+     and it is reported rather than inferred past.
+   - **`## Capture` destination:** dispatched now — "a ride-along-eligible
+     defect is dispatched now, grouped with related fixes sharing a file or
+     a seam, over the human gate's `blocker-applied` return edge," the first
+     item the sequence reaches since all four C1 clauses hold. Excluded:
+     capture (reserved for a defect blocked on a decision, an instrument, or
+     elapsed time — this one is resolved); the next-reviewed-unit route
+     (reserved for a ready-now defect that is *not* ride-along eligible —
+     this one is); discard (reserved for taste or no stated arbiter — this
+     one has a citation).
+   - **Verdict:** partial. The route the words produce (dispatch now) is
+     unambiguous given the facts as stipulated, but the citation test's
+     merge-base/authorship clause is stated, not made operable, by the
+     installed text — a finding, not a silent inference.
+
+2. **Needs an owner answer, no brief.** Two sibling constants spell the same
+   word differently; which spelling is right is a one-line call nobody has
+   written down; a maintainer invoked the loop directly, so no dispatch
+   brief exists.
+   - **C1:** (i) passes on the same ground as discovery 1. (ii) is not
+     satisfied at the moment of noticing — a spelling choice between two
+     constants is "alter[ing] … a wording," C2's recognition sentence fires,
+     and "you cannot point to the citation or to the answer" yet, so "there
+     is an unresolved design call." (iii) and (iv) pass in isolation but are
+     moot while (ii) is open: C1 requires all four, so the change is not
+     (yet) a ride-along candidate.
+   - **C2 route:** "no brief" is one of the three cases the text enumerates
+     verbatim — "no brief, a brief silent on attendance, or a brief
+     declaring both" — so the instruction is unconditional: "record the
+     question wherever this run reports its result, and read the reply
+     given there." "Do not probe for a human, and do not pause the loop for
+     a reply beyond the stop it already makes" forbids creating a new pause
+     point in the chat turn even though the maintainer is present.
+   - **The prior gap is closed, checked directly.** The first walk found
+     that "the human gate's own record" named no artifact a `SKILL.md`-only
+     reader could act on. The current wording — "wherever this run reports
+     its result" — does not name an artifact at all, by design (per the
+     `T9` entry above: "the one noun true in all three [contexts], and needs
+     no reader to know which mode they are in"). Read against the rest of
+     the same installed file, this now resolves without a cross-document
+     jump: mode selection already happened before EXECUTE, so a reader
+     already knows their own run's report surface from elsewhere in this
+     same file — a final unit's completion means "complete the Finish
+     checklist and open the PR" at `CODE-HUMAN-GATE` (line 637) for full
+     mode, or "complete the Finish checklist and produce the five-field
+     final handoff" (line 662) for direct-light. The C2 sentence does not
+     itself repeat that mapping, but it does not need to: "wherever this run
+     reports its result" is satisfied by whichever of those two the reader
+     is already building, without the phrase having to name it.
+   - **`## Capture` destination:** provisional pending the reply, same shape
+     as the first walk — if the reply arrives and names the question before
+     disposition is needed, clause (ii) becomes satisfied and the note takes
+     discovery 1's route (dispatched now); if not, "the item falls out:
+     capture it with `blocked_on: decision`" — discovery 3's destination,
+     reached later. Excluded meanwhile: discard (an owner exists who could
+     answer — not taste or "no stated arbiter") and the next-reviewed-unit
+     route (not ready-now until answered).
+   - **Verdict:** the installed words, read against the rest of the same
+     file, get you there. No gap this time — the change from the first
+     walk's finding is confirmed, not merely asserted.
+
+3. **Needs an owner answer, declared-unattended dispatch.** The same finding
+   as (2), but the dispatch brief states the run is unattended.
+   - **C1:** (i), (iii), (iv) as in discovery 2. (ii) is not satisfied and,
+     unlike discovery 2, cannot become satisfied within this run: the
+     unattended declaration forecloses obtaining an in-session answer.
+   - **C2 route:** "Where a dispatch brief carries exactly one attendance
+     declaration, follow it: attended means ask there, unattended means do
+     not ask." The brief here declares exactly one — unattended — so the
+     text routes straight to "Where no citation exists and no answer was
+     given, the item falls out: capture it with `blocked_on: decision` and
+     move on, without asking again, guessing, or treating the absence as a
+     blocker on the loop." Nothing here changed between the two wordings;
+     both walks read this branch identically.
+   - **`## Capture` destination:** captured — "a defect blocked on a
+     decision … is captured," the second item in the ordered sequence.
+     Excluded: dispatched now (clause (ii) fails); next-reviewed-unit (the
+     loop is explicitly told not to ask, so no decision is forthcoming this
+     session); discard (a real owner and a real, statable question exist).
+     C5's discriminator is satisfiable from the note as given: "constant X
+     spells the word one way, constant Y the other; no convention states
+     which is canonical; `blocked_on: decision`."
+   - **Verdict:** the installed words alone get you here. No gap.
+
+**Net finding from the second walk.** The first walk's one open finding —
+discovery 2's fallback naming no artifact — is closed by the wording T9
+shipped: reading the current text against the rest of the same installed
+file, all three discoveries reach their destination without supplied
+reasoning, except for the new trap surfaced in discovery 1, where C2's
+citation test states a merge-base/authorship criterion but not a procedure
+for evaluating it. That is a narrower gap than the one this walk closed, and
+it is reported here rather than patched, because T7's `Touches:` is
+`.claude/`, `.agents/`, `.codex/` only and this is a prose property of the
+`.apm/` source T2/T8/T9/T10 already landed.
+
+**Gates.** `python3 -m agentbundle catalogue self-host --check --root .` →
+exit 0. `python3 -m pytest packs/core/tests/pack/ -q` → 249 passed, exit 0.
+`python3 -m pytest tests/roster/ -q` → 1736 passed, 6 skipped, 56 subtests
+passed in 394.70s, exit 0 — the four failures T10 recorded (three
+projection-drift deferrals plus AC12's binary-fixture blocker) are now
+green, because this task's own write closed the projection drift and T10
+closed AC12 before this walk began. `python3
+tools/lint-pack-test-boundary.py` → exit 0 (8 cases). `python3
+tools/lint-ci-parity.py` → exit 0 (two `ok` lines). `python3
+tools/lint-agents-md.py` → exit 0. `make lint-ruff lint-mypy` → exit 0
+(`All checks passed!`; `Success: no issues found in 148 source files`).
+
+## 2026-09-19 — the citation test states a property and names no procedure
+
+**Found by the second walk, deliberately probed.** C2 requires a citation to
+resolve at the change's merge base and to be authored by no commit on the
+branch. The installed text states that criterion's shape and supplies no
+procedure for evaluating it — no named command, no pointer to history. The
+walk's case 1 was handed the fact ("the convention document predates the
+branch") rather than deriving it, so the route was applied by lookup.
+
+**Disposition: accept-as-proportionate, with the reason recorded.** This is
+not the same defect as the earlier "the human gate's own record", which named
+an artifact that did not exist. This names a property any agent holding the
+repository can determine — `git cat-file -e <merge-base>:<path>` answers the
+first half and `git log <merge-base>..HEAD -- <path>` the second — and the
+sibling clauses are written the same way: C1's clause (iii) says "a command
+with a zero diff on re-run" without naming the command either. Stating
+properties and leaving procedure to the agent is the carve-out's consistent
+register, and naming a procedure for each would cost more of the twenty
+remaining body lines than the ambiguity costs.
+
+Routed to `work-intake` with the other deferred items rather than amended
+here: if practice shows agents getting the merge-base test wrong, the remedy
+is a named command in C2, and that is a clause change the owner gates.
