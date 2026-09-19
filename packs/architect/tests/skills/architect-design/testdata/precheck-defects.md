@@ -50,7 +50,9 @@ the boundary sit there rather than somewhere else?
   install, never one that already ran.
 
 ```mermaid
-%% Question: which side of the subsystem boundary does each capability sit on? · Zoom: subsystem-boundary
+---
+title: "Which side of the subsystem boundary does each capability sit on? (zoom: component)"
+---
 flowchart LR
     Operator[Enterprise operator] -->|writes| CatalogueToml[catalogue.toml pack-defaults.core]
     CatalogueToml -->|read at install| Reader[Catalogue Default Reader]
@@ -87,9 +89,11 @@ The subsystem is composed of three cooperating elements.
 | Telemetry Config Section | Sender (neighbor) | publishes-to | file read at send time |
 
 ```mermaid
-%% Question: which two responsibilities does the merge decision split into? · Zoom: component
+---
+title: "Which two responsibilities does this subsystem split into? (zoom: component)"
+---
 flowchart TB
-    subgraph Subsystem[Catalogue Telemetry Default Projection — zoom: component]
+    subgraph Subsystem[Catalogue Telemetry Default Projection]
         Reader[Catalogue Default Reader]
         Projector[Merge Projector]
         Reader -->|extracted keys| Projector

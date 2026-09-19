@@ -543,3 +543,77 @@ here showing ten `DA1`-`DA10` verdicts, and remove the copy in the same
 step regardless of outcome. Until that dispatch is recorded, T4a's `Done
 when:` clause requiring "the dispatched review's returned block in the
 ledger showing ten verdicts" is open.
+
+## AC-0059 — the design-reviewer dispatch, and what two roll-calls found
+
+**Date:** 2026-09-19. Controller-run, because an implementer subagent cannot
+spawn another subagent; T4a's implementer performed the copy/removal mechanics
+and correctly declined to fabricate a returned block.
+
+**The copy, both times.** `packs/architect/.apm/agents/design-reviewer.md` was
+copied to `.claude/agents/design-reviewer.md` inside the working tree and
+nowhere else, byte-identical at SHA-256 `d2335bb7d2ba1cdb…`. The destination
+was checked absent before each copy and the write refused otherwise. After
+each dispatch the copy was removed; `git status --short .claude/` is empty and
+`tests/roster/test_core_agent_projection.py` passes (1 passed in 2.02s), which
+is the equality pin on that generated tracked space. No copy survives.
+`~/.claude/agents/design-reviewer.md` was never written.
+
+**Which body was served.** AC-0059 warns that without a copy the dispatch
+reads the operator profile's definition. A discriminator was fixed before
+dispatching: the pack body names `DA10` three times, the profile body zero.
+Both returned blocks carried a full ten-gate roll-call, so the branch's body
+was served both times and the agent-definition staleness risk did not
+materialise. Note that AC-0059's byte figures are stale — the pack source is
+12,287 bytes, not 9,140, having grown with T3's and T4's gate content; the
+profile copy is 8,633 as recorded. The criterion's point stands; its numbers
+do not.
+
+**Roll-call 1 (pre-fix).** Verdict MAJOR REWRITE. `DA1`, `DA2`, `DA3`, `DA4`,
+`DA6`, `DA9`, `DA10` PASS; `DA5`, `DA7`, `DA8` FAIL. `DA7` fired because the
+two flowcharts stated no question or zoom while the section rationale asserted
+they did — the obligation satisfied in the prose instead of the diagram.
+
+**Roll-call 2 (at `b5557ff83`, after the first fix).** Verdict MAJOR REWRITE.
+`DA1`, `DA3`, `DA4`, `DA6`, `DA9`, `DA10` PASS; `DA2`, `DA5`, `DA7`, `DA8`
+FAIL. `DA7` fired again, and the reason is worth keeping: the first fix put
+the question in a mermaid `%%` comment, which is stripped at render, so a
+reader of the rendered diagram still saw nothing. The document already held
+the pattern that works — `Note over` in the sequence diagrams renders.
+
+**Second fix and manual re-walk (AC-0046).** Both flowcharts now open with a
+mermaid `---` / `title:` block, which renders above the diagram, carrying the
+question and the zoom; the ad-hoc third zoom term was dropped so the labels
+use the Zoom column's vocabulary. Walked by reading, all four diagrams: two
+rendered titles, two rendering `Note over` labels, zero `%% Question` lines
+remaining. `DA7`'s precheck no longer fires.
+
+**Why the other FAILs do not breach AC-0046.** AC-0046 forbids a *precheck*
+firing, not a judgement verdict. `DA5` is judgment-only and carries no
+precheck. `DA8`'s precheck asks only that every implementation-mapping row
+resolve to an element the models name, which the reviewer confirmed holds —
+its FAIL is a sufficiency judgement. `DA2`'s precheck is a closed list of
+phrases; the reviewer's `DA2` FAIL is about an unnamed intent
+("this design's owning intent"), which is not on that list, so the precheck
+does not fire. Only `DA7` was a precheck firing, and it is fixed.
+
+**One finding refuted on the contract.** Roll-call 2's Major 6 objects to the
+reference document's opening HTML comment as corpus governance that does not
+belong in a design body, citing a repository-internal ledger path. AC-0044
+*requires* that header: the corpus obligation must live in the document
+because a pack test may not climb to `docs/`
+(`tools/lint-pack-test-boundary.py` check 8), and a criterion verified by
+asserting that the spec says something is its own comparison value. The
+`packs/AGENTS.md` prohibition the finding echoes governs shipped pack content
+under `.apm/`; `tests/skills/.../testdata/` is not projected. Refuted, not
+deferred.
+
+**The design's own quality is not this delivery's subject.** Both roll-calls
+returned MAJOR REWRITE with blockers against the telemetry subsystem design
+itself — an excluded mechanism, two incompatible write targets, an
+unvalidated egress endpoint, absent consent. Those are findings about a
+corpus document written to exercise the gates, not about the gates. No
+criterion requires the reference document to be a *good* design; AC-0045
+requires it filled and placeholder-free, AC-0046 requires no precheck to fire
+on it. Both hold. Recorded here so a later reader does not mistake the silence
+for an oversight.
