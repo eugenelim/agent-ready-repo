@@ -38,10 +38,13 @@ agentbundle engine change: `packs/AGENTS.local.md:20-22` requires an
 
 ## Unresolved questions
 
-- Does a `packs/**` destination belong in `_library_mirrors`, in a new
-  declaration function, or in a generalised one? Every pair declared today
-  runs `packs/… → packages/…`, so a destination inside `packs/` is a shape the
-  mechanism has never written.
+- Is a projection the right answer at all, or is a pack-aware `DUP_GROUPS`
+  enough? The second is a `tools/` change; the first is an agentbundle engine
+  change needing an `Engine-Change-RFC:` trailer and matching version bumps.
+- If a projection: does a `packs/**` destination belong in `_library_mirrors`,
+  in a new declaration function, or in a generalised one? Every pair declared
+  today runs `packs/… → packages/…`, so a destination inside `packs/` is a
+  shape the mechanism has never written.
 - What gates a declared destination that is added but never regenerated? The
   existing pairs are covered because `make build-self` writes them and
   `build-check` compares them; a new destination class needs the same closure
@@ -55,6 +58,33 @@ agentbundle engine change: `packs/AGENTS.local.md:20-22` requires an
 ## Projection
 
 None yet. This intent is recorded for shaping and is not queued work.
+
+## Prior position this intent must beat
+
+`tools/lint-catalogue-curation-guard.py:100-107` records the repository's
+existing answer, attributed to RFC-0059's D-scripts decision, option (a) "with
+pack lint": "the pack model has no cross-skill shared-code location, so
+security-critical helpers are duplicated per skill and MUST stay
+byte-identical." Its `DUP_GROUPS` map is the mechanism — a helper filename
+plus the skill directories whose `scripts/` carry a copy — and it already pins
+`ssrf_check.py` and `write_jail.py` that way.
+
+So duplication is a decision, not an oversight, and this intent argues against
+it. It has to answer why a projection is worth more than a parity lint now,
+when it was not then. Two things changed that are worth weighing: the copies
+have spread beyond the pack that decision was written for, and `DUP_GROUPS` is
+hardcoded to `packs/catalogue-curation/.apm/skills`, so a copy in any other
+pack — architect's included — is pinned by a bespoke test or by nothing.
+
+The cheaper move, if the decision stands, is to give `DUP_GROUPS` a pack
+dimension rather than build a projection. That is a change to `tools/`, needs
+no `Engine-Change-RFC:` trailer, and would cover every duplicated helper the
+repository already carries.
+
+**Provenance caveat:** the decision's text is not in
+`docs/rfc/0059-catalogue-curation-pack.md`. The lint's comment is the
+surviving statement of it, so confirm where it was actually recorded before
+treating the RFC as its home.
 
 ## Opportunity
 
