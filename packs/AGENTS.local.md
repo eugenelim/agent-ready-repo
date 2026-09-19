@@ -44,6 +44,20 @@ For a non-engine change, the trailer accepts `n/a — <reason>`; never invent an
 Design against projected adopter state, not this checkout's internal corpus. Forks
 own their own publishing mechanism.
 
+## The blessed confinement helper is a generated destination
+
+Root `AGENTS.md` names `agentbundle.catalogue_tooling.file_safety`, which
+`make build-self` **writes**. A hardening fix applied there is overwritten on
+the next run and the tree stays green, so the patch disappears with nothing
+red. Nine copies exist and none is marked generated: read the declared pairs
+in `agentbundle/build/self_host.py` and patch the source side.
+
+A `packs/**` copy is a third case — no destination is declared for it, so it
+is hand-maintained and a source-side fix never reaches it. Each is pinned
+byte-identical by a test instead;
+`docs/product/intents/shared-pack-file-projection.md` records the mechanism
+that would replace those pins with regeneration.
+
 ## Shipped pack content carries no internal-governance citations
 
 Keep shipped material portable; see [the portable rule](AGENTS.md#shipped-pack-content-carries-no-internal-governance-citations).

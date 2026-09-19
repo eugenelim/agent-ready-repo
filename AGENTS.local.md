@@ -38,25 +38,6 @@ Edit sources, not generated catalogue-scaffold projections. For changes under
 `packs/` or `profiles/` that feed the scaffold, use
 `tools/catalogue/sync_authoring_scaffold.py` to synchronize and check projections.
 
-### The blessed confinement helper names a generated destination
-
-Root `AGENTS.md` names `agentbundle.catalogue_tooling.file_safety` as the
-blessed filesystem-confinement helper. **That module is a generated
-destination, not the canonical body.** A hardening fix applied there is
-overwritten the next time anyone runs `make build-self`, and the tree stays
-green, so the patch disappears with nothing red to announce it.
-
-Nine copies of `file_safety.py` exist and **none carries a
-generated-do-not-edit header**, so the canonical source is discoverable only
-by reading the declared pairs in
-`packages/agentbundle/agentbundle/build/self_host.py`. Read those pairs
-before editing any copy, and patch the source side.
-
-Copies under `packs/**` are a third case: `make build-self` declares no
-destination there, so they are hand-maintained and a source-side fix does not
-reach them at all. `docs/product/intents/shared-pack-file-projection.md`
-records the mechanism that would close that gap.
-
 ## Release coupling
 
 See [`docs/guides/explanation/release-coupling.md`](docs/guides/explanation/release-coupling.md); per-package specifics live in `packages/AGENTS.local.md`.
