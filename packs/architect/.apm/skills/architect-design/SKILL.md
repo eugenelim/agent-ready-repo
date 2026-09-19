@@ -240,7 +240,10 @@ real choice remains, create no new artifact.
    prioritized quality attribute that justifies it. Remove unsupported
    future-proofing and unnecessary claims. For a necessary cross-document
    assertion, perform one bounded check of its named target or label it an
-   assumption or discovery predicate.
+   assumption or discovery predicate. `DA3` and `DA10` are counted by reading,
+   matching the bounds `scripts/check_document_architecture.py` enforces; the
+   agent running this skill does not invoke that script — a human author or
+   an adopter's CI runs it separately, outside this procedure.
    Common failures:
    - Non-goals empty or unconvincing → load `references/alternatives.md`.
    - Alternatives are strawmen → load `references/alternatives.md` and

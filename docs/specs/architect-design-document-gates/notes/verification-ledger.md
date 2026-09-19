@@ -1,0 +1,101 @@
+# Verification ledger — architect-design document-architecture gates
+
+Execution observations. The spec holds the contract and the plan holds the
+strategy; neither is edited to record what happened here. Every path below is
+a placeholder (`<repo-root>`, `<tmp-root>`) rather than a real absolute path,
+per AC-0043.
+
+## T2 — the two typed CLI runs
+
+Both runs invoke the shipped script directly, exactly as an adopter or a CI
+step would:
+
+```
+python3 <repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py --root <target> <file...>
+```
+
+### Run 1 — a non-compliant fixture
+
+Fixture (`<tmp-root>/non-compliant.md`):
+
+```markdown
+# Non-compliant fixture
+
+This paragraph exists to trip the paragraph budget. It has one sentence. It has
+two sentences. It has three sentences. It has four sentences, which is one
+over the budget of three.
+```
+
+Command:
+
+```
+python3 <repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py \
+  --root <tmp-root> <tmp-root>/non-compliant.md
+```
+
+stdout:
+
+```
+'<tmp-root>/non-compliant.md':3: DA3 — paragraph of 5 sentences (budget 3)
+```
+
+stderr: empty.
+
+Exit code: **1** (one `DA3` finding, no refusal) — matches AC-0004.
+
+### Run 2 — the shipped `assets/*.md` templates
+
+Command:
+
+```
+python3 <repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py \
+  --root <repo-root> <repo-root>/packs/architect/.apm/skills/architect-design/assets/*.md
+```
+
+stdout:
+
+```
+'<repo-root>/packs/architect/.apm/skills/architect-design/assets/design-doc.md':25: DA3 — paragraph of 4 sentences (budget 3)
+```
+
+stderr: empty.
+
+Exit code: **1** (one `DA3` finding, no refusal).
+
+## AC-0018 fails against real, already-shipped content — a plan/asset gap, not a script defect
+
+AC-0018 requires zero `DA3` findings across every `*.md` under
+`architect-design/assets/`, "including … the `design-doc.md` compatibility
+pointer: a prose paragraph is a prose paragraph whatever the document routes
+to, so the glob carries no exclusion." Run 2 above shows one finding, on
+`design-doc.md`'s `## Context` placeholder paragraph (line 25):
+
+```
+<The user-visible problem. The constraints — deadline, regulatory, team
+shape, existing system shape. The system being changed, named by module
+or service. At least one constraint should be non-obvious.>
+```
+
+Read as prose this is four declarative sentences (three internal `. ` +
+capital-letter boundaries, plus the final clause), one over the budget. This
+content predates this branch — `git log` shows it was last touched in
+`0c4768314` ("author designs from three scope-routed model-first templates"),
+unrelated to this spec — and it sits outside T2's `Touches:`, which lists no
+`assets/*.md` file. No task in `plan.md` touches `assets/design-doc.md`
+anywhere.
+
+`test_gate_script.py::test_da3_reports_no_finding_in_any_shipped_asset`
+asserts AC-0018 faithfully (a real glob over the real assets, the same
+algorithm the script itself runs) and reds on exactly this one case; 86 of
+the file's 87 cases are green. This is not a parser false positive — the
+manual sentence count above agrees with the script — so weakening the
+assertion would hide a real gap rather than close it.
+
+A minimal, non-semantic fix exists (splitting the paragraph's four sentences
+into two, e.g. merging "The user-visible problem." with the following clause
+and "The system being changed…" with the final clause) but was not applied:
+`assets/design-doc.md` is outside T2's pinned `Touches:`, and the implementer
+brief did not authorize the bundled-fixes carve-out. This is recorded here as
+a plan/reality gap for a controlled amendment — either widening T2's
+`Touches:` to include the one-paragraph fix, or a follow-on task — rather than
+resolved unilaterally.
