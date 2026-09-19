@@ -50,6 +50,7 @@ the boundary sit there rather than somewhere else?
   install, never one that already ran.
 
 ```mermaid
+%% Question: which side of the subsystem boundary does each capability sit on? · Zoom: subsystem-boundary
 flowchart LR
     Operator[Enterprise operator] -->|writes| CatalogueToml[catalogue.toml pack-defaults.core]
     CatalogueToml -->|read at install| Reader[Catalogue Default Reader]
@@ -61,9 +62,9 @@ flowchart LR
 The boundary stops at the write into `config.toml` because everything past
 that point is the sender's previously-shipped resolution chain. Extending
 this subsystem into send-time resolution would duplicate a chain that
-already covers five layers and already ranks the user scope correctly. This
-section's boundary diagram states the question it answers — which side of
-the boundary each capability sits on — at subsystem-boundary zoom.
+already covers five layers and already ranks the user scope correctly. The
+operator and the catalogue sit outside; the reader, the projector and the
+written config sit inside.
 
 ## 2. Structural Model
 
@@ -86,6 +87,7 @@ The subsystem is composed of three cooperating elements.
 | Telemetry Config Section | Sender (neighbor) | publishes-to | file read at send time |
 
 ```mermaid
+%% Question: which two responsibilities does the merge decision split into? · Zoom: component
 flowchart TB
     subgraph Subsystem[Catalogue Telemetry Default Projection — zoom: component]
         Reader[Catalogue Default Reader]
@@ -103,9 +105,8 @@ Component zoom is the right grain here: the reader and the projector are two
 distinct responsibilities — extraction and merge-decision — and a coarser
 single-box view would hide the never-overwrite decision that the risk
 register in section 9 depends on. A finer, per-function zoom would show
-nothing this design needs to reason about. This section's structural
-diagram states its question — which two responsibilities does the
-merge-decision split — at component zoom.
+nothing this design needs to reason about. The split is extraction in the
+reader and the never-overwrite merge decision in the projector.
 
 ## 3. Runtime Model
 
