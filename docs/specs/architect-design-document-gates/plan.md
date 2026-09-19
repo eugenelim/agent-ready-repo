@@ -3,15 +3,19 @@
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0118 `D5` fixes the gate set and its
-  mechanizability. Two analogous shipped implementations:
-  `packs/architect/.apm/skills/architect-assess/scripts/profile_repo.py`, a
-  pack skill shipping a standard-library script inside `.apm/` with its UTF-8
-  stream reconfiguration at `:952-955` and its confinement at `:294-312`; and
-  `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`, a
-  skill shipping its own lint. Their construction path is
+  mechanizability. The governing implementation is
+  `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` —
+  the same shape as this script, a skill-shipped lint handed paths by a
+  caller — standard-library only, with its confinement in the twelve-line
+  `_read_confined` at `:281-302`.
+  `packs/architect/.apm/skills/architect-assess/scripts/profile_repo.py` is
+  the second example, for its UTF-8 stream reconfiguration at `:952-955`
+  only; its optional `agentbundle` import is a tree-walker's answer to a
+  threat this script does not have, and is a named deviation this plan
+  declines. The construction path is
   `packs/architect/tests/skills/architect-assess/test_profile_repo.py:23`,
-  which loads the script by `importlib.util.spec_from_file_location` under a
-  pack-unique module name. No named deviation.
+  which loads a pack script by `importlib.util.spec_from_file_location` under
+  a pack-unique module name.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -219,15 +223,31 @@ so one finding occupies one line.
 ### Dependencies & integration
 Owned by: T2.
 
-The standard library is the floor and
-`agentbundle.catalogue_tooling.file_safety` is used on top of it when
-importable — `profile_repo.py`'s shape. `_safe_read` (`:294-312`) runs its own
-`resolve(strict=True)` plus `relative_to(root)`, an `S_ISREG` check, a
-reparse-point check, an `st_nlink > 1` check and a byte budget
-unconditionally, and calls `catalogue_read_confined_regular_file` in addition
-when the import succeeded. An adopter without `agentbundle` keeps every check;
-this repository gets the blessed helper too. Root `AGENTS.md` § Security
-considerations blesses that helper, so declining it would be the deviation.
+**Standard library only. No `agentbundle`, conditionally or otherwise.**
+
+The precedent is `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`,
+not `profile_repo.py`. It is the same shape as this script — a skill-shipped
+lint handed paths by a caller — and its whole import list is `argparse`, `os`,
+`re`, `subprocess`, `sys`, `pathlib`. Its `_read_confined` (`:281-302`) is
+twelve lines: `resolve(strict=True)`, a containment re-check on the resolved
+path, a refusal for a symlink or anything that is not a regular file, and a
+read that catches `OSError` and `UnicodeDecodeError`.
+
+`profile_repo.py`'s optional `agentbundle` import is the wrong model here for
+two reasons. It walks a tree, so it *discovers* paths and a symlink inside the
+tree redirects it somewhere the caller never named — a threat this script does
+not have, because every path is one the caller typed. And the conditional
+import creates a second code path that CI never exercises: in this repository
+the helper imports, so the branch adopters actually run is the one the suite
+sees least. Root `AGENTS.md` blesses the helper for repository tooling; a
+script projected into an adopter install cannot reach it.
+
+The checks stay. `packs/AGENTS.md` § Security and authoring rules requires
+canonicalize-then-re-check before every read, and `_read_confined`'s docstring
+gives the reason this shape needs it: "`..` rejection and `~` expansion do not
+stop an in-boundary symlink pointing out … because this tool is handed paths
+by a caller." Adding the size bound and the FIFO refusal to that twelve-line
+shape is what this script needs, and it needs no dependency to get them.
 
 ## Tasks
 
@@ -249,11 +269,9 @@ considerations blesses that helper, so declining it would be the deviation.
   `import` would bind whichever `scripts/` directory reached `sys.path` first
   (AC-0003).
 - The module's import set is read with `ast` and compared against
-  `sys.stdlib_module_names` plus the one permitted optional
-  `agentbundle.catalogue_tooling.file_safety`, so a third-party import fails
-  rather than passing because this machine has it installed. A second case
-  drives `read_target` with that import forced absent, since the
-  standard-library floor is unobservable where the helper imports (AC-0004).
+  `sys.stdlib_module_names`, so any non-stdlib import fails — including
+  `agentbundle`, which would pass a runtime smoke test in this repository and
+  fail in every adopter install (AC-0004).
 - `main()`'s stream setup is driven with `sys.stdout` patched by a recorder
   that requires `reconfigure` to be its first call; asserting the call
   happened would pass on a script that printed first (AC-0005).

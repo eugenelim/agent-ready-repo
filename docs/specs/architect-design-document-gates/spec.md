@@ -30,7 +30,29 @@ that did not fire is visible instead of absent.
 
 ## What Changes
 
-- `DA3` paragraph budget and `DA10` size trigger — one script at
+**The ten gates.** Every criterion below names one by identifier, so the
+identifiers are what the document is about. ADR-0118 `D5` owns the set and
+fixes which of the three kinds each one is; this table reproduces the names so
+a reader can follow the criteria without opening that record.
+
+| ID | The gate | Kind | Who decides |
+| --- | --- | --- | --- |
+| `DA1` | Present-tense body | Hybrid | reviewer, after a precheck |
+| `DA2` | Semantic references | Hybrid | reviewer, after a precheck |
+| `DA3` | Paragraph budget — prose paragraphs cap at three sentences | Mechanizable | the script |
+| `DA4` | Model before explanation | Hybrid | reviewer, after a precheck |
+| `DA5` | One concern, one home | Judgment-only | reviewer, with no precheck |
+| `DA6` | Settled decisions removed | Hybrid | reviewer, after a precheck |
+| `DA7` | Diagram states one question at one zoom | Hybrid | reviewer, after a precheck |
+| `DA8` | Build mapping complete | Hybrid | reviewer, after a precheck |
+| `DA9` | Evidence separated, not accumulated | Hybrid | reviewer, after a precheck |
+| `DA10` | Size trigger — over the bound, walk the decomposition rubric | Mechanizable | the script |
+
+A **precheck** is a structural check a reviewer runs first; it narrows what
+they read but never decides the gate. That `DA5` has none is what separates
+judgment-only from hybrid in the text.
+
+- `DA3` and `DA10` — one script at
   `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
 - A confinement and refusal contract for that script — required `--root`,
   canonicalized boundary, regular files under 1 MiB, escaped output
@@ -93,6 +115,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   decide `DA5`.
 - Add a new `##` heading to either rubric.
 - Add a new top-level directory, a new pack primitive, or a new dependency.
+- Import `agentbundle` from a shipped pack script, conditionally or otherwise.
 - Edit inside the `agentbundle:output-rendering`, `knowledge-provider-handoff`
   or `scope-determination` marker spans.
 
@@ -174,9 +197,8 @@ cannot drift apart.
 
 - [ ] **AC-0003.** `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
       implements `DA3` and `DA10`.
-- [ ] **AC-0004.** The script runs on the Python standard library alone, and
-      uses `agentbundle.catalogue_tooling.file_safety` in addition when that
-      import succeeds.
+- [ ] **AC-0004.** The script imports only the Python standard library. It
+      does not import `agentbundle`, conditionally or otherwise.
 - [ ] **AC-0005.** The script reconfigures `sys.stdout` and `sys.stderr` to
       UTF-8 before its first write to either.
 - [ ] **AC-0006.** The script exits 0 when it reports no finding, 1 when it
