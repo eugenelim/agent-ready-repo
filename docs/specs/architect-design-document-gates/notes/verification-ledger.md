@@ -252,6 +252,12 @@ task rather than a widening of T4.
 
 ## Owner decision — `design-reviewer.md` is not a precheck carrier
 
+> **Superseded 2026-09-19** by *Owner decision — the prechecks hold in the
+> authoring rubric alone* below, which unbinds the reviewer-side home
+> entirely and withdraws T4b. This section's narrowing of T4b to one reviewer
+> home was an intermediate position; the later section is the decision in
+> force.
+
 **Date:** 2026-09-19
 
 **Question.** T4b was opened to carry the seven precheck bodies into both
@@ -261,7 +267,7 @@ contradicts a frozen criterion, so the owner was asked which homes T4b writes.
 **Correction, before the decision.** This section first recorded the conflict
 as AC-0054 requiring the agent to read the rubric *"for the fuller per-gate
 text and prechecks"*, and the agent's file as frozen. Both were wrong.
-AC-0054 (`spec.md:537-541`) contains the word "precheck" zero times; it says
+AC-0054 (`spec.md`, the AC-0054 line) contains the word "precheck" zero times; it says
 "for the fuller per-gate text". The phrase "and prechecks" is in the shipped
 file alone (`design-reviewer.md:148`). And only T4's *plan section* is
 hash-pinned — the agent file is editable by a later task, which is why T4b's
@@ -300,3 +306,39 @@ dispatches `design-reviewer.md` and that file was in T4b's `Touches:`. With
 the agent out of T4b's scope, T4a depends on T4 instead. T4b and T4a then
 share no file and schedule into one wave, leaving two waves to run:
 `[T4b, T4a]` then `[T7]`.
+
+## Owner decision — the prechecks hold in the authoring rubric alone
+
+**Date:** 2026-09-19
+
+**What was decided.** The prechecks bind to
+`architect-design/references/design-doc-rubric.md` only. The group's preamble
+is replaced by an explicit per-criterion home table, and **T4b is withdrawn**.
+Remaining tasks: T4a, then T7.
+
+**Why the preamble was replaced rather than patched again.** Three review
+rounds produced 6, then 8, then 12 findings — diverging, not converging — and
+the blockers in each round were one defect: the preamble stated a universal
+over sixteen heterogeneous criteria and patched it with exceptions. The group
+mixes rubric text, testdata files and recorded manual walks, so every rule
+general enough to cover all three was wrong about some of them, and each
+exception added created a fresh set the universal now wrongly covered. Round
+3 showed the amended rule still binding AC-0044 through AC-0046 and AC-0049
+through AC-0051 to a rubric home, and still unable to derive the scopes it
+asserted for AC-0042 and AC-0048, which name no home at all. A table states
+each home instead of deriving it, so there is no universal left to be wrong.
+
+**Why the reviewer homes are unbound.** The reason first recorded for binding
+them was that a reviewer could not otherwise tell a hybrid from judgment-only
+`DA5`. That was false — AC-0034 puts `DA5`'s judgement-alone sentence in all
+three homes and T4 shipped it. The replacement reason offered, that an
+unowned obligation needs an owner, does not support a binding either:
+unowned-ness follows from the binding, and is discharged just as well by
+unbinding, which is what this decision does. The substantive ground is that a
+precheck is a narrowing hint for whoever reads a document closely first,
+which is the author; a reviewer needs each gate's identifier, severity, tag
+and question to return a verdict, and both reviewer homes already carry those.
+
+**What this costs.** Nothing shipped changes. T3 already placed the prechecks
+in the authoring rubric and that work stands; the reviewer homes keep the
+gate table T4 shipped. The withdrawn work is T4b alone, which had not started.

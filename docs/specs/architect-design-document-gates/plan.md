@@ -82,10 +82,8 @@ asks an author to fill, so a walk against them measures the template.
 
 ## Construction tests
 
-One comparison spans T3, T4 and T4b: ten identifiers, tags and severities
-must agree across three files no single task owns alone, and T4b adds the
-seven precheck bodies to the reviewing rubric within the same module. It
-extends
+One comparison spans T3 and T4: ten identifiers, tags and severities must
+agree across three files no single task owns alone. It extends
 `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`, which
 already guards the verdict, severity and taxonomy vocabulary over a different
 carrier set in the same module.
@@ -96,7 +94,7 @@ carrier set in the same module.
 | --- | --- | --- | --- |
 | Decision rationale (ADR-0118 `D5`) | T3, T4 | `test_design_reviewer_rubric_parity.py` green | The shipped identifiers and tags read back against `D5` |
 | Release history (changelog) | T7 | The dated free-standing entry exists | The Highlights verdict is recorded either way |
-| Maintainer procedure (three rubric homes) | T3, T4, T4b, T4a | The parity test and the precheck walk | Every identifier, tag and severity agrees in all three homes |
+| Maintainer procedure (three rubric homes) | T3, T4, T4a | The parity test and the precheck walk | Every identifier, tag and severity agrees in all three homes |
 | Interface compatibility (script exit codes) | T2 | The exit-code and refusal tests green | The typed-command transcripts in `notes/verification-ledger.md` |
 | Reusable learning | T7 | — | A `project-knowledge` receipt, or the unavailable record |
 
@@ -510,77 +508,13 @@ against a non-compliant fixture and against the shipped templates — are in
 **Done when:** `packs/architect/tests/pack/` and
 `packs/architect/tests/skills/architect-design/` both pass.
 
-### T4b: the prechecks reach the two homes a reviewer reads
-
-**Depends on:** T4
-
-**Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
-
-**Tests:**
-- `test_design_reviewer_rubric_parity.py` asserts each of the **five**
-  crossing precheck bodies is present in the reviewing rubric, scoped to that
-  gate's own ``#### `DA<n>` `` section body rather than to the file (AC-0035,
-  AC-0038, AC-0039, AC-0040, AC-0041); that each states its verdict is the
-  reviewer's (AC-0042); and that each states it applies to an authored
-  document rather than to a template (AC-0047). `DA9`'s body additionally
-  carries AC-0047's corpus-exclusion clause — the corpus excludes
-  `assets/*.md`, so `assets/design-doc.md` never reaches the `Appendix`
-  trigger — mirroring the authoring rubric's shipped sentence.
-- AC-0036 and AC-0037 are **not** in that list: the amended group preamble
-  scopes `DA7` and `DA8` to the authoring rubric, because their obligation is
-  an identifier, severity and tag on a checklist item only that rubric owns.
-  Copying their bodies across would assert a tag the reviewing rubric's
-  corresponding items do not carry.
-- A negative assertion requires `DA5` to carry no precheck in the reviewing
-  rubric (AC-0048's reviewer-side half). A ``#### `DA5` `` body is permitted
-  and expected: the authoring rubric gives `DA5` one precisely so it can state
-  the absence, and the negative assertion needs a body to scope to.
-  The existing per-carrier identifier, severity and tag assertions must still
-  pass unchanged over all three `DA_CARRIERS` entries.
-- no stub (goal-based)
-
-**Approach:**
-- **Why this is a task and not a widening of T4.** T4 is complete and its
-  section cannot be edited, so the correction is a new dependency-ordered
-  task. The obligation itself is not new: the prechecks group's preamble binds
-  every criterion in it to all three homes, and the plan assigned those
-  criteria to T3, whose `Touches:` reaches only the authoring rubric. The
-  three-home obligation therefore had no owning task that could satisfy it.
-- The precheck text already exists in `design-doc-rubric.md`'s `#### DA<n>`
-  bodies. Carry the same obligations across rather than re-authoring them. The
-  reviewing rubric gains a `#### DA<n>` body per hybrid gate under its
-  existing gate table — the structure the authoring rubric already uses — so
-  the assertions scope to a body rather than to the file.
-- **Why `design-reviewer.md` is not a carrier here.** AC-0054 requires the
-  agent to state that its inlined gate set is baseline depth and that it reads
-  `rubric-design-doc.md` for the fuller per-gate text. That is a pointer, and
-  the amended group preamble makes it the agent's whole relationship to the
-  prechecks: the agent stays at baseline depth and the fuller text it points
-  at is the reviewing rubric's. AC-0054 does not itself mention prechecks, and
-  the agent's file is editable — neither is the reason. The reason is that a
-  second condensed copy in the agent would duplicate what the pointer already
-  reaches, and AC-0054's degradation design exists so it does not have to.
-
-**Done when:** `packs/architect/tests/pack/` passes, and
-`rubric-design-doc.md` carries a ``#### `DA<n>` `` body — the backticked
-heading form the authoring rubric uses — for each of `DA1`, `DA2`, `DA4`,
-`DA6` and `DA9`, each holding that gate's precheck, with no precheck under
-`DA5`. A file-wide word count is not the observable: `design-doc-rubric.md`
-and `design-reviewer.md` already contain `precheck`, so its presence
-distinguishes no post-T4b state.
-
-The combined run over `packs/architect/tests/skills/architect-design/` is the
-controller's, not this task's: T4a writes that directory in the same wave, so
-an implementer running it here would be measuring a tree mid-edit.
-
 ### T4a: the prechecks are walked against a document, not a template
 
 **Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/testdata/precheck-defects.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
 
 **Depends on:** T4 — AC-0059 copies `design-reviewer.md` and dispatches it,
 so the dispatch must read the agent after the last task that edits it. T4 is
-that task: T4b writes the reviewing rubric only, leaving the agent final at
-T4, so T4b and T4a share no file and may run in the same wave.
+that task.
 
 **Tests:**
 - The reference document is committed at
@@ -697,7 +631,7 @@ span.
 
 ### T7: the pack release closes
 
-**Depends on:** T2, T3, T4, T4b, T4a, T5
+**Depends on:** T2, T3, T4, T4a, T5
 
 **Touches:** packs/architect/pack.toml, packs/architect/.claude-plugin/plugin.json, docs/product/changelog.md, packs/architect/.apm/skills/architect-design/evals/evals.json, .claude-plugin/marketplace.json
 
