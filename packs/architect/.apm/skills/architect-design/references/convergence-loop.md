@@ -3,15 +3,26 @@
 After the full design doc is drafted, `architect-design` does not stop at a
 one-shot draft. It *converges* the doc: obtain a review pass, fix the mechanical
 findings itself, re-review, repeat — then surface only the real decisions to the
-human. This is a **pure-prose, in-conversation procedure**. There is **no
-script, no state file, no `loop-cohort`** — the loop is bounded by these
-instructions and stasis-checked by the agent re-reading its own prior findings.
-A script would forfeit the pack's pure-markdown, zero-config, portable property.
+human. This is a **pure-prose, in-conversation procedure**: the loop
+**requires and invokes no script, no state file, no `loop-cohort`** — it is
+bounded by these instructions and stasis-checked by the agent re-reading its
+own prior findings. `scripts/check_document_architecture.py` decides `DA3`
+and `DA10` mechanically, but the agent running this loop does not invoke it —
+a human author or an adopter's CI runs it separately, outside this loop, the
+same split `SKILL.md` states for step 6.
+Shipping that script costs the loop nothing it did not already have: the loop
+stays **pure-prose and zero-config** because the script is optional and runs
+outside it, never inside it. What it buys is a mechanical, repeatable check of
+`DA3` and `DA10` that needs no model in the loop; it decides neither the other
+eight gates nor whether the loop converges.
 
 ## The cycle
 
 1. **Review.** Obtain review findings against the drafted doc (see *Where the
-   review comes from* and *Reviewer independence* below). Each finding is tagged
+   review comes from* and *Reviewer independence* below). The pass reports
+   every gate identifier — `DA1`, `DA2`, `DA3`, `DA4`, `DA5`, `DA6`, `DA7`,
+   `DA8`, `DA9` and `DA10` — each with a verdict, so a gate nobody considered
+   and a gate that passed do not look identical. Each finding is tagged
    **mechanical** or **judgment** (the taxonomy lives in `architect-review`'s
    `rubric-well-architected.md`; when reviewing against the embedded self-check,
    apply the same test — see below).

@@ -26,6 +26,15 @@ RUBRIC = (
     / "references"
     / "design-doc-rubric.md"
 )
+SKILL = PACK_ROOT / ".apm" / "skills" / "architect-design" / "SKILL.md"
+CONVERGENCE_LOOP = (
+    PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "architect-design"
+    / "references"
+    / "convergence-loop.md"
+)
 
 # The seven hybrids that carry a precheck. `DA5` is judgment-only and carries
 # none; `DA3` and `DA10` are mechanical and the script decides them directly.
@@ -332,3 +341,73 @@ def test_da5_names_no_automated_measure_and_no_forbidden_tripwire_token() -> Non
     assert "no automated measure" in body
     assert "similarity score" not in body
     assert "distance metric" not in body
+
+
+# --- Reporting (AC-0064, AC-0065, AC-0066, AC-0067) ---
+#
+# Scoped to the step 6 body and the convergence loop's own intro/cycle
+# sections, rather than the whole file: a whole-file `assertIn` would be
+# satisfied by any stray mention of a gate identifier or the word "verdict"
+# living elsewhere in the document, which is not the property these
+# criteria name — the closed set `DA1`-`DA10` reported with a verdict.
+
+
+def _skill_step6_body() -> str:
+    """Return `SKILL.md` step 6's own body, flattened, stopping at step 7."""
+    text = SKILL.read_text(encoding="utf-8")
+    after = text.split(
+        "6. **Self-check against the rubric**", 1
+    )[1]
+    before = after.split("7. **Converge against review.**", 1)[0]
+    return _flat(before)
+
+
+def _convergence_intro_body() -> str:
+    """Return the loop's opening paragraphs, before `## The cycle`."""
+    text = CONVERGENCE_LOOP.read_text(encoding="utf-8")
+    return _flat(text.split("## The cycle", 1)[0])
+
+
+def _convergence_review_step_body() -> str:
+    """Return cycle step 1 ("Review"), flattened, stopping at step 2."""
+    text = CONVERGENCE_LOOP.read_text(encoding="utf-8")
+    after = text.split("1. **Review.**", 1)[1]
+    before = after.split("2. **Auto-resolve", 1)[0]
+    return _flat(before)
+
+
+def test_skill_step6_requires_every_gate_reported_by_identifier_and_verdict() -> None:
+    """AC-0064: closed set `DA1`-`DA10` plus the word "verdict", not a phrase."""
+    body = _skill_step6_body()
+    for gate in ALL_GATES:
+        assert f"`{gate}`" in body, gate
+    assert "verdict" in body
+    assert "before the draft is shown" in body or "before showing the draft" in body
+
+
+def test_convergence_loop_review_pass_requires_every_gate_identifier_with_a_verdict() -> None:
+    """AC-0065: each review pass reports the closed set, each with a verdict."""
+    body = _convergence_review_step_body()
+    for gate in ALL_GATES:
+        assert f"`{gate}`" in body, gate
+    assert "verdict" in body
+
+
+def test_convergence_loop_states_it_requires_and_invokes_no_script() -> None:
+    """AC-0066: pins the corrected sentence at convergence-loop.md's intro."""
+    body = _convergence_intro_body()
+    assert "requires and invokes no script" in body
+    assert "check_document_architecture.py" in body
+    assert "a human author or an adopter's CI runs it" in body
+    assert "outside this loop" in body
+
+
+def test_convergence_loop_states_what_the_shipped_script_costs_and_does_not_cost() -> None:
+    """AC-0067: no unconditional claim that shipping a script forfeits a
+    pack property; the intro instead states the property kept and the
+    property the script trades."""
+    body = _convergence_intro_body()
+    assert "forfeit" not in body
+    assert "pure-prose and zero-config" in body
+    assert "costs the loop nothing" in body
+    assert "it decides neither the other" in body
