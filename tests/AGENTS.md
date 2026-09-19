@@ -24,7 +24,7 @@ read above its own pack, and `tools/test-lint-pack-test-boundary.py` enforces it
 Check the reach before relocating one — a test whose paths all sit inside the
 pack is pack-local and should re-anchor at the pack instead of moving.
 
-## Roster is not auto-discovered
+## Roster steps are named and placed by hand
 
 `gate-main` collects every roster module through one bulk
 `python -m pytest tests/ -q` step (`.github/workflows/build-check.yml`), so a new

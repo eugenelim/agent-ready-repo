@@ -50,9 +50,13 @@ LIFECYCLE_CLAUSES = (
     # and the body's deferral anchors survive it — there is no errata carrier.
     "its status line still takes the two pointers that contract licenses",
     "the deferral anchors its body names still have to resolve",
-    # The full rule lives in one place, and the pointer has to resolve there.
-    "`references/spec-and-plan-contract.md`, under `**Lifecycle:**` and "
-    "§ *A spec directory freezes as a unit, when the spec ships*",
+    # The pointer has to name every section that owns a clause above it, so a
+    # reader sent there finds the rule rather than only the staging it sits in.
+    "`**Lifecycle:**` and § *A spec directory freezes as a unit, when the "
+    "spec ships* for the three stages",
+    "§ *Superseding a frozen document* for the status line's two pointers",
+    "§ *Spec metadata contract* → **Historical deferral token** for the "
+    "anchors a frozen body still owes",
 )
 
 

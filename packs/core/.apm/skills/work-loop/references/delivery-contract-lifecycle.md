@@ -13,9 +13,11 @@ behaves: later work that contradicts one is recorded in the code, and in a
 decision record when it reverses a decision, never by rewriting the shipped
 spec — though its status line still takes the two pointers that contract
 licenses, and the deferral anchors its body names still have to resolve.
-Full contract: the `new-spec` skill's `references/spec-and-plan-contract.md`,
-under `**Lifecycle:**` and § *A spec directory freezes as a unit, when the spec
-ships*.
+Full contract: the `new-spec` skill's `references/spec-and-plan-contract.md` —
+`**Lifecycle:**` and § *A spec directory freezes as a unit, when the spec ships*
+for the three stages, § *Superseding a frozen document* for the status line's
+two pointers, and § *Spec metadata contract* → **Historical deferral token** for
+the anchors a frozen body still owes.
 
 ## Rejected planning gates
 
