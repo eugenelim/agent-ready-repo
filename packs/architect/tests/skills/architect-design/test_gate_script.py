@@ -396,6 +396,51 @@ def test_cli_a_refusal_dominates_a_finding_across_targets(tmp_path: Path) -> Non
     assert "refused" in proc.stderr
 
 
+# --- AC-0009 / AC-0076: `--root .` plus a relative target is a real result,
+#     not a refusal — the documented adopter/CI invocation ------------------
+
+
+def test_cli_accepts_a_relative_root_and_a_relative_target(tmp_path: Path) -> None:
+    """`--root .` is the documented CLI invocation; it must not refuse every target."""
+
+    doc = tmp_path / "doc.md"
+    doc.write_text("Short prose. Two sentences here.\n", encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--root", ".", "doc.md"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_read_target_joins_a_relative_target_onto_a_relative_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    gate = _load_gate()
+    (tmp_path / "doc.md").write_text("Hello there. It works.\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    text = gate.read_target(Path(), Path("doc.md"), gate.MAX_BYTES)
+    assert text == "Hello there. It works.\n"
+
+
+def test_read_target_confines_an_absolute_target_through_a_symlinked_root(
+    tmp_path: Path,
+) -> None:
+    """Same defect class as the relative-root case: root resolves, target does not."""
+
+    gate = _load_gate()
+    real_root = tmp_path / "real_root"
+    real_root.mkdir()
+    (real_root / "doc.md").write_text("Hello there. It works well.\n", encoding="utf-8")
+    alias_root = tmp_path / "alias_root"
+    alias_root.symlink_to(real_root, target_is_directory=True)
+
+    text = gate.read_target(alias_root, alias_root / "doc.md", gate.MAX_BYTES)
+    assert text == "Hello there. It works well.\n"
+
+
 # --- AC-0008: --root is required -------------------------------------------
 
 

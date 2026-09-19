@@ -277,17 +277,34 @@ def read_target(root: Path, path: Path, max_bytes: int) -> str:
     """Read and decode one confined target, refusing rather than raising.
 
     `root` is canonicalized here, before any comparison, so a symlinked root
-    still confines to its real directory. `path` is handed to the vendored
-    helper unresolved: resolving it first would collapse the very symlink
+    still confines to its real directory. `path` itself is never
+    canonicalized: resolving it first would collapse the very symlink
     components the helper's no-follow descriptor walk exists to inspect.
+    Instead `path` is re-expressed as `canonical_root` joined with its
+    remainder relative to the *declared* root, so a relative `path` under a
+    relative or symlinked `root` (`--root .`, the documented CLI invocation)
+    still confines correctly — the vendored helper's own `relative_to(root)`
+    check can only match when both operands share the same absolute base.
+    The remainder is computed against `canonical_root` first, so a target
+    already expressed through the root's resolved form (as one already
+    walking through a symlinked root's real directory) still matches without
+    a second attempt.
     """
     try:
         canonical_root = root.resolve(strict=True)
     except (OSError, RuntimeError, ValueError) as exc:
         raise Refusal(str(path), "declared root cannot be resolved safely") from exc
+    try:
+        remainder = path.relative_to(canonical_root)
+    except ValueError:
+        try:
+            remainder = path.relative_to(root)
+        except ValueError as exc:
+            raise Refusal(str(path), "source path is outside its declared root") from exc
+    joined = canonical_root / remainder
     safety = file_safety()
     try:
-        data = safety.read_confined_regular_file(canonical_root, path, max_bytes=max_bytes)
+        data = safety.read_confined_regular_file(canonical_root, joined, max_bytes=max_bytes)
     except safety.UnsafeContentError as exc:
         raise Refusal(str(path), str(exc)) from exc
     try:
