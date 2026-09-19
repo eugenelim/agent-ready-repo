@@ -1,7 +1,7 @@
 # Plan: architect-design document-architecture gates
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0118 `D5` fixes the gate set and its
   mechanizability. The governing implementation is
   `packs/core/.apm/skills/close-work/scripts/` — a skill that carries a
@@ -711,3 +711,5 @@ subsection.
   per-criterion home table, the prechecks bound to the authoring rubric alone
 - 2026-09-19: plan re-approved by eugenelim after the same amendment — T4b
   withdrawn, leaving T4a then T7
+- 2026-09-19: spec and plan closed by eugenelim after the refuted-criteria
+  amendment; all criteria ticked, pack released at 0.15.12

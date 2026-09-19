@@ -1,6 +1,6 @@
 # Spec: architect-design document-architecture gates
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0118
@@ -233,34 +233,34 @@ and never reflowed, so a group's list is not always contiguous.
 
 ### The shipped mechanical gate
 
-- [ ] **AC-0001.** `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
+- [x] **AC-0001.** `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
       implements `DA3` and `DA10`.
-- [ ] **AC-0002.** The script's `import` statements name only the Python
+- [x] **AC-0002.** The script's `import` statements name only the Python
       standard library. It does not import `agentbundle`, conditionally or
       otherwise — an adopter install has no such package. The sibling module
       is not an import statement: it loads by
       `importlib.util.spec_from_file_location`, because `packs/AGENTS.md`
       § Writing pack tests forbids binding a sibling by bare name, so an
       import-set check cannot see it and a separate check observes the load.
-- [ ] **AC-0077.** The sibling module's own import set is standard-library
+- [x] **AC-0077.** The sibling module's own import set is standard-library
       only. AC-0002 protects the adopter install and AC-0073 binds this copy
       to a source whose imports nothing gates — `tools/lint-build.py` audits
       only `packages/agentbundle/agentbundle/build/` — so a non-stdlib import
       appearing upstream would propagate through the mirror and break every
       adopter install with both checks green.
-- [ ] **AC-0073.** `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`
+- [x] **AC-0073.** `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`
       is byte-identical to `packs/core/.apm/skills/close-work/scripts/file_safety.py`,
       which is the repository's source of truth:
       `packages/agentbundle/agentbundle/build/self_host.py:118-150` declares it
       as the source of both the `_data/` and `catalogue_tooling` copies, so the
       `catalogue_tooling` module is a generated destination rather than the
       canonical body.
-- [ ] **AC-0074.** An assertion in the already-wired
+- [x] **AC-0074.** An assertion in the already-wired
       `tests/roster/test_architect_design_reviewer_projection.py` pins that
       byte identity. It adds no roster module, so it owes none of the three
       obligations `tests/AGENTS.md` attaches to one: `build-check.yml:546`
       already names that file.
-- [ ] **AC-0079.** The copy is hand-maintained, and the spec says so where the
+- [x] **AC-0079.** The copy is hand-maintained, and the spec says so where the
       criterion lives. `make build-self` writes no destination under `packs/`
       — every declared pair in `self_host.py` runs `packs/… → packages/…` —
       so nothing regenerates this file, and a fix to the source propagates
@@ -272,31 +272,31 @@ and never reflowed, so a group's list is not always contiguous.
       mechanism, which is an agentbundle engine change requiring an
       `Engine-Change-RFC:` trailer and matching version bumps. The shared
       mechanism is recorded as a Follow-on.
-- [ ] **AC-0075.** The script refuses through its own refusal channel and exit
+- [x] **AC-0075.** The script refuses through its own refusal channel and exit
       code when the sibling module is missing, is link-like, or does not
       expose the helpers the gate calls, rather than raising. An incomplete
       install is the realistic trigger, and
       `tests/roster/test_policy_family_selector.py:435-466` sets the depth:
       each sabotage exits non-zero through the script's one-line channel with
       no traceback.
-- [ ] **AC-0003.** The script reconfigures `sys.stdout` and `sys.stderr` to
+- [x] **AC-0003.** The script reconfigures `sys.stdout` and `sys.stderr` to
       UTF-8 before its first write to either.
-- [ ] **AC-0004.** The script exits 0 when it reports no finding, 1 when it
+- [x] **AC-0004.** The script exits 0 when it reports no finding, 1 when it
       reports at least one, and 2 when it refuses a target.
-- [ ] **AC-0005.** A refusal anywhere in a run dominates a finding: a run that
+- [x] **AC-0005.** A refusal anywhere in a run dominates a finding: a run that
       both refuses one target and reports a finding on another exits 2.
-- [ ] **AC-0006.** A refused target does not stop the run; every remaining
+- [x] **AC-0006.** A refused target does not stop the run; every remaining
       target is still read, and the report states how many targets were
       refused.
-- [ ] **AC-0007.** A refusal writes the refused path and the reason to stderr.
+- [x] **AC-0007.** A refusal writes the refused path and the reason to stderr.
 
 ### What the gate refuses to read
 
-- [ ] **AC-0008.** `--root` is required; the script does not infer a
+- [x] **AC-0008.** `--root` is required; the script does not infer a
       confinement boundary from the working directory.
-- [ ] **AC-0009.** The root is canonicalized before any prefix comparison, so
+- [x] **AC-0009.** The root is canonicalized before any prefix comparison, so
       both sides of the comparison are real paths.
-- [ ] **AC-0010.** A regular file reached through a symlinked parent
+- [x] **AC-0010.** A regular file reached through a symlinked parent
       directory, whose real path is not under the root, is refused, and the
       refusal carries the reason the delegated helper raised — on a runtime
       with descriptor-walk support that is
@@ -304,12 +304,12 @@ and never reflowed, so a group's list is not always contiguous.
       file-type reason. The criterion is refusal with an attributable reason,
       not a particular wording, because the helper's component walk decides it
       and the wording is platform-dependent.
-- [ ] **AC-0076.** The wrapper hands the helper the caller's path without
+- [x] **AC-0076.** The wrapper hands the helper the caller's path without
       canonicalizing it first. Resolving first collapses every symlink
       component before the no-follow component walk sees one, which leaves the
       leaf `fstat` identity check as the only protection and reinstates the
       resolve-then-prefix shape the delegation exists to retire.
-- [ ] **AC-0011.** A target that is not a confined regular file is refused,
+- [x] **AC-0011.** A target that is not a confined regular file is refused,
       by `read_confined_regular_file` from the vendored module rather than by
       a re-implementation. That helper opens with `O_NOFOLLOW` and
       re-verifies the opened descriptor by `os.fstat`: `(st_dev, st_ino)` is
@@ -321,7 +321,7 @@ and never reflowed, so a group's list is not always contiguous.
       A character device, a block device and a socket are covered by the same
       predicate and not exercised; an NTFS reparse point is unbuildable on
       either runner and is not claimed.
-- [ ] **AC-0012.** A target larger than 1,048,576 bytes is refused, by the
+- [x] **AC-0012.** A target larger than 1,048,576 bytes is refused, by the
       same helper's `max_bytes` argument, which bounds the read itself rather
       than trusting `st_size` — a figure a concurrent writer makes stale with
       no attacker present. The figure is this script's own constant with its
@@ -331,7 +331,7 @@ and never reflowed, so a group's list is not always contiguous.
       `profile_repo.py`'s `DEFAULT_MAX_FILE_BYTES`; nothing pins the two
       together, so a stated derivation would go false while both files stayed
       green.
-- [ ] **AC-0013.** Every failure to resolve, read, or decode a target
+- [x] **AC-0013.** Every failure to resolve, read, or decode a target
       produces a refusal and never an uncaught exception. A symbolic-link
       loop, which raises `RuntimeError` rather than `OSError`; a permission
       error; a non-prefix result; and a confined regular file whose bytes are
@@ -340,22 +340,22 @@ and never reflowed, so a group's list is not always contiguous.
       and because AC-0006 keeps a refused target from stopping the run, an
       uncaught decode error would end the run and leave every later target
       unread.
-- [ ] **AC-0014.** `DA3`'s sentence-matching pattern contains no nested
+- [x] **AC-0014.** `DA3`'s sentence-matching pattern contains no nested
       quantifier and no alternation inside a repetition, the two constructs
       that make backtracking super-linear.
-- [ ] **AC-0015.** A path the script emits, on the finding path and on the
+- [x] **AC-0015.** A path the script emits, on the finding path and on the
       refusal path alike, is rendered with control characters, newlines and
       escape sequences escaped, and one finding occupies one output line, so a
       path cannot forge a finding line or rewrite a reader's terminal.
-- [ ] **AC-0016.** `architect-design/SKILL.md` states that the agent running
+- [x] **AC-0016.** `architect-design/SKILL.md` states that the agent running
       the skill does not invoke the gate script, and that the script is run by
       a human author or an adopter's CI.
 
 ### DA3 — paragraph budget
 
-- [ ] **AC-0017.** `DA3` reports a prose paragraph carrying more than three
+- [x] **AC-0017.** `DA3` reports a prose paragraph carrying more than three
       sentences.
-- [ ] **AC-0018.** `DA3` reports no finding in the reference document at
+- [x] **AC-0018.** `DA3` reports no finding in the reference document at
       `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`.
       The clean corpus is an authored document, not the shipped templates. A
       template is a skeleton whose `<…>` placeholders are instructions to its
@@ -363,21 +363,21 @@ and never reflowed, so a group's list is not always contiguous.
       placeholders — the same reason AC-0047 keeps `assets/*.md` out of the
       precheck corpus. `assets/design-doc.md:25` is the case that proved it: a
       placeholder holding four sentences, which no authored document carries.
-- [ ] **AC-0019.** `DA3` treats none of these as prose: YAML frontmatter, a
+- [x] **AC-0019.** `DA3` treats none of these as prose: YAML frontmatter, a
       fenced code block, an HTML-comment span, a Markdown table row, a list
       item, a block quote, an ATX heading. No placeholder rule is needed:
       AC-0018 points `DA3`'s clean corpus at an authored document, which has
       no placeholders in it.
-- [ ] **AC-0020.** `DA3` counts a sentence boundary across `e.g.`, `i.e.`,
+- [x] **AC-0020.** `DA3` counts a sentence boundary across `e.g.`, `i.e.`,
       `etc.`, `vs.` and a decimal number without splitting at their periods.
-- [ ] **AC-0021.** A heading on the line immediately above wrapped prose
+- [x] **AC-0021.** A heading on the line immediately above wrapped prose
       yields one prose paragraph holding the prose alone.
-- [ ] **AC-0022.** `DA3` reports the file, the line the paragraph starts on,
+- [x] **AC-0022.** `DA3` reports the file, the line the paragraph starts on,
       and the sentence count it counted.
 
 ### DA10 — size trigger
 
-- [ ] **AC-0023.** `DA10` reports a document whose word count exceeds the
+- [x] **AC-0023.** `DA10` reports a document whose word count exceeds the
       bound stated in AC-0024 and reports nothing at the bound or below.
       Words are counted by the rule AC-0024 names, which is the rule the
       derivation used and the only one in this spec: tokens carrying an
@@ -385,7 +385,7 @@ and never reflowed, so a group's list is not always contiguous.
       are removed. Counting every whitespace-separated token instead gives
       1,046 where this rule gives 752 on the same text, a 39% spread against
       AC-0025's 20% window.
-- [ ] **AC-0024.** The derivation that produces the bound is stated where
+- [x] **AC-0024.** The derivation that produces the bound is stated where
       `DA10` is defined, and its arithmetic reaches the bound: 752 words of
       scaffolding the subsystem template hands a filled document verbatim,
       9 model tables at 5 rows of 12 words, 4 diagrams at 40 words of labels,
@@ -395,39 +395,41 @@ and never reflowed, so a group's list is not always contiguous.
       figure is measured, and the command that reproduces it is recorded
       beside the derivation: strip frontmatter, strip HTML-comment spans,
       replace every `<…>` placeholder with a space, then count tokens matching
-      `[A-Za-z0-9]`. Replacing a placeholder with the empty string instead
-      joins its neighbours and gives a different figure, which is why the
-      substitution is stated. All eleven sections get a body allocation,
-      including the three no rationale marker covers.
-- [ ] **AC-0025.** The reference document's own measured word count sits
+      `[A-Za-z0-9]`. **A placeholder does not span a newline** — the pattern
+      is `<[^<>\n]*>` — and that is the load-bearing detail: reading `<…>`
+      across newlines instead collapses the count to 388, so the figure is
+      unreproducible without it. Whether the substitution is a space or the
+      empty string does not matter; both give 752. All eleven sections get a
+      body allocation, including the three no rationale marker covers.
+- [x] **AC-0025.** The reference document's own measured word count sits
       within 20% of the derivation's 2,178-word density figure. Recomputing
       the stated multiplication proves only that its author can multiply.
-- [ ] **AC-0026.** `DA10`'s definition states that a document over the bound is
+- [x] **AC-0026.** `DA10`'s definition states that a document over the bound is
       walked against `references/decomposition-rubric.md`, and that `DA10`
       decides no split itself.
-- [ ] **AC-0027.** `DA10`'s definition states that a document over the bound
+- [x] **AC-0027.** `DA10`'s definition states that a document over the bound
       whose children meet no criterion moves detail to companion views and
       evidence links.
 
 ### The ten gates in three homes
 
-- [ ] **AC-0028.** `architect-design/references/design-doc-rubric.md` carries
+- [x] **AC-0028.** `architect-design/references/design-doc-rubric.md` carries
       every identifier `DA1` through `DA10`, each with a severity.
-- [ ] **AC-0029.** `architect-review/references/rubric-design-doc.md` carries
+- [x] **AC-0029.** `architect-review/references/rubric-design-doc.md` carries
       every identifier `DA1` through `DA10`, each with a severity.
-- [ ] **AC-0030.** `.apm/agents/design-reviewer.md` carries every identifier
+- [x] **AC-0030.** `.apm/agents/design-reviewer.md` carries every identifier
       `DA1` through `DA10`, each with a severity.
-- [ ] **AC-0031.** Each of `DA1`, `DA2`, `DA4`, `DA5`, `DA6`, `DA7`, `DA8` and
+- [x] **AC-0031.** Each of `DA1`, `DA2`, `DA4`, `DA5`, `DA6`, `DA7`, `DA8` and
       `DA9` carries the 🧭 judgment tag in all three homes, and each of `DA3`
       and `DA10` carries the 🔧 mechanical tag in all three homes.
-- [ ] **AC-0032.** Each gate carries this severity in all three homes:
+- [x] **AC-0032.** Each gate carries this severity in all three homes:
       🟥 `DA5` and `DA8`; 🟧 `DA2`, `DA4`, `DA7` and `DA10`; 🟨 `DA1`, `DA3`,
       `DA6` and `DA9`.
-- [ ] **AC-0033.** `design-doc-rubric.md` states what a severity means for an
+- [x] **AC-0033.** `design-doc-rubric.md` states what a severity means for an
       author: it orders the fixes made before a draft is shown, in the same
       vocabulary the reviewer will apply to it, so an author and a reviewer
       never disagree about which failure matters more.
-- [ ] **AC-0034.** `DA5`'s definition in all three homes states that its
+- [x] **AC-0034.** `DA5`'s definition in all three homes states that its
       verdict is the reviewer's judgement and that no automated measure decides
       it. The tokens `similarity score` and `distance metric` are absent from
       it as a supporting tripwire. `overlap` is not on that list: it is the
@@ -467,22 +469,22 @@ The authoring rubric is where AC-0036 and AC-0037 belong for a second,
 independent reason: `DA7` and `DA8` carry their identifier, severity and tag
 on a checklist item only that rubric owns.
 
-- [ ] **AC-0035.** `DA6`'s precheck rejects a `Revision History` or
+- [x] **AC-0035.** `DA6`'s precheck rejects a `Revision History` or
       `Decision Log` heading in the document body.
-- [ ] **AC-0036.** `DA7` carries its identifier, severity and tag on the
+- [x] **AC-0036.** `DA7` carries its identifier, severity and tag on the
       authoring rubric's existing checklist item — every diagram states one
       named question and one zoom level — and states no second, differently
       worded obligation beside it.
-- [ ] **AC-0037.** `DA8` carries its identifier, severity and tag on the
+- [x] **AC-0037.** `DA8` carries its identifier, severity and tag on the
       authoring rubric's existing checklist item — the complete model set and
       this section are sufficient to implement from — and states no second,
       differently worded obligation beside it. Its precheck requires every
       implementation-mapping row to resolve to an element the document's
       models name.
-- [ ] **AC-0038.** `DA1`'s precheck rejects a future-tense or prior-state
+- [x] **AC-0038.** `DA1`'s precheck rejects a future-tense or prior-state
       construction in the document body — `will be`, `previously`, `used to`,
       or a deprecation date.
-- [ ] **AC-0039.** `DA2`'s precheck rejects a cross-reference that names no
+- [x] **AC-0039.** `DA2`'s precheck rejects a cross-reference that names no
       target, against the closed list `see above`, `see below`, `as described
       above`, `as described below`, `the previous section`, `the following
       section`, `the table below` and `the diagram above`. A reference that
@@ -490,38 +492,38 @@ on a checklist item only that rubric owns.
       finding, which is why the list is closed rather than a search for
       `above`: the templates' fixed opening question for Implementation
       Mapping contains `the model above`.
-- [ ] **AC-0040.** `DA4`'s precheck requires the first block after a modelled
+- [x] **AC-0040.** `DA4`'s precheck requires the first block after a modelled
       section's opening question to be a table or a fenced diagram, not prose.
-- [ ] **AC-0041.** `DA9`'s precheck rejects a body heading that accumulates
+- [x] **AC-0041.** `DA9`'s precheck rejects a body heading that accumulates
       evidence rather than linking it — `Appendix`, `References`, `Evidence`.
-- [ ] **AC-0042.** Each of the seven prechecks states that its verdict is the
+- [x] **AC-0042.** Each of the seven prechecks states that its verdict is the
       reviewer's.
-- [ ] **AC-0044.** The reference document's own header states that its corpus
+- [x] **AC-0044.** The reference document's own header states that its corpus
       purpose governs an edit to it: it is a baseline, so any change to its
       content obliges a re-walk of the seven prechecks and a fresh record. The
       obligation lives in that document rather than in this spec, because a
       pack test may not climb to `docs/` — `tools/lint-pack-test-boundary.py`
       check 8 — and a criterion verified by asserting that this spec says
       something is its own comparison value.
-- [ ] **AC-0045.** A reference document exists at
+- [x] **AC-0045.** A reference document exists at
       `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`,
       authored from `assets/subsystem-design.md` and carrying the subsystem
       design for the layer-5 enterprise telemetry endpoint default that
       `docs/product/intents/catalogue-level-telemetry-endpoint-default.md`
       frames. It holds no `<…>` placeholder token.
-- [ ] **AC-0046.** No precheck fires on that reference document, and each of
+- [x] **AC-0046.** No precheck fires on that reference document, and each of
       the seven is walked against it with the walk recorded.
-- [ ] **AC-0047.** The precheck corpus excludes `assets/*.md`, and each
+- [x] **AC-0047.** The precheck corpus excludes `assets/*.md`, and each
       precheck's text states that it applies to an authored document rather
       than to a template. A template's unfilled placeholder —
       `<this diagram's zoom level>`, `<element from section 2>` — is the slot
       the precheck asks an author to fill. `DA9` is the worked case: its
       `Appendix` trigger does not reach `assets/design-doc.md`, the unrouted
       compatibility pointer carrying `## Appendix (optional)`.
-- [ ] **AC-0048.** Exactly seven prechecks exist, one per hybrid gate, and
+- [x] **AC-0048.** Exactly seven prechecks exist, one per hybrid gate, and
       `DA5` carries none. The count is the pin: a precheck added to `DA5`
       erases the only textual difference between judgment-only and hybrid.
-- [ ] **AC-0049.** A defect document exists at
+- [x] **AC-0049.** A defect document exists at
       `packs/architect/tests/skills/architect-design/testdata/precheck-defects.md`,
       carrying one planted defect per precheck, and states in its own body
       that it is deliberately non-conforming. It is the reference document
@@ -529,23 +531,30 @@ on a checklist item only that rubric owns.
       attributable to one edit; seven defects loose in one hand-written file
       let a precheck fire on unrelated prose and be recorded as passing its
       own case.
-- [ ] **AC-0050.** A repository-wide Markdown reader can tell the defect
+- [x] **AC-0050.** A repository-wide Markdown reader can tell the defect
       document apart from real content. `tools/lint-agents-md.py:547` walks
       `rglob("*.md")` and excludes on the literal path parts `fixtures` and
       `tests`, which `testdata/` does not match; the collision is latent today
       because that sweep looks only for a risk-trigger marker no planted defect
       carries. Either the document sits where that predicate already reaches,
       or the predicate is widened — the choice is recorded either way.
-- [ ] **AC-0051.** Each of the seven prechecks fires on its planted defect,
+- [x] **AC-0051.** Each of the seven prechecks fires on its planted defect,
       and the walk is recorded. A precheck checked only against a clean
       document is satisfied by one that never fires on anything.
 
 ### Evidence this delivery commits
 
-- [ ] **AC-0043.** No file this delivery adds or changes carries a real
+- [x] **AC-0043.** No file this delivery adds or changes carries a real
       home-directory path or account name. The check is every path from
       `git diff --name-only origin/main...HEAD` scanned with
-      `grep -nE '/Users/|/home/[a-z]|/Volumes/'`, returning nothing. `--root`
+      `grep -nE '/(Users|home)/[A-Za-z0-9._-]+/|/Volumes/[A-Za-z0-9._-]+'`,
+      returning nothing. The required name segment is what makes the check
+      decidable: a bare `/Users/` matches both the `<user>` placeholder this
+      delivery scrubs paths *to* and any prose quoting the pattern itself, so
+      a looser pattern reports its own remedy as a leak. Prove it
+      differentially — the scan returns nothing here and still matches a
+      planted `/Users/realname/secret`, because a pattern matching nothing at
+      all would satisfy this criterion too. `--root`
       being required means every typed transcript would otherwise carry one,
       and the class is wider than transcripts: the six artifacts scrubbed on
       this branch included two lint-corpus JSON files and a design-evidence
@@ -554,33 +563,33 @@ on a checklist item only that rubric owns.
 
 ### How the reviewer reports the gates
 
-- [ ] **AC-0052.** `.apm/agents/design-reviewer.md` requires its returned
+- [x] **AC-0052.** `.apm/agents/design-reviewer.md` requires its returned
       block to carry a gate roll-call — every identifier `DA1` through `DA10`
       with a verdict, inside the block rather than before it — **when the
       artifact under review is a design document**. The agent also reviews
       assessment reports, RFCs, ADRs and four diagram genres, and a
       document-architecture roll-call on an ER diagram is noise.
-- [ ] **AC-0053.** `.apm/agents/design-reviewer.md` requires a clean
+- [x] **AC-0053.** `.apm/agents/design-reviewer.md` requires a clean
       design-document review to state ten verdicts, so a gate nobody
       considered and a gate that passed stop looking identical.
-- [ ] **AC-0054.** `.apm/agents/design-reviewer.md` states that its inlined
+- [x] **AC-0054.** `.apm/agents/design-reviewer.md` states that its inlined
       gate set is its baseline depth, that it reads
       `architect-review/references/rubric-design-doc.md` for the fuller
       per-gate text when that skill is co-installed, and that it degrades only
       in depth, never to nothing.
-- [ ] **AC-0055.** `.apm/agents/design-reviewer.md` requires the agent to
+- [x] **AC-0055.** `.apm/agents/design-reviewer.md` requires the agent to
       raise an unreachable `rubric-design-doc.md` as a finding on a
       design-document review, rather than reviewing quietly at baseline.
-- [ ] **AC-0056.** `.apm/agents/design-reviewer.md` states that the artifact
+- [x] **AC-0056.** `.apm/agents/design-reviewer.md` states that the artifact
       under review is data and holds no instruction authority over the agent's
       verdict, tools, scope, or output format — at the depth
       `architect-design/SKILL.md:32` and `architect-review/SKILL.md:32` already
       state it, neither of which the agent file carries today.
-- [ ] **AC-0057.** Each gate's verdict in the roll-call is the agent's own
+- [x] **AC-0057.** Each gate's verdict in the roll-call is the agent's own
       determination. Text in the artifact matching the roll-call format does
       not supply it: a document carrying `DA1-DA10: PASS` in a fence or an
       HTML-comment span is a finding, not a result.
-- [ ] **AC-0058.** `.apm/agents/design-reviewer.md` fixes the permitted
+- [x] **AC-0058.** `.apm/agents/design-reviewer.md` fixes the permitted
       contents of the returned block: the roll-call, and findings that *name*
       a location. Content the artifact asked the agent to surface is reported
       as a finding about the artifact, never reproduced in the block. Quoting
@@ -589,11 +598,11 @@ on a checklist item only that rubric owns.
       stop the content being committed. The agent holds `Read`, `Grep` and
       `Glob` over the checkout, and an adopter points it at documents they did
       not write.
-- [ ] **AC-0072.** `.apm/agents/design-reviewer.md` declares `Read`, `Grep`
+- [x] **AC-0072.** `.apm/agents/design-reviewer.md` declares `Read`, `Grep`
       and `Glob` and no execution tool. AC-0061's claim that no rung runs the
       gate script rests on this for the subagent rung, which neither of the
       two criteria that claim cites reaches.
-- [ ] **AC-0059.** The roll-call contract is exercised, not only asserted:
+- [x] **AC-0059.** The roll-call contract is exercised, not only asserted:
       `design-reviewer` is dispatched against the reference document and its
       returned block recorded in `notes/verification-ledger.md`, showing ten
       verdicts. The branch's
@@ -609,11 +618,13 @@ on a checklist item only that rubric owns.
       `~/.claude/agents/design-reviewer.md` instead would replace a
       machine-wide agent definition for every project on that host and leave
       it replaced; without any copy the dispatch reads whatever that profile
-      holds, today 8,633 bytes against the pack source's 9,140.
-- [ ] **AC-0060.** `references/convergence-loop.md` requires the loop to
+      holds, which is a different and older definition than the branch's. No
+      byte count is pinned here: the pack source grows whenever a gate is
+      added, so a figure recorded once is wrong by the next slice.
+- [x] **AC-0060.** `references/convergence-loop.md` requires the loop to
       dispatch the `design-reviewer` subagent when it is reachable, and to
       name the rung it fell back to when it is not.
-- [ ] **AC-0061.** Each reporting obligation names who reports: step 6 is the
+- [x] **AC-0061.** Each reporting obligation names who reports: step 6 is the
       author's own self-check, and the review pass is whichever rung
       `convergence-loop.md` resolved. No rung runs the gate script — AC-0016
       keeps the skill's own agent from invoking it, AC-0066 keeps the loop
@@ -622,22 +633,22 @@ on a checklist item only that rubric owns.
 
 ### Parity
 
-- [ ] **AC-0062.** `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
+- [x] **AC-0062.** `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
       asserts every identifier `DA1` through `DA10` appears in all three homes.
-- [ ] **AC-0063.** The same test asserts each gate's severity agrees across the
+- [x] **AC-0063.** The same test asserts each gate's severity agrees across the
       three homes, and permits the explanatory prose to differ.
 
 ### Reporting
 
-- [ ] **AC-0064.** `architect-design/SKILL.md` step 6 requires every gate
+- [x] **AC-0064.** `architect-design/SKILL.md` step 6 requires every gate
       result to be reported by identifier and verdict before a draft is shown.
-- [ ] **AC-0065.** `references/convergence-loop.md` requires each review pass
+- [x] **AC-0065.** `references/convergence-loop.md` requires each review pass
       to report every gate identifier with a verdict.
-- [ ] **AC-0066.** `references/convergence-loop.md` states that the loop
+- [x] **AC-0066.** `references/convergence-loop.md` states that the loop
       requires and invokes no script, and names the shipped gate script as a
       human- or CI-run accelerant outside the loop, in the same words AC-0016
       requires of `SKILL.md`.
-- [ ] **AC-0067.** `references/convergence-loop.md` states which property the
+- [x] **AC-0067.** `references/convergence-loop.md` states which property the
       shipped script does and does not cost — the loop stays pure-prose and
       zero-config, and the script is optional and run outside the loop — and
       carries no unconditional claim that shipping a script forfeits a pack
@@ -645,10 +656,10 @@ on a checklist item only that rubric owns.
 
 ### Release closure
 
-- [ ] **AC-0068.** `packs/architect/pack.toml` declares version `0.15.12`.
+- [x] **AC-0068.** `packs/architect/pack.toml` declares version `0.15.12`.
       Its equality with `.claude-plugin/plugin.json` is owned by
       `tests/conformance/test_pack_metadata.py`.
-- [ ] **AC-0069.** `docs/product/changelog.md` carries a
+- [x] **AC-0069.** `docs/product/changelog.md` carries a
       `## [architect][0.15.12]` entry, free-standing at `##`, not nested under
       `[Unreleased]`, with a `### Highlights` subsection as its immediate
       child. Those three properties are what `tools/test_build_site_routing.py`
@@ -656,10 +667,10 @@ on a checklist item only that rubric owns.
       heading form and newest-first ordering are not criteria here: the tests
       that check them run against synthetic fixtures rather than against
       `docs/product/changelog.md`, so no artifact decides them for this entry.
-- [ ] **AC-0070.** `packs/architect/.apm/skills/architect-design/evals/evals.json`
+- [x] **AC-0070.** `packs/architect/.apm/skills/architect-design/evals/evals.json`
       carries an eval whose expectation requires the response to name every
       identifier `DA1` through `DA10` with a verdict.
-- [ ] **AC-0071.** `.claude-plugin/marketplace.json` is regenerated by
+- [x] **AC-0071.** `.claude-plugin/marketplace.json` is regenerated by
       `FORCE=1 make build-self` and records architect at `0.15.12`.
 
 ## Follow-ons

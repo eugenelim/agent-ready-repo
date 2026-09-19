@@ -266,7 +266,10 @@ sentences of 22 words — 2,178 words at intended density — multiplied by a
 headroom factor of 1.5 and rounded to the nearest hundred, giving a bound of
 **3,300 words**. The scaffolding figure is measured, reproduced by: strip
 frontmatter, strip HTML-comment spans, replace every `<…>` placeholder with
-a space, then count tokens matching `[A-Za-z0-9]`. A document over the bound
+a space — matching `<[^<>\n]*>`, so a placeholder never spans a newline —
+then count tokens matching `[A-Za-z0-9]`. That newline bound is what makes
+the figure reproducible; without it the same steps give 388. A document over
+the bound
 is walked against `references/decomposition-rubric.md`; `DA10` decides no
 split itself. A document over the bound whose children meet no criterion
 there moves detail to companion views and evidence links instead.
