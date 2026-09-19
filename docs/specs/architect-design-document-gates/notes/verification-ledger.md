@@ -11,7 +11,9 @@ Both runs invoke the shipped script directly, exactly as an adopter or a CI
 step would:
 
 ```
-python3 <repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py --root <target> <file...>
+python3
+<repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py
+--root <target> <file...>
 ```
 
 ### Run 1 — a non-compliant fixture
@@ -29,7 +31,9 @@ over the budget of three.
 Command:
 
 ```
-python3 <repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py \
+python3
+<repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py
+\
   --root <tmp-root> <tmp-root>/non-compliant.md
 ```
 
@@ -48,32 +52,40 @@ Exit code: **1** (one `DA3` finding, no refusal) — matches AC-0004.
 Command:
 
 ```
-python3 <repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py \
+python3
+<repo-root>/packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py
+\
   --root <repo-root> <repo-root>/packs/architect/.apm/skills/architect-design/assets/*.md
 ```
 
 stdout:
 
 ```
-'<repo-root>/packs/architect/.apm/skills/architect-design/assets/design-doc.md':25: DA3 — paragraph of 4 sentences (budget 3)
+'<repo-root>/packs/architect/.apm/skills/architect-design/assets/design-doc.md':25:
+DA3 — paragraph of 4 sentences (budget 3)
 ```
 
 stderr: empty.
 
-Exit code: **1** (one `DA3` finding, no refusal).
+Exit code: **1** (one `DA3` finding, no refusal). **No criterion asserts
+against this run** — see *Disposition of `assets/design-doc.md:25`* below.
+The finding is expected output, not a regression.
 
-## AC-0018 fails against real, already-shipped content — a plan/asset gap, not a script defect
+## Superseded — AC-0018 fails against real, already-shipped content
 
-> **Superseded 2026-09-19.** Everything in this section describes AC-0018 as
-> it stood before the amendment, when its clean corpus was `assets/*.md`. That
-> is no longer the contract. In particular: the argument below that
-> `test_da3_reports_no_finding_in_any_shipped_asset` "asserts AC-0018
-> faithfully" and must not be weakened is **reversed** — the plan now obliges
-> T2 to delete that test, because the criterion it asserts no longer exists.
-> The two routes offered at the end of this section were not the route taken;
-> a third was, and it is recorded under *The placeholder rule was withdrawn*
-> below. Read this section as the observation that started the amendment, not
-> as current obligation.
+> **Superseded 2026-09-19.** This section describes AC-0018 as it stood
+> before the amendment, when its clean corpus was `assets/*.md`. **AC-0018
+> still exists** — it is repointed at
+> `testdata/telemetry-endpoint-default-design.md`, and its clean half is
+> verified in T4a. What was withdrawn is the corpus, not the criterion. So the
+> argument below that `test_da3_reports_no_finding_in_any_shipped_asset`
+> "asserts AC-0018 faithfully" and must not be weakened is **reversed**: the
+> plan obliges T2 to delete that test, because the corpus it asserts is no
+> longer AC-0018's. The two routes offered at the end of this section were not
+> the route taken; a third was, recorded under *The placeholder rule was
+> withdrawn* below. Read this section as the observation that started the
+> amendment, not as current obligation. Its heading is false on both halves
+> and is retained only so the anchor keeps resolving.
 
 AC-0018 requires zero `DA3` findings across every `*.md` under
 `architect-design/assets/`, "including … the `design-doc.md` compatibility
@@ -127,8 +139,9 @@ the amendment actually delivers is the 2026-09-19 reversal recorded below;
 re-issuing the transition with corrected references is refused by the
 procedure, which rejects a second amendment carrying changed authority facts.
 
-**2026-09-18 — first decision.** T2 reported AC-0018 red on
-`assets/design-doc.md:25`, a `<…>` placeholder holding four sentences. The
+**First decision, recorded 2026-09-19 at `61a5db98f`.** T2 reported AC-0018
+red on `assets/design-doc.md:25`, a `<…>` placeholder holding four
+sentences. The
 owner authorised a controlled amendment adding a placeholder exclusion to
 AC-0019, over the alternative of editing that one asset. The justification
 that survives scrutiny is recurrence: splitting the placeholder would green
@@ -142,7 +155,7 @@ only; AC-0024's strip belongs to the one-off command that measured the
 752-word scaffolding figure. The owner approved on a framing that carried that
 false claim.
 
-**2026-09-19 — the decision was reversed.** Two placeholder-span rules were
+**Reversed later the same day.** Two placeholder-span rules were
 drafted and both failed review, the second introducing a silent under-count.
 The owner then chose to withdraw the rule entirely and change `DA3`'s clean
 corpus instead. That is what the in-flight amendment now delivers, and it is
@@ -155,7 +168,8 @@ is still detected — the script reports it, and the shipped-templates CLI run
 that `spec.md` keeps as a standing manual-QA artifact reproduces it at exit 1.
 What changed is that no criterion asserts against it: the templates are no
 longer `DA3`'s clean corpus. The recorded exit-1 run is therefore expected
-output, not a regression. It needs no follow-on: a placeholder holding four sentences
+output, not a regression. It needs no follow-on: a placeholder holding four
+sentences
 is a template instructing its author, which is what a template is for. The
 plan/reality gap this ledger opened for it is closed by that, not left waiting
 on a trigger that no longer fires.
