@@ -83,9 +83,10 @@ recording the route each takes. Observations go to the verification ledger.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Published agent behaviour — four `.apm/` sites | T1, T2, T3, T4, T7 | `packs/core/tests/pack/test_ride_along_admission_test.py` green; the AC8 mutation record (T4) in the verification ledger | Every clause sits in its host at every site it belongs to; projections match |
+| Published agent behaviour — four `.apm/` sites | T1, T1b, T2, T3, T4, T7 | `packs/core/tests/pack/test_ride_along_admission_test.py` green; the AC8 mutation record (T4) in the verification ledger | Every clause sits in its host at every site it belongs to; projections match |
 | Decision rationale — RFC-0090 § Errata | T5 | Dated, Approver-signed entry; lines above `## Errata` unchanged against the merge base | The erratum names the replacement and its reason |
 | Release history — changelog and both version files | T6 | Both version files one patch above the changelog's highest `[core]` version; topmost heading matches with `### Highlights` | Version and release note agree; no duplicate `[core]` version |
+| Adopter documentation — the published guide | T1b, T4 | `tests/roster/test_capture_rename_guide.py` green; `lint-ci-parity.py` exits 0 | The guide names the step as shipped and its roster step is registered and placed |
 | Reusable learning — work-loop eval register | T6 | Two new cases in `evals/evals.json` | One grades dispatch over discard; one grades the unattended fall-out |
 
 ## Design (LLD)
@@ -198,10 +199,27 @@ Traces to: AC9–AC14 · contracts: none.
 
 Traces to: AC1–AC14 · contracts: none.
 
-New: `packs/core/tests/pack/test_ride_along_admission_test.py`, standard
-library only (`pathlib`, `re`), resolving `PACK_ROOT` as
-`Path(__file__).resolve().parents[2]` exactly as its two sibling pack tests
-do. Reused: nothing else. No new module, boundary, or dependency.
+Two new files, split by reach rather than by topic, because
+`tools/lint-pack-test-boundary.py` check `pack-tests-stay-in-pack` fails any
+pack test that climbs out of its own pack and the rule has no exemption.
+
+- `packs/core/tests/pack/test_ride_along_admission_test.py` — AC1–AC13 and
+  AC20–AC22, the criteria decided by reading a file inside `packs/core/`.
+  Not AC14 (a recorded walk), AC15–AC17 (repository documents outside the
+  pack), AC18–AC19 (read from the eval register by T6), or AC23–AC24.
+  Standard library only (`pathlib`, `re`), resolving `PACK_ROOT` as
+  `Path(__file__).resolve().parents[2]` exactly as its two sibling pack tests
+  do. Every path it reads is inside `packs/core/`.
+- `tests/roster/test_capture_rename_guide.py` — AC23 and AC24. AC23 is the
+  one check that reads `guides/core/explanation/core-pack.md`; AC24 parses
+  `.github/workflows/build-check.yml`. Both sit outside `packs/core/`, which
+  is why they share this file. Anchored at
+  `Path(__file__).resolve().parents[2]` per `tests/AGENTS.md`.
+
+This is the split commit `b14725c01` used for the same shape, pairing
+`packs/core/tests/pack/test_spec_authority_scoping.py` with
+`tests/roster/test_spec_authority_note.py`. Reused: nothing else. No new
+module, boundary, or dependency.
 
 ### Interfaces & contracts
 
@@ -254,9 +272,11 @@ Not applicable — no external system, service, or library is added.
   block, and the nearest preceding host marker is the one § Host markers
   names. Verifies AC5.
 - `test_sync_comments_name_four_sites` — each of the four files carries an
-  HTML comment containing `Bundled-fixes carve-out`, and each lists all four
-  site paths. Verifies AC6. Reds today: `supervisor-mode.md` has no such
-  comment and the other three list three paths.
+  HTML comment containing `Bundled-fixes carve-out`, and each names all four
+  sites adopter-visibly (`work-loop/SKILL.md`, `implementer.md`,
+  `adversarial-reviewer.md`, `work-loop/references/supervisor-mode.md`), never
+  a `packs/core/.apm/…` path. Verifies AC6. Reds today: `supervisor-mode.md`
+  has no such comment and the other three name three sites.
 - `test_retired_locality_vocabulary_is_absent` — none of the seven banned
   strings appears in any of the four files. Verifies AC7.
 - Equality assertions for AC9, AC10 and AC11 over `SKILL.md`, and for AC12
@@ -264,6 +284,20 @@ Not applicable — no external system, service, or library is added.
   disposition sentence, C4, C5, C6, C7, and the absence of
   `otherwise discard it`. C6 and C7 are pinned strings like the rest, so
   these are equality checks rather than readings of prose.
+- `test_capture_heading_renamed` — `## Capture` present, `## Capture
+  learnings` absent, and no link in the file targets `#capture-learnings`.
+  Verifies AC20.
+- `test_capture_anchor_links_resolve` — every in-file link targeting
+  `#capture` resolves to a heading present in the file. Verifies AC21. Scoped
+  to `#capture` rather than to every anchor: an unscoped check passes today,
+  because each existing `#capture-learnings` link resolves against the
+  un-renamed heading, so it could not red for the stated reason.
+- `test_no_eval_prompt_names_the_old_section` — no case in
+  `packs/core/.apm/skills/work-loop/evals/evals.json` has a prompt naming a
+  `Capture learnings` section. Verifies AC22. This path is inside
+  `packs/core/`, so it stays here.
+- AC23's guide check is **not** in this file. It reads outside `packs/core/`
+  and belongs to T1b.
 
 **Approach:**
 - Write the whole file now, red, rather than growing it per task: the identity
@@ -271,8 +305,58 @@ Not applicable — no external system, service, or library is added.
   after T2 could never have failed for the reason it exists.
 
 **Done when:** `python3 -m pytest packs/core/tests/pack/test_ride_along_admission_test.py -q`
-fails, and every assertion above is among the failures rather than erroring on
-a missing file.
+fails, every assertion above is among the failures rather than erroring on a
+missing file, and `python3 tools/lint-pack-test-boundary.py` exits 0 —
+unfiltered, reading its own exit code, because piping it through `tail`
+truncates the FAIL lines and reports the filter's status instead.
+
+### T1b: The guide control reds, from the roster where it may read a guide
+
+**Depends on:** T1 — T1 is what removes the AC23 guide read from the pack
+file, so `lint-pack-test-boundary.py` cannot exit 0 until it has landed, and
+this task's own `Done when` asserts that exit code.
+
+**Touches:** tests/roster/test_capture_rename_guide.py,
+.github/workflows/build-check.yml, tools/lint-ci-parity.py
+
+**Tests:** verification mode: TDD.
+- `test_guide_names_the_step_as_shipped` — `guides/core/explanation/core-pack.md`
+  names the step `Capture` and describes it as routing a scratch note rather
+  than only recording a learning. Verifies AC23. Reds today: the guide's
+  step 10 reads "Capture learnings".
+- `python3 tools/lint-pack-test-boundary.py` exits 0, read unfiltered.
+  Verifies that the split actually discharges the boundary rule rather than
+  moving the violation.
+- `python3 tools/lint-ci-parity.py` exits 0 after the registration edits.
+  This verifies registration and disposition; it does **not** reach step
+  order, so it does not verify AC24.
+- `test_roster_step_precedes_the_bulk_pytest_step` — parses
+  `.github/workflows/build-check.yml`, finds the step naming
+  `tests/roster/test_capture_rename_guide.py` and the step running
+  `python -m pytest tests/ -q`, and asserts the first index is lower.
+  Verifies AC24. It reds when written and this task turns it green, because
+  this task owns the workflow edit; AC23's guide assertion is the only one
+  still red at the end of T1b, and T4 owns turning it green.
+
+**Approach:**
+- Anchor at `Path(__file__).resolve().parents[2]` per `tests/AGENTS.md`, not
+  at a pack root.
+- `tests/AGENTS.md` obliges three registration edits, two of which apply
+  here: a named step in `.github/workflows/build-check.yml` placed **above**
+  the bulk `python -m pytest tests/ -q` at line 442 — the job is fail-fast
+  with no step-level `if:`, so a named step below it never runs — and a
+  matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py` with
+  `LOCAL("test-after-build-check")`. The third, a
+  `.workspace-prune-protected.toml` entry, does not apply: this test names no
+  `docs/specs/<slug>` path as a literal.
+- Place the step beside the existing `tests/roster/test_spec_authority_note.py`
+  step at line 436, which is already above the bulk step for the same reason.
+
+**Done when:** `python3 -m pytest tests/roster/test_capture_rename_guide.py -q`
+fails on the AC23 guide assertion and **only** that one — the AC24 step-order
+assertion passes, because this task makes the workflow edit it checks — and
+`python3 tools/lint-pack-test-boundary.py` and `python3 tools/lint-ci-parity.py`
+each exit 0, read unfiltered.
 
 ### T2: C1, C2, C3 and the reporting fields replace the tiers at every site
 
@@ -369,7 +453,7 @@ from T1 and this task turns it green.
 
 ### T4: Capture is renamed, routes five ways, and states what capture costs
 
-**Depends on:** T3
+**Depends on:** T3, T1b
 
 **Touches:** packs/core/.apm/skills/work-loop/SKILL.md,
 packs/core/.apm/skills/work-loop/evals/evals.json,
@@ -379,9 +463,10 @@ guides/core/explanation/core-pack.md
 mutation set — AC10, AC11 and AC8 are decided by assertions in the suite.
 Goal-based check for AC14's routing walk — C4's destinations are prose, so
 the check is a recorded walk against the clause as written, not an assertion.
-- T1's AC20–AC23 assertions go green: the heading is `## Capture`, no link
-  targets `#capture-learnings`, every in-file anchor resolves, no eval prompt
-  names the old section, and the guide names the step as shipped.
+- T1's AC20, AC21 and AC22 assertions go green, and T1b's AC23 assertion goes
+  green: the heading is `## Capture`, no link targets `#capture-learnings`,
+  every `#capture` link resolves, no eval prompt names the old section, and
+  the guide names the step as shipped.
 - T1's AC10 and AC11 assertions go green: the scratch-note bullet reads
   exactly C4, `## Capture learnings` contains C5, and
   `otherwise discard it` is gone.
@@ -555,3 +640,12 @@ deployment sequencing. Nothing here is irreversible.
   step does not reach a behaviour-neutral placement, ordering, or
   decomposition choice — and the spec records that limit beside C2.
 - 2026-09-19: plan approved by eugenelim.
+- 2026-09-19: spec re-approved by eugenelim after the controlled amendment.
+  Authority: the owner decision recorded in
+  `notes/verification-ledger.md`. The amendment splits AC23's guide check into
+  `tests/roster/`, because `tools/lint-pack-test-boundary.py` forbids a pack
+  test reading above its own pack; it adds AC24 for the roster step's
+  placement, which no existing gate enforces; and it adds T1b. Amendment
+  review reached `Clean — ready to commit.` in three rounds (4, then 2, then
+  0 findings).
+- 2026-09-19: plan re-approved by eugenelim after the controlled amendment.

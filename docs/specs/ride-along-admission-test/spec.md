@@ -55,7 +55,9 @@ that makes it actionable.
   dedup rule that stops two entries with different questions being merged —
   `implementer.md`, `supervisor-mode.md`.
 - A content control over the shared clauses —
-  `packs/core/tests/pack/test_ride_along_admission_test.py`, new.
+  `packs/core/tests/pack/test_ride_along_admission_test.py`, new — and one
+  repository-level check of the adopter guide,
+  `tests/roster/test_capture_rename_guide.py`, new.
 - A dated, Approver-signed erratum recording the tier replacement —
   `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata.
 - A patch version bump and its release note — `packs/core/pack.toml`,
@@ -260,9 +262,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Never add an engine state or transition. Both same-session routes in C4
   reuse the existing `blocker-applied` edge from `CODE-HUMAN-GATE`.
 - Never edit `.claude/`, `.agents/`, or `.codex/` by hand; they are generated.
-- Never add a new top-level directory, module boundary, or dependency: the new
-  test uses `pathlib` and `re` from the standard library and lives beside the
-  existing core pack tests.
+- Never add a new top-level directory, module boundary, or dependency. The
+  controls use `pathlib` and `re` from the standard library and live in two
+  existing trees: the pack-local checks beside the other core pack tests, and
+  the one check that reads outside `packs/core/` in the repository roster,
+  because a pack test may not climb out of its own pack.
 - Never list a risk trigger anywhere but the canonical block; a mirror names
   the skill.
 - Never add a rule of the form "the agent judges whether a decision is
@@ -297,6 +301,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and no oracle decides them — the walk is what a reader can reproduce.
 - **Governance and release records (AC15–AC17): goal-based check.** A diff
   bounded at a heading, and two version comparisons against the changelog.
+- **Step placement (AC24): goal-based check.** `tools/lint-ci-parity.py`
+  decides a roster step's registration and disposition but not its position,
+  so nothing existing reaches this. The check parses
+  `build-check.yml` and compares two step indices. It is a criterion rather
+  than a construction note precisely because no owner enforces it: a named
+  step below the fail-fast bulk step never runs and attributes nothing.
 - **The rename and its references (AC20–AC23): goal-based check.** A heading
   present, an old heading absent, every in-file anchor resolving, and two
   prose surfaces naming the step as shipped. A dangling anchor is the failure
@@ -403,6 +413,9 @@ every pack-content change.
 - [ ] **AC23.** `guides/core/explanation/core-pack.md` names the step
   `Capture` and describes it as routing a scratch note, not only as recording
   a learning.
+- [ ] **AC24.** Any CI step naming AC23's check by filename appears earlier in
+  `.github/workflows/build-check.yml` than the bulk `python -m pytest tests/ -q`
+  step that would otherwise collect it first.
 
 ## Follow-ons
 
