@@ -804,7 +804,7 @@ repairing its generator or dropping it.
   `work-intake`; do not create a `[backlog].open` entry or `(deferred: <slug>)`
   marker merely because this loop did not include the work.
 
-**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture learnings](#capture-learnings).
+**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture](#capture).
 
 ### Review verdict record
 
@@ -847,7 +847,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   recipe, explanation if it introduces a concept. The spec workflow is not done
   until those are updated.
 - [ ] Conventional commit format used; no force-push to shared branches.
-- [ ] Learnings captured per [Capture learnings](#capture-learnings).
+- [ ] Every scratch note from this session's DECIDE passes was routed to a destination per [Capture](#capture).
 - [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,
   and reviewable behavior and test lines for each intended PR or stack layer.
   Above 2,000 reviewable behavior and test lines, record review shape. WIDE
@@ -864,7 +864,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
 4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
 5. **Light mode:** return to GATES, then re-review under the rounds rule in [`references/light-mode.md`](references/light-mode.md).
 
-## Capture learnings
+## Capture
 
 Before the PR is opened: *What would have made this work materially better —
 more correct, complete, reliable, recoverable, secure, privacy-preserving,
@@ -877,9 +877,32 @@ attributes.
 
 Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
 
-- **Review scratch notes** from this session's DECIDE passes. For each:
-  generalisable beyond this PR and would have changed the approach → route it
-  through the `project-knowledge` public seam; otherwise discard it.
+A captured item carries its discriminator: the one fact the decision turns
+on, not just the location. "Four sites use a 13px literal" is a locator;
+"the third of them is the only sans one, so the shared token does not fit
+it" is an item. Supply the discriminator before capturing; an item you
+cannot give one to is not ready to capture, and it goes to the destination
+its actual state names. A locator nobody can action looks like tracked work
+and is not. Disposing an item now is cheaper than recording it: a recorded
+item pays a tracking cost, a context-refresh cost, and often a new session,
+and then still needs a discriminator that close-time reconstruction from
+the diff cannot recover. A slightly longer loop is the cheaper option, and
+capturing a ready-now item is a loss.
+
+- **Review scratch notes** from this session's DECIDE passes. Anything
+  generalisable that would have changed the approach goes to the
+  `project-knowledge` public seam, and the examples below are instances of
+  that; the seam is additive. Then, where the note names a defect, take the
+  first destination that applies and stop: a ride-along-eligible defect is
+  dispatched now, grouped with related fixes sharing a file or a seam, over
+  the human gate's `blocker-applied` return edge; a defect blocked on a
+  decision, an instrument, or elapsed time is captured; a ready-now defect
+  that is not ride-along eligible becomes the next independently reviewed
+  unit in this session, over that same edge, where ready-now means it can be
+  finished this session without a decision nobody present will make; and any
+  defect left — one resting on taste, or one with no stated arbiter — is
+  discarded. A note that names no defect is done once the seam has taken it,
+  and discarded if it had nothing for the seam either.
 
   Use semantic-gate triage before writing anything. Route or discard normative
   material first, then invoke the public `project-knowledge` producer profile.

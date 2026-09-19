@@ -13,7 +13,7 @@
     },
     {
       "id": "capture-learnings-quality-attributes",
-      "prompt": "You have completed a work-loop and are at Capture learnings. What should you ask, and is speed the deciding criterion?",
+      "prompt": "You have completed a work-loop and are at Capture. What should you ask, and is speed the deciding criterion?",
       "expected_output": "Ask what would have made the work materially better across relevant quality attributes: correctness or completeness, reliability or recoverability, security or privacy, determinism or reproducibility, operability, maintainability or reviewability, efficiency, and independence from hidden context. Speed is one useful signal, not the objective. Capture a generalizable learning only when it would materially change a future approach.",
       "assertions": [
         "Response says speed is one signal rather than the sole objective",

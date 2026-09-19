@@ -72,3 +72,168 @@ where it read as the first section of the report rather than a rule about one
 of them. The controller added a lead-in — "One section below carries an
 obligation the template cannot show:" — which is free prose, not a pinned
 clause, and leaves the test result unchanged at 8 passed / 7 failed.
+
+## 2026-09-19 — T4: `## Capture` lands, the suite is green, and AC14's walk and AC8's five mutations are recorded
+
+**Observed.** `## Capture learnings` became `## Capture`; both in-file links
+(the `Scratch note.` cross-reference and the Finish-checklist item) now target
+`#capture`, and the checklist item reads as a scratch-note disposal item
+rather than a learnings-recorded claim. The DECIDE scratch-note bullet was
+replaced with C4 verbatim and C5 was added as its own paragraph in the same
+section; `otherwise discard it` no longer appears anywhere in the file. The
+four example bullets stayed in place, immediately after C4's bullet. The
+`evals.json` case `capture-learnings-quality-attributes` now prompts "…are at
+Capture." with its id unchanged. `guides/core/explanation/core-pack.md` step
+10 now reads `**Capture.**` and describes routing a scratch note to one of
+several destinations, not only recording a learning to a skill, ADR, or
+pattern note.
+
+`python3 -m pytest packs/core/tests/pack/test_ride_along_admission_test.py -q`
+→ 15 passed, exit 0. `python3 -m pytest
+tests/roster/test_capture_rename_guide.py -q` → 2 passed, exit 0 (AC23's guide
+assertion goes green here). `python3 -m pytest packs/core/tests/pack/ -q` →
+249 passed, exit 0. `python3 -c "import json;
+json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` → exit
+0. `make lint-ruff lint-mypy` → clean, 148 source files, exit 0.
+`work-loop/SKILL.md` body line count (total lines minus frontmatter, ending at
+the second `---` on line 10): 982 total − 10 = **972**, under the `CAT-S003`
+1,000 cap (it was 918 before this task began; this task added 54 body lines).
+
+**Deferred to T7, not run here.** `agentbundle catalogue self-host --root .
+--write` regenerates all packs, not only the files this task touched, and its
+first run also caught up projection drift that T2 left uncommitted in
+`implementer.md`, `adversarial-reviewer.md`, and `supervisor-mode.md` (92,
+57, and 47 changed lines respectively across `.claude/`, `.agents/`,
+`.codex/`). The plan reserves that regeneration for T7, after T1–T6 are
+committed, so the write was reverted with `git checkout -- .agents .claude
+.codex` and left for T7 to run against the complete tree. `docs/AGENTS.md`
+was flagged by the harness as touched by that command but `git status` and
+`git diff` show no change to it — no real edit occurred there.
+
+**Method note.** The first mutation-record pass reverted a mutated file with
+`git checkout -- <path>`, which restores from the last commit rather than
+from the file's pre-mutation state. Because this task's own `SKILL.md` edits
+were uncommitted at that point, the checkout silently discarded them along
+with the mutation, reverting the file to its pre-T4 state (`## Capture
+learnings` reappeared). Caught immediately by re-grepping for `## Capture`
+before continuing; the three T4 edits were reapplied, confirmed green (15
+passed) before any further mutation, and every mutation after that point was
+captured and restored from an explicit `cp` backup instead of `git checkout`.
+
+**(a) AC14 — the routing walk.** C4's shape: an additive seam clause applies
+first to any generalisable content regardless of defect status; then, only
+where the note names a defect, an ordered sequence takes the first
+destination that applies and stops (ride-along dispatch → capture →
+next-reviewed-unit → discard); a note naming no defect is done once the seam
+has taken it, and discarded if it had nothing for the seam either.
+
+1. **A ready-now, non-generalisable defect with a stated arbiter that fires a
+   risk trigger on its own → next-reviewed-unit.**
+   - Seam: excluded — not generalisable, nothing for the seam to take.
+   - Ride-along dispatch: excluded — C1 clause (i) requires firing no risk
+     trigger on its own; this one fires one, so the admission test refuses it
+     before dispatch is reached.
+   - Capture: excluded — it is ready-now, not blocked on a decision, an
+     instrument, or elapsed time.
+   - Next-reviewed-unit: matches — ready-now (finishable this session
+     without a decision nobody present will make) and not ride-along
+     eligible.
+   - Discard: never reached — first-match-wins stopped at
+     next-reviewed-unit; it also has a stated arbiter, so "no stated
+     arbiter" would not apply anyway.
+
+2. **The same defect, but whose verification cannot be stated →
+   next-reviewed-unit.**
+   - Seam: excluded — still non-generalisable.
+   - Ride-along dispatch: excluded — C1 clause (iii) requires stating how it
+     was verified; unable to state it, the admission test refuses it (on top
+     of the risk-trigger refusal already inherited from note 1).
+   - Capture: excluded — an unstateable verification is not "blocked on a
+     decision, an instrument, or elapsed time"; nothing here waits on
+     anything.
+   - Next-reviewed-unit: matches — still ready-now and still not ride-along
+     eligible, for a different clause of the same admission test.
+   - Discard: never reached — matched at next-reviewed-unit first.
+
+3. **A ride-along candidate whose only bar is an unresolved design call with
+   no citation and no answer → capture.**
+   - Seam: excluded — presented as a defect candidate, not a generalisable
+     lesson; nothing for the seam to take.
+   - Ride-along dispatch: excluded — C1 clause (ii) refuses any unresolved
+     design call; C2 names "no citation exists and no answer was given" as
+     exactly that state, so admission fails before dispatch.
+   - Capture: matches — C2's closing sentence routes an item with no
+     citation and no answer to `blocked_on: decision`, which is what "a
+     defect blocked on a decision" names.
+   - Next-reviewed-unit: never reached — matched at capture; also not
+     ready-now, since it is blocked on a decision nobody present resolved.
+   - Discard: never reached — matched at capture first.
+
+4. **A pure lesson with no defect attached → seam, and nothing else.**
+   - Seam: matches — generalisable content that would have changed the
+     approach goes to the seam; a pure lesson is exactly that.
+   - The entire defect-disposal sequence (dispatch, capture,
+     next-reviewed-unit, discard): excluded as a block — the note names no
+     defect, so C4's closing sentence applies instead: "a note that names no
+     defect is done once the seam has taken it." No later destination is
+     ever considered.
+
+5. **A generalisable, decision-blocked defect → seam and capture, and
+   nothing else.**
+   - Seam: matches — the seam clause is additive and fires on generalisable
+     content independently of whatever the defect-disposal sequence later
+     decides.
+   - Ride-along dispatch: excluded — blocked-on-a-decision is not an
+     admissible state under C1 clause (ii); the admission test refuses it.
+   - Capture: matches — "a defect blocked on a decision, an instrument, or
+     elapsed time is captured" names this note directly.
+   - Next-reviewed-unit: never reached — matched at capture; also not
+     ready-now.
+   - Discard: never reached — matched at capture first.
+   - Result: two destinations, seam and capture, which is the seam's stated
+     additive exception rather than a defect in the walk — no note here
+     reached zero or an unauthorized second destination.
+
+No note reached zero destinations or an unauthorized second destination; note
+5's second destination is the seam's own additive rule, stated as an
+exception in the same clause.
+
+**(b) AC8 — the five mutations, applied one at a time to the complete tree
+and reverted before the next.** Baseline: `test_ride_along_admission_test.py`
+green at 15 passed before each mutation.
+
+1. **Change one interior word of C1 in exactly one file.** `SKILL.md`: "fires
+   no risk trigger" → "fires no risk signal". Result: 1 failed, 14 passed.
+   Caught by `test_c1_is_identical_across_the_four_sites`
+   (`AssertionError: C1 diverges across sites`).
+2. **Add a second copy of C1 to exactly one file.** Appended the full C1
+   sentence again as plain prose (preceded by an unrelated HTML comment
+   marking the addition as scratch) to the end of `implementer.md`. Result:
+   1 failed, 14 passed. Caught by
+   `test_clause_anchors_occur_exactly_once_where_carried`
+   (`AssertionError: C1 opening appears 2 times in implementer.md, expected
+   exactly 1`).
+3. **Move one file's C1 out of its host into an adjacent HTML comment.**
+   Wrapped `adversarial-reviewer.md`'s C1 paragraph in `<!-- -->` in place.
+   Result: 1 failed, 14 passed. Caught by `test_clauses_sit_in_their_hosts`
+   (`AssertionError: C1 occurrence in adversarial-reviewer.md sits inside an
+   HTML comment`).
+4. **Reword C3 in exactly one mirror.** `implementer.md`: "(§ Select: light
+   or full mode)" → "(§ Choose: light or full mode)" — an interior reword
+   that leaves C3's open/close anchor literals intact so only the identity
+   assertion fires. Result: 1 failed, 14 passed. Caught by
+   `test_c3_is_identical_across_the_three_mirrors` (`AssertionError: C3
+   diverges across mirrors`).
+5. **Change one carve-out sync comment back to naming three sites.**
+   `implementer.md`'s sync comment reworded from "kept in sync across four
+   sites: work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+   work-loop/references/supervisor-mode.md" to "kept in sync across three
+   sites: work-loop/SKILL.md, implementer.md, and adversarial-reviewer.md."
+   Result: 1 failed, 14 passed. Caught by `test_sync_comments_name_four_sites`
+   (`AssertionError: implementer.md's carve-out comment is missing
+   'work-loop/references/supervisor-mode.md'`).
+
+Every mutation reds; none was papered over. Each file was restored from an
+explicit pre-mutation backup and diffed byte-identical against it before the
+next mutation, and the suite was confirmed green (15 passed) after the last
+revert.
