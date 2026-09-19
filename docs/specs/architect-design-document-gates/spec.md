@@ -682,68 +682,43 @@ on a checklist item only that rubric owns.
 
 ## Follow-ons
 
-- Architect pack maintainers: `packs/architect/.apm/agents/design-reviewer.md`
-  tells a reviewer to read `architect-review/references/rubric-design-doc.md`
-  "for the fuller per-gate text and prechecks". That rubric carries no
-  per-gate bodies and no prechecks, so the pointer resolves to nothing fuller
-  than the agent already holds. It was false when shipped, and binding the
-  prechecks to the authoring rubric alone removes the route by which it would
-  have become true. Nothing reds: AC-0054 pins the agent's statement and no
-  criterion or test reaches the target. Either correct the agent's sentence to
-  promise only what that rubric holds, or give the rubric the depth the
-  sentence claims; whichever is chosen, AC-0054 should reach the target rather
-  than only the claim about it.
+Two items, both open work someone could pick up. Seven others were closed,
+done, or dropped when this delivery closed; the ledger's follow-on section
+records which and why, so this list holds only what is outstanding.
 
-- Repository maintainers: root `AGENTS.md:154` names
-  `agentbundle.catalogue_tooling.file_safety` as the blessed confinement
-  helper, but that module is a generated destination. A maintainer applying a
-  hardening fix there is told by `build-check` to run `make build-self`, which
-  overwrites the patched file with the unpatched source and leaves the tree
-  green. Eight copies of the module exist and none carries a
-  generated-do-not-edit header, so the canonical body is discoverable only by
-  reading `self_host.py`. This slice adds a ninth and does not cause the
-  problem, but it does raise the odds of the wrong target being chosen.
-- Repository maintainers: nothing scans committed artifacts for a real
-  home-directory path —
-  `tools/test_import_time_path_leaks.py` covers import-time leaks and
-  `tools/test_editable_install_guard.py` covers install targets. AC-0043
-  scans this delivery's own diff; the tree-wide class has no owner, and it is
-  clean today only because this branch scrubbed six artifacts by hand.
-- AgentBundle distribution maintainers: the shared helper this slice carries is
-  hand-copied because `make build-self` writes no destination under `packs/`.
-  [`docs/product/intents/shared-pack-file-projection.md`](../../product/intents/shared-pack-file-projection.md)
-  records the mechanism that would fix it, and the two existing copies that
-  carry the same practice.
-- architect pack maintainer: the `metadata.boundaries` vocabulary in
-  `docs/architecture/security.md` has no value for a skill that ships an
-  executable, and its capability table maps `Bash` only to `network_egress`
-  and `deploy_action`. `architect-assess` already ships `profile_repo.py`
-  under the same three boundaries. Adding an execution value, or recording
-  that shipped scripts sit outside that convention, is a separate change.
-- architect pack maintainer: the two interim rubric items in
-  `docs/specs/architect-design-scope-templates/spec.md` — AC-0026
-  (implementation sufficiency) and AC-0027 (diagram question) — are not
-  superseded by this slice. `DA7` and `DA8` attach an identifier, a severity
-  and a tag to the very checklist items those criteria describe, leaving both
-  obligations true word for word, so no part exists for a `Status`-line
-  pointer to name. Moving authority over them to the gate identifiers is a
-  governance change on a frozen peer spec and belongs in its own change.
-- architect pack maintainer: `packs/architect/tests/skills/architect-design/`
-  reaching pull requests landed in commit `81663a467` on this branch —
-  `build-check.yml:435` and the matching `PR_GATED` roster entry at
-  `tools/lint-ci-parity.py:878-882`. It is a precondition every task here
-  rests on, not an obligation of this contract, and no criterion claims it.
-- AgentBundle distribution maintainers: the reference document this delivery
-  writes is a design for the layer-5 enterprise telemetry endpoint default,
-  and it lands as the gates' corpus rather than as an accepted design. Whether
-  that design is adopted, reshaped, or dropped belongs to
-  `docs/product/intents/catalogue-level-telemetry-endpoint-default.md` and to
-  the owner it names, jointly with `credential-pack-defaults-projection`.
-- architect pack maintainer: slice 3, tracked by ADR-0118 — the system-shape
-  and workload axes and the conditional ports-and-adapters view.
-- architect pack maintainer: `packs/architect/tests/skills/architect-review/`
-  and `.../architect-diagram/` reach CI only through the dispatch-only
-  `test-corpus.yml`. Their `tools/lint-ci-parity.py` dispositions are accurate.
+- Repository maintainers: nothing automatically scans a branch's committed
+  artifacts for a real home-directory path. AC-0043 runs that scan by hand
+  over each delivery's own diff, and `tools/repo/branch_added_paths.py`
+  already enumerates the paths a branch adds, so the automated version is a
+  lint over those paths using AC-0043's name-segment pattern. Adding a gate
+  makes it full mode, which is why it is not done here.
+
+  **Do not build this tree-wide.** Measured across 6,361 tracked files, the
+  pattern matches 34 files and every name segment is a deliberate
+  placeholder — `alice`, `dev`, `someone`, `someuser`, `realperson`,
+  `yourname`, plus `/home/runner` for Actions. There is no real account name
+  in the tree. A tree-wide literal scan is therefore 34 false positives and
+  zero true ones, and making it usable would need an allowlist of acceptable
+  fake names, which has no closed membership. The branch-scoped scan has no
+  such problem: it returns nothing over this delivery and still catches a
+  planted path.
+
+- Repository maintainers: `packs/core/.apm/skills/work-loop/scripts/file_safety.py`
+  is pinned byte-identical against its source by
+  `tests/roster/test_policy_family_selector.py`, which `build-check.yml` does
+  not name, so that pin runs only on the dispatch-only roster workflow. Move
+  it into the PR gate, with the matching `tools/lint-ci-parity.py` entry.
+
+  Scope note, because the earlier version of this item overstated it: all
+  three `packs/**` copies of `file_safety.py` are byte-identical today, and
+  the architect copy added by this delivery **is** PR-gated, at
+  `build-check.yml:546` via `tests/roster/test_architect_design_reviewer_projection.py`.
+  That pin was verified to catch drift — a planted byte reds it. So a
+  hardening fix that fails to reach the architect copy is caught on the pull
+  request; only the work-loop copy's pin waits for a dispatch. The projection
+  mechanism in `docs/product/intents/shared-pack-file-projection.md` would
+  propagate a fix rather than merely detect its absence, but that is an
+  agentbundle engine change and a larger question than this gap.
 
 ## Assumptions
 

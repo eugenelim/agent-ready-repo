@@ -728,3 +728,55 @@ The earlier AC-0043 section runs the retired loose pattern
 `'/Users/|/home/[a-z]|/Volumes/'` and explains its hits away by `Touches:`
 scope. Both the pattern and that reasoning are replaced by the amended
 criterion and the record above. Read the later one.
+
+## Follow-on dispositions at close
+
+Nine follow-ons were recorded during delivery. Two remain open in the spec;
+the other seven were closed, done, or dropped, each with its reason. Recorded
+here because a list that keeps only what is outstanding needs its removals
+accounted for somewhere.
+
+**Closed by a fix in this delivery.**
+
+- *The agent's degradation pointer promises depth that is not there.* The
+  pointer said to read the reviewing rubric "for the fuller per-gate text and
+  prechecks". That rubric has no prechecks and no per-gate bodies, so both
+  halves were false. "and prechecks" was deleted first; the remainder was
+  still an over-claim, so the sentence now promises what the rubric actually
+  holds — the severity and tag vocabulary. AC-0054's substance is intact: the
+  agent still states it reads that rubric and degrades only in depth.
+
+**Done in this session, outside the contract.**
+
+- *Root `AGENTS.md` names a generated destination as the blessed confinement
+  helper.* Recorded in root `AGENTS.local.md`: the named module is written by
+  `make build-self`, nine copies exist, none carries a do-not-edit header,
+  and the `packs/**` copies are hand-maintained because no destination is
+  declared there.
+- *`metadata.boundaries` has no value for a skill that ships an executable.*
+  Recorded in `docs/architecture/security.md` as an exception rather than a
+  new vocabulary value: the two `Bash` rows describe what a skill instructs a
+  model to do, and a shipped script is not a capability grant. Adding a value
+  would change a vocabulary every pack validates against, which is a larger
+  change than the gap warrants.
+
+**Dropped by the owner.**
+
+- *The interim rubric items in the peer spec.* That spec is `Shipped` and the
+  observation is a point in time; nobody intends to move authority over
+  AC-0026 and AC-0027, so there was no pending action.
+- *Whether the telemetry endpoint-default design is adopted.* It belongs to
+  its own intent and that intent's owner. This spec needed the document as a
+  corpus, and it is one.
+
+**Not follow-ons at all — no future action.**
+
+- *`packs/architect/tests/skills/architect-design/` reaching pull requests.*
+  Verified landed: `build-check.yml:435` plus the `PR_GATED` roster entry at
+  `tools/lint-ci-parity.py:878-882`. A precondition this delivery rested on;
+  it belongs in the pull-request description, not in a list of outstanding
+  work.
+- *`architect-review` and `architect-diagram` suites reaching CI only through
+  the dispatch-only `test-corpus.yml`.* Verified accurate, and
+  `tools/lint-ci-parity.py` already owns those dispositions. A second copy of
+  a fact that has an owner goes stale independently of it.
