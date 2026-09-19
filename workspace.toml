@@ -948,18 +948,24 @@ open = [
   # manifest is the record; these are the items that outlived it.
   # ---------------------------------------------------------------------------
 
-  # MAJOR. /catalogue/ is still built out of cards — .outcome-card, .role-card
-  # and .cat-card carry a tinted fill, a border and a radius, against a
-  # direction sheet whose Containment row reads "rules divide and rank; no
-  # cards, no tinted panels, no shadows, no overlap". This is the THIRD instance
-  # of one settled decision: the same contradiction was adjudicated and repaired
-  # on the homepage outcome band and again on /now/. Rated Major not Blocker
-  # because nothing is clipped and axe is clean at both widths; Major not Minor
-  # because it is the whole route's primary treatment. Fix is three card grids
-  # converted to ruled record lists, the pattern now shipped in
-  # PackCatalogue.astro and WhatYouInstall.astro — a layout change across four
-  # channels that earns its own review rather than riding along.
-  # Unblocks when: ready now.
+  # RESOLVED 2026-09-18. /catalogue/ was built out of cards — .outcome-card,
+  # .role-grid and .cat-card carried a tinted fill, a border and a radius,
+  # against a direction sheet whose Containment row reads "rules divide and
+  # rank; no cards, no tinted panels, no shadows, no overlap". (This entry
+  # said .role-card. No such class ever existed on the route: `git log -S` over
+  # catalogue/index.astro returns no commit for it. The name came from a
+  # transcription slip in the manifest this entry was written from, which
+  # recorded .role-grid as .role-card. Corrected in place.) This was the
+  # THIRD instance of one settled decision: the same contradiction was
+  # adjudicated and repaired on the homepage outcome band and again on /now/.
+  # Rated Major not Blocker because nothing was clipped and axe was clean at
+  # both widths; Major not Minor because it was the whole route's primary
+  # treatment. The fix was the one named here — three card grids converted to
+  # ruled record lists reusing the PackCatalogue.astro and WhatYouInstall.astro
+  # pattern — and it took the separate review this entry said it would earn.
+  # Evidence: docs/design/evidence/catalogue-records-retrofit.md. Kept as a
+  # closed note rather than deleted, so the third-instance count stays legible
+  # if the same contradiction appears a fourth time.
 
   # MODERATE. /now/ renders 122 unpaginated releases and is tens of viewport
   # heights long. Information architecture, not styling: no pagination, no
