@@ -823,7 +823,19 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   work links its source artifact, transformation invariant, command, zero-diff
   re-run, tests, sampled review, and rollback; MIXED and DEEP work links its
   dependency-ordered boundaries.
-- [ ] PR opened (or merged directly) with the four-question template filled in.
+- [ ] **Pull request opened, or the offer withheld.** Decide capability from
+  exit status, never from message text: run `gh api user`, and if it exits
+  non-zero, complete this checklist, make no offer, and say nothing about
+  credentials or connectivity. If it exits zero, read
+  `gh repo view --json viewerPermission --jq .viewerPermission`; when
+  that value is unreadable, or is any value other than `WRITE`, `MAINTAIN`, or
+  `ADMIN`, again complete the checklist, make no offer, and stay silent. Only
+  with a readable value inside that set, offer to open the pull request, filling
+  the template in this skill's `assets` folder and writing the body by
+  [`references/pr-authoring.md`](references/pr-authoring.md). A blocked
+  credential store makes `gh auth status` report an invalid token and
+  `gh repo view` report a connection failure, so neither message states the
+  cause; an exit status carries no such claim.
 
 ## FIX
 
@@ -926,3 +938,4 @@ Load when the predicate fires; don't load speculatively.
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |
+| Authoring a pull-request body | [`references/pr-authoring.md`](references/pr-authoring.md) |

@@ -117,6 +117,30 @@ The class-2 walk is a no-op if no companions are on disk. Repository anchoring
 still runs without companions or install markers; post-install classes run only
 when their state is present.
 
+## Install the pull-request template
+
+The `core` pack ships a pull-request template as a work-loop asset. It is not
+installed for you, because a repository that already has a pull-request
+convention should keep it — if yours does, skip this section.
+
+Copy it to the path your forge reads:
+
+Set `SKILL_ROOT` to your adapter's skills directory — `.agents/skills` for
+Codex and the generic adapter, `.claude/skills` for Claude Code — then:
+
+```bash
+# GitHub
+cp "$SKILL_ROOT/work-loop/assets/pull-request-template.md" .github/pull_request_template.md
+
+# GitLab
+cp "$SKILL_ROOT/work-loop/assets/pull-request-template.md" .gitlab/merge_request_templates/Default.md
+```
+
+The template carries its authoring rules in HTML comments, which do not render,
+so an author reads them while writing and a reviewer never sees them in the
+published body. It ships with no checklist: the verification section asks for
+observed results, which a checkbox cannot supply.
+
 ## Pitfalls
 
 :::caution
