@@ -39,9 +39,11 @@ CLAUSES = (
     "once the feature ships it freezes and the code becomes the truth",
     "is the system moving on, not a rule being broken",
     "correct it by superseding it, not by editing the body",
-    # Both carriers the contract defines, and neither is the frozen body.
-    "the supersession goes on its status line",
-    "the correction a reader needs goes in the living document that cites it",
+    # Both carriers the contract defines, in its own words, and neither is the
+    # frozen body. The pointer keeps the copies tied to the owning contract.
+    "its status line points at the decision record that supersedes it",
+    "the instruction anyone still follows lives in a living file at the point of use",
+    "The full rule is the `new-spec` skill's `references/spec-and-plan-contract.md`",
 )
 
 

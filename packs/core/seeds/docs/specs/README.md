@@ -58,6 +58,7 @@ pointer, its status, and its hard dependencies.
 A spec records what we agreed to build when we agreed it; once the feature
 ships it freezes and the code becomes the truth. An older spec that disagrees
 with today's change is the system moving on, not a rule being broken — correct
-it by superseding it, not by editing the body: the supersession goes on its
-status line, and the correction a reader needs goes in the living document that
-cites it.
+it by superseding it, not by editing the body: its status line points at the
+decision record that supersedes it, and the instruction anyone still follows
+lives in a living file at the point of use. The full rule is the `new-spec`
+skill's `references/spec-and-plan-contract.md`.
