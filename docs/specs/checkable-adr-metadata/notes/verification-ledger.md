@@ -350,7 +350,7 @@ Result: the model's first tool call was `Skill` with `input: {"skill":
 "new-adr"}` — the query fired the skill, matching this eval's
 `should_trigger: true`. `total_cost_usd: 0.2300236`, `num_turns: 4`,
 `duration_ms: 32466`. Full transcript saved at
-`/Users/eu.gene.lim/.claude/projects/-Users-eu-gene-lim-orca-workspaces-agent-ready-repo-decisions/9e4d45ee-a142-421c-96e7-c5ba934922c2/tool-results/bmfhgtk9t.txt`.
+`/Users/<user>/.claude/projects/-Users-<user>-orca-workspaces-agent-ready-repo-decisions/9e4d45ee-a142-421c-96e7-c5ba934922c2/tool-results/bmfhgtk9t.txt`.
 
 **Out-of-scope observation, not fixed here.** After the `Skill` activation,
 the transcript shows a second tool call, `Bash` (`ls docs/adr/`), which

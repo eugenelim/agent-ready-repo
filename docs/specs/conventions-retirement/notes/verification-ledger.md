@@ -159,7 +159,7 @@ markers fails `test_docs_map_seats_reference_md`; restoring them passes.
 
 **`catalogue lint` rejected the new seed even though the declaration was
 correct.** `python3 -m agentbundle` resolved to
-`/Users/eu.gene.lim/orca/agent-ready-repo/` — the main checkout — because the
+`/Users/<user>/orca/agent-ready-repo/` — the main checkout — because the
 editable install pointed there, so the CLI never loaded this worktree's
 `_SEEDS_REQUIRED_PLACEHOLDERS`. Confirmed by `pip show`, diagnosed with a
 one-shot `PYTHONPATH`, then fixed by repointing the editable install to this

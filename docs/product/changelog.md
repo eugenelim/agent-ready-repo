@@ -89,6 +89,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   invalid token and `gh repo view` report a connection failure, so neither
   message states the cause — an exit status makes no such claim.
 
+## [architect][0.15.12] — 2026-09-19
+
+### Highlights
+
+- **A design document now gets a runnable check for two of its ten quality
+  gates.** A gate script flags any prose paragraph over three sentences and
+  any document over a 3,300-word size bound, both reported with the exact
+  file and line, so those two checks no longer depend on a reviewer catching
+  them by eye.
+- **Reviewing a design document now asks for a verdict on all ten named
+  quality checks, every time.** The checks cover present tense, named
+  cross-references, model-before-prose ordering, single-sourced concerns,
+  removed decision history, diagram clarity, buildability from the models,
+  linked evidence, and document size — so a check nobody looked at and a
+  check that passed no longer read the same in the result.
+- **Seven of those checks now give an author narrowing hints before a
+  design document is ever sent out for review**, including future-tense
+  wording, an unnamed cross-reference, and a model-after-prose section — a
+  reviewer still decides, but an author sees them first.
+
 ## [core][2.26.19] — 2026-09-18
 
 ### Highlights

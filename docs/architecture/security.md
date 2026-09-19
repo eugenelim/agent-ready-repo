@@ -200,6 +200,21 @@ uses these capability correspondences; a boundary may name any tool in its row:
 `metadata` itself is optional. When an agent declares `metadata.boundaries`,
 the value must be a list of the defined values above.
 
+**A skill that ships an executable script is outside this table.** The two
+`Bash` rows above describe what a skill *instructs a model to do* — reach the
+network, or deploy — and neither covers a script the pack ships for a human
+or a CI step to run directly. There is no execution boundary value, and
+adding one would change a vocabulary every pack validates against.
+
+Such a skill declares the boundaries its script actually crosses, not a
+capability standing in for the fact that it is executable.
+`architect-design` ships `scripts/check_document_architecture.py` and
+`architect-assess` ships `scripts/profile_repo.py`; both declare
+`filesystem_read_untrusted` and `filesystem_write`, which is what those
+scripts do. Shipping the file is not itself a capability grant: the
+boundaries describe the reads and writes, and the pack's own review covers
+whether shipping an executable is warranted.
+
 Credentialed skills (those with `metadata.credentialed: true` and auth details) already carry
 sufficient security metadata via their auth-scheme declaration; they do not need `boundaries`.
 

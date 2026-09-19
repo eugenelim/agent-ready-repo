@@ -428,3 +428,21 @@ def test_the_evals_carry_one_case_per_routed_scope() -> None:
     ).lower()
     assert "scope" in generic
     assert "google-style" not in generic
+
+
+def test_the_review_eval_names_the_closed_gate_set_with_a_verdict_each() -> None:
+    """AC-0070: id 12's expectation text pairs every DA1-DA10 with a verdict.
+
+    Requiring only that the eval mentions the gates would let the
+    implementation write its own comparison value, so this asserts the exact
+    closed set — all ten, none missing, none invented — not a sample.
+    """
+    evals = json.loads(EVALS.read_text(encoding="utf-8"))["evals"]
+    by_id = {item["id"]: item for item in evals}
+    text = by_id[12]["expected_output"]
+
+    named = re.findall(r"DA(10|[1-9])\b(?:[^.]*?)with a verdict", text)
+    assert sorted(int(identifier) for identifier in named) == list(range(1, 11)), (
+        "the eval's expectation text must pair every DA1-DA10 with its own "
+        "verdict, in one closed set"
+    )

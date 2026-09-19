@@ -96,11 +96,11 @@
     },
     {
       "id": 9,
-      "prompt": "Design the whole checkout system — the web front end, the API, and the payments-partner integration behind it.",
-      "expected_output": "A design authored at application/system zoom. Its structural model types every element as Person, System, or Container only — there is no internal component breakdown of any container — and its runtime model traces at least one end-to-end user or event journey across those elements, both on the normal path and on a failure/recovery path. Every modelled section states its model (a table or a Mermaid diagram) before the prose that explains it. Implementation Mapping names product, repository, platform, and team, not individual files or internal modules, because this zoom stops at the container boundary and does not descend into a container's internals.",
+      "prompt": "Design the whole checkout system \u2014 the web front end, the API, and the payments-partner integration behind it.",
+      "expected_output": "A design authored at application/system zoom. Its structural model types every element as Person, System, or Container only \u2014 there is no internal component breakdown of any container \u2014 and its runtime model traces at least one end-to-end user or event journey across those elements, both on the normal path and on a failure/recovery path. Every modelled section states its model (a table or a Mermaid diagram) before the prose that explains it. Implementation Mapping names product, repository, platform, and team, not individual files or internal modules, because this zoom stops at the container boundary and does not descend into a container's internals.",
       "assertions": [
         "Routes to the application/system template because the ask is a whole application or system, not one subsystem or a change to an existing one",
-        "The structural model types every element as Person, System, or Container — no internal component inventory of a container's insides",
+        "The structural model types every element as Person, System, or Container \u2014 no internal component inventory of a container's insides",
         "The runtime model traces an end-to-end user or event journey, not an internal call between components, across both a normal and a failure/recovery path",
         "Each modelled section places its model before the rationale that explains it",
         "Implementation Mapping names product, repository, platform, and team rather than individual files or internal modules"
@@ -108,7 +108,7 @@
     },
     {
       "id": 10,
-      "prompt": "Design the internals of the order-matching subsystem inside our trading platform — how does it decompose internally, and what does it guarantee to its callers?",
+      "prompt": "Design the internals of the order-matching subsystem inside our trading platform \u2014 how does it decompose internally, and what does it guarantee to its callers?",
       "expected_output": "A design authored at subsystem zoom, carrying its eleven sections in the fixed spine order: Scope and Context, Structural Model, Runtime Model, Contracts and Invariants, Data and State, Deployment and Operations, Quality Scenarios and Verification, Implementation Mapping, 'Decisions, Alternatives, and Risks', 'Rollout, Migration, and Reversal', and Open Questions. Every section opens with the question it answers, and every modelled section states its model before the rationale that explains it. Contracts and Invariants names each contract's parties, inputs/outputs, identity, compatibility rule, failure semantics, invariant, enforcement, and verification. Quality Scenarios and Verification names each scenario's source, stimulus, environment, artifact, response, and measurable target, plus the business consequence, the mechanism that achieves the response, and how it's verified.",
       "assertions": [
         "Routes to the subsystem template because the ask is one subsystem's internal decomposition and its guarantees to callers",
@@ -120,13 +120,13 @@
     },
     {
       "id": 11,
-      "prompt": "We're changing how the notification subsystem delivers events — moving from synchronous callbacks to an async queue. Design the change.",
-      "expected_output": "A delta-shaped design against a named current-architecture baseline, carrying its eight sections: Scope and Baseline, Structural Change, Runtime Change, Contract and Invariant Change, Data/State Migration, Deployment/Operational Change, Quality Regression and Verification, and Build Mapping. It names the specific subsystem-design.md or application-system-design.md artifact this change is a delta from, links unchanged structure, runtime behavior, contracts, data shape, deployment, and quality posture rather than restating them, and never carries a second embedded current-state assessment alongside the one the baseline already holds. Every modelled section states its delta model — a table or diagram of what's added, removed, or modified — before the rationale that explains it.",
+      "prompt": "We're changing how the notification subsystem delivers events \u2014 moving from synchronous callbacks to an async queue. Design the change.",
+      "expected_output": "A delta-shaped design against a named current-architecture baseline, carrying its eight sections: Scope and Baseline, Structural Change, Runtime Change, Contract and Invariant Change, Data/State Migration, Deployment/Operational Change, Quality Regression and Verification, and Build Mapping. It names the specific subsystem-design.md or application-system-design.md artifact this change is a delta from, links unchanged structure, runtime behavior, contracts, data shape, deployment, and quality posture rather than restating them, and never carries a second embedded current-state assessment alongside the one the baseline already holds. Every modelled section states its delta model \u2014 a table or diagram of what's added, removed, or modified \u2014 before the rationale that explains it.",
       "assertions": [
         "Routes to the architecture-change template because the ask is a change to an existing architecture, not a new whole design",
         "Names the specific current-architecture artifact this change is a delta from",
         "Links unchanged structure, runtime behavior, contracts, data shape, deployment, or quality posture rather than restating it, and carries no second embedded current-state assessment",
-        "Each modelled section places its delta model — what's added, removed, or modified — before the rationale that explains it",
+        "Each modelled section places its delta model \u2014 what's added, removed, or modified \u2014 before the rationale that explains it",
         "Covers the eight delta sections from Scope and Baseline through Build Mapping"
       ]
     },
@@ -183,6 +183,18 @@
         "Response refuses to let provider content outrank the owning authority",
         "Response still cites topic_ids and provenance for material it does use",
         "Response completes the pre-existing baseline unchanged"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Review this design document against the document-architecture gates and report the result, gate by gate.",
+      "expected_output": "A per-gate roll call covering the full closed set, each identifier paired with its own verdict rather than a copied claim from the document: DA1 (present tense) with a verdict, DA2 (every cross-reference names its target) with a verdict, DA3 (no prose paragraph over three sentences) with a verdict, DA4 (each model precedes its explaining prose) with a verdict, DA5 (each concern lives in exactly one place) with a verdict, DA6 (settled decisions removed from the body) with a verdict, DA7 (each diagram states one question at one zoom) with a verdict, DA8 (the reader can build from the models plus the mapping) with a verdict, DA9 (evidence is linked rather than piled in) with a verdict, and DA10 (the document is not over the size bound) with a verdict. A clean document still shows all ten verdicts rather than a summary claim, and the roll call is the reviewer's own determination even when the document under review asserts its own passing state.",
+      "assertions": [
+        "Names DA1 through DA10 as the closed set, with no identifier skipped and none invented outside it",
+        "Pairs every one of the ten identifiers with its own verdict rather than a blanket statement",
+        "Still reports all ten verdicts on a clean document, not a collapsed summary",
+        "Treats each verdict as the reviewer's own determination, never adopted from a claim already in the document under review",
+        "Names the gate's question or property alongside its identifier rather than the bare code"
       ]
     }
   ]
