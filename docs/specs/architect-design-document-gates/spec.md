@@ -144,7 +144,7 @@ the built artifact rather than for a criterion. Identifiers are assigned once
 and never reflowed, so a group's list is not always contiguous.
 
 - **The shipped mechanical gate (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005,
-  AC-0006, AC-0007, AC-0073, AC-0074, AC-0075, AC-0077): TDD.** An exit code is the whole interface a CI caller
+  AC-0006, AC-0007, AC-0073, AC-0074, AC-0075, AC-0077, AC-0079): TDD.** An exit code is the whole interface a CI caller
   sees, and exit-code precedence across a multi-target run is the part a
   single-target test never reaches. AC-0073 and AC-0074 are the vendored
   projection and its byte-identity pin: a carried copy of a security module
@@ -153,6 +153,9 @@ and never reflowed, so a group's list is not always contiguous.
   than a comparison someone remembers to run. AC-0075 and AC-0077 cover the
   sibling itself: what the script does when the module is absent, link-like or
   incomplete, and that the module's own imports stay standard-library only.
+  AC-0079 is a text assertion over this spec: the copy is hand-maintained and
+  nothing regenerates it, which a reader has to know before trusting the byte
+  pin to mean the file is current.
 - **What the gate refuses to read (AC-0008, AC-0009, AC-0010, AC-0011,
   AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0076): TDD, except
   AC-0016.** Each
@@ -237,18 +240,29 @@ and never reflowed, so a group's list is not always contiguous.
       appearing upstream would propagate through the mirror and break every
       adopter install with both checks green.
 - [ ] **AC-0073.** `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`
-      is declared a mirror destination whose source is
-      `packs/core/.apm/skills/close-work/scripts/file_safety.py`, and
-      `make build-self` writes it. That core script is the repository's source
-      of truth: `packages/agentbundle/agentbundle/build/self_host.py:133-150`
-      already declares it as the source of the `catalogue_tooling` copy, which
-      is a generated destination rather than the canonical body.
-- [ ] **AC-0074.** The copy is covered by the existing declaration gate rather
-      than by a new after-the-fact byte comparison. A comparison test is the
-      shape `tests/roster/test_packaged_runtime_closure.py:99-106` records as
-      removed — "two tests compared it after the fact, but nothing wrote it" —
-      and a declared pair is what keeps a security fix propagating by
-      regeneration instead of by someone remembering to hand-copy it.
+      is byte-identical to `packs/core/.apm/skills/close-work/scripts/file_safety.py`,
+      which is the repository's source of truth:
+      `packages/agentbundle/agentbundle/build/self_host.py:118-150` declares it
+      as the source of both the `_data/` and `catalogue_tooling` copies, so the
+      `catalogue_tooling` module is a generated destination rather than the
+      canonical body.
+- [ ] **AC-0074.** An assertion in the already-wired
+      `tests/roster/test_architect_design_reviewer_projection.py` pins that
+      byte identity. It adds no roster module, so it owes none of the three
+      obligations `tests/AGENTS.md` attaches to one: `build-check.yml:546`
+      already names that file.
+- [ ] **AC-0079.** The copy is hand-maintained, and the spec says so where the
+      criterion lives. `make build-self` writes no destination under `packs/`
+      — every declared pair in `self_host.py` runs `packs/… → packages/…` —
+      so nothing regenerates this file, and a fix to the source propagates
+      only when someone copies it. This matches the repository's one existing
+      `packs/**` copy, `work-loop/scripts/file_safety.py`, which is likewise
+      undeclared and pinned by a byte comparison at
+      `tests/roster/test_policy_family_selector.py:336-348`. The owner
+      approved matching that practice rather than extending the declaration
+      mechanism, which is an agentbundle engine change requiring an
+      `Engine-Change-RFC:` trailer and matching version bumps. The shared
+      mechanism is recorded as a Follow-on.
 - [ ] **AC-0075.** The script refuses through its own refusal channel and exit
       code when the sibling module is missing, is link-like, or does not
       expose the helpers the gate calls, rather than raising. An incomplete
@@ -604,6 +618,11 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ## Follow-ons
 
+- AgentBundle distribution maintainers: the shared helper this slice carries is
+  hand-copied because `make build-self` writes no destination under `packs/`.
+  [`docs/product/intents/shared-pack-file-projection.md`](../../product/intents/shared-pack-file-projection.md)
+  records the mechanism that would fix it, and the two existing copies that
+  carry the same practice.
 - architect pack maintainer: the `metadata.boundaries` vocabulary in
   `docs/architecture/security.md` has no value for a skill that ships an
   executable, and its capability table maps `Bash` only to `network_egress`

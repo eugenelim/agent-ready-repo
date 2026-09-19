@@ -259,11 +259,11 @@ not the two an earlier draft of this plan weighed. `profile_repo.py` imports
 `agentbundle.catalogue_tooling.file_safety` when it is importable and
 hand-rolls the same checks when it is not. `new-spec`'s
 `lint-contract-item-alignment.py` hand-rolls a twelve-line `_read_confined`
-and cites nothing. And `packs/core/.apm/skills/work-loop/scripts/` and
-`.../close-work/scripts/` each carry a byte-identical 19KB vendored copy of
-the canonical module, loaded as a sibling — `test_close_work.py:233` pins that
-the load resolves to the projection, and a `tests/roster/` check pins the
-byte identity.
+and cites nothing. And `packs/core/.apm/skills/close-work/scripts/file_safety.py` is the
+repository's source of truth, carried beside its skill and loaded as a
+sibling; `packs/core/.apm/skills/work-loop/scripts/file_safety.py` is a
+hand-maintained copy of it, pinned only by a byte comparison at
+`tests/roster/test_policy_family_selector.py:336-348`.
 
 This script takes the third. It needs no `agentbundle` import, so the
 adopter-install constraint holds and the `Never do` rule is untouched; it has
@@ -271,13 +271,26 @@ one code path, so the conditional import's untested-branch problem does not
 arise; and it inherits `read_confined_regular_file`'s full depth rather than a
 re-implementation of part of it.
 
-**Correcting the reason an earlier draft recorded.** That draft declined the
-helper because "a script projected into an adopter install cannot reach it".
-That is false, and the repository refutes it twice over — the two vendored
-copies under `packs/core/` are exactly such a reach. The real cost is
-different: 19KB of carried code and a projection that can go stale, which is
-why AC-0074 attaches the byte-identity pin and its roster obligations. Leaving
-the false reason in place would hand a future pack script a refuted precedent.
+**Two reasons earlier drafts recorded, both wrong, both corrected here.** The
+first declined the helper because "a script projected into an adopter install
+cannot reach it" — false, and the two copies under `packs/core/` are exactly
+such a reach. The second called this copy a declared pair `make build-self`
+writes — also false: every pair in
+`packages/agentbundle/agentbundle/build/self_host.py:118-150` runs
+`packs/… → packages/…`, and no declared destination lives under `packs/`, so
+nothing regenerates a pack-to-pack copy.
+
+**What that costs, accepted with owner approval.** The copy is hand-maintained
+and a fix to the source reaches it only when someone carries it across. That
+is the shape `test_packaged_runtime_closure.py:99-106` calls a defect, and it
+is also the only thing the repository currently does for a `packs/**` copy.
+Extending the mechanism is an agentbundle engine change needing an
+`Engine-Change-RFC:` trailer and matching version bumps, which this slice does
+not scope; the owner approved matching the existing practice instead, AC-0079
+records that the copy is hand-maintained so a reader does not over-trust the
+byte pin, and
+[`docs/product/intents/shared-pack-file-projection.md`](../../product/intents/shared-pack-file-projection.md)
+carries the mechanism forward.
 
 **What the helper gives that the twelve-line shape does not.** `O_NOFOLLOW` on
 the open, an `os.fstat` re-check of `(st_dev, st_ino)` and the link count
@@ -293,7 +306,7 @@ earlier draft of this plan cited it as governing.
 
 **Depends on:** none
 
-**Touches:** packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py, packs/architect/.apm/skills/architect-design/scripts/file_safety.py, packs/architect/tests/skills/architect-design/test_gate_script.py, packs/architect/.apm/skills/architect-design/SKILL.md, tests/roster/test_architect_design_gate_file_safety_projection.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py
+**Touches:** packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py, packs/architect/.apm/skills/architect-design/scripts/file_safety.py, packs/architect/tests/skills/architect-design/test_gate_script.py, packs/architect/.apm/skills/architect-design/SKILL.md, tests/roster/test_architect_design_reviewer_projection.py
 
 **Tests:**
 - `test_gate_script.py` loads `check_document_architecture.py` by
@@ -313,12 +326,18 @@ earlier draft of this plan cited it as governing.
 - The sibling module's import set is read with `ast` and required to be
   standard-library only (AC-0077), because AC-0002's check reads the gate
   script and never sees a module loaded by path.
+- An assertion requires the spec to record that the copy is hand-maintained
+  and that nothing regenerates it (AC-0079). `make build-self` writes no
+  destination under `packs/`, so a byte pin proves the copy matches today and
+  says nothing about it staying matched; a reader who assumes regeneration
+  would trust it further than it goes.
 - `scripts/file_safety.py` is asserted byte-identical to
-  `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py`
-  (AC-0073), and the assertion lives in
-  `tests/roster/test_architect_design_gate_file_safety_projection.py` with its
-  two roster obligations discharged (AC-0074). Architect already carries a
-  sibling precedent at
+  `packs/core/.apm/skills/close-work/scripts/file_safety.py` — the source of
+  truth, not the generated `catalogue_tooling` copy (AC-0073). The assertion
+  goes in `tests/roster/test_architect_design_reviewer_projection.py`, which
+  `build-check.yml:546` already names, so it adds no roster module and owes
+  none of the three obligations `tests/AGENTS.md` attaches to one (AC-0074).
+  Architect carries a sibling precedent at
   `tests/roster/test_architect_assess_profiler_integration.py`, which pins
   `profile_repo._safe_read` against the canonical helper's behaviour.
 - `read_target` is driven with the helper monkeypatched to raise
