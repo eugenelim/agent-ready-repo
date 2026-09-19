@@ -136,29 +136,29 @@ skipped any line beginning with `<`, so it never examined a placeholder and
 could not have found this. The claim was true of what that probe measured and
 false of what it asserted; T2's parser is correct and the probe was not.
 
-## AC-0081 walked against the case it was written for
+## The placeholder rule was withdrawn; the corpus was the defect
 
-2026-09-19. The first draft of AC-0081 scoped a placeholder span to a source
-line — "closes at the first `>` on the same line". Walked against
-`assets/design-doc.md:25`, the case that motivated the amendment, that rule
-fails: line 25 opens the placeholder and the closing `>` is two lines later,
-so no span is found and the four-sentence placeholder stays prose. The
-amendment would not have done its job.
+2026-09-19. Two placeholder-span rules were drafted and both failed review. A
+same-line span missed `assets/design-doc.md:25`, the very case it was written
+for, because that placeholder opens on one line and closes two lines later. A
+joined-paragraph span fixed that and introduced a silent under-count:
+`Keep p95 <200ms. Throughput must exceed >1k rps. Third. Fourth.` masks from
+`<200ms.` through `>` and counts three sentences, so a four-sentence paragraph
+passes the budget. `<` followed by a digit is ordinary comparison prose.
 
-The rule now scopes the span to the **joined paragraph**, after
-`prose_paragraphs` has joined the wrapped lines. The paragraph boundary is
-what bounds a runaway span, since a blank line ends the paragraph.
+**Retracted measurement.** A table recorded here after the second attempt
+reported zero `DA3` findings across the shipped assets and three counted
+negative cases. It was produced by a reimplementation run in a shell, not by
+`check_document_architecture.py`, which carries no placeholder handling and is
+unchanged since `b5c957cb9`. It measured something adjacent to the system and
+was reported as measuring the system. The table is withdrawn rather than
+reproduced, because the rule it described is withdrawn too.
 
-**Measured after the correction**, over all five shipped assets:
-
-| Check | Result |
-| --- | --- |
-| `DA3` findings across `assets/*.md` | 0 |
-| `The p95 < 200ms budget holds. Two. Three. Four.` | 4 sentences, counted |
-| `See <https://example.test/x> for detail. Two. Three. Four.` | 4 sentences, counted |
-| `Use <details> to fold it. Two. Three. Four.` | 4 sentences, counted |
-
-An autolink and an HTML tag do open a span under this rule and are masked.
-That is harmless for a sentence count, so AC-0082 states the outcome — the
-surrounding prose is still read — rather than claiming they are not spans,
-which the implementation would contradict.
+**What the owner decided instead.** `DA3`'s clean corpus stops being
+`assets/*.md` and becomes the authored reference document T4a creates. A
+template is a skeleton whose placeholders are instructions to its author, so a
+finished-document check run against one measures the placeholders — the same
+reason AC-0047 already keeps `assets/*.md` out of the precheck corpus. With an
+authored corpus there are no placeholders, so AC-0081, AC-0082 and AC-0083 are
+removed and the under-count path does not exist. The clean half of AC-0018
+moves from T2 to T4a, which is the task that creates the document.

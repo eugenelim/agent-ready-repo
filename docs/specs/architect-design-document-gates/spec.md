@@ -167,13 +167,13 @@ and never reflowed, so a group's list is not always contiguous.
   static property of the pattern — an elapsed-time bound on a shared runner is
   a flake. AC-0016 is a text assertion.
 - **`DA3` — paragraph budget (AC-0017, AC-0018, AC-0019, AC-0020, AC-0021,
-  AC-0022, AC-0081, AC-0082, AC-0083): TDD.** A compressible invariant over
-  text, its budget pinned on both sides, shown red on a non-compliant fixture
-  before it is trusted. The placeholder exclusion is pinned in both
-  directions: AC-0081 fixes what a span is, and AC-0082 and AC-0083 fix what
-  it is not, because a widened exclusion fails silently — a `DA3` that reads
-  nothing reports nothing, and the shipped templates write `p95 < 200ms` in
-  ordinary prose.
+  AC-0022): TDD.** A compressible invariant over text, its budget pinned on
+  both sides, shown red on a non-compliant fixture before it is trusted.
+  AC-0018's clean half runs against the reference document rather than the
+  templates, so it belongs to T4a, which creates that document; T2 keeps the
+  red fixtures it builds itself. Splitting the two halves across tasks is what
+  keeps the dependency acyclic — T4a depends on T2 through T3 and T4, so a
+  clean-corpus check inside T2 could never see the document.
 - **`DA10` — size trigger (AC-0023, AC-0024, AC-0025, AC-0026, AC-0027): TDD
   for the count, goal-based for the text.** AC-0025 is what gives AC-0024 an
   oracle: the derivation is compared against the reference document's measured
@@ -352,50 +352,19 @@ and never reflowed, so a group's list is not always contiguous.
 
 - [ ] **AC-0017.** `DA3` reports a prose paragraph carrying more than three
       sentences.
-- [ ] **AC-0018.** `DA3` reports no finding in any `*.md` under
-      `packs/architect/.apm/skills/architect-design/assets/`. The budget
-      applies to every asset there, including `concept.md` and the
-      `design-doc.md` compatibility pointer: a prose paragraph is a prose
-      paragraph whatever the document routes to, so the glob carries no
-      exclusion.
+- [ ] **AC-0018.** `DA3` reports no finding in the reference document at
+      `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`.
+      The clean corpus is an authored document, not the shipped templates. A
+      template is a skeleton whose `<…>` placeholders are instructions to its
+      author, so measuring a finished-document check against one measures the
+      placeholders — the same reason AC-0047 keeps `assets/*.md` out of the
+      precheck corpus. `assets/design-doc.md:25` is the case that proved it: a
+      placeholder holding four sentences, which no authored document carries.
 - [ ] **AC-0019.** `DA3` treats none of these as prose: YAML frontmatter, a
-      fenced code block, an HTML-comment span, a placeholder span as AC-0081
-      defines it, a Markdown table row, a list item, a block quote, an ATX
-      heading. A placeholder is the template's instruction to its author, and
-      an authored document has none left, which is the principle AC-0047
-      states. `DA10` is unaffected: AC-0023 keeps its counting rule as it is,
-      because a placeholder's words are words on the page and `DA10` measures
-      the page.
-- [ ] **AC-0081.** A placeholder span is found **in the joined paragraph**,
-      after `prose_paragraphs` has joined a blank-line-separated run of
-      wrapped lines into one string. It opens at a `<` immediately followed by
-      a non-space character and closes at the first `>` after it in that
-      string. Source-line scoping would not work: the case that motivated this
-      amendment, `assets/design-doc.md:25`, opens on one line and closes two
-      lines later, so a same-line rule leaves it unexcluded. The span is
-      masked, not paragraph-disqualifying — the span is removed and the prose
-      around it stays prose, so a placeholder sharing a paragraph with real
-      sentences does not exempt them.
-- [ ] **AC-0082.** `DA3` reads and counts the prose carrying any of these,
-      rather than losing it: a `<` followed by a space, which is how the
-      shipped templates write a comparison —
-      `application-system-design.md:35` carries
-      `"p95 < 200ms at 10x current load"`; an autolink such as
-      `<https://example.test/x>`; and an HTML tag such as `<details>`. The
-      criterion is the outcome, not the mechanism. The space test keeps a
-      comparison from opening a span at all. An autolink and a tag do open one
-      and are masked, which is harmless for a sentence count and mildly
-      helpful — masking `<https://x.test/a.b>` removes a period that would
-      otherwise read as a boundary. What must not happen is the surrounding
-      sentences going uncounted.
-- [ ] **AC-0083.** A `<` with no `>` after it in the joined paragraph masks
-      nothing and stays ordinary content. The paragraph boundary is the bound
-      that keeps a span from running away: `prose_paragraphs` splits on a
-      blank line, so no span can reach past one however the brackets fall. Two
-      properties follow and both are pinned — an unterminated `<` leaves its
-      paragraph fully readable, and a `p95 < 200ms` earlier in a paragraph
-      that happens to carry a later `>` still opens no span, because AC-0082's
-      space test decides the opener.
+      fenced code block, an HTML-comment span, a Markdown table row, a list
+      item, a block quote, an ATX heading. No placeholder rule is needed:
+      AC-0018 points `DA3`'s clean corpus at an authored document, which has
+      no placeholders in it.
 - [ ] **AC-0020.** `DA3` counts a sentence boundary across `e.g.`, `i.e.`,
       `etc.`, `vs.` and a decimal number without splitting at their periods.
 - [ ] **AC-0021.** A heading on the line immediately above wrapped prose
