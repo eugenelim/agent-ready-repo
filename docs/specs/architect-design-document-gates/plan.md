@@ -230,7 +230,7 @@ Owned by: T2.
 The parser's false-positive sources are each a test: an abbreviation
 mid-sentence, a decimal, a heading directly above wrapped prose, a multi-line
 HTML comment containing four sentences, a fenced block containing a
-pipe-delimited line, a nested list continuation line.
+pipe-delimited line, and a nested list continuation line.
 
 **Why no placeholder rule.** Two attempts at one both failed review: a
 same-line span missed the very case it was written for, and a
@@ -384,10 +384,17 @@ earlier draft of this plan cited it as governing.
 - `prose_paragraphs` and `count_sentences` are driven over fixtures built in
   the test, one per false-positive source in Design → Failure (AC-0019,
   AC-0020, AC-0021), and at 3 and 4 sentences, pinning the budget on both
-  sides (AC-0017). **The clean-corpus half is T4a's**, not T2's: AC-0018 runs
-  against the reference document, which T4a creates, and T4a already depends
-  on T2 through T3 and T4 — a clean-corpus check inside T2 could never see
-  that file.
+  sides (AC-0017).
+- **`test_da3_reports_no_finding_in_any_shipped_asset` is removed**, along with
+  the `AC-0018` reference in its section header. It globs `ASSETS_DIR` and
+  asserts the clean corpus AC-0018 no longer states, and it is red on
+  `assets/design-doc.md:25` today. A withdrawn criterion that survives as a
+  live assertion is the withdrawal half-done.
+- **The clean-corpus half belongs to T4a**, not here: AC-0018 runs against the
+  reference document, which T4a creates. T4a already depends on this task
+  through T3 and T4, so a clean-corpus check placed here could never see that
+  file — this is the canonical statement of that ordering, and the other
+  mentions defer to it.
 - `count_words` is asserted at exactly the bound and one over (AC-0023), and
   the finding renderer asserted to carry path, line and count (AC-0022).
 - An assertion over `SKILL.md` requires it to state that the agent running the
@@ -510,8 +517,8 @@ against a non-compliant fixture and against the shipped templates — are in
   asserts it carries no `<…>` placeholder token, so a half-filled skeleton
   cannot serve as the corpus (AC-0045).
 - `DA3` is driven over the reference document and must report nothing
-  (AC-0018). This is the clean half of the paragraph budget, and it lives here
-  because the document does not exist until this task creates it.
+  (AC-0018). This is the clean half of the paragraph budget, placed here for
+  the reason T2's `Tests:` records.
 - The reference document's measured word count is compared against the
   derivation's 2,178-word density figure and must sit within 20% (AC-0025).
   This is what gives AC-0024 an oracle: recomputing 2,178 × 1.5 → 3,300 is

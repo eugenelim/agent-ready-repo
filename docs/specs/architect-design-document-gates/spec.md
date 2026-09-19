@@ -169,11 +169,10 @@ and never reflowed, so a group's list is not always contiguous.
 - **`DA3` — paragraph budget (AC-0017, AC-0018, AC-0019, AC-0020, AC-0021,
   AC-0022): TDD.** A compressible invariant over text, its budget pinned on
   both sides, shown red on a non-compliant fixture before it is trusted.
-  AC-0018's clean half runs against the reference document rather than the
-  templates, so it belongs to T4a, which creates that document; T2 keeps the
-  red fixtures it builds itself. Splitting the two halves across tasks is what
-  keeps the dependency acyclic — T4a depends on T2 through T3 and T4, so a
-  clean-corpus check inside T2 could never see the document.
+  AC-0018's clean half runs against the authored reference document rather
+  than the shipped templates, so the two halves are verified against different
+  artifacts; `plan.md` owns which task carries each and why that ordering
+  works.
 - **`DA10` — size trigger (AC-0023, AC-0024, AC-0025, AC-0026, AC-0027): TDD
   for the count, goal-based for the text.** AC-0025 is what gives AC-0024 an
   oracle: the derivation is compared against the reference document's measured

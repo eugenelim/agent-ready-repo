@@ -102,39 +102,39 @@ resolved unilaterally.
 
 ## Owner decision — amend AC-0019 rather than edit the asset
 
-2026-09-19. The scope owner authorised a controlled contract amendment in
-response to the AC-0018 failure above.
+This section is the `owner_authority_ref` and `reason_ref` the in-flight
+amendment names in `state.json`. It carries the whole decision, including its
+reversal, so the reference resolves to what the amendment actually does.
 
-**What was measured before deciding.** One `<…>` placeholder span across all
-five shipped assets carries more than three sentences:
-`assets/design-doc.md:25`, at four. No other asset has one.
+**2026-09-18 — first decision.** T2 reported AC-0018 red on
+`assets/design-doc.md:25`, a `<…>` placeholder holding four sentences. The
+owner authorised a controlled amendment adding a placeholder exclusion to
+AC-0019, over the alternative of editing that one asset. The justification
+that survives scrutiny is recurrence: splitting the placeholder would green
+the suite while leaving `DA3` judging template instructions, so the next
+four-sentence instruction reds again.
 
-**Why the amendment rather than the one-line asset edit.** Splitting the one
-placeholder would make the suite green while leaving `DA3` judging template
-instructions, so the next template edit that writes a four-sentence
-instruction reds again. That recurrence is the justification.
+A second reason recorded at the time was false — that "AC-0024 already strips
+every `<…>` placeholder when `DA10` counts words". It does not. AC-0023 is
+`DA10`'s counting rule and removes YAML frontmatter and HTML-comment spans
+only; AC-0024's strip belongs to the one-off command that measured the
+752-word scaffolding figure. The owner approved on a framing that carried that
+false claim.
 
-**Correction, 2026-09-19.** The decision was originally recorded with a second
-reason that is false: that the contract was inconsistent because "AC-0024
-already strips every `<…>` placeholder when `DA10` counts words". It does not.
-AC-0023 is `DA10`'s counting rule and removes YAML frontmatter and
-HTML-comment spans only; AC-0024's placeholder strip belongs to the one-off
-command that measured the 752-word scaffolding figure, not to the gate. The
-owner approved on a framing that carried that false claim. The recurrence
-argument above is unaffected and is the whole justification. AC-0047 supplies
-the principle that a placeholder is an author's slot rather than content to
-judge; it does not supply a rule about span shape, and its own remedy for
-template placeholders is corpus exclusion, which AC-0018 refuses for `DA3`.
+**2026-09-19 — the decision was reversed.** Two placeholder-span rules were
+drafted and both failed review, the second introducing a silent under-count.
+The owner then chose to withdraw the rule entirely and change `DA3`'s clean
+corpus instead. That is what the in-flight amendment now delivers, and it is
+recorded in full under *The placeholder rule was withdrawn* below. The
+exclusion this section originally authorised is **not** in the contract;
+AC-0019 carries its pre-amendment list.
 
-**What the amendment changes.** AC-0019 gains a `<…>` placeholder span to its
-non-prose list. AC-0018's claim is unaffected: every asset stays in the glob,
-and a placeholder simply is not a prose paragraph.
-
-**Correction to this spec's own evidence.** The probe that produced the
-"zero false positives across the shipped assets" claim during authoring
-skipped any line beginning with `<`, so it never examined a placeholder and
-could not have found this. The claim was true of what that probe measured and
-false of what it asserted; T2's parser is correct and the probe was not.
+**Disposition of `assets/design-doc.md:25`.** The paragraph stays as it is. It
+is no longer detected, because the shipped templates are no longer `DA3`'s
+clean corpus, and it needs no follow-on: a placeholder holding four sentences
+is a template instructing its author, which is what a template is for. The
+plan/reality gap this ledger opened for it is closed by that, not left waiting
+on a trigger that no longer fires.
 
 ## The placeholder rule was withdrawn; the corpus was the defect
 
