@@ -82,8 +82,10 @@ asks an author to fill, so a walk against them measures the template.
 
 ## Construction tests
 
-One comparison spans T3 and T4: ten identifiers, tags and severities must
-agree across three files no single task owns alone. It extends
+One comparison spans T3, T4 and T4b: ten identifiers, tags and severities
+must agree across three files no single task owns alone, and T4b adds the
+seven precheck bodies to the reviewing rubric within the same module. It
+extends
 `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`, which
 already guards the verdict, severity and taxonomy vocabulary over a different
 carrier set in the same module.
@@ -94,7 +96,7 @@ carrier set in the same module.
 | --- | --- | --- | --- |
 | Decision rationale (ADR-0118 `D5`) | T3, T4 | `test_design_reviewer_rubric_parity.py` green | The shipped identifiers and tags read back against `D5` |
 | Release history (changelog) | T7 | The dated free-standing entry exists | The Highlights verdict is recorded either way |
-| Maintainer procedure (three rubric homes) | T3, T4, T4a | The parity test and the precheck walk | Every identifier, tag and severity agrees in all three homes |
+| Maintainer procedure (three rubric homes) | T3, T4, T4b, T4a | The parity test and the precheck walk | Every identifier, tag and severity agrees in all three homes |
 | Interface compatibility (script exit codes) | T2 | The exit-code and refusal tests green | The typed-command transcripts in `notes/verification-ledger.md` |
 | Reusable learning | T7 | — | A `project-knowledge` receipt, or the unavailable record |
 
@@ -512,18 +514,22 @@ against a non-compliant fixture and against the shipped templates — are in
 
 **Depends on:** T4
 
-**Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/.apm/agents/design-reviewer.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
+**Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
 
 **Tests:**
 - `test_design_reviewer_rubric_parity.py` asserts each of the seven precheck
-  bodies is present in **every** `DA_CARRIERS` entry, scoped to that gate's
-  own section body rather than to the file (AC-0035, AC-0036, AC-0037,
-  AC-0038, AC-0039, AC-0040, AC-0041), and that each states its verdict is the
-  reviewer's (AC-0042). The existing per-carrier identifier, severity and tag
-  assertions must still pass unchanged.
-- A negative assertion requires `DA5` to carry no precheck in any carrier
-  (AC-0047), which is the count that keeps judgment-only distinct once every
-  hybrid has one.
+  bodies is present in the reviewing rubric, scoped to that gate's own
+  `#### DA<n>` section body rather than to the file (AC-0035, AC-0036,
+  AC-0037, AC-0038, AC-0039, AC-0040, AC-0041); that each states its verdict
+  is the reviewer's (AC-0042); and that each states it applies to an authored
+  document rather than to a template (AC-0047, the per-precheck half —
+  AC-0047's corpus-exclusion half is a property of the `DA9` walk and is
+  verified in T4a, not here). The existing per-carrier identifier, severity
+  and tag assertions must still pass unchanged over all three `DA_CARRIERS`
+  entries.
+- A negative assertion requires `DA5` to carry no precheck in the reviewing
+  rubric (AC-0048), which is the count that keeps judgment-only distinct once
+  every hybrid has one.
 - no stub (goal-based)
 
 **Approach:**
@@ -534,21 +540,37 @@ against a non-compliant fixture and against the shipped templates — are in
   criteria to T3, whose `Touches:` reaches only the authoring rubric. The
   three-home obligation therefore had no owning task that could satisfy it.
 - The precheck text already exists in `design-doc-rubric.md`'s `#### DA<n>`
-  bodies. Carry the same obligations across rather than re-authoring them; the
-  homes may condense the prose, but a reviewer reading either one must be able
-  to tell a hybrid from `DA5` without opening the authoring rubric.
+  bodies. Carry the same obligations across rather than re-authoring them. The
+  reviewing rubric gains a `#### DA<n>` body per hybrid gate under its
+  existing gate table — the structure the authoring rubric already uses — so
+  the assertions scope to a body rather than to the file.
+- **Why `design-reviewer.md` is not a carrier here.** AC-0054 is shipped and
+  frozen: the agent states that its inlined gate set is baseline depth and
+  that it reads `rubric-design-doc.md` *for the fuller per-gate text and
+  prechecks*. Inlining the seven prechecks into the agent would make that
+  shipped sentence false. The group preamble's "all three homes" cannot
+  override it — the same preamble spans AC-0045, which requires a file under
+  `tests/.../testdata/` and so cannot hold in a rubric home at all. The
+  distinction the preamble exists to protect already holds in the agent
+  without prechecks: `design-reviewer.md` carries `DA5`'s judgement-alone
+  sentence inline, so a reviewer reading only the agent can still tell
+  judgment-only from hybrid.
 
 **Done when:** `packs/architect/tests/pack/` and
-`packs/architect/tests/skills/architect-design/` both pass, and the word
-`precheck` appears in all three `DA_CARRIERS` entries.
+`packs/architect/tests/skills/architect-design/` both pass, and
+`rubric-design-doc.md` carries a `#### DA<n>` body for each of the seven
+hybrid gates and none for `DA5`. A file-wide word count is not the
+observable: `design-doc-rubric.md` and `design-reviewer.md` already contain
+`precheck`, so their presence distinguishes no post-T4b state.
 
 ### T4a: the prechecks are walked against a document, not a template
 
 **Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/testdata/precheck-defects.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
 
-**Depends on:** T4b — AC-0059 copies `design-reviewer.md` and dispatches it,
-so the dispatch must read the agent after T4b's precheck bodies land, not
-a definition this slice edits again afterwards.
+**Depends on:** T4 — AC-0059 copies `design-reviewer.md` and dispatches it,
+so the dispatch must read the agent after the last task that edits it. T4 is
+that task: T4b writes the reviewing rubric only, leaving the agent final at
+T4, so T4b and T4a share no file and may run in the same wave.
 
 **Tests:**
 - The reference document is committed at

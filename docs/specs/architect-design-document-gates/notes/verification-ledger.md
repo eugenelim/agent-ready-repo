@@ -209,10 +209,18 @@ and did not widen its own scope to paper over it.
 **The gap.** The prechecks group's preamble binds every criterion in it to all
 three rubric homes, with the reason stated: a precheck present only in the
 authoring rubric leaves the two homes a reviewer actually reads unable to tell
-a hybrid from judgment-only `DA5`, because all eight carry 🧭. Measured, the
-word "precheck" appears 19 times in `design-doc-rubric.md`, zero times in
+a hybrid from judgment-only `DA5`, because all eight carry 🧭. Measured by
+`grep -o precheck` (case-sensitive, counting occurrences not lines), the word
+appears 15 times in `design-doc-rubric.md`, zero times in
 `architect-review/references/rubric-design-doc.md`, and once in
 `design-reviewer.md`; no `#### DA6` body exists in either of the latter two.
+
+> **Erratum, 2026-09-19.** This paragraph first gave the
+> `design-doc-rubric.md` figure as 19, which reproduces under no counting
+> rule: the file holds 15 case-sensitive occurrences and 20 case-insensitive
+> (15 `precheck` plus 5 `Precheck`). The corrected figure and its counting
+> rule are above. The zero and the one reproduce as stated, so the gap this
+> paragraph establishes is unchanged — only the supporting figure was wrong.
 
 **Why no task can close it.** The plan assigns AC-0035 through AC-0042 to T3,
 whose `Touches:` reaches `design-doc-rubric.md` alone. T4 owns the other two
@@ -228,3 +236,42 @@ reviewer's two homes would keep the 🧭 tag with nothing behind it.
 
 Completed task sections cannot be edited, so this is a new dependency-ordered
 task rather than a widening of T4.
+
+## Owner decision — `design-reviewer.md` is not a precheck carrier
+
+**Date:** 2026-09-19
+
+**Question.** T4b was opened to carry the seven precheck bodies into both
+homes a reviewer reads. Review of the amendment found that doing so
+contradicts a frozen criterion, so the owner was asked which homes T4b writes.
+
+**The conflict.** AC-0054 is shipped by the completed T4 and its section is
+immutable. It requires `design-reviewer.md` to state that its inlined gate set
+is baseline depth and that it reads `architect-review/references/rubric-design-doc.md`
+*for the fuller per-gate text and prechecks*. That sentence locates the
+prechecks in the reviewing rubric and has the agent point at them. Inlining
+the seven prechecks into the agent would make it false, and it cannot be
+edited.
+
+**Why the group preamble does not override it.** The prechecks group's
+preamble binds "each criterion in this group" to all three homes, but the
+group runs AC-0035 through AC-0051 and so also covers AC-0045, which requires
+a file at `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`.
+A criterion demanding a testdata file cannot hold in a rubric home, so the
+preamble is over-broad and cannot be read literally against a specific,
+shipped criterion.
+
+**Why nothing is lost.** The preamble's stated reason is that a reviewer must
+be able to tell a hybrid from judgment-only `DA5`. `design-reviewer.md`
+already carries that distinction inline — "DA5's verdict is the reviewer's
+judgement alone; no automated measure decides it" — so a reviewer reading only
+the agent retains it without carrying seven prechecks.
+
+**Decision.** T4b writes `rubric-design-doc.md` only. `design-reviewer.md` is
+left final at T4 and its AC-0054 pointer stays true.
+
+**Schedule consequence.** T4a depended on T4b solely because AC-0059
+dispatches `design-reviewer.md` and that file was in T4b's `Touches:`. With
+the agent out of T4b's scope, T4a depends on T4 instead. T4b and T4a then
+share no file and schedule into one wave, leaving two waves to run:
+`[T4b, T4a]` then `[T7]`.
