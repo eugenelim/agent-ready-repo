@@ -464,6 +464,62 @@ def test_da3_budget_holds_at_three_and_fires_at_four() -> None:
     assert gate.count_sentences("One. Two. Three. Four.") == 4
 
 
+# --- AC-0017: a sentence-initial trigger is not only an ASCII capital ------
+# The old pattern only fired on `[A-Z]`, so a paragraph opening every
+# sentence with inline code, a digit, a quote, or an emphasis marker
+# undercounted and passed a budget it should have failed.
+
+
+def test_da3_counts_a_backtick_initial_sentence() -> None:
+    gate = _load_gate()
+    assert (
+        gate.count_sentences(
+            "One thing here. `DA1` is one. `DA2` is two. `DA3` is three."
+        )
+        == 4
+    )
+
+
+def test_da3_counts_a_digit_initial_sentence() -> None:
+    gate = _load_gate()
+    assert (
+        gate.count_sentences(
+            "One thing. 2 things happen. 3 more things. 4 more things."
+        )
+        == 4
+    )
+
+
+def test_da3_counts_a_quote_initial_sentence() -> None:
+    gate = _load_gate()
+    assert (
+        gate.count_sentences(
+            "First. “Quoted” next. **Bold** next. Fourth one."
+        )
+        == 4
+    )
+
+
+def test_da3_counts_a_glyph_initial_sentence() -> None:
+    """An emoji and a Latin-1 accented capital both open a new sentence."""
+
+    gate = _load_gate()
+    assert gate.count_sentences("First one. \U0001f600 Second one.") == 2
+    assert gate.count_sentences("First one. École is next.") == 2
+
+
+def test_da3_does_not_split_an_inline_lettered_label() -> None:
+    """A lone-letter label like `a.` attaches to what follows, not a sentence of its own."""
+
+    gate = _load_gate()
+    assert (
+        gate.count_sentences(
+            "a. `DA1` is one. `DA2` is two. `DA3` is three. `DA4` is four."
+        )
+        == 4
+    )
+
+
 # --- AC-0019: DA3 excludes frontmatter, comments, fences, tables, lists,
 #     block quotes and headings from prose ----------------------------------
 

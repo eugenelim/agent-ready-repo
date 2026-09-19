@@ -228,22 +228,47 @@ def prose_paragraphs(text: str) -> Iterator[tuple[int, str]]:
 
 _ABBREVIATIONS = ("e.g.", "i.e.", "etc.", "vs.")
 _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
-_SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+(?=\s+[A-Z])")
+_INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]\.(?=\s)")
+_SENTENCE_INITIAL_CLASS = (
+    r"[A-Z0-9"  # ASCII capitals and digits
+    r"`"  # inline code
+    r"\"'“‘"  # straight and curly opening quotes
+    r"\*"  # markdown emphasis/bold marker
+    r"—"  # em dash
+    r"À-ÖØ-Þ"  # Latin-1 Supplement capitals
+    r"☀-➿"  # dingbats and misc symbols (emoji-adjacent)
+    r"\U0001f300-\U0001faff"  # emoji blocks
+    r"]"
+)
+_SENTENCE_BOUNDARY_PATTERN = re.compile(
+    r"[.!?]+(?=\s+" + _SENTENCE_INITIAL_CLASS + r")"
+)
+
+
+def _mask_initial(match: re.Match[str]) -> str:
+    """Blank only the period of a lone-letter token, e.g. an inline `a.` label."""
+    return match.group(0)[0] + "․"
 
 
 def count_sentences(paragraph: str) -> int:
     """Count sentences in one `DA3` prose paragraph.
 
-    Abbreviation periods and decimal points are masked first, by literal
-    replacement, so they never read as a sentence boundary; the replacement
-    is one character for one character, so no later offset shifts. The
-    boundary pattern carries no nested quantifier and no alternation inside a
-    repetition, the two constructs that make backtracking super-linear.
+    Abbreviation periods, decimal points, and a lone letter's period (an
+    inline enumeration label, e.g. `a.`, or an initial) are masked first, by
+    literal replacement, so none of them reads as a sentence boundary; every
+    replacement is one character for one character, so no later offset
+    shifts. The boundary itself fires on any sentence-initial token, not only
+    an ASCII capital: a digit, a backtick, a straight or curly quote, a
+    markdown emphasis marker, an em dash, a Latin-1 accented capital, or an
+    emoji all open a new sentence. The boundary pattern carries no nested
+    quantifier and no alternation inside a repetition, the two constructs
+    that make backtracking super-linear.
     """
     masked = paragraph
     for abbreviation in _ABBREVIATIONS:
         masked = masked.replace(abbreviation, abbreviation.replace(".", "․"))
     masked = _DECIMAL_PATTERN.sub("․", masked)
+    masked = _INITIAL_PATTERN.sub(_mask_initial, masked)
     boundaries = len(_SENTENCE_BOUNDARY_PATTERN.findall(masked))
     return boundaries + 1 if masked.strip() else 0
 
