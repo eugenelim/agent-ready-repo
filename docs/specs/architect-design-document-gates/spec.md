@@ -23,10 +23,9 @@
 
 ## Outcome
 
-An architect using `architect-design` gets a draft whose document architecture
-is decided by ten named gates rather than left to whoever is reading. Success
-is that a review pass reports every gate by identifier and verdict, so a gate
-that did not fire is visible instead of absent.
+An architect using `architect-design` gets document-architecture defects back
+as findings their convergence loop can act on, instead of silence. Success is
+that a document too large or too dense to review stops converging clean.
 
 ## What Changes
 
@@ -35,22 +34,39 @@ identifiers are what the document is about. ADR-0118 `D5` owns the set and
 fixes which of the three kinds each one is; this table reproduces the names so
 a reader can follow the criteria without opening that record.
 
-| ID | The gate | Kind | Who decides |
+| ID | The gate asks | Kind | Decided by |
 | --- | --- | --- | --- |
-| `DA1` | Present-tense body | Hybrid | reviewer, after a precheck |
-| `DA2` | Semantic references | Hybrid | reviewer, after a precheck |
-| `DA3` | Paragraph budget — prose paragraphs cap at three sentences | Mechanizable | the script |
-| `DA4` | Model before explanation | Hybrid | reviewer, after a precheck |
-| `DA5` | One concern, one home | Judgment-only | reviewer, with no precheck |
-| `DA6` | Settled decisions removed | Hybrid | reviewer, after a precheck |
-| `DA7` | Diagram states one question at one zoom | Hybrid | reviewer, after a precheck |
-| `DA8` | Build mapping complete | Hybrid | reviewer, after a precheck |
-| `DA9` | Evidence separated, not accumulated | Hybrid | reviewer, after a precheck |
-| `DA10` | Size trigger — over the bound, walk the decomposition rubric | Mechanizable | the script |
+| `DA1` | Is the body written in the present tense? | Hybrid | reviewer |
+| `DA2` | Does every cross-reference name its target? | Hybrid | reviewer |
+| `DA3` | Does any prose paragraph run past three sentences? | Mechanizable | the script |
+| `DA4` | Does each model come before the prose explaining it? | Hybrid | reviewer |
+| `DA5` | Does each concern live in exactly one place? | Judgment-only | reviewer |
+| `DA6` | Have settled decisions been removed from the body? | Hybrid | reviewer |
+| `DA7` | Does each diagram state one question at one zoom? | Hybrid | reviewer |
+| `DA8` | Can the reader build from the models plus the mapping? | Hybrid | reviewer |
+| `DA9` | Is evidence linked rather than piled into the document? | Hybrid | reviewer |
+| `DA10` | Is the document over the size bound? | Mechanizable | the script |
 
-A **precheck** is a structural check a reviewer runs first; it narrows what
-they read but never decides the gate. That `DA5` has none is what separates
-judgment-only from hybrid in the text.
+A **precheck** is a mechanical hint inside one gate — for `DA6`, "is there a
+`Revision History` heading?" — that narrows what the reviewer reads. It never
+decides the gate. Every hybrid carries one; `DA5` carries none, and that
+absence is what separates judgment-only from hybrid in the text.
+
+**When the gates run, and in what order.** They run on a drafted document, at
+two points: the author's self-check (`SKILL.md` step 6) and the review pass
+the convergence loop obtains (step 7). `DA10` runs first — a document over the
+bound may become several documents, and checking paragraph budgets in one
+about to be split is wasted work. The other nine are a single pass, because a
+reviewer reads the document once and wants every finding.
+
+**The gates do not choose the document type.** Altitude — application/system,
+subsystem, or architecture change — and document count are resolved at
+`SKILL.md` step 3, before any drafting, and step 5 loads the matching
+template. That routing ships already. Eight of the ten gates are
+scope-independent because they judge how a document is built rather than which
+sections it has. Two are not: `DA8` reads whichever section carries the build
+mapping, which an architecture-change document names `Build Mapping` rather
+than `Implementation Mapping`, and `DA7` fires only where there are diagrams.
 
 - `DA3` and `DA10` — one script at
   `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
@@ -154,27 +170,32 @@ cannot drift apart.
 - **The prechecks (AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041,
   AC-0042, AC-0043, AC-0046, AC-0047): goal-based check; (AC-0044, AC-0045):
   visual / manual QA.** Whether a hybrid states a precheck is decidable from
-  its section body in each home. Whether a precheck *fires* is not — a
-  precheck is executed by a reader — so the seven are walked by hand against
-  the filled reference document and the walk recorded in
-  `notes/verification-ledger.md`. The corpus is that document rather than the
-  shipped templates, which measure their own placeholders.
-- **Parity (AC-0048, AC-0049): goal-based check.** The gates get a
+  its section body in each home. Whether a precheck *fires* is not, so the
+  seven are walked by hand against the reference document and the walk
+  recorded in `notes/verification-ledger.md`.
+- **How the reviewer reports the gates (AC-0048, AC-0049, AC-0050, AC-0051,
+  AC-0052, AC-0053): goal-based check for the text, visual / manual QA for
+  AC-0048 and AC-0049.** Whether the agent's contract demands a roll-call is a
+  text assertion over `design-reviewer.md`. Whether the agent *produces* one
+  is not: the agent is a model reading instructions, so it is dispatched
+  against the reference document and its returned block is read for ten
+  verdicts and recorded. A contract nothing exercised is a contract nobody has
+  seen obeyed.
+- **Parity (AC-0054, AC-0055): goal-based check.** The gates get a
   `DA_CARRIERS` constant of their own; the module's existing `CARRIERS` names
   a set that overlaps the gate homes in one file.
-- **Reporting (AC-0050, AC-0051, AC-0052, AC-0053): goal-based check.**
+- **Reporting (AC-0056, AC-0057, AC-0058, AC-0059): goal-based check.**
   Whether the loop demands a per-identifier verdict is decidable from the
   instruction text, which is the artifact a model reads.
-- **Supersession (AC-0054, AC-0055): goal-based check for the token, visual /
+- **Supersession (AC-0060, AC-0061): goal-based check for the token, visual /
   manual QA for the diff.** `lint-spec-status.py` decides the status
   vocabulary and nothing else. Whether the pointer names the right ADR and
-  scopes the right part is a reviewer's call, which is why AC-0054 states the
-  shape rather than the judgement.
-- **Release closure (AC-0056, AC-0058, AC-0059): goal-based check.** Version
+  scopes the right part is a reviewer's call.
+- **Release closure (AC-0062, AC-0064, AC-0065): goal-based check.** Version
   equality is owned by `tests/conformance/test_pack_metadata.py`, the eval's
   expectation by a closed-set assertion over its text, and
   `.claude-plugin/marketplace.json` by regeneration.
-- **The changelog entry (AC-0057): visual / manual QA.** No pull-request gate
+- **The changelog entry (AC-0063): visual / manual QA.** No pull-request gate
   checks it. `build-check.yml` names changelog nothing at all, and
   `pages.yml`'s release-anchor job compares anchors against built HTML, so it
   cannot see position, nesting, or a `### Highlights` subsection.
@@ -360,24 +381,47 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       trigger does not reach `assets/design-doc.md`, the unrouted
       compatibility pointer that carries `## Appendix (optional)`.
 
+### How the reviewer reports the gates
+
+- [ ] **AC-0048.** `.apm/agents/design-reviewer.md`'s returned block carries a
+      gate roll-call: every identifier `DA1` through `DA10` with a verdict,
+      inside the block rather than before it.
+- [ ] **AC-0049.** A clean review states ten verdicts. A `SHIP IT` verdict
+      with no findings still shows the roll-call, so a gate nobody considered
+      and a gate that passed stop looking identical.
+- [ ] **AC-0050.** `.apm/agents/design-reviewer.md` states that its inlined
+      gate set is its baseline depth, that it reads
+      `architect-review/references/rubric-design-doc.md` for the fuller
+      per-gate text when that skill is co-installed, and that it degrades only
+      in depth, never to nothing.
+- [ ] **AC-0051.** When the fuller rubric is unreachable, the agent raises
+      that as a finding rather than reviewing quietly at baseline.
+- [ ] **AC-0052.** `references/convergence-loop.md` requires the loop to
+      dispatch the `design-reviewer` subagent when it is reachable, and to
+      name the rung it fell back to when it is not.
+- [ ] **AC-0053.** Each reporting obligation names who reports: step 6 is the
+      author's own self-check, and the review pass is whichever rung
+      `convergence-loop.md` resolved. Only `DA3` and `DA10` carry the same
+      verdict on every rung, because a script decides them.
+
 ### Parity
 
-- [ ] **AC-0048.** `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
+- [ ] **AC-0054.** `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
       asserts every identifier `DA1` through `DA10` appears in all three homes.
-- [ ] **AC-0049.** The same test asserts each gate's severity agrees across the
+- [ ] **AC-0055.** The same test asserts each gate's severity agrees across the
       three homes, and permits the explanatory prose to differ.
 
 ### Reporting
 
-- [ ] **AC-0050.** `architect-design/SKILL.md` step 6 requires every gate
+- [ ] **AC-0056.** `architect-design/SKILL.md` step 6 requires every gate
       result to be reported by identifier and verdict before a draft is shown.
-- [ ] **AC-0051.** `references/convergence-loop.md` requires each review pass
+- [ ] **AC-0057.** `references/convergence-loop.md` requires each review pass
       to report every gate identifier with a verdict.
-- [ ] **AC-0052.** `references/convergence-loop.md` states that the loop
+- [ ] **AC-0058.** `references/convergence-loop.md` states that the loop
       requires and invokes no script, and names the shipped gate script as a
       human- or CI-run accelerant outside the loop, in the same words AC-0018
       requires of `SKILL.md`.
-- [ ] **AC-0053.** `references/convergence-loop.md` states which property the
+- [ ] **AC-0059.** `references/convergence-loop.md` states which property the
       shipped script does and does not cost — the loop stays pure-prose and
       zero-config, and the script is optional and run outside the loop — and
       carries no unconditional claim that shipping a script forfeits a pack
@@ -385,28 +429,28 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ### Supersession
 
-- [ ] **AC-0054.** `docs/specs/architect-design-scope-templates/spec.md`
+- [ ] **AC-0060.** `docs/specs/architect-design-scope-templates/spec.md`
       carries a `Status`-line supersession pointer naming ADR-0118 and the part
       superseded.
-- [ ] **AC-0055.** This change alters no line of
+- [ ] **AC-0061.** This change alters no line of
       `docs/specs/architect-design-scope-templates/spec.md` except its
       `Status` line, and the one-line pull-request diff for that file is
       recorded.
 
 ### Release closure
 
-- [ ] **AC-0056.** `packs/architect/pack.toml` declares version `0.15.12`.
+- [ ] **AC-0062.** `packs/architect/pack.toml` declares version `0.15.12`.
       Its equality with `.claude-plugin/plugin.json` is owned by
       `tests/conformance/test_pack_metadata.py`.
-- [ ] **AC-0057.** `docs/product/changelog.md` carries a free-standing
+- [ ] **AC-0063.** `docs/product/changelog.md` carries a free-standing
       `## [architect][0.15.12] — <YYYY-MM-DD>` entry, dated in that exact
       form, with a `### Highlights` subsection. The date is not decoration:
       `/now/` eligibility is versioned and dated, so an undated heading never
       publishes.
-- [ ] **AC-0058.** `packs/architect/.apm/skills/architect-design/evals/evals.json`
+- [ ] **AC-0064.** `packs/architect/.apm/skills/architect-design/evals/evals.json`
       carries an eval whose expectation requires the response to name every
       identifier `DA1` through `DA10` with a verdict.
-- [ ] **AC-0059.** `.claude-plugin/marketplace.json` is regenerated by
+- [ ] **AC-0065.** `.claude-plugin/marketplace.json` is regenerated by
       `FORCE=1 make build-self` and records architect at `0.15.12`.
 
 ## Follow-ons

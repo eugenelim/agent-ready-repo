@@ -139,6 +139,28 @@ would make the test pass and the frozen contract false.
 pins its heading set, so the gates take a section of their own there, after
 `## Severity glossary` so a reader meets the severity vocabulary first.
 
+**How the reviewer is wired to the gates.** No agent in this repository
+declares a `Skill` tool — `design-reviewer`'s are `Read, Grep, Glob` — so it
+cannot invoke `architect-review` to fetch a rubric. The pattern the repository
+already uses for a reviewer that needs another skill's checklist is
+`packs/product-engineering/.apm/agents/discovery-threat-reviewer.md:53-66`:
+carry a baseline inline, reason from the other skill's modules when its depth
+is available, and **raise a finding when that depth is missing** rather than
+review quietly at baseline. `design-reviewer` gets the same three parts. Its
+inlined ten gates are the baseline; `rubric-design-doc.md` is the depth it
+reads by path when `architect-review` is co-installed; a missing rubric
+becomes a finding. Its current text has the middle part and claims it
+"degrades visibly" without saying how, which is the half that does nothing.
+
+**Inlining the gates does not make the agent report them.** Its output
+contract is findings-only — verdict, summary, findings by severity, what's
+working — and says "if everything is clean, say so with the `SHIP IT` verdict
+… no manufactured findings". Under that contract a gate nobody considered and
+a gate that passed both produce nothing, which is the failure this slice
+exists to fix, one level down and on the only rung with real independence. The
+returned block gains a ten-row roll-call, inside the block because the section
+forbids a pre-findings recap.
+
 **The two generic-rubric checks are neither moved, copied, nor cited.**
 `rubric-generic.md`'s gratuitous-repetition and length-proportional-to-stakes
 checks do not reach a design doc, which routes to the specific rubric
@@ -356,13 +378,13 @@ against a non-compliant fixture and against the shipped templates — are in
 
 **Depends on:** T3
 
-**Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/.apm/agents/design-reviewer.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
+**Touches:** packs/architect/.apm/skills/architect-review/references/rubric-design-doc.md, packs/architect/.apm/agents/design-reviewer.md, packs/architect/tests/pack/test_design_reviewer_rubric_parity.py, packs/architect/.apm/skills/architect-design/references/convergence-loop.md
 
 **Tests:**
 - `test_design_reviewer_rubric_parity.py` gains a `DA_CARRIERS` tuple naming
   the three gate homes and a `DA_GATES` map from identifier to severity glyph
   and taxonomy glyph, asserting each identifier and its two glyphs in every
-  `DA_CARRIERS` entry (AC-0048, AC-0049). It also observes the authoring
+  `DA_CARRIERS` entry (AC-0054, AC-0055). It also observes the authoring
   rubric (AC-0029), the reviewing rubric (AC-0030), the agent (AC-0031) and
   the tag assignment (AC-0032), so no home has an assertion of its own that
   could pass while another drifted.
@@ -383,6 +405,16 @@ against a non-compliant fixture and against the shipped templates — are in
 - `DA5`'s body in each home is asserted on its positive statement — the
   verdict is the reviewer's judgement and no automated measure decides it —
   with the two enumerated measure phrases as a supporting negative (AC-0035).
+- Assertions over `design-reviewer.md`'s output contract: the returned block
+  demands a `DA1`-`DA10` roll-call with a verdict each (AC-0048); a clean
+  `SHIP IT` still shows ten (AC-0049); the inlined set is named as baseline
+  depth with `rubric-design-doc.md` as the depth read when co-installed
+  (AC-0050); and an unreachable rubric is a finding (AC-0051). The roll-call
+  is asserted inside the fenced output block, not merely present in the file,
+  because the section above it forbids a pre-findings recap.
+- An assertion over `convergence-loop.md` requires the loop to dispatch the
+  subagent when reachable and to name its fallback rung otherwise (AC-0052),
+  and requires each reporting obligation to name who reports (AC-0053).
 - `REVIEW_EXTRA` is untouched, for T3's reason. The agent file's gates go
   after its `## Severity glossary`.
 - no stub (goal-based)
@@ -392,9 +424,9 @@ against a non-compliant fixture and against the shipped templates — are in
 
 ### T4a: the prechecks are walked against a document, not a template
 
-**Depends on:** T4
-
 **Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
+
+**Depends on:** T4
 
 **Tests:**
 - The reference document is committed at
@@ -403,7 +435,12 @@ against a non-compliant fixture and against the shipped templates — are in
   cannot serve as the corpus (AC-0044).
 - Each of the seven prechecks is walked by hand against that document and the
   walk written to `notes/verification-ledger.md` (AC-0045).
-- no stub (manual QA for the walk, goal-based for the document)
+- `design-reviewer` is dispatched against that same document and its returned
+  block read for ten verdicts, recorded in the ledger (AC-0048, AC-0049). The
+  agent is a model reading instructions, so a contract asserted in its file
+  and never exercised is a contract nobody has seen obeyed.
+- no stub (manual QA for the walk and the dispatch, goal-based for the
+  document)
 
 **Approach:**
 - **The corpus is real pending design work, not a fixture.** It is the
@@ -438,17 +475,17 @@ in the verification ledger, and no precheck fired.
 - `test_gate_text.py` asserts over `SKILL.md` step 6 and over
   `convergence-loop.md`'s cycle that each demands a per-identifier verdict,
   as the closed set `DA1`-`DA10` plus the word verdict rather than the phrase
-  "report the gates" (AC-0050, AC-0051). The failure this slice closes is a
+  "report the gates" (AC-0056, AC-0057). The failure this slice closes is a
   gate producing no finding because nothing asked it to, so "reported every
   gate" is the property and a generic instruction is a consequence of it.
 - An assertion pins the corrected contract sentence at
   `convergence-loop.md:6-7`: the loop requires and invokes no script
-  (AC-0052).
+  (AC-0058).
 - A second assertion covers `convergence-loop.md:9`, "A script would forfeit
   the pack's pure-markdown, zero-config, portable property" — the sentence
   this slice falsifies. It is replaced by a statement of what the shipped
   script does and does not cost, and the unconditional claim must be absent
-  (AC-0053).
+  (AC-0059).
 - The edits stay outside the `agentbundle:output-rendering` markers and
   outside the pinned description regions; step 6's body is neither.
 - no stub (goal-based)
@@ -464,11 +501,11 @@ span.
 
 **Tests:**
 - `python3 '<skill-dir>/../work-loop/scripts/lint-spec-status.py' --root .`
-  decides the status token (AC-0054). It owns status vocabulary and nothing
+  decides the status token (AC-0060). It owns status vocabulary and nothing
   else; that the pointer names the right ADR and scopes the right part is a
   reviewer's call.
 - The pull-request diff for that file is recorded in
-  `notes/verification-ledger.md` and must be one line (AC-0055).
+  `notes/verification-ledger.md` and must be one line (AC-0061).
 - **Not a standing test.** `tests/AGENTS.md` puts a repository-level assertion
   in `tests/roster/`, which then obliges a `build-check.yml` step, a
   `STEP_DISPOSITION` of `LOCAL("test-after-build-check")`, and — because the
@@ -491,18 +528,18 @@ the recorded diff for that file is one line.
 
 **Tests:**
 - `python3 -m pytest tests/conformance/test_pack_metadata.py -q` owns the
-  `pack.toml`/`plugin.json` equality (AC-0056); this task does not restate
+  `pack.toml`/`plugin.json` equality (AC-0062); this task does not restate
   that comparison.
 - `FORCE=1 make build-self` regenerates `.claude-plugin/marketplace.json` and
   refuses a dirty tree, so the version bump commits before it runs. The
-  regenerated file is read back for architect at `0.15.12` (AC-0059) — a
+  regenerated file is read back for architect at `0.15.12` (AC-0065) — a
   projection is verified by regenerating it, never by editing its bytes.
 - The eval's expectation text is asserted against the closed set: it must name
-  every identifier `DA1` through `DA10` with a verdict (AC-0058). Requiring
+  every identifier `DA1` through `DA10` with a verdict (AC-0064). Requiring
   only that an eval mentions the gates lets the implementation write its own
   comparison value.
 - The changelog entry is read and recorded in `notes/verification-ledger.md`
-  (AC-0057). No pull-request gate checks it: `build-check.yml` names changelog
+  (AC-0063). No pull-request gate checks it: `build-check.yml` names changelog
   nothing at all, and `pages.yml`'s release-anchor job compares anchors
   against built HTML, so it cannot see position, nesting, or a
   `### Highlights` subsection.
