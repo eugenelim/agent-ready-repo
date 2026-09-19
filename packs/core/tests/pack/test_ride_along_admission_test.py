@@ -1,0 +1,473 @@
+"""Pins clauses C1-C7 of the ride-along admission test across their shipped
+sites, before those clauses exist (`docs/specs/ride-along-admission-test/`).
+
+Every clause is pasted verbatim, so identity is decided by equality once each
+file's whitespace runs are collapsed to a single space — the sites sit at
+four different indent levels (column 0, a bullet, a numbered item, a quoted
+string), so raw byte-identity is unachievable. Collapse-the-whole-file-first,
+then-slice is the order a spike proved necessary: extracting a span first and
+normalising it afterwards fails, because wrapping splits a clause's closing
+words across a line and no single-line end-anchor matches.
+
+Named blind spots, each answered by a separate assertion so identity alone
+cannot pass by accident: a clause pasted into the sync comment instead of its
+normative host satisfies identity while instructing nothing (AC5's host
+check, which reads raw un-normalised lines so the two mechanisms do not
+fight); a second, divergent copy later in the file passes a first-match
+comparison (AC4's exactly-once count); a consistent reword of a closing
+anchor makes every extraction `None`, and "one distinct value" over an empty
+set passes vacuously (answered by asserting each extraction is non-`None`
+before comparing).
+
+On the current tree every clause is absent, so every extraction below returns
+`None` and every equality/containment assertion misses. That is this file's
+intended state until T2-T4 land the clauses.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+PACK_ROOT = Path(__file__).resolve().parents[2]
+APM_ROOT = PACK_ROOT / ".apm"
+SKILL = APM_ROOT / "skills" / "work-loop" / "SKILL.md"
+IMPLEMENTER = APM_ROOT / "agents" / "implementer.md"
+ADVERSARIAL = APM_ROOT / "agents" / "adversarial-reviewer.md"
+SUPERVISOR_MODE = APM_ROOT / "skills" / "work-loop" / "references" / "supervisor-mode.md"
+EVALS_JSON = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
+REPO_ROOT = PACK_ROOT.parent.parent
+GUIDE = REPO_ROOT / "guides" / "core" / "explanation" / "core-pack.md"
+
+FOUR_SITES: tuple[Path, ...] = (SKILL, IMPLEMENTER, ADVERSARIAL, SUPERVISOR_MODE)
+THREE_MIRRORS: tuple[Path, ...] = (IMPLEMENTER, ADVERSARIAL, SUPERVISOR_MODE)
+
+# --- The seven shipped clauses, exactly as `spec.md` § The shipped clauses
+# --- states them, flattened the same way `_flat()` flattens a site's file.
+C1 = (
+    "A change may ride along when all three hold: (i) it fires no risk "
+    "trigger on its own, so it would run in light mode standalone; (ii) it "
+    "involves no behavior change and no unresolved design call, and where a "
+    "design call was resolved, that resolution changes no convention, "
+    "contract, or published interface; and (iii) you can state how it was "
+    "verified — a command with a zero diff on re-run, a search with no "
+    "remaining references, or a comparison against a named authority that "
+    "the change agrees with."
+)
+C2 = (
+    "A change that sets or alters a value, a wording, a threshold, or a "
+    "default presents a choice, however obvious the option you took. Where "
+    "a change presents a choice and you cannot point to the citation or to "
+    "the answer, there is an unresolved design call; not remembering a rule "
+    "that applies is an unresolved design call, not the absence of one. A "
+    "design call is resolved only by a citation or by an owner's answer. A "
+    "citation is a shipped rule, an accepted decision record, a convention "
+    "document, or the commit whose message records the decision; applying "
+    "a recorded answer is a lookup, not a decision, and it needs no human. "
+    "An owner's answer is given in one line, in-session, and is recorded "
+    "with its question in the `Bundled fixes:` entry of your report, or of "
+    "the pull request when you are not reporting to a supervisor. Where a "
+    "dispatch brief carries exactly one attendance declaration, follow it: "
+    "attended means ask there, unattended means do not ask. In every other "
+    "case — no brief, a brief silent on attendance, or a brief "
+    "declaring both — record the question in the human gate's own "
+    "record and read the reply; an answer counts only when the reply names "
+    "the question, and a reply that does not name it is the observation "
+    "that no answer was given. Do not probe for a human, and do not pause "
+    "the loop for a reply beyond the stop it already makes. Where a "
+    "resolution would change a convention, a contract, or a published "
+    "interface, the record is the deliverable — which is why clause "
+    "(ii) refuses it. Where no citation exists and no answer was given, the "
+    "item falls out: capture it with `blocked_on: decision` and move on, "
+    "without asking again, guessing, or treating the absence as a blocker "
+    "on the loop."
+)
+C3 = (
+    "The risk triggers are the canonical block in `work-loop/SKILL.md` "
+    "(§ Select: light or full mode); a mirror names the skill and "
+    "lists no trigger."
+)
+C4 = (
+    "- **Review scratch notes** from this session's DECIDE passes. "
+    "Anything generalisable that would have changed the approach goes to "
+    "the `project-knowledge` public seam, and the examples below are "
+    "instances of that; the seam is additive. Then, where the note names a "
+    "defect, take the first destination that applies and stop: a "
+    "ride-along-eligible defect is dispatched now, grouped with related "
+    "fixes sharing a file or a seam, over the human gate's "
+    "`blocker-applied` return edge; a defect blocked on a decision, an "
+    "instrument, or elapsed time is captured; a ready-now defect that is "
+    "not ride-along eligible becomes the next independently reviewed unit "
+    "in this session, over that same edge, where ready-now means it can be "
+    "finished this session without a decision nobody present will make; "
+    "and any defect left — one resting on taste, or one with no "
+    "stated arbiter — is discarded. A note that names no defect is "
+    "done once the seam has taken it, and discarded if it had nothing for "
+    "the seam either."
+)
+C5 = (
+    "A captured item carries its discriminator: the one fact the decision "
+    "turns on, not just the location. \"Four sites use a 13px literal\" is "
+    "a locator; \"the third of them is the only sans one, so the shared "
+    "token does not fit it\" is an item. Supply the discriminator before "
+    "capturing; an item you cannot give one to is not ready to capture, "
+    "and it goes to the destination its actual state names. A locator "
+    "nobody can action looks like tracked work and is not. Disposing an "
+    "item now is cheaper than recording it: a recorded item pays a "
+    "tracking cost, a context-refresh cost, and often a new session, and "
+    "then still needs a discriminator that close-time reconstruction from "
+    "the diff cannot recover. A slightly longer loop is the cheaper "
+    "option, and capturing a ready-now item is a loss."
+)
+C6 = (
+    "An entry that rests on an owner's answer states the question asked "
+    "and the one-line answer given."
+)
+C7 = (
+    "never merging two entries whose recorded questions differ, nor two "
+    "whose recorded answers to the same question differ"
+)
+
+# Short, distinctive open/close literals used to slice a clause out of a
+# whole-file-flattened site, per the spike-proven order: collapse first, slice
+# second. Each is a verified substring of its clause (see the generation
+# script this file was authored from), not an independent transcription.
+C1_OPEN = "A change may ride along when all three"
+C1_CLOSE = "references, or a comparison against a named authority that the change agrees with."
+C2_OPEN = "A change that sets or alters a value, a wording, a threshold, or a default"
+C2_CLOSE = "asking again, guessing, or treating the absence as a blocker on the loop."
+C3_OPEN = "The risk triggers are the canonical block"
+C3_CLOSE = "mirror names the skill and lists no trigger."
+C4_OPEN = "- **Review scratch notes** from this session's"
+C4_CLOSE = "discarded if it had nothing for the seam either."
+C5_OPEN = "A captured item carries its discriminator:"
+C5_CLOSE = "and capturing a ready-now item is a loss."
+
+# § Host markers, verbatim.
+HOST_ROWS: tuple[tuple[Path, str, tuple[str, ...]], ...] = (
+    (SKILL, "**Bundled-fixes carve-out.**", ("C1", "C2")),
+    (IMPLEMENTER, "- **One task:**", ("C1", "C2", "C3")),
+    (ADVERSARIAL, "4. **Scope.**", ("C1", "C2", "C3")),
+    (SUPERVISOR_MODE, "\"Bundled fixes authorized per the carve-out in", ("C1", "C2", "C3")),
+    (SKILL, "## Capture", ("C4", "C5")),
+    (IMPLEMENTER, "**Bundled fixes:**", ("C6",)),
+    (SUPERVISOR_MODE, "**Lift `Bundled fixes:` into the PR body.**", ("C7",)),
+)
+
+# The anchor used to locate each clause's raw (un-normalised) occurrence, for
+# the host-placement check (AC5) only. C1-C5 use their short open literal;
+# C6-C7 are one sentence, short enough to use whole.
+CLAUSE_HOST_ANCHOR: dict[str, str] = {
+    "C1": C1_OPEN,
+    "C2": C2_OPEN,
+    "C3": C3_OPEN,
+    "C4": C4_OPEN,
+    "C5": C5_OPEN,
+    "C6": C6,
+    "C7": C7,
+}
+
+RETIRED_VOCABULARY: tuple[str, ...] = (
+    "Tier 1",
+    "Tier 2",
+    "Tier 3",
+    "same-area",
+    "same-concern",
+    "visibly smaller",
+    "bundled-fixes tiers",
+)
+
+DECIDE_ROW = (
+    "| Does not match | Include now, ride-along eligible | Admit it under "
+    "the bundled-fixes carve-out. This is not a scope change: a ride-along "
+    "alters no acceptance criterion and moves no contract pin. |"
+)
+
+PROMPT_RE = re.compile(r'"prompt":\s*"((?:[^"\\]|\\.)*)"')
+
+
+def _text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def _flat(path: Path) -> str:
+    """The file with every whitespace run collapsed to one space.
+
+    Collapse-the-whole-file-first, then-slice: normalising an already
+    extracted span cannot recover words a line wrap split apart.
+    """
+    return re.sub(r"\s+", " ", _text(path))
+
+
+def _extract(flat_text: str, open_literal: str, close_literal: str) -> str | None:
+    """The flattened span from `open_literal` through `close_literal`, or
+    `None` if either is absent. `None` is the expected value everywhere on
+    the current tree, since no site carries any clause yet."""
+    start = flat_text.find(open_literal)
+    if start == -1:
+        return None
+    close_start = flat_text.find(close_literal, start)
+    if close_start == -1:
+        return None
+    return flat_text[start : close_start + len(close_literal)]
+
+
+def _raw_find_span(text: str, phrase: str) -> tuple[int, int] | None:
+    """Locate `phrase` in raw (un-normalised) `text`, tolerating the
+    whitespace a line wrap introduces between its words, without collapsing
+    the rest of the file. AC5's host check reads raw lines, not the
+    collapsed view used for clause identity, so the two mechanisms never
+    fight over the same text."""
+    pattern = re.compile(r"\s+".join(re.escape(word) for word in phrase.split()))
+    match = pattern.search(text)
+    if match is None:
+        return None
+    return match.span()
+
+
+def _in_html_comment(text: str, pos: int) -> bool:
+    return any(
+        m.start() <= pos < m.end() for m in re.finditer(r"<!--.*?-->", text, re.DOTALL)
+    )
+
+
+def _in_fenced_block(text: str, pos: int) -> bool:
+    fence_starts = [m.start() for m in re.finditer(r"^```", text, re.MULTILINE)]
+    return sum(1 for start in fence_starts if start < pos) % 2 == 1
+
+
+def _marker_positions(path: Path) -> dict[str, int]:
+    """Every § Host markers literal that is present in `path`, with its raw
+    offset. Scoped per-file: a file can host more than one marker (e.g.
+    `implementer.md` hosts both the operating-envelope marker and the report
+    template's)."""
+    raw = _text(path)
+    positions: dict[str, int] = {}
+    for site_path, marker, _clauses in HOST_ROWS:
+        if site_path != path:
+            continue
+        idx = raw.find(marker)
+        if idx != -1:
+            positions[marker] = idx
+    return positions
+
+
+def _slugify(heading: str) -> str:
+    """An approximation of GitHub's heading-to-anchor slug algorithm."""
+    text = heading.strip().lower()
+    text = re.sub(r"[`*]", "", text)
+    text = re.sub(r"[^\w\s-]", "", text)
+    return re.sub(r"\s+", "-", text)
+
+
+def _section(text: str, heading: str) -> str | None:
+    """The body of the `## {heading}` section, bounded by the next `## `
+    heading (or end of file). `None` if no exact `## {heading}` line exists —
+    which is the case today for "Capture", since the heading currently reads
+    "Capture learnings"."""
+    match = re.search(rf"^## {re.escape(heading)}$", text, re.MULTILINE)
+    if match is None:
+        return None
+    start = match.end()
+    following = re.search(r"^## ", text[start:], re.MULTILINE)
+    end = start + following.start() if following else len(text)
+    return text[start:end]
+
+
+def test_c1_is_identical_across_the_four_sites() -> None:
+    extracted = {path.name: _extract(_flat(path), C1_OPEN, C1_CLOSE) for path in FOUR_SITES}
+    for name, value in extracted.items():
+        assert value is not None, f"C1 not found in {name}"
+    assert len(set(extracted.values())) == 1, f"C1 diverges across sites: {extracted}"
+
+
+def test_c2_is_identical_across_the_four_sites() -> None:
+    extracted = {path.name: _extract(_flat(path), C2_OPEN, C2_CLOSE) for path in FOUR_SITES}
+    for name, value in extracted.items():
+        assert value is not None, f"C2 not found in {name}"
+    assert len(set(extracted.values())) == 1, f"C2 diverges across sites: {extracted}"
+
+
+def test_c3_is_identical_across_the_three_mirrors() -> None:
+    extracted = {
+        path.name: _extract(_flat(path), C3_OPEN, C3_CLOSE) for path in THREE_MIRRORS
+    }
+    for name, value in extracted.items():
+        assert value is not None, f"C3 not found in {name}"
+    assert len(set(extracted.values())) == 1, f"C3 diverges across mirrors: {extracted}"
+
+
+def test_clause_anchors_occur_exactly_once_where_carried() -> None:
+    checks = (
+        ("C1", C1_OPEN, FOUR_SITES),
+        ("C2", C2_OPEN, FOUR_SITES),
+        ("C3", C3_OPEN, THREE_MIRRORS),
+    )
+    for label, opening, carriers in checks:
+        carrier_paths = set(carriers)
+        for path in FOUR_SITES:
+            count = _flat(path).count(opening)
+            if path in carrier_paths:
+                assert count == 1, (
+                    f"{label} opening appears {count} times in {path.name}, "
+                    "expected exactly 1"
+                )
+            else:
+                assert count == 0, (
+                    f"{label} opening appears in {path.name}, which should "
+                    "not carry it"
+                )
+
+
+def test_clauses_sit_in_their_hosts() -> None:
+    for path, marker, clauses in HOST_ROWS:
+        raw = _text(path)
+        markers = _marker_positions(path)
+        for clause in clauses:
+            span = _raw_find_span(raw, CLAUSE_HOST_ANCHOR[clause])
+            assert span is not None, f"{clause} not found (raw) in {path.name}"
+            start = span[0]
+            assert not _in_html_comment(raw, start), (
+                f"{clause} occurrence in {path.name} sits inside an HTML comment"
+            )
+            assert not _in_fenced_block(raw, start), (
+                f"{clause} occurrence in {path.name} sits inside a fenced block"
+            )
+            preceding = {m: pos for m, pos in markers.items() if pos <= start}
+            assert preceding, (
+                f"{clause} occurrence in {path.name} has no preceding host marker"
+            )
+            nearest_marker = max(preceding, key=preceding.get)
+            assert nearest_marker == marker, (
+                f"{clause} in {path.name}: nearest preceding host marker is "
+                f"{nearest_marker!r}, expected {marker!r}"
+            )
+
+
+def test_sync_comments_name_four_sites() -> None:
+    required_names = (
+        "work-loop/SKILL.md",
+        "implementer.md",
+        "adversarial-reviewer.md",
+        "work-loop/references/supervisor-mode.md",
+    )
+    for path in FOUR_SITES:
+        raw = _text(path)
+        comments = [
+            comment
+            for comment in re.findall(r"<!--.*?-->", raw, re.DOTALL)
+            if "Bundled-fixes carve-out" in comment
+        ]
+        assert comments, f"{path.name} has no HTML comment naming Bundled-fixes carve-out"
+        for comment in comments:
+            flat_comment = re.sub(r"\s+", " ", comment)
+            for name in required_names:
+                assert name in flat_comment, (
+                    f"{path.name}'s carve-out comment is missing {name!r}"
+                )
+
+
+def test_retired_locality_vocabulary_is_absent() -> None:
+    for path in FOUR_SITES:
+        raw = _text(path)
+        for token in RETIRED_VOCABULARY:
+            assert token not in raw, f"{path.name} still contains retired token {token!r}"
+
+
+def test_decide_row_disposition_sentence() -> None:
+    assert DECIDE_ROW in _flat(SKILL), (
+        "SKILL.md's DECIDE table is missing the ride-along-eligible row"
+    )
+
+
+def test_capture_section_routing_bullet() -> None:
+    section = _section(_text(SKILL), "Capture")
+    assert section is not None, "SKILL.md has no '## Capture' section"
+    assert C4 in re.sub(r"\s+", " ", section), (
+        "the '## Capture' section's scratch-note bullet does not read exactly C4"
+    )
+
+
+def test_capture_section_economics() -> None:
+    section = _section(_text(SKILL), "Capture")
+    assert section is not None, "SKILL.md has no '## Capture' section"
+    flat_section = re.sub(r"\s+", " ", section)
+    assert C5 in flat_section, "the '## Capture' section does not contain C5"
+    assert "otherwise discard it" not in flat_section, (
+        "the '## Capture' section still contains the retired 'otherwise "
+        "discard it' phrase"
+    )
+
+
+def test_report_entry_resolution_field() -> None:
+    raw = _text(IMPLEMENTER)
+    start = raw.find("**Bundled fixes:**")
+    assert start != -1, "implementer.md is missing the 'Bundled fixes:' report template marker"
+    end = raw.find("**Out of scope observed**", start)
+    assert end != -1, "implementer.md is missing the field that bounds the report template"
+    section = re.sub(r"\s+", " ", raw[start:end])
+    assert C6 in section, (
+        "implementer.md's 'Bundled fixes:' report template does not contain C6 exactly"
+    )
+
+
+def test_dedup_exclusion() -> None:
+    raw = _text(SUPERVISOR_MODE)
+    start = raw.find("**Lift `Bundled fixes:` into the PR body.**")
+    assert start != -1, "supervisor-mode.md is missing the lifting-step marker"
+    end = raw.find("6. **Clean up worktrees.**", start)
+    assert end != -1, "supervisor-mode.md is missing the step that bounds the lifting step"
+    section = re.sub(r"\s+", " ", raw[start:end])
+    assert C7 in section, "supervisor-mode.md's lifting step does not contain C7 exactly"
+
+
+def test_capture_heading_renamed() -> None:
+    raw = _text(SKILL)
+    assert re.search(r"^## Capture$", raw, re.MULTILINE) is not None, (
+        "SKILL.md has no '## Capture' heading"
+    )
+    assert re.search(r"^## Capture learnings$", raw, re.MULTILINE) is None, (
+        "SKILL.md still has the retired '## Capture learnings' heading"
+    )
+    assert "#capture-learnings" not in raw, "SKILL.md still links #capture-learnings"
+
+
+def test_in_file_anchors_resolve() -> None:
+    """Scoped to the renamed section: today no link targets `#capture` yet
+    (every link still targets `#capture-learnings`, which still resolves),
+    so this reds for the same reason AC20 does — the rename hasn't
+    happened — not vacuously over an unrelated, already-resolving anchor."""
+    raw = _text(SKILL)
+    targets = [
+        target
+        for target in re.findall(r"\]\(#([a-z0-9\-]+)\)", raw)
+        if target == "capture"
+    ]
+    assert targets, "no in-file link targets the renamed '#capture' section yet"
+    headings = re.findall(r"^#{1,6} (.+)$", raw, re.MULTILINE)
+    slugs = {_slugify(heading) for heading in headings}
+    missing = [target for target in targets if target not in slugs]
+    assert not missing, f"SKILL.md links to '#capture' but no heading resolves to it: {missing}"
+
+
+def test_no_eval_prompt_names_the_old_section() -> None:
+    raw = _text(EVALS_JSON)
+    prompts = PROMPT_RE.findall(raw)
+    assert prompts, "no eval prompts found in evals.json"
+    named_old = [prompt for prompt in prompts if "Capture learnings" in prompt]
+    assert not named_old, (
+        f"eval prompts still name the retired 'Capture learnings' section: {named_old}"
+    )
+
+
+def test_guide_names_the_step_as_shipped() -> None:
+    raw = _text(GUIDE)
+    assert "**Capture learnings.**" not in raw, (
+        "the guide still names the step 'Capture learnings'"
+    )
+    match = re.search(r"\*\*Capture\.\*\*(.*?)(?=\n\d+\.|\Z)", raw, re.DOTALL)
+    assert match is not None, "the guide has no '**Capture.**' step entry"
+    body = re.sub(r"\s+", " ", match.group(1))
+    assert "scratch note" in body, (
+        "the guide's Capture entry does not describe routing a scratch note"
+    )
