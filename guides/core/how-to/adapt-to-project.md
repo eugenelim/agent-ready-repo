@@ -123,18 +123,16 @@ The `core` pack ships a pull-request template as a work-loop asset. It is not
 installed for you, because a repository that already has a pull-request
 convention should keep it — if yours does, skip this section.
 
-Copy it to the path your forge reads:
-
-Set `SKILL_ROOT` to your adapter's skills directory — `.agents/skills` for
-Codex and the generic adapter, `.claude/skills` for Claude Code — then:
+Run the installer that ships with the skill, from the repository root (use `python` instead of `python3` on Windows):
 
 ```bash
-# GitHub
-cp "$SKILL_ROOT/work-loop/assets/pull-request-template.md" .github/pull_request_template.md
-
-# GitLab
-cp "$SKILL_ROOT/work-loop/assets/pull-request-template.md" .gitlab/merge_request_templates/Default.md
+python3 .agents/skills/work-loop/scripts/install-pr-template.py
 ```
+
+Substitute your adapter's skills directory if it is not `.agents/skills` —
+`.claude/skills` and `.kiro/skills` are the other common roots. The script
+reports each destination, keeps any template you already have, and exits
+non-zero if a destination failed. It is safe to re-run.
 
 The template carries its authoring rules in HTML comments, which do not render,
 so an author reads them while writing and a reviewer never sees them in the

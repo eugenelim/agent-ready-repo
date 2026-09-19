@@ -1,7 +1,7 @@
 # Plan: portable pull-request template
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version-bump rule; the
   portable-content rule forbidding repository-only paths in shipped packs; the
   self-hosting projection rule). `packs/core/AGENTS.md` (core-pack deltas).
@@ -121,9 +121,12 @@ Neither may contradict a rule it illustrates — an example that narrates its
 method is a counter-model that outweighs the rule above it.
 
 **The guide section** is headed `Install the pull-request template` in
-`guides/core/how-to/adapt-to-project.md`. It carries the two copy commands
-AC-0011 parses and, as prose rather than criterion, the statement that a
-repository with an existing convention keeps it.
+`guides/core/how-to/adapt-to-project.md`. It carries a single invocation of the
+shipped installer, which AC-0017 parses, and — as prose rather than criterion —
+the statement that a repository with an existing convention keeps it. The
+installer is a script rather than a recipe pasted here: hardening it in prose
+produced a confinement helper, an adapter loop and a failure accumulator, which
+is a program, not documentation.
 
 **The routing predicate cell** is exactly `Authoring a pull-request body`.
 AC-0008 compares it by equality after collapsing whitespace, so the value is
@@ -307,26 +310,39 @@ assertion, and the new guidance eval all pass.
 
 **Touches:** .github/pull_request_template.md, packs/core/.apm/skills/work-loop/references/supervisor-mode.md
 
-### T6: An adopter can install the template from the guide
+### T6: An adopter can install the template, and the guide says how
 
 **Depends on:** T1, T3
 
 **Tests:**
-- Asserts the section `Install the pull-request template` in
-  `guides/core/how-to/adapt-to-project.md` carries exactly two copy commands,
-  each naming the asset as source, and that the set of their targets equals
-  exactly the two destinations (AC-0011).
+- Executable: the shipped `install-pr-template.py` is run in temporary
+  repositories covering a fresh install, a second adapter root, no asset
+  installed, a re-run, an existing convention, a dangling-symlink destination,
+  a symlinked destination ancestor, a symlinked source ancestor, differing
+  adapter installs, and an unwritable destination (AC-0011).
+- Asserts the guide's install section carries exactly one fenced `bash` block
+  of exactly one line, invoking that script (AC-0017).
+- Asserts both behavioural suites are named by a `run-test-suite` line in
+  `Makefile` and by a `build-check.yml` step, and that `lint-ci-parity.py`
+  exits zero (AC-0018). Gate wiring is in scope because a suite this delivery
+  creates and nothing runs is a control that reports nothing; removing the
+  wiring to stay inside the original boundary would restore that defect.
 - Deletion-only pin for the keep-your-own-convention sentence.
 - Existing `tools/test_check_rendered_site_links.py` passes.
 
 **Approach:**
-- Target-set equality rather than per-command containment: two commands both
-  aimed at the GitHub destination would satisfy a containment check while
-  leaving GitLab uninstallable.
+- The installer is a shipped script rather than a recipe pasted into the guide.
+  Hardening it in prose produced a confinement walk, an adapter loop, a failure
+  accumulator and a subshell — executable logic a reader was expected to copy
+  and maintain. A script is testable, versioned, and invoked in one line.
+- Every scenario runs the script; reading its text cannot catch a wrong search
+  depth, an exit code that lies on a skip, or a path that escapes through a
+  symlink. All three shipped and were found only by execution.
 
-**Done when:** the criterion case, the pin, and the existing suite pass.
+**Done when:** every scenario passes, the guide carries one invocation, and the
+pin and existing suite pass.
 
-**Touches:** guides/core/how-to/adapt-to-project.md
+**Touches:** packs/core/.apm/skills/work-loop/scripts/install-pr-template.py, guides/core/how-to/adapt-to-project.md, tools/test_pull_request_template_adoption.py, Makefile, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
 ### T7: The release checker is correct, and the core pack releases
 
@@ -422,5 +438,5 @@ drift check is clean, and `git status` is clean.
 
 ## Changelog
 
-- 2026-09-19: spec approved by eugenelim
-- 2026-09-19: plan approved by eugenelim
+- 2026-09-18: spec approved by eugenelim
+- 2026-09-18: plan approved by eugenelim

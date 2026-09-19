@@ -39,6 +39,23 @@ def _changelog(*entries: tuple[str, bool]) -> str:
     return "\n".join(out)
 
 
+def _projection(root: Path, body: str) -> None:
+    """Install a stub `tools/build-site.py` with the given function body."""
+    (root / "tools").mkdir(parents=True, exist_ok=True)
+    (root / "tools" / "build-site.py").write_text(body, encoding="utf-8")
+
+
+def _faithful(version: str, bullets: tuple[str, ...] = ("A consumer-visible change.",)) -> str:
+    highlights = ", ".join(f"{{'source': {b!r}}}" for b in bullets)
+    return (
+        "def project_now_highlights(text):\n"
+        "    return {'schemaVersion': 1, 'groups': [{\n"
+        f"        'packages': [{{'name': 'core', 'version': {version!r}}}],\n"
+        f"        'highlights': [{highlights}],\n"
+        "    }]}\n"
+    )
+
+
 def _repo(tmp_path: Path, *, version: str, plugin: str | None = None,
           changelog: str | None = None) -> Path:
     root = tmp_path / "repo"
@@ -59,7 +76,27 @@ def _repo(tmp_path: Path, *, version: str, plugin: str | None = None,
     (root / "docs/product/changelog.md").write_text(
         changelog if changelog is not None else _changelog((version, True)),
         encoding="utf-8")
+    _projection(root, _faithful(version))
     return root
+
+
+def _refuses(root: Path, base: str = "HEAD") -> str:
+    """Drive the executable, not just `check()`.
+
+    Calling `check()` alone leaves the exit code and the operator-facing message
+    untested, so both can regress while the suite stays green. Returns stderr so
+    a caller can assert the named reason.
+    """
+    import contextlib
+    import io
+
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        code = ccr.main(["--base", base, "--root", str(root)])
+    assert code == 1, f"expected exit 1, got {code}"
+    text = err.getvalue()
+    assert text.strip(), "refused without telling the operator why"
+    return text
 
 
 def test_a_valid_patch_successor_is_accepted(tmp_path):
@@ -69,114 +106,151 @@ def test_a_valid_patch_successor_is_accepted(tmp_path):
 @pytest.mark.parametrize("version", ["2.4.8", "1.5.8", "1.4.7", "1.4.6", "1.4.9"])
 def test_a_version_that_is_not_the_patch_successor_is_refused(tmp_path, version):
     """Major, minor, unchanged, one lower, and overshoot -- each its own case."""
-    assert ccr.check(_repo(tmp_path, version=version), "HEAD")
+    _refuses(_repo(tmp_path, version=version))
 
 
 def test_a_wrong_pack_toml_alone_is_refused(tmp_path):
     root = _repo(tmp_path, version="1.4.9", plugin="1.4.8",
                  changelog=_changelog(("1.4.8", True)))
-    assert ccr.check(root, "HEAD")
+    _refuses(root)
 
 
 def test_a_wrong_plugin_json_alone_is_refused(tmp_path):
     root = _repo(tmp_path, version="1.4.8", plugin="1.4.9")
-    assert ccr.check(root, "HEAD")
+    assert "1.4.9" in _refuses(root)
 
 
 def test_a_wrong_topmost_entry_is_refused_even_when_a_later_entry_matches(tmp_path):
     """Decoy: the expected version is present, but not at the top."""
     root = _repo(tmp_path, version="1.4.8",
                  changelog=_changelog(("1.4.7", True), ("1.4.8", True)))
-    assert ccr.check(root, "HEAD")
+    assert "topmost" in _refuses(root)
 
 
 def test_an_unbulleted_target_entry_is_refused_even_when_a_later_entry_has_one(tmp_path):
     """Decoy: a valid bullet exists in the file, but not in the target entry."""
     root = _repo(tmp_path, version="1.4.8",
                  changelog=_changelog(("1.4.8", False), ("1.4.7", True)))
-    assert ccr.check(root, "HEAD")
+    assert "Highlights" in _refuses(root)
 
 
 def test_an_unresolvable_base_is_refused(tmp_path):
-    reasons = ccr.check(_repo(tmp_path, version="1.4.8"), "not-a-commit")
-    assert reasons and "does not resolve" in reasons[0]
+    assert "does not resolve" in _refuses(_repo(tmp_path, version="1.4.8"), "not-a-commit")
 
 
 # ------------------------------------------------------------------- AC-0016
 
-def _independent_highlight_bullets(changelog: str, version: str) -> list[str]:
-    """Read the entry's bullets without using the projection's own parser.
-
-    The repository's existing real-changelog tests build BOTH their expected and
-    their actual values from `build_site.parse_changelog_releases`, so an entry
-    that parser cannot see is absent from both sides and those tests stay green
-    while the entry never reaches the page. This reader exists to not share that
-    blind spot.
-    """
-    import re as _re
-    head = _re.compile(r"^## \[core\]\[" + _re.escape(version) + r"\]", _re.M)
-    match = head.search(changelog)
-    assert match, f"no core {version} entry"
-    body = changelog[match.end():]
-    nxt = _re.search(r"^## \[", body, _re.M)
-    entry = body[: nxt.start()] if nxt else body
-    section = entry.split("### Highlights", 1)[1].split("\n### ", 1)[0]
-
-    bullets, current = [], None
-    for line in section.splitlines():
-        if _re.match(r"^- \S", line):
-            if current is not None:
-                bullets.append(" ".join(current.split()))
-            current = line[2:]
-        elif current is not None and line.startswith("  "):
-            current += " " + line.strip()
-        elif current is not None and not line.strip():
-            bullets.append(" ".join(current.split()))
-            current = None
-    if current is not None:
-        bullets.append(" ".join(current.split()))
-    return bullets
+# AC-0016's live-tree comparison lives in the checker, which runs once at
+# delivery. A standing test asserting that the CURRENT core version carries
+# Highlights would fail on a future consumer-neutral release that legitimately
+# has none -- a delivery-time criterion must not become a permanent constraint.
 
 
-def test_this_releases_highlights_reach_the_now_payload():
-    import importlib.util as _ilu
-    root = Path(__file__).resolve().parents[1]
-    spec = _ilu.spec_from_file_location("build_site", root / "tools" / "build-site.py")
-    build_site = _ilu.module_from_spec(spec)
-    spec.loader.exec_module(build_site)
-
-    import tomllib as _tomllib
-    version = _tomllib.loads(
-        (root / "packs/core/pack.toml").read_text(encoding="utf-8")
-    )["pack"]["version"]
-    changelog = (root / "docs/product/changelog.md").read_text(encoding="utf-8")
-
-    payload = build_site.project_now_highlights(changelog)
-    groups = [
-        g for g in payload["groups"]
-        if any(p["name"] == "core" and p["version"] == version for p in g["packages"])
-    ]
-    assert len(groups) == 1, f"expected exactly one core {version} group"
-
-    projected = [" ".join(h["source"].split()) for h in groups[0]["highlights"]]
-    assert projected == _independent_highlight_bullets(changelog, version)
+def test_a_projection_that_drops_the_entry_is_refused(tmp_path):
+    """Fixture-based: the payload must carry this release's bullets."""
+    root = _repo(tmp_path, version="1.4.8")
+    _projection(root, "def project_now_highlights(text):\n"
+                      "    return {'schemaVersion': 1, 'groups': []}\n")
+    _refuses(root)
 
 
-def test_highlights_under_a_sibling_section_do_not_count(tmp_path):
-    """A `## Notes` section's Highlights must not stand in for a missing one.
+def test_a_projection_that_alters_the_bullets_is_refused(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    _projection(root, _faithful("1.4.8", ("Something the changelog never said.",)))
+    reasons = ccr.check(root, "HEAD")
+    assert reasons and "differ from" in reasons[0]
 
-    The target entry has NO Highlights subsection at all. A checker that ends
-    the entry at the next *release* heading reads the sibling section's bullet
-    as this release's and wrongly accepts; ending at the next equal-or-shallower
-    heading refuses. The two implementations disagree on exactly this input,
-    which is what makes the case worth writing.
-    """
+
+def test_a_faithful_projection_is_accepted(tmp_path):
+    assert ccr.check(_repo(tmp_path, version="1.4.8"), "HEAD") == []
+
+
+# ------------------------------------- the executable interface, not just check()
+
+
+def test_the_cli_reports_its_exit_code_and_names_the_reason(tmp_path, capsys):
+    """Driving `check()` alone leaves exit codes and operator messages untested."""
+    root = _repo(tmp_path, version="1.4.9", changelog=_changelog(("1.4.9", True)))
+    code = ccr.main(["--base", "HEAD", "--root", str(root)])
+    assert code == 1
+    assert "expected the patch successor" in capsys.readouterr().err
+
+
+def test_the_cli_exits_zero_and_says_so_when_consistent(tmp_path, capsys):
+    root = _repo(tmp_path, version="1.4.8")
+    assert ccr.main(["--base", "HEAD", "--root", str(root)]) == 0
+    assert "consistent" in capsys.readouterr().out
+
+
+def test_a_missing_manifest_is_a_named_refusal_not_a_traceback(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    (root / "packs/core/.claude-plugin/plugin.json").unlink()
+    assert "cannot read" in _refuses(root)
+
+
+def test_a_malformed_manifest_is_a_named_refusal(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    (root / "packs/core/.claude-plugin/plugin.json").write_text("{not json", encoding="utf-8")
+    assert "not valid JSON" in _refuses(root)
+
+
+def test_a_missing_changelog_is_a_named_refusal(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    (root / "docs/product/changelog.md").unlink()
+    assert "cannot read" in _refuses(root)
+
+
+def test_a_changelog_with_no_core_entry_is_a_named_refusal(tmp_path):
+    root = _repo(tmp_path, version="1.4.8", changelog="# Changelog\n\nNothing yet.\n")
+    assert "no core release entry" in _refuses(root)
+
+
+def test_a_broken_projection_is_a_named_refusal(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    _projection(root, "raise RuntimeError('projection exploded')\n")
+    assert "could not be built" in _refuses(root)
+
+
+def test_a_non_utf8_manifest_is_a_named_refusal(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    (root / "packs/core/.claude-plugin/plugin.json").write_bytes(b'{"version": "\xff\xfe"}')
+    assert "UTF-8" in _refuses(root)
+
+
+def test_a_non_utf8_pack_toml_is_a_named_refusal(tmp_path):
+    root = _repo(tmp_path, version="1.4.8")
+    (root / "packs/core/pack.toml").write_bytes(b'[pack]\nversion = "\xff\xfe"\n')
+    assert "UTF-8" in _refuses(root)
+
+
+def test_a_malformed_payload_shape_is_a_named_refusal(tmp_path):
+    """The traversal sat outside the refusal boundary and raised instead."""
+    root = _repo(tmp_path, version="1.4.8")
+    _projection(root, "def project_now_highlights(text):\n"
+                      "    return {'schemaVersion': 1, 'groups': [{'packages': None}]}\n")
+    assert "unexpected shape" in _refuses(root)
+
+
+def test_an_unexpected_failure_fails_closed(tmp_path):
+    """A delivery check must never pass because something threw."""
+    root = _repo(tmp_path, version="1.4.8")
+    (root / "packs/core/pack.toml").unlink()
+    (root / "packs/core/pack.toml").mkdir()          # a directory where a file is expected
+    assert _refuses(root)
+
+
+def test_a_release_heading_inside_a_fence_is_not_a_release(tmp_path):
+    """Sample changelog markup must not be read as this repository's release."""
     changelog = (
         "# Changelog\n\n"
-        "## [core][1.4.8] — 2026-09-19\n\n"
-        "Some entry prose with no Highlights subsection.\n\n"
-        "## Notes\n\n"
+        "Example of the shape an entry takes:\n\n"
+        "```markdown\n"
+        "## [core][9.9.9] — 2026-01-01\n\n"
         "### Highlights\n\n"
-        "- A bullet that belongs to the notes section.\n"
+        "- A sample bullet.\n"
+        "```\n\n"
+        "## [core][1.4.8] — 2026-09-18\n\n"
+        "### Highlights\n\n"
+        "- A consumer-visible change.\n"
     )
-    assert ccr.check(_repo(tmp_path, version="1.4.8", changelog=changelog), "HEAD")
+    assert ccr.check(_repo(tmp_path, version="1.4.8", changelog=changelog), "HEAD") == []

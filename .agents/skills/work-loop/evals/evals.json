@@ -819,13 +819,25 @@
     {
       "id": "a-shipped-spec-is-not-a-live-constraint",
       "prompt": "A spec under docs/specs/ shipped months ago and says the exporter writes CSV. My change makes it write Parquet instead. Is that a violation I have to fix or reverse?",
-      "expected_output": "No. A spec binds its own delivery, not the repository forever: it is living while the plan is drafting, pinned from plan approval, and frozen once it is `Shipped`. From that point the code is the truth and the spec is the record of what was agreed, not a description of current behaviour. Change the code, and record the reversal in a decision record — never by rewriting the shipped spec. What survives the freeze is narrow: its status line still takes the two pointers the contract licenses, and the deferral anchors its body names still have to resolve.",
+      "expected_output": "No. A spec binds its own delivery, not the repository forever: it is living while the plan is drafting, pinned from plan approval, and frozen once it is `Shipped`. From that point the code is the truth and the spec is the record of what was agreed, not a description of current behaviour. Change the code, and record the reversal in a decision record \u2014 never by rewriting the shipped spec. What survives the freeze is narrow: its status line still takes the two pointers the contract licenses, and the deferral anchors its body names still have to resolve.",
       "assertions": [
         "Response says the shipped spec does not block the change",
         "Response says the code is the truth once the spec is `Shipped`",
         "Response says a reversal is recorded in a decision record, not by rewriting the shipped spec",
         "Response does not treat the shipped spec's content as a live requirement",
-        "Response names what still survives the freeze — the status line's two licensed pointers and the body's deferral anchors — rather than saying a shipped spec obliges nothing"
+        "Response names what still survives the freeze \u2014 the status line's two licensed pointers and the body's deferral anchors \u2014 rather than saying a shipped spec obliges nothing"
+      ]
+    },
+    {
+      "id": "pr-offer-decides-from-exit-status",
+      "prompt": "At the end of a work-loop run, how do I decide whether to offer to open the pull request? `gh auth status` says my token is invalid, but I am definitely logged in.",
+      "expected_output": "Do not decide from that message. Run `gh api user`: a non-zero exit means complete the Finish checklist, make no offer, and say nothing about credentials or connectivity. On a zero exit, read `gh repo view --json viewerPermission --jq .viewerPermission`; offer only when that value is `WRITE`, `MAINTAIN`, or `ADMIN`, and stay silent when it is any other value or unreadable. A blocked credential store makes `gh auth status` report an invalid token and `gh repo view` report a connection failure, so neither message states the cause.",
+      "assertions": [
+        "Response says to decide from the exit status of `gh api user`",
+        "Response says a non-zero exit means no offer and no message about credentials or connectivity",
+        "Response names `WRITE`, `MAINTAIN`, and `ADMIN` as the values that permit the offer",
+        "Response says an unreadable or other `viewerPermission` value means no offer and silence",
+        "Response does not tell the user to decide from `gh auth status` output"
       ]
     }
   ]

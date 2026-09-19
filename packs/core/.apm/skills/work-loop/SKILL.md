@@ -824,18 +824,28 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   re-run, tests, sampled review, and rollback; MIXED and DEEP work links its
   dependency-ordered boundaries.
 - [ ] **Pull request opened, or the offer withheld.** Decide capability from
-  exit status, never from message text: run `gh api user`, and if it exits
-  non-zero, complete this checklist, make no offer, and say nothing about
-  credentials or connectivity. If it exits zero, read
-  `gh repo view --json viewerPermission --jq .viewerPermission`; when
-  that value is unreadable, or is any value other than `WRITE`, `MAINTAIN`, or
-  `ADMIN`, again complete the checklist, make no offer, and stay silent. Only
-  with a readable value inside that set, offer to open the pull request, filling
-  the template in this skill's `assets` folder and writing the body by
-  [`references/pr-authoring.md`](references/pr-authoring.md). A blocked
-  credential store makes `gh auth status` report an invalid token and
-  `gh repo view` report a connection failure, so neither message states the
-  cause; an exit status carries no such claim.
+  exit status and the `viewerPermission` enum. The delimited table below is the
+  whole decision; nothing outside it is an input.
+
+  <!-- pr-capability-decision:start -->
+  - when: `gh api user` exits non-zero | offer: no | message: none | record: `probe-unavailable`
+  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is unreadable | offer: no | message: none | record: `permission-unavailable`
+  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is outside `WRITE` `MAINTAIN` `ADMIN` | offer: no | message: none | record: `permission-insufficient`
+  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is one of `WRITE` `MAINTAIN` `ADMIN` | offer: yes | message: none | record: `pull-request-opened` or `offer-declined`
+  <!-- pr-capability-decision:end -->
+
+  Fill this repository's own pull-request template when it has one — the
+  installer preserves an existing convention precisely so it stays
+  authoritative, and overriding it here would hand reviewers a body in a shape
+  their repository does not use. Fall back to the template in this skill's
+  `assets` folder only when the repository has none. Either way, write the body
+  by [`references/pr-authoring.md`](references/pr-authoring.md). Record the outcome
+  name in the completion evidence: silence is owed to the reader, not to the
+  record, and without it a run that never probed is indistinguishable from one
+  that probed and refused. The reason the table reads an exit status rather than
+  a message is that a blocked credential store makes `gh auth status` report an
+  invalid token and `gh repo view` report a connection failure, so neither
+  message states the cause; an exit status carries no such claim.
 
 ## FIX
 
