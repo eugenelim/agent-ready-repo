@@ -18,6 +18,10 @@ import pytest
 
 CORE = Path(__file__).resolve().parents[2]
 REVIEWER = CORE / ".apm" / "agents" / "adversarial-reviewer.md"
+CONTRACT = (
+    CORE / ".apm" / "skills" / "new-spec" / "references"
+    / "spec-and-plan-contract.md"
+)
 LIFECYCLE = (
     CORE / ".apm" / "skills" / "work-loop" / "references"
     / "delivery-contract-lifecycle.md"
@@ -58,6 +62,27 @@ LIFECYCLE_CLAUSES = (
     "§ *Spec metadata contract* → **Historical deferral token** for the "
     "anchors a frozen body still owes",
 )
+
+
+#: Every target the lifecycle pointer names, as the contract writes it. Pinning
+#: the pointer's own wording cannot catch a renamed target, and three of these
+#: four are guarded only by roster suites this pack cannot read; the bold label
+#: was guarded nowhere, so renaming it would dangle the pointer with every gate
+#: green.
+POINTER_TARGETS = (
+    "**Lifecycle:** specs are",
+    "### A spec directory freezes as a unit, when the spec ships",
+    "### Superseding a frozen document",
+    "### Spec metadata contract",
+    "- **Historical deferral token.**",
+)
+
+
+@pytest.mark.parametrize("target", POINTER_TARGETS)
+def test_every_section_the_pointer_names_still_exists(target: str) -> None:
+    """A pointer is only worth pinning if what it points at is pinned too."""
+    body = CONTRACT.read_text(encoding="utf-8")
+    assert target in body, f"spec-and-plan-contract.md lost: {target}"
 
 
 @pytest.mark.parametrize("clause", REVIEWER_CLAUSES)
