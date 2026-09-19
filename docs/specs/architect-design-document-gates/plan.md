@@ -546,7 +546,9 @@ against a non-compliant fixture and against the shipped templates — are in
 
 **Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/testdata/precheck-defects.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
 
-**Depends on:** T4
+**Depends on:** T4b — AC-0059 copies `design-reviewer.md` and dispatches it,
+so the dispatch must read the agent after T4b's precheck bodies land, not
+a definition this slice edits again afterwards.
 
 **Tests:**
 - The reference document is committed at
