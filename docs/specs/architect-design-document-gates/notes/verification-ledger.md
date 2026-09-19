@@ -397,7 +397,7 @@ enterprise-telemetry-endpoint-default subsystem
 `test_gate_script.py` both load it:
 
 ```
-word count: 2096
+word count: 2096  <!-- superseded: see the Erratum section at the end of this file; the tree now gives 2,113 -->
 ratio vs the 2,178-word density figure: 0.9624   (AC-0025's 20% window: 0.80–1.20)
 DA3 over-budget paragraphs: none
 evaluate_target(...) findings: []

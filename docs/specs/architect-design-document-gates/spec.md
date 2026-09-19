@@ -202,7 +202,7 @@ and never reflowed, so a group's list is not always contiguous.
   manual because the agent is a model: a dispatch is read, not asserted.
 - **Evidence this delivery commits (AC-0043): goal-based check.** One
   command decides it — every path from `git diff --name-only
-  origin/main...HEAD` scanned with `grep -nE '/Users/|/home/[a-z]|/Volumes/'`,
+  origin/main...HEAD` scanned with the name-segment pattern AC-0043 states,
   returning nothing. It is scoped to this delivery's own diff because a
   tree-wide standing check has no owner today; that gap is a Follow-on rather
   than a criterion nobody can implement.
@@ -552,9 +552,13 @@ on a checklist item only that rubric owns.
       decidable: a bare `/Users/` matches both the `<user>` placeholder this
       delivery scrubs paths *to* and any prose quoting the pattern itself, so
       a looser pattern reports its own remedy as a leak. Prove it
-      differentially: the scan returns nothing over the tracked tree, and a
-      throwaway file outside it — holding a home path with a real name
-      segment — still matches. The probe must live outside the scanned set,
+      differentially: the scan returns nothing over this delivery's diff —
+      the scope this criterion runs on — and a throwaway file outside the
+      repository, holding a home path with a real name segment, still
+      matches. It makes no claim about the tracked tree, which carries 34
+      files of deliberate placeholders (`alice`, `dev`, `someone`) and no
+      real account name; a tree-wide check has no home today, and a literal
+      pattern cannot be one. The probe must live outside the scanned set,
       or it becomes the hit it was written to rule out. Absence alone proves
       nothing here, because a pattern matching nothing would satisfy this
       criterion too. `--root`

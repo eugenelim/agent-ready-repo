@@ -226,7 +226,13 @@ def prose_paragraphs(text: str) -> Iterator[tuple[int, str]]:
     yield from _flush()
 
 
-_ABBREVIATIONS = ("e.g.", "i.e.", "etc.", "vs.")
+_ABBREVIATIONS = (
+    "e.g.", "i.e.", "etc.", "vs.", "cf.", "et al.", "incl.", "approx.",
+    "Fig.", "No.", "Sec.", "Ref.",
+)
+# An ellipsis is a terminator only in appearance; masking it keeps
+# "...standards... live in ..." from reading as two sentences.
+_ELLIPSIS_PATTERN = re.compile(r"\.{3}|…")
 _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
 # Only a LOWERCASE lone letter is an enumeration label (`a.`, `b.`). An
 # uppercase one is far more often a single-letter name ending a sentence
@@ -236,8 +242,14 @@ _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
 _INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
 # Any non-space opens a sentence. An allowlist of sentence-initial characters
 # has unbounded holes -- a markdown link, a parenthesis or a non-Latin capital
-# each silently drop a boundary -- and the cases that must NOT split are
-# already neutralised by the masking above.
+# each silently drop a boundary, which is the under-count DA3 exists to catch.
+# The masking above neutralises the prose cases that must not split
+# (abbreviations, decimals, ellipses, lowercase enumeration labels). Two
+# classes are knowingly accepted as over-counts rather than masked, because
+# both are markup rather than prose and neither reaches a rendered design
+# document's paragraph text: a line ending in a terminator immediately before
+# a Starlight `:::` fence, and one before an unstripped `-->`. The gate strips
+# comment spans before counting, so the second cannot arise on its own input.
 _SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+(?=\s+\S)")
 
 
@@ -249,14 +261,19 @@ def _mask_initial(match: re.Match[str]) -> str:
 def count_sentences(paragraph: str) -> int:
     """Count sentences in one `DA3` prose paragraph.
 
-    Abbreviation periods, decimal points, and a lone letter's period (an
-    inline enumeration label, e.g. `a.`, or an initial) are masked first, by
-    literal replacement, so none of them reads as a sentence boundary; every
-    replacement is one character for one character, so no later offset
-    shifts. The boundary itself fires on any sentence-initial token, not only
-    an ASCII capital: a digit, a backtick, a straight or curly quote, a
-    markdown emphasis marker, an em dash, a Latin-1 accented capital, or an
-    emoji all open a new sentence. The boundary pattern carries no nested
+    Abbreviation periods, decimal points, ellipses, and the period of a
+    LOWERCASE lone letter (an inline enumeration label, `a.`) are masked
+    first, by literal replacement, so none of them reads as a sentence
+    boundary; every replacement is one character for one character, so no
+    later offset shifts. An UPPERCASE lone letter is deliberately not masked:
+    it is far more often a single-letter name ending a sentence
+    ("...over Y. The record...") than an initial, so masking it dropped a
+    real boundary. The cost is that a genuine initial over-counts
+    ("J. Smith said." reads as two), which `_MUST_OVERCOUNT` pins.
+
+    The boundary itself fires on any non-space opener rather than a listed
+    set of characters, because an enumerated set has unbounded holes and each
+    one silently under-counts. The boundary pattern carries no nested
     quantifier and no alternation inside a repetition, the two constructs
     that make backtracking super-linear.
     """
@@ -264,6 +281,7 @@ def count_sentences(paragraph: str) -> int:
     for abbreviation in _ABBREVIATIONS:
         masked = masked.replace(abbreviation, abbreviation.replace(".", "․"))
     masked = _DECIMAL_PATTERN.sub("․", masked)
+    masked = _ELLIPSIS_PATTERN.sub(lambda m: "․" * len(m.group(0)), masked)
     masked = _INITIAL_PATTERN.sub(_mask_initial, masked)
     boundaries = len(_SENTENCE_BOUNDARY_PATTERN.findall(masked))
     return boundaries + 1 if masked.strip() else 0

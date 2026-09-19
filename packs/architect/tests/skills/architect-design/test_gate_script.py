@@ -758,3 +758,25 @@ def test_da3_does_not_register_a_boundary_on_a_masked_period(
 ) -> None:
     gate = _load_gate()
     assert gate.count_sentences(paragraph) == expected, label
+
+
+# The uppercase-lone-letter tradeoff has a cost as well as a benefit, and the
+# cost belongs in a table too: masking an uppercase `Y.` dropped a real
+# boundary, so it is no longer masked, and a genuine initial now over-counts.
+# Pinned so a future change to _INITIAL_PATTERN has to re-decide it rather
+# than move it silently.
+_MUST_OVERCOUNT = (
+    ("initial", "J. Smith said. Second. Third. Fourth.", 5),
+)
+
+
+@pytest.mark.parametrize(
+    "label,paragraph,expected",
+    _MUST_OVERCOUNT,
+    ids=[c[0] for c in _MUST_OVERCOUNT],
+)
+def test_da3_over_counts_a_genuine_initial_as_an_accepted_tradeoff(
+    label: str, paragraph: str, expected: int
+) -> None:
+    gate = _load_gate()
+    assert gate.count_sentences(paragraph) == expected, label
