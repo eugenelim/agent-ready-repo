@@ -163,8 +163,8 @@ check under those headings reaches it, and their absence is never a finding.
 The same ten gates `architect-design`'s authoring rubric walks at the
 self-check, walked again here at review. A severity orders which fix an
 author makes first, in the same vocabulary the author already used — 🟥
-blocker, 🟧 major, 🟨 minor. 🔧 marks a gate
-`scripts/check_document_architecture.py` decides directly; 🧭 marks a gate
+blocker, 🟧 major, 🟨 minor. 🔧 marks a gate `architect-design`'s
+`check_document_architecture.py` script decides directly; 🧭 marks a gate
 the reviewer decides.
 
 | ID | Tag | Severity | Asks |
