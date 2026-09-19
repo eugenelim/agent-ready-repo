@@ -827,6 +827,29 @@
         "Response does not treat the shipped spec's content as a live requirement",
         "Response names what still survives the freeze — the status line's two licensed pointers and the body's deferral anchors — rather than saying a shipped spec obliges nothing"
       ]
+    },
+    {
+      "id": "ride-along-verifiable-fix-dispatches-not-defers",
+      "prompt": "I'm implementing my assigned plan task. While editing the file, I noticed two lines above it a helper function nothing else in the repository calls — a repo-wide grep confirms zero remaining references. Fixing it is a one-line deletion in the same file, it changes no behavior, and it fires no risk trigger on its own. What do I do with it?",
+      "expected_output": "Admit it under the bundled-fixes carve-out: it fires no risk trigger standalone, it changes no behavior and presents no unresolved design call, and the zero-reference grep is the verification clause (iii) asks for. Delete it now, in this change, and list it under a standalone `Bundled fixes:` section — do not discard it and do not write it down as a note for later.",
+      "assertions": [
+        "Response admits the fix under the bundled-fixes carve-out",
+        "Response dispatches or applies the fix now rather than discarding or deferring it to a later note",
+        "Response cites the zero-reference grep as satisfying the carve-out's verification requirement",
+        "Response records it under a `Bundled fixes:` section"
+      ]
+    },
+    {
+      "id": "ride-along-unattended-decision-blocked-capture",
+      "prompt": "You're an implementer subagent. Your dispatch brief declares the run unattended. While implementing your assigned task you notice a ride-along candidate: a two-line fix that would otherwise qualify, but applying it means picking one of two equally valid option names, and you can find no shipped rule, decision record, or prior answer settling which one is correct. What do you do?",
+      "expected_output": "The dispatch is declared unattended, so you do not ask. This is an unresolved design call — no citation and no owner answer exists — so clause (ii) of the carve-out is not met and the item falls out of ride-along eligibility. Capture it with `blocked_on: decision` and move on: do not guess an option name, do not wait for a reply, and do not treat its absence as a blocker on the loop.",
+      "assertions": [
+        "Response does not ask a human for the answer, because the dispatch is declared unattended",
+        "Response does not guess or pick one of the two option names",
+        "Response captures the item with `blocked_on: decision`",
+        "Response does not wait for a reply before continuing",
+        "Response does not treat the unresolved decision as blocking the loop"
+      ]
     }
   ]
 }
