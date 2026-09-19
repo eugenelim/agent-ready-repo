@@ -713,3 +713,48 @@ whitespace — so the suite could not have caught this, and did not.
 **Gates:** 252 passed; `lint-agents-md`, `lint-pack-test-boundary`,
 `lint-ci-parity`, `make lint-ruff lint-mypy` each exit 0; body = 982 lines,
 18 under the cap.
+
+## 2026-09-19 — REVIEW: the contract did not converge, and why
+
+**Final round.** Adversarial implementation review returned 9 Blockers;
+`quality-engineer` returned 2 Blockers and 10 further findings. Five of the
+eleven Blockers are one class: a control that accepts more than its criterion
+states. That class has now been found, repaired, and re-found three times.
+
+**The class, named.** The deliverable is prose, and every control over it is a
+second statement of the obligation, so each control can be weaker or wider
+than its criterion and each repair adds a surface that can drift. The deepest
+instance makes it plain: AC25 compares each site against a canonical constant
+that is a **hand-copy of `spec.md` inside the test module**, bound to the spec
+by nothing. The control proves the copies agree with one another — the exact
+defect caught one level down at T8 and "fixed" by adding another copy.
+
+`assets/spec.md` predicted this before the contract was written: "An
+obligation whose only check is that a sentence exists is not a criterion... A
+contract made mostly of the second kind does not converge, because each review
+round produces fresh plausible objections at about the rate the last round's
+are resolved... Prefer a smaller set that can red over a larger one that can
+only be argued." The contract was 28 criteria with seven clauses pinned by
+exact string across seven sites, and about 600 lines of control for a prose
+change. It is the shape the template warns against.
+
+**Owner decision, 2026-09-19 (eugenelim).** Fix the three factual errors and
+demote the control surface. C1 and C2 stay pinned — they carry the admission
+test and its resolution rule, and a reword of either changes agent behaviour.
+C3 through C7 stop being contract: they move to the plan's design as working
+material, and their protection is the content pin already in the suite rather
+than a checkbox in the contract. Rejected: repairing all eleven Blockers,
+because the pattern across three amendments says the class regenerates;
+shipping with the limits merely recorded; and not merging.
+
+**The three factual errors, all verified:**
+1. `docs/rfc/0090-…md:526` says the tiers are replaced by a "three-clause"
+   admission test. C1 has carried four clauses since amendment two.
+2. `plan.md:471` — a pinned `Tests:` field in the frozen T4 section — says
+   "`## Capture learnings` contains C5". The section is `## Capture`, and it
+   was already being renamed by T4 when that line was written.
+3. `adversarial-reviewer.md:287` hosts C2's sentence "recorded with its
+   question in the `Bundled fixes:` entry of your report", but that agent's
+   output contract permits only severity sections or the clean sentinel.
+   Carrying one clause verbatim into hosts with different output contracts
+   produced a contradiction the verbatim rule cannot see.
