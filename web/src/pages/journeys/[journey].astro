@@ -35,7 +35,7 @@ const installCommand =
   title={`${data.pack} journey — agent-ready-repo`}
   description={data.tagline}
 >
-  <!-- 1. Pack hero (light zone, amber accents) -->
+  <!-- 1. Pack hero (light zone, clearance accents) -->
   <JourneyHero
     name={data.pack}
     scope={data.scope}
@@ -80,7 +80,7 @@ const installCommand =
       {data.prerequisitePacks.length > 0 && (
         <div class="prereqs">
           <p class="prereqs__label">Requires:</p>
-          <ul class="prereqs__list">
+          <ul class="prereqs__list" role="list">
             {data.prerequisitePacks.map((p) => (
               <li><a href={withBase(`/packs/${p}/`)}><code>{p}</code></a></li>
             ))}
@@ -121,7 +121,7 @@ const installCommand =
             // An ordered list, not a `dl`: the HTML standard calls `dl`
             // inappropriate for dialogue, so a screen reader would announce a
             // term/definition list for a sequence of speaker turns.
-            <ol class="transcript">
+            <ol class="transcript" role="list">
               {turns.map((turn) => (
                 <li class="transcript__turn">
                   <span class="transcript__speaker">{turn.speaker}</span>
@@ -249,7 +249,7 @@ const installCommand =
   }
 
   .journey-eyebrow {
-    color: var(--ds-accent-deep);
+    color: var(--ds-field-label);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-body-lg);
     font-weight: var(--ds-weight-semibold);
@@ -282,9 +282,9 @@ const installCommand =
     flex-wrap: wrap;
   }
 
-  .prereqs__list a {
-    color: var(--ds-accent-deep);
-  }
+  /* .prereqs__list a: no longer needed — color / text-decoration now come
+     from the global `a` rule in base.css. This selector previously carried
+     the withdrawn chromatic accent as the link's only differentiator. */
 
   /* Skills in this pack (section 9) */
   .skills-list {
@@ -302,8 +302,8 @@ const installCommand =
   .skill-chip {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
+    border: 1px solid var(--ds-rule-hairline);
+    color: var(--ds-on-surface-2);
     padding: 0.25rem 0.6rem;
     border-radius: var(--ds-radius-sm);
   }
@@ -313,9 +313,9 @@ const installCommand =
     font-size: var(--ds-type-xs);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
-    color: var(--ds-accent-deep);
-    background-color: var(--ds-accent-subtle);
-    padding: 0.1rem 0.4rem;
+    color: var(--ds-field-label);
+    border: 1px solid var(--ds-rule-hairline);
+    padding: 0.25rem 0.4rem;
     border-radius: var(--ds-radius-sm);
   }
 
@@ -357,17 +357,49 @@ const installCommand =
 
   /* Fixed stage-card labels (journey-template-revamp). Each `### N.` stage is
      followed by a bold-label list — You provide / <Actor> does / You do / You
-     decide / Output — rendered as a card with the leading label in accent. */
-  .journey-narrative :global(ul) {
-    list-style: none;
-    display: grid;
-    gap: var(--ds-space-3);
-    padding: var(--ds-space-5);
+     decide / Output — rendered as a card whose leading label carries heading
+     ink and semibold weight. The accent it used to carry is withdrawn. */
+  /* MARKERS RESTORED, and the list is a list again rather than a grid.
+     ─────────────────────────────────────────────────────────────────────
+     This block used to read `list-style: none; display: grid; gap: …`, and
+     both halves of that cost the same thing: Safari drops list semantics
+     from a list whose markers are suppressed, and a `ul` laid out as a grid
+     generates no markers for its items even if you ask for them. Twenty
+     journey pages therefore shipped a prose list that VoiceOver did not
+     announce as a list.
+
+     The repair for a list authored in a template is `role="list"`. These
+     lists are not authored in a template — they come out of the Markdown
+     body through `<Content />` — so there is no tag to put the attribute on.
+     Astro 7's default Markdown processor takes no rehype plugin without
+     adding `@astrojs/markdown-remark`, which is a new dependency and a
+     change of processor.
+
+     So the cause is removed instead of compensated for, and the surface
+     already had the precedent: `.pack-description ul` / `ol` restore
+     `outside` and `decimal` for exactly this content class — Markdown prose.
+     The two now agree. The panel is unchanged; only the list inside it is a
+     marked list, with the former grid `gap` carried by a sibling margin.
+     `src/test/list-semantics.test.ts` reads the build and resolves each list
+     against the WINNING declaration, so it records these as restored and
+     asks no role of them. */
+  .journey-narrative :global(ul),
+  .journey-narrative :global(ol) {
+    padding: var(--ds-space-5) var(--ds-space-5) var(--ds-space-5)
+      calc(var(--ds-space-5) + var(--ds-space-5));
     margin-bottom: var(--ds-space-5);
     background-color: var(--ds-surface-alt);
     border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
+  }
+
+  .journey-narrative :global(ul) {
+    list-style: disc outside;
+  }
+
+  .journey-narrative :global(ol) {
+    list-style: decimal outside;
   }
 
   .journey-narrative :global(li) {
@@ -377,17 +409,26 @@ const installCommand =
     line-height: var(--ds-lead-body);
   }
 
+  /* The former grid `gap`, as a margin — a grid cannot carry list markers. */
+  .journey-narrative :global(li + li) {
+    margin-top: var(--ds-space-3);
+  }
+
+  .journey-narrative :global(li)::marker {
+    color: var(--ds-on-surface-muted);
+  }
+
   .journey-narrative :global(li) > :global(strong):first-child {
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     font-weight: var(--ds-weight-semibold);
   }
 
   .journey-narrative :global(code) {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--ds-rule-hairline);
+    color: var(--ds-on-surface);
+    padding: 0.25rem 0.4rem;
     border-radius: var(--ds-radius-sm);
   }
 
@@ -481,9 +522,15 @@ const installCommand =
     display: block;
   }
 
+  /* The attribution is a record field, so it is set like one: uppercase, wide
+     tracking, field-label ink. That is what separates it from a literal inside
+     the utterance now that neither can borrow the withdrawn accent — letter
+     case and tracking, not hue. Measured 5.45:1 on `--ds-surface`. */
   .transcript__speaker {
-    color: var(--ds-on-surface);
+    color: var(--ds-field-label);
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
   }
 
   .transcript__speaker::after {
@@ -496,16 +543,16 @@ const installCommand =
 
   /* The whole block is already mono, so an inline-code chip would nest a box
      inside a box. Carry the emphasis with weight instead. */
-  /* A literal is not an attribution. Both were `--ds-on-surface` at weight 600,
-     so `release-loop` inside an utterance was indistinguishable from the "You" /
-     "Agent" label above it. The page's established literal colour separates them
-     and measures 5.43:1 on `--ds-surface`. */
+  /* A literal is not an attribution. The literal keeps full heading ink at
+     weight 600; the speaker above now carries uppercase field-label setting
+     instead, so the two no longer collide and neither needs chroma to do it.
+     Measured 16.49:1 on `--ds-surface`. */
   .transcript code {
     font-family: inherit;
     font-size: inherit;
     background: none;
     padding: 0;
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     font-weight: 600;
   }
 
@@ -534,13 +581,21 @@ const installCommand =
   .session-stat dd {
     font-size: var(--ds-type-h3);
     font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
+    color: var(--ds-on-surface);
     font-family: var(--ds-font-mono);
   }
 
   /* Section 8 */
+  /* PAPER. A command block is a FIELD on the page, not a second ground: the
+     dark ground appears exactly once, at the close (marketing-site.md, Owner
+     decisions 2026-09-18). What made it read as a block was the fill; what
+     makes it read as a field now is the boundary rule, which is the
+     direction's [ruled] containment. --ds-rule-boundary measures 3.53:1 on
+     --ds-surface and 3.26:1 on --ds-surface-alt, clearing WCAG 1.4.11 on
+     either band this block lands in. */
   .install-block {
-    background-color: var(--ds-hero-bg);
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
     padding: var(--ds-space-5) var(--ds-space-6);
     margin-bottom: var(--ds-space-7);
@@ -549,7 +604,7 @@ const installCommand =
   .install-block__code {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     line-height: var(--ds-lead-mono);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -564,11 +619,8 @@ const installCommand =
   .next-link {
     font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-body-lg);
-    color: var(--ds-accent-deep);
-    text-decoration: none;
-  }
-
-  .next-link:hover {
-    text-decoration: underline;
+    /* color / text-decoration now come from the global `a` rule in
+       base.css — this explicit override was rendering the withdrawn
+       chromatic accent with no underline. */
   }
 </style>

@@ -49,7 +49,20 @@ const {
           if (live) live.textContent = '';
           btn.classList.remove('copy-btn--success');
         }, 2000);
-      } catch { /* clipboard unavailable — content remains selectable */ }
+      } catch {
+        // The clipboard write can fail for reasons the reader cannot see:
+        // an insecure origin, a denied permission, or a browser that has no
+        // Clipboard API. The button silently doing nothing is the worst of
+        // the three outcomes, so say so. The live region already exists and
+        // already works — this is the message it was missing.
+        const failed = 'Copy failed — select the text and copy it yourself';
+        if (lbl) lbl.textContent = failed;
+        if (live) live.textContent = failed;
+        setTimeout(() => {
+          if (lbl) lbl.textContent = btn.dataset.copyLabel ?? 'Copy';
+          if (live) live.textContent = '';
+        }, 4000);
+      }
     });
   });
 </script>
@@ -79,8 +92,13 @@ const {
 
   .copy-btn:hover {
     background: var(--copy-btn-bg-hover, var(--copy-btn-bg, transparent));
-    color: var(--copy-btn-fg-hover, var(--ds-accent-deep));
-    border-color: var(--ds-accent);
+    color: var(--copy-btn-fg-hover, var(--ds-on-surface));
+    /* Themable so a dark-zone host (the install terminal) can supply the record
+       white instead; the default is heading ink because this button's own
+       default styling renders on the light zone (CopyPrompt). The withdrawn
+       accent is gone from both ends — hover is carried by ink weight and a
+       darkened border, not hue. */
+    border-color: var(--copy-btn-border-hover, var(--ds-on-surface));
   }
 
   .copy-btn:focus-visible {

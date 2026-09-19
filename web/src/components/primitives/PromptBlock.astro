@@ -32,11 +32,15 @@ const { speaker, prompt, mode, context } = Astro.props;
 </aside>
 
 <style>
+  /* Was a 3px accent left-rail over an accent tint — an MkDocs-style
+     admonition, which the aesthetic direction names as a violation. It is now
+     a ruled record block: a hairline all round, a heavier boundary rule on the
+     leading edge, and no fill. */
   .prompt-block {
-    border-left: 3px solid var(--ds-accent);
-    background-color: var(--ds-accent-subtle);
+    border: 1px solid var(--ds-rule-hairline);
+    border-left: 1px solid var(--ds-rule-boundary);
     padding: var(--ds-space-4) var(--ds-space-5);
-    border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+    border-radius: var(--ds-radius-md);
     font-family: var(--ds-font-sans);
     display: flex;
     flex-direction: column;

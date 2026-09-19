@@ -24,7 +24,7 @@ const current = (link: ChromeLink) =>
       {columns.map((col) => (
         <div class="footer__col">
           <h2 class="footer__collabel">{col.label}</h2>
-          <ul class="footer__list">
+          <ul class="footer__list" role="list">
             {col.destinations.map((link) => (
               <li>
                 <a href={chromeHref(link)} aria-current={current(link)}>
@@ -56,9 +56,10 @@ const current = (link: ChromeLink) =>
     gap: var(--ds-space-7) var(--ds-space-8);
   }
 
+  /* 600, not 700: mono ships 400 and 600 only (see fonts.css). */
   .footer__brand {
     font-family: var(--ds-font-mono);
-    font-weight: var(--ds-weight-bold);
+    font-weight: var(--ds-weight-semibold);
     color: var(--ds-hero-fg);
   }
 
@@ -78,8 +79,11 @@ const current = (link: ChromeLink) =>
   .footer__collabel {
     font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
+    /* Sentence case, minimal tracking — a field label, not a decorative
+       uppercase eyebrow (docs/design/direction/tech-site-amendment-palette.md).
+       Kept on --ds-hero-fg (not --ds-field-label): that token is tuned for
+       the light zone and would fail contrast on this dark footer. */
+    letter-spacing: 0.02em;
     color: var(--ds-hero-fg);
     margin-bottom: var(--ds-space-3);
   }
@@ -99,7 +103,7 @@ const current = (link: ChromeLink) =>
   }
 
   .footer__list a:hover {
-    color: var(--ds-accent);
+    color: var(--ds-hero-fg);
     text-decoration: none;
   }
 

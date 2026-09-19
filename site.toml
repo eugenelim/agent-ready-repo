@@ -172,7 +172,7 @@ kind = "internal"
 [[shared_chrome.destinations]]
 id = "how-it-works"
 label = "How it works"
-target = "/#three-loops"
+target = "/#the-model"
 kind = "internal"
 group = "product"
 

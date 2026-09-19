@@ -1,66 +1,73 @@
 /* ==========================================================================
    Design tokens — agent-ready-repo platform site
-   Option B — Alternating Conviction. Source of truth:
-   docs/specs/platform-site/design-system-foundations.md
+   Paper-first editorial. Source of truth:
+   docs/design/direction/marketing-site.md (current direction, 2026-09-18),
+   over docs/specs/platform-site/design-system-foundations.md (superseded on
+   palette, ground assignment and breakpoints)
    Three-tier architecture: Primitive → Semantic → Component.
    Component CSS references SEMANTIC tokens only — never primitives directly.
    ========================================================================== */
 
 /* ── Tier 1 — Primitive scale ─────────────────────────────────────────────── */
 :root {
-  /* Dark zone */
-  --prim-dark-950: #0b0e12;  /* hero canvas — neutral-cool near-black */
-  --prim-dark-900: #111520;  /* dark card / elevated on hero */
-  --prim-dark-800: #1a2035;  /* dark elevated overlay on hero */
-  --prim-dark-700: #232b40;  /* dark border-visible surface */
+  /* Ink (dark) — the one dark ground. The close band, and the footer that is
+     continuous with it. Every other band on the surface is paper.
+     (docs/design/direction/marketing-site.md, Owner decisions 2026-09-18.) */
+  --prim-ink-950: #14120f;  /* close-band ground; also the display ink on paper */
+  --prim-ink-900: #1c1a16;  /* raised on the dark ground — 1.08:1, decorative only */
+  --prim-ink-800: #26231e;  /* elevated on the dark ground — 1.19:1, decorative only */
+  --prim-ink-700: #4a443c;  /* hairline on the dark ground — 1.94:1, decorative only */
+  --prim-ink-300: #938d82;  /* muted ink on dark — 5.67:1 on ink-950 */
+  --prim-ink-200: #b8b2a6;  /* secondary ink on dark — 8.87:1 on ink-950 */
+  --prim-ink-50:  #dcd8ce;  /* primary ink on dark — 13.14:1 on ink-950. NOT #ffffff:
+                               pure white measures 19:1 and display type shimmers. */
 
-  /* Neutral (light zone) */
-  --prim-neutral-50:  #fafaf9;  /* content surface — warm near-white */
-  --prim-neutral-100: #f0efed;  /* alt surface — card background */
-  --prim-neutral-200: #e0ddd9;  /* border on light */
-  --prim-neutral-300: #c4c0bb;  /* muted border */
-  --prim-neutral-400: #9c9891;  /* placeholder, disabled */
-  --prim-neutral-600: #6b6760;  /* secondary text */
-  --prim-neutral-800: #2e2c28;  /* primary text */
-  --prim-neutral-900: #1c1b18;  /* heading text */
+  /* Paper (light) — warm editorial ground. The page is paper throughout; the
+     ramp below is the measured set from the approved direction preview. */
+  --prim-record-50:  #f7f5f0;  /* page ground */
+  --prim-record-100: #efece5;  /* alt band ground */
+  --prim-record-200: #ddd8cd;  /* card / section border — 1.30:1 on record-50, decorative only */
+  --prim-record-300: #c8c1b2;  /* neutral-state border — 1.64:1 on record-50, decorative only */
+  --prim-record-350: #b5ad9c;  /* decorative hairline — 2.05:1 on record-50, 1.89:1 on record-100 */
+  --prim-record-400: #9c9384;  /* placeholder, disabled — 2.79:1 on record-50 */
+  --prim-record-500: #8a8172;  /* boundary rule — 3.53:1 on record-50, 3.26:1 on record-100,
+                                  4.86:1 on ink-950. Clears WCAG 1.4.11 on all three. */
+  --prim-record-600: #6b655b;  /* field label, muted — 5.30:1 on record-50, 4.89:1 on record-100 */
+  --prim-record-800: #2e2a24;  /* body ink — 13.09:1 on record-50, 12.09:1 on record-100 */
+  --prim-record-900: #14120f;  /* display ink — 17.16:1 on record-50, 15.85:1 on record-100 */
 
-  /* Amber-gold — the single chromatic accent */
-  --prim-amber-50:  #fff8e8;
-  --prim-amber-100: #fdecc9;
-  --prim-amber-200: #fad49a;
-  --prim-amber-300: #f5bc6a;   /* light decorative glow */
-  --prim-amber-400: #e8952b;   /* primary accent — CTA, icon, stat */
-  --prim-amber-500: #c8780a;   /* darker variant */
-  --prim-amber-700: #8b5e0a;   /* text-safe on light (≥4.5:1 on neutral-50) */
-  --prim-amber-900: #4a3005;   /* deep, for dark-on-amber text */
+  /* The mark — the ONLY chroma, ink red. See --ds-clearance for its single job. */
+  --prim-stamp-500: #c8654f;   /* mark on the dark close band — 4.83:1 on ink-950 */
+  --prim-stamp-700: #8c2f1f;   /* mark on paper — 7.58:1 on record-50, 7.00:1 on record-100 */
 
   /* Functional state primitives — success/danger/warning/info */
-  /* These are NOT identity colors; amber-gold remains the sole chromatic accent */
+  /* These are NOT identity colors; the mark remains the sole chromatic accent */
   --prim-green-100: #dcfce7;   /* success bg */
   --prim-green-300: #86efac;   /* success border */
   --prim-green-500: #22c55e;   /* success mid */
-  --prim-green-700: #15803d;   /* success fg — text-safe on light (4.75:1 on neutral-50) */
+  --prim-green-700: #15803d;   /* success fg — text-safe on paper (4.60:1 on record-50) */
   --prim-green-900: #14532d;   /* success deep */
 
   --prim-red-100:   #fee2e2;   /* danger bg */
   --prim-red-300:   #fca5a5;   /* danger border */
   --prim-red-500:   #ef4444;   /* danger mid */
-  --prim-red-700:   #b91c1c;   /* danger fg — text-safe on light (5.75:1 on neutral-50) */
+  --prim-red-700:   #b91c1c;   /* danger fg — text-safe on paper (5.94:1 on record-50) */
   --prim-red-900:   #7f1d1d;   /* danger deep */
 
-  --prim-orange-100: #ffedd5;  /* warning bg — distinct from amber-gold */
+  --prim-orange-100: #ffedd5;  /* warning bg — distinct from the mark */
   --prim-orange-300: #fdba74;  /* warning border */
   --prim-orange-500: #f97316;  /* warning mid */
-  --prim-orange-700: #c2410c;  /* warning fg — text-safe on light (4.55:1 on neutral-50) */
+  --prim-orange-700: #c2410c;  /* warning fg — text-safe on paper (4.75:1 on record-50) */
   --prim-orange-900: #7c2d12;  /* warning deep */
 
   --prim-blue-100:  #dbeafe;   /* info bg */
   --prim-blue-300:  #93c5fd;   /* info border */
   --prim-blue-500:  #3b82f6;   /* info mid */
-  --prim-blue-700:  #1d4ed8;   /* info fg — text-safe on light (5.82:1 on neutral-50) */
+  --prim-blue-700:  #1d4ed8;   /* info fg — text-safe on paper (6.15:1 on record-50) */
   --prim-blue-900:  #1e3a8a;   /* info deep */
 
-  /* Alpha tokens */
+  /* Alpha tokens. The white alphas are for the dark ground only; on paper an
+     alpha of white composites to ~1.1:1 and disappears. */
   --prim-white-06:  rgba(255, 255, 255, 0.06);
   --prim-white-10:  rgba(255, 255, 255, 0.10);
   --prim-white-20:  rgba(255, 255, 255, 0.20);
@@ -68,54 +75,155 @@
   --prim-white-80:  rgba(255, 255, 255, 0.80);
   --prim-black-06:  rgba(0, 0, 0, 0.06);
   --prim-black-12:  rgba(0, 0, 0, 0.12);
-  --prim-amber-10:  rgba(232, 149, 43, 0.10);
-  --prim-amber-15:  rgba(232, 149, 43, 0.15);
-  --prim-amber-20:  rgba(232, 149, 43, 0.20);
+  --prim-stamp-10:  rgba(200, 101, 79, 0.10);
+  --prim-stamp-15:  rgba(200, 101, 79, 0.15);
+  --prim-stamp-20:  rgba(200, 101, 79, 0.20);
 }
 
 /* ── Tier 2 — Semantic layer ──────────────────────────────────────────────── */
 :root {
-  /* ── Hero / dark zone ───────────────────────────────────────────── */
-  --ds-hero-bg:          var(--prim-dark-950);
-  --ds-hero-surface:     var(--prim-dark-900);   /* card on dark */
-  --ds-hero-elevated:    var(--prim-dark-800);   /* elevated card on dark */
-  --ds-hero-fg:          #ffffff;                /* primary text on dark */
-  --ds-hero-fg-2:        var(--prim-white-80);   /* secondary text on dark */
-  --ds-hero-fg-muted:    var(--prim-white-60);   /* muted / caption on dark */
-  --ds-hero-border:      var(--prim-white-06);   /* hairline divider on dark */
+  /* ── Dark zone — the close band, and the footer continuous with it.
+     The role names are kept because components bind to them; what changed is
+     the ground assignment behind them. The dark ground appears exactly ONCE on
+     the surface now, at the close, and pure white is retired from it: the
+     off-white measures 13.14:1 where #ffffff measured 19:1 and shimmered
+     (docs/design/direction/marketing-site.md, What changed §1). */
+  --ds-hero-bg:          var(--prim-ink-950);    /* #14120f close-band ground */
+  --ds-hero-surface:     var(--prim-ink-900);    /* raised on dark */
+  --ds-hero-elevated:    var(--prim-ink-800);    /* elevated on dark */
+  --ds-hero-fg:          var(--prim-ink-50);     /* primary text on dark — 13.14:1 */
+  --ds-hero-fg-2:        var(--prim-ink-200);    /* secondary text on dark — 8.87:1 */
+  --ds-hero-fg-muted:    var(--prim-ink-300);    /* muted / caption on dark — 5.67:1 */
+  --ds-hero-border:      var(--prim-white-06);   /* hairline divider on dark — kept as an
+                                                    alpha: it composites to ~1.16:1 on the
+                                                    close ground, which is the weight the
+                                                    hero grid was drawn at. */
   --ds-hero-border-card: var(--prim-white-10);   /* card border on dark */
 
-  /* ── Content / light zone ───────────────────────────────────────── */
-  --ds-surface:          var(--prim-neutral-50);
-  --ds-surface-alt:      var(--prim-neutral-100); /* card background */
-  --ds-on-surface:       var(--prim-neutral-900); /* heading text */
-  --ds-on-surface-2:     var(--prim-neutral-800); /* body text */
-  --ds-on-surface-muted: var(--prim-neutral-600); /* captions, metadata */
-  --ds-border:           var(--prim-neutral-200); /* card, section border */
-  --ds-border-subtle:    var(--prim-black-06);    /* hairline, lowest weight */
-  --ds-focus-ring:       var(--ds-on-surface);    /* UI-state indicator on light */
+  /* ── Paper zone — the whole page except the close band ──────────── */
+  --ds-surface:          var(--prim-record-50);  /* #f7f5f0 page ground */
+  --ds-surface-alt:      var(--prim-record-100); /* #efece5 alt band ground */
+  --ds-on-surface:       var(--prim-record-900); /* display ink — 17.16:1 / 15.85:1 */
+  --ds-on-surface-2:     var(--prim-record-800); /* body ink — 13.09:1 / 12.09:1 */
+  --ds-on-surface-muted: var(--prim-record-600); /* muted ink — 5.30:1 / 4.89:1 */
+  --ds-border:           var(--prim-record-200); /* card, section border */
+  --ds-border-subtle:    var(--prim-black-06);   /* hairline, lowest weight */
+  /* Ink ring on paper — 17.16:1 on --ds-surface, 15.85:1 on --ds-surface-alt.
+     The dark-ground override is at the foot of this file. */
+  --ds-focus-ring:       var(--ds-on-surface);
 
-  /* ── Accent — amber-gold, single chromatic ──────────────────────── */
-  --ds-accent:            var(--prim-amber-400);  /* icon, CTA fill on dark, stat */
-  --ds-accent-deep:       var(--prim-amber-700);  /* text-safe on light (4.5:1+) */
-  --ds-accent-subtle:     var(--prim-amber-10);   /* low-opacity fill on light */
-  --ds-accent-subtle-dk:  var(--prim-amber-15);   /* low-opacity fill on dark */
-  --ds-accent-glow:       var(--prim-amber-20);   /* ambient glow, gate pulses */
+  /* ── Register roles — rules, fields, the clearance mark ──────────── */
+  --ds-rule-hairline: var(--prim-record-350);  /* divider within a record — non-text contrast floor */
+  --ds-rule-boundary: var(--prim-record-500);  /* edge of a record — non-text contrast floor */
+  --ds-rule-hairline-dk: var(--prim-ink-700);  /* divider or field edge ON THE DARK CLOSE BAND
+                                                  — #4a443c, 1.94:1 on --ds-hero-bg. Decorative
+                                                  only: it may not be the sole carrier of a
+                                                  state or of a control's edge. */
+  --ds-field-label:   var(--prim-record-600);  /* field label, and the EYEBROW role */
+  /* THE MARK HAS ONE JOB: it marks a refusal, a hold, or a block.
+     Never an eyebrow (that is --ds-field-label), never a section or eyebrow
+     rule (those are --ds-rule-hairline / --ds-rule-boundary), never a fill,
+     never a control, never body text. Owner decision, 2026-09-18
+     (docs/design/direction/marketing-site.md § "The mark means state, and
+     nothing else"). The reason is that the mark previously had two jobs —
+     decorating eyebrows and marking HELD — and two jobs is exactly how the
+     amber accent failed. One job also makes the refusal the loudest thing on
+     the page, which is the product's central claim. Widening this token to a
+     second job re-opens a decision an owner has already closed.
+
+     --ds-clearance / --ds-clearance-dk: deliberately UNUSED across the whole
+     of `web/src`, not just the homepage.
+     The annotation margin now ships a receipt (TheModel's reviewer actor),
+     and that receipt is still achromatic — evidence is not a clearance stamp.
+     Chroma means clearance only: a human cleared something, and nothing else.
+     So the absence of a consumer here is the invariant, not a gap waiting to
+     be filled. Do not "fix" the plain page by pointing a decorative accent
+     back at these; add a real receipt instead. */
+  /* Appended 2026-09-18, stage 2. Not an amendment — the rule above is
+     unchanged and still binding. What changed is the consumer count it
+     asserts. Stage 1 left three uses in
+     `src/pages/direction-preview.astro`; two of them — the eyebrow and the
+     eyebrow rule — were the retired use, and stage 2 moved them to
+     --ds-field-label and --ds-rule-boundary. `--ds-clearance` now has exactly
+     TWO consumers in the whole of `web/src`, and they are the same thing in
+     two places: the `HELD` value of the typeset transcript, in the hero
+     (`.rec__row--held dd`) and in the preview (`.dp__rec-row--held dd`).
+     That is the token's one job. Neither use is the only signal — case,
+     weight and the heavier rule above the group carry HELD as well (WCAG
+     1.4.1). `--ds-clearance-dk` has no consumer, and the paragraph above says
+     why that is the invariant and not a gap. Checkable by grep:
+       grep -rn 'ds-clearance' web/src  ->  the declarations, plus two uses. */
+  --ds-clearance:     var(--prim-stamp-700);   /* the mark, on paper */
+  --ds-clearance-dk:  var(--prim-stamp-500);   /* the mark, on the dark close band */
+
+  /* Annotation-margin geometry — the receipt column of the register.
+     The margin is a LAYOUT rule, not decoration: a load-bearing claim carries
+     its receipt beside it (tech-site-amendment-palette.md §2, goal 6).
+     `--ds-annotation-col-min` is the narrowest the receipt column may be
+     before it starts fighting the text measure; it is the reason the grid
+     override in Section.astro is keyed to 1100px, which is the first width at
+     which a 64ch measure and this column both fit inside --ds-content-max.
+     A media query cannot read a custom property, so that breakpoint is a
+     literal there and this token records what decides it. */
+  --ds-annotation-col-min: 20rem;              /* 320px = 40 x rule pitch, padding included */
+  --ds-annotation-gap:     var(--ds-space-7);  /* 48px = 6 x rule pitch, content <-> margin */
+
+  /* ── Accent — legacy aliases of the clearance stamp ─────────────── */
+  /* These five have NO consumer anywhere in `web/src`. Every decorative,
+     emphasis and UI-state use of them was withdrawn: chroma means clearance
+     and functional state, and nothing else (register palette amendment §2).
+     They are kept only as the names the design-system document and the
+     browser gate still cite; pointing a component at one reintroduces exactly
+     the defect the withdrawal removed. Add a real receipt instead. */
+  --ds-accent:            var(--prim-stamp-500);  /* unused */
+  --ds-accent-deep:       var(--prim-stamp-700);  /* unused */
+  --ds-accent-subtle:     var(--prim-stamp-10);   /* unused */
+  --ds-accent-subtle-dk:  var(--prim-stamp-15);   /* unused */
+  --ds-accent-glow:       var(--prim-stamp-20);   /* unused */
 
   /* ── CTA buttons ────────────────────────────────────────────────── */
-  /* Primary on dark hero: amber fill, near-black text */
-  --ds-cta-primary-bg:    var(--prim-amber-400);
-  --ds-cta-primary-fg:    var(--prim-dark-950);
-  --ds-cta-primary-bg-hover: var(--prim-amber-300);
+  /* Primary, RE-DERIVED for paper. The old pairing was a record-50 fill on
+     ink-950 text, and it only worked because it sat on a dark hero: on paper
+     the fill and the ground are now the SAME colour and the control vanishes.
+     Inverting it is the only derivation left — the mark is reserved for state
+     so it cannot be the fill, and a tinted fill is forbidden by [flat] /
+     [restrained]. This is the pairing the approved preview uses
+     (`.dp__control--filled`): ink fill, paper text.
+       fill #14120f on --ds-surface #f7f5f0 ...... 17.16:1 (control vs ground)
+       text #f7f5f0 on fill #14120f .............. 17.16:1 (label vs fill)
+       hover fill #2e2a24 on --ds-surface ........ 13.09:1
+     Both clear 1.4.11 (3:1) and 1.4.3 (4.5:1) with a wide margin. */
+  --ds-cta-primary-bg:    var(--prim-record-900);
+  --ds-cta-primary-fg:    var(--prim-record-50);
+  --ds-cta-primary-bg-hover: var(--prim-record-800);
 
-  /* Ghost on dark hero: transparent fill, white border + text */
-  --ds-cta-ghost-border:  var(--prim-white-20);
-  --ds-cta-ghost-fg:      var(--prim-white-80);
+  /* There is NO dark-band primary pair. There was one — `--ds-cta-primary-dk-*`
+     — and it had exactly one consumer, `.org__cta` on the dark close band. The
+     owner moved that band to the alternate paper ground on 2026-09-18
+     ('"Own the catalogue" is a light band, not part of the close'), so the
+     control takes the paper pair above and the dk pair had no consumer left.
+     It is deleted rather than kept: a token whose premise has been withdrawn
+     is the thing a later component reaches for by name and re-grounds wrongly.
+     The only dark carrier left on the surface is the footer, and it holds no
+     filled primary control. If one is ever added there, DERIVE the pair again
+     against #14120f — do not resurrect this one from git history. */
+
+  /* Ghost on the dark close band: transparent fill, off-white text, boundary
+     rule border. The white alphas are retired here — white-20 composites to
+     1.3:1 on the close ground and is under the 1.4.11 control-edge floor;
+     record-500 measures 4.86:1 on ink-950. */
+  --ds-cta-ghost-border:  var(--prim-record-500);
+  --ds-cta-ghost-fg:      var(--prim-ink-200);
   --ds-cta-ghost-bg-hover: var(--prim-white-10);
 
-  /* Ghost on light: amber border, deep-amber text */
-  --ds-cta-ghost-light-border: var(--prim-amber-400);
-  --ds-cta-ghost-light-fg:     var(--prim-amber-700);
+  /* Ghost on paper: boundary-rule border, display-ink text. The mark means
+     state only, so a secondary CTA cannot borrow it. The border is the
+     BOUNDARY rule rather than full display ink on purpose: at record-900 the
+     outlined secondary read heavier than the primary beside it and inverted
+     the hierarchy. record-500 measures 3.53:1 on `--ds-surface` and 3.26:1 on
+     `--ds-surface-alt`, so it clears WCAG 1.4.11 for a control edge on both. */
+  --ds-cta-ghost-light-border: var(--prim-record-500);
+  --ds-cta-ghost-light-fg:     var(--prim-record-900);
 
   /* ── Type family ────────────────────────────────────────────────── */
   /* 'Inter Variable' is the family name Fontsource registers for the variable
@@ -124,6 +232,20 @@
     'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --ds-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
     Menlo, Consolas, monospace;
+  /* Serif display — the direction's differentiator against a category that is
+     sans-on-dark almost without exception. 'Newsreader Variable' is the family
+     name Fontsource registers for the variable package; it is imported from
+     its `opsz` stylesheet because the direction names optical sizing as a
+     standard. Georgia is the fallback with the closest x-height. */
+  --ds-font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+
+  /* Optical-size axis settings. These have no equivalent in the former token
+     set — they are new with the serif display face. A consumer must carry BOTH
+     axes in one `font-variation-settings` declaration, because setting it at
+     all resets `wght` to the face default:
+       font-variation-settings: 'opsz' var(--ds-opsz-display), 'wght' 420; */
+  --ds-opsz-display: 72;   /* display sizes — open counters, high contrast */
+  --ds-opsz-head:    36;   /* section heads */
 
   /* ── Type scale ─────────────────────────────────────────────────── */
   --ds-type-display:  clamp(2.75rem, 5.5vw, 4rem);      /* ~44–64px */
@@ -145,7 +267,10 @@
   /* Tracking */
   --ds-track-display:  -0.03em;   /* negative — required at display sizes */
   --ds-track-heading:  -0.02em;   /* slightly negative at h2/h3 */
-  --ds-track-label:     0.08em;   /* uppercase monospace labels */
+  --ds-track-label:     0.08em;   /* wide tracking for legacy uppercase labels.
+                                      Homepage field labels are sentence-case
+                                      and use a lighter local tracking value
+                                      instead — see the register amendment. */
   --ds-track-normal:    0em;      /* body — never deviate */
 
   /* Leading */
@@ -154,10 +279,19 @@
   --ds-lead-body:    1.65;  /* comfortable reading */
   --ds-lead-mono:    1.5;   /* code and terminal */
 
-  /* ── Spacing — 4px base, 8-step scale ──────────────────────────── */
-  --ds-space-1:  4px;
+  /* ── Spacing — every step an integer multiple of --ds-rule-pitch (8px),
+     except --ds-space-1, which is an explicitly-called-out half-pitch for
+     INLINE use only (icon-to-label gaps, never a vertical measure). ──── */
+  --ds-rule-pitch: 8px;   /* the register's rule pitch; every vertical measure is n × this */
+  --ds-space-1:  4px;     /* half-pitch — INLINE use only, never a vertical measure */
   --ds-space-2:  8px;
-  --ds-space-3:  12px;
+  --ds-space-3:  8px;     /* was 12px, not a multiple of the pitch; collapsed to 8 rather
+                             than 16 — most consumers are inline gaps between small
+                             clustered elements (icon+text, badge rows) or a label
+                             glued to the heading it names, where tightening reads as
+                             "attached to" and matches the register's denser rhythm;
+                             widening to 16 would also make it numerically redundant
+                             with --ds-space-4, collapsing a distinct step */
   --ds-space-4:  16px;
   --ds-space-5:  24px;
   --ds-space-6:  32px;
@@ -168,15 +302,23 @@
 
   /* Section rhythm — responsive */
   --ds-section-gap:    clamp(5rem, 10vw, 8rem);   /* between major sections */
-  --ds-section-pad-y:  clamp(4rem, 8vw, 6rem);    /* internal section padding */
+  /* Stepped, not fluid: a vw-driven clamp crosses non-multiples of the 8px
+     rule pitch in its fluid middle (e.g. 81.92px at 1024px, 68px at 850px).
+     Fixed per-breakpoint values keep every width a multiple of
+     --ds-rule-pitch. CSS `round()` would express the same thing declaratively
+     and is deliberately NOT used: it does not reach Baseline Widely Available
+     until November 2026.
+     Three steps, on the two canonical breakpoints — see the media queries at
+     the foot of this file. */
+  --ds-section-pad-y:  4rem;                       /* 64px — base, 320px to 767px */
   --ds-content-max:    1140px;                     /* max content width */
   --ds-content-pad-x:  clamp(1.25rem, 5vw, 2.5rem); /* horizontal margin */
 
-  /* ── Radius ─────────────────────────────────────────────────────── */
-  --ds-radius-sm:   4px;   /* inline code, badges, chips */
-  --ds-radius-md:   8px;   /* cards, inputs */
-  --ds-radius-lg:   12px;  /* modals, large cards */
-  --ds-radius-pill: 9999px; /* CTA buttons */
+  /* ── Radius — one idea, two steps. The pill is retired: a register has
+     corners, not capsules. Every former pill consumer now takes --ds-radius-md. */
+  --ds-radius-sm: 2px;   /* inline code, badges, chips */
+  --ds-radius-md: 6px;   /* cards, inputs, CTA buttons (was the pill) */
+  --ds-radius-lg: 10px;  /* modals, large cards */
 
   /* ── Shadow — border-not-shadow philosophy ──────────────────────── */
   --ds-shadow-overlay: 0 20px 60px rgba(0, 0, 0, 0.25);  /* modals, dropdowns */
@@ -215,60 +357,106 @@
   --ds-state-info-fg:        var(--prim-blue-700);
   --ds-state-info-border:    var(--prim-blue-300);
 
-  --ds-state-neutral-bg:     var(--prim-neutral-100);
-  --ds-state-neutral-fg:     var(--prim-neutral-800);
-  --ds-state-neutral-border: var(--prim-neutral-300);
+  --ds-state-neutral-bg:     var(--prim-record-100);
+  --ds-state-neutral-fg:     var(--prim-record-800);
+  --ds-state-neutral-border: var(--prim-record-300);
 }
 
-/* Dark-zone roots override the inherited light focus token. This stylesheet is
-   global, so these selectors match Astro's rendered classes even though each
-   component's own styles are scoped.
+/* ── Canonical breakpoints — 640, 768, 1100 ────────────────────────────────
+   Supported minimum width: 320 CSS px.
 
-   These are dark *containers*, and the token is inherited by their focusable
-   descendants — whose rings land on the container's dark fill. A focusable element
-   that is itself dark must NOT appear here: `outline-offset` draws its ring OUTSIDE
-   its own box, onto whatever is behind it. The syntax-highlighted `<pre>` blocks are
-   the case in point — they carry `--ds-hero-bg` and receive `tabindex` when they
-   overflow, but their ring lands on the light page at rgb(250,250,249), so amber
-   would measure 2.29:1 there. They keep the light default.
+   768 is irreducible: it is the only width at which BEHAVIOUR changes rather
+   than spacing (`.nav__links` hides and the `<details>` drawer appears in
+   SiteNav.astro). 1100 is the only breakpoint with a stated derivation — it is
+   the first width at which a 64ch measure and --ds-annotation-col-min both fit
+   inside --ds-content-max (Section.astro). 640 absorbs the former 420, 480 and
+   600 queries, which were one phone-reflow decision taken at four slightly
+   different widths.
 
-   A carrier must also hold at least the ring's offset plus its width of its own
-   fill around every focusable descendant. Otherwise part of that descendant's ring
-   falls outside the carrier onto the light page — the same defect by a different
-   route. Verified at the time of writing: `.terminal__bar` holds 12/16px and
-   `.install-block` 24/32px, against a 3px offset plus a 2px ring. */
-/* Accent-filled controls take a white ring, not the amber one they inherit.
-   Ring and fill were both `--prim-amber-400`, so with only a 3px band of carrier
-   between them the indicator read as a dark seam rather than a contour. This is not
-   a floor breach — the ring measures 8.07:1 against the dark carrier on both sides
-   — but it is the weakest focus signal on the site and it sits on the most-visited
-   focus stops. White measures 19.34:1 against the carrier and steps clearly off the
-   amber fill. No assertion covers this: the walk measures ring-versus-backdrop, and
-   amber-on-dark passes, so a missed control here fails nothing. Kept as a list
-   because these CTAs share no class.
+   --ds-section-pad-y is stepped on two of those three. The former 1024 / 1280 /
+   1440 queries existed ONLY to step this one value 72 -> 80 -> 88 -> 96, so
+   they carried three extra breakpoints for three 8px increments nobody can see
+   side by side. Three values on the breakpoints that already exist:
+     320-767px -> 64px, 768-1099px -> 72px, >=1100px -> 88px.
+   Each is a multiple of --ds-rule-pitch (8px). */
+@media (min-width: 768px) {
+  :root { --ds-section-pad-y: 4.5rem; }  /* 72px */
+}
+@media (min-width: 1100px) {
+  :root { --ds-section-pad-y: 5.5rem; }  /* 88px */
+}
 
-   Only controls on a DARK carrier belong here. `.page-hero__action--primary`,
-   `.decision-band__action--primary` and `.btn-primary` are amber-filled too but sit
-   on `--ds-surface-alt`, where the light default already gives 16.49:1 and a white
-   ring measures 1.15:1. Adding them by name-matching "primary CTA" is exactly the
-   sweep the carrier list itself was designed to avoid, and the focus-ring walk
-   caught it on the first run. */
-:where(.nav__cta, .hero__cta--primary, .org__cta, .notfound__cta--primary) {
+/* ══ Focus rings — RE-DERIVED, 2026-09-18, not edited in place ═══════════════
+   Both former override blocks existed for one reason: their eleven listed
+   carriers were dark, so the inherited light ring would have vanished on them.
+   The owner decision inverts the ground — the whole page is paper, the dark
+   ground appears exactly once at the close, and the footer is continuous with
+   it. That kills the premise of both blocks, so the carrier lists below are
+   derived again from the new ground assignment rather than inherited.
+
+   Measured, at 2px ring / 3px offset:
+     ink  #14120f ring on paper #f7f5f0 ............ 17.16:1
+     ink  #14120f ring on paper #efece5 ............ 15.85:1
+     off-white #dcd8ce ring on dark #14120f ........ 13.14:1
+   The failure this re-derivation exists to prevent, for the record:
+     off-white #dcd8ce ring on paper #f7f5f0 ....... 1.31:1
+     pure white #ffffff ring on paper #f7f5f0 ...... 1.09:1
+   A ring at 1.1:1 is invisible, and NO gate in the suite catches it: the
+   focus-ring walk measures ring-versus-backdrop only for carriers that are in
+   these lists, so a carrier that silently stopped being dark reports nothing.
+
+   The former "accent-filled controls take a white ring" block is DELETED, not
+   moved. It listed `.nav__cta`, `.hero__cta--primary`, `.org__cta` and
+   `.notfound__cta--primary` because their fill and their ring were both the
+   dark-zone accent. The accent was withdrawn, and the fill is now ink on
+   paper, so every clause of that premise is gone. Stage 2 finishes it: all
+   four now inherit the correct ring from their carrier. Amended 2026-09-18,
+   stage 3: all FOUR — `.nav__cta`, `.hero__cta--primary`,
+   `.notfound__cta--primary` and `.org__cta` — take the paper ink ring from
+   :root, because the owner moved "Own the catalogue" off the dark ground onto
+   --ds-surface-alt. `.org__cta` therefore also takes the paper CTA pair; the
+   dark pair it used to take is deleted, and the note above the CTA block says
+   why.
+
+   A carrier must hold at least the ring's offset plus its width of its own
+   fill around every focusable descendant, or part of that ring falls outside
+   the carrier onto the other ground. Verified: `.terminal__bar` holds 12/16px
+   and `.install-block` 24/32px against a 3px offset plus a 2px ring. After
+   stage 2 both of those carriers are paper on paper, so a ring that overhangs
+   lands on the same ground and stays at its measured ratio either way — the
+   rule is kept because it is the dark band's constraint, not the terminal's. */
+
+/* The permanent dark set. As of the owner's 2026-09-18 stage-3 decision the
+   only carrier on this ground is the FOOTER: "Own the catalogue" moved to
+   --ds-surface-alt, and `.section--dark` has no consumer in `web/src`. The
+   selector keeps `.section--dark` because `tone="dark"` is still Section's
+   declared API and a band that opts into it must not inherit a 1.31:1 ring —
+   this is a guard for the tone, not a claim that the tone is in use.
+   Checkable by grep:  grep -rn 'tone="dark"' web/src  ->  empty. */
+:where(.section--dark, .footer) {
   --ds-focus-ring: var(--ds-hero-fg);
 }
 
-:where(
-  .section--dark,
-  .nav,
-  .footer,
-  .hero,
-  .stats,
-  .terminal,
-  .cat-hero,
-  .notfound,
-  .journeys-hero,
-  .now-hero,
-  .install-block
-) {
-  --ds-focus-ring: var(--ds-accent);
-}
+/* The transitional block that stood here is DELETED, and its emptiness is the
+   completion check for stage 2 of the paper-first retrofit. It carried nine
+   carriers — .nav, .hero, .stats, .terminal, .cat-hero, .notfound,
+   .journeys-hero, .now-hero, .install-block — under one stated premise:
+   "background-color: var(--ds-hero-bg) is still in the component". The
+   premise is now false for all nine, so the block goes rather than shrinks.
+   Eight were re-grounded on paper in place. The ninth, `.stats`, went with
+   its component: StatStrip's three figures were self-reported counts
+   standing where the content brief asks for proof a sceptic can check, and
+   the settled zone order has no slot for them. Every surviving carrier
+   inherits the paper ink ring from :root (17.16:1 on --ds-surface, 15.85:1
+   on --ds-surface-alt).
+
+   The premise is still checkable by grep, and now it should come back empty
+   for these nine:
+     grep -rn 'ds-hero-bg' web/src/components web/src/pages
+   What legitimately remains on that ground is the dark set above — in
+   practice the footer alone, with `.section--dark` held open as the tone's
+   guard — plus the
+   preview's own `.dp__close` and `.dp-page__note`, which declare their ring
+   through the same :root/.section--dark pair, and the Shiki `pre` blocks on
+   the pack and journey detail pages, which are NOT focus carriers and were
+   out of stage 2's scope. */

@@ -19,11 +19,18 @@ const baseProps = {
 };
 
 describe('WriteConfirmation', () => {
+  // A <section> maps to the `region` landmark exactly when it has an
+  // accessible name, so the name is the load-bearing half and is asserted
+  // here. The previous version of this test matched `[role="region"]`, which
+  // pinned the mechanism rather than the landmark its own name describes: it
+  // would have failed on the equivalent native markup and passed on a
+  // `<div role="region">` with no name, which is not a landmark at all.
   it('renders as a region landmark', async () => {
     const html = await render(baseProps);
     const dom = new JSDOM(html);
-    const region = dom.window.document.querySelector('[role="region"]');
+    const region = dom.window.document.querySelector('section.write-confirmation');
     expect(region).not.toBeNull();
+    expect(region?.getAttribute('aria-label')).toBe('Confirm write operation');
   });
 
   it('cancel link appears before confirm link in the DOM', async () => {

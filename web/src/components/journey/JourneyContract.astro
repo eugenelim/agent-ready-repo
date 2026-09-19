@@ -3,8 +3,8 @@
 // Use it when / You type / You provide / You receive / Your decisions — so a
 // reader learns the shape once and reuses it on every journey. `youType` is
 // optional and its row is omitted when a journey has not declared one, so a
-// pack authored before the field still renders. Light zone, amber left border,
-// same --ds-* token vocabulary as GateDetail.astro. Zero JS.
+// pack authored before the field still renders. Light zone, record rule on the
+// leading edge, same --ds-* token vocabulary as GateDetail.astro. Zero JS.
 
 interface Contract {
   useItWhen: string;
@@ -90,7 +90,7 @@ const decisionCount = decisions?.length ?? 0;
   .contract-card {
     background-color: var(--ds-surface-alt);
     border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     border-radius: var(--ds-radius-md);
     padding: var(--ds-space-6);
     max-width: 72ch;
@@ -113,7 +113,7 @@ const decisionCount = decisions?.length ?? 0;
     font-size: var(--ds-type-xs);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
-    color: var(--ds-accent-deep);
+    color: var(--ds-field-label);
     font-weight: var(--ds-weight-semibold);
   }
 
@@ -146,13 +146,24 @@ const decisionCount = decisions?.length ?? 0;
     gap: var(--ds-space-3);
   }
 
+  /* Resting decision chip. It opts out of the base underline, so its
+     affordance has to be non-chromatic and non-textual: a ruled, padded box
+     set in the mono field face, carrying its own ordinal label. The accent
+     tint that used to do this work is withdrawn. Hover and focus invert the
+     chip to solid record ink — a fill change, not a hue change — which is the
+     same treatment `.gate-card__label` uses, so one interaction speaks one
+     language. */
   .decision-chip {
     display: grid;
     gap: var(--ds-space-1);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
+    /* Boundary rule, not the hairline every static chip takes: this chip is a
+       link that opts out of the base underline, so its border is what
+       identifies it as a control and owes WCAG 1.4.11's 3:1 floor. The
+       hairline measured 1.91:1 on `--ds-surface-alt`; this measures 3.12:1. */
+    border: 1px solid var(--ds-rule-boundary);
+    color: var(--ds-on-surface-2);
     padding: 0.25rem 0.6rem;
     border-radius: var(--ds-radius-sm);
     text-decoration: none;
@@ -160,16 +171,18 @@ const decisionCount = decisions?.length ?? 0;
 
   .decision-chip:hover,
   .decision-chip:focus-visible {
-    background-color: var(--ds-accent);
-    /* Dark on amber, not white. `--ds-hero-fg` is white "primary text on dark"
-       and `--ds-accent` is the "CTA fill on dark" — pairing them on a LIGHT
-       surface gave 2.40:1 against a 4.5:1 requirement for this 13px/12px
-       weight-400 text, so acquiring focus made the chip less legible than its
-       resting neighbours. `--ds-cta-primary-fg` is the system's own
-       dark-on-amber CTA pairing and measures 8.07:1. axe cannot see this: it
-       scans the resting DOM, so a :hover/:focus-visible rule never applies
-       during the scan. `assertStateContrast` in the browser gate covers it. */
-    color: var(--ds-cta-primary-fg);
+    /* Neutral ink fill, not the chroma accent. The register withdraws
+       chroma everywhere except the clearance stamp (register palette
+       amendment); a vermilion hover fill was left over from the prior
+       accent-driven palette and measured 3.14:1 against its near-black
+       text — below the 4.5:1 floor. `--ds-on-surface` (record-900) with
+       `--ds-surface` (record-50) text measures ~15.7:1, comfortably clear.
+       axe cannot see this: it scans the resting DOM, so a :hover/
+       :focus-visible rule never applies during the scan.
+       `assertStateContrast` in the browser gate covers it. */
+    background-color: var(--ds-on-surface);
+    border-color: var(--ds-on-surface);
+    color: var(--ds-surface);
   }
 
   .decision-chip:focus-visible {
@@ -179,10 +192,11 @@ const decisionCount = decisions?.length ?? 0;
 
   .decision-chip__ordinal {
     font-size: var(--ds-type-xs);
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   /* Stack labels above values on narrow viewports. */
-  @media (max-width: 40rem) {
+  @media (max-width: 640px) {
     .contract-row {
       grid-template-columns: 1fr;
       gap: var(--ds-space-1);

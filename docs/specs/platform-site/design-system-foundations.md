@@ -4,6 +4,35 @@ Derived from `site/aesthetic-direction.md` (Option B — Alternating Conviction)
 Follows the three-tier architecture: **Primitive → Semantic → Component**.  
 Implementation target: Astro marketing site CSS + MkDocs `extra.css` override.
 
+> **Superseded in part — read the current token file with this document.**
+> This file was a values mirror of `web/src/styles/tokens.css`. The palette it
+> mirrors was withdrawn on 2026-09-18 by
+> `docs/design/direction/tech-site-amendment-palette.md` (`status: active`),
+> which replaced the dark/neutral/amber ramps with the **register** language: a
+> green-black machine zone (`--prim-ink-*`), a pale green-grey record zone
+> (`--prim-record-*`), and a single vermilion clearance mark
+> (`--prim-stamp-*`) that is defined and deliberately unused.
+>
+> **Current authorities, in order:**
+>
+> - `web/src/styles/tokens.css` — the implementation authority for every value.
+> - `web/src/design-system.md` — the living reference that describes the current
+>   system, including the annotation margin, which postdates this file entirely.
+> - `docs/design/direction/tech-site-amendment-palette.md` — why the change was
+>   made. The reasoning is not paraphrased here.
+>
+> Claims in this file that the amendment falsified are marked inline below as
+> **[Corrected]**. The original wording is kept so the shipped record stays
+> honest; it is not authoritative where a correction follows it.
+>
+> **Governance.** Only `spec.md` and `plan.md` in this directory carry a
+> `- **Status:**` field, and the convention's freeze mechanism works exclusively
+> through that field. This companion carries no Status field, so the mechanism
+> does not reach it — the same check recorded for `aesthetic-direction.md` in
+> `docs/design/direction/tech-site-amendment.md`. This file therefore follows
+> the convention already applied to `aesthetic-direction.md`: a supersession
+> banner plus inline `[Corrected]` markers, and no rewriting of the original.
+
 ---
 
 ## Tier 1 — Primitive scale
@@ -50,6 +79,42 @@ Implementation target: Astro marketing site CSS + MkDocs `extra.css` override.
   --prim-amber-20:  rgba(232, 149, 43, 0.20);
 }
 ```
+
+---
+
+> **[Corrected] — every colour primitive above.** The dark, neutral and amber
+> ramps no longer exist in `tokens.css`. The current primitives are:
+>
+> | Withdrawn | Current | Hex |
+> | --- | --- | --- |
+> | `--prim-dark-950` `#0b0e12` | `--prim-ink-950` | `#0e1311` |
+> | `--prim-dark-900` `#111520` | `--prim-ink-900` | `#151b18` |
+> | `--prim-dark-800` `#1a2035` | `--prim-ink-800` | `#1d2521` |
+> | `--prim-dark-700` `#232b40` | `--prim-ink-700` | `#2a332e` |
+> | `--prim-neutral-50` `#fafaf9` | `--prim-record-50` | `#f1f3ef` |
+> | `--prim-neutral-100` `#f0efed` | `--prim-record-100` | `#e7eae5` |
+> | `--prim-neutral-200` `#e0ddd9` | `--prim-record-200` | `#d3d8cf` |
+> | `--prim-neutral-300` `#c4c0bb` | `--prim-record-300` | `#b4bcb0` |
+> | — (new) | `--prim-record-350` | `#a4ad9f` |
+> | `--prim-neutral-400` `#9c9891` | `--prim-record-400` | `#8f978c` |
+> | — (new) | `--prim-record-500` | `#7a8773` |
+> | `--prim-neutral-600` `#6b6760` | `--prim-record-600` | `#5e645c` |
+> | `--prim-neutral-800` `#2e2c28` | `--prim-record-800` | `#2b302c` |
+> | `--prim-neutral-900` `#1c1b18` | `--prim-record-900` | `#161a17` |
+> | the eight `--prim-amber-*` steps (whole ramp withdrawn) | `--prim-stamp-500` | `#e2593a` |
+> | — | `--prim-stamp-700` | `#b23a22` |
+>
+> The amber alpha tokens went with the ramp: `--prim-amber-10/15/20` are now
+> `--prim-stamp-10` `rgba(226, 89, 58, 0.10)`, `--prim-stamp-15`
+> `rgba(226, 89, 58, 0.15)` and `--prim-stamp-20` `rgba(226, 89, 58, 0.20)`. The
+> white and black alpha tokens are unchanged.
+>
+> `--prim-stamp-*` is the **clearance mark** — the only chroma, and it means a
+> human cleared something. It is defined and has no consumer in `web/src`; that
+> absence is the invariant, not a gap. The functional state primitives
+> (`--prim-green-*`, `--prim-red-*`, `--prim-orange-*`, `--prim-blue-*`) are
+> retuned off stock Tailwind and were never part of this file's mirror; they are
+> listed in `web/src/design-system.md` §1.
 
 ---
 
@@ -181,6 +246,53 @@ One-way dependency: semantic tokens reference primitives only. Component CSS ref
 
 ---
 
+> **[Corrected] — the semantic block above, in five places.**
+>
+> 1. **Zone tokens re-point.** `--ds-hero-*` now reads the `--prim-ink-*` ramp
+>    and `--ds-surface*` / `--ds-on-surface*` the `--prim-record-*` ramp. The
+>    token names and roles are unchanged.
+> 2. **The accent layer has no consumer.** `--ds-accent`, `--ds-accent-deep`,
+>    `--ds-accent-subtle`, `--ds-accent-subtle-dk` and `--ds-accent-glow` still
+>    exist, now aliased to the stamp, but nothing in `web/src` reads them. They
+>    are kept only as the names the design-system document and the browser gate
+>    cite. Pointing a component at one reintroduces the defect the withdrawal
+>    removed.
+> 3. **The CTA tokens changed meaning.** The primary CTA is the record itself,
+>    not chroma: `--ds-cta-primary-bg` → `--prim-record-50`,
+>    `--ds-cta-primary-fg` → `--prim-ink-950`, `--ds-cta-primary-bg-hover` →
+>    `--prim-record-200`. The light ghost CTA takes the boundary rule and heading
+>    ink: `--ds-cta-ghost-light-border` → `--prim-record-500`,
+>    `--ds-cta-ghost-light-fg` → `--prim-record-900`. The claim that "the same
+>    tokens work" on a light section no longer holds, because there is no amber
+>    fill to reuse.
+> 4. **New roles exist that this file predates.** `--ds-rule-hairline`
+>    (`--prim-record-350`), `--ds-rule-boundary` (`--prim-record-500`),
+>    `--ds-field-label` (`--prim-record-600`), `--ds-clearance`
+>    (`--prim-stamp-700`), `--ds-clearance-dk` (`--prim-stamp-500`),
+>    `--ds-focus-ring` (`--ds-on-surface` on light, re-pointed to
+>    `--ds-hero-fg` on dark carriers), and the annotation-margin geometry
+>    `--ds-annotation-col-min` (`20rem`) and `--ds-annotation-gap`
+>    (`var(--ds-space-7)`).
+> 5. **Spacing, rhythm and radius changed.** A `--ds-rule-pitch: 8px` vertical
+>    rhythm was added and every vertical measure is an integer multiple of it.
+>    `--ds-space-3` is `8px`, not `12px`. `--ds-space-1` stays `4px` as an
+>    explicit half-pitch for inline use only, never a vertical measure.
+>    `--ds-section-pad-y` is no longer `clamp(4rem, 8vw, 6rem)` — it is stepped
+>    per breakpoint (`4rem` base, `4.5rem` ≥768px, `5rem` ≥1024px, `5.5rem`
+>    ≥1280px, `6rem` ≥1440px) so every value lands on the pitch. Radius
+>    collapsed to `--ds-radius-sm: 2px`, `--ds-radius-md: 6px`,
+>    `--ds-radius-lg: 10px`, and **`--ds-radius-pill` is deleted**: a register
+>    has corners, not capsules. Every former pill consumer takes
+>    `--ds-radius-md`.
+>
+> Tracking, leading, the type scale, the weight scale, shadow, motion and
+> z-index are unchanged in value. One meaning changed:
+> **`--ds-track-label` (`0.08em`) no longer means uppercase.** Homepage field
+> labels are sentence-case with their own lighter local tracking; `/catalogue/`
+> is the last consumer of the token.
+
+---
+
 ## Tier 3 — Component notes (not values)
 
 Component CSS references semantic tokens only. Notes on key components:
@@ -228,6 +340,37 @@ Component CSS references semantic tokens only. Notes on key components:
 
 ---
 
+> **[Corrected] — the component notes above, wherever they name the accent.**
+>
+> - **Hero.** The radial `--ds-accent-glow` glow is withdrawn. The canvas carries
+>   a ruled grid only; there is no "one non-neutral move" on the hero.
+> - **Stat strip.** The label is sentence case with a local `letter-spacing:
+>   0.02em`, not uppercase with `--ds-track-label`. The number is
+>   `--ds-hero-fg`, not `--ds-accent`. Tabular lining numerals still hold.
+> - **Cards.** The hover border no longer transitions to `--ds-accent`. Card
+>   edges are carried by `--ds-border` and, where a record edge is meant,
+>   `--ds-rule-boundary` — for example `HumanGates`' `.gate-card` left border.
+>   Border-not-shadow still holds.
+> - **Skill name / command chips.** `--ds-accent-subtle` and `--ds-accent-deep`
+>   have no consumer. Chips are set in the record ramp with `--ds-field-label`
+>   and ink weight.
+> - **CTA buttons.** `--ds-radius-pill` is deleted; CTAs take
+>   `--ds-radius-md` (`6px`).
+> - **Focus rings.** The ring is not the accent. `--ds-focus-ring` resolves to
+>   `--ds-on-surface` on light and is re-pointed to `--ds-hero-fg` on the
+>   dark-zone carriers enumerated at the foot of `tokens.css`. The ratios are
+>   re-measured in the browser gate against the current palette, not asserted
+>   in a document.
+>
+> **Not in this file at all: the annotation margin.** It postdates this record.
+> `Section.astro`'s `annotated` prop, the `.annotation-row` grid, the
+> `Receipt.astro` primitive, the 1100px collapse, and the rule that a receipt
+> reflows beneath its claim and is never hidden are documented in
+> `web/src/design-system.md` §9 and held open by the guard test
+> `web/src/test/annotation-margin.test.ts`.
+
+---
+
 ## Typeface decisions
 
 | Role | Font | Notes |
@@ -237,6 +380,15 @@ Component CSS references semantic tokens only. Notes on key components:
 | No additional typefaces | — | Adding a third face breaks the identity |
 
 The existing MkDocs `font:` config (`text: Inter`, `code: JetBrains Mono`) is correct. No change needed.
+
+---
+
+> **[Corrected] — the "Uppercase + wide tracking for labels" note.** Mono is a
+> field face, not a decorative label face: it sets record fields, and homepage
+> field labels are sentence-case. The two families and the "no third face" rule
+> stand. The MkDocs `font:` config referenced here no longer exists — the docs
+> surface is Starlight, and it is out of this amendment's scope by owner
+> decision.
 
 ---
 
@@ -256,6 +408,19 @@ The existing MkDocs `font:` config (`text: Inter`, `code: JetBrains Mono`) is co
 
 ---
 
+> **[Corrected] — the whole table and the rule below it.** Every row measures a
+> withdrawn colour, so none of these ratios describes the shipped surface, and
+> the rule about `--ds-accent` at body size guards a token nothing reads. The
+> current measured ratios live where they are measured: `tokens.css` records the
+> record-ramp ratios at the primitive definitions (`--prim-record-350` 2.08:1 on
+> `#f1f3ef` / 1.91:1 on `#e7eae5`; `--prim-record-500` 3.39:1 / 3.12:1;
+> `--prim-record-600` 5.45:1 / 5.01:1) and the state `fg` ratios on
+> `--prim-record-50` (green-700 4.75:1, red-700 5.75:1, orange-700 4.55:1,
+> blue-700 5.82:1). Focus-ring and control-edge ratios are re-measured in the
+> browser gate, not asserted here.
+
+---
+
 ## MkDocs alignment notes
 
 To bring `/docs/` visually in line with the marketing site, update `site/docs/stylesheets/extra.css`:
@@ -268,3 +433,14 @@ To bring `/docs/` visually in line with the marketing site, update `site/docs/st
 6. **Inline code chip accent** changes from `rgba(94,106,210,0.07)` / `#3a4ab8` to `rgba(232,149,43,0.10)` / `#8b5e0a`.
 
 These are 6 targeted find-replace operations in `extra.css`. The structural CSS (hero layout, full-bleed, section rhythm) is unchanged.
+
+---
+
+> **[Corrected] — this whole section is inoperative.** The docs surface migrated
+> from MkDocs / Material to Starlight, so `site/docs/stylesheets/extra.css` and
+> every `--md-*` slot named below are gone, and the amber values the six
+> find-replace steps would write are withdrawn. The docs surface is also
+> explicitly out of the palette amendment's scope by owner decision: `docs-site/`
+> keeps its own palette and does not read `web/src/styles/tokens.css`
+> (ADR-0085). No action survives from this section.
+

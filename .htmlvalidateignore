@@ -1,0 +1,9 @@
+# Consumed by html-validate (gitignore syntax). Scope control, not suppression:
+# nothing here weakens a rule, it only says which trees this project's
+# html-validate run owns.
+#
+# build/docs/ is the Starlight output of docs-site/, a separate surface with its
+# own toolchain and its own owner. The marketing build (web/) writes the rest of
+# build/ and is what this configuration is calibrated for. Validating docs-site
+# output here would report defects against markup this project does not author.
+build/docs/

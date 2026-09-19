@@ -411,3 +411,102 @@ not authority to edit the header.
 
 **Status: decided, not implemented.** No file under `web/` or `site.toml` was
 changed by this amendment.
+
+## Amendment 2026-09-18 — adopting the user guide's message structure
+
+**Trigger.** The owner provided a separate user guide and reported understanding
+the product materially better from its overview than from this surface. The
+guide is written for a reader who has already decided; the structure transfers,
+the register does not. This amendment records what transfers, what changes in
+the move to an acquisition register, and three claims the guide makes that this
+brief did not.
+
+### A correction to the framing that prompted this amendment
+
+The guide's overview was initially described as fixing this brief's logged
+defect — *six of nine sections describe both lifecycles at once and neither
+whole*. It does not. The guide tells the **work** lifecycle whole and once, and
+says nothing about the team-adoption lifecycle. That is not the defect being
+fixed; it is **zone 5 done correctly**. Zones 4 and 5 still must stay separate,
+and nothing here relaxes that.
+
+### What transfers: the four-clause telling
+
+The guide states the whole work lifecycle in one sentence with four actors, each
+named with what it does: the agent does the reversible work, mechanical checks
+decide whether the work is green, reviewers who did not write the code read the
+diff, and a human makes every decision that is hard to undo.
+
+**Zone 5's content direction is amended to require that shape** — four actors,
+each named with its own verb, in one telling, in order. The zone previously
+required "the work sequence end to end"; it now requires the sequence to be
+*sayable as one sentence* before it is expanded. The existing bar stands: no gate
+codes, and it must read as nested inside station 2 rather than as a second plan.
+
+**Above the fold, the subheadline carries the compressed form.** The headline
+contract is unchanged — it still answers who this is for and what problem it
+solves, and still must not name the mechanism. The subheadline is where the
+mechanism belongs, and the four clauses are the mechanism. This resolves what the
+subheadline adds, which this brief previously left underspecified.
+
+### What changes in the move from guide to acquisition register
+
+| Guide behaviour | Acquisition requirement |
+| --- | --- |
+| Opens by describing the artifact — "this repository is…" | Opens with what the reader gets. The artifact is not the subject until zone 9. |
+| Explains, because the reader has already chosen | Earns each line, because the reader has not. Every zone leads with the reader's stake. |
+| No call to action | Zones 9 and 10 carry the primary and transitional CTAs. |
+| No proof obligation | Zone 2's three checkable proofs remain required. |
+| Section headings are descriptive | Headings may carry the claim, since they are doing scan-level work. |
+
+### Three claims the guide makes that this brief did not
+
+1. **The reader's cost, in zone 3.** The guide names what the status quo costs
+   the reader: they review everything themselves, every time, with no record of
+   what was agreed. This brief's zone 3 named the product insight — why a better
+   prompt does not solve it — but not the cost. Painkiller-first wants the cost
+   stated before the insight. Zone 3 gains it; the existing content is not
+   rewritten, it is preceded.
+
+2. **No hosted runtime, as a first-class claim.** The guide states there is no
+   hosted runtime between the reader and the installed files. Nothing on this
+   surface makes that claim, and it answers data residency, lock-in and vendor
+   dependency in one clause. **Placement: zone 2, as a checkable proof** — it is
+   verifiable by looking at the files, which is the test zone 2 applies. It is
+   not a fourth proof; it replaces whichever of the three is weakest against that
+   test, because zone 2's job is three things a sceptic can check, not a list
+   that grows.
+
+3. **Ownership stated as files, not as a licence.** "Files you can read, diff,
+   and edit" is concrete where "you own it" is abstract. Zone 9's direction gains
+   this framing; zone 11 keeps the organisation-level end state and does not
+   absorb it.
+
+### Section headings promoted from the guide
+
+Three of the guide's headings survive the copy-direction gate stack as **section
+heads**, having failed it as headline candidates — they do not answer "what is
+this?", which disqualifies a headline and is irrelevant to a section head that
+sits under one:
+
+| Zone | Heading role |
+| --- | --- |
+| 3 — the problem | A statement that an agent which self-certifies is not a teammate |
+| 5 — one piece of work | A statement that there are four steps and the last one is the reader's |
+| 9 — install | A statement that the installed units are files the reader can read, diff and edit |
+
+`copy-direction` owns their final wording; recorded here because the *jobs* they
+perform are content decisions, and because the pattern behind them is worth
+keeping: **the most memorable lines in this product's material are all problem
+statements, and problem statements make poor headlines.**
+
+### Open questions this amendment adds
+
+- **Which of zone 2's three proofs does the no-hosted-runtime claim displace?**
+  The three are named earlier in this brief. Displacing one is a content
+  decision that needs the owner, because the weakest-against-the-test judgement
+  is not mechanical.
+- **Does the four-clause telling survive the tweet test as a subheadline?** It is
+  longer than the current subheadline. `copy-direction`'s *Sayable in a meeting*
+  is the arbiter, and the guide's prose form — not its arrow form — is what is
+  being adopted; arrows are notation and that goal's violation clause bars them.

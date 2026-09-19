@@ -1,81 +1,213 @@
 ---
-// Section 1 — HERO. Dark zone (--ds-hero-bg), full-bleed, continuous with the
-// nav above and the stat strip below. Radial amber glow + faint grid texture.
-// One-shot 300ms opacity fade-in on load, guarded by prefers-reduced-motion.
-// No looping animation (creative-direction.md).
+// ZONE 1 — ABOVE THE FOLD. Paper, like every band except the close
+// (docs/design/direction/marketing-site.md, Owner decisions 2026-09-18).
+//
+// Five things in one reading column, in this order, because the order is the
+// spec: headline, subhead, primary + secondary CTA, proof signal, friction
+// microcopy, and the agent-agnosticism line last
+// (docs/design/content/marketing-home.md § Above-fold structure, and
+// docs/design/copy/marketing-home.md § Owner decisions 2026-09-18).
+//
+// The typeset transcript is the hero's evidence — it is what shows the loop
+// stopping — and it sits in an image track beside the reading column, never a
+// second column of prose. Below 1100px it reflows UNDER the lede. It is never
+// withheld at any width; src/test/annotation-margin.test.ts holds the same
+// invariant open for the direction preview's copy of this figure.
+//
+// Motion: one 300ms opacity fade on load, guarded by prefers-reduced-motion,
+// never looping. The guard is a `no-preference` wrapper rather than a `reduce`
+// override, so the default with no media support at all is STILL. Deleting the
+// wrapper would make the animation unconditional and no gate would catch it.
 import { withBase } from '../../lib/paths';
+import receipts from '../../lib/receipts.generated.json';
+
+interface ReceiptValue {
+  key: string;
+  label: string;
+  value: number;
+}
+interface Receipt {
+  key: string;
+  label: string;
+  source: string;
+  values: ReceiptValue[];
+  items: string[];
+}
+
+/**
+ * The above-fold proof signal.
+ *
+ * Read from the generated receipt set, never typed here: the subhead's
+ * load-bearing clause is "reviewers who didn't write the code", and a count
+ * typed beside that claim is a private copy of a fact that goes stale the day
+ * the roster changes. If the roster changes, this line changes with it or the
+ * build fails.
+ */
+const reviewers = (receipts.receipts as Receipt[]).find((r) => r.key === 'reviewers');
+if (!reviewers) {
+  throw new Error('Hero: receipts.generated.json has no "reviewers" receipt');
+}
+const reviewerCount = reviewers.values[0].value;
+const reviewerNames = reviewers.items.join(', ');
+const reviewerSource = reviewers.source;
+
+/**
+ * The transcript figure — one loop run, stopping.
+ *
+ * Every value is a STATE, not a quantity. A measured count would be correct on
+ * the day it was read and wrong the next time a test is added, and there is no
+ * generator behind this figure to re-read one from. `pass` is re-derivable by
+ * running the gate and never decays.
+ */
+const transcriptGates = [
+  { field: 'spec', state: 'accepted' },
+  { field: 'lint', state: 'pass' },
+  { field: 'typecheck', state: 'pass' },
+  { field: 'tests', state: 'pass' },
+] as const;
 ---
 
 <section class="hero">
   <div class="hero__inner">
-    <h1 class="hero__headline">The agentic build loop that cannot approve its own work.</h1>
-    <p class="hero__subhead">
-      <code>core</code> takes a brief or spec through implementation, mechanical gates,
-      and a cold independent review. It keeps going until the change is clean—or stops
-      and tells you why. The wider catalogue brings the same discipline to product,
-      design, infrastructure, release, research, and documentation work.
-    </p>
-    <div class="hero__actions">
-      <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
-        Try the supervised build loop <span aria-hidden="true">→</span>
-      </a>
-      <a class="hero__cta hero__cta--ghost" href={withBase('/#use-cases')}>
-        Explore use cases <span aria-hidden="true">→</span>
-      </a>
+    <div class="hero__lede">
+      <h1 class="hero__headline">
+        Your agents write the code. The decisions you can't undo stay yours.
+      </h1>
+      <p class="hero__subhead">
+        Reversible agent work, then mechanical checks, then reviewers who didn't
+        write the code, then you.
+      </p>
+
+      <div class="hero__actions">
+        <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
+          Install the core pack <span aria-hidden="true">→</span>
+        </a>
+        <a class="hero__cta hero__cta--ghost" href={withBase('/#what-you-install')}>
+          Read what it writes <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      {/* The claim reads at full ink; the roster and the source recede. One
+          line, two weights — the sceptic gets the number first and the
+          attribution only if they want it. */}
+      <p class="hero__proof">
+        {reviewerCount} cold reviewers read every diff
+        <span class="hero__proof-source">
+          {' '}— {reviewerNames} &middot; {reviewerSource}
+        </span>
+      </p>
+
+      <p class="hero__friction">
+        <code>agentbundle uninstall</code> removes what it installed and leaves
+        your edited copies in place.{' '}
+        <a href={withBase('/docs/guides/_shared/how-to/upgrade-packs/')}>What it keeps</a>.
+      </p>
+
+      <p class="hero__fineprint">
+        Claude Code, Codex, Cursor, Copilot, Gemini, Kiro. Switch agents, keep
+        the loop.
+      </p>
     </div>
-    <p class="hero__friction">
-      One command. Every major coding agent. Human merge gate. User-scope packs also
-      ship through the <a href={withBase('/docs/getting-started/install/#route-2-claude-plugins')}>Claude plugin marketplace</a>.
-    </p>
+
+    <figure class="hero__figure">
+      <div class="rec">
+        <p class="rec__title">web &middot; work-loop</p>
+        <dl class="rec__group">
+          {transcriptGates.map((row) => (
+            <div class="rec__row">
+              <dt>{row.field}</dt>
+              <dd>{row.state}</dd>
+            </div>
+          ))}
+        </dl>
+        <dl class="rec__group">
+          <div class="rec__row">
+            <dt>adversarial-reviewer</dt>
+            <dd>returned</dd>
+            <dd class="rec__note">findings returned — the loop repeats</dd>
+          </div>
+          <div class="rec__row">
+            <dt>quality-engineer</dt>
+            <dd>waiting</dd>
+          </div>
+          <div class="rec__row">
+            <dt>security-reviewer</dt>
+            <dd>waiting</dd>
+          </div>
+        </dl>
+        <dl class="rec__group rec__group--held">
+          <div class="rec__row rec__row--held">
+            <dt>merge</dt>
+            <dd>HELD</dd>
+            <dd class="rec__note">awaiting a person</dd>
+          </div>
+        </dl>
+      </div>
+
+      <figcaption class="rec__cap">
+        Typeset transcript — selectable text &middot; one loop run, stopping
+      </figcaption>
+    </figure>
   </div>
 </section>
 
 <style>
+  /* Paper. No grid texture, no radial glow, no pattern — [none] ornament.
+     The faint 28px grid that used to be here was withdrawn as a category
+     default: it is on nearly every developer-tool hero and reads as a tell
+     (marketing-site.md, Counterfactual check). */
   .hero {
-    background-color: var(--ds-hero-bg);
-    background-image:
-      radial-gradient(ellipse 70% 60% at 50% 0%, var(--ds-accent-glow) 0%, transparent 65%),
-      linear-gradient(var(--ds-hero-border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--ds-hero-border) 1px, transparent 1px);
-    background-size: 100% 100%, 28px 28px, 28px 28px;
-    color: var(--ds-hero-fg);
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
   }
 
   .hero__inner {
     max-width: var(--ds-content-max);
     margin-inline: auto;
-    padding: clamp(3.5rem, 8vw, 6rem) var(--ds-content-pad-x) var(--ds-space-8);
+    padding: var(--ds-space-9) var(--ds-content-pad-x) var(--ds-space-10);
   }
 
   .hero__headline {
-    color: var(--ds-hero-fg);
+    color: var(--ds-on-surface);
     max-width: 18ch;
     margin-bottom: var(--ds-space-5);
   }
 
   .hero__subhead {
-    color: var(--ds-hero-fg-2);
+    color: var(--ds-on-surface-2);
     font-size: var(--ds-type-body-lg);
-    max-width: 60ch;
+    /* 48ch beside the figure, so the deck stops before the image track
+       instead of running under it. */
+    max-width: 48ch;
     margin-bottom: var(--ds-space-6);
-  }
-
-  .hero__subhead code {
-    background: none;
-    color: var(--ds-accent);
-    font-family: var(--ds-font-mono);
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ds-space-3);
+    align-items: center;
+    gap: var(--ds-space-5);
+    margin-bottom: var(--ds-space-5);
   }
 
+  /* The shared base opts out of the global underline. Only the PRIMARY keeps
+     that opt-out, and its replacement channel is fill + radius + padding — a
+     filled block in a dedicated action row, not a hue. The SECONDARY puts the
+     underline straight back on below, because a ruled link is what it is and
+     an unmarked one would be carried by position alone.
+     `gap` restores the space before the arrow that inline-flex collapses out
+     of the markup's whitespace text node; it belongs on the shared base
+     because every `.hero__cta` carries one. */
   .hero__cta {
-    display: inline-block;
-    padding: 0.7rem 1.6rem;
-    border-radius: var(--ds-radius-pill);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0.5rem 1.6rem;
+    border-radius: var(--ds-radius-md);
     font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-body);
     border: 1px solid transparent;
@@ -85,6 +217,10 @@ import { withBase } from '../../lib/paths';
     text-decoration: none;
   }
 
+  /* Ink fill on paper: 17.16:1 for the control against the ground and 17.16:1
+     for the label against the fill. Before stage 2 this exact pair painted an
+     ink fill on an ink ground at 1.00:1 — the control was invisible and no
+     gate saw it, because the ratio the walk measured was label-versus-fill. */
   .hero__cta--primary {
     background-color: var(--ds-cta-primary-bg);
     color: var(--ds-cta-primary-fg);
@@ -96,38 +232,254 @@ import { withBase } from '../../lib/paths';
     border-color: var(--ds-cta-primary-bg-hover);
   }
 
-  /* Secondary action reads as a link, not a second primary. Two filled-weight
-     buttons side by side gave the zone no focal point; the pill treatment is
-     reserved for the one action we actually want taken. Keeps a 44px touch
-     height. */
+  /* Secondary reads as a ruled link, not a second primary. Two filled controls
+     side by side gave the fold no focal point. Keeps the 44px touch height
+     and no inline padding, so its left edge lines up with the primary's. */
   .hero__cta--ghost {
     background-color: transparent;
-    color: var(--ds-cta-ghost-fg);
+    color: var(--ds-cta-ghost-light-fg);
     border-color: transparent;
     font-weight: var(--ds-weight-medium);
-    /* No inline padding: the link's left edge lines up with the primary
-       pill's. `gap` restores the space before the arrow that inline-flex
-       collapses out of the markup's whitespace text node. */
+    /* The underline is back: this control's affordance is the link
+       affordance, so it takes the site-wide one rather than an opt-out. */
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
     padding-inline: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4em;
-    min-height: 44px;
   }
 
   .hero__cta--ghost:hover {
-    color: var(--ds-hero-fg);
     text-decoration: underline;
-    text-underline-offset: 4px;
+    color: var(--ds-on-surface);
   }
 
-  /* ── Mobile: get the primary CTA above the fold ────────────────────────
-     At 390×844 the display-scale headline plus an 18px four-sentence deck
-     pushed the primary CTA roughly 450px below the fold. Step both down and
-     tighten the top padding; no new tokens, and desktop is untouched. */
+  /* ── The three lines under the CTAs, ranked ────────────────────────────
+     All three are required — the proof signal and the friction microcopy are
+     above-fold spec elements, and the adapter line is an owner decision — so
+     the fix is hierarchy, not deletion. Before this they were three muted
+     runs at almost the same weight: about seven lines of small grey text
+     that arrived as one block.
+
+     Three treatments now, and the eye takes them in the spec's order:
+
+       1 PROOF — mono, ink at --ds-on-surface-2 (13.09:1), opened by a
+         hairline rule. It is the only one of the three that is evidence, and
+         it is now the only dark text in the group. Its own tail (the roster
+         and the source) drops back to --ds-on-surface-muted, so the line
+         carries the claim at full strength and the attribution quietly.
+       2 FRICTION — SANS, not mono. The face change alone separates it from
+         the two record lines around it, before size or colour do any work.
+         It is prose and reads as prose.
+       3 ADAPTERS — mono, muted, closed by a second hairline rule. The rule
+         gives the fold a definite bottom edge and puts this line outside
+         the reading block as a footer field, which is what the owner
+         decision asks of the last line above the fold: present, findable by
+         product name, and not competing with the CTA.
+
+     Two rules bracketing one prose line between two record lines is the
+     band vocabulary this page already uses; no new device, no new token. */
+
+  /* The proof signal. Inline evidence in the reading path, directly under the
+     claim it serves — the subhead's "reviewers who didn't write the code" —
+     as a quiet mono line, not a card and not a parallel column
+     (marketing-site.md, "Checked in public", narrowed). */
+  /* NO `max-width`. This element's border IS one of the page's rules, and a
+     rule spans its own block — that is the surface's one consistent gesture
+     (see `.rec__group`, `.rec__cap`, and every `.section--*` boundary). A
+     56ch cap made it 403.2px whatever the band was doing: at 768 the content
+     column is 691.2px and this rule stopped 288px short of every rule below
+     it; at 900 it stopped 416.8px short. The two RULED fields therefore take
+     the lede column's full width, and `.hero__friction` between them — which
+     is prose, and carries no rule — keeps its 56ch measure. That is also why
+     the cap cannot simply move up here: capping the box caps the rule. */
+  .hero__proof {
+    margin-bottom: var(--ds-space-4);
+    padding-top: var(--ds-space-2);
+    border-top: 1px solid var(--ds-rule-hairline);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    line-height: calc(var(--ds-rule-pitch) * 3);
+    color: var(--ds-on-surface-2);
+    overflow-wrap: anywhere;
+  }
+
+  /* --ds-on-surface-muted measures 5.30:1 on --ds-surface. */
+  .hero__proof-source {
+    color: var(--ds-on-surface-muted);
+  }
+
+  /* Friction microcopy — risk reversal for the one objection the primary CTA
+     raises, which is that it writes files into the reader's repository. One
+     line, and quieter than the fine print below it, because the owner
+     decision gives the LAST line above the fold to agent-agnosticism and this
+     must not compete with it. The claim is followable: the link is the page
+     that states the Tier-2 / Tier-3 rule. */
+  .hero__friction {
+    margin-bottom: var(--ds-space-4);
+    max-width: 56ch;
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .hero__friction code {
+    color: var(--ds-on-surface-2);
+    background: none;
+  }
+
+  .hero__friction a {
+    color: inherit;
+    text-underline-offset: 0.18em;
+  }
+
+  /* The last line above the fold. Names the reader's own tool so they find it
+     in under a second, and states NO COUNT: the receipt counts seven adapter
+     targets across six products, so any number here is wrong
+     (copy/marketing-home.md § Accuracy constraint on this line). */
+  /* Ruled, so no `max-width` — same reason as `.hero__proof` above. These two
+     rules bracket the friction line, and a bracket whose two arms stop short
+     of the block they bracket is not a bracket. */
+  .hero__fineprint {
+    margin: 0;
+    padding-top: var(--ds-space-2);
+    border-top: 1px solid var(--ds-rule-hairline);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    line-height: calc(var(--ds-rule-pitch) * 3);
+    color: var(--ds-on-surface-muted);
+  }
+
+  /* ── The transcript figure ─────────────────────────────────────────────
+     An image track beside the reading column, not a second column of content.
+     Measured against --ds-surface #f7f5f0: --ds-on-surface 17.16:1,
+     --ds-on-surface-2 13.09:1, --ds-on-surface-muted 5.30:1, --ds-clearance
+     7.58:1, --ds-rule-boundary 3.53:1. --ds-rule-hairline is 2.05:1 and is
+     therefore never the sole carrier of anything here. */
+  .hero__figure {
+    margin: 0;
+  }
+
+  .rec {
+    max-width: 420px;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    line-height: calc(var(--ds-rule-pitch) * 3);
+    color: var(--ds-on-surface-2);
+  }
+
+  .rec__title {
+    margin-bottom: var(--ds-space-2);
+    font-size: var(--ds-type-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ds-on-surface-muted);
+  }
+
+  .rec__group {
+    margin: 0;
+    padding-block: var(--ds-space-2);
+    border-top: 1px solid var(--ds-rule-boundary);
+  }
+
+  .rec__group:first-of-type {
+    border-top: 2px solid var(--ds-on-surface);
+  }
+
+  /* A grid, not a flex row, and the reason is structural rather than
+     visual: a gloss under a field is a SECOND <dd> for the same <dt>, and
+     the only element a <dl> may contain besides dt/dd is a <div> wrapping a
+     name-value group. The gloss used to be a <p> here and in the direction
+     preview; that is invalid HTML and axe reports it as a serious
+     `definition-list` violation. A flex row cannot put the second <dd> on
+     its own line without wrapping it in something the <dl> is not allowed to
+     hold, so the row became a two-track grid and the gloss spans both. */
+  .rec__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: var(--ds-space-5);
+  }
+
+  .rec__row dt {
+    color: var(--ds-on-surface-muted);
+  }
+
+  .rec__row dd {
+    margin: 0;
+    text-align: right;
+    color: var(--ds-on-surface);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rec__row dd.rec__note {
+    grid-column: 1 / -1;
+    text-align: left;
+    padding-left: var(--ds-space-4);
+    font-size: var(--ds-type-xs);
+    line-height: inherit;
+    color: var(--ds-on-surface-muted);
+  }
+
+  /* HELD is the point of the transcript, and the mark's ONE job on this
+     surface. It is carried by case, weight and the heavier rule above it —
+     the mark is the last of four signals, never the only one (WCAG 1.4.1).
+     The rule gains weight, not chroma. */
+  .rec__group--held {
+    border-top: 2px solid var(--ds-on-surface);
+  }
+
+  .rec__row--held dt {
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-medium);
+  }
+
+  .rec__row--held dd {
+    color: var(--ds-clearance); /* 7.58:1 on --ds-surface */
+    font-weight: var(--ds-weight-semibold);
+    letter-spacing: 0.08em;
+  }
+
+  .rec__cap {
+    margin-top: var(--ds-space-4);
+    padding-top: var(--ds-space-2);
+    max-width: 420px;
+    border-top: 1px solid var(--ds-rule-boundary);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    line-height: calc(var(--ds-rule-pitch) * 3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ds-on-surface-muted);
+  }
+
+  /* ── Two tracks, at the one breakpoint that already exists for a second
+     track beside the reading column. Below it the figure reflows UNDER the
+     lede at full size; it is never hidden. ─────────────────────────────── */
+  @media (min-width: 1100px) {
+    .hero__inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: var(--ds-space-8);
+      align-items: start;
+    }
+
+    .hero__headline {
+      max-width: 16ch;
+    }
+  }
+
+  @media (max-width: 1099px) {
+    .hero__figure {
+      margin-top: var(--ds-space-8);
+    }
+  }
+
+  /* ── Phone: keep the CTA, the proof and the fine print above the fold ──
+     At 390x844 the five lede elements have to clear the nav and still land
+     inside the viewport, so the display steps down and the top padding
+     tightens. No new breakpoint, no new token; wide widths are untouched. */
   @media (max-width: 768px) {
     .hero__inner {
-      padding-top: var(--ds-space-7);
+      padding-top: var(--ds-space-6);
+      padding-bottom: var(--ds-space-8);
     }
 
     .hero__headline {
@@ -142,12 +494,18 @@ import { withBase } from '../../lib/paths';
     }
 
     .hero__actions {
-      gap: var(--ds-space-2);
+      gap: var(--ds-space-4);
+      margin-bottom: var(--ds-space-4);
+    }
+
+    .hero__figure {
+      margin-top: var(--ds-space-7);
     }
   }
 
   /* One-shot fade-in on load — 300ms, guarded. Static by default for
-     reduced-motion (content is visible without the animation). */
+     reduced-motion: the content is fully visible without the animation, and
+     `no-preference` means no media support gets the still page too. */
   @media (prefers-reduced-motion: no-preference) {
     .hero__inner {
       animation: hero-fade var(--ds-dur-gentle) var(--ds-ease-out) both;
@@ -161,18 +519,5 @@ import { withBase } from '../../lib/paths';
     to {
       opacity: 1;
     }
-  }
-
-  .hero__friction {
-    font-size: var(--ds-type-xs);
-    color: var(--ds-hero-fg-muted);
-    margin-top: var(--ds-space-3);
-    margin-bottom: 0;
-  }
-
-  .hero__friction a {
-    color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
   }
 </style>

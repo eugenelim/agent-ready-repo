@@ -21,6 +21,6 @@ const config: Record<ReadWriteMode, { state: string; label: string; iconLabel: s
 const { state, label } = config[mode];
 ---
 
-<span class="read-write-badge" data-mode={mode} aria-label={label}>
+<span class="read-write-badge" data-mode={mode}>
   <StatusChip label={label} state={state} />
 </span>

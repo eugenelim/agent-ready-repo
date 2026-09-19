@@ -53,6 +53,9 @@ MARKDOWN_LINK_RE = re.compile(
 WITH_BASE_RE = re.compile(r"withBase\(['\"]([^'\"]+)['\"]\)")
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$", re.MULTILINE)
 ID_RE = re.compile(r"id=[\"']([^\"']+)[\"']")
+ASTRO_IMPORT_RE = re.compile(
+    r"^\s*import\s+[^;\n]*?\bfrom\s+['\"]([^'\"]+)['\"]", re.MULTILINE
+)
 
 
 def _load_build_site():
@@ -165,23 +168,55 @@ def _web_routes() -> set[str]:
         if not slug.startswith("_"):
             routes.add(f"{SITE_BASE}/packs/{slug}")
             routes.add(f"{SITE_BASE}/packs/{slug}/")
+    # Static assets are routes too. Astro copies `web/public/` verbatim to the
+    # site root, so a committed file there is reachable and an uncommitted one
+    # is not — deriving from the directory is exact, where a hand-kept list
+    # goes stale the first time an asset is added or renamed.
+    public_root = REPO_ROOT / "web/public"
+    for asset in public_root.rglob("*"):
+        if asset.is_file():
+            rel = asset.relative_to(public_root).as_posix()
+            routes.add(f"{SITE_BASE}/{rel}")
     return routes
 
 
+def _homepage_composition(entry: Path) -> set[Path]:
+    """Return the homepage entry plus every `.astro` file it composes.
+
+    The set is walked from `index.astro`'s own imports rather than listed by
+    hand: an anchor renders on the homepage exactly when some component the
+    homepage (transitively) imports emits it, so the import graph *is* the
+    membership rule. A hand-kept list answers the same question only until the
+    next component is added or deleted, which is how this check came to name
+    two components the repository no longer has.
+    """
+    web_src = (REPO_ROOT / "web/src").resolve()
+    seen: set[Path] = set()
+    pending = [entry.resolve()]
+    while pending:
+        current = pending.pop()
+        if current in seen or not current.is_file():
+            continue
+        seen.add(current)
+        text = current.read_text(encoding="utf-8")
+        for target in ASTRO_IMPORT_RE.findall(text):
+            if not target.endswith(".astro"):
+                continue
+            resolved = (current.parent / target).resolve()
+            if resolved.is_relative_to(web_src):
+                pending.append(resolved)
+    return seen
+
+
 def _homepage_anchors() -> set[str]:
-    sources = (
-        "web/src/pages/index.astro",
-        "web/src/components/marketing/AdapterMatrix.astro",
-        "web/src/components/marketing/BuildYourOrg.astro",
-        "web/src/components/marketing/HumanGates.astro",
-        "web/src/components/marketing/InstallTerminal.astro",
-        "web/src/components/marketing/PackCatalogue.astro",
-        "web/src/components/marketing/TheProblem.astro",
-        "web/src/components/marketing/ThreeLoops.astro",
-    )
+    entry = REPO_ROOT / "web/src/pages/index.astro"
+    assert entry.is_file(), f"homepage entry missing: {entry}"
+    sources = _homepage_composition(entry)
+    # A homepage that composes nothing would silently accept every anchor.
+    assert len(sources) > 1, f"homepage composes no components: {sources}"
     anchors: set[str] = set()
-    for rel in sources:
-        anchors |= _anchors_for(REPO_ROOT / rel)
+    for source in sources:
+        anchors |= _anchors_for(source)
     return anchors
 
 

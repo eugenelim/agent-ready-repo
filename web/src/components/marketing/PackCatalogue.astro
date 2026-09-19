@@ -1,51 +1,86 @@
 ---
-// Homepage outcome router. The complete inventory belongs to /catalogue/;
-// this section helps readers recognize their work before they know pack names.
+// ZONE 5 — RECOGNISE YOUR WORK. Paper (surface). The homepage outcome router:
+// the complete inventory belongs to /catalogue/, and this band helps a reader
+// recognise their own work before they know any pack name.
+//
+// It used to sit THIRD, above the problem, so a seven-card menu arrived before
+// the reader had a reason to want one. It now sits below the problem and the
+// model, which is the order the content brief's zone table gives it — "the
+// reason precedes the menu".
 import Section from '../layout/Section.astro';
+import Receipt from '../primitives/Receipt.astro';
 import { withBase } from '../../lib/paths';
 import { catalogueOutcomes } from '../../lib/catalogue-navigation';
 ---
 
-<Section tone="surface" id="use-cases" labelledby="work-heading">
-  <p class="work__eyebrow">Use cases</p>
-  <h2 id="work-heading" class="work__headline">Start with the outcome. Meet the packs second.</h2>
-  <p class="work__subhead">
-    Packs are composable units, not departments. Choose the change you need and
-    install only the workflows that help produce it.
-  </p>
+<Section tone="surface" id="use-cases" labelledby="work-heading" annotated>
+  <div class="annotation-row work__record">
+    {/* One grid item: the claim, and the outcome router that is the claim
+        carried out. The annotation row is ONE LEVEL UP from the claim — a row
+        made of the claim's own children cannot hold a receipt, because the
+        receipt would have to span sibling rows of an implicitly-sized grid and
+        `grid-row: 1 / -1` resolves `-1` against the EXPLICIT grid. */}
+    <div class="work__claim">
+      <p class="work__eyebrow">Use cases</p>
+      <h2 id="work-heading" class="work__headline">Start with the outcome. Meet the packs second.</h2>
+      <p class="work__subhead">
+        Packs are composable units, not departments. Choose the change you need and
+        install only the workflows that help produce it.
+      </p>
 
-  <ul class="work-grid" role="list">
-    {catalogueOutcomes.map((outcome) => (
-      <li class:list={['work-card', { 'work-card--flagship': outcome.flagship }]}>
-        <div class="work-card__head">
-          <h3 class="work-card__title">{outcome.title}</h3>
-          {outcome.flagship && <span class="work-card__flag">Flagship system</span>}
-        </div>
-        <p class="work-card__audience">{outcome.forWhom}</p>
-        <p class="work-card__desc">{outcome.homepageDescription}</p>
-        <ul class="work-card__packs" aria-label={`Packs for ${outcome.title}`}>
-          {outcome.packs.map((pack) => (
-            <li><a href={withBase(`/packs/${pack}/`)}>{pack}</a></li>
-          ))}
-        </ul>
-      </li>
-    ))}
-  </ul>
+      {/* A ruled record list, not a grid of cards. Every outcome keeps its
+          title, its audience line, its description and its pack links; what
+          it loses is the tint, the border box, the radius and the second
+          column. See the style block for why. */}
+      <ul class="work-records" role="list">
+        {catalogueOutcomes.map((outcome) => (
+          <li class:list={['work-record', { 'work-record--flagship': outcome.flagship }]}>
+            <div class="work-record__head">
+              <h3 class="work-record__title">{outcome.title}</h3>
+              {outcome.flagship && <span class="work-record__flag">Flagship system</span>}
+            </div>
+            <p class="work-record__audience">{outcome.forWhom}</p>
+            <p class="work-record__desc">{outcome.homepageDescription}</p>
+            <ul class="work-record__packs" role="list" aria-label={`Packs for ${outcome.title}`}>
+              {outcome.packs.map((pack) => (
+                <li><a href={withBase(`/packs/${pack}/`)}>{pack}</a></li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
 
-  <a class="work__all" href={withBase('/catalogue/')}>
-    Browse the complete catalogue by outcome and role <span aria-hidden="true">→</span>
-  </a>
+      <a class="work__all" href={withBase('/catalogue/')}>
+        Browse the complete catalogue by outcome and role <span aria-hidden="true">→</span>
+      </a>
+    </div>
+    {/* DOM order is the contract: the receipt is the sibling immediately after
+        the block carrying the claim it evidences. The margin only moves the
+        BOX at wide widths, so reading and focus order are already correct. */}
+    <Receipt receipt="catalogue" />
+  </div>
 </Section>
 
 <style>
+  /* The claim takes the band; the margin takes its declared minimum. Same
+     recipe as AdapterMatrix, and for the same reason: with Section.astro's
+     margin track at `minmax(--ds-annotation-col-min, 1fr)`, an `fr` here
+     would split the band in half, while a percentage growth limit lets the
+     claim absorb whatever the margin does not need. Both new bands therefore
+     land their receipt at the same width and the same right edge. */
+  .work__record {
+    --annotation-content-columns: minmax(0, 100%);
+  }
+
   .work__eyebrow {
-    color: var(--ds-accent-deep);
+    /* Sentence case, minimal tracking — a field label, not a decorative
+       uppercase eyebrow (docs/design/direction/tech-site-amendment-palette.md). */
+    color: var(--ds-field-label);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-semibold);
-    letter-spacing: var(--ds-track-label);
+    letter-spacing: 0.02em;
     margin-bottom: var(--ds-space-3);
-    text-transform: uppercase;
   }
 
   .work__headline {
@@ -59,86 +94,129 @@ import { catalogueOutcomes } from '../../lib/catalogue-navigation';
     max-width: 62ch;
   }
 
-  .work-grid {
-    display: grid;
-    gap: var(--ds-space-5);
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  /* ── The outcome router, as a ruled record list ────────────────────────
+     This band used to be seven tinted, bordered, rounded cards in a two-up
+     grid. That contradicted three axes of the direction sheet at once:
+     `[ruled]` containment ("rules divide and rank; no cards, no tinted
+     panels, no shadows, no overlap"), `[flat]` material ("separation comes
+     from rules, space and alignment") and `[none]` ornament. It also sat
+     four bands below WhatYouInstall's ruled record list, which is the same
+     content shape rendered the way the direction asks, so the two read as
+     imported from different sites.
+
+     Three defects went with the grid rather than beside it, and a rule
+     resolves all three at once rather than one at a time:
+
+       - UNEVEN HEIGHTS. Seven descriptions of unequal length in a two-track
+         grid gave every row a ragged bottom edge, and the tint made each
+         one's box visible, so the raggedness was the loudest thing in the
+         band. A row bounded by a rule ends where its content ends; there is
+         no box to leave short.
+       - THE ORPHAN SEVENTH. `auto-fit` with an odd count strands the last
+         card alone in a half-width row. A list has no orphan, at any count.
+         The count can now change without a layout consequence.
+       - THE `min(338px, 100%)` TRACK. The grid's track minimum needed
+         arithmetic against the annotation margin at three breakpoints to
+         avoid both a reflow overflow at 320px and a one-column dead band at
+         1100px. One column needs none of it: the record list is bounded by
+         its measure, and the measure is stated in `ch`.
+
+     `[manuscript]` grid grammar asks for one reading column at a generous
+     measure and forbids a second column of content, so the single column is
+     what the direction wanted for this band from the start. */
+  /* Rules are carried on the TOP edge of each record, with the list closing
+     on its own bottom rule. That is what lets one record be ranked without
+     doubling a line: a record's own rule is the one above it, so the
+     flagship can take a heavier one and no neighbour has to give anything
+     up. --ds-rule-boundary measures 3.53:1 on --ds-surface. */
+  .work-records {
+    border-bottom: 1px solid var(--ds-rule-boundary);
     margin-bottom: var(--ds-space-7);
   }
 
-  .work-card {
-    background-color: var(--ds-surface-alt);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-lg);
-    padding: var(--ds-space-6);
+  .work-record {
+    padding-block: var(--ds-space-5);
+    border-top: 1px solid var(--ds-rule-hairline);
   }
 
-  .work-card--flagship {
-    border-color: var(--ds-accent);
+  .work-record:first-child {
+    border-top: 1px solid var(--ds-rule-boundary);
   }
 
-  .work-card__head {
-    align-items: flex-start;
+  /* "Rules divide and RANK" — the flagship is the one outcome this band
+     ranks above the others, and with the tint and the heavier card border
+     gone the rule is what is left to say so. 2px ink, the same weight the
+     hero transcript gives a group boundary. The mono field beside the title
+     still names it, so the rank is carried by two signals, not by a line
+     alone (WCAG 1.4.1). */
+  .work-record--flagship {
+    border-top: 2px solid var(--ds-on-surface);
+  }
+
+  /* Title and flagship marker on one baseline, wrapping to two lines rather
+     than shrinking — same head shape as WhatYouInstall's `.unit__head`, so
+     the two ruled bands are read with one habit. */
+  .work-record__head {
     display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
     gap: var(--ds-space-3);
-    justify-content: space-between;
     margin-bottom: var(--ds-space-2);
   }
 
-  .work-card__title {
+  .work-record__title {
     font-size: var(--ds-type-h3);
   }
 
-  .work-card__flag {
-    background-color: var(--ds-accent-subtle);
-    border-radius: var(--ds-radius-pill);
-    color: var(--ds-accent-deep);
-    flex: 0 0 auto;
+  /* The flagship marker is now a FIELD beside the title, not a tinted chip
+     and not a heavier border. --ds-field-label measures 5.30:1 on
+     --ds-surface, which is this band's ground. It is deliberately not the
+     mark: the mark means state — a refusal, a hold, a block — and "flagship"
+     is not a state (tokens.css, --ds-clearance). */
+  .work-record__flag {
+    color: var(--ds-field-label);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
-    padding: 0.2rem 0.55rem;
+    letter-spacing: 0.02em;
   }
 
-  .work-card__audience {
-    color: var(--ds-accent-deep);
-    font-size: var(--ds-type-sm);
-    font-weight: var(--ds-weight-semibold);
-    margin-bottom: var(--ds-space-3);
+  .work-record__audience {
+    color: var(--ds-field-label);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    letter-spacing: 0.02em;
+    margin-bottom: var(--ds-space-2);
   }
 
-  .work-card__desc {
+  .work-record__desc {
     color: var(--ds-on-surface-2);
-    margin-bottom: var(--ds-space-4);
+    margin-bottom: var(--ds-space-3);
+    max-width: 62ch;
   }
 
-  .work-card__packs {
+  /* The pack links were bordered, filled, rounded chips that opted out of the
+     site-wide underline and named fill + border + shape as the replacement
+     channel. With `[flat]` and `[ruled]` honoured there is no fill, no border
+     and no radius left to carry that channel, so the opt-out is withdrawn and
+     the links take the baseline underline from base.css. That is the whole
+     affordance argument: the channel did not disappear, it changed back to
+     the one the page already uses everywhere else.
+
+     The column gap is 16px so adjacent underlined runs do not read as one
+     phrase; the row gap is 8px because it is a VERTICAL measure and the rule
+     pitch governs it. */
+  .work-record__packs {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ds-space-2);
-  }
-
-  .work-card__packs a {
-    background-color: var(--ds-surface);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-pill);
-    display: inline-block;
+    gap: var(--ds-space-2) var(--ds-space-4);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
-    padding: 0.2rem 0.6rem;
   }
 
   .work__all {
     font-weight: var(--ds-weight-semibold);
+    /* color / text-decoration / text-underline-offset now come from the
+       global `a` rule in base.css — this link's values were identical. */
   }
 
-  @media (max-width: 420px) {
-    .work-card__head {
-      display: block;
-    }
-
-    .work-card__flag {
-      display: inline-block;
-      margin-top: var(--ds-space-2);
-    }
-  }
 </style>

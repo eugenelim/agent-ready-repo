@@ -1,0 +1,199 @@
+---
+// A receipt: the evidence for the claim it sits beside.
+//
+// This is the content half of the annotation margin. The layout half lives in
+// `Section.astro` (`annotated`), which places any `.receipt` inside an
+// `.annotation-row` into the band's margin column at wide widths. The two are
+// deliberately separate: a receipt renders correctly in ordinary flow with no
+// margin at all, and the margin places any receipt without knowing what is in
+// it.
+//
+// Every value here is read from `receipts.generated.json`, which
+// `tools/build-site.py` derives by counting the real repository. Nothing is
+// hardcoded, by design: a number typed into this component would be a private
+// copy of a fact, and a receipt whose number has drifted from the artifact it
+// cites is worse than no receipt — it is the failure mode the goal exists to
+// prevent ("a receipt that cannot be followed to a real artifact",
+// docs/design/direction/tech-site-amendment-palette.md §3).
+//
+// Zero chroma. `--ds-clearance` means a human cleared something; evidence is
+// not a clearance stamp, so nothing here is tinted.
+import projection from '../../lib/receipts.generated.json';
+
+interface Props {
+  /** `key` of the entry in receipts.generated.json to render. */
+  receipt: string;
+}
+
+const { receipt: wanted } = Astro.props;
+
+// The generated payload is this component's contract with the generator. A
+// renamed field would otherwise render a blank field block beside a live
+// claim, which reads as evidence and carries none. Failing the build is the
+// honest outcome.
+if (projection.schemaVersion !== 1) {
+  throw new Error(
+    `receipts.generated.json is schemaVersion ${projection.schemaVersion}, ` +
+      'but Receipt.astro renders version 1 — regenerate or update the renderer.'
+  );
+}
+
+const record = projection.receipts.find((r) => r.key === wanted);
+if (record === undefined) {
+  const known = projection.receipts.map((r) => r.key).join(', ');
+  throw new Error(
+    `receipts.generated.json has no receipt '${wanted}' — available keys: ${known}`
+  );
+}
+---
+
+{/* An <aside> is a `complementary` landmark, and a page carries three of
+    them — reviewers, catalogue, adapters. Three landmarks of the same role
+    with no accessible name are indistinguishable in a screen reader's
+    landmark list, which is the one place a landmark earns its keep. The
+    receipt's own label is the name; `aria-labelledby` reuses it rather than
+    duplicating the string, so the two cannot drift. */}
+<aside class="receipt" data-receipt={record.key} aria-labelledby={`receipt-label-${record.key}`}>
+  <p class="receipt__label" id={`receipt-label-${record.key}`}>{record.label}</p>
+  <dl class="receipt__values">
+    {
+      record.values.map((value) => (
+        <div class="receipt__row">
+          <dt class="receipt__key">{value.label}</dt>
+          <dd class="receipt__value">{value.value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+  <ul class="receipt__items" role="list">
+    {record.items.map((item) => <li class="receipt__item">{item}</li>)}
+  </ul>
+  <p class="receipt__source">
+    <span class="receipt__source-key">Counted from</span>
+    <span class="receipt__source-path">{record.source}</span>
+  </p>
+</aside>
+
+<style>
+  /* A record field, not a sentence: mono, small, --ds-field-label, and every
+     vertical measure an integer multiple of --ds-rule-pitch (8px). The line
+     box is pinned to 2 x the pitch so successive field lines land on the rule
+     grid rather than wherever the font's default leading puts them.
+
+     Secondary at every width: it never competes with the claim, and it is
+     never withheld either. There is no `display: none`, `visibility: hidden`,
+     `content-visibility`, `aria-hidden`, `<details>` or toggle anywhere in
+     this component or in the margin that places it — muted presentation is
+     correct, muted availability is the anti-pattern (the reflow item in
+     tech-site-amendment-palette.md's floor check). src/test/annotation-margin
+     .test.ts holds that open. */
+  .receipt {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    line-height: calc(var(--ds-rule-pitch) * 2);
+    color: var(--ds-field-label);
+    font-variant-numeric: tabular-nums lining-nums;
+    border-top: 1px solid var(--ds-rule-hairline);
+    padding-top: var(--ds-space-2);
+    /* The measure a receipt is read at. Wider than this and the enumerated
+       items stop scanning as a column of records. */
+    max-width: 48ch;
+  }
+
+  /* base.css gives p and li their own body leading (1.65), which at this size
+     is 19.8px and walks every field line off the rule grid. Field lines
+     inherit the record's 2-pitch line box instead. */
+  .receipt :is(p, dt, dd, li) {
+    line-height: inherit;
+  }
+
+  .receipt__label {
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .receipt__values {
+    margin-top: var(--ds-space-2);
+  }
+
+  /* One rule pitch between field rows. Without it a receipt carrying more
+     than one field reads as a paragraph rather than as filled-in fields: the
+     `catalogue` record's middle field name wraps to two lines, and its value
+     then sits directly above the next field's name with nothing between them,
+     which is exactly how a reader comes to attribute 24 to the wrong label.
+     Single-field receipts are untouched — there is no row to separate. */
+  .receipt__row + .receipt__row {
+    margin-top: var(--ds-space-2);
+  }
+
+  .receipt__row {
+    display: flex;
+    /* LAST baseline, so a field name that wraps puts its value on the closing
+       line, level with the end of its own leader. Plain `baseline` parks the
+       value against the first line, where it reads as a number embedded in
+       the label rather than as the field's answer. The unprefixed
+       `align-items: baseline` before it is the fallback for an engine without
+       `last baseline`. */
+    align-items: baseline;
+    align-items: last baseline;
+    /* Column only: the half-pitch is inline-only, and `gap` would also set
+       it as a row gap. */
+    column-gap: var(--ds-space-1);
+    row-gap: 0;
+  }
+
+  .receipt__key {
+    /* The leader that makes a filled-in form read as filled in: the dotted
+       run carries the eye from the field name to its value, and it is the one
+       piece of ink here that is not a glyph. */
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: flex-end;
+    /* Painted, not bordered: a `border-bottom` would add its 1px to the row's
+       height and walk every field below it off the rule grid. A background
+       occupies no space at all. */
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--ds-rule-hairline) 0 1px,
+      transparent 1px 3px
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    background-position: left bottom;
+  }
+
+  .receipt__value {
+    flex: 0 0 auto;
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .receipt__items {
+    margin-top: var(--ds-space-2);
+    list-style: none;
+    padding: 0;
+  }
+
+  .receipt__item::before {
+    /* A record's enumerated population, marked as continuation rather than as
+       a bulleted list. Inline glyph, so it takes no vertical measure. */
+    content: '\00b7\00a0';
+  }
+
+  .receipt__source {
+    margin-top: var(--ds-space-2);
+    border-top: 1px solid var(--ds-rule-hairline);
+    padding-top: var(--ds-space-2);
+    display: flex;
+    flex-wrap: wrap;
+    /* Column only. `gap` would also set a 4px ROW gap, and the half-pitch is
+       inline-only — a wrapped source line must still land on the 8px grid. */
+    column-gap: var(--ds-space-1);
+    row-gap: 0;
+  }
+
+  .receipt__source-path {
+    color: var(--ds-on-surface-2);
+    overflow-wrap: anywhere;
+  }
+</style>

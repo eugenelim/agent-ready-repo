@@ -167,6 +167,42 @@ the five-station arc and the named refusals the copy's substance.
   assume they have used a supervised operating model — that is the thing being
   introduced.
 
+## Owner decisions, 2026-09-18
+
+**The last line above the fold carries agent-agnosticism, not install
+mechanics.** Agreed line:
+
+> Claude Code, Codex, Cursor, Copilot, Gemini, Kiro. Switch agents, keep the loop.
+
+The slot previously held `writes: AGENTS.md · .claude/ · .github/workflows/ —
+nothing else`. The owner rejected it: how install and uninstall work is not a
+large enough claim to earn a position above the fold on the primary landing
+page.
+
+Worth recording *why* the first replacement attempt was also wrong, because the
+error is repeatable. `conversion-design`'s above-fold spec names this slot
+**friction microcopy** — "one line that removes the dominant objection to
+clicking the primary CTA" — and the target-state brief names that objection as
+*"what does this do to my repository, and can I undo it."* Optimising inside
+that slot produced a better sentence about install reversibility and never asked
+whether the slot deserved the real estate. **A spec that names a slot does not
+establish that the slot outranks the page's second-biggest claim.**
+
+What the agreed line does instead: it names the reader's own tool so they find
+it in under a second, and answers the unspoken *"is this a toy or a system, and
+will my investment survive the next tool change?"* — a live fear in a market
+where the default coding agent has changed repeatedly. It is the strongest
+available de-risker for a team-wide bet, and it is checkable.
+
+**Accuracy constraint on this line.** The generated receipt counts **7
+adapters** — `claude-code, codex, copilot, cursor, gemini, kiro-cli, kiro-ide` —
+which is **six products across seven targets**. "Seven agents" is false. The
+agreed line names products and states no count, which avoids the trap; any later
+edit that reintroduces a number must say *adapters*, not *agents*.
+
+Install reassurance is not discarded, it is re-homed: it belongs beside the
+install block, where a reader who has already decided is looking for it.
+
 ## Open questions
 
 - **Does the self-serve reader survive this direction?** *Sayable in a meeting*

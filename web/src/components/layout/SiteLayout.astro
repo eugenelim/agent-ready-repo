@@ -8,12 +8,19 @@ interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  /** Alternative text for the social card, when a route ships its own image. */
+  ogImageAlt?: string;
 }
 
 const {
   title,
-  description = 'A spec-driven agentic build loop with mechanical gates, cold independent review, and a human merge decision — plus a catalogue of supervised workflows for the rest of software delivery.',
+  // 152 characters. Google truncates a search snippet at roughly 155-160, so
+  // the cap is a hard one and this default is the line that lands on the
+  // HOMEPAGE and on /404 — the two routes that take no `description` prop.
+  // The previous default was 185 and lost its last clause on both.
+  description = 'A spec-driven agentic build loop — mechanical gates, cold independent review, and a human merge decision — plus packs for the rest of software delivery.',
   ogImage,
+  ogImageAlt = 'Card reading “agent-ready-repo — the supervised AI operating model”, over the line “three peer loops across the full SDLC, with mechanical gates and human checkpoints the agent cannot bypass”.',
 } = Astro.props;
 
 // Absolute URL for og:image — defaults to social.png in public/
@@ -38,12 +45,27 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
 
-    <!-- Open Graph -->
+    <!-- Open Graph. og:image:width / og:image:height are the generator's own
+         viewport in web/scripts/generate-social.mjs, and social-card.test.ts
+         pins that asset; a scraper that trusts the declared size renders the
+         card at full bleed instead of guessing while it downloads. -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="agent-ready-repo" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={ogImageAlt} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:url" content={canonicalUrl} />
+
+    <!-- X / Twitter. Without an explicit card type the 1200x630 asset is
+         rendered as a small square thumbnail, because `summary` is the
+         default. Title, description and alt fall back to the Open Graph
+         values above, so only the two that have no fallback are declared. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImageUrl} />
 
     <!-- Fonts are self-hosted via Fontsource — imported in src/styles/global.css. -->
     <slot name="head" />

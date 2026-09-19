@@ -39,7 +39,7 @@ const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.pr
 
 <style>
   .decision-band {
-    border-left: 4px solid var(--ds-accent);
+    border-left: 1px solid var(--ds-rule-boundary);
     background-color: var(--ds-state-warn-bg);
     padding: var(--ds-space-5) var(--ds-space-6);
     border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
@@ -91,8 +91,8 @@ const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.pr
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.6rem 1.4rem;
-    border-radius: var(--ds-radius-pill);
+    padding: 0.5rem 1.4rem;
+    border-radius: var(--ds-radius-md);
     font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-sm);
     text-decoration: none;
@@ -117,8 +117,8 @@ const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.pr
   }
 
   .decision-band__action--secondary:hover {
-    border-color: var(--ds-accent);
-    color: var(--ds-accent-deep);
+    border-color: var(--ds-on-surface);
+    color: var(--ds-on-surface);
   }
 
   @media (prefers-reduced-motion: reduce) {
