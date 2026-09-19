@@ -690,10 +690,13 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 ## Assumptions
 
 - Technical: one design document authored by this skill exists after this
-  delivery — the telemetry endpoint-default reference — so the prechecks'
-  false-positive rate rests on a single document written by the same delivery
-  that wrote them, and stays ungrounded against output another author
-  produced.
+  delivery — the telemetry endpoint-default reference — and both the seven
+  prechecks and `DA3`'s clean half now rest on it alone. `DA3` was previously
+  measured against five shipped templates; that corpus turned out to measure
+  template placeholders rather than prose, so it was wider and wrong rather
+  than wider and better. What remains true is that a single document written
+  by the same delivery that wrote the checks cannot show what either does to
+  output another author produced.
 - Product: whether an adopter runs the gate script at all is unknown — the
   pack ships no telemetry, so `DA3` and `DA10`'s value to an adopter rests on
   the reviewer checks they back rather than on observed script use.
