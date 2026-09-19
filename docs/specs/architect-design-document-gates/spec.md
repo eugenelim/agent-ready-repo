@@ -1,6 +1,6 @@
 # Spec: architect-design document-architecture gates
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0118
@@ -354,8 +354,14 @@ and never reflowed, so a group's list is not always contiguous.
       paragraph whatever the document routes to, so the glob carries no
       exclusion.
 - [ ] **AC-0019.** `DA3` treats none of these as prose: YAML frontmatter, a
-      fenced code block, an HTML-comment span, a Markdown table row, a list
-      item, a block quote, an ATX heading.
+      fenced code block, an HTML-comment span, a `<…>` placeholder span
+      including one spanning several lines, a Markdown table row, a list item,
+      a block quote, an ATX heading. The placeholder entry keeps this list
+      consistent with the rest of the contract: AC-0024 strips every `<…>`
+      placeholder when `DA10` counts words, and AC-0047 states that an
+      unfilled placeholder is the slot a check asks an author to fill rather
+      than content to judge. A placeholder is the template's instruction to
+      its author, and an authored document has none left.
 - [ ] **AC-0020.** `DA3` counts a sentence boundary across `e.g.`, `i.e.`,
       `etc.`, `vs.` and a decimal number without splitting at their periods.
 - [ ] **AC-0021.** A heading on the line immediately above wrapped prose

@@ -1,7 +1,7 @@
 # Plan: architect-design document-architecture gates
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0118 `D5` fixes the gate set and its
   mechanizability. The governing implementation is
   `packs/core/.apm/skills/close-work/scripts/` — a skill that carries a
@@ -226,6 +226,13 @@ spawning an interpreter:
 ### Failure, edge cases & resilience
 Owned by: T2.
 
+**A `<…>` placeholder is not prose.** It is the template's instruction to its
+author, and an authored document has none left, so `DA3` excludes the span the
+way `DA10`'s word count already does (AC-0019, AC-0024). One shipped asset
+carries a four-sentence placeholder — `assets/design-doc.md:25` — and it is
+the case that found this: the authoring probe skipped any line starting with
+`<` and so never examined one.
+
 A parser false positive is a wrong answer about a file the gate read; a
 refusal is the gate declining to answer. Conflating them is how a zero-finding
 report comes to cover a file nobody looked at.
@@ -378,7 +385,8 @@ earlier draft of this plan cited it as governing.
 - `prose_paragraphs` and `count_sentences` are driven over every `*.md` under
   `architect-design/assets/` by glob, requiring zero findings (AC-0018); over
   fixtures built in the test, one per false-positive source in Design →
-  Failure (AC-0019, AC-0020, AC-0021); and at 3 and 4 sentences, pinning the
+  Failure, the multi-line `<…>` placeholder among them (AC-0019, AC-0020,
+  AC-0021); and at 3 and 4 sentences, pinning the
   budget on both sides (AC-0017).
 - `count_words` is asserted at exactly the bound and one over (AC-0023), and
   the finding renderer asserted to carry path, line and count (AC-0022).
