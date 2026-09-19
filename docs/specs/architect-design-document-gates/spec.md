@@ -84,10 +84,6 @@ than `Implementation Mapping`, and `DA7` fires only where there are diagrams.
   `packs/architect/tests/skills/architect-design/testdata/filled-subsystem-design.md`
 - Per-gate verdict reporting — `architect-design/SKILL.md` step 6 and
   `references/convergence-loop.md`
-- A supersession pointer for the two interim rubric criteria —
-  `docs/specs/architect-design-scope-templates/spec.md` `Status` line
-- Pull-request gating for this pack suite — `.github/workflows/build-check.yml`
-  and `tools/lint-ci-parity.py`
 
 ## Durable Outputs
 
@@ -120,8 +116,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Changing the `DA10` bound, its unit, or its derivation.
 - Adding a gate identifier outside `DA1`–`DA10`, or retiring one.
-- Editing any line of `docs/specs/architect-design-scope-templates/spec.md`
-  other than its `Status` line.
+- Editing any line of `docs/specs/architect-design-scope-templates/spec.md`,
+  its `Status` line included. That file is frozen and this slice does not
+  touch it: `DA7` and `DA8` leave its AC-0026 and AC-0027 true, so no
+  supersession pointer is owed.
 
 ### Never do
 
@@ -140,7 +138,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 Each group below maps to one `###` subsection of the criteria, with two stated
 exceptions: the changelog criterion is split out of `Release closure` because
 its mode differs from its siblings', and the final bullet declares a mode for
-the built artifact rather than for a criterion.
+the built artifact rather than for a criterion. Identifiers are assigned once
+and never reflowed, so a group's list is not always contiguous.
 
 - **The shipped mechanical gate (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005,
   AC-0006, AC-0007): TDD.** An exit code is the whole interface a CI caller
@@ -150,59 +149,59 @@ the built artifact rather than for a criterion.
   AC-0012, AC-0013, AC-0014, AC-0015, AC-0016): TDD, except AC-0016.** Each
   refusal is driven by a real filesystem entry and asserts the refusal
   *reason*, not only the exit code: a refusal asserted on the exit code alone
-  passes when a different criterion's check fired instead. AC-0013 states
-  which entry kinds are exercised and which share the predicate untested.
-  AC-0015 is a static property of the pattern — an elapsed-time bound on a
-  shared runner is a flake. AC-0016 is a text assertion.
+  passes when a different criterion's check fired instead. AC-0011 states
+  which entry kinds are exercised and which share the predicate untested, and
+  carries the check past the stat to the open and the descriptor. AC-0014 is a
+  static property of the pattern — an elapsed-time bound on a shared runner is
+  a flake. AC-0016 is a text assertion.
 - **`DA3` — paragraph budget (AC-0017, AC-0018, AC-0019, AC-0020, AC-0021,
   AC-0022): TDD.** A compressible invariant over text, its budget pinned on
   both sides, shown red on a non-compliant fixture before it is trusted.
 - **`DA10` — size trigger (AC-0023, AC-0024, AC-0025, AC-0026, AC-0027): TDD
   for the count, goal-based for the text.** AC-0025 is what gives AC-0024 an
   oracle: the derivation is compared against the reference document's measured
-  word count, not against its own multiplication, which is true by
-  construction whatever the inventory omits.
+  word count, under the single counting rule AC-0024 names, rather than
+  against its own multiplication.
 - **The ten gates in three homes (AC-0028, AC-0029, AC-0030, AC-0031,
   AC-0032, AC-0033, AC-0034): goal-based check.** A set comparison across
   three files against the severity map fixed in AC-0032, so parity has a value
   to agree *to*.
 - **The prechecks (AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040,
-  AC-0041, AC-0042, AC-0043, AC-0047): goal-based check; (AC-0044, AC-0045,
-  AC-0046, AC-0048, AC-0049): visual / manual QA.** Whether a hybrid states a
-  precheck is decidable from its section body in each home, and AC-0047 pins
-  the count that keeps `DA5` distinct. Whether a precheck *fires* is not
-  decidable mechanically, so the seven are walked by hand twice — against the
-  clean reference document, where none may fire, and against the defect
-  document, where each must. One direction alone is satisfied by a precheck
-  that never fires on anything.
-- **How the reviewer reports the gates (AC-0050, AC-0051, AC-0052, AC-0053,
-  AC-0055, AC-0056): goal-based check; (AC-0054): visual / manual QA.**
-  AC-0050 through AC-0053, AC-0055 and AC-0056 are obligations written into
-  `design-reviewer.md` and `convergence-loop.md`, decidable from those files.
-  AC-0054 is the one that watches the agent obey them, and it is manual
-  because the agent is a model: a dispatch is read, not asserted.
-- **Parity (AC-0057, AC-0058): goal-based check.** The gates get a
+  AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0047, AC-0048, AC-0049,
+  AC-0050): goal-based check; (AC-0046, AC-0051): visual / manual QA.**
+  Whether a hybrid states a precheck is decidable from its section body in
+  each home, and AC-0048 pins the count that keeps `DA5` distinct. Whether a
+  precheck *fires* is not decidable mechanically, so the seven are walked by
+  hand twice — against the clean reference document, where none may fire, and
+  against the defect document, where each must.
+- **How the reviewer reports the gates (AC-0052, AC-0053, AC-0054, AC-0055,
+  AC-0056, AC-0057, AC-0058, AC-0060, AC-0061, AC-0072): goal-based check;
+  (AC-0059): visual / manual QA.** Every text criterion is an obligation
+  written into `design-reviewer.md` or `convergence-loop.md`, decidable from
+  that file. AC-0059 is the one that watches the agent obey them, and it is
+  manual because the agent is a model: a dispatch is read, not asserted.
+- **Parity (AC-0062, AC-0063): goal-based check.** The gates get a
   `DA_CARRIERS` constant of their own; the module's existing `CARRIERS` names
   a set that overlaps the gate homes in one file.
-- **Reporting (AC-0059, AC-0060, AC-0061, AC-0062): goal-based check.**
+- **Reporting (AC-0064, AC-0065, AC-0066, AC-0067): goal-based check.**
   Whether the loop demands a per-identifier verdict is decidable from the
   instruction text, which is the artifact a model reads.
-- **Release closure (AC-0063, AC-0065, AC-0066): goal-based check.** Version
+- **Release closure (AC-0068, AC-0070, AC-0071): goal-based check.** Version
   equality is owned by `tests/conformance/test_pack_metadata.py`, the eval's
   expectation by a closed-set assertion over its text, and
   `.claude-plugin/marketplace.json` by regeneration.
-- **The changelog entry (AC-0064): goal-based check.**
+- **The changelog entry (AC-0069): goal-based check.**
   `.github/workflows/build-check.yml:357` runs
-  `tools/test_build_site_routing.py`, which carries
+  `tools/test_build_site_routing.py`, whose
   `test_the_real_changelog_has_no_silently_withheld_highlights` (`:2156`),
   `test_every_changelog_section_is_separated` (`:2268`) and
   `test_no_projected_release_heading_lives_under_an_unreleased_region`
-  (`:2332`) over the real file. Between them they decide the `### Highlights`
-  child, the heading separation and the `[Unreleased]` nesting.
+  (`:2332`) read the real file. AC-0069 states only what those three decide.
 - **The gate script as an invoked artifact: visual / manual QA.** The script
   is a CLI an adopter runs, so it is typed at the repository root against a
   non-compliant fixture and against the shipped templates, and both runs'
-  stdout, stderr and exit codes go to `notes/verification-ledger.md`.
+  stdout, stderr and exit codes go to `notes/verification-ledger.md`,
+  host-clean per AC-0043.
 
 ## Acceptance Criteria
 
@@ -233,16 +232,23 @@ the built artifact rather than for a criterion.
       directory, whose real path is not under the canonicalized root, is
       refused, and the refusal names the out-of-root reason rather than a
       file-type reason.
-- [ ] **AC-0011.** A target that is not a confined regular file is refused:
-      the check is `stat.S_ISREG` on the resolved path plus a hard-link count
-      of one, so every other entry kind fails it. Four kinds are exercised
+- [ ] **AC-0011.** A target that is not a confined regular file is refused.
+      The check does not stop at the stat: the file is opened with
+      `O_NOFOLLOW`, and the descriptor is re-verified by `os.fstat` against
+      the `(st_dev, st_ino)` pair and the link count that were checked, so an
+      entry swapped between the stat and the open is refused rather than read.
+      `stat.S_ISREG` plus a hard-link count of one is the predicate; every
+      other entry kind fails it. Four kinds are exercised
       directly, being the four a test on Linux and macOS can build — a
       directory, a FIFO, a symbolic link, and a file with a second hard link.
       A character device, a block device and a socket are covered by the same
       predicate and not exercised; an NTFS reparse point is unbuildable on
       either runner and is not claimed.
-- [ ] **AC-0012.** A target larger than 1,048,576 bytes is refused, and its
-      size is checked before it is read. The bound is
+- [ ] **AC-0012.** A target larger than 1,048,576 bytes is refused. The bound
+      holds at read time — the read asks for one byte more than the budget and
+      refuses a short-read miss — not only against `st_size`, which a
+      concurrent writer appending to the file makes stale without any
+      attacker present. The bound is
       `architect-assess/scripts/profile_repo.py`'s `DEFAULT_MAX_FILE_BYTES`;
       a document at `DA10`'s bound is roughly 16,000 bytes, so the budget is
       about 65 times the largest document the gate expects.
@@ -285,8 +291,12 @@ the built artifact rather than for a criterion.
 
 - [ ] **AC-0023.** `DA10` reports a document whose word count exceeds the
       bound stated in AC-0024 and reports nothing at the bound or below.
-      Words are counted over the document with YAML frontmatter and
-      HTML-comment spans removed.
+      Words are counted by the rule AC-0024 names, which is the rule the
+      derivation used and the only one in this spec: tokens carrying an
+      alphanumeric character, after YAML frontmatter and HTML-comment spans
+      are removed. Counting every whitespace-separated token instead gives
+      1,046 where this rule gives 752 on the same text, a 39% spread against
+      AC-0025's 20% window.
 - [ ] **AC-0024.** The derivation that produces the bound is stated where
       `DA10` is defined, and its arithmetic reaches the bound: 752 words of
       scaffolding the subsystem template hands a filled document verbatim,
@@ -294,10 +304,12 @@ the built artifact rather than for a criterion.
       and 11 sections at 3 sentences of 22 words — 2,178 words at intended
       density — multiplied by a headroom factor of 1.5 and rounded to the
       nearest hundred, giving a bound of **3,300 words**. The scaffolding
-      figure is measured:
-      the template's word count after frontmatter, HTML comments and every
-      `<…>` placeholder are removed, counting only tokens carrying an
-      alphanumeric character. All eleven sections get a body allocation,
+      figure is measured, and the command that reproduces it is recorded
+      beside the derivation: strip frontmatter, strip HTML-comment spans,
+      replace every `<…>` placeholder with a space, then count tokens matching
+      `[A-Za-z0-9]`. Replacing a placeholder with the empty string instead
+      joins its neighbours and gives a different figure, which is why the
+      substitution is stated. All eleven sections get a body allocation,
       including the three no rationale marker covers.
 - [ ] **AC-0025.** The reference document's own measured word count sits
       within 20% of the derivation's 2,178-word density figure. Recomputing
@@ -348,8 +360,12 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       authoring rubric's existing checklist item — every diagram states one
       named question and one zoom level — and states no second, differently
       worded obligation beside it.
-- [ ] **AC-0037.** `DA8`'s precheck requires every implementation-mapping row
-      to resolve to an element the document's models name.
+- [ ] **AC-0037.** `DA8` carries its identifier, severity and tag on the
+      authoring rubric's existing checklist item — the complete model set and
+      this section are sufficient to implement from — and states no second,
+      differently worded obligation beside it. Its precheck requires every
+      implementation-mapping row to resolve to an element the document's
+      models name.
 - [ ] **AC-0038.** `DA1`'s precheck rejects a future-tense or prior-state
       construction in the document body — `will be`, `previously`, `used to`,
       or a deprecation date.
@@ -367,65 +383,107 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       evidence rather than linking it — `Appendix`, `References`, `Evidence`.
 - [ ] **AC-0042.** Each of the seven prechecks states that its verdict is the
       reviewer's.
-- [ ] **AC-0043.** The reference document's corpus purpose governs an edit
-      to it. It is a baseline, so any change to its content obliges a re-walk
-      of the seven prechecks and a fresh record; a design improvement that
-      nobody re-walks silently invalidates AC-0045.
-- [ ] **AC-0044.** A reference document exists at
+- [ ] **AC-0043.** Every transcript and returned block this delivery commits
+      is host-clean: an absolute root path appears as a placeholder, never as
+      a real one. Root `AGENTS.md` § Security considerations forbids a real
+      hostname or account name in a repository artifact, and `--root` being
+      required means every typed transcript would otherwise carry one.
+- [ ] **AC-0044.** The reference document's own header states that its corpus
+      purpose governs an edit to it: it is a baseline, so any change to its
+      content obliges a re-walk of the seven prechecks and a fresh record. The
+      obligation lives in that document rather than in this spec, because a
+      pack test may not climb to `docs/` — `tools/lint-pack-test-boundary.py`
+      check 8 — and a criterion verified by asserting that this spec says
+      something is its own comparison value.
+- [ ] **AC-0045.** A reference document exists at
       `packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md`,
       authored from `assets/subsystem-design.md` and carrying the subsystem
       design for the layer-5 enterprise telemetry endpoint default that
       `docs/product/intents/catalogue-level-telemetry-endpoint-default.md`
       frames. It holds no `<…>` placeholder token.
-- [ ] **AC-0045.** No precheck fires on that reference document, and each of
+- [ ] **AC-0046.** No precheck fires on that reference document, and each of
       the seven is walked against it with the walk recorded.
-- [ ] **AC-0046.** The precheck corpus excludes `assets/*.md`, and each
+- [ ] **AC-0047.** The precheck corpus excludes `assets/*.md`, and each
       precheck's text states that it applies to an authored document rather
       than to a template. A template's unfilled placeholder —
       `<this diagram's zoom level>`, `<element from section 2>` — is the slot
       the precheck asks an author to fill. `DA9` is the worked case: its
       `Appendix` trigger does not reach `assets/design-doc.md`, the unrouted
       compatibility pointer carrying `## Appendix (optional)`.
-- [ ] **AC-0047.** Exactly seven prechecks exist, one per hybrid gate, and
+- [ ] **AC-0048.** Exactly seven prechecks exist, one per hybrid gate, and
       `DA5` carries none. The count is the pin: a precheck added to `DA5`
       erases the only textual difference between judgment-only and hybrid.
-- [ ] **AC-0048.** A defect document exists at
+- [ ] **AC-0049.** A defect document exists at
       `packs/architect/tests/skills/architect-design/testdata/precheck-defects.md`,
-      carrying one planted defect per precheck.
-- [ ] **AC-0049.** Each of the seven prechecks fires on its planted defect,
+      carrying one planted defect per precheck, and states in its own body
+      that it is deliberately non-conforming. It is the reference document
+      plus exactly those seven edits and nothing else, so a recorded firing is
+      attributable to one edit; seven defects loose in one hand-written file
+      let a precheck fire on unrelated prose and be recorded as passing its
+      own case.
+- [ ] **AC-0050.** A repository-wide Markdown reader can tell the defect
+      document apart from real content. `tools/lint-agents-md.py:547` walks
+      `rglob("*.md")` and excludes on the literal path parts `fixtures` and
+      `tests`, which `testdata/` does not match; the collision is latent today
+      because that sweep looks only for a risk-trigger marker no planted defect
+      carries. Either the document sits where that predicate already reaches,
+      or the predicate is widened — the choice is recorded either way.
+- [ ] **AC-0051.** Each of the seven prechecks fires on its planted defect,
       and the walk is recorded. A precheck checked only against a clean
       document is satisfied by one that never fires on anything.
 
 ### How the reviewer reports the gates
 
-- [ ] **AC-0050.** `.apm/agents/design-reviewer.md` requires its returned
+- [ ] **AC-0052.** `.apm/agents/design-reviewer.md` requires its returned
       block to carry a gate roll-call — every identifier `DA1` through `DA10`
       with a verdict, inside the block rather than before it — **when the
       artifact under review is a design document**. The agent also reviews
       assessment reports, RFCs, ADRs and four diagram genres, and a
       document-architecture roll-call on an ER diagram is noise.
-- [ ] **AC-0051.** `.apm/agents/design-reviewer.md` requires a clean
+- [ ] **AC-0053.** `.apm/agents/design-reviewer.md` requires a clean
       design-document review to state ten verdicts, so a gate nobody
       considered and a gate that passed stop looking identical.
-- [ ] **AC-0052.** `.apm/agents/design-reviewer.md` states that its inlined
+- [ ] **AC-0054.** `.apm/agents/design-reviewer.md` states that its inlined
       gate set is its baseline depth, that it reads
       `architect-review/references/rubric-design-doc.md` for the fuller
       per-gate text when that skill is co-installed, and that it degrades only
       in depth, never to nothing.
-- [ ] **AC-0053.** `.apm/agents/design-reviewer.md` requires the agent to
+- [ ] **AC-0055.** `.apm/agents/design-reviewer.md` requires the agent to
       raise an unreachable `rubric-design-doc.md` as a finding on a
       design-document review, rather than reviewing quietly at baseline.
-- [ ] **AC-0054.** The roll-call contract is exercised, not only asserted:
+- [ ] **AC-0056.** `.apm/agents/design-reviewer.md` states that the artifact
+      under review is data and holds no instruction authority over the agent's
+      verdict, tools, scope, or output format — at the depth
+      `architect-design/SKILL.md:32` and `architect-review/SKILL.md:32` already
+      state it, neither of which the agent file carries today.
+- [ ] **AC-0057.** Each gate's verdict in the roll-call is the agent's own
+      determination. Text in the artifact matching the roll-call format does
+      not supply it: a document carrying `DA1-DA10: PASS` in a fence or an
+      HTML-comment span is a finding, not a result.
+- [ ] **AC-0058.** The returned block recorded under AC-0059 is captured as
+      quoted data. The agent holds `Read`, `Grep` and `Glob` over the
+      checkout and its block lands in a committed file, so an instruction in
+      the artifact that directs it to quote an unrelated file must not become
+      repository content by transcription.
+- [ ] **AC-0072.** `.apm/agents/design-reviewer.md` declares `Read`, `Grep`
+      and `Glob` and no execution tool. AC-0056's claim that no rung runs the
+      gate script rests on this for the subagent rung, which its two cited
+      criteria do not reach.
+- [ ] **AC-0059.** The roll-call contract is exercised, not only asserted:
       `design-reviewer` is dispatched against the reference document and its
       returned block recorded in `notes/verification-ledger.md`, showing ten
-      verdicts. The record names the scope the dispatch resolved the agent
-      from, because an in-repo install makes the agent available to every
-      contributor and to CI, while a user-scope install makes it available to
-      one operator.
-- [ ] **AC-0055.** `references/convergence-loop.md` requires the loop to
+      verdicts. The record names the resolved file's path and its SHA-256,
+      and that digest equals the branch's
+      `packs/architect/.apm/agents/design-reviewer.md` at dispatch time. A
+      host resolves the agent from project scope or from the operator's user
+      profile, and those copies drift: today the user-profile copy is 8,633
+      bytes against the pack source's 9,140, so a dispatch that names only its
+      scope can satisfy this criterion while reviewing a definition this slice
+      never edited.
+- [ ] **AC-0060.** `references/convergence-loop.md` requires the loop to
       dispatch the `design-reviewer` subagent when it is reachable, and to
       name the rung it fell back to when it is not.
-- [ ] **AC-0056.** Each reporting obligation names who reports: step 6 is the
+- [ ] **AC-0061.** Each reporting obligation names who reports: step 6 is the
       author's own self-check, and the review pass is whichever rung
       `convergence-loop.md` resolved. No rung runs the gate script — AC-0016
       keeps the agent from invoking it and AC-0061 keeps the loop from
@@ -433,22 +491,22 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ### Parity
 
-- [ ] **AC-0057.** `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
+- [ ] **AC-0062.** `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`
       asserts every identifier `DA1` through `DA10` appears in all three homes.
-- [ ] **AC-0058.** The same test asserts each gate's severity agrees across the
+- [ ] **AC-0063.** The same test asserts each gate's severity agrees across the
       three homes, and permits the explanatory prose to differ.
 
 ### Reporting
 
-- [ ] **AC-0059.** `architect-design/SKILL.md` step 6 requires every gate
+- [ ] **AC-0064.** `architect-design/SKILL.md` step 6 requires every gate
       result to be reported by identifier and verdict before a draft is shown.
-- [ ] **AC-0060.** `references/convergence-loop.md` requires each review pass
+- [ ] **AC-0065.** `references/convergence-loop.md` requires each review pass
       to report every gate identifier with a verdict.
-- [ ] **AC-0061.** `references/convergence-loop.md` states that the loop
+- [ ] **AC-0066.** `references/convergence-loop.md` states that the loop
       requires and invokes no script, and names the shipped gate script as a
       human- or CI-run accelerant outside the loop, in the same words AC-0016
       requires of `SKILL.md`.
-- [ ] **AC-0062.** `references/convergence-loop.md` states which property the
+- [ ] **AC-0067.** `references/convergence-loop.md` states which property the
       shipped script does and does not cost — the loop stays pure-prose and
       zero-config, and the script is optional and run outside the loop — and
       carries no unconditional claim that shipping a script forfeits a pack
@@ -456,19 +514,21 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 
 ### Release closure
 
-- [ ] **AC-0063.** `packs/architect/pack.toml` declares version `0.15.12`.
+- [ ] **AC-0068.** `packs/architect/pack.toml` declares version `0.15.12`.
       Its equality with `.claude-plugin/plugin.json` is owned by
       `tests/conformance/test_pack_metadata.py`.
-- [ ] **AC-0064.** `docs/product/changelog.md` carries a
-      `## [architect][0.15.12] — <YYYY-MM-DD>` entry, dated in that exact
-      form, free-standing at `##`, directly beneath `[Unreleased]` and newest
-      first, with a `### Highlights` subsection as its immediate child. The
-      date is not decoration: `/now/` eligibility is versioned and dated, so
-      an undated heading never publishes.
-- [ ] **AC-0065.** `packs/architect/.apm/skills/architect-design/evals/evals.json`
+- [ ] **AC-0069.** `docs/product/changelog.md` carries a
+      `## [architect][0.15.12]` entry, free-standing at `##`, not nested under
+      `[Unreleased]`, with a `### Highlights` subsection as its immediate
+      child. Those three properties are what `tools/test_build_site_routing.py`
+      decides over the real file at `:2156`, `:2268` and `:2332`. The dated
+      heading form and newest-first ordering are not criteria here: the tests
+      that check them run against synthetic fixtures rather than against
+      `docs/product/changelog.md`, so no artifact decides them for this entry.
+- [ ] **AC-0070.** `packs/architect/.apm/skills/architect-design/evals/evals.json`
       carries an eval whose expectation requires the response to name every
       identifier `DA1` through `DA10` with a verdict.
-- [ ] **AC-0066.** `.claude-plugin/marketplace.json` is regenerated by
+- [ ] **AC-0071.** `.claude-plugin/marketplace.json` is regenerated by
       `FORCE=1 make build-self` and records architect at `0.15.12`.
 
 ## Follow-ons

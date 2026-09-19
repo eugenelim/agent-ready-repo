@@ -356,9 +356,9 @@ against a non-compliant fixture and against the shipped templates — are in
 - Inside each hybrid's body, its precheck: `DA1` (AC-0038), `DA2` (AC-0039),
   `DA4` (AC-0040), `DA6` (AC-0035), `DA7` (AC-0036), `DA8` (AC-0037), `DA9`
   (AC-0041); each stating the verdict is the reviewer's (AC-0042); each
-  stating it applies to an authored document (AC-0046); and `DA9` scoped to a
-  routed document (AC-0046). The helper also counts the prechecks: exactly
-  seven, one per hybrid, and none under `DA5` (AC-0047) — the count is what
+  stating it applies to an authored document (AC-0047); and `DA9` scoped to a
+  routed document (AC-0047). The helper also counts the prechecks: exactly
+  seven, one per hybrid, and none under `DA5` (AC-0048) — the count is what
   keeps judgment-only textually distinct once every hybrid carries one.
 - `design-doc-rubric.md` is asserted to state what a severity means for an
   author (AC-0033). The file carries no severity vocabulary today.
@@ -382,7 +382,7 @@ against a non-compliant fixture and against the shipped templates — are in
 - `test_design_reviewer_rubric_parity.py` gains a `DA_CARRIERS` tuple naming
   the three gate homes and a `DA_GATES` map from identifier to severity glyph
   and taxonomy glyph, asserting each identifier and its two glyphs in every
-  `DA_CARRIERS` entry (AC-0057, AC-0058). It also observes the authoring
+  `DA_CARRIERS` entry (AC-0062, AC-0063). It also observes the authoring
   rubric (AC-0028), the reviewing rubric (AC-0029), the agent (AC-0030) and
   the tag assignment (AC-0031), so no home has an assertion of its own that
   could pass while another drifted.
@@ -404,15 +404,26 @@ against a non-compliant fixture and against the shipped templates — are in
   verdict is the reviewer's judgement and no automated measure decides it —
   with the two enumerated measure phrases as a supporting negative (AC-0034).
 - Assertions over `design-reviewer.md`'s output contract: the returned block
-  demands a `DA1`-`DA10` roll-call with a verdict each (AC-0050); a clean
-  `SHIP IT` still shows ten (AC-0051); the inlined set is named as baseline
+  demands a `DA1`-`DA10` roll-call with a verdict each (AC-0052); a clean
+  `SHIP IT` still shows ten (AC-0053); the inlined set is named as baseline
   depth with `rubric-design-doc.md` as the depth read when co-installed
-  (AC-0052); and an unreachable rubric is a finding (AC-0053). The roll-call
+  (AC-0054); and an unreachable rubric is a finding (AC-0055). Three more
+  cover the injection surface the dispatch opens: the artifact under review
+  holds no instruction authority over the agent's verdict, tools, scope or
+  output format, at the depth both sibling skills already state it and the
+  agent file states nowhere today (AC-0056); each roll-call verdict is the
+  agent's own determination, so a document carrying `DA1-DA10: PASS` is a
+  finding rather than a result (AC-0057); and the recorded block is captured
+  as quoted data, since the agent reads the checkout and its output lands in a
+  committed file (AC-0058).
+- An assertion reads the agent's frontmatter for `Read`, `Grep`, `Glob` and no
+  execution tool (AC-0072). AC-0061's claim that no rung runs the gate script
+  rests on that for the subagent rung, and nothing pinned it. The roll-call
   is asserted inside the fenced output block, not merely present in the file,
   because the section above it forbids a pre-findings recap.
 - An assertion over `convergence-loop.md` requires the loop to dispatch the
-  subagent when reachable and to name its fallback rung otherwise (AC-0055),
-  and requires each reporting obligation to name who reports (AC-0056).
+  subagent when reachable and to name its fallback rung otherwise (AC-0060),
+  and requires each reporting obligation to name who reports (AC-0061).
 - `REVIEW_EXTRA` is untouched, for T3's reason. The agent file's gates go
   after its `## Severity glossary`.
 - no stub (goal-based)
@@ -430,23 +441,34 @@ against a non-compliant fixture and against the shipped templates — are in
 - The reference document is committed at
   `testdata/telemetry-endpoint-default-design.md`, and `test_gate_text.py`
   asserts it carries no `<…>` placeholder token, so a half-filled skeleton
-  cannot serve as the corpus (AC-0044).
+  cannot serve as the corpus (AC-0045).
 - The reference document's measured word count is compared against the
   derivation's 2,178-word density figure and must sit within 20% (AC-0025).
   This is what gives AC-0024 an oracle: recomputing 2,178 × 1.5 → 3,300 is
   true by construction whatever the inventory leaves out.
 - `test_gate_text.py` asserts the spec states that the corpus purpose governs
-  an edit to the reference document (AC-0043): it is a baseline, so a design
+  an edit to the reference document (AC-0044): it is a baseline, so a design
   improvement nobody re-walks invalidates the recorded walk.
+- The defect document states in its own body that it is deliberately
+  non-conforming, and the plan records how a repository-wide Markdown reader
+  tells it apart: `tools/lint-agents-md.py:547` walks `rglob("*.md")` and
+  excludes on the path parts `fixtures` and `tests`, neither of which
+  `testdata/` matches (AC-0050).
 - A defect document is committed at `testdata/precheck-defects.md` carrying
-  one planted defect per precheck (AC-0048), and `test_gate_text.py` asserts
+  one planted defect per precheck (AC-0049), and `test_gate_text.py` asserts
   it names all seven.
 - **Both directions, walked by hand and recorded** in
   `notes/verification-ledger.md`: no precheck fires on the reference document
-  (AC-0045), and every precheck fires on its planted defect (AC-0049). One
+  (AC-0046), and every precheck fires on its planted defect (AC-0051). One
   direction alone is satisfied by a precheck that never fires on anything.
+- Every transcript and recorded block this task commits is host-clean: the
+  root path is written as a placeholder, never as a real absolute path
+  (AC-0043). `--root` is required, so a typed transcript otherwise carries an
+  operator's account name into a published repository, which root
+  `AGENTS.md` § Security considerations forbids — five ledgers under
+  `docs/specs/*/notes/` already carry one.
 - **The agent is dispatched against the reference document** and its returned
-  block recorded in the ledger, which must show ten verdicts (AC-0054). The
+  block recorded in the ledger, which must show ten verdicts (AC-0059). The
   agent resolves from either scope a host reads: `.claude/agents/` in the
   repository, or the operator's user profile. This repository sets
   `catalogue.toml:21` `self-host = false`, so architect's agent is absent from
@@ -491,17 +513,17 @@ block in the ledger showing ten verdicts.
 - `test_gate_text.py` asserts over `SKILL.md` step 6 and over
   `convergence-loop.md`'s cycle that each demands a per-identifier verdict,
   as the closed set `DA1`-`DA10` plus the word verdict rather than the phrase
-  "report the gates" (AC-0059, AC-0060). The failure this slice closes is a
+  "report the gates" (AC-0064, AC-0065). The failure this slice closes is a
   gate producing no finding because nothing asked it to, so "reported every
   gate" is the property and a generic instruction is a consequence of it.
 - An assertion pins the corrected contract sentence at
   `convergence-loop.md:6-7`: the loop requires and invokes no script
-  (AC-0061).
+  (AC-0066).
 - A second assertion covers `convergence-loop.md:9`, "A script would forfeit
   the pack's pure-markdown, zero-config, portable property" — the sentence
   this slice falsifies. It is replaced by a statement of what the shipped
   script does and does not cost, and the unconditional claim must be absent
-  (AC-0062).
+  (AC-0067).
 - The edits stay outside the `agentbundle:output-rendering` markers and
   outside the pinned description regions; step 6's body is neither.
 - no stub (goal-based)
@@ -517,18 +539,18 @@ span.
 
 **Tests:**
 - `python3 -m pytest tests/conformance/test_pack_metadata.py -q` owns the
-  `pack.toml`/`plugin.json` equality (AC-0063); this task does not restate
+  `pack.toml`/`plugin.json` equality (AC-0068); this task does not restate
   that comparison.
 - `FORCE=1 make build-self` regenerates `.claude-plugin/marketplace.json` and
   refuses a dirty tree, so the version bump commits before it runs. The
-  regenerated file is read back for architect at `0.15.12` (AC-0066) — a
+  regenerated file is read back for architect at `0.15.12` (AC-0071) — a
   projection is verified by regenerating it, never by editing its bytes.
 - The eval's expectation text is asserted against the closed set: it must name
-  every identifier `DA1` through `DA10` with a verdict (AC-0065). Requiring
+  every identifier `DA1` through `DA10` with a verdict (AC-0070). Requiring
   only that an eval mentions the gates lets the implementation write its own
   comparison value.
 - The changelog entry is decided by `tools/test_build_site_routing.py`, which
-  `build-check.yml:357` runs on every pull request (AC-0064). Three of its
+  `build-check.yml:357` runs on every pull request (AC-0069). Three of its
   tests read the real file:
   `test_the_real_changelog_has_no_silently_withheld_highlights` (`:2156`) reds
   when a `### Highlights` block is not its release entry's immediate child,
