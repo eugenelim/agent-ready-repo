@@ -1745,6 +1745,17 @@ open = [
   { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/CAP-0004-external-tracker-projection.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Project the canonical repository graph into Linear, GitHub, Jira, or Jira Align without importing each tracker's hierarchy into the product model; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/CAP-0002-decision-graph.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make the accepted decision corpus navigable as a generated read-only graph so a session reads the constraints that apply instead of rediscovering them from record headers; supersession is the checked backbone and Related is weaker adjacency; needs its own de-risk before decomposition", needs = [] },
+  # Work-item capture and disposition — delivery for CAP-0005 and its four
+  # feature intents, all Accepted and therefore de-registered. These specs are
+  # where the work stays visible. Each names exactly one parent feature intent
+  # in `source.ref`, and the `needs` edges are the enforceable form of the
+  # ordering each intent states in prose: capture, then promotion, then the two
+  # routes that act on a promoted item.
+  {path = "docs/specs/work-item-capture/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0006-work-item-capture-contract.md"}, summary = "Capture a loop's leftover work as a record a cold session can act on, validating truth and necessity before writing so an invalid or unneeded item is never captured", needs = []},
+  {path = "docs/specs/work-item-promotion-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"}, summary = "Hand a captured item to the owner that handles work of its shape or close it because it should go nowhere, committing the terminal disposition either way", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-capture/spec.md"}]},
+  {path = "docs/specs/governance-item-record-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0008-governance-item-record-routing.md"}, summary = "Route a captured question whose deliverable is a decision to a record naming who decides, eliciting the record type rather than deriving it, and refusing loudly when the authoring pack is absent", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
+  {path = "docs/specs/duplicate-coverage-offer/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"}, summary = "Offer the artifact that already covers a captured item before promotion creates a second one; path proximity is refuted and the surviving question is whether coverage is discoverable at all", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
+
 ]
 
 
