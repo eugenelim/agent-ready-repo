@@ -163,3 +163,10 @@ validation_hook:
 - **Whether the two record types are the only destinations**, given that one
   opens at `Proposed` with decision-makers and the other at `Draft` with an
   approver — different shapes for what this intent treats as one class.
+- **Which governance items this route admits**, and the terminal disposition of
+  one it refuses. The `governance` kind and its write-time threshold are
+  [FEAT-0006](FEAT-0006-work-item-capture-contract.md)'s, because capture writes
+  the record; this route decides only what it accepts once written, and does not
+  re-argue the kind definition. An item admitted at write time and refused here
+  is a state the parent capability requires a disposition for, and no other
+  artifact supplies one.

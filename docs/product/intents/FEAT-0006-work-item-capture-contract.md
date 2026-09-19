@@ -242,6 +242,15 @@ None is settled here.
   command that a later session runs. Authorship, confinement, permitted effects,
   timeout and failure handling are unaddressed, and a schema that ships without
   them is harder to correct afterwards than before.
+
+  The runner is out of scope by the parent's boundary, so this is settled at
+  write time and not at execution: what a record may carry, under whose
+  authorship, and what is refused before it is written. The test is that no
+  destination has to be trusted for a stored command to be safe. What a later
+  session may do with captured content as *input* — prose and paths reaching a
+  classifier — is
+  [FEAT-0007](FEAT-0007-work-item-promotion-routing.md)'s and is not decided
+  here.
 - **Which fields are required, per kind**, and what an item whose kind cannot
   carry evidence supplies instead.
 - **Whether the item's prose reuses the existing lesson field or gains its own.**

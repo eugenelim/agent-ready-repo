@@ -29,6 +29,8 @@ This capability owns the path a noticed-but-undone item takes: whether it is cap
 
 Validity is part of "whether it is captured at all": an item that cannot be established as real is not written. What that check tests, how it runs, and what a refusal does are the capture child's, not this capability's.
 
+A captured record may carry a command a later session runs. The owner that runs it sits outside this capability by the last exclusion below, so the command's safety is settled where the record is written rather than where it executes: what may be written, under whose authorship, and what is refused at write time are the capture child's. No destination has to be trusted for a stored command to be safe.
+
 It does not own:
 
 - **The model of repository work as a graph**, or navigation over it. A captured item is upstream of that graph and enters it only on promotion.
@@ -89,10 +91,12 @@ allowed to fill before anyone needs it.
 **This test cannot run as written, and that is a delivery obligation rather
 than a caveat.** "Promoted" maps to an existing terminal disposition. "Pruned"
 does not — the store's terminal set has no such value, and the closest
-existing ones carry different meanings. Either a disposition for discarding is
-added, or two existing ones are designated to mean it. Until that mapping is
-decided the count is unreadable, so the mapping is part of delivering this
-capability, not of measuring it afterwards.
+existing ones carry different meanings. The mapping is
+[FEAT-0007](FEAT-0007-work-item-promotion-routing.md)'s to settle, including
+which shape the terminal vocabulary takes; this artifact states the obligation
+and not the option set. Until that mapping is decided the count is unreadable,
+so the mapping is part of delivering this capability, not of measuring it
+afterwards.
 
 Note what this deliberately does not measure: how much was lost before. Items
 that evaporated left no trace, so the loss this capability prevents is not

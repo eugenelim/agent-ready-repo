@@ -143,6 +143,14 @@ Neither threshold is derived from an observation. Seven of ten is a placeholder
 for "often enough to be worth opening", and the precision half has no number at
 all — both need a basis before this is a test rather than a gesture.
 
+**Deriving them is this intent's, not its spec's.** A kill line is the
+instrument this intent uses to decide whether its own bet survives, so a spec
+cannot replace it without replacing the bet. The spec derives its own
+acceptance thresholds, which answer a different question — whether the built
+mechanism is good enough to ship — and the two pairs of numbers are not
+interchangeable. Until this intent derives its pair, the kill line stays a
+gesture and this artifact says so rather than delegating it.
+
 **The next probe draws unseen items, and this is a requirement rather than a
 preference.** The ten used for the path probe are now contaminated: their
 coverage is known to whoever ran it, so a mechanism developed against them can
@@ -156,7 +164,11 @@ validation_hook:
   assumption: coverage is discoverable at all from what a captured item carries
     and what the corpus records
   kill_condition: over 10 items with known coverage, no available mechanism
-    offers the covering artifact within a list of 5 for at least 7
+    offers the covering artifact within a list of 5 for at least 7. The 5
+    bounds what a probe run shows a reader and is not a precision threshold:
+    the prose above records that capping length does not achieve precision.
+    It does not bind the delivered offer contract, whose list size is the
+    spec's
   activity: try body-text search over the artifact corpus on ten previously
     uninspected items; have the owner judge each result as correct offer,
     correct no-offer, or wrong

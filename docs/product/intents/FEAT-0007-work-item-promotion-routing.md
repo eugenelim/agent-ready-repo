@@ -206,9 +206,10 @@ validation_hook:
   three different tests, and an unjustified closure is indistinguishable from
   losing the work this feature exists to keep.
 - **The disposition for a discarded item** — whether the terminal vocabulary
-  gains a value or an existing one is designated to mean it. Without that
-  mapping the sink's prune half is unrecordable, and the parent capability's
-  kill condition cannot be read.
+  gains a value, or one or more existing values are designated to mean it.
+  Without that mapping the sink's prune half is unrecordable, and the parent
+  capability's kill condition cannot be read. The parent states the obligation
+  and leaves the option set here, so this is its only home.
 - **The adjudicator and rubric** the routing measure depends on.
 - **Attended versus unattended operation** — who may confirm a route, and what
   must remain held when nobody can.
