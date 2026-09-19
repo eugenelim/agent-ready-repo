@@ -4,15 +4,17 @@
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0118 `D5` fixes the gate set and its
   mechanizability. The governing implementation is
-  `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` —
-  the same shape as this script, a skill-shipped lint handed paths by a
-  caller — standard-library only, with its confinement in the twelve-line
-  `_read_confined` at `:281-302`.
-  `packs/architect/.apm/skills/architect-assess/scripts/profile_repo.py` is
-  the second example, for its UTF-8 stream reconfiguration at `:952-955`
-  only; its optional `agentbundle` import is a tree-walker's answer to a
-  threat this script does not have, and is a named deviation this plan
-  declines. The construction path is
+  `packs/core/.apm/skills/close-work/scripts/` — a skill that carries a
+  mirrored `file_safety.py` and loads it as a co-located sibling through a
+  guarded loader at `close_work.py:912-957`, which is the confinement shape
+  this plan adopts. `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`
+  keeps one narrower role: it is the precedent that a skill-shipped lint is
+  handed paths by a caller and must confine them, and its twelve-line
+  `_read_confined` at `:281-302` is the shape this plan **declines**, being
+  check-then-act with no `O_NOFOLLOW`, no descriptor re-check and no
+  read-time bound. `packs/architect/.apm/skills/architect-assess/scripts/profile_repo.py`
+  contributes its UTF-8 stream reconfiguration at `:952-955` only. The
+  construction path is
   `packs/architect/tests/skills/architect-assess/test_profile_repo.py:23`,
   which loads a pack script by `importlib.util.spec_from_file_location` under
   a pack-unique module name.
@@ -303,6 +305,14 @@ earlier draft of this plan cited it as governing.
   `sys.stdlib_module_names` plus the one co-located sibling, so any other
   import fails — including `agentbundle`, which would pass a runtime smoke
   test in this repository and fail in every adopter install (AC-0002).
+- The sibling load is driven against three sabotages — the module absent,
+  replaced by a symlink, and truncated so a helper is missing — and each must
+  exit non-zero through the script's own refusal channel with no traceback
+  (AC-0075). `tests/roster/test_policy_family_selector.py:435-466` sets that
+  depth for the same shape.
+- The sibling module's import set is read with `ast` and required to be
+  standard-library only (AC-0077), because AC-0002's check reads the gate
+  script and never sees a module loaded by path.
 - `scripts/file_safety.py` is asserted byte-identical to
   `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py`
   (AC-0073), and the assertion lives in
@@ -311,9 +321,12 @@ earlier draft of this plan cited it as governing.
   sibling precedent at
   `tests/roster/test_architect_assess_profiler_integration.py`, which pins
   `profile_repo._safe_read` against the canonical helper's behaviour.
-- `read_target` is driven to confirm it delegates: a `UnsafeContentError` from
-  the helper becomes the gate's refusal type carrying the path and reason, and
-  the helper is not re-implemented beside it (AC-0011, AC-0012).
+- `read_target` is driven with the helper monkeypatched to raise
+  `UnsafeContentError`, and the gate's refusal type must carry that path and
+  reason — which fails if the wrapper decides confinement itself rather than
+  delegating (AC-0011). A second case asserts the wrapper passes the caller's
+  path through unresolved, since canonicalizing first would collapse the
+  symlink components the helper's walk exists to inspect (AC-0076).
 - `main()`'s stream setup is driven with `sys.stdout` patched by a recorder
   that requires `reconfigure` to be its first call; asserting the call
   happened would pass on a script that printed first (AC-0003).
@@ -473,9 +486,13 @@ against a non-compliant fixture and against the shipped templates — are in
   derivation's 2,178-word density figure and must sit within 20% (AC-0025).
   This is what gives AC-0024 an oracle: recomputing 2,178 × 1.5 → 3,300 is
   true by construction whatever the inventory leaves out.
-- `test_gate_text.py` asserts the spec states that the corpus purpose governs
-  an edit to the reference document (AC-0044): it is a baseline, so a design
-  improvement nobody re-walks invalidates the recorded walk.
+- `test_gate_text.py` asserts the **reference document's own header** states
+  that its corpus purpose governs an edit to it (AC-0044): it is a baseline,
+  so a design improvement nobody re-walks invalidates the recorded walk. The
+  assertion reads `testdata/telemetry-endpoint-default-design.md`, not this
+  spec — a pack test may not climb to `docs/`
+  (`tools/lint-pack-test-boundary.py` check 8), and a test asserting that the
+  spec says something makes the spec its own comparison value.
 - The defect document states in its own body that it is deliberately
   non-conforming, and the plan records how a repository-wide Markdown reader
   tells it apart: `tools/lint-agents-md.py:547` walks `rglob("*.md")` and
@@ -488,18 +505,26 @@ against a non-compliant fixture and against the shipped templates — are in
   `notes/verification-ledger.md`: no precheck fires on the reference document
   (AC-0046), and every precheck fires on its planted defect (AC-0051). One
   direction alone is satisfied by a precheck that never fires on anything.
-- Every transcript and recorded block this task commits is host-clean: the
+- A scan over every artifact this delivery commits requires no real
+  home-directory path or account name, across transcripts, recorded blocks,
+  fixtures and corpus files alike (AC-0043), and the plan names where a
+  standing check for that class lives rather than leaving it to review
+  (AC-0078). Every transcript and recorded block this task commits is
+  host-clean: the
   root path is written as a placeholder, never as a real absolute path
   (AC-0043). `--root` is required, so a typed transcript otherwise carries an
   operator's account name into a published repository, which root
   `AGENTS.md` § Security considerations forbids — five ledgers under
   `docs/specs/*/notes/` already carry one.
 - **The branch's `packs/architect/.apm/agents/design-reviewer.md` is copied to
-  the path the host resolves, then the agent is dispatched** against the
-  reference document and its returned block recorded in the ledger, which must
-  show ten verdicts (AC-0059). Copying first is the whole point: without it
-  the dispatch reads whatever the operator's profile holds, which today is
-  8,633 bytes against the pack source's 9,140. The
+  `.claude/agents/design-reviewer.md`, the agent is dispatched** against the
+  reference document, its returned block is recorded in the ledger showing ten
+  verdicts, and the copy is removed in the same step (AC-0059). Copying is the
+  point: without it the dispatch reads whatever the operator's profile holds,
+  today 8,633 bytes against the pack source's 9,140. Project scope is the
+  destination because it is inside the working tree and git-visible;
+  overwriting `~/.claude/agents/` would replace a machine-wide definition for
+  every project on the host and leave it replaced. The
   agent resolves from either scope a host reads: `.claude/agents/` in the
   repository, or the operator's user profile. This repository sets
   `catalogue.toml:21` `self-host = false`, so architect's agent is absent from
@@ -605,8 +630,10 @@ subsection.
 
 ## Rollout
 
-- **Delivery:** big bang, fully reversible. Repository and pack content only;
-  a revert is a revert.
+- **Delivery:** big bang, fully reversible. Repository and pack content only:
+  T4a's dispatch copies the agent definition to `.claude/agents/` inside the
+  working tree and removes it in the same step, so nothing outside the
+  repository is written and a revert is a revert.
 - **Infrastructure:** none.
 - **External-system integration:** none.
 - **Deployment sequencing:** T7 last, because the changelog entry describes

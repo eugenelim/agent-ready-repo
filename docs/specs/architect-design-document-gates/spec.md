@@ -69,7 +69,9 @@ mapping, which an architecture-change document names `Build Mapping` rather
 than `Implementation Mapping`, and `DA7` fires only where there are diagrams.
 
 - `DA3` and `DA10` — one script at
-  `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
+  `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`,
+  beside a mirrored `scripts/file_safety.py` it loads as a sibling for
+  confinement
 - A confinement and refusal contract for that script — required `--root`,
   canonicalized boundary, regular files under 1 MiB, escaped output
 - Seven hybrid prechecks and judgment-only `DA5` — reviewer checks in three
@@ -142,14 +144,18 @@ the built artifact rather than for a criterion. Identifiers are assigned once
 and never reflowed, so a group's list is not always contiguous.
 
 - **The shipped mechanical gate (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005,
-  AC-0006, AC-0007, AC-0073, AC-0074): TDD.** An exit code is the whole interface a CI caller
+  AC-0006, AC-0007, AC-0073, AC-0074, AC-0075, AC-0077): TDD.** An exit code is the whole interface a CI caller
   sees, and exit-code precedence across a multi-target run is the part a
   single-target test never reaches. AC-0073 and AC-0074 are the vendored
   projection and its byte-identity pin: a carried copy of a security module
   that drifts from its source is worse than no copy, because its name says it
-  is current, so the pin is a roster check rather than a reviewer's habit.
+  is current, so it is a declared mirror pair `make build-self` writes rather
+  than a comparison someone remembers to run. AC-0075 and AC-0077 cover the
+  sibling itself: what the script does when the module is absent, link-like or
+  incomplete, and that the module's own imports stay standard-library only.
 - **What the gate refuses to read (AC-0008, AC-0009, AC-0010, AC-0011,
-  AC-0012, AC-0013, AC-0014, AC-0015, AC-0016): TDD, except AC-0016.** Each
+  AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0076): TDD, except
+  AC-0016.** Each
   refusal is driven by a real filesystem entry and asserts the refusal
   *reason*, not only the exit code: a refusal asserted on the exit code alone
   passes when a different criterion's check fired instead. AC-0011 states
@@ -170,7 +176,7 @@ and never reflowed, so a group's list is not always contiguous.
   three files against the severity map fixed in AC-0032, so parity has a value
   to agree *to*.
 - **The prechecks (AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040,
-  AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0047, AC-0048, AC-0049,
+  AC-0041, AC-0042, AC-0044, AC-0045, AC-0047, AC-0048, AC-0049,
   AC-0050): goal-based check; (AC-0046, AC-0051): visual / manual QA.**
   Whether a hybrid states a precheck is decidable from its section body in
   each home, and AC-0048 pins the count that keeps `DA5` distinct. Whether a
@@ -183,6 +189,11 @@ and never reflowed, so a group's list is not always contiguous.
   written into `design-reviewer.md` or `convergence-loop.md`, decidable from
   that file. AC-0059 is the one that watches the agent obey them, and it is
   manual because the agent is a model: a dispatch is read, not asserted.
+- **Evidence this delivery commits (AC-0043, AC-0078): goal-based check.**
+  A scan over the committed tree decides both: whether any artifact carries a
+  real home path, and whether a standing check owns that question. Today
+  nothing does, which is why AC-0078 asks where it lives rather than assuming
+  a reviewer will look.
 - **Parity (AC-0062, AC-0063): goal-based check.** The gates get a
   `DA_CARRIERS` constant of their own; the module's existing `CARRIERS` names
   a set that overlaps the gate homes in one file.
@@ -212,23 +223,39 @@ and never reflowed, so a group's list is not always contiguous.
 
 - [ ] **AC-0001.** `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`
       implements `DA3` and `DA10`.
-- [ ] **AC-0002.** The script imports only the Python standard library and
-      one co-located sibling. It does not import `agentbundle`, conditionally
-      or otherwise — an adopter install has no such package.
+- [ ] **AC-0002.** The script's `import` statements name only the Python
+      standard library. It does not import `agentbundle`, conditionally or
+      otherwise — an adopter install has no such package. The sibling module
+      is not an import statement: it loads by
+      `importlib.util.spec_from_file_location`, because `packs/AGENTS.md`
+      § Writing pack tests forbids binding a sibling by bare name, so an
+      import-set check cannot see it and a separate check observes the load.
+- [ ] **AC-0077.** The sibling module's own import set is standard-library
+      only. AC-0002 protects the adopter install and AC-0073 binds this copy
+      to a source whose imports nothing gates — `tools/lint-build.py` audits
+      only `packages/agentbundle/agentbundle/build/` — so a non-stdlib import
+      appearing upstream would propagate through the mirror and break every
+      adopter install with both checks green.
 - [ ] **AC-0073.** `packs/architect/.apm/skills/architect-design/scripts/file_safety.py`
-      is a vendored projection of
-      `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py`,
-      byte-identical to it, loaded as a co-located sibling. This is the
-      pattern `packs/core/.apm/skills/work-loop/scripts/` and
-      `.../close-work/scripts/` already ship, and it is what lets the script
-      use the blessed confinement helpers with no `agentbundle` import and one
-      code path.
-- [ ] **AC-0074.** A `tests/roster/` check pins that byte identity, and the
-      roster obligations `tests/AGENTS.md` attaches to a new roster module are
-      discharged: a `build-check.yml` step naming the file and a matching
-      `STEP_DISPOSITION` entry of `LOCAL("test-after-build-check")` in
-      `tools/lint-ci-parity.py`. A vendored security module that drifts from
-      its source is worse than none, because its name says it is current.
+      is declared a mirror destination whose source is
+      `packs/core/.apm/skills/close-work/scripts/file_safety.py`, and
+      `make build-self` writes it. That core script is the repository's source
+      of truth: `packages/agentbundle/agentbundle/build/self_host.py:133-150`
+      already declares it as the source of the `catalogue_tooling` copy, which
+      is a generated destination rather than the canonical body.
+- [ ] **AC-0074.** The copy is covered by the existing declaration gate rather
+      than by a new after-the-fact byte comparison. A comparison test is the
+      shape `tests/roster/test_packaged_runtime_closure.py:99-106` records as
+      removed — "two tests compared it after the fact, but nothing wrote it" —
+      and a declared pair is what keeps a security fix propagating by
+      regeneration instead of by someone remembering to hand-copy it.
+- [ ] **AC-0075.** The script refuses through its own refusal channel and exit
+      code when the sibling module is missing, is link-like, or does not
+      expose the helpers the gate calls, rather than raising. An incomplete
+      install is the realistic trigger, and
+      `tests/roster/test_policy_family_selector.py:435-466` sets the depth:
+      each sabotage exits non-zero through the script's one-line channel with
+      no traceback.
 - [ ] **AC-0003.** The script reconfigures `sys.stdout` and `sys.stderr` to
       UTF-8 before its first write to either.
 - [ ] **AC-0004.** The script exits 0 when it reports no finding, 1 when it
@@ -247,16 +274,25 @@ and never reflowed, so a group's list is not always contiguous.
 - [ ] **AC-0009.** The root is canonicalized before any prefix comparison, so
       both sides of the comparison are real paths.
 - [ ] **AC-0010.** A regular file reached through a symlinked parent
-      directory, whose real path is not under the canonicalized root, is
-      refused, and the refusal names the out-of-root reason rather than a
-      file-type reason.
+      directory, whose real path is not under the root, is refused, and the
+      refusal carries the reason the delegated helper raised — on a runtime
+      with descriptor-walk support that is
+      `directory boundary cannot be opened safely`, not an out-of-root or
+      file-type reason. The criterion is refusal with an attributable reason,
+      not a particular wording, because the helper's component walk decides it
+      and the wording is platform-dependent.
+- [ ] **AC-0076.** The wrapper hands the helper the caller's path without
+      canonicalizing it first. Resolving first collapses every symlink
+      component before the no-follow component walk sees one, which leaves the
+      leaf `fstat` identity check as the only protection and reinstates the
+      resolve-then-prefix shape the delegation exists to retire.
 - [ ] **AC-0011.** A target that is not a confined regular file is refused,
       by `read_confined_regular_file` from the vendored module rather than by
-      a re-implementation. That helper opens with `O_NOFOLLOW`, re-verifies
-      the descriptor by `os.fstat` against the `(st_dev, st_ino)` pair and
-      link count that were stat'd, and refuses anything that is not a
-      single-link regular file — so an entry swapped between the stat and the
-      open is refused rather than read. Four kinds are exercised
+      a re-implementation. That helper opens with `O_NOFOLLOW` and
+      re-verifies the opened descriptor by `os.fstat`: `(st_dev, st_ino)` is
+      compared against the pre-open stat, and the link count is checked
+      absolutely against one rather than against the earlier value. An entry
+      swapped between the stat and the open is refused rather than read. Four kinds are exercised
       directly, being the four a test on Linux and macOS can build — a
       directory, a FIFO, a symbolic link, and a file with a second hard link.
       A character device, a block device and a socket are covered by the same
@@ -265,14 +301,22 @@ and never reflowed, so a group's list is not always contiguous.
 - [ ] **AC-0012.** A target larger than 1,048,576 bytes is refused, by the
       same helper's `max_bytes` argument, which bounds the read itself rather
       than trusting `st_size` — a figure a concurrent writer makes stale with
-      no attacker present. The bound is
-      `architect-assess/scripts/profile_repo.py`'s `DEFAULT_MAX_FILE_BYTES`;
-      a document at `DA10`'s bound is roughly 16,000 bytes, so the budget is
-      about 65 times the largest document the gate expects.
-- [ ] **AC-0013.** Every failure to resolve or read a target produces a
-      refusal and never an uncaught exception. A symbolic-link loop, which
-      raises `RuntimeError` rather than `OSError`, a permission error, and a
-      non-prefix result are each covered.
+      no attacker present. The figure is this script's own constant with its
+      own reason: a document at `DA10`'s 3,300-word bound is roughly 16,000
+      bytes, so 1 MiB is about 65 times the largest document the gate expects
+      and cannot fire on real content. It is not derived from
+      `profile_repo.py`'s `DEFAULT_MAX_FILE_BYTES`; nothing pins the two
+      together, so a stated derivation would go false while both files stayed
+      green.
+- [ ] **AC-0013.** Every failure to resolve, read, or decode a target
+      produces a refusal and never an uncaught exception. A symbolic-link
+      loop, which raises `RuntimeError` rather than `OSError`; a permission
+      error; a non-prefix result; and a confined regular file whose bytes are
+      not valid UTF-8 are each covered. The helper returns `bytes`, so
+      decoding is the wrapper's and its failure is the wrapper's to refuse —
+      and because AC-0006 keeps a refused target from stopping the run, an
+      uncaught decode error would end the run and leave every later target
+      unread.
 - [ ] **AC-0014.** `DA3`'s sentence-matching pattern contains no nested
       quantifier and no alternation inside a repetition, the two constructs
       that make backtracking super-linear.
@@ -400,11 +444,6 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       evidence rather than linking it — `Appendix`, `References`, `Evidence`.
 - [ ] **AC-0042.** Each of the seven prechecks states that its verdict is the
       reviewer's.
-- [ ] **AC-0043.** Every transcript and returned block this delivery commits
-      is host-clean: an absolute root path appears as a placeholder, never as
-      a real one. Root `AGENTS.md` § Security considerations forbids a real
-      hostname or account name in a repository artifact, and `--root` being
-      required means every typed transcript would otherwise carry one.
 - [ ] **AC-0044.** The reference document's own header states that its corpus
       purpose governs an edit to it: it is a baseline, so any change to its
       content obliges a re-walk of the seven prechecks and a fresh record. The
@@ -449,6 +488,21 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       and the walk is recorded. A precheck checked only against a clean
       document is satisfied by one that never fires on anything.
 
+### Evidence this delivery commits
+
+- [ ] **AC-0043.** No repository artifact this delivery commits carries a real
+      home-directory path or account name — not a transcript, not a recorded
+      agent block, not a fixture or corpus file. `--root` being required means
+      every typed transcript would otherwise carry one, and the class is wider
+      than transcripts: the six artifacts scrubbed on this branch included two
+      lint-corpus JSON files and a design-evidence note.
+- [ ] **AC-0078.** A standing check owns that property rather than a
+      reviewer's attention, and the criterion names where it lives. Nothing
+      scans committed artifacts for a real home path today —
+      `tools/test_import_time_path_leaks.py` covers import-time leaks and
+      `tools/test_editable_install_guard.py` covers install targets — so the
+      tree is clean only because this branch made it so.
+
 ### How the reviewer reports the gates
 
 - [ ] **AC-0052.** `.apm/agents/design-reviewer.md` requires its returned
@@ -483,9 +537,9 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
       the artifact that directs it to quote an unrelated file must not become
       repository content by transcription.
 - [ ] **AC-0072.** `.apm/agents/design-reviewer.md` declares `Read`, `Grep`
-      and `Glob` and no execution tool. AC-0056's claim that no rung runs the
-      gate script rests on this for the subagent rung, which its two cited
-      criteria do not reach.
+      and `Glob` and no execution tool. AC-0061's claim that no rung runs the
+      gate script rests on this for the subagent rung, which neither of the
+      two criteria that claim cites reaches.
 - [ ] **AC-0059.** The roll-call contract is exercised, not only asserted:
       `design-reviewer` is dispatched against the reference document and its
       returned block recorded in `notes/verification-ledger.md`, showing ten
@@ -502,8 +556,9 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 - [ ] **AC-0061.** Each reporting obligation names who reports: step 6 is the
       author's own self-check, and the review pass is whichever rung
       `convergence-loop.md` resolved. No rung runs the gate script — AC-0016
-      keeps the agent from invoking it and AC-0061 keeps the loop from
-      invoking it — so every rung counts sentences and words by reading.
+      keeps the skill's own agent from invoking it, AC-0066 keeps the loop
+      from invoking it, and AC-0072 pins that the subagent declares no
+      execution tool — so every rung counts sentences and words by reading.
 
 ### Parity
 
