@@ -622,10 +622,42 @@ is structure; it never decorates." Three classes on this route contradict it:
 | class | what it draws | line |
 | --- | --- | --- |
 | `.outcome-card` | `--ds-surface` fill, border, `--ds-radius-lg` | `catalogue/index.astro:237` |
-| `.role-card` | fill, border, `--ds-radius-md` | `catalogue/index.astro:284` |
+| `.role-grid` | fill, border, `--ds-radius-md` on its `a` children | `catalogue/index.astro:284` |
 | `.cat-card` | `--ds-surface-alt` fill, border, `--ds-radius-lg`, hover lift | `catalogue/index.astro:320` |
 
 Plus rounded pack chips at `--ds-radius-md` inside each card.
+
+> **Repaired 2026-09-18, in a later change.** All three classes are gone; the
+> route is three ruled record lists and the pack chips returned to the
+> `:where(a)` underline baseline. Evidence:
+> [`catalogue-records-retrofit.md`](catalogue-records-retrofit.md). The finding
+> is otherwise left as written because it is this manifest's record of what was
+> found, but the three line citations above point into the file as it was at the
+> time and no longer resolve to these classes.
+>
+> **One row is corrected rather than annotated, because it was wrong when
+> written.** The middle row read `.role-card`. No such class existed on this
+> route: `git log -S "role-card" -- web/src/pages/catalogue/index.astro`
+> returns no commit, and
+> `git show HEAD:web/src/pages/catalogue/index.astro | grep -c role-card`
+> returns 0. Either alone settles it. (The row's `:284` pointer is not itself
+> the error — it points at the fill declaration the row describes, inside the
+> `.role-grid a` rule whose selector is the line above. Only the class name in
+> the first column was wrong.) That is a transcription
+> slip, not an observation anyone made, so correcting it in place loses nothing
+> this manifest exists to keep: its job is to record what was measured and
+> found, and a class name nobody could have measured is not that.
+>
+> **No retention rule governs `docs/design/evidence/`.** The frozen-document
+> rules in `.claude/skills/new-spec/references/spec-and-plan-contract.md` reach
+> `docs/specs/<feature>/spec.md` and `plan.md`, not this directory, so nothing
+> here is frozen and ordinary manifest upkeep needs no exemption. Rule 4's
+> distinction — a record of a decision is protected, its spelling is not — is
+> cited above as the reasoning it is, applied by analogy, not as authority
+> binding this file.
+>
+> The wrong name had already propagated into `workspace.toml`'s backlog entry
+> and from there into the request for the repair; both are also corrected.
 
 This is not a new opinion. `NowHighlights.astro`'s own comment records that
 "the homepage's outcome band had exactly the same contradiction and it was
@@ -1180,7 +1212,7 @@ decisions this pass does not own.
 | --- | --- |
 | Gate 3 — the 11 open `direction-preview.astro` font sizes | **The gate itself is no longer unverified**; it is configured, mutation-checked and reporting, and its result is under *known exceptions* §4. What is unresolved is the finding it makes: 11 literals in one file that need either new tokens (11px, 15px, 17px) or a naming decision (13px against `--ds-type-mono-sm`). Both are scale decisions, so the gate stands red rather than forced green. |
 | **Safari's list-semantics behaviour** | **Still unverified, and the instrument is the reason.** WebKit was installed and `/` was loaded in it, but Playwright 1.63.0 removed `page.accessibility` (`typeof page.accessibility === 'undefined'`), `ariaSnapshot` is Playwright's own DOM-derived computation and returns the same answer in every engine, and `window.internals` is absent from the Playwright WebKit build. So the `role="list"` workaround is held on the documented Safari behaviour, not on a measurement taken here. What WebKit **did** settle is layout parity — see *browsers*. Settling this needs real Safari with VoiceOver, or a WebKit build exposing its AX controller. |
-| **`/catalogue/` card treatment** | **Open, Major, evidence attached.** The route still uses `.outcome-card`, `.role-card` and `.cat-card` — tinted, bordered, rounded panels — against a direction sheet whose Containment row forbids cards outright, and after the same contradiction was repaired on the homepage's outcome band and on `/now/`. Full finding under *inspection observations*. Not fixed here because converting three card grids to ruled records is a layout change across four channels with its own review. |
+| **`/catalogue/` card treatment** | **CLOSED 2026-09-18 — repaired in its own change.** The finding stood, with one name corrected: the route used `.outcome-card`, **`.role-grid`** (recorded below as `.role-card`, which never existed — see the note under *inspection observations*) and `.cat-card` — tinted, bordered, rounded panels — against a direction sheet whose Containment row forbids cards outright, and after the same contradiction was repaired on the homepage's outcome band and on `/now/`. It was not fixed in this pass because converting three card grids to ruled records is a layout change across four channels with its own review. That review happened: all three are now ruled record lists, and the evidence is in [`catalogue-records-retrofit.md`](catalogue-records-retrofit.md). The original finding under *inspection observations* is kept as the record of what was found, with its one wrong class name corrected in place and the correction explained there. |
 | **`/now/` route length** | **Open, Moderate.** Re-measured on the lower-bound matrix: **75,240 CSS px at 320** — 83.6 viewport heights at 900 — falling to 35,977 at 1100, for 122 releases in one unpaginated document whose emitted `index.html` is **160 KB**. These supersede the 61,638 px / 402 KB figures, which came from the superseded 390-wide run; the two were not reconciled and the earlier pair is not carried forward. Nothing in the build bounds the growth. Bounding it is a content decision, not a retrofit edit. |
 | Core Web Vitals | No field data and no synthetic history. See *perf result*. |
 | Print stylesheet | **The state is now exercised** — see *states* for nine measured sheets, the 0.82-sheet ink cost, the 1.42:1 footer with backgrounds off, 64 links with no printed targets, 3 of 4 install variants lost, and 7 of 8 page breaks cutting a block. What remains unverified is any remedy: there is still no `@media print` rule, and writing one is a design decision. |

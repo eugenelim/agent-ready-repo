@@ -311,6 +311,12 @@ jobs:
       - name: pytest merge-driver behaviour (AC2-AC4)
         run: python -m pytest tools/test_merge_driver_behaviour.py
 
+      - name: Pull-request template installer and release checker
+        # Behavioural suites: the installer is RUN in temporary repositories,
+        # because a text check cannot catch a wrong search depth or a path that
+        # escapes the repository. Both shipped once and were found by running it.
+        run: python -m pytest tools/test_pull_request_template_adoption.py tools/test_check_core_release.py -q
+
       - name: pytest journey editorial decisions
         run: python -m pytest tools/test_journey_editorial_decisions.py
 
@@ -425,6 +431,16 @@ jobs:
         run: |
           python -c "import credbroker, httpx"
           python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+      # spec-authority note: the live docs/specs/README.md and its packs/core
+      # seed must carry the same delivery-time-contract section, and nothing
+      # syncs them — the seed is Excluded from the self-host check. Reading
+      # both puts the guard above any one pack's test tree, so it is
+      # roster-owned. It sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
+      # step placed after that one never runs and can attribute nothing.
+      - name: pytest spec-authority note live/seed parity (roster-owned)
+        run: python -m pytest tests/roster/test_spec_authority_note.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         run: |
           python tools/lint-conformance-portability.py --root .
@@ -674,10 +690,11 @@ jobs:
       # packs/core, packs/architect and packs/agent-skill-engineering plus
       # docs/, guides/, packages/agentbundle/_data/ and workspace.toml, so
       # lint-pack-test-boundary forbids it from any one pack's test tree. CI
-      # does not auto-discover roster tests, and `pytest tests/` reaches this
-      # module only through `make test` / `test-after-build-check`, which no CI
-      # job runs — so without this step the contract's 16 criteria are enforced
-      # on a local `make ci` and nowhere else.
+      # does not auto-discover roster tests one by one, and this job's bulk
+      # `pytest tests/ -q` step above also collects the module, so the
+      # contract's 16 criteria run either way. This step keeps the contract
+      # named in the workflow; in a fail-fast job whichever step runs first is
+      # what reports a failure.
       - name: pytest agent-skill-engineering consumer integrations (roster-owned)
         run: >-
           python -m pytest
@@ -700,10 +717,11 @@ jobs:
       # well as packs/, and the write-declaration and artifact-folder-registry
       # controls read packs/experience-design plus its sibling surfaces, so
       # lint-pack-test-boundary forbids all three from the pack's test tree.
-      # CI does not auto-discover roster tests, and `pytest tests/` reaches
-      # them only through test-after-build-check, which no CI job runs — so
-      # without this step the declaration, containment and registry guarantees
-      # gate on no pull request at all.
+      # CI does not auto-discover roster tests one by one, and this job's bulk
+      # `pytest tests/ -q` step above also collects them, so the declaration,
+      # containment and registry guarantees run either way. This step keeps
+      # them named in the workflow; in a fail-fast job whichever step runs
+      # first is what reports a failure.
       - name: pytest experience-design output-addressing contracts (roster-owned)
         run: >-
           python -m pytest

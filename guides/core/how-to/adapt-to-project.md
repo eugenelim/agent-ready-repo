@@ -117,6 +117,28 @@ The class-2 walk is a no-op if no companions are on disk. Repository anchoring
 still runs without companions or install markers; post-install classes run only
 when their state is present.
 
+## Install the pull-request template
+
+The `core` pack ships a pull-request template as a work-loop asset. It is not
+installed for you, because a repository that already has a pull-request
+convention should keep it — if yours does, skip this section.
+
+Run the installer that ships with the skill, from the repository root (use `python` instead of `python3` on Windows):
+
+```bash
+python3 .agents/skills/work-loop/scripts/install-pr-template.py
+```
+
+Substitute your adapter's skills directory if it is not `.agents/skills` —
+`.claude/skills` and `.kiro/skills` are the other common roots. The script
+reports each destination, keeps any template you already have, and exits
+non-zero if a destination failed. It is safe to re-run.
+
+The template carries its authoring rules in HTML comments, which do not render,
+so an author reads them while writing and a reviewer never sees them in the
+published body. It ships with no checklist: the verification section asks for
+observed results, which a checkbox cannot supply.
+
 ## Pitfalls
 
 :::caution

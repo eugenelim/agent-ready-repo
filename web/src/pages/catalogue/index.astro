@@ -94,12 +94,15 @@ const roles = catalogueRoles.map((role) => {
       that inventory, so the same pack can support more than one outcome.
     </p>
 
-    <ul class="outcome-grid" role="list">
+    {/* A ruled record list, not a grid of cards. Every outcome keeps its
+        title, its promise and its pack links; what it loses is the tint, the
+        border box, the radius and the second column. See the style block. */}
+    <ul class="outcome-records" role="list">
       {catalogueOutcomes.map((outcome) => (
-        <li class="outcome-card" id={outcome.id}>
-          <h3>{outcome.title}</h3>
-          <p>{outcome.cataloguePromise}</p>
-          <ul class="outcome-card__packs" role="list" aria-label={`Packs for ${outcome.title}`}>
+        <li class="outcome-record" id={outcome.id}>
+          <h3 class="outcome-record__title">{outcome.title}</h3>
+          <p class="outcome-record__desc">{outcome.cataloguePromise}</p>
+          <ul class="outcome-record__packs" role="list" aria-label={`Packs for ${outcome.title}`}>
             {outcome.packs.map((pack) => (
               <li><a href={withBase(`/packs/${pack}/`)}>{pack}</a></li>
             ))}
@@ -109,12 +112,12 @@ const roles = catalogueRoles.map((role) => {
     </ul>
 
     <h2 class="roles__heading">Or start with your role</h2>
-    <ul class="role-grid" role="list">
+    <ul class="role-records" role="list">
       {roles.map((role) => (
-        <li>
-          <a href={role.href}>
-            <strong>{role.name}</strong>
-            <span>{role.outcome} →</span>
+        <li class="role-record">
+          <a class="role-record__link" href={role.href}>
+            <span class="role-record__name">{role.name}</span>
+            <span class="role-record__to">{role.outcome} <span aria-hidden="true">→</span></span>
           </a>
         </li>
       ))}
@@ -129,26 +132,22 @@ const roles = catalogueRoles.map((role) => {
       shipped primitives, journey, and guides.
     </p>
 
-    <ul class="cat-grid" role="list">
+    {/* One record per pack. The whole row stays the link, which is what
+        preserves the target size the card had; the underlined name is the
+        affordance that replaces the card's border and fill. */}
+    <ul class="pack-records" role="list">
       {packs.map((pack) => (
-        <li class="cat-card">
-          <!-- Card head — links to detail page -->
-          <a class="cat-card__head" href={pack.detailUrl}>
-            <div class="cat-card__name-row">
-              <h3 class="cat-card__name">{pack.name}</h3>
+        <li class="pack-record">
+          <a class="pack-record__link" href={pack.detailUrl}>
+            <div class="pack-record__head">
+              <h3 class="pack-record__name">{pack.name}</h3>
               <StatusChip label={pack.scope} />
-            </div>
-            <p class="cat-card__tagline">{pack.tagline}</p>
-            <div class="cat-card__meta">
-              <span class="cat-card__skills">
+              <span class="pack-record__skills">
                 {pack.skillCount} skill{pack.skillCount !== 1 ? 's' : ''}
               </span>
-              <span class="cat-card__detail-cta" aria-hidden="true">
-                View pack →
-              </span>
             </div>
+            <p class="pack-record__tagline">{pack.tagline}</p>
           </a>
-
         </li>
       ))}
     </ul>
@@ -164,12 +163,21 @@ const roles = catalogueRoles.map((role) => {
   .cat-hero {
     background-color: var(--ds-surface);
     color: var(--ds-on-surface-2);
-    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
+    padding-block: clamp(4rem, 10vw, 7rem) clamp(3rem, 6vw, 5rem);
   }
 
+  /* Same recipe as Section.astro's `.section__inner`: the horizontal padding
+     goes INSIDE the max-width wrapper, not outside it. Padding the outer
+     element instead centred a 1140px column inside 1440-80px, which put the
+     hero's left axis at 150px while every band below it started at 190px.
+     The break only appeared above 1220px, so no gate saw it and only the
+     1440 capture did. `[edge]` alignment asks for one dominant left axis and
+     the homepage hero already measures 190px, so this is the axis the page
+     was supposed to be on. */
   .cat-hero__inner {
     max-width: var(--ds-content-max);
     margin-inline: auto;
+    padding-inline: var(--ds-content-pad-x);
   }
 
   /* An eyebrow is a FIELD LABEL. --ds-field-label measures 5.30:1 on
@@ -227,170 +235,219 @@ const roles = catalogueRoles.map((role) => {
     max-width: 64ch;
   }
 
-  .outcome-grid {
-    display: grid;
-    gap: var(--ds-space-5);
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    margin-bottom: var(--ds-space-8);
+  /* ── The three record lists ────────────────────────────────────────────
+     This page used to be three grids of tinted, bordered, rounded cards:
+     seven outcomes, six roles and twenty-two packs. That contradicted three
+     axes of the direction sheet at once — `[ruled]` containment ("rules
+     divide and rank; no cards, no tinted panels, no shadows, no overlap"),
+     `[flat]` material ("separation comes from rules, space and alignment")
+     and `[none]` ornament — and it was the THIRD instance of the same
+     settled decision, after the homepage outcome band and /now/.
+
+     The pattern is the one already shipped in PackCatalogue.astro and
+     WhatYouInstall.astro, not a new one. Rules are carried on the TOP edge
+     of each record with the list closing on its own bottom rule, so one
+     record can be ranked later without doubling a line.
+
+     --ds-rule-boundary measures 3.53:1 on --ds-surface and 3.26:1 on
+     --ds-surface-alt; it is the edge of a list and owes the 3:1 non-text
+     floor, and it clears it. --ds-rule-hairline measures 2.05:1 and 1.89:1
+     respectively, which does not clear 3:1 — and it does not owe it here,
+     because it divides records that space and type already separate, so no
+     information depends on it and it is never the sole carrier of a state
+     or of a control's edge. PackCatalogue.astro and WhatYouInstall.astro
+     make the identical pairing and measure identically, the latter on this
+     same alt ground. (tokens.css:116 annotates --ds-rule-hairline "non-text
+     contrast floor" while the token measures below it. That annotation is
+     older than this page and governs three components; reconciling it is
+     not this change's to make.)
+
+     Two defects go with the grids rather than beside them:
+
+       - UNEVEN HEIGHTS. Descriptions of unequal length in an auto-track
+         grid gave every row a ragged bottom edge, and the tint made each
+         box visible, so the raggedness was the loudest thing in the band.
+         A record bounded by a rule ends where its content ends.
+       - THE ORPHAN. Seven outcomes on `auto-fit` stranded the last card
+         alone in a part-width row at both two and three columns, and
+         twenty-two packs on `auto-fill` did the same at three and four. A
+         list has no orphan, at any count, so the counts can change without
+         a layout consequence.
+
+     `[manuscript]` grid grammar asks for one reading column at a generous
+     measure and forbids a second column of content, so the 68ch bound is
+     the measure rather than a narrower version of the band. The grids'
+     `minmax(280px, 1fr)` tracks needed arithmetic against three
+     breakpoints; one column needs none, which is why no breakpoint is
+     added below. */
+  .outcome-records,
+  .role-records,
+  .pack-records {
+    border-bottom: 1px solid var(--ds-rule-boundary);
+    max-width: 68ch;
   }
 
-  .outcome-card {
-    background-color: var(--ds-surface);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-lg);
-    padding: var(--ds-space-6);
+  .outcome-record,
+  .role-record,
+  .pack-record {
+    border-top: 1px solid var(--ds-rule-hairline);
+  }
+
+  .outcome-records > :first-child,
+  .role-records > :first-child,
+  .pack-records > :first-child {
+    border-top: 1px solid var(--ds-rule-boundary);
+  }
+
+  /* The role list jumps to these ids, so the scroll offset is kept from the
+     card it replaces. */
+  .outcome-record {
+    padding-block: var(--ds-space-5);
     scroll-margin-top: var(--ds-space-7);
   }
 
-  .outcome-card h3,
-  .outcome-card p {
-    margin-bottom: var(--ds-space-3);
+  .outcome-records {
+    margin-bottom: var(--ds-space-8);
   }
 
-  .outcome-card p {
+  .outcome-record__title {
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .outcome-record__desc {
     color: var(--ds-on-surface-2);
+    margin-bottom: var(--ds-space-3);
+    max-width: 62ch;
   }
 
-  .outcome-card__packs {
+  /* The pack links were bordered, rounded, padded chips that opted out of
+     the site-wide underline and named border + shape + mono face as the
+     replacement channel. With `[flat]` and `[ruled]` honoured there is no
+     border and no radius left to carry that channel, so the opt-out is
+     withdrawn and the links take the baseline underline from base.css —
+     the same exchange PackCatalogue.astro made for the same links.
+
+     The column gap is 16px so adjacent underlined runs do not read as one
+     phrase; the row gap is 8px because it is a VERTICAL measure and the
+     rule pitch governs it.
+
+     `line-height: 2` puts the row on the 8px pitch — a 24px line box where
+     the inherited 1.65 body leading gives 19.8px — and widens a margin that
+     was already met. These links measure 115.2 x 16.0 CSS px, under the
+     24px WCAG 2.5.8 Target Size (Minimum) floor and the same size as the
+     shipped homepage links they copy, so they pass on the criterion's
+     SPACING exception: 24px circles centred on each target must not
+     intersect. With this declaration wrapped rows sit 32px apart centre to
+     centre; without it, 27.8px. The exception is met either way, so the
+     declaration buys pitch and 4.2px of headroom, not the pass.
+     PackCatalogue.astro sets no line-height here. axe with wcag22aa reports
+     0 violations at 390 and 1280. */
+  .outcome-record__packs {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ds-space-2);
-  }
-
-  /* Opt out of the base underline: the chip is a ruled, rounded, padded block
-     in a wrapped chip row. The accent tint is withdrawn, so the channel is now
-     border + shape + mono face — still not colour. */
-  .outcome-card__packs a {
-    /* Boundary rule rather than the hairline: this is a link with no
-       underline, so the border identifies the control and owes 3:1
-       (WCAG 1.4.11). Measured 3.39:1 on `--ds-surface`. */
-    border: 1px solid var(--ds-rule-boundary);
-    color: var(--ds-on-surface-2);
-    border-radius: var(--ds-radius-md);
-    display: inline-block;
+    gap: var(--ds-space-2) var(--ds-space-4);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
-    padding: 0.25rem 0.6rem;
+    line-height: 2;
+  }
+
+  /* ── Roles ─────────────────────────────────────────────────────────────
+     The row is the link, as the card was, so the target the reader aims at
+     does not shrink. Every VERTICAL measure declared here is a multiple of
+     the 8px rule pitch; 16px of padding on a 16px body line then computes
+     to a 58.4px row, comfortably over the 44px floor.
+
+     The row opts out of the baseline underline and the name carries it
+     instead: underlining a whole two-part row would read as one struck
+     phrase. The channel is still an underline, present at rest, not a
+     border or a fill. */
+  .role-record__link {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-2) var(--ds-space-4);
+    padding-block: var(--ds-space-4);
+    color: var(--ds-on-surface);
     text-decoration: none;
   }
 
-  .role-grid {
-    display: grid;
-    gap: var(--ds-space-3);
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  .role-record__name {
+    font-weight: var(--ds-weight-semibold);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
   }
 
-  .role-grid a {
-    background-color: var(--ds-surface);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-md);
-    display: block;
-    padding: var(--ds-space-4);
-    text-decoration: none;
+  /* The destination, as a field. --ds-field-label measures 4.89:1 on
+     --ds-surface-alt, which is this band's ground, clearing 1.4.3. */
+  .role-record__to {
+    color: var(--ds-field-label);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    letter-spacing: 0.02em;
   }
 
-  .role-grid a:hover {
-    border-color: var(--ds-on-surface);
-  }
-
-  .role-grid strong,
-  .role-grid span {
-    display: block;
-  }
-
-  .role-grid span {
-    color: var(--ds-on-surface-muted);
-    font-size: var(--ds-type-sm);
-    margin-top: var(--ds-space-2);
-  }
-
-  /* ── Grid ──────────────────────────────────────────────────────────── */
+  /* ── Every pack ────────────────────────────────────────────────────── */
   .cat-grid__heading {
     margin-bottom: var(--ds-space-3);
   }
 
-  .cat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--ds-space-5);
+  .pack-records {
     margin-bottom: var(--ds-space-9);
   }
 
-  /* ── Card ──────────────────────────────────────────────────────────── */
-  .cat-card {
-    background-color: var(--ds-surface-alt);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-lg);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
-  }
-
-  .cat-card:hover {
-    border-color: var(--ds-on-surface);
-  }
-
-  .cat-card__head {
+  /* Opts out of the site-wide underline for the same reason the role row
+     does, and names the same replacement: underlining a whole record would
+     strike the tagline too, so `.pack-record__name` below carries the
+     underline instead. The channel is still an underline, present at rest —
+     not a border, a fill or a colour (base.css, the `:where(a)` baseline). */
+  .pack-record__link {
     display: block;
-    padding: var(--ds-space-6);
-    flex: 1;
-    text-decoration: none;
+    padding-block: var(--ds-space-4);
     color: inherit;
+    text-decoration: none;
   }
 
-  .cat-card__name-row {
+  .pack-record__head {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: baseline;
     gap: var(--ds-space-3);
-    margin-bottom: var(--ds-space-3);
+    margin-bottom: var(--ds-space-2);
   }
 
-  .cat-card__name {
+  .pack-record__name {
     font-size: var(--ds-type-h3);
-    font-weight: var(--ds-weight-semibold);
-    color: var(--ds-on-surface);
-    letter-spacing: var(--ds-track-heading);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
   }
 
-  .cat-card__tagline {
-    font-size: var(--ds-type-body);
-    color: var(--ds-on-surface-2);
-    line-height: var(--ds-lead-body);
-    margin-bottom: var(--ds-space-4);
-  }
-
-  .cat-card__meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ds-space-3);
-  }
-
-  .cat-card__skills {
+  /* The skill count, as a field beside the scope chip. --ds-field-label
+     measures 5.30:1 on --ds-surface, this band's ground. */
+  .pack-record__skills {
+    color: var(--ds-field-label);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-xs);
-    color: var(--ds-on-surface-muted);
+    letter-spacing: 0.02em;
   }
 
-  .cat-card__detail-cta {
-    font-size: var(--ds-type-sm);
-    font-weight: var(--ds-weight-semibold);
-    color: var(--ds-on-surface);
+  .pack-record__tagline {
+    color: var(--ds-on-surface-2);
+    max-width: 62ch;
   }
 
-  /* The hover rule used to change the accent to itself, which was a no-op. The
-     card's own border darkens on hover; the CTA now picks up an underline so
-     the affordance is not carried by the border alone. */
-  .cat-card__head:hover .cat-card__detail-cta {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  /* The card's hover was a border-colour change on a border that no longer
+     exists, and its "View pack" cue duplicated a link the underline now
+     names. What replaces both is a thicker underline on the name — no
+     motion, so no `prefers-reduced-motion` guard is owed, and no colour, so
+     it is not a hue-only signal. Focus is paired with hover deliberately;
+     the global ring in base.css is the other half. */
+  .role-record__link:hover .role-record__name,
+  .role-record__link:focus-visible .role-record__name,
+  .pack-record__link:hover .pack-record__name,
+  .pack-record__link:focus-visible .pack-record__name {
+    text-decoration-thickness: 2px;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .cat-card {
-      transition: none;
-    }
-  }
 </style>

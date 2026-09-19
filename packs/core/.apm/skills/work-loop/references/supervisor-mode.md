@@ -192,7 +192,7 @@ not edit `state.json` or invoke `git worktree` directly.
    from every ready report, dedupe by exact-string match (falling
    back to operator judgment when two lines describe the same change
    in different words), and emit a single `Bundled fixes:` section
-   in the PR description below the standard template. If no
+   in the PR description below the [standard template](../assets/pull-request-template.md). If no
    implementer landed ride-alongs, omit the section.
 
 6. **Clean up worktrees.** After all merges succeed, run

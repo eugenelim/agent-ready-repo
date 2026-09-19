@@ -24,13 +24,17 @@ read above its own pack, and `tools/test-lint-pack-test-boundary.py` enforces it
 Check the reach before relocating one — a test whose paths all sit inside the
 pack is pack-local and should re-anchor at the pack instead of moving.
 
-## Roster is not auto-discovered
+## Roster steps are named and placed by hand
 
-`pytest tests/` reaches these files; a pull request does not. Adding
-`tests/roster/test_x.py` obliges three further edits, each guarded separately:
+`gate-main` collects every roster module through one bulk
+`python -m pytest tests/ -q` step (`.github/workflows/build-check.yml`), so a new
+file does run on a pull request — but that step reports the failure as its own.
+Adding `tests/roster/test_x.py` obliges three further edits, each guarded
+separately:
 
-1. a step in `.github/workflows/build-check.yml` naming the file — without it the
-   suite runs on no pull request at all, and stays green by never executing;
+1. a step in `.github/workflows/build-check.yml` naming the file, placed **above**
+   that bulk step. The job is fail-fast with no step-level `if:`, so a named step
+   below the bulk step never runs and attributes nothing;
 2. a matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`.
    `LOCAL("test-after-build-check")` is the right value for roster, because that
    target's `run-test-suite` includes `pytest tests/ -q`;

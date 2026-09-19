@@ -245,8 +245,21 @@ remains for any static Inter, then system fallbacks.
 
 `--ds-track-label` no longer means "uppercase label". Homepage field labels are sentence-case
 and set their own lighter local tracking (the stat-strip label uses `0.02em`), because a field
-label is a record field, not a decorative eyebrow. `--ds-track-label` survives for the pages
-that still carry an uppercase label — `/catalogue/` is the remaining consumer.
+label is a record field, not a decorative eyebrow. `--ds-track-label` survives for the surfaces
+that still carry an uppercase label, and there are **sixteen** of them.
+
+This sentence used to end "`/catalogue/` is the remaining consumer", and the
+`### Catalogue records` block said the same thing in its own words. Both were false, and
+false before the record-list change that found them. `grep -rl ds-track-label web/src/`
+returns eighteen paths — this document, `tokens.css`, and sixteen consumers:
+`JourneyContract`, `GateDetail`, `SkillRecord`, `NextAction`, `PromptBlock`,
+`WriteConfirmation`, `StatusChip`, `PageHero`, `PageMeta`, `NowHighlights`,
+`packs/[pack]`, `now/index`, `primitives-fixture`, `journeys/index`,
+`journeys/[journey]` and `catalogue/index`. Every one of the sixteen also declares
+`text-transform: uppercase`, so the narrower reading — "the pages that still carry an
+uppercase label" — does not single `/catalogue/` out either. `StatusChip` is among them
+and renders *on* `/catalogue/`, so the page was never even the sole consumer of its own
+rendered output.
 
 ### Leading (line-height)
 
@@ -577,28 +590,38 @@ is the one place on the surface where that is true.
 
 ---
 
-### Catalogue card — `/catalogue/` (`catalogue/index.astro`)
+### Catalogue records — `/catalogue/` (`catalogue/index.astro`)
 
-**Zone:** surface throughout, `.cat-hero` included (paper since 2026-09-18)  
+**Zone:** paper throughout, `.cat-hero` included (paper since 2026-09-18). The
+outcome and role band is `Section tone="surface-alt"`, the pack band
+`tone="surface"`; both grounds come from `Section.astro`, not from this file.  
+**Shape:** three ruled record lists since 2026-09-18 — outcomes, roles and packs. The
+`.outcome-card` / `.role-grid` / `.cat-card` grids they replaced carried a tinted fill, a
+border and a radius against the direction sheet's `[ruled]` and `[flat]` rows; the pattern
+here is the one `PackCatalogue.astro` and `WhatYouInstall.astro` already ship.  
 **BEM classes:** `.cat-hero`, `.cat-hero__inner`, `.cat-hero__eyebrow`, `.cat-hero__heading`,
-`.cat-hero__body`, `.cat-grid`, `.cat-grid__heading`, `.cat-grid__intro`, `.cat-card`,
-`.cat-card__head`, `.cat-card__name-row`, `.cat-card__name`, `.cat-card__tagline`,
-`.cat-card__meta`, `.cat-card__skills`, `.cat-card__detail-cta`, `.outcomes__heading`,
-`.outcomes__intro`, `.outcome-grid`, `.outcome-card`, `.outcome-card__packs`,
-`.roles__heading`, `.role-grid`  
+`.cat-hero__body`, `.outcomes__heading`, `.outcomes__intro`, `.outcome-records`,
+`.outcome-record`, `.outcome-record__title`, `.outcome-record__desc`,
+`.outcome-record__packs`, `.roles__heading`, `.role-records`, `.role-record`,
+`.role-record__link`, `.role-record__name`, `.role-record__to`, `.cat-grid__heading`,
+`.cat-grid__intro`, `.pack-records`, `.pack-record`, `.pack-record__link`,
+`.pack-record__head`, `.pack-record__name`, `.pack-record__skills`,
+`.pack-record__tagline`  
 **Scope chip** (`StatusChip.astro` via `<StatusChip label={pack.scope} />`): `.status-chip`  
-**Key tokens:** `--ds-surface`, `--ds-surface-alt`, `--ds-border`, `--ds-rule-boundary`,
-`--ds-on-surface`, `--ds-on-surface-2`, `--ds-on-surface-muted`,
-`--ds-hero-bg`, `--ds-hero-fg`, `--ds-hero-fg-2` (`.cat-hero`),
-`--ds-content-max`, `--ds-content-pad-x`, `--ds-radius-md`, `--ds-radius-lg`,
-`--ds-font-mono`, `--ds-type-display`, `--ds-type-h3`, `--ds-type-body-lg`, `--ds-type-body`,
-`--ds-type-sm`, `--ds-type-xs`, `--ds-type-mono-sm`,
-`--ds-track-display`, `--ds-track-heading`, `--ds-track-label`,
-`--ds-lead-display`, `--ds-lead-body`, `--ds-weight-heavy`, `--ds-weight-semibold`,
-`--ds-dur-moderate`, `--ds-ease-std`  
+**Key tokens** — every `var(--ds-*)` the file references, and no others:
+`--ds-surface`, `--ds-rule-boundary`, `--ds-rule-hairline`, `--ds-field-label`,
+`--ds-on-surface`, `--ds-on-surface-2`,
+`--ds-content-max`, `--ds-content-pad-x`,
+`--ds-font-mono`, `--ds-type-display`, `--ds-type-h3`, `--ds-type-body-lg`,
+`--ds-type-xs`, `--ds-type-mono-sm`,
+`--ds-track-display`, `--ds-track-label`,
+`--ds-lead-display`, `--ds-lead-body`, `--ds-weight-semibold`,
+`--ds-space-2`, `--ds-space-3`, `--ds-space-4`, `--ds-space-5`, `--ds-space-7`,
+`--ds-space-8`, `--ds-space-9`  
 **Note:** the `.install-block*` classes are not on this page — install blocks live on
-`pages/packs/[pack].astro` and `pages/journeys/[journey].astro`. `/catalogue/` is the last
-consumer of `--ds-track-label`.
+`pages/packs/[pack].astro` and `pages/journeys/[journey].astro`. This block also claimed
+`/catalogue/` was the last consumer of `--ds-track-label`; it is not. The count and the
+list of consumers live in § 2 under Tracking (letter-spacing), and only there.
 
 ---
 
@@ -689,7 +712,7 @@ Two sections use visually similar card layouts with different information archit
 | TheModel | `.actor` items with `.actor__n` | Yes — 01 / 02 / 03 / 04 | Sequential telling of one work lifecycle; order is semantically meaningful |
 | PackCatalogue | `.work-card` items | No | Unordered outcome entries; a badge would imply false ranking |
 | `/packs/` index | `.pack-card` | No | Unordered catalogue entries |
-| `/catalogue/` | `.cat-card` | No | Unordered catalogue entries |
+| `/catalogue/` | `.outcome-record`, `.role-record`, `.pack-record` | No | Unordered catalogue entries |
 
 The `.actor__n` ordinal in TheModel uses `color: --ds-on-surface-muted` and
 `font-family: --ds-font-mono` at `font-size: --ds-type-h3`, at `--ds-weight-semibold` with

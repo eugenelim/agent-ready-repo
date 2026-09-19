@@ -212,6 +212,13 @@ FIRST_TOOL_BATCH = (
     # runs them.
     "tools/test_gitattributes_merge_driver.py",
     "tools/test_merge_driver_behaviour.py",
+    # spec/portable-pull-request-template: both suites are behavioural — the
+    # installer is RUN in temporary repositories and the release checker driven
+    # through `main()`. `lint-ci-parity` disposes their gate-main step as
+    # LOCAL("test-after-build-check"), which holds only while this batch runs
+    # them.
+    "tools/test_pull_request_template_adoption.py",
+    "tools/test_check_core_release.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -710,11 +717,23 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `079a4090…` and `137a65fa…` still in place returns
 # an empty error list, so this supersedes live values rather than a pin that had
 # already gone stale.
+# Bumped 2026-09-19 for spec/portable-pull-request-template, which appends two
+# module tokens to the final tools batch line so both behavioural suites gate a
+# PR rather than only `make test`.
+# (1) Sole cause: `git diff origin/main...HEAD -- Makefile` is one line removed
+# and one line added, the same batch line, differing only by the two appended
+# tokens. No line was added, removed or reordered — a lengthened line rather
+# than a new process — so the process counts hold at 15/14 and only the two
+# digests move; `EXPECTED_ROOT_TOOL_PATHS` gains the same two paths.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `35c6b14d…` and `82b752ea…` still in place returns
+# an empty error list, so this supersedes live values rather than a pin that had
+# already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "35c6b14d74ba194e7e87c0e15e1f507e0d1366e051974cd1e296e2c6e83fffd1"
+    "e92e1faa7eaf51727f296c9a83f79976cee0166a8e75a58866308d3ee7b41147"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "82b752ea939080dd360fea280a4e887b2838d286374d7d0898053d98b7dd02f6"
+    "3b48585d517d436b029e24c17128142abcfa232ea06c7982bfc492c0d7f55414"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

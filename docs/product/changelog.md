@@ -84,6 +84,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wording, an unnamed cross-reference, and a model-after-prose section — a
   reviewer still decides, but an author sees them first.
 
+## [core][2.26.20] — 2026-09-18
+
+### Highlights
+
+- **A pull-request template ships with the pack.** `work-loop` now carries
+  `assets/pull-request-template.md`, with a copy step for GitHub and for GitLab
+  in the adapt-to-project guide. It is not installed for you: a repository that
+  already has a pull-request convention keeps it. The template states three
+  things that do not belong in a body — what you tried, the method behind a
+  result, and the diff restated — in comments that do not render, so an author
+  reads them while writing and a reviewer never sees them.
+- **The template ships with no checklist.** Its verification section asks for
+  commands and their observed results, which a checkbox cannot supply.
+- **A `Review focus` section is available and optional.** It names the one
+  decision the author wants checked, as a question about the code.
+- **Worked pull-request bodies and writing rules.** A new
+  `references/pr-authoring.md` carries seven rules and two worked bodies of
+  different size, so the shape is shown scaling down rather than only described.
+- **The end of a run asks before it offers.** `work-loop` decides whether it can
+  open a pull request from the exit status of `gh api user` and the value of
+  `viewerPermission`, and when either refuses it completes the checklist and
+  says nothing. A blocked credential store makes `gh auth status` report an
+  invalid token and `gh repo view` report a connection failure, so neither
+  message states the cause — an exit status makes no such claim.
+
+## [core][2.26.19] — 2026-09-18
+
+### Highlights
+
+- **A shipped spec is the record of what was agreed, not a rule the code must
+  keep obeying.** An agent that meets an older spec disagreeing with today's
+  change now reads that as the system moving on, and says so instead of raising
+  it as a defect. The spec directory your repository is seeded with says the
+  same thing in plain words, so a person opening it meets the limit of a spec's
+  authority beside its conventions.
+
+### Changed
+
+- `docs/specs/README.md` seed: a new closing section says a spec records what
+  was agreed when it was agreed, freezes when the feature ships, and is
+  corrected by superseding it rather than by editing the body — its status line
+  points at the decision record, and the instruction anyone still follows lives
+  in a living file at the point of use. The sentence that carried the freeze
+  rule alone is folded into it, and the section names the `new-spec` contract
+  that owns the full rule. An adopter reading the
+  directory now meets the limit of a spec's authority beside its conventions.
+- `adversarial-reviewer`: read-order step 2 scopes "the standard" to the
+  targeted spec and names a shipped or archived spec delivery history rather
+  than current-state authority, and drift check 5 opens with the same scoping.
+  A change that contradicts an unrelated shipped spec is a finding only when it
+  also breaks the targeted spec, a live unshipped spec, a cited ADR, or working
+  code — previously neither surface said which spec it meant, and reviewers
+  read shipped specs as live constraints.
+- `work-loop`: `references/delivery-contract-lifecycle.md` opens by naming what
+  a delivery contract binds and for how long — living while the plan is
+  drafting, pinned from plan approval, frozen once the spec is `Shipped`, whose
+  status line still takes the two licensed pointers and whose deferral anchors
+  still have to resolve — and points at the
+  `new-spec` skill's `references/spec-and-plan-contract.md` for the full rule.
+  The amendment machinery below it already assumed those stages without stating
+  them.
+
 ## [core][2.26.18] — 2026-09-18
 
 ### Highlights
