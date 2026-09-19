@@ -69,13 +69,9 @@ asks an author to fill, so a walk against them measures the template.
 - **`packs/AGENTS.local.md:26-40`** — marketplace regeneration, free-standing
   changelog entry, explicit Highlights verdict.
 - **`docs/specs/architect-design-scope-templates/spec.md` is frozen at
-  `Shipped`.** The supersession takes the `Status`-line form in
-  `references/spec-and-plan-contract.md` § *Superseding a frozen document*,
-  which points at the ADR rather than at this spec.
-- **`tests/AGENTS.md` § Roster is not auto-discovered** — a `tests/roster/`
-  module obliges a `build-check.yml` step, a `STEP_DISPOSITION` entry, and a
-  `.workspace-prune-protected.toml` entry when it names a `docs/specs/<slug>`
-  path as a literal.
+  `Shipped` and this slice does not touch it.** `DA7` and `DA8` attach an
+  identifier to the checklist items its AC-0026 and AC-0027 describe, leaving
+  both criteria true, so no supersession pointer is owed.
 
 ## Construction tests
 
@@ -129,9 +125,11 @@ one obligation two disagreeing homes in the file that ships `DA5`.
 
 **The gates take no new `##` heading.**
 `architect-design-scope-templates`' AC-0025 and AC-0031 are ticked criteria on
-a frozen `Shipped` spec, stating that the only permitted non-template `##`
-headings are `Cross-cutting`, `Decomposition` and `Severity mapping
-(typical)`. The gates therefore sit under each rubric's existing
+a frozen `Shipped` spec, and the two sets differ: `AUTHOR_EXTRA` at
+`test_design_scope_routing.py:69` permits `Cross-cutting` and `Decomposition`
+in the authoring rubric, while `REVIEW_EXTRA` at `:70` adds
+`Severity mapping (typical)` for the reviewing one. The new severity prose
+goes in the authoring rubric, the stricter of the two. The gates therefore sit under each rubric's existing
 `## Cross-cutting` heading, and `AUTHOR_EXTRA`/`REVIEW_EXTRA` in
 `test_design_scope_routing.py` are untouched. Widening those sets instead
 would make the test pass and the frozen contract false.
@@ -194,7 +192,7 @@ missing a member. A refusal does not abort the run — the remaining targets are
 still read, and the summary states how many were refused.
 
 A finding prints as `<path>:<line>: DA3 — paragraph of N sentences (budget 3)`
-or `<path>: DA10 — N words (bound 2400)`, with `<path>` escaped.
+or `<path>: DA10 — N words (bound 3300)`, with `<path>` escaped.
 
 ### Component / module decomposition
 Owned by: T2.
@@ -280,55 +278,53 @@ shape is what this script needs, and it needs no dependency to get them.
 **Touches:** packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py, packs/architect/tests/skills/architect-design/test_gate_script.py, packs/architect/.apm/skills/architect-design/SKILL.md
 
 **Tests:**
-- `python3 tools/lint-ci-parity.py` exits 0, which is what makes every
-  assertion below count on a pull request: it drives both roster directions
-  over `build-check.yml`'s step list and the lint's own `STEP_DISPOSITION`
-  table, failing when a step covers a suite whose entry says `NO_PR_GATE`
-  (AC-0001) and when a disposition names no real step (AC-0002).
 - `test_gate_script.py` loads `check_document_architecture.py` by
   `importlib.util.spec_from_file_location` under the pack-unique name
   `architect_design_gate_script`, matching `test_profile_repo.py:23`. A bare
   `import` would bind whichever `scripts/` directory reached `sys.path` first
-  (AC-0003).
+  (AC-0001).
 - The module's import set is read with `ast` and compared against
   `sys.stdlib_module_names`, so any non-stdlib import fails — including
   `agentbundle`, which would pass a runtime smoke test in this repository and
-  fail in every adopter install (AC-0004).
+  fail in every adopter install (AC-0002).
 - `main()`'s stream setup is driven with `sys.stdout` patched by a recorder
   that requires `reconfigure` to be its first call; asserting the call
-  happened would pass on a script that printed first (AC-0005).
-- The CLI entry point is driven for 0, 1 and 2 (AC-0006); for a two-target run
-  pairing a finding with a refusal, which must exit 2 (AC-0007); and for the
+  happened would pass on a script that printed first (AC-0003).
+- The CLI entry point is driven for 0, 1 and 2 (AC-0004); for a two-target run
+  pairing a finding with a refusal, which must exit 2 (AC-0005); and for the
   same run asserted to have still reported the finding and a refused count,
-  which separates "2 dominates" from "2 aborts" (AC-0008).
+  which separates "2 dominates" from "2 aborts" (AC-0006).
 - `read_target`'s refusal type is asserted to carry the path and the reason,
-  and the stderr rendering to print both (AC-0009).
+  and the stderr rendering to print both (AC-0007).
 - `_parser()` is asserted to make `--root` required, so invoking without it is
-  a usage error rather than a run against the working directory (AC-0010).
+  a usage error rather than a run against the working directory (AC-0008).
 - `read_target` is driven with a root that is itself a symlink, requiring a
   target under the real directory to be accepted — which fails when only the
-  target side is canonicalized (AC-0011).
+  target side is canonicalized (AC-0009).
 - `read_target` is driven against real filesystem entries built by the test,
   one per row of the refusal table, each asserting the refusal *reason*: a
   regular file under a symlinked parent whose real path leaves the root
-  (AC-0012); a directory, a FIFO, a symlink and a second-hard-link file
-  (AC-0013); a file one byte over 1,048,576 with its sibling one byte under
-  accepted (AC-0014); a symlink loop, which must refuse rather than raise
-  (AC-0015).
-- `count_sentences`' compiled pattern is walked with `re` parse introspection
-  for a nested quantifier and for alternation inside a repetition (AC-0016).
+  (AC-0010); a directory, a FIFO, a symlink and a second-hard-link file
+  (AC-0011); a file one byte over 1,048,576 with its sibling one byte under
+  accepted (AC-0012); a symlink loop, which must refuse rather than raise
+  (AC-0013).
+- `count_sentences`' pattern *source text* is scanned for a nested quantifier
+  and for alternation inside a repetition (AC-0014). Not `re` parse
+  introspection: that parser has no public API and was renamed `sre_parse` →
+  `re._parser` in CPython 3.11, so a check on it breaks on a version bump, and
+  the property is decidable from the string.
 - The finding and refusal renderers are driven with a filename containing a
   newline and a terminal escape, and the report asserted to hold one line per
-  finding (AC-0017).
+  finding (AC-0015).
 - `prose_paragraphs` and `count_sentences` are driven over every `*.md` under
-  `architect-design/assets/` by glob, requiring zero findings (AC-0020); over
+  `architect-design/assets/` by glob, requiring zero findings (AC-0018); over
   fixtures built in the test, one per false-positive source in Design →
-  Failure (AC-0021, AC-0022, AC-0023); and at 3 and 4 sentences, pinning the
-  budget on both sides (AC-0019).
-- `count_words` is asserted at exactly the bound and one over (AC-0025), and
-  the finding renderer asserted to carry path, line and count (AC-0024).
+  Failure (AC-0019, AC-0020, AC-0021); and at 3 and 4 sentences, pinning the
+  budget on both sides (AC-0017).
+- `count_words` is asserted at exactly the bound and one over (AC-0023), and
+  the finding renderer asserted to carry path, line and count (AC-0022).
 - An assertion over `SKILL.md` requires it to state that the agent running the
-  skill does not invoke the script (AC-0018).
+  skill does not invoke the script (AC-0016).
 
 ```python
 # stub: true — the red contract surface, before the parser exists.
@@ -350,20 +346,22 @@ against a non-compliant fixture and against the shipped templates — are in
 **Tests:**
 - `test_gate_text.py` slices `design-doc-rubric.md` on its `DA<n>` item
   boundaries and asserts **within one gate's body**, never over the file. A
-  whole-file `assertIn("2,400", text)` passes on any second mention of the
+  whole-file `assertIn("3,300", text)` passes on any second mention of the
   bound, and seven prechecks in one file cross-satisfy each other.
 - Inside `DA10`'s body: the derivation's counted features and its multiplier,
   with the test recomputing the arithmetic and requiring it to reach the
-  stated bound (AC-0026); the handoff naming
+  stated bound (AC-0024); the handoff naming
   `references/decomposition-rubric.md` with the disclaimer of split authority
-  (AC-0027); the companion-views-and-evidence-links remedy (AC-0028).
-- Inside each hybrid's body, its precheck: `DA1` (AC-0039), `DA2` (AC-0040),
-  `DA4` (AC-0041), `DA6` (AC-0036), `DA7` (AC-0037), `DA8` (AC-0038), `DA9`
-  (AC-0042); each stating the verdict is the reviewer's (AC-0043); each
+  (AC-0026); the companion-views-and-evidence-links remedy (AC-0027).
+- Inside each hybrid's body, its precheck: `DA1` (AC-0038), `DA2` (AC-0039),
+  `DA4` (AC-0040), `DA6` (AC-0035), `DA7` (AC-0036), `DA8` (AC-0037), `DA9`
+  (AC-0041); each stating the verdict is the reviewer's (AC-0042); each
   stating it applies to an authored document (AC-0046); and `DA9` scoped to a
-  routed document (AC-0047).
+  routed document (AC-0046). The helper also counts the prechecks: exactly
+  seven, one per hybrid, and none under `DA5` (AC-0047) — the count is what
+  keeps judgment-only textually distinct once every hybrid carries one.
 - `design-doc-rubric.md` is asserted to state what a severity means for an
-  author (AC-0034). The file carries no severity vocabulary today.
+  author (AC-0033). The file carries no severity vocabulary today.
 - `test_design_scope_routing.py`'s existing `REPLACEMENTS` assertions must
   still pass untouched, which is what proves `DA7` and `DA8` were written onto
   the pinned items rather than around them; and
@@ -384,9 +382,9 @@ against a non-compliant fixture and against the shipped templates — are in
 - `test_design_reviewer_rubric_parity.py` gains a `DA_CARRIERS` tuple naming
   the three gate homes and a `DA_GATES` map from identifier to severity glyph
   and taxonomy glyph, asserting each identifier and its two glyphs in every
-  `DA_CARRIERS` entry (AC-0054, AC-0055). It also observes the authoring
-  rubric (AC-0029), the reviewing rubric (AC-0030), the agent (AC-0031) and
-  the tag assignment (AC-0032), so no home has an assertion of its own that
+  `DA_CARRIERS` entry (AC-0057, AC-0058). It also observes the authoring
+  rubric (AC-0028), the reviewing rubric (AC-0029), the agent (AC-0030) and
+  the tag assignment (AC-0031), so no home has an assertion of its own that
   could pass while another drifted.
 - The existing `CARRIERS` tuple is untouched. It names
   `architect-review/SKILL.md`, `rubric-well-architected.md` and the agent —
@@ -400,21 +398,21 @@ against a non-compliant fixture and against the shipped templates — are in
   mapping and neither taxonomy glyph, and `design-reviewer.md` holds all six.
   A file-wide presence check passes on the wrong severity in two of three.
 - `DA_GATES`' severity map is a literal in the test, so parity compares the
-  homes against a fixed value rather than against each other (AC-0033); three
+  homes against a fixed value rather than against each other (AC-0032); three
   homes agreeing on a wrong severity passes the weaker shape.
 - `DA5`'s body in each home is asserted on its positive statement — the
   verdict is the reviewer's judgement and no automated measure decides it —
-  with the two enumerated measure phrases as a supporting negative (AC-0035).
+  with the two enumerated measure phrases as a supporting negative (AC-0034).
 - Assertions over `design-reviewer.md`'s output contract: the returned block
-  demands a `DA1`-`DA10` roll-call with a verdict each (AC-0048); a clean
-  `SHIP IT` still shows ten (AC-0049); the inlined set is named as baseline
+  demands a `DA1`-`DA10` roll-call with a verdict each (AC-0050); a clean
+  `SHIP IT` still shows ten (AC-0051); the inlined set is named as baseline
   depth with `rubric-design-doc.md` as the depth read when co-installed
-  (AC-0050); and an unreachable rubric is a finding (AC-0051). The roll-call
+  (AC-0052); and an unreachable rubric is a finding (AC-0053). The roll-call
   is asserted inside the fenced output block, not merely present in the file,
   because the section above it forbids a pre-findings recap.
 - An assertion over `convergence-loop.md` requires the loop to dispatch the
-  subagent when reachable and to name its fallback rung otherwise (AC-0052),
-  and requires each reporting obligation to name who reports (AC-0053).
+  subagent when reachable and to name its fallback rung otherwise (AC-0055),
+  and requires each reporting obligation to name who reports (AC-0056).
 - `REVIEW_EXTRA` is untouched, for T3's reason. The agent file's gates go
   after its `## Severity glossary`.
 - no stub (goal-based)
@@ -424,7 +422,7 @@ against a non-compliant fixture and against the shipped templates — are in
 
 ### T4a: the prechecks are walked against a document, not a template
 
-**Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
+**Touches:** packs/architect/tests/skills/architect-design/testdata/telemetry-endpoint-default-design.md, packs/architect/tests/skills/architect-design/testdata/precheck-defects.md, packs/architect/tests/skills/architect-design/test_gate_text.py, docs/specs/architect-design-document-gates/notes/verification-ledger.md
 
 **Depends on:** T4
 
@@ -433,14 +431,26 @@ against a non-compliant fixture and against the shipped templates — are in
   `testdata/telemetry-endpoint-default-design.md`, and `test_gate_text.py`
   asserts it carries no `<…>` placeholder token, so a half-filled skeleton
   cannot serve as the corpus (AC-0044).
-- Each of the seven prechecks is walked by hand against that document and the
-  walk written to `notes/verification-ledger.md` (AC-0045).
-- `design-reviewer` is dispatched against that same document and its returned
-  block read for ten verdicts, recorded in the ledger (AC-0048, AC-0049). The
-  agent is a model reading instructions, so a contract asserted in its file
-  and never exercised is a contract nobody has seen obeyed.
-- no stub (manual QA for the walk and the dispatch, goal-based for the
-  document)
+- The reference document's measured word count is compared against the
+  derivation's 2,178-word density figure and must sit within 20% (AC-0025).
+  This is what gives AC-0024 an oracle: recomputing 2,178 × 1.5 → 3,300 is
+  true by construction whatever the inventory leaves out.
+- `test_gate_text.py` asserts the spec states that the corpus purpose governs
+  an edit to the reference document (AC-0043): it is a baseline, so a design
+  improvement nobody re-walks invalidates the recorded walk.
+- A defect document is committed at `testdata/precheck-defects.md` carrying
+  one planted defect per precheck (AC-0048), and `test_gate_text.py` asserts
+  it names all seven.
+- **Both directions, walked by hand and recorded** in
+  `notes/verification-ledger.md`: no precheck fires on the reference document
+  (AC-0045), and every precheck fires on its planted defect (AC-0049). One
+  direction alone is satisfied by a precheck that never fires on anything.
+- **No dispatch.** `design-reviewer` is not installed here — `.claude/agents/`
+  holds core's six and `catalogue.toml:21` sets `self-host = false`, and the
+  only route that installs it writes at user scope into the operator's home.
+  The ledger records that the agent's roll-call contract is asserted in
+  `design-reviewer.md` and exercised by no run (AC-0054).
+- no stub (manual QA for the two walks, goal-based for the documents)
 
 **Approach:**
 - **The corpus is real pending design work, not a fixture.** It is the
@@ -462,8 +472,10 @@ against a non-compliant fixture and against the shipped templates — are in
   `tools/lint-pack-test-boundary.py` check 8 refuses it. Promotion to an
   accepted design artifact belongs to the telemetry intent's own owner.
 
-**Done when:** the reference document is committed, the seven-precheck walk is
-in the verification ledger, and no precheck fired.
+**Done when:** both documents are committed, both walks are in the
+verification ledger with no precheck firing on the reference document and
+every precheck firing on its defect, and the ledger states that no dispatch
+exercised the agent's contract.
 
 ### T5: the loop reports every gate and its contract stops contradicting itself
 
@@ -475,50 +487,23 @@ in the verification ledger, and no precheck fired.
 - `test_gate_text.py` asserts over `SKILL.md` step 6 and over
   `convergence-loop.md`'s cycle that each demands a per-identifier verdict,
   as the closed set `DA1`-`DA10` plus the word verdict rather than the phrase
-  "report the gates" (AC-0056, AC-0057). The failure this slice closes is a
+  "report the gates" (AC-0059, AC-0060). The failure this slice closes is a
   gate producing no finding because nothing asked it to, so "reported every
   gate" is the property and a generic instruction is a consequence of it.
 - An assertion pins the corrected contract sentence at
   `convergence-loop.md:6-7`: the loop requires and invokes no script
-  (AC-0058).
+  (AC-0061).
 - A second assertion covers `convergence-loop.md:9`, "A script would forfeit
   the pack's pure-markdown, zero-config, portable property" — the sentence
   this slice falsifies. It is replaced by a statement of what the shipped
   script does and does not cost, and the unconditional claim must be absent
-  (AC-0059).
+  (AC-0062).
 - The edits stay outside the `agentbundle:output-rendering` markers and
   outside the pinned description regions; step 6's body is neither.
 - no stub (goal-based)
 
 **Done when:** the suite passes and `git diff` shows no line inside any marker
 span.
-
-### T6: the superseded criteria point forward without moving
-
-**Depends on:** none
-
-**Touches:** docs/specs/architect-design-scope-templates/spec.md
-
-**Tests:**
-- `python3 '<skill-dir>/../work-loop/scripts/lint-spec-status.py' --root .`
-  decides the status token (AC-0060). It owns status vocabulary and nothing
-  else; that the pointer names the right ADR and scopes the right part is a
-  reviewer's call.
-- The pull-request diff for that file is recorded in
-  `notes/verification-ledger.md` and must be one line (AC-0061).
-- **Not a standing test.** `tests/AGENTS.md` puts a repository-level assertion
-  in `tests/roster/`, which then obliges a `build-check.yml` step, a
-  `STEP_DISPOSITION` of `LOCAL("test-after-build-check")`, and — because the
-  test would name a `docs/specs/<slug>` path as a literal — a
-  `.workspace-prune-protected.toml` entry, without which
-  `test_two_sided_prune_closure_invariant.py:563-570` reds. Four pieces of
-  machinery for a frozen document that by convention takes only a
-  `Status`-line edit, already watched by a reviewer and by the status lint.
-  Declined under `Cut before adding` rung 1.
-- no stub (goal-based)
-
-**Done when:** the `Status` line names ADR-0118 and the part superseded, and
-the recorded diff for that file is one line.
 
 ### T7: the pack release closes
 
@@ -528,21 +513,28 @@ the recorded diff for that file is one line.
 
 **Tests:**
 - `python3 -m pytest tests/conformance/test_pack_metadata.py -q` owns the
-  `pack.toml`/`plugin.json` equality (AC-0062); this task does not restate
+  `pack.toml`/`plugin.json` equality (AC-0063); this task does not restate
   that comparison.
 - `FORCE=1 make build-self` regenerates `.claude-plugin/marketplace.json` and
   refuses a dirty tree, so the version bump commits before it runs. The
-  regenerated file is read back for architect at `0.15.12` (AC-0065) — a
+  regenerated file is read back for architect at `0.15.12` (AC-0066) — a
   projection is verified by regenerating it, never by editing its bytes.
 - The eval's expectation text is asserted against the closed set: it must name
-  every identifier `DA1` through `DA10` with a verdict (AC-0064). Requiring
+  every identifier `DA1` through `DA10` with a verdict (AC-0065). Requiring
   only that an eval mentions the gates lets the implementation write its own
   comparison value.
-- The changelog entry is read and recorded in `notes/verification-ledger.md`
-  (AC-0063). No pull-request gate checks it: `build-check.yml` names changelog
-  nothing at all, and `pages.yml`'s release-anchor job compares anchors
-  against built HTML, so it cannot see position, nesting, or a
-  `### Highlights` subsection.
+- The changelog entry is decided by `tools/test_build_site_routing.py`, which
+  `build-check.yml:357` runs on every pull request (AC-0064). Three of its
+  tests read the real file:
+  `test_the_real_changelog_has_no_silently_withheld_highlights` (`:2156`) reds
+  when a `### Highlights` block is not its release entry's immediate child,
+  `test_every_changelog_section_is_separated` (`:2268`) checks heading
+  separation, and
+  `test_no_projected_release_heading_lives_under_an_unreleased_region`
+  (`:2332`) walks the raw file for nesting under `[Unreleased]`. The dated
+  heading form is the part they do not decide;
+  `tools/test_build_site_routing.py:908` is where `/now/` eligibility
+  requires it.
 - no stub (goal-based)
 
 **Approach:**
