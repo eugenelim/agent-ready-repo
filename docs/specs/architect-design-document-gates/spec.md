@@ -176,11 +176,11 @@ the built artifact rather than for a criterion.
   document, where each must. One direction alone is satisfied by a precheck
   that never fires on anything.
 - **How the reviewer reports the gates (AC-0050, AC-0051, AC-0052, AC-0053,
-  AC-0054, AC-0055, AC-0056): goal-based check.** Every criterion in this
-  group is an obligation written into `design-reviewer.md`, decidable from
-  that file. AC-0055 states the limit plainly: the agent is not installed in
-  this repository, so no dispatch exercises any of them, and the contract is
-  asserted rather than observed.
+  AC-0055, AC-0056): goal-based check; (AC-0054): visual / manual QA.**
+  AC-0050 through AC-0053, AC-0055 and AC-0056 are obligations written into
+  `design-reviewer.md` and `convergence-loop.md`, decidable from those files.
+  AC-0054 is the one that watches the agent obey them, and it is manual
+  because the agent is a model: a dispatch is read, not asserted.
 - **Parity (AC-0057, AC-0058): goal-based check.** The gates get a
   `DA_CARRIERS` constant of their own; the module's existing `CARRIERS` names
   a set that overlaps the gate homes in one file.
@@ -415,11 +415,13 @@ is the one distinction ADR-0118 fixes and the 🧭 tag alone cannot carry.
 - [ ] **AC-0053.** `.apm/agents/design-reviewer.md` requires the agent to
       raise an unreachable `rubric-design-doc.md` as a finding on a
       design-document review, rather than reviewing quietly at baseline.
-- [ ] **AC-0054.** No criterion in this group is verified by a run. Each is
-      an obligation written into the agent's instruction file, and the
-      manual-QA record says that no dispatch exercised them, because the agent
-      is not installed in this repository — `.claude/agents/` holds core's six
-      and `catalogue.toml` sets `self-host = false`.
+- [ ] **AC-0054.** The roll-call contract is exercised, not only asserted:
+      `design-reviewer` is dispatched against the reference document and its
+      returned block recorded in `notes/verification-ledger.md`, showing ten
+      verdicts. The record names the scope the dispatch resolved the agent
+      from, because an in-repo install makes the agent available to every
+      contributor and to CI, while a user-scope install makes it available to
+      one operator.
 - [ ] **AC-0055.** `references/convergence-loop.md` requires the loop to
       dispatch the `design-reviewer` subagent when it is reachable, and to
       name the rung it fell back to when it is not.

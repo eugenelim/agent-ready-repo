@@ -445,11 +445,15 @@ against a non-compliant fixture and against the shipped templates — are in
   `notes/verification-ledger.md`: no precheck fires on the reference document
   (AC-0045), and every precheck fires on its planted defect (AC-0049). One
   direction alone is satisfied by a precheck that never fires on anything.
-- **No dispatch.** `design-reviewer` is not installed here — `.claude/agents/`
-  holds core's six and `catalogue.toml:21` sets `self-host = false`, and the
-  only route that installs it writes at user scope into the operator's home.
-  The ledger records that the agent's roll-call contract is asserted in
-  `design-reviewer.md` and exercised by no run (AC-0054).
+- **The agent is dispatched against the reference document** and its returned
+  block recorded in the ledger, which must show ten verdicts (AC-0054). The
+  agent resolves from either scope a host reads: `.claude/agents/` in the
+  repository, or the operator's user profile. This repository sets
+  `catalogue.toml:21` `self-host = false`, so architect's agent is absent from
+  project scope here and resolves from the user profile; an adopting team that
+  installs the pack in-repo gets it for every contributor and for CI. The
+  record names which scope the dispatch used, because that is what decides
+  whether the evidence is the team's or one operator's.
 - no stub (manual QA for the two walks, goal-based for the documents)
 
 **Approach:**
@@ -474,8 +478,8 @@ against a non-compliant fixture and against the shipped templates — are in
 
 **Done when:** both documents are committed, both walks are in the
 verification ledger with no precheck firing on the reference document and
-every precheck firing on its defect, and the ledger states that no dispatch
-exercised the agent's contract.
+every precheck firing on its defect, and the dispatched review's returned
+block in the ledger showing ten verdicts.
 
 ### T5: the loop reports every gate and its contract stops contradicting itself
 
