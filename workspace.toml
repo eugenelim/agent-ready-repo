@@ -1602,6 +1602,40 @@ open = [
   # state class the guard tolerates, only the stdout notice remains.
   # Unblocks now; no dependency.
   { path = "docs/adr/0061-loop-infrastructure-phase-1.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Leave a durable trace when a wave exit passes with dispatch receipts unenforced or with every task declined, since both signals today are ephemeral and read by the party the guard constrains", needs = [] },
+  # The repository work-graph family's eight registered Draft intents: five feature
+  # children of docs/product/intents/CAP-0001-repository-work-graph.md, and three
+  # sibling capabilities under docs/product/intents/STRAT-0001-graph-powered-sdlc.md.
+  # Both parents are Accepted and deliberately unregistered, because backlog.open
+  # admits only a Draft artifact and an Accepted intent is no longer open backlog
+  # work; CAP-0001 also holds the family's surviving de-risk record. Each entry
+  # carries `Parent intent:` back to its own parent. `needs` is empty on all eight
+  # deliberately: CAP-0001's decomposition log records the delivery order as planning
+  # guidance, and every child is independently enterable at intent altitude today, so
+  # an edge here would report a block the evidence does not support.
+  # The brief projected from the intent above, docs/product/briefs/
+  # intent-identity-and-registration.md, is deliberately NOT registered. It is
+  # Ready, and backlog.open -- the only initiative-free collection -- admits a
+  # non-defect entry only at Status Draft. Every brief_queue is per-initiative and
+  # none of the four active initiatives owns repository work-graph methodology, so
+  # registering it would assert a false ownership. lint-brief-coverage discovers it
+  # by directory scan regardless.
+  { path = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Give an intent and a brief a way to be closed mechanically: what each Status value means, which transitions are legal, and which workflow sets them, with Fulfilled set in the close-work flow; no workflow can close an intent today and Fulfilled appears in no skill", needs = [] },
+  # The five confirmed delivery slices of docs/product/briefs/intent-identity-and-registration.md,
+  # materialised 2026-09-19 after the brief reached Ready and the slice cut was confirmed. Registered
+  # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
+  # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
+  # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
+  { path = "docs/specs/intent-placement-and-admission/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Deterministic intent placement and admission", needs = [] },
+  { path = "docs/specs/intent-metadata-shape-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent metadata shape contract and its two enforcement points", needs = [] },
+  { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
+  { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
+  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
+  { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
+  { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
+  { path = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make a feature intent's mapping to its independently shippable spec, or to a delivery brief and its child specs, visible from the intent side; needs its own de-risk before decomposition", needs = [] },
+  { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
+  { path = "docs/product/intents/CAP-0004-external-tracker-projection.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Project the canonical repository graph into Linear, GitHub, Jira, or Jira Align without importing each tracker's hierarchy into the product model; needs its own de-risk before decomposition", needs = [] },
+  { path = "docs/product/intents/CAP-0002-decision-graph.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make the accepted decision corpus navigable as a generated read-only graph so a session reads the constraints that apply instead of rediscovering them from record headers; supersession is the checked backbone and Related is weaker adjacency; needs its own de-risk before decomposition", needs = [] },
 ]
 
 
@@ -1717,3 +1751,43 @@ shipped = [
   { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },
   { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BRIDGE SECTION — retires with FEAT-0004 single-ladder-migration.
+#
+# ADR-0119 retires Initiative as a canonical artifact and as a workspace
+# ownership boundary, and keeps it only as a projection and as a legacy alias
+# during migration. This section is that alias and nothing more: it exists so a
+# Ready brief has a registered home, because brief_queue is per-initiative and
+# backlog.open -- the only initiative-free collection -- admits a non-defect
+# entry at Status Draft only.
+#
+# It intentionally has NO document under docs/product/initiatives/. Creating one
+# would add to the folder the migration retires. The product meaning lives in
+# docs/product/intents/STRAT-0001-graph-powered-sdlc.md; this is the operational
+# bucket only, and the two must not be treated as the same thing.
+#
+# Delete this section when an initiative-free home for a non-Draft artifact
+# exists (CAP-0003 workspace-coordination-reorganization) and move the entry there.
+# ─────────────────────────────────────────────────────────────────────────────
+["ini-010"]
+name      = "Graph-powered SDLC"
+status    = "active"
+milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires the ladder"
+
+["ini-010".brief_queue]
+executing = []
+ready = [
+  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-19 bound to a Clean independent review, Spec map empty pending the slice decision", needs = [] },
+]
+draft = []
+
+["ini-010".shaping_queue]
+active  = []
+backlog = []
+
+["ini-010".work]
+queue   = []
+active  = []
+shipped = []
+
