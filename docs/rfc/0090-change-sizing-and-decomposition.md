@@ -523,7 +523,7 @@ The body above is frozen. Corrections are recorded here.
   alone rather than only mechanically uniform work. The qualifier is restored at
   every routing site. Approver: eugenelim.
 - **2026-09-19 — the three ride-along tiers (§ Vocabulary, § Tail-triage lane)
-  are replaced by a single three-clause admission test plus a clause defining
+  are replaced by a single four-clause admission test plus a clause defining
   when a design call counts as resolved.** Three reasons. First, Tier 3
   contradicted the carve-out's own headline: the carve-out opens
   "verifiability, not locality," Tier 1 says a ride-along "may span the

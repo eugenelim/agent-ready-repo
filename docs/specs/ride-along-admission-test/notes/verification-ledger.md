@@ -785,3 +785,174 @@ the earlier receipts no longer correspond to this schedule.
 **The pre-reset state is preserved** at the session scratchpad as
 `state-before-reset.json`, so the original completion record and its wave
 indices remain recoverable.
+
+## 2026-09-19 — T10: AC16 evidence, and a binary-fixture blocker in AC12's sweep
+
+**AC8 — six mutations, applied one at a time to a disposable copy of
+`packs/core`, each recorded with the assertion that caught it and the exact
+message it emitted (re-run against the tree as shipped, not against an
+earlier state of the controls):**
+
+1. **Interior word of C1 changed in one file** (SKILL.md: "trigger" →
+   "signal"). Caught by `test_c1_is_identical_across_the_four_sites`:
+   `"SKILL.md's C1 does not match the canonical text: '...it fires no risk
+   signal on its own...'"`.
+2. **Interior word of C2 changed in one file** (implementer.md: "it needs no
+   human" → "it needs no reviewer"). Caught by
+   `test_c2_is_identical_across_the_four_sites`:
+   `"implementer.md's C2 does not match the canonical text: '...and it needs
+   no reviewer. An owner's answer...'"`.
+3. **Second copy of C1 added to one file** (adversarial-reviewer.md,
+   appended at end of file). Caught by
+   `test_clause_anchors_occur_exactly_once_where_carried`: `"C1 opening
+   appears 2 times in adversarial-reviewer.md, expected exactly 1"`.
+4. **One file's C1 moved into an adjacent HTML comment**
+   (supervisor-mode.md, wrapped `<!-- ... -->` around the full clause span).
+   Caught by `test_clauses_sit_in_their_hosts`: `"C1 occurrence in
+   supervisor-mode.md sits inside an HTML comment"`.
+5. **C1 reworded identically at all four sites** ("it fires no risk
+   trigger" → "it fires no risk signal" at all four). Caught by
+   `test_c1_is_identical_across_the_four_sites` — the per-site loop fails on
+   the first site it walks (`FOUR_SITES` order): `"SKILL.md's C1 does not
+   match the canonical text: '...it fires no risk signal on its own...'"`.
+   Confirms AC1/AC25: comparison is against the canonical constant, not
+   merely across sites, so an identical reword at every site still reds.
+6. **One carve-out comment reworded to name three sites**
+   (SKILL.md's sync comment: "across four sites: work-loop/SKILL.md,
+   implementer.md, adversarial-reviewer.md, and
+   work-loop/references/supervisor-mode.md." → "across three sites:
+   work-loop/SKILL.md, implementer.md, and adversarial-reviewer.md."). Caught
+   by `test_sync_comments_name_four_sites`: `"SKILL.md's carve-out comment
+   is missing 'work-loop/references/supervisor-mode.md'"`.
+
+Each mutation produced exactly one failing test in the 15-test module; the
+other 14 stayed green in every case.
+
+**AC13 — goal-based check, erratum diff bound at the heading.**
+Command: `git diff $(git merge-base origin/main HEAD) --
+docs/rfc/0090-change-sizing-and-decomposition.md`. Output: a single hunk
+starting after `## Errata` (line 508), touching only the 2026-09-19 erratum
+entry — all `+` lines, zero lines above the heading. The entry now reads
+"single four-clause admission test" (corrected in place from "three-clause";
+C1 has carried four clauses since clause (iv) landed), ends `Approver:
+eugenelim`, and names C2's subject and reasons for the tier replacement.
+
+**AC14 — goal-based check, version and changelog agreement.**
+Command: read `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`
+and `docs/product/changelog.md` with `tomllib`/`json`/`re` (no shell).
+Output: `pack.toml` and `plugin.json` both declare `2.26.20`; the topmost
+`## [core]` heading in the changelog is `[core][2.26.20] — 2026-09-19` with a
+`### Highlights` block; the next-highest distinct `[core]` version in the
+changelog is `2.26.19`, so `2.26.20` is exactly one patch above it. (T6
+landed this bump; re-verified here as part of AC16's evidence, not
+re-authored.)
+
+**`## Capture` walk — five notes, each reaching its named destination and no
+other, read against the shipped bullet:**
+
+1. *Ready-now, non-generalisable, stated arbiter, fires a risk trigger.* Not
+   generalisable → the seam does not take it. Fires a trigger → fails
+   carve-out clause (i) → not ride-along eligible. Not blocked on a decision
+   → skips capture. Ready-now and not ride-along eligible → **next reviewed
+   unit**.
+2. *Same defect, unstateable verification.* Fails clause (iii) instead of
+   (i) — still not ride-along eligible, still not decision-blocked, still
+   ready-now → **next reviewed unit**.
+3. *Ride-along whose only bar is an unresolved design call with no citation
+   and no answer.* Fails clause (ii) only → not ride-along eligible → is
+   blocked on a decision → **capture**.
+4. *Pure lesson, names no defect.* The seam takes the generalisable lesson;
+   no defect for the sequence to route → **the seam alone**.
+5. *Generalisable, decision-blocked defect.* Generalisable → the seam takes
+   the lesson (additive, first). Then, as a defect, blocked on a decision →
+   **the seam and capture**.
+
+No note reached a second destination beyond what the seam's additive rule
+allows, and no note was left unrouted.
+
+**AC12 — a permanent blocker, not a scratch-only red.** The scratch-only red
+validation (place an undecodable byte sequence in a swept file, in a
+disposable copy) confirms the mechanism: the old code's
+`except UnicodeDecodeError: continue` silently skips it; the repaired code
+(no try/except) propagates the error and fails. But run against the real
+tree, the repaired sweep also fails on
+`packs/converters/.apm/skills/file-to-markdown/evals/files/sample.docx` — a
+legitimate, git-tracked binary fixture (a `.docx`, ZIP-format, so its first
+bytes are `PK\x03\x04...` and can never decode as UTF-8) that has always sat
+under one of AC12's three swept roots (`packs/`). This is not scratch noise:
+it reproduces on every run of `pytest tests/roster/test_capture_rename_guide.py`
+against the committed tree, with or without stray `__pycache__` present.
+`python3 -m pytest tests/roster/ -q` (full roster, unfiltered, own exit
+code): exit 1, `4 failed, 1732 passed, 6 skipped, 56 subtests passed in
+326.25s`. Three of the four are the pre-authorized T7 projection-drift
+deferrals plan.md's T10 "Done when" names as not required here
+(`test_ac11_work_loop_projections_are_byte_identical_to_the_source`,
+`test_self_host_skill_projections_match_their_canonical_sources`,
+`test_self_hosted_agent_projections_match_current_core_sources` — each
+reports a `.claude/`/`.codex/` projection stale against the `.apm/` sources
+this task edited, and `make build-self` is T7's fix). The fourth,
+`test_retired_step_name_is_absent_from_shipped_content`, is this AC12
+finding and is not pre-authorized by anything in spec.md or plan.md.
+AC12's text names exactly one exemption (the `evals.json` case id) and says
+the control fails rather than skips on a file it cannot read; neither spec.md
+nor plan.md's T10 body anticipates a legitimate binary file under a swept
+root, so there is no citation resolving how the sweep should treat one.
+Compounding but secondary: `tools/` also accumulates real `.pyc` files under
+`__pycache__/` during a fresh `gate-main` CI run — every earlier
+`python -m pytest tools/test_*.py` step in that job writes bytecode, since
+the job sets no `PYTHONDONTWRITEBYTECODE` — so even a tree with no binary
+fixtures would still trip the same failure by the time this job's named
+`test_capture_rename_guide.py` step runs. Recorded as `blocked_on: decision`:
+an owner must choose how AC12's "only exemption" wording should treat
+non-UTF-8 content the sweep did not anticipate — for example, exempting a
+file the sweep cannot decode instead of failing on it (softening "fails
+rather than skips" to a narrower class), scoping the exemption to
+`evals/files/` fixture directories, or narrowing `SWEEP_ROOTS` to text
+sources. No citation or owner's answer exists yet, so the code lands exactly
+as AC12's text specifies and the gate is left red with this entry naming why,
+rather than guessing a resolution that would itself be an unrecorded
+convention change.
+
+## 2026-09-19 — AC12's sweep could not pass, and the fix made it stronger
+
+**The implementer's blocker was correct and correctly handled.** T10 was told
+to make AC12's sweep fail rather than skip on a file it cannot read, with the
+`evals.json` case id as its only exemption. Implemented literally, the sweep
+reds forever:
+`packs/converters/.apm/skills/file-to-markdown/evals/files/sample.docx` is a
+git-tracked binary under `packs/`, a swept root, and a `.docx` can never
+decode as UTF-8. The implementer implemented the criterion as written, left
+the gate honestly red, recorded the design question, and did not invent an
+exemption. Its brief carried no attendance declaration, so C2's fall-out is
+exactly the behaviour it followed — the clause working on its own change.
+
+**Resolution: sweep bytes, not decoded text.** The retired name is ASCII, so
+a byte search finds it in any file. No file is then one the control "cannot
+read", so the fail-don't-skip obligation is met by there being nothing to
+skip, and AC12 keeps its single exemption. This is stronger than the
+criterion asked for, not weaker, and needs no amendment.
+
+**Then the bytecode defeated the de-literalisation.** With byte-searching on,
+the sweep flagged `packs/core/tests/pack/__pycache__/…cpython-313.pyc` for
+both `capture-learnings` and `Capture learnings`. Cause: CPython
+constant-folds adjacent string literals, so `"capt" "ure" + "-learnings"` —
+written that way precisely so the source would not contain the needle —
+compiles to one folded literal the `.pyc` carries. The source trick works
+against a source sweep and fails against a byte sweep of build output.
+
+**Repair.** Both suites now assemble their needles with `"".join((...))`, a
+runtime call the compiler cannot fold. Verified directly rather than by
+inference: compiling each file with `py_compile` and searching the resulting
+bytecode for `capture[ _-]learnings` returns no match for either file.
+
+**Named blind spot.** A compressed container can hold the name in a form no
+byte search sees; a `.docx` is a zip, so a retired reference inside one is
+undetected. That is unchanged from any text sweep and is stated in the test's
+own docstring.
+
+**Gates after the repair:** `packs/core/tests/pack/` and
+`tests/roster/test_capture_rename_guide.py` → 253 passed.
+`lint-pack-test-boundary`, `lint-ci-parity`, `lint-agents-md`,
+`make lint-ruff lint-mypy` → each exit 0. `work-loop/SKILL.md` body = 980
+lines, 20 under the cap. RFC-0090 now reads "four-clause".
+`.workspace-prune-protected.toml` carries the spec directory.

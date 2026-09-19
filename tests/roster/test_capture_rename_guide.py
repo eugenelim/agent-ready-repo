@@ -15,17 +15,29 @@ file's failure sits BELOW that bulk step, the job's fail-fast behaviour with no
 step-level `if:` means the named step never runs and the failure is reported
 under the bulk step's name instead. AC24 is that ordering, not the guide's
 content.
+
+`test_pinned_clauses_match_the_spec` (AC3) carries a third, unrelated
+responsibility: comparing `packs/core/tests/pack/test_ride_along_admission_test.py`'s
+`C1`...`C7` constants against `docs/specs/ride-along-admission-test/spec.md`
+§ The shipped clauses. That pack test cannot make the comparison itself —
+`lint-pack-test-boundary` forbids a pack test reading `docs/` — so it lives
+here instead, where both trees are reachable.
 """
 from __future__ import annotations
 
+import importlib.util
 import pathlib
 import re
+import sys
+from types import ModuleType
 
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "guides/core/explanation/core-pack.md"
 WORKFLOW = ROOT / ".github/workflows/build-check.yml"
+SPEC = ROOT / "docs" / "specs" / "ride-along-admission-test" / "spec.md"
+PACK_MODULE_PATH = ROOT / "packs/core/tests/pack/test_ride_along_admission_test.py"
 
 THIS_ROSTER_FILE = "tests/roster/test_capture_rename_guide.py"
 BULK_PYTEST_INVOCATION = "python -m pytest tests/ -q"
@@ -35,16 +47,28 @@ BULK_PYTEST_INVOCATION = "python -m pytest tests/ -q"
 # appearing elsewhere in the guide cannot satisfy the routing assertion.
 CAPTURE_STEP_ENTRY_RE = re.compile(r"^\d+\.\s+\*\*Capture\.\*\*.*$", re.MULTILINE)
 
-# AC28: the retired step name, case-insensitively, across all three
-# separators. The needles are assembled from parts below: AC28 allows two
-# exceptions and a `tests/` skip would be a third, so this file must not
+# AC3: a `**C<n> — ...**` heading, at the start of a line, in
+# § The shipped clauses. Bounded to one line so an inline mention like
+# "clause (ii)" elsewhere in the spec cannot match.
+_CLAUSE_HEADING_RE = re.compile(r"^\*\*C(\d)\s+—[^*]*\*\*", re.MULTILINE)
+
+# AC12: the retired step name, case-insensitively, across all three
+# separators. The needles are assembled from parts below: AC12 allows exactly
+# one exception and a `tests/` skip would be a second, so this file must not
 # contain the retired name as a literal its own sweep would match.
 RETIRED_STEP_RE = re.compile(r"capture[ _-]learnings", re.IGNORECASE)
+# AC12 sweeps bytes so a binary under a swept root cannot force an exemption.
+RETIRED_STEP_BYTES_RE = re.compile(rb"capture[ _-]learnings", re.IGNORECASE)
 SWEEP_ROOTS = ("packs", "tools", "guides")
-# The two stable identifiers the sweep exempts: the eval case id (an
-# identifier, not a description of the step) and any path under
-# `docs/knowledge/` (seeded knowledge records naming a prior semantic gate).
-_STEM = "capt" "ure"                            # never one literal; see above
+# The one stable identifier the sweep exempts: the eval case id (an
+# identifier, not a description of the step). `docs/knowledge/` records keep
+# the retired name as a stable gate identifier too, but they sit outside
+# `SWEEP_ROOTS`, so exempting them here would be unreachable — AC12 no
+# longer names them as an exception.
+# Assembled by a runtime call, not adjacent literals: the compiler
+# constant-folds `"capt" "ure" + "-learnings"` into one literal, so the
+# .pyc would carry the retired name this file must not contain.
+_STEM = "".join(("capt", "ure"))
 _RETIRED_SPACED = _STEM.capitalize() + " learnings"
 EVALS_CASE_ID = _STEM + "-learnings-quality-attributes"
 
@@ -66,6 +90,65 @@ def test_guide_names_the_step_as_shipped() -> None:
         "the guide's 'Capture' step entry describes recording a learning but "
         "not routing a scratch note"
     )
+
+
+def _flat(text: str) -> str:
+    """Collapse every whitespace run in `text` to one space, the way the
+    pack module's own `_flat` collapses a whole file — applied here to an
+    already-sliced clause string rather than to a file."""
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
+    """Parse `path`'s § The shipped clauses into `{label: text}`.
+
+    Each clause sits under a `**C<n> — ...**` heading, followed by prose and
+    then a blockquote: a contiguous run of lines starting with `>`. The
+    blockquote is what a site actually carries, so its `>` markers are
+    stripped and the remaining lines are joined, one label per clause."""
+    raw = path.read_text(encoding="utf-8")
+    blocks: dict[str, str] = {}
+    for match in _CLAUSE_HEADING_RE.finditer(raw):
+        label = f"C{match.group(1)}"
+        quoted: list[str] = []
+        started = False
+        for line in raw[match.end():].splitlines():
+            if line.startswith(">"):
+                started = True
+                quoted.append(line[1:].lstrip(" "))
+            elif started:
+                break
+        blocks[label] = " ".join(quoted)
+    return blocks
+
+
+def _load_pack_module() -> ModuleType:
+    """Import the pack module under a unique name naming its pack and file,
+    per `packs/AGENTS.md` § Writing pack tests."""
+    module_spec = importlib.util.spec_from_file_location(
+        "packs_core_tests_pack_test_ride_along_admission_test", PACK_MODULE_PATH
+    )
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    sys.modules[module_spec.name] = module
+    module_spec.loader.exec_module(module)
+    return module
+
+
+def test_pinned_clauses_match_the_spec() -> None:
+    """AC3: C1 through C7 in the pack module equal this spec's blockquotes,
+    not merely each other — a reword applied identically at every site and
+    to the pack module's own constants would otherwise still pass. Only C1
+    and C2 are contract (AC3); C3-C7 are working material this loop still
+    pins by equality, matching the content pin already in the pack module."""
+    spec_blocks = _shipped_clause_blockquotes(SPEC)
+    module = _load_pack_module()
+    for label in ("C1", "C2", "C3", "C4", "C5", "C6", "C7"):
+        text = getattr(module, label)
+        assert _flat(text) == _flat(spec_blocks[label]), (
+            f"{label} in the pack test module diverges from spec.md "
+            f"§ The shipped clauses"
+        )
 
 
 def test_roster_step_precedes_the_bulk_pytest_step() -> None:
@@ -112,29 +195,37 @@ def _sweep_files():
         for path in sorted((ROOT / root_name).rglob("*")):
             if not path.is_file():
                 continue
-            if "__pycache__" in path.relative_to(ROOT).parts:
-                continue
-            if "docs/knowledge" in path.as_posix():
-                continue
             yield path
 
 
 def test_retired_step_name_is_absent_from_shipped_content() -> None:
-    """AC28: no file under `packs/`, `tools/`, or `guides/` names the
-    retired step name, in any casing or separator, except the
-    `evals.json` case id and `docs/knowledge/` records — both stable
-    identifiers."""
+    """AC12: no file under `packs/`, `tools/`, or `guides/` names the
+    retired step name, in any casing or separator, except the `evals.json`
+    case id — the control's only exemption.
+
+    The sweep reads bytes, not decoded text. The retired name is ASCII, so a
+    byte search finds it wherever it appears, and no file is ever one this
+    control "cannot read" — which is how the fail-don't-skip obligation is
+    met without exempting anything. Decoding as UTF-8 instead would raise on
+    legitimate git-tracked binaries under a swept root, such as
+    `packs/converters/.apm/skills/file-to-markdown/evals/files/sample.docx`,
+    forcing an exemption the criterion does not allow.
+
+    Named blind spot: a compressed container can hold the name in a form no
+    byte search sees. A `.docx` is a zip, so a retired reference inside one
+    is not detected. That is unchanged from any text-based sweep and is not
+    what this control is for.
+    """
     offenders: list[str] = []
     for path in _sweep_files():
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
+        raw = path.read_bytes()
         if path.name == "evals.json":
-            text = text.replace(EVALS_CASE_ID, "")
-        for match in RETIRED_STEP_RE.finditer(text):
-            offenders.append(f"{path.relative_to(ROOT)}: {match.group(0)!r}")
+            raw = raw.replace(EVALS_CASE_ID.encode(), b"")
+        for match in RETIRED_STEP_BYTES_RE.finditer(raw):
+            offenders.append(
+                f"{path.relative_to(ROOT)}: {match.group(0).decode('ascii')!r}"
+            )
     assert not offenders, (
-        "the retired step name is still present outside its two stable-"
-        f"identifier exceptions: {offenders}"
+        "the retired step name is still present outside its one stable-"
+        f"identifier exception: {offenders}"
     )

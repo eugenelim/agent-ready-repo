@@ -84,6 +84,7 @@ protected = [
   "docs/specs/receiptless-dependency",
   "docs/specs/registered",
   "docs/specs/renamed",
+  "docs/specs/ride-along-admission-test",
   "docs/specs/retained",
   "docs/specs/retired",
   "docs/specs/review-record-idempotency",

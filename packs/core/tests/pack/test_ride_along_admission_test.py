@@ -45,8 +45,11 @@ EVALS_JSON = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
 # The retired step name, never spelled as one literal: the roster sweep for
 # AC28 reads every file under `packs/`, and AC28 allows exactly two
 # exceptions, so a `tests/` skip would be a third.
-_RETIRED = "capt" "ure" + "-learnings"
-_RETIRED_SPACED = "Capt" "ure" + " learnings"
+# Assembled by a runtime call, not adjacent literals: the compiler
+# constant-folds `"capt" "ure" + "-learnings"` into one literal, so the
+# .pyc would carry the retired name this file must not contain.
+_RETIRED = "".join(("capt", "ure", "-learnings"))
+_RETIRED_SPACED = "".join(("Capt", "ure", " learnings"))
 
 FOUR_SITES: tuple[Path, ...] = (SKILL, IMPLEMENTER, ADVERSARIAL, SUPERVISOR_MODE)
 THREE_MIRRORS: tuple[Path, ...] = (IMPLEMENTER, ADVERSARIAL, SUPERVISOR_MODE)
@@ -82,9 +85,8 @@ C2 = (
     "this change produced is not a resolution, however early in the session "
     "it landed. Applying a recorded answer is a lookup, not a decision, and "
     "it needs no human. An owner's answer is given in one line, in-session, "
-    "and is recorded with its question in the `Bundled fixes:` entry of "
-    "your report, or of the pull request when you are not reporting to a "
-    "supervisor. Where a dispatch brief carries exactly one attendance "
+    "and is recorded with its question in the `Bundled fixes:` entry. "
+    "Where a dispatch brief carries exactly one attendance "
     "declaration, follow it: attended means ask there, unattended means do "
     "not ask. In every other case — no brief, a brief silent on attendance, "
     "or a brief declaring both — record the question wherever this run "
@@ -418,10 +420,17 @@ def test_sync_comments_name_four_sites() -> None:
 
 
 def test_retired_locality_vocabulary_is_absent() -> None:
+    """AC7: compared case-insensitively over whitespace-normalised text, so
+    neither a wrapped occurrence (a line break splitting the token's words)
+    nor a re-cased one can pass — a raw, case-sensitive substring check over
+    un-normalised text already missed both once."""
     for path in FOUR_SITES:
-        raw = _text(path)
+        normalised = _flat(path).lower()
         for token in RETIRED_VOCABULARY:
-            assert token not in raw, f"{path.name} still contains retired token {token!r}"
+            assert token.lower() not in normalised, (
+                f"{path.name} still contains retired token {token!r} "
+                "(case-insensitive, whitespace-normalised)"
+            )
 
 
 def test_decide_row_disposition_sentence() -> None:
