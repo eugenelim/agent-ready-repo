@@ -869,6 +869,11 @@ _DELIMITED_BOUNDARY_CASES = (
     # would break the `keep` row above, so this row stays wrong on purpose.
     # The shipped counter answered this one wrongly too, so nothing regressed.
     ("residual", "one-letter end behind a delimiter", "One. Two is `x.` Three. Four.", 3),
+    # An ASCII `>` closer, excluded on a measured trade rather than missed:
+    # admitting it fixes this row and breaks two autolink rows, which design
+    # documents carry far more often than an angle-wrapped sentence. The
+    # source records the measurement. Pinned so the trade stays a decision.
+    ("residual", "ASCII angle bracket", "One. <Two.> Three. Four.", 3),
 )
 
 

@@ -80,6 +80,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every Unicode close-punctuation and final-quote character, so a document
   written with corner brackets, guillemets or angle brackets is counted the
   same way as one written with parentheses — and so is a strikethrough span.
+  The set is those Unicode categories rather than every character that looks
+  like a closer: an ASCII `>` stays out, because in Markdown it closes an
+  autolink around a URL, and admitting it would misread more documents than
+  it would fix.
   One shape stays undecidable and is unchanged: a single-letter sentence end
   inside a code span reads as an enumeration label, because an enumeration
   label written the same way has to keep reading as one.
@@ -105,7 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over-count on an inline `a.` label, so the two patterns have to move
   together. One residual is irreducible and documented in the source — a
   one-letter sentence end behind a delimiter and an enumeration label behind
-  one are the same shape, and only what follows separates them. Two
+  one are the same shape, and only what follows separates them. Three
   over-counts are newly accepted, each recorded in the source with its reason
   and pinned by a test: a code span whose content ends in a terminator
   followed by another mark, as in "the pattern `foo.*` here"; a bracketed
@@ -129,8 +133,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   check accepts at up to a megabyte; tolerating closing marks adds a rescan
   of the closing run to each of those retries. Anchoring the match to the
   start of the run changes no count and removes the retries, so the work
-  grows in step with the input rather than with its square. A test pins the
-  growth rate rather than a duration that would differ on every machine.
+  grows in step with the input rather than with its square. A test pins a
+  sampled growth ratio that separates the two implementations, rather than a
+  duration that would differ on every machine.
 
 ## [core][2.26.20] — 2026-09-18
 

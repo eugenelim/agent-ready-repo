@@ -251,6 +251,17 @@ _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
 # than trusted. Deriving it from the categories is what
 # makes "a closing mark of any script" true instead of a hand-list that
 # happens to cover the scripts its author thought of.
+#
+# ASCII `>` is deliberately NOT here, and the reason is a measured trade
+# rather than an oversight. It is category `Sm`, not `Pe`, so admitting it
+# would reopen the hand-list problem the categories exist to close -- and in
+# Markdown it closes an autolink wrapping a URL. Adding it fixes
+# "One. <Two.> Three. Four." and breaks both
+# "See <https://x.test/docs.> here." and "See <https://x.test/a?> here.",
+# trading one under-count for two over-counts in a shape design documents
+# use far more often than a sentence wrapped in angle brackets. A sentence
+# closed by an HTML tag ("<b>bold.</b>") is outside this class either way,
+# since `<` follows the terminator rather than a closing mark.
 _CLOSING_CHARACTERS = (
     # Markdown span marks, the ASCII quotes, and the ASCII brackets.
     "*_`~\"')]}"
