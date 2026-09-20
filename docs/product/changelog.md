@@ -88,8 +88,9 @@ The G3 Core-absent branch now names where it submits. Three surfaces said the
 portable fallback was *rendered* without saying what receives it, while the
 negotiated branch named `work-intake` — so the capability read as bounding the
 target rather than the handoff object. All three now route both branches
-through `work-intake`; only the envelope differs. The two guide passages that
-described the old conditional route were corrected with them.
+through `work-intake`; only the envelope differs. The explanation guide, which
+stated the old conditional route, was corrected with them; the how-to guide,
+which named no route at all, now names this one.
 
 The discovery-workspace sidecar schema documents two blackboard slot types that
 had no stated shape: `assumption-test` carries the riskiest assumption, the

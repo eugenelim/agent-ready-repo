@@ -86,3 +86,68 @@ were not edited and pass. `packs/product-engineering/pack.toml`'s
 `fallback` integration string is byte-pinned by the first of those and carries
 the pre-existing conditional wording; changing it is an "Ask first" item under
 the spec's Agent Rules and was not in scope here.
+
+## Review round 1 — sustained findings and their repairs
+
+Three reviewers ran against commit `343a32ea5`; each raw report and its paired
+adjudication sits under `.context/reviews/9129ff2a-b134-4542-91db-210e993c1b3f/`.
+Every blocker the reviewers raised was refuted on repository evidence; the
+sustained findings were advisory or concern-tier and are repaired below.
+
+### The two mutations that defeated the original controls
+
+Both reviewers found real ways to make a control pass while its criterion was
+unsatisfied, which the first mutation pass had not reached:
+
+1. **AC7's sentence boundary was movable.** `_sentence_containing` split only on
+   `". "`. Re-punctuating the preceding sentence with a semicolon merged the
+   Core-absent clause into the negotiated one — which names `work-intake`
+   already — so the assertion passed on the wrong span. The helper is now
+   `_clause_containing`, splitting on `[.;]`, and the G3 checks additionally
+   assert the resolved clause does **not** contain the negotiated branch's
+   `advertises` marker. That is the differential half: a span that reaches the
+   negotiated sentence can no longer satisfy a Core-absent criterion.
+2. **AC3's positional half was unguarded.** The criterion requires the floor
+   rule *beneath* the section's existing opening sentence; the test asserted
+   only the floor rule's own words, so deleting the anchor left every test
+   green. The test now asserts the anchor is present and precedes the floor
+   rule. The Testing Strategy's reason for not asserting the anchor does not
+   apply to an ordering assertion, which cannot be satisfied before the edit.
+
+Both defeating mutations were re-run against the repaired file and both now red.
+
+### Other sustained repairs
+
+| Finding | Repair |
+| --- | --- |
+| `_section` terminated only at its own heading level, so a `###` slice ran to end of file | terminates at the same level or shallower |
+| the slot-shape assertions widened across a JSON block and the field table | bounded to the list item by `_list_item_containing` |
+| `walk.count("decompose-intent") == 2` pinned a transcription count | dropped; the two gate pairings already carry AC5 |
+| the route menu was matched by bullet position, which AC11 does not state | each route matched to whichever bullet names it |
+| `len(description) <= 1024` borrowed a bound this spec does not own | dropped; `catalogue lint --deep` owns it |
+| a missing `type` row raised `StopIteration` | now an assertion naming the file and the row |
+| the changelog said "two guide passages … were corrected" | only one was a correction; the other gained a route it never stated |
+| the release fold-forward left `product-engineering 0.13.13` cited but unreachable | repointed to `0.13.14`; a tree-wide search now returns no `0.13.13` |
+
+Thirteen defeating mutations were run against the repaired test file and all
+thirteen red. One legitimate change — rotating the three route bullets, which
+AC11 permits — was confirmed to stay green, so the repair did not trade a
+false negative for a false positive.
+
+### Refuted blockers worth the owner's attention
+
+All three adversarial blockers and the security reviewer's blocker were refuted,
+two of them by independent adjudications reaching the same verdict. Two residues
+were recorded by the adjudicators for the owner rather than as findings, and
+neither is a defect in this delivery:
+
+- `work-intake` is declared only by `packs/core/pack.toml`. On the genuine
+  Core-absent limb the invocation AC7-AC9 name does not resolve, and the shipped
+  prose does not say what the agent does then. The implementation conforms to
+  AC7-AC9 as approved; changing it would be a spec amendment, not a repair.
+- The plan's supporting quote for that routing is weaker than it reads:
+  `docs/specs/shaping-intake-handoff/spec.md:17` governs requests *without a
+  handoff* under a present Core, not Core absence. The adjudicators separately
+  confirmed the prior spec's AC9 prohibitions are each satisfied — no mandatory
+  core dependency is declared, and `packs/product-engineering/pack.toml` carries
+  no `[pack.dependencies]` table — so there is no cross-spec contract conflict.

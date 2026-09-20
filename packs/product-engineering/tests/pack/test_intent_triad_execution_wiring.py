@@ -36,29 +36,71 @@ def _flat(text: str) -> str:
 
 
 def _section(body: str, heading: str) -> str:
-    """The text under `heading`, up to the next heading at the same level."""
-    level = heading.split(" ", 1)[0]
+    """The text under `heading`, up to the next heading at the same level or shallower.
+
+    Deriving the terminator from the heading's own level alone is not enough: a
+    `###` slice would then run past every following `##` to end of file, and a
+    section-scoped assertion would silently be reading the rest of the document.
+    """
+    depth = len(heading.split(" ", 1)[0])
     start = re.search(rf"^{re.escape(heading)}$", body, re.MULTILINE)
     assert start is not None, f"missing heading: {heading}"
     rest = body[start.end() :]
-    nxt = re.search(rf"^{re.escape(level)} ", rest, re.MULTILINE)
+    nxt = re.search(rf"^#{{1,{depth}}} ", rest, re.MULTILINE)
     return rest[: nxt.start()] if nxt else rest
 
 
-def _sentence_containing(body: str, anchor: str) -> str:
-    """The one sentence holding `anchor`, whitespace-normalised.
+# The condition that marks the *negotiated* branch. Every G3 surface names
+# `work-intake` on that branch already, so a span that reaches this word has
+# swallowed the neighbouring sentence and proves nothing about the Core-absent
+# one. The G3 checks assert its absence to prove the boundary really resolved.
+NEGOTIATED_MARKER = "advertises"
 
-    Sentence scope is what makes these checks real. The names under test appear
-    on other sentences of the same files already.
+
+def _clause_containing(body: str, anchor: str) -> str:
+    """The one clause holding `anchor`, whitespace-normalised.
+
+    Clause scope is what makes these checks real: the names under test appear on
+    neighbouring clauses of the same files already. Bounding on `". "` alone is
+    too weak, because re-punctuating the preceding sentence with a semicolon
+    would merge the two and hand the assertion a span that satisfies it for the
+    wrong reason -- so `;` terminates a clause here too.
     """
     flat = _flat(body)
     assert anchor in flat, f"missing anchor: {anchor}"
     where = flat.index(anchor)
-    start = flat.rfind(". ", 0, where)
-    start = 0 if start == -1 else start + 2
-    end = flat.find(". ", where)
-    end = len(flat) if end == -1 else end + 1
+    starts = [m.end() for m in re.finditer(r"[.;]\s", flat) if m.end() <= where]
+    start = starts[-1] if starts else 0
+    end_match = re.search(r"[.;]\s", flat[where:])
+    end = where + end_match.start() + 1 if end_match else len(flat)
     return flat[start:end]
+
+
+def _list_item_containing(body: str, anchor: str) -> str:
+    """The `- ` bullet holding `anchor`, whitespace-normalised.
+
+    Bounding on sentence punctuation alone would widen here: between this
+    anchor and the previous sentence end sit a fenced JSON example and a
+    Markdown table whose cells end in `)` or a code span, so the span would
+    silently cover both.
+    """
+    assert anchor in body, f"missing anchor: {anchor}"
+    where = body.index(anchor)
+    start = body.rfind("\n- ", 0, where)
+    assert start != -1, f"anchor is not inside a list item: {anchor}"
+    nxt = re.search(r"\n(?:- |\n)", body[where:])
+    end = where + nxt.start() if nxt else len(body)
+    return _flat(body[start:end])
+
+
+def _assert_core_absent_clause_names_work_intake(body: str, anchor: str) -> None:
+    """The Core-absent clause at `anchor` names `work-intake`, and is its own clause."""
+    clause = _clause_containing(body, anchor)
+    assert "`work-intake`" in clause, clause
+    assert NEGOTIATED_MARKER not in clause, (
+        "clause boundary did not resolve -- this span reaches the negotiated "
+        f"branch, which names `work-intake` regardless: {clause}"
+    )
 
 
 # --- T1: the two slot types carry a name, a field set, a starting level ------
@@ -72,13 +114,16 @@ def test_each_new_slot_type_is_named_and_shaped() -> None:
     """
     body = SIDECAR_SCHEMA.read_text(encoding="utf-8")
     type_row = next(
-        line for line in body.splitlines() if line.startswith("| `type` |")
+        (line for line in body.splitlines() if line.startswith("| `type` |")),
+        None,
+    )
+    assert type_row is not None, (
+        f"{SIDECAR_SCHEMA.name}: no blackboard field-table row starting `| \u0060type\u0060 |`"
     )
     for slot_type in NEW_SLOT_TYPES:
         assert f"`{slot_type}`" in type_row, slot_type
 
-    flat = _flat(body)
-    assumption = _sentence_containing(flat, "An `assumption-test` slot carries")
+    assumption = _list_item_containing(body, "An `assumption-test` slot carries")
     for field in (
         "riskiest assumption",
         "kill condition",
@@ -87,7 +132,7 @@ def test_each_new_slot_type_is_named_and_shaped() -> None:
     ):
         assert field in assumption, field
 
-    delivery = _sentence_containing(flat, "A `delivery-contract` slot carries")
+    delivery = _list_item_containing(body, "A `delivery-contract` slot carries")
     assert "G3 leaf projection" in delivery
 
 
@@ -99,7 +144,7 @@ def test_the_classification_section_states_the_starting_level() -> None:
             "## Data classification & handling",
         )
     )
-    starting = _sentence_containing(section, "The controller starts from")
+    starting = _clause_containing(section, "The controller starts from")
     for slot_type in NEW_SLOT_TYPES:
         assert f"`{slot_type}`" in starting, slot_type
     assert starting.count("`internal`") == 2, starting
@@ -118,10 +163,21 @@ def test_the_classification_section_states_the_floor_rule() -> None:
             "## Data classification & handling",
         )
     )
-    floor = _sentence_containing(section, "is a **floor**")
+    floor = _clause_containing(section, "is a **floor**")
     assert "starting level named for a slot type" in floor
     assert "may raise it" in floor
     assert "Levels are assigned per instance" in section
+
+    # AC3 is positional: the floor rule must sit BENEATH the section's existing
+    # opening sentence. Asserting the floor rule alone would stay green if that
+    # anchor were deleted, and the ordering half cannot be satisfied pre-edit,
+    # so guarding it costs nothing the criterion did not already ask for.
+    anchor = (
+        "Each slot carries — or the skill assigns at write time — "
+        "a **data-classification level**"
+    )
+    assert anchor in section, section[:200]
+    assert section.index(anchor) < section.index("is a **floor**")
 
 
 # --- T2: the walk names the triad, the exclusion stops routing it away ------
@@ -139,15 +195,17 @@ def test_the_gate_ladder_walk_pairs_each_triad_skill_with_its_gate() -> None:
             "## How you run the loop",
         )
     )
-    for gate, skill in (
-        ("G0 intake (`frame-intent`)", "frame-intent"),
-        ("G1 strategy (`de-risk-intent`", "de-risk-intent"),
-        ("G3 handoff (`decompose-intent`)", "decompose-intent"),
+    # Each literal is a gate paired with the skill that runs at it. The G1
+    # fragment is deliberately truncated before its closing parenthesis
+    # because that gate carries two skills in one parenthetical, and
+    # `decompose-intent` is the second of them.
+    for pairing in (
+        "G0 intake (`frame-intent`)",
+        "G1 strategy (`de-risk-intent`",
+        "then `decompose-intent`)",
+        "G3 handoff (`decompose-intent`)",
     ):
-        assert gate in walk, (gate, skill)
-    # `decompose-intent` holds two ladder positions, G1 and G3.
-    assert "then `decompose-intent`)" in walk
-    assert walk.count("`decompose-intent`") == 2, walk
+        assert pairing in walk, (pairing, walk)
 
 
 def test_the_standalone_exclusion_keeps_two_names_and_drops_one() -> None:
@@ -157,11 +215,10 @@ def test_the_standalone_exclusion_keeps_two_names_and_drops_one() -> None:
         DISCOVERY_LOOP.read_text(encoding="utf-8"),
         re.MULTILINE,
     ).group(1)
-    exclusion = _sentence_containing(description, "author one discovery artifact")
+    exclusion = _clause_containing(description, "author one discovery artifact")
     assert "frame-domain" in exclusion
     assert "explore-options" in exclusion
     assert "frame-intent" not in exclusion
-    assert len(description) <= 1024, len(description)
 
 
 # --- T3: the Core-absent branch names `work-intake` on all three surfaces ---
@@ -173,24 +230,21 @@ def test_the_skill_fallback_sentence_names_work_intake() -> None:
         DISCOVERY_LOOP.read_text(encoding="utf-8"),
         "### Capability-negotiated G3 handoff",
     )
-    fallback = _sentence_containing(handoff, "portable rendered")
-    assert "`work-intake`" in fallback, fallback
+    _assert_core_absent_clause_names_work_intake(handoff, "portable rendered")
 
 
 def test_the_decompose_skill_core_absent_sentence_names_work_intake() -> None:
     """AC8 -- the `If Core is absent` sentence names the invocation."""
-    fallback = _sentence_containing(
+    _assert_core_absent_clause_names_work_intake(
         DECOMPOSE_INTENT.read_text(encoding="utf-8"), "If Core is absent"
     )
-    assert "`work-intake`" in fallback, fallback
 
 
 def test_the_recursive_decomposition_fallback_sentence_names_work_intake() -> None:
     """AC9 -- the `Otherwise render` sentence names the invocation."""
-    fallback = _sentence_containing(
+    _assert_core_absent_clause_names_work_intake(
         RECURSIVE_DECOMPOSITION.read_text(encoding="utf-8"), "Otherwise render"
     )
-    assert "`work-intake`" in fallback, fallback
 
 
 # --- T5: the cross-sequence route menu -------------------------------------
@@ -211,23 +265,28 @@ def test_frame_intent_carries_the_pick_a_route_section() -> None:
 def test_the_route_menu_names_three_routes_with_a_fit_line() -> None:
     """AC11 -- three routes, each stating the situation it fits."""
     menu = _section(FRAME_INTENT.read_text(encoding="utf-8"), "## Pick a route")
-    routes = [line for line in menu.splitlines() if line.startswith("- **")]
-    assert len(routes) == 3, routes
+    bullets = [_flat(b) for b in re.split(r"^- \*\*", menu, flags=re.MULTILINE)[1:]]
+    assert len(bullets) == 3, bullets
 
-    bullets = re.split(r"^- \*\*", menu, flags=re.MULTILINE)[1:]
+    # AC11 requires three routes and states no order, so each expected route is
+    # matched to whichever bullet names it rather than to a position.
     expected = (
         ("frame-intent", "de-risk-intent", "decompose-intent"),
         ("discovery-loop",),
         ("frame-situation",),
     )
-    for bullet, names in zip(bullets, expected, strict=True):
-        flat = _flat(bullet)
-        # The bolded lead is the situation; the skills follow it.
-        situation, _, remainder = flat.partition("**")
-        assert situation.strip(), flat
-        assert remainder.strip(), flat
-        for name in names:
-            assert f"`{name}`" in flat, (name, flat)
+    matched: list[str] = []
+    for names in expected:
+        hits = [b for b in bullets if all(f"`{n}`" in b for n in names)]
+        assert len(hits) == 1, (names, hits)
+        matched.append(hits[0])
+    assert len(set(matched)) == 3, "two expected routes matched the same bullet"
+
+    for bullet in bullets:
+        # The bolded lead is the situation the route fits; the skills follow it.
+        situation, _, remainder = bullet.partition("**")
+        assert situation.strip(), bullet
+        assert remainder.strip(), bullet
 
 
 def test_the_menu_names_no_six_step_skill_but_frame_situation() -> None:
