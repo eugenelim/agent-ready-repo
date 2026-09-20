@@ -862,7 +862,29 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   work links its source artifact, transformation invariant, command, zero-diff
   re-run, tests, sampled review, and rollback; MIXED and DEEP work links its
   dependency-ordered boundaries.
-- [ ] PR opened (or merged directly) with the four-question template filled in.
+- [ ] **Pull request opened, or the offer withheld.** Decide capability from
+  exit status and the `viewerPermission` enum. The delimited table below is the
+  whole decision; nothing outside it is an input.
+
+  <!-- pr-capability-decision:start -->
+  - when: `gh api user` exits non-zero | offer: no | message: none | record: `probe-unavailable`
+  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is unreadable | offer: no | message: none | record: `permission-unavailable`
+  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is outside `WRITE` `MAINTAIN` `ADMIN` | offer: no | message: none | record: `permission-insufficient`
+  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is one of `WRITE` `MAINTAIN` `ADMIN` | offer: yes | message: none | record: `pull-request-opened` or `offer-declined`
+  <!-- pr-capability-decision:end -->
+
+  Fill this repository's own pull-request template when it has one — the
+  installer preserves an existing convention precisely so it stays
+  authoritative, and overriding it here would hand reviewers a body in a shape
+  their repository does not use. Fall back to the template in this skill's
+  `assets` folder only when the repository has none. Either way, write the body
+  by [`references/pr-authoring.md`](references/pr-authoring.md). Record the outcome
+  name in the completion evidence: silence is owed to the reader, not to the
+  record, and without it a run that never probed is indistinguishable from one
+  that probed and refused. The reason the table reads an exit status rather than
+  a message is that a blocked credential store makes `gh auth status` report an
+  invalid token and `gh repo view` report a connection failure, so neither
+  message states the cause; an exit status carries no such claim.
 
 ## FIX
 
@@ -988,3 +1010,4 @@ Load when the predicate fires; don't load speculatively.
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |
+| Authoring a pull-request body | [`references/pr-authoring.md`](references/pr-authoring.md) |

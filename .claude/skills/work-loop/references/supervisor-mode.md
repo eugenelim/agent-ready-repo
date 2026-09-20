@@ -245,7 +245,8 @@ not edit `state.json` or invoke `git worktree` directly.
    in different words, never merging two entries whose recorded
    questions differ, nor two whose recorded answers to the same
    question differ), and emit a single `Bundled fixes:` section
-   in the PR description below the standard template. If no
+   in the PR description below the
+   [standard template](../assets/pull-request-template.md). If no
    implementer landed ride-alongs, omit the section.
 
 6. **Clean up worktrees.** After all merges succeed, run
