@@ -101,7 +101,7 @@ The spec's `## Durable Outputs` names three applicable roles. The first: the pub
 - `test_diagnostics_reflect_no_untrusted_text` (AC-0019) — `stub: true`
 - `test_no_write_reaches_the_repository_root` (AC-0003) — deferred to EXECUTE; needs a repository-root fixture the stub does not build
 - `test_a_reparse_point_in_the_namespace_fails_closed` (AC-0017) — deferred to EXECUTE; platform-gated, and the POSIX symlink and FIFO cases in the stub already carry the fail-closed contract
-- `test_an_oversized_remote_listing_refuses` (AC-0018) — deferred to EXECUTE; needs a bounded-output fixture
+- `test_an_oversized_remote_listing_refuses` (AC-0021) — deferred to EXECUTE; drives a lowered byte bound and asserts the read stopped before the whole result was buffered
 - `test_diagnostics_reflect_no_filename_or_git_error` (AC-0019) — deferred to EXECUTE; the `Level`-reflection half is in the stub and red
 - `test_a_non_blob_remote_entry_fails_closed` (AC-0017) — deferred to EXECUTE; needs an `ls-tree` fixture carrying a non-blob mode inside the namespace
 - `test_a_promisor_designation_refuses_before_git_runs` (AC-0018) — `stub: true`; asserts the refusal with the subprocess seam recording zero calls, which is what isolates the configuration check from `GIT_NO_LAZY_FETCH`
@@ -398,7 +398,11 @@ def test_a_traversing_or_absolute_dir_argument_is_refused(tmp_path: pathlib.Path
 def test_the_git_child_environment_is_scrubbed_and_local(
     tmp_path: pathlib.Path, monkeypatch
 ) -> None:
-    """AC-0018: no redirect variables, no shell, closed stdin, no fetch."""
+    """AC-0018: no redirect variables, no shell, closed stdin, no fetch.
+
+    Seams `Popen`, not `run`: AC-0021 requires the byte bound enforced while
+    reading, and `run` buffers the whole result before anything can check it.
+    """
     seen: dict[str, object] = {}
 
     def _record(arguments, **keywords):
@@ -406,14 +410,14 @@ def test_the_git_child_environment_is_scrubbed_and_local(
         seen["keywords"] = keywords
         raise OSError("no git in this fixture")
 
-    monkeypatch.setattr(MODULE.subprocess, "run", _record)
+    monkeypatch.setattr(MODULE.subprocess, "Popen", _record)
     monkeypatch.setenv("GIT_DIR", "/elsewhere/.git")
     monkeypatch.setenv("GIT_OBJECT_DIRECTORY", "/elsewhere/objects")
     MODULE.remote_view(tmp_path)
 
     assert seen["keywords"]["shell"] is False
     assert seen["keywords"]["stdin"] is MODULE.subprocess.DEVNULL
-    assert seen["keywords"]["timeout"] is not None
+    assert seen["keywords"]["stdout"] is MODULE.subprocess.PIPE
     environment = seen["keywords"]["env"]
     for variable in MODULE.GIT_REDIRECT_VARIABLES:
         assert variable not in environment
@@ -430,7 +434,7 @@ def test_the_child_environment_forbids_a_lazy_fetch(
         seen["keywords"] = keywords
         raise OSError("no git in this fixture")
 
-    monkeypatch.setattr(MODULE.subprocess, "run", _record)
+    monkeypatch.setattr(MODULE.subprocess, "Popen", _record)
     MODULE.remote_view(tmp_path)
     assert seen["keywords"]["env"]["GIT_NO_LAZY_FETCH"] == "1"
 
@@ -446,20 +450,24 @@ def test_the_child_environment_forbids_a_lazy_fetch(
 def test_a_promisor_designation_refuses_before_git_runs(
     config: dict[str, str], tmp_path: pathlib.Path, monkeypatch
 ) -> None:
-    """AC-0018: zero git calls, which is what isolates this from the env var.
+    """AC-0018: no object-reading command runs, which isolates this from the env var.
 
     On a git that honours GIT_NO_LAZY_FETCH the transport is blocked either
     way, so a test that only observes a refusal cannot tell this check from
-    its absence — and its absence is what fails on an older git.
+    its absence — and its absence is what fails on an older git. `git config`
+    is allowed to run first: it resolves no object and cannot lazily fetch.
     """
-    calls: list[object] = []
-    monkeypatch.setattr(
-        MODULE.subprocess, "run", lambda *a, **k: calls.append(a) or None
-    )
+    launched: list[list[str]] = []
+
+    def _record(arguments, **keywords):
+        launched.append(list(arguments))
+        raise OSError("no git in this fixture")
+
+    monkeypatch.setattr(MODULE.subprocess, "Popen", _record)
     monkeypatch.setattr(MODULE, "git_config_values", lambda _d: dict(config))
     view = MODULE.remote_view(tmp_path)
     assert view.state == "failed"
-    assert calls == []
+    assert not [a for a in launched if "ls-tree" in a]
 
 
 def test_the_bounds_are_module_constants(tmp_path: pathlib.Path) -> None:
@@ -523,8 +531,9 @@ def test_diagnostics_reflect_no_untrusted_text(
 - **Zero writes, not "no other writes" (AC-0003).** The allocator only ever reads. Selecting a destination and writing one are different acts, and the write stays inside the existing admission transaction where confinement, provenance and authority transfer already apply. The snapshot assertion covers the repository root as well as the scanned directory, so a stray cache file elsewhere is caught too.
 - **Confinement through every component, and a link policy that fails closed (AC-0017).** `file_safety.validate_confined_directory` covers the directory and its ancestors; entry classification then stats without following, so an outside-namespace link is skipped without a dereference — a dangling one included — while an in-namespace symlink, FIFO, device, or entry that became uninspectable between listing and classification refuses. `classify_entry`'s reason for using `stat(follow_symlinks=False)` rather than `is_file()` applies here unchanged: those predicates return `False` on any `OSError`, so an entry removed mid-scan is silently dropped and the scan reports clean without having seen it.
 - **No egress, established by fixture rather than by argument inspection (AC-0018).** "The argument vector contains no `fetch`" is not the same claim as "this cannot reach the network", and the difference is real: on git 2.50.1, `git ls-tree` against a `--filter=tree:0` clone with an unreachable remote attempted a transport and reported `could not fetch <oid> from promisor remote`. Two controls, because one of them is version-dependent. `GIT_NO_LAZY_FETCH=1` in the child environment failed closed on that same fixture with `not a tree object` and no transport — but it landed in git 2.41 and this repository declares no git floor, so an older git ignores it silently. So the allocator independently refuses the remote view when either of git's two promisor designations is present — repository-level `extensions.partialClone`, or an enabled `remote.<name>.promisor` for any remote. Both were verified sufficient on their own: a clone made by git 2.50.1 records only `remote.origin.promisor=true` and no `extensions.partialClone`, while the same fixture with the per-remote key removed and `extensions.partialClone=origin` set still attempted the transport. Checking one key and not the other leaves the path open on exactly the configurations an older git produces. `remote.<name>.promisor=false` was tested and is **not** a control: the transport was still attempted. Also carried over: local refs only, a fixed argument list with `shell=False`, `stdin=DEVNULL`, and the `GIT_*` redirect variables stripped so an inherited `GIT_DIR` cannot point the scan at another object store.
-- **The configuration refusal runs before git does, and that ordering is what makes it testable.** A test on git 2.50.1 refuses whether or not the configuration check exists, because `GIT_NO_LAZY_FETCH` already blocks the transport — so it cannot distinguish a present check from an absent one, and the absent one is exactly what breaks on the older git the check exists for. Two things follow. The refusal is evaluated before any subprocess is spawned, asserted by a seam that records zero git calls. And the real-clone cases run with lazy-fetch suppression *removed* from the child environment, so each configuration is observed on its own. A `remote.<name>.promisor=false` value is not a clearance — it says that remote is not designated, not that transport is suppressed, and `extensions.partialClone` can designate one beside it — so the third fixture pairs them and still expects a refusal.
-- **Four bounds, each with a measured origin (AC-0021).** 5 s per Git invocation, inherited from `_GIT_TIMEOUT_SECONDS`; 10 s for the whole invocation, against 58 ms measured end-to-end on this repository's intent directory; 65,536 entries for either half of the view, against 215 in `tools`, this repository's largest tracked directory; and 8 MiB from one Git result, against the 724 KiB a recursive listing of the whole repository produces. The byte bound is checked while reading rather than after, because a bound applied to an already-buffered result has paid the cost it exists to avoid. The bounds live as module constants so every test drives a *lowered* bound — building a 65,537-entry fixture would be slow and would prove nothing the lowered bound does not.
+- **The launch is `Popen`, not `run`, and that follows from AC-0021 rather than from taste.** `subprocess.run` buffers the child's whole output before returning, so a byte bound applied to its result has already paid the cost it exists to avoid. The listing is read incrementally from a pipe with the bound checked as it goes, and the deadline is enforced by the caller against that same read loop. The approved stub seams `Popen` for this reason; an implementation following a `run`-shaped stub could not satisfy AC-0021.
+- **The configuration refusal runs before git does, and that ordering is what makes it testable.** A test on git 2.50.1 refuses whether or not the configuration check exists, because `GIT_NO_LAZY_FETCH` already blocks the transport — so it cannot distinguish a present check from an absent one, and the absent one is exactly what breaks on the older git the check exists for. Two things follow. The refusal is evaluated before any **object-reading** git command, asserted by a seam that records every launch and finding no `ls-tree` among them. Not zero launches: discovering the configuration may run `git config`, which resolves no object and cannot lazily fetch, so the criterion names the commands that can reach for an object rather than banning the process outright — a ban would have been both unimplementable and untestable, since the check needs the config it is checking. And the real-clone cases run with lazy-fetch suppression *removed* from the child environment, so each configuration is observed on its own. A `remote.<name>.promisor=false` value is not a clearance — it says that remote is not designated, not that transport is suppressed, and `extensions.partialClone` can designate one beside it — so the third fixture pairs them and still expects a refusal.
+- **Four bounds, each with a measured origin (AC-0021).** 5 s per Git invocation, inherited from `_GIT_TIMEOUT_SECONDS`; 10 s for the whole invocation, against 58 ms measured end-to-end on this repository's intent directory; 65,536 entries for either half of the view, against 222 consumed in `tools/`, this repository's largest tracked directory — 215 blobs plus 7 trees, counted in the unit the bound governs; and 8 MiB from one Git result, against the 724 KiB a recursive listing of the whole repository produces. The byte bound is checked while reading rather than after, because a bound applied to an already-buffered result has paid the cost it exists to avoid. The bounds live as module constants so every test drives a *lowered* bound — building a 65,537-entry fixture would be slow and would prove nothing the lowered bound does not.
 - **Diagnostics name the outcome, never the input (AC-0019).** One bounded line, no raw `Level`, no filename, no Git stderr. The `Level` field is open and adopter-controlled, so reflecting it is both a disclosure path and a terminal-injection path; the outcome is what the caller needs and the input is what it already has.
 - **Classify by name before applying the integrity refusal.** `file_safety.list_confined_regular_files` refuses *every* symlink, which would let an adopter's `notes -> ../elsewhere` link in the intents directory fail the whole scan even though AC-0004 says an outside-namespace name is skipped without incident. So the directory itself is validated with `file_safety.validate_confined_directory`, and entries are then enumerated with `os.scandir` plus a `stat(follow_symlinks=False)` classification — the shape `next-ordinal.py:213-250` already uses, which raises only on a **record-looking** symlink. An in-namespace link refuses; an outside-namespace one is skipped. The copied `file_safety.py` remains the blessed source of the directory-confinement primitive, which is why the copy and its byte-identity pin stay.
 - Carry the rest of `_remote_ordinals` over with one change: **keep the object mode**. `next-ordinal.py` uses `ls-tree -z --name-only`, which discards it, so an in-namespace symlink, tree or gitlink on `origin` would be indistinguishable from a regular record and AC-0017's fail-closed rule could not hold on the remote half. Dropping `--name-only` yields `100644 blob <sha>\t<name>` per entry, still NUL-separated; anything in the namespace whose mode is not a regular blob — `100644` or `100755` — fails the scan closed, exactly as a local non-regular entry does. The `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, and the root-relative pathspec run from the repository root all carry over unchanged; each of those comments in the source records a defect already paid for once.

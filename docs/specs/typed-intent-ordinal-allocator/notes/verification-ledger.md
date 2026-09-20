@@ -38,15 +38,43 @@ floor — so it cannot be the only control. And git designates a promisor remote
 two ways, either of which is sufficient on its own, so a check covering one key
 leaves the path open on exactly the configurations an older git produces.
 
-AC-0018 was amended twice off this entry: first to replace argument inspection
-with the environment variable plus a configuration refusal, then to cover both
-designations after the second security round sustained a finding that the first
-amendment checked only the per-remote key.
+AC-0018 was amended three times off this entry, each in its own commit:
+
+| Commit | Amendment |
+| --- | --- |
+| `f5ce1ffce` | replaced argument inspection with `GIT_NO_LAZY_FETCH=1` plus a configuration refusal |
+| `87a72df57` | covered both promisor designations, after the second security round sustained a finding that the first amendment checked only the per-remote key |
+| `e8ab68b45` | moved the configuration refusal **before** any object-reading git command, after the third round sustained a finding that the check was unobservable behind the environment variable on a git that honours it |
+
+The third is the one worth remembering: a backup control that only ever runs
+behind a working primary cannot be distinguished from an absent control, and the
+git version where the primary fails is exactly the one the backup exists for.
 
 **Not established.** Live transport behaviour on a git older than 2.41 was not
 exercised; the installed git is 2.50.1. The configuration refusal is what covers
 that case, and it is a configuration check rather than a version check precisely
 because the version could not be observed here.
+
+## 2026-09-20 — the entry bound's origin, in the unit the bound governs
+
+**Why run it.** AC-0021's entry bound cited this repository's largest tracked
+directory at 215 entries. Adversarial review pointed out that 215 counts blobs,
+while the allocator consumes every entry a listing yields — so the figure was
+not measured in the unit the bound governs.
+
+**What was run.** At revision `e8ab68b45`, from the repository root:
+
+```
+git ls-tree -z HEAD -- tools/ | tr '\0' '\n' | awk '{print $2}' | sort | uniq -c
+```
+
+**Observed.** `215 blob`, `7 tree` — **222 entries**, not 215.
+
+**What it settles.** The bound's origin now reads 222 entries consumed, which is
+~295× rather than ~305×. The value itself does not move: 65,536 was never
+derived from the measurement, it is bounded below by it. What the correction
+buys is that the origin and the bound are expressed in one unit, so a later
+reader re-measuring finds the same number.
 
 ## 2026-09-20 — T1's stub earns its red
 
