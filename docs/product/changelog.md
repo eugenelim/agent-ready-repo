@@ -178,7 +178,6 @@ pack, so all three references resolved to nothing. They now name `ux-writing`.
   instead. At Capture, every scratch note from the session is now routed to
   a destination rather than left to fall out of scope.
 
-
 ## [core][2.26.20] — 2026-09-18
 
 ### Highlights
