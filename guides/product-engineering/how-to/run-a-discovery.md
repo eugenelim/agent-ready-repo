@@ -67,7 +67,7 @@ If you already have a BRD / PRD / SRS, **seed the loop with it** rather than sta
 
 ## When it hands off
 
-At **G3** the brief decomposes into an ordered, dependency-aware backlog (parked sub-ideas carried as first-class entries); `loop-cohort` orders it; `work-loop` pulls one item at a time. The brief carries a **required success-metrics / North-Star slot** — it cannot reach G3 without a done-criterion the build loop can iterate against.
+At **G3** the brief decomposes into an ordered, dependency-aware backlog (parked sub-ideas carried as first-class entries); the confirmed handoff is submitted through `work-intake`, which is the route into delivery; `loop-cohort` orders it; `work-loop` pulls one item at a time. The brief carries a **required success-metrics / North-Star slot** — it cannot reach G3 without a done-criterion the build loop can iterate against.
 
 ## What you have now
 

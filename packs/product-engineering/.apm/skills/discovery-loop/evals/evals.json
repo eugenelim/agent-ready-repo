@@ -15,10 +15,11 @@
     {
       "id": "g3-portable-rendered-fallback",
       "prompt": "The G3 human verdict is confirmed for a cross-repository outcome, but Core is absent, its capability is unknown, or its normalized-intake schema predates the handoff field.",
-      "expected_output": "The agent renders a portable delivery-brief handoff with the same bounded fields, omits the unsupported top-level object, and reports shaping complete. It does not treat fallback as failure or import, install, or probe Core.",
+      "expected_output": "The agent renders a portable delivery-brief handoff with the same bounded fields, submits it through work-intake, omits the unsupported top-level object, and reports shaping complete. It does not treat fallback as failure or import, install, or probe Core.",
       "assertions": [
         "Uses the delivery-brief role for multi-spec or cross-repository work",
         "Omits the machine object unless capability is explicit",
+        "Submits the portable fallback through work-intake",
         "Preserves the confirmed shaping outcome",
         "Does not probe or install Core"
       ]

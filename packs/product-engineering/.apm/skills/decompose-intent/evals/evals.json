@@ -17,10 +17,10 @@
     {
       "id": "capability-negotiated-handoff",
       "prompt": "Project the confirmed leaf to delivery. Compare a Wave-2-compatible Core invocation with Core absent, unknown, and pre-handoff-schema fixtures.",
-      "expected_output": "The compatible invocation receives a closed normalized-intake.v1 handoff through work-intake. Every other fixture receives the same bounded role and content as a portable rendered handoff without the unsupported top-level object. External locators remain opaque and no downstream approval is inferred.",
+      "expected_output": "The compatible invocation receives a closed normalized-intake.v1 handoff through work-intake. Every other fixture submits through work-intake the same bounded role and content as a portable rendered handoff, without the unsupported top-level object. External locators remain opaque and no downstream approval is inferred.",
       "assertions": [
         "Sends the machine object only when normalized-intake.v1#handoff is explicit",
-        "Renders a portable fallback for absent, unknown, and older Core",
+        "Renders a portable fallback for absent, unknown, and older Core, and submits it through work-intake",
         "Treats external locators as opaque data",
         "Does not skip new-spec or author-delivery-brief continue gates"
       ]

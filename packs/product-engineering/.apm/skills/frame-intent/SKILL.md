@@ -58,6 +58,21 @@ Before framing, confirm:
    Resolve where to write it using the config-driven procedure below, then
    write it to `<output_dir>/intents/<slug>.md`; fill what you have.
 
+## Pick a route
+
+Three shaping sequences start here. Pick the one that fits, then stop reading the
+other two — this section is the only place the choice is stated.
+
+- **Shape one bet, end to end.** You have a single outcome to name, test and
+  split: `frame-intent` frames it, `de-risk-intent` tests whether the bet holds,
+  and `decompose-intent` breaks it into the next level down.
+- **Scaffold a whole product from a raw idea.** You have no named outcome yet and
+  need candidate shapes converged into a build-ready decision brief:
+  `discovery-loop` runs that, and calls this skill at its G0 intake gate.
+- **Position a business or a portfolio before naming a bet.** The question is
+  which situation you are in rather than which outcome to pursue:
+  `frame-situation` opens that sequence and states its own entry rules.
+
 ## Procedure
 
 1. **Intake — resolve Scale, then maturity.** Run the routine in

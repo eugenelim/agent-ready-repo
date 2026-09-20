@@ -1,6 +1,6 @@
 # Spec: intent-triad-execution-wiring
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0053 (governing — the no-engine coordinator contract, the typed sidecar, and the gate ladder this spec wires); ADR-0111 (intent-stage review is optional, emits `MALFORMED(<field>)` or nothing, and leaves `frame-intent` holding revision and status authority — this spec changes nothing about that review, and defers recording that one ran to the `shaping-review` follow-on)
