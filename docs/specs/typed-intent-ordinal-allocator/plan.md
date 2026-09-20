@@ -10,15 +10,15 @@ The allocator is a new script because the existing one is not extensible into it
 
 The shape carries over rather than being reinvented. `next-ordinal.py` already solved the three hard parts — the `origin` union that catches an unpushed sibling, the timeout that says so instead of degrading silently, and a `--check` mode that refuses rather than reporting clean on an incomplete scan. The new script keeps all three and changes only what the pattern matches and how the maximum is grouped: one maximum per type token, not one for the directory.
 
-Refusal is the design centre, not an edge case. Where the untyped script's fallback is `0001`, the typed one's fallback is no ordinal at all — for an unparseable filename, for an altitude the prefix table does not map, and for a `--check` scan it could not complete. `intake-intent` already has the receiving shape for that: `admit_repository_intent` takes `slug` and composes the target from it, so an allocated ordinal is expressed as a prefixed slug and a refusal is expressed as the bare slug. Nothing in `intake-intent` changes.
+Refusal is the design centre, not an edge case. Where the untyped script's fallback is `0001`, the typed one's fallback is no ordinal at all — for an unparseable filename, for an altitude the prefix table does not map, and for a `--check` scan it could not complete. `intake-intent` already has the receiving shape for that: `admit_repository_intent` takes `slug` and composes the target from it, so an allocated ordinal is expressed as a prefixed slug and a refusal is expressed as the bare slug. No new capability is needed to receive either.
 
-The integration is one step in `work-intake` § 6, which already "passes the confirmed repository destination, and authority mode to `intake-intent`" and already declares `Bash`. Allocation happens before that pass, on the destination `work-intake` was going to supply anyway.
+The integration covers two entry paths with two mechanisms, because they have two capability sets. `work-intake` § 6 already "passes the confirmed repository destination, and authority mode to `intake-intent`" and already declares `Bash`, so it allocates before that pass, on the destination it was going to supply anyway. The direct path at `work-intake/SKILL.md:60` reaches `intake-intent` without a caller, and that skill's `## Boundaries` refuses a shell — so it cannot allocate and this slice does not grant it one. Its Procedure step 3 instead notices a destination with no ordinal for a mapped level and asks, which needs only the `Read` it already has. The bypass becomes a visible question rather than a missing ordinal.
 
 ## Assumption trio
 
-- **Files touched.** New: `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py`, a copy of `file_safety.py` beside it, `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, `tests/roster/test_typed_ordinal_collision_equivalence.py`. Amended: `packs/core/.apm/skills/work-intake/SKILL.md` § 6, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`.
+- **Files touched.** New: `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py`, a copy of `file_safety.py` beside it, `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, `tests/roster/test_typed_ordinal_collision_equivalence.py`. Amended: `packs/core/.apm/skills/work-intake/SKILL.md` § 6, one clause of `packs/core/.apm/skills/intake-intent/SKILL.md` Procedure step 3, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`.
 - **Done is demonstrated by.** The two new suites green, `packs/core/tests/skills/intake-intent/test_intake_intent.py` green unamended, and one recorded admission in the verification ledger showing a prefixed filename and a refused one written bare.
-- **Not changing.** `next-ordinal.py` and its two suites; every file under `packs/core/.apm/skills/intake-intent/`; the existing typed corpus — ADR-0108 D6 is forward-only and no file is renumbered.
+- **Not changing.** `next-ordinal.py` and its two suites; `intake-intent`'s `allowed-tools`, `## Boundaries` and every control in them; the existing typed corpus — ADR-0108 D6 is forward-only and no file is renumbered.
 
 **Tempted and declined:**
 
@@ -116,7 +116,7 @@ def test_allocation_writes_nothing(tmp_path):
 
 **Touches:** tests/roster/test_typed_ordinal_collision_equivalence.py
 
-### T3: `work-intake` § 6 allocates before it delegates
+### T3: both entry paths, one without a shell
 
 **Depends on:** T1
 
@@ -126,17 +126,20 @@ def test_allocation_writes_nothing(tmp_path):
 
 - § 6 names the allocation step and its script, and states that the allocated ordinal is expressed as a prefixed slug in the confirmed repository destination it already passes to `intake-intent` (AC-0006).
 - § 6 states the refusal path explicitly: no ordinal means the bare slug, and admission and registration proceed unchanged (AC-0007).
-- `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended, and `git diff --name-only` shows no file under `packs/core/.apm/skills/intake-intent/` (AC-0008).
-- One recorded session: an intent admitted through `work-intake` lands at `docs/product/intents/FEAT-NNNN-<slug>.md`, and one whose level is unmapped lands at `docs/product/intents/<slug>.md` with no partial write (AC-0006, AC-0007).
+- `intake-intent`'s Procedure step 3 states that a destination carrying no ordinal for a level the prefix table maps is surfaced and confirmed, not written silently (AC-0009).
+- `intake-intent`'s `allowed-tools` and `## Boundaries` are unchanged — no `Bash`, no network, no new tool — asserted against the frontmatter, not the prose (AC-0008).
+- `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended (AC-0008).
+- One recorded session per path: an intent admitted through `work-intake` lands at `docs/product/intents/FEAT-NNNN-<slug>.md`; one whose level is unmapped lands at `docs/product/intents/<slug>.md` with no partial write; and a direct `intake-intent` invocation with a mapped level surfaces the missing ordinal instead of writing (AC-0006, AC-0007, AC-0009).
 
 **Approach:**
 
-- One step, placed before the existing delegation sentence at `SKILL.md:331-333`. It must not restate admission policy: § 6's existing text already forbids this router from copying `intake-intent`'s template or certifying its result, and the allocation step is a destination computation, not an admission decision.
-- The AC-0008 check is deliberately two-sided. The suite passing proves admission still works; the empty diff proves it was not made to work by amending the thing the suite measures.
+- `work-intake`: one step before the existing delegation sentence at `SKILL.md:331-333`. It must not restate admission policy — § 6 already forbids this router from copying `intake-intent`'s template or certifying its result — and the allocation step is a destination computation, not an admission decision.
+- `intake-intent`: one clause on Procedure step 3, and nothing else. The owner cannot allocate, because its `## Boundaries` refuses a shell and this slice does not move that line; granting `Bash` to the skill that handles untrusted intent sources costs more than the identity it buys. What step 3 gains is the ability to *notice* a missing ordinal and ask, which needs only the `Read` it already has.
+- AC-0008 is asserted against the frontmatter and the boundaries block rather than a whole-file diff, because T3 does amend one `intake-intent` sentence. The load-bearing claim is that no capability widened and no control moved, and that is what the assertion reads.
 
 **Done when:** the prose assertions pass, `test_intake_intent.py` is green unamended, and the session is recorded in `notes/verification-ledger.md`.
 
-**Touches:** packs/core/.apm/skills/work-intake/SKILL.md, packs/core/tests/skills/work-intake/test_work_intake.py, docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md
+**Touches:** packs/core/.apm/skills/work-intake/SKILL.md, packs/core/.apm/skills/intake-intent/SKILL.md, packs/core/tests/skills/work-intake/test_work_intake.py, packs/core/tests/skills/intake-intent/test_intake_intent.py, docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md
 
 ### T4: Release surface
 
@@ -166,8 +169,10 @@ Pack content only; adopters pick it up on the next install. New intents admitted
 
 - **The allocator inherits the silent-wrong failure it was built to avoid.** A refusal that returns `0001`, or a `--check` that prints clean over a directory it never read, is the same defect in a new file. T1's refusal cases are the guard, and they assert the absence of a number rather than the presence of an error string.
 - **Equivalence asserted by construction.** A test that runs both scripts over a directory neither can parse agrees trivially. T2's untyped fixture is what makes the agreement load-bearing; the real-corpus case is the weaker half and is stated as such.
+- **The bypass reopens.** `work-intake/SKILL.md:60` routes an explicit `intake-intent` request past § 6, so an allocator wired only into § 6 is silently skipped there. AC-0009 is the guard; the direct-path session in T3 is the only evidence that reaches it, and a future routing change could reintroduce the gap without failing anything else in this slice.
 - **The integration proved only in prose.** `work-intake` is a skill body, so T3's assertions establish the instruction, not the behaviour. The single recorded session is the only evidence that reaches the written filename, and it is one observation, not a suite.
 
 ## Changelog
 
+- 2026-09-20 — Shaping review found the allocator owned by the router rather than by admission. The premise held: `work-intake/SKILL.md:60` routes an explicit `intake-intent` request directly to the owner, bypassing § 6. Resolved by covering both paths with different mechanisms rather than by relocating the allocator — the owner declares no shell and this slice does not grant one — so T3 gained the direct-path arm and AC-0009, and AC-0008 moved from a whole-file diff to a capability assertion.
 - 2026-09-20 — Authored. Integration re-pointed from `intake-intent` to `work-intake`: `work-intake` already supplies the confirmed repository destination and already declares `Bash`, so allocation needs no new capability and ADR-0098 D2 keeps `intake-intent` the owner of admission with its files unchanged. Acceptance criteria labelled per ADR-0108 and each bound to one verification group.
