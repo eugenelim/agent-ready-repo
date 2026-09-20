@@ -1,6 +1,6 @@
 # Spec: Ride-along admission test
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0090 (bundled-fixes tiers; corrected by this spec's
@@ -363,29 +363,29 @@ without converging. They are not lost: C3–C7 are still pinned by equality in
 `packs/core/tests/pack/test_ride_along_admission_test.py`, which is where an
 obligation whose only check is that a sentence exists belongs.
 
-- [ ] **AC1.** C1 appears in `packs/core/.apm/skills/work-loop/SKILL.md`,
+- [x] **AC1.** C1 appears in `packs/core/.apm/skills/work-loop/SKILL.md`,
   `packs/core/.apm/agents/implementer.md`,
   `packs/core/.apm/agents/adversarial-reviewer.md`, and
   `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, and is the
   same text in all four once each whitespace run is collapsed to one space.
-- [ ] **AC2.** C2 appears in those same four files, and is the same text in
+- [x] **AC2.** C2 appears in those same four files, and is the same text in
   all four under the same normalisation.
-- [ ] **AC3.** C1 and C2 each match the text this spec states in § The
+- [x] **AC3.** C1 and C2 each match the text this spec states in § The
   shipped clauses, not merely each other, so a reword applied identically at
   every site fails.
-- [ ] **AC4.** The opening words of C1 and of C2 occur exactly once in each of
+- [x] **AC4.** The opening words of C1 and of C2 occur exactly once in each of
   those four files.
-- [ ] **AC5.** Every occurrence of C1 and C2 sits inside the § Host markers
+- [x] **AC5.** Every occurrence of C1 and C2 sits inside the § Host markers
   structure for its site, and inside no HTML comment and no fenced block.
-- [ ] **AC6.** Each of the four files carries an HTML comment containing
+- [x] **AC6.** Each of the four files carries an HTML comment containing
   `Bundled-fixes carve-out`, and each such comment names all four sites as
   `work-loop/SKILL.md`, `implementer.md`, `adversarial-reviewer.md`, and
   `work-loop/references/supervisor-mode.md`.
-- [ ] **AC7.** None of `Tier 1`, `Tier 2`, `Tier 3`, `same-area`,
+- [x] **AC7.** None of `Tier 1`, `Tier 2`, `Tier 3`, `same-area`,
   `same-concern`, `visibly smaller`, or `bundled-fixes tiers` appears in any
   of the four files, compared case-insensitively over whitespace-normalised
   text so a wrapped or re-cased occurrence cannot pass.
-- [ ] **AC8.** `packs/core/tests/pack/test_ride_along_admission_test.py` reds
+- [x] **AC8.** `packs/core/tests/pack/test_ride_along_admission_test.py` reds
   under each of these mutations, applied one at a time to the complete tree,
   each record naming the assertion that caught it and quoting the message it
   emitted: changing one interior word of C1 in exactly one file; changing one
@@ -393,21 +393,21 @@ obligation whose only check is that a sentence exists belongs.
   exactly one file; moving one file's C1 out of its host into an adjacent
   HTML comment; rewording C1 identically at all four sites; and changing one
   carve-out comment back to naming three sites.
-- [ ] **AC9.** The DECIDE intent-fit routing table in `SKILL.md` carries a row
+- [x] **AC9.** The DECIDE intent-fit routing table in `SKILL.md` carries a row
   whose first two cells are `Does not match` and `Include now, ride-along
   eligible`, and whose third cell reads `Admit it only if it passes every
   clause of the bundled-fixes carve-out. That test decides, not this row: a
   change failing any clause needs the owner's scope change like any other.`
-- [ ] **AC10.** `SKILL.md` carries a `## Capture` heading and no
+- [x] **AC10.** `SKILL.md` carries a `## Capture` heading and no
   `## Capture learnings` heading, no link in that file targets
   `#capture-learnings`, and every link targeting `#capture` resolves.
-- [ ] **AC11.** `## Capture`'s scratch-note bullet names five destinations —
+- [x] **AC11.** `## Capture`'s scratch-note bullet names five destinations —
   the `project-knowledge` seam as an additive route, immediate dispatch, the
   session's next reviewed unit, capture, and discard — and both discard
   branches: a defect resting on taste or with no stated arbiter, and a note
   naming no defect that had nothing for the seam. The string
   `otherwise discard it` does not appear in that section.
-- [ ] **AC12.** No file under `packs/`, `tools/`, or `guides/` names the
+- [x] **AC12.** No file under `packs/`, `tools/`, or `guides/` names the
   retired step in bytes the sweep can inspect, in any casing or separator,
   except the `evals.json` case id. That is the control's only exemption —
   `docs/knowledge/` records keep the name as a stable gate identifier but lie
@@ -417,25 +417,25 @@ obligation whose only check is that a sentence exists belongs.
   and claiming otherwise would put the criterion beyond any control that
   could meet it. Nothing is skipped — the sweep reads every file's bytes, so
   no file is one it cannot read.
-- [ ] **AC13.** `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata
+- [x] **AC13.** `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata
   carries a dated entry that states the number of clauses C1 actually ships,
   names C2's subject, gives at least one reason the tiers were replaced, ends
   `Approver: eugenelim`, and adds no line above the `## Errata` heading
   against the merge base with `origin/main`.
-- [ ] **AC14.** `packs/core/pack.toml` and
+- [x] **AC14.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` declare the same version, exactly
   one patch above the highest `[core]` version in `docs/product/changelog.md`
   before this change, and the topmost release heading in that file is
   `## [core][<that version>] — <an ISO date>` carrying a `### Highlights`
   block.
-- [ ] **AC15.** `evals.json` carries two cases, read with the standard
+- [x] **AC15.** `evals.json` carries two cases, read with the standard
   library rather than a regex. The first names a fix outside the plan task
   and states, in its prompt, a fact establishing each of C1's four clauses;
   its assertions require the answer to dispatch rather than discard or defer.
   The second names a declared-unattended dispatch whose only bar is an owner
   decision; its assertions require `blocked_on: decision` and forbid asking,
   waiting, guessing, and treating the item as a blocker.
-- [ ] **AC16.** The verification ledger records, against the tree as shipped:
+- [x] **AC16.** The verification ledger records, against the tree as shipped:
   AC8's mutation set with each emitted message; the goal-based checks behind
   AC13 and AC14 with the commands run and their output; the three
   installed-artifact discoveries exercising the wording actually projected —

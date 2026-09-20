@@ -1345,3 +1345,38 @@ AC15: 14/14 obligations hold        (exit 0)
 The pack control's docstring, which still described column-0 fences, now
 describes what it implements: backtick and tilde fences indented up to three
 spaces, counted rather than matched by delimiter.
+
+## 2026-09-20 — closeout
+
+**Review.** The closing adversarial implementation pass returned
+`Clean — ready to commit.` and is recorded as `clean:structural-clean`
+(round 1, retry 0) — structural rather than direct because the persisted
+report carries a trailing newline the byte-exact sentinel does not.
+
+**All sixteen criteria audited against the tree before ticking**, not
+asserted: AC1–AC7 and AC9–AC12 by the two suites green; AC8 by the mutation
+records with their emitted messages; AC13 by a merge-base diff showing zero
+removed lines with a dated, `Approver: eugenelim`-signed, four-clause
+entry; AC14 by `2.26.20` in both version files, one patch above `2.26.19`,
+topmost with `### Highlights`; AC15 by both eval cases carrying their
+obligations; AC16 by the ledger holding the mutation set, AC15's command and
+output, the routing walk and the installed-artifact walk. Sixteen of sixteen.
+
+**Reviewer coverage.** `adversarial-reviewer` ran to clean. `security-reviewer`
+ran once on the authority change and its four introduced Blockers were fixed.
+`quality-engineer` ran once at spec-level scope and its two Blockers were
+fixed. `experience-reviewer` and `frontend-reviewer` did not fire: no rendered
+surface and no HTML/CSS/JS in the diff.
+
+**Deferred, each with its discriminator, routed to `work-intake`:** the
+in-band authorization channel; the post-merge dedup reconciliation gap;
+capture having no store; `approved_spec_hash` pinning sections the template
+calls freely correctable; `walk_task_sections` ending the last task's
+section at end-of-file; C2's citation test naming no procedure; the
+`Bundled fixes:` absence ambiguity; and PLAN-stage coverage.
+
+**Named bound, not a defect:** both controls count fences rather than
+matching them by delimiter, so a backtick fence nested inside a tilde fence
+is miscounted. Closing it needs a Markdown parser, which the spec's Agent
+Rules forbid as a new dependency. The byte-level vocabulary sweep, which
+ignores structure, is the backstop.
