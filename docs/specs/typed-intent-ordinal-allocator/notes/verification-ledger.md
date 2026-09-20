@@ -154,7 +154,23 @@ author supplies it.
 unmapped altitude both yield an unprefixed intent that is admitted and
 registered, with the reason recorded in the artifact's own `## Unresolved
 questions` for a later re-issue. And a not-yet-admitted intent at a mapped level
-is allocated and renamed as its registry entry is created.
+questions` for a later re-issue.
+
+**Superseded the same day, on evidence the decision did not have.** The second
+decision — that a not-yet-admitted intent be allocated and renamed — was
+withdrawn after review established that no admission surface can rename a file:
+`intake-intent`'s `allowed-tools` carry no move and no delete, `work-intake`'s
+`Bash` is declared for local Python validation and the `workspace-status`
+backend, and `intake_transaction.py`'s validated target is the only path the
+materializer may write. Honouring it would have cost a transaction-core change,
+a capability widening and a fresh secure-design pass — none of which was visible
+when the options were put to the owner. The case went to
+`intent-renumber-and-reissue`, which must build that rename for renumbering
+anyway. AC-0022 and AC-0023 are retired in the spec.
+
+The transferable part is the shape of the mistake: the options offered to the
+owner were priced without first checking what the affected surfaces are
+permitted to do. A capability declaration is cheap to read and was not read.
 
 **What made the rename cheap.** `work-intake/SKILL.md:336-340` registers *after*
 the owner returns a durable artifact, so a rename that happens before
