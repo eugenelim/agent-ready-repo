@@ -19,9 +19,16 @@ anchor makes every extraction `None`, and "one distinct value" over an empty
 set passes vacuously (answered by asserting each extraction is non-`None`
 before comparing).
 
-On the current tree every clause is absent, so every extraction below returns
-`None` and every equality/containment assertion misses. That is this file's
-intended state until T2-T4 land the clauses.
+C1 and C2 are the contract; the spec pins their wording and a roster test
+binds the constants below to it, because a canonical constant that only the
+copies agree with proves nothing. C3-C7 are working material: this file is
+their only pin, which is why their assertions live here and no acceptance
+criterion names them.
+
+Three blind spots, named rather than implied: the comparison normalises
+whitespace, so it cannot see a rewrap; the fenced-block check recognises
+column-0 fences only; and a clause paraphrased outside its matched span is
+caught by the vocabulary sweep, not here.
 """
 
 from __future__ import annotations
@@ -199,6 +206,7 @@ RETIRED_VOCABULARY: tuple[str, ...] = (
     "bundled-fixes tiers",
 )
 
+DECIDE_ROW_CELLS = "| Does not match | Include now, ride-along eligible |"
 DECIDE_ROW = (
     "| Does not match | Include now, ride-along eligible | Admit it only if "
     "it passes every clause of the bundled-fixes carve-out. That test "
@@ -211,6 +219,11 @@ PROMPT_RE = re.compile(r'"prompt":\s*"((?:[^"\\]|\\.)*)"')
 
 def _text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _flatten(text: str) -> str:
+    """Whitespace-normalise a string. `_flat` does the same for a file."""
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _flat(path: Path) -> str:
@@ -251,6 +264,17 @@ def _in_html_comment(text: str, pos: int) -> bool:
     return any(
         m.start() <= pos < m.end() for m in re.finditer(r"<!--.*?-->", text, re.DOTALL)
     )
+
+
+def _next_top_level_heading(raw: str, after: int) -> int | None:
+    """Offset of the next `## ` heading after `after`, or None.
+
+    A host structure ends where the next section begins. Without this the
+    host check only asks what marker precedes a clause, which every offset
+    later in the file satisfies once the marker has appeared once.
+    """
+    match = re.compile(r"^## ", re.MULTILINE).search(raw, after + 1)
+    return match.start() if match else None
 
 
 def _in_fenced_block(text: str, pos: int) -> bool:
@@ -381,6 +405,20 @@ def test_clauses_sit_in_their_hosts() -> None:
                     f"{clause} in {path.name}: nearest preceding host marker is "
                     f"{nearest_marker!r}, expected {marker!r}"
                 )
+                # A nearest-preceding marker alone is not a host: with no end
+                # boundary, a clause moved to the tail of the file still has
+                # the right marker somewhere above it. Bound the host at the
+                # next marker, or at the next top-level heading, whichever
+                # comes first.
+                later = [pos for pos in markers.values() if pos > preceding[marker]]
+                next_heading = _next_top_level_heading(raw, preceding[marker])
+                bounds = [pos for pos in (*later, next_heading) if pos is not None]
+                host_end = min(bounds) if bounds else len(raw)
+                assert start < host_end, (
+                    f"{clause} in {path.name} sits after its host structure ends "
+                    f"(marker at {preceding[marker]}, host ends at {host_end}, "
+                    f"clause at {start})"
+                )
 
     # AC26: a clause found in a file § The shipped clauses does not list as
     # carrying it fails, not only a mis-placed occurrence in a file that does.
@@ -434,9 +472,30 @@ def test_retired_locality_vocabulary_is_absent() -> None:
 
 
 def test_decide_row_disposition_sentence() -> None:
-    assert DECIDE_ROW in _flat(SKILL), (
-        "SKILL.md's DECIDE table is missing the ride-along-eligible row"
+    """AC9: the row sits in the DECIDE routing table, exactly once, live.
+
+    Searching the whole flattened file would accept the row in a comment, a
+    fenced example, or anywhere after the table was emptied -- the row would
+    be present and the table would not route.
+    """
+    raw = _text(SKILL)
+    table_start = raw.find("| Intent fit | Session decision | Disposition |")
+    assert table_start != -1, "SKILL.md has no DECIDE intent-fit table"
+    blank = raw.find("\n\n", table_start)
+    table = raw[table_start : blank if blank != -1 else len(raw)]
+
+    rows = [ln for ln in table.splitlines() if DECIDE_ROW_CELLS in _flatten(ln)]
+    assert len(rows) == 1, (
+        f"the ride-along-eligible row appears {len(rows)} times in the DECIDE "
+        f"table, expected exactly 1"
     )
+    assert DECIDE_ROW in _flatten(rows[0]), (
+        "the DECIDE table's ride-along-eligible row does not carry the pinned "
+        f"disposition sentence; found: {_flatten(rows[0])!r}"
+    )
+    offset = raw.index(rows[0])
+    assert not _in_html_comment(raw, offset), "the DECIDE row sits in a comment"
+    assert not _in_fenced_block(raw, offset), "the DECIDE row sits in a fence"
 
 
 def test_capture_section_routing_bullet() -> None:

@@ -1167,3 +1167,31 @@ remaining body lines than the ambiguity costs.
 Routed to `work-intake` with the other deferred items rather than amended
 here: if practice shows agents getting the merge-base test wrong, the remedy
 is a named command in C2, and that is a clause change the owner gates.
+
+## 2026-09-19 — four control holes closed, each proved by its own mutation
+
+The final adversarial round found five Blockers on the sixteen surviving
+criteria. Unlike the earlier rounds these are concrete control holes, not
+arguments, and four were fixed without touching the contract. Each repair was
+verified by the mutation it had been blind to, applied to the tree and then
+reverted:
+
+| Hole | Repair | Mutation now caught by |
+| --- | --- | --- |
+| The host check had no end boundary, so a clause moved to the file's tail still had its marker somewhere above it | The host ends at the next marker or the next `## ` heading | `test_clauses_sit_in_their_hosts` |
+| The spec parser scanned the whole file, so a later duplicate label silently overwrote the canonical blockquote | Bounded to `## The shipped clauses`; a duplicate label now asserts | `test_pinned_clauses_match_the_spec` |
+| AC9's row was accepted anywhere in the flattened file, including a comment after the table was emptied | Bounded to the DECIDE table, exactly once, outside comments and fences | `test_decide_row_disposition_sentence` |
+| The dispatch eval established clause (iv) in the wrong direction — the prompt said the file loads no skill, where the clause asks what loads the file | Prompt states nothing of those kinds loads it and it does not state the admission test; a matching assertion added | — (a prompt fact) |
+
+**Method note.** The first attempt at the eval edit round-tripped the JSON
+through `json.dumps`, which unescaped `—` across twenty-two unrelated
+entries: forty-six changed lines where three were the change. That is an
+out-of-scope diff with no `Bundled fixes:` section authorising it, and it
+would have been a Blocker. Reverted and redone as a targeted string edit on
+the raw text — three lines.
+
+The module docstring, which still described the pre-implementation tree
+("every clause is absent"), now describes the shipped state and names its
+three blind spots: the comparison cannot see a rewrap, the fence check
+recognises column-0 fences only, and a paraphrase outside the matched span is
+caught by the vocabulary sweep rather than here.

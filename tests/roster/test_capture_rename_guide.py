@@ -106,10 +106,22 @@ def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
     then a blockquote: a contiguous run of lines starting with `>`. The
     blockquote is what a site actually carries, so its `>` markers are
     stripped and the remaining lines are joined, one label per clause."""
-    raw = path.read_text(encoding="utf-8")
+    whole = path.read_text(encoding="utf-8")
+    # Bound the parse to § The shipped clauses. Scanning the whole file lets a
+    # blockquote elsewhere -- a quoted example, a Follow-on, an appendix --
+    # shadow the canonical one and hide a divergence inside the section.
+    start = whole.find("## The shipped clauses")
+    assert start != -1, f"{path.name} has no '## The shipped clauses' section"
+    end = whole.find("\n## ", start + 1)
+    raw = whole[start:] if end == -1 else whole[start:end]
+
     blocks: dict[str, str] = {}
     for match in _CLAUSE_HEADING_RE.finditer(raw):
         label = f"C{match.group(1)}"
+        assert label not in blocks, (
+            f"{path.name} § The shipped clauses declares {label} more than "
+            f"once; a duplicate label would silently overwrite the first"
+        )
         quoted: list[str] = []
         started = False
         for line in raw[match.end():].splitlines():
@@ -118,6 +130,7 @@ def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
                 quoted.append(line[1:].lstrip(" "))
             elif started:
                 break
+        assert quoted, f"{label} in {path.name} has no blockquote after its heading"
         blocks[label] = " ".join(quoted)
     return blocks
 
