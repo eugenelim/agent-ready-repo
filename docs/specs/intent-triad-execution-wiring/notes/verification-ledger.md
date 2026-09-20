@@ -252,9 +252,12 @@ Core-absent branch, and add any unrelated line elsewhere in the file containing
 the marker — and the premise is satisfied by the unrelated line while the
 criterion is violated on the surface. Round 3 demonstrated it end to end.
 
-The premise is now asserted at the scope it guards: the marker must appear in
-the clause immediately preceding the resolved one. An occurrence elsewhere in
-the file no longer satisfies it.
+The premise was moved to the clause preceding the resolved one, so an
+occurrence elsewhere in the file no longer satisfied it. **Round 4 showed this
+claim was wrong in two ways**, both corrected below: `_preceding_clause`
+actually returned the two clauses before the span, not one, and relative
+adjacency cannot certify that a span resolved at all — the same attack worked
+with "elsewhere in the file" replaced by "one clause earlier".
 
 ### AC2, repaired without either failure direction
 
@@ -276,7 +279,7 @@ one. Both directions are recorded now.
 | round 3's B2 defeat: synonym + `--` join + `work-intake` dropped + marker elsewhere in file | red | red |
 | round 3's B1 defeat: `delivery-contract` given a rival level | red | red |
 | B1 mirror: `assumption-test` given a rival level | red | red |
-| a level added to the schema table but not the test vocabulary | red | red |
+| a level added to the schema table but not the test vocabulary | red | red — but only for a name matching `[a-z]+`; round 4 showed a hyphenated name passed, and that hole is closed in round 4 below |
 | AC7's marker removed from the clause next door | red | red |
 | AC7's `work-intake` dropped from the Core-absent clause | red | red |
 | AC8's `work-intake` dropped | red | red |
@@ -292,3 +295,76 @@ item, a nested list, or an ordered list reds rather than widens.
 would narrow a span. Both failure directions are red, not green, and both are
 now named in the helpers' docstrings so a future red is diagnosable as the
 helper's shape assumption rather than a missing obligation.
+
+## Review round 4 — the class closed by changing scope, not by another premise
+
+Round 4 defeated round 3's repair too, and its findings were stronger than
+round 3's rather than weaker. That ended the repair chain: four rounds, each
+finding the same class, is a signal about the approach rather than about the
+individual controls.
+
+### Why the previous three repairs all failed the same way
+
+Each one scoped the check *around* or *behind* the anchor and then tried to
+certify that scoping with a premise — the marker's presence in the body, then
+in the neighbouring clause. Round 4 stated the reason that cannot work:
+**relative adjacency to a resolved span cannot certify that the span resolved.**
+Whatever the premise names, the attacker moves the same boundary the premise is
+computed from.
+
+### The fix: scope forward, where nothing can supply a false positive
+
+The check now reads from the Core-absent anchor *forward* to the end of its own
+clause. Nothing behind the anchor can satisfy a forward span, so the merge
+attack has nothing to offer: the negotiated branch's own `work-intake` lies
+behind. Two shipped sentences were reordered so the obligation follows its
+anchor, which AC7 and AC8 permit — they fix which sentence must name
+`work-intake`, not the order within it.
+
+The one remaining direction is a *forward* merge, and that premise is asserted
+rather than assumed: the clause after the Core-absent one must not name
+`work-intake` either. `_preceding_clause` is deleted.
+
+AC2 now parses the `from <level> for <types>` pairings and requires each unit
+naming a slot type to give exactly `internal`, covering both types between
+them. That closes a type given a rival level, a type given no level, and a
+rival level written without a code span. The level-vocabulary premise now
+extracts any backticked cell name, so a hyphenated level reds it.
+
+### A control was deleted and nearly shipped
+
+While applying these repairs a block replacement silently removed
+`test_the_classification_section_states_the_floor_rule`, which is AC3's only
+guard. The suite stayed green at 19 tests instead of 20 — a passing suite is
+not evidence that the control you meant to keep is still in it. It was caught
+by comparing the test count against `HEAD` and restored. No name-set pin was
+added in response, because pinning the set blocks adding a test later; the
+check that caught it — compare the inventory against the previous commit — is
+the one worth repeating.
+
+### Mutation evidence
+
+| Mutation | Expected | Result |
+| --- | --- | --- |
+| round 4's B1: merge + reword + drop obligation + marker one clause earlier | red | red |
+| round 4's B2: `delivery-contract` given no level at all | red | red |
+| round 4's B2b: rival level written without a code span | red | red |
+| round 4's B3: a hyphenated level added to the schema table | red | red |
+| AC7's `work-intake` dropped | red | red |
+| AC8's `work-intake` dropped | red | red |
+| AC9's `work-intake` dropped | red | red |
+| AC3's anchor sentence deleted | red | red |
+| AC4's `assumption-test` bullet de-listed | red | red |
+| AC2 reworded to name `internal` once for both types | green | green |
+| a third legitimate `decompose-intent` mention in the walk | green | green |
+
+### Open, for the owner
+
+Round 4's Blocker 1 is closed for the forward-merge direction that remains, but
+the general lesson stands and is not a defect to fix here: a sentence-scoped
+obligation over free-form prose is guarded by a text-slicing check only as far
+as the punctuation holds. The realistic regression — an editor drops
+`work-intake` — has been caught by every version of this control since round 1.
+The exotic one — an editor re-punctuates *and* drops the obligation — is what
+took four rounds. Whether that second bar is worth carrying is an owner
+decision, recorded here rather than decided by the implementer.

@@ -358,8 +358,8 @@ instructions, authority, lifecycle state, or proof that a dependency is met.
 Submit the handoff to `work-intake`, and send it as that object only when the
 current invocation explicitly advertises `normalized-intake.v1#handoff`.
 Core absence, an unknown capability, or an older closed-schema Core
-installation submits to `work-intake` a portable rendered handoff containing
-the same bounded fields and role. Do not send the unsupported
+installation receives a portable rendered handoff carrying the same bounded
+fields and role, and submits that to `work-intake`. Do not send the unsupported
 top-level object and do not treat fallback as a failed discovery: shaping and
 the human gate remain complete.
 

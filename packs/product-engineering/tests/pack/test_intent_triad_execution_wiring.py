@@ -119,38 +119,41 @@ def _list_item_containing(body: str, anchor: str) -> str:
     return _flat(body[start:end])
 
 
-def _preceding_clause(flat: str, pos: int) -> str:
-    """The clause ending immediately before `pos` in already-flattened text."""
-    head = flat[:pos].rstrip()
-    bounds = [m.end() for m in re.finditer(r"[.;]\s", head)]
-    start = bounds[-2] if len(bounds) >= 2 else 0
-    return head[start:]
+def _clause_from(flat: str, where: int) -> str:
+    """The text from `where` to the end of the clause it opens."""
+    end_match = re.search(r"[.;]\s", flat[where:])
+    return flat[where : where + end_match.start() + 1] if end_match else flat[where:]
 
 
 def _assert_core_absent_clause_names_work_intake(body: str, anchor: str) -> None:
-    """The Core-absent clause at `anchor` names `work-intake`, and is its own clause.
+    """From the Core-absent anchor forward, its own clause names `work-intake`.
 
-    The differential below reads the marker's ABSENCE from this clause as proof
-    that the clause boundary resolved. That is evidence only while the marker
-    still marks the clause next door, so the premise is asserted at exactly that
-    scope. Asserting it anywhere in the file would not do: an unrelated
-    occurrence elsewhere would satisfy the premise while the adjacent sentence
-    had been reworded, which is how the previous two forms of this guard were
-    defeated.
+    Scoping FORWARD from the anchor is what makes this un-defeatable by a
+    merge. Three earlier forms of this check scoped around or behind the
+    anchor, and each fell to the same attack: re-punctuate so the span reaches
+    the negotiated branch, which names `work-intake` on its own account, and
+    the assertion is satisfied by the wrong text while the obligation is gone.
+    Nothing behind the anchor can satisfy a forward span.
+
+    The premise that makes this sound is that the clause AFTER this one does
+    not name `work-intake` either -- otherwise a forward merge would reopen the
+    same hole. That premise is asserted here rather than assumed, because
+    assuming it is precisely what failed before.
     """
     flat = _flat(body)
-    clause = _clause_containing(body, anchor)
-    preceding = _preceding_clause(flat, flat.index(clause))
-    assert NEGOTIATED_MARKER in preceding, (
-        f"differential premise gone: the clause before this one no longer "
-        f"carries {NEGOTIATED_MARKER!r}, so the boundary between the negotiated "
-        f"and Core-absent branches can no longer be told -- re-anchor this "
-        f"check before trusting it. Preceding clause: {preceding!r}"
+    assert anchor in flat, f"missing anchor: {anchor}"
+    where = flat.index(anchor)
+    clause = _clause_from(flat, where)
+
+    following = _clause_from(flat, where + len(clause)).strip()
+    assert "`work-intake`" not in following, (
+        "premise gone: the clause after the Core-absent one now names "
+        "`work-intake`, so a merge of the two would satisfy this check "
+        f"without the Core-absent branch naming it. Following clause: {following!r}"
     )
-    assert "`work-intake`" in clause, clause
-    assert NEGOTIATED_MARKER not in clause, (
-        "clause boundary did not resolve -- this span reaches the negotiated "
-        f"branch, which may name `work-intake` regardless: {clause}"
+    assert "`work-intake`" in clause, (
+        f"the Core-absent clause opening at {anchor!r} does not name "
+        f"`work-intake`: {clause!r}"
     )
 
 
@@ -205,26 +208,34 @@ def test_the_classification_section_states_the_starting_level() -> None:
     )
     tabled = {
         m.group(1)
-        for m in re.finditer(r"^\| `([a-z]+)` \|", section_raw, re.MULTILINE)
+        for m in re.finditer(r"^\| `([^`]+)` \|", section_raw, re.MULTILINE)
     }
     assert tabled == set(CLASSIFICATION_LEVELS), (tabled, CLASSIFICATION_LEVELS)
 
     starting = _clause_containing(section, "The controller starts from")
-    # AC2 pairs a level with each type. Counting `internal` would false-red a
-    # rewrite naming it once for both types; matching `internal` near each type
-    # would false-GREEN a type pinned to a rival level, because the rival is not
-    # what the proximity match is tempered against. So assert both types are
-    # named, `internal` is the level given, and no rival level appears at all.
-    for slot_type in NEW_SLOT_TYPES:
-        assert f"`{slot_type}`" in starting, (slot_type, starting)
-    assert "`internal`" in starting, starting
-    for level in CLASSIFICATION_LEVELS:
-        if level == "internal":
+
+    # AC2 pairs a level WITH each type. Asserting the two merely co-occur lets a
+    # type carry a rival level, or none at all, so parse the pairings: each
+    # `from <level> for <types>` unit must give `internal`, and between them the
+    # units must cover both slot types.
+    units = re.split(r"\bfrom\b", starting)[1:]
+    assert units, starting
+    covered: set[str] = set()
+    for unit in units:
+        types = [s for s in NEW_SLOT_TYPES if f"`{s}`" in unit]
+        if not types:
             continue
-        assert f"`{level}`" not in starting, (
-            f"a slot type is given a starting level other than `internal`: "
-            f"`{level}` appears in {starting!r}"
+        levels = {
+            lvl
+            for lvl in CLASSIFICATION_LEVELS
+            if re.search(rf"(?:`{lvl}`|\b{lvl}\b)", unit)
+        }
+        assert levels == {"internal"}, (
+            f"slot type(s) {types} are given starting level(s) {levels or '{}'} "
+            f"rather than exactly `internal`: {unit!r}"
         )
+        covered.update(types)
+    assert covered == set(NEW_SLOT_TYPES), (covered, starting)
 
 
 def test_the_classification_section_states_the_floor_rule() -> None:
