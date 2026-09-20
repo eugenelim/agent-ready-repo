@@ -210,6 +210,43 @@ def test_the_parent_keeps_the_architecture_set_index() -> None:
     assert "does not restate child internals" in text
 
 
+def _checklist_items(path: Path, heading: str) -> list[str]:
+    """Return one flattened string per `- [ ]` item under *heading*.
+
+    Asserting a phrase appears anywhere in the file is not a control on the
+    checklist: moving that phrase into explanatory prose, or under a sentence
+    saying it is not a finding, leaves the assertion green while the item it
+    described is gone. So the items are extracted and the assertions run
+    against them.
+    """
+    items: list[str] = []
+    in_section = False
+    current: list[str] = []
+
+    def flush() -> None:
+        if current:
+            items.append(" ".join(" ".join(current).split()))
+            current.clear()
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            if in_section:
+                break
+            in_section = line.strip() == f"## {heading}"
+            continue
+        if not in_section:
+            continue
+        if re.match(r"\s*- \[[ xX]\]\s", line):
+            flush()
+            current.append(re.sub(r"^\s*- \[[ xX]\]\s*", "", line))
+        elif current and line.strip():
+            current.append(line.strip())
+        elif current:
+            flush()
+    flush()
+    return items
+
+
 def test_the_review_rubric_admits_a_correctly_routed_upward_part() -> None:
     """The reviewer must not report a correct upward route as a missing document.
 
@@ -220,12 +257,28 @@ def test_the_review_rubric_admits_a_correctly_routed_upward_part() -> None:
     that a finding. Without this test the two rubrics can drift apart again
     and nothing reds: the mirror test below compares only the `D1`-`D6` table.
     """
+    items = _checklist_items(REVIEW_RUBRIC, "Decomposition")
+    matching = [
+        item for item in items if "link showing its decision was raised" in item
+    ]
+    assert len(matching) == 1, items
+    item = matching[0]
+    # The item must admit the link, and say to look for it BEFORE raising.
+    assert "raised against a document above" in item
+    assert "Check for that link before raising the finding" in item
+    # And it must discriminate on where standing sits, not on whose reviewer
+    # it is -- a `D1`+`D5` part has a different reviewer INSIDE the subsystem
+    # and earns a document of its own, so that phrasing misroutes it upward.
+    assert "standing stays inside this subsystem" in item
+    assert "standing sits above this document" in item
+    assert "this document's own reviewer" not in item
+
+    # The criteria decide row sufficiency; standing decides what replaces it,
+    # and the replacement list is not closed.
     text = _flat(REVIEW_RUBRIC)
-    assert "link showing its decision was raised against a document above" in text
-    assert "Check for that link before raising the finding" in text
-    # The criteria decide row sufficiency; standing decides what replaces it.
     assert "whether a row in the element catalogue is still enough" in text
     assert "none of the six criteria asks" in text
+    assert "without closing the list" in text
 
 
 def test_the_review_rubric_raises_an_inline_change_to_a_document_above() -> None:
@@ -236,10 +289,15 @@ def test_the_review_rubric_raises_an_inline_change_to_a_document_above() -> None
     implication. Asserted separately from the route above: a reviewer can
     admit the upward route and still have no way to raise the inline case.
     """
-    text = _flat(REVIEW_RUBRIC)
-    assert "a change it is asking of a document" in text
-    assert "accept those changes by implication" in text
-    assert "no standing to do that" in text
+    items = _checklist_items(REVIEW_RUBRIC, "Decomposition")
+    matching = [item for item in items if "asking of a document" in item]
+    assert len(matching) == 1, items
+    item = matching[0]
+    assert "accept those changes by implication" in item
+    assert "no standing to do that" in item
+    # A finding "whatever the block scores" is the load-bearing half: without
+    # it the item reads as one more thing the criteria could outweigh.
+    assert "whatever the block scores" in item
 
 
 def test_the_review_rubric_mirrors_every_criterion() -> None:

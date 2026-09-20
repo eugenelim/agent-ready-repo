@@ -187,9 +187,12 @@ decides it.
 
 A document covering several subsystems is judged against six criteria. They
 decide one thing: whether a row in the element catalogue is still enough for
-a part. What replaces the row when it is not — a document of the part's own,
-or a change raised against a document above this one — turns on who has
-standing to accept the decision, which none of the six criteria asks:
+a part. What replaces the row when it is not turns on where the standing to
+accept the decision sits, which none of the six criteria asks. The author's
+rubric names two such replacements without closing the list — a document of
+the part's own, and a change raised against a document above this one — so
+judge a differently routed part against that rubric rather than reporting it
+as unrouted:
 
 | ID | Criterion |
 | --- | --- |
@@ -204,10 +207,12 @@ standing to accept the decision, which none of the six criteria asks:
       criterion and has neither a document of its own nor a link showing its
       decision was raised against a document above this one. This is a
       finding: a row was not enough. Which correction it needed depends on
-      standing — a part whose decision this document's own reviewer can
-      accept needed a document of its own, and one whose decision only
-      someone above this document can accept needed the upward route and its
-      link. Check for that link before raising the finding, because a part
+      where the standing to accept the decision sits, not on whose reviewer
+      it is — a part whose standing stays inside this subsystem needed a
+      document of its own, and `D5` is the ordinary reason it does: a child
+      document exists precisely so a decision can have a reviewer of its own
+      down here. Only a part whose standing sits above this document needed
+      the upward route and its link. Check for that link before raising the finding, because a part
       correctly routed upward has a link here and no document, which is not
       the same as a part that was simply left inline.
 - [ ] A block this document carries is a change it is asking of a document
