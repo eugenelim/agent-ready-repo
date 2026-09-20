@@ -1,0 +1,44 @@
+# Pack output layout for this repository (RFC-0040, ADR-0030).
+#
+# Adopter-owned and committed on purpose: this catalogue self-hosts the packs it
+# publishes, so these are its real conventions and belong with the checkout. A
+# clone or a new worktree therefore starts configured instead of eliciting a
+# destination on every run.
+#
+# Each value below is the pack's own declared `[pack.layout.repo] output_dir`,
+# copied from its manifest rather than invented here, so an install that appends
+# a missing section agrees with what is already written:
+#
+#   architect          packs/architect/pack.toml
+#   desk-research      packs/desk-research/pack.toml
+#   experience-design  packs/experience-design/pack.toml
+#   product-engineering packs/product-engineering/pack.toml
+#   product-strategy   packs/product-strategy/pack.toml
+#
+# `output_dir` is a BASE, never the leaf: each skill composes its own subpath
+# under it (`frame-intent` -> `<output_dir>/intents/<slug>.md`,
+# `align-value-stream` -> `<output_dir>/rollups/<slug>.md`, and so on). Paths
+# here are repo-root-relative, which is the anchoring rule for a repo-root file;
+# a user-profile file's values must instead be absolute.
+#
+# `[discovery]` is deliberately absent. It is a section the discovery skills
+# read, not a pack-declared layout, and its designed default is already
+# `docs/discovery/` — which is where this repository keeps that output.
+
+[architecture]
+output_dir = "docs/architecture"
+
+[design]
+output_dir = "docs/design"
+
+[product]
+output_dir = "docs/product"
+# `briefs` is pinned at `docs/product/briefs/` by `decompose-intent` and is not
+# configurable here; redirecting it would break the `Brief:` back-link chain.
+shaping    = "docs/product/shaping"
+
+[research]
+output_dir = "docs/product/research"
+
+[strategy]
+output_dir = "docs/product/shaping"
