@@ -368,3 +368,63 @@ as the punctuation holds. The realistic regression — an editor drops
 The exotic one — an editor re-punctuates *and* drops the obligation — is what
 took four rounds. Whether that second bar is worth carrying is an owner
 decision, recorded here rather than decided by the implementer.
+
+## Owner decision — the bar was reduced, and this is what it costs
+
+After four review rounds the owner weighed the two failure shapes and declined
+the second:
+
+- **An editor drops the obligation.** The realistic regression. Guarded.
+- **An editor re-punctuates the surrounding prose *and* drops the obligation.**
+  Declined as not worth carrying.
+
+The G3 checks were simplified accordingly: the premise assertion guarding the
+merge case is removed, `NEGOTIATED_MARKER` is deleted (already dead after the
+forward-scoping change), and two docstrings that argued the reasoning at length
+now state the limit in three lines and point here.
+
+### What the simplification actually gives up — measured, not assumed
+
+Reading forward from the anchor turns out to carry most of the declined
+protection for free, because the negotiated branch's own `work-intake` lies
+*behind* the anchor on all three surfaces and cannot satisfy a forward span. The
+attack that defeated three earlier versions of this control — merge backwards,
+reword, drop the obligation — still reds.
+
+Exactly one shape is now unguarded, and it was constructed and confirmed green
+rather than reasoned about:
+
+> the Core-absent clause loses the obligation, the text that *follows* it names
+> `work-intake` for an unrelated reason, and the two are joined so the forward
+> span reaches it.
+
+That shape is not reachable in the current text: the clause following the
+Core-absent one is "Do not send the unsupported top-level object…", which does
+not name `work-intake` on any of the three surfaces. It becomes reachable only
+if a future edit puts `work-intake` into that following clause. Nothing now
+warns when that happens, and that is the accepted residue.
+
+### The reduced bar, verified
+
+Eleven mutations were run against the simplified controls. Every realistic
+regression still reds:
+
+| Mutation | Result |
+| --- | --- |
+| AC7 `work-intake` dropped from the Core-absent branch | red |
+| AC8 `work-intake` dropped | red |
+| AC9 `work-intake` dropped | red |
+| AC7's whole Core-absent sentence deleted | red |
+| AC7 re-punctuated backwards *and* obligation dropped | red |
+| AC2 `delivery-contract` given a rival level | red |
+| AC2 `delivery-contract` given no level at all | red |
+| AC3 anchor sentence deleted | red |
+| AC4 `prototype-approach` dropped | red |
+| AC1 `delivery-contract` dropped from the `type` row | red |
+| AC5 G3 pairing unpaired | red |
+| AC6 `frame-intent` re-added to the exclusion | red |
+| AC12 later-step skill injected into the menu | red |
+| AC13 pointer removed | red |
+
+The test inventory was re-checked at 12, matching the count before the
+simplification, so no control was lost to the edit.

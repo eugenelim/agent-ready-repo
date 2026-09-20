@@ -1,7 +1,7 @@
 # Plan: intent-triad-execution-wiring
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` and `packs/AGENTS.local.md` (pack
   release pipeline and pack-local conventions); `packs/product-engineering/tests/pack/test_de_risk_intent_reviewer_boundary.py`
   and `test_frame_intent_shaping_review.py` as the two analogous pack tests this

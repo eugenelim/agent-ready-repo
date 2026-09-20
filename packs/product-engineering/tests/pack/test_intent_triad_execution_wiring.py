@@ -55,28 +55,15 @@ def _section(body: str, heading: str) -> str:
     return rest[: nxt.start()] if nxt else rest
 
 
-# The condition that marks the *negotiated* branch. Two of the three G3 surfaces
-# name `work-intake` on that branch already, so a span that reaches this word may
-# prove nothing about the Core-absent one. The G3 checks assert its absence from
-# the clause to show the boundary really resolved -- and assert its presence in
-# the body first, because an absence is only evidence while the thing being
-# looked for still exists to be found.
-NEGOTIATED_MARKER = "advertis"
-
-
 def _clause_containing(body: str, anchor: str) -> str:
     """The one clause holding `anchor`, whitespace-normalised.
 
-    Clause scope is what makes these checks real: the names under test appear on
-    neighbouring clauses of the same files already. Bounding on `". "` alone is
-    too weak, because re-punctuating the preceding sentence with a semicolon
-    would merge the two and hand the assertion a span that satisfies it for the
-    wrong reason -- so `;` terminates a clause here too.
+    Clause scope is what makes these checks more than a grep: the names under
+    test appear on neighbouring clauses of the same files already.
 
-    Limit: a sentence-internal abbreviation ("e.g. ") would split a clause
-    early. No anchored clause contains one today, and the failure direction is a
-    narrowed span, so such a red is the split rule showing rather than a missing
-    obligation.
+    Limit: the bound is punctuation, so re-punctuating around the anchor moves
+    it, and a sentence-internal abbreviation would split a clause early. Both
+    are recorded as accepted in the verification ledger.
     """
     flat = _flat(body)
     assert anchor in flat, f"missing anchor: {anchor}"
@@ -128,29 +115,19 @@ def _clause_from(flat: str, where: int) -> str:
 def _assert_core_absent_clause_names_work_intake(body: str, anchor: str) -> None:
     """From the Core-absent anchor forward, its own clause names `work-intake`.
 
-    Scoping FORWARD from the anchor is what makes this un-defeatable by a
-    merge. Three earlier forms of this check scoped around or behind the
-    anchor, and each fell to the same attack: re-punctuate so the span reaches
-    the negotiated branch, which names `work-intake` on its own account, and
-    the assertion is satisfied by the wrong text while the obligation is gone.
-    Nothing behind the anchor can satisfy a forward span.
+    Reading forward rather than around the anchor is what keeps this honest at
+    no extra cost: the negotiated branch names `work-intake` on its own
+    account, and it lies behind the anchor on all three surfaces, so it cannot
+    satisfy a forward span.
 
-    The premise that makes this sound is that the clause AFTER this one does
-    not name `work-intake` either -- otherwise a forward merge would reopen the
-    same hole. That premise is asserted here rather than assumed, because
-    assuming it is precisely what failed before.
+    This catches an editor dropping the obligation, which is the regression
+    that matters. It does not catch an editor who also re-punctuates the
+    surrounding prose; that bar was weighed and declined, and the verification
+    ledger records what is no longer guarded.
     """
     flat = _flat(body)
     assert anchor in flat, f"missing anchor: {anchor}"
-    where = flat.index(anchor)
-    clause = _clause_from(flat, where)
-
-    following = _clause_from(flat, where + len(clause)).strip()
-    assert "`work-intake`" not in following, (
-        "premise gone: the clause after the Core-absent one now names "
-        "`work-intake`, so a merge of the two would satisfy this check "
-        f"without the Core-absent branch naming it. Following clause: {following!r}"
-    )
+    clause = _clause_from(flat, flat.index(anchor))
     assert "`work-intake`" in clause, (
         f"the Core-absent clause opening at {anchor!r} does not name "
         f"`work-intake`: {clause!r}"

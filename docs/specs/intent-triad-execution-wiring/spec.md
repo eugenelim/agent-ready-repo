@@ -1,6 +1,6 @@
 # Spec: intent-triad-execution-wiring
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0053 (governing — the no-engine coordinator contract, the typed sidecar, and the gate ladder this spec wires); ADR-0111 (intent-stage review is optional, emits `MALFORMED(<field>)` or nothing, and leaves `frame-intent` holding revision and status authority — this spec changes nothing about that review, and defers recording that one ran to the `shaping-review` follow-on)
@@ -120,22 +120,22 @@ resolves `PACK_ROOT` and may not read above its own pack.
 
 ## Acceptance Criteria
 
-- [ ] `sidecar-schema.md`'s blackboard `type` field row names `assumption-test` and `delivery-contract` among its listed artifact kinds.
-- [ ] `sidecar-schema.md`'s "Data classification & handling" section states that `internal` is the level a controller starts from for `assumption-test` and `delivery-contract`.
-- [ ] Beneath the "Data classification & handling" section's existing opening sentence — "Each slot carries — or the skill assigns at write time — a **data-classification level**" — `sidecar-schema.md` states that a starting level named for a slot type is a floor a write-time assessment may raise.
-- [ ] `sidecar-schema.md` states that an `assumption-test` slot carries the riskiest assumption, the predeclared kill condition, the prototype-approach, and the `validation_hook`; and that a `delivery-contract` slot carries the G3 leaf projection.
-- [ ] `discovery-lead.md`'s "How you run the loop" gate-ladder walk names `frame-intent` at G0, `de-risk-intent` at G1, and `decompose-intent` at both G1 and G3 — the two ladder positions the gate table gives it.
-- [ ] `discovery-loop/SKILL.md`'s frontmatter `description` standalone-authoring exclusion names `frame-domain` and `explore-options`, and does not name `frame-intent`.
-- [ ] The fallback sentence in `discovery-loop/SKILL.md`'s "Capability-negotiated G3 handoff" — the sentence containing `portable rendered` — names `work-intake` as the invocation that portable handoff is submitted to.
-- [ ] In `decompose-intent/SKILL.md`, the sentence beginning `If Core is absent` names `work-intake` as the invocation that branch submits to.
-- [ ] In `decompose-intent/references/recursive-decomposition.md`, the sentence beginning `Otherwise render` names `work-intake` as the invocation that branch submits to.
-- [ ] `frame-intent/SKILL.md` carries a `## Pick a route` section positioned between its `## When to invoke` and `## Procedure` sections. That section is the route menu, and it bounds AC11 and AC12.
-- [ ] The `## Pick a route` section names three routes, each with a one-line statement of the situation it fits: one naming `frame-intent`, `de-risk-intent` and `decompose-intent`; one naming `discovery-loop`; one naming `frame-situation`.
-- [ ] Within the `## Pick a route` section, `frame-situation` is the only skill of the six-step sequence named — the sequence's opening skill, and no later step of it. The section may not name `identify-opportunities`, `diverge-solutions`, `place-bet`, or `map-capabilities`.
-- [ ] `discovery-loop/SKILL.md`'s "When to invoke" section points at `frame-intent`'s `## Pick a route` section.
-- [ ] `packs/product-engineering/pack.toml` and `packs/product-engineering/.claude-plugin/plugin.json` carry the same version, and it orders after — by semantic-version comparison, not string comparison — the version in `pack.toml` at `git merge-base HEAD origin/main`. That merge-base is the canonical baseline for this criterion; the plan references it rather than restating it.
-- [ ] `guides/product-engineering/how-to/run-a-discovery.md`'s "When it hands off" section names the same G3 continuation *route* as `discovery-loop/SKILL.md`'s gate-table G3 row — the route, not the destination loop, which the skill separately and compatibly names as `work-loop`.
-- [ ] `docs/product/changelog.md` carries a free-standing `## [product-engineering][<version>] — <date>` heading whose version equals the bumped pack version, placed above every other pack release heading and not nested under `[Unreleased]`.
+- [x] `sidecar-schema.md`'s blackboard `type` field row names `assumption-test` and `delivery-contract` among its listed artifact kinds.
+- [x] `sidecar-schema.md`'s "Data classification & handling" section states that `internal` is the level a controller starts from for `assumption-test` and `delivery-contract`.
+- [x] Beneath the "Data classification & handling" section's existing opening sentence — "Each slot carries — or the skill assigns at write time — a **data-classification level**" — `sidecar-schema.md` states that a starting level named for a slot type is a floor a write-time assessment may raise.
+- [x] `sidecar-schema.md` states that an `assumption-test` slot carries the riskiest assumption, the predeclared kill condition, the prototype-approach, and the `validation_hook`; and that a `delivery-contract` slot carries the G3 leaf projection.
+- [x] `discovery-lead.md`'s "How you run the loop" gate-ladder walk names `frame-intent` at G0, `de-risk-intent` at G1, and `decompose-intent` at both G1 and G3 — the two ladder positions the gate table gives it.
+- [x] `discovery-loop/SKILL.md`'s frontmatter `description` standalone-authoring exclusion names `frame-domain` and `explore-options`, and does not name `frame-intent`.
+- [x] The fallback sentence in `discovery-loop/SKILL.md`'s "Capability-negotiated G3 handoff" — the sentence containing `portable rendered` — names `work-intake` as the invocation that portable handoff is submitted to.
+- [x] In `decompose-intent/SKILL.md`, the sentence beginning `If Core is absent` names `work-intake` as the invocation that branch submits to.
+- [x] In `decompose-intent/references/recursive-decomposition.md`, the sentence beginning `Otherwise render` names `work-intake` as the invocation that branch submits to.
+- [x] `frame-intent/SKILL.md` carries a `## Pick a route` section positioned between its `## When to invoke` and `## Procedure` sections. That section is the route menu, and it bounds AC11 and AC12.
+- [x] The `## Pick a route` section names three routes, each with a one-line statement of the situation it fits: one naming `frame-intent`, `de-risk-intent` and `decompose-intent`; one naming `discovery-loop`; one naming `frame-situation`.
+- [x] Within the `## Pick a route` section, `frame-situation` is the only skill of the six-step sequence named — the sequence's opening skill, and no later step of it. The section may not name `identify-opportunities`, `diverge-solutions`, `place-bet`, or `map-capabilities`.
+- [x] `discovery-loop/SKILL.md`'s "When to invoke" section points at `frame-intent`'s `## Pick a route` section.
+- [x] `packs/product-engineering/pack.toml` and `packs/product-engineering/.claude-plugin/plugin.json` carry the same version, and it orders after — by semantic-version comparison, not string comparison — the version in `pack.toml` at `git merge-base HEAD origin/main`. That merge-base is the canonical baseline for this criterion; the plan references it rather than restating it.
+- [x] `guides/product-engineering/how-to/run-a-discovery.md`'s "When it hands off" section names the same G3 continuation *route* as `discovery-loop/SKILL.md`'s gate-table G3 row — the route, not the destination loop, which the skill separately and compatibly names as `work-loop`.
+- [x] `docs/product/changelog.md` carries a free-standing `## [product-engineering][<version>] — <date>` heading whose version equals the bumped pack version, placed above every other pack release heading and not nested under `[Unreleased]`.
 
 ## Assumptions
 
