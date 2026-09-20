@@ -43,17 +43,27 @@ RFC-0071 wrote them.
 
 | Requirement | Observed | Check |
 | --- | --- | --- |
-| thin-slice field in `place-bet` | not started | 0 matches for `thin.slice` in `place-bet/SKILL.md` |
-| post-launch learning contract | not started | 0 matches for `learning contract`, `review cadence`, `rollback or expansion` in `place-bet/SKILL.md` |
-| evidence ladder (observed → unknown) | not started | 0 matches for `evidence ladder` in `place-bet/SKILL.md` or `diverge-solutions/SKILL.md` |
-| replace fixed-count options | not started | `≥3` appears 5 times in `diverge-solutions/SKILL.md` — including its frontmatter `description`, the activation surface — plus once in `JOURNEY.md`'s skill entry. No test or eval pins the count |
-| `G0`/`G1.5`/`G2` → plain English | partial | `JOURNEY.md` carries `G0` and `G3` but no `G1.5`/`G2`; `guides/product-engineering/how-to/run-a-discovery.md` carries all four. The evals half is untouched: 0 matches for `weak` in `discovery-loop/evals/` |
+| thin-slice field in `place-bet` | not started in `place-bet`; defined but unwired | `place-bet`'s betting table and emitted artifact enumerate their fields exhaustively and no slice concept appears under any wording. The definition already exists at `frame-intent/references/digital-experience-contract.md` § Thin Slice (`Required: pilot+`), which no skill reads |
+| post-launch learning contract | not started in `place-bet`; partly defined and unwired | `place-bet` has no events, telemetry, dashboards, cadence, thresholds, rollback or expansion anywhere; its optional `kill-condition` is a pre-commit falsification trigger, not a post-launch plan. The contract template defines § Learning Plan, § Instrumentation and § Rollout and Recovery Plan — but **qualitative feedback and expansion conditions are named nowhere in the pack** |
+| evidence ladder (observed → unknown) | not started in `place-bet`; defined and unwired | `place-bet`'s `confidence: high / medium / low` is a different axis — one scalar for the decision, not a per-claim provenance grade. It has no level meaning "we did not check" as distinct from "we reasoned it out", which is the ladder's whole purpose. The ladder exists verbatim at `digital-experience-contract.md` § Evidence Ladder (`Required: explore+`) |
+| replace fixed-count options | **shipped** | `diverge-solutions` states no minimum option count on any surface — description, body, output contract, or journey entry — and asks for enough materially different options to expose the real decision |
+| `G0`/`G1.5`/`G2` → plain English | barely started | Only `JOURNEY.md`'s four `humanGates` labels are plain English, and even that file keeps `globalGate: "G0"` and `"G3"`. Codes survive on every other user-facing surface: the frontmatter `description` of `discovery-loop` and `frame-domain`, all three agent `description`s, `discovery-loop`'s gate-ladder table, five guide files including their section headings, `README.md`'s sample transcript and `DESIGN.md`'s diagram and gate table. The five `description` fields matter most — they are what the harness surfaces at activation |
+| evals with weak fixtures | not started | The pack ships no weak fixture. `eval_queries.json` carries `should_trigger: false` near-misses, but those route between sibling skills and never exercise output, so none could catch gate vocabulary. The one fixture file the pack loads is a well-written exemplar, not a defective input. The convention exists elsewhere — `product-documentation` ships `evals/files/fixture_weak_*` graded on being rejected. Worse, `discovery-loop`'s own eval prompts are written in gate-code vocabulary, so they need rewriting as part of the conversion rather than extending |
 | `voice-and-microcopy` → `ux-writing` | shipped | the skill is renamed, no `voice-and-microcopy` directory exists in any pack, and `git ls-files \| xargs grep -Hl` returns no live reference — every remaining hit is a frozen governance record under `docs/rfc/` or `docs/specs/`. The cross-references the rename left behind were closed in `experience-design` 2.0.7 and `product-engineering` 0.13.13 |
-| `JOURNEY.md` `whatChanges` → Digital Experience Contract | not started | 0 matches for `Digital Experience Contract` in `packs/product-engineering/JOURNEY.md` |
+| `JOURNEY.md` `whatChanges` → Digital Experience Contract | not started | `whatChanges` describes the discovery loop's mechanics only; nothing in the pack, the guides or the projection links the contract. The regeneration half is live and wired — `tools/build-site.py --journeys-only` generates the web journey from the pack source and CI runs it — so the edit must be followed by that command and its result committed |
 
-Four are unstarted, one is partial, one has shipped. The partial and the shipped
-row are the ones that read wrong from a distance in opposite directions, which is
-why the check column is here.
+Four are unstarted, one is barely started, two have shipped. The gate-vocabulary
+row is split in two because its evals half has a different owner and a different
+fix from its prose half.
+
+The three unstarted rows share a cause worth stating before anyone picks them
+up: **the concepts are already defined in this pack and wired to nothing.**
+`frame-intent/references/digital-experience-contract.md` carries § Thin Slice,
+§ Evidence Ladder, § Learning Plan and § Instrumentation — and no skill in the
+pack, including `frame-intent` itself, references that file. So the work is not
+"design these concepts"; it is "wire `place-bet` to definitions that already
+ship". Two gaps survive even there: qualitative feedback and expansion
+conditions are named nowhere in the pack.
 
 ## Open items in this pack
 

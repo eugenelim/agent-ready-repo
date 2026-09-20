@@ -40,7 +40,7 @@ skills:
     description: "Step 2 of the PE six-step shaping sequence — surfaces all functional, emotional, and social jobs behind an opportunity area, scores each via the Ulwick formula, and produces a ranked opportunity-assessment.md artifact."
     humanTouches: 1
   - name: diverge-solutions
-    description: "Generates ≥3 structured comparable solution options for a confirmed opportunity, with a recommendation and retained rationale for parked and rejected options."
+    description: "Generates structured, comparable solution options for a confirmed opportunity — enough to expose the real decision, never a count to satisfy — with a recommendation and retained rationale for parked and rejected options."
     humanTouches: 1
   - name: lean-canvas
     description: "Elicits an initiative brief through an adapted Lean Canvas (simple 5-box or full 9-box) and produces a single shareable initiative brief with a Value Proposition section."
