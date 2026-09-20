@@ -413,7 +413,7 @@ def test_diagnostics_reflect_no_untrusted_text(
     assert MODULE.main(["--dir", str(tmp_path), "--level", hostile]) == 3
     message = capsys.readouterr().err
     assert message.count("\n") == 1
-    assert len(message) <= 200
+    assert len(message.encode("utf-8")) <= MODULE.DIAGNOSTIC_BYTE_LIMIT == 200
     for fragment in ("AKIAIOSFODNN7EXAMPLE", "\x1b", "second-line"):
         assert fragment not in message
 ```
@@ -459,7 +459,7 @@ def test_diagnostics_reflect_no_untrusted_text(
 - **Classify by name before applying the integrity refusal.** `file_safety.list_confined_regular_files` refuses *every* symlink, which would let an adopter's `notes -> ../elsewhere` link in the intents directory fail the whole scan even though AC-0004 says an outside-namespace name is skipped without incident. So the directory itself is validated with `file_safety.validate_confined_directory`, and entries are then enumerated with `os.scandir` plus a `stat(follow_symlinks=False)` classification — the shape `next-ordinal.py:213-250` already uses, which raises only on a **record-looking** symlink. An in-namespace link refuses; an outside-namespace one is skipped. The copied `file_safety.py` remains the blessed source of the directory-confinement primitive, which is why the copy and its byte-identity pin stay.
 - Carry the rest of `_remote_ordinals` over intact — the `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, and the root-relative pathspec run from the repository root. Each of those comments in the source records a defect already paid for once.
 
-**Done when:** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` is green, including one case per exit code; then commit, run `make build-self` — it refuses a dirty tree, so the commit comes first — and commit the regenerated projections, after which `python3 -m agentbundle catalogue self-host --root . --check` passes. Regeneration belongs to every task that edits `.apm/`, not to T4: `self-host --check` compares projections to source, and T3's sessions exercise the installed skills, so both need current projections before they can mean anything. T4 keeps only the final drift check.
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` is green, including one case per exit code; then commit, run `make build-self` — it refuses a dirty tree, so the commit comes first — and commit the regenerated projections, after which `python3 -m agentbundle catalogue self-host --root . --check` passes. Regeneration belongs to every task that edits `.apm/`, rather than to one closing task: `self-host --check` compares projections to source, and T3's sessions exercise the installed skills, so both need current projections before they can mean anything. T3 runs the final drift check after its own edits, since the task graph ends there.
 
 **Touches:** packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py, packs/core/.apm/skills/work-intake/scripts/file_safety.py, packs/core/tests/skills/work-intake/test_intent_ordinal.py
 
@@ -634,7 +634,7 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 
 **Depends on:** T1, T2
 
-**Mode:** Goal-based check for the prose and manifest assertions, plus Visual / manual QA for the six recorded sessions
+**Mode:** Goal-based check for the prose and manifest assertions, plus Visual / manual QA for seven recorded sessions — six admission cases and one caller-side output-validation case
 
 **Tests:** `no stub (mode)` for the prose assertions; the sessions are manual QA.
 
@@ -644,7 +644,16 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 - Procedure step 3 states that an existing repository path is preserved whether or not it carries a prefix, so an existing unprefixed mapped-level intent is updated in place with no allocation and no refusal (AC-0009).
 - A construction check over `intake-intent/SKILL.md` frontmatter and its `## Boundaries` block rejects shell, network and any new tool (AC-0008). The existing suite exercises the renderer and never opens `SKILL.md`, so it cannot carry this claim.
 - `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended (AC-0008).
-- `guides/core/reference/work-intake-routing-and-lifecycle.md`'s `Start routing` table states both intent destinations and the condition that selects them (AC-0006, AC-0007). It currently promises `docs/product/intents/<slug>.md` for every admitted intent, which this slice makes false for a mapped level, and a published promise contradicting the shipped skill is the spec's one durable output.
+- `guides/core/reference/work-intake-routing-and-lifecycle.md`'s `Start routing` table states both intent destinations and the condition that selects them (AC-0006, AC-0007). Its current row promises `docs/product/intents/<slug>.md` for every admitted intent, which this slice makes false for a mapped level, and a published promise contradicting the shipped skill is the spec's one durable output. The replacement is **drafted here, before approval**, as the durable-output contract requires; the published file is edited in EXECUTE so an adopter never reads a promise the code does not yet keep:
+
+  ```markdown
+  | Input shape | Canonical artifact | Initial lifecycle | Processor |
+  | --- | --- | --- | --- |
+  | Minimal outcome needing repository admission, at a recognized altitude | Intent at `docs/product/intents/<TYPE>-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, at any other altitude | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+  ```
+
+  Two rows rather than a conditional footnote, because the destination is what an adopter looks up and a footnote is what they miss. Existing intents keep their current paths; the table describes admission, not the corpus.
 - § 6 states that a returned value is validated against `^<TOKEN>-\d{4,}$` before a destination is composed from it, so an unexpected allocator output cannot choose a path (AC-0016). This clause is caller-side, which is why it belongs here: T1's stub cannot reach the router. One recorded session feeds the router an allocator stub returning `../escape` and shows § 6 refusing to compose a destination.
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same bumped version — **patch**, because a script added inside an existing skill is changed content of that skill rather than a new projected primitive (`packs/AGENTS.md:43-47`) — and `docs/product/changelog.md` has a matching `core` release heading, topmost among `core` headings, with a `### Highlights` bullet. Read the current version at that moment rather than reserving one now: an unpushed bump collides silently with a peer session's.
 - Both skills' `evals/` cover the new behaviour: `work-intake` a mapped-level admission and an unmapped-level one, `intake-intent` the creation refusal and the existing-path preservation (`packs/AGENTS.md:60`).
@@ -675,4 +684,7 @@ Pack content only; adopters pick it up on the next install. New intents created 
 
 ## Changelog
 
-- 2026-09-20 — Authored, then taken through ten rounds of independent shaping review to Clean, four rounds of adversarial review, and one spec-stage security review. The rationale each round produced lives in the section that owns it: the remote tri-state and the link policy in `## Approach`, the roster-admission and byte-identity obligations in `## Constraints`, the security controls in the spec's criteria and `## Agent Rules`. Not yet approved.
+<!-- Approvals only. Drafting history lives in the section that owns each decision. -->
+
+- Spec approval: pending.
+- Plan approval: pending.
