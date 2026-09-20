@@ -15,6 +15,8 @@ import re
 import shutil
 import subprocess
 import sys
+import time
+import unicodedata
 from pathlib import Path
 from types import ModuleType
 from typing import Callable
@@ -815,6 +817,9 @@ _DELIMITED_BOUNDARY_CASES = (
     ("split", "nested delimiters", 'One. (He said "go.") Three. Four.', 4),
     ("split", "exclamation in bold", "**Stop!** Two. Three. Four.", 4),
     ("split", "question in bold", "**Why?** Two. Three. Four.", 4),
+    ("split", "strikethrough", "~~One.~~ Two. Three. Four.", 4),
+    ("split", "CJK corner bracket", "One. He said 「Go.」 Three. Four.", 4),
+    ("split", "angle bracket", "One. 〈Two.〉 Three. Four.", 4),
     # The severity case: three delimited sentences collapsed into one.
     ("split", "every sentence delimited", "**Bold.** *Ital.* `Code.` Four.", 4),
     ("keep", "enumeration label in code", "Set `a.` then continue.", 1),
@@ -830,6 +835,12 @@ _DELIMITED_BOUNDARY_CASES = (
     ("overcount", "genuine initial", "J. Smith said. Second. Third. Fourth.", 5),
     ("overcount", "Starlight fence", "Prose ends here.\n:::note", 2),
     ("overcount", "unstripped comment close", "Prose ends here.\n--> trailing", 2),
+    # This one reaches real prose, unlike the two above, and the shipped
+    # counter answered it correctly. It is accepted rather than fixed: the
+    # alternative masks what a code span contains, which stops counting a
+    # span that IS a sentence and trades a visible over-count for a silent
+    # under-count. Pinned so the trade stays a decision.
+    ("overcount", "terminator inside a code span", "Use the pattern `foo.*` here. Next one.", 3),
     # The irreducible residual. A one-letter sentence end behind a delimiter
     # and an enumeration label behind one are the same shape; only what
     # follows separates them, and the mask cannot read that. Splitting here
@@ -851,13 +862,100 @@ def test_da3_counts_across_a_closing_delimiter(
     assert gate.count_sentences(paragraph) == expected, (direction, label)
 
 
+def _rows_the_table_gets_wrong(gate: ModuleType) -> set[str]:
+    """Return the label of every table row *gate* answers wrongly."""
+    return {
+        label
+        for _, label, paragraph, expected in _DELIMITED_BOUNDARY_CASES
+        if gate.count_sentences(paragraph) != expected
+    }
+
+
 def test_the_delimiter_table_covers_both_directions() -> None:
     """A table that only ever grew in one direction is the original defect.
 
     The under-count survived a green suite because every check asked whether
-    the counter split too often. Asserting the set of directions -- rather
-    than a row count, which upstream churn breaks -- keeps a later revision
-    from narrowing this back to a single-direction scan.
+    the counter split too often, and a scan for over-counts cannot find an
+    under-count. Asserting the set of directions -- rather than a row count,
+    which upstream churn breaks -- keeps a later revision from narrowing this
+    back to a single-direction scan.
     """
     directions = {case[0] for case in _DELIMITED_BOUNDARY_CASES}
     assert directions == {"split", "keep", "overcount", "residual"}
+
+
+def test_reverting_either_half_of_the_closer_tolerance_reds_this_table() -> None:
+    """Both patterns are load-bearing, and the table proves it on each one.
+
+    The direction labels above are only labels: a later edit could keep four
+    rows, tag one with each direction, and satisfy that assertion while
+    deleting every row that can fail. This is the control with teeth. It
+    reverts each half of the fix independently against the shipped form of
+    that pattern and asserts the table catches each -- so the table cannot be
+    gutted without one of these two reversions going quiet.
+
+    Reverting the boundary alone restores the under-count. Reverting only the
+    lone-letter mask, with the boundary left tolerant, produces the
+    *over-count* on an inline `a.` label instead: that asymmetry is why the
+    two patterns cannot be changed one at a time.
+    """
+    shipped_boundary = re.compile(r"(?<![.!?])[.!?]+(?=\s+\S)")
+    shipped_initial = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
+
+    assert _rows_the_table_gets_wrong(_load_gate()) == set()
+
+    boundary_reverted = _load_gate()
+    boundary_reverted._SENTENCE_BOUNDARY_PATTERN = shipped_boundary
+    broken_by_boundary = _rows_the_table_gets_wrong(boundary_reverted)
+    assert "bold lead-in" in broken_by_boundary
+    assert "every sentence delimited" in broken_by_boundary
+
+    mask_reverted = _load_gate()
+    mask_reverted._INITIAL_PATTERN = shipped_initial
+    broken_by_mask = _rows_the_table_gets_wrong(mask_reverted)
+    assert "enumeration label in code" in broken_by_mask, (
+        "the mask half must be load-bearing on its own"
+    )
+
+
+def test_the_closer_literal_still_matches_the_categories_it_claims() -> None:
+    """The hand-written closer set is regenerated here rather than trusted.
+
+    The source writes the set out instead of sweeping `unicodedata` at
+    import, because the sweep costs more than the whole run of the script.
+    A written-out set drifts as Unicode adds characters, and nothing else
+    would notice, so this derives it and compares.
+    """
+    gate = _load_gate()
+    derived = {
+        chr(code)
+        for code in range(0x110000)
+        if unicodedata.category(chr(code)) in {"Pe", "Pf"}
+    } | set("*_`~\"'")
+    assert set(gate._CLOSING_CHARACTERS) == derived
+
+
+def test_the_boundary_pattern_is_linear_in_a_run_of_terminators() -> None:
+    """A run of terminators with no whitespace must not backtrack quadratically.
+
+    The shape grep above reads the pattern's text and cannot see cost. This
+    reads cost. Without the `(?<![.!?])` anchor the engine retries the run
+    from every position inside it and rescans the closer run each time; the
+    ratio below was over 60 on the unanchored form and is near 2 on this one.
+    Asserted as a ratio between two sizes rather than an absolute duration,
+    so a slow machine does not red it.
+    """
+    gate = _load_gate()
+
+    def elapsed(size: int) -> float:
+        hostile = "x " + "!" * size + ")" * size
+        start = time.perf_counter()
+        gate.count_sentences(hostile)
+        return time.perf_counter() - start
+
+    # Warm the engine so the first call's setup does not land in a sample.
+    elapsed(64)
+    small = min(elapsed(400) for _ in range(5))
+    large = min(elapsed(1600) for _ in range(5))
+    # Four times the input. Linear predicts ~4x; quadratic predicts ~16x.
+    assert large < small * 8, (small, large)

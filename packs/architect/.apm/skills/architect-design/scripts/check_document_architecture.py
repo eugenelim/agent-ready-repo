@@ -241,7 +241,24 @@ _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
 # closers in the boundary alone lets the lone-letter mask lose sight of its
 # own label through a code span, which turns an under-count into an
 # over-count on `Set `a.` then continue.`
-_CLOSING_DELIMITERS = r"[)\]}\"'`*_’”»›]*"
+#
+# The set is every Unicode close-punctuation and final-quote character
+# (categories `Pe` and `Pf`), plus the ASCII quotes and the four Markdown
+# marks that close a span. It is written out rather than swept from
+# `unicodedata` at import, because the sweep costs more than the whole run
+# of this script; a test regenerates it and fails on drift, so the literal
+# is checked rather than trusted. Deriving it from the categories is what
+# makes "a closing mark of any script" true instead of a hand-list that
+# happens to cover the scripts its author thought of.
+_CLOSING_CHARACTERS = (
+    # Markdown span marks, the ASCII quotes, and the ASCII brackets.
+    "*_`~\"')]}"
+    # Unicode categories `Pe` (close punctuation) and `Pf` (final quote).
+    "»༻༽᚜’”›⁆⁾₎⌉⌋〉❩❫❭❯❱❳❵⟆⟧⟩⟫⟭⟯⦄⦆⦈⦊⦌⦎"
+    "⦐⦒⦔⦖⦘⧙⧛⧽⸃⸅⸊⸍⸝⸡⸣⸥⸧⸩⹖⹘⹚⹜〉》」』】〕〗〙〛〞"
+    "〟﴾︘︶︸︺︼︾﹀﹂﹄﹈﹚﹜﹞）］｝｠｣"
+)
+_CLOSING_DELIMITERS = "[" + re.escape(_CLOSING_CHARACTERS) + "]*"
 # Only a LOWERCASE lone letter is an enumeration label (`a.`, `b.`). An
 # uppercase one is far more often a single-letter name ending a sentence
 # ("...over Y. The record...") than an initial, and masking it drops a real
@@ -260,6 +277,13 @@ _INITIAL_PATTERN = re.compile(
 # document's paragraph text: a line ending in a terminator immediately before
 # a Starlight `:::` fence, and one before an unstripped `-->`. The gate strips
 # comment spans before counting, so the second cannot arise on its own input.
+# A third joins them and does reach prose: a code span whose content ends in a
+# terminator followed by another mark, as in "the pattern `foo.*` here", reads
+# as a sentence end. It is accepted for the same reason the masking above is
+# shaped the way it is -- the alternative is masking what a code span
+# contains, which would stop counting a span that IS a sentence ("`Code.`")
+# and trade a visible over-count for the silent under-count this gate exists
+# to catch.
 #
 # The closing side had the same unbounded-holes problem, and it was not
 # reasoned about here originally. Requiring whitespace immediately after the
@@ -268,8 +292,14 @@ _INITIAL_PATTERN = re.compile(
 # any script, or a parenthesised aside each registered nothing -- and a
 # paragraph delimiting every sentence read as one. Skipping the closer run
 # fixes the class rather than an enumerated list of its instances.
+# `(?<![.!?])` anchors the match to the START of a terminator run. Without
+# it the engine retries the whole run from each position inside it, and each
+# retry rescans the closer run behind the lookahead: quadratic in the length
+# of a run of terminators, on an input this script accepts up to `MAX_BYTES`.
+# The anchor changes no count, because `[.!?]+` already consumed the run
+# greedily from its first character.
 _SENTENCE_BOUNDARY_PATTERN = re.compile(
-    r"[.!?]+(?=" + _CLOSING_DELIMITERS + r"\s+\S)"
+    r"(?<![.!?])[.!?]+(?=" + _CLOSING_DELIMITERS + r"\s+\S)"
 )
 
 

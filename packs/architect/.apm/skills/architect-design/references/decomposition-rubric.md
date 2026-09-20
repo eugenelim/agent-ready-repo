@@ -21,14 +21,17 @@ catalogue, and which belong above this document entirely?
 
 ## The qualifying rule
 
-A child earns its own document when it meets `D1` plus at least one other
-criterion. `D1` alone names a decision worth writing down, not a subsystem
-worth splitting out; one of `D2` through `D6` is what makes that decision
-belong to a document the parent shouldn't carry.
+A candidate stops being a row in the element catalogue when it meets `D1`
+plus at least one other criterion. `D1` alone names a decision worth writing
+down, not a subsystem worth splitting out; one of `D2` through `D6` is what
+makes that decision belong to a document rather than to a row.
 
-The rule decides that the decision deserves a document. It does not decide
-that this document is the one to hang it under, so meeting it settles less
-than it appears to; the dispositions below settle the rest.
+The rule settles whether the decision needs a document of its own. It does
+not settle whose, because nothing in `D1` through `D6` asks who has standing
+to accept the decision — and a candidate can pass this rule and still not be
+this document's to hang a child under. That second question is the one the
+dispositions below answer, and it has to be asked every time this rule is
+met.
 
 ## The three dispositions
 

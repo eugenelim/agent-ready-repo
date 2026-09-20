@@ -71,11 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The paragraph-length check now sees a bold lead-in.** Counting sentences
   needed a space straight after the full stop, so any closing mark standing
   between the two hid the break: an emphasised or code-spanned sentence, a
-  closing quotation mark of any script, or a parenthesised aside each read as
-  no sentence end at all, and a paragraph that emphasised every sentence read
-  as one. Bold lead-ins are common in design prose, so the paragraphs most
-  likely to run long were the ones least likely to be named. They are counted
-  now, and the check reports the same file and line it always did.
+  parenthesised aside, or a closing quotation mark each read as no sentence
+  end at all, and a paragraph that emphasised every sentence read as one.
+  Bold lead-ins are common in design prose, so the paragraphs most likely to
+  run long were the ones least likely to be named. They are counted now, and
+  the check reports the same file and line it always did.
+- **A closing mark in any script closes a sentence.** The marks recognised are
+  every Unicode close-punctuation and final-quote character, so a document
+  written with corner brackets, guillemets or angle brackets is counted the
+  same way as one written with parentheses — and so is a strikethrough span.
 - **The decomposition rubric names the third place a candidate can land.** It
   offered a document of the part's own or a row in the element catalogue. A
   part can satisfy the qualifying rule and still belong above the document
@@ -93,7 +97,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over-count on an inline `a.` label, so the two patterns have to move
   together. One residual is irreducible and documented in the source — a
   one-letter sentence end behind a delimiter and an enumeration label behind
-  one are the same shape, and only what follows separates them.
+  one are the same shape, and only what follows separates them. One new
+  over-count is accepted and documented beside the existing two: a code span
+  whose content ends in a terminator followed by another mark, as in "the
+  pattern `foo.*` here", reads as a sentence end. Masking what a code span
+  contains would have stopped counting a span that is itself a sentence, which
+  trades a visible over-count for the silent under-count the check exists to
+  catch.
+- The sentence-boundary search is now linear in a run of terminators. It
+  retried the run from every position inside it, which was quadratic on input
+  the check accepts at up to a megabyte; anchoring the match to the start of
+  the run makes a pathological paragraph of sixteen hundred terminators take
+  a third of a millisecond instead of twenty-one, and changes no count.
 
 ## [core][2.26.20] — 2026-09-18
 
