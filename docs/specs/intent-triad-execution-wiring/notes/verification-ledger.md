@@ -225,3 +225,70 @@ here — each bullet's lead states the situation its route serves: one bet end t
 end, a raw idea with no named outcome, and positioning before naming a bet. A
 future editor changing a route's wording is not fighting a test that pins prose
 the criterion left free.
+
+## Review round 3 — the class recurred a third time, once as a regression
+
+Round 3 found the named class twice more, and one finding was a regression the
+round-2 repair itself introduced.
+
+### The regression
+
+Round 2 replaced AC2's `count("`internal`") == 2` with a proximity regex, to
+stop a legitimate rewrite false-redding. The regex was tempered against a repeat
+of `internal` rather than against a *rival level*, so it matched whenever
+`internal` and each type name appeared anywhere in the clause. A slot type
+pinned to `sensitive` or `regulated` passed. That is **weaker than the count it
+replaced**: the count would at least have caught it. Fixing a false red produced
+a false green, which is the trade the round-2 ledger entry itself warned about
+and then failed to test for.
+
+### The premise was asserted at the wrong scope
+
+Round 2's G3 repair asserted the differential marker was present *somewhere in
+the body*, while the differential it licenses is *clause* scope. The gap is
+reachable: reword the adjacent sentence's marker to a synonym, join the clauses
+with punctuation the splitter does not terminate on, drop `work-intake` from the
+Core-absent branch, and add any unrelated line elsewhere in the file containing
+the marker — and the premise is satisfied by the unrelated line while the
+criterion is violated on the surface. Round 3 demonstrated it end to end.
+
+The premise is now asserted at the scope it guards: the marker must appear in
+the clause immediately preceding the resolved one. An occurrence elsewhere in
+the file no longer satisfies it.
+
+### AC2, repaired without either failure direction
+
+The check now asserts both slot types are named, `internal` is the level given,
+and no rival level from the schema's vocabulary appears in the clause. The
+vocabulary is held in the test rather than parsed from the table under test, and
+the test asserts the table still lists exactly those four levels — so a level
+added to the schema reds the premise instead of silently widening what the
+absence check means.
+
+### Mutation evidence, both directions
+
+Round 2's table recorded only green-direction outcomes for the two controls the
+repair changed, so it could not tell a discriminating control from a permissive
+one. Both directions are recorded now.
+
+| Mutation | Expected | Result |
+| --- | --- | --- |
+| round 3's B2 defeat: synonym + `--` join + `work-intake` dropped + marker elsewhere in file | red | red |
+| round 3's B1 defeat: `delivery-contract` given a rival level | red | red |
+| B1 mirror: `assumption-test` given a rival level | red | red |
+| a level added to the schema table but not the test vocabulary | red | red |
+| AC7's marker removed from the clause next door | red | red |
+| AC7's `work-intake` dropped from the Core-absent clause | red | red |
+| AC8's `work-intake` dropped | red | red |
+| AC4's `assumption-test` bullet de-listed | red | red |
+| AC2 reworded to name `internal` once for both types | green | green |
+| a third legitimate `decompose-intent` mention in the walk | green | green |
+
+### Two limits now stated rather than assumed
+
+`_list_item_containing` models a single-paragraph `- ` bullet; a multi-paragraph
+item, a nested list, or an ordered list reds rather than widens.
+`_clause_containing` splits on `[.;]\s`, so a sentence-internal abbreviation
+would narrow a span. Both failure directions are red, not green, and both are
+now named in the helpers' docstrings so a future red is diagnosable as the
+helper's shape assumption rather than a missing obligation.

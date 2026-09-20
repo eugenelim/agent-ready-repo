@@ -29,6 +29,11 @@ FRAME_INTENT = SKILLS / "frame-intent" / "SKILL.md"
 
 NEW_SLOT_TYPES = ("assumption-test", "delivery-contract")
 
+# The schema's classification vocabulary. Held here rather than parsed from the
+# table under test, so a mutation to that table reds the premise check instead
+# of quietly redefining what the assertions mean.
+CLASSIFICATION_LEVELS = ("public", "internal", "sensitive", "regulated")
+
 
 def _flat(text: str) -> str:
     """Collapse whitespace so an assertion survives a mid-phrase line wrap."""
@@ -67,6 +72,11 @@ def _clause_containing(body: str, anchor: str) -> str:
     too weak, because re-punctuating the preceding sentence with a semicolon
     would merge the two and hand the assertion a span that satisfies it for the
     wrong reason -- so `;` terminates a clause here too.
+
+    Limit: a sentence-internal abbreviation ("e.g. ") would split a clause
+    early. No anchored clause contains one today, and the failure direction is a
+    narrowed span, so such a red is the split rule showing rather than a missing
+    obligation.
     """
     flat = _flat(body)
     assert anchor in flat, f"missing anchor: {anchor}"
@@ -85,6 +95,10 @@ def _list_item_containing(body: str, anchor: str) -> str:
     anchor and the previous sentence end sit a fenced JSON example and a
     Markdown table whose cells end in `)` or a code span, so the span would
     silently cover both.
+
+    Limit: this models a single-paragraph `- ` bullet. A multi-paragraph item,
+    a nested list, or an ordered `1. ` list reds rather than widens, so such a
+    red is this helper's shape assumption showing, not a missing obligation.
     """
     assert anchor in body, f"missing anchor: {anchor}"
     where = body.index(anchor)
@@ -105,18 +119,34 @@ def _list_item_containing(body: str, anchor: str) -> str:
     return _flat(body[start:end])
 
 
+def _preceding_clause(flat: str, pos: int) -> str:
+    """The clause ending immediately before `pos` in already-flattened text."""
+    head = flat[:pos].rstrip()
+    bounds = [m.end() for m in re.finditer(r"[.;]\s", head)]
+    start = bounds[-2] if len(bounds) >= 2 else 0
+    return head[start:]
+
+
 def _assert_core_absent_clause_names_work_intake(body: str, anchor: str) -> None:
-    """The Core-absent clause at `anchor` names `work-intake`, and is its own clause."""
-    # The premise first: the differential below is only meaningful while the
-    # negotiated branch is still marked by this word. Rewording it to a synonym
-    # would otherwise turn the absence assertion into a vacuous one, which is
-    # exactly how the previous form of this guard was defeated.
-    assert NEGOTIATED_MARKER in _flat(body), (
-        f"differential premise gone: no {NEGOTIATED_MARKER!r} marks the "
-        "negotiated branch, so this clause's boundary can no longer be told "
-        "from it -- re-anchor this check before trusting it"
-    )
+    """The Core-absent clause at `anchor` names `work-intake`, and is its own clause.
+
+    The differential below reads the marker's ABSENCE from this clause as proof
+    that the clause boundary resolved. That is evidence only while the marker
+    still marks the clause next door, so the premise is asserted at exactly that
+    scope. Asserting it anywhere in the file would not do: an unrelated
+    occurrence elsewhere would satisfy the premise while the adjacent sentence
+    had been reworded, which is how the previous two forms of this guard were
+    defeated.
+    """
+    flat = _flat(body)
     clause = _clause_containing(body, anchor)
+    preceding = _preceding_clause(flat, flat.index(clause))
+    assert NEGOTIATED_MARKER in preceding, (
+        f"differential premise gone: the clause before this one no longer "
+        f"carries {NEGOTIATED_MARKER!r}, so the boundary between the negotiated "
+        f"and Core-absent branches can no longer be told -- re-anchor this "
+        f"check before trusting it. Preceding clause: {preceding!r}"
+    )
     assert "`work-intake`" in clause, clause
     assert NEGOTIATED_MARKER not in clause, (
         "clause boundary did not resolve -- this span reaches the negotiated "
@@ -165,17 +195,36 @@ def test_the_classification_section_states_the_starting_level() -> None:
             "## Data classification & handling",
         )
     )
+    # The premise: these are the schema's classification levels. Asserting the
+    # level table still lists exactly them is what lets the absence check below
+    # mean something -- a level added to the schema and not here would let a
+    # slot be pinned to it unnoticed.
+    section_raw = _section(
+        SIDECAR_SCHEMA.read_text(encoding="utf-8"),
+        "## Data classification & handling",
+    )
+    tabled = {
+        m.group(1)
+        for m in re.finditer(r"^\| `([a-z]+)` \|", section_raw, re.MULTILINE)
+    }
+    assert tabled == set(CLASSIFICATION_LEVELS), (tabled, CLASSIFICATION_LEVELS)
+
     starting = _clause_containing(section, "The controller starts from")
-    # AC2 pairs a level with each type, so bind the two halves rather than
-    # counting occurrences of the level word: a rewrite naming `internal` once
-    # for both types satisfies the criterion and must not red.
+    # AC2 pairs a level with each type. Counting `internal` would false-red a
+    # rewrite naming it once for both types; matching `internal` near each type
+    # would false-GREEN a type pinned to a rival level, because the rival is not
+    # what the proximity match is tempered against. So assert both types are
+    # named, `internal` is the level given, and no rival level appears at all.
     for slot_type in NEW_SLOT_TYPES:
-        pairing = re.search(
-            rf"`internal`(?:(?!`internal`).)*?`{re.escape(slot_type)}`"
-            rf"|`{re.escape(slot_type)}`(?:(?!`{re.escape(slot_type)}`).)*?`internal`",
-            starting,
+        assert f"`{slot_type}`" in starting, (slot_type, starting)
+    assert "`internal`" in starting, starting
+    for level in CLASSIFICATION_LEVELS:
+        if level == "internal":
+            continue
+        assert f"`{level}`" not in starting, (
+            f"a slot type is given a starting level other than `internal`: "
+            f"`{level}` appears in {starting!r}"
         )
-        assert pairing is not None, (slot_type, starting)
 
 
 def test_the_classification_section_states_the_floor_rule() -> None:
