@@ -89,6 +89,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   invalid token and `gh repo view` report a connection failure, so neither
   message states the cause — an exit status makes no such claim.
 
+## [architect][0.15.13] — 2026-09-20
+
+### Highlights
+
+- **The paragraph-length check now sees a bold lead-in.** Counting sentences
+  needed a space straight after the full stop, so any closing mark standing
+  between the two hid the break: an emphasised or code-spanned sentence, a
+  parenthesised aside, or a closing quotation mark each read as no sentence
+  end at all, and a paragraph that emphasised every sentence read as one.
+  A long paragraph written with bold lead-ins could therefore pass the check
+  it should have failed. Measured over the thirty-seven design documents in
+  this repository's own architecture folder, the check reported eighty-one
+  over-long paragraphs where the true number is one hundred and twenty-seven
+  — it missed forty-six that crossed the budget unseen, and the mark that hid
+  them was a bold span in one hundred and twenty-one of the one hundred and
+  twenty-six mis-counted paragraphs. Those paragraphs are counted now, and
+  the check reports the same file and line it always did.
+- **A closing mark in any script closes a sentence.** The marks recognised are
+  every Unicode close-punctuation and final-quote character, so a document
+  written with corner brackets, guillemets or angle brackets is counted the
+  same way as one written with parentheses — and so is a strikethrough span.
+  The set is those Unicode categories rather than every character that looks
+  like a closer: an ASCII `>` stays out, because in Markdown it closes an
+  autolink around a URL, and admitting it would misread more documents than
+  it would fix.
+  One shape stays undecidable and is unchanged: a single-letter sentence end
+  inside a code span reads as an enumeration label, because an enumeration
+  label written the same way has to keep reading as one.
+- **The decomposition rubric names the third place a candidate can land.** It
+  offered a document of the part's own or a row in the element catalogue. A
+  part can satisfy the qualifying rule and still belong above the document
+  holding it, so the rubric now says to route it upward and how to record
+  that. The case this catches is a document that carries the changes it is
+  asking of a ratified parent: ratifying it would accept those changes by
+  implication, because its own reviewer has no standing to accept them. The
+  qualifying rule now says plainly that it does not settle which document
+  holds the result, and that none of the six criteria will tell you: they ask
+  whether a candidate differs from its parent, not at what altitude the people
+  who must accept its decisions hold that authority. So standing is a question
+  to ask separately every time the rule is met.
+- **A design review no longer reports a correctly routed part as a missing
+  document.** The reviewer's decomposition checklist asked whether a
+  qualifying child had a document of its own. A child whose decision only
+  someone above this document can accept — a ratified parent's reviewer, say
+  — has a link instead, by design, and would have been reported as a defect.
+  The checklist now looks for either, and says which correction the part
+  needed turns on standing. It also gains an item of its own for the case
+  that started this: a document carrying the changes it is asking of a
+  document above it that someone else accepts.
+
+### Fixed
+
+- The `DA3` sentence counter skipped a boundary whose terminator was followed
+  by a closing delimiter rather than whitespace. The defect and its size were
+  established independently in
+  `docs/specs/architect-design-document-gates/notes/gate-calibration-probe.md`,
+  which ran the shipped script over that corpus and derived the corrected
+  counts before this repair existed. The repaired counter reproduces them
+  exactly: 127 `DA3` trips against the record's 127, across 29 of 37 documents
+  against its 29, with `DA10` unchanged at 3 — and the shipped counter still
+  gives the recorded 81 and 26. The boundary pattern and the
+  lone-letter enumeration mask both skip a run of closing delimiters now:
+  tolerating them in the boundary alone turns the under-count into an
+  over-count on an inline `a.` label, so the two patterns have to move
+  together. One residual is irreducible and documented in the source — a
+  one-letter sentence end behind a delimiter and an enumeration label behind
+  one are the same shape, and only what follows separates them. Three
+  over-counts are newly accepted, each recorded in the source with its reason
+  and pinned by a test: a code span whose content ends in a terminator
+  followed by another mark, as in "the pattern `foo.*` here"; a bracketed
+  formula, as in "Compute ⟨n!⟩ first"; and a link whose URL ends in a
+  terminator, as in a query marker. All three count one sentence more than
+  they did before, so all three are regressions on those inputs. They differ
+  in whether the underlying class was already live: an unbracketed "Compute
+  n! first" over-counted before this change, so the formula case was a hidden
+  instance of something already true, while a URL ending in a terminator was
+  counted correctly before and now is not.
+  Recognising a URL needs real Markdown scanning — a pattern for it mistakes
+  a literal bracket-paren in running prose, stops early on a URL containing
+  balanced parentheses, and is quadratic when no closing parenthesis follows
+  — so a wrong one costs more than the over-count it removes. Masking what a code span
+  contains would have stopped counting a span that is itself a sentence, which
+  trades a visible over-count for the silent under-count the check exists to
+  catch.
+- A cost this change would otherwise have made worse is removed instead. The
+  sentence-boundary search retried a run of terminators from every position
+  inside it, which was already quadratic before this change on input the
+  check accepts at up to a megabyte; tolerating closing marks adds a rescan
+  of the closing run to each of those retries. Anchoring the match to the
+  start of the run changes no count and removes the retries, so the work
+  grows in step with the input rather than with its square. A test pins a
+  sampled growth ratio that separates the two implementations, rather than a
+  duration that would differ on every machine.
+
 ## [architect][0.15.12] — 2026-09-19
 
 ### Highlights

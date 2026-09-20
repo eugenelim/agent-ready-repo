@@ -15,6 +15,8 @@ import re
 import shutil
 import subprocess
 import sys
+import time
+import unicodedata
 from pathlib import Path
 from types import ModuleType
 from typing import Callable
@@ -780,3 +782,233 @@ def test_da3_over_counts_a_genuine_initial_as_an_accepted_tradeoff(
 ) -> None:
     gate = _load_gate()
     assert gate.count_sentences(paragraph) == expected, label
+
+
+# A sentence boundary has a CLOSING side as well as an opening one, and only
+# the opening side was ever tested. Every case in `_MUST_SPLIT` and
+# `_MUST_NOT_SPLIT` above puts whitespace immediately after the terminator,
+# so the closing side is unreachable by that whole table rather than merely
+# under-covered by it -- which is how a paragraph like `**One.** Two. Three.
+# Four.` read as three sentences through a fully green suite. Bold lead-ins
+# are house style in the documents this skill ships, so a delimiter-heavy
+# paragraph was very nearly invisible to `DA3`.
+#
+# Each row carries its own `direction`, and the test asserts all four
+# directions are present. An over-count scan cannot find an under-count, so
+# the table is built to make a one-directional revision of it fail rather
+# than pass quietly:
+#
+#   `split`     -- the boundary must register through the delimiters.
+#   `keep`      -- a masked period must still not split.
+#   `overcount` -- a cost the counter knowingly accepts.
+#   `residual`  -- a known wrong answer, pinned so it stays a decision.
+_DELIMITED_BOUNDARY_CASES = (
+    ("split", "bold lead-in", "**One.** Two. Three. Four.", 4),
+    ("split", "italic span", "One. *Two.* Three. Four.", 4),
+    ("split", "underscore emphasis", "One. _Two._ Three. Four.", 4),
+    ("split", "inline code", "One. Two is `it.` Three. Four.", 4),
+    ("split", "straight double quote", 'One. He said "go." Three. Four.', 4),
+    ("split", "curly double quote", "One. He said “go.” Three. Four.", 4),
+    ("split", "curly single quote", "One. He said ‘go.’ Three. Four.", 4),
+    ("split", "guillemet", "One. Il a dit «va.» Three. Four.", 4),
+    ("split", "parenthesis", "One. (An aside.) Three. Four.", 4),
+    ("split", "bracket", "One. [An aside.] Three. Four.", 4),
+    ("split", "brace", "One. {An aside.} Three. Four.", 4),
+    ("split", "nested delimiters", 'One. (He said "go.") Three. Four.', 4),
+    ("split", "exclamation in bold", "**Stop!** Two. Three. Four.", 4),
+    ("split", "question in bold", "**Why?** Two. Three. Four.", 4),
+    ("split", "strikethrough", "~~One.~~ Two. Three. Four.", 4),
+    ("split", "CJK corner bracket", "One. He said 「Go.」 Three. Four.", 4),
+    ("split", "angle bracket", "One. 〈Two.〉 Three. Four.", 4),
+    # The severity case: three delimited sentences collapsed into one.
+    ("split", "every sentence delimited", "**Bold.** *Ital.* `Code.` Four.", 4),
+    ("keep", "enumeration label in code", "Set `a.` then continue.", 1),
+    ("keep", "decimal", "Latency is 1.5 ms. That is fine.", 2),
+    ("keep", "abbreviation inside a quote", 'He wrote "e.g. this" today. Next.', 2),
+    ("keep", "ellipsis", "Standards... live on. Next one.", 2),
+    ("keep", "lowercase label", "a. `DA1` one. `DA2` two. `DA3` three. `DA4` four.", 4),
+    ("keep", "contraction", "It works. It doesn't. Third one here. Fourth here.", 4),
+    ("keep", "possessive", "Read it. That is the reviewer's. Third here. Fourth here.", 4),
+    # A destination whose dots are interior is unaffected: the terminator has
+    # to be the LAST character before the `)` for the closer run to reach it.
+    ("keep", "link destination with dots inside",
+     "See [api](https://x.test/v1.2/a?q=1) first. Then go.", 2),
+    # The other half of the ASCII `>` trade recorded below: both of these
+    # count correctly now and would over-count if `>` joined the closer set.
+    ("keep", "autolink ending in a period",
+     "See <https://x.test/docs.> here. Then go.", 2),
+    ("keep", "autolink ending in a query marker",
+     "See <https://x.test/a?> here. Then go.", 2),
+    # The over-counts the source names as accepted, grouped by reason rather
+    # than counted — a stated count goes stale the next time a row is added.
+    # This one is prose: masking an uppercase lone letter dropped a real
+    # boundary, so a genuine initial is counted twice instead.
+    ("overcount", "genuine initial", "J. Smith said. Second. Third. Fourth.", 5),
+    # These two are markup rather than prose. The fence cannot reach a
+    # rendered paragraph; the comment close reaches only malformed source,
+    # since the stripping pass removes a complete `<!-- ... -->` span and an
+    # orphan `-->` survives it.
+    ("overcount", "Starlight fence", "Prose ends here.\n:::note", 2),
+    ("overcount", "unstripped comment close", "Prose ends here.\n--> trailing", 2),
+    # This one reaches real prose, unlike the two above, and the shipped
+    # counter answered it correctly. It is accepted rather than fixed: the
+    # alternative masks what a code span contains, which stops counting a
+    # span that IS a sentence and trades a visible over-count for a silent
+    # under-count. Pinned so the trade stays a decision.
+    ("overcount", "terminator inside a code span", "Use the pattern `foo.*` here. Next one.", 3),
+    # `!` was never only a terminator: "Compute n! before allocation." already
+    # over-counted, because the `!` was followed by a space. Bracketing used to
+    # hide that and no longer does. Same accepted class, one more syntax.
+    ("overcount", "bracketed factorial", "Compute ⟨n!⟩ first. Then record it.", 3),
+    # All three delimited-token rows count one more than they did before the
+    # closer tolerance, so all three regress on these exact inputs. What is
+    # different here is the CLASS: an unbracketed factorial already
+    # over-counted, so that one was a hidden instance of a live class, while
+    # a URL ending in a terminator was counted correctly before and is not.
+    # Masking a destination needs real Markdown scanning, and the source says
+    # why a regex for it costs more than the over-count it removes.
+    ("overcount", "link destination ending in a terminator",
+     "Read [search](https://example.test/s?) before rollout. Then deploy.", 3),
+    # The irreducible residual. A one-letter sentence end behind a delimiter
+    # and an enumeration label behind one are the same shape; only what
+    # follows separates them, and the mask cannot read that. Splitting here
+    # would break the `keep` row above, so this row stays wrong on purpose.
+    # The shipped counter answered this one wrongly too, so nothing regressed.
+    ("residual", "one-letter end behind a delimiter", "One. Two is `x.` Three. Four.", 3),
+    # An ASCII `>` closer, excluded on a measured trade rather than missed:
+    # admitting it would fix this row and break the two autolink rows above,
+    # which design documents carry far more often than an angle-wrapped
+    # sentence. Both halves of that trade are rows, so the measurement the
+    # source records is checkable here rather than only asserted there.
+    ("residual", "ASCII angle bracket", "One. <Two.> Three. Four.", 3),
+)
+
+
+@pytest.mark.parametrize(
+    "direction,label,paragraph,expected",
+    _DELIMITED_BOUNDARY_CASES,
+    ids=[f"{c[0]}-{c[1]}" for c in _DELIMITED_BOUNDARY_CASES],
+)
+def test_da3_counts_across_a_closing_delimiter(
+    direction: str, label: str, paragraph: str, expected: int
+) -> None:
+    gate = _load_gate()
+    assert gate.count_sentences(paragraph) == expected, (direction, label)
+
+
+def _rows_missing_their_expectation(gate: ModuleType) -> set[str]:
+    """Return the label of every row whose count differs from its pin.
+
+    Not the same as "every row *gate* answers wrongly": the `overcount` and
+    `residual` rows pin answers the source calls wrong on purpose, so they
+    are absent from this set while `gate` is behaving as shipped.
+    """
+    return {
+        label
+        for _, label, paragraph, expected in _DELIMITED_BOUNDARY_CASES
+        if gate.count_sentences(paragraph) != expected
+    }
+
+
+def test_the_delimiter_table_covers_both_directions() -> None:
+    """A table that only ever grew in one direction is the original defect.
+
+    The under-count survived a green suite not because the suite only looked
+    for over-counts -- `_MUST_SPLIT` above requires boundaries to register --
+    but because no case in it put anything between the terminator and the
+    whitespace, so the closing side was unreachable from every direction the
+    table already covered. Asserting the set of directions -- rather than a
+    row count, which upstream churn breaks -- keeps a later revision from
+    narrowing this back to a single-direction scan.
+    """
+    directions = {case[0] for case in _DELIMITED_BOUNDARY_CASES}
+    assert directions == {"split", "keep", "overcount", "residual"}
+
+
+def test_reverting_either_half_of_the_closer_tolerance_reds_this_table() -> None:
+    """Both patterns are load-bearing, and the table proves it on each one.
+
+    The direction labels above are only labels: a later edit could keep four
+    rows, tag one with each direction, and satisfy that assertion while
+    deleting every row that can fail. This is the control with teeth. It
+    reverts each half of the closer tolerance independently and asserts the
+    table catches each -- so the table cannot be gutted without one of these
+    two reversions going quiet. What they preserve is one load-bearing
+    witness for each half, not the table's breadth -- a table cut down to
+    one row per direction would still satisfy both. Each reverted form keeps
+    the `(?<![.!?])`
+    anchor, which the historical line did not carry: the anchor is a separate
+    cost fix, and holding it constant is what isolates the closer tolerance as
+    the only variable.
+
+    Reverting the boundary alone restores the under-count. Reverting only the
+    lone-letter mask, with the boundary left tolerant, produces the
+    *over-count* on an inline `a.` label instead: that asymmetry is why the
+    two patterns cannot be changed one at a time.
+    """
+    pre_closer_boundary = re.compile(r"(?<![.!?])[.!?]+(?=\s+\S)")
+    pre_closer_initial = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
+
+    assert _rows_missing_their_expectation(_load_gate()) == set()
+
+    boundary_reverted = _load_gate()
+    boundary_reverted._SENTENCE_BOUNDARY_PATTERN = pre_closer_boundary
+    broken_by_boundary = _rows_missing_their_expectation(boundary_reverted)
+    assert "bold lead-in" in broken_by_boundary
+    assert "every sentence delimited" in broken_by_boundary
+
+    mask_reverted = _load_gate()
+    mask_reverted._INITIAL_PATTERN = pre_closer_initial
+    broken_by_mask = _rows_missing_their_expectation(mask_reverted)
+    assert "enumeration label in code" in broken_by_mask, (
+        "the mask half must be load-bearing on its own"
+    )
+
+
+def test_the_closer_literal_still_matches_the_categories_it_claims() -> None:
+    """The hand-written closer set is regenerated here rather than trusted.
+
+    The source writes the set out instead of sweeping `unicodedata` at
+    import, because that would rebuild, on every invocation, a set that
+    changes only when Unicode does.
+    A written-out set drifts as Unicode adds characters, and nothing else
+    would notice, so this derives it and compares.
+    """
+    gate = _load_gate()
+    derived = {
+        chr(code)
+        for code in range(0x110000)
+        if unicodedata.category(chr(code)) in {"Pe", "Pf"}
+    } | set("*_`~\"'")
+    assert set(gate._CLOSING_CHARACTERS) == derived
+
+
+def test_the_boundary_pattern_is_linear_in_a_run_of_terminators() -> None:
+    """A run of terminators with no whitespace must not backtrack quadratically.
+
+    The shape grep above reads the pattern's text and cannot see cost. This
+    reads cost. Without the `(?<![.!?])` anchor the engine retries the run
+    from every position inside it and rescans the closer run each time. Over
+    a fourfold input, linear growth predicts about 4x and quadratic about
+    16x, so a bound of 8x sits between the two classes over that range. That
+    bound is all this test enforces: it measures only the shipped pattern at
+    two sizes and passes any ratio under 8x, which separates this pattern
+    from the known unanchored one over the sampled range. It does not prove
+    linearity, and a curve whose quadratic term only dominates later would
+    pass. Asserted as a ratio between two sizes rather than an absolute
+    duration, so a slow machine does not red it.
+    """
+    gate = _load_gate()
+
+    def elapsed(size: int) -> float:
+        hostile = "x " + "!" * size + ")" * size
+        start = time.perf_counter()
+        gate.count_sentences(hostile)
+        return time.perf_counter() - start
+
+    # Warm the engine so the first call's setup does not land in a sample.
+    elapsed(64)
+    small = min(elapsed(400) for _ in range(5))
+    large = min(elapsed(1600) for _ in range(5))
+    # Four times the input. Linear predicts ~4x; quadratic predicts ~16x.
+    assert large < small * 8, (small, large)
