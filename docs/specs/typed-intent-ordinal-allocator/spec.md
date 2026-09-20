@@ -37,7 +37,7 @@ ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of adm
 | --- | --- | --- | --- | --- | --- |
 | Adopter-facing routing promise | Applicable — the published start-routing table names `docs/product/intents/<slug>.md` as where an admitted intent lands, which becomes false for a mapped level | `guides/core/reference/work-intake-routing-and-lifecycle.md` (the `Start routing` table) | T3 | The table states both destinations and the condition that selects them, asserted by the same prose check that covers § 6 | The published table and the skill bodies agree on where a mapped-level intent lands |
 | Release history | Applicable — a non-cosmetic `.apm/**` change | `docs/product/changelog.md`, `core` release heading with a `### Highlights` bullet | T3 | A heading matching the bumped `pack.toml` version, topmost among `core` headings | `tests/roster/test_verification_ledger_contract.py::test_the_core_release_surfaces_agree` and `::test_the_core_release_heading_sits_directly_beneath_unreleased` pass, with `tools/test_build_site_routing.py::test_the_generator_projects_the_real_changelog_into_a_valid_payload` confirming the Highlights bullet reaches the published page |
-| Interface compatibility | Applicable — a new `work-intake` → allocator boundary with three exit codes | `packs/core/.apm/skills/work-intake/SKILL.md` § 6 and the script's own `--help` | T1, T3 | The exit-code contract stated in both, with one stub case per code | An adopter reading either surface gets the same three outcomes |
+| Interface compatibility | Applicable — a new `work-intake` → allocator boundary with two exit codes and a caller-side unmapped route that never invokes it | `packs/core/.apm/skills/work-intake/SKILL.md` § 6 and the script's own `--help` | T1, T3 | The exit-code contract stated in both, with one stub case per code | An adopter reading either surface gets the same three outcomes |
 | Decision rationale | Not applicable — every load-bearing decision is an owner decision already recorded in the parent intent's `## Boundary` or in ADR-0033, ADR-0098 and ADR-0108 | — | — | — | — |
 | Maintainer procedure | Not applicable — no operator runbook changes; the allocator is invoked by a skill, not by a person | — | — | — | — |
 | Reusable learning | Not applicable — the one transferable finding, that a max-plus-one helper cannot see an unpushed peer, is already recorded in ADR-0108's Context | — | — | — | — |
@@ -46,7 +46,7 @@ ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of adm
 
 ### Always do
 
-- Pass an adopter-controlled value — the `Level` string, the directory — as a single non-executable data argument. `work-intake` holds `Bash`, so an interpolated string is that skill's shell authority.
+- Resolve an adopter-controlled value before invoking anything, and put only caller-owned fixed or closed-set values on a command line. `work-intake` holds a shell-shaped `Bash` tool, so an interpolated adopter string is that skill's shell authority and no later validation can take it back.
 - Return the class, the tri-state, or nothing. Every branch that cannot answer says so; none returns a plausible value on the way out.
 - Classify an entry by name before touching it, so an outside-namespace entry is never dereferenced.
 
@@ -93,7 +93,7 @@ Each verification item carries an append-only identifier of the form `VI-` plus 
 | VI-0004 | AC-0005, AC-0014 | TDD | `tests/roster/test_typed_ordinal_collision_equivalence.py` |
 | VI-0005 | AC-0010, AC-0011, AC-0015 | TDD | unit artifact |
 | VI-0006 | AC-0012 | TDD | unit artifact |
-| VI-0007 | AC-0016 | TDD | unit artifact and `test_work_intake.py`, plus one recorded session |
+| VI-0007 | AC-0016, AC-0020 | TDD | unit artifact and `test_work_intake.py`, plus one recorded session at the Bash boundary |
 | VI-0008 | AC-0017, AC-0018 | TDD | unit artifact |
 | VI-0009 | AC-0006, AC-0007, AC-0008, AC-0009 | Goal-based check plus visual / manual QA | both skill bodies, `test_intake_intent_manifest.py`, `test_intake_intent.py` unamended, verification ledger |
 | VI-0010 | AC-0019 | TDD | unit artifact |

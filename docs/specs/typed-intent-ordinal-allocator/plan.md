@@ -53,7 +53,7 @@ The integration covers two entry paths with two mechanisms, because they have tw
 
 ## Construction tests
 
-**Unit, in the pack** — `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, on synthetic fixtures only, because it ships with the pack.
+**Unit, in the pack** — `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, on synthetic fixtures only, because it ships with the pack. Every case that goes through `main()` changes the working directory into its fixture and passes a relative `--dir`, because AC-0020 refuses an absolute one and a positive case handing one in could never go green.
 
 **Integration, at the repository** — `tests/roster/test_typed_ordinal_collision_equivalence.py`. It is a roster test because it reads a second pack's script and the repository's own `docs/`, both of which a pack test may not reach. It asserts equivalence over **paired** typed and untyped fixtures, not over the real ADR/RFC corpora: a directory with no typed records is indistinguishable from a valid intent directory holding only legacy names, which AC-0001 requires to yield `0001`, so a real-corpus non-answer assertion would contradict the first-allocation criterion.
 
@@ -94,7 +94,7 @@ The spec's `## Durable Outputs` names three applicable roles. The first: the pub
 - `test_the_cli_prints_the_allocated_ordinal` (AC-0006) — `stub: true`
 - `test_the_cli_refuses_a_scan_it_could_not_complete` (AC-0010, AC-0011) — `stub: true`
 - `test_an_out_of_set_token_is_refused` (AC-0020) — `stub: true`
-- `test_a_traversing_dir_argument_is_refused` (AC-0020, AC-0017) — `stub: true`
+- `test_a_traversing_or_absolute_dir_argument_is_refused` (AC-0020, AC-0017) — `stub: true`
 - `test_an_outside_namespace_link_is_not_dereferenced` (AC-0017) — `stub: true`
 - `test_a_non_regular_in_namespace_entry_fails_closed` (AC-0017) — `stub: true`
 - `test_the_git_child_environment_is_scrubbed_and_local` (AC-0018) — `stub: true`
@@ -257,18 +257,20 @@ def test_allocation_writes_nothing(tmp_path: pathlib.Path) -> None:
     assert _snapshot(tmp_path) == before
 
 
-def test_check_refuses_a_missing_directory(tmp_path: pathlib.Path) -> None:
+def test_check_refuses_a_missing_directory(tmp_path: pathlib.Path, monkeypatch) -> None:
     """AC-0011: never report clean for a directory it did not read."""
-    assert MODULE.main(["--check", str(tmp_path / "absent")]) == 1
+    monkeypatch.chdir(tmp_path)
+    assert MODULE.main(["--check", "absent"]) == 1
 
 
-def test_check_has_both_halves(tmp_path: pathlib.Path) -> None:
+def test_check_has_both_halves(tmp_path: pathlib.Path, monkeypatch) -> None:
     """AC-0012: same-type duplicates fail; equal ordinals across types pass."""
+    monkeypatch.chdir(tmp_path)
     for token in TOKENS:
         (tmp_path / f"{token}-0001-a.md").write_text("", encoding="utf-8")
-    assert MODULE.main(["--check", str(tmp_path)]) == 0
+    assert MODULE.main(["--check", "."]) == 0
     (tmp_path / f"{TOKENS[0]}-0001-b.md").write_text("", encoding="utf-8")
-    assert MODULE.main(["--check", str(tmp_path)]) == 1
+    assert MODULE.main(["--check", "."]) == 1
 
 
 def test_a_malformed_remote_name_fails_the_scan(
@@ -319,15 +321,16 @@ def test_check_does_not_consult_the_remote_view(
         "remote_view",
         lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0001-b.md"}), "ok"),
     )
-    assert MODULE.main(["--check", str(tmp_path)]) == 0
+    assert MODULE.main(["--check", "."]) == 0
 
 
 @pytest.mark.parametrize("token", TOKENS)
 def test_the_cli_prints_the_allocated_ordinal(
     token: str, tmp_path: pathlib.Path, capsys
-) -> None:
+, monkeypatch) -> None:
     """AC-0006: exit 0 and the ordinal on stdout alone."""
-    assert MODULE.main(["--dir", str(tmp_path), "--token", token]) == 0
+    monkeypatch.chdir(tmp_path)
+    assert MODULE.main(["--dir", ".", "--token", token]) == 0
     captured = capsys.readouterr()
     assert captured.out.strip() == f"{token}-0001"
     assert captured.err == ""
@@ -335,11 +338,12 @@ def test_the_cli_prints_the_allocated_ordinal(
 
 def test_the_cli_refuses_a_scan_it_could_not_complete(
     tmp_path: pathlib.Path, capsys
-) -> None:
+, monkeypatch) -> None:
     """AC-0010, AC-0011: exit 1, nothing on stdout, one line on stderr."""
+    monkeypatch.chdir(tmp_path)
     token = TOKENS[0]
     (tmp_path / f"{token}-12-y.md").write_text("", encoding="utf-8")
-    assert MODULE.main(["--dir", str(tmp_path), "--token", token]) == 1
+    assert MODULE.main(["--dir", ".", "--token", token]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err.strip()
@@ -352,9 +356,10 @@ def test_the_cli_refuses_a_scan_it_could_not_complete(
 )
 def test_an_out_of_set_token_is_refused(
     token: str, tmp_path: pathlib.Path, capsys
-) -> None:
+, monkeypatch) -> None:
     """AC-0020: defence in depth behind the caller's own resolution."""
-    assert MODULE.main(["--dir", str(tmp_path), "--token", token]) == 1
+    monkeypatch.chdir(tmp_path)
+    assert MODULE.main(["--dir", ".", "--token", token]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
     assert not list(tmp_path.iterdir())
@@ -377,9 +382,10 @@ def test_a_non_regular_in_namespace_entry_fails_closed(
     assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) is None
 
 
-def test_a_traversing_dir_argument_is_refused(tmp_path: pathlib.Path) -> None:
+def test_a_traversing_or_absolute_dir_argument_is_refused(tmp_path: pathlib.Path, monkeypatch) -> None:
     """AC-0020, AC-0017: --dir is repository-relative with no `..` segment."""
-    for candidate in ("../escape", "/etc", "docs/../../escape"):
+    monkeypatch.chdir(tmp_path)
+    for candidate in ("../escape", "/etc", str(tmp_path), "docs/../../escape"):
         assert MODULE.main(["--dir", candidate, "--token", TOKENS[0]]) == 1
 
 
@@ -410,10 +416,11 @@ def test_the_git_child_environment_is_scrubbed_and_local(
 
 def test_diagnostics_reflect_no_untrusted_text(
     tmp_path: pathlib.Path, capsys
-) -> None:
+, monkeypatch) -> None:
     """AC-0019: bounded, single-line, and free of reflected adopter content."""
+    monkeypatch.chdir(tmp_path)
     hostile = "FEAT-\x1b[31m-AKIAIOSFODNN7EXAMPLE\nsecond-line"
-    assert MODULE.main(["--dir", str(tmp_path), "--token", hostile]) == 1
+    assert MODULE.main(["--dir", ".", "--token", hostile]) == 1
     message = capsys.readouterr().err
     assert message.count("\n") == 1
     assert len(message.encode("utf-8")) <= MODULE.DIAGNOSTIC_BYTE_LIMIT == 200
@@ -628,7 +635,7 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 **Approach:**
 
 - Load both scripts by path under distinct module names, following `test_next_ordinal.py:14-20`. Do not put either `scripts/` directory on `sys.path`.
-- T2 owns the code half of AC-0014 only. The prose half belongs to T3, which writes the prose: a parity assertion in T2 would measure text a later task produces, and T2 could not pass its own completion gate. T2 therefore exports the owner-table parser as a shared helper in the same roster module, and T3's assertion imports it — one parse, two tasks, neither waiting on the other.
+- T2 owns the code half of AC-0014 only. The prose half belongs to T3, which writes the prose: a parity assertion in T2 would measure text a later task produces, and T2 could not pass its own completion gate. T2 therefore exports the owner-table parser as a shared helper inside `tests/roster/test_typed_ordinal_collision_equivalence.py`, and T3 adds its prose assertions to that same module — the surfaces are under `packs/` and `guides/` and the owner's table under `docs/`, so a pack test may not reach them. One parse, two tasks, neither waiting on the other.
 - Roster admission is three edits, not one file (`tests/AGENTS.md:27-42`), and they are part of this task rather than a follow-up: the named step in `build-check.yml` must sit **above** the bulk `pytest tests/ -q` step or it never runs, and `tools/lint-ci-parity.py` gains the matching `STEP_DISPOSITION` of `LOCAL("test-after-build-check")`. No `.workspace-prune-protected.toml` entry is needed, because this test names no `docs/specs/<slug>` literal.
 - Add the `file_safety.py` byte-identity assertion for the new copy beside the existing `close-work` one at `tests/roster/test_close_work_extraction_and_immediate_disposition.py:853-857`. `packs/AGENTS.local.md:54-57` requires it for every hand-maintained `packs/**` copy; without it a source-side hardening fix never reaches this copy and nothing goes red.
 - Run `ruff check .` after adding the file: the repository lint targets do not cover it (`tests/AGENTS.md:44-46`).
@@ -650,7 +657,7 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 - § 6 distinguishes the two refusal classes: an absent or unmapped level means the bare slug, and admission and registration proceed unchanged (AC-0007); an allocation, scan or parse failure while **creating** at a mapped level stops before any write or registration (AC-0010). One unprefixed fallback for both would write the very thing AC-0009 forbids.
 - `intake-intent`'s Procedure step 3 states that **creating** at a mapped level requires an already-allocated ordinal in the confirmed destination, that a prefix supplied with the request is not accepted as proof of allocation, and that it derives none itself; lacking one it stops and names the path that allocates (AC-0009).
 - Procedure step 3 states that an existing repository path is preserved whether or not it carries a prefix, so an existing unprefixed mapped-level intent is updated in place with no allocation and no refusal (AC-0009).
-- Every shipped prose surface that names a level or a token holds exactly the parent's table (AC-0014): `work-intake` § 6, `intake-intent`'s Procedure step 3, and the published routing table, each asserted against the owner-table parser T2 exports. Prose has no compiler, so a skill body drifting from the table while every code test stays green is the likelier of the two failures.
+- Every shipped prose surface that names a level or a token holds exactly the parent's table (AC-0014): `work-intake` § 6, `intake-intent`'s Procedure step 3, and the published routing table, each asserted in `tests/roster/test_typed_ordinal_collision_equivalence.py` against the owner-table parser T2 exports there. It has to be a roster test: the surfaces are under `packs/` and `guides/`, the owner's table under `docs/`, and a pack test may not read above its pack. Prose has no compiler, so a skill body drifting from the table while every code test stays green is the likelier of the two failures.
 - A construction check over `intake-intent/SKILL.md` frontmatter and its `## Boundaries` block rejects shell, network and any new tool (AC-0008). The existing suite exercises the renderer and never opens `SKILL.md`, so it cannot carry this claim.
 - `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended (AC-0008).
 - `guides/core/reference/work-intake-routing-and-lifecycle.md`'s `Start routing` table states both intent destinations and the condition that selects them (AC-0006, AC-0007). Its current row promises `docs/product/intents/<slug>.md` for every admitted intent, which this slice makes false for a mapped level, and a published promise contradicting the shipped skill is the spec's one durable output. The replacement is **drafted here, before approval**, as the durable-output contract requires; the published file is edited in EXECUTE so an adopter never reads a promise the code does not yet keep:
@@ -662,7 +669,7 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
   | Minimal outcome needing repository admission, `Level: product-strategy` | Intent at `docs/product/intents/STRAT-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
   | Minimal outcome needing repository admission, `Level: capability` | Intent at `docs/product/intents/CAP-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
   | Minimal outcome needing repository admission, `Level: feature` | Intent at `docs/product/intents/FEAT-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
-  | Minimal outcome needing repository admission, any other `Level` | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, any other `Level`, or no `Level` field at all | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
   ```
 
   The exact mapping rather than a generic `<TYPE>` placeholder, because AC-0014 requires every maintained copy to hold the parent's keys and values and a placeholder holds neither. Five rows rather than a conditional footnote, because the destination is what an adopter looks up and a footnote is what they miss. Existing intents keep their current paths; the table describes admission, not the corpus.
@@ -677,9 +684,9 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 - `intake-intent`: one clause on Procedure step 3, and nothing else in the body. The owner cannot allocate — its `## Boundaries` refuses a shell and this slice does not move that line — so creation at a mapped level refuses, unconditionally on a supplied prefix. One rule, stated once: a prefix the owner cannot verify against the working tree and `origin` proves nothing, so accepting it would readmit the silent-wrong failure through a second door. The cost is real and bounded — direct `intake-intent` no longer creates a new mapped-level intent, and the refusal names `work-intake` as the one-step path that does — while every existing-path update is untouched, which is most of what the direct route is used for.
 - AC-0008 needs two pieces of evidence, not one. `test_intake_intent.py` passing unamended shows admission behaviour is intact; it never opens `SKILL.md`, so it cannot show that no capability was added. The manifest check carries that half. That the slice's only body edit there is one clause of Procedure step 3 is a verification choice this plan owns, not part of the criterion.
 
-**Done when:** the three release gates named in the spec's `Release history` row pass, the prose and manifest assertions pass, `test_intake_intent.py` is green unamended, both eval harnesses cover the new behaviour, the published routing table and the skill bodies agree, `make lint-ruff lint-mypy` and `make build-self` pass on a clean tree, and the seven sessions are recorded in `notes/verification-ledger.md` with their stop boundaries.
+**Done when:** `python3 -m pytest tests/roster/test_typed_ordinal_collision_equivalence.py -q` is green including the prose-parity assertions, the three release gates named in the spec's `Release history` row pass, the prose and manifest assertions pass, `test_intake_intent.py` is green unamended, both eval harnesses cover the new behaviour, the published routing table and the skill bodies agree, `make lint-ruff lint-mypy` and `make build-self` pass on a clean tree, and the seven sessions are recorded in `notes/verification-ledger.md` with their stop boundaries.
 
-**Touches:** packs/core/.apm/skills/work-intake/SKILL.md, packs/core/.apm/skills/intake-intent/SKILL.md, packs/core/.apm/skills/work-intake/evals/, packs/core/.apm/skills/intake-intent/evals/, guides/core/reference/work-intake-routing-and-lifecycle.md, packs/core/tests/skills/work-intake/test_work_intake.py, packs/core/tests/skills/intake-intent/test_intake_intent_manifest.py, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md, docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md
+**Touches:** tests/roster/test_typed_ordinal_collision_equivalence.py, packs/core/.apm/skills/work-intake/SKILL.md, packs/core/.apm/skills/intake-intent/SKILL.md, packs/core/.apm/skills/work-intake/evals/, packs/core/.apm/skills/intake-intent/evals/, guides/core/reference/work-intake-routing-and-lifecycle.md, packs/core/tests/skills/work-intake/test_work_intake.py, packs/core/tests/skills/intake-intent/test_intake_intent_manifest.py, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md, docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md
 
 ## Rollout
 
