@@ -135,7 +135,7 @@ resolves `PACK_ROOT` and may not read above its own pack.
 - [x] `discovery-loop/SKILL.md`'s "When to invoke" section points at `frame-intent`'s `## Pick a route` section.
 - [x] `packs/product-engineering/pack.toml` and `packs/product-engineering/.claude-plugin/plugin.json` carry the same version, and it orders after — by semantic-version comparison, not string comparison — the version in `pack.toml` at `git merge-base HEAD origin/main`. That merge-base is the canonical baseline for this criterion; the plan references it rather than restating it.
 - [x] `guides/product-engineering/how-to/run-a-discovery.md`'s "When it hands off" section names the same G3 continuation *route* as `discovery-loop/SKILL.md`'s gate-table G3 row — the route, not the destination loop, which the skill separately and compatibly names as `work-loop`.
-- [x] `docs/product/changelog.md` carries a free-standing `## [product-engineering][<version>] — <date>` heading whose version equals the bumped pack version, placed above every other pack release heading and not nested under `[Unreleased]`.
+- [x] `docs/product/changelog.md` carries a free-standing `## [product-engineering][<version>] — <date>` heading whose version equals the bumped pack version, is the topmost release heading for this pack, and is not nested under `[Unreleased]`. It sits below the current `core` block: `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased` machine-enforces that the first versioned heading after `[Unreleased]` is `[core]` at `packs/core/pack.toml`'s version, so a non-core entry goes below that block even when it carries a later date — the same reading `docs/specs/channel-minimum-width/spec.md` AC-0013 records.
 
 ## Assumptions
 

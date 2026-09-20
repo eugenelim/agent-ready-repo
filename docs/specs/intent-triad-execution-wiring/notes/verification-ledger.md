@@ -428,3 +428,38 @@ regression still reds:
 
 The test inventory was re-checked at 12, matching the count before the
 simplification, so no control was lost to the edit.
+
+## AC16 was wrong, and CI caught it after the rebase
+
+AC16 originally required the `product-engineering` heading "placed above every
+other pack release heading". That is unsatisfiable whenever `core` has a live
+release entry, and the repository enforces the opposite:
+
+> `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased`
+> asserts the first versioned heading after `[Unreleased]` is `[core]` at
+> `packs/core/pack.toml`'s version, so this pack's entry goes below the `core`
+> block even though it carries a later date.
+> — `docs/specs/channel-minimum-width/spec.md` AC-0013
+
+The criterion was authored while this branch's only release was
+`product-engineering`, and no `core` entry sat above it, so the conflict was
+invisible until the rebase brought `core 2.26.21` onto the branch.
+
+**Correction applied:** the `core 2.26.21` block is re-seated directly beneath
+`[Unreleased]`, with `product-engineering 0.13.14` below it. AC16 now states
+the topmost-for-this-pack rule and cites the enforcing test.
+
+### The near-miss worth recording
+
+The first diagnosis was that the test was an over-fitted delivery-time criterion
+turned standing guard, and the evidence looked strong: replaying main's history
+showed two commits where a non-core heading sat topmost while the test was
+live — one of them `product-engineering`. That replay was sound about the
+commits and wrong about the conclusion, because it never asked whether a
+*convention* existed that those two commits had simply violated. Reading the
+owning spec settled it in one line.
+
+**A history replay shows what happened, not what is permitted.** Before calling
+a guard over-fitted, find the artifact that owns it and read what it requires.
+Two violations in 133 commits is as consistent with a convention occasionally
+broken as with a guard that is wrong, and the two cases take opposite repairs.
