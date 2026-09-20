@@ -99,8 +99,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parenthesised aside, or a closing quotation mark each read as no sentence
   end at all, and a paragraph that emphasised every sentence read as one.
   A long paragraph written with bold lead-ins could therefore pass the check
-  it should have failed. Those paragraphs are counted now, and the check
-  reports the same file and line it always did.
+  it should have failed. Measured over the thirty-seven design documents in
+  this repository's own architecture folder, the check reported eighty-one
+  over-long paragraphs where the true number is one hundred and twenty-seven
+  — it missed forty-six that crossed the budget unseen, and the mark that hid
+  them was a bold span in one hundred and twenty-one of the one hundred and
+  twenty-six mis-counted paragraphs. Those paragraphs are counted now, and
+  the check reports the same file and line it always did.
 - **A closing mark in any script closes a sentence.** The marks recognised are
   every Unicode close-punctuation and final-quote character, so a document
   written with corner brackets, guillemets or angle brackets is counted the
@@ -137,7 +142,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The `DA3` sentence counter skipped a boundary whose terminator was followed
-  by a closing delimiter rather than whitespace. The boundary pattern and the
+  by a closing delimiter rather than whitespace. The defect and its size were
+  established independently in
+  `docs/specs/architect-design-document-gates/notes/gate-calibration-probe.md`,
+  which ran the shipped script over that corpus and derived the corrected
+  counts before this repair existed. The repaired counter reproduces them
+  exactly: 127 `DA3` trips against the record's 127, across 29 of 37 documents
+  against its 29, with `DA10` unchanged at 3 — and the shipped counter still
+  gives the recorded 81 and 26. The boundary pattern and the
   lone-letter enumeration mask both skip a run of closing delimiters now:
   tolerating them in the boundary alone turns the under-count into an
   over-count on an inline `a.` label, so the two patterns have to move
