@@ -111,9 +111,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   followed by another mark, as in "the pattern `foo.*` here"; and a bracketed
   formula, as in "Compute ⟨n!⟩ first", which the unbracketed "Compute n!
   first" already over-counted before this change. A third case in that family
-  has a right answer and is fixed rather than accepted: a terminator inside a
-  link destination, as in a URL ending in a query marker, is never a sentence
-  end, because a destination is never prose. Masking what a code span
+  is a regression rather than a newly exposed case, and is accepted with its
+  reason stated in the source: a link whose URL ends in a terminator, as in a
+  query marker, now reads as a sentence end where it did not before.
+  Recognising a URL needs real Markdown scanning — a pattern for it mistakes
+  a literal bracket-paren in running prose, stops early on a URL containing
+  balanced parentheses, and is quadratic when no closing parenthesis follows
+  — so a wrong one costs more than the over-count it removes. Masking what a code span
   contains would have stopped counting a span that is itself a sentence, which
   trades a visible over-count for the silent under-count the check exists to
   catch.

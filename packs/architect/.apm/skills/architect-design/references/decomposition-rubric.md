@@ -6,7 +6,7 @@ own right — with their own decisions, their own boundaries, their own
 reviewers — and the question this rubric answers is when that shift is real
 rather than a container for growing prose: given a subsystem, which of its
 parts earn a document of their own, which stay rows in this one's element
-catalogue, and which belong above this document altogether?
+catalogue, and which are not this document's to carry at all?
 
 ## The six criteria
 
@@ -37,8 +37,9 @@ below are for.
 
 ## The three dispositions
 
-There are three routes a candidate can take, not two. Decide which before
-writing anything.
+Three routes are named here, where the rubric used to name two. They are not
+a decision table and the list does not claim to be closed: which route fits
+is judged, not computed.
 
 - **A document of its own.** It meets `D1` plus at least one other
   criterion, and the decision is this subsystem's to make.
@@ -47,19 +48,25 @@ writing anything.
   and nothing else also stays a row: the decision is real, but nothing about
   it asks for a document, so record it here beside the element it governs
   rather than splitting a child out to hold it.
-- **Above this document.** It meets `D1` plus at least one other criterion,
-  and the decision is not this subsystem's to make. Route it upward.
+- **Not under this document.** It meets `D1` plus at least one other
+  criterion, and the decision is not this subsystem's to make. Route it to
+  whoever does have standing to accept it. That is usually the parent, which
+  is why this reads as routing upward, but a decision owned by a sibling
+  goes sideways to the same effect: not under this document.
 
-These are three routes, not a decision table, and standing is the question
-that picks between the first and the third. A candidate whose decision
-belongs above goes up whatever else it meets — a document whose reviewer has
-no standing over a block is misfiled however well that block scores.
+Standing is the question that picks between the first route and the third,
+and it is the one none of the criteria answers. A candidate whose decision
+belongs elsewhere goes there whatever else it meets — a document whose
+reviewer has no standing over a block is misfiled however well that block
+scores.
 
 The third is the one authors miss, because the qualifying rule is satisfied
 and a child document then looks like the answer. `D5` is usually what
-decides it: when the owners or reviewers who would have to accept the
-decision sit above this document, a child of this document is the wrong
-home for it, and so is a row. A document whose reviewer has no standing to
+surfaces it — it is the criterion that notices the accepting owners are not
+this document's — but noticing they differ is not the same as knowing where
+they sit, and that part is judged. When the people who would have to accept
+the decision are not the ones who accept this document, a child of this
+document is the wrong home for it, and so is a row. A document whose reviewer has no standing to
 accept its largest block is misfiled by construction.
 
 The clearest case is a subsystem document that carries the changes it is
@@ -92,8 +99,8 @@ The descent terminates when no remaining child has a live architectural
 decision of its own — at that depth there is nothing left to decide, only
 detail left to record, and detail belongs in the parent's element catalogue.
 A branch also ends wherever no child is created, whether because the
-candidate stayed a row or because its decision went upward — there is
-nothing under this document left to descend into either way.
+candidate stayed a row or because its decision was routed out from under
+this document — there is nothing here left to descend into either way.
 
 ## The three refusals
 

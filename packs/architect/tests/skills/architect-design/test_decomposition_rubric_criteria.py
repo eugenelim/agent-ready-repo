@@ -1,8 +1,12 @@
 """Contracts for architect-design's subsystem-decomposition rubric.
 
-The rubric answers one question: given a subsystem, which parts earn their own
-architecture document and which stay rows in this one's element catalogue. Two
-properties are load-bearing and neither is visible to a spell-check.
+The rubric routes a candidate to one of three places: its own architecture
+document, a row in this one's element catalogue, or out from under this
+document entirely when the accepting owners are not the ones who accept it.
+The third route is judged rather than computed — none of `D1`-`D6` says at
+what altitude an owner holds authority — so it is deliberately not pinned as
+a decision table here. Two properties are load-bearing and neither is visible
+to a spell-check.
 
 The first is that ``D1`` is mandatory. It is also the recursion's stopping rule,
 so a rubric that lets a child qualify on ``D2``-``D6`` alone does not terminate.

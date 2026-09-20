@@ -288,6 +288,18 @@ _INITIAL_PATTERN = re.compile(
 # and trade a visible over-count for the silent under-count this gate exists
 # to catch.
 #
+# A link destination joins them, and this one is a REGRESSION rather than a
+# newly exposed case: a URL ending in a terminator, as in
+# "[search](https://example.test/s?)", used to be hidden by the `)` and now
+# reads as a sentence end. It is accepted here rather than masked, and the
+# reason is worth stating because masking looks easy. Recognising a
+# destination needs real Markdown scanning: a regex for `](...)` masks a
+# literal `](` in running prose, stops early on a URL containing balanced
+# parentheses, and scans the whole remaining paragraph from every `](` when
+# no `)` follows -- which is quadratic on an input this script accepts up to
+# `MAX_BYTES`. A correct scanner is a larger piece of work than this counter,
+# and a wrong one costs more than the over-count it removes.
+#
 # The closer tolerance also widens one over-count that already existed: `!`
 # and `?` are not always terminators, and "Compute n! before allocation."
 # already read as two sentences because the `!` was followed by a space.
@@ -315,21 +327,6 @@ _SENTENCE_BOUNDARY_PATTERN = re.compile(
 )
 
 
-# A link destination is a URL, not prose, so a terminator inside one is never
-# a sentence end. This is the one member of the "terminator inside a delimited
-# token" family that has a right answer rather than a trade-off: a code span's
-# content may itself be a sentence, and a bracketed formula cannot be told
-# from bracketed prose, but a destination is never either. So this one is
-# masked and those two are accepted above.
-_LINK_DESTINATION_PATTERN = re.compile(r"\]\([^)\n]*\)")
-_TERMINATOR = re.compile(r"[.!?]")
-
-
-def _mask_link_destination(match: re.Match[str]) -> str:
-    """Blank every terminator inside one link destination, char for char."""
-    return _TERMINATOR.sub("․", match.group(0))
-
-
 def _mask_initial(match: re.Match[str]) -> str:
     """Blank only the period of a lone-letter token, e.g. an inline `a.` label."""
     return match.group(0)[0] + "․"
@@ -338,10 +335,9 @@ def _mask_initial(match: re.Match[str]) -> str:
 def count_sentences(paragraph: str) -> int:
     """Count sentences in one `DA3` prose paragraph.
 
-    Abbreviation periods, decimal points, ellipses, every terminator inside
-    a Markdown link destination, and the period of a LOWERCASE lone letter
-    (an inline enumeration label, `a.`) are masked first, by literal
-    replacement, so none of them reads as a sentence boundary; every
+    Abbreviation periods, decimal points, ellipses, and the period of a
+    LOWERCASE lone letter (an inline enumeration label, `a.`) are masked
+    first, by literal replacement, so none of them reads as a sentence boundary; every
     replacement is one character for one character, so no later offset
     shifts. An UPPERCASE lone letter is deliberately not masked:
     it is far more often a single-letter name ending a sentence
@@ -371,7 +367,6 @@ def count_sentences(paragraph: str) -> int:
         masked = masked.replace(abbreviation, abbreviation.replace(".", "․"))
     masked = _DECIMAL_PATTERN.sub("․", masked)
     masked = _ELLIPSIS_PATTERN.sub(lambda m: "․" * len(m.group(0)), masked)
-    masked = _LINK_DESTINATION_PATTERN.sub(_mask_link_destination, masked)
     masked = _INITIAL_PATTERN.sub(_mask_initial, masked)
     boundaries = len(_SENTENCE_BOUNDARY_PATTERN.findall(masked))
     return boundaries + 1 if masked.strip() else 0
