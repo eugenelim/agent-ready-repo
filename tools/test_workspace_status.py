@@ -1602,7 +1602,7 @@ _WORK_LOOP_CONTRACT_HASH = (
 # queue/active/shipped. The status vocabulary, the deferral-anchor requirement,
 # and the doc-drift bullet's listed invariants are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "e50bf962cff0c57bb3282161348ba7a01428380db0c9f8271709a4114522cbe5"
+    "13b1e401450b9f9ce3d1aadbcb75ff9c31064011f8e1df0ba3ff2a6814664a7a"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

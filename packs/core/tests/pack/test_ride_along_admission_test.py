@@ -102,9 +102,10 @@ C4 = (
     "ride-along-eligible defect is dispatched now, grouped with related "
     "fixes sharing a file or a seam, over the human gate's "
     "`blocker-applied` return edge; a defect blocked on a decision, an "
-    "instrument, or elapsed time is captured; a ready-now defect that is "
+    "instrument, or elapsed time is captured; a ready-now **required** defect that is "
     "not ride-along eligible becomes the next independently reviewed unit "
-    "in this session, over that same edge, where ready-now means it can be "
+    "in this session, over that same edge — a ready-now defect that is not "
+    "required is excluded, not scheduled — where ready-now means it can be "
     "finished this session without a decision nobody present will make; "
     "and any defect left — one resting on taste, or one with no "
     "stated arbiter — is discarded. A note that names no defect is "
@@ -183,9 +184,9 @@ RETIRED_VOCABULARY: tuple[str, ...] = (
     "bundled-fixes tiers",
 )
 
-DECIDE_ROW_CELLS = "| Does not match | Include now, ride-along eligible |"
+DECIDE_ROW_CELLS = "| Not required | Include now, ride-along eligible |"
 DECIDE_ROW = (
-    "| Does not match | Include now, ride-along eligible | Admit it only if "
+    "| Not required | Include now, ride-along eligible | Admit it only if "
     "it passes every clause of the bundled-fixes carve-out. That test "
     "decides, not this row: a change failing any clause needs the owner's "
     "scope change like any other. |"
@@ -560,8 +561,8 @@ def test_decide_row_disposition_sentence() -> None:
     be present and the table would not route.
     """
     raw = _text(SKILL)
-    table_start = raw.find("| Intent fit | Session decision | Disposition |")
-    assert table_start != -1, "SKILL.md has no DECIDE intent-fit table"
+    table_start = raw.find("| Required? | Session decision | Disposition |")
+    assert table_start != -1, "SKILL.md has no DECIDE requiredness table"
     blank = raw.find("\n\n", table_start)
     table = raw[table_start : blank if blank != -1 else len(raw)]
 

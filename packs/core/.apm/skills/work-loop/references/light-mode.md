@@ -134,7 +134,7 @@ items carry light-mode deltas:
   carrying at most deferred Nits recorded with their citations. That review is
   required, and its absence is a mandatory `missing` outcome and emits
   `BLOCKED`, never a readiness-compatible named skip. Every finding received
-  an intent-fit and session-decision disposition, and included fixes passed
+  a requiredness and session-decision disposition, and included fixes passed
   GATES. Under the external-quality-gate exception, `quality-engineer` also ran
   and returned Clean or, only when non-mandatory, is an allowed named skip.
 - The findings in the resolve-vs-surface disposition record come from those

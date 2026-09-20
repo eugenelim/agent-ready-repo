@@ -64,6 +64,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.24] — 2026-09-20
+
+### Highlights
+
+- **A work loop now stops when the work is done.** `work-loop` gains a
+  work-frontier rule: resolve the findings the current intent requires, and
+  do not expand the frontier unless a finding blocks correctness, security,
+  or a stated acceptance criterion. Its stop conditions say plainly that
+  meeting them ends the iteration — do not continue searching for additional
+  improvements. Something else worth doing is a scope change for the owner,
+  not a reason to keep going.
+
+### Changed
+
+- The self-coverage gate carries two rules that compose in order. The
+  frontier rule decides whether a finding is in scope; the existing rule then
+  decides whether to resolve it against a referent or ask a human. A finding
+  outside the frontier is resolved, with the accepted intent as its referent,
+  so the cross-loop resolve-versus-surface seam is unchanged.
+- DECIDE routes a discovery by whether the accepted intent requires it rather
+  than by whether it matches the agent's reading of intent. Required means
+  the trusted request, an accepted-contract obligation, a repository or skill
+  rule the work must obey, or a mandatory finish-checklist duty; a
+  direct-light run, which has no acceptance criteria, still requires its
+  requested outcome. A finding showing this change is incorrect or unsafe is
+  required regardless — that is correctness or security of this change, not
+  of any nearby defect.
+- Requiredness is a property of the work, never of the loop that processes
+  it. The duty to dispose of every finding does not make every finding
+  required; read that way the rule is circular and the frontier never closes.
+- The completion boundary is unchanged. The accepted intent remains the
+  boundary; what changes is that work the intent does not require no longer
+  opens another review unit.
+
 ## [core][2.26.23] — 2026-09-20
 
 ### Highlights

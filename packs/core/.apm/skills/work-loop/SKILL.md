@@ -27,7 +27,7 @@ PLAN  ──►  EXECUTE  ──►  GATES  ──►  REVIEW  ──►  DECIDE
                                                     └── back to GATES
 ```
 
-**Self-coverage gate.** Between human gates, resolve everything a referent can resolve; surface only the irreducible. Three net-new obligations per loop: **(1)** conditional domain-grounding at PLAN (only when the build rests on an ungrounded domain claim); **(2)** resolve-vs-surface disposition record, opened at PLAN and closed at DECIDE; **(3)** done-checklist refusal — don't declare done until the record exists and every REVIEW finding is resolved. The obligations above are the operative runtime contract. Use [`references/self-coverage/resolve-vs-surface.md`](references/self-coverage/resolve-vs-surface.md) only when a disposition is ambiguous; [`references/self-coverage/protocol.md`](references/self-coverage/protocol.md) contains design rationale and calibration, not required normal-loop instructions.
+**Self-coverage gate.** Between human gates, resolve everything a referent can resolve; surface only the irreducible. **Work frontier.** Resolve findings required to satisfy current intent. Do not expand the work frontier unless the finding blocks correctness, security, or the stated acceptance criteria. The two rules compose in that order: the frontier rule decides whether a finding is in scope, and only then does the self-coverage rule decide whether to resolve it against a referent or Surface it. A finding outside the frontier is **resolved**, not Surfaced, and its referent is the accepted intent: the intent does not require it, so DECIDE excludes it. That is a resolution, never a third disposition, so the resolve-vs-surface seam is unchanged. Three net-new obligations per loop: **(1)** conditional domain-grounding at PLAN (only when the build rests on an ungrounded domain claim); **(2)** resolve-vs-surface disposition record, opened at PLAN and closed at DECIDE; **(3)** done-checklist refusal — don't declare done until the record exists and every REVIEW finding is resolved. The obligations above are the operative runtime contract. Use [`references/self-coverage/resolve-vs-surface.md`](references/self-coverage/resolve-vs-surface.md) only when a disposition is ambiguous; [`references/self-coverage/protocol.md`](references/self-coverage/protocol.md) contains design rationale and calibration, not required normal-loop instructions.
 
 ## Output rendering
 
@@ -528,20 +528,47 @@ rail, and the retry-cap interaction:
 
 ## Step 5. DECIDE
 
-Route each implementation or reviewer discovery by intent fit before deciding
-whether it belongs in the current review unit. The work-loop interprets the
-result; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
+Route each implementation or reviewer discovery by whether the accepted
+intent requires it, before deciding whether it belongs in the current review
+unit. The work-loop interprets the result; the reviewer keeps its narrow
+Blockers / Concerns / Nits contract:
 
-| Intent fit | Session decision | Disposition |
+| Required? | Session decision | Disposition |
 | --- | --- | --- |
-| Matches | Include now | Add it to the current plan or session. |
-| Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
-| Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
-| Does not match | Include now, ride-along eligible | Admit it only if it passes every clause of the bundled-fixes carve-out. That test decides, not this row: a change failing any clause needs the owner's scope change like any other. |
-| Does not match | Do not include | Exclude it with no durable follow-on by default. |
+| Required | Include now | Add it to the current plan or session. |
+| Required | Do not include | Stop incomplete unless the owner explicitly narrows or waives the accepted intent. |
+| Not required | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Not required | Include now, ride-along eligible | Admit it only if it passes every clause of the bundled-fixes carve-out. That test decides, not this row: a change failing any clause needs the owner's scope change like any other. |
+| Not required | Do not include | Exclude it with no durable follow-on by default. |
 | Unclear | — | Ask the owner before acting. |
 
-Only the owner may narrow or waive an accepted intent. A matching discovery
+**Required** means satisfying the current intent needs it. That is the
+trusted request itself; every obligation of an accepted contract — acceptance
+criteria, boundaries, `Tests:`, plan tasks; the effective repository and skill
+rules the work must obey; and the mandatory finish-checklist duties. A
+direct-light run has no acceptance criteria and its requested outcome is
+required all the same.
+
+Required also covers any finding showing the current change is incorrect or
+unsafe, whether or not anything names it. That is correctness or security
+**of this change or the accepted outcome** — an unrelated nearby defect is
+not required, because every nearby defect as scope is the boundary the
+completion doctrine rejects. Those grounds, and a stated acceptance
+criterion, are the only ones for expanding the frontier past current intent.
+
+Requiredness is a property of the work, never of the loop that processes it.
+The rule that every finding must be disposed of does not make every finding
+required: routing one out as not required **is** a disposal — resolved, with
+the accepted intent as its referent — so it satisfies that duty rather than
+failing it. Read the other way the rule is circular: the duty to handle a
+finding would make the finding required, and the frontier would never close. Ask what the intent needs, not what the procedure obliges you to
+do about a finding you already have.
+
+Everything else is not required, however much it would improve the code. Your
+own judgement that a discovery fits the spirit of the work is not an
+obligation; routing on it is what opens a frontier that never closes.
+
+Only the owner may narrow or waive an accepted intent. A required discovery
 may share the current review unit only when the accepted contract authorizes it
 and it qualifies under the bundled-fixes carve-out. Otherwise, it is the next
 independently reviewed unit in the same session: use the existing human-gate
@@ -632,11 +659,12 @@ frontier, so continue until the frontier is empty. What the walk finds feeds
 back into the choice of rung: a claim living on many surfaces is evidence for
 repairing its generator or dropping it.
 
-- **Blockers** → include the correction required by the accepted intent. Re-run
+- **Blockers** → include the correction the current intent requires. Re-run
   GATES and REVIEW after each fix; use the next review unit when it cannot
   safely share this one.
 - **Concerns** → apply now only when authorized by the accepted contract and
-  the bundled-fixes carve-out; matching work that cannot share this unit moves to the next.
+  the bundled-fixes carve-out; **required** work that cannot share this unit
+  moves to the next. Work that is not required does not open a next unit.
 - **Nits** → never fix automatically. Defer an unacted Nit in `findings[]` with
   its citation and `status: deferred`; adjudicate only when the thread intends to
   mutate. Before any edit, promote `effective_severity` to at least Concern if
@@ -659,7 +687,7 @@ When gates are green and the mode's review requirements are satisfied → procee
 
 ## Termination
 
-Apply the linked [stop conditions](references/delivery-contract-lifecycle.md); an intermediate clean unit, retry cap, or stasis never completes accepted intent.
+Apply the linked [stop conditions](references/delivery-contract-lifecycle.md); an intermediate clean unit, retry cap, or stasis never completes accepted intent. Meeting a stop condition ends the iteration — it is not a checkpoint to look past.
 
 ## Finish checklist
 
@@ -679,9 +707,10 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   close-work remains separate.
 - [ ] **Direct-light only:** the session handoff states the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any discovered reason future work should use a durable spec.
 - [ ] The original accepted intent is complete, or its owner explicitly narrowed
-  or waived the remaining matching work. A merged PR, retry cap, or review
-  stasis alone is not completion; excluded work needs no backlog entry unless
-  the owner explicitly requested capture through `work-intake`.
+  or waived the remaining required work. A merged PR, retry cap, or review
+  stasis alone is not completion; work the intent did not require needs no
+  backlog entry unless the owner explicitly requested capture through
+  `work-intake`.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
 - [ ] **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — in `spec.md` use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` there is invalid and will fail `lint-spec-status.py`); every final accepted AC is `[x]`; any separable follow-on is outside the AC list with its own owner/artifact reference; historical `(deferred: <slug>)` anchors still resolve in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. Per-spec invariants cover the specs changed against the base ref; the dangling-reference and deferral-anchor invariants always cover every spec. Add `--all` for the exhaustive per-spec sweep — use it when a base ref will not resolve, or in a gate. Add `--verbose` to list the warn-only findings the clean summary only counts. When no spec exists, do not run the spec-status lint.
 - [ ] **A shipped feature's user-facing documentation is updated.** A spec is the
@@ -752,9 +781,10 @@ capturing a ready-now item is a loss.
   first destination that applies and stop: a ride-along-eligible defect is
   dispatched now, grouped with related fixes sharing a file or a seam, over
   the human gate's `blocker-applied` return edge; a defect blocked on a
-  decision, an instrument, or elapsed time is captured; a ready-now defect
+  decision, an instrument, or elapsed time is captured; a ready-now **required** defect
   that is not ride-along eligible becomes the next independently reviewed
-  unit in this session, over that same edge, where ready-now means it can be
+  unit in this session, over that same edge — a ready-now defect that is not
+  required is excluded, not scheduled — where ready-now means it can be
   finished this session without a decision nobody present will make; and any
   defect left — one resting on taste, or one with no stated arbiter — is
   discarded. A note that names no defect is done once the seam has taken it,

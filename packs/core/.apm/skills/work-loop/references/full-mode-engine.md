@@ -173,14 +173,14 @@ python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --all-skipped --expect-run-id <run_id> --operation-id <run_id>:<seq>
 ```
 A mandatory named skip blocks before `Status: Shipped`, `reviewers-clean`, or the `--all-skipped` path; do not let verdict emission discover that failure only after the state machine has advanced.
-For an intermediate review unit under an accepted intent that remains incomplete,
+For an intermediate review unit whose required work is not yet complete,
 leave `spec.md` at `Status: Implementing` and declare that boundary explicitly:
 ```
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
     --intent-incomplete
 ```
 This opt-in accepts `Implementing` only; it does not disable the status guard or
-permit another status. The next in-intent unit still returns through
+permit another status. The next required unit still returns through
 `blocker-applied` and receives GATES, REVIEW, and a human gate of its own. This
 intermediate human gate is not a finish: do not mark the spec `Shipped`, run
 `done` (which refuses until the spec is `Shipped`), or apply the Finish
@@ -203,12 +203,12 @@ response:
   python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
   # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
   ```
-- **Further in-intent review unit:** when an included discovery needs its own
-  independently reviewed unit, use the same `blocker-applied` return edge,
-  then apply that unit, run `loop-cohort check <spec-dir> --phase wave-exit`,
-  fire `wave-complete`, and run GATES, REVIEW, and the
-  human gate again. A separate review unit does not defer or complete the
-  original accepted intent.
+- **Further required review unit:** when an included discovery is required
+  and needs its own independently reviewed unit, use the same
+  `blocker-applied` return edge, then apply that unit, run `loop-cohort check
+  <spec-dir> --phase wave-exit`, fire `wave-complete`, and run GATES, REVIEW,
+  and the human gate again. A discovery that is not required opens no unit.
+  A separate review unit does not defer or complete the required work.
 
 For direct-light, do not fire engine or cohort transitions: once the rounds
 rule in [`light-mode.md`](light-mode.md) is satisfied,
