@@ -222,11 +222,21 @@ def _checklist_items(path: Path, heading: str) -> list[str]:
     items: list[str] = []
     in_section = False
     current: list[str] = []
-    # A line that looks like a checklist marker but is not well formed would
-    # otherwise be appended to the item above it, merging two rules into one
-    # string and leaving every assertion below green while one rule stopped
-    # being an item. Fail loudly instead of parsing it as continuation prose.
-    looks_like_marker = re.compile(r"\s*[-*+]\s*\[")
+    # Two ways a rule can stop being an item while every phrase assertion
+    # below stays green, both of which merge it into the item above:
+    #
+    #   `- [] A block ...`  a checkbox-shaped marker that will not parse.
+    #                       Fail loudly -- silently treating it as prose is
+    #                       how a lost rule looks exactly like a kept one.
+    #   `- A block ...`     the checkbox gone entirely. This is a legitimate
+    #                       Markdown bullet, so it cannot raise; it ends the
+    #                       current item and is not part of it.
+    #
+    # The checkbox pattern is deliberately narrow so an ordinary link bullet
+    # (`- [Guide](guide.md)`) is neither refused nor read as an item: its
+    # bracket content is a label, not a checkbox.
+    looks_like_checkbox = re.compile(r"\s*[-*+]\s*\[\s*[xX]?\s*\]")
+    top_level_bullet = re.compile(r" {0,3}[-*+]\s")
     well_formed = re.compile(r"\s*- \[[ xX]\]\s")
 
     def flush() -> None:
@@ -245,8 +255,10 @@ def _checklist_items(path: Path, heading: str) -> list[str]:
         if well_formed.match(line):
             flush()
             current.append(re.sub(r"^\s*- \[[ xX]\]\s*", "", line))
-        elif looks_like_marker.match(line):
+        elif looks_like_checkbox.match(line):
             raise AssertionError(f"malformed checklist marker under {heading!r}: {line!r}")
+        elif top_level_bullet.match(line):
+            flush()
         elif current and line.strip():
             current.append(line.strip())
         elif current:
@@ -340,6 +352,28 @@ def test_the_checklist_parser_refuses_a_malformed_marker(tmp_path: Path) -> None
         encoding="utf-8",
     )
     assert len(_checklist_items(fixture, "Decomposition")) == 2
+
+    # The checkbox gone entirely is legitimate Markdown, so it must not raise
+    # -- but it must not merge into the item above it either, which is the
+    # other way a rule stops being an item without any assertion noticing.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed.\n"
+        "- Second rule, checkbox lost.\n",
+        encoding="utf-8",
+    )
+    items = _checklist_items(fixture, "Decomposition")
+    assert items == ["First rule, well formed."], items
+
+    # An ordinary link bullet is neither refused nor read as a checklist item.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed.\n"
+        "\n"
+        "- [Guide](guide.md)\n",
+        encoding="utf-8",
+    )
+    assert _checklist_items(fixture, "Decomposition") == ["First rule, well formed."]
 
 
 def test_the_review_rubric_mirrors_every_criterion() -> None:
