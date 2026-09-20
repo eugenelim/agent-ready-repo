@@ -830,14 +830,15 @@
     },
     {
       "id": "ride-along-verifiable-fix-dispatches-not-defers",
-      "prompt": "I'm implementing my assigned plan task. While editing the file, I noticed two lines above it a helper function nothing else in the repository calls — a repo-wide grep confirms zero remaining references. Fixing it is a one-line deletion in the same file, it changes no behavior and presents no unresolved design call, it fires no risk trigger on its own, and the file is an ordinary application module — not a skill, an agent definition, a hook, or a command, and it loads none of those either. What do I do with it?",
+      "prompt": "I'm implementing my assigned plan task. While editing the file, I noticed two lines above it a helper function nothing else in the repository calls — a repo-wide grep confirms zero remaining references. Fixing it is a one-line deletion in the same file, it changes no behavior and presents no unresolved design call, it fires no risk trigger on its own, and the file is an ordinary application module — not a skill, an agent definition, a hook, or a command; no skill, agent, hook or command loads it; and it does not state the ride-along admission test. What do I do with it?",
       "expected_output": "Admit it under the bundled-fixes carve-out: it fires no risk trigger standalone, it changes no behavior and presents no unresolved design call, the zero-reference grep is the verification clause (iii) asks for, and the file defines nothing an agent may do, so clause (iv) holds too. Delete it now, in this change, and list it under a standalone `Bundled fixes:` section — do not discard it and do not write it down as a note for later.",
       "assertions": [
         "Response admits the fix under the bundled-fixes carve-out",
         "Response dispatches or applies the fix now rather than discarding or deferring it to a later note",
         "Response cites the zero-reference grep as satisfying the carve-out's verification requirement",
         "Response notes the file defines no agent authority, satisfying clause (iv)",
-        "Response records it under a `Bundled fixes:` section"
+        "Response records it under a `Bundled fixes:` section",
+        "Response treats clause (iv) as established, because nothing defining what an agent may do loads the file and the file does not state the admission test"
       ]
     },
     {
