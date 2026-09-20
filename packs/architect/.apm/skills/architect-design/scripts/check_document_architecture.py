@@ -354,13 +354,23 @@ def count_sentences(paragraph: str) -> int:
     backtracking super-linear; the closer class and the whitespace class
     share no character, so the added repetition stays linear too.
 
-    One residual is irreducible rather than unfixed. A one-letter sentence
-    end behind a delimiter ("...is `x.` Three.") and an enumeration label
-    behind one ("Set `a.` then continue.") are the same shape, and only what
-    follows separates them; the mask cannot read that, so it treats both as
-    labels and under-counts the first. Splitting instead would over-count
-    the second, and the choice went to the reading that leaves ordinary
-    prose alone.
+    One residual of the closer rule is irreducible rather than unfixed. A
+    one-letter sentence end behind a delimiter ("...is `x.` Three.") and an
+    enumeration label behind one ("Set `a.` then continue.") are the same
+    shape, and only what follows separates them; the mask cannot read that,
+    so it treats both as labels and under-counts the first. Splitting
+    instead would over-count the second, and the choice went to the reading
+    that leaves ordinary prose alone.
+
+    That residual, and the accepted over-counts listed beside the patterns
+    above, are the ones the closer rule owns. They are not an inventory of
+    everywhere this counter is wrong, and no such inventory is attempted
+    here: every mask above is a heuristic and each one's own trade is stated
+    where it is defined. Sentence counting has no exact rule to implement,
+    so a list of remaining wrong shapes would grow with every reader rather
+    than converge, and a reader who took it as complete would trust it more
+    than it deserves. `DA3` is a budget check a human reads and judges, not
+    an oracle.
     """
     masked = paragraph
     for abbreviation in _ABBREVIATIONS:

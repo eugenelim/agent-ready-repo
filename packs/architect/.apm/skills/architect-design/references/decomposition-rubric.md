@@ -26,8 +26,10 @@ plus at least one other criterion. `D1` alone names a decision worth writing
 down, not a subsystem worth splitting out; one of `D2` through `D6` is what
 makes that decision belong to a document rather than to a row.
 
-The rule settles whether the decision needs a document of its own. It does
-not settle whose, and none of the six criteria will tell you: they ask
+The rule settles that a row in the element catalogue is no longer enough. It
+does not settle what replaces the row — a document of this candidate's own,
+or a change to a document that already exists somewhere else — and it does
+not settle whose that is, and none of the six criteria will tell you: they ask
 whether a candidate differs from its parent, not at what altitude the people
 who must accept its decisions hold that authority. `D5` comes closest and
 still only notices that the accepting owners differ — not which side of this

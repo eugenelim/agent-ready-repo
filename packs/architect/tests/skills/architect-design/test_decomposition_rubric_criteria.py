@@ -1,9 +1,10 @@
 """Contracts for architect-design's subsystem-decomposition rubric.
 
-The rubric routes a candidate to one of three places: its own architecture
-document, a row in this one's element catalogue, or out from under this
-document entirely when the accepting owners are not the ones who accept it.
-The third route is judged rather than computed — none of `D1`-`D6` says at
+The rubric names three routes for a candidate: its own architecture
+document, a row in this one's element catalogue, and out from under this
+document when the accepting owners are not the ones who accept it. It names
+them without claiming a candidate must land in exactly one, because the
+third route is judged rather than computed — none of `D1`-`D6` says at
 what altitude an owner holds authority — so it is deliberately not pinned as
 a decision table here. Two properties are load-bearing and neither is visible
 to a spell-check.

@@ -833,9 +833,10 @@ _DELIMITED_BOUNDARY_CASES = (
     # to be the LAST character before the `)` for the closer run to reach it.
     ("keep", "link destination with dots inside",
      "See [api](https://x.test/v1.2/a?q=1) first. Then go.", 2),
-    # Four over-counts the source names as accepted, for three different
-    # reasons. This one is prose: masking an uppercase lone letter dropped a
-    # real boundary, so a genuine initial is counted twice instead.
+    # The over-counts the source names as accepted, grouped by reason rather
+    # than counted — a stated count goes stale the next time a row is added.
+    # This one is prose: masking an uppercase lone letter dropped a real
+    # boundary, so a genuine initial is counted twice instead.
     ("overcount", "genuine initial", "J. Smith said. Second. Third. Fourth.", 5),
     # These two are markup rather than prose. The fence cannot reach a
     # rendered paragraph; the comment close reaches only malformed source,
