@@ -1,6 +1,6 @@
 # Calibrate the document-architecture gates against another author's output
 
-- **Status:** Accepted
+- **Status:** Draft
 - **Level:** feature
 
 ## Outcome
