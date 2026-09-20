@@ -127,7 +127,7 @@ Both defeating mutations were re-run against the repaired file and both now red.
 | `len(description) <= 1024` borrowed a bound this spec does not own | dropped; `catalogue lint --deep` owns it |
 | a missing `type` row raised `StopIteration` | now an assertion naming the file and the row |
 | the changelog said "two guide passages … were corrected" | only one was a correction; the other gained a route it never stated |
-| the release fold-forward left `product-engineering 0.13.13` cited but unreachable | repointed to `0.13.14`; a tree-wide search now returns no `0.13.13` |
+| the release fold-forward left `product-engineering 0.13.13` cited but unreachable | repointed to `0.13.14`; the only `0.13.13` left in the tree is this ledger row and the rows below that name it |
 
 Thirteen defeating mutations were run against the repaired test file and all
 thirteen red. One legitimate change — rotating the three route bullets, which
@@ -151,3 +151,77 @@ neither is a defect in this delivery:
   confirmed the prior spec's AC9 prohibitions are each satisfied — no mandatory
   core dependency is declared, and `packs/product-engineering/pack.toml` carries
   no `[pack.dependencies]` table — so there is no cross-spec contract conflict.
+
+## Review round 2 — the repair reproduced its own root cause
+
+Round 2 re-reviewed the round-1 repairs and defeated two of them. Both raw
+reports and adjudications are under `.context/reviews/9129ff2a-b134-4542-91db-210e993c1b3f/`.
+
+### The class, named
+
+The adjudicator confirmed a single class behind every finding in both rounds:
+
+> every finding across both rounds is a control whose assertion is necessary but
+> not discriminating, because the differential premise that would make it
+> discriminating is assumed rather than asserted.
+
+Round 1's own repair is the clearest instance. It closed AC7's movable boundary
+by asserting that the resolved clause does **not** contain the negotiated
+branch's `advertises` marker — and then never asserted that the marker still
+existed. Rewording it to a synonym turned the guard into a vacuous negative, and
+round 2 reinstated the exact defect round 1 claimed to close. An absence is only
+evidence while the thing being looked for still exists to be found.
+
+### The class-level repair
+
+Rather than patch each instance, every helper now asserts the premise its bound
+rests on, so the bound fails loudly instead of widening or going vacuous:
+
+| Helper | Premise now asserted |
+| --- | --- |
+| `_assert_core_absent_clause_names_work_intake` | the differential marker is present in the body before its absence from the clause is read as evidence |
+| `_list_item_containing` | no blank line separates the anchor from the bullet claimed as its own list item, so a de-listed anchor fails instead of widening across the JSON fence and the field table |
+| the AC3 check (round 1) | the anchor sentence exists and precedes the floor rule |
+
+The marker was also widened from `advertises` to the stem `advertis`, and the
+helper comment corrected: two of the three G3 surfaces name `work-intake` on the
+negotiated branch, not all three, which is what the spec's Testing Strategy says.
+
+AC2's check was the second shape — a count standing in for a pairing. It now
+binds `internal` to each slot type by proximity instead of counting occurrences,
+so a rewrite naming the level once for both types no longer false-reds.
+
+### Mutation evidence after the class-level repair
+
+| Mutation | Expected | Result |
+| --- | --- | --- |
+| synonym + comma join + `work-intake` dropped (round 2's defeating mutation) | red | red |
+| `assumption-test` sentence de-listed (round 2's defeating mutation) | red | red |
+| AC8's differential marker reworded away | red | red |
+| AC2 reworded to name `internal` once for both types | green | green |
+| a third legitimate `decompose-intent` mention in the walk | green | green |
+
+The last two matter as much as the first three: a repair that trades a false
+negative for a false positive has moved the defect, not removed it.
+
+### AC11's fit half is not mechanizable — recorded, not pinned
+
+Round 2 showed that the three route bullets' bolded situation leads can be
+swapped between routes with every test green, so AC11's "each with a one-line
+statement of the situation it fits" is only half-guarded: the check proves each
+route is named and carries *a* situation, not that the situation fits *that*
+route.
+
+Fit is a semantic relation. Every mechanical binding available would pin a
+lexical anchor per route — `bet`, `raw idea`, `portfolio` — that AC11 does not
+state, which buys a guard against a swap at the cost of reddening legitimate
+rewordings the criterion permits. The adjudicator graded the reviewer's proposed
+mechanism over-broad for that reason and offered recording the limit as the
+alternative.
+
+**Disposition: recorded, not pinned.** The named-and-present half stays
+mechanically guarded; the fit half is verified by delivery-time read, performed
+here — each bullet's lead states the situation its route serves: one bet end to
+end, a raw idea with no named outcome, and positioning before naming a bet. A
+future editor changing a route's wording is not fighting a test that pins prose
+the criterion left free.

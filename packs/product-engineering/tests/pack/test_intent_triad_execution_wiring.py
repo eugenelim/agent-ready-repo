@@ -50,11 +50,13 @@ def _section(body: str, heading: str) -> str:
     return rest[: nxt.start()] if nxt else rest
 
 
-# The condition that marks the *negotiated* branch. Every G3 surface names
-# `work-intake` on that branch already, so a span that reaches this word has
-# swallowed the neighbouring sentence and proves nothing about the Core-absent
-# one. The G3 checks assert its absence to prove the boundary really resolved.
-NEGOTIATED_MARKER = "advertises"
+# The condition that marks the *negotiated* branch. Two of the three G3 surfaces
+# name `work-intake` on that branch already, so a span that reaches this word may
+# prove nothing about the Core-absent one. The G3 checks assert its absence from
+# the clause to show the boundary really resolved -- and assert its presence in
+# the body first, because an absence is only evidence while the thing being
+# looked for still exists to be found.
+NEGOTIATED_MARKER = "advertis"
 
 
 def _clause_containing(body: str, anchor: str) -> str:
@@ -88,6 +90,16 @@ def _list_item_containing(body: str, anchor: str) -> str:
     where = body.index(anchor)
     start = body.rfind("\n- ", 0, where)
     assert start != -1, f"anchor is not inside a list item: {anchor}"
+    # The premise: that bullet must be the anchor's OWN item. An unbounded
+    # backward search finds the nearest bullet anywhere in the file, so a
+    # de-listed anchor would silently return a span opening hundreds of lines
+    # earlier -- across the JSON fence and the field table this bound exists to
+    # exclude. A blank line ends a list item, so one between the bullet and the
+    # anchor means the anchor has left it.
+    assert "\n\n" not in body[start:where], (
+        f"anchor is not inside its own list item: {anchor!r} -- the nearest "
+        "preceding bullet is separated from it by a blank line"
+    )
     nxt = re.search(r"\n(?:- |\n)", body[where:])
     end = where + nxt.start() if nxt else len(body)
     return _flat(body[start:end])
@@ -95,11 +107,20 @@ def _list_item_containing(body: str, anchor: str) -> str:
 
 def _assert_core_absent_clause_names_work_intake(body: str, anchor: str) -> None:
     """The Core-absent clause at `anchor` names `work-intake`, and is its own clause."""
+    # The premise first: the differential below is only meaningful while the
+    # negotiated branch is still marked by this word. Rewording it to a synonym
+    # would otherwise turn the absence assertion into a vacuous one, which is
+    # exactly how the previous form of this guard was defeated.
+    assert NEGOTIATED_MARKER in _flat(body), (
+        f"differential premise gone: no {NEGOTIATED_MARKER!r} marks the "
+        "negotiated branch, so this clause's boundary can no longer be told "
+        "from it -- re-anchor this check before trusting it"
+    )
     clause = _clause_containing(body, anchor)
     assert "`work-intake`" in clause, clause
     assert NEGOTIATED_MARKER not in clause, (
         "clause boundary did not resolve -- this span reaches the negotiated "
-        f"branch, which names `work-intake` regardless: {clause}"
+        f"branch, which may name `work-intake` regardless: {clause}"
     )
 
 
@@ -145,9 +166,16 @@ def test_the_classification_section_states_the_starting_level() -> None:
         )
     )
     starting = _clause_containing(section, "The controller starts from")
+    # AC2 pairs a level with each type, so bind the two halves rather than
+    # counting occurrences of the level word: a rewrite naming `internal` once
+    # for both types satisfies the criterion and must not red.
     for slot_type in NEW_SLOT_TYPES:
-        assert f"`{slot_type}`" in starting, slot_type
-    assert starting.count("`internal`") == 2, starting
+        pairing = re.search(
+            rf"`internal`(?:(?!`internal`).)*?`{re.escape(slot_type)}`"
+            rf"|`{re.escape(slot_type)}`(?:(?!`{re.escape(slot_type)}`).)*?`internal`",
+            starting,
+        )
+        assert pairing is not None, (slot_type, starting)
 
 
 def test_the_classification_section_states_the_floor_rule() -> None:
