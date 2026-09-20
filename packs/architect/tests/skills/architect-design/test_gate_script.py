@@ -829,10 +829,14 @@ _DELIMITED_BOUNDARY_CASES = (
     ("keep", "lowercase label", "a. `DA1` one. `DA2` two. `DA3` three. `DA4` four.", 4),
     ("keep", "contraction", "It works. It doesn't. Third one here. Fourth here.", 4),
     ("keep", "possessive", "Read it. That is the reviewer's. Third here. Fourth here.", 4),
-    # Both over-counts the source names as accepted: markup, not prose, and
-    # neither reaches a rendered document's paragraph text. The gate strips
-    # comment spans before counting, so the second cannot arise on its input.
+    # Four over-counts the source names as accepted, for three different
+    # reasons. This one is prose: masking an uppercase lone letter dropped a
+    # real boundary, so a genuine initial is counted twice instead.
     ("overcount", "genuine initial", "J. Smith said. Second. Third. Fourth.", 5),
+    # These two are markup rather than prose. The fence cannot reach a
+    # rendered paragraph; the comment close reaches only malformed source,
+    # since the stripping pass removes a complete `<!-- ... -->` span and an
+    # orphan `-->` survives it.
     ("overcount", "Starlight fence", "Prose ends here.\n:::note", 2),
     ("overcount", "unstripped comment close", "Prose ends here.\n--> trailing", 2),
     # This one reaches real prose, unlike the two above, and the shipped
@@ -947,10 +951,12 @@ def test_the_boundary_pattern_is_linear_in_a_run_of_terminators() -> None:
 
     The shape grep above reads the pattern's text and cannot see cost. This
     reads cost. Without the `(?<![.!?])` anchor the engine retries the run
-    from every position inside it and rescans the closer run each time; the
-    ratio below was over 60 on the unanchored form and is near 2 on this one.
-    Asserted as a ratio between two sizes rather than an absolute duration,
-    so a slow machine does not red it.
+    from every position inside it and rescans the closer run each time. Over
+    a fourfold input, linear growth predicts about 4x and quadratic about
+    16x; measured, the anchored form gives 4.0x and the unanchored one 15.6x,
+    so the 8x threshold sits between the two classes rather than beside
+    either. Asserted as a ratio between two sizes rather than an absolute
+    duration, so a slow machine does not red it.
     """
     gate = _load_gate()
 

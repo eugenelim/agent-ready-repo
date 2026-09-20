@@ -245,9 +245,10 @@ _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
 # The set is every Unicode close-punctuation and final-quote character
 # (categories `Pe` and `Pf`), plus the ASCII quotes and the four Markdown
 # marks that close a span. It is written out rather than swept from
-# `unicodedata` at import, because the sweep costs more than the whole run
-# of this script; a test regenerates it and fails on drift, so the literal
-# is checked rather than trusted. Deriving it from the categories is what
+# `unicodedata` at import, because the sweep costs about 130ms on every
+# invocation to rebuild a set that changes only when Unicode does; a test
+# regenerates it and fails on drift, so the literal is checked rather than
+# trusted. Deriving it from the categories is what
 # makes "a closing mark of any script" true instead of a hand-list that
 # happens to cover the scripts its author thought of.
 _CLOSING_CHARACTERS = (
@@ -275,8 +276,10 @@ _INITIAL_PATTERN = re.compile(
 # classes are knowingly accepted as over-counts rather than masked, because
 # both are markup rather than prose and neither reaches a rendered design
 # document's paragraph text: a line ending in a terminator immediately before
-# a Starlight `:::` fence, and one before an unstripped `-->`. The gate strips
-# comment spans before counting, so the second cannot arise on its own input.
+# a Starlight `:::` fence, and one before an unstripped `-->`. The stripping
+# pass removes a COMPLETE `<!-- ... -->` span, so the second arises only from
+# a `-->` with no opening `<!--` above it -- malformed source, but reachable
+# on this gate's own input rather than impossible on it.
 # A third joins them and does reach prose: a code span whose content ends in a
 # terminator followed by another mark, as in "the pattern `foo.*` here", reads
 # as a sentence end. It is accepted for the same reason the masking above is
