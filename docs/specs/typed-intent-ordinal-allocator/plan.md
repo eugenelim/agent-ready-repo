@@ -85,13 +85,20 @@ No `## Durable Outputs` table in the spec, so nothing to mirror. Each task names
 - `test_allocation_writes_nothing` (AC-0003) — `stub: true`
 - `test_check_refuses_a_missing_directory` (AC-0011) — `stub: true`
 - `test_check_has_both_halves` (AC-0012) — `stub: true`
+- `test_a_malformed_remote_name_fails_the_scan` (AC-0004, AC-0011) — `stub: true`
+- `test_a_path_in_both_views_counts_once` (AC-0005) — `stub: true`
+- `test_a_remote_only_record_raises_the_maximum` (AC-0005) — `stub: true`
+- `test_check_does_not_consult_the_remote_view` (AC-0012) — `stub: true`
+- `test_the_cli_uses_a_distinct_code_per_outcome` (AC-0006, AC-0007) — `stub: true`
+- `test_the_cli_refuses_with_its_own_code` (AC-0010, AC-0011) — `stub: true`
 
-The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **26 failed, 10 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
+The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **32 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
 
 Deferred to EXECUTE as assertions added to this file rather than a rewrite of it: the `origin`-reachable arm of `test_a_reachable_or_absent_remote_allocates`, whose `"ok"` parametrization needs a local Git fixture this file does not build (T2 carries the equivalent at the repository boundary), and the induced-timeout variant of the failed-query case. Both are construction-level detail on an already-red contract surface.
 
 ```python
-# STUB: AC-0001, AC-0003, AC-0004, AC-0010, AC-0011, AC-0012, AC-0013, AC-0015
+# STUB: AC-0001, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0011,
+#       AC-0012, AC-0013, AC-0015
 # Stored and validated in PLAN's T1 Tests: subsection. Every case derives its
 # tokens and levels from the module's own mapping, so this file never restates
 # the owner's closed table — T2 is where the mapping is checked against the
@@ -249,15 +256,107 @@ def test_check_has_both_halves(tmp_path: pathlib.Path) -> None:
     assert MODULE.main(["--check", str(tmp_path)]) == 0
     (tmp_path / f"{TOKENS[0]}-0001-b.md").write_text("", encoding="utf-8")
     assert MODULE.main(["--check", str(tmp_path)]) == 1
+
+
+def test_a_malformed_remote_name_fails_the_scan(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0004, AC-0011: a remote name is classified like a local one."""
+    (tmp_path / f"{TOKENS[0]}-0001-a.md").write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        MODULE,
+        "remote_view",
+        lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-12-bad.md"}), "ok"),
+    )
+    assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) is None
+
+
+def test_a_path_in_both_views_counts_once(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """The union deduplicates by path, so a pushed local file is one record."""
+    name = f"{TOKENS[0]}-0004-a.md"
+    (tmp_path / name).write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        MODULE, "remote_view", lambda _d: MODULE.RemoteView(frozenset({name}), "ok")
+    )
+    assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) == 5
+
+
+def test_a_remote_only_record_raises_the_maximum(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0005: allocation unions the remote view."""
+    (tmp_path / f"{TOKENS[0]}-0001-a.md").write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        MODULE,
+        "remote_view",
+        lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0009-b.md"}), "ok"),
+    )
+    assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) == 10
+
+
+def test_check_does_not_consult_the_remote_view(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0012 is a statement about one directory, as in the ADR helper."""
+    (tmp_path / f"{TOKENS[0]}-0001-a.md").write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        MODULE,
+        "remote_view",
+        lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0001-b.md"}), "ok"),
+    )
+    assert MODULE.main(["--check", str(tmp_path)]) == 0
+
+
+@pytest.mark.parametrize(
+    ("level", "expected_exit"),
+    [(LEVELS[0], 0), ("initiative", 3)],
+)
+def test_the_cli_uses_a_distinct_code_per_outcome(
+    level: str, expected_exit: int, tmp_path: pathlib.Path, capsys
+) -> None:
+    """AC-0006, AC-0007: allocated, unmapped and refused are three codes."""
+    assert MODULE.main(["--dir", str(tmp_path), "--level", level]) == expected_exit
+    captured = capsys.readouterr()
+    if expected_exit == 0:
+        assert captured.out.strip() == f"{MODULE.LEVEL_TOKENS[level]}-0001"
+    else:
+        assert captured.out == ""
+        assert captured.err.strip()
+
+
+def test_the_cli_refuses_with_its_own_code(tmp_path: pathlib.Path, capsys) -> None:
+    """AC-0010, AC-0011: a scan failure is not the unmapped outcome."""
+    token = TOKENS[0]
+    (tmp_path / f"{token}-12-y.md").write_text("", encoding="utf-8")
+    level = next(k for k, v in MODULE.LEVEL_TOKENS.items() if v == token)
+    assert MODULE.main(["--dir", str(tmp_path), "--level", level]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.strip()
 ```
 
 **Approach:**
 
+- **One invocation, three exit codes.** `work-intake` calls the script; the contract at that boundary is as much a deliverable as the Python surface, because § 6 has to branch on it:
+
+  ```
+  python3 scripts/intent_ordinal.py --dir <repo-relative directory> --level <Level value>
+  ```
+
+  | Exit | stdout | stderr | `work-intake` does |
+  | --- | --- | --- | --- |
+  | 0 | `<TYPE>-NNNN` | empty | supplies `<TYPE>-NNNN-<slug>.md` as the confirmed destination (AC-0006) |
+  | 3 | empty | one line naming the unmapped level | supplies the bare `<slug>.md`; admission and registration proceed (AC-0007) |
+  | 1 | empty | one line naming the scan failure | stops before any write or registration (AC-0010, AC-0011) |
+
+  Three codes rather than two, so the branch never depends on parsing empty stdout: "no ordinal because the altitude has none" and "no ordinal because I could not look" are different instructions to the caller and must not share a code. The ordinal goes to stdout alone and every diagnostic to stderr, so a caller capturing stdout gets the value or nothing. `--check <dir>` keeps `next-ordinal.py`'s two codes, 0 clean and 1 duplicate-or-unreadable.
 - Match the owner's contract, not a prefix. Two patterns, so the classes cannot leave a gap: the introducer `^<TOKEN>-` decides in-or-out of the namespace, and the end-anchored shape `^<TOKEN>-\d{4,}-[^/]+\.md$` decides valid-or-malformed inside it. Both build their alternation from the mapping's own values, so the token set appears once in the module. Deriving malformed as "introducer and not shape" is what makes the partition exhaustive by construction; enumerating malformed shapes instead is how `FEAT-0001x.md` and `FEAT-0001` escaped an earlier draft.
 - The anchored shape is narrower than `next-ordinal.py`'s `[-.]`, deliberately (AC-0013). Inheriting `[-.]` would count `FEAT-0001.md` and `FEAT-0001.txt`, letting a file the owner's contract does not admit raise the maximum.
 - `token_for_level` is a dict lookup with an exact-match key, transcribing the parent intent's table rather than deciding it. The script states the mapping directly because shipped pack content carries no internal-governance citations, and a comment names the transcription so a future edit knows where the decision lives.
 - The three filename classes are the load-bearing design choice, because most files in `docs/product/intents/` carry no typed prefix. Treating an unmatched name as an incomplete scan would make the live corpus unallocatable; treating a malformed typed name as merely uninteresting would let it vanish from duplicate checking. `classify` returns the class rather than a boolean, so a fourth case cannot fall through to a default.
-- **The remote view is a tri-state, not a set.** This is the one place the borrowed implementation cannot be carried over: `next-ordinal.py:_git_output` funnels every `OSError`, `SubprocessError`, `UnicodeError` and timeout to `None`, and `_remote_ordinals` turns each of those — plus a genuinely absent remote — into the same empty set, so "nothing there" and "could not look" are indistinguishable at the call site. Changing only the timeout arm would not separate them. `remote_view(directory)` returns `RemoteView(ordinals, state)` instead, with six enumerated outcomes:
+- **The remote view is a tri-state, not a set.** This is the one place the borrowed implementation cannot be carried over: `next-ordinal.py:_git_output` funnels every `OSError`, `SubprocessError`, `UnicodeError` and timeout to `None`, and `_remote_ordinals` turns each of those — plus a genuinely absent remote — into the same empty set, so "nothing there" and "could not look" are indistinguishable at the call site. Changing only the timeout arm would not separate them. `remote_view(directory)` returns `RemoteView(names, state)` instead — **names, not ordinals**, so record identity survives until classification. Carrying only a set of integers would lose three things the criteria need: a malformed name on `origin` could not make the scan incomplete (AC-0004), a path present both locally and remotely would count as two records rather than one, and the classifier would have to run twice on different data. The six outcomes:
 
   | Condition | `state` | Allocation |
   | --- | --- | --- |
@@ -269,10 +368,11 @@ def test_check_has_both_halves(tmp_path: pathlib.Path) -> None:
   | Git invocation timed out | `failed` | refuses |
 
   The three `absent` rows are the complete available view, which is why every positive fixture in the suite is an `origin`-less `tmp_path`; conflating them with `failed` makes the suite unsatisfiable. The two `failed` rows are an unknowably incomplete view, and refusing there is the deliberate divergence from the script being modelled. AC-0005's equivalence is scoped to fixtures where `origin` answers, so the two claims do not collide.
+- **Allocation unions, `--check` does not.** The two modes read different scopes, and that is inherited rather than invented: `next-ordinal.py` calls `_remote_ordinals` only from `next_ordinal:260`, never from `duplicate_ordinals:213`. So allocation classifies the union of local entries and remote names, deduplicating by repository-relative path so a file present in both counts once; `--check` reports duplicates in the directory it was given. AC-0012 is therefore a statement about one directory, which is also the only scope in which a duplicate is actionable — a remote-only collision is already committed and needs a reissue, not a refusal. The script says so in its own `--help`, because an operator who expects `--check` to see `origin` would read a clean result as more than it is.
 - **Classify by name before applying the integrity refusal.** `file_safety.list_confined_regular_files` refuses *every* symlink, which would let an adopter's `notes -> ../elsewhere` link in the intents directory fail the whole scan even though AC-0004 says an outside-namespace name is skipped without incident. So the directory itself is validated with `file_safety.validate_confined_directory`, and entries are then enumerated with `os.scandir` plus a `stat(follow_symlinks=False)` classification — the shape `next-ordinal.py:213-250` already uses, which raises only on a **record-looking** symlink. An in-namespace link refuses; an outside-namespace one is skipped. The copied `file_safety.py` remains the blessed source of the directory-confinement primitive, which is why the copy and its byte-identity pin stay.
 - Carry the rest of `_remote_ordinals` over intact — the `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, and the root-relative pathspec run from the repository root. Each of those comments in the source records a defect already paid for once.
 
-**Done when:** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` is green; then commit, run `make build-self` — it refuses a dirty tree, so the commit comes first — and commit the regenerated projections, after which `python3 -m agentbundle catalogue self-host --root . --check` passes. Regeneration belongs to every task that edits `.apm/`, not to T4: `self-host --check` compares projections to source, and T3's sessions exercise the installed skills, so both need current projections before they can mean anything. T4 keeps only the final drift check.
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` is green, including one case per exit code; then commit, run `make build-self` — it refuses a dirty tree, so the commit comes first — and commit the regenerated projections, after which `python3 -m agentbundle catalogue self-host --root . --check` passes. Regeneration belongs to every task that edits `.apm/`, not to T4: `self-host --check` compares projections to source, and T3's sessions exercise the installed skills, so both need current projections before they can mean anything. T4 keeps only the final drift check.
 
 **Touches:** packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py, packs/core/.apm/skills/work-intake/scripts/file_safety.py, packs/core/tests/skills/work-intake/test_intent_ordinal.py
 
@@ -506,6 +606,8 @@ Pack content only; adopters pick it up on the next install. New intents created 
 - **A roster test that runs but attributes nothing.** A named step placed below the bulk `pytest tests/ -q` step in a fail-fast job never executes. T2 owns the placement and `tools/lint-ci-parity.py` is what catches the mismatch.
 
 ## Changelog
+
+- 2026-09-20 — Adversarial round 3 returned 2 blockers and 1 concern, all resolved. `RemoteView` now carries record **names** rather than an ordinal set: integers alone could not let a malformed remote name fail the scan, could not tell one record present in both views from two, and would have forced the classifier to run twice on different data. The scope split that goes with it is inherited rather than invented — `next-ordinal.py` calls `_remote_ordinals` only from `next_ordinal:260`, never from `duplicate_ordinals:213` — so allocation unions and `--check` reports on one directory, stated in the script's own `--help` so a clean result is not read as more than it is. And the `work-intake` boundary now has a contract: one invocation, three exit codes, so the caller never branches on empty stdout and "no ordinal because the altitude has none" cannot be confused with "no ordinal because I could not look". Six cases added to T1's stub, re-validated at 32 failed / 11 passed.
 
 - 2026-09-20 — Adversarial round 2 returned 7 blockers and 1 concern; all eight resolved, and two were real design decisions rather than plan hygiene. The remote view is now an explicit tri-state with six enumerated outcomes, because the borrowed `_git_output` funnels every error *and* a genuinely absent remote into the same empty set, so changing only the timeout arm could never separate AC-0011 from AC-0015. And entry enumeration no longer uses `list_confined_regular_files`, which refuses every symlink: classification now precedes the integrity refusal, so an outside-namespace link is skipped and an in-namespace one refuses, matching `next-ordinal.py`'s record-looking-symlink rule. The rest: both TDD tasks carry exact, compiled, red-validated stubs with `# STUB:` markers and per-test `stub: true` records (T1 26/10, T2 red at collection); T2 no longer claims the implementation-discovered exception, since running the owner-table parser against the real file during PLAN settled the one unknown; T1's stub derives its tokens from the module's own mapping so the owner's table is checked in exactly one place; projection regeneration moved into every `.apm/`-editing task, because `self-host --check` and the sessions both read projections; and T3 now records six sessions, one per enumerated case, with the unmapped admission continuing through registration because that is what AC-0007 promises.
 
