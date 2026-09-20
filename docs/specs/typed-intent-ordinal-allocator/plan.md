@@ -39,6 +39,8 @@ The integration covers two entry paths with two mechanisms, because they have tw
 
 ## Constraints
 
+- **This slice fires `work-loop`'s security-boundary trigger** — confinement, untrusted repository content, file validation, subprocess handling, and an output that selects a filesystem destination for a skill that writes. A spec-stage `security-reviewer` pass was run on 2026-09-20 and its five findings are discharged as AC-0003 (tightened), AC-0016, AC-0017, AC-0018 and AC-0019. `AGENTS.md` forbids cutting a trust-boundary control, so each is a criterion rather than plan prose. An implementation pass on the diff is still owed at GATES.
+
 - **Shipped pack content carries no internal-governance citations** (`packs/AGENTS.md`). The script and both skill bodies state their rules directly; the parent intent, ADR-0108 and ADR-0033 are cited in the spec and here, never in pack content.
 - **A pack test may not read above its pack** (`tests/AGENTS.md:22-25`, enforced by `tools/test-lint-pack-test-boundary.py`), because pack tests ship with the pack. The core suite therefore runs on synthetic fixtures only, and every test that reads `docs/` or a second pack lives in `tests/roster/`.
 - **A new `tests/roster/` file obliges three further edits** (`tests/AGENTS.md:27-42`): a step in `.github/workflows/build-check.yml` naming the file and placed **above** the bulk `pytest tests/ -q` step, because the job is fail-fast with no step-level `if:` and a named step below it never runs; a matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py` with the value `LOCAL("test-after-build-check")`; and a `.workspace-prune-protected.toml` entry only if the test names a `docs/specs/<slug>` path as a literal, which T2's does not.
@@ -91,14 +93,19 @@ No `## Durable Outputs` table in the spec, so nothing to mirror. Each task names
 - `test_check_does_not_consult_the_remote_view` (AC-0012) — `stub: true`
 - `test_the_cli_uses_a_distinct_code_per_outcome` (AC-0006, AC-0007) — `stub: true`
 - `test_the_cli_refuses_with_its_own_code` (AC-0010, AC-0011) — `stub: true`
+- `test_a_hostile_level_is_data_not_a_command` (AC-0016) — `stub: true`
+- `test_an_outside_namespace_link_is_not_dereferenced` (AC-0017) — `stub: true`
+- `test_a_non_regular_in_namespace_entry_fails_closed` (AC-0017) — `stub: true`
+- `test_the_git_child_environment_is_scrubbed_and_local` (AC-0018) — `stub: true`
+- `test_diagnostics_reflect_no_untrusted_text` (AC-0019) — `stub: true`
 
-The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **32 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
+The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **43 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
 
 Deferred to EXECUTE as assertions added to this file rather than a rewrite of it: the `origin`-reachable arm of `test_a_reachable_or_absent_remote_allocates`, whose `"ok"` parametrization needs a local Git fixture this file does not build (T2 carries the equivalent at the repository boundary), and the induced-timeout variant of the failed-query case. Both are construction-level detail on an already-red contract surface.
 
 ```python
 # STUB: AC-0001, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0011,
-#       AC-0012, AC-0013, AC-0015
+#       AC-0012, AC-0013, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019
 # Stored and validated in PLAN's T1 Tests: subsection. Every case derives its
 # tokens and levels from the module's own mapping, so this file never restates
 # the owner's closed table — T2 is where the mapping is checked against the
@@ -335,6 +342,76 @@ def test_the_cli_refuses_with_its_own_code(tmp_path: pathlib.Path, capsys) -> No
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err.strip()
+
+
+@pytest.mark.parametrize(
+    "level",
+    ["feature; rm -rf /", "feature\nfeature", "--dir=/etc", "/absolute/feature",
+     "$(id)", "`id`", "feature&&id"],
+)
+def test_a_hostile_level_is_data_not_a_command(
+    level: str, tmp_path: pathlib.Path, capsys
+) -> None:
+    """AC-0016: an adopter-controlled open string never gains shell authority."""
+    assert MODULE.main(["--dir", str(tmp_path), "--level", level]) == 3
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert not list(tmp_path.iterdir())
+
+
+def test_an_outside_namespace_link_is_not_dereferenced(
+    tmp_path: pathlib.Path,
+) -> None:
+    """AC-0017: skipped without a dereference, so a dangling link is harmless."""
+    (tmp_path / f"{TOKENS[0]}-0001-a.md").write_text("", encoding="utf-8")
+    (tmp_path / "dangling.md").symlink_to(tmp_path / "does-not-exist.md")
+    assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) == 2
+
+
+def test_a_non_regular_in_namespace_entry_fails_closed(
+    tmp_path: pathlib.Path,
+) -> None:
+    """AC-0017: an in-namespace entry that is not a regular file refuses."""
+    os.mkfifo(tmp_path / f"{TOKENS[0]}-0001-fifo.md")
+    assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) is None
+
+
+def test_the_git_child_environment_is_scrubbed_and_local(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0018: no redirect variables, no shell, closed stdin, no fetch."""
+    seen: dict[str, object] = {}
+
+    def _record(arguments, **keywords):
+        seen["arguments"] = list(arguments)
+        seen["keywords"] = keywords
+        raise OSError("no git in this fixture")
+
+    monkeypatch.setattr(MODULE.subprocess, "run", _record)
+    monkeypatch.setenv("GIT_DIR", "/elsewhere/.git")
+    monkeypatch.setenv("GIT_OBJECT_DIRECTORY", "/elsewhere/objects")
+    MODULE.remote_view(tmp_path)
+
+    assert seen["keywords"]["shell"] is False
+    assert seen["keywords"]["stdin"] is MODULE.subprocess.DEVNULL
+    assert seen["keywords"]["timeout"] is not None
+    environment = seen["keywords"]["env"]
+    for variable in MODULE.GIT_REDIRECT_VARIABLES:
+        assert variable not in environment
+    assert "fetch" not in seen["arguments"]
+
+
+def test_diagnostics_reflect_no_untrusted_text(
+    tmp_path: pathlib.Path, capsys
+) -> None:
+    """AC-0019: bounded, single-line, and free of reflected adopter content."""
+    hostile = "feature-\x1b[31m-AKIAIOSFODNN7EXAMPLE\nsecond-line"
+    assert MODULE.main(["--dir", str(tmp_path), "--level", hostile]) == 3
+    message = capsys.readouterr().err
+    assert message.count("\n") == 1
+    assert len(message) <= 200
+    for fragment in ("AKIAIOSFODNN7EXAMPLE", "\x1b", "second-line"):
+        assert fragment not in message
 ```
 
 **Approach:**
@@ -350,6 +427,8 @@ def test_the_cli_refuses_with_its_own_code(tmp_path: pathlib.Path, capsys) -> No
   | 0 | `<TYPE>-NNNN` | empty | supplies `<TYPE>-NNNN-<slug>.md` as the confirmed destination (AC-0006) |
   | 3 | empty | one line naming the unmapped level | supplies the bare `<slug>.md`; admission and registration proceed (AC-0007) |
   | 1 | empty | one line naming the scan failure | stops before any write or registration (AC-0010, AC-0011) |
+
+  Every untrusted value crosses that boundary as a single data argument — `subprocess.run` with a list and `shell=False`, never a string a shell parses — and `work-intake`'s § 6 text says so explicitly, because the router has `Bash` and an adopter controls the `Level` string (AC-0016). § 6 also validates the returned value against `^<TOKEN>-\d{4,}$` before composing a destination from it: an allocator that returned something unexpected must not be able to choose a path.
 
   Three codes rather than two, so the branch never depends on parsing empty stdout: "no ordinal because the altitude has none" and "no ordinal because I could not look" are different instructions to the caller and must not share a code. The ordinal goes to stdout alone and every diagnostic to stderr, so a caller capturing stdout gets the value or nothing. `--check <dir>` keeps `next-ordinal.py`'s two codes, 0 clean and 1 duplicate-or-unreadable.
 - Match the owner's contract, not a prefix. Two patterns, so the classes cannot leave a gap: the introducer `^<TOKEN>-` decides in-or-out of the namespace, and the end-anchored shape `^<TOKEN>-\d{4,}-[^/]+\.md$` decides valid-or-malformed inside it. Both build their alternation from the mapping's own values, so the token set appears once in the module. Deriving malformed as "introducer and not shape" is what makes the partition exhaustive by construction; enumerating malformed shapes instead is how `FEAT-0001x.md` and `FEAT-0001` escaped an earlier draft.
@@ -369,6 +448,10 @@ def test_the_cli_refuses_with_its_own_code(tmp_path: pathlib.Path, capsys) -> No
 
   The three `absent` rows are the complete available view, which is why every positive fixture in the suite is an `origin`-less `tmp_path`; conflating them with `failed` makes the suite unsatisfiable. The two `failed` rows are an unknowably incomplete view, and refusing there is the deliberate divergence from the script being modelled. AC-0005's equivalence is scoped to fixtures where `origin` answers, so the two claims do not collide.
 - **Allocation unions, `--check` does not.** The two modes read different scopes, and that is inherited rather than invented: `next-ordinal.py` calls `_remote_ordinals` only from `next_ordinal:260`, never from `duplicate_ordinals:213`. So allocation classifies the union of local entries and remote names, deduplicating by repository-relative path so a file present in both counts once; `--check` reports duplicates in the directory it was given. AC-0012 is therefore a statement about one directory, which is also the only scope in which a duplicate is actionable — a remote-only collision is already committed and needs a reissue, not a refusal. The script says so in its own `--help`, because an operator who expects `--check` to see `origin` would read a clean result as more than it is.
+- **Zero writes, not "no other writes" (AC-0003).** The allocator only ever reads. Selecting a destination and writing one are different acts, and the write stays inside the existing admission transaction where confinement, provenance and authority transfer already apply. The snapshot assertion covers the repository root as well as the scanned directory, so a stray cache file elsewhere is caught too.
+- **Confinement through every component, and a link policy that fails closed (AC-0017).** `file_safety.validate_confined_directory` covers the directory and its ancestors; entry classification then stats without following, so an outside-namespace link is skipped without a dereference — a dangling one included — while an in-namespace symlink, FIFO, device, or entry that became uninspectable between listing and classification refuses. `classify_entry`'s reason for using `stat(follow_symlinks=False)` rather than `is_file()` applies here unchanged: those predicates return `False` on any `OSError`, so an entry removed mid-scan is silently dropped and the scan reports clean without having seen it.
+- **Git stays local, bounded and unredirected (AC-0018).** Local refs only and no fetch; a fixed argument list with `shell=False`; `stdin=DEVNULL`; the `GIT_*` redirect variables removed from the child environment so an inherited `GIT_DIR` cannot point the scan at another object store; and bounds on both wall time and the size of the listing consumed, since an oversized remote tree is a memory exhaustion path. Every breach is an AC-0011 refusal, not a partial answer.
+- **Diagnostics name the outcome, never the input (AC-0019).** One bounded line, no raw `Level`, no filename, no Git stderr. The `Level` field is open and adopter-controlled, so reflecting it is both a disclosure path and a terminal-injection path; the outcome is what the caller needs and the input is what it already has.
 - **Classify by name before applying the integrity refusal.** `file_safety.list_confined_regular_files` refuses *every* symlink, which would let an adopter's `notes -> ../elsewhere` link in the intents directory fail the whole scan even though AC-0004 says an outside-namespace name is skipped without incident. So the directory itself is validated with `file_safety.validate_confined_directory`, and entries are then enumerated with `os.scandir` plus a `stat(follow_symlinks=False)` classification — the shape `next-ordinal.py:213-250` already uses, which raises only on a **record-looking** symlink. An in-namespace link refuses; an outside-namespace one is skipped. The copied `file_safety.py` remains the blessed source of the directory-confinement primitive, which is why the copy and its byte-identity pin stay.
 - Carry the rest of `_remote_ordinals` over intact — the `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, and the root-relative pathspec run from the repository root. Each of those comments in the source records a defect already paid for once.
 
@@ -606,6 +689,8 @@ Pack content only; adopters pick it up on the next install. New intents created 
 - **A roster test that runs but attributes nothing.** A named step placed below the bulk `pytest tests/ -q` step in a fail-fast job never executes. T2 owns the placement and `tools/lint-ci-parity.py` is what catches the mismatch.
 
 ## Changelog
+
+- 2026-09-20 — Spec-stage security review run, as adversarial round 3 said was owed. Five findings, every one of the shape "the control is in the plan but not in the contract", and `AGENTS.md` forbids cutting a trust-boundary control — so all five are now criteria. The one real gap: an adopter controls the open `Level` string and `work-intake` holds `Bash`, so an implementation that interpolated it into a command would hand over the router's shell authority; AC-0016 fixes the executable, flags and argument count and requires every untrusted value to cross as a single data argument, with the returned value validated against the closed grammar before a destination is composed from it. AC-0003 was also readable as permission to write the intent, and now states zero mutations. AC-0017 covers confinement through every path component and a fail-closed link policy, AC-0018 local-ref-only bounded Git with a scrubbed child environment, and AC-0019 bounded diagnostics that reflect no adopter text. Eleven cases added to T1's stub, re-validated at 43 failed / 11 passed.
 
 - 2026-09-20 — Adversarial round 3 returned 2 blockers and 1 concern, all resolved. `RemoteView` now carries record **names** rather than an ordinal set: integers alone could not let a malformed remote name fail the scan, could not tell one record present in both views from two, and would have forced the classifier to run twice on different data. The scope split that goes with it is inherited rather than invented — `next-ordinal.py` calls `_remote_ordinals` only from `next_ordinal:260`, never from `duplicate_ordinals:213` — so allocation unions and `--check` reports on one directory, stated in the script's own `--help` so a clean result is not read as more than it is. And the `work-intake` boundary now has a contract: one invocation, three exit codes, so the caller never branches on empty stdout and "no ordinal because the altitude has none" cannot be confused with "no ordinal because I could not look". Six cases added to T1's stub, re-validated at 32 failed / 11 passed.
 
