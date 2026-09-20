@@ -115,6 +115,43 @@ The lesson is the claim rather than the count: a sweep's summary must be written
 from what the command actually covered, and this one said "repository-wide" of a
 three-root search.
 
+## 2026-09-20 — owner decisions that reversed three review rounds
+
+**Why it is here.** Two findings reached the owner rather than being resolved by
+the author, and both reversed a direction three adversarial rounds had pushed
+the contract toward. Recording them here keeps the reasoning with the evidence
+that produced it.
+
+**What the review had found.** First, the authoring route could never yield a
+typed intent: `frame-intent` writes `docs/product/intents/<slug>.md`, admission
+preserves an existing path, so the ordinal was never assigned — a contradiction
+with AC-0001 that no amount of criterion wording would fix. Second, the spec had
+drifted into stopping a mapped-level admission when the allocator could not
+number it, while the governing brief promises at `:26` that "a refused ordinal
+still leaves the intent admitted and registered" and at `:22` that an intent
+whose altitude is unmapped "keeps full `kind:slug` identity, admission and graph
+participation".
+
+**How the drift happened, since that is the transferable part.** Each step was
+locally defensible. Round 4 closed a hole where a supplied prefix was accepted
+as proof of allocation; the fix was to refuse the supplied prefix, and refusing
+the *admission* came along with it unexamined. Nothing in the next three rounds
+re-read the brief, because each round measured the spec against the previous
+round's spec. An accepted upstream artifact is not a reviewer input unless the
+author supplies it.
+
+**The decisions, 2026-09-20.** Admission always proceeds: a refusal or an
+unmapped altitude both yield an unprefixed intent that is admitted and
+registered, with the reason recorded in the artifact's own `## Unresolved
+questions` for a later re-issue. And a not-yet-admitted intent at a mapped level
+is allocated and renamed as its registry entry is created.
+
+**What made the rename cheap.** `work-intake/SKILL.md:336-340` registers *after*
+the owner returns a durable artifact, so a rename that happens before
+registration writes the entry once at the final path. There is no lockstep edit
+and no citation sweep, which is what keeps this out of
+`intent-renumber-and-reissue`'s territory.
+
 ## 2026-09-20 — T1's stub earns its red
 
 **Why run it.** `work-loop/SKILL.md:252` requires a TDD task's exact stub to
