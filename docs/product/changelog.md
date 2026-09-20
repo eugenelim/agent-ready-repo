@@ -73,9 +73,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   between the two hid the break: an emphasised or code-spanned sentence, a
   parenthesised aside, or a closing quotation mark each read as no sentence
   end at all, and a paragraph that emphasised every sentence read as one.
-  Bold lead-ins are common in design prose, so the paragraphs most likely to
-  run long were the ones least likely to be named. They are counted now, and
-  the check reports the same file and line it always did.
+  A long paragraph written with bold lead-ins could therefore pass the check
+  it should have failed. Those paragraphs are counted now, and the check
+  reports the same file and line it always did.
 - **A closing mark in any script closes a sentence.** The marks recognised are
   every Unicode close-punctuation and final-quote character, so a document
   written with corner brackets, guillemets or angle brackets is counted the
@@ -108,12 +108,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one are the same shape, and only what follows separates them. Two
   over-counts are newly accepted, each recorded in the source with its reason
   and pinned by a test: a code span whose content ends in a terminator
-  followed by another mark, as in "the pattern `foo.*` here"; and a bracketed
-  formula, as in "Compute ⟨n!⟩ first", which the unbracketed "Compute n!
-  first" already over-counted before this change. A third case in that family
-  is a regression rather than a newly exposed case, and is accepted with its
-  reason stated in the source: a link whose URL ends in a terminator, as in a
-  query marker, now reads as a sentence end where it did not before.
+  followed by another mark, as in "the pattern `foo.*` here"; a bracketed
+  formula, as in "Compute ⟨n!⟩ first"; and a link whose URL ends in a
+  terminator, as in a query marker. All three count one sentence more than
+  they did before, so all three are regressions on those inputs. They differ
+  in whether the underlying class was already live: an unbracketed "Compute
+  n! first" over-counted before this change, so the formula case was a hidden
+  instance of something already true, while a URL ending in a terminator was
+  counted correctly before and now is not.
   Recognising a URL needs real Markdown scanning — a pattern for it mistakes
   a literal bracket-paren in running prose, stops early on a URL containing
   balanced parentheses, and is quadratic when no closing parenthesis follows
@@ -121,12 +123,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contains would have stopped counting a span that is itself a sentence, which
   trades a visible over-count for the silent under-count the check exists to
   catch.
-- The sentence-boundary search is now linear in a run of terminators. It
-  retried the run from every position inside it, which was quadratic on input
-  the check accepts at up to a megabyte. Anchoring the match to the start of
-  the run changes no count and makes the work grow in step with the input
-  instead of with its square, which a test pins by growth rate rather than by
-  a duration that would differ on every machine.
+- A cost this change would otherwise have made worse is removed instead. The
+  sentence-boundary search retried a run of terminators from every position
+  inside it, which was already quadratic before this change on input the
+  check accepts at up to a megabyte; tolerating closing marks adds a rescan
+  of the closing run to each of those retries. Anchoring the match to the
+  start of the run changes no count and removes the retries, so the work
+  grows in step with the input rather than with its square. A test pins the
+  growth rate rather than a duration that would differ on every machine.
 
 ## [core][2.26.20] — 2026-09-18
 

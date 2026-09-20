@@ -854,10 +854,13 @@ _DELIMITED_BOUNDARY_CASES = (
     # over-counted, because the `!` was followed by a space. Bracketing used to
     # hide that and no longer does. Same accepted class, one more syntax.
     ("overcount", "bracketed factorial", "Compute ⟨n!⟩ first. Then record it.", 3),
-    # The one accepted case that is a REGRESSION rather than a newly exposed
-    # one: this counted 2 before the closer tolerance. Masking a destination
-    # needs real Markdown scanning, and the source says why a regex for it
-    # costs more than the over-count. Pinned so the trade stays visible.
+    # All three delimited-token rows count one more than they did before the
+    # closer tolerance, so all three regress on these exact inputs. What is
+    # different here is the CLASS: an unbracketed factorial already
+    # over-counted, so that one was a hidden instance of a live class, while
+    # a URL ending in a terminator was counted correctly before and is not.
+    # Masking a destination needs real Markdown scanning, and the source says
+    # why a regex for it costs more than the over-count it removes.
     ("overcount", "link destination ending in a terminator",
      "Read [search](https://example.test/s?) before rollout. Then deploy.", 3),
     # The irreducible residual. A one-letter sentence end behind a delimiter
@@ -881,8 +884,13 @@ def test_da3_counts_across_a_closing_delimiter(
     assert gate.count_sentences(paragraph) == expected, (direction, label)
 
 
-def _rows_the_table_gets_wrong(gate: ModuleType) -> set[str]:
-    """Return the label of every table row *gate* answers wrongly."""
+def _rows_missing_their_expectation(gate: ModuleType) -> set[str]:
+    """Return the label of every row whose count differs from its pin.
+
+    Not the same as "every row *gate* answers wrongly": the `overcount` and
+    `residual` rows pin answers the source calls wrong on purpose, so they
+    are absent from this set while `gate` is behaving as shipped.
+    """
     return {
         label
         for _, label, paragraph, expected in _DELIMITED_BOUNDARY_CASES
@@ -893,11 +901,13 @@ def _rows_the_table_gets_wrong(gate: ModuleType) -> set[str]:
 def test_the_delimiter_table_covers_both_directions() -> None:
     """A table that only ever grew in one direction is the original defect.
 
-    The under-count survived a green suite because every check asked whether
-    the counter split too often, and a scan for over-counts cannot find an
-    under-count. Asserting the set of directions -- rather than a row count,
-    which upstream churn breaks -- keeps a later revision from narrowing this
-    back to a single-direction scan.
+    The under-count survived a green suite not because the suite only looked
+    for over-counts -- `_MUST_SPLIT` above requires boundaries to register --
+    but because no case in it put anything between the terminator and the
+    whitespace, so the closing side was unreachable from every direction the
+    table already covered. Asserting the set of directions -- rather than a
+    row count, which upstream churn breaks -- keeps a later revision from
+    narrowing this back to a single-direction scan.
     """
     directions = {case[0] for case in _DELIMITED_BOUNDARY_CASES}
     assert directions == {"split", "keep", "overcount", "residual"}
@@ -927,17 +937,17 @@ def test_reverting_either_half_of_the_closer_tolerance_reds_this_table() -> None
     pre_closer_boundary = re.compile(r"(?<![.!?])[.!?]+(?=\s+\S)")
     pre_closer_initial = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
 
-    assert _rows_the_table_gets_wrong(_load_gate()) == set()
+    assert _rows_missing_their_expectation(_load_gate()) == set()
 
     boundary_reverted = _load_gate()
     boundary_reverted._SENTENCE_BOUNDARY_PATTERN = pre_closer_boundary
-    broken_by_boundary = _rows_the_table_gets_wrong(boundary_reverted)
+    broken_by_boundary = _rows_missing_their_expectation(boundary_reverted)
     assert "bold lead-in" in broken_by_boundary
     assert "every sentence delimited" in broken_by_boundary
 
     mask_reverted = _load_gate()
     mask_reverted._INITIAL_PATTERN = pre_closer_initial
-    broken_by_mask = _rows_the_table_gets_wrong(mask_reverted)
+    broken_by_mask = _rows_missing_their_expectation(mask_reverted)
     assert "enumeration label in code" in broken_by_mask, (
         "the mask half must be load-bearing on its own"
     )
@@ -968,10 +978,12 @@ def test_the_boundary_pattern_is_linear_in_a_run_of_terminators() -> None:
     reads cost. Without the `(?<![.!?])` anchor the engine retries the run
     from every position inside it and rescans the closer run each time. Over
     a fourfold input, linear growth predicts about 4x and quadratic about
-    16x, so a bound of 8x sits between the two classes. That bound is all
-    this test enforces: it measures only the shipped pattern and passes any
-    ratio under 8x, so it rejects quadratic growth rather than proving
-    linearity. Asserted as a ratio between two sizes rather than an absolute
+    16x, so a bound of 8x sits between the two classes over that range. That
+    bound is all this test enforces: it measures only the shipped pattern at
+    two sizes and passes any ratio under 8x, which separates this pattern
+    from the known unanchored one over the sampled range. It does not prove
+    linearity, and a curve whose quadratic term only dominates later would
+    pass. Asserted as a ratio between two sizes rather than an absolute
     duration, so a slow machine does not red it.
     """
     gate = _load_gate()

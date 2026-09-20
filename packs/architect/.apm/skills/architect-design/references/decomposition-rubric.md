@@ -60,10 +60,11 @@ belongs above goes up whatever else it meets — a document whose
 reviewer has no standing over a block is misfiled however well that block
 scores.
 
-The third is the one authors miss, because the qualifying rule is satisfied
-and a child document then looks like the answer. `D5` is usually what
-surfaces it — it is the criterion that notices the accepting owners are not
-this document's — but noticing they differ is not the same as knowing where
+The third is the one an author can miss, because the qualifying rule is
+satisfied and a child document then looks like the answer. `D5` can surface
+it — it is the criterion that notices the accepting owners are not this
+document's — and so can `D2`, when the boundary crossed is one the parent
+owns — but noticing they differ is not the same as knowing where
 they sit, and that part is judged. Differing is not itself disqualifying: a
 child document exists precisely so a decision can have its own reviewer
 within this subsystem. What sends a candidate upward is standing sitting
