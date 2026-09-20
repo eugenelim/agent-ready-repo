@@ -105,11 +105,21 @@ remainder split by what they describe:
 | What it describes | Surfaces | Bearing on this slice |
 | --- | --- | --- |
 | Admission — prose | `guides/core/reference/work-intake-routing-and-lifecycle.md`, `guides/core/how-to/start-the-work.md`, `guides/core/reference/workspace-toml-schema.md`, `docs/product/README.md`, `packs/core/seeds/docs/product/README.md`, `packs/core/.apm/skills/work-intake/SKILL.md`, `packs/core/.apm/skills/intake-intent/SKILL.md` | in scope |
-| Admission — code | `packages/agentbundle/agentbundle/workspace_mcp.py:91`, `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py:69` | in scope, and they make this a code change beyond the two skill bodies |
+| ~~Admission — code~~ | `packages/agentbundle/agentbundle/workspace_mcp.py:88-94`, `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py:69` | **both misclassified; corrected below** |
 | Authoring — `frame-intent` | `guides/product-engineering/**` (4 files), `guides/_shared/how-to/run-a-full-inception.md`, `packs/product-engineering/.apm/skills/frame-intent/**`, `align-value-stream` references and templates | out of scope: authoring, not admission |
 | Historical record | `docs/adr/0078`, `docs/rfc/0083`, `docs/product/changelog.md`, `docs/product/findings/`, seven other `docs/specs/*` | out of scope: immutable or already-shipped records |
 
-**What it settles.** The affected set is nine surfaces, two of them code — not the
+**Correction, same day.** Both code rows were wrong, and the next review round
+caught them. `workspace_mcp.py:88-94` is the `"shape"` dispatch entry whose
+`dispatch_skill` is `frame-intent` — authoring, not admission, so out of scope
+on the same ground as the guides beside it. And `intent_renderer.py:69` composes
+its target from the `slug` argument it is given, so a caller passing
+`FEAT-0006-my-thing` yields the prefixed path with no edit at all; the seam was
+already there. The affected set is **seven prose surfaces and no code** outside
+the new allocator, which is a materially smaller slice than the ledger first
+recorded.
+
+**What it settles.** The affected set was first recorded as nine surfaces, two of them code — not the
 two a reviewer named, and not the five the first sweep's narrow roots suggested.
 The lesson is the claim rather than the count: a sweep's summary must be written
 from what the command actually covered, and this one said "repository-wide" of a
