@@ -1,8 +1,8 @@
 """Contracts for architect-design's subsystem-decomposition rubric.
 
 The rubric names three routes for a candidate: its own architecture
-document, a row in this one's element catalogue, and out from under this
-document when the accepting owners are not the ones who accept it. It names
+document, a row in this one's element catalogue, and above this document
+when the standing to accept its decision sits there rather than here. It names
 them without claiming a candidate must land in exactly one, because the
 third route is judged rather than computed — none of `D1`-`D6` says at
 what altitude an owner holds authority — so it is deliberately not pinned as

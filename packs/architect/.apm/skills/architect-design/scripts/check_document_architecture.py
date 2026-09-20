@@ -350,9 +350,12 @@ def count_sentences(paragraph: str) -> int:
     one silently under-counts. It also skips any run of closing delimiters
     between the terminator and the whitespace, for the same reason on the
     other side. The boundary pattern carries no nested quantifier and no
-    alternation inside a repetition, the two constructs that make
-    backtracking super-linear; the closer class and the whitespace class
-    share no character, so the added repetition stays linear too.
+    alternation inside a repetition, the two constructs most often behind
+    super-linear backtracking — but not the only route to it, which is why
+    the start anchor is there: without it an unanchored terminator run
+    retries from every position inside itself and is quadratic with neither
+    construct present. The closer class and the whitespace class share no
+    character, so the added repetition stays linear too.
 
     One residual of the closer rule is irreducible rather than unfixed. A
     one-letter sentence end behind a delimiter ("...is `x.` Three.") and an
@@ -362,15 +365,16 @@ def count_sentences(paragraph: str) -> int:
     instead would over-count the second, and the choice went to the reading
     that leaves ordinary prose alone.
 
-    That residual, and the accepted over-counts listed beside the patterns
-    above, are the ones the closer rule owns. They are not an inventory of
-    everywhere this counter is wrong, and no such inventory is attempted
-    here: every mask above is a heuristic and each one's own trade is stated
-    where it is defined. Sentence counting has no exact rule to implement,
-    so a list of remaining wrong shapes would grow with every reader rather
-    than converge, and a reader who took it as complete would trust it more
-    than it deserves. `DA3` is a budget check a human reads and judges, not
-    an oracle.
+    That residual and the closer-induced over-counts described above are the
+    ones the closer rule owns. The `:::` fence and the orphan `-->` predate
+    it and are recorded there for context, not as its consequences.
+
+    None of that is an inventory of everywhere this counter is wrong, and no
+    such inventory is attempted here. Sentence counting has no exact rule to
+    implement, so a list of remaining wrong shapes would grow with every
+    reader rather than converge, and a reader who took it as complete would
+    trust it further than it earns. `DA3` is a budget check a human reads
+    and judges, not an oracle.
     """
     masked = paragraph
     for abbreviation in _ABBREVIATIONS:
