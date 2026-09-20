@@ -328,8 +328,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   applying six named mutations and observing red. Re-runnable by anyone
   holding the spec, and re-run against the tree as shipped rather than
   against an earlier state of the controls.
-- **Prose obligations (AC9, AC10, AC11): goal-based check.** Exact strings
-  and resolvable anchors at named locations.
+- **Prose obligations (AC9, AC10, AC11): TDD**, in the same pack suite.
+  Exact strings and resolvable anchors at named locations, each decided by an
+  assertion rather than by a command — which is what makes the mode TDD and
+  not goal-based, the label an earlier draft carried.
 - **Governance and release (AC13, AC14): goal-based check.** A diff bounded
   at a heading and a version comparison against the changelog.
 - **Eval register (AC15): goal-based check.** Read from `evals.json` with the
