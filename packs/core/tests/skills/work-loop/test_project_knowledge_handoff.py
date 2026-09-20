@@ -12,6 +12,7 @@ PROJECT_KNOWLEDGE_SKILL = (
     PACK_ROOT / ".apm" / "skills" / "project-knowledge" / "SKILL.md"
 )
 WORK_LOOP_EVALS = WORK_LOOP_SKILL.parent / "evals" / "evals.json"
+CAPTURE_REFERENCE = WORK_LOOP_SKILL.parent / "references" / "capture.md"
 
 CORE_2_5_9_QUESTION_BYTES = (
     b"Before the PR is opened: *What would have made this work materially better \xe2\x80\x94\n"
@@ -26,7 +27,20 @@ def _skill_text() -> str:
 
 
 def closeout_question_bytes() -> bytes:
-    raw = WORK_LOOP_SKILL.read_bytes()
+    """The closeout question, byte-exact, from wherever the skill keeps it.
+
+    It lived in `SKILL.md` until the section that carried it exceeded the
+    1000-line cap `tests/roster/test_wave4_durable_outputs_and_release.py`
+    enforces. The writing guidance -- this question, the
+    lesson-not-the-incident rule, and the semantic-gate routing -- moved to
+    `references/capture.md`, which is the relocation that cap exists to
+    encourage; `SKILL.md` keeps the routing and links the reference.
+
+    The pin follows the prose rather than the prose coming back: this
+    assertion is still byte-exact and still fails on any edit to the
+    question. What changed is where it looks, not how strong it is.
+    """
+    raw = CAPTURE_REFERENCE.read_bytes()
     start = raw.index(b"Before the PR is opened:")
     end = raw.index(b"\n\nSpeed is one useful signal", start)
     return raw[start:end] + b"\n"

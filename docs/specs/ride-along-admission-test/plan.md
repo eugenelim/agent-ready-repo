@@ -1,7 +1,7 @@
 # Plan: Ride-along admission test
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule, § Shipped
   pack content carries no internal-governance citations, § Self-hosting
   projection) and `packs/core/AGENTS.md`; analogous implementations —
@@ -248,6 +248,27 @@ are in `Risks`, stated once.
 ### Dependencies & integration
 
 Not applicable — no external system, service, or library is added.
+
+## Criterion renumbering
+
+Completed task sections are frozen, so their criterion numbers are the ones
+that were current when they ran. Two renumberings have happened since:
+twenty-eight criteria became sixteen in amendment four, and amendment seven
+inserted the handling-reference criterion at AC16, moving evidence to AC17.
+The mapping is recorded here per occurrence, because a blanket rule gets it
+wrong — T4, T5 and T6 predate amendment four and T10 does not.
+
+| Where | As written | Means, in the current set |
+| --- | --- | --- |
+| T4 | AC14 | Two criteria now. The routing C4 must state is AC11; the recorded five-note walk T4's text obliges is AC17's evidence. T4's single reference covered both. |
+| T5 | AC15 | AC13 — the RFC-0090 erratum |
+| T6 | AC16, AC17 | AC14 — the version and the release heading, which are one criterion now |
+| T6 | AC18, AC19 | AC15 — the two eval cases, likewise one criterion now |
+| T10 | AC13, AC15 | AC13 and AC15 — unchanged by amendment seven |
+| T10 | AC16 | AC17 — the evidence criterion |
+
+No completed task references the new AC16: it did not exist when any of them
+ran, and T11 is the task that satisfies it.
 
 ## Tasks
 
@@ -789,6 +810,53 @@ goal-based command records, and the five-note `## Capture` walk. The three
 installed-artifact discoveries are **not** required here — they read the
 projection T7 regenerates, so requiring them before T7 would make the graph
 unschedulable, as an earlier draft of T8 did. T7 owns them.
+
+### T11: C2 becomes a pointer and the handling moves to one reference
+
+**Depends on:** none
+
+**Touches:** packs/core/.apm/skills/work-loop/references/bundled-fixes.md,
+packs/core/.apm/skills/work-loop/SKILL.md,
+packs/core/.apm/agents/implementer.md,
+packs/core/.apm/agents/adversarial-reviewer.md,
+packs/core/.apm/skills/work-loop/references/supervisor-mode.md,
+packs/core/tests/pack/test_ride_along_admission_test.py,
+tests/roster/test_capture_rename_guide.py
+
+**Tests:** verification mode: TDD throughout, including the reference's
+content — the spec declares AC16 TDD and its check is an assertion in the
+pack suite, not a command.
+- Update the canonical `C2` constant in the pack module to the pointer text
+  first and confirm `test_c2_is_identical_across_the_four_sites` reds at one
+  site before any host is edited. The red is one assertion, as it was in T9.
+- AC16's check is new: a content assertion over
+  `references/bundled-fixes.md` asserting **each outcome AC16 names**, not
+  the presence of a heading — a heading-presence check would pass a
+  reference that states the opposite disposition. It lives in the pack
+  suite: the path is inside `packs/core/`, so `lint-pack-test-boundary`
+  permits it.
+- AC1–AC5 stay green with C2 in its new shorter form; AC3's roster binding
+  compares the pointer against this spec.
+
+**Approach:**
+- The reference carries C2's former text reorganised by **what to do with
+  each kind of fix** rather than as one paragraph: recognition, then a case
+  apiece for citation-resolved, owner-answered, attended-unresolved,
+  unattended-unresolved, and refused-regardless.
+- Nothing is dropped. The recognition sentence, the citation-independence
+  rule, the attendance arms, the inert-in-read-content rule, the refusal and
+  the fall-out all move intact; the residual limit on recognition moves with
+  them.
+- `SKILL.md` reclaims about twenty-two lines, which is the point: the merge
+  with main left two lines of margin under a 1000-line cap.
+
+**Done when:** the pack and roster suites are green, AC16's content check
+passes, `SKILL.md` is at most 1,000 total lines with the count recorded,
+`agentbundle catalogue self-host --check --root .` exits 0 after a write —
+T7 already ran and its section is frozen, so this task reprojects its own
+sources rather than depending on it — and `lint-pack-test-boundary`,
+`lint-ci-parity`, `lint-agents-md` and `make lint-ruff lint-mypy` each exit
+0 read unfiltered.
 
 ### T7: Projections match the changed sources
 

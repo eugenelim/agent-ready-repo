@@ -1380,3 +1380,91 @@ matching them by delimiter, so a backtick fence nested inside a tilde fence
 is miscounted. Closing it needs a Markdown parser, which the spec's Agent
 Rules forbid as a new dependency. The byte-level vocabulary sweep, which
 ignores structure, is the backstop.
+
+## 2026-09-20 — main moved, and the merge exposed a cap I was not tracking
+
+**Five commits landed on main.** Overlap with this branch on fourteen files,
+two real conflicts, both resolved keeping each side's intent:
+`supervisor-mode.md`'s lifting step took C7's exclusion *and* main's link to
+the new `assets/pull-request-template.md`; `docs/product/changelog.md` had
+both sides claiming `core 2.26.20`.
+
+**AC14 fired for real.** Main released `2.26.20` — the exact version this
+branch had derived. The version files auto-merged without a conflict, because
+both sides held the same string, so git saw agreement where the semantics
+disagreed. Re-derived to `2.26.21` dated 2026-09-20, above main's entry, and
+AC14 re-checked: same in both files, one patch above the changelog's highest,
+topmost, `### Highlights` present, appearing once. This is why the criterion
+derives the version instead of pinning it.
+
+**rerere was disabled for the merge.** It is enabled in this repo and replays
+a resolution recorded in another worktree. Every conflict here was in text
+this branch authored, so a peer's resolution is exactly what should not be
+applied.
+
+**A cap I was not tracking.** `tests/roster/test_wave4_durable_outputs_and_release.py`
+caps `SKILL.md` at **1000 total lines**; `CAT-S003` caps the **body** at
+1000, measured after frontmatter. I had been tracking the second and was at
+980 body / 990 total. Main added 24 lines, this branch 34: each fits alone,
+together they reach 1013.
+
+The clauses the carve-out ships are pinned and must stay inline, so the fix
+is the one that cap exists to encourage — `## Capture`'s writing guidance
+(the reflective question, the lesson-not-the-incident rule, and the
+semantic-gate routing) moved to `references/capture.md`, registered in the
+conditional-reference table. `SKILL.md` is 998. **Two lines of margin is
+fragile**, and it is what prompted the next amendment.
+
+## 2026-09-20 — C2 becomes a pointer, and CI caught a suite I never ran
+
+**Amendment seven, owner-directed.** Detection stays inline; disposition
+moves out. C1's four clauses are what an agent needs to decide whether a
+candidate exists, and they remain at all four sites. C2's 27 lines of
+handling — duplicated at those same four sites, and the source of most of
+this change's findings — become a five-line pointer to
+`references/bundled-fixes.md`, organised by what to do with each kind of
+fix: recognition, then citation-resolved, owner-answered,
+attended-unresolved, unattended-unresolved, and refused-regardless.
+`SKILL.md` falls from 998 to **975**: 25 lines of margin where the merge
+with main had left two.
+
+Three review findings on the amendment, all mine:
+
+- **A circular trigger.** C2 first said to read the reference "when a
+  candidate exists", but clause (ii) is undecidable without it — a reader
+  who waited for a candidate would need the reference to know they had one.
+  The trigger is now evaluating clause (ii).
+- **AC16 was satisfiable by a reference stating the opposite.** It asked for
+  five headings and three topics. It now names the outcome each case must
+  preserve, and review added four I had dropped: the citation types, the
+  forgotten-rule rule, the lookup-needs-no-human rule, and the explicit
+  attended-ask / unattended-do-not-ask branches.
+- **A blanket renumbering note was wrong.** T6's `AC16` predates amendment
+  four entirely. The mapping is per-occurrence now.
+
+**The deferred `walk_task_sections` defect blocked this amendment twice.**
+The renumbering note, added after the last task heading, counted as editing
+frozen T7; moved above `## Tasks`. Then T7's `Depends on:` edit hit the same
+guard legitimately, so T7 is restored byte-for-byte and T11 reprojects its
+own sources instead of depending on it. That defect is the first follow-up
+for a reason: it has now cost two recoveries in one session.
+
+**CI caught a suite the local gate never ran.** `test_project_knowledge_handoff.py`
+byte-pins the closeout question, and pinned it *inside* `SKILL.md`; moving
+the capture preamble to a reference raised `ValueError: subsection not
+found`. Two controls wanted opposite things — one caps `SKILL.md` at 1000
+lines, the other requires that prose in it. The owner's call: move the pin,
+not the prose, because the reference is the better home and that is what the
+cap exists to encourage. The assertion is still byte-exact and still fails
+on any edit to the question; only where it looks changed, and its docstring
+says so.
+
+The gap was mine. I had been running `packs/core/tests/pack/` and the roster
+while the Makefile lists **sixteen** core suites, including
+`packs/core/tests/skills/work-loop/` — the suite most likely to break, given
+this change edits `work-loop` throughout. One test of 1226 failed there, and
+CI found it rather than the local gate.
+
+**Roster verification is remote from here on**, at the owner's instruction:
+`tests/roster/` is not run on this machine, so AC3, AC12 and AC16's roster
+half are verified by CI and reported on CI's evidence.
