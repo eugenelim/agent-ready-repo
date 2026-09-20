@@ -76,6 +76,36 @@ derived from the measurement, it is bounded below by it. What the correction
 buys is that the origin and the bound are expressed in one unit, so a later
 reader re-measuring finds the same number.
 
+## 2026-09-20 — the full set of surfaces promising the unprefixed intent path
+
+**Why run it.** Adversarial review named two published guides still promising
+`docs/product/intents/<slug>.md` for an admitted intent. Two files named by a
+reviewer is not the same set as every file that carries the promise, so the tree
+was swept rather than the two taken as the population.
+
+**What was run.** At revision `56c385ba5`, from the repository root:
+
+```
+grep -rn 'docs/product/intents/<slug>\.md\|docs/product/intents/{slug}\|intents/<slug>' \
+  guides/ docs/guides/ packs/*/.apm/ | grep -v '^packs/.*tests/'
+```
+
+**Observed.** 29 occurrences across 14 files, which split cleanly by which stage
+they describe:
+
+| Stage | Surfaces | In scope |
+| --- | --- | --- |
+| Admission — `work-intake` / `intake-intent` | `guides/core/reference/work-intake-routing-and-lifecycle.md`, `guides/core/how-to/start-the-work.md`, `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/work-intake/SKILL.md`, `packs/core/.apm/skills/intake-intent/SKILL.md` | yes |
+| Authoring — `frame-intent` | `guides/product-engineering/**` (4 files), `guides/_shared/how-to/run-a-full-inception.md`, `packs/product-engineering/.apm/skills/frame-intent/**`, `align-value-stream` references and templates | no |
+
+**What it settles.** The affected set is five surfaces, not two, and the
+unaffected set is larger than both. The distinction is the stage: `frame-intent`
+*authors* an intent at `<output_dir>/intents/<slug>.md` and this slice does not
+touch authoring, while admission is where an ordinal is assigned. A sweep that
+treated every occurrence as a promise to change would have moved guidance this
+slice makes no claim about — which is why the out-of-scope rows are recorded
+here and in the spec's Durable Outputs rather than left to a reader to infer.
+
 ## 2026-09-20 — T1's stub earns its red
 
 **Why run it.** `work-loop/SKILL.md:252` requires a TDD task's exact stub to
