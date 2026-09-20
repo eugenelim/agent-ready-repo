@@ -1909,10 +1909,10 @@ milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires
 
 ["ini-010".brief_queue]
 executing = []
-ready = []
-draft = [
-  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; returned to Draft 2026-09-20 by the material slice re-cut, pending a fresh review and confirmation", needs = [] },
+ready = [
+  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
 ]
+draft = []
 
 ["ini-010".shaping_queue]
 active  = []
