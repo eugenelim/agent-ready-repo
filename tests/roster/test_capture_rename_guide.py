@@ -103,9 +103,17 @@ def _flat(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+_FENCE_RE = re.compile(r"^```", re.MULTILINE)
+
+
 def _in_fence(text: str, offset: int) -> bool:
-    """True when `offset` falls inside a ``` fenced block."""
-    return text.count("\n```", 0, offset) % 2 == 1
+    """True when `offset` falls inside a ``` fenced block.
+
+    Counted with a line-anchored pattern rather than `count("\\n```")`: the
+    latter cannot see a fence that opens at byte 0, so a file beginning with
+    a fenced copy of a heading would read as live.
+    """
+    return sum(1 for m in _FENCE_RE.finditer(text, 0, offset)) % 2 == 1
 
 
 def _in_comment(text: str, offset: int) -> bool:

@@ -1264,3 +1264,18 @@ inside a fence and did not red — correctly, because the fix skips fenced
 copies and parses the real section. Reading that as "the fix does not work"
 would have been wrong; the mutations that do exercise it are two live
 headings and a divergent live section, and both red.
+
+## 2026-09-20 — one blocker, and the finding rate reaches one
+
+The round after the closing one returned a single Blocker, again in a control
+and not in shipped prose: `_in_fence` counted `"\n```"`, which cannot see a
+fence opening at byte 0, so a file beginning with a fenced copy of the
+shipped-clauses heading would read as live. Repaired with a line-anchored
+pattern and proved by the case the reviewer named — a file-start fenced
+counterfeit with the real section renamed away — which now reds
+`test_pinned_clauses_match_the_spec`.
+
+**Finding rate across the control-hardening rounds: 9, 5, 3, 1.** Every one
+of the last three rounds found defects only in the two control files. The
+four `.apm/` surfaces an adopter reads have taken no finding since the
+clauses landed.
