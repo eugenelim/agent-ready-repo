@@ -64,6 +64,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.22] — 2026-09-20
+
+### Highlights
+
+- **Ordinary work stays on the short path.** `work-loop`'s risk triggers are
+  now split into the ones that name a thing you can modify — a security or
+  governance boundary, a structure or public interface, a persistent
+  representation — and the ones that name an act or the work. The first group
+  fires when a change modifies that thing, so reading it, calling it, testing
+  it, documenting it, or regenerating a projection of it no longer routes the
+  work to full mode. A modification that preserves behaviour still fires, and
+  where you cannot tell whether the change reached the thing, it counts as
+  having reached it.
+
+### Changed
+
+- The risk-trigger block states the touch-versus-modify rule once, as the
+  heading of the group it governs, instead of carrying it on a single bullet.
+  The test is whether the change reaches the thing, not whether the thing's
+  guarantees survive: a behaviour-preserving rewrite of an auth guard, an
+  extraction into a new module, and a compatible re-encoding of a checkpoint
+  all still route to full mode.
+- The triggers that name an act keep firing on the act, even when everything
+  they touch is unchanged: a destructive or irreversible operation, a
+  backfill, replay, import, export, or transformation, and adding a
+  dependency.
+- Backfill, replay, import, export, and destructive transformation are now
+  their own trigger rather than a clause inside the persistent-representation
+  trigger, which had straddled both groups. Both halves fire exactly as
+  before; only their presentation changed.
+- The compliance, governance, or security-boundary trigger reads `changes`
+  rather than `touches`, matching the rule that governs it.
+
 ## [core][2.26.21] — 2026-09-20
 
 ### Highlights

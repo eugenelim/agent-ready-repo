@@ -85,25 +85,40 @@ Mode is determined by **risk, not file count** — a familiar two-file change is
 <!-- risk-triggers:start — this skill is the canonical and only home.
      Other surfaces name this skill instead of copying the block; a copy
      elsewhere fails the lint. -->
-**Risk triggers — any one routes the work to full mode:**
+**Risk triggers — any one routes the work to full mode.**
 
+**These name a thing you can modify.** Each fires when the change **modifies
+that thing** — its definition, its implementation, or what it guarantees — and
+a modification that preserves behaviour still fires. Reading it, calling it,
+testing it, documenting it, or regenerating a projection of it does not fire
+one, because none of those changes the thing.
+Merely touching unchanged existing I/O does not fire one either. Prose
+*about* such a thing is exempt; prose that *is* the rule — agent guidance,
+policy, an interface document — is the thing itself. Where you cannot tell
+whether the change reached the thing, it did.
+
+- **Compliance, governance, or security boundary** — it changes a compliance
+  or governance surface, or changes a security boundary, data flow, or guarding control
+  (auth, secrets, untrusted input, deserialization, or file/network
+  validation, confinement, redirect policy, timeout/resource limits, or
+  metadata/internal-range blocking).
+- **Structural or public-interface change** — it changes structure (a new
+  module, layer, or boundary) or a public or published interface.
+- **Persistent representation or mixed-version deployment** — it changes a database schema, index, stored value, durable serialized state, cache, persisted configuration, or checkpoint; a retained message, event, or API payload; or any state read by old and new deployed versions during rollout.
+
+**These name an act, or the work itself.** Each fires on its own terms, even
+when everything it touches is unchanged.
+
+- **Destructive or irreversible operation** — it deletes data, force-pushes,
+  drops tables, or otherwise can't be cleanly undone.
+- **Backfill, replay, import, export, or destructive transformation** — it
+  runs one, whether or not the implementation it calls is unchanged.
+- **New dependency** — it adds a dependency.
 - **Unfamiliar** — territory you don't know well.
 - **Multi-person** — multiple implementers or external collaborators must
   coordinate the work. Mandatory automated reviewers do not count.
 - **Multi-feature or dependent tasks** — it decomposes a multi-feature
   brief, or its tasks depend on one another.
-- **Compliance, governance, or security boundary** — it touches a
-  compliance or governance surface, or changes a security boundary, data flow,
-  or guarding control (auth, secrets, untrusted input, deserialization, or
-  file/network validation, confinement, redirect policy, timeout/resource
-  limits, or metadata/internal-range blocking). Merely touching unchanged
-  existing I/O does not fire this trigger.
-- **Structural or public-interface change** — it changes structure (a new
-  module, layer, or boundary) or a public or published interface.
-- **Destructive or irreversible operation** — it deletes data,
-  force-pushes, drops tables, or otherwise can't be cleanly undone.
-- **Persistent representation or mixed-version deployment** — it changes a database schema, index, stored value, durable serialized state, cache, persisted configuration, or checkpoint; retained message/event/API payload; or any state read by old and new deployed versions during rollout; or it runs a backfill, replay, import, export, or destructive transformation.
-- **New dependency** — it adds a dependency.
 
 No trigger fires → **light mode**.
 <!-- risk-triggers:end -->
