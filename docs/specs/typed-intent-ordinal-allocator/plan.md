@@ -91,10 +91,10 @@ The spec's `## Durable Outputs` names three applicable roles. The first: the pub
 - `test_a_path_in_both_views_counts_once` (AC-0005) — `stub: true`
 - `test_a_remote_only_record_raises_the_maximum` (AC-0005) — `stub: true`
 - `test_check_does_not_consult_the_remote_view` (AC-0012) — `stub: true`
-- `test_the_cli_uses_a_distinct_code_per_outcome` (AC-0006, AC-0007) — `stub: true`
-- `test_the_cli_refuses_with_its_own_code` (AC-0010, AC-0011) — `stub: true`
-- `test_a_hostile_level_is_data_not_a_command` (AC-0016) — `stub: true`
-- `test_a_traversing_dir_argument_is_refused` (AC-0016, AC-0017) — `stub: true`
+- `test_the_cli_prints_the_allocated_ordinal` (AC-0006) — `stub: true`
+- `test_the_cli_refuses_a_scan_it_could_not_complete` (AC-0010, AC-0011) — `stub: true`
+- `test_an_out_of_set_token_is_refused` (AC-0020) — `stub: true`
+- `test_a_traversing_dir_argument_is_refused` (AC-0020, AC-0017) — `stub: true`
 - `test_an_outside_namespace_link_is_not_dereferenced` (AC-0017) — `stub: true`
 - `test_a_non_regular_in_namespace_entry_fails_closed` (AC-0017) — `stub: true`
 - `test_the_git_child_environment_is_scrubbed_and_local` (AC-0018) — `stub: true`
@@ -105,13 +105,13 @@ The spec's `## Durable Outputs` names three applicable roles. The first: the pub
 - `test_diagnostics_reflect_no_filename_or_git_error` (AC-0019) — deferred to EXECUTE; the `Level`-reflection half is in the stub and red
 - `test_a_non_blob_remote_entry_fails_closed` (AC-0017) — deferred to EXECUTE; needs an `ls-tree` fixture carrying a non-blob mode inside the namespace
 
-The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **49 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
+The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **51 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
 
 Deferred to EXECUTE as assertions added to this file rather than a rewrite of it: the `origin`-reachable arm of `test_a_reachable_or_absent_remote_allocates`, whose `"ok"` parametrization needs a local Git fixture this file does not build (T2 carries the equivalent at the repository boundary), and the induced-timeout variant of the failed-query case. Both are construction-level detail on an already-red contract surface.
 
 ```python
 # STUB: AC-0001, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0011,
-#       AC-0012, AC-0013, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019
+#       AC-0012, AC-0013, AC-0015, AC-0017, AC-0018, AC-0019, AC-0020
 # Stored and validated in PLAN's T1 Tests: subsection. Every case derives its
 # tokens and levels from the module's own mapping, so this file never restates
 # the owner's closed table — T2 is where the mapping is checked against the
@@ -322,45 +322,39 @@ def test_check_does_not_consult_the_remote_view(
     assert MODULE.main(["--check", str(tmp_path)]) == 0
 
 
-@pytest.mark.parametrize(
-    ("level", "expected_exit"),
-    [(LEVELS[0], 0), ("initiative", 3)],
-)
-def test_the_cli_uses_a_distinct_code_per_outcome(
-    level: str, expected_exit: int, tmp_path: pathlib.Path, capsys
+@pytest.mark.parametrize("token", TOKENS)
+def test_the_cli_prints_the_allocated_ordinal(
+    token: str, tmp_path: pathlib.Path, capsys
 ) -> None:
-    """AC-0006, AC-0007: allocated, unmapped and refused are three codes."""
-    assert MODULE.main(["--dir", str(tmp_path), "--level", level]) == expected_exit
+    """AC-0006: exit 0 and the ordinal on stdout alone."""
+    assert MODULE.main(["--dir", str(tmp_path), "--token", token]) == 0
     captured = capsys.readouterr()
-    if expected_exit == 0:
-        assert captured.out.strip() == f"{MODULE.LEVEL_TOKENS[level]}-0001"
-    else:
-        assert captured.out == ""
-        assert captured.err.strip()
+    assert captured.out.strip() == f"{token}-0001"
+    assert captured.err == ""
 
 
-def test_the_cli_refuses_with_its_own_code(tmp_path: pathlib.Path, capsys) -> None:
-    """AC-0010, AC-0011: a scan failure is not the unmapped outcome."""
+def test_the_cli_refuses_a_scan_it_could_not_complete(
+    tmp_path: pathlib.Path, capsys
+) -> None:
+    """AC-0010, AC-0011: exit 1, nothing on stdout, one line on stderr."""
     token = TOKENS[0]
     (tmp_path / f"{token}-12-y.md").write_text("", encoding="utf-8")
-    level = next(k for k, v in MODULE.LEVEL_TOKENS.items() if v == token)
-    assert MODULE.main(["--dir", str(tmp_path), "--level", level]) == 1
+    assert MODULE.main(["--dir", str(tmp_path), "--token", token]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err.strip()
 
 
 @pytest.mark.parametrize(
-    "level",
-    ["feature; rm -rf /", "feature\nfeature", "--dir=/etc", "/absolute/feature",
-     "$(id)", "`id`", "feature&&id", "feature'", 'feature"', "feature\x00",
-     "FEATURE", "feature " + "x" * 64],
+    "token",
+    ["EPIC", "feature", "FEAT; rm -rf /", "FEAT\nFEAT", "--dir=/etc", "$(id)",
+     "`id`", "FEAT'", 'FEAT"', "FEAT\x00", "", "F" * 64],
 )
-def test_a_hostile_level_is_data_not_a_command(
-    level: str, tmp_path: pathlib.Path, capsys
+def test_an_out_of_set_token_is_refused(
+    token: str, tmp_path: pathlib.Path, capsys
 ) -> None:
-    """AC-0016: an adopter-controlled open string never gains shell authority."""
-    assert MODULE.main(["--dir", str(tmp_path), "--level", level]) == 3
+    """AC-0020: defence in depth behind the caller's own resolution."""
+    assert MODULE.main(["--dir", str(tmp_path), "--token", token]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
     assert not list(tmp_path.iterdir())
@@ -384,10 +378,9 @@ def test_a_non_regular_in_namespace_entry_fails_closed(
 
 
 def test_a_traversing_dir_argument_is_refused(tmp_path: pathlib.Path) -> None:
-    """AC-0016, AC-0017: --dir is repository-relative with no `..` segment."""
-    level = LEVELS[0]
+    """AC-0020, AC-0017: --dir is repository-relative with no `..` segment."""
     for candidate in ("../escape", "/etc", "docs/../../escape"):
-        assert MODULE.main(["--dir", candidate, "--level", level]) == 1
+        assert MODULE.main(["--dir", candidate, "--token", TOKENS[0]]) == 1
 
 
 def test_the_git_child_environment_is_scrubbed_and_local(
@@ -419,8 +412,8 @@ def test_diagnostics_reflect_no_untrusted_text(
     tmp_path: pathlib.Path, capsys
 ) -> None:
     """AC-0019: bounded, single-line, and free of reflected adopter content."""
-    hostile = "feature-\x1b[31m-AKIAIOSFODNN7EXAMPLE\nsecond-line"
-    assert MODULE.main(["--dir", str(tmp_path), "--level", hostile]) == 3
+    hostile = "FEAT-\x1b[31m-AKIAIOSFODNN7EXAMPLE\nsecond-line"
+    assert MODULE.main(["--dir", str(tmp_path), "--token", hostile]) == 1
     message = capsys.readouterr().err
     assert message.count("\n") == 1
     assert len(message.encode("utf-8")) <= MODULE.DIAGNOSTIC_BYTE_LIMIT == 200
@@ -430,30 +423,22 @@ def test_diagnostics_reflect_no_untrusted_text(
 
 **Approach:**
 
-- **One invocation, three exit codes.** `work-intake` calls the script; the contract at that boundary is as much a deliverable as the Python surface, because § 6 has to branch on it:
+- **The caller resolves the level first, so the shell never sees adopter bytes.** An earlier draft passed `--level <Level value>` and relied on the script to reject a hostile string. That ordering is wrong: `work-intake` holds a shell-shaped `Bash` tool, so a quote inside the value terminates the single-quoted argument and the shell executes whatever follows *before* the script runs. No regex inside the script can undo that. So § 6 resolves the altitude against the closed table itself — a lookup it already has to state for AC-0014 — and the command carries only a token from that closed set:
 
   ```
-  python3 '<skill-dir>/scripts/intent_ordinal.py' --dir <repo-relative directory> --level <Level value>
+  python3 '<skill-dir>/scripts/intent_ordinal.py' --dir <repo-relative directory> --token <CLOSED-SET TOKEN>
   ```
 
-  `<skill-dir>` is the installer- or harness-supplied directory holding `work-intake`'s `SKILL.md`, the convention `work-loop/SKILL.md:119-121` already states and the only one that resolves in both this repository and an installed adopter tree. The working directory is the **repository root**, which is what makes `--dir docs/product/intents` resolve; the resolved script path and the repository-relative directory stay two separate arguments, so neither is composed into the other. A bare `scripts/intent_ordinal.py` resolves from neither location — that is the shape this replaces.
+  `<skill-dir>` is the installer- or harness-supplied directory holding `work-intake`'s `SKILL.md`, the convention `work-loop/SKILL.md:119-121` already states and the only one resolving in both this repository and an installed adopter tree. The working directory is the **repository root**, which is what makes `--dir docs/product/intents` resolve. Every argument now comes from a fixed or closed set the caller owns, so there is nothing for a shell to be tricked by (AC-0016).
 
   | Exit | stdout | stderr | `work-intake` does |
   | --- | --- | --- | --- |
-  | 0 | `<TYPE>-NNNN` | empty | supplies `<TYPE>-NNNN-<slug>.md` as the confirmed destination (AC-0006) |
-  | 3 | empty | one line naming the unmapped level | supplies the bare `<slug>.md`; admission and registration proceed (AC-0007) |
+  | 0 | `<TYPE>-NNNN` | empty | supplies `<TYPE>-NNNN-<slug>.md` as the confirmed repository destination (AC-0006) |
   | 1 | empty | one line naming the scan failure | stops before any write or registration (AC-0010, AC-0011) |
 
-  The caller is an agent holding a shell-shaped `Bash` tool, not a Python process, so "pass it as argv" is not available at that boundary and the control cannot rest there. Two defences instead, and the script's is the load-bearing one (AC-0016):
+  Two codes, not three. The unmapped case has no exit code because it never invokes the allocator: § 6 recognizes an unmapped altitude and goes straight to the bare `<slug>.md` destination (AC-0007). That also removes the sentinel-versus-error problem an earlier draft had to explain away — there is no nonzero status for the commonest case on an adopter's corpus.
 
-  1. **§ 6 instructs single-quoted arguments** and forbids composing the `Level` value into any other part of the command. This is prose, which is exactly why it is not relied on alone.
-  2. **The script refuses the value itself.** `--level` is accepted only when it matches `^[a-z][a-z-]{0,63}$`; anything else — a quote, a newline, a control or shell metacharacter, a leading dash, a path separator — is *unmapped* and takes the exit-3 path without ever reaching the table. Every key in the parent's table already satisfies that class, so the restriction costs nothing and removes the injection surface from the one value the router interpolates. `--dir` is likewise accepted only as a repository-relative path with no `..` segment, resolved and confinement-checked before use.
-
-  Defence 2 is what AC-0016's unit cases assert, and it is what makes an imperfectly quoted command harmless rather than exploitable. § 6 also validates the returned value against `^<TOKEN>-\d{4,}$` before composing a destination from it — an allocator that returned something unexpected must not be able to choose a path — and that half is asserted at the caller in `test_work_intake.py`.
-
-  Exit 3 is an **internal sentinel, not a failure**. § 6 states that it consumes exit 3 as a normal outcome and surfaces nothing to the operator — the intent is admitted unprefixed and registered, which is success. The stderr line exists for a log, not for a person. This has to be written down because a nonzero status plus a stderr write is what most runtimes call an error, and an implementation that propagated it would turn the commonest case on an adopter's corpus into a visible failure.
-
-  Three codes rather than two, so the branch never depends on parsing empty stdout: "no ordinal because the altitude has none" and "no ordinal because I could not look" are different instructions to the caller and must not share a code. The ordinal goes to stdout alone and every diagnostic to stderr, so a caller capturing stdout gets the value or nothing. `--check <dir>` keeps `next-ordinal.py`'s two codes, 0 clean and 1 duplicate-or-unreadable.
+  The script still refuses an out-of-set `--token` and a `--dir` carrying a `..` segment or resolving outside the repository (AC-0020). That is defence in depth for a caller that got its own resolution wrong, not the control that makes the boundary safe; the ordering above is.
 - Match the owner's contract, not a prefix. Two patterns, so the classes cannot leave a gap: the introducer `^<TOKEN>-` decides in-or-out of the namespace, and the end-anchored shape `^<TOKEN>-\d{4,}-[^/]+\.md$` decides valid-or-malformed inside it. Both build their alternation from the mapping's own values, so the token set appears once in the module. Deriving malformed as "introducer and not shape" is what makes the partition exhaustive by construction; enumerating malformed shapes instead is how `FEAT-0001x.md` and `FEAT-0001` escaped an earlier draft.
 - The anchored shape is narrower than `next-ordinal.py`'s `[-.]`, deliberately (AC-0013). Inheriting `[-.]` would count `FEAT-0001.md` and `FEAT-0001.txt`, letting a file the owner's contract does not admit raise the maximum.
 - `token_for_level` is a dict lookup with an exact-match key, transcribing the parent intent's table rather than deciding it. The script states the mapping directly because shipped pack content carries no internal-governance citations, and a comment names the transcription so a future edit knows where the decision lives.
@@ -479,7 +464,7 @@ def test_diagnostics_reflect_no_untrusted_text(
 - **Classify by name before applying the integrity refusal.** `file_safety.list_confined_regular_files` refuses *every* symlink, which would let an adopter's `notes -> ../elsewhere` link in the intents directory fail the whole scan even though AC-0004 says an outside-namespace name is skipped without incident. So the directory itself is validated with `file_safety.validate_confined_directory`, and entries are then enumerated with `os.scandir` plus a `stat(follow_symlinks=False)` classification — the shape `next-ordinal.py:213-250` already uses, which raises only on a **record-looking** symlink. An in-namespace link refuses; an outside-namespace one is skipped. The copied `file_safety.py` remains the blessed source of the directory-confinement primitive, which is why the copy and its byte-identity pin stay.
 - Carry the rest of `_remote_ordinals` over with one change: **keep the object mode**. `next-ordinal.py` uses `ls-tree -z --name-only`, which discards it, so an in-namespace symlink, tree or gitlink on `origin` would be indistinguishable from a regular record and AC-0017's fail-closed rule could not hold on the remote half. Dropping `--name-only` yields `100644 blob <sha>\t<name>` per entry, still NUL-separated; anything in the namespace whose mode is not a regular blob — `100644` or `100755` — fails the scan closed, exactly as a local non-regular entry does. The `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, and the root-relative pathspec run from the repository root all carry over unchanged; each of those comments in the source records a defect already paid for once.
 
-**Done when:** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` is green, including one case per exit code; then commit, run `make build-self` — it refuses a dirty tree, so the commit comes first — and commit the regenerated projections, after which `python3 -m agentbundle catalogue self-host --root . --check` passes. Regeneration belongs to every task that edits `.apm/`, rather than to one closing task: `self-host --check` compares projections to source, and T3's sessions exercise the installed skills, so both need current projections before they can mean anything. T3 runs the final drift check after its own edits, since the task graph ends there.
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` is green, including one case per exit code and the out-of-set token refusals; then commit, run `make build-self` — it refuses a dirty tree, so the commit comes first — and commit the regenerated projections, after which `PYTHONPATH=packages/agentbundle:packages/credbroker python3 -m agentbundle catalogue self-host --root . --check` passes. The `PYTHONPATH` is not optional: `AGENTS.local.md:29-31` requires it for a bare `python -m agentbundle`, and without it a global install silently shadows the tree, so the check can pass against code that is not under review. Regeneration belongs to every task that edits `.apm/`, rather than to one closing task: `self-host --check` compares projections to source, and T3's sessions exercise the installed skills, so both need current projections before they can mean anything. T3 runs the final drift check after its own edits, since the task graph ends there.
 
 **Touches:** packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py, packs/core/.apm/skills/work-intake/scripts/file_safety.py, packs/core/tests/skills/work-intake/test_intent_ordinal.py
 
@@ -493,7 +478,7 @@ def test_diagnostics_reflect_no_untrusted_text(
 
 - `test_the_mapping_matches_its_owner_in_both_directions` (AC-0014) — `stub: true`
 - `test_the_parser_recognizes_exactly_the_owner_tokens` (AC-0014) — `stub: true`
-- `test_every_shipped_prose_surface_names_the_owner_levels` (AC-0014) — deferred to EXECUTE; the assertion shape depends on the § 6 and Procedure-step-3 wording T3 writes, and a stub written now would pin prose that does not exist yet
+
 - `test_every_live_typed_file_satisfies_the_owner_shape` (AC-0013) — `stub: true`
 - `test_paired_fixtures_agree_with_the_untyped_allocator` (AC-0005) — `stub: true`
 - `test_origin_widens_the_view_but_not_to_an_unpushed_peer` (AC-0005) — `stub: true`
@@ -643,7 +628,7 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 **Approach:**
 
 - Load both scripts by path under distinct module names, following `test_next_ordinal.py:14-20`. Do not put either `scripts/` directory on `sys.path`.
-- Prose has no compiler, so each shipped surface that names a level or a token gets the same parity check as the code (AC-0014): `work-intake` § 6, `intake-intent`'s Procedure step 3, and the published routing table are each asserted against the parent's parsed table. Checking only the allocator would let the installed skill bodies drift while every code test stayed green, which is the likelier failure of the two.
+- T2 owns the code half of AC-0014 only. The prose half belongs to T3, which writes the prose: a parity assertion in T2 would measure text a later task produces, and T2 could not pass its own completion gate. T2 therefore exports the owner-table parser as a shared helper in the same roster module, and T3's assertion imports it — one parse, two tasks, neither waiting on the other.
 - Roster admission is three edits, not one file (`tests/AGENTS.md:27-42`), and they are part of this task rather than a follow-up: the named step in `build-check.yml` must sit **above** the bulk `pytest tests/ -q` step or it never runs, and `tools/lint-ci-parity.py` gains the matching `STEP_DISPOSITION` of `LOCAL("test-after-build-check")`. No `.workspace-prune-protected.toml` entry is needed, because this test names no `docs/specs/<slug>` literal.
 - Add the `file_safety.py` byte-identity assertion for the new copy beside the existing `close-work` one at `tests/roster/test_close_work_extraction_and_immediate_disposition.py:853-857`. `packs/AGENTS.local.md:54-57` requires it for every hand-maintained `packs/**` copy; without it a source-side hardening fix never reaches this copy and nothing goes red.
 - Run `ruff check .` after adding the file: the repository lint targets do not cover it (`tests/AGENTS.md:44-46`).
@@ -660,10 +645,12 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
 
 **Tests:** `no stub (mode)` for the prose assertions; the sessions are manual QA.
 
+- § 6 resolves the `Level` against the closed table **before** invoking anything, passes only a closed-set token on the command line, and skips the invocation entirely for an unmapped altitude (AC-0016). This is the ordering that makes the shell boundary safe, and it is asserted as prose plus one recorded session at the real Bash boundary — the script's own refusals run after a shell would already have parsed.
 - § 6 names the allocation step and its script, and states that the allocated ordinal is expressed as a prefixed slug in the confirmed repository destination it already passes to `intake-intent` (AC-0006).
 - § 6 distinguishes the two refusal classes: an absent or unmapped level means the bare slug, and admission and registration proceed unchanged (AC-0007); an allocation, scan or parse failure while **creating** at a mapped level stops before any write or registration (AC-0010). One unprefixed fallback for both would write the very thing AC-0009 forbids.
 - `intake-intent`'s Procedure step 3 states that **creating** at a mapped level requires an already-allocated ordinal in the confirmed destination, that a prefix supplied with the request is not accepted as proof of allocation, and that it derives none itself; lacking one it stops and names the path that allocates (AC-0009).
 - Procedure step 3 states that an existing repository path is preserved whether or not it carries a prefix, so an existing unprefixed mapped-level intent is updated in place with no allocation and no refusal (AC-0009).
+- Every shipped prose surface that names a level or a token holds exactly the parent's table (AC-0014): `work-intake` § 6, `intake-intent`'s Procedure step 3, and the published routing table, each asserted against the owner-table parser T2 exports. Prose has no compiler, so a skill body drifting from the table while every code test stays green is the likelier of the two failures.
 - A construction check over `intake-intent/SKILL.md` frontmatter and its `## Boundaries` block rejects shell, network and any new tool (AC-0008). The existing suite exercises the renderer and never opens `SKILL.md`, so it cannot carry this claim.
 - `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended (AC-0008).
 - `guides/core/reference/work-intake-routing-and-lifecycle.md`'s `Start routing` table states both intent destinations and the condition that selects them (AC-0006, AC-0007). Its current row promises `docs/product/intents/<slug>.md` for every admitted intent, which this slice makes false for a mapped level, and a published promise contradicting the shipped skill is the spec's one durable output. The replacement is **drafted here, before approval**, as the durable-output contract requires; the published file is edited in EXECUTE so an adopter never reads a promise the code does not yet keep:
@@ -671,11 +658,14 @@ def test_the_baseline_agrees_with_the_hand_authored_corpus() -> None:
   ```markdown
   | Input shape | Canonical artifact | Initial lifecycle | Processor |
   | --- | --- | --- | --- |
-  | Minimal outcome needing repository admission, at a recognized altitude | Intent at `docs/product/intents/<TYPE>-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
-  | Minimal outcome needing repository admission, at any other altitude | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, `Level: product-vision` | Intent at `docs/product/intents/VISION-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, `Level: product-strategy` | Intent at `docs/product/intents/STRAT-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, `Level: capability` | Intent at `docs/product/intents/CAP-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, `Level: feature` | Intent at `docs/product/intents/FEAT-NNNN-<slug>.md`, the ordinal allocated at admission | Draft, non-dispatchable | `intake-intent` |
+  | Minimal outcome needing repository admission, any other `Level` | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
   ```
 
-  Two rows rather than a conditional footnote, because the destination is what an adopter looks up and a footnote is what they miss. Existing intents keep their current paths; the table describes admission, not the corpus.
+  The exact mapping rather than a generic `<TYPE>` placeholder, because AC-0014 requires every maintained copy to hold the parent's keys and values and a placeholder holds neither. Five rows rather than a conditional footnote, because the destination is what an adopter looks up and a footnote is what they miss. Existing intents keep their current paths; the table describes admission, not the corpus.
 - § 6 states that a returned value is validated against `^<TOKEN>-\d{4,}$` before a destination is composed from it, so an unexpected allocator output cannot choose a path (AC-0016). This clause is caller-side, which is why it belongs here: T1's stub cannot reach the router. One recorded session feeds the router an allocator stub returning `../escape` and shows § 6 refusing to compose a destination.
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same bumped version — **patch**, because a script added inside an existing skill is changed content of that skill rather than a new projected primitive (`packs/AGENTS.md:43-47`) — and `docs/product/changelog.md` has a matching `core` release heading, topmost among `core` headings, with a `### Highlights` bullet. Read the current version at that moment rather than reserving one now: an unpushed bump collides silently with a peer session's.
 - Both skills' `evals/` cover the new behaviour: `work-intake` a mapped-level admission and an unmapped-level one, `intake-intent` the creation refusal and the existing-path preservation (`packs/AGENTS.md:60`).
