@@ -46,14 +46,14 @@ RFC-0071 wrote them.
 | thin-slice field in `place-bet` | not started | 0 matches for `thin.slice` in `place-bet/SKILL.md` |
 | post-launch learning contract | not started | 0 matches for `learning contract`, `review cadence`, `rollback or expansion` in `place-bet/SKILL.md` |
 | evidence ladder (observed → unknown) | not started | 0 matches for `evidence ladder` in `place-bet/SKILL.md` or `diverge-solutions/SKILL.md` |
-| replace fixed-count options | not started | `diverge-solutions/SKILL.md` still states `≥3` in 3 places |
+| replace fixed-count options | not started | `≥3` appears 5 times in `diverge-solutions/SKILL.md` — including its frontmatter `description`, the activation surface — plus once in `JOURNEY.md`'s skill entry. No test or eval pins the count |
 | `G0`/`G1.5`/`G2` → plain English | partial | `JOURNEY.md` carries `G0` and `G3` but no `G1.5`/`G2`; `guides/product-engineering/how-to/run-a-discovery.md` carries all four. The evals half is untouched: 0 matches for `weak` in `discovery-loop/evals/` |
-| `voice-and-microcopy` → `ux-writing` | shipped incomplete | the skill is renamed and no `voice-and-microcopy` directory exists in any pack; 2 references survive in `packs/experience-design/DESIGN.md` and now name nothing |
+| `voice-and-microcopy` → `ux-writing` | shipped | the skill is renamed, no `voice-and-microcopy` directory exists in any pack, and `git ls-files \| xargs grep -Hl` returns no live reference — every remaining hit is a frozen governance record under `docs/rfc/` or `docs/specs/`. The cross-references the rename left behind were closed in `experience-design` 2.0.7 and `product-engineering` 0.13.13 |
 | `JOURNEY.md` `whatChanges` → Digital Experience Contract | not started | 0 matches for `Digital Experience Contract` in `packs/product-engineering/JOURNEY.md` |
 
-Four of seven are unstarted, two are partial, and none is complete. The two
-partials are the ones that read as done from a distance, which is why the check
-column is here.
+Four are unstarted, one is partial, one has shipped. The partial and the shipped
+row are the ones that read wrong from a distance in opposite directions, which is
+why the check column is here.
 
 ## Open items in this pack
 

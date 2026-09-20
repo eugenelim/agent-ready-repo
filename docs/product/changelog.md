@@ -64,31 +64,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [product-engineering][0.13.14] — 2026-09-20
+## [product-engineering][0.13.13] — 2026-09-20
+
+Three residues of the `voice-and-microcopy` → `ux-writing` rename and one
+doctrine correction, all in the shaping surface.
+
+`ux-writing` was missing the three output-rendering directives its entry in the
+rendering-directive table specifies. The table was still keyed on the old name,
+so the skill matched no entry and shipped without them — a missing key does not
+fail, it just does not match, which is why nothing caught it.
 
 `frame-situation` told readers that `diverge-solutions` and `place-bet` were
 "not yet shipped" when explaining its step-2 readiness degrade. Both ship. The
-claim went stale when their specs landed and the degrade branch citing it was
-not revisited, so it read as evidence and was not. The degrade behaviour is
+line went stale when their specs landed and the degrade branch citing it was
+never revisited, so it read as evidence and was not. The degrade behaviour is
 unchanged; only the false justification is gone.
 
-### Highlights
-
-- `frame-situation` no longer tells you two shipped skills are unshipped.
-
-## [product-engineering][0.13.13] — 2026-09-20
-
-`ux-writing` now carries the three output-rendering directives its entry in the
-rendering-directive table specifies — table, narrative, and key–value. The
-directives had been absent since the skill was renamed from
-`voice-and-microcopy`: the table was keyed on the old name, so the skill matched
-no entry and silently shipped without them. A missing key does not fail, it just
-does not match, which is why nothing caught it.
+`diverge-solutions` demanded a fixed floor of options — in its activation
+description, its opening line, its output contract, its generate step, its
+artifact shape, and the pack journey entry. A number invites padding to reach
+it, which is the opposite of divergence: the skill was inducing the invented
+alternatives it exists to avoid. It now asks for enough materially different
+options to expose the real decision, and says outright not to invent
+alternatives to satisfy a number.
 
 ### Highlights
 
-- `ux-writing` output now follows the same rendering directives as its sibling
+- `diverge-solutions` no longer asks for a minimum option count, so options are
+  generated to expose the decision rather than to reach a threshold.
+- `ux-writing` output follows the same rendering directives as its sibling
   product-engineering skills, instead of falling back to unguided formatting.
+- `frame-situation` no longer tells you two shipped skills are unshipped.
 
 ## [experience-design][2.0.7] — 2026-09-20
 
