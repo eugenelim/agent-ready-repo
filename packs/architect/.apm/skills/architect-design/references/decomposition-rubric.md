@@ -6,7 +6,7 @@ own right — with their own decisions, their own boundaries, their own
 reviewers — and the question this rubric answers is when that shift is real
 rather than a container for growing prose: given a subsystem, which of its
 parts earn a document of their own, which stay rows in this one's element
-catalogue, and which belong above this document entirely?
+catalogue, and which belong above this document altogether?
 
 ## The six criteria
 
@@ -27,33 +27,33 @@ down, not a subsystem worth splitting out; one of `D2` through `D6` is what
 makes that decision belong to a document rather than to a row.
 
 The rule settles whether the decision needs a document of its own. It does
-not settle whose. `D5` is the only criterion that notices standing at all,
-and it notices only that the accepting owners differ from this document's —
-not which side of it they sit on. They may sit alongside, in which case a
-child of this document is the right home, or above, in which case no child
-of this document is. So a candidate can pass this rule and still not be this
-document's to hang a child under. That second question is the one the
-dispositions below answer, and it has to be asked every time this rule is
-met.
+not settle whose, and none of the six criteria will tell you: they ask
+whether a candidate differs from its parent, not at what altitude the people
+who must accept its decisions hold that authority. `D5` comes closest and
+still only notices that the accepting owners differ — not which side of this
+document they sit on. So ask separately, every time this rule is met, who
+has standing to accept the decision. That is the question the dispositions
+below are for.
 
 ## The three dispositions
 
-A candidate lands in one of three places, not two. Decide which before
+There are three routes a candidate can take, not two. Decide which before
 writing anything.
 
 - **A document of its own.** It meets `D1` plus at least one other
   criterion, and the decision is this subsystem's to make.
-- **A row in this document's element catalogue.** It does not meet `D1` plus
-  at least one other criterion — the exact complement of the qualifying
-  rule, so every candidate the rule turns away lands here. Two cases reach
-  it and they are not the same. Where `D1` is unmet there is no decision at
-  all, only detail to record. Where `D1` is met and nothing else is, there is
-  a live decision, and `D5` being among the criteria it fails is what says
-  whose it is: the accepting owners do not differ from this document's, so
-  the decision is this document's own. Record it here beside the element it
-  governs, and do not split a child out to hold it.
+- **A row in this document's element catalogue.** Where `D1` is unmet there
+  is no decision to home, only detail to record. A candidate meeting `D1`
+  and nothing else also stays a row: the decision is real, but nothing about
+  it asks for a document, so record it here beside the element it governs
+  rather than splitting a child out to hold it.
 - **Above this document.** It meets `D1` plus at least one other criterion,
   and the decision is not this subsystem's to make. Route it upward.
+
+These are three routes, not a decision table, and standing is the question
+that picks between the first and the third. A candidate whose decision
+belongs above goes up whatever else it meets — a document whose reviewer has
+no standing over a block is misfiled however well that block scores.
 
 The third is the one authors miss, because the qualifying rule is satisfied
 and a child document then looks like the answer. `D5` is usually what
@@ -91,10 +91,9 @@ rule. Apply this rubric to every child, then to every grandchild, and so on.
 The descent terminates when no remaining child has a live architectural
 decision of its own — at that depth there is nothing left to decide, only
 detail left to record, and detail belongs in the parent's element catalogue.
-A branch also stops one step earlier than that, without the descent having
-run out of decisions: a candidate meeting `D1` alone earns no child to
-descend into, so its decision is settled in the row that holds it and the
-recursion has nowhere further to go on that branch.
+A branch also ends wherever no child is created, whether because the
+candidate stayed a row or because its decision went upward — there is
+nothing under this document left to descend into either way.
 
 ## The three refusals
 

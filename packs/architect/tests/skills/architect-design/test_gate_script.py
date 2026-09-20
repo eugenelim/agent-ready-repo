@@ -829,6 +829,15 @@ _DELIMITED_BOUNDARY_CASES = (
     ("keep", "lowercase label", "a. `DA1` one. `DA2` two. `DA3` three. `DA4` four.", 4),
     ("keep", "contraction", "It works. It doesn't. Third one here. Fourth here.", 4),
     ("keep", "possessive", "Read it. That is the reviewer's. Third here. Fourth here.", 4),
+    # A link destination is a URL, so a terminator inside one is masked. The
+    # closer tolerance would otherwise read the `)` after a trailing query
+    # marker as the close of a sentence that ended at the `?`.
+    ("keep", "link destination ending in a query marker",
+     "Read [search](https://example.test/s?) before rollout. Then deploy.", 2),
+    ("keep", "link destination ending in a period",
+     "See [note](./notes/b.) first. Then go.", 2),
+    ("keep", "link destination with dots inside",
+     "See [api](https://x.test/v1.2/a?q=1) first. Then go.", 2),
     # Four over-counts the source names as accepted, for three different
     # reasons. This one is prose: masking an uppercase lone letter dropped a
     # real boundary, so a genuine initial is counted twice instead.
@@ -900,7 +909,10 @@ def test_reverting_either_half_of_the_closer_tolerance_reds_this_table() -> None
     deleting every row that can fail. This is the control with teeth. It
     reverts each half of the closer tolerance independently and asserts the
     table catches each -- so the table cannot be gutted without one of these
-    two reversions going quiet. Each reverted form keeps the `(?<![.!?])`
+    two reversions going quiet. What they preserve is one load-bearing
+    witness for each half, not the table's breadth -- a table cut down to
+    one row per direction would still satisfy both. Each reverted form keeps
+    the `(?<![.!?])`
     anchor, which the historical line did not carry: the anchor is a separate
     cost fix, and holding it constant is what isolates the closer tolerance as
     the only variable.
@@ -933,7 +945,8 @@ def test_the_closer_literal_still_matches_the_categories_it_claims() -> None:
     """The hand-written closer set is regenerated here rather than trusted.
 
     The source writes the set out instead of sweeping `unicodedata` at
-    import, because the sweep costs more than the whole run of the script.
+    import, because that would rebuild, on every invocation, a set that
+    changes only when Unicode does.
     A written-out set drifts as Unicode adds characters, and nothing else
     would notice, so this derives it and compares.
     """
@@ -953,9 +966,10 @@ def test_the_boundary_pattern_is_linear_in_a_run_of_terminators() -> None:
     reads cost. Without the `(?<![.!?])` anchor the engine retries the run
     from every position inside it and rescans the closer run each time. Over
     a fourfold input, linear growth predicts about 4x and quadratic about
-    16x; measured, the anchored form gives 4.0x and the unanchored one 15.6x,
-    so the 8x threshold sits between the two classes rather than beside
-    either. Asserted as a ratio between two sizes rather than an absolute
+    16x, so a bound of 8x sits between the two classes. That bound is all
+    this test enforces: it measures only the shipped pattern and passes any
+    ratio under 8x, so it rejects quadratic growth rather than proving
+    linearity. Asserted as a ratio between two sizes rather than an absolute
     duration, so a slow machine does not red it.
     """
     gate = _load_gate()

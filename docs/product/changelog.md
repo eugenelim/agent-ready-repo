@@ -90,10 +90,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that. The case this catches is a document that carries the changes it is
   asking of a ratified parent: ratifying it would accept those changes by
   implication, because its own reviewer has no standing to accept them. The
-  qualifying rule now decides only whether a candidate stops being a row in
-  the element catalogue, because nothing in the six criteria asks who has
-  standing to accept a decision — so meeting the rule no longer reads as
-  settling which document holds the result.
+  qualifying rule now says plainly that it does not settle which document
+  holds the result, and that none of the six criteria will tell you: they ask
+  whether a candidate differs from its parent, not at what altitude the people
+  who must accept its decisions hold that authority. So standing is a question
+  to ask separately every time the rule is met.
 
 ### Fixed
 
@@ -108,8 +109,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over-counts are newly accepted, each recorded in the source with its reason
   and pinned by a test: a code span whose content ends in a terminator
   followed by another mark, as in "the pattern `foo.*` here"; and a bracketed
-  factorial, as in "Compute ⟨n!⟩ first", which the unbracketed "Compute n!
-  first" already over-counted before this change. Masking what a code span
+  formula, as in "Compute ⟨n!⟩ first", which the unbracketed "Compute n!
+  first" already over-counted before this change. A third case in that family
+  has a right answer and is fixed rather than accepted: a terminator inside a
+  link destination, as in a URL ending in a query marker, is never a sentence
+  end, because a destination is never prose. Masking what a code span
   contains would have stopped counting a span that is itself a sentence, which
   trades a visible over-count for the silent under-count the check exists to
   catch.

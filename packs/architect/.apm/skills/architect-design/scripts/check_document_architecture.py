@@ -245,10 +245,10 @@ _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
 # The set is every Unicode close-punctuation and final-quote character
 # (categories `Pe` and `Pf`), plus the ASCII quotes and the four Markdown
 # marks that close a span. It is written out rather than swept from
-# `unicodedata` at import, because the sweep costs about 130ms on every
-# invocation to rebuild a set that changes only when Unicode does; a test
-# regenerates it and fails on drift, so the literal is checked rather than
-# trusted. Deriving it from the categories is what
+# `unicodedata` at import, because that would rebuild a set that changes only
+# when Unicode does, on every invocation of a script a human runs by hand; a
+# test regenerates it and fails on drift, so the literal is checked rather
+# than trusted. Deriving it from the categories is what
 # makes "a closing mark of any script" true instead of a hand-list that
 # happens to cover the scripts its author thought of.
 _CLOSING_CHARACTERS = (
@@ -278,7 +278,7 @@ _INITIAL_PATTERN = re.compile(
 # document's paragraph text: a line ending in a terminator immediately before
 # a Starlight `:::` fence, and one before an unstripped `-->`. The stripping
 # pass removes a COMPLETE `<!-- ... -->` span, so the second arises only from
-# a `-->` with no opening `<!--` above it -- malformed source, but reachable
+# a `-->` with no unmatched opening `<!--` before it -- malformed source, but reachable
 # on this gate's own input rather than impossible on it.
 # A third joins them and does reach prose: a code span whose content ends in a
 # terminator followed by another mark, as in "the pattern `foo.*` here", reads
@@ -315,6 +315,21 @@ _SENTENCE_BOUNDARY_PATTERN = re.compile(
 )
 
 
+# A link destination is a URL, not prose, so a terminator inside one is never
+# a sentence end. This is the one member of the "terminator inside a delimited
+# token" family that has a right answer rather than a trade-off: a code span's
+# content may itself be a sentence, and a bracketed formula cannot be told
+# from bracketed prose, but a destination is never either. So this one is
+# masked and those two are accepted above.
+_LINK_DESTINATION_PATTERN = re.compile(r"\]\([^)\n]*\)")
+_TERMINATOR = re.compile(r"[.!?]")
+
+
+def _mask_link_destination(match: re.Match[str]) -> str:
+    """Blank every terminator inside one link destination, char for char."""
+    return _TERMINATOR.sub("․", match.group(0))
+
+
 def _mask_initial(match: re.Match[str]) -> str:
     """Blank only the period of a lone-letter token, e.g. an inline `a.` label."""
     return match.group(0)[0] + "․"
@@ -323,11 +338,12 @@ def _mask_initial(match: re.Match[str]) -> str:
 def count_sentences(paragraph: str) -> int:
     """Count sentences in one `DA3` prose paragraph.
 
-    Abbreviation periods, decimal points, ellipses, and the period of a
-    LOWERCASE lone letter (an inline enumeration label, `a.`) are masked
-    first, by literal replacement, so none of them reads as a sentence
-    boundary; every replacement is one character for one character, so no
-    later offset shifts. An UPPERCASE lone letter is deliberately not masked:
+    Abbreviation periods, decimal points, ellipses, every terminator inside
+    a Markdown link destination, and the period of a LOWERCASE lone letter
+    (an inline enumeration label, `a.`) are masked first, by literal
+    replacement, so none of them reads as a sentence boundary; every
+    replacement is one character for one character, so no later offset
+    shifts. An UPPERCASE lone letter is deliberately not masked:
     it is far more often a single-letter name ending a sentence
     ("...over Y. The record...") than an initial, so masking it dropped a
     real boundary. The cost is that a genuine initial over-counts
@@ -355,6 +371,7 @@ def count_sentences(paragraph: str) -> int:
         masked = masked.replace(abbreviation, abbreviation.replace(".", "․"))
     masked = _DECIMAL_PATTERN.sub("․", masked)
     masked = _ELLIPSIS_PATTERN.sub(lambda m: "․" * len(m.group(0)), masked)
+    masked = _LINK_DESTINATION_PATTERN.sub(_mask_link_destination, masked)
     masked = _INITIAL_PATTERN.sub(_mask_initial, masked)
     boundaries = len(_SENTENCE_BOUNDARY_PATTERN.findall(masked))
     return boundaries + 1 if masked.strip() else 0
