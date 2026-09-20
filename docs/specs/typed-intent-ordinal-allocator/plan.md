@@ -1,7 +1,7 @@
 # Plan: a typed allocator that refuses where the untyped one guesses
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py:103` (`_PREFIX = re.compile(r"^(\d{4,})[-.]")` — the anchored pattern that returns `0001` on a typed directory), `:162` (`_remote_ordinals`, which unions records on `refs/remotes/origin/HEAD` — committed-and-pushed records absent from the working tree, *not* a peer's unpushed work, which ADR-0108:41 records as the limit of this whole approach; it returns an empty set when there is no remote to consult and degrades to the working tree on a timeout), `:213` (`duplicate_ordinals`, which refuses rather than reporting clean on a scan it could not complete), `:256` (`next_ordinal`); `packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py:14-20` (load-by-path module loader and the local-Git fixture pattern this suite reuses); `packs/core/.apm/skills/work-intake/SKILL.md:329-340` (§ 6 *Delegate intent admission*, the named integration point) and `:60` (the public routing precedence that sends an explicit `intake-intent` request past § 6); `packs/core/.apm/skills/intake-intent/SKILL.md:100-107` (Procedure steps 3 and 5, the preserve-or-confirm step this slice amends) and `:195-212` (`## Boundaries`, which refuses shell access); `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py:66` (`repository_intent_target`, which composes `docs/product/intents/{slug}.md`) and `:171` (`admit_repository_intent`, which already accepts `slug` and `level`); `packs/core/.apm/skills/work-loop/scripts/file_safety.py:221` (`list_confined_regular_files`, the blessed confined listing) with `tests/roster/test_close_work_extraction_and_immediate_disposition.py:853-857` (the byte-identity pin every hand-maintained `packs/**` copy needs, per `packs/AGENTS.local.md:54-57`); `tests/AGENTS.md:27-42` (the three edits a new `tests/roster/` file obliges). Named uncertainty: the existing typed corpus was authored by hand, so the allocator's first real run must agree with numbers a human chose — T2's baseline assertion measures it rather than assuming it.
 
 ## Approach
@@ -706,5 +706,4 @@ Pack content only; adopters pick it up on the next install. New intents created 
 
 <!-- Approvals only. Drafting history lives in the section that owns each decision. -->
 
-- Spec approval: pending.
-- Plan approval: pending.
+- 2026-09-20 — Spec and plan approved by eugenelim, after shaping review reached Clean, adversarial review reached `Clean — ready to commit.`, and the spec-stage security pass was discharged into criteria. The parent intent's validation hook was reconciled the same day, which was the last open blocker.
