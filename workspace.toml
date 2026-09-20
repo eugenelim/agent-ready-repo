@@ -844,6 +844,14 @@ open = [
   # Instrument: `Skill` returns is_error with a bare `Execute skill: <name>` body
   # under `claude -p` for every project skill tried, and an isolated HOME breaks
   # macOS keychain auth. Both matter for re-running the spike.
+  # Do not work around this by committing a layout file to the catalogue. That
+  # was tried on 2026-09-20 and reverted the same day: every value equalled the
+  # pack's own declared default so it carried no information, a fork of a
+  # publishing repository would inherit those paths as if they were the
+  # contract, and it removed the friction from the one repository that
+  # self-hosts and would therefore notice this defect. A contributor gets the
+  # file created for them on first use anyway — measured, `frame-intent` wrote
+  # `[product] output_dir = "docs/product"` and proceeded.
   # Next step is an **ADR**, not a spec: the open question is which accepted
   # precedence governs, and a spec would implement one side of an unreconciled
   # conflict and red a standing test doing it. ADR-0030's own `Revisit if:` names

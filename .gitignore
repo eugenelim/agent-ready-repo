@@ -3,16 +3,20 @@
 # *is* the scope (repo-scope marker only here — user-scope marker
 # lives inside ~/.agentbundle/, outside any repo).
 .adapt-install-marker.toml
-# `agentbundle-layout.toml` is deliberately NOT ignored (changed 2026-09-20).
-# It is adopter-owned under RFC-0040, and this catalogue is an adopter of its
-# own packs: the paths in it are this repository's real conventions, not one
-# contributor's scratch. Ignoring it meant every clone and every worktree
-# started with no `[<pack>]` section, so the consumer skills fell through every
-# resolution tier and elicited a destination on each run — and an adopter who
-# installs a pack at user scope got nothing at repo scope, because the
-# installer's append step maintains an existing file and never creates one
-# (`install.py:3334`, ADR-0030 D9). Committing it is what makes one team answer
-# arrive with the checkout.
+# Adopter-owned pack-output layout file (RFC-0040, ADR-0030 D10: adopter-owned
+# and never shipped). Ignored again on 2026-09-20 after being briefly committed.
+# Committing it was wrong for three reasons: every value in it equalled the
+# pack's own declared `[pack.layout.repo] output_dir`, so it carried no
+# information; this catalogue publishes the packs, so a fork would inherit our
+# paths as if they were the contract; and it worked around the unimplemented
+# RFC-0040 resolution step registered against ADR-0030, removing the friction
+# from the one repository that self-hosts and would otherwise notice it.
+# A contributor exercising a consumer skill gets the file created for them on
+# first use — measured 2026-09-20, `frame-intent` wrote
+# `[product] output_dir = "docs/product"` and proceeded — so nothing needs it
+# committed.
+agentbundle-layout.toml
+!packs/**/evals/files/agentbundle-layout.toml
 
 # Work-loop session state — per-spec scratch, never committed.
 # The engine writes the run id to a repo-root temp file; it was committed once
