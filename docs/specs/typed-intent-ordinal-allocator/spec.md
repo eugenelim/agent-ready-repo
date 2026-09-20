@@ -5,9 +5,9 @@
 - **Mode:** full
 - **Brief:** docs/product/briefs/intent-identity-and-registration.md
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
-- **Constrained by:** ADR-0108; ADR-0033
+- **Constrained by:** ADR-0108; ADR-0033; ADR-0098
 
-## Objective
+## Outcome
 
 Allocate a human-friendly typed ordinal as a filename prefix — `CAP-0001-repository-work-graph.md` is a live example of the shape — using `max + 1` per type over the directory unioned with the records visible on `origin`. The token set and the filename contract are the parent's; see below. The existing `next-ordinal.py` cannot be reused: it matches an anchored four-digit-then-separator pattern, so on a directory of typed filenames it returns `0001` with exit 0 and reports `--check` clean because nothing matched. That silent-wrong behaviour is the single most important failure to design against.
 
@@ -15,11 +15,46 @@ The prefix table is closed, and this slice consumes it rather than owning it. Th
 
 What this slice owns is the matching behaviour. The lookup is an exact match on the bare `Level` value, so any string the parent's table does not list — an adopter's intervening altitude, an absent field, or a decorated value such as a backticked `` `feature` `` — is unmapped. An unmapped altitude is a normal outcome with a defined result, an unprefixed filename, not an error.
 
+## What Changes
+
 An ordinal is assigned at admission, so this slice also owns the minimal integration. Admission has **two entry paths**. `work-intake` § 6 delegates a classified intent, and `work-intake/SKILL.md:60` routes a request that explicitly names `intake-intent` straight to that owner instead. The invariant both paths carry is not that the allocator runs on both, but that **neither creates a mapped-level intent without an ordinal**. It is scoped to creation because adoption is forward-only. That rule is settled by the parent intent's `## Guardrail` — "the intents that carry no ordinal today are not migrated" — and by the brief's non-goal excluding a renumber of the existing corpus, which cites ADR-0108 D6 as precedent for not renumbering rather than as the governing decision. Most intents on disk carry no prefix and sit at a mapped level, so an update-in-place path that allocated or refused would reach nearly all of them; an update touches an identity that already exists, and only a creation assigns one. The corpus size is derived at verification time rather than fixed here, per the brief's own instruction that a measured count is evidence of scale and not the obligation.
 
 They reach that invariant with different mechanisms, because they have different capabilities, and the capability line is not moved by this slice. `work-intake` declares `Bash` and already "passes the confirmed repository destination, and authority mode to `intake-intent`" (`work-intake/SKILL.md:332`), so it runs the allocator and supplies the result. `intake-intent` declares no shell — its `## Boundaries` refuses one outright — so it cannot allocate, and this slice does not grant it one: widening the shell boundary of the skill that handles untrusted intent sources is a larger change than the identity it would buy. Its Procedure step 3, where it "confirm[s] the proposed repository-relative destination", instead refuses a **new** mapped-level admission outright and names the path that allocates. It neither derives an ordinal nor accepts one it is handed: deriving one prompt-only has no view of `origin`, and a supplied `FEAT-9999-<slug>.md` is unverifiable for the same reason — the owner cannot tell an allocator's answer from a guess, so treating a prefix as proof of allocation would readmit the silent-wrong failure through a second door. An **existing** repository path is a different case and is unaffected: step 3 preserves it, prefixed or not, and preserving an identity is not allocating one. An existing unprefixed intent at a mapped level is therefore updated in place with no ordinal and no refusal, which is what the parent's forward-only guardrail means in practice.
 
 ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of admitting a repository intent, and confinement, provenance and authority transfer are preserved rather than re-specified. One clause of its Procedure changes; none of its capability or control declarations do.
+
+## Durable Outputs
+
+| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
+| --- | --- | --- | --- | --- | --- |
+| Adopter-facing routing promise | Applicable — the published start-routing table names `docs/product/intents/<slug>.md` as where an admitted intent lands, which becomes false for a mapped level | `guides/core/reference/work-intake-routing-and-lifecycle.md` (the `Start routing` table) | T3 | The table states both destinations and the condition that selects them, asserted by the same prose check that covers § 6 | The published table and the skill bodies agree on where a mapped-level intent lands |
+| Release history | Applicable — a non-cosmetic `.apm/**` change | `docs/product/changelog.md`, `core` release heading with a `### Highlights` bullet | T3 | A heading matching the bumped `pack.toml` version, topmost among `core` headings | `test_t4_repair_determinism_projection_and_release_surface` passes |
+| Interface compatibility | Applicable — a new `work-intake` → allocator boundary with three exit codes | `packs/core/.apm/skills/work-intake/SKILL.md` § 6 and the script's own `--help` | T1, T3 | The exit-code contract stated in both, with one stub case per code | An adopter reading either surface gets the same three outcomes |
+| Decision rationale | Not applicable — every load-bearing decision is an owner decision already recorded in the parent intent's `## Boundary` or in ADR-0033, ADR-0098 and ADR-0108 | — | — | — | — |
+| Maintainer procedure | Not applicable — no operator runbook changes; the allocator is invoked by a skill, not by a person | — | — | — | — |
+| Reusable learning | Not applicable — the one transferable finding, that a max-plus-one helper cannot see an unpushed peer, is already recorded in ADR-0108's Context | — | — | — | — |
+
+## Agent Rules
+
+### Always do
+
+- Pass an adopter-controlled value — the `Level` string, the directory — as a single non-executable data argument. `work-intake` holds `Bash`, so an interpolated string is that skill's shell authority.
+- Return the class, the tri-state, or nothing. Every branch that cannot answer says so; none returns a plausible value on the way out.
+- Classify an entry by name before touching it, so an outside-namespace entry is never dereferenced.
+
+### Ask first
+
+- Before adding a token to the prefix table, or changing one. It is an owner decision in the parent intent's `## Boundary`, and the allocator transcribes it.
+- Before widening what the allocator writes. It reads; the admission transaction writes.
+- Before diverging further from `next-ordinal.py`. Two divergences are recorded and grounded — the anchored filename shape and the refusal on a failed remote query — and a third needs the same treatment rather than a quiet addition.
+
+### Never do
+
+- Never grant `intake-intent` a shell, a network reach, or a new tool. Its `## Boundaries` refuses them for a skill that handles untrusted intent sources, and the invariant this slice needs is bought by a refusal instead.
+- Never derive a token for an unmapped altitude, and never accept a supplied prefix as proof of allocation. Both produce a plausible ordinal nobody checked, which is the failure the slice exists to stop.
+- Never renumber an existing intent. Adoption is forward-only per the parent's `## Guardrail`.
+- Never report a clean duplicate check, or return an ordinal, for a directory the scan did not fully read.
+- Never reflect raw `Level` text, a filename, or Git error output into a diagnostic.
 
 ## Assumptions
 
@@ -43,6 +78,17 @@ ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of adm
 - **One end-to-end admission per path (AC-0006, AC-0007, AC-0009).** Through `work-intake`: a mapped level is written with its allocated ordinal; an unmapped level is written unprefixed and registered. Direct to `intake-intent`: a new mapped-level request writes nothing and names the path that allocates, and one carrying an arbitrary `FEAT-9999-` prefix is refused on the same ground rather than trusted. Two existing-path cases are covered because an unprefixed mapped-level intent is the common shape on disk: an existing prefixed intent is updated in place unchanged, and an existing **unprefixed** intent at a mapped level is also updated in place — no allocation, no refusal, no renumber. Without these the allocator can be correct in isolation while nothing calls it, or it blocks most of the corpus from being edited.
 - **The capability boundary, asserted where it lives (AC-0008).** A construction check over `intake-intent/SKILL.md` frontmatter and its `## Boundaries` block rejecting shell, network and any new tool, because the existing suite exercises the renderer and cannot see the manifest. `packs/core/tests/skills/intake-intent/test_intake_intent.py` runs unamended beside it as behavioural regression evidence, and the slice's only edit to that skill is one clause of Procedure step 3 — both verification choices, not part of the criterion.
 
+### Verification mode per criterion
+
+| Criteria | Mode | Boundary artifact |
+| --- | --- | --- |
+| AC-0001, AC-0002, AC-0003, AC-0004, AC-0010, AC-0011, AC-0012, AC-0013, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019 | TDD | `packs/core/tests/skills/work-intake/test_intent_ordinal.py` |
+| AC-0001, AC-0005, AC-0013, AC-0014 | TDD | `tests/roster/test_typed_ordinal_collision_equivalence.py` |
+| AC-0006, AC-0007, AC-0008, AC-0009 | Goal-based check | `packs/core/tests/skills/work-intake/test_work_intake.py`, `packs/core/tests/skills/intake-intent/test_intake_intent_manifest.py`, and `packs/core/tests/skills/intake-intent/test_intake_intent.py` unamended |
+| AC-0006, AC-0007, AC-0009, AC-0016 | Visual / manual QA | `docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md` |
+
+Per-case fixtures, parametrizations and edge cases belong to the responsible task's `Tests:` subsection in `plan.md`; this section maps criteria to modes and boundaries only.
+
 ## Acceptance Criteria
 
 - [ ] **AC-0001.** An admission-eligible intent whose `Level` the prefix table maps receives an ordinal, sequenced per type so `CAP-0001` and `FEAT-0001` coexist.
@@ -64,3 +110,9 @@ ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of adm
 - [ ] **AC-0017.** Confinement holds through every path component, not only the leaf. The trusted roots are the repository root and the intent directory beneath it; an outside-namespace entry is skipped **without being dereferenced**; and every in-namespace entry that is a symlink, junction, reparse point, device, other non-regular file, or simply uninspectable fails the scan closed. A scan that could not classify an entry never reports a complete result.
 - [ ] **AC-0018.** Git access is local-ref only, with no network fetch. Arguments are fixed and non-shell, stdin is closed, repository and object-store redirect variables are removed from the child environment, and wall time and output volume are both bounded. Any breach of those bounds is a scan failure under AC-0011, never a partial answer.
 - [ ] **AC-0019.** Diagnostics are bounded and single-line, and identify the outcome without reflecting raw `Level` text, filenames, Git error output, secrets, personal data, or control characters. The `Level` field is adopter-controlled and open, so echoing it into stderr or a retained log is an injection and disclosure path rather than a convenience.
+
+## Follow-ons
+
+- **The parent intent's validation hook contradicts this contract.** Its `kill_condition` treats losing "the `origin` union that catches an unpushed sibling" as a kill, and its `activity` requires collision-equivalence "over the real ADR and RFC corpora". Both are unreachable as written: ADR-0108's own Context records that a max-plus-one helper cannot see an unpushed sibling, and a directory with no typed records is indistinguishable from a valid intent directory holding only legacy names, which AC-0001 requires to yield `0001`. A conforming implementation would satisfy that kill condition. The hook is an accepted owner artifact and is amended through its own lifecycle, not here. Owner: eugenelim. This must be reconciled before this spec leaves Draft, because until then the governing parent and the contract disagree about what "correct" means.
+- **A post-admission altitude change reissues behind a tombstone.** An owner decision recorded in the parent's `## Boundary`, delivered by `intent-renumber-and-reissue`, not here.
+- **The 23 intents on disk with no registry entry** stay out of scope, per the brief's non-goal.
