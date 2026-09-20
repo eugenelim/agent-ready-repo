@@ -235,9 +235,19 @@ def _checklist_items(path: Path, heading: str) -> list[str]:
     # The checkbox pattern is deliberately narrow so an ordinary link bullet
     # (`- [Guide](guide.md)`) is neither refused nor read as an item: its
     # bracket content is a label, not a checkbox.
+    #
+    # All three patterns accept `-`, `*` and `+`, because all three are valid
+    # Markdown task-list markers. Accepting only `-` in the well-formed
+    # pattern while the checkbox pattern accepted all three would refuse
+    # `* [ ] Rule` as malformed -- reding the suite on correct Markdown.
+    #
+    # A continuation line must be INDENTED. Unindented prose ends the item:
+    # removing an item's marker entirely leaves its text at column zero, and
+    # treating that as a lazy continuation merges the rule into the one above
+    # it, which is the third way a rule stops being an item unnoticed.
     looks_like_checkbox = re.compile(r"\s*[-*+]\s*\[\s*[xX]?\s*\]")
     top_level_bullet = re.compile(r" {0,3}[-*+]\s")
-    well_formed = re.compile(r"\s*- \[[ xX]\]\s")
+    well_formed = re.compile(r"\s*[-*+] \[[ xX]\]\s")
 
     def flush() -> None:
         if current:
@@ -254,12 +264,12 @@ def _checklist_items(path: Path, heading: str) -> list[str]:
             continue
         if well_formed.match(line):
             flush()
-            current.append(re.sub(r"^\s*- \[[ xX]\]\s*", "", line))
+            current.append(re.sub(r"^\s*[-*+] \[[ xX]\]\s*", "", line))
         elif looks_like_checkbox.match(line):
             raise AssertionError(f"malformed checklist marker under {heading!r}: {line!r}")
         elif top_level_bullet.match(line):
             flush()
-        elif current and line.strip():
+        elif current and line.strip() and line[:1].isspace():
             current.append(line.strip())
         elif current:
             flush()
@@ -374,6 +384,39 @@ def test_the_checklist_parser_refuses_a_malformed_marker(tmp_path: Path) -> None
         encoding="utf-8",
     )
     assert _checklist_items(fixture, "Decomposition") == ["First rule, well formed."]
+
+    # The marker removed ENTIRELY leaves the rule at column zero. Unindented
+    # prose ends the item rather than continuing it, so the two rules do not
+    # merge into one string that satisfies every phrase assertion.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed.\n"
+        "Second rule, marker gone completely.\n",
+        encoding="utf-8",
+    )
+    assert _checklist_items(fixture, "Decomposition") == ["First rule, well formed."]
+
+    # An indented line IS a continuation, which is how the real rubric wraps.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed,\n"
+        "      wrapped onto a second line.\n",
+        encoding="utf-8",
+    )
+    assert _checklist_items(fixture, "Decomposition") == [
+        "First rule, well formed, wrapped onto a second line."
+    ]
+
+    # `*` and `+` are valid task-list markers and must parse, not raise.
+    for marker in ("*", "+"):
+        fixture.write_text(
+            f"## Decomposition\n{marker} [ ] First rule.\n{marker} [ ] Second rule.\n",
+            encoding="utf-8",
+        )
+        assert _checklist_items(fixture, "Decomposition") == [
+            "First rule.",
+            "Second rule.",
+        ], marker
 
 
 def test_the_review_rubric_mirrors_every_criterion() -> None:
