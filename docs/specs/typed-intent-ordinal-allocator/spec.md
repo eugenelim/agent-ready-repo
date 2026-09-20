@@ -13,23 +13,24 @@ Allocate a human-friendly typed ordinal — `VISION-0001`, `STRAT-0001`, `CAP-00
 
 The prefix table is closed. `Level` stays open; what is closed is the mapping from altitude to token, so an unmapped altitude is refused an ordinal rather than having one derived for it.
 
-An ordinal is assigned at admission, and ADR-0098 D2 makes `intake-intent` the canonical owner of admitting a repository intent, so this slice also owns the minimal integration: where admission invokes the allocator and what it does with a refusal. Admission *policy* is unchanged — its confinement, provenance and authority-transfer controls are preserved, not re-specified.
+An ordinal is assigned at admission, so this slice also owns the minimal integration. The allocator runs in **`work-intake`**, the calling workflow, which already "passes the confirmed repository destination, and authority mode to `intake-intent`" (`work-intake/SKILL.md:332`) and already declares `Bash`. `intake-intent` is unchanged: ADR-0098 D2 keeps it the owner of *admitting* a repository intent, and it admits the destination its caller supplies. Allocation therefore needs no new capability, and admission policy — confinement, provenance, authority transfer — is preserved rather than re-specified.
 
 ## Testing Strategy
 
-- Collision-equivalence against `next-ordinal.py` over the real ADR and RFC corpora plus a synthetic typed corpus.
-- Feed unparseable input and typed-but-unmapped altitudes; assert refusal rather than a plausible ordinal.
-- Assert an intent refused an ordinal keeps full identity, admission and graph participation.
-- Observe one end-to-end admission: a conforming eligible intent admitted through `intake-intent` carries its allocated ordinal in the written filename. Without this the allocator can be correct in isolation while admission never calls it.
-- Re-run `packs/core/tests/skills/intake-intent/test_intake_intent.py` unamended, so the integration preserves admission's existing controls rather than re-specifying them.
+- **Typed sequencing (AC-0001).** Unit tests over a corpus holding every mapped type, asserting each type's ordinal is the max of its own type plus one, so `CAP-0001` and `FEAT-0001` coexist and neither type's records push the other's number up.
+- **Collision-equivalence (AC-0005).** Unit tests over the real `docs/adr/` and `docs/rfc/` corpora, asserting the new allocator returns what `next-ordinal.py` returns wherever the corpus is untyped, and that the `origin` union catches an unpushed sibling in a fixture repository.
+- **Refusal over plausibility (AC-0002, AC-0004).** Feed unparseable filenames and typed-but-unmapped altitudes; assert the allocator returns no ordinal and reports no clean duplicate check, rather than the `0001` and exit 0 that `next-ordinal.py` returns on the same input.
+- **No shared mutable state (AC-0003).** Assert allocation writes nothing: no counter file, no retired list, no cache. A tree snapshot before and after is the check.
+- **One end-to-end admission (AC-0006, AC-0007).** An intent taken through `work-intake` into `intake-intent` is written with its allocated ordinal in the filename, and a refused one is written unprefixed with no partial write. Without this the allocator can be correct in isolation while nothing calls it.
+- **Admission's own controls are preserved, not restated (AC-0008).** Re-run `packs/core/tests/skills/intake-intent/test_intake_intent.py` unamended; this slice changes none of `intake-intent`'s files.
 
 ## Acceptance Criteria
 
-- [ ] An admission-eligible intent whose `Level` the prefix table maps receives an ordinal, sequenced per type so `CAP-0001` and `FEAT-0001` coexist.
-- [ ] An intent whose `Level` is absent or unmapped receives no ordinal and no derived prefix, and keeps its full `kind:slug` identity, admission and graph participation.
-- [ ] Allocation edits no file other than the intent being created — no counter file, no shared retired list.
-- [ ] The allocator returns no ordinal, and reports no clean duplicate check, for input it did not fully parse.
-- [ ] The allocator is collision-equivalent to `next-ordinal.py` on untyped corpora, including the `origin` union that catches an unpushed sibling.
-- [ ] `intake-intent` invokes the allocator when it admits a repository intent, at a named point in its procedure, and a conforming eligible intent ends up written with its allocated ordinal in the filename.
-- [ ] An intent the allocator refuses is still admitted and registered, with no ordinal in its filename and no partial write.
-- [ ] `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended, so admission's confinement, provenance and authority-transfer controls are preserved by the integration.
+- [ ] **AC-0001.** An admission-eligible intent whose `Level` the prefix table maps receives an ordinal, sequenced per type so `CAP-0001` and `FEAT-0001` coexist.
+- [ ] **AC-0002.** An intent whose `Level` is absent or unmapped receives no ordinal and no derived prefix, and keeps its full `kind:slug` identity, admission and graph participation.
+- [ ] **AC-0003.** Allocation edits no file other than the intent being created — no counter file, no shared retired list.
+- [ ] **AC-0004.** The allocator returns no ordinal, and reports no clean duplicate check, for input it did not fully parse.
+- [ ] **AC-0005.** The allocator is collision-equivalent to `next-ordinal.py` on untyped corpora, including the `origin` union that catches an unpushed sibling.
+- [ ] **AC-0006.** `work-intake` invokes the allocator at a named point in its procedure and supplies the resulting `<TYPE>-NNNN-<slug>.md` as the confirmed repository destination it already passes to `intake-intent`, so a conforming eligible intent is written with its allocated ordinal in the filename.
+- [ ] **AC-0007.** When the allocator refuses, `work-intake` supplies the unprefixed `<slug>.md` destination instead, so the intent is still admitted and registered with no ordinal in its filename and no partial write.
+- [ ] **AC-0008.** `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended, and `intake-intent`'s own files are unchanged by this slice, so admission's confinement, provenance and authority-transfer controls are preserved rather than re-specified.
