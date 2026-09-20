@@ -11,6 +11,7 @@ import re
 import secrets
 import sys
 import unicodedata
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -18,14 +19,19 @@ from typing import Any
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
-CONTRACT_VERSION = "knowledge-captured-observation.v1"
-# Deliberately NOT the pack version. This records which producer-profile
-# contract emitted the observation, so it changes only when that contract's
-# emitted shape changes. Mirroring `pack.toml` made every core release a
-# two-file edit enforced by a red test, to populate a field no consumer reads
-# for a decision — the schema validates it as free text, and nothing compares
-# or branches on it. A release number also answers the wrong question here:
-# "which contract produced this record" outlives "which release was current".
+CONTRACT_VERSION = "knowledge-captured-observation.v2"
+# The writable version: what the writer stamps and what a fresh submission is
+# held to. It is deliberately NOT the pack version. This records which
+# producer-profile contract emitted the observation, so it changes only when
+# that contract's emitted shape changes. Mirroring `pack.toml` made every core
+# release a two-file edit enforced by a red test, to populate a field no
+# consumer reads for a decision — the schema validates it as free text, and
+# nothing compares or branches on it. A release number also answers the wrong
+# question here: "which contract produced this record" outlives "which
+# release was current".
+# `knowledge-captured-observation.v1` stays a readable, never-written legacy
+# version: `CAPTURE_VALIDATORS` below still resolves it for a record that
+# names it, but nothing here stamps it on a fresh submission.
 PRODUCER_WORKFLOW_VERSION = "work-loop-producer-profile.v1"
 CAPTURE_ID_PREFIX = "kco"
 COMPETENCY_QUESTIONS = (
@@ -143,6 +149,94 @@ _PRIVATE_IDENTIFIER = re.compile(
     r"[a-z0-9][a-z0-9._-]{5,}(?![a-z0-9])|"
     r"(?<![a-z0-9])[a-z0-9.-]+\.(?:internal|local|corp|lan)(?![a-z0-9]))"
 )
+# § D6's argv trust boundary — docs/specs/work-item-capture/spec.md. A stored
+# `verification_route.command` is read-only iff it clears every rule below,
+# checked in this order: structure, size, no options, tool allowlist, arity,
+# character class, then the stored-path rules. The derivation is
+# docs/specs/work-item-capture/notes/spike-argv-boundary.py, run against the
+# case table `packs/core/tests/skills/project-knowledge/argv_cases.py`
+# reproduces byte-for-byte; a rule changed here without a matching spike and
+# table change is a contract change, not an implementation detail.
+_ARGV_ALLOWED_TOOLS = frozenset({"cat", "wc", "grep", "ls"})
+_ARGV_MIN_ARITY = {"cat": 2, "wc": 2, "ls": 2, "grep": 3}
+_ARGV_MAX_ELEMENTS = 20
+_ARGV_MAX_ELEMENT_CHARS = 500
+_ARGV_MAX_TOTAL_CHARS = 2000
+# Positive class over every element after argv[0]. `\A`/`\Z`, not `^`/`$`:
+# `$` matches immediately before a trailing newline, which would admit
+# ["cat", "src/a.py\n"] and reopen the shell re-serialisation escape this
+# class exists to close.
+_ARGV_ELEMENT_CHARSET = re.compile(r"\A[A-Za-z0-9_/.,:@#%+=-]{1,500}\Z")
+# A copy of $defs.repositoryPath's pattern in
+# contracts/jsonschema/knowledge-captured-observation.schema.json, with its
+# TRAILING anchor only rewritten from `$` to `\Z` — the pattern carries three
+# more `$` inside lookaheads that a whole-string substitution would also
+# rewrite, which is correct by accident today and wrong the first time a `$`
+# appears as a literal. This is defence in depth against the character class
+# above being narrowed, not against a reordering, and is carried as a literal
+# copy rather than a runtime read of the schema file: a `.apm/skills/`
+# script is portable content and the schema lives at a repository-only path.
+_ARGV_REPOSITORY_PATH = re.compile(
+    r"^(?:\.|(?!/)(?![A-Za-z]:)(?!.*:)(?!.*\\)(?!.*(?:^|/)\.{1,2}(?:/|$))"
+    r"(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|"
+    r"[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\.|/|$))(?!.*[. ](?:/|$)).+)\Z"
+)
+
+
+def _refuse_dot_leading_component(value: str) -> None:
+    """Refuse a stored path with any `.`-leading component.
+
+    Applies to the § D6 stored-path set: every argv element after `argv[0]`
+    except `grep`'s pattern, plus `verification_route.path`. One rule over
+    the whole object, because a class refused on one field and admitted on
+    the other is not refused. `_expect_repo_path` has no dot rule and is left
+    unchanged for its other callers; this check runs in addition to it.
+    """
+
+    if any(part.startswith(".") for part in value.split("/")):
+        raise VerificationRouteRefusal("work_item_command_path")
+
+
+def _validate_command_argv(value: Any) -> list[str]:
+    """Validate a stored `verification_route.command` against § D6.
+
+    Returns the validated argv list on success; raises
+    `VerificationRouteRefusal` with the matching catalog code otherwise. The
+    check order mirrors
+    docs/specs/work-item-capture/notes/spike-argv-boundary.py exactly, which
+    two case-table rows pin: a 21-element non-string command refuses on
+    count before type, and `[1, 2]` refuses on type before either length
+    check.
+    """
+
+    if not isinstance(value, list):
+        raise VerificationRouteRefusal("work_item_command_shape")
+    if not (1 <= len(value) <= _ARGV_MAX_ELEMENTS):
+        raise VerificationRouteRefusal("work_item_command_size")
+    if any(not isinstance(element, str) for element in value):
+        raise VerificationRouteRefusal("work_item_command_shape")
+    if sum(len(element) for element in value) > _ARGV_MAX_TOTAL_CHARS:
+        raise VerificationRouteRefusal("work_item_command_size")
+    if any(len(element) > _ARGV_MAX_ELEMENT_CHARS for element in value):
+        raise VerificationRouteRefusal("work_item_command_size")
+    if any(element.startswith("-") for element in value):
+        raise VerificationRouteRefusal("work_item_command_option")
+    tool = value[0]
+    if tool not in _ARGV_ALLOWED_TOOLS:
+        raise VerificationRouteRefusal("work_item_command_tool")
+    if len(value) < _ARGV_MIN_ARITY[tool]:
+        raise VerificationRouteRefusal("work_item_command_operand")
+    for index, element in enumerate(value[1:], start=1):
+        if not _ARGV_ELEMENT_CHARSET.match(element):
+            raise VerificationRouteRefusal("work_item_command_charset")
+        if tool == "grep" and index == 1:
+            continue  # grep's pattern: the charset above is the whole rule
+        if not _ARGV_REPOSITORY_PATH.match(element):
+            raise VerificationRouteRefusal("work_item_command_path")
+        _refuse_dot_leading_component(element)
+    return value
+
+
 _PROFILE_DETERMINISTIC_CAPTURE_FIELDS = frozenset(
     {
         "contract_version",
@@ -182,6 +276,121 @@ _WORK_LOOP_ENQUIRY_GATES = {
 
 class PrivacyRefusal(ValueError):
     """A deterministic pre-admission privacy or injection refusal."""
+
+
+class VerificationRouteRefusal(ValueError):
+    """A stored `verification_route` violates § D6's argv trust boundary.
+
+    Carries the specific catalog reason code
+    (`docs/specs/work-item-capture/spec.md` § D4) as `.reason_code`, so a
+    caller that wants the exact verdict reads that attribute rather than
+    parsing a message. It subclasses `ValueError` so every existing catch of
+    a validation failure — `knowledge_store.py`'s generic
+    `except ValueError: _refuse("strict_parse")` among them — still sees it
+    as a refusal. Registering these codes in `REQUIRED_DIAGNOSTIC_CODES` and
+    binding them to a `KnowledgeDiagnostic` is a later task's, per the plan;
+    this exception does not require catalog membership to be raised.
+    """
+
+    def __init__(self, reason_code: str) -> None:
+        super().__init__(reason_code)
+        self.reason_code = reason_code
+
+
+class WorkItemRefusal(ValueError):
+    """A `work_item` record fails § D2's base or per-shape required-field rules
+    (`docs/specs/work-item-capture/spec.md`).
+
+    Carries the closed diagnostic catalog's reason code as `.reason_code`,
+    the same contract `VerificationRouteRefusal` carries — a `ValueError`
+    subclass so every existing `except ValueError` still sees it as a
+    refusal — but kept as a distinct class because it is scoped to § D2's
+    shape rules rather than § D6's argv trust boundary: a missing
+    `work_item.blocker` is not a command-shape violation and should not be
+    diagnosed as one. Registering these codes in `REQUIRED_DIAGNOSTIC_CODES`
+    is a later task's, per the plan; this exception does not require
+    catalog membership to be raised.
+    """
+
+    def __init__(self, reason_code: str) -> None:
+        super().__init__(reason_code)
+        self.reason_code = reason_code
+
+
+# § D2's closed vocabulary for `work_item.shape` and the per-shape required
+# fields *beyond* `WORK_ITEM_BASE_REQUIRED_FIELDS`, every shape carries. The
+# `defect` shape's threshold is a disjunction over `verification_route` — a
+# sibling of `work_item`, not a field inside it — so it carries no entry
+# here and is checked separately in `_validate_work_item`. A shape added to
+# `WORK_ITEM_SHAPES` without a matching entry here raises `KeyError` rather
+# than silently validating nothing extra for it.
+WORK_ITEM_SHAPES = ("defect", "question", "decision")
+WORK_ITEM_BASE_REQUIRED_FIELDS = (
+    "statement",
+    "shape",
+    "blocker",
+    "finished_state",
+    "necessity_rationale",
+)
+WORK_ITEM_SHAPE_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
+    "defect": (),
+    "question": ("answered_by",),
+    "decision": ("significance",),
+}
+_WORK_ITEM_BLOCKERS = frozenset(
+    {"decision", "instrument", "elapsed-time", "dependency"}
+)
+_WORK_ITEM_SIGNIFICANCE = frozenset(
+    {"architecturally-significant", "expensive-to-reverse", "constrains-beyond"}
+)
+
+
+def _validate_work_item_significance(value: Any) -> None:
+    if (
+        not isinstance(value, list)
+        or not value
+        or any(not isinstance(item, str) for item in value)
+        or len(set(value)) != len(value)
+        or any(item not in _WORK_ITEM_SIGNIFICANCE for item in value)
+    ):
+        raise WorkItemRefusal("work_item_threshold")
+
+
+def _validate_work_item(work_item: Any, request: dict[str, Any]) -> None:
+    """Validate `request["work_item"]` against § D2's base and per-shape rules.
+
+    `request` is the enclosing capture request, not just `work_item`,
+    because the `defect` shape's threshold is a disjunction over
+    `verification_route` — a sibling field of `work_item`: a `defect` is
+    complete with a `verification_route` alone, with `work_item.observed`
+    and `work_item.intended` alone, or with both.
+    """
+
+    if not isinstance(work_item, dict):
+        raise ValueError("invalid work_item")
+    if any(field not in work_item for field in WORK_ITEM_BASE_REQUIRED_FIELDS):
+        raise WorkItemRefusal("work_item_incomplete")
+    for field in ("statement", "finished_state", "necessity_rationale"):
+        _expect_text(work_item[field], 2000)
+    shape = work_item["shape"]
+    if shape not in WORK_ITEM_SHAPES:
+        raise ValueError("invalid work_item shape")
+    blocker = work_item["blocker"]
+    if blocker not in _WORK_ITEM_BLOCKERS:
+        raise WorkItemRefusal("work_item_not_blocked")
+    if any(field not in work_item for field in WORK_ITEM_SHAPE_REQUIRED_FIELDS[shape]):
+        raise WorkItemRefusal("work_item_incomplete")
+    if shape == "question":
+        _expect_text(work_item["answered_by"], 2000)
+    elif shape == "decision":
+        _validate_work_item_significance(work_item["significance"])
+    elif shape == "defect":
+        has_pair = "observed" in work_item and "intended" in work_item
+        if not (has_pair or "verification_route" in request):
+            raise WorkItemRefusal("work_item_incomplete")
+        if has_pair:
+            _expect_text(work_item["observed"], 2000)
+            _expect_text(work_item["intended"], 2000)
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -433,11 +642,21 @@ def assert_persistable_paths(*values: str) -> None:
 
 
 def _deterministic_privacy_scan(request: dict[str, Any]) -> None:
-    prose = [request["lesson"]]
+    # `lesson` is absent on a `work-item` record (§ D8); scanning the six
+    # `work_item` free-text fields is a later task's (`AC-0031`) — this
+    # guard only keeps that absence from raising `KeyError` here.
+    prose = [request["lesson"]] if "lesson" in request else []
     if "friction" in request:
         prose.append(request["friction"]["summary"])
     if "verification_route" in request:
-        prose.append(request["verification_route"]["command"])
+        # `command` is a § D6 argv array, not a string: scan each element,
+        # not the list itself. `argv[0]` cannot fail — the four-member
+        # allowlist refuses anything else before this scan runs — so
+        # including it here costs nothing. Naming which scan each element
+        # reaches, and asserting the per-element call, is a later task's
+        # (`AC-0061`); this is the minimal change that keeps this scan from
+        # raising `TypeError` on the type this task introduces.
+        prose.extend(request["verification_route"]["command"])
     prose.extend(
         (
             request["producer"]["workflow"],
@@ -470,10 +689,11 @@ def _expect_bool(value: Any, expected: bool) -> None:
         raise ValueError("invalid attestation")
 
 
-def validate_capture_request(request: dict[str, Any]) -> dict[str, Any]:
+def _validate_capture_request_shape(
+    request: dict[str, Any], *, contract_version: str
+) -> dict[str, Any]:
     required = {
         "contract_version",
-        "lesson",
         "kind",
         "project_scope",
         "competency_facets",
@@ -485,13 +705,24 @@ def validate_capture_request(request: dict[str, Any]) -> dict[str, Any]:
         "observed_at",
         "privacy_attestation",
     }
-    optional = {"friction", "verification_route"}
+    optional = {"friction", "verification_route", "lesson", "work_item"}
     _expect_keys(request, required, optional)
-    if request["contract_version"] != CONTRACT_VERSION:
+    if request["contract_version"] != contract_version:
         raise ValueError("invalid contract version")
-    _expect_text(request["lesson"], 2000)
-    if request["kind"] not in {"pattern", "gotcha", "antipattern"}:
+    if request["kind"] not in {"pattern", "gotcha", "antipattern", "work-item"}:
         raise ValueError("invalid kind")
+    # § D8: `lesson` is required unless `kind` is `work-item`, which carries
+    # `work_item.statement` instead; `work_item` is required only when it
+    # is. Both are `if`/`then` blocks in the schema; this is their Python
+    # mirror.
+    if request["kind"] == "work-item":
+        if "work_item" not in request:
+            raise WorkItemRefusal("work_item_incomplete")
+        _validate_work_item(request["work_item"], request)
+    elif "lesson" not in request:
+        raise ValueError("missing field: lesson")
+    if "lesson" in request:
+        _expect_text(request["lesson"], 2000)
     _validate_project_scope(request["project_scope"])
     facets = request["competency_facets"]
     if (
@@ -516,6 +747,80 @@ def validate_capture_request(request: dict[str, Any]) -> dict[str, Any]:
         _validate_verification_route(request["verification_route"])
     _deterministic_privacy_scan(request)
     return request
+
+
+def _validate_capture_request_v1(request: dict[str, Any]) -> dict[str, Any]:
+    return _validate_capture_request_shape(
+        request, contract_version="knowledge-captured-observation.v1"
+    )
+
+
+def _validate_capture_request_v2(request: dict[str, Any]) -> dict[str, Any]:
+    return _validate_capture_request_shape(
+        request, contract_version="knowledge-captured-observation.v2"
+    )
+
+
+# Every readable capture-payload version, keyed by the string a record names
+# in its own `contract_version`. No default and no fallback: a version this
+# map does not hold is refused, never validated by the oldest entry or by
+# none at all. `CONTRACT_VERSION` names the one entry a fresh submission may
+# be tagged with; the others stay resolvable for a record already in the
+# store, per `knowledge-captured-observation.v2`'s § D11.
+CAPTURE_VALIDATORS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    "knowledge-captured-observation.v1": _validate_capture_request_v1,
+    "knowledge-captured-observation.v2": _validate_capture_request_v2,
+}
+
+
+def select_validator(
+    record: dict[str, Any], *, require_writable: bool = False
+) -> Callable[[dict[str, Any]], dict[str, Any]] | None:
+    """Return the capture validator a stored record's own version selects.
+
+    `record` is an envelope-level object (for example a stored event), not a
+    bare capture request. A record carrying no `request` object is outside
+    capture version selection entirely — it is a disposition, read through
+    the `observation-event.v1` envelope — and this returns `None` without
+    error. A `request` object naming no known version, or naming none at
+    all, is refused. `require_writable=True` additionally refuses a known but
+    non-writable version, for a caller admitting a fresh submission rather
+    than reading one already in the store.
+    """
+
+    if "request" not in record:
+        return None
+    payload = record["request"]
+    if not isinstance(payload, dict):
+        raise ValueError("capture request must be an object")
+    contract_version = payload.get("contract_version")
+    validator = CAPTURE_VALIDATORS.get(contract_version)
+    if validator is None:
+        raise ValueError("invalid contract version")
+    if require_writable and contract_version != CONTRACT_VERSION:
+        raise ValueError("contract version is not writable")
+    return validator
+
+
+def validate_capture_request(request: dict[str, Any]) -> dict[str, Any]:
+    """Validate a request under the validator its own version field selects.
+
+    Version-agnostic by design. `knowledge_store` calls this from **both** the
+    write path (`_check_pre_admission`) and the stored-event read path
+    (`_validate_event`), so it cannot enforce writability: doing so refuses
+    every already-stored legacy record at read, which is a regression against
+    committed repository content and breaks the corpus replay.
+
+    Refusing a non-writable version at write is real and still owed. It binds
+    where read and write are distinguishable — `knowledge_store`'s own call
+    sites — which is the task that owns that module. Use
+    `select_validator(..., require_writable=True)` there, and this function's
+    default behaviour at the read site.
+    """
+    validator = select_validator({"request": request})
+    if validator is None:
+        raise ValueError("invalid contract version")
+    return validator(request)
 
 
 def _validate_project_scope(value: Any) -> None:
@@ -609,8 +914,13 @@ def _validate_verification_route(value: Any) -> None:
     if not isinstance(value, dict):
         raise ValueError("invalid verification route")
     _expect_keys(value, {"command", "path"}, set())
-    _expect_text(value["command"], 500)
+    value["command"] = _validate_command_argv(value["command"])
     value["path"] = _expect_repo_path(value["path"])
+    # § D6's dot-component rule binds `path` too, on the value
+    # `_expect_repo_path` returns — which also catches its `"."` early
+    # return, since `_refuse_dot_leading_component` runs on the returned
+    # string regardless of which branch produced it.
+    _refuse_dot_leading_component(value["path"])
 
 
 def _expect_slug(value: Any) -> str:
@@ -668,6 +978,7 @@ def capture_id_preimage_fields() -> tuple[str, ...]:
         "privacy_attestation",
         "friction",
         "verification_route",
+        "work_item",
     )
 
 
