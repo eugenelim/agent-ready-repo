@@ -222,6 +222,12 @@ def _checklist_items(path: Path, heading: str) -> list[str]:
     items: list[str] = []
     in_section = False
     current: list[str] = []
+    # A line that looks like a checklist marker but is not well formed would
+    # otherwise be appended to the item above it, merging two rules into one
+    # string and leaving every assertion below green while one rule stopped
+    # being an item. Fail loudly instead of parsing it as continuation prose.
+    looks_like_marker = re.compile(r"\s*[-*+]\s*\[")
+    well_formed = re.compile(r"\s*- \[[ xX]\]\s")
 
     def flush() -> None:
         if current:
@@ -236,9 +242,11 @@ def _checklist_items(path: Path, heading: str) -> list[str]:
             continue
         if not in_section:
             continue
-        if re.match(r"\s*- \[[ xX]\]\s", line):
+        if well_formed.match(line):
             flush()
             current.append(re.sub(r"^\s*- \[[ xX]\]\s*", "", line))
+        elif looks_like_marker.match(line):
+            raise AssertionError(f"malformed checklist marker under {heading!r}: {line!r}")
         elif current and line.strip():
             current.append(line.strip())
         elif current:
@@ -298,6 +306,40 @@ def test_the_review_rubric_raises_an_inline_change_to_a_document_above() -> None
     # A finding "whatever the block scores" is the load-bearing half: without
     # it the item reads as one more thing the criteria could outweigh.
     assert "whatever the block scores" in item
+
+
+def test_the_checklist_parser_refuses_a_malformed_marker(tmp_path: Path) -> None:
+    """A malformed marker must fail parsing, not merge into the item above.
+
+    Without this, changing the parent-change rule's `- [ ]` to `- []` appends
+    it to the preceding item. Both review tests then still pass -- every
+    phrase they look for is present in the merged string -- while that rule
+    has stopped being a checklist item of its own. The parser's own failure
+    mode is what the two tests above rest on, so it gets a case of its own.
+    """
+    fixture = tmp_path / "rubric.md"
+    fixture.write_text(
+        "## Decomposition\n\n"
+        "- [ ] First rule, well formed.\n"
+        "- [] Second rule, malformed marker.\n",
+        encoding="utf-8",
+    )
+    try:
+        _checklist_items(fixture, "Decomposition")
+    except AssertionError as exc:
+        assert "malformed checklist marker" in str(exc)
+    else:  # pragma: no cover - the guard is the point of this test
+        raise AssertionError("a malformed marker was parsed instead of refused")
+
+    # And the well-formed form still yields two separate items, so the guard
+    # is not simply rejecting everything.
+    fixture.write_text(
+        "## Decomposition\n\n"
+        "- [ ] First rule, well formed.\n"
+        "- [ ] Second rule, also well formed.\n",
+        encoding="utf-8",
+    )
+    assert len(_checklist_items(fixture, "Decomposition")) == 2
 
 
 def test_the_review_rubric_mirrors_every_criterion() -> None:

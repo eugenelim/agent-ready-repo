@@ -1,4 +1,4 @@
-# Decomposition rubric — which parts earn their own architecture document
+# Decomposition rubric — where each part of a subsystem belongs
 
 A subsystem's design doc describes its own elements in an element catalogue.
 As those elements grow, some of them start behaving like systems in their
