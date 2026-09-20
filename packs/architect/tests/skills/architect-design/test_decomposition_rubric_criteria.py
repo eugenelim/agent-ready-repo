@@ -210,8 +210,40 @@ def test_the_parent_keeps_the_architecture_set_index() -> None:
     assert "does not restate child internals" in text
 
 
+def test_the_review_rubric_admits_a_correctly_routed_upward_part() -> None:
+    """The reviewer must not report a correct upward route as a missing document.
+
+    This is the half of the third route that lives on the review side. A part
+    whose decision only someone above this document can accept is correctly
+    left with a link and no document here, and the checklist item that asks
+    whether a qualifying part "has no document of its own" would have called
+    that a finding. Without this test the two rubrics can drift apart again
+    and nothing reds: the mirror test below compares only the `D1`-`D6` table.
+    """
+    text = _flat(REVIEW_RUBRIC)
+    assert "link showing its decision was raised against a document above" in text
+    assert "Check for that link before raising the finding" in text
+    # The criteria decide row sufficiency; standing decides what replaces it.
+    assert "whether a row in the element catalogue is still enough" in text
+    assert "none of the six criteria asks" in text
+
+
+def test_the_review_rubric_raises_an_inline_change_to_a_document_above() -> None:
+    """The governance case the third route exists for is its own finding.
+
+    A document carrying the changes it asks of a ratified parent is misfiled
+    whatever those changes score, because ratifying it accepts them by
+    implication. Asserted separately from the route above: a reviewer can
+    admit the upward route and still have no way to raise the inline case.
+    """
+    text = _flat(REVIEW_RUBRIC)
+    assert "a change it is asking of a document" in text
+    assert "accept those changes by implication" in text
+    assert "no standing to do that" in text
+
+
 def test_the_review_rubric_mirrors_every_criterion() -> None:
-    """A reviewer can raise that one document should have been several.
+    """A reviewer can raise that a row was not enough for a part.
 
     Matched as whole words: a bare substring check for `D1` is satisfied by
     `DA10`, so the mirror would look present while the reviewer had no criteria.

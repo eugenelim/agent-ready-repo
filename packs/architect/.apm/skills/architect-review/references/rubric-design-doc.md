@@ -185,8 +185,11 @@ decides it.
 
 ## Decomposition
 
-A document covering several subsystems is judged against six criteria for
-whether a part earns a document of its own:
+A document covering several subsystems is judged against six criteria. They
+decide one thing: whether a row in the element catalogue is still enough for
+a part. What replaces the row when it is not — a document of the part's own,
+or a change raised against a document above this one — turns on who has
+standing to accept the decision, which none of the six criteria asks:
 
 | ID | Criterion |
 | --- | --- |
@@ -199,17 +202,19 @@ whether a part earns a document of its own:
 
 - [ ] A child described in this document meets `D1` plus at least one other
       criterion and has neither a document of its own nor a link showing its
-      decision was raised elsewhere. This is a finding: the document should
-      have been several. Check for the link before raising it — a qualifying
-      child whose decision belongs to whoever accepts the parent is correctly
-      routed upward rather than given a child document, and that leaves a
-      link naming what was raised and where it is being decided rather than a
-      document here.
+      decision was raised against a document above this one. This is a
+      finding: a row was not enough. Which correction it needed depends on
+      standing — a part whose decision this document's own reviewer can
+      accept needed a document of its own, and one whose decision only
+      someone above this document can accept needed the upward route and its
+      link. Check for that link before raising the finding, because a part
+      correctly routed upward has a link here and no document, which is not
+      the same as a part that was simply left inline.
 - [ ] A block this document carries is a change it is asking of a document
-      that someone else accepts — most often its own ratified parent. This is
-      a finding whatever the block scores: ratifying this document would
-      accept those changes by implication, and its reviewer has no standing
-      to do that.
+      above this one that someone else accepts — most often a ratified
+      parent. This is a finding whatever the block scores: ratifying this
+      document would accept those changes by implication, and this document's
+      reviewer has no standing to do that.
 - [ ] A child was split out that does not meet `D1`, or a split gives one
       contract two homes, or a split was made because a child was merely
       large. Each is a finding on its own. **Size alone never justifies a
