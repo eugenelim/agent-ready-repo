@@ -64,6 +64,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [product-engineering][0.13.13] — 2026-09-20
+
+`ux-writing` now carries the three output-rendering directives its entry in the
+rendering-directive table specifies — table, narrative, and key–value. The
+directives had been absent since the skill was renamed from
+`voice-and-microcopy`: the table was keyed on the old name, so the skill matched
+no entry and silently shipped without them. A missing key does not fail, it just
+does not match, which is why nothing caught it.
+
+### Highlights
+
+- `ux-writing` output now follows the same rendering directives as its sibling
+  product-engineering skills, instead of falling back to unguided formatting.
+
+## [experience-design][2.0.7] — 2026-09-20
+
+`DESIGN.md` named `voice-and-microcopy` in three places when describing which
+pack owns per-state UI copy and which artifact `user-flow` hands off to. That
+skill was renamed to `ux-writing` and no directory of the old name exists in any
+pack, so all three references resolved to nothing. They now name `ux-writing`.
+
+### Highlights
+
+- The experience-design pack's own description of the copy handoff points at a
+  skill that exists, so a reader following it reaches `ux-writing`.
+
 ## [core][2.26.21] — 2026-09-20
 
 ### Highlights
@@ -92,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a contract, or a published interface — still routes the item to capture
   instead. At Capture, every scratch note from the session is now routed to
   a destination rather than left to fall out of scope.
+
 
 ## [core][2.26.20] — 2026-09-18
 

@@ -195,7 +195,7 @@ SKILLS: dict[str, list[str]] = {
     "frame-intent":                 ["key-value", "narrative"],
     "decompose-intent":             ["tree", "key-value"],
     "diverge-solutions":            ["table", "narrative", "key-value"],
-    "voice-and-microcopy":          ["table", "narrative", "key-value"],
+    "ux-writing":                   ["table", "narrative", "key-value"],
     "frame-domain":                 ["narrative", "key-value"],
     "lean-canvas":                  ["table", "key-value"],
     "align-value-stream":           ["table", "key-value"],
