@@ -7,7 +7,7 @@ default section to one you already have — **append-if-exists / never-create /
 never-overwrite**). On the append of a *missing* section, the installer adds that one table and
 leaves every other byte of the file unchanged — comments, key order, quoting
 style and line endings included. An existing section is never replaced. This page documents the `[product]` section that
-product-facing skills read to locate the `shaping/` directory.
+product-facing skills read to locate their output base.
 
 ## The `[product]` table
 
@@ -55,9 +55,13 @@ the user file still applies.
 
 ## Default and posture
 
-When no `[product]` section resolves, skills fall back to the conventional
-default `docs/product/shaping` for `shaping`. This matches the structure
-documented in `docs/product/README.md`.
+When no `[product]` section resolves, each consuming skill falls back to its own
+pack's declared default — `docs/product` for product-engineering
+(`packs/product-engineering/pack.toml` `[pack.layout.repo]`). ADR-0030 keeps that
+default in the pack rather than here, so this page states no fallback of its own.
+Whether a consumer reaches that default before eliciting is unsettled: RFC-0040's
+resolution tail puts it before elicitation and RFC-0096 § 4 has no such step, and
+the two are not reconciled.
 
 `core` ships **no `[pack.layout.user]` default** for this section — product
 output is per-repo and there is no sensible cross-repo absolute path. For a
@@ -67,5 +71,10 @@ file by hand:
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml
 [product]
-# shaping  = "/abs/path/to/shaping"    # uncomment + set an absolute path
+# output_dir = "/abs/path/to/product"    # uncomment + set an absolute path
 ```
+
+A user-profile value governs your own authoring — a personal vault, for
+instance. It does not govern a repository hand-off: a repository intent still
+goes to `docs/product/intents/` for `intake-intent` to admit, which is a
+deliberate non-goal of this config rather than an omission.
