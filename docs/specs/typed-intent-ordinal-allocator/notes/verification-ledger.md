@@ -76,35 +76,44 @@ derived from the measurement, it is bounded below by it. What the correction
 buys is that the origin and the bound are expressed in one unit, so a later
 reader re-measuring finds the same number.
 
-## 2026-09-20 — the full set of surfaces promising the unprefixed intent path
+## 2026-09-20 — the surfaces promising the unprefixed intent path
 
 **Why run it.** Adversarial review named two published guides still promising
-`docs/product/intents/<slug>.md` for an admitted intent. Two files named by a
-reviewer is not the same set as every file that carries the promise, so the tree
-was swept rather than the two taken as the population.
+`docs/product/intents/<slug>.md` for an admitted intent. Two files a reviewer
+named is not the population, so the tree was swept.
 
-**What was run.** At revision `56c385ba5`, from the repository root:
+**First attempt, and why it was wrong.** The first sweep restricted itself to
+`guides/`, `docs/guides/` and `packs/*/.apm/`, found 29 occurrences across 14
+files, and this ledger recorded that as a repository-wide result. It was not:
+the next review round found `docs/product/README.md` and its seed at
+`packs/core/seeds/docs/product/README.md`, both live and both outside those
+roots, and `packages/agentbundle/agentbundle/workspace_mcp.py:91`, which
+composes the path in **code** rather than describing it in prose. The claim was
+written from the command's intent rather than from what the command covered.
+
+**Second attempt.** At revision `099878dc6`, no root restriction:
 
 ```
-grep -rn 'docs/product/intents/<slug>\.md\|docs/product/intents/{slug}\|intents/<slug>' \
-  guides/ docs/guides/ packs/*/.apm/ | grep -v '^packs/.*tests/'
+grep -rn 'intents/<slug>\.md\|intents/{slug}' --include='*.md' --include='*.py' \
+  --include='*.json' . | grep -v '^\./\.git/'
 ```
 
-**Observed.** 29 occurrences across 14 files, which split cleanly by which stage
-they describe:
+**Observed.** 65 occurrences across 48 files, of which 10 are the `.claude/` and
+`.agents/` self-host projections of pack sources already counted, and the
+remainder split by what they describe:
 
-| Stage | Surfaces | In scope |
+| What it describes | Surfaces | Bearing on this slice |
 | --- | --- | --- |
-| Admission — `work-intake` / `intake-intent` | `guides/core/reference/work-intake-routing-and-lifecycle.md`, `guides/core/how-to/start-the-work.md`, `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/work-intake/SKILL.md`, `packs/core/.apm/skills/intake-intent/SKILL.md` | yes |
-| Authoring — `frame-intent` | `guides/product-engineering/**` (4 files), `guides/_shared/how-to/run-a-full-inception.md`, `packs/product-engineering/.apm/skills/frame-intent/**`, `align-value-stream` references and templates | no |
+| Admission — prose | `guides/core/reference/work-intake-routing-and-lifecycle.md`, `guides/core/how-to/start-the-work.md`, `guides/core/reference/workspace-toml-schema.md`, `docs/product/README.md`, `packs/core/seeds/docs/product/README.md`, `packs/core/.apm/skills/work-intake/SKILL.md`, `packs/core/.apm/skills/intake-intent/SKILL.md` | in scope |
+| Admission — code | `packages/agentbundle/agentbundle/workspace_mcp.py:91`, `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py:69` | in scope, and they make this a code change beyond the two skill bodies |
+| Authoring — `frame-intent` | `guides/product-engineering/**` (4 files), `guides/_shared/how-to/run-a-full-inception.md`, `packs/product-engineering/.apm/skills/frame-intent/**`, `align-value-stream` references and templates | out of scope: authoring, not admission |
+| Historical record | `docs/adr/0078`, `docs/rfc/0083`, `docs/product/changelog.md`, `docs/product/findings/`, seven other `docs/specs/*` | out of scope: immutable or already-shipped records |
 
-**What it settles.** The affected set is five surfaces, not two, and the
-unaffected set is larger than both. The distinction is the stage: `frame-intent`
-*authors* an intent at `<output_dir>/intents/<slug>.md` and this slice does not
-touch authoring, while admission is where an ordinal is assigned. A sweep that
-treated every occurrence as a promise to change would have moved guidance this
-slice makes no claim about — which is why the out-of-scope rows are recorded
-here and in the spec's Durable Outputs rather than left to a reader to infer.
+**What it settles.** The affected set is nine surfaces, two of them code — not the
+two a reviewer named, and not the five the first sweep's narrow roots suggested.
+The lesson is the claim rather than the count: a sweep's summary must be written
+from what the command actually covered, and this one said "repository-wide" of a
+three-root search.
 
 ## 2026-09-20 — T1's stub earns its red
 
