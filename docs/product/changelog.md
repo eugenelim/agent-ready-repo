@@ -64,6 +64,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.21] — 2026-09-20
+
+### Highlights
+
+- **A work-loop no longer drops a small fix just because it sits outside the
+  task at hand.** When it notices a mechanically verifiable fix along the
+  way — one it can prove correct with a command, a search, or a check against
+  a named authority — it now lands that fix instead of discarding it or
+  writing it down for later.
+- **Whether a fix rides along turns on its risk, its behavior, and how it was
+  checked — not on how close it sits to the change already in flight.**
+- **A design call that is already settled — because a rule says so, or
+  because the owner answered in one line — no longer disqualifies a
+  ride-along.** Anything that would still change a convention, a contract, or
+  a published interface keeps requiring its own separately reviewed change.
+- **Nothing noticed during a loop is dropped silently.** At the end of a
+  loop, every item gets routed somewhere; anything genuinely stuck is written
+  down together with the one fact needed to unstick it later.
+
+### Changed
+
+- `work-loop`: the ride-along carve-out is now admitted by verifiability and
+  risk rather than by how local a fix is to the current change, and a
+  design call already resolved by a citation or a one-line owner answer no
+  longer blocks it. An unresolved call — one that would change a convention,
+  a contract, or a published interface — still routes the item to capture
+  instead. At Capture, every scratch note from the session is now routed to
+  a destination rather than left to fall out of scope.
+
 ## [core][2.26.20] — 2026-09-18
 
 ### Highlights

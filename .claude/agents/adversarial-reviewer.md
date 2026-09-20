@@ -245,21 +245,37 @@ checklists; verification-mode awareness applies to every review that carries a v
    content constraints to all user-visible channels — an AC that forbids
    internal paths on stdout is violated if the caller sees a full traceback
    with those paths on stderr.
-<!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
-     Keep all three sites (this file, work-loop/SKILL.md,
-     implementer.md operating envelope) in sync when changing the
-     gates. -->
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 4. **Scope.** Does the diff contain changes outside the plan? Each
    out-of-scope change is a Blocker until justified, extracted, or
    listed in the PR description's `Bundled fixes:` section. Authorized
-   ride-alongs are admitted by verifiability, not locality. Tier 1
-   reproducible work states its command and has a zero diff on re-run; it may
-   span the repository. Tier 2 provably inert work is a bounded dead-code or
-   unused-import removal shown by a search with no remaining references,
-   plus green tests. Tier 3 hand-made work keeps same-area,
-   same-concern, visibly smaller, mechanical limits. All tiers fail closed on a
-   design call or behavior change. Treat any claimed ride-along lacking its
-   required Tier 1 or Tier 2 evidence, or exceeding Tier 3's limits, as a
+   ride-alongs are admitted by verifiability, not locality.
+
+   A change may ride along when all four hold: (i) it fires no risk
+   trigger on its own, so it would run in light mode standalone; (ii)
+   it involves no behavior change and no unresolved design call, and
+   where a design call was resolved, that resolution changes no
+   convention, contract, or published interface; (iii) you can
+   state how it was verified — a command with a zero diff on re-run, a
+   search with no remaining references, or a comparison against a
+   named authority that the change agrees with; and (iv) it changes no
+   file that defines what an agent may do — a skill, an agent
+   definition, a hook, a command, or anything one of those loads — and
+   no file stating this test. Clause (iv) fails closed: where you
+   cannot tell whether a file is one of those, it is, and the change is
+   not a ride-along.
+
+   Clause (ii) is not decidable from this text alone. Before you
+   evaluate it, read `work-loop/references/bundled-fixes.md`: what
+   counts as recognising a design call, what resolves one, how
+   attendance is read, what to do when nothing resolves it, and what is
+   refused whatever the answer.
+
+   The risk triggers are the canonical block in `work-loop/SKILL.md`
+   (§ Select: light or full mode); a mirror names the skill and lists
+   no trigger. Treat any claimed ride-along failing this test as a
    Blocker.
 5. **Spec drift.** This check is about the targeted spec only. If the
    implementation differs from that spec, the spec must be updated in the same

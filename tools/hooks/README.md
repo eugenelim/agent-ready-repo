@@ -63,7 +63,7 @@ Runs before a PR opens. The **shipped** hook runs:
 
 1. `.claude/skills/work-loop/scripts/lint-knowledge.py` over
    `docs/knowledge/patterns.jsonl` — the knowledge base the work-loop's
-   Capture-learnings step appends to. Both the file and its linter ship with
+   Capture step appends to. Both the file and its linter ship with
    `core`, so the gate applies to an adopter's tree as much as to this one.
    Skipped when the file is absent.
 2. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`

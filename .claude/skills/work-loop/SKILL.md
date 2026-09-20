@@ -412,19 +412,33 @@ Match discipline to verification mode:
 
 **Scope:** implement the smallest coherent unit toward the goal. Note unrelated finds in `notes/` for later.
 
-<!-- Bundled-fixes carve-out — canonical site. Mirrored by
-     implementer.md (operating envelope) and adversarial-reviewer.md
-     (scope check #4). Keep all three in sync. -->
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 **Bundled-fixes carve-out.** Ride-alongs are admitted by verifiability, not
 locality. "The change" = the current plan task for the executor; the merged PR
-diff for the reviewer. List each under a standalone `Bundled fixes:` section (append below standard
-template content; do not modify the template). Tier 1 reproducible work must
-state its command and produce a zero diff on re-run; it may span the
-repository. Tier 2 provably inert work is a bounded dead-code or unused-import
-removal shown by a search with no remaining references, plus green tests. Tier 3 hand-made work remains same-area, same-concern,
-visibly smaller, and mechanical. All tiers fail closed on a design call or
-behavior change. In supervisor mode, the dispatch brief must explicitly
-authorize the carve-out.
+diff for the reviewer. List each under a standalone `Bundled fixes:` section
+(append below standard template content; do not modify the template).
+
+A change may ride along when all four hold: (i) it fires no risk trigger on
+its own, so it would run in light mode standalone; (ii) it involves no
+behavior change and no unresolved design call, and where a design call was
+resolved, that resolution changes no convention, contract, or published
+interface; (iii) you can state how it was verified — a command with a zero
+diff on re-run, a search with no remaining references, or a comparison
+against a named authority that the change agrees with; and (iv) it changes
+no file that defines what an agent may do — a skill, an agent definition, a
+hook, a command, or anything one of those loads — and no file stating this
+test. Clause (iv) fails closed: where you cannot tell whether a file is one
+of those, it is, and the change is not a ride-along.
+
+Clause (ii) is not decidable from this text alone. Before you evaluate it,
+read `work-loop/references/bundled-fixes.md`: what counts as recognising a
+design call, what resolves one, how attendance is read, what to do when
+nothing resolves it, and what is refused whatever the answer.
+
+In supervisor mode, the dispatch brief must explicitly authorize the
+carve-out.
 
 **Simplify pass.** After this task's GATES are green, shrink the diff: inline a single-use helper, delete orphaned code, collapse needless indirection, drop parameters no caller varies. Scope to new code only; leave tests DAMP. In Claude Code, `/simplify` performs this (optional accelerant, never a dependency).
 
@@ -664,12 +678,13 @@ result; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
 | Matches | Include now | Add it to the current plan or session. |
 | Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
 | Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Does not match | Include now, ride-along eligible | Admit it only if it passes every clause of the bundled-fixes carve-out. That test decides, not this row: a change failing any clause needs the owner's scope change like any other. |
 | Does not match | Do not include | Exclude it with no durable follow-on by default. |
 | Unclear | — | Ask the owner before acting. |
 
 Only the owner may narrow or waive an accepted intent. A matching discovery
 may share the current review unit only when the accepted contract authorizes it
-and it qualifies under the bundled-fixes tiers. Otherwise, it is the next
+and it qualifies under the bundled-fixes carve-out. Otherwise, it is the next
 independently reviewed unit in the same session: use the existing human-gate
 `blocker-applied` return edge, then run GATES, REVIEW, and the human gate again.
 
@@ -762,7 +777,7 @@ repairing its generator or dropping it.
   GATES and REVIEW after each fix; use the next review unit when it cannot
   safely share this one.
 - **Concerns** → apply now only when authorized by the accepted contract and
-  bundled-fixes tiers; matching work that cannot share this unit moves to the next.
+  the bundled-fixes carve-out; matching work that cannot share this unit moves to the next.
 - **Nits** → never fix automatically. Defer an unacted Nit in `findings[]` with
   its citation and `status: deferred`; adjudicate only when the thread intends to
   mutate. Before any edit, promote `effective_severity` to at least Concern if
@@ -773,7 +788,7 @@ repairing its generator or dropping it.
   `work-intake`; do not create a `[backlog].open` entry or `(deferred: <slug>)`
   marker merely because this loop did not include the work.
 
-**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture learnings](#capture-learnings).
+**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture](#capture).
 
 ### Review verdict record
 
@@ -816,7 +831,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   recipe, explanation if it introduces a concept. The spec workflow is not done
   until those are updated.
 - [ ] Conventional commit format used; no force-push to shared branches.
-- [ ] Learnings captured per [Capture learnings](#capture-learnings).
+- [ ] Every scratch note from this session's DECIDE passes was routed to a destination per [Capture](#capture).
 - [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,
   and reviewable behavior and test lines for each intended PR or stack layer.
   Above 2,000 reviewable behavior and test lines, record review shape. WIDE
@@ -855,29 +870,36 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
 4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
 5. **Light mode:** return to GATES, then re-review under the rounds rule in [`references/light-mode.md`](references/light-mode.md).
 
-## Capture learnings
+## Capture
 
-Before the PR is opened: *What would have made this work materially better —
-more correct, complete, reliable, recoverable, secure, privacy-preserving,
-deterministic, reproducible, operable, maintainable, reviewable, efficient, or
-independent of hidden context?*
+What a kept note should say, and how to write it, is in [`references/capture.md`](references/capture.md).
 
-Speed is one useful signal, not the objective. Capture a learning when knowing
-it would materially change a future approach along one or more of those quality
-attributes.
+A captured item carries its discriminator: the one fact the decision turns
+on, not just the location. "Four sites use a 13px literal" is a locator;
+"the third of them is the only sans one, so the shared token does not fit
+it" is an item. Supply the discriminator before capturing; an item you
+cannot give one to is not ready to capture, and it goes to the destination
+its actual state names. A locator nobody can action looks like tracked work
+and is not. Disposing an item now is cheaper than recording it: a recorded
+item pays a tracking cost, a context-refresh cost, and often a new session,
+and then still needs a discriminator that close-time reconstruction from
+the diff cannot recover. A slightly longer loop is the cheaper option, and
+capturing a ready-now item is a loss.
 
-Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
-
-- **Review scratch notes** from this session's DECIDE passes. For each:
-  generalisable beyond this PR and would have changed the approach → route it
-  through the `project-knowledge` public seam; otherwise discard it.
-
-  Use semantic-gate triage before writing anything. Route or discard normative
-  material first, then invoke the public `project-knowledge` producer profile.
-  It owns receipts and terminal-gate distillation; unresolved observations remain
-  pending. Any knowledge diff returns through the next verification and review
-  barrier before commit. If unavailable, record `project-knowledge unavailable`;
-  create no fallback file.
+- **Review scratch notes** from this session's DECIDE passes. Anything
+  generalisable that would have changed the approach goes to the
+  `project-knowledge` public seam, and the examples below are instances of
+  that; the seam is additive. Then, where the note names a defect, take the
+  first destination that applies and stop: a ride-along-eligible defect is
+  dispatched now, grouped with related fixes sharing a file or a seam, over
+  the human gate's `blocker-applied` return edge; a defect blocked on a
+  decision, an instrument, or elapsed time is captured; a ready-now defect
+  that is not ride-along eligible becomes the next independently reviewed
+  unit in this session, over that same edge, where ready-now means it can be
+  finished this session without a decision nobody present will make; and any
+  defect left — one resting on taste, or one with no stated arbiter — is
+  discarded. A note that names no defect is done once the seam has taken it,
+  and discarded if it had nothing for the seam either.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
 - "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
@@ -949,3 +971,5 @@ Load when the predicate fires; don't load speculatively.
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |
 | Authoring a pull-request body | [`references/pr-authoring.md`](references/pr-authoring.md) |
+| Writing a kept capture note | [`references/capture.md`](references/capture.md) |
+| Evaluating clause (ii) of the bundled-fixes carve-out | [`references/bundled-fixes.md`](references/bundled-fixes.md) |

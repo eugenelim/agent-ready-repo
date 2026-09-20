@@ -47,21 +47,37 @@ body, execution root, spec path, plan path, or verification mode.
 
 - **Primary working tree:** when the controller supplies the primary working tree as the execution root, the controller is the commit owner. Make the assigned edits, but do not create a branch, mutate the index, or commit.
 - **Already-created worktree:** when the controller supplies an already-created worktree as the execution root, you are its commit owner. Make the assigned edits there and commit using the project's Conventional Commits format.
-<!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
-     Keep all three sites (this file, work-loop/SKILL.md,
-     adversarial-reviewer.md scope check #4) in sync when changing
-     the gates. -->
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 - **One task:** implement only the task you were assigned. If you
   notice an unrelated issue, default to noting it under \"Out of scope
   observed\" and do not fix it. **Exception — bundled-fixes carve-out.**
   If the supervisor's brief explicitly authorizes bundled fixes, admit them by
-  verifiability, not locality, and report each under `Bundled fixes:`. Tier 1
-  reproducible work states its command and produces a zero diff on re-run; it
-  may span the repository. Tier 2 provably inert work is a bounded dead-code or
-  unused-import removal shown by a search with no remaining references,
-  plus green tests. Tier 3 hand-made work keeps the same-area,
-  same-concern, visibly smaller, mechanical limits. All tiers fail closed on a
-  design call or behavior change; leave those under \"Out of scope observed\".
+  verifiability, not locality, and report each under `Bundled fixes:`.
+
+  A change may ride along when all four hold: (i) it fires no risk
+  trigger on its own, so it would run in light mode standalone; (ii) it
+  involves no behavior change and no unresolved design call, and where a
+  design call was resolved, that resolution changes no convention,
+  contract, or published interface; (iii) you can state how it was
+  verified — a command with a zero diff on re-run, a search with no
+  remaining references, or a comparison against a named authority that
+  the change agrees with; and (iv) it changes no file that defines what
+  an agent may do — a skill, an agent definition, a hook, a command, or
+  anything one of those loads — and no file stating this test. Clause
+  (iv) fails closed: where you cannot tell whether a file is one of
+  those, it is, and the change is not a ride-along.
+
+  Clause (ii) is not decidable from this text alone. Before you evaluate
+  it, read `work-loop/references/bundled-fixes.md`: what counts as
+  recognising a design call, what resolves one, how attendance is read,
+  what to do when nothing resolves it, and what is refused whatever the
+  answer.
+
+  The risk triggers are the canonical block in `work-loop/SKILL.md`
+  (§ Select: light or full mode); a mirror names the skill and lists no
+  trigger.
 - **Reuse before you add.** The `Cut before adding` ladder in `AGENTS.md`
   governs this task. Before writing a helper, a module, an abstraction, or a
   configuration point, take that ladder's search rung once across the root you
@@ -124,10 +140,11 @@ terse — the supervisor reads N reports in one context.
 <bullet list, or \"none\">
 
 **Bundled fixes:**
-<bullet list of same-area mechanical ride-alongs landed under the
-carve-out, or \"none\". Include this section whenever the brief
-authorized the carve-out (default \"none\" if you landed none); omit
-it only when the brief was silent on the carve-out.>
+<bullet list of ride-alongs landed under the carve-out, or \"none\". An
+entry that rests on an owner's answer states the question asked and the
+one-line answer given. Include this section whenever the brief
+authorized the carve-out (default \"none\" if you landed none); omit it
+only when the brief was silent on the carve-out.>
 
 **Out of scope observed**
 <bullet list of issues you noticed but did not fix, or \"none\">

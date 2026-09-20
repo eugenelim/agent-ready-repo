@@ -121,7 +121,7 @@ A feature lifecycle, end to end, with the parts named:
 9. **Repeated findings are reported.** When a round's findings fingerprint the
    same as the previous round's, the loop surfaces that and carries on. It is
    advisory: the iteration cap is what bounds the loop.
-10. **Capture learnings.** A loop that finished without writing *something* to a skill, ADR, or pattern note wasted what it learned. The work-loop names where each kind of learning belongs.
+10. **Capture.** Each scratch note from this session's DECIDE passes routes to a destination: a generalisable one feeds a skill, ADR, or pattern note through the `project-knowledge` seam; a defect either ships now as a ride-along, becomes the session's next reviewed unit, or is captured when it is blocked on a decision, an instrument, or elapsed time. A loop that finished without routing every note wasted what it noticed.
 
 The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Boundaries because the reviewer measures plans against Boundaries before falling back to the declined-pattern register. The work-loop's prose gates EXECUTE on `plan_review_status = approved`, and that field is set by the reviewer-pass step rather than by the implementing agent — so the discipline holds when the loop is followed and only when it is.
 
@@ -230,7 +230,7 @@ work-loop skill).
 
 **Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
 
-**Why capture learnings.** A loop that finishes without updating *some*
+**Why capture.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.

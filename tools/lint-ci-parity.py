@@ -578,6 +578,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest spec-authority note live/seed parity (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest capture-rename guide contract (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest shaping-review contracts (roster-owned)":

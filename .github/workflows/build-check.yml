@@ -441,6 +441,13 @@ jobs:
       - name: pytest spec-authority note live/seed parity (roster-owned)
         run: python -m pytest tests/roster/test_spec_authority_note.py
 
+      # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
+      # this check is roster-owned. It sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
+      # step placed after that one never runs and can attribute nothing.
+      - name: pytest capture-rename guide contract (roster-owned)
+        run: python -m pytest tests/roster/test_capture_rename_guide.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         run: |
           python tools/lint-conformance-portability.py --root .

@@ -122,14 +122,36 @@ not edit `state.json` or invoke `git worktree` directly.
    `{task_id, branch, path, status: "in-progress", report_path: null}`
    entry to `state.json.worktrees`, atomically.
 
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 2. **Dispatch implementers in parallel** per the
    [parallel-dispatch discipline](#parallel-dispatch-discipline) below.
    Each brief includes: the task
    ID, the plan-task body, the worktree path, paths to the spec +
    plan, and an explicit **bundled-fixes authorization line** —
    "Bundled fixes authorized per the carve-out in `work-loop/SKILL.md`
-   (EXECUTE phase); apply same-area, same-concern, mechanical
-   ride-alongs only and report under `Bundled fixes:` in your output."
+   (EXECUTE phase). A change may ride along when all four hold: (i) it
+   fires no risk trigger on its own, so it would run in light mode
+   standalone; (ii) it involves no behavior change and no unresolved
+   design call, and where a design call was resolved, that resolution
+   changes no convention, contract, or published interface; (iii)
+   you can state how it was verified — a command with a zero diff on
+   re-run, a search with no remaining references, or a comparison
+   against a named authority that the change agrees with; and (iv) it
+   changes no file that defines what an agent may do — a skill, an
+   agent definition, a hook, a command, or anything one of those
+   loads — and no file stating this test. Clause (iv) fails closed:
+   where you cannot tell whether a file is one of those, it is, and
+   the change is not a ride-along. Clause (ii) is not decidable from
+   this text alone. Before you evaluate it, read
+   `work-loop/references/bundled-fixes.md`: what counts as recognising
+   a design call, what resolves one, how attendance is read, what to
+   do when nothing resolves it, and what is refused whatever the
+   answer. The risk triggers are the canonical block in
+   `work-loop/SKILL.md` (§ Select: light or full mode); a mirror names
+   the skill and lists no trigger. This run is <attended|unattended>.
+   Report each ride-along under `Bundled fixes:` in your output."
    If a particular task should run without the carve-out (e.g. a
    high-blast-radius migration), omit the authorization line; the
    implementer defaults to no-carve-out and routes everything to
@@ -191,8 +213,11 @@ not edit `state.json` or invoke `git worktree` directly.
    under the carve-out. After merge succeeds, collect those lines
    from every ready report, dedupe by exact-string match (falling
    back to operator judgment when two lines describe the same change
-   in different words), and emit a single `Bundled fixes:` section
-   in the PR description below the [standard template](../assets/pull-request-template.md). If no
+   in different words, never merging two entries whose recorded
+   questions differ, nor two whose recorded answers to the same
+   question differ), and emit a single `Bundled fixes:` section
+   in the PR description below the
+   [standard template](../assets/pull-request-template.md). If no
    implementer landed ride-alongs, omit the section.
 
 6. **Clean up worktrees.** After all merges succeed, run
