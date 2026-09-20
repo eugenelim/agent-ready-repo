@@ -64,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [product-engineering][0.13.14] — 2026-09-20
+
+`frame-situation` told readers that `diverge-solutions` and `place-bet` were
+"not yet shipped" when explaining its step-2 readiness degrade. Both ship. The
+claim went stale when their specs landed and the degrade branch citing it was
+not revisited, so it read as evidence and was not. The degrade behaviour is
+unchanged; only the false justification is gone.
+
+### Highlights
+
+- `frame-situation` no longer tells you two shipped skills are unshipped.
+
 ## [product-engineering][0.13.13] — 2026-09-20
 
 `ux-writing` now carries the three output-rendering directives its entry in the
