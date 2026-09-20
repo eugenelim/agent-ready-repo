@@ -28,8 +28,10 @@ criterion names them.
 
 Three blind spots, named rather than implied: the comparison normalises
 whitespace, so it cannot see a rewrap; the fenced-block check recognises
-column-0 fences only; and a clause paraphrased outside its matched span is
-caught by the vocabulary sweep, not here.
+backtick and tilde fences indented up to three spaces, but counts fences
+rather than matching them by delimiter, so a backtick fence nested inside a
+tilde one is miscounted; and a clause paraphrased outside its matched span
+is caught by the vocabulary sweep, not here.
 """
 
 from __future__ import annotations
@@ -325,7 +327,28 @@ def _marker_positions(path: Path) -> dict[str, int]:
     for site_path, marker, _clauses in HOST_ROWS:
         if site_path != path:
             continue
-        idx = raw.find(marker)
+        # The marker must be live. A commented-out or fenced marker still
+        # satisfied `find`, so commenting out a host left its clause sitting
+        # outside any real structure while the placement check stayed green:
+        # the check tested the clause's liveness and never the marker's.
+        # C6 is required by AC12 to sit inside the fenced report template,
+        # and AC5 exempts it from the fence prohibition alone. Its marker is
+        # therefore fenced too, so the fence half of this liveness test
+        # carries the same exemption; the comment half never does.
+        fence_exempt = _clauses == ("C6",)
+        idx = -1
+        search_from = 0
+        while True:
+            found = raw.find(marker, search_from)
+            if found == -1:
+                break
+            hidden = _in_html_comment(raw, found) or (
+                not fence_exempt and _in_fenced_block(raw, found)
+            )
+            if not hidden:
+                idx = found
+                break
+            search_from = found + 1
         if idx != -1:
             positions[marker] = idx
     return positions

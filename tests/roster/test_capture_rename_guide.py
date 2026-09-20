@@ -162,6 +162,11 @@ def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
 
     blocks: dict[str, str] = {}
     for match in _CLAUSE_HEADING_RE.finditer(raw):
+        # The clause heading must be live too. Filtering only the section
+        # heading let a commented-out or fenced canonical clause be parsed
+        # as the pinned text while the rendered spec showed something else.
+        if _in_fence(raw, match.start()) or _in_comment(raw, match.start()):
+            continue
         label = f"C{match.group(1)}"
         assert label not in blocks, (
             f"{path.name} § The shipped clauses declares {label} more than "
@@ -175,6 +180,10 @@ def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
                 quoted.append(line[1:].lstrip(" "))
             elif started:
                 break
+        # The blockquote must be live as well as the heading above it.
+        quote_at = raw.find(">", match.end())
+        if quote_at != -1 and (_in_fence(raw, quote_at) or _in_comment(raw, quote_at)):
+            continue
         assert quoted, f"{label} in {path.name} has no blockquote after its heading"
         blocks[label] = " ".join(quoted)
     return blocks

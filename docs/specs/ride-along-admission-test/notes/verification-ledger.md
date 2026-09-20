@@ -1314,3 +1314,34 @@ case's prompt, its dispatch-not-defer assertions, and the unattended case's
 The two module docstrings that still described the pre-implementation tree
 ("before those clauses exist", "`None` is the expected value everywhere")
 now describe the shipped state.
+
+## 2026-09-20 — liveness applied to both halves of every pair
+
+Two Blockers, one omission made twice: each control checked one side of a
+pair for liveness and not the other.
+
+| Hole | Repair | Caught by |
+| --- | --- | --- |
+| The spec parser filtered the *section* heading for fences and comments but not the *clause* headings or their blockquotes, so a commented-out canonical clause parsed as the pinned text | Clause headings and blockquotes must be live too | `test_pinned_clauses_match_the_spec`, on C1 commented out in the spec |
+| `_marker_positions` accepted a *marker* inside a comment or fence while the placement check tested only the *clause*, so commenting out a host left a live clause outside any real structure | A marker must be live; the fence half carries AC5's C6 exemption, because AC12 requires C6 inside the fenced template and its marker is fenced with it | `test_clauses_sit_in_their_hosts`, on `4. **Scope.**` commented out |
+
+**AC15's command, now recorded** — the previous entry gave the result
+without the invocation the Testing Strategy requires:
+
+```
+$ python3 <scratch>/ac15_check.py
+C1(i) no risk trigger       PASS      dispatch required      PASS
+C1(ii) no behaviour change  PASS      defer/discard refused  PASS
+C1(ii) no design call       PASS      unattended prompt      PASS
+C1(iii) verification        PASS      blocked_on: decision   PASS
+C1(iv) nothing loads it     PASS      forbids asking         PASS
+C1(iv) not the test         PASS      forbids waiting        PASS
+                                      forbids guessing       PASS
+                                      not a loop blocker     PASS
+
+AC15: 14/14 obligations hold        (exit 0)
+```
+
+The pack control's docstring, which still described column-0 fences, now
+describes what it implements: backtick and tilde fences indented up to three
+spaces, counted rather than matched by delimiter.
