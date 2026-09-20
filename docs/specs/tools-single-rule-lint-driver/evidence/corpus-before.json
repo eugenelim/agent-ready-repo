@@ -112,7 +112,7 @@
  "lint-nosec-form": {
   "absent": {
    "exit": 2,
-   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/<user>/orca/workspaces/agent-ready-repo/code-check'\n",
    "stdout": "",
    "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
   },
@@ -123,13 +123,13 @@
   },
   "empty": {
    "exit": 2,
-   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/<user>/orca/workspaces/agent-ready-repo/code-check'\n",
    "stdout": "",
    "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
   },
   "violation": {
    "exit": 2,
-   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stderr": "lint-nosec-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/<user>/orca/workspaces/agent-ready-repo/code-check'\n",
    "stdout": "",
    "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
   }
@@ -137,7 +137,7 @@
  "lint-nosemgrep-form": {
   "absent": {
    "exit": 2,
-   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/<user>/orca/workspaces/agent-ready-repo/code-check'\n",
    "stdout": "",
    "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
   },
@@ -148,13 +148,13 @@
   },
   "empty": {
    "exit": 2,
-   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/<user>/orca/workspaces/agent-ready-repo/code-check'\n",
    "stdout": "",
    "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
   },
   "violation": {
    "exit": 2,
-   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/eu.gene.lim/orca/workspaces/agent-ready-repo/code-check'\n",
+   "stderr": "lint-nosemgrep-form: fatal: <ROOT>/tools: '<ROOT>/tools' is outside repository at '/Users/<user>/orca/workspaces/agent-ready-repo/code-check'\n",
    "stdout": "",
    "unreachable": "scan root is pinned to the real repository; argv cannot reach this mode"
   }

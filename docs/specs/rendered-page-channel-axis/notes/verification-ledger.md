@@ -178,8 +178,8 @@ The file is not in this delivery's diff, and the commit that last touched it is 
 ancestor of the approved baseline. What changed is the linter, not the tree:
 
 ```
-agentbundle resolves to  /Users/eu.gene.lim/orca/agent-ready-repo/...   (primary checkout)
-this worktree is         /Users/eu.gene.lim/orca/workspaces/.../ui-viewports
+agentbundle resolves to  /Users/<user>/orca/agent-ready-repo/...   (primary checkout)
+this worktree is         /Users/<user>/orca/workspaces/.../ui-viewports
 
 lint  through the primary checkout   1 ERROR
 lint  through this worktree's code    0 errors

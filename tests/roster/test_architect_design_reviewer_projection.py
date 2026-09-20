@@ -82,3 +82,20 @@ class ArchitectDesignReviewerProjectionTests(unittest.TestCase):
                             agent_hit.read_text(encoding="utf-8"),
                             "cursor: design-reviewer must project with the readonly flag",
                         )
+
+    def test_gate_script_file_safety_mirror_matches_its_source_of_truth(self) -> None:
+        """`check_document_architecture.py`'s vendored sibling must not drift.
+
+        `packages/agentbundle/agentbundle/build/self_host.py:118-150` declares
+        `packs/core/.apm/skills/close-work/scripts/file_safety.py` as the source
+        of both the `_data/` and `catalogue_tooling` copies, so that file — not
+        the generated `catalogue_tooling` module — is this mirror's source of
+        truth. `make build-self` writes no destination under `packs/`, so
+        nothing regenerates this copy; this assertion is the only thing
+        keeping it from drifting silently.
+        """
+        mirror = ARCHITECT_PACK / ".apm" / "skills" / "architect-design" / "scripts" / "file_safety.py"
+        canonical = (
+            REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "close-work" / "scripts" / "file_safety.py"
+        )
+        self.assertEqual(mirror.read_bytes(), canonical.read_bytes())

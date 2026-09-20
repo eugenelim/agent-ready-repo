@@ -472,6 +472,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest merge-driver behaviour (AC2-AC4)":
         LOCAL("test-after-build-check"),
+    "Pull-request template installer and release checker":
+        LOCAL("test-after-build-check"),
         "pytest guides sidebar generation":
             LOCAL("test-after-build-check"),
         "pytest journey editorial decisions":
@@ -880,9 +882,9 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(RFC-0082)"
         ),
     'packs/architect/tests/skills/architect-design/':
-        NO_PR_GATE(
-            "Pack skill suite. `make test` runs it in the architect batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
         ),
     'packs/architect/tests/skills/architect-review/':
         NO_PR_GATE(
@@ -1092,6 +1094,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_merge_driver_behaviour.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest merge-driver behaviour (AC2-AC4)"
+        ),
+    'tools/test_pull_request_template_adoption.py':
+        PR_GATED(
+            "build-check.yml / gate-main / Pull-request template installer and "
+            "release checker"
+        ),
+    'tools/test_check_core_release.py':
+        PR_GATED(
+            "build-check.yml / gate-main / Pull-request template installer and "
+            "release checker"
         ),
     'tools/test_workspace_status.py':
         PR_GATED(

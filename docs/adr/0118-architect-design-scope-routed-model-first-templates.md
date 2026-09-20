@@ -1,6 +1,6 @@
 # ADR-0118: `architect-design` authors from three scope-routed model-first templates, not one generic design doc
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-18
 - **Areas:** architecture, documentation
 - **Reversibility:** high

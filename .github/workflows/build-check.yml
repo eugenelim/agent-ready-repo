@@ -311,6 +311,12 @@ jobs:
       - name: pytest merge-driver behaviour (AC2-AC4)
         run: python -m pytest tools/test_merge_driver_behaviour.py
 
+      - name: Pull-request template installer and release checker
+        # Behavioural suites: the installer is RUN in temporary repositories,
+        # because a text check cannot catch a wrong search depth or a path that
+        # escapes the repository. Both shipped once and were found by running it.
+        run: python -m pytest tools/test_pull_request_template_adoption.py tools/test_check_core_release.py -q
+
       - name: pytest journey editorial decisions
         run: python -m pytest tools/test_journey_editorial_decisions.py
 
@@ -449,6 +455,7 @@ jobs:
           python -m pytest tests/ -q
           python -m pytest packs/architect/tests/pack/ -q
           python -m pytest packs/architect/tests/skills/architect-assess/ -q
+          python -m pytest packs/architect/tests/skills/architect-design/ -q
           python -m pytest packs/core/tests/pack/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q
           python -m pytest packs/credential-brokers/tests/pack/ -q

@@ -109,9 +109,9 @@ check under those headings reaches it.
 
 ## Implementation Mapping
 
-- [ ] Together, the complete model set and this section are sufficient
-      to implement from — a reader would know exactly what to build,
-      or exactly what to ask, without the section this replaces.
+- [ ] `DA8` 🟥 🧭 — Together, the complete model set and this section are
+      sufficient to implement from — a reader would know exactly what to
+      build, or exactly what to ask, without the section this replaces.
 - [ ] *(subsystem)* Each element in the model reaches a verification — a
       test, contract test, or monitor that proves the mapping holds.
 - [ ] *(application/system)* The mapping reaches product, repository,
@@ -159,12 +159,120 @@ _Load `nfr-checklist.md` if any of these are unclear._
 - [ ] Data-handling and privacy obligations named.
 - [ ] Failure modes and observability hooks named.
 - [ ] Cost shape named (when material).
-- [ ] Every diagram states one named question and one zoom level, and
-      the surrounding prose answers that question rather than only
-      captioning the picture.
+- [ ] `DA7` 🟧 🧭 — Every diagram states one named question and one zoom
+      level, and the surrounding prose answers that question rather than
+      only captioning the picture.
 - [ ] Deletes unnecessary claims. Each necessary cross-document assertion has
       one bounded check of its named target or is labelled as an assumption or
       discovery predicate.
+
+### Document-architecture gates
+
+The ten gates a drafted document is walked against, at the author's
+self-check here and again at review. A severity orders which fix an author
+makes before a draft is shown, in the same vocabulary the reviewer will
+apply to it — 🟥 blocker, 🟧 major, 🟨 minor — so an author and a reviewer
+never disagree about which failure matters more. 🔧 marks a gate the script
+at `scripts/check_document_architecture.py` decides; 🧭 marks a gate the
+reviewer decides. Every 🧭 gate but one carries a **precheck** — a mechanical
+hint that narrows what the reviewer reads without ever deciding the gate
+itself.
+
+| ID | Tag | Severity | Asks |
+| --- | --- | --- | --- |
+| `DA1` | 🧭 | 🟨 | Is the body written in the present tense? |
+| `DA2` | 🧭 | 🟧 | Does every cross-reference name its target? |
+| `DA3` | 🔧 | 🟨 | Does any prose paragraph run past three sentences? |
+| `DA4` | 🧭 | 🟧 | Does each model come before the prose explaining it? |
+| `DA5` | 🧭 | 🟥 | Does each concern live in exactly one place? |
+| `DA6` | 🧭 | 🟨 | Have settled decisions been removed from the body? |
+| `DA7` | 🧭 | 🟧 | Does each diagram state one question at one zoom? |
+| `DA8` | 🧭 | 🟥 | Can the reader build from the models plus the mapping? |
+| `DA9` | 🧭 | 🟨 | Is evidence linked rather than piled into the document? |
+| `DA10` | 🔧 | 🟧 | Is the document over the size bound? |
+
+#### `DA1`
+
+Precheck: rejects a future-tense or prior-state construction in the
+document body — `will be`, `previously`, `used to`, or a deprecation date.
+The precheck's verdict is the reviewer's. It applies to an authored
+document, not a template.
+
+#### `DA2`
+
+Precheck: rejects a cross-reference that names no target, against the
+closed list `see above`, `see below`, `as described above`, `as described
+below`, `the previous section`, `the following section`, `the table below`
+and `the diagram above`. A reference that names what it points at — `the
+structural model above` — is not a finding. The precheck's verdict is the
+reviewer's. It applies to an authored document, not a template.
+
+#### `DA3`
+
+Mechanical: `scripts/check_document_architecture.py` decides `DA3` directly
+and it carries no precheck.
+
+#### `DA4`
+
+Precheck: requires the first block after a modelled section's opening
+question to be a table or a fenced diagram, never prose. The precheck's
+verdict is the reviewer's. It applies to an authored document, not a
+template.
+
+#### `DA5`
+
+`DA5`'s verdict is the reviewer's judgement alone; no automated measure
+decides it. `DA5` carries no precheck — a precheck would complete the
+judgement it must not.
+
+#### `DA6`
+
+Precheck: rejects a `Revision History` or `Decision Log` heading in the
+document body. The precheck's verdict is the reviewer's. It applies to an
+authored document, not a template.
+
+#### `DA7`
+
+`DA7`'s precheck is the Cross-cutting checklist item above it carries its
+identifier, severity and tag on: every diagram states one named question
+and one zoom level. The precheck's verdict is the reviewer's. It applies to
+an authored document, not a template.
+
+#### `DA8`
+
+`DA8`'s precheck is the Implementation Mapping checklist item above it
+carries its identifier, severity and tag on: the complete model set and
+that section are sufficient to implement from. Its precheck also requires
+every implementation-mapping row to resolve to an element the document's
+models name. The precheck's verdict is the reviewer's. It applies to an
+authored document, not a template.
+
+#### `DA9`
+
+Precheck: rejects a body heading that accumulates evidence rather than
+linking it — `Appendix`, `References`, `Evidence`. The precheck's verdict is
+the reviewer's. It applies to an authored document that has been routed to
+a scope, not a template — the precheck corpus excludes `assets/*.md`, so the
+unrouted compatibility pointer `assets/design-doc.md` never reaches it
+despite carrying `## Appendix (optional)`.
+
+#### `DA10`
+
+Mechanical: `scripts/check_document_architecture.py` decides `DA10`
+directly. Its bound is derived, not guessed: 752 words of scaffolding the
+subsystem template hands a filled document verbatim, 9 model tables at 5
+rows of 12 words, 4 diagrams at 40 words of labels, and 11 sections at 3
+sentences of 22 words — 2,178 words at intended density — multiplied by a
+headroom factor of 1.5 and rounded to the nearest hundred, giving a bound of
+**3,300 words**. The scaffolding figure is measured, reproduced by: strip
+frontmatter, strip HTML-comment spans, replace every `<…>` placeholder with
+a space — matching `<[^<>\n]*>`, so a placeholder never spans a newline —
+then count tokens matching `[A-Za-z0-9]`. That newline bound is what makes
+the figure reproducible; without it the same steps give 388. A document over
+the bound
+is walked against `references/decomposition-rubric.md`; `DA10` decides no
+split itself. A document over the bound whose children meet no criterion
+there moves detail to companion views and evidence links instead.
 
 ## Decomposition
 

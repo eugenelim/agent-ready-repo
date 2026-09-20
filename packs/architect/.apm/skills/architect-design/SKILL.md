@@ -235,12 +235,19 @@ real choice remains, create no new artifact.
    picture — not as decoration.
 
 6. **Self-check against the rubric** in `references/design-doc-rubric.md`.
-   Walk it line by line; fix what fails before showing the draft.
+   Walk it line by line; fix what fails before showing the draft. Before the
+   draft is shown, report every gate's result by identifier and verdict —
+   `DA1`, `DA2`, `DA3`, `DA4`, `DA5`, `DA6`, `DA7`, `DA8`, `DA9` and `DA10`,
+   each carrying its own verdict. A gate that produced no verdict is a gate
+   nobody asked to run.
    For every component and boundary, name the current goal, constraint, or
    prioritized quality attribute that justifies it. Remove unsupported
    future-proofing and unnecessary claims. For a necessary cross-document
    assertion, perform one bounded check of its named target or label it an
-   assumption or discovery predicate.
+   assumption or discovery predicate. `DA3` and `DA10` are counted by reading,
+   matching the bounds `scripts/check_document_architecture.py` enforces; the
+   agent running this skill does not invoke that script — a human author or
+   an adopter's CI runs it separately, outside this procedure.
    Common failures:
    - Non-goals empty or unconvincing → load `references/alternatives.md`.
    - Alternatives are strawmen → load `references/alternatives.md` and
