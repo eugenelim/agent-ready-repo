@@ -1468,3 +1468,28 @@ CI found it rather than the local gate.
 **Roster verification is remote from here on**, at the owner's instruction:
 `tests/roster/` is not run on this machine, so AC3, AC12 and AC16's roster
 half are verified by CI and reported on CI's evidence.
+
+## 2026-09-20 — AC16 verified, and a check that was wrong about a correct artifact
+
+Seventeen of seventeen criteria hold. AC16 was verified outcome by outcome
+against `references/bundled-fixes.md`: all twenty-one named outcomes are
+stated, not merely their topics.
+
+**The first run of that check reported 17/21.** Four "failures" —
+attended-means-ask, unattended-means-do-not-ask, record-where-the-run-
+reports, and refused-however-settled — were the checker's needles being
+over-literal, not the reference being incomplete. The reference says
+"declares attended, ask there", "declares unattended, do not ask",
+"wherever the run reports its result", and "however settled the citation or
+the answer looks". Reading the sections settled it; re-running with the
+artifact's own phrasing gives 21/21.
+
+Recorded because the failure mode is the one this change keeps meeting from
+the other side: a control disagreeing with a correct artifact is as
+misleading as one agreeing with a broken artifact, and the way to tell them
+apart is to read the artifact rather than trust the checker. Note also that
+the pack suite's own `test_bundled_fixes_reference_states_ac16_outcomes`
+passed throughout — so it is weaker than AC16's full list, and this
+outcome-by-outcome walk is the evidence AC16 rests on.
+
+**Spec `Shipped`, plan `Done`, all seventeen ticked.**

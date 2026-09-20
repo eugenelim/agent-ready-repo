@@ -1,6 +1,6 @@
 # Spec: Ride-along admission test
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0090 (bundled-fixes tiers; corrected by this spec's
@@ -395,7 +395,7 @@ obligation whose only check is that a sentence exists belongs.
   The second names a declared-unattended dispatch whose only bar is an owner
   decision; its assertions require `blocked_on: decision` and forbid asking,
   waiting, guessing, and treating the item as a blocker.
-- [ ] **AC16.** `packs/core/.apm/skills/work-loop/references/bundled-fixes.md`
+- [x] **AC16.** `packs/core/.apm/skills/work-loop/references/bundled-fixes.md`
   states each of these outcomes, not merely each topic:
   a design call is resolved only by a citation or by an owner's answer;
   a citation is a shipped rule, an accepted decision record, a convention

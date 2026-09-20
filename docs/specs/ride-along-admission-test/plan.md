@@ -1,7 +1,7 @@
 # Plan: Ride-along admission test
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule, § Shipped
   pack content carries no internal-governance citations, § Self-hosting
   projection) and `packs/core/AGENTS.md`; analogous implementations —
