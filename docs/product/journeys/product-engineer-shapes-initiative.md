@@ -105,7 +105,7 @@ sequenceDiagram
     IO-->>PE: Highest-opportunity pain ranked · proceed to diverge?
 
     PE->>DS: diverge-solutions
-    DS->>SA: solution-options.md (≥3 structured comparable options)
+    DS->>SA: solution-options.md (structured comparable options)
     DS-->>PE: Options framed · identify riskiest assumption?
 
     PE->>DRI: de-risk-intent [option set]
@@ -170,9 +170,9 @@ sequenceDiagram
 | **Actions** | Brainstorms solution options mentally or in a doc. May reach for `explore-options` but it produces freeform output — no structured comparison, no forcing function. |
 | **Emotions** | Creative but unstructured (neutral). No clear signal about when divergence is "enough" or whether the options are comparable. |
 | **Pains** | "I don't know if I've diverged enough or if I've just listed variations of the same idea." "My solution options aren't structured enough to compare — no forcing function." "I often skip this step and jump to a preferred solution." |
-| **Opportunities** | `diverge-solutions`: step-3 of the six-step sequence, produces ≥3 structured comparable options that `place-bet` can reason against. Distinct from `explore-options` (freeform, any context) — different output contracts, both stay. |
+| **Opportunities** | `diverge-solutions`: step-3 of the six-step sequence, produces structured comparable options that `place-bet` can reason against. Distinct from `explore-options` (freeform, any context) — different output contracts, both stay. |
 
-> **With M2** — `diverge-solutions` ships as a distinct structured skill (not a wrapper over `explore-options`): forces ≥3 comparable options with a structured format that `place-bet` can reason against; committed to `docs/product/shaping/`. Use `explore-options` for freeform brainstorming outside the six-step sequence; use `diverge-solutions` when you're in step-3.
+> **With M2** — `diverge-solutions` ships as a distinct structured skill (not a wrapper over `explore-options`): forces comparable options in a structured format that `place-bet` can reason against; committed to `docs/product/shaping/`. Use `explore-options` for freeform brainstorming outside the six-step sequence; use `diverge-solutions` when you're in step-3.
 
 ---
 

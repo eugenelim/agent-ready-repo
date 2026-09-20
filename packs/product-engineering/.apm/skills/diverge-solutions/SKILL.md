@@ -72,7 +72,8 @@ addressed), or *bet* (what must be true) must differ across the set. For each
 option produce: name (short descriptive title), approach (one paragraph),
 key bets (1–3 assumptions that must hold), trade-offs (relative to other
 options). If all candidates collapse to trivial variations, name the constraint
-and ask before reducing below 3.
+and ask before narrowing further — the problem is that the space did not open,
+not that a count was missed.
 
 **4. Recommend one option.** State the recommended option with one-sentence
 rationale naming the dominant bet and why the team is willing to take it.
@@ -109,7 +110,7 @@ not write to `workspace.toml`.
 
 - Committing to an option on the PE's behalf — recommend and present; the PE
   selects `selected` after the fact.
-- Generating fewer than 3 options without surfacing the constraint first.
+- Narrowing the field without surfacing the constraint that closed it first.
 - Deleting non-recommended options from the artifact.
 - Writing to `workspace.toml` or any literal hardcoded path.
 - Producing a brief — that is `place-bet` + `author-delivery-brief create`'s responsibility.

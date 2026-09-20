@@ -80,9 +80,11 @@ line went stale when their specs landed and the degrade branch citing it was
 never revisited, so it read as evidence and was not. The degrade behaviour is
 unchanged; only the false justification is gone.
 
-`diverge-solutions` demanded a fixed floor of options — in its activation
-description, its opening line, its output contract, its generate step, its
-artifact shape, and the pack journey entry. A number invites padding to reach
+`diverge-solutions` demanded a fixed floor of options across its activation
+description, opening line, output contract, generate step, artifact shape,
+anti-pattern list, worked example and journey entry — some as `≥3`, some as
+"below 3" and "fewer than 3", which is why a symbol search alone did not find
+them all. A number invites padding to reach
 it, which is the opposite of divergence: the skill was inducing the invented
 alternatives it exists to avoid. It now asks for enough materially different
 options to expose the real decision, and says outright not to invent
