@@ -1,5 +1,6 @@
 """Pins clauses C1-C7 of the ride-along admission test across their shipped
-sites, before those clauses exist (`docs/specs/ride-along-admission-test/`).
+sites (`docs/specs/ride-along-admission-test/`). Every site carries them;
+these assertions hold on the current tree and red when one drifts.
 
 Every clause is pasted verbatim, so identity is decided by equality once each
 file's whitespace runs are collapsed to a single space — the sites sit at
@@ -237,8 +238,9 @@ def _flat(path: Path) -> str:
 
 def _extract(flat_text: str, open_literal: str, close_literal: str) -> str | None:
     """The flattened span from `open_literal` through `close_literal`, or
-    `None` if either is absent. `None` is the expected value everywhere on
-    the current tree, since no site carries any clause yet."""
+    `None` if either is absent. Callers assert the result is not `None`
+    before comparing: a consistent reword of a closing literal would make
+    every extraction `None`, and an equality over nothing passes."""
     start = flat_text.find(open_literal)
     if start == -1:
         return None
@@ -261,9 +263,17 @@ def _raw_find_all_spans(text: str, phrase: str) -> list[tuple[int, int]]:
 
 
 def _in_html_comment(text: str, pos: int) -> bool:
-    return any(
-        m.start() <= pos < m.end() for m in re.finditer(r"<!--.*?-->", text, re.DOTALL)
-    )
+    """True when `pos` sits inside an HTML comment.
+
+    An unclosed `<!--` extends to end of file: treating it as no comment at
+    all would let one opener before a clause hide the clause from every
+    placement check while leaving it live to a reader of the rendered page.
+    """
+    depth_start = text.rfind("<!--", 0, pos + 1)
+    if depth_start == -1:
+        return False
+    closed = text.find("-->", depth_start)
+    return closed == -1 or pos < closed + 3
 
 
 # A host ends at the first structural boundary after it, not only at the next
@@ -271,7 +281,9 @@ def _in_html_comment(text: str, pos: int) -> bool:
 # numbered list and one is a bullet, so a sibling item ends the host as surely
 # as a new section does: without these, a clause moved from `4. **Scope.**`
 # into item 5 keeps item 4 as its nearest preceding marker and passes.
-_HOST_BOUNDARY_RE = re.compile(r"^(?:#{2,6} |\s*\d+\. \*\*|\s*- \*\*)", re.MULTILINE)
+# A sibling list item ends a host whatever its styling: requiring `**` let a
+# plain `5. ` or `- ` item sit between a marker and its clause unnoticed.
+_HOST_BOUNDARY_RE = re.compile(r"^(?:#{2,6} |\s*\d+\. |\s*[-*+] )", re.MULTILINE)
 
 
 def _next_host_boundary(raw: str, after: int) -> int | None:
@@ -285,9 +297,22 @@ def _next_host_boundary(raw: str, after: int) -> int | None:
     return match.start() if match else None
 
 
+# Both fence characters, and an indented fence, which Markdown permits inside
+# a list item. Counting only column-0 backticks let a clause hide in a fence
+# that a reader sees as code.
+_FENCE_RE = re.compile(r"^[ \t]{0,3}(?:```|~~~)", re.MULTILINE)
+
+
 def _in_fenced_block(text: str, pos: int) -> bool:
-    fence_starts = [m.start() for m in re.finditer(r"^```", text, re.MULTILINE)]
-    return sum(1 for start in fence_starts if start < pos) % 2 == 1
+    """True when `pos` sits inside a fenced block.
+
+    Named blind spot: fences are counted, not matched by their delimiter, so
+    a backtick fence nested inside a tilde fence is miscounted. Closing that
+    needs a Markdown parser, which would be a new dependency this spec's
+    Agent Rules forbid. The vocabulary sweep, which reads bytes and ignores
+    structure, is what catches a clause hidden that way.
+    """
+    return sum(1 for m in _FENCE_RE.finditer(text, 0, pos)) % 2 == 1
 
 
 def _marker_positions(path: Path) -> dict[str, int]:

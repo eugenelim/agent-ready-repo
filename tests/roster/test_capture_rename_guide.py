@@ -103,7 +103,10 @@ def _flat(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-_FENCE_RE = re.compile(r"^```", re.MULTILINE)
+# Both fence characters and an indented fence; anchored so a fence opening
+# at byte 0 is seen. Named blind spot: fences are counted, not matched by
+# delimiter, so a backtick fence nested in a tilde fence is miscounted.
+_FENCE_RE = re.compile(r"^[ \t]{0,3}(?:```|~~~)", re.MULTILINE)
 
 
 def _in_fence(text: str, offset: int) -> bool:
@@ -117,12 +120,16 @@ def _in_fence(text: str, offset: int) -> bool:
 
 
 def _in_comment(text: str, offset: int) -> bool:
-    """True when `offset` falls inside an HTML comment."""
-    opened = text.rfind("<!--", 0, offset)
+    """True when `offset` falls inside an HTML comment.
+
+    An unclosed `<!--` extends to end of file, so one opener cannot hide
+    every heading after it from the live-heading count.
+    """
+    opened = text.rfind("<!--", 0, offset + 1)
     if opened == -1:
         return False
     closed = text.find("-->", opened)
-    return closed == -1 or closed > offset
+    return closed == -1 or offset < closed + 3
 
 
 def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:

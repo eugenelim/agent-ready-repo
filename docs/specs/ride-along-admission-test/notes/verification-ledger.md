@@ -1279,3 +1279,38 @@ counterfeit with the real section renamed away — which now reds
 of the last three rounds found defects only in the two control files. The
 four `.apm/` surfaces an adopter reads have taken no finding since the
 clauses landed.
+
+## 2026-09-20 — the control stopped being wrong and started being incomplete
+
+This round's findings changed character. The earlier nine were "the control
+checks the wrong thing". These are "the control's Markdown model is
+incomplete": tilde fences, indented fences, unclosed comment openers, plain
+unbolded sibling list items, nested fences. That is a different class, and it
+has no review floor — a hand-rolled content control modelling a Markdown
+parser can always be shown one more construct it mishandles. The remedy a
+parser would give is closed off: a new dependency, which this spec's Agent
+Rules forbid.
+
+**Closed, each proved by the case the reviewer named:**
+
+| Case | Repair | Caught by |
+| --- | --- | --- |
+| Byte-zero tilde-fenced counterfeit heading | Fence pattern takes ``` and ~~~, indented up to three spaces, line-anchored | `test_pinned_clauses_match_the_spec` |
+| Unclosed `<!--` before a host marker | An unmatched opener extends to end of file | `test_clauses_sit_in_their_hosts` |
+| Plain `5. ` sibling item between marker and clause | Boundary pattern no longer requires `**` styling | `test_clauses_sit_in_their_hosts` |
+| Clause inside a tilde or indented fence | Same fence pattern, in the pack control | `test_clauses_sit_in_their_hosts` |
+
+**Named and not closed:** fences are counted, not matched by delimiter, so a
+backtick fence nested inside a tilde fence is miscounted. Both controls state
+this in their docstrings. The byte-level vocabulary sweep, which ignores
+structure entirely, is what would catch a clause hidden that way.
+
+**AC15's missing evidence, now recorded.** The ledger had only a JSON parse,
+which proves syntax. The goal-based check run against the shipped tree
+verifies fourteen obligations — one per C1 clause established in the dispatch
+case's prompt, its dispatch-not-defer assertions, and the unattended case's
+`blocked_on: decision` plus its four prohibitions — and all fourteen pass.
+
+The two module docstrings that still described the pre-implementation tree
+("before those clauses exist", "`None` is the expected value everywhere")
+now describe the shipped state.
