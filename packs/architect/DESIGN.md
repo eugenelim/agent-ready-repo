@@ -66,8 +66,11 @@ document count both precede the template choice. Altitude is exactly one of
 three: **application/system** (one deployable unit end to end), **subsystem**
 (one architecturally significant part carved out of a larger whole), or
 **architecture change** (a delta against an existing, running architecture).
-`references/decomposition-rubric.md` then decides document count on its
-criteria, not on the author's judgment alone.
+`references/decomposition-rubric.md` then decides, on its criteria rather
+than the author's judgment alone, whether a part still fits as a row in the
+element catalogue. What replaces a row that no longer fits — a document of
+the part's own, or a change raised against a document above this one — turns
+on who has standing to accept the decision, which the criteria do not ask.
 
 Scope selects one of three model-first templates —
 `assets/application-system-design.md`, `assets/subsystem-design.md`, or

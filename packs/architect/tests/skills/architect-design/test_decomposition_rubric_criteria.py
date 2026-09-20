@@ -1,8 +1,13 @@
 """Contracts for architect-design's subsystem-decomposition rubric.
 
-The rubric answers one question: given a subsystem, which parts earn their own
-architecture document and which stay rows in this one's element catalogue. Two
-properties are load-bearing and neither is visible to a spell-check.
+The rubric names three routes for a candidate: its own architecture
+document, a row in this one's element catalogue, and above this document
+when the standing to accept its decision sits there rather than here. It names
+them without claiming a candidate must land in exactly one, because the
+third route is judged rather than computed — none of `D1`-`D6` says at
+what altitude an owner holds authority — so it is deliberately not pinned as
+a decision table here. Two properties are load-bearing and neither is visible
+to a spell-check.
 
 The first is that ``D1`` is mandatory. It is also the recursion's stopping rule,
 so a rubric that lets a child qualify on ``D2``-``D6`` alone does not terminate.
@@ -205,8 +210,217 @@ def test_the_parent_keeps_the_architecture_set_index() -> None:
     assert "does not restate child internals" in text
 
 
+def _checklist_items(path: Path, heading: str) -> list[str]:
+    """Return one flattened string per `- [ ]` item under *heading*.
+
+    Asserting a phrase appears anywhere in the file is not a control on the
+    checklist: moving that phrase into explanatory prose, or under a sentence
+    saying it is not a finding, leaves the assertion green while the item it
+    described is gone. So the items are extracted and the assertions run
+    against them.
+    """
+    items: list[str] = []
+    in_section = False
+    current: list[str] = []
+    # Two ways a rule can stop being an item while every phrase assertion
+    # below stays green, both of which merge it into the item above:
+    #
+    #   `- [] A block ...`  a checkbox-shaped marker that will not parse.
+    #                       Fail loudly -- silently treating it as prose is
+    #                       how a lost rule looks exactly like a kept one.
+    #   `- A block ...`     the checkbox gone entirely. This is a legitimate
+    #                       Markdown bullet, so it cannot raise; it ends the
+    #                       current item and is not part of it.
+    #
+    # The checkbox pattern is deliberately narrow so an ordinary link bullet
+    # (`- [Guide](guide.md)`) is neither refused nor read as an item: its
+    # bracket content is a label, not a checkbox.
+    #
+    # All three patterns accept `-`, `*` and `+`, because all three are valid
+    # Markdown task-list markers. Accepting only `-` in the well-formed
+    # pattern while the checkbox pattern accepted all three would refuse
+    # `* [ ] Rule` as malformed -- reding the suite on correct Markdown.
+    #
+    # A continuation line must be INDENTED. Unindented prose ends the item:
+    # removing an item's marker entirely leaves its text at column zero, and
+    # treating that as a lazy continuation merges the rule into the one above
+    # it, which is the third way a rule stops being an item unnoticed.
+    looks_like_checkbox = re.compile(r"\s*[-*+]\s*\[\s*[xX]?\s*\]")
+    top_level_bullet = re.compile(r" {0,3}[-*+]\s")
+    well_formed = re.compile(r"\s*[-*+] \[[ xX]\]\s")
+
+    def flush() -> None:
+        if current:
+            items.append(" ".join(" ".join(current).split()))
+            current.clear()
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            if in_section:
+                break
+            in_section = line.strip() == f"## {heading}"
+            continue
+        if not in_section:
+            continue
+        if well_formed.match(line):
+            flush()
+            current.append(re.sub(r"^\s*[-*+] \[[ xX]\]\s*", "", line))
+        elif looks_like_checkbox.match(line):
+            raise AssertionError(f"malformed checklist marker under {heading!r}: {line!r}")
+        elif top_level_bullet.match(line):
+            flush()
+        elif current and line.strip() and line[:1].isspace():
+            current.append(line.strip())
+        elif current:
+            flush()
+    flush()
+    return items
+
+
+def test_the_review_rubric_admits_a_correctly_routed_upward_part() -> None:
+    """The reviewer must not report a correct upward route as a missing document.
+
+    This is the half of the third route that lives on the review side. A part
+    whose decision only someone above this document can accept is correctly
+    left with a link and no document here, and the checklist item that asks
+    whether a qualifying part "has no document of its own" would have called
+    that a finding. Without this test the two rubrics can drift apart again
+    and nothing reds: the mirror test below compares only the `D1`-`D6` table.
+    """
+    items = _checklist_items(REVIEW_RUBRIC, "Decomposition")
+    matching = [
+        item for item in items if "link showing its decision was raised" in item
+    ]
+    assert len(matching) == 1, items
+    item = matching[0]
+    # The item must admit the link, and say to look for it BEFORE raising.
+    assert "raised against a document above" in item
+    assert "Check for that link before raising the finding" in item
+    # And it must discriminate on where standing sits, not on whose reviewer
+    # it is -- a `D1`+`D5` part has a different reviewer INSIDE the subsystem
+    # and earns a document of its own, so that phrasing misroutes it upward.
+    assert "standing stays inside this subsystem" in item
+    assert "standing sits above this document" in item
+    assert "this document's own reviewer" not in item
+
+    # The criteria decide row sufficiency; standing decides what replaces it,
+    # and the replacement list is not closed.
+    text = _flat(REVIEW_RUBRIC)
+    assert "whether a row in the element catalogue is still enough" in text
+    assert "none of the six criteria asks" in text
+    assert "without closing the list" in text
+
+
+def test_the_review_rubric_raises_an_inline_change_to_a_document_above() -> None:
+    """The governance case the third route exists for is its own finding.
+
+    A document carrying the changes it asks of a ratified parent is misfiled
+    whatever those changes score, because ratifying it accepts them by
+    implication. Asserted separately from the route above: a reviewer can
+    admit the upward route and still have no way to raise the inline case.
+    """
+    items = _checklist_items(REVIEW_RUBRIC, "Decomposition")
+    matching = [item for item in items if "asking of a document" in item]
+    assert len(matching) == 1, items
+    item = matching[0]
+    assert "accept those changes by implication" in item
+    assert "no standing to do that" in item
+    # A finding "whatever the block scores" is the load-bearing half: without
+    # it the item reads as one more thing the criteria could outweigh.
+    assert "whatever the block scores" in item
+
+
+def test_the_checklist_parser_refuses_a_malformed_marker(tmp_path: Path) -> None:
+    """A malformed marker must fail parsing, not merge into the item above.
+
+    Without this, changing the parent-change rule's `- [ ]` to `- []` appends
+    it to the preceding item. Both review tests then still pass -- every
+    phrase they look for is present in the merged string -- while that rule
+    has stopped being a checklist item of its own. The parser's own failure
+    mode is what the two tests above rest on, so it gets a case of its own.
+    """
+    fixture = tmp_path / "rubric.md"
+    fixture.write_text(
+        "## Decomposition\n\n"
+        "- [ ] First rule, well formed.\n"
+        "- [] Second rule, malformed marker.\n",
+        encoding="utf-8",
+    )
+    try:
+        _checklist_items(fixture, "Decomposition")
+    except AssertionError as exc:
+        assert "malformed checklist marker" in str(exc)
+    else:  # pragma: no cover - the guard is the point of this test
+        raise AssertionError("a malformed marker was parsed instead of refused")
+
+    # And the well-formed form still yields two separate items, so the guard
+    # is not simply rejecting everything.
+    fixture.write_text(
+        "## Decomposition\n\n"
+        "- [ ] First rule, well formed.\n"
+        "- [ ] Second rule, also well formed.\n",
+        encoding="utf-8",
+    )
+    assert len(_checklist_items(fixture, "Decomposition")) == 2
+
+    # The checkbox gone entirely is legitimate Markdown, so it must not raise
+    # -- but it must not merge into the item above it either, which is the
+    # other way a rule stops being an item without any assertion noticing.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed.\n"
+        "- Second rule, checkbox lost.\n",
+        encoding="utf-8",
+    )
+    items = _checklist_items(fixture, "Decomposition")
+    assert items == ["First rule, well formed."], items
+
+    # An ordinary link bullet is neither refused nor read as a checklist item.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed.\n"
+        "\n"
+        "- [Guide](guide.md)\n",
+        encoding="utf-8",
+    )
+    assert _checklist_items(fixture, "Decomposition") == ["First rule, well formed."]
+
+    # The marker removed ENTIRELY leaves the rule at column zero. Unindented
+    # prose ends the item rather than continuing it, so the two rules do not
+    # merge into one string that satisfies every phrase assertion.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed.\n"
+        "Second rule, marker gone completely.\n",
+        encoding="utf-8",
+    )
+    assert _checklist_items(fixture, "Decomposition") == ["First rule, well formed."]
+
+    # An indented line IS a continuation, which is how the real rubric wraps.
+    fixture.write_text(
+        "## Decomposition\n"
+        "- [ ] First rule, well formed,\n"
+        "      wrapped onto a second line.\n",
+        encoding="utf-8",
+    )
+    assert _checklist_items(fixture, "Decomposition") == [
+        "First rule, well formed, wrapped onto a second line."
+    ]
+
+    # `*` and `+` are valid task-list markers and must parse, not raise.
+    for marker in ("*", "+"):
+        fixture.write_text(
+            f"## Decomposition\n{marker} [ ] First rule.\n{marker} [ ] Second rule.\n",
+            encoding="utf-8",
+        )
+        assert _checklist_items(fixture, "Decomposition") == [
+            "First rule.",
+            "Second rule.",
+        ], marker
+
+
 def test_the_review_rubric_mirrors_every_criterion() -> None:
-    """A reviewer can raise that one document should have been several.
+    """A reviewer can raise that a row was not enough for a part.
 
     Matched as whole words: a bare substring check for `D1` is satisfied by
     `DA10`, so the mirror would look present while the reviewer had no criteria.

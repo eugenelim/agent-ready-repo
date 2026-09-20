@@ -1493,3 +1493,23 @@ passed throughout — so it is weaker than AC16's full list, and this
 outcome-by-outcome walk is the evidence AC16 rests on.
 
 **Spec `Shipped`, plan `Done`, all seventeen ticked.**
+
+## 2026-09-20 — second merge with main, and a latent fragility in AC14
+
+One commit landed on main (`86fb947c0`, an architect-pack fix). It touches
+no `packs/core/` file; the only shared file is `docs/product/changelog.md`,
+where it adds an `[architect]` release entry. Git auto-merged it cleanly —
+no conflict — and AC14 re-verified on the merged tree: `2.26.21` in both
+version files, one patch above `2.26.20`, topmost, `### Highlights` present.
+
+**Latent fragility, recorded rather than repaired.** AC14 requires *this*
+change's entry to be the topmost release heading of any pack. It holds here
+only because git placed the architect entry below the existing core ones. A
+peer release landing its entry at the very top would break the criterion
+without breaking anything real — the same class as pinning a version
+literal, which AC14 already avoids for the version itself but not for the
+position. The fix is to require the entry to exist and be the topmost
+`[core]` heading rather than the topmost heading overall. Routed to
+`work-intake` with the other deferred items; not amended here, because the
+criterion is true on the tree being merged and an eighth amendment to
+generalise a position check is disproportionate at this point.

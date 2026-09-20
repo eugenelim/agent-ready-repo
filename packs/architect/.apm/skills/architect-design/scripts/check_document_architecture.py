@@ -234,12 +234,51 @@ _ABBREVIATIONS = (
 # "...standards... live in ..." from reading as two sentences.
 _ELLIPSIS_PATTERN = re.compile(r"\.{3}|…")
 _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
+# A terminator keeps its boundary through any run of CLOSING delimiters
+# standing between it and the whitespace. Only closers belong here: an
+# opening delimiter after a terminator is already whitespace-separated from
+# it. Both patterns below consult this class, and both have to: tolerating
+# closers in the boundary alone lets the lone-letter mask lose sight of its
+# own label through a code span, which turns an under-count into an
+# over-count on `Set `a.` then continue.`
+#
+# The set is every Unicode close-punctuation and final-quote character
+# (categories `Pe` and `Pf`), plus the ASCII quotes and the four Markdown
+# marks that close a span. It is written out rather than swept from
+# `unicodedata` at import, because that would rebuild a set that changes only
+# when Unicode does, on every invocation of a script a human runs by hand; a
+# test regenerates it and fails on drift, so the literal is checked rather
+# than trusted. Deriving it from the categories is what
+# makes "a closing mark of any script" true instead of a hand-list that
+# happens to cover the scripts its author thought of.
+#
+# ASCII `>` is deliberately NOT here, and the reason is a measured trade
+# rather than an oversight. It is category `Sm`, not `Pe`, so admitting it
+# would reopen the hand-list problem the categories exist to close -- and in
+# Markdown it closes an autolink wrapping a URL. Adding it fixes
+# "One. <Two.> Three. Four." and breaks both
+# "See <https://x.test/docs.> here." and "See <https://x.test/a?> here.",
+# trading one under-count for two over-counts in a shape design documents
+# use far more often than a sentence wrapped in angle brackets. A sentence
+# closed by an HTML tag ("<b>bold.</b>") is outside this class either way,
+# since `<` follows the terminator rather than a closing mark.
+_CLOSING_CHARACTERS = (
+    # Markdown span marks, the ASCII quotes, and the ASCII brackets.
+    "*_`~\"')]}"
+    # Unicode categories `Pe` (close punctuation) and `Pf` (final quote).
+    "»༻༽᚜’”›⁆⁾₎⌉⌋〉❩❫❭❯❱❳❵⟆⟧⟩⟫⟭⟯⦄⦆⦈⦊⦌⦎"
+    "⦐⦒⦔⦖⦘⧙⧛⧽⸃⸅⸊⸍⸝⸡⸣⸥⸧⸩⹖⹘⹚⹜〉》」』】〕〗〙〛〞"
+    "〟﴾︘︶︸︺︼︾﹀﹂﹄﹈﹚﹜﹞）］｝｠｣"
+)
+_CLOSING_DELIMITERS = "[" + re.escape(_CLOSING_CHARACTERS) + "]*"
 # Only a LOWERCASE lone letter is an enumeration label (`a.`, `b.`). An
 # uppercase one is far more often a single-letter name ending a sentence
 # ("...over Y. The record...") than an initial, and masking it drops a real
 # boundary. The apostrophe classes keep a contraction or possessive
 # ("doesn't.", "reviewer's.") from reading as a lone letter.
-_INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
+_INITIAL_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=" + _CLOSING_DELIMITERS + r"\s)"
+)
 # Any non-space opens a sentence. An allowlist of sentence-initial characters
 # has unbounded holes -- a markdown link, a parenthesis or a non-Latin capital
 # each silently drop a boundary, which is the under-count DA3 exists to catch.
@@ -248,9 +287,55 @@ _INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
 # classes are knowingly accepted as over-counts rather than masked, because
 # both are markup rather than prose and neither reaches a rendered design
 # document's paragraph text: a line ending in a terminator immediately before
-# a Starlight `:::` fence, and one before an unstripped `-->`. The gate strips
-# comment spans before counting, so the second cannot arise on its own input.
-_SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+(?=\s+\S)")
+# a Starlight `:::` fence, and one before an unstripped `-->`. The stripping
+# pass removes a COMPLETE `<!-- ... -->` span, so the second arises only from
+# a `-->` with no unmatched opening `<!--` before it -- malformed source, but reachable
+# on this gate's own input rather than impossible on it.
+# A third joins them and does reach prose: a code span whose content ends in a
+# terminator followed by another mark, as in "the pattern `foo.*` here", reads
+# as a sentence end. It is accepted for the same reason the masking above is
+# shaped the way it is -- the alternative is masking what a code span
+# contains, which would stop counting a span that IS a sentence ("`Code.`")
+# and trade a visible over-count for the silent under-count this gate exists
+# to catch.
+#
+# A link destination joins them, and this one is a REGRESSION rather than a
+# newly exposed case: a URL ending in a terminator, as in
+# "[search](https://example.test/s?)", used to be hidden by the `)` and now
+# reads as a sentence end. It is accepted here rather than masked, and the
+# reason is worth stating because masking looks easy. Recognising a
+# destination needs real Markdown scanning: a regex for `](...)` masks a
+# literal `](` in running prose, stops early on a URL containing balanced
+# parentheses, and scans the whole remaining paragraph from every `](` when
+# no `)` follows -- which is quadratic on an input this script accepts up to
+# `MAX_BYTES`. A correct scanner is a larger piece of work than this counter,
+# and a wrong one costs more than the over-count it removes.
+#
+# The closer tolerance also widens one over-count that already existed: `!`
+# and `?` are not always terminators, and "Compute n! before allocation."
+# already read as two sentences because the `!` was followed by a space.
+# Bracketing it ("Compute ⟨n!⟩ before allocation.") used to hide it and
+# now does not, since `⟩` is close punctuation. That is the same accepted
+# class reached through one more syntax rather than a new one, and narrowing
+# the closer set to exclude mathematical brackets would not fix it -- the
+# unbracketed form is the common one and stays over-counted either way.
+#
+# The closing side had the same unbounded-holes problem, and it was not
+# reasoned about here originally. Requiring whitespace immediately after the
+# terminator made any delimiter between the two swallow the boundary, so a
+# bold lead-in, an emphasised or code-spanned sentence, a closing quote of
+# any script, or a parenthesised aside each registered nothing -- and a
+# paragraph delimiting every sentence read as one. Skipping the closer run
+# fixes the class rather than an enumerated list of its instances.
+# `(?<![.!?])` anchors the match to the START of a terminator run. Without
+# it the engine retries the whole run from each position inside it, and each
+# retry rescans the closer run behind the lookahead: quadratic in the length
+# of a run of terminators, on an input this script accepts up to `MAX_BYTES`.
+# The anchor changes no count, because `[.!?]+` already consumed the run
+# greedily from its first character.
+_SENTENCE_BOUNDARY_PATTERN = re.compile(
+    r"(?<![.!?])[.!?]+(?=" + _CLOSING_DELIMITERS + r"\s+\S)"
+)
 
 
 def _mask_initial(match: re.Match[str]) -> str:
@@ -263,9 +348,9 @@ def count_sentences(paragraph: str) -> int:
 
     Abbreviation periods, decimal points, ellipses, and the period of a
     LOWERCASE lone letter (an inline enumeration label, `a.`) are masked
-    first, by literal replacement, so none of them reads as a sentence
-    boundary; every replacement is one character for one character, so no
-    later offset shifts. An UPPERCASE lone letter is deliberately not masked:
+    first, by literal replacement, so none of them reads as a sentence boundary; every
+    replacement is one character for one character, so no later offset
+    shifts. An UPPERCASE lone letter is deliberately not masked:
     it is far more often a single-letter name ending a sentence
     ("...over Y. The record...") than an initial, so masking it dropped a
     real boundary. The cost is that a genuine initial over-counts
@@ -273,9 +358,34 @@ def count_sentences(paragraph: str) -> int:
 
     The boundary itself fires on any non-space opener rather than a listed
     set of characters, because an enumerated set has unbounded holes and each
-    one silently under-counts. The boundary pattern carries no nested
-    quantifier and no alternation inside a repetition, the two constructs
-    that make backtracking super-linear.
+    one silently under-counts. It also skips any run of closing delimiters
+    between the terminator and the whitespace, for the same reason on the
+    other side. The boundary pattern carries no nested quantifier and no
+    alternation inside a repetition, the two constructs most often behind
+    super-linear backtracking — but not the only route to it, which is why
+    the start anchor is there: without it an unanchored terminator run
+    retries from every position inside itself and is quadratic with neither
+    construct present. The closer class and the whitespace class share no
+    character, so the added repetition stays linear too.
+
+    One residual of the closer rule is irreducible rather than unfixed. A
+    one-letter sentence end behind a delimiter ("...is `x.` Three.") and an
+    enumeration label behind one ("Set `a.` then continue.") are the same
+    shape, and only what follows separates them; the mask cannot read that,
+    so it treats both as labels and under-counts the first. Splitting
+    instead would over-count the second, and the choice went to the reading
+    that leaves ordinary prose alone.
+
+    That residual and the closer-induced over-counts described above are the
+    ones the closer rule owns. The `:::` fence and the orphan `-->` predate
+    it and are recorded there for context, not as its consequences.
+
+    None of that is an inventory of everywhere this counter is wrong, and no
+    such inventory is attempted here. Sentence counting has no exact rule to
+    implement, so a list of remaining wrong shapes would grow with every
+    reader rather than converge, and a reader who took it as complete would
+    trust it further than it earns. `DA3` is a budget check a human reads
+    and judges, not an oracle.
     """
     masked = paragraph
     for abbreviation in _ABBREVIATIONS:
