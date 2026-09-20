@@ -40,8 +40,14 @@ writing anything.
 
 - **A document of its own.** It meets `D1` plus at least one other
   criterion, and the decision is this subsystem's to make.
-- **A row in this document's element catalogue.** `D1` is unmet, so there is
-  no decision to home — only detail to record.
+- **A row in this document's element catalogue.** It does not meet `D1` plus
+  at least one other criterion — the exact complement of the qualifying
+  rule, so every candidate the rule turns away lands here. Two cases reach
+  it and they are not the same. Where `D1` is unmet there is no decision at
+  all, only detail to record. Where `D1` is met and nothing else is, there
+  is a live decision and no reason it belongs anywhere but here: record it
+  in this document beside the element it governs, and do not split a child
+  out to hold it.
 - **Above this document.** It meets `D1` plus at least one other criterion,
   and the decision is not this subsystem's to make. Route it upward.
 
@@ -59,6 +65,12 @@ document's — is the only one who can accept it. Leaving the block inline
 does more than misfile it: ratifying this document then accepts changes to a
 ratified parent by implication, which is the opposite of what writing those
 changes down was for.
+
+An upward route is not a way to shed length. It is available only when
+someone above this document has to accept the decision, and size is not
+evidence of that — the refusal further down applies here with full force, so
+a candidate routed upward for any reason connected to how long this document
+is has been routed for the wrong reason.
 
 **How to record an upward route.** Take the block out of this document and
 raise it through the parent's own review, as a change to the parent. Leave

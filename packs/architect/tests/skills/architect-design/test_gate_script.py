@@ -841,6 +841,10 @@ _DELIMITED_BOUNDARY_CASES = (
     # span that IS a sentence and trades a visible over-count for a silent
     # under-count. Pinned so the trade stays a decision.
     ("overcount", "terminator inside a code span", "Use the pattern `foo.*` here. Next one.", 3),
+    # `!` was never only a terminator: "Compute n! before allocation." already
+    # over-counted, because the `!` was followed by a space. Bracketing used to
+    # hide that and no longer does. Same accepted class, one more syntax.
+    ("overcount", "bracketed factorial", "Compute ⟨n!⟩ first. Then record it.", 3),
     # The irreducible residual. A one-letter sentence end behind a delimiter
     # and an enumeration label behind one are the same shape; only what
     # follows separates them, and the mask cannot read that. Splitting here
@@ -890,28 +894,31 @@ def test_reverting_either_half_of_the_closer_tolerance_reds_this_table() -> None
     The direction labels above are only labels: a later edit could keep four
     rows, tag one with each direction, and satisfy that assertion while
     deleting every row that can fail. This is the control with teeth. It
-    reverts each half of the fix independently against the shipped form of
-    that pattern and asserts the table catches each -- so the table cannot be
-    gutted without one of these two reversions going quiet.
+    reverts each half of the closer tolerance independently and asserts the
+    table catches each -- so the table cannot be gutted without one of these
+    two reversions going quiet. Each reverted form keeps the `(?<![.!?])`
+    anchor, which the historical line did not carry: the anchor is a separate
+    cost fix, and holding it constant is what isolates the closer tolerance as
+    the only variable.
 
     Reverting the boundary alone restores the under-count. Reverting only the
     lone-letter mask, with the boundary left tolerant, produces the
     *over-count* on an inline `a.` label instead: that asymmetry is why the
     two patterns cannot be changed one at a time.
     """
-    shipped_boundary = re.compile(r"(?<![.!?])[.!?]+(?=\s+\S)")
-    shipped_initial = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
+    pre_closer_boundary = re.compile(r"(?<![.!?])[.!?]+(?=\s+\S)")
+    pre_closer_initial = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
 
     assert _rows_the_table_gets_wrong(_load_gate()) == set()
 
     boundary_reverted = _load_gate()
-    boundary_reverted._SENTENCE_BOUNDARY_PATTERN = shipped_boundary
+    boundary_reverted._SENTENCE_BOUNDARY_PATTERN = pre_closer_boundary
     broken_by_boundary = _rows_the_table_gets_wrong(boundary_reverted)
     assert "bold lead-in" in broken_by_boundary
     assert "every sentence delimited" in broken_by_boundary
 
     mask_reverted = _load_gate()
-    mask_reverted._INITIAL_PATTERN = shipped_initial
+    mask_reverted._INITIAL_PATTERN = pre_closer_initial
     broken_by_mask = _rows_the_table_gets_wrong(mask_reverted)
     assert "enumeration label in code" in broken_by_mask, (
         "the mask half must be load-bearing on its own"

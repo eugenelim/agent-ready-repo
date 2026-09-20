@@ -86,7 +86,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   holding it, so the rubric now says to route it upward and how to record
   that. The case this catches is a document that carries the changes it is
   asking of a ratified parent: ratifying it would accept those changes by
-  implication, because its own reviewer has no standing to accept them.
+  implication, because its own reviewer has no standing to accept them. The
+  qualifying rule now decides only whether a candidate stops being a row in
+  the element catalogue, because nothing in the six criteria asks who has
+  standing to accept a decision — so meeting the rule no longer reads as
+  settling which document holds the result.
 
 ### Fixed
 

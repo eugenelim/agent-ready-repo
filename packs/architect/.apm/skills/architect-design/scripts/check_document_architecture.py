@@ -285,6 +285,15 @@ _INITIAL_PATTERN = re.compile(
 # and trade a visible over-count for the silent under-count this gate exists
 # to catch.
 #
+# The closer tolerance also widens one over-count that already existed: `!`
+# and `?` are not always terminators, and "Compute n! before allocation."
+# already read as two sentences because the `!` was followed by a space.
+# Bracketing it ("Compute ⟨n!⟩ before allocation.") used to hide it and
+# now does not, since `⟩` is close punctuation. That is the same accepted
+# class reached through one more syntax rather than a new one, and narrowing
+# the closer set to exclude mathematical brackets would not fix it -- the
+# unbracketed form is the common one and stays over-counted either way.
+#
 # The closing side had the same unbounded-holes problem, and it was not
 # reasoned about here originally. Requiring whitespace immediately after the
 # terminator made any delimiter between the two swallow the boundary, so a
