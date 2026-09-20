@@ -104,14 +104,18 @@ The spec's `## Durable Outputs` names three applicable roles. The first: the pub
 - `test_an_oversized_remote_listing_refuses` (AC-0018) — deferred to EXECUTE; needs a bounded-output fixture
 - `test_diagnostics_reflect_no_filename_or_git_error` (AC-0019) — deferred to EXECUTE; the `Level`-reflection half is in the stub and red
 - `test_a_non_blob_remote_entry_fails_closed` (AC-0017) — deferred to EXECUTE; needs an `ls-tree` fixture carrying a non-blob mode inside the namespace
+- `test_a_promisor_remote_is_refused_not_fetched` (AC-0018) — deferred to EXECUTE; needs a `--filter=tree:0` clone fixture with an unreachable remote
+- `test_the_child_environment_forbids_a_lazy_fetch` (AC-0018) — `stub: true`
+- `test_the_bounds_are_module_constants` (AC-0021) — `stub: true`
+- `test_each_bound_refuses_when_lowered` (AC-0021) — deferred to EXECUTE; each case drives a lowered bound, so it needs the module's bound constants to exist
 
-The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **51 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
+The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **53 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
 
 Deferred to EXECUTE as assertions added to this file rather than a rewrite of it: the `origin`-reachable arm of `test_a_reachable_or_absent_remote_allocates`, whose `"ok"` parametrization needs a local Git fixture this file does not build (T2 carries the equivalent at the repository boundary), and the induced-timeout variant of the failed-query case. Both are construction-level detail on an already-red contract surface.
 
 ```python
 # STUB: AC-0001, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0011,
-#       AC-0012, AC-0013, AC-0015, AC-0017, AC-0018, AC-0019, AC-0020
+#       AC-0012, AC-0013, AC-0015, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021
 # Stored and validated in PLAN's T1 Tests: subsection. Every case derives its
 # tokens and levels from the module's own mapping, so this file never restates
 # the owner's closed table — T2 is where the mapping is checked against the
@@ -415,6 +419,29 @@ def test_the_git_child_environment_is_scrubbed_and_local(
     assert "fetch" not in seen["arguments"]
 
 
+def test_the_child_environment_forbids_a_lazy_fetch(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0018: verified on a --filter=tree:0 fixture, not inferred from argv."""
+    seen: dict[str, object] = {}
+
+    def _record(arguments, **keywords):
+        seen["keywords"] = keywords
+        raise OSError("no git in this fixture")
+
+    monkeypatch.setattr(MODULE.subprocess, "run", _record)
+    MODULE.remote_view(tmp_path)
+    assert seen["keywords"]["env"]["GIT_NO_LAZY_FETCH"] == "1"
+
+
+def test_the_bounds_are_module_constants(tmp_path: pathlib.Path) -> None:
+    """AC-0021: every bound is lowerable, so no test builds an oversized input."""
+    assert MODULE.GIT_TIMEOUT_SECONDS == 5
+    assert MODULE.TOTAL_TIMEOUT_SECONDS == 10
+    assert MODULE.MAX_ENTRIES == 65_536
+    assert MODULE.MAX_GIT_RESULT_BYTES == 8 * 1024 * 1024
+
+
 def test_diagnostics_reflect_no_untrusted_text(
     tmp_path: pathlib.Path, capsys
 , monkeypatch) -> None:
@@ -467,7 +494,8 @@ def test_diagnostics_reflect_no_untrusted_text(
 - **Zero writes includes bytecode (AC-0003).** The script sets `sys.dont_write_bytecode = True` before it loads its sibling `file_safety.py` and restores the previous value afterwards — the pattern `next-ordinal.py:_load_helper` already uses for exactly this reason. Without it a first invocation writes `__pycache__` into a skill directory, which is a mutation the contract forbids and which the test stub's own `sys.dont_write_bytecode` would have hidden.
 - **Zero writes, not "no other writes" (AC-0003).** The allocator only ever reads. Selecting a destination and writing one are different acts, and the write stays inside the existing admission transaction where confinement, provenance and authority transfer already apply. The snapshot assertion covers the repository root as well as the scanned directory, so a stray cache file elsewhere is caught too.
 - **Confinement through every component, and a link policy that fails closed (AC-0017).** `file_safety.validate_confined_directory` covers the directory and its ancestors; entry classification then stats without following, so an outside-namespace link is skipped without a dereference — a dangling one included — while an in-namespace symlink, FIFO, device, or entry that became uninspectable between listing and classification refuses. `classify_entry`'s reason for using `stat(follow_symlinks=False)` rather than `is_file()` applies here unchanged: those predicates return `False` on any `OSError`, so an entry removed mid-scan is silently dropped and the scan reports clean without having seen it.
-- **Git stays local, bounded and unredirected (AC-0018).** Local refs only and no fetch; a fixed argument list with `shell=False`; `stdin=DEVNULL`; the `GIT_*` redirect variables removed from the child environment so an inherited `GIT_DIR` cannot point the scan at another object store; and bounds on both wall time and the size of the listing consumed, since an oversized remote tree is a memory exhaustion path. Every breach is an AC-0011 refusal, not a partial answer.
+- **No egress, established by fixture rather than by argument inspection (AC-0018).** "The argument vector contains no `fetch`" is not the same claim as "this cannot reach the network", and the difference is real: on git 2.50.1, `git ls-tree` against a `--filter=tree:0` clone with an unreachable remote attempted a transport and reported `could not fetch <oid> from promisor remote`. Two controls, because one of them is version-dependent. `GIT_NO_LAZY_FETCH=1` in the child environment failed closed on that same fixture with `not a tree object` and no transport — but it landed in git 2.41 and this repository declares no git floor, so an older git ignores it silently. So a configured `remote.<name>.promisor` is independently treated as a remote view the allocator refuses. `remote.<name>.promisor=false` was tested and is **not** a control: the transport was still attempted. Also carried over: local refs only, a fixed argument list with `shell=False`, `stdin=DEVNULL`, and the `GIT_*` redirect variables stripped so an inherited `GIT_DIR` cannot point the scan at another object store.
+- **Four bounds, each with a measured origin (AC-0021).** 5 s per Git invocation, inherited from `_GIT_TIMEOUT_SECONDS`; 10 s for the whole invocation, against 58 ms measured end-to-end on this repository's intent directory; 65,536 entries for either half of the view, against 215 in `tools`, this repository's largest tracked directory; and 8 MiB from one Git result, against the 724 KiB a recursive listing of the whole repository produces. The byte bound is checked while reading rather than after, because a bound applied to an already-buffered result has paid the cost it exists to avoid. The bounds live as module constants so every test drives a *lowered* bound — building a 65,537-entry fixture would be slow and would prove nothing the lowered bound does not.
 - **Diagnostics name the outcome, never the input (AC-0019).** One bounded line, no raw `Level`, no filename, no Git stderr. The `Level` field is open and adopter-controlled, so reflecting it is both a disclosure path and a terminal-injection path; the outcome is what the caller needs and the input is what it already has.
 - **Classify by name before applying the integrity refusal.** `file_safety.list_confined_regular_files` refuses *every* symlink, which would let an adopter's `notes -> ../elsewhere` link in the intents directory fail the whole scan even though AC-0004 says an outside-namespace name is skipped without incident. So the directory itself is validated with `file_safety.validate_confined_directory`, and entries are then enumerated with `os.scandir` plus a `stat(follow_symlinks=False)` classification — the shape `next-ordinal.py:213-250` already uses, which raises only on a **record-looking** symlink. An in-namespace link refuses; an outside-namespace one is skipped. The copied `file_safety.py` remains the blessed source of the directory-confinement primitive, which is why the copy and its byte-identity pin stay.
 - Carry the rest of `_remote_ordinals` over with one change: **keep the object mode**. `next-ordinal.py` uses `ls-tree -z --name-only`, which discards it, so an in-namespace symlink, tree or gitlink on `origin` would be indistinguishable from a regular record and AC-0017's fail-closed rule could not hold on the remote half. Dropping `--name-only` yields `100644 blob <sha>\t<name>` per entry, still NUL-separated; anything in the namespace whose mode is not a regular blob — `100644` or `100755` — fails the scan closed, exactly as a local non-regular entry does. The `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, and the root-relative pathspec run from the repository root all carry over unchanged; each of those comments in the source records a defect already paid for once.
