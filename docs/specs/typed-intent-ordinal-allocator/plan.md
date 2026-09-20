@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
-- **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py:103` (`_PREFIX = re.compile(r"^(\d{4,})[-.]")` — the anchored pattern that returns `0001` on a typed directory), `:162` (`_remote_ordinals`, the `origin` union and its five-second timeout), `:213` (`duplicate_ordinals`, which refuses rather than reporting clean on a scan it could not complete), `:256` (`next_ordinal`); `packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py:14-20` (load-by-path module loader and the local-Git fixture pattern this suite reuses); `packs/core/.apm/skills/work-intake/SKILL.md:329-340` (§ 6 *Delegate intent admission*, the named integration point); `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py:66` (`repository_intent_target`, which composes `docs/product/intents/{slug}.md`) and `:171` (`admit_repository_intent`, which already accepts `slug` and `level`); `packs/core/.apm/skills/work-loop/scripts/file_safety.py:221` (`list_confined_regular_files`, the blessed confined listing, already carried as a byte-identical per-skill copy in `close-work`). Named uncertainty: the existing typed corpus was authored by hand, so the allocator's first real run must agree with numbers a human chose — recorded as T2's baseline assertion rather than assumed.
+- **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py:103` (`_PREFIX = re.compile(r"^(\d{4,})[-.]")` — the anchored pattern that returns `0001` on a typed directory), `:162` (`_remote_ordinals`, which unions records on `refs/remotes/origin/HEAD` — committed-and-pushed records absent from the working tree, *not* a peer's unpushed work, which ADR-0108:41 records as the limit of this whole approach), `:213` (`duplicate_ordinals`, which refuses rather than reporting clean on a scan it could not complete), `:256` (`next_ordinal`); `packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py:14-20` (load-by-path module loader and the local-Git fixture pattern this suite reuses); `packs/core/.apm/skills/work-intake/SKILL.md:329-340` (§ 6 *Delegate intent admission*, the named integration point); `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py:66` (`repository_intent_target`, which composes `docs/product/intents/{slug}.md`) and `:171` (`admit_repository_intent`, which already accepts `slug` and `level`); `packs/core/.apm/skills/work-loop/scripts/file_safety.py:221` (`list_confined_regular_files`, the blessed confined listing, already carried as a byte-identical per-skill copy in `close-work`). Named uncertainty: the existing typed corpus was authored by hand, so the allocator's first real run must agree with numbers a human chose — recorded as T2's baseline assertion rather than assumed.
 
 ## Approach
 
@@ -18,7 +18,7 @@ The integration covers two entry paths with two mechanisms, because they have tw
 
 - **Files touched.** New: `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py`, a copy of `file_safety.py` beside it, `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, `tests/roster/test_typed_ordinal_collision_equivalence.py`. Amended: `packs/core/.apm/skills/work-intake/SKILL.md` § 6, one clause of `packs/core/.apm/skills/intake-intent/SKILL.md` Procedure step 3, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`.
 - **Done is demonstrated by.** The two new suites green, `packs/core/tests/skills/intake-intent/test_intake_intent.py` green unamended, and one recorded admission in the verification ledger showing a prefixed filename and a refused one written bare.
-- **Not changing.** `next-ordinal.py` and its two suites; `intake-intent`'s `allowed-tools`, `## Boundaries` and every control in them; the existing typed corpus — ADR-0108 D6 is forward-only and no file is renumbered.
+- **Not changing.** `next-ordinal.py` and its two suites; `intake-intent`'s `allowed-tools`, `## Boundaries` and every control in them; the existing corpus — ADR-0108 D6 is forward-only, so the 133 unprefixed intents stay unprefixed and no file is renumbered.
 
 **Tempted and declined:**
 
@@ -68,9 +68,17 @@ def test_each_type_sequences_independently(tmp_path):
 def test_an_unmapped_level_gets_no_token(tmp_path):
     assert MODULE.token_for_level("portfolio") is None        # AC-0002
     assert MODULE.token_for_level(None) is None               # AC-0002
-    assert MODULE.token_for_level("`feature`") is None        # AC-0004
+    assert MODULE.token_for_level("`feature`") is None        # AC-0002
 
-def test_check_refuses_an_incomplete_scan(tmp_path):
+def test_the_three_filename_classes(tmp_path):
+    (tmp_path / "legacy-slug.md").write_text("", encoding="utf-8")
+    assert MODULE.classify("legacy-slug.md") == "outside"     # AC-0004
+    assert MODULE.next_typed_ordinal(tmp_path, "FEAT") == 1   # skipped, not fatal
+    (tmp_path / "FEAT-12-y.md").write_text("", encoding="utf-8")
+    assert MODULE.classify("FEAT-12-y.md") == "malformed"     # AC-0004
+    assert MODULE.next_typed_ordinal(tmp_path, "FEAT") is None  # AC-0004, AC-0010
+
+def test_check_refuses_an_unreadable_directory(tmp_path):
     assert MODULE.main(["--check", str(tmp_path / "absent")]) == 1  # AC-0004
 
 def test_allocation_writes_nothing(tmp_path):
@@ -81,13 +89,14 @@ def test_allocation_writes_nothing(tmp_path):
 
 - A record-shaped symlink refuses in `--check`, as `next-ordinal.py:213` does (AC-0004).
 - A five-digit typed prefix parses as itself, so `FEAT-12345-x.md` does not collide with `FEAT-1234-y.md` (AC-0001).
-- The `origin` union is exercised in a local Git fixture: an unpushed sibling in the working tree and a committed record on `refs/remotes/origin/HEAD` both raise the maximum (AC-0005).
+- The `origin` union is exercised in a local Git fixture: a record committed on `refs/remotes/origin/HEAD` and absent from the working tree raises the maximum. A record in a second, unpushed clone does not — asserted as the stated limit, so nobody later reads the union as peer-collision safety (AC-0005).
 - A timeout on the Git call prints to stderr and allocates from the working tree alone, rather than degrading silently (AC-0005).
 
 **Approach:**
 
 - Match `^(?P<token>VISION|STRAT|CAP|FEAT)-(?P<ordinal>\d{4,})[-.]` and group maxima by token. Keep `next-ordinal.py`'s five-digit rule: the digit run parses whole, so a wider ordinal does not alias a narrower one.
-- `token_for_level` is a dict lookup over the closed table with an exact-match key. It returns `None` for an absent, unmapped, or non-bare level — one backticked `feature` already exists in the corpus, and it is the live instance of the "plausible but unparsed" input AC-0004 names.
+- `token_for_level` is a dict lookup over the closed table with an exact-match key. It returns `None` for an absent, unmapped, or non-bare level — one backticked `feature` already exists in the corpus, and it is the live instance of an unmapped level, which admits unprefixed under AC-0002.
+- The three filename classes are the load-bearing design choice, because 133 of the 141 files in `docs/product/intents/` carry no typed prefix. Treating an unmatched name as an incomplete scan would make the live corpus unallocatable; treating a malformed typed name the same way would let it vanish from duplicate checking. So: no mapped token means **outside** the typed namespace and is skipped; a mapped token followed by a digit run shorter than four means **malformed** and the scan is incomplete, so no ordinal is returned; an `OSError` on enumeration or classification **refuses** the operation. `classify` returns the class rather than a boolean, so a fourth case cannot fall through to a default.
 - Enumerate through `file_safety.list_confined_regular_files`, copied beside the script as `close-work` does, so a record-shaped symlink is refused rather than counted.
 - Carry `_remote_ordinals` over intact — the `GIT_*` redirect scrub, `--literal-pathspecs`, `-z`, the root-relative pathspec run from the repository root, and the timeout that reports itself. Each of those comments in the source records a defect already paid for once.
 
@@ -103,8 +112,8 @@ def test_allocation_writes_nothing(tmp_path):
 
 **Tests:**
 
-- For `docs/adr/` and `docs/rfc/`, the typed allocator finds no typed records and returns no ordinal, while `next-ordinal.py` returns its own answer — the two do not contradict each other, because the typed one declines to answer (AC-0005).
-- Over a fixture directory of untyped `NNNN-slug.md` records, the two scripts agree on the maximum found, so the shared parsing rule has not drifted (AC-0005).
+- Paired fixtures carrying the same logical ordinals in the two grammars — `0007-x.md` beside `FEAT-0007-x.md` — yield the same next ordinal from both scripts, so the shared `max + 1` and `origin`-union behaviour is pinned across them (AC-0005). Equality over a directory neither script can parse would be trivially true, which is why the fixtures are paired rather than shared.
+- For the real `docs/adr/` and `docs/rfc/` corpora, the typed allocator finds no typed records and returns no ordinal. Recorded as the expected non-answer, not as equality (AC-0005).
 - Baseline against the real intent corpus: the typed allocator's next ordinal for each of `VISION`, `STRAT`, `CAP` and `FEAT` is one above the highest hand-authored file of that type in `docs/product/intents/` (AC-0001).
 
 **Approach:**
@@ -125,9 +134,9 @@ def test_allocation_writes_nothing(tmp_path):
 **Tests:**
 
 - § 6 names the allocation step and its script, and states that the allocated ordinal is expressed as a prefixed slug in the confirmed repository destination it already passes to `intake-intent` (AC-0006).
-- § 6 states the refusal path explicitly: no ordinal means the bare slug, and admission and registration proceed unchanged (AC-0007).
+- § 6 distinguishes the two refusal classes: an absent or unmapped level means the bare slug, and admission and registration proceed unchanged (AC-0007); an allocation, scan or parse failure on a *mapped* level stops before any write or registration (AC-0010). One unprefixed fallback for both would write the very thing AC-0009 forbids.
 - `intake-intent`'s Procedure step 3 states that for a mapped level it writes only a destination already carrying an ordinal, stops with a named refusal otherwise, and derives none itself (AC-0009).
-- `intake-intent`'s `allowed-tools` and `## Boundaries` are unchanged — no `Bash`, no network, no new tool — asserted against the frontmatter, not the prose (AC-0008).
+- A construction check over `intake-intent/SKILL.md` frontmatter and its `## Boundaries` block rejects shell, network and any new tool, and asserts Procedure step 3 is the only changed text in the skill. The existing suite cannot see the manifest, so it cannot carry this claim (AC-0008).
 - `packs/core/tests/skills/intake-intent/test_intake_intent.py` passes unamended (AC-0008).
 - One recorded session per path: an intent admitted through `work-intake` lands at `docs/product/intents/FEAT-NNNN-<slug>.md`; one whose level is unmapped lands at `docs/product/intents/<slug>.md` with no partial write; and a direct `intake-intent` invocation with a mapped level and no supplied ordinal refuses, writing nothing and naming the path that allocates (AC-0006, AC-0007, AC-0009).
 
@@ -135,7 +144,7 @@ def test_allocation_writes_nothing(tmp_path):
 
 - `work-intake`: one step before the existing delegation sentence at `SKILL.md:331-333`. It must not restate admission policy — § 6 already forbids this router from copying `intake-intent`'s template or certifying its result — and the allocation step is a destination computation, not an admission decision.
 - `intake-intent`: one clause on Procedure step 3, and nothing else. The owner cannot allocate — its `## Boundaries` refuses a shell and this slice does not move that line, because granting `Bash` to the skill handling untrusted intent sources costs more than the identity it buys. So step 3 refuses instead of deriving. The direct path stays usable for anyone who supplies an ordinal with the request; what it can no longer do is produce an unprefixed mapped intent, which is what makes AC-0001 universal rather than path-dependent.
-- AC-0008 is asserted against the frontmatter and the boundaries block rather than a whole-file diff, because T3 does amend one `intake-intent` sentence. The load-bearing claim is that no capability widened and no control moved, and that is what the assertion reads.
+- AC-0008 needs two pieces of evidence, not one. `test_intake_intent.py` passing unamended shows admission behaviour is intact; it exercises the renderer and never opens `SKILL.md`, so it cannot show that no capability was added. The manifest check is what carries that half.
 
 **Done when:** the prose assertions pass, `test_intake_intent.py` is green unamended, and the session is recorded in `notes/verification-ledger.md`.
 
@@ -174,6 +183,7 @@ Pack content only; adopters pick it up on the next install. New intents admitted
 
 ## Changelog
 
+- 2026-09-20 — Round 3 cleared the ownership finding and reached the criteria. Four fixes: AC-0007's unprefixed fallback was reachable by an allocation failure on a mapped level, contradicting AC-0009, so AC-0010 splits the refusal classes; AC-0005 claimed the `origin` union catches an unpushed sibling, the opposite of what ADR-0108:41 records, and asserted an undefined equivalence, now defined over paired fixtures; AC-0004 had no parse domain, which would have made the 133 unprefixed live intents unallocatable, so three filename classes are declared; AC-0008's evidence could not see a capability change, so a manifest check carries that half.
 - 2026-09-20 — Round 2 held the ownership finding: making the bypass visible is not making the allocator reachable, since a confirmed missing ordinal still writes a mapped intent unprefixed. The direct path changed from confirm to refuse — it writes only a destination that already carries an ordinal and derives none — so AC-0001 is universal on both paths.
 - 2026-09-20 — Shaping review found the allocator owned by the router rather than by admission. The premise held: `work-intake/SKILL.md:60` routes an explicit `intake-intent` request directly to the owner, bypassing § 6. Resolved by covering both paths with different mechanisms rather than by relocating the allocator — the owner declares no shell and this slice does not grant one — so T3 gained the direct-path arm and AC-0009, and AC-0008 moved from a whole-file diff to a capability assertion.
 - 2026-09-20 — Authored. Integration re-pointed from `intake-intent` to `work-intake`: `work-intake` already supplies the confirmed repository destination and already declares `Bash`, so allocation needs no new capability and ADR-0098 D2 keeps `intake-intent` the owner of admission with its files unchanged. Acceptance criteria labelled per ADR-0108 and each bound to one verification group.
