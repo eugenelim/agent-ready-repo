@@ -53,7 +53,8 @@ approving the downstream spec:
 
 At a confirmed handoff gate, send the bounded contract through `work-intake`
 only when the current invocation advertises
-`normalized-intake.v1#handoff`. Otherwise render the same portable handoff.
+`normalized-intake.v1#handoff`. Otherwise render the same portable handoff and
+send it through `work-intake`.
 `new-spec` owns the spec and plan approval gates.
 
 ## The per-component slice projection (`business-unit` Scale)

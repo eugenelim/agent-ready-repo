@@ -73,8 +73,7 @@ the root; surface the resolved path before writing. Write to
 **Step 2 readiness:** if `identify-opportunities` is absent from available
 skills, note this under a "Step 2 readiness" section and describe what step 2
 provides. Do not block artifact emission. Apply the same degrade if
-`diverge-solutions` or `place-bet` is the recommended entry and is also absent
-— those skills are not yet shipped.
+`diverge-solutions` or `place-bet` is the recommended entry and is also absent.
 
 Artifact shape: frontmatter (`type: situation-framing`, `slug`, `signal`, `date`,
 `finding-type`, `shaping-entry`), then sections — Signal, Finding, Wardley

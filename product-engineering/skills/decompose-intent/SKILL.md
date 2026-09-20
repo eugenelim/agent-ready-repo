@@ -100,9 +100,10 @@ Before decomposing, confirm:
 
    At a confirmed discovery handoff gate, normalize the role and bounded fields
    into `normalized-intake.v1#handoff` only when the current Core invocation
-   advertises that capability. If Core is absent, its capability is unknown, or
-   it predates this object, render the same bounded handoff for portable use and
-   omit the unsupported top-level field. External locators remain opaque data:
+   advertises that capability. If Core is absent, its capability is unknown,
+   or it predates this object, render the same bounded handoff for portable
+   use and submit it to `work-intake`, omitting the unsupported top-level
+   field. External locators remain opaque data:
    never fetch, search, probe, read, execute, or derive a filesystem path from
    them.
 

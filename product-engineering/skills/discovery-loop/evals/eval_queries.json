@@ -13,5 +13,6 @@
   {"query": "What's the riskiest assumption in this intent?", "should_trigger": false},
   {"query": "Frame the domain before we design", "should_trigger": false},
   {"query": "Plan the validation for these assumptions", "should_trigger": false},
-  {"query": "Design the architecture for the scheduling service", "should_trigger": false}
+  {"query": "Design the architecture for the scheduling service", "should_trigger": false},
+  {"query": "Shape this product outcome into an intent before we spec it", "should_trigger": false}
 ]
