@@ -99,6 +99,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whether a candidate differs from its parent, not at what altitude the people
   who must accept its decisions hold that authority. So standing is a question
   to ask separately every time the rule is met.
+- **A design review no longer reports a correctly routed part as a missing
+  document.** The reviewer's decomposition checklist asked whether a
+  qualifying child had a document of its own. A child whose decision belongs
+  to whoever accepts the parent has a link instead, by design, and would have
+  been reported as a defect. The checklist now looks for either, and gains an
+  item of its own for the case that started this: a document carrying the
+  changes it is asking of a document that someone else accepts.
 
 ### Fixed
 

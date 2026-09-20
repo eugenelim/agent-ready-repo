@@ -198,8 +198,18 @@ whether a part earns a document of its own:
 | `D6` | Its own quality scenarios, rather than inherited ones. |
 
 - [ ] A child described in this document meets `D1` plus at least one other
-      criterion and has no document of its own. This is a finding: the
-      document should have been several.
+      criterion and has neither a document of its own nor a link showing its
+      decision was raised elsewhere. This is a finding: the document should
+      have been several. Check for the link before raising it — a qualifying
+      child whose decision belongs to whoever accepts the parent is correctly
+      routed upward rather than given a child document, and that leaves a
+      link naming what was raised and where it is being decided rather than a
+      document here.
+- [ ] A block this document carries is a change it is asking of a document
+      that someone else accepts — most often its own ratified parent. This is
+      a finding whatever the block scores: ratifying this document would
+      accept those changes by implication, and its reviewer has no standing
+      to do that.
 - [ ] A child was split out that does not meet `D1`, or a split gives one
       contract two homes, or a split was made because a child was merely
       large. Each is a finding on its own. **Size alone never justifies a

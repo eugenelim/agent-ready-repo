@@ -833,6 +833,12 @@ _DELIMITED_BOUNDARY_CASES = (
     # to be the LAST character before the `)` for the closer run to reach it.
     ("keep", "link destination with dots inside",
      "See [api](https://x.test/v1.2/a?q=1) first. Then go.", 2),
+    # The other half of the ASCII `>` trade recorded below: both of these
+    # count correctly now and would over-count if `>` joined the closer set.
+    ("keep", "autolink ending in a period",
+     "See <https://x.test/docs.> here. Then go.", 2),
+    ("keep", "autolink ending in a query marker",
+     "See <https://x.test/a?> here. Then go.", 2),
     # The over-counts the source names as accepted, grouped by reason rather
     # than counted — a stated count goes stale the next time a row is added.
     # This one is prose: masking an uppercase lone letter dropped a real
@@ -870,9 +876,10 @@ _DELIMITED_BOUNDARY_CASES = (
     # The shipped counter answered this one wrongly too, so nothing regressed.
     ("residual", "one-letter end behind a delimiter", "One. Two is `x.` Three. Four.", 3),
     # An ASCII `>` closer, excluded on a measured trade rather than missed:
-    # admitting it fixes this row and breaks two autolink rows, which design
-    # documents carry far more often than an angle-wrapped sentence. The
-    # source records the measurement. Pinned so the trade stays a decision.
+    # admitting it would fix this row and break the two autolink rows above,
+    # which design documents carry far more often than an angle-wrapped
+    # sentence. Both halves of that trade are rows, so the measurement the
+    # source records is checkable here rather than only asserted there.
     ("residual", "ASCII angle bracket", "One. <Two.> Three. Four.", 3),
 )
 
