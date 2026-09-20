@@ -11,17 +11,29 @@ product-facing skills read to locate the `shaping/` directory.
 
 ## The `[product]` table
 
-One configurable key; `briefs` is intentionally absent (pinned):
+One configurable key, `output_dir`:
 
 ```toml
 [product]
-shaping  = "docs/product/shaping"    # vision docs, opportunity assessments, capability maps
-# briefs path is pinned at docs/product/briefs/ — not configurable here
+output_dir = "docs/product"    # a base; each skill composes its own subpath under it
+# briefs and intents are pinned hand-offs to core — not configurable here
 ```
 
-- **`shaping`** is the base directory for upstream shaping artifacts: product
-  vision docs, opportunity assessments, capability maps, initiative briefs. Produced
-  by the PE six-step shaping sequence and the product-strategy pack.
+- **`output_dir`** is a base directory, never a leaf. Each consuming skill
+  composes its own subpath under it: `frame-intent` writes
+  `<output_dir>/intents/<slug>.md`, `align-value-stream` writes
+  `<output_dir>/rollups/<slug>.md`, and the six-step shaping sequence writes
+  `<output_dir>/shaping/<slug>/...`.
+- **`shaping` is not a key of this section.** No skill body reads
+  `[product] shaping`; the shaping directory is composed under `output_dir` by
+  the skills above, and the product-strategy pack has its own `[strategy]`
+  section. This page previously documented `shaping` as the section's only key,
+  which was wrong in both directions — it named a key nobody reads and omitted
+  the one every consumer does.
+- **A hand-off to core is pinned, not configured.** `docs/product/briefs/` and
+  `docs/product/intents/` are where core's `author-delivery-brief continue` and
+  `intake-intent` look for work; redirecting either breaks the `Brief:` chain or
+  intent admission. Both are deliberate non-goals of this config.
 - **`briefs`** stays pinned at `docs/product/briefs/`. It is the hand-off point
   to Core's `author-delivery-brief continue` mode and must not be redirected — moving briefs breaks
   the `Brief:` back-link chain and coverage rollup.

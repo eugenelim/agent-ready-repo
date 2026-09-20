@@ -33,9 +33,13 @@ output_dir = "docs/design"
 
 [product]
 output_dir = "docs/product"
-# `briefs` is pinned at `docs/product/briefs/` by `decompose-intent` and is not
-# configurable here; redirecting it would break the `Brief:` back-link chain.
-shaping    = "docs/product/shaping"
+# Only `output_dir`. `shaping` is NOT a key of this section: no skill body reads
+# `[product] shaping`. The product-engineering shaping skills compose
+# `<output_dir>/shaping/<slug>/...` themselves, and product-strategy has its own
+# `[strategy]` section. Core's workspace-status reference still documents
+# `shaping` as this section's only key; that doc is wrong and is being corrected.
+# `briefs` and `intents` are pinned hand-offs to core and are not configurable
+# here at all: redirecting them breaks the `Brief:` chain and intent admission.
 
 [research]
 output_dir = "docs/product/research"
