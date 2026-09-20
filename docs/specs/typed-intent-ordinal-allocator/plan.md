@@ -316,6 +316,7 @@ def test_check_does_not_consult_the_remote_view(
 ) -> None:
     """AC-0012 is a statement about one directory, as in the ADR helper."""
     (tmp_path / f"{TOKENS[0]}-0001-a.md").write_text("", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
         MODULE,
         "remote_view",
