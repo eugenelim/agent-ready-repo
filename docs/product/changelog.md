@@ -93,6 +93,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead. At Capture, every scratch note from the session is now routed to
   a destination rather than left to fall out of scope.
 
+## [product-engineering][0.13.14] — 2026-09-20
+
+The intent triad is now executed by the surfaces that run the discovery loop,
+rather than left for a reader to reconstruct. Plus three residues of the
+`voice-and-microcopy` → `ux-writing` rename and one doctrine correction, all in
+the shaping surface.
+
+`discovery-lead`'s gate-ladder walk named none of the three skills it is
+supposed to drive. It now names `frame-intent` at G0, `de-risk-intent` and
+`decompose-intent` at G1, and `decompose-intent` again at the G3 handoff — the
+two ladder positions the skill's own gate table already gave it. A reader of
+the agent definition alone can run the ladder.
+
+`frame-intent` gains a `## Pick a route` section naming the three shaping
+sequences and the situation each one fits: shape one bet end to end, scaffold a
+whole product from a raw idea, or position a business before naming a bet. It
+is the only place that choice is stated, and `discovery-loop` points at it.
+`discovery-loop`'s own description no longer routes `frame-intent` away as
+standalone-authoring work, because the loop calls it at G0.
+
+The G3 Core-absent branch now names where it submits. Three surfaces said the
+portable fallback was *rendered* without saying what receives it, while the
+negotiated branch named `work-intake` — so the capability read as bounding the
+target rather than the handoff object. All three now route both branches
+through `work-intake`; only the envelope differs. The explanation guide, which
+stated the old conditional route, was corrected with them; the how-to guide,
+which named no route at all, now names this one.
+
+The discovery-workspace sidecar schema documents two blackboard slot types that
+had no stated shape: `assumption-test` carries the riskiest assumption, the
+kill condition, the prototype-approach and the validation hook; and
+`delivery-contract` carries the G3 leaf projection. Both start at `internal`,
+and the schema now says outright that a starting level named for a slot type is
+a floor a write-time assessment may raise — it is not a per-type constant, which
+would let a higher-classified instance be read off a table instead of assessed.
+
+`ux-writing` was missing the three output-rendering directives its entry in the
+rendering-directive table specifies. The table was still keyed on the old name,
+so the skill matched no entry and shipped without them — a missing key does not
+fail, it just does not match, which is why nothing caught it.
+
+`frame-situation` told readers that `diverge-solutions` and `place-bet` were
+"not yet shipped" when explaining its step-2 readiness degrade. Both ship. The
+line went stale when their specs landed and the degrade branch citing it was
+never revisited, so it read as evidence and was not. The degrade behaviour is
+unchanged; only the false justification is gone.
+
+`diverge-solutions` demanded a fixed floor of options across its activation
+description, opening line, output contract, generate step, artifact shape,
+anti-pattern list, worked example and journey entry — some as `≥3`, some as
+"below 3" and "fewer than 3", which is why a symbol search alone did not find
+them all. A number invites padding to reach
+it, which is the opposite of divergence: the skill was inducing the invented
+alternatives it exists to avoid. It now asks for enough materially different
+options to expose the real decision, and says outright not to invent
+alternatives to satisfy a number.
+
+### Highlights
+
+- Arriving with an unshaped idea, you can pick your shaping route from
+  `frame-intent` alone, instead of inferring it from three skills' descriptions.
+- `discovery-lead` names the skill it runs at every gate, so a discovery can be
+  driven from the agent definition without reading the loop's gate table.
+- A discovery hands off through `work-intake` whether or not Core advertises the
+  handoff object, so the route into delivery no longer depends on the envelope.
+- Writing an `assumption-test` or `delivery-contract` slot, you can read its
+  field set and its starting data classification off the sidecar schema.
+- `diverge-solutions` no longer asks for a minimum option count, so options are
+  generated to expose the decision rather than to reach a threshold.
+- `ux-writing` output follows the same rendering directives as its sibling
+  product-engineering skills, instead of falling back to unguided formatting.
+- `frame-situation` no longer tells you two shipped skills are unshipped.
+
+## [experience-design][2.0.7] — 2026-09-20
+
+`DESIGN.md` named `voice-and-microcopy` in three places when describing which
+pack owns per-state UI copy and which artifact `user-flow` hands off to. That
+skill was renamed to `ux-writing` and no directory of the old name exists in any
+pack, so all three references resolved to nothing. They now name `ux-writing`.
+
+### Highlights
+
+- The experience-design pack's own description of the copy handoff points at a
+  skill that exists, so a reader following it reaches `ux-writing`.
+
 ## [core][2.26.20] — 2026-09-18
 
 ### Highlights

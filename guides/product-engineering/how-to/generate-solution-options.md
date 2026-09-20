@@ -7,13 +7,13 @@ kind: how-to
 
 # How to generate solution options
 
-**Use this when:** You hold a confirmed opportunity at initiative or capability scope and need to surface ≥3 structured, comparable options before committing to a direction in `place-bet`.
+**Use this when:** You hold a confirmed opportunity at initiative or capability scope and need to surface structured, comparable options before committing to a direction in `place-bet`.
 **Prerequisites:** `product-engineering` pack installed; a confirmed opportunity at initiative or capability altitude — ideally from `identify-opportunities` (feature-scope goes to `explore-options` instead).
-**Result:** A structured options artifact with ≥3 spanning options, a recommended selection with a dominant-bet rationale, and retained reasoning for parked and rejected alternatives.
+**Result:** A structured options artifact with options spanning the real alternatives, a recommended selection with a dominant-bet rationale, and retained reasoning for parked and rejected alternatives.
 
 Use `diverge-solutions` when you hold a confirmed opportunity at initiative or
 capability scope and need to surface the full option space before committing to
-a direction. The skill forces ≥3 structured, comparable options — the discipline
+a direction. The skill forces structured, comparable options — the discipline
 that keeps `place-bet` (step 5) from just ratifying the first idea.
 
 ```text
@@ -36,7 +36,7 @@ need to brainstorm freely?*
 
 **Reach for `explore-options` when:**
 - The input is feature-scoped (a specific screen, endpoint, or component).
-- You want a freeform brainstorm with no minimum option count or forced structure.
+- You want a freeform brainstorm with no forced structure.
 - You are in a discovery loop pre-G1.5 and structured comparability is not yet needed.
 
 **Altitude signal — initiative vs capability vs feature:**

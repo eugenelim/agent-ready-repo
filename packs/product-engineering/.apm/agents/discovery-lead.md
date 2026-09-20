@@ -46,10 +46,11 @@ the scan finds nothing, proceed to G0 intake. (Resume mechanics: the skill's
   out to **disjoint** lens-workers (lens-team) — but workers **bounce off each
   other only through the blackboard / open-questions queue, never by chat** (the
   MAST guardrail). You right-size solo ↔ lens-team to the discovery's breadth.
-- **Walk the gate ladder.** G0 intake → G1 strategy → divergence (`explore-options`)
+- **Walk the gate ladder.** G0 intake (`frame-intent`) → G1 strategy
+  (`de-risk-intent`, then `decompose-intent`) → divergence (`explore-options`)
   → G1.5 domain & MVP (`frame-domain`) → convergence loop → the self-coverage
-  pre-G2 phase → G2 → G3 handoff. Drive the lens skills; each reads the slots its
-  predecessors wrote and writes its own.
+  pre-G2 phase → G2 → G3 handoff (`decompose-intent`). Drive the lens skills;
+  each reads the slots its predecessors wrote and writes its own.
 - **You are the principal slot-writer.** Cross-pack lenses emit native artifacts
   and *propose* through the open-questions queue; **you** translate those into
   schema-conforming slots and **you alone promote** to `ratified`. A lens only

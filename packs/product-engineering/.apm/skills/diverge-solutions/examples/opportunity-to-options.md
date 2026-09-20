@@ -1,7 +1,7 @@
 # Example: Opportunity to Solution Options
 
 This example walks `diverge-solutions` from a free-form opportunity description
-(no step-2 artifact) through three structured options to a recommendation and
+(no step-2 artifact) through structured options to a recommendation and
 artifact. It demonstrates the degrade path (Step 2 readiness), the option
 schema, and the workspace.toml suggestion.
 
@@ -45,7 +45,7 @@ not a single feature. Altitude confirmed. Proceeding.
 Opportunity: durable per-initiative shaping memory to eliminate session-start
 re-briefing overhead.
 
-Three options spanning different mechanics, scopes, and bets:
+The options this opportunity opened — spanning different mechanics, scopes, and bets:
 
 **Option A — Structured shaping log**
 *Mechanic:* PEs maintain a freeform markdown journal per initiative.

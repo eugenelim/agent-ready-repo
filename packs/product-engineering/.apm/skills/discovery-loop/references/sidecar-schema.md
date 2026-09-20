@@ -99,7 +99,7 @@ The artifact inventory. Each slot:
 | Field | Meaning |
 | --- | --- |
 | `id` | stable, location-independent marker (slug / `contract@version` / `kind:ns/name`) |
-| `type` | the artifact kind (`intent`, `domain-framing`, `journey-map`, `screen-brief`, `service-blueprint`, `contract`, `decision-brief`, `backlog`, …) |
+| `type` | the artifact kind (`intent`, `domain-framing`, `journey-map`, `screen-brief`, `service-blueprint`, `contract`, `decision-brief`, `backlog`, `assumption-test`, `delivery-contract`, …) |
 | `status` | the **slot status** namespace — `draft \| proposed \| ratified \| stale \| rejected` |
 | `version` | monotonic per-slot revision |
 | `produced_by` | the skill/agent that wrote it (`frame-intent`, `map-customer-journey`, `discovery-lead`, …) |
@@ -107,6 +107,18 @@ The artifact inventory. Each slot:
 | `path?` | the Tier-2 committed artifact's path, when it has one |
 | `round_last_touched` | the convergence round it last changed in |
 | `parent_id?` | **the optional pointer that makes `intent` slots nest into a recursive tree** |
+
+Two of those kinds are written by the triad skills and carry a fixed shape:
+
+- An `assumption-test` slot carries the riskiest assumption, the predeclared
+  kill condition, the chosen prototype-approach, and the `validation_hook`
+  `de-risk-intent` emits. Its starting classification is `internal`.
+- A `delivery-contract` slot carries the G3 leaf projection — the shippable
+  contract `decompose-intent` renders at the leaf. Its starting classification
+  is `internal`.
+
+The list above is open: naming these two gives each a shape and a starting
+classification, and does not make the `type` list exhaustive.
 
 The blackboard carries a **`meta` block** (or a sibling `meta.json`) — see slot 5.
 
@@ -324,6 +336,12 @@ level**:
 | `internal` | product strategy, scope boundary | committed to the harness store; not exported externally |
 | `sensitive` | personas with PII, security findings | **redacted-or-surfaced before** reaching a shared store |
 | `regulated` | regulated-domain facts, secrets | **never committed verbatim**; surfaces to the human / `discovery-threat-reviewer` first |
+
+A starting level named for a slot type is a **floor**, not a fixed value: a
+write-time assessment may raise it, and never lowers it. Levels are assigned per
+instance, so a `type` never fixes the level of the slots written under it. The
+controller starts from `internal` for an `assumption-test` slot and from
+`internal` for a `delivery-contract` slot.
 
 - **Redaction guidance.** A `sensitive`/`regulated` fact is **not copied
   verbatim** into a shared example or a promoted note — redact to the minimum the

@@ -16,7 +16,7 @@ Things a reasonable reader might expect this pack to provide. It doesn't, by des
 
 - **No stack specifics.** No UI-framework code, no styling-language syntax, no animation library, no fixed spacing/timing/color/motion-curve tables, no token values, no pixel comps. The pack ships the method to derive your design; you choose your tools and fill in the numbers.
 - **No product strategy.** The pack assumes an agreed user and outcome. Framing, opportunity sizing, and UX strategy are upstream (`product-strategy` pack). When that input is absent, `journey-mapping` degrades gracefully but the output is weaker.
-- **No UI copy strings.** Per-state UI copy (button labels, error messages, empty states) is the `voice-and-microcopy` skill's domain in `product-engineering`. This pack sets content intent and copy direction; `voice-and-microcopy` writes the actual strings keyed to the state matrix.
+- **No UI copy strings.** Per-state UI copy (button labels, error messages, empty states) is the `ux-writing` skill's domain in `product-engineering`. This pack sets content intent and copy direction; `ux-writing` writes the actual strings keyed to the state matrix.
 - **No code review.** `experience-reviewer` reviews design artifacts only — journeys, screen flows, briefs, aesthetic directions. It never reviews code diffs (use core's `adversarial-reviewer`) or architecture docs (use architect's `design-reviewer`).
 - **No persistent runtime.** No hook, engine, validator daemon, or state machine. This pack is habits, not infrastructure. `design-review` is an authoring-time interactive skill; `experience-reviewer` is a one-shot forked subagent.
 
@@ -273,7 +273,7 @@ Both inputs are optional; the skills degrade gracefully when absent. With them, 
 
 ### Downstream: product-engineering
 
-The per-screen state matrix produced by `user-flow` is the hand-off artifact `voice-and-microcopy` (product-engineering pack) consumes. Each cell in the matrix (screen × state) maps to a copy string. The two packs are designed to meet at this interface.
+The per-screen state matrix produced by `user-flow` is the hand-off artifact `ux-writing` (product-engineering pack) consumes. Each cell in the matrix (screen × state) maps to a copy string. The two packs are designed to meet at this interface.
 
 ### Downstream: architect / contracts
 
