@@ -234,12 +234,22 @@ _ABBREVIATIONS = (
 # "...standards... live in ..." from reading as two sentences.
 _ELLIPSIS_PATTERN = re.compile(r"\.{3}|…")
 _DECIMAL_PATTERN = re.compile(r"(?<=\d)\.(?=\d)")
+# A terminator keeps its boundary through any run of CLOSING delimiters
+# standing between it and the whitespace. Only closers belong here: an
+# opening delimiter after a terminator is already whitespace-separated from
+# it. Both patterns below consult this class, and both have to: tolerating
+# closers in the boundary alone lets the lone-letter mask lose sight of its
+# own label through a code span, which turns an under-count into an
+# over-count on `Set `a.` then continue.`
+_CLOSING_DELIMITERS = r"[)\]}\"'`*_’”»›]*"
 # Only a LOWERCASE lone letter is an enumeration label (`a.`, `b.`). An
 # uppercase one is far more often a single-letter name ending a sentence
 # ("...over Y. The record...") than an initial, and masking it drops a real
 # boundary. The apostrophe classes keep a contraction or possessive
 # ("doesn't.", "reviewer's.") from reading as a lone letter.
-_INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
+_INITIAL_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=" + _CLOSING_DELIMITERS + r"\s)"
+)
 # Any non-space opens a sentence. An allowlist of sentence-initial characters
 # has unbounded holes -- a markdown link, a parenthesis or a non-Latin capital
 # each silently drop a boundary, which is the under-count DA3 exists to catch.
@@ -250,7 +260,17 @@ _INITIAL_PATTERN = re.compile(r"(?<![A-Za-z0-9'’ʼ])[a-z]\.(?=\s)")
 # document's paragraph text: a line ending in a terminator immediately before
 # a Starlight `:::` fence, and one before an unstripped `-->`. The gate strips
 # comment spans before counting, so the second cannot arise on its own input.
-_SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+(?=\s+\S)")
+#
+# The closing side had the same unbounded-holes problem, and it was not
+# reasoned about here originally. Requiring whitespace immediately after the
+# terminator made any delimiter between the two swallow the boundary, so a
+# bold lead-in, an emphasised or code-spanned sentence, a closing quote of
+# any script, or a parenthesised aside each registered nothing -- and a
+# paragraph delimiting every sentence read as one. Skipping the closer run
+# fixes the class rather than an enumerated list of its instances.
+_SENTENCE_BOUNDARY_PATTERN = re.compile(
+    r"[.!?]+(?=" + _CLOSING_DELIMITERS + r"\s+\S)"
+)
 
 
 def _mask_initial(match: re.Match[str]) -> str:
@@ -273,9 +293,20 @@ def count_sentences(paragraph: str) -> int:
 
     The boundary itself fires on any non-space opener rather than a listed
     set of characters, because an enumerated set has unbounded holes and each
-    one silently under-counts. The boundary pattern carries no nested
-    quantifier and no alternation inside a repetition, the two constructs
-    that make backtracking super-linear.
+    one silently under-counts. It also skips any run of closing delimiters
+    between the terminator and the whitespace, for the same reason on the
+    other side. The boundary pattern carries no nested quantifier and no
+    alternation inside a repetition, the two constructs that make
+    backtracking super-linear; the closer class and the whitespace class
+    share no character, so the added repetition stays linear too.
+
+    One residual is irreducible rather than unfixed. A one-letter sentence
+    end behind a delimiter ("...is `x.` Three.") and an enumeration label
+    behind one ("Set `a.` then continue.") are the same shape, and only what
+    follows separates them; the mask cannot read that, so it treats both as
+    labels and under-counts the first. Splitting instead would over-count
+    the second, and the choice went to the reading that leaves ordinary
+    prose alone.
     """
     masked = paragraph
     for abbreviation in _ABBREVIATIONS:

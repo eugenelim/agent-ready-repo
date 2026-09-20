@@ -64,6 +64,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [architect][0.15.13] — 2026-09-20
+
+### Highlights
+
+- **The paragraph-length check now sees a bold lead-in.** Counting sentences
+  needed a space straight after the full stop, so any closing mark standing
+  between the two hid the break: an emphasised or code-spanned sentence, a
+  closing quotation mark of any script, or a parenthesised aside each read as
+  no sentence end at all, and a paragraph that emphasised every sentence read
+  as one. Bold lead-ins are common in design prose, so the paragraphs most
+  likely to run long were the ones least likely to be named. They are counted
+  now, and the check reports the same file and line it always did.
+- **The decomposition rubric names the third place a candidate can land.** It
+  offered a document of the part's own or a row in the element catalogue. A
+  part can satisfy the qualifying rule and still belong above the document
+  holding it, so the rubric now says to route it upward and how to record
+  that. The case this catches is a document that carries the changes it is
+  asking of a ratified parent: ratifying it would accept those changes by
+  implication, because its own reviewer has no standing to accept them.
+
+### Fixed
+
+- The `DA3` sentence counter skipped a boundary whose terminator was followed
+  by a closing delimiter rather than whitespace. The boundary pattern and the
+  lone-letter enumeration mask both skip a run of closing delimiters now:
+  tolerating them in the boundary alone turns the under-count into an
+  over-count on an inline `a.` label, so the two patterns have to move
+  together. One residual is irreducible and documented in the source — a
+  one-letter sentence end behind a delimiter and an enumeration label behind
+  one are the same shape, and only what follows separates them.
+
 ## [core][2.26.20] — 2026-09-18
 
 ### Highlights

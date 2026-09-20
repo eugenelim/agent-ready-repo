@@ -780,3 +780,84 @@ def test_da3_over_counts_a_genuine_initial_as_an_accepted_tradeoff(
 ) -> None:
     gate = _load_gate()
     assert gate.count_sentences(paragraph) == expected, label
+
+
+# A sentence boundary has a CLOSING side as well as an opening one, and only
+# the opening side was ever tested. Every case in `_MUST_SPLIT` and
+# `_MUST_NOT_SPLIT` above puts whitespace immediately after the terminator,
+# so the closing side is unreachable by that whole table rather than merely
+# under-covered by it -- which is how a paragraph like `**One.** Two. Three.
+# Four.` read as three sentences through a fully green suite. Bold lead-ins
+# are house style in the documents this skill ships, so a delimiter-heavy
+# paragraph was very nearly invisible to `DA3`.
+#
+# Each row carries its own `direction`, and the test asserts all four
+# directions are present. An over-count scan cannot find an under-count, so
+# the table is built to make a one-directional revision of it fail rather
+# than pass quietly:
+#
+#   `split`     -- the boundary must register through the delimiters.
+#   `keep`      -- a masked period must still not split.
+#   `overcount` -- a cost the counter knowingly accepts.
+#   `residual`  -- a known wrong answer, pinned so it stays a decision.
+_DELIMITED_BOUNDARY_CASES = (
+    ("split", "bold lead-in", "**One.** Two. Three. Four.", 4),
+    ("split", "italic span", "One. *Two.* Three. Four.", 4),
+    ("split", "underscore emphasis", "One. _Two._ Three. Four.", 4),
+    ("split", "inline code", "One. Two is `it.` Three. Four.", 4),
+    ("split", "straight double quote", 'One. He said "go." Three. Four.', 4),
+    ("split", "curly double quote", "One. He said “go.” Three. Four.", 4),
+    ("split", "curly single quote", "One. He said ‘go.’ Three. Four.", 4),
+    ("split", "guillemet", "One. Il a dit «va.» Three. Four.", 4),
+    ("split", "parenthesis", "One. (An aside.) Three. Four.", 4),
+    ("split", "bracket", "One. [An aside.] Three. Four.", 4),
+    ("split", "brace", "One. {An aside.} Three. Four.", 4),
+    ("split", "nested delimiters", 'One. (He said "go.") Three. Four.', 4),
+    ("split", "exclamation in bold", "**Stop!** Two. Three. Four.", 4),
+    ("split", "question in bold", "**Why?** Two. Three. Four.", 4),
+    # The severity case: three delimited sentences collapsed into one.
+    ("split", "every sentence delimited", "**Bold.** *Ital.* `Code.` Four.", 4),
+    ("keep", "enumeration label in code", "Set `a.` then continue.", 1),
+    ("keep", "decimal", "Latency is 1.5 ms. That is fine.", 2),
+    ("keep", "abbreviation inside a quote", 'He wrote "e.g. this" today. Next.', 2),
+    ("keep", "ellipsis", "Standards... live on. Next one.", 2),
+    ("keep", "lowercase label", "a. `DA1` one. `DA2` two. `DA3` three. `DA4` four.", 4),
+    ("keep", "contraction", "It works. It doesn't. Third one here. Fourth here.", 4),
+    ("keep", "possessive", "Read it. That is the reviewer's. Third here. Fourth here.", 4),
+    # Both over-counts the source names as accepted: markup, not prose, and
+    # neither reaches a rendered document's paragraph text. The gate strips
+    # comment spans before counting, so the second cannot arise on its input.
+    ("overcount", "genuine initial", "J. Smith said. Second. Third. Fourth.", 5),
+    ("overcount", "Starlight fence", "Prose ends here.\n:::note", 2),
+    ("overcount", "unstripped comment close", "Prose ends here.\n--> trailing", 2),
+    # The irreducible residual. A one-letter sentence end behind a delimiter
+    # and an enumeration label behind one are the same shape; only what
+    # follows separates them, and the mask cannot read that. Splitting here
+    # would break the `keep` row above, so this row stays wrong on purpose.
+    # The shipped counter answered this one wrongly too, so nothing regressed.
+    ("residual", "one-letter end behind a delimiter", "One. Two is `x.` Three. Four.", 3),
+)
+
+
+@pytest.mark.parametrize(
+    "direction,label,paragraph,expected",
+    _DELIMITED_BOUNDARY_CASES,
+    ids=[f"{c[0]}-{c[1]}" for c in _DELIMITED_BOUNDARY_CASES],
+)
+def test_da3_counts_across_a_closing_delimiter(
+    direction: str, label: str, paragraph: str, expected: int
+) -> None:
+    gate = _load_gate()
+    assert gate.count_sentences(paragraph) == expected, (direction, label)
+
+
+def test_the_delimiter_table_covers_both_directions() -> None:
+    """A table that only ever grew in one direction is the original defect.
+
+    The under-count survived a green suite because every check asked whether
+    the counter split too often. Asserting the set of directions -- rather
+    than a row count, which upstream churn breaks -- keeps a later revision
+    from narrowing this back to a single-direction scan.
+    """
+    directions = {case[0] for case in _DELIMITED_BOUNDARY_CASES}
+    assert directions == {"split", "keep", "overcount", "residual"}
