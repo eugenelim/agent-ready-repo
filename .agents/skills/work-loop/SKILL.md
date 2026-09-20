@@ -896,16 +896,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
 
 ## Capture
 
-Before the PR is opened: *What would have made this work materially better —
-more correct, complete, reliable, recoverable, secure, privacy-preserving,
-deterministic, reproducible, operable, maintainable, reviewable, efficient, or
-independent of hidden context?*
-
-Speed is one useful signal, not the objective. Capture a learning when knowing
-it would materially change a future approach along one or more of those quality
-attributes.
-
-Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
+What a kept note should say, and how to write it, is in [`references/capture.md`](references/capture.md).
 
 A captured item carries its discriminator: the one fact the decision turns
 on, not just the location. "Four sites use a 13px literal" is a locator;
@@ -933,13 +924,6 @@ capturing a ready-now item is a loss.
   defect left — one resting on taste, or one with no stated arbiter — is
   discarded. A note that names no defect is done once the seam has taken it,
   and discarded if it had nothing for the seam either.
-
-  Use semantic-gate triage before writing anything. Route or discard normative
-  material first, then invoke the public `project-knowledge` producer profile.
-  It owns receipts and terminal-gate distillation; unresolved observations remain
-  pending. Any knowledge diff returns through the next verification and review
-  barrier before commit. If unavailable, record `project-knowledge unavailable`;
-  create no fallback file.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
 - "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
@@ -1011,3 +995,4 @@ Load when the predicate fires; don't load speculatively.
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |
 | Authoring a pull-request body | [`references/pr-authoring.md`](references/pr-authoring.md) |
+| Writing a kept capture note | [`references/capture.md`](references/capture.md) |
