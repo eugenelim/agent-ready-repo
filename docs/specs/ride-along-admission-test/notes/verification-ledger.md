@@ -1237,3 +1237,30 @@ deferred items. The discriminator: **the last task's section ends at
 locator naming only `loop-cohort.py` would lose the fact that makes it
 actionable. Until it is fixed, an approval after the final task completes
 belongs in this ledger, as this entry does.
+
+## 2026-09-20 — closing round: three control holes, none in shipped prose
+
+The closing adversarial round returned three Blockers. All three are in the
+two control files; **none is in the four `.apm/` surfaces an adopter reads**.
+That distinction is the useful one at this point: what ships has been clean
+for several rounds, and the churn is in the repo-internal machinery pinning
+it.
+
+| Hole | Repair | Mutation now caught by |
+| --- | --- | --- |
+| The host check ended a host only at another configured marker or a `##` heading, so a clause moved from `4. **Scope.**` into item 5 kept item 4 as its nearest preceding marker | Reformulated as a separator test: the clause is inside its host when no structural boundary — heading, numbered item, or bolded bullet — lies between marker and clause | `test_clauses_sit_in_their_hosts` |
+| The spec parser took the first textual `## The shipped clauses`, so a copy in a fence or comment could shadow a divergent live section | Exactly one *live* heading required; fenced and commented copies are skipped | `test_pinned_clauses_match_the_spec`, on two live headings and on a divergent live section |
+| AC12 stripped every occurrence of the case id from every file named `evals.json`, blinding the sweep to the name in a prompt, an expected output, an assertion, or another pack's register | The exemption is the `"id": "<case>"` field of the one designated register | `test_retired_step_name_is_absent_from_shipped_content`, on the name placed in a prompt |
+
+**Method note.** The first attempt at the host fix computed a `host_end` from
+the next boundary after the marker. C4 and C5 are themselves bullets, so the
+boundary pattern matched their own opening and the host "ended" exactly where
+the clause began — `assert 77831 < 77830`. The separator formulation, which
+excludes a boundary at the clause's own start, is correct where the
+end-offset one was not.
+
+**Second method note.** The first shadow-heading mutation put the counterfeit
+inside a fence and did not red — correctly, because the fix skips fenced
+copies and parses the real section. Reading that as "the fix does not work"
+would have been wrong; the mutations that do exercise it are two live
+headings and a divergent live section, and both red.

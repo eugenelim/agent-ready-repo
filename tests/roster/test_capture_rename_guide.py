@@ -59,6 +59,10 @@ _CLAUSE_HEADING_RE = re.compile(r"^\*\*C(\d)\s+—[^*]*\*\*", re.MULTILINE)
 RETIRED_STEP_RE = re.compile(r"capture[ _-]learnings", re.IGNORECASE)
 # AC12 sweeps bytes so a binary under a swept root cannot force an exemption.
 RETIRED_STEP_BYTES_RE = re.compile(rb"capture[ _-]learnings", re.IGNORECASE)
+EVALS_JSON = (
+    ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop"
+    / "evals" / "evals.json"
+)
 SWEEP_ROOTS = ("packs", "tools", "guides")
 # The one stable identifier the sweep exempts: the eval case id (an
 # identifier, not a description of the step). `docs/knowledge/` records keep
@@ -99,6 +103,20 @@ def _flat(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _in_fence(text: str, offset: int) -> bool:
+    """True when `offset` falls inside a ``` fenced block."""
+    return text.count("\n```", 0, offset) % 2 == 1
+
+
+def _in_comment(text: str, offset: int) -> bool:
+    """True when `offset` falls inside an HTML comment."""
+    opened = text.rfind("<!--", 0, offset)
+    if opened == -1:
+        return False
+    closed = text.find("-->", opened)
+    return closed == -1 or closed > offset
+
+
 def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
     """Parse `path`'s § The shipped clauses into `{label: text}`.
 
@@ -110,8 +128,20 @@ def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
     # Bound the parse to § The shipped clauses. Scanning the whole file lets a
     # blockquote elsewhere -- a quoted example, a Follow-on, an appendix --
     # shadow the canonical one and hide a divergence inside the section.
-    start = whole.find("## The shipped clauses")
-    assert start != -1, f"{path.name} has no '## The shipped clauses' section"
+    # Exactly one live heading. A copy inside a fence or an HTML comment
+    # earlier in the file would otherwise be selected by a plain `find`, and
+    # could carry canonical text while the rendered section below diverged.
+    heading = re.compile(r"^## The shipped clauses$", re.MULTILINE)
+    live = [
+        m.start()
+        for m in heading.finditer(whole)
+        if not _in_fence(whole, m.start()) and not _in_comment(whole, m.start())
+    ]
+    assert len(live) == 1, (
+        f"{path.name} has {len(live)} live '## The shipped clauses' headings, "
+        f"expected exactly 1"
+    )
+    start = live[0]
     end = whole.find("\n## ", start + 1)
     raw = whole[start:] if end == -1 else whole[start:end]
 
@@ -232,8 +262,13 @@ def test_retired_step_name_is_absent_from_shipped_content() -> None:
     offenders: list[str] = []
     for path in _sweep_files():
         raw = path.read_bytes()
-        if path.name == "evals.json":
-            raw = raw.replace(EVALS_CASE_ID.encode(), b"")
+        # AC12 exempts one thing: the designated case's `id` value. Stripping
+        # every occurrence of that string from every file named evals.json
+        # would also blind the sweep to the name appearing in a prompt, an
+        # expected output, an assertion, or another pack's register — a wider
+        # exemption than the criterion grants.
+        if path == EVALS_JSON:
+            raw = raw.replace(b'"id": "' + EVALS_CASE_ID.encode() + b'"', b"")
         for match in RETIRED_STEP_BYTES_RE.finditer(raw):
             offenders.append(
                 f"{path.relative_to(ROOT)}: {match.group(0).decode('ascii')!r}"

@@ -266,14 +266,22 @@ def _in_html_comment(text: str, pos: int) -> bool:
     )
 
 
-def _next_top_level_heading(raw: str, after: int) -> int | None:
-    """Offset of the next `## ` heading after `after`, or None.
+# A host ends at the first structural boundary after it, not only at the next
+# configured marker or section heading. Two of the four hosts are items in a
+# numbered list and one is a bullet, so a sibling item ends the host as surely
+# as a new section does: without these, a clause moved from `4. **Scope.**`
+# into item 5 keeps item 4 as its nearest preceding marker and passes.
+_HOST_BOUNDARY_RE = re.compile(r"^(?:#{2,6} |\s*\d+\. \*\*|\s*- \*\*)", re.MULTILINE)
 
-    A host structure ends where the next section begins. Without this the
-    host check only asks what marker precedes a clause, which every offset
-    later in the file satisfies once the marker has appeared once.
+
+def _next_host_boundary(raw: str, after: int) -> int | None:
+    """Offset of the first structural boundary after `after`, or None.
+
+    A host structure ends where the next section, numbered item, or bolded
+    bullet begins. Without this the host check only asks what marker precedes
+    a clause, which every later offset satisfies once the marker appeared.
     """
-    match = re.compile(r"^## ", re.MULTILINE).search(raw, after + 1)
+    match = _HOST_BOUNDARY_RE.search(raw, after + 1)
     return match.start() if match else None
 
 
@@ -406,18 +414,25 @@ def test_clauses_sit_in_their_hosts() -> None:
                     f"{nearest_marker!r}, expected {marker!r}"
                 )
                 # A nearest-preceding marker alone is not a host: with no end
-                # boundary, a clause moved to the tail of the file still has
-                # the right marker somewhere above it. Bound the host at the
-                # next marker, or at the next top-level heading, whichever
-                # comes first.
-                later = [pos for pos in markers.values() if pos > preceding[marker]]
-                next_heading = _next_top_level_heading(raw, preceding[marker])
-                bounds = [pos for pos in (*later, next_heading) if pos is not None]
-                host_end = min(bounds) if bounds else len(raw)
-                assert start < host_end, (
-                    f"{clause} in {path.name} sits after its host structure ends "
-                    f"(marker at {preceding[marker]}, host ends at {host_end}, "
-                    f"clause at {start})"
+                # boundary, a clause moved anywhere later in the file still
+                # has the right marker somewhere above it. The clause is
+                # inside its host when no structural boundary separates them.
+                # A boundary AT the clause's own start does not separate:
+                # C4 and C5 are themselves bullets, so their opening matches
+                # the boundary pattern.
+                marker_at = preceding[marker]
+                separators = [
+                    m.start()
+                    for m in _HOST_BOUNDARY_RE.finditer(raw, marker_at + 1, start)
+                    if m.start() != start
+                ]
+                separators += [
+                    pos for pos in markers.values() if marker_at < pos < start
+                ]
+                assert not separators, (
+                    f"{clause} in {path.name} sits outside its host: a "
+                    f"structural boundary at offset {min(separators)} separates "
+                    f"it from its {marker!r} marker at {marker_at}"
                 )
 
     # AC26: a clause found in a file § The shipped clauses does not list as
