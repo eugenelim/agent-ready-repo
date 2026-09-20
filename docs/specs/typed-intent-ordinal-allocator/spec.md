@@ -11,16 +11,9 @@
 
 Allocate a human-friendly typed ordinal — `VISION-0001`, `STRAT-0001`, `CAP-0001`, `FEAT-0001` — as a filename prefix, using `max + 1` per type over the directory unioned with the records visible on `origin`. The existing `next-ordinal.py` cannot be reused: it matches an anchored four-digit-then-separator pattern, so on a directory of typed filenames it returns `0001` with exit 0 and reports `--check` clean because nothing matched. That silent-wrong behaviour is the single most important failure to design against.
 
-The prefix table is closed and this spec owns it. ADR-0033 D2 establishes the recognized `Level` set — `product-vision › product-strategy › capability › feature` — and states the field is an open string that no lint closes; it does not map those altitudes to tokens, and nothing else does, so the mapping is declared here:
+The prefix table is closed, and this slice consumes it rather than owning it. The four tokens and the `<TYPE>-NNNN-<slug>.md` filename contract are an owner decision recorded in the parent intent's `## Boundary` (`docs/product/intents/FEAT-0001-intent-identity-and-registration.md:30-37`), which is where the mapping from each recognized `Level` to its token lives; ADR-0033 D2 grounds the recognized `Level` values themselves and leaves the field an open string that no lint closes. Changing a token is a change to that parent, through its lifecycle, not to this spec.
 
-| `Level` | Token |
-| --- | --- |
-| `product-vision` | `VISION` |
-| `product-strategy` | `STRAT` |
-| `capability` | `CAP` |
-| `feature` | `FEAT` |
-
-Matching is exact on the bare value: `Level` stays open, so any other string — an adopter's intervening altitude, an absent field, or a decorated value such as a backticked `` `feature` `` — is unmapped. An unmapped altitude is a normal outcome with a defined result, an unprefixed filename, not an error.
+What this slice owns is the matching behaviour. The lookup is an exact match on the bare `Level` value, so any string the parent's table does not list — an adopter's intervening altitude, an absent field, or a decorated value such as a backticked `` `feature` `` — is unmapped. An unmapped altitude is a normal outcome with a defined result, an unprefixed filename, not an error.
 
 An ordinal is assigned at admission, so this slice also owns the minimal integration. Admission has **two entry paths**. `work-intake` § 6 delegates a classified intent, and `work-intake/SKILL.md:60` routes a request that explicitly names `intake-intent` straight to that owner instead. The invariant both paths carry is not that the allocator runs on both, but that **neither writes a mapped-level intent without an ordinal**.
 
@@ -34,7 +27,7 @@ ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of adm
 
 ## Testing Strategy
 
-- **Typed sequencing and the mapping table (AC-0001).** Unit tests over a corpus holding every mapped type, asserting each type's ordinal is the max of its own type plus one, so `CAP-0001` and `FEAT-0001` coexist and neither type's records push the other's number up. One case per recognized `Level` confirms the table maps it to the intended token.
+- **Typed sequencing and the mapping table (AC-0001).** Unit tests over a corpus holding every mapped type, asserting each type's ordinal is the max of its own type plus one, so `CAP-0001` and `FEAT-0001` coexist and neither type's records push the other's number up. One case per `Level` listed in the parent's table confirms the lookup returns that token; the table itself is read from the parent, not restated in the test.
 - **The parse domain, class by class (AC-0004).** One case per class, plus every boundary name the introducer has to separate: `FEAT-0001-x.md` and `FEAT-0001.md` are valid and counted; `FEAT-x.md`, `FEAT-12-y.md`, `FEAT-0001x.md` and `FEAT-0001` match the introducer but not the grammar, so they are malformed and make the scan incomplete; `EPIC-0001-x.md` and `legacy-slug.md` match no introducer and are skipped. A directory holding only outside-class names still yields `0001` for a mapped type, which is AC-0001's first allocation.
 - **Scan failures refuse, locally and remotely (AC-0011).** Local cases: a missing directory, an unreadable entry, a record-shaped symlink. Remote cases: a missing `origin` reference, a failing Git query, and an induced timeout. Each returns no ordinal and a non-zero `--check`, never a partial count, and the remote cases are asserted explicitly because the script this one is modelled on degrades there instead.
 - **The duplicate control (AC-0012).** Two `FEAT-0001` records fail `--check`; `CAP-0001` beside `FEAT-0001` passes. Without the positive half the check could reject everything and still look correct.
