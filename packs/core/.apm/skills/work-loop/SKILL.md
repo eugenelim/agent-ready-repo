@@ -285,87 +285,19 @@ hard failure. Never require whole-repository ingestion or a new durable file.
    work-loop, treat its report as another fired pre-EXECUTE reviewer report and
    route it through finding adjudication. This adds no core reviewer trigger.
 
-10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the [Session Resumption protocol](references/session-resumption.md) instead of running init. For a **new run** (no engine-state.json), if `state.json` is present (orphaned cohort from a prior partial run) — **Surface to human**: run `loop-cohort status docs/specs/<feature>` to show the orphaned state, describe it, and wait for explicit authorization before running the destructive reset pair (`loop-cohort reset` then `loop-engine reset`). Once authorized, run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
-    ```
-    # Use --mode spec-plan for spec/plan-only work; --mode code for implementation work.
-    python '<skill-dir>/scripts/loop-engine.py' init docs/specs/<feature> --mode <mode> --json
-    # ↑ Parse run_id from the JSON output; carry it for all --expect-run-id arguments.
-    python '<skill-dir>/scripts/loop-cohort.py' init docs/specs/<feature> --run-id <run_id>
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
-    ```
-    Then run `python '<skill-dir>/scripts/loop-cohort.py' plan check-current docs/specs/<feature>`.
-    Exit 1 (`plan_review_status: pending`) is the expected signal to run
-    pre-EXECUTE review — it does not trigger termination.
-
+10. **Full mode:** run the init pair, or resume an existing run. An existing
+    `engine-state.json` means resume; an orphaned `state.json` without one is a
+    Surface-and-wait before the destructive reset pair. Load [`references/full-mode-engine.md`](references/full-mode-engine.md)
+    § *PLAN — init pair, or resume*.
 11. **Run every fired pre-EXECUTE reviewer to direct, structural, or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Persist and validate each raw report, then run `review raw-classify --report <path> --json`: `clean` skips adjudication, `findings` dispatches it, and `invalid` stops loudly. A report carrying a `## Not checked` footer is never fast-pathed however clean it looks — the footer is prose, and prose is what the adjudicator reads; only security-reviewer emits one. Byte equality remains the distinct direct-clean recording form. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
-    ```
-    # On findings: revise spec/plan
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-    # ... revise ...
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
-    ```
-    After all fired reviewers produce direct or adjudicated Clean results, fire the spec-review transition:
-    ```
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean
-    ```
-
-12. **Full mode:** the **G-plan sequence** — two human approvals required, run in order. Branch by the mode used at init:
-
-    **`code` mode** (implementation work):
-    ```bash
-    # 1. Spec approver writes Status: Approved in spec.md, and adds the
-    #    spec-approval entry to plan.md's Changelog (form: the plan
-    #    template's Changelog note).
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
-    # → PLAN-HUMAN-GATE; pending_human_wait: true
-
-    # 2. Plan approver writes Status: Approved in plan.md, and adds the
-    #    plan-approval entry to its Changelog in the SAME edit — step 3
-    #    pins plan content and splices out only the status token, so an
-    #    entry written after it invalidates the baseline hash.
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
-    # → SPEC-PLAN-APPROVED; pending_human_wait: false
-
-    # 3. Cohort records the approved baseline — call immediately after plan-approved; do not modify either file between steps.
-    #    On crash-resume from SPEC-PLAN-APPROVED, call approve-plan first: it refuses a non-Approved status (status-field guard) and is a no-op when statuses and hashes are unchanged.
-    python '<skill-dir>/scripts/loop-cohort.py' approve-plan docs/specs/<feature> \
-        --expect-run-id <run_id>
-
-    # 4. Schedule waves:
-    python '<skill-dir>/scripts/loop-cohort.py' schedule docs/specs/<feature> \
-        --expect-run-id <run_id>
-
-    # 5. Seal and hand off:
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-locked
-    # → CODE-IMPLEMENTATION; write Status: Implementing before any code
-    ```
-
-    **`spec-plan` mode** (spec/plan-only work — no implementation tasks):
-    ```bash
-    # 1. Spec approver writes Status: Approved in spec.md, and adds the
-    #    spec-approval entry to plan.md's Changelog (form: the plan
-    #    template's Changelog note).
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
-    # → PLAN-HUMAN-GATE
-
-    # 2. Plan approver writes Status: Approved in plan.md, and adds the
-    #    plan-approval entry to its Changelog in the SAME edit — step 3
-    #    pins plan content and splices out only the status token, so an
-    #    entry written after it invalidates the baseline hash.
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
-    # → SPEC-PLAN-APPROVED
-
-    # 3. Cohort records baseline — call immediately after plan-approved; do not modify either file between steps. On crash-resume, call approve-plan first (refuses if changed, no-op if not).
-    python '<skill-dir>/scripts/loop-cohort.py' approve-plan docs/specs/<feature> \
-        --expect-run-id <run_id>
-
-    # 4. Seal (no schedule in spec-plan mode):
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-locked
-    # → DONE; retain Status: Approved in both files
-    ```
-
-    `spec-approved` = the scope decision. `plan-approved` = the build-strategy decision. `plan-locked` = baseline sealed, ready for implementation.
-
+    Transitions for this step: [`references/full-mode-engine.md`](references/full-mode-engine.md) § *PLAN — pre-EXECUTE review transitions*.
+12. **Full mode:** the **G-plan sequence** — two human approvals, run in
+    order. `spec-approved` is the scope decision, `plan-approved` the
+    build-strategy decision, `plan-locked` seals the baseline. Each approver
+    writes `Status: Approved` and its Changelog entry; the loaded sequence
+    states which of them must do both in one edit, and why. Commands, and
+    the `code` / `spec-plan` branch: load [`references/full-mode-engine.md`](references/full-mode-engine.md)
+    § *PLAN — the G-plan sequence and its two human approvals*.
     ### Project-knowledge integration
 
     Project knowledge is never authority and enquiry is never automatic.
@@ -473,30 +405,11 @@ Run in order; proceed only if each passes:
 
 Don't move past a failing gate by editing the gate. On failure → FIX.
 
-**Full mode — after gates pass (wave routing):**
-```
-# More waves remain — fire wave-passed, advance cohort wave pointer, return to EXECUTE:
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-passed \
-    --wave-index <n>   # guard: wave check --expect more
-# Accounting precondition: the advancing branch refuses a wave whose tasks are not accounted for
-# — every task in wave <n> needs a dispatch-receipt record, receipt or decline.
-# Re-issuing an advance that already landed stays a no-op.
-python '<skill-dir>/scripts/loop-cohort.py' wave advance docs/specs/<feature> \
-    --from-index <n> --expect-run-id <run_id>
-
-# Final wave — fire gates-clean, proceed to REVIEW:
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gates-clean
-                   # guard: wave check --expect last
-```
-
-**Full mode — if gates fail:**
-```
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> gates-failed
-python '<skill-dir>/scripts/loop-cohort.py' record-attempt docs/specs/<feature> \
-    --phase implement --cycle-id <run_id>:<seq> --expect-run-id <run_id>
-```
-Fix the failure and return to EXECUTE.
-
+**Full mode — wave routing.** After gates pass, more waves remain means
+`wave-passed` then a cohort wave advance; the final wave fires `gates-clean`
+and proceeds to REVIEW. A failure fires `gates-failed`, records the attempt,
+and returns to EXECUTE. Commands and the accounting precondition: load [`references/full-mode-engine.md`](references/full-mode-engine.md)
+§ *GATES — wave routing*.
 **Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or a worktree-check (not a stash — the stash stack is shared across worktrees). Pre-existing: grep `[backlog].open` for the test/file name; if no entry exists, add `{slug = "pre-existing-…", source = "pre-flight/<iso-date>"}` with a cold-start-sufficient comment, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
 
 **Mechanical doc-drift check.** `scripts/lint-spec-status.py` (sibling to `loop-cohort.py`) checks: status vocabulary, every AC checked at a new ship transition, dangling references (warn-only), and historical deferral anchors in `[backlog].open`. A `(deferred: <slug>)` marker no longer makes a newly shipped AC valid. Run at the finish-time checklist (below). No-ops without Python. Do not wire into `pre-pr.py`. Warn-only findings are counted, not listed, unless you pass `--verbose`; a run with a hard violation always lists everything.
@@ -578,101 +491,32 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
   named artifact, accepted concept/constraints, and governing rubric paths;
   route its report through finding adjudication. This adds no core trigger.
 
-**When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip** — for a spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
-`reviewers-clean` and, if at least one reviewer produced a clean report, record
-it (transition first; record is non-idempotent — recording first then crashing
-leaves CODE-REVIEW with the audit count already moved; the default guard
-requires Status: Shipped). A direct-light run has no spec status to write and
-fires no engine or cohort transition:
-```
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean
-# The transition must succeed before recording. It prints `(seq=N)`; pass that N
-# as the operation id's sequence so a resuming session recomputes the same id.
-# If at least one reviewer produced the exact direct-clean sentinel, persist
-# that reviewer's complete return to the ignored session path first, then name
-# the file; the command reads its bytes and compares them to the sentinel, so a
-# recorded clean never rests on the controller's own account of what was said:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --direct-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
-    --expect-run-id <run_id> --operation-id <run_id>:<seq>
-# If it is clean but not byte-exact (a trailing newline, say). Refuses a report
-# carrying a `## Not checked` footer: that always takes the adjudicator path.
-# This form re-classifies the persisted artifact itself, and takes the same
-# operation id so a replay is a no-op rather than a second round:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --structural-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
-    --expect-run-id <run_id> --operation-id <run_id>:<seq>
-# Otherwise, if clean exists only through adjudication:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --report <adjudication-report-path> --adjudication \
-    --expect-run-id <run_id> --operation-id <run_id>:<seq>
-# Only if every warranted reviewer was non-mandatory and a named skip:
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --all-skipped --expect-run-id <run_id> --operation-id <run_id>:<seq>
-```
-A mandatory named skip blocks before `Status: Shipped`, `reviewers-clean`, or the `--all-skipped` path; do not let verdict emission discover that failure only after the state machine has advanced.
-For an intermediate review unit under an accepted intent that remains incomplete,
-leave `spec.md` at `Status: Implementing` and declare that boundary explicitly:
-```
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean \
-    --intent-incomplete
-```
-This opt-in accepts `Implementing` only; it does not disable the status guard or
-permit another status. The next in-intent unit still returns through
-`blocker-applied` and receives GATES, REVIEW, and a human gate of its own. This
-intermediate human gate is not a finish: do not mark the spec `Shipped`, run
-`done` (which refuses until the spec is `Shipped`), or apply the Finish
-checklist's intent-completion item. After the human
-gate, fire `blocker-applied` to begin the next unit.
-Engine is now in `CODE-HUMAN-GATE`. For a final unit, **before waiting: complete
-the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human
-response:
-- **Approved (merge confirmed):** fire `done`.
-  ```
-  python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> done
-  ```
-- **Changes requested:** fire `blocker-applied`, apply the fix, then fire `wave-complete` to reach `CODE-VERIFICATION` before GATES, then re-enter REVIEW (adversarial first).
-  ```
-  python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> blocker-applied
-  # Apply the fix, then fire wave-complete (gates-clean/gates-failed are legal
-  # only from CODE-VERIFICATION, not CODE-IMPLEMENTATION). Run the wave-exit
-  # check first: it prints the absent-container notice the transition cannot.
-  python '<skill-dir>/scripts/loop-cohort.py' check docs/specs/<feature> --phase wave-exit
-  python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
-  # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
-  ```
-- **Further in-intent review unit:** when an included discovery needs its own
-  independently reviewed unit, use the same `blocker-applied` return edge,
-  then apply that unit, run `loop-cohort check <spec-dir> --phase wave-exit`,
-  fire `wave-complete`, and run GATES, REVIEW, and the
-  human gate again. A separate review unit does not defer or complete the
-  original accepted intent.
+**When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip**, the review unit's reviewer requirement is satisfied. A mandatory named skip blocks that conclusion; do not let verdict emission discover the failure only after the state machine has advanced.
 
-For direct-light, do not fire engine or cohort transitions: once the rounds
-rule in [`references/light-mode.md`](references/light-mode.md) is satisfied,
-complete the Finish checklist and produce the five-field final handoff.
+**A spec-backed run** normally writes `Status: Shipped` in `spec.md`, fires
+`reviewers-clean`, records the clean result if at least one reviewer produced
+a clean report, and walks the `CODE-HUMAN-GATE`.
+Before waiting at that gate on a final unit, complete the
+[Finish checklist](#finish-checklist) and open the PR. An intermediate unit
+under an incomplete accepted intent stays at `Status: Implementing` and
+declares that boundary rather than finishing. Transition order, the four
+recording forms, the intermediate-unit opt-out, the approve/changes-requested
+edges, and the specialist-findings path: load
+[`references/full-mode-engine.md`](references/full-mode-engine.md) § *REVIEW and the human gate*.
 
-If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `findings-remain` and record only their fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
-```
-# Never record when the transition is refused: it carries the retry-cap guard,
-# and `review record --fingerprint` carries its own cap too. The caps are belt
-# and braces, but the rail is not only about the cap -- record after ANY refused
-# transition and the cohort ends a round ahead of the engine, a desync only a
-# forbidden `state.json` hand-edit reconciles.
-# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
-# N: a resuming session reads the same value from `loop-engine status`, so the
-# operation id it recomputes matches and the round is not written twice.
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id> \
-    --operation-id <run_id>:<seq>
-# Apply the specialist's fixes, then fire wave-complete (required to reach
-# CODE-VERIFICATION before gates-clean/gates-failed). Run the wave-exit check
-# first: it prints the absent-container notice the transition cannot.
-python '<skill-dir>/scripts/loop-cohort.py' check docs/specs/<feature> --phase wave-exit
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
-# Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
-```
+**A direct-light run** has no spec status to write and fires no engine or
+cohort transition. Once the rounds rule in
+[`references/light-mode.md`](references/light-mode.md) is satisfied, it
+continues through DECIDE, completes the Finish checklist, and produces the
+five-field final handoff.
+
+If a specialist adjudication sustains findings, exit `CODE-REVIEW` via
+`findings-remain` and record only their fingerprints before applying the
+fixes; then return through `wave-complete` to `CODE-VERIFICATION`, re-run
+GATES, and re-enter REVIEW. Commands, the record-after-a-refused-transition
+rail, and the retry-cap interaction:
+[`references/full-mode-engine.md`](references/full-mode-engine.md)
+§ *REVIEW and the human gate*.
 
 **Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
@@ -980,6 +824,7 @@ Load when the predicate fires; don't load speculatively.
 | HTML/CSS/JS primary output | Inline `frontend-engineering` craft into the implementer dispatch brief when that pack is installed; when it is absent, record the named skip and continue without that craft. |
 | EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
+| Full mode needs to fire a transition or record cohort state | [`references/full-mode-engine.md`](references/full-mode-engine.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
 | A repair or claimed fix needs mutation proof | [`references/mutation-proof.md`](references/mutation-proof.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |

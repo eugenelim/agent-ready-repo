@@ -1765,13 +1765,35 @@ def test_skill_shows_every_clean_recording_form(tmp: Path) -> None:
     form, the layer's headline case has no documented command.
     """
     name = "skill-clean-recording-forms"
-    text = (_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+    # The recording forms moved with the REVIEW sequence into work-loop's own
+    # full-mode reference; the operator loads it at the step that records.
+    text = (_SKILL_DIR / "references" / "full-mode-engine.md").read_text(
+        encoding="utf-8"
+    )
     # Scope to the fenced block the operator copies from. A file-wide search
     # passes on any prose mention of a flag, which is how a guard stops being
     # able to fail. Anchor on `--all-skipped`, which appears only here, and take
     # the fence around it — "reviewers-clean" also appears in PLAN's block.
     anchor = text.index("--all-skipped")
-    block = text[text.rindex("```", 0, anchor) : text.index("```", anchor)]
+    # Exact fence LINES. A substring pair accepts an info-string as a closer,
+    # and CommonMark does not close a fenced block on ```bash -- so the block
+    # would not be copyable while every form below still matched.
+    lines = text.split("\n")
+    anchor_ln = text[:anchor].count("\n")
+    fence_before = [i for i in range(anchor_ln, -1, -1) if lines[i].strip().startswith("```")]
+    fence_after = [i for i in range(anchor_ln + 1, len(lines)) if lines[i].strip().startswith("```")]
+    # The NEAREST fence line on each side, and each must be exactly right.
+    # Taking the nearest exact ``` instead would skip over a corrupted closer
+    # to a later one and still see every form.
+    if (
+        not fence_before
+        or not fence_after
+        or lines[fence_before[0]].strip() != "```"
+        or lines[fence_after[0]].strip() != "```"
+    ):
+        fail(name, "recording forms are not inside a closed ``` fence")
+        return
+    block = "\n".join(lines[fence_before[0] + 1 : fence_after[0]])
     missing = [
         form
         for form in (
@@ -1782,8 +1804,19 @@ def test_skill_shows_every_clean_recording_form(tmp: Path) -> None:
         )
         if form not in block
     ]
+    # Relocating the forms moved the failure mode: this test reads the
+    # reference, so it cannot see the reference go orphan. Deleting SKILL.md's
+    # REVIEW pointer would leave the forms present but unreachable.
+    skill = (_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+    # Slice REVIEW's own pointer: a file-wide search stays green while this
+    # step's pointer is deleted, because PLAN and the routing table carry the
+    # same destination.
+    at = skill.find("**A spec-backed run** normally writes `Status: Shipped`")
+    review_step = skill[at : skill.find("\n\n", at)] if at != -1 else ""
+    if "](references/full-mode-engine.md)" not in review_step:
+        missing.append("REVIEW no longer routes to full-mode-engine.md")
     if missing:
-        fail(name, f"SKILL.md omits clean recording form(s): {missing}")
+        fail(name, f"full-mode-engine.md omits clean recording form(s): {missing}")
     else:
         ok(name)
 

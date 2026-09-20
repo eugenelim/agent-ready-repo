@@ -64,6 +64,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.23] — 2026-09-20
+
+### Highlights
+
+- **The work loop reads as the loop again, not as a state machine.** Its
+  shape — plan, execute, verify, review, decide — is what `SKILL.md` now
+  describes at each step. The `loop-engine` and `loop-cohort` commands that
+  drive full mode's persisted state machine moved into a reference that full
+  mode loads when it needs to fire a transition. Light mode never ran that
+  machine and now never reads it either.
+
+### Changed
+
+- `work-loop/SKILL.md` drops 155 lines, from 980 to 825 body lines. No engine command
+  remains inline; every step that fires one names the sequence and points to
+  `references/full-mode-engine.md`, which carries the init pair and resume,
+  the pre-EXECUTE review transitions, the G-plan sequence and its two human
+  approvals, GATES wave routing, and the REVIEW and human-gate path including
+  specialist findings.
+- The conditional-reference routing table gains a row for the new reference,
+  so the engine loads on the same predicate-fires rule as every other
+  reference rather than sitting resident.
+
 ## [core][2.26.22] — 2026-09-20
 
 ### Highlights
