@@ -1,17 +1,16 @@
-# Brief: intents get deterministic placement, safe admission, and a typed ordinal identity
+# Brief: intents get a typed ordinal identity, a declared shape, and canonical references
 
 - **Slug:** `intent-identity-and-registration`
 - **Received:** 2026-09-18
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Draft
-- **Readiness:** `Draft`. Was `Ready` 2026-09-19 by eugenelim, bound to revision `f2d8d76dcf75c77b`. The 2026-09-20 slice re-cut is a delivery-map change and therefore material, so `author-delivery-brief` returns the brief to `Draft` before a fresh review; the `["ini-010".brief_queue]` membership moved from `ready` to `draft` in the same change, which is what the projection requires. **No slice is dispatchable while this holds.** `Ready` returns only on a revision-bound `Clean` result plus explicit human confirmation.
-- **Correction, 2026-09-20.** An earlier revision of this line claimed the projection forbade the `Ready → Draft` transition and kept the brief at `Ready` on that basis. That was wrong. The rule is keyed by queue collection — `brief_queue.ready` expects `Ready`, `brief_queue.draft` expects `Draft` (`workspace_status_engine.py:3218-3229`) — so the artifact and its membership simply have to move together. There was no rule collision to resolve.
+- **Readiness:** `Draft`, with the `["ini-010".brief_queue]` membership in `draft`. The slice map below is not covered by the earlier `Ready` binding, so no slice is dispatchable. `Ready` returns on a revision-bound `Clean` result plus explicit human confirmation.
 
 ## Outcome
 
 A repository intent carries a typed ordinal identity, declares its own shape in its metadata, and resolves from exactly one canonical reference — with an ambiguous or invalid reference failing closed rather than guessing. The corpus stays addressable by a human reading a filename and by a machine walking the graph, and keeps being so as intents are added, renumbered and reissued.
 
-**Placement left this brief entirely on 2026-09-20.** Where a repository intent is written is not a problem this brief has: `intake-intent`'s path is a pinned core hand-off and its vault-source admission is a designed flow, so the defect recorded under `## Current-state evidence` was a misreading, corrected there. What remains of that surface is registered rather than sliced — the pinned-handoff rule is stated for briefs but not intents, and the resolution order is an unreconciled conflict between RFC-0040's resolution tail and RFC-0096 § 4.
+**Destination selection is not this brief's; destination safety is.** Where a repository intent is written needs no decision — the path is a pinned hand-off to core's admission. Which authority decides repository-versus-personal work, and whether a pack default precedes elicitation, are an unreconciled conflict between RFC-0040's resolution tail and RFC-0096 § 4, owned by the register entry against ADR-0030. What stays here is the three escape verdicts a placement path gets, delivered by `frame-intent-escape-verdicts`.
 
 ## Success metrics
 
@@ -24,14 +23,14 @@ them, including checkers, exit codes, read boundaries and fixture cohorts, are *
 - **A renumber leaves no stale citation.** No stale path-shaped citation survives it, and canonical pointer values are unchanged. A renumber is not free — it requires lockstep edits to `workspace.toml` path entries and Markdown link targets, and the owner accepted that cost; the constraint is on completeness of the sweep, not on its price.
 - **A canonical reference resolves to one artifact; an ambiguous one refuses.** These are two different things, and the brief keeps them apart. A **bare slug is a legacy fallback**: it resolves while it is unique and refuses the moment it is not. A **typed pointer is canonical storage**: the migration cohort becomes typed not because bare slugs fail today, but because a bare slug that is unique now can be made ambiguous by any later artifact, so storing one is storing a latent failure. After the sweep the derived cohort holds no untyped resolvable value, and the fallback remains for references outside it.
 - **An intent's shape is declared, not inferred.** Whether it has been de-risked or reviewed is answerable from its metadata without opening the body. Both enforcement points work: the shaping review accepts a conforming shape and rejects a non-conforming one at ratification, and the corpus lint reports drift across intents already on disk. Neither passing substitutes for the other. **Required decision for the spec:** how ratification checks the shape contract without becoming an open-ended schema or quality gate. The parent records this enforcement point as untested and in tension with the shaping reviewer's bounded well-formedness role, so the spec must define that boundary and carry a validation obligation for it rather than inheriting the tension unstated.
-- **Admission stays a gate.** An admission-eligible intent that conforms is admitted; one that does not is refused rather than admitted with a gap.
+- **Admission is untouched.** No slice here changes `intake-intent`, so its confinement, provenance and authority-transfer controls carry no delivery obligation in this brief. The shape a ratification gate checks is `intent-metadata-shape-contract`'s, at shaping review and in the corpus lint; admitting or refusing on that shape is not scoped here.
 
 ## Scope / Non-goals
 
 In scope:
 
-- **Removed 2026-09-20: placement.** The brief previously scoped a repository intent's destination as work. It is not: the path is a pinned core hand-off and vault-source admission is designed behaviour. The allocator therefore has no placement prerequisite — `max + 1` is directory-scoped and the directory is pinned.
-- Safe admission of a repository intent, preserving the confinement, provenance, and terse-capture rules admission already applies. **Owner decision 2026-09-18: admission is forward-only and applies to new admissions only.** The 23 intents already on disk without a registry entry are cited as evidence that admission is uneven; closing that backlog is not this work's obligation.
+- A repository intent's destination is a pinned hand-off and is not scoped here. The allocator has no placement prerequisite: `max + 1` is directory-scoped and the directory is fixed.
+- Not scoped: admission itself. No slice changes `intake-intent`, so nothing here can regress its confinement, provenance or authority-transfer controls. The 23 intents on disk without a registry entry remain out of scope.
 - A new prefix-type-aware ordinal allocator, and the filename identity contract `<TYPE>-NNNN-<slug>.md` it serves, over the four seeded tokens `VISION` (`product-vision`), `STRAT` (`product-strategy`), `CAP` (`capability`) and `FEAT` (`feature`), with ordinals sequenced per type.
 - Refusal behaviour for an altitude outside the four seeded tokens, and for an intent carrying no `Level:` at all. The table is closed: such an intent gets no ordinal, keeps its `kind:slug` identity, and is not given an inferred altitude to mint a prefix from.
 - The renumber and reissue procedure, including the tombstone that keeps `max + 1` correct and keeps old citations resolving. **Required decision for the spec: how a tombstone coexists with the shape contract.** A tombstone occupies an intent-shaped path while carrying no intent content, so a corpus lint that requires metadata on every intent-shaped file will reject it. The spec must decide how a tombstone is identified, how it is excluded from intent-shape validation, whether resolution follows it to the reissued artifact, and what happens when its target is missing or when two tombstones point at each other.
@@ -52,7 +51,7 @@ Non-goals:
 
 Measured 2026-09-18 against the working tree.
 
-- **Placement was recorded here as a live defect; it is not one.** This bullet previously read that `frame-intent` resolves an output directory through three tiers while `intake-intent` hardcodes `docs/product/intents/{slug}.md`, so "an adopter who points `output_dir` at a personal vault therefore gets `frame-intent` writing to the vault and `intake-intent` writing to the repository", called "the deterministic-placement defect already live". **Corrected 2026-09-20.** `intake-intent` admits personal and vault sources by design — `SKILL.md:81-85` requires a human-confirmed repository-relative destination, minimized provenance and explicit authority transfer first, and its renderer carries `_TRANSFER_MODES = {"chat-only", "personal", "personal-vault", "vault"}`. Authoring in a vault and admitting into the repository are two stages of one flow. The hardcoded path is a **pinned core hand-off**, the same treatment `frame-intent`'s own layout reference already gives `decompose-intent`'s briefs output: a path that hands off to core "stays pinned (a deliberate non-goal of this layout config)". That rule is stated for briefs and not for intents, which is the only real gap, and it is registered rather than sliced.
+- **A repository intent's destination needs no configuration.** `intake-intent` writes `docs/product/intents/{slug}.md`, a pinned hand-off to core's admission, the same treatment `decompose-intent`'s briefs output has. Authoring an intent elsewhere and admitting it into the repository is one flow: `SKILL.md:81-85` takes a `personal-vault` source through a confirmed repository-relative destination, minimized provenance and explicit authority transfer. Rationale and the record of how this was established are in the surviving slice's verification ledger.
 
 - **Admission is uneven.** Counted in `docs/product/intents/` on 2026-09-18: 23 intents on disk have no registry presence. The load-bearing figure is the 23-file gap, derived from the directory against the registry; totals below were taken from the same directory as it grew and are not comparable to each other. The gap, not the population, is the evidence: it held at 23 both before and after this family's intents were created.
 - **The existing allocator renumbers under real concurrency.** Nine ADR/RFC records were renumbered after assignment — `0112→0114`, `0109→0111`, `0108→0109`, `0047→0100`, `0074→0101`, `0055→0109`, `0106→0110`, `0101→0102`, `0098→0101` — seven of them inside three days, 2026-09-11 to 2026-09-13. The owner accepted this cost.
@@ -63,7 +62,7 @@ Measured 2026-09-18 against the working tree.
 - **A renumber touches path-shaped citations only.** 161 files cite an intent path, of which `workspace.toml` holds the registry `path` entries; a stale `path` raises `missing_artifact`, which `tests/roster/test_workspace_status_projection.py` treats as fail-closed. Pointer *values* are unaffected, because identity binds to each artifact's `Slug:` field rather than its filename — demonstrated by this tree's own renumber, where the bare `Parent intent:` value stayed correct while only its link target moved.
 ## Constraints / Appetite
 
-- **Non-waivable, two refusing arms:** a placement path whose resolution passes through a symlink out of its anchoring root refuses, per `security-checklists/references/path-and-file.md:30-32`; a path carrying a `..` segment refuses, because ADR-0030 D6 resolves paths "with `..` rejected". **Corrected 2026-09-20:** this brief previously asserted refusal for *every* out-of-repository resolution. That claim traced to no source and contradicted ADR-0030 D7, which decides the absolute-only case as an untrusted-origin, Ask-first deviation with D6's disclosure as its control.
+- **Non-waivable, two refusing arms:** a placement path whose resolution passes through a symlink out of its anchoring root refuses, per `security-checklists/references/path-and-file.md:30-32`; a path carrying a `..` segment refuses, because ADR-0030 D6 resolves paths "with `..` rejected". An absolute-only resolution outside the repository is confirmed rather than refused, per ADR-0030 D7 with D6's disclosure as its control.
 - **No longer required of a spec here:** anything about where an intent is written. Resolution order, repository-versus-personal authority and persistence belong to the RFC-0040 / RFC-0096 reconciliation, registered against ADR-0030.
 - **Reuse the ADR/RFC approach, not its script.** `max + 1` over the directory unioned with `origin`, forward-only, renumbered at admission — implemented fresh so it can key on the type prefix.
 - **The allocator refuses rather than guesses.** It must not return an ordinal, or report a clean duplicate check, for a corpus it could not fully parse. The shipped script already states this discipline for itself and the replacement must inherit it.
@@ -77,7 +76,7 @@ Measured 2026-09-18 against the working tree.
 - **[Decided]** Prefixes are `VISION`, `STRAT`, `CAP`, `FEAT`, all verified unused at repository scope; `VISION` over `VIS` to clear the one-character gap to `VI-`, which has 70 uses.
 - **[Decided]** A post-admission altitude change reissues at the new prefix and leaves a tombstone naming the new identity.
 - **[Decided]** An altitude outside the four seeded tokens, or an intent with no `Level:`, is refused an ordinal and keeps `kind:slug` identity. `kind:slug` is canonical and the ordinal is an alias, bound to each artifact's `Slug:` field so a renumber changes no reference.
-- **[Withdrawn 2026-09-20]** Placement was recorded as in scope and sequenced before the allocator, on the evidence of a `frame-intent` / `intake-intent` disagreement. There is no disagreement: `intake-intent`'s path is a pinned core hand-off and its vault-source admission is a designed flow, so nothing here adopts a configured precedence and the allocator has no placement prerequisite. The correction is in `## Current-state evidence`; the residue is registered against ADR-0030.
+- **[Decided]** A repository intent's destination is a pinned hand-off to core's admission, so nothing here resolves it from configuration and the allocator has no placement prerequisite.
 - **[Inferred]** The existing slug/path identity can keep resolving while the filename gains a prefix. Untested.
 - **Risk:** the allocator is silently wrong when it is wrong. Both measured failure modes return a plausible ordinal with exit 0, so a construction test that feeds it unparseable and typed-but-unseen input is load-bearing, not optional.
 - **Risk:** the renumber procedure couples this work to `workspace.toml`, whose contention `workspace-coordination-reorganization` exists to remove. The two must be sequenced with the tension named rather than discovered.
@@ -108,45 +107,35 @@ These constrain or explain delivery. They do not affect coverage or closure roll
 
 ## Spec map
 
-Five slices. Confirmed 2026-09-19, re-cut on 2026-09-20, and one of the re-cut pair retired the same day. The Status column is auto-derived from each spec; it is not hand-edited.
+Five slices. The Status column is auto-derived from each spec; it is not hand-edited.
 
 **Sequencing, as planning guidance rather than blocking edges.** `typed-intent-ordinal-allocator` goes first, and
-`intent-renumber-and-reissue` follows it. The placement slice that used to precede them is gone, so nothing now
-gates the allocator on a resolved folder: `intake-intent`'s intents path is pinned, which is the resolved folder.
-`frame-intent-symlink-escape-refusal`, `intent-metadata-shape-contract` and `intent-reference-grammar-migration` are enterable
+`intent-renumber-and-reissue` follows it. Nothing gates the allocator on a resolved folder: a repository intent's
+directory is pinned, so it is already resolved.
+`frame-intent-escape-verdicts`, `intent-metadata-shape-contract` and `intent-reference-grammar-migration` are enterable
 at any point; none depends on an ordinal existing.
 
 | Spec | Status |
 | --- | --- |
-| `frame-intent-symlink-escape-refusal` | <auto> |
+| `frame-intent-escape-verdicts` | <auto> |
 | `intent-metadata-shape-contract` | <auto> |
 | `typed-intent-ordinal-allocator` | <auto> |
 | `intent-reference-grammar-migration` | <auto> |
 | `intent-renumber-and-reissue` | <auto> |
 
-### Post-Ready amendment — 2026-09-20, the placement slice re-cut
+### Slice map note
 
-`intent-placement-and-admission` is replaced by two smaller slices. `author-delivery-brief` §4 places the slice cut
-after a durable Ready and this brief's `## Post-Ready decisions` reserves it, so this is the anticipated route rather
-than a contract change. **The Ready binding to revision `f2d8d76dcf75c77b` no longer covers this spec map and needs
-re-confirmation.**
+The map above is not covered by the earlier `Ready` binding, so it needs a fresh
+confirmation before any slice is dispatchable. `author-delivery-brief` §4 places
+the slice cut after a durable Ready and this brief's `## Post-Ready decisions`
+reserves it, so a changed map is the anticipated route rather than a contract
+change.
 
-Why it was re-cut: the single slice had taken on a cross-pack execution channel this brief's outcome never required. The
-record of what was removed and why is in
-[`docs/specs/intake-intent-configured-destination/notes/verification-ledger.md`](../../specs/intake-intent-configured-destination/notes/verification-ledger.md) § *The re-cut*, which owns it rather than this brief.
-
-- **`intake-intent-configured-destination`** — **retired the same day.** Its founding defect was a misreading of the
-  two-stage author-then-admit flow, so there was nothing to build. Correction recorded under
-  `## Current-state evidence`; residue registered.
-- **`frame-intent-symlink-escape-refusal`** — three answers where the body currently gives one. A symlink out of the
-  anchoring root refuses under a non-waivable control; a `..` segment refuses because ADR-0030 D6 already rejects it;
-  an absolute-only resolution outside the repository keeps D7's Ask-first with D6's path disclosure. It supersedes no
-  decision. Isolated because its evidence is prose rather than code.
-
-**What left this brief's family.** Placement resolution order, repository-versus-personal authority, and whether an
-elicited answer is persisted. Two accepted records disagree about them, so no slice here can settle them. Owner:
-eugenelim, via `workspace.toml` `[backlog].open` at
-`path = "docs/adr/0030-consolidated-pack-output-layout-contract.md"`, which carries the evidence.
-
-**The open question that slice owed is moot.** Which layout section `intake-intent` reads: none. It reads no
-configuration for this path, because the path is pinned.
+**Destination selection is owned outside this family.** Which authority decides
+repository-versus-personal work, whether a pack default precedes elicitation, and
+whether an elicited answer is persisted are one unreconciled conflict between
+RFC-0040's resolution tail and RFC-0096 § 4. Owner: eugenelim, via
+`workspace.toml` `[backlog].open` at
+`path = "docs/adr/0030-consolidated-pack-output-layout-contract.md"`. How the
+layout file is created and which tier a session can read is documented in
+`docs/architecture/agentbundle.md` § 7.2.

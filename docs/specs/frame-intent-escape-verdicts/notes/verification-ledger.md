@@ -1,9 +1,9 @@
-# Verification ledger — intent placement, 2026-09-19/20
+# Verification ledger — intent placement
 
 **This record outlived its spec.** It documents the shaping of
 `intent-placement-and-admission`, re-cut into two slices on 2026-09-20 and then
 retired on the same day when the defect it was built on turned out not to be
-one. It lives here because `frame-intent-symlink-escape-refusal` is the only
+one. It lives here because `frame-intent-escape-verdicts` is the only
 surviving slice of that work, not because it is that slice's own evidence —
 this slice's observations are in the last section.
 
@@ -383,4 +383,4 @@ default, which it did, at `intent_renderer.py:69`, all along.
 
 ## This slice's own observations
 
-Empty until `frame-intent-symlink-escape-refusal` T2 runs.
+Empty until `frame-intent-escape-verdicts` T2 runs.

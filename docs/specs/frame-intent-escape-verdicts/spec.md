@@ -1,4 +1,4 @@
-# Spec: a placement path that resolves through a symlink out of its root refuses
+# Spec: three escape forms, three verdicts
 
 - **Status:** Draft
 - **Owner:** eugenelim

@@ -1,4 +1,4 @@
-# Plan: a placement path that resolves through a symlink out of its root refuses
+# Plan: three escape forms, three verdicts
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
@@ -66,7 +66,7 @@ No `## Durable Outputs` table in the spec, so nothing to mirror. Each task names
 
 **Done when:** the session is recorded in `notes/verification-ledger.md` with its observed output.
 
-**Touches:** docs/specs/frame-intent-symlink-escape-refusal/notes/verification-ledger.md
+**Touches:** docs/specs/frame-intent-escape-verdicts/notes/verification-ledger.md
 
 ## Rollout
 
