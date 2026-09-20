@@ -533,6 +533,8 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {path = "docs/product/intents/architect-design-conditional-overlays.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0118-architect-design-scope-routed-model-first-templates.md", revision = "c4b2f5912bad080f095ffb32d354b54c31d6c54f"}, summary = "Route the system-shape and workload-class lenses a design turns on, and show a layered subsystem's internal boundaries when the boundary is the decision", needs = [{type = "local", kind = "intent", path = "docs/product/intents/architect-design-gate-calibration.md"}]},
+  {path = "docs/product/intents/architect-design-gate-calibration.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/architect-design-document-gates/spec.md", revision = "c4b2f5912bad080f095ffb32d354b54c31d6c54f"}, summary = "Calibrate the DA1-DA10 document-architecture gates against design documents their authors did not write", needs = []},
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified
