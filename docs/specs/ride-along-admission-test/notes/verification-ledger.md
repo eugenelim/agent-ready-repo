@@ -1195,3 +1195,45 @@ The module docstring, which still described the pre-implementation tree
 three blind spots: the comparison cannot see a rewrap, the fence check
 recognises column-0 fences only, and a paraphrase outside the matched span is
 caught by the vocabulary sweep rather than here.
+
+## 2026-09-20 — amendment five, and a defect in the approval tooling
+
+**Approval record.** Spec and plan re-approved by eugenelim after the fifth
+controlled amendment: AC12 narrowed to the bytes a sweep can inspect, and the
+construction-test instruction named the shipped `## Capture` section.
+Adversarial spec review returned `Clean — ready to commit.` in one round.
+
+**This entry is here because it cannot go where the template puts it.** The
+plan template and the G-plan sequence both require an approval entry in
+`plan.md`'s `## Changelog`. Appending one made `approve-plan` refuse with
+"completed task section changed: T7", and removing it made the same command
+pass — isolated by testing exactly that one edit.
+
+**Cause, in the shipped tooling.** `walk_task_sections`
+(`packs/core/.apm/skills/work-loop/scripts/loop-cohort.py:600-621`) ends each
+task section at the next task heading and the **last** one at `len(text)`:
+
+```python
+end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
+```
+
+So everything after the final `### T<n>:` heading — `## Rollout`, `## Risks`
+and `## Changelog` — is inside that task's frozen section hash. Once the last
+task completes, the approval entry the sequence obliges an author to write is
+an edit to a completed section, which `approve-plan` refuses. The two
+obligations cannot both be met on any plan whose last task is complete.
+
+**Same class, third sighting this session.** A section boundary defined only
+by what precedes it: the clause host check accepted a clause anywhere after
+its marker; the spec parser let a later duplicate label overwrite the
+canonical one; and here a task section runs to end-of-file. Each was found by
+a different instrument.
+
+**Disposition.** Not repaired here — it is a change to the loop engine's own
+tooling, outside this spec's accepted intent, and repairing it inside a run
+that depends on it is the wrong order. Routed to `work-intake` with the other
+deferred items. The discriminator: **the last task's section ends at
+`len(text)`, so a plan's trailing document sections belong to it** — a
+locator naming only `loop-cohort.py` would lose the fact that makes it
+actionable. Until it is fixed, an approval after the final task completes
+belongs in this ledger, as this entry does.

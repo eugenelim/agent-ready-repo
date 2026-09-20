@@ -406,11 +406,15 @@ obligation whose only check is that a sentence exists belongs.
   naming no defect that had nothing for the seam. The string
   `otherwise discard it` does not appear in that section.
 - [ ] **AC12.** No file under `packs/`, `tools/`, or `guides/` names the
-  retired step, in any casing or separator, except the `evals.json` case id.
-  That is the control's only exemption — `docs/knowledge/` records keep the
-  name as a stable gate identifier but lie outside the swept roots, so
-  exempting them would be unreachable. The control fails rather than skips on
-  a file it cannot read.
+  retired step in bytes the sweep can inspect, in any casing or separator,
+  except the `evals.json` case id. That is the control's only exemption —
+  `docs/knowledge/` records keep the name as a stable gate identifier but lie
+  outside the swept roots, so exempting them would be unreachable. The
+  quantifier stops at inspectable bytes on purpose: a compressed container
+  such as a `.docx` can hold the name in a form no byte or text sweep sees,
+  and claiming otherwise would put the criterion beyond any control that
+  could meet it. Nothing is skipped — the sweep reads every file's bytes, so
+  no file is one it cannot read.
 - [ ] **AC13.** `docs/rfc/0090-change-sizing-and-decomposition.md` § Errata
   carries a dated entry that states the number of clauses C1 actually ships,
   names C2's subject, gives at least one reason the tiers were replaced, ends

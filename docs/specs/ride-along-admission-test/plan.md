@@ -76,8 +76,9 @@ component boundary.
 
 **Manual verification:** after T7, read the installed
 `.claude/skills/work-loop/SKILL.md` and walk the spec's three worked
-discoveries through the changed EXECUTE and `## Capture learnings` text,
-recording the route each takes. Observations go to the verification ledger.
+discoveries through the changed EXECUTE and `## Capture` text, recording the
+route each takes. The section was renamed by T4; this line named the retired
+heading until amendment five corrected it. Observations go to the verification ledger.
 
 ## Durable-output map
 
