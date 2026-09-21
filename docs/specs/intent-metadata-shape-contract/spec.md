@@ -1,6 +1,6 @@
 # Spec: Intent metadata shape contract and its two enforcement points
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111
