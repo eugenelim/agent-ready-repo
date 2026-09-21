@@ -27,6 +27,7 @@ import re
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 # ── The closed level-to-token table ───────────────────────────────────────────
@@ -55,6 +56,10 @@ GIT_TIMEOUT_SECONDS = 5          # inherited from the ADR/RFC helper
 TOTAL_TIMEOUT_SECONDS = 10       # 170x the measured end-to-end cost
 MAX_ENTRIES = 65_536             # ~295x this repository's largest directory
 MAX_GIT_RESULT_BYTES = 8 * 1024 * 1024   # ~11x a whole-repository listing
+# CPython refuses int() above 4300 digits, so an unbounded digit run would
+# classify a name as valid and then raise instead of refusing. 12 is far above
+# any ordinal this repository will reach.
+MAX_ORDINAL_DIGITS = 12
 DIAGNOSTIC_BYTE_LIMIT = 200
 
 GIT_REDIRECT_VARIABLES = (
@@ -72,7 +77,9 @@ _TOKEN_ALTERNATION = "|".join(NAMESPACE_TOKENS)
 # the owner's shape decides valid-or-malformed inside it. Deriving "malformed"
 # as "introducer and not shape" is what makes the partition exhaustive.
 _INTRODUCER = re.compile(rf"^(?:{_TOKEN_ALTERNATION})-")
-_VALID = re.compile(rf"^({_TOKEN_ALTERNATION})-(\d{{4,}})-[^/]+\.md$")
+_VALID = re.compile(
+    rf"^({_TOKEN_ALTERNATION})-(\d{{4,{MAX_ORDINAL_DIGITS}}})-[^/]+\.md$"
+)
 
 RemoteView = collections.namedtuple("RemoteView", "names state")
 
@@ -143,7 +150,11 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
     # `remote_view` covers a git too old to.
     environment["GIT_NO_LAZY_FETCH"] = "1"
     environment["GIT_TERMINAL_PROMPT"] = "0"
-    remaining = max(0.0, min(GIT_TIMEOUT_SECONDS, deadline - os.times().elapsed))
+    # A deadline already past is a refusal, not a zero-length wait: passing a
+    # falsy timeout through to `wait` would have made it unbounded.
+    remaining = min(GIT_TIMEOUT_SECONDS, deadline - time.monotonic())
+    if remaining <= 0:
+        raise _ScanRefused("bound-exceeded")
     try:
         child = subprocess.Popen(
             ["git", "--literal-pathspecs", *arguments],
@@ -162,6 +173,11 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
     total = 0
     try:
         while True:
+            # The deadline governs the read loop too: a stalled child can block
+            # in `read` indefinitely, which a timeout on `wait` alone never sees.
+            if time.monotonic() >= deadline:
+                child.kill()
+                raise _ScanRefused("bound-exceeded")
             chunk = child.stdout.read(65_536)
             if not chunk:
                 break
@@ -170,7 +186,7 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
                 child.kill()
                 raise _ScanRefused("bound-exceeded")
             chunks.append(chunk)
-        child.wait(timeout=remaining or None)
+        child.wait(timeout=max(0.001, min(remaining, deadline - time.monotonic())))
     except _ScanRefused:
         raise
     except subprocess.TimeoutExpired:
@@ -183,16 +199,24 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
     return b"".join(chunks).decode("utf-8", "surrogateescape")
 
 
-def git_config_values(directory: Path) -> dict[str, str]:
-    """Return git's effective configuration, or ``{}`` when it cannot be read."""
-    output = _git(directory, ["config", "--list"], _deadline())
+def git_config_values(directory: Path) -> dict[str, str] | None:
+    """Return git's effective configuration, or ``None`` when it is unreadable.
+
+    ``--list -z`` rather than ``--list``: the newline-delimited form cannot be
+    parsed unambiguously, because a configuration *value* may itself contain a
+    newline and would then forge a later key. An adopter controls that file, so
+    the ambiguous form is an injection into the promisor check below. Each NUL
+    record is ``key\nvalue``, or a bare key for a valueless one.
+    """
+    output = _git(directory, ["config", "--list", "-z"], _deadline())
     if output is None:
-        return {}
+        return None
     values: dict[str, str] = {}
-    for line in output.splitlines():
-        key, separator, value = line.partition("=")
-        if separator:
-            values[key.strip()] = value.strip()
+    for record in output.split("\0"):
+        if not record:
+            continue
+        key, separator, value = record.partition("\n")
+        values[key.strip()] = value if separator else ""
     return values
 
 
@@ -218,7 +242,8 @@ def _is_promisor(config: dict[str, str]) -> bool:
 
 
 def _deadline() -> float:
-    return os.times().elapsed + TOTAL_TIMEOUT_SECONDS
+    """Monotonic wall-clock deadline for the whole invocation."""
+    return time.monotonic() + TOTAL_TIMEOUT_SECONDS
 
 
 def remote_view(directory: Path) -> RemoteView:
@@ -233,14 +258,24 @@ def remote_view(directory: Path) -> RemoteView:
     # Before any object-reading command: a promisor designation means a read
     # could reach the network, and this check is observable independently of
     # GIT_NO_LAZY_FETCH precisely because it runs first.
-    if _is_promisor(git_config_values(directory)):
+    config = git_config_values(directory)
+    if config is None or _is_promisor(config):
+        # Unreadable configuration is not "no promisor": it is no answer, and
+        # the next command would be the object read this check exists to precede.
         return RemoteView(frozenset(), "failed")
 
+    # `absent` is a positive finding — git ran and reported nothing to consult.
+    # A command that failed reports nothing *about* the view, so it refuses.
     toplevel = _git(directory, ["rev-parse", "--show-toplevel"], deadline)
-    if toplevel is None or not toplevel.strip():
+    if toplevel is None:
+        # Not a repository at all, or git is unavailable: nothing to consult.
         return RemoteView(frozenset(), "absent")
+    if not toplevel.strip():
+        return RemoteView(frozenset(), "failed")
     remotes = _git(directory, ["remote"], deadline)
-    if remotes is None or "origin" not in remotes.split():
+    if remotes is None:
+        return RemoteView(frozenset(), "failed")
+    if "origin" not in remotes.split():
         return RemoteView(frozenset(), "absent")
 
     ref = _git(directory, ["symbolic-ref", "--quiet", _ORIGIN_REF_PREFIX + "HEAD"], deadline)
@@ -249,11 +284,13 @@ def remote_view(directory: Path) -> RemoteView:
         # view is incomplete in an unknown way rather than empty.
         return RemoteView(frozenset(), "failed")
 
-    root = Path(toplevel.strip())
+    root = Path(toplevel.rstrip("\n"))
     try:
         relative = directory.resolve().relative_to(root.resolve())
     except (OSError, ValueError):
-        return RemoteView(frozenset(), "absent")
+        # The root would not resolve, or this directory is not under it. Either
+        # way the pathspec cannot be built, which is no answer rather than none.
+        return RemoteView(frozenset(), "failed")
     pathspec = f"{relative.as_posix()}/" if relative.parts else "."
     # -z: git renders a non-ASCII name in quoted C-string form otherwise, which
     # starts with a quote and so matches no introducer — the record would be
@@ -264,9 +301,15 @@ def remote_view(directory: Path) -> RemoteView:
         return RemoteView(frozenset(), "failed")
 
     names: set[str] = set()
+    consumed = 0
     for record in listing.split("\0"):
         if not record:
             continue
+        # Counted per record consumed, not per name kept: a tree of names all
+        # outside the namespace still costs the work the bound exists to cap.
+        consumed += 1
+        if consumed > MAX_ENTRIES:
+            return RemoteView(frozenset(), "failed")
         meta, _, path = record.partition("\t")
         if not path:
             return RemoteView(frozenset(), "failed")
@@ -279,8 +322,6 @@ def remote_view(directory: Path) -> RemoteView:
             # exactly as a local non-regular entry does.
             return RemoteView(frozenset(), "failed")
         names.add(name)
-        if len(names) > MAX_ENTRIES:
-            return RemoteView(frozenset(), "failed")
     return RemoteView(frozenset(names), "ok")
 
 
