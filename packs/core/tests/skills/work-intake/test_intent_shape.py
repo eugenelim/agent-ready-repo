@@ -379,3 +379,287 @@ def test_ac0011_the_preamble_ends_at_the_first_heading() -> None:
 def test_ac0011_read_preamble_returns_nothing_for_a_body_only_field() -> None:
     text = "\n".join(["# Intent", "", "## Source", "", "- **Authority:** someone"])
     assert intent_shape.read_preamble(text) == []
+
+
+# ══ T2: the progress fields and the direct-light decomposition ════════════════
+
+
+def _with_decomposition(decomposed: str, items: list[str] | None = None,
+                        *, section: bool = True) -> str:
+    """Render an intent carrying ``Decomposed:`` and optionally the section.
+
+    ``items`` are checkbox lines' text; an empty list renders the heading with
+    no items, and ``section=False`` omits the heading entirely.
+    """
+    lines = ["# Intent: a rendered fixture", ""]
+    for name, value in BASE.items():
+        lines.append(f"- **{name}:** {value}")
+    lines.append(f"- **Decomposed:** {decomposed}")
+    lines += ["", "## Outcome", "", "An outcome sentence.", ""]
+    if section:
+        lines += ["## Decomposition", ""]
+        for text in items or []:
+            lines.append(f"- [ ] {text}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+# ── AC-0005: the two date-or-literal progress fields ──────────────────────────
+
+
+@pytest.mark.parametrize("field", ["De-risked", "Shaping-reviewed"])
+@pytest.mark.parametrize("value", ["2026-09-21", "no", "1999-01-01"])
+def test_ac0005_accepts_an_iso_date_or_the_literal_no(field: str, value: str) -> None:
+    assert _accepted(_preamble(_with(**{field: value})))
+
+
+@pytest.mark.parametrize("field", ["De-risked", "Shaping-reviewed"])
+@pytest.mark.parametrize("shape", SHAPES)
+def test_ac0005_accepts_a_date_through_every_value_shape(field: str, shape: str) -> None:
+    assert _accepted(_preamble(_with(**{field: "2026-09-21"}), shape=shape))
+
+
+@pytest.mark.parametrize("field", ["De-risked", "Shaping-reviewed"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "yes",           # the affirmative literal is not in the contract
+        "No",            # only the lowercase literal is the literal
+        "2026-13-01",    # shaped like a date, is not a date
+        "2026-09-31",    # September has 30 days
+        "21-09-2026",    # a date in the wrong order
+        "2026-09",       # a month, not a date
+        "20260921",      # compact form is not `YYYY-MM-DD`
+        "2026-09-21 and then some",
+        "soon",
+    ],
+)
+def test_ac0005_refuses_any_other_value(field: str, value: str) -> None:
+    assert field in _fields_at_fault(_preamble(_with(**{field: value})))
+
+
+# ── AC-0023: absence is distinguished from the literal `no` ───────────────────
+
+
+@pytest.mark.parametrize("field", ["De-risked", "Shaping-reviewed", "Decomposed"])
+def test_ac0023_reports_absent_and_no_as_different_states(field: str) -> None:
+    """Absence and the literal `no` are the pair AC-0023 separates, which is
+    why it takes its own cases rather than sharing AC-0005's."""
+    absent = intent_shape.progress_state(_preamble())
+    declared = intent_shape.progress_state(_preamble(_with(**{field: "no"})))
+    assert absent[field] == intent_shape.PROGRESS_ABSENT
+    assert declared[field] == intent_shape.PROGRESS_NO
+    assert absent[field] != declared[field]
+
+
+@pytest.mark.parametrize("field", ["De-risked", "Shaping-reviewed", "Decomposed"])
+def test_ac0023_a_date_is_a_third_state(field: str) -> None:
+    value = "2026-09-21 spec" if field == "Decomposed" else "2026-09-21"
+    state = intent_shape.progress_state(_preamble(_with(**{field: value})))
+    assert state[field] not in (intent_shape.PROGRESS_ABSENT, intent_shape.PROGRESS_NO)
+
+
+def test_ac0023_reports_every_progress_field_for_every_intent() -> None:
+    """One line per intent covers all three fields, so none may be omitted."""
+    assert set(intent_shape.progress_state(_preamble())) == set(
+        intent_shape.PROGRESS_FIELDS
+    )
+
+
+def test_ac0023_absence_alone_does_not_refuse() -> None:
+    """Absence changes the report, not the verdict; the exit code is T4's."""
+    assert _accepted(_preamble())
+    for field in intent_shape.PROGRESS_FIELDS:
+        assert field not in _fields_at_fault(_preamble())
+
+
+def test_ac0023_a_comment_only_progress_field_reports_absent() -> None:
+    text = _preamble(_with(**{"De-risked": "<!-- not yet probed -->"}))
+    assert intent_shape.progress_state(text)["De-risked"] == intent_shape.PROGRESS_ABSENT
+    assert _accepted(text)
+
+
+# ── AC-0006: Decomposed is a date-plus-terminus shape ─────────────────────────
+
+
+def test_ac0006_accepts_the_literal_no() -> None:
+    assert _accepted(_preamble(_with(Decomposed="no")))
+
+
+@pytest.mark.parametrize("terminus", ["children", "brief", "spec", "direct-light"])
+def test_ac0006_accepts_a_date_with_each_terminus(terminus: str) -> None:
+    items = ["Do the one bounded thing"] if terminus == "direct-light" else None
+    assert _accepted(_with_decomposition(f"2026-09-21 {terminus}", items))
+
+
+def test_ac0006_terminus_set_is_exactly_the_four_named_termini() -> None:
+    """Pinned literally for the same reason AC-0002's membership is."""
+    assert frozenset(intent_shape.DECOMPOSITION_TERMINI) == frozenset(
+        {"children", "brief", "spec", "direct-light"}
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2026-09-21",                # a date with no terminus
+        "2026-09-21 brief spec",     # two termini
+        "2026-09-21 rfc",            # an unlisted terminus
+        "2026-09-21 children extra",  # a terminus plus noise
+        "children",                  # a terminus with no date
+        "2026-13-01 spec",           # shaped like a date, is not one
+        "yes",
+    ],
+)
+def test_ac0006_refuses_any_other_value(value: str) -> None:
+    assert "Decomposed" in _fields_at_fault(_preamble(_with(Decomposed=value)))
+
+
+@pytest.mark.parametrize("shape", SHAPES)
+def test_ac0006_accepts_a_terminus_through_every_value_shape(shape: str) -> None:
+    text = _preamble(_with(Decomposed="2026-09-21 spec"), shape=shape)
+    assert _accepted(text)
+
+
+# ── AC-0007: a direct-light terminus requires checkbox items ──────────────────
+
+
+def test_ac0007_refuses_direct_light_with_an_empty_decomposition_section() -> None:
+    assert "Decomposed" in _fields_at_fault(
+        _with_decomposition("2026-09-21 direct-light", [])
+    )
+
+
+def test_ac0007_refuses_direct_light_with_the_section_absent() -> None:
+    assert "Decomposed" in _fields_at_fault(
+        _with_decomposition("2026-09-21 direct-light", None, section=False)
+    )
+
+
+def test_ac0007_accepts_direct_light_carrying_one_item() -> None:
+    assert _accepted(
+        _with_decomposition("2026-09-21 direct-light", ["Rename the retired field"])
+    )
+
+
+# ── AC-0008: every direct-light checkbox item carries text ────────────────────
+
+
+@pytest.mark.parametrize("text", ["", " ", "   ", "\t"])
+def test_ac0008_refuses_a_checkbox_item_whose_text_is_empty(text: str) -> None:
+    assert "Decomposed" in _fields_at_fault(
+        _with_decomposition("2026-09-21 direct-light", ["A real item", text])
+    )
+
+
+def test_ac0008_accepts_items_that_all_carry_text() -> None:
+    assert _accepted(
+        _with_decomposition(
+            "2026-09-21 direct-light", ["First outcome", "Second outcome"]
+        )
+    )
+
+
+@pytest.mark.parametrize("terminus", ["children", "brief", "spec"])
+def test_ac0008_the_other_three_termini_leave_the_section_unread(terminus: str) -> None:
+    """An empty section is refused only under `direct-light`.
+
+    Asserted against the shape AC-0007 refuses, so a rule that reads the
+    section unconditionally fails here rather than passing quietly.
+    """
+    assert _accepted(_with_decomposition(f"2026-09-21 {terminus}", []))
+    assert _accepted(_with_decomposition(f"2026-09-21 {terminus}", ["", "  "]))
+    assert _accepted(
+        _with_decomposition(f"2026-09-21 {terminus}", None, section=False)
+    )
+
+
+# ══ T3: a superseding slug resolves or the intent is refused ══════════════════
+#
+# AC-0021 is the one criterion here that reads other artifacts, so it lives in
+# its own function rather than in `validate_live_intent`. That boundary is
+# load-bearing: the shaping reviewer retrieves nothing, and the packet-decidable
+# set is what AC-0012 and AC-0026 form a closed biconditional over. A reviewer
+# that could reach this rule would refuse every intent carrying a pointer.
+
+
+def _slug_line(value: str, shape: str) -> str:
+    return f"- **Slug:** {_wrap(value, shape)}"
+
+
+def _intent_with_slug(slug: str, *, shape: str = BARE) -> str:
+    fields = dict(BASE)
+    fields["Slug"] = slug
+    return _preamble(fields, shape=shape)
+
+
+def test_ac0021_accepts_a_superseded_by_slug_that_resolves() -> None:
+    text = _preamble(_with(Status="Superseded by a-successor"))
+    assert intent_shape.validate_supersession(text, {"a-successor"}) == []
+
+
+def test_ac0021_refuses_a_superseded_by_slug_that_resolves_to_nothing() -> None:
+    text = _preamble(_with(Status="Superseded by a-ghost"))
+    violations = intent_shape.validate_supersession(text, {"a-successor"})
+    assert violations
+    assert any("a-ghost" in v.reason for v in violations), violations
+
+
+def test_ac0021_names_the_unresolved_slug_in_its_reason() -> None:
+    """AC-0021 requires both the intent and the slug named; the corpus lint
+    supplies the intent, so the reason must carry the slug."""
+    text = _preamble(_with(Status="Superseded by a-ghost"))
+    (violation,) = intent_shape.validate_supersession(text, set())
+    assert "a-ghost" in violation.reason
+    assert violation.field == "Status"
+
+
+def test_ac0021_an_empty_live_slug_set_resolves_nothing() -> None:
+    text = _preamble(_with(Status="Superseded by a-successor"))
+    assert intent_shape.validate_supersession(text, set()) != []
+
+
+@pytest.mark.parametrize("status_shape", SHAPES)
+def test_ac0021_reads_the_superseding_value_through_every_shape(
+    status_shape: str,
+) -> None:
+    text = _preamble(_with(Status="Superseded by a-successor"), shape=status_shape)
+    assert intent_shape.validate_supersession(text, {"a-successor"}) == []
+
+
+@pytest.mark.parametrize("slug_shape", SHAPES)
+def test_ac0021_comparand_is_the_normalized_slug_value(slug_shape: str) -> None:
+    """The corpus's dominant `Slug:` shape is backticked *and* commented, which
+    is the case an unnormalized comparison fails."""
+    target = _intent_with_slug("a-successor", shape=slug_shape)
+    live = intent_shape.live_slugs([target])
+    assert live == {"a-successor"}, slug_shape
+    superseded = _preamble(_with(Status="Superseded by a-successor"))
+    assert intent_shape.validate_supersession(superseded, live) == []
+
+
+def test_ac0021_live_slugs_collects_one_slug_per_intent() -> None:
+    corpus = [_intent_with_slug("first"), _intent_with_slug("second", shape=COMPOSED)]
+    assert intent_shape.live_slugs(corpus) == {"first", "second"}
+
+
+def test_ac0021_live_slugs_ignores_a_body_level_slug_line() -> None:
+    """The preamble bound applies to slug collection too."""
+    text = _preamble(body="- **Slug:** a-body-level-slug")
+    assert intent_shape.live_slugs([text]) == {"a-live-intent"}
+
+
+def test_ac0021_a_non_superseded_status_resolves_nothing() -> None:
+    for value in ("Draft", "Accepted", "Fulfilled", "Withdrawn", "Cancelled"):
+        text = _preamble(_with(Status=value))
+        assert intent_shape.validate_supersession(text, set()) == [], value
+
+
+def test_ac0021_is_not_reachable_from_the_packet_decidable_contract() -> None:
+    """`validate_live_intent` must not refuse an unresolved slug.
+
+    This is the boundary AC-0012's biconditional rests on, so it is asserted
+    rather than left to the call graph.
+    """
+    text = _preamble(_with(Status="Superseded by a-ghost"))
+    assert _accepted(text)

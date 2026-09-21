@@ -32,7 +32,8 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Callable
+from datetime import date
+from typing import Callable, Iterable
 
 # ── The field table ───────────────────────────────────────────────────────────
 # Four tiers: required, constrained-when-present, unconstrained, retired.
@@ -67,6 +68,24 @@ CLOSED_VOCABULARIES: dict[str, tuple[str, ...]] = {
     "Scale": ("app", "business-unit"),
     "Maturity": ("greenfield", "brownfield"),
 }
+
+# The three shaping-progress fields. Each reports one of three states, and the
+# pair absence/`no` is the distinction a report must keep: an intent nobody has
+# probed and one deliberately recorded as not de-risked are different facts.
+PROGRESS_FIELDS: tuple[str, ...] = ("De-risked", "Shaping-reviewed", "Decomposed")
+PROGRESS_ABSENT = "absent"
+PROGRESS_NO = "no"
+
+DECOMPOSITION_TERMINI: tuple[str, ...] = (
+    "children",
+    "brief",
+    "spec",
+    "direct-light",
+)
+
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_CHECKBOX = re.compile(r"^- \[[ xX]\]\s*(.*)$")
+_DECOMPOSITION_HEADING = "## Decomposition"
 
 _COMMENT_SUFFIX = re.compile(r"\s*<!--.*?-->\s*$", re.DOTALL)
 _FIELD_LINE = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
@@ -116,6 +135,49 @@ def read_preamble(text: str) -> list[tuple[str, str]]:
     return pairs
 
 
+def decomposition_items(text: str) -> list[str]:
+    """Return the text of each checkbox item under ``## Decomposition``.
+
+    An absent section and a section carrying no item both return an empty list,
+    which is correct: the contract refuses both the same way.
+    """
+    items: list[str] = []
+    inside = False
+    for line in text.splitlines():
+        if line.startswith(_HEADING):
+            inside = line.strip() == _DECOMPOSITION_HEADING
+            continue
+        if inside:
+            match = _CHECKBOX.match(line)
+            if match:
+                items.append(match.group(1))
+    return items
+
+
+def progress_state(text: str) -> dict[str, str]:
+    """Report each progress field as absent, the literal ``no``, or its date.
+
+    Absence is a reportable state rather than a fault, so this is separate from
+    ``validate_live_intent``: a corpus whose only irregularity is an unprobed
+    intent is clean, and the report still says so.
+    """
+    present: dict[str, str] = {}
+    for name, value in read_preamble(text):
+        if value and name not in present:
+            present[name] = value
+
+    state: dict[str, str] = {}
+    for field in PROGRESS_FIELDS:
+        value = present.get(field)
+        if value is None:
+            state[field] = PROGRESS_ABSENT
+        elif value == PROGRESS_NO:
+            state[field] = PROGRESS_NO
+        else:
+            state[field] = value
+    return state
+
+
 # ── Value rules ───────────────────────────────────────────────────────────────
 
 
@@ -142,8 +204,50 @@ def _closed_vocabulary_rule(field: str) -> Callable[[str], str | None]:
     return check
 
 
+def _is_iso_date(value: str) -> bool:
+    """True for a real ``YYYY-MM-DD`` date.
+
+    The pattern is checked before parsing because `date.fromisoformat` also
+    accepts forms this contract does not, such as the compact ``20260921``.
+    """
+    if not _ISO_DATE.match(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _check_date_or_no(value: str) -> str | None:
+    if value == PROGRESS_NO or _is_iso_date(value):
+        return None
+    return f"value {value!r} is neither an ISO 8601 date nor the literal `no`"
+
+
+def _check_decomposed(value: str) -> str | None:
+    if value == PROGRESS_NO:
+        return None
+    parts = value.split()
+    if len(parts) != 2:
+        return (
+            f"value {value!r} is neither the literal `no` nor an ISO 8601 date "
+            "followed by exactly one terminus"
+        )
+    stamp, terminus = parts
+    if not _is_iso_date(stamp):
+        return f"{stamp!r} is not an ISO 8601 date"
+    if terminus not in DECOMPOSITION_TERMINI:
+        permitted = ", ".join(DECOMPOSITION_TERMINI)
+        return f"terminus {terminus!r} is outside {permitted}"
+    return None
+
+
 VALUE_RULES: dict[str, Callable[[str], str | None]] = {
     "Status": _check_status,
+    "De-risked": _check_date_or_no,
+    "Shaping-reviewed": _check_date_or_no,
+    "Decomposed": _check_decomposed,
     **{field: _closed_vocabulary_rule(field) for field in CLOSED_VOCABULARIES},
 }
 
@@ -188,4 +292,96 @@ def validate_live_intent(text: str) -> list[Violation]:
             if reason is not None:
                 violations.append(Violation(name, reason))
 
+    violations.extend(_check_direct_light_decomposition(text, present))
     return violations
+
+
+def slug_of(text: str) -> str | None:
+    """Return the intent's normalized ``Slug:`` value, or None when absent."""
+    for name, value in read_preamble(text):
+        if name == "Slug" and value:
+            return value
+    return None
+
+
+def live_slugs(texts: Iterable[str]) -> set[str]:
+    """Collect the normalized ``Slug:`` value of each supplied live intent.
+
+    The comparand is normalized rather than raw: the corpus's dominant shape is
+    a backticked slug whose comment trails the closing backtick, so a raw
+    comparison would match nothing.
+    """
+    collected: set[str] = set()
+    for text in texts:
+        slug = slug_of(text)
+        if slug:
+            collected.add(slug)
+    return collected
+
+
+def superseding_slug(text: str) -> str | None:
+    """Return the slug an intent's ``Status:`` supersession names, if any."""
+    for name, value in read_preamble(text):
+        if name != "Status" or not value:
+            continue
+        if value.startswith(SUPERSEDED_PREFIX):
+            slug = value[len(SUPERSEDED_PREFIX) :].strip()
+            return slug or None
+        return None
+    return None
+
+
+def validate_supersession(text: str, live: set[str]) -> list[Violation]:
+    """Refuse a supersession pointing at no live intent's ``Slug:``.
+
+    Kept out of ``validate_live_intent`` deliberately. Every criterion that
+    function decides is settleable from the supplied artifact alone, and the
+    shaping reviewer retrieves nothing — so a rule needing the rest of the
+    corpus cannot live there without making the reviewer refuse every intent
+    that carries a pointer.
+    """
+    slug = superseding_slug(text)
+    if slug is None or slug in live:
+        return []
+    return [
+        Violation(
+            "Status",
+            f"`Superseded by` slug {slug!r} matches no live intent's `Slug:`",
+        )
+    ]
+
+
+def _check_direct_light_decomposition(
+    text: str, present: dict[str, str]
+) -> list[Violation]:
+    """Judge ``## Decomposition`` only under a `direct-light` terminus.
+
+    The section is unread for the other three termini: what a direct-light run
+    owes is each item's requested outcome, which otherwise exists only in a
+    session. Runs only once the value itself is well formed, so a malformed
+    ``Decomposed:`` is reported once rather than twice.
+    """
+    value = present.get("Decomposed")
+    if value is None or _check_decomposed(value) is not None:
+        return []
+    parts = value.split()
+    if len(parts) != 2 or parts[1] != "direct-light":
+        return []
+
+    items = decomposition_items(text)
+    if not items:
+        return [
+            Violation(
+                "Decomposed",
+                "`direct-light` terminus carries no checkbox item under "
+                "`## Decomposition`",
+            )
+        ]
+    if any(not item.strip() for item in items):
+        return [
+            Violation(
+                "Decomposed",
+                "a `## Decomposition` checkbox item carries no text",
+            )
+        ]
+    return []
