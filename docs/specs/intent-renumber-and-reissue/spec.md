@@ -2,103 +2,154 @@
 
 - **Status:** Draft
 - **Owner:** eugenelim
-- **Mode:** full
+- **Constrained by:** ADR-0108; ADR-0033; ADR-0098
 - **Brief:** docs/product/briefs/intent-identity-and-registration.md
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
-- **Constrained by:** ADR-0108
+- **Contract:** none
+- **Shape:** data
 
-## Objective
+> **Spec contract:** this document defines what "done" means. The implementing
+> PR must match this spec, or update it. Verification must be derivable from it.
+>
+> **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
+> `Acceptance Criteria` are what a completion gate reads, and an amendment
+> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
+> `Assumptions` are working material.
 
-Make an ordinal safe to change. A renumber is not free: `workspace.toml` holds the registry `path` entries and a stale one raises `missing_artifact`, which `tests/roster/test_workspace_status_projection.py` treats as fail-closed. The owner accepted the renumber cost, so the constraint is on completeness of the sweep rather than its frequency.
+## Outcome
 
-A post-admission altitude change reissues at the new prefix and leaves a tombstone, which keeps `max + 1` correct without a shared retired list, per ADR-0108 D3's non-reuse rule.
+A product engineer whose decomposition shows an intent was framed at the wrong
+altitude corrects its filename in one operation, breaking no reference and
+freeing no ordinal for reuse. The change lands whole or not at all: every
+citation moves, the registry moves with it, and anyone arriving on an old link
+is told where the artifact went.
 
-## The tombstone contract
+## What Changes
 
-**Owner decision, 2026-09-21. Owner: eugenelim.** This discharges the decision
-this spec owed. It settles the five parts of that question: how a tombstone is
-identified, how it is excluded from intent-shape validation, whether resolution
-follows it, what happens when its target is missing, and what happens when two
-tombstones point at each other.
+- Numbering, renumbering, and retiring an intent — one confined transactional
+  operation, where today no surface may rename an intent at all. It is the
+  correction step the shaping loop already assumes: `frame-intent` asserts
+  `Level`, admission mints the ordinal from it, and `decompose-intent` is where
+  the altitude is actually tested
+- A tombstone left at every filename an intent vacates — `docs/product/intents/`
+- The citation sweep — `docs/product/**`, `docs/specs/**`, and `workspace.toml`,
+  the three trees that cite an intent by path
+- A `Tombstone:` preamble field and the shape of the artifact carrying it —
+  home open, see `## Assumptions`
+- An operator how-to — `guides/product-engineering/how-to/`
+- Where it ships — inside `packs/core`, so an adopter installing core has it,
+  beside the allocator it depends on
 
-**T1 — A tombstone keeps the retired artifact's exact filename, with no marker
-in the name.** The retired name is already `<TYPE>-NNNN-<slug>.md`, which
-`classify()` reads as `valid`
-(`packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py:145`), so the
-allocator counts the retired ordinal exactly as it did before the rename and
-`max + 1` never returns it. Six candidate names were measured on 2026-09-21 and
-only two are safe
-(`docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md`,
-`## 2026-09-21 — what the tombstone decision inherits from this slice`). This
-decision takes the one that also preserves inbound links: a tombstone standing
-at the original path turns a citation the sweep could not reach into a working
-forwarding pointer instead of a broken link.
+## Durable Outputs
 
-**T2 — A tombstone is identified by a `Tombstone:` preamble field, and by
-nothing else.** Presence of the field is the whole test. It is a new field
-rather than a `Status:` value because the `Status` vocabulary is an owed
-decision of `docs/specs/intent-metadata-shape-contract/spec.md`, and because a
-tombstone must be identifiable without first parsing as a well-formed intent.
+| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
+| --- | --- | --- | --- | --- | --- |
+| Decision rationale | Applicable — the tombstone convention constrains every later intent, and ADR-0108 D3's non-reuse rule is the thing it implements for a second artifact class | `docs/adr/` | eugenelim | An Accepted ADR stating the tombstone convention and its two rejected alternatives | The ADR exists and this spec cites it in `Constrained by:` |
+| Interface compatibility | Applicable — `Tombstone:` is a new durable field in an adopter-visible artifact | `guides/product-engineering/reference/intent-fields-and-modes.md` | eugenelim | The field and its three-field contract documented alongside the existing intent fields | The reference page describes the field an adopter will see |
+| Maintainer procedure | Applicable — the operation is operator-invoked and its refusals need a recovery story | `guides/product-engineering/how-to/` | eugenelim | A how-to covering the three callers and what to do after a refusal | The page walks one real renumber end to end |
+| Current product truth | Applicable — `intake-intent` and `work-intake` both state that nothing renames an intent | the two `SKILL.md` bodies | eugenelim | Those statements point at this operation instead of asserting the capability wall | No skill still claims an intent can never be renamed |
+| Release history | Applicable — the operation ships inside `packs/core` | `packs/core/CHANGELOG.md` | eugenelim | One entry for the shipped operation | Entry present under the released version |
+| Reusable learning | Applicable — the sweep's reach was measured rather than assumed | `docs/specs/intent-renumber-and-reissue/notes/verification-ledger.md` | eugenelim | The measured citation counts and what they bound | The ledger records the measurement the criteria rest on |
+| Current architecture | Not applicable — the operation adds no module boundary and no layer | — | — | — | — |
 
-A tombstone carries exactly three things and no others:
+## Agent Rules
 
-- `Slug:` — the retired artifact's canonical slug, unchanged, so identity still
-  binds to the field rather than to the filename.
-- `Tombstone:` — the ISO date the artifact was retired.
-- Exactly one of `Reissued as:` — a repository-relative path to the live
-  successor — or `Retired:` — a reason, for a retirement with no successor.
-  Both fields present, or neither, is a failure.
+### Always do
 
-**T3 — Exclusion routes to a second contract; it never skips validation.** The
-corpus lint partitions the directory on the presence of `Tombstone:`. A file
-carrying it is validated against the three-field contract above. A file without
-it is validated against the intent contract. No file in the directory is left
-unvalidated, so the field cannot be used to escape a shape a file would
-otherwise fail.
+- Resolve the rename target against the repository root and prove containment
+  before any write.
+- Edit `workspace.toml` inside the same transaction as the rename, never after it.
+- Leave a tombstone at every filename the operation vacates.
+- Refuse to a human. The operation is operator-invoked only: no workflow calls
+  it unattended, so every refusal has a reader.
 
-**T4 — A tombstone forwards a reader and refuses a resolver.** A person
-following a stale link lands on it and reads the pointer. No mechanical
-consumer dereferences it: the allocator counts the name and never opens the
-file, and a live pointer found at a tombstone — a `Parent intent:` target, a
-registry `path` — is reported as a stale citation rather than silently resolved
-to the successor. Resolving through it would hide the staleness the first
-acceptance criterion requires be zero.
+### Ask first
 
-**T5 — A `Reissued as:` target must be a live intent.** It must exist and must
-not itself carry `Tombstone:`. That makes a chain unrepresentable rather than
-detectable: one check refuses a self-pointer, a mutual pair, and a chain of any
-length, with no traversal and no visited set. Renumbering an artifact a second
-time therefore re-points its existing inbound tombstones at the final target
-inside the same transaction instead of stacking a second tombstone behind the
-first.
+- Moving more than one intent in a single run.
+- Touching any file in `docs/product/intents/` other than the intent named in
+  the request and the tombstones pointing at it.
+- Widening any skill's declared tool surface to make the operation runnable.
 
-**T6 — A dangling tombstone is fail-closed.** A `Reissued as:` target that does
-not exist exits non-zero and names both the tombstone and the missing path. A
-half-landed rename is the failure the lockstep criterion exists to prevent, and
-this is the posture `workspace.toml`'s `missing_artifact` already takes in
-`tests/roster/test_workspace_status_projection.py`. A `Retired:` tombstone has
-no target and is never dangling.
+### Never do
 
-**Where T3 lands.** The corpus lint is `intent-metadata-shape-contract`'s to
-build and that spec is Draft, so this slice either follows it or ships the
-partition as part of its own sweep check. The sequencing is a plan question,
-not a contract question: the partition rule above holds wherever it is
-implemented.
+- Reuse an ordinal, including one whose tombstone was deleted by hand.
+- Delete an intent file. A retirement is a tombstone, not a deletion.
+- Add a new top-level directory, a new module boundary, or a new dependency.
+  The operation ships inside an existing owner.
+- Repair a stale citation by editing a generated projection.
 
 ## Testing Strategy
 
-- Renumber one real intent end to end; assert zero stale path-shaped citations and unchanged pointer values.
-- Assert the allocator counts a tombstone at the retired name and never returns that ordinal, and assert the four unsafe candidate names stay unsafe.
-- Walk the two-contract partition over a corpus holding a conforming intent, a conforming tombstone, and a file carrying `Tombstone:` plus fields the tombstone contract forbids; assert each is validated against exactly one contract and none is skipped.
-- Assert a `Reissued as:` target that is absent, and one that is itself a tombstone, each fail and name both paths.
-- Assert a live pointer resolving to a tombstone is reported as a stale citation rather than followed.
+- **The sweep's completeness: TDD.** A compressible invariant — after a
+  renumber, no citation of the old path survives in the three cited trees — so
+  a test can hold it over a fixture corpus.
+- **Transactionality: TDD.** A failure injected at each write point must leave
+  the tree byte-identical, which is a property a test asserts and a reviewer
+  cannot.
+- **The tombstone's three-field shape: TDD.** A parse with conforming and
+  non-conforming fixtures.
+- **Tombstone name safety: inherited, re-run not re-authored.** Already pinned
+  before this spec by `test_tombstone_filename_shapes_pin_allocation_and_check`
+  in `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, committed
+  87768ba4d. This slice re-runs it and adds nothing; it is cited here so the
+  contract records where that coverage lives rather than promising it again.
+- **The corpus stays clean after a real renumber: goal-based check.** One run
+  of the workspace reconciliation over the real `workspace.toml` reports no
+  `missing_artifact`, which is the existing fail-closed control at
+  `tests/roster/test_workspace_status_projection.py:948`.
+- **The operator how-to: manual QA.** A person follows the page through one
+  renumber; a test cannot tell whether the page is followable.
 
 ## Acceptance Criteria
 
-- [ ] A renumber leaves zero stale path-shaped citations — registry `path` entries and Markdown link targets — and changes no canonical pointer value, because identity binds to each artifact's `Slug:` field.
-- [ ] A renumber edits `workspace.toml` in lockstep with the rename, and the sweep is complete rather than best-effort.
-- [ ] A retirement or altitude change leaves a tombstone at the retired filename that the allocator counts, so an ordinal is never reused.
-- [ ] Every file in the intent directory is validated against exactly one of two contracts, selected on the presence of `Tombstone:`, and a file carrying that field is refused for any content the tombstone contract does not admit.
-- [ ] A `Reissued as:` target that is absent, or that is itself a tombstone, fails and names both the tombstone and the target.
-- [ ] A live pointer whose target is a tombstone is reported as a stale citation and is never resolved through it.
-- [ ] A renumber re-points every inbound tombstone at the final target in the same transaction, so no tombstone ever points at another.
+- [ ] **AC-0001.** After a renumber, no citation of the vacated path survives in
+      `docs/product/**`, `docs/specs/**`, or `workspace.toml` — the closed set
+      of trees that cite an intent by path.
+- [ ] **AC-0002.** Every `Slug:` value in the intent corpus is byte-identical before and
+      after a renumber.
+- [ ] **AC-0003.** A renumber that fails at any write point leaves the repository
+      byte-identical to its pre-run state.
+- [ ] **AC-0004.** After a renumber, the allocator's next ordinal for the vacated type is
+      never the vacated ordinal.
+- [ ] **AC-0005.** A tombstone carries exactly three fields: `Slug:`, unchanged from the
+      retired artifact; `Tombstone:`, the retirement date; and exactly one of
+      `Reissued as:` or `Retired:`.
+- [ ] **AC-0006.** Every file in `docs/product/intents/` is validated against exactly one of
+      two contracts, selected by the presence of a `Tombstone:` field.
+- [ ] **AC-0007.** A `Reissued as:` value naming a path that does not exist fails and names
+      both the tombstone and the missing path.
+- [ ] **AC-0008.** A `Reissued as:` value naming a file that itself carries `Tombstone:`
+      fails and names both paths.
+- [ ] **AC-0009.** A live pointer whose target is a tombstone is reported as a stale
+      citation rather than resolved to that tombstone's successor.
+- [ ] **AC-0010.** A renumber re-points every tombstone whose `Reissued as:` named the moved
+      artifact, inside the same transaction.
+- [ ] **AC-0011.** An intent authored after cutover through a route that
+      allocates no ordinal acquires the filename `<TOKEN>-NNNN-<slug>.md` on
+      request, with `NNNN` from the allocator. An intent carrying no ordinal at
+      cutover is out of scope and keeps none, per the brief's forward-only
+      non-goal and ADR-0108 D6.
+
+## Retired identifiers
+
+none
+
+## Follow-ons
+
+- eugenelim: `docs/specs/intent-metadata-shape-contract/spec.md` — the corpus
+  lint that runs the two-contract partition is that spec's to build; this spec
+  states the partition rule and does not implement the lint.
+- eugenelim: `docs/specs/intent-metadata-shape-contract/spec.md` — nothing in
+  the pack checks the ordinal after allocation. Allocation is a prose-invoked
+  step at `work-intake/SKILL.md:357`, and `--check` ships with no caller, so a
+  hand-made rename that reuses an ordinal leaves no trace. A corpus check is
+  that spec's to build; how an adopter chooses to run it is theirs.
+- eugenelim: this repository's own corpus control,
+  `test_every_live_typed_file_satisfies_the_owner_shape` at
+  `tests/roster/test_typed_ordinal_collision_equivalence.py:63`, sits in the
+  dispatch-only roster suite. Where it runs here is a repository-local gate
+  question, separate from what the pack ships.
+
+## Assumptions
+
+none
