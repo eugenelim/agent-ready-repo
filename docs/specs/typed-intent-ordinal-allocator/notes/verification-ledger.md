@@ -239,6 +239,43 @@ subprocess so the claim is standing rather than a one-off, and it must be a
 subprocess because the suite sets `sys.dont_write_bytecode` itself and would
 mask a script that does not.
 
+## 2026-09-21 — T2 and T3 executed
+
+**T2, verified remotely by instruction.** `tests/roster/` is not run on this
+machine: the suite costs 7–12 minutes a run and CI runs it on every push, so a
+roster-only control is a remote result and saying otherwise would overstate what
+was checked. What was checked locally: the file compiles, the owner-table parser
+returns the four expected pairs against the real intent, and
+`tools/lint-ci-parity.py` accepts the three roster-admission edits — the named
+step above the bulk `pytest tests/ -q` step, the matching `STEP_DISPOSITION`, and
+no `.workspace-prune-protected.toml` entry, since this test names no
+`docs/specs/<slug>` literal.
+
+I should record that I ran `tests/roster/test_workspace_status_projection.py`
+several times earlier in this session before re-reading that instruction. Those
+runs are not evidence this slice relies on, and the habit stopped here.
+
+**T3's release surface.** core `2.26.22` → `2.26.23`, a patch: a script added
+inside an existing skill is changed content of that skill, not a new projected
+primitive. The changelog Highlights were checked against the `/now/` projection's
+vocabulary gate — none of `unreleased`, `work index`, `backlog`, `queue`,
+`in progress`, and balanced emphasis so no literal `**` survives rendering. The
+three release gates themselves are roster-owned and therefore remote.
+
+**The sixteen core suites.** `2,547 passed, 6 skipped, 147 subtests`, no
+failures. Two of them — `work-loop` at 13m29s and `workspace-status` — overlapped
+my own edits in that window, so they were re-run on the settled tree rather than
+trusted; a gate measured while the worker is still editing measures neither
+state.
+
+**One collection defect found and left alone.** `pytest packs/core/tests/ -q`
+fails at collection on a basename clash between
+`skills/author-delivery-brief/test_project_knowledge_handoff.py` and
+`skills/work-loop/test_project_knowledge_handoff.py`. It predates this slice —
+both files come from `3031b9fce` — and it is why the Makefile runs these sixteen
+by directory rather than as one tree. Not this slice's to fix, and recorded so
+the next reader does not mistake the tree-wide invocation for the supported one.
+
 ## 2026-09-20 — T1's stub earns its red
 
 **Why run it.** `work-loop/SKILL.md:252` requires a TDD task's exact stub to
