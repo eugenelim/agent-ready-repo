@@ -205,21 +205,6 @@ _ARGV_REPOSITORY_PATH = re.compile(
 )
 
 
-def _refuse_dot_leading_component(value: str) -> None:
-    """Refuse a stored path with any `.`-leading component.
-
-    Applies to the whole stored-path set: every argv element after
-    `argv[0]` except `grep`'s pattern, plus `verification_route.path`. One
-    rule over the whole object, because a class refused on one field and
-    admitted on the other is not refused. `_expect_repo_path` has no dot
-    rule and is left unchanged for its other callers; this check runs in
-    addition to it.
-    """
-
-    if any(part.startswith(".") for part in value.split("/")):
-        raise VerificationRouteRefusal("work_item_command_path")
-
-
 def _validate_command_argv(value: Any) -> list[str]:
     """Validate a stored `verification_route.command` against the argv
     trust boundary above.
@@ -256,7 +241,6 @@ def _validate_command_argv(value: Any) -> list[str]:
             continue  # grep's pattern: the charset above is the whole rule
         if not _ARGV_REPOSITORY_PATH.match(element):
             raise VerificationRouteRefusal("work_item_command_path")
-        _refuse_dot_leading_component(element)
     return value
 
 
@@ -1113,7 +1097,7 @@ def _expect_bool(value: Any, expected: bool) -> None:
 def _validate_verification_route_v1(value: Any) -> None:
     """v1's own `verification_route` rule, retained unchanged: `command` is
     a bounded string and `path` clears only `_expect_repo_path`. v1 predates
-    the argv trust boundary and the dot-leading-component rule, both
+    the argv trust boundary and the stored-path rules, both
     v2-only, so a v1 record is never held to either -- the same record a v1
     submitter wrote and a v1 reader must still accept."""
 
@@ -1364,11 +1348,6 @@ def _validate_verification_route(value: Any) -> None:
     _expect_keys(value, {"command", "path"}, set())
     value["command"] = _validate_command_argv(value["command"])
     value["path"] = _expect_repo_path(value["path"])
-    # The dot-component rule binds `path` too, on the value
-    # `_expect_repo_path` returns — which also catches its `"."` early
-    # return, since `_refuse_dot_leading_component` runs on the returned
-    # string regardless of which branch produced it.
-    _refuse_dot_leading_component(value["path"])
 
 
 def _expect_slug(value: Any) -> str:

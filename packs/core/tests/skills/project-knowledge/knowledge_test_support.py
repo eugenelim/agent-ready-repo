@@ -119,15 +119,15 @@ def valid_work_item(shape: str, **overrides: Any) -> dict[str, Any]:
     """Return a complete `work_item` object for one of § D2's three shapes."""
 
     work_item: dict[str, Any] = {
-        "statement": "The dot-leading check admits a component the case table refuses.",
+        "statement": "The argv character class admits an element the case table refuses.",
         "shape": shape,
         "blocker": "instrument",
-        "finished_state": "The check refuses every dot-leading stored path form it names.",
+        "finished_state": "The class refuses every element form the case table names.",
         "necessity_rationale": "No existing control refuses this class today.",
     }
     if shape == "defect":
-        work_item["observed"] = "The check admits the dot-leading component unchanged."
-        work_item["intended"] = "The check refuses the dot-leading component before storage."
+        work_item["observed"] = "The class admits the element unchanged."
+        work_item["intended"] = "The class refuses the element before storage."
     elif shape == "question":
         work_item["answered_by"] = "The reviewer who owns the sibling trust boundary."
     elif shape == "decision":

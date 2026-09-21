@@ -86,7 +86,11 @@ def test_skill_branch_table_names_generalisable_practice_unchanged_route() -> No
 
 
 def test_skill_branch_table_omits_no_row_and_adds_none() -> None:
-    """The branch must gain a row for declined work, never widen row one."""
+    """`AC-0001` membership: the branch gains a row for declined work and
+    never widens row one. The declined set is rows two to four; generalisable
+    practice is not a member and keeps its existing route. This is the
+    membership assertion, distinct from the outcome vocabulary `AC-0002`
+    pins."""
     skill_rows = _branch_table_rows(SKILL.read_text(encoding="utf-8"))
     whats = [what for what, _ in skill_rows]
     assert whats == [

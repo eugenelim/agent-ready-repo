@@ -46,8 +46,8 @@ ARGV_CASES: list[tuple[object, str | None, str]] = [
     (['grep', '-i', 'x', 'docs'], 'work_item_command_option', "R4 adv 12: option ahead of grep's exempt pattern slot"),  # noqa: E501
     (['git', 'cat-file', 'blob', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'], 'work_item_command_tool', 'R2 sec: reads a deleted blob'),  # noqa: E501
     (['git', 'show', 'HEAD:docs/x.md'], 'work_item_command_tool', 'R2 sec: anchored read, now excluded'),  # noqa: E501
-    (['cat', '.git/config'], 'work_item_command_path', 'R3 sec F3: credential disclosure'),  # noqa: E501
-    (['cat', '.env'], 'work_item_command_path', 'R3 sec F3: untracked secret'),  # noqa: E501
+    (['cat', '.git/config'], None, 'amendment 008: admitted -- an in-repo dot path is an ordinary path'),  # noqa: E501
+    (['cat', '.env'], None, 'amendment 008: admitted -- confinement does not classify sensitivity'),  # noqa: E501
     (['cat'], 'work_item_command_operand', 'R3 sec F4: blocks on stdin'),  # noqa: E501
     ([], 'work_item_command_size', 'R3 sec F4: argv[0] undefined'),  # noqa: E501
     (['grep', 'pattern'], 'work_item_command_operand', 'R3 sec F4: grep with no operand'),  # noqa: E501
@@ -64,8 +64,6 @@ ARGV_CASES: list[tuple[object, str | None, str]] = [
     (['cat', 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy', 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy', 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy', 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy', 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy', 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'], 'work_item_command_size', 'aggregate length'),  # noqa: E501
     (['cat', 'a\nb'], 'work_item_command_charset', 'newline in element'),  # noqa: E501
     (['cat', 'a;b'], 'work_item_command_charset', 'shell metacharacter'),  # noqa: E501
-    (['cat', '.ssh/id_rsa'], 'work_item_command_path', 'iter2: dotdir beyond .git'),  # noqa: E501
-    (['cat', 'docs/.hidden'], 'work_item_command_path', 'iter2: dotfile in a subdir'),  # noqa: E501
     (['grep', 'foo.*', 'docs'], 'work_item_command_charset', 'iter2: BRE metachar in pattern'),  # noqa: E501
     (['cat', 'a b'], 'work_item_command_charset', 'iter2: space element'),  # noqa: E501
     (['cat', 'a"b'], 'work_item_command_charset', 'iter2: double quote'),  # noqa: E501
@@ -74,7 +72,7 @@ ARGV_CASES: list[tuple[object, str | None, str]] = [
     (['cat', 'src/a.py\n'], 'work_item_command_charset', 'R4 sec B1: TRAILING newline, $ admitted it'),  # noqa: E501
     (['grep', 'AKIA\n', 'src/a.py'], 'work_item_command_charset', 'R4 sec B1: trailing newline in a pattern'),  # noqa: E501
     (['grep', 'a', 'b\n'], 'work_item_command_charset', 'R4 sec B1: trailing newline in a later path'),  # noqa: E501
-    (['grep', '.env', 'docs'], None, 'R4 sec N9: pattern is exempt from the dot rule'),  # noqa: E501
+    (['grep', '.env', 'docs'], None, 'grep pattern slot, admitted before and after amendment 008'),  # noqa: E501
     (['grep', '../../etc/passwd', 'docs'], None, 'R4 sec C4: pattern exempt from repositoryPath'),  # noqa: E501
     (['cat', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'work_item_command_size', 'R5 sec C6: pins count-before-type ordering'),  # noqa: E501
 ]

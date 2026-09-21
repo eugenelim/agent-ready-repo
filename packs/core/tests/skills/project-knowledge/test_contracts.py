@@ -405,6 +405,44 @@ def test_ac0049_an_admitted_argv_round_trips_through_the_store_unchanged(
         assert submitted_element == read_back_element
 
 
+def test_ac0032_a_record_with_no_lesson_is_scanned_without_error() -> None:
+    """`AC-0032`. A `work-item` record carries no `lesson` -- `work_item`
+    supplies the prose instead -- so the scan must handle its absence rather
+    than reading it unconditionally. Drives the scan directly, because the
+    claim is about the scan and not about a refusal."""
+    module = load_project_knowledge_module()
+    request = valid_work_item_request("question")
+    assert "lesson" not in request
+    module._deterministic_privacy_scan(request)
+
+
+def test_ac0034_a_privacy_failure_returns_a_catalog_code_and_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    """`AC-0034`, both halves. The scan raises rather than returning, so
+    without the byte assertion an implementation that appends, then catches
+    and reports, satisfies the code half while committing the very string
+    the scan refuses."""
+    store = load_knowledge_store_module()
+    module = load_project_knowledge_module()
+    repo = initialize_empty_v1_repo(tmp_path, store)
+    before = _journal_bytes(repo)
+    request = valid_work_item_request("question")
+    request["work_item"]["statement"] = "reach me at alice.smith@example.com"
+    request["observed_at"] = "2026-08-13T12:34:56Z"
+
+    # The scan itself refuses the string.
+    with pytest.raises(module.PrivacyRefusal):
+        module._deterministic_privacy_scan(request)
+
+    # And the write path turns that into a catalog code with nothing stored.
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.capture_observation(repo, request, writer_time="2026-08-13T12:40:00Z")
+    assert refused.value.diagnostic["reason_code"] in module.REQUIRED_DIAGNOSTIC_CODES
+    assert _journal_bytes(repo) == before
+    assert not list((repo / "docs" / "knowledge" / "observations").glob("*/*.jsonl"))
+
+
 def test_every_d6_refusal_leaves_the_store_byte_equal(tmp_path: Path) -> None:
     store = load_knowledge_store_module()
     repo = initialize_empty_v1_repo(tmp_path, store)
@@ -416,20 +454,17 @@ def test_every_d6_refusal_leaves_the_store_byte_equal(tmp_path: Path) -> None:
             verification_route={"command": argv, "path": "docs/x.md"}
         )
         request["observed_at"] = "2026-08-13T12:34:56Z"
-        with pytest.raises(store.KnowledgeStoreError):
+        with pytest.raises(store.KnowledgeStoreError) as refused:
             store.capture_observation(repo, request, writer_time="2026-08-13T12:40:00Z")
-        assert _journal_bytes(repo) == before
-
-
-def test_ac0065_verification_route_path_refuses_a_dot_leading_component() -> None:
-    module = load_project_knowledge_module()
-    for unsafe_path in (".ssh/id_rsa", ".env", ".git/config", "."):
-        request = valid_capture_request(
-            verification_route={"command": ["cat", "docs/x.md"], "path": unsafe_path}
+        # The code, not merely that something raised: every command refusal
+        # reached the author as `provenance` for two review rounds because
+        # this assertion only checked the exception type, which the defect
+        # satisfied.
+        assert refused.value.diagnostic["reason_code"] == expected_code, (
+            f"{argv!r} refused as "
+            f"{refused.value.diagnostic['reason_code']!r}, want {expected_code!r}"
         )
-        with pytest.raises(module.VerificationRouteRefusal) as refused:
-            module.validate_capture_request(request)
-        assert refused.value.reason_code == "work_item_command_path"
+        assert _journal_bytes(repo) == before
 
 
 def test_defect_missing_finished_state_is_refused() -> None:

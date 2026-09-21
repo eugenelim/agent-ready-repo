@@ -69,9 +69,6 @@ def validate(cmd):
             continue                          # pattern: charset is the whole rule
         if not REPO_PATH.match(e):
             return "work_item_command_path"
-        # Any dot-leading path component: .git/, .env, .ssh/, .aws/ alike.
-        if any(part.startswith(".") for part in e.split("/")):
-            return "work_item_command_path"
     return None
 
 
@@ -97,8 +94,8 @@ CASES = [
     (["grep", "-i", "x", "docs"], "R4 adv 12: option ahead of grep's exempt pattern slot"),
     (["git", "cat-file", "blob", "a" * 40], "R2 sec: reads a deleted blob"),
     (["git", "show", "HEAD:docs/x.md"], "R2 sec: anchored read, now excluded"),
-    (["cat", ".git/config"], "R3 sec F3: credential disclosure"),
-    (["cat", ".env"], "R3 sec F3: untracked secret"),
+    (["cat", ".git/config"], "amendment 008: admitted -- an in-repo dot path is an ordinary path"),
+    (["cat", ".env"], "amendment 008: admitted -- confinement does not classify sensitivity"),
     (["cat"], "R3 sec F4: blocks on stdin"),
     ([], "R3 sec F4: argv[0] undefined"),
     (["grep", "pattern"], "R3 sec F4: grep with no operand"),
@@ -115,8 +112,6 @@ CASES = [
     (["cat"] + ["y" * 400] * 6, "aggregate length"),
     (["cat", "a\nb"], "newline in element"),
     (["cat", "a;b"], "shell metacharacter"),
-    (["cat", ".ssh/id_rsa"], "iter2: dotdir beyond .git"),
-    (["cat", "docs/.hidden"], "iter2: dotfile in a subdir"),
     (["grep", "foo.*", "docs"], "iter2: BRE metachar in pattern"),
     (["cat", "a b"], "iter2: space element"),
     (["cat", 'a"b'], "iter2: double quote"),
@@ -125,7 +120,8 @@ CASES = [
     (["cat", "src/a.py\n"], "R4 sec B1: TRAILING newline, $ admitted it"),
     (["grep", "AKIA\n", "src/a.py"], "R4 sec B1: trailing newline in a pattern"),
     (["grep", "a", "b\n"], "R4 sec B1: trailing newline in a later path"),
-    (["grep", ".env", "docs"], "R4 sec N9: pattern is exempt from the dot rule"),
+    (["grep", ".env", "docs"],
+     "grep pattern slot, admitted before and after amendment 008"),
     (["grep", "../../etc/passwd", "docs"], "R4 sec C4: pattern exempt from repositoryPath"),
     (["cat"] + [1] * 21, "R5 sec C6: pins count-before-type ordering"),
 ]

@@ -351,34 +351,26 @@ lands and green after, and the two blocker refusals return different codes.
 - `argv_cases.py` is importable by another spec's suite, which is what the
   handoff spec's re-check criterion reads, and regenerating it from the spike
   produces no diff. This bullet carries no criterion.
-- `verification_route.path` is refused for `.ssh/id_rsa`, `.env` and
-  `.git/config` (`AC-0065`). The dot rule moves from the argv loop to the
-  whole stored-path set § D6 defines: `_validate_verification_route` applies
-  the component check to the value `_expect_repo_path` returns, which also
-  catches the `"."` early return. All three pass `_expect_repo_path` today, so
-  these cases are red before the change. **Take the narrow route, on both
-  enforcement layers: apply the dot rule to the § D6 stored-path set only —
-  leaving `_expect_repo_path` unchanged for its other callers, and leaving
-  the schema's shared `$defs/repositoryPath` untouched.** Six fields `$ref`
-  that definition, including `project_scope.paths` and
-  `destination_hint.path`, which are the fields carrying the live dot values
-  below; narrowing the shared pattern satisfies the Python half of this
-  constraint and breaks the store just the same. The wide route is not available, and
-  the live store is why — scanning `docs/knowledge/**/*.jsonl` finds **17
-  distinct dot-containing `path` values across 41 occurrences** (for example
-  `.claude/skills/work-loop/SKILL.md` and
-  `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`) plus four
-  dot-containing `scope` values, and `_expect_repo_path` has 20 call sites
-  in `knowledge_store.py` including the committed-blob readers behind
-  `read_confined_source`. Widening it in place would make already-stored
-  records **unreadable**, not merely refuse new ones, and the cheapest exit
-  from a store that no longer reads is to loosen the dot rule — destroying
-  the control this task adds.
+- `verification_route.path` takes the same repository-path rule as the argv
+  elements, applied to the value `_expect_repo_path` returns. **Take the
+  narrow route, on both enforcement layers: bind the § D6 stored-path set
+  only — leave `_expect_repo_path` unchanged for its other callers, and
+  leave the schema's shared `$defs/repositoryPath` untouched.** Six fields
+  `$ref` that definition, including `project_scope.paths` and
+  `destination_hint.path`; narrowing the shared pattern breaks the store.
+  Scanning `docs/knowledge/**/*.jsonl` finds **17 distinct dot-containing
+  `path` values across 41 occurrences** (for example
+  `.claude/skills/work-loop/SKILL.md`) plus four dot-containing `scope`
+  values, and `_expect_repo_path` has 20 call sites in `knowledge_store.py`
+  including the committed-blob readers behind `read_confined_source`.
+  Widening it in place would make already-stored records **unreadable**,
+  not merely refuse new ones. Amendment 008 removed the dot-leading-component
+  rule an earlier draft of this task added; see `notes/amendment-008.md`.
 - `stub: true` — `test_element_beginning_with_dash_is_refused`.
 
 **Done when:** every § D6 case row reproduces its recorded verdict, the
-read-back assertion passes, `verification_route.path` refuses a
-dot-leading component, and every refusal path leaves the store byte-equal.
+read-back assertion passes, `verification_route.path` is confined to the
+repository, and every refusal path leaves the store byte-equal.
 
 ### T4: every site pinning the kind vocabulary admits `work-item` together
 
@@ -570,8 +562,13 @@ the routing suite is green.
      task builds and T5 has no work-loop file to reach. -->
 - The reasoning dispatch wraps item content in its data delimiter, and no item
   field is interpolated into instruction position (`AC-0036`).
-- **The write path refuses any submission without a recognized verdict for
-  that item** (`AC-0068`). The gate is in `project_knowledge.py` at the
+- **The write path refuses any submission without a well-formed,
+  recognized, item-correlated verdict** (`AC-0068`). It catches omission,
+  garbling and stale reuse. It does **not** establish that a verdict was
+  obtained: § D3 puts the cold check at the close, so the agent produces the
+  verdict it hands the writer, and the correlation key is computable from
+  the submitted request. Do not add a nonce or a signature to chase this —
+  the agent would relay either. The residual is disclosed in the gap list. The gate is in `project_knowledge.py` at the
   write, **not** in the skill prose that obtains the verdict: every existing
   test under `packs/core/tests/skills/work-loop/` is a source-text assertion
   over `SKILL.md`, and a source-text pin over a reference is the
@@ -619,10 +616,9 @@ code.
   is canonical for that list's membership, its classification and its
   ordering** — this bullet carries no enumeration, no ordinal and no count of
   its own, because a second copy here is what drifts. Read the row and
-  discharge against it. One substantive note the row assumes: § D6's
-  dot-component residual must be stated as reaching dot-leading names only,
-  or the document reads as though the argv rules refuse credential-bearing
-  paths as a class, which § D6 disclaims.
+  discharge against it. One substantive note the row assumes: the argv rules
+  confine to the repository and do **not** refuse credential-bearing paths
+  as a class, and the document must say so rather than implying otherwise.
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry
   matching bumped versions, per `packs/AGENTS.md`. One bump, one topmost
   changelog entry, for the whole delivery.

@@ -396,9 +396,15 @@ ended at 8.
 
 - Command provenance is not established at write time, by decision.
 - The admissible command set is four shapes.
-- **The dot-component rule reaches dot-leading names only** on both the argv
-  elements and `verification_route.path`. An untracked secret under any other
-  name is admitted. Accepted, unmitigated, disclosed in § D6.
+- **The argv rules confine but do not classify.** Every element is held
+  inside the repository; no rule decides whether an in-repository file is
+  sensitive, so an untracked secret under any name is admitted. Accepted,
+  unmitigated, disclosed in § D6. *Amendment 008 (2026-09-21) removed the
+  dot-leading-component rule an earlier round added here: it caught `.env`
+  and missed `credentials.json`, `keys/id_rsa` and `config/prod.env`, added
+  nothing to confinement, and read as a credential control. Removing it
+  narrows the disclosure to what is true, and does not widen the residual —
+  the residual was already every non-dot-leading name.*
 - **No write-time prose control is re-established at execution.** Accepted,
   unmitigated, disclosed in § D10; the sibling's trust-boundary decision is
   where it gets settled.
@@ -436,8 +442,8 @@ mechanical-tier split, and it will surface at implementation rather than at
 review.
 
 **Two residuals ship accepted and unmitigated**, both disclosed in the spec:
-the dot-component rule reaches dot-leading names only, and no write-time prose
-control is re-established at execution.
+the argv rules confine to the repository but do not decide whether a file is
+sensitive, and no write-time prose control is re-established at execution.
 
 ## Known transient: the register has no slot for approved-and-unmerged
 

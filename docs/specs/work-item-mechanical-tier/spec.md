@@ -123,7 +123,7 @@ The tier is therefore the two checks that are not the registered item's:
 >    absence admits, the whole mechanical tier is bypassed by omitting one
 >    field and `AC-0003`/`AC-0004` are void.
 > 3. **[write-side-membership]** **Whether the chosen field joins `docs/specs/work-item-capture/spec.md` § D6's stored-path set** and so
->    `docs/specs/work-item-capture/spec.md` `AC-0065`'s dot rule at write time. `_expect_repo_path` is applied
+>    `docs/specs/work-item-capture/spec.md` § D6's stored-path rules at write time. `_expect_repo_path` is applied
 >    field-by-field at each call site, so a new path-bearing field is
 >    unvalidated until someone wires it, and
 >    `docs/specs/work-item-promotion-handoff/spec.md`'s obligation 1

@@ -235,7 +235,7 @@ is added, so the list below is itself the assertion, not a tally of it.
 **The write-time control.** `verification_route.command` is stored only as
 a bounded, read-only argv array: a four-tool allowlist (`cat`, `wc`,
 `grep`, `ls`), every option-shaped element refused, a positive character
-class over every element, and a dot-leading-path refusal, all enforced
+class over every element, and a re-anchored repository-path rule, all enforced
 before anything is written. Everything after this paragraph is what that
 control does **not** close.
 
@@ -243,20 +243,37 @@ control does **not** close.
   command the workflow authored from one copied out of untrusted prose an
   earlier step ingested. Attribution comes from Git history against the
   introducing commit, not from a field on the record.
-- **The merge path is unchecked.** The write-time controls — the argv
-  rules, the privacy scan, the instruction-shape refusal, and the
-  reasoning check — run once, at `--capture`. A record can enter the
+- **The verdict is caller-asserted.** A capture is refused unless it
+  carries a well-formed, recognized verdict correlated to that exact item,
+  which catches an omitted, garbled or stale-reused verdict. It does not
+  establish that a verdict was *obtained*: the cold reasoning check runs at
+  the close, so the capturing agent dispatches it and hands the writer the
+  result, and the correlation key is computable from the submitted request.
+  No in-process gate can verify that a caller consulted an oracle the
+  caller controls, and a writer-issued nonce would simply be relayed. A
+  deliberate agent can therefore assert a verdict it never obtained. This
+  is the delivery's only validation floor, because the mechanical tier is
+  not built.
+- **The merge path is unchecked.** The write-time controls that do run at
+  `--capture` are the argv rules, the privacy scan and the verdict gate;
+  the instruction-shape refusal and the cold reasoning check run at the
+  close, ahead of it. A record can enter the
   committed store by a merge or a contributor branch instead, carrying
   content validated elsewhere or not at all, and nothing here re-checks it
   once it is in the tree.
-- **§ D6's dot-component residual.** The dot-leading-path rule reaches
-  exactly that: a path component beginning `.` (`.env`, `.git/config`,
-  `.ssh/id_rsa`). It is a convention rule, not a credential-disclosure
-  rule, and the argv rules do **not** refuse credential-bearing paths as a
-  class: `credentials.json`, `keys/id_rsa`, and `config/prod.env` all clear
-  every write-time check, including the privacy scan, because none of them
-  begins with a dot. An untracked secret under a non-dot-leading name is a
-  disclosed, unowned residual of this rule, not something it catches.
+- **§ D6's argv rules confine; they do not classify.** Every element
+  after `argv[0]` is held inside the repository — absolute paths, `..`
+  segments, backslashes and colons are refused — but nothing decides
+  whether an in-repository file is *sensitive*. `credentials.json`,
+  `keys/id_rsa`, `config/prod.env` and `.env` alike clear every write-time
+  check, including the privacy scan. An untracked secret committed under
+  any name is a disclosed, unowned residual. An earlier draft carried a
+  dot-leading-component rule here; amendment 008 removed it, because a
+  filename-convention denylist is the documented antipattern for path
+  security, it added nothing to confinement, and it caught `.env` while
+  missing the three names above. Deciding which in-repository files a
+  command may read is run-time confinement, and it is
+  `docs/specs/work-item-promotion-handoff/spec.md`'s obligation 1.
 - **§ D10's prose residual.** Three controls run on a record's own prose
   only at the write path: `assert_persistable_text`'s eight patterns, the
   instruction-shape refusal, and the reasoning dispatch's data-framing.

@@ -167,6 +167,63 @@ silent must not be the only guard.
 
 None. One outcome, one measure.
 
+## Observed demand — first measurement, 2026-09-21
+
+**The opportunity holds; the volume behind it is lower than the downstream
+specs assume, and three independent causes point the same way.**
+
+*Cause one — the deferral route closed.* The work-loop contract now states
+that a `(deferred: <slug>)` marker no longer makes a newly shipped
+acceptance criterion valid, and that every accepted criterion must be met at
+ship. Much of what previously became leftover was scope a loop accepted and
+could not finish. That population is now discharged in the loop or refused,
+not carried out of it.
+
+*Cause two — capture leaves the critical path entirely.* PR #1387 (open at
+the time of writing) removes the finish-checklist item requiring every DECIDE
+scratch note to be routed: capture stops being a completion condition and
+runs after the loop closes. Its reasoning is the mirror of § Opportunity's
+and is worth reading beside it — where this intent argues that declining
+costs one sentence and recording costs a schema-valid entry, so the sentence
+wins, that PR argues that a capture obligation enforced at a completion
+boundary turns "is this worth keeping?" into a blocking judgement, and the
+cheapest way past a blocking judgement is a low-value note. Both are true.
+Together they say capture is hard to price at either setting: enforced it
+produces noise, unenforced it produces nothing. This is the strongest of the
+three causes, because it removes the only place the obligation was
+mechanically checked.
+
+*Cause three — a large loop produced almost nothing capturable.* The capture
+spec's own delivery ran to eight tasks, six contract amendments, three
+reviewer lenses and roughly thirty sustained findings. Counting what that
+loop would have captured under this contract: **one item**, possibly two —
+an open register-model question blocked on an owner decision, and a lint
+whose scope misses a directory. Everything else routed elsewhere. The
+mechanical validation tier became its own spec. The plan defects became
+amendments, discharged in-loop. The code defects were repaired in-loop. The
+recurring error patterns are learnings for knowledge capture, not leftover
+work.
+
+**What this does not refute.** The items that do arise are still expensive to
+lose, still arrive blocked, and still get dropped because declining costs one
+sentence and recording costs a schema-valid entry. § Opportunity's economics
+argument is unchanged. What moves is the expected *rate*.
+
+**What it bears on.** Three specs sit downstream of this one —
+`work-item-promotion-handoff`, `governance-item-record-routing` and
+`duplicate-coverage-offer`. Each is sized for a flow of captured items. A
+routing capability, a governance-record route and a duplicate-coverage offer
+are all worth building against a stream and hard to justify against one item
+a delivery. **Before any of the three is built, confirm the rate against
+real captures rather than against this intent's original framing.** The
+capture spec's twelve-item cap is comfortable on this evidence and is not the
+binding constraint; the binding question is whether the downstream routing
+earns its cost at the observed rate.
+
+This is one measurement, from one loop, by the team that wrote the feature —
+weak evidence, and the only evidence there is. It replaces an assumption that
+had none.
+
 ## De-risk
 
 **Reversibility: mixed.** Capture can be switched off and the schema rolled
