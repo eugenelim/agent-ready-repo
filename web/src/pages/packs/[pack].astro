@@ -86,14 +86,14 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
             </div>
             <p class="install-note">
               No extra tooling required — works directly in <a href="https://claude.ai/code" rel="noopener noreferrer">Claude Code</a> or Claude Desktop.
-              <a href={withBase('/catalogue/')}>Browse the catalogue →</a>
+              {' '}<a href={withBase('/catalogue/')}>Browse the catalogue →</a>
             </p>
           </>
         ) : (
           <p class="install-note">
             This pack installs into a repository, not across your machine, so it
             is not offered as a Claude plugin. Use the command above.
-            <a href={withBase('/catalogue/')}>Browse the catalogue →</a>
+            {' '}<a href={withBase('/catalogue/')}>Browse the catalogue →</a>
           </p>
         )}
       </div>

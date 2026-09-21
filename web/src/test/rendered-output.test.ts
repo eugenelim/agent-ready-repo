@@ -635,6 +635,74 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     );
   });
 
+  /**
+   * spec/tech-site-polish-batch's sibling defect, found later: every one of the
+   * 22 emitted /packs/* pages read "above.Browse the catalogue" or
+   * "Desktop.Browse the catalogue", with no space between the sentence and the
+   * link.
+   *
+   * Astro's `compressHTML` (on by default) strips the whitespace between a text
+   * node and an element that opens on the next source line, so authored prose
+   * reading `above.\n<a>Browse` emits `above.<a>Browse`. Both install branches
+   * of `pages/packs/[pack].astro` carried it -- 7 pages through the no-plugin
+   * branch, 15 through the plugin branch -- and the repair is the explicit
+   * `{' '}` that `Hero.astro` already uses for the same reason.
+   *
+   * Asserted here because it is invisible everywhere else: nothing in the source
+   * is wrong to look at, so no source-level lint can see it, and only the
+   * emitted page shows the two words welded.
+   *
+   * Deliberately NARROW. An earlier version of this guard tried to state a
+   * general rule -- no clause of prose welded to any following element, anywhere
+   * on the page -- and it cost four review rounds without converging: a
+   * document-wide `textContent` scan could not tell the defect from two adjacent
+   * blocks; a punctuation class admitted the opposite error each time it was
+   * corrected, first redding a valid `file.Name`, then a valid
+   * `the "<code>pack</code>"`, then an ordinary `A fact.<sup>1</sup>` footnote;
+   * and bounding it by element set still missed the element-preceded case. The
+   * general rule needs a taxonomy of which elements and which punctuation may
+   * abut, and that taxonomy has no natural edge.
+   *
+   * So this asserts the thing that was actually measured and actually broken:
+   * the install note's catalogue link is preceded by whitespace. It checks every
+   * emitted pack page, because each pack renders only one of the two install
+   * branches and a sampled page would exercise half the template.
+   */
+  it('every pack page spaces the install note from its catalogue link', () => {
+    const packDirs = readdirSync(join(BUILD_ROOT, 'packs'))
+      .filter((name) => statSync(join(BUILD_ROOT, 'packs', name)).isDirectory());
+    expect(packDirs.length).toBeGreaterThan(1);
+
+    const welded: string[] = [];
+    let checked = 0;
+
+    for (const name of packDirs) {
+      const notes = doc(join(BUILD_ROOT, 'packs', name, 'index.html'))
+        .querySelectorAll('.install-note');
+      // Each page carries the `agentbundle` note plus exactly one install-route
+      // note, and only the latter links to the catalogue.
+      const links = [...notes].flatMap((note) =>
+        [...note.querySelectorAll('a[href$="/catalogue/"]')],
+      );
+      expect(links.length, `packs/${name} emitted no install-note catalogue link`).toBe(1);
+
+      for (const link of links) {
+        checked += 1;
+        const before = link.previousSibling;
+        const left = before?.textContent ?? '';
+        if (!/\s$/.test(left)) {
+          welded.push(`packs/${name}: "...${left.slice(-40)}" + <a>"${link.textContent}"`);
+        }
+      }
+    }
+
+    // Guards the guard: a selector that stopped matching would otherwise report
+    // green having compared nothing.
+    expect(checked, 'no install-note link was examined').toBe(packDirs.length);
+    expect(welded, `install-note prose welded to its catalogue link:\n${welded.join('\n')}`)
+      .toEqual([]);
+  });
+
   it('shared chrome AC8: current states are route-specific and fragments stay non-current', () => {
     const readPage = (path: string) => doc(join(BUILD_ROOT, path, 'index.html'));
     const home = doc(homePage);
