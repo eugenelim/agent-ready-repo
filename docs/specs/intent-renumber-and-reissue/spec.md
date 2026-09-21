@@ -39,6 +39,13 @@ is told where the artifact went.
 - An operator how-to — `guides/product-engineering/how-to/`
 - Where it ships — inside `packs/core`, so an adopter installing core has it,
   beside the allocator it depends on
+- A tombstone retires a *filename*; `Status: Superseded by <slug>` retires a
+  *bet*. They cannot substitute for each other: a renumber preserves `Slug:`
+  by AC-0002, and `Superseded by` takes a slug that
+  `intent-metadata-shape-contract` AC-0021 resolves against a live intent's
+  `Slug:`, so expressing a renumber that way would point an artifact at itself.
+  Whether `Superseded by` stays on `Status:` is that spec's open question and
+  `FEAT-0005-lifecycle-and-closure`'s to settle
 
 ## Durable Outputs
 
@@ -87,7 +94,10 @@ is told where the artifact went.
   the tree byte-identical, which is a property a test asserts and a reviewer
   cannot.
 - **The tombstone's three-field shape: TDD.** A parse with conforming and
-  non-conforming fixtures.
+  non-conforming fixtures. The partition walk over a whole corpus belongs to
+  `intent-metadata-shape-contract`'s lint; what this slice proves is that every
+  tombstone it writes carries `Tombstone:` and nothing it writes elsewhere
+  does, which is AC-0006's biconditional on both arms.
 - **Tombstone name safety: inherited, re-run not re-authored.** Already pinned
   before this spec by `test_tombstone_filename_shapes_pin_allocation_and_check`
   in `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, committed
@@ -105,8 +115,10 @@ is told where the artifact went.
 - [ ] **AC-0001.** After a renumber, no citation of the vacated path survives in
       `docs/product/**`, `docs/specs/**`, or `workspace.toml` — the closed set
       of trees that cite an intent by path.
-- [ ] **AC-0002.** Every `Slug:` value in the intent corpus is byte-identical before and
-      after a renumber.
+- [ ] **AC-0002.** Every `Slug:` value in the intent corpus is byte-identical
+      before and after a renumber. `intent-metadata-shape-contract` AC-0001
+      requires the field on every live intent, so the anchor exists for every
+      artifact a renumber can move.
 - [ ] **AC-0003.** A renumber that fails at any write point leaves the repository
       byte-identical to its pre-run state.
 - [ ] **AC-0004.** After a renumber, the allocator's next ordinal for the vacated type is
@@ -114,8 +126,11 @@ is told where the artifact went.
 - [ ] **AC-0005.** A tombstone carries exactly three fields: `Slug:`, unchanged from the
       retired artifact; `Tombstone:`, the retirement date; and exactly one of
       `Reissued as:` or `Retired:`.
-- [ ] **AC-0006.** Every file in `docs/product/intents/` is validated against exactly one of
-      two contracts, selected by the presence of a `Tombstone:` field.
+- [ ] **AC-0006.** A file in `docs/product/intents/` is a tombstone if and only
+      if its preamble carries a `Tombstone:` field. This is the partition rule;
+      that every file in the directory is routed by it and validated against one
+      of the two contracts is `intent-metadata-shape-contract` AC-0017, whose
+      gate owns the check.
 - [ ] **AC-0007.** A `Reissued as:` value naming a path that does not exist fails and names
       both the tombstone and the missing path.
 - [ ] **AC-0008.** A `Reissued as:` value naming a file that itself carries `Tombstone:`
@@ -136,14 +151,22 @@ none
 
 ## Follow-ons
 
-- eugenelim: `docs/specs/intent-metadata-shape-contract/spec.md` — the corpus
-  lint that runs the two-contract partition is that spec's to build; this spec
-  states the partition rule and does not implement the lint.
+- Settled, not owed: `docs/specs/intent-metadata-shape-contract/spec.md` is
+  authored and plans the lint. Its Follow-ons ask which side owns the routing
+  obligation the two specs stated from opposite ends. It is split here: AC-0006
+  is the rule and this spec's only claim on it, and that spec's AC-0017 and
+  AC-0028 own routing every file and failing the gate. Neither slice blocks the
+  other and no `needs` edge is recorded, because that spec's plan implements
+  text this spec already carries while this spec's tombstones are what its lint
+  validates — an edge either way would assert a false block, and both would
+  cycle.
 - eugenelim: `docs/specs/intent-metadata-shape-contract/spec.md` — nothing in
   the pack checks the ordinal after allocation. Allocation is a prose-invoked
   step at `work-intake/SKILL.md:357`, and `--check` ships with no caller, so a
-  hand-made rename that reuses an ordinal leaves no trace. A corpus check is
-  that spec's to build; how an adopter chooses to run it is theirs.
+  hand-made rename that reuses an ordinal leaves no trace. That spec's AC-0028
+  introduces a gate over `docs/product/intents/`, which is a place such a check
+  could run; deciding whether it belongs there is that spec's, and how an
+  adopter runs it is theirs.
 - eugenelim: this repository's own corpus control,
   `test_every_live_typed_file_satisfies_the_owner_shape` at
   `tests/roster/test_typed_ordinal_collision_equivalence.py:63`, sits in the
