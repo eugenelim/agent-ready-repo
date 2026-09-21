@@ -1,12 +1,14 @@
 # Intent identity and registration
 
 - **Slug:** `intent-identity-and-registration` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Accepted
-- **Accepted:** 2026-09-19 by eugenelim. Revision `97ffc3a2f484ed5f` returned a clean independent intent-mode shaping review on every substantive run. Two earlier rounds were failed and repaired rather than waived: `MALFORMED(owner)`, because this intent carried no `## Owner` section at all — a gap shared by 8 of the 14 family intents, and one that suppresses the other five conditions — and `MALFORMED(statement)`, because the lagging outcome stated the allocator mechanism instead of an outcome. Both are fixed. A residual `MALFORMED(children)` appears on some runs and is a reviewer defect, not an artifact defect: the rule at `.claude/agents/shaping-reviewer.md` lines 64-74 emits that token for a missing decomposition only when the intent is above the leaf **and** `Accepted`, and this intent is the leaf and lists its delivery brief. Its brief's Spec map is empty because `author-delivery-brief` section 4 defers the slice cut until after Ready, behind a second confirmation. Deliberately unregistered on acceptance: `backlog.open` admits `Status: Draft` alone.
 - **Level:** feature
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** repository-work-graph — [Repository work graph](CAP-0001-repository-work-graph.md)
+- **Status:** Accepted
+- **Accepted:** 2026-09-19 by eugenelim — see [Acceptance record](#acceptance-record)
+
+- **Nonmaterial correction 2026-09-21 by eugenelim, lifecycle owner.** The preamble now carries the field set and order that `guides/product-engineering/reference/intent-fields-and-modes.md` defines — `Slug`, `Level`, `Scale`, `Maturity`, `Parent intent` — with the two lifecycle fields after them. `Accepted:` was 154 words of shaping-review narrative in a field position, which no reader can parse as a value; the narrative moved unchanged to `## Acceptance record` and the field now holds the date and the owner. Two links to this intent's delivery brief carried the brief's former title and now carry its current one. Nothing decided here changed, so the acceptance stands.
 
 ## Outcome
 
@@ -58,7 +60,7 @@ It owns **entry** to the lifecycle and not exit: what each `Status` value means,
 
 ## Projection
 
-Projects to its delivery brief, [intents get deterministic placement, safe admission, and a typed ordinal identity](../briefs/intent-identity-and-registration.md). No outbound tracker projection: that surface is [CAP-0004](CAP-0004-external-tracker-projection.md)'s and is not yet shaped.
+Projects to its delivery brief, [intents get a typed ordinal identity, a declared shape, and canonical references](../briefs/intent-identity-and-registration.md). No outbound tracker projection: that surface is [CAP-0004](CAP-0004-external-tracker-projection.md)'s and is not yet shaped.
 
 ## Assumptions
 
@@ -68,6 +70,10 @@ Projects to its delivery brief, [intents get deterministic placement, safe admis
 
 Two items left this list once they stopped being assumptions, and the **De-risk record** below owns both: that a typed ordinal can be allocated without a shared counter, which the allocator resolves by deriving `max + 1` and editing no counter file; and that ADR-0108 was precedent rather than constraint, which the record refutes on ADR-0108's own stated ground.
 
+
+## Acceptance record
+
+Revision `97ffc3a2f484ed5f` returned a clean independent intent-mode shaping review on every substantive run. Two earlier rounds were failed and repaired rather than waived: `MALFORMED(owner)`, because this intent carried no `## Owner` section at all — a gap shared by 8 of the 14 family intents, and one that suppresses the other five conditions — and `MALFORMED(statement)`, because the lagging outcome stated the allocator mechanism instead of an outcome. Both are fixed. A residual `MALFORMED(children)` appears on some runs and is a reviewer defect, not an artifact defect: the rule at `.claude/agents/shaping-reviewer.md` lines 64-74 emits that token for a missing decomposition only when the intent is above the leaf **and** `Accepted`, and this intent is the leaf and lists its delivery brief. Its brief's Spec map is empty because `author-delivery-brief` section 4 defers the slice cut until after Ready, behind a second confirmation. Deliberately unregistered on acceptance: `backlog.open` admits `Status: Draft` alone.
 
 ## De-risk record
 
@@ -285,7 +291,7 @@ Both defects were surfaced by adversarial review of `typed-intent-ordinal-alloca
 
 This intent is a `feature`, so it is the leaf: `decompose-intent` produces its delivery unit rather than child intents.
 
-- [Brief: intents get deterministic placement, safe admission, and a typed ordinal identity](../briefs/intent-identity-and-registration.md) — the delivery unit this feature projects to. The brief owns its own status and its own Spec map.
+- [Brief: intents get a typed ordinal identity, a declared shape, and canonical references](../briefs/intent-identity-and-registration.md) — the delivery unit this feature projects to. The brief owns its own status and its own Spec map.
 
 Ordinal allocation, repository placement, personal-to-repository promotion, discovery and duplicate validation are candidate delivery slices of this feature. The cut between them belongs to that post-Ready decision.
 
