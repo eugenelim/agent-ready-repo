@@ -38,6 +38,28 @@ const SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'web/src/lib/shared-chrome.gene
 const DOCS_SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'docs-site/src/shared-chrome.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
 
+// A clause ending, which must be followed by a space before the next element.
+//
+// ASCII `"` and `'` are POSITIONAL -- the same character opens and closes --
+// so neither is a clause ending on its own. `the "<code>pack</code>"` ends a
+// text node with an OPENING quote directly before an element, correctly and
+// deliberately unspaced; treating a bare `"` as terminal reds that valid
+// prose. They count only after clause punctuation, which is what makes
+// `It says "done."<a>Browse</a>` a weld. The curly forms are unambiguous and
+// stand alone.
+//
+// A bare closing bracket is likewise NOT a clause ending, and this is a
+// deliberate limit rather than an oversight: `(see the docs)<sup>1</sup>` is
+// a legitimately unspaced footnote boundary. `done.)` is caught, because the
+// clause punctuation is what carries the signal. No /packs/* page emits a
+// `<sup>` today, but the guard must not red valid future content.
+//
+// An em dash is out for the same positional reason -- `packs—<a>see</a>` is a
+// valid unspaced style -- so the em-dash weld is NOT covered. Stated here
+// because an earlier revision of this comment claimed it was.
+export const CLAUSE_END = /(?:[.,;:!?…][)"'’”\]]?|[’”])$/;
+
+
 /**
  * spec/site-shared-chrome AC7, for one emitted shared-chrome link.
  *
@@ -658,8 +680,10 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
    *    no boundary, no missing space — would red this suite. Too tight because
    *    it saw the defect only after a lowercase letter and a period, and only
    *    before a capitalised word: the same defect after `?`, `!`, a closing
-   *    quote or an em dash, or before a lowercase label, a digit or an
-   *    initialism such as `<code>CLI</code>`, sailed straight past it.
+   *    quote, or before a lowercase label, a digit or an initialism such as
+   *    `<code>CLI</code>`, sailed straight past it. (An em dash is a
+   *    separate case and is deliberately still out of scope -- see the
+   *    clause-ending note below.)
    *
    * The boundary test has neither failure. It fires only where a text node
    * ending in clause-ending punctuation directly abuts an element whose own
@@ -682,14 +706,6 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       .filter((name) => statSync(join(BUILD_ROOT, 'packs', name)).isDirectory());
     expect(packDirs.length).toBeGreaterThan(1);
 
-    // Punctuation that ends a clause and therefore must be followed by a space.
-    // Both quote forms are listed, ASCII and curly: an earlier version named only
-    // the curly ones while its rationale claimed quotes were covered, so
-    // `It says "done."<a>Browse</a>` passed. Closing brackets are here for the
-    // same reason -- `Use (<code>x</code>)<a>Browse</a>` emits `)Browse`.
-    // OPENING brackets, quotes and dashes are deliberately absent, because those
-    // legitimately abut the element after them, as in `(<a>docs</a>)`.
-    const CLAUSE_END = /[.,;:!?"'’”)\]]$/;
 
     const welded: string[] = [];
     for (const name of packDirs) {
@@ -709,6 +725,40 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       }
     }
     expect(welded, `emitted prose welds a clause to the element after it:\n${welded.join('\n')}`)
+      .toEqual([]);
+  });
+
+  /**
+   * The clause-ending predicate's own contract, pinned case by case.
+   *
+   * Here rather than only in the page guard because the page guard can only
+   * prove the shapes the current pages happen to contain. Three review rounds
+   * moved this predicate, and each move risked the opposite error from the one
+   * it fixed: widening it to catch `done."` admitted a bare ASCII quote, which
+   * reds the valid `the "<code>pack</code>"`. The rows below are the cases that
+   * decided the final shape, including the ones that must NOT fire.
+   */
+  it('the clause-ending predicate fires on welds and not on valid abutments', () => {
+    const welds = [
+      'above.',                       // the original defect
+      'above!',                       // an earlier textual form missed this
+      'It says "done."',              // ASCII closing quote after clause punctuation
+      'done.)',                       // closing bracket after clause punctuation
+      'For details\u2026',            // ellipsis
+      'he said \u201cyes\u201d',       // curly closing quote, unambiguous alone
+    ];
+    const abutments = [
+      'the "',                        // ASCII quote OPENING, legitimately unspaced
+      "the '",                        // same, single
+      "packs'",                       // bare apostrophe is not a clause ending
+      '(see above)',                  // bare bracket carries no clause signal
+      '(see the docs)',               // the <sup> footnote boundary
+      'packs\u2014',                  // em dash: documented out of scope
+      'works directly in',            // plain prose
+    ];
+    expect(welds.filter((text) => !CLAUSE_END.test(text)), 'these are welds and must fire')
+      .toEqual([]);
+    expect(abutments.filter((text) => CLAUSE_END.test(text)), 'these are valid and must not fire')
       .toEqual([]);
   });
 
