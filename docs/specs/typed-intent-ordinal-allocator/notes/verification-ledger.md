@@ -203,6 +203,42 @@ registration writes the entry once at the final path. There is no lockstep edit
 and no citation sweep, which is what keeps this out of
 `intent-renumber-and-reissue`'s territory.
 
+## 2026-09-21 — T1 materialized, red proven, then green
+
+**Materialization.** The plan's fenced block was written to
+`packs/core/tests/skills/work-intake/test_intent_ordinal.py` and byte identity
+against that block asserted at the moment of writing, per `tdd-stubs.md`. The
+suite then failed at collection — the module did not exist — which is the
+intended red for a not-yet-written seam.
+
+**Two edits after materialization,** both construction-level and both recorded
+because the byte-identity claim above is scoped to materialization and not to
+the file's later life. First, `ruff` `PTH101` rejected the stub's own
+`os.chmod(...)` in favour of `Path.chmod(...)`; ruff is a gate, so the
+repository copy took the fix and the plan's block now differs from it by those
+two lines. Second, three deferred assertions were filled: bytecode on the
+production path, an `origin` whose default branch will not resolve, and the
+byte bound stopping a read loop.
+
+**One implementation change the tests forced, and it is not test-fitting.**
+`_is_promisor` first compared `extensions.partialclone` only. Git's own
+`config --list` lowercases a key, while the documented spelling is
+`extensions.partialClone`, and a caller may hand over either — matching one
+leaves the other designation open. The comparison folds case now.
+
+**Green.** `python3 -m pytest packs/core/tests/skills/work-intake/ -q` →
+**160 passed**. `packs/core/tests/skills/intake-intent/ -q` → **23 passed**,
+unamended. `make lint-ruff lint-mypy` → clean, 148 source files.
+
+**Zero writes, observed rather than argued.** A real invocation —
+`python3 intent_ordinal.py --dir d --token FEAT` from a scratch directory —
+printed `FEAT-0002` and left no `__pycache__` beside the script. An earlier
+`__pycache__` there was written by my own `python3 -m py_compile`, not by the
+allocator; `test_a_real_invocation_writes_no_bytecode` now runs the CLI as a
+subprocess so the claim is standing rather than a one-off, and it must be a
+subprocess because the suite sets `sys.dont_write_bytecode` itself and would
+mask a script that does not.
+
 ## 2026-09-20 — T1's stub earns its red
 
 **Why run it.** `work-loop/SKILL.md:252` requires a TDD task's exact stub to
