@@ -734,6 +734,7 @@ _CHECK_DEPENDENCIES = {
     "pytest make-free gate chains (windows-build-gate-chain)": ("agentbundle", "bandit"),
     "converters source-attribution scrub (AC2)": ("ripgrep",),
     "converters Rail-C marker scrub (AC3)": ("ripgrep",),
+    "ruff lint (style, imports, common bugs)": ("ruff_mypy",),
     "mypy type-check (typed packages only)": ("ruff_mypy",),
     "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
         ("credbroker",),
@@ -760,6 +761,7 @@ _CHECK_EVIDENCE = {
         "35642472761 35642529928",
     "converters source-attribution scrub (AC2)": "35642480505",
     "converters Rail-C marker scrub (AC3)": "35642480505",
+    "ruff lint (style, imports, common bugs)": "35642487339",
     "mypy type-check (typed packages only)": "35642487339",
     "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
         "35642494151",

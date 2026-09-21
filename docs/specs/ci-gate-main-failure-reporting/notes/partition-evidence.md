@@ -226,8 +226,14 @@ conflate N with everything downstream, which is exactly what the earlier
 **Known confound, measured and subtracted.** The scratch relaxation these
 branches carry (`False and self._step()["has_if"]`) trips ruff's `SIM223`, so
 `ruff lint (style, imports, common bugs)` reds in **10 of 10** runs. Uniform
-across every row, therefore a constant, therefore subtracted. It is not a
-dependency of anything. The real change must not reproduce it: relax that guard
+across every row, therefore a constant, therefore subtracted.
+
+**Correction (run 35663766443).** Subtracting it from every row was right for
+nine rows and wrong for one: `ruff lint` genuinely depends on the
+`Install ruff + mypy` step. The T4a verification branches carry no scratch edit
+and so no confound, and on the `ruff + mypy` break that step FAILED rather than
+skipped — the signature of a real dependency the roster had missed. Uniformity
+of a confound does not establish that it was the only cause in every row. The real change must not reproduce it: relax that guard
 by deletion, not by a falsy conjunct.
 
 | Broken provisioning step | Run | Dependent checks |
@@ -249,7 +255,7 @@ Members, by provisioning step:
   `pytest catalogue-test carve-out destinations`; `pytest loop-telemetry contracts`
 - **agentbundle** → `pytest make-free gate chains`
 - **ripgrep** → `converters source-attribution scrub (AC2)`; `converters Rail-C marker scrub (AC3)`
-- **ruff + mypy** → `mypy type-check (typed packages only)`
+- **ruff + mypy** → `ruff lint (style, imports, common bugs)`; `mypy type-check (typed packages only)`
 - **credbroker** → `pytest credential-setup skill`; `pytest jira SSO suites`;
   `pytest confluence-crawler SSO suites`
 - **httpx** → none
