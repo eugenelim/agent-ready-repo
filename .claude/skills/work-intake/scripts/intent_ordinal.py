@@ -63,6 +63,16 @@ MAX_GIT_RESULT_BYTES = 8 * 1024 * 1024   # ~11x a whole-repository listing
 MAX_ORDINAL_DIGITS = 12
 DIAGNOSTIC_BYTE_LIMIT = 200
 
+# The child's environment is built from an allowlist, not inherited and pruned.
+# A denylist of `GIT_*` kept growing — the redirect set, then `GIT_CONFIG*`,
+# then `GIT_TRACE*` which makes a read-only probe write files, then
+# `GIT_CEILING_DIRECTORIES` which can fence discovery below the real root so
+# `rev-parse` reports no repository. Each was a real hole and the next one is
+# whichever variable nobody has thought of, so nothing inherited reaches git
+# except the few names it needs to run at all.
+GIT_ENVIRONMENT_ALLOWLIST = ("PATH", "HOME", "SystemRoot", "TMPDIR", "TEMP")
+# Retained as the documented set the allowlist supersedes, so a reader who
+# comes looking for the scrub finds why there is none.
 GIT_REDIRECT_VARIABLES = (
     "GIT_DIR",
     "GIT_WORK_TREE",
@@ -70,12 +80,6 @@ GIT_REDIRECT_VARIABLES = (
     "GIT_OBJECT_DIRECTORY",
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
 )
-# `GIT_CONFIG`, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM` and the
-# `GIT_CONFIG_COUNT`/`_KEY_n`/`_VALUE_n` family all redirect what
-# `git config` reports without changing what an object read obeys. An inherited
-# one could therefore hide a promisor designation from the guard while the
-# later `ls-tree` still honours it, so the whole prefix is scrubbed.
-_GIT_CONFIG_PREFIX = "GIT_CONFIG"
 _ORIGIN_REF_PREFIX = "refs/remotes/origin/"
 # Git's *false* forms, which is the closed set. Everything else it reads as
 # true — `2` and `-1` included — so an allowlist of true forms is the wrong
@@ -169,13 +173,11 @@ def _git(
     because an adopter-controlled config include can stall git with no output
     and a blocked ``read`` lets no deadline check run at all.
     """
-    environment = os.environ.copy()
-    for variable in GIT_REDIRECT_VARIABLES:
-        environment.pop(variable, None)
-    for variable in [
-        name for name in environment if name.startswith(_GIT_CONFIG_PREFIX)
-    ]:
-        environment.pop(variable, None)
+    environment = {
+        name: os.environ[name]
+        for name in GIT_ENVIRONMENT_ALLOWLIST
+        if name in os.environ
+    }
     # An argument vector free of `fetch` does not prove no egress: ls-tree on a
     # partial clone resolves a missing object through the promisor remote. This
     # fails that closed on a git that honours it; the configuration check in
@@ -224,7 +226,10 @@ def _git(
             except InterruptedError:
                 continue
             except OSError:
-                break
+                # Not EOF: accepting a truncated result here would hide a
+                # promisor key or drop the highest remote ordinal while git
+                # still exited zero.
+                return _GitResult(None, None)
             if not chunk:
                 break
             total += len(chunk)
@@ -404,7 +409,10 @@ def remote_view(directory: Path, deadline: float | None = None) -> RemoteView:
         meta, _, path = record.partition("\t")
         if not path:
             return RemoteView(frozenset(), "failed")
-        name = Path(path).name
+        # Git emits `/` on every platform, and a backslash inside a name is
+        # filename data. `Path(path).name` would split on it under Windows and
+        # read the wrong ordinal.
+        name = path.rsplit("/", 1)[-1]
         if classify(name) == "outside":
             continue
         fields = meta.split()
