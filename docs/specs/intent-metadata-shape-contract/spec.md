@@ -1,6 +1,6 @@
 # Spec: Intent metadata shape contract and its two enforcement points
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111; ADR-0121
@@ -157,9 +157,16 @@ backticks, and every criterion below decides on its output — the corpus's
 dominant commented shape is backticked *and* commented, and stripping backticks
 first no-ops because the comment trails the closing backtick.
 
+A value emptied by the stage makes the *value* absent, not the line. A rule
+about what a field is **named** still sees the field, so a retired name and a
+repeated field are refused however empty their values; a rule about what a
+field **says** treats it as absent.
+
 A criterion is **packet-decidable** when it can be settled from the supplied
 artifact alone, without opening any other file. The packet-decidable criteria
-are exactly AC-0001 through AC-0009, AC-0011, AC-0022 and AC-0025. AC-0021
+are exactly AC-0001 through AC-0009, AC-0011, AC-0022, AC-0025 and AC-0034.
+AC-0034 is AC-0004's twin — one normalization stage stated as two criteria —
+and belongs to the set for the same reason AC-0004 does. AC-0021
 resolves a slug against other artifacts; every other criterion below constrains
 the lint, the gate, the reviewer or a template rather than an artifact's
 content.

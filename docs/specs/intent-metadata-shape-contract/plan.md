@@ -1,7 +1,7 @@
 # Plan: Intent metadata shape contract and its two enforcement points
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py`
   (the sibling corpus-walking script this one sits beside, and the source of the
   refuse-rather-than-guess posture); `packs/core/tests/skills/work-intake/test_intent_ordinal.py`
@@ -425,3 +425,9 @@ ledger records the before and after counts.
 
 - 2026-09-21: spec approved by eugenelim
 - 2026-09-21: plan approved by eugenelim
+- 2026-09-21: contract amended by eugenelim — ADR-0121 supersedes ADR-0098 D3
+  in part so `Level` is required, lifting this plan's "No new ADR"; AC-0017
+  drops its cross-spec criterion numbers; the routing Follow-on is recorded as
+  settled
+- 2026-09-21: spec approved by eugenelim (post-amendment)
+- 2026-09-21: plan approved by eugenelim (post-amendment)

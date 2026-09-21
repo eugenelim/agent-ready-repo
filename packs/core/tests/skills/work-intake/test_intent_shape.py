@@ -663,3 +663,47 @@ def test_ac0021_is_not_reachable_from_the_packet_decidable_contract() -> None:
     """
     text = _preamble(_with(Status="Superseded by a-ghost"))
     assert _accepted(text)
+
+
+# ══ An emptied value: which rules still see the line ══════════════════════════
+#
+# Raised by adversarial review. A value emptied by normalization makes the value
+# absent, not the line. A rule about what a field is *named* still sees it; a
+# rule about what a field *says* does not. Pinned so the split is a decision
+# rather than an accident of evaluation order.
+
+
+@pytest.mark.parametrize("name", RETIRED)
+def test_a_retired_name_is_refused_even_with_an_emptied_value(name: str) -> None:
+    fields = dict(BASE)
+    fields[name] = "<!-- left over from the old shape -->"
+    assert name in _fields_at_fault(_preamble(fields))
+
+
+def test_a_repeat_is_refused_even_with_emptied_values() -> None:
+    text = "\n".join(
+        [
+            "# Intent: a rendered fixture",
+            "",
+            "- **Owner:** eugenelim",
+            "- **Slug:** a-live-intent",
+            "- **Level:** feature",
+            "- **Status:** Draft",
+            "- **Governed by:** <!-- tbd -->",
+            "- **Governed by:** <!-- also tbd -->",
+            "",
+            "## Outcome",
+            "",
+            "Text.",
+        ]
+    )
+    assert "Governed by" in {
+        v.field for v in intent_shape.validate_live_intent(text)
+    }
+
+
+def test_an_unknown_name_with_an_emptied_value_is_still_accepted() -> None:
+    """The open half of AC-0009 is unaffected by the value being emptied."""
+    fields = dict(BASE)
+    fields["Milestone"] = "<!-- not yet placed -->"
+    assert _accepted(_preamble(fields))
