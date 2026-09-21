@@ -81,11 +81,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `work-loop` § Capture states the close-time routing table in five rows
-  instead of four, and points at DECIDE for both same-session routes rather
-  than restating them.
-- `work-loop` § Step 5. DECIDE carries the session-bound dispatch rule for a
-  scratch-note defect. § Capture keeps only the destinations that outlive the
-  loop — the `project-knowledge` seam and a captured `work-item`.
+  instead of four. The row that read `Specific, real, ready now` becomes two,
+  separating a ride-along-eligible defect from one that needs its own review
+  unit; the four destinations and the routing sentence below the table are
+  otherwise unchanged.
+- `work-loop` § Step 5. DECIDE gains the bound that a ready-now defect's
+  route is settled in that pass. It replaces a "before the session ends"
+  instruction in § Capture that named no point in the loop an agent reaches.
 
 ## [core][2.26.26] — 2026-09-21
 

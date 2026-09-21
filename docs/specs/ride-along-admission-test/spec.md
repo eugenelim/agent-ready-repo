@@ -136,11 +136,13 @@ is additive and stated first, because a note can be both a lesson to keep and
 a defect to dispose of, and a seam stated as a ranked alternative would be
 unreachable for every note an earlier alternative already matched. The
 sequence then disposes of the defect, first match winning, which is what
-keeps a decision-blocked item out of a route it would otherwise also match.
-The table separates the two ready-now destinations into their own rows, so no
-row names more than one place a note can go; both are same-session routes and
-both are dispatched at DECIDE, which the sequence states rather than
-restating the dispatch rule. The sequence is gated on the note naming a
+keeps a decision-blocked item out of a route it would otherwise also match,
+and why the blocked clause leads. The table separates the two ready-now
+destinations into their own rows, so no row names more than one place a note
+can go, and the sequence states each route in full. Neither the table nor the
+sequence names the pass that settles the route: `SKILL.md` § Step 5. DECIDE
+owns that, and stating it here too would be the same rule in two places. The
+sequence is gated on the note naming a
 defect, so a lesson-only note leaves at the seam rather than falling into
 discard, and the closing sentence routes a note that is neither defect nor
 lesson. Every note therefore reaches a destination and no note reaches two,
@@ -177,7 +179,7 @@ except by the seam's additive rule.
 >   [The reasoning
 >   check](references/work-item-capture.md#the-reasoning-check). A note
 >   that names no defect is done once the seam has taken it, and
->   discarded if it had nothing for the seam either
+>   discarded if it had nothing for the seam either.
 
 **C5 — the capture obligation and its economics.** Carried in `SKILL.md`
 § Capture only.

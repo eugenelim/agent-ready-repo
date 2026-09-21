@@ -723,9 +723,8 @@ repairing its generator or dropping it.
 **Route a ready-now defect in this pass, not at Capture.** A scratch note
 naming a specific, real defect that can be finished this session without a
 decision nobody present will make is loop work, and this pass is where its
-route is settled. [Capture](#capture) maps where a note goes; it does not
-reopen a route, and two of the destinations it maps need a loop that is
-still open.
+route is settled, because a route taken in-session needs a loop that is still
+open. [Capture](#capture) maps where a note goes; it does not reopen one.
 
 ### Review verdict record
 

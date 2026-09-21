@@ -126,7 +126,7 @@ C4 = (
     "[The reasoning "
     "check](references/work-item-capture.md#the-reasoning-check). A "
     "note that names no defect is done once the seam has taken it, and "
-    "discarded if it had nothing for the seam either"
+    "discarded if it had nothing for the seam either."
 )
 C5 = (
     "A captured item carries its discriminator: the one fact the decision "
@@ -597,10 +597,29 @@ def test_decide_row_disposition_sentence() -> None:
 
 
 def test_capture_section_routing_bullet() -> None:
+    """C4 equals the clause `SKILL.md` ships, end to end.
+
+    Containment was the earlier form and could not see a truncated tail: a
+    `C4` missing its final character is still a substring of the section, and
+    the two other pins compare `C4` against the spec blockquote, so a
+    truncation applied to both stayed green on every control. Slicing the
+    section at the same open and close literals and comparing for equality is
+    what makes a short clause red.
+    """
     section = _section(_text(SKILL), "Capture")
     assert section is not None, "SKILL.md has no '## Capture' section"
-    assert C4 in re.sub(r"\s+", " ", section), (
-        "the '## Capture' section's scratch-note bullet does not read exactly C4"
+    flat = re.sub(r"\s+", " ", section)
+    start = flat.find(C4_OPEN)
+    assert start != -1, "the '## Capture' section has no scratch-note bullet"
+    end = flat.find(C4_CLOSE, start)
+    assert end != -1, (
+        "the scratch-note bullet does not reach C4's closing sentence; the "
+        "clause is truncated or its tail was reworded"
+    )
+    shipped = flat[start : end + len(C4_CLOSE)]
+    assert shipped == C4, (
+        "the '## Capture' section's scratch-note bullet does not read exactly "
+        f"C4\nshipped: {shipped!r}\nC4:      {C4!r}"
     )
 
 

@@ -1787,7 +1787,11 @@ rather than patching the rewrite. Every normative clause returns verbatim,
 the clauses are reordered to the table's order, and the one deletion is
 "ahead of this table", which the split makes false. The DECIDE paragraph was
 cut back to a timing bound that states no destination, no return edge and no
-Capture-timing claim — so it has no drift surface at all.
+claim about when Capture runs. What it does carry is one general proposition
+— a route taken in-session needs a loop that is still open — which is pinned
+to no table, no count of rows and no wording elsewhere, so no edit to
+§ Capture can falsify it. That is a smaller surface than the paragraph had,
+not the absence of one.
 
 **The instrument that would have caught it in round 1.** A word-level
 comparison of the whole C4 clause against `origin/main`, reporting every
@@ -1819,3 +1823,48 @@ note that both ready-now rows carry `dispatched-in-session`.
   carries the same text at line 600, and at line 69. `AC12`'s sweep covers
   `packs/`, `tools/` and `guides/`, so `docs/` drift is outside it. Not
   caused, widened or narrowed here.
+
+### Review round 4 — the class recurred once more, and a control that could not fail
+
+**Blocker 3 is the finding that matters.** Round 3's regeneration script
+sliced C4 with a hardcoded `+ 47` where the closing literal is 48 characters,
+so the `C4` constant and this spec's blockquote both lost C4's terminal
+period while `SKILL.md` kept it. **Every control stayed green.**
+`test_pinned_clauses_match_the_spec` compares the constant to the blockquote,
+and both were truncated identically. `test_capture_section_routing_bullet`
+asserted `C4 in <flattened section>`, and a clause missing its last character
+is still a substring. `C4_CLOSE` in the same module asserted the period the
+constant had dropped, and nothing compared the two.
+
+So three pins over one clause could not see a one-character loss at its tail,
+because two of them compared copies to each other and the third was blind at
+both ends. This is the failure the ledger already records as a class — a
+control that agrees with another copy rather than with the source — arriving
+inside the repair for that class.
+
+**Repaired at the generator and at the control.** The slice now uses
+`len(CLOSE)`; the magic number is gone. `test_capture_section_routing_bullet`
+slices the section at `C4_OPEN` and `C4_CLOSE` and compares for **equality**,
+with a distinct message for a tail that does not reach the closing sentence.
+
+**Mutation proof, run against the tree as shipped.** Truncating the `C4`
+constant by its final character — the exact defect — reds
+`test_capture_section_routing_bullet`:
+`1 failed, 15 passed`. Restored: `16 passed`. Under the previous containment
+form that same mutation passed, which is why it shipped through round 3.
+
+**Blockers 1 and 2, Concerns 4, 5, 6 and Nit 7 — applied.** The C4 narrative
+in this spec described round 2's blockquote and now describes the shipped
+sequence, including why neither the table nor the sequence names DECIDE.
+Both `### Changed` changelog bullets described the reverted shape and now
+describe HEAD. The two superseded round-1 and round-2 records carry a
+supersession marker where a reader meets them, matching the convention this
+ledger already used for the AC17 walk. The DECIDE paragraph's count of
+destinations is gone, so the paragraph is pinned to nothing in § Capture, and
+the ledger's claim about it is stated as a smaller surface rather than none.
+
+**Standing instruction for any later edit to this clause.** Regenerate the
+constant and the blockquote from `SKILL.md` with `len()` on the boundary
+literals, never an offset, and run the word-level opcode dump against
+`origin/main` before review. Two rounds were spent on defects that dump would
+have shown immediately.
