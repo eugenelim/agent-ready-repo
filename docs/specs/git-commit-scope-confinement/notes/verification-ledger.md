@@ -166,3 +166,22 @@ tests/roster/test_okf_catalogue_discovery.py
 
 **Done when:** AC-0007 holds and the routing suite passes.
 ```
+
+## The raw-value screen, and one control that could not fail
+
+Targeted mutations, each reverting one token of the fix:
+
+| Mutation | Caught by |
+| --- | --- |
+| The screen reads `configured` (resolved) instead of `raw_configured` | both new defect tests |
+| The raw reader's `research`/`product` precedence flipped | the agreement test, `both-scopes` row only |
+
+The second row is the finding worth keeping. The agreement test's first version
+parametrised five configurations and every one wrote only the repo-scope file,
+so the user-scope side was always empty and a precedence flip passed all five.
+It asserted agreement without exercising the only thing the two readers can
+disagree about. The `both-scopes` row — both files present, different values on
+every key — is what makes it fail, and the mutation confirms it is the only row
+that does.
+
+Full `workspace_mcp` selection after the fix: 161 passed, 42 skipped, 132s.

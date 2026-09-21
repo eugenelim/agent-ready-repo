@@ -210,18 +210,28 @@ packages/agentbundle/tests/test_workspace_mcp_git_scope.py
 **Depends on:** T2
 
 **Tests:**
-- Goal-based: `version.py` and `pyproject.toml` both read `0.47.3`; the package changelog's
-  topmost entry and the product changelog's first `agentbundle` entry carry
-  that version; `README-pypi.md` has its `What's new` section. Covers AC-0007.
-- The product changelog keeps core's newest entry adjacent to `[Unreleased]`,
-  checked by `tools/test_build_site_routing.py`.
+- Goal-based, in `tests/roster/test_okf_catalogue_discovery.py`: `version.py`
+  and `pyproject.toml` both read `0.47.3` by equality; the package changelog's
+  topmost `## [` heading, the product changelog's first `## [agentbundle][`
+  heading, and `README-pypi.md`'s newest `## What's new in` heading each name
+  that version. The three heading checks are positional, not containment: a
+  newer heading placed above the released one is the half-finished-release
+  state AC-0007 pins against, and a containment check stays green through it.
+  Covers AC-0007.
+- `tools/test_build_site_routing.py` passes. It checks changelog parsing, the
+  `[Unreleased]` region's classification, and blank-line separation between
+  sections. It asserts no ordering property, so the product changelog keeping
+  core's newest entry adjacent to `[Unreleased]` is a convention this task
+  follows and no suite mechanically checks.
 
 **Touches:** packages/agentbundle/agentbundle/version.py,
 packages/agentbundle/pyproject.toml, packages/agentbundle/CHANGELOG.md,
 packages/agentbundle/README-pypi.md, docs/product/changelog.md,
 tests/roster/test_okf_catalogue_discovery.py
 
-**Done when:** AC-0007 holds and the routing suite passes.
+**Done when:** AC-0007 holds, each of its five surfaces is pinned by equality
+or by position in `tests/roster/test_okf_catalogue_discovery.py`, and the
+routing suite passes.
 
 ### T4: The design document states where wildcard structure comes from
 
@@ -257,3 +267,20 @@ this.
 - Drafting: authored against the confirmed `Never do` set.
 - Approved 2026-09-21 by eugenelim: scope and build strategy approved together
   after three adversarial rounds and one shaping round, all findings disposed.
+- Amended 2026-09-21 under owner authority recorded in
+  `notes/verification-ledger.md`, which also quotes the pre-amendment text
+  verbatim. Two errors in T3's `Tests`: it credited
+  `tools/test_build_site_routing.py` with an adjacency check that file does not
+  make, and it named no suite for the version checks while asking of
+  `README-pypi.md` only that a `What's new` section exist — neither the version
+  it carries nor its position. It did already ask for the package changelog's
+  topmost entry and the product changelog's first `agentbundle` entry, and that
+  wording is kept. `Tests` and `Done when` now state what is asserted and where.
+  `Touches` is unchanged: the routing suite is run, not edited. No acceptance
+  criterion, outcome, or task boundary moved.
+- Scope re-approved 2026-09-21 by eugenelim after the amendment: the acceptance
+  criteria are unchanged, so the re-approval confirms the same scope.
+- Build strategy re-approved 2026-09-21 by eugenelim: T3's corrected `Tests`
+  and `Done when` reached clean on the third pre-EXECUTE round, the first of
+  which sustained a contract-tier implementation defect now carried into
+  EXECUTE and recorded in `notes/verification-ledger.md`.

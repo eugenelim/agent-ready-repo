@@ -24,6 +24,7 @@ sampled at one point.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -32,6 +33,8 @@ from agentbundle.workspace_mcp import (
     _LAYOUT_TYPE_BASES,
     _LIFECYCLE_MANIFEST,
     _GitTools,
+    _read_layout_bases,
+    _read_raw_layout_output_dirs,
 )
 
 _SLUG = "alpha"
@@ -370,3 +373,135 @@ def test_a_refused_base_leaves_the_sibling_git_tools_working(
     assert refused == unconfigured
     assert refused[0] == {"branch": f"{_INI}/{item_type}/{_SLUG}"}
     assert refused[1] == {"pushed": f"{_INI}/{item_type}/{_SLUG}"}
+
+
+# ── The screen reads the configured value, not the resolved one ──────────────
+
+def test_a_reserved_character_normalised_away_by_resolution_is_still_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-0002 is about the value the adopter configured. `scratch*/../artifacts`
+    contains `*` and resolves to `artifacts`, so a screen over the resolved base
+    reads a path the adopter never wrote and lets this one through."""
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    _configure(repo, "product", "scratch*/../artifacts")
+    _write(repo / _UNRELATED)
+
+    _dispatch(monkeypatch, "shape")
+    tools = _GitTools(repo)
+
+    assert tools._refused_layout_key == "product"
+    assert "[product]" in tools.git_commit({"message": "scope"})["error"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="`*` is not a legal Windows filename")
+def test_a_clean_base_is_accepted_under_a_repository_path_carrying_a_reserved_character(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The mirror of the case above, and the reason the screen cannot simply be
+    moved earlier without being narrowed to the adopter's own value: resolution
+    splices in the repository's location, so a repository directory named
+    `pro*ject` would refuse every configured base under it."""
+    repo = tmp_path / "pro*ject" / "repo"
+    _seed_repo(repo)
+    _configure(repo, "product", "artifacts")
+    base = _resolved_base(repo, "artifacts")
+    _write(Path(base + _ITEM_FILE_TAIL["shape"].format(slug=_SLUG)))
+    _write(repo / _UNRELATED)
+
+    _dispatch(monkeypatch, "shape")
+    tools = _GitTools(repo)
+    staged = _staged(tools.git_commit({"message": "scope"}))
+
+    assert tools._refused_layout_key is None
+    assert staged == _expected_staged(repo, base, "shape")
+    assert _UNRELATED not in staged
+
+
+def _write_layout(path: Path, layout: dict[str, str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(
+            f'[{key}]\noutput_dir = "{value}"\n'.replace("\\", "\\\\")
+            for key, value in layout.items()
+        ),
+        encoding="utf-8",
+    )
+
+
+# `both-scopes` is the load-bearing row. Every other case configures one file,
+# so a precedence flip in the raw reader would still agree with the shared one —
+# the property the whole test exists for would go unchecked. Here the two scopes
+# disagree on every key, so whichever one each key must prefer is decided.
+_AGREEMENT_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
+    "nothing-configured": ({}, {}),
+    "one-key": ({"product": "artifacts"}, {}),
+    "every-key": ({"research": "r/one", "product": "p/two", "design": "d/three"}, {}),
+    "dot-segments": ({"product": "./a/../artifacts"}, {}),
+    "reserved-character": ({"research": "vault*/../notes"}, {}),
+    "user-scope-only": ({}, {"research": "USER", "product": "USER", "design": "USER"}),
+    "both-scopes": (
+        {"research": "repo/r", "product": "repo/p", "design": "repo/d"},
+        {"research": "USER", "product": "USER", "design": "USER"},
+    ),
+}
+
+
+@pytest.mark.parametrize("shape", sorted(_AGREEMENT_LAYOUTS))
+def test_the_raw_reader_and_the_resolved_reader_agree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, shape: str
+) -> None:
+    """`_read_raw_layout_output_dirs` reproduces `_read_layout_bases`'s per-key
+    precedence because it may not share it — the shared reader is one the spec
+    forbids modifying. Duplicated precedence drifts silently, so this pins the
+    two to one answer: every key one returns, the other returns, and resolving
+    the raw value reproduces the resolved one exactly.
+
+    A user-scope value must be absolute to count at all, so the `USER` marker
+    below stands for an absolute path under this test's own home.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    home = tmp_path / "home"
+    repo_layout, user_layout = _AGREEMENT_LAYOUTS[shape]
+    user_layout = {
+        key: str((home / "vault" / key).resolve()) if value == "USER" else value
+        for key, value in user_layout.items()
+    }
+    if repo_layout:
+        _write_layout(repo / "agentbundle-layout.toml", repo_layout)
+    if user_layout:
+        _write_layout(home / ".agentbundle" / "agentbundle-layout.toml", user_layout)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+    raw = _read_raw_layout_output_dirs(repo)
+    resolved = _read_layout_bases(repo)
+
+    assert set(raw) == set(resolved)
+    assert {key: _resolved_base(repo, value) for key, value in raw.items()} == resolved
+    if shape == "both-scopes":
+        # research takes the user-scope value; product and design take the repo's.
+        assert raw["research"] == user_layout["research"]
+        assert raw["product"] == repo_layout["product"]
+        assert raw["design"] == repo_layout["design"]
+
+
+def test_the_raw_reader_drops_a_user_scope_relative_value_like_the_shared_reader(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A user-scope relative value never reaches a staging scope, so screening it
+    would refuse a session over a value that does not apply to it."""
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    home = tmp_path / "home"
+    (home / ".agentbundle").mkdir(parents=True)
+    (home / ".agentbundle" / "agentbundle-layout.toml").write_text(
+        '[research]\noutput_dir = "relative*/vault"\n', encoding="utf-8"
+    )
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+    assert _read_raw_layout_output_dirs(repo) == {}
+    assert _read_layout_bases(repo) == {}

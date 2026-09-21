@@ -224,6 +224,56 @@ def _read_layout_bases(repo_root: Path) -> dict[str, str]:
     return {k: v for k, v in result.items() if v}
 
 
+def _read_raw_layout_output_dirs(repo_root: Path) -> dict[str, str]:
+    """Return each key's configured `output_dir` exactly as the adopter wrote it.
+
+    `_read_layout_bases` yields the same values resolved, which is what the
+    status payload and the staging scope both need and what this function
+    deliberately does not do. A screen for characters the adopter typed cannot
+    read a resolved path: resolution normalises `a*/../b` down to `b`, hiding a
+    reserved character that was configured, and it splices in the repository's
+    own location, which may carry one the adopter never typed.
+
+    The per-key precedence and the user-scope-must-be-absolute rule are
+    `_read_layout_bases`'s, reproduced rather than shared because that function
+    may not be modified. `test_the_raw_reader_and_the_resolved_reader_agree`
+    pins the two to one answer, so a change to either that the other does not
+    follow fails rather than drifting.
+    """
+    import tomllib
+
+    def _raw_scope(path: Path, *, scope: str) -> dict[str, str]:
+        if not path.exists() or path.is_symlink():
+            return {}
+        out: dict[str, str] = {}
+        with contextlib.suppress(Exception):
+            with path.open("rb") as fh:
+                data = tomllib.load(fh)
+            for key in ("research", "product", "design"):
+                if not isinstance(data.get(key), dict):
+                    continue
+                raw = data[key].get("output_dir", "")
+                if not raw:
+                    continue
+                if scope == "user" and not Path(raw).expanduser().is_absolute():
+                    # The shared reader drops this one and warns about it, so it
+                    # never reaches a staging scope and must not be screened.
+                    continue
+                out[key] = raw
+        return out
+
+    repo = _raw_scope(repo_root / "agentbundle-layout.toml", scope="repo")
+    user = _raw_scope(
+        Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
+    )
+    result = {
+        "research": user.get("research") or repo.get("research", ""),
+        "product": repo.get("product") or user.get("product", ""),
+        "design": repo.get("design") or user.get("design", ""),
+    }
+    return {k: v for k, v in result.items() if v}
+
+
 def _apply_layout_overrides(
     item_type: str, patterns: list[str], bases: dict[str, str]
 ) -> list[str]:
@@ -1751,16 +1801,21 @@ class _GitTools:
             )
             bases = _read_layout_bases(self._repo_root)
             # Screen the configured base before it is spliced in, so a value that
-            # cannot bound a scope never reaches the pattern list. The check keys
-            # on the adopter's base and never on the substituted pattern: the
-            # manifest contributes `*` and `**` of its own, and after substitution
-            # the two are textually indistinguishable.
+            # cannot bound a scope never reaches the pattern list. Two things the
+            # check must not read: the substituted pattern, because the manifest
+            # contributes `*` and `**` of its own and after substitution the two
+            # are textually indistinguishable; and the resolved base, because
+            # resolution both hides a configured `a*/../b` and invents a `*` the
+            # adopter never typed when the repository's own path carries one.
             mapping = _LAYOUT_TYPE_BASES.get(item_type)
             if mapping is not None:
                 toml_key = mapping[0]
                 configured = bases.get(toml_key)
+                raw_configured = _read_raw_layout_output_dirs(self._repo_root).get(
+                    toml_key
+                )
                 if configured is not None and any(
-                    char in configured for char in _RESERVED_BASE_CHARS
+                    char in (raw_configured or "") for char in _RESERVED_BASE_CHARS
                 ):
                     self._refused_layout_key = toml_key
                     # stdout is the MCP protocol channel, so the adopter-facing
