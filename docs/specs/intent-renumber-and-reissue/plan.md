@@ -52,9 +52,8 @@ sessions working in this worktree.
 
 ## Construction tests
 
-**Integration tests:** one end-to-end rename per cause over a miniature corpus,
-driven through the packaged surface rather than the module, covering AC-0025
-and both arms of AC-0013.
+**Integration tests:** one end-to-end rename driven through the packaged
+surface rather than the module, covering AC-0025 and AC-0013.
 
 **Manual verification:** an operator follows
 `guides/product-engineering/how-to/` through one real rename, which is the only
@@ -66,7 +65,7 @@ way to learn whether the page is followable.
 | --- | --- | --- | --- |
 | Decision rationale — `docs/adr/` | T7 | An Accepted ADR stating the tombstone convention and the two rejected name shapes | The ADR exists and `spec.md` cites it in `Constrained by:` |
 | Interface compatibility — `guides/product-engineering/reference/intent-fields-and-modes.md` | T7 | The `Tombstone:` row and its three-field contract beside the existing intent fields | The page describes the field an adopter will see |
-| Maintainer procedure — `guides/product-engineering/how-to/` | T8 | A how-to covering both causes and each refusal | The page walks one real rename end to end |
+| Maintainer procedure — `guides/product-engineering/how-to/` | T8 | A how-to covering the rename and each refusal | The page walks one real rename end to end |
 | Current product truth — `intake-intent` and `work-intake` `SKILL.md` | T8 | Both statements point at this operation instead of asserting the capability wall | No skill still claims an intent can never be renamed |
 | Release history — `packs/core/CHANGELOG.md` | T8 | One entry for the shipped operation | Entry present under the released version |
 | Reusable learning — `notes/verification-ledger.md` | T2, T4 | The citation-relation measurement and the transaction's failure-injection matrix | The ledger records the measurements the criteria rest on |
@@ -95,8 +94,8 @@ Owned by: T3, T4
 
 ### Interfaces & contracts
 
-The operator surface is a script invoked from the repository root with three
-arguments — source path, target token, cause — mirroring `intent_ordinal.py`'s
+The operator surface is a script invoked from the repository root with two
+arguments — source path and target token — mirroring `intent_ordinal.py`'s
 existing argument style so an operator meets one convention, not two. It exits 0
 on success and non-zero with one fixed diagnostic token per refusal class, which
 is the discipline `intent_ordinal.py` already states for itself.
@@ -107,8 +106,8 @@ make the pre-write snapshot AC-0012 names hard to pin, because the corpus could
 move between the two reads.
 
 Refusal classes, each a fixed token: `source-missing`, `source-outside-root`,
-`source-unregistered`, `token-unknown`, `cause-unknown`, `path-dirty`,
-`allocator-refused`, `target-exists`.
+`source-unregistered`, `token-unknown`, `path-dirty`, `target-occupied`,
+`allocator-refused`.
 
 Owned by: T1, T5, T6
 
@@ -127,8 +126,9 @@ the tombstone standing at the vacated path, and this spec's own
 
 **The success domain.** A request succeeds when all of: the source resolves
 inside `docs/product/intents/` and exists; the token is in `NAMESPACE_TOKENS`;
-the cause is `duplicate-ordinal` or `altitude-change`; the source has a
-`workspace.toml` entry; and every path the plan would touch is clean. Anything
+the source has a `workspace.toml` entry; the allocator can answer for the
+corpus; the target filename is free; and every path the plan would touch is
+clean. Anything
 else refuses. The domain is stated once here and each refusal token above maps
 to one clause.
 
@@ -189,7 +189,7 @@ Owned by: T2, T4
 **Tests:** One refusing case per clause of the success domain, each asserting
 the fixed token and that the fixture tree is byte-identical afterwards: absent
 source, source outside `docs/product/intents/`, source that is a symlink out of
-the root, token outside `NAMESPACE_TOKENS`, unrecognized cause, source with no
+the root, token outside `NAMESPACE_TOKENS`, source with no
 `workspace.toml` entry, and a path the plan would touch carrying an uncommitted
 change. A positive case asserting a fully valid request passes validation.
 Covers AC-0021, AC-0020, and AC-0003's refusal arm.
@@ -269,7 +269,7 @@ naming both paths. Covers AC-0007, AC-0008, AC-0009.
 ### T7 — The convention is recorded where an adopter and a maintainer each find it
 
 **Tests:** Goal-based. The ADR exists, is `Accepted`, and `spec.md` cites it in
-`Constrained by:`; `intent-fields-and-modes.md` documents `Tombstone:` and its
+`Constrained by:`, which is AC-0027; `intent-fields-and-modes.md` documents `Tombstone:` and its
 three-field contract. Both are checked by reading the files, because neither is
 executable.
 
@@ -281,7 +281,7 @@ directory and the one that silently frees the ordinal.
 
 ### T8 — An operator can run a rename from an installed core pack
 
-**Tests:** An end-to-end rename per cause driven through the surface an
+**Tests:** An end-to-end rename driven through the surface an
 installed `packs/core` exposes, not through the module. `packs/core` builds and
 the surface appears in its manifest. Covers AC-0025 and the integration tests
 above. Manual: an operator follows the how-to through one real rename.

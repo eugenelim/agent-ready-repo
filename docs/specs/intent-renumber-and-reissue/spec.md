@@ -140,7 +140,7 @@ ordinal out of circulation for as long as its tombstone stands.
   source, a source outside `docs/product/intents/`, a token outside
   `NAMESPACE_TOKENS`, an unrecognized cause — so a positive path cannot be
   satisfied by refusing everything.
-- **The operator surface (AC-0025): goal-based check.** A rename driven through the
+- **The operator surface (AC-0025, AC-0027): goal-based check.** A rename driven through the
   surface an installed `packs/core` exposes, not through an internal entry
   point, because every other check here passes against a helper an adopter
   cannot reach.
@@ -185,8 +185,10 @@ ordinal out of circulation for as long as its tombstone stands.
       working tree and the index as they were before it ran.
 - [ ] **AC-0026.** An interruption while the rename is applying leaves the
       repository in one of two observable states — every change applied, or a
-      recoverable partial state naming every path the rename intended to
-      write. Which failures recover automatically, and how, is design.
+      partial state naming every path the rename intended to write, from which
+      re-running the operation or restoring those paths ends in the complete
+      rename or the pre-rename state and in no third state. Which failures
+      recover automatically, and how, is design.
 - [ ] **AC-0004.** For every token the allocator recognizes — its
       `NAMESPACE_TOKENS`, derived from the closed level-to-token table the
       parent intent owns — its next ordinal exceeds every ordinal that token
@@ -202,29 +204,39 @@ ordinal out of circulation for as long as its tombstone stands.
       gate owns the check.
 - [ ] **AC-0007.** Resolving a tombstone whose `Reissued as:` names a path
       that does not exist yields a diagnostic naming the tombstone and the
-      missing path, on the same surface AC-0009 names.
+      missing path, on the operator surface AC-0025 names.
 - [ ] **AC-0008.** Resolving a tombstone whose `Reissued as:` names a file that
       itself carries `Tombstone:` yields a diagnostic naming both paths, on
-      that same surface.
-- [ ] **AC-0009.** Resolving a path that lands on a tombstone yields a
+      that same operator surface.
+- [ ] **AC-0009.** On the operator surface AC-0025 names, resolving a path
+      that lands on a tombstone yields a
       diagnostic naming the tombstone and its `Reissued as:` target, and never
       the successor's content. Resolution stops at the tombstone rather than
       following it.
 - [ ] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
-      for the target token over the corpus as it stood before the rename, and
-      never the vacated ordinal reused under a different token.
+      for the target token over the corpus as it stood before the rename. The
+      allocator's answer is the whole requirement: carrying an ordinal across
+      fails it whenever carrying and allocating differ, and where they
+      coincide there is nothing to distinguish.
+- [ ] **AC-0027.** An Accepted ADR records the tombstone convention, and this
+      spec cites it in `Constrained by:`. Without it, applying ADR-0108 D3's
+      non-reuse rule to intent filenames rests on no decision; this is a
+      governing constraint the contract needs, not a document the delivery
+      produces.
 - [ ] **AC-0025.** A rename completes through the surface an installed
       `packs/core` exposes to an operator, exercised as an operator invokes it
       rather than through an internal entry point.
-- [ ] **AC-0021.** A rename request carries exactly three things: the
+- [ ] **AC-0021.** A rename request carries exactly two things: the
       repository-relative path of an existing live intent inside
-      `docs/product/intents/`, the target token from the allocator's
-      `NAMESPACE_TOKENS`, and the cause, one of `duplicate-ordinal` or
-      `altitude-change`. A request missing or failing any of the three is
-      refused, naming the part at fault.
+      `docs/product/intents/`, and the target token from the allocator's
+      `NAMESPACE_TOKENS`. A request missing or failing either is refused,
+      naming the part at fault. Why a rename is wanted is not part of the
+      request: a duplicate ordinal and an altitude change produce the same
+      operation, and a declared cause the contract does not constrain would
+      change nothing an implementation must do.
 - [ ] **AC-0013.** A request satisfying AC-0021 whose source is registered in
-      `workspace.toml` and whose affected paths are all clean succeeds for
-      either cause, leaving a tombstone at the vacated path whose
+      `workspace.toml` and whose affected paths are all clean succeeds,
+      leaving a tombstone at the vacated path whose
       `Reissued as:` value is the new live artifact's repository-relative path.
       AC-0020 is the exclusion for a dirty path; an unregistered source is
       refused because the Outcome requires the registry to move in lockstep;
@@ -238,8 +250,8 @@ ordinal out of circulation for as long as its tombstone stands.
       `docs/product/intents/`; an absolute path, or one resolving outside that
       directory, is refused.
 - [ ] **AC-0017.** `Retired:` carries a single non-empty line.
-- [ ] **AC-0018.** Every file that cited the vacated path before a rename
-      cites the new path after it, and no other content in that file changes.
+- [ ] **AC-0018.** Over AC-0001's searched set, every file that cited the
+      vacated path before a rename cites the new path after it, and no other content in that file changes.
       A citation is repointed, never removed. The renamed artifact itself is
       outside this criterion, because it becomes a tombstone; AC-0024 governs
       it.
@@ -254,10 +266,20 @@ ordinal out of circulation for as long as its tombstone stands.
 
 ## Retired identifiers
 
+- `AC-0010`
+  - superseded by `AC-0018`, which already reaches an inbound tombstone.
 - `AC-0011`
-  - first-time allocation for an intent authored through a
-  non-allocating route. A separate outcome, releasable and verifiable on its
-  own, recorded under `## Follow-ons` with its owner.
+  - first-time allocation; a separate outcome, under `## Follow-ons`.
+- `AC-0014`
+  - split into `AC-0015`, `AC-0016` and `AC-0017`.
+- `AC-0019`
+  - standalone retirement's operation; a separate outcome, under
+    `## Follow-ons`.
+- `AC-0023`
+  - unsatisfiable as a criterion; `AC-0003` and `AC-0026` carry the
+    observables.
+
+## Follow-ons` with its owner.
 - `AC-0010`
   - re-pointing an inbound tombstone. An inbound tombstone is a file citing the
     vacated path, so `AC-0018` already requires it to cite the new path with
@@ -283,17 +305,12 @@ ordinal out of circulation for as long as its tombstone stands.
 
 ## Follow-ons
 
-- Settled 2026-09-21 by eugenelim, on the ground that
-  `docs/specs/intent-metadata-shape-contract/plan.md` already states it under
-  `## Constraints` — "**ADR-0108 D3** and
-  `docs/specs/intent-renumber-and-reissue/spec.md` own the partition rule and
-  the tombstone field contract. This plan implements them and states neither."
-  The split:
-  AC-0006 is the rule and this spec's only claim on it; that spec's corpus-lint routing
-  criterion and its gate criterion own routing every file and failing the gate. No `needs` edge is
-  recorded either way, because that spec's plan implements text this spec
-  already carries while this spec's tombstones are what its lint validates, so
-  an edge would assert a false block and two edges would cycle.
+- `intent-metadata-shape-contract` owns routing every file in
+  `docs/product/intents/` and the gate that fails on its lint; this spec owns
+  the partition rule at `AC-0006` and the tombstone field contract at
+  `AC-0005`. No `needs` edge either way: that spec's plan implements text this
+  spec already carries, while this spec's tombstones are what its lint
+  validates, so one edge would assert a false block and two would cycle.
 - eugenelim: `docs/specs/intent-metadata-shape-contract/spec.md` — nothing in
   the pack checks the ordinal after allocation. Allocation is a prose-invoked
   step at `work-intake/SKILL.md:357`, and `--check` ships with no caller, so a
