@@ -1608,7 +1608,8 @@ def complete_mutation_proposal(
     completed = copy.deepcopy(proposal)
     try:
         completed["scopes"] = _validate_scope_list(completed["scopes"])
-        _validate_source(completed["owning_source"], digest_required=True)
+        if completed["owning_source"] is not None:
+            _validate_source(completed["owning_source"], digest_required=True)
         supporting = completed["supporting_sources"]
         if not isinstance(supporting, list):
             raise ValueError("invalid supporting sources")
@@ -1707,7 +1708,8 @@ def _validate_mutation_proposal(proposal: Any) -> dict[str, Any]:
             or any(facet not in PK.COMPETENCY_QUESTIONS for facet in facets)
         ):
             raise ValueError("invalid facets")
-        _validate_source(proposal["owning_source"], digest_required=True)
+        if proposal["owning_source"] is not None:
+            _validate_source(proposal["owning_source"], digest_required=True)
         supporting = proposal["supporting_sources"]
         if not isinstance(supporting, list):
             raise ValueError("invalid supporting sources")
