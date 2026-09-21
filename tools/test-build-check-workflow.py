@@ -132,12 +132,66 @@ Exit codes: 0 = pass, 1 = violations (or a self-test failure).
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "build-check.yml"
+PARITY_LINTER = REPO_ROOT / "tools" / "lint-ci-parity.py"
+
+
+def _load_step_phases() -> dict[str, tuple]:
+    """Load the roster without adding a module-scope third-party import."""
+    spec = importlib.util.spec_from_file_location("_ci_parity_roster", PARITY_LINTER)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load roster from {PARITY_LINTER}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    phases: dict[str, tuple] = {}
+    for name, entry in module.STEP_DISPOSITION.items():
+        if (len(entry) == 2 and isinstance(entry[0], tuple)
+                and isinstance(entry[1], tuple)):
+            phases[name] = entry[1]
+    return phases
+
+
+STEP_PHASES = _load_step_phases()
+GATE_MAIN_CHECKS = frozenset(
+    name
+    for name, phase in STEP_PHASES.items()
+    if phase[0] == "CHECK" and phase[1][:1] == ("python",)
+)
+GATE_MAIN_PROVISIONING = frozenset(
+    name
+    for name, phase in STEP_PHASES.items()
+    if phase[0] == "PROVISIONING"
+    and not name.startswith("<unnamed step")
+    and "(gate-" not in name
+    and not name.endswith("(aggregator)")
+    and name != "Install SAST/SCA tools"
+)
+GATE_MAIN_PHASE_NAMES = GATE_MAIN_CHECKS | GATE_MAIN_PROVISIONING
+
+
+def _derived_condition(phase: tuple) -> str:
+    """Return the only admitted condition for one roster phase entry."""
+    if phase[0] == "PROVISIONING":
+        return "!cancelled()"
+    if phase[0] == "CHECK":
+        return "!cancelled()" + "".join(
+            f" && steps.{step_id}.conclusion == 'success'"
+            for step_id in phase[1]
+        )
+    raise ValueError(f"unknown phase {phase[0]!r}")
+
+
+def _yaml_scalar(value: str) -> str:
+    """Remove one matching YAML quote pair without normalising the value."""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+        return value[1:-1]
+    return value
 
 
 def _on_block(text: str) -> str:
@@ -164,6 +218,13 @@ AGGREGATOR_RUN_STEPS = (
 # guard-body comparison order or `_differential_failures` reports itself blind.
 REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary",
                       "gate-credbroker")
+EXPECTED_JOB_NAMES = {
+    "gate-main": "gate-main",
+    "gate-sast": "gate-sast",
+    "gate-export-boundary": "gate-export-boundary",
+    "gate-credbroker": "gate-credbroker",
+    "build-check": "make build-check",
+}
 
 # spec/site-ci-contract-closure AC2. The seven site/catalogue modules that
 # spec/build-check-coverage-gaps AC1 moved into gate-main. Enumerated HERE rather
@@ -939,11 +1000,8 @@ PINNED_SAST_IF = "if: steps.changes.outputs.skip_sast != 'true'"
 def _has_if(step: str) -> bool:
     """Does this step carry ANY step-level `if:`?
 
-    `if: ${{ false }}` disables a step as completely as `continue-on-error`, which
-    Boundaries forbids — and neither actionlint nor zizmor at --min-severity high
-    flags a falsy condition. Every load-bearing step must therefore carry none, and
-    the single step that legitimately has one is compared for EQUALITY, since
-    `… != 'true' && false` passes any substring test.
+    Callers that permit a condition compare its value separately by equality;
+    presence alone cannot distinguish a sanctioned expression from a falsy one.
     """
     # `'if': ${{ false }}` is valid YAML with identical semantics and defeats a bare
     # `^\s*if:` — one edit would otherwise disable every if-check in this file.
@@ -1007,6 +1065,13 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("jobs-parsed", bool(job_ids))
     # Before any per-job loop: a job the enumerator cannot see is a job no loop checks.
     check("job-ids-modelled", _job_ids_modelled(text))
+    check("job-id-set", set(job_ids) == set(EXPECTED_JOB_NAMES))
+    for expected_job_id, expected_name in EXPECTED_JOB_NAMES.items():
+        check(
+            f"job-name-written[{expected_job_id}]",
+            _key_values(_job_block(text, expected_job_id), "name", "    ")
+            == [expected_name],
+        )
     work_jobs = [j for j in job_ids if j != AGGREGATOR_JOB_ID]
 
     # AC13: derived set-equality (catches a job ADDED unwired) + a literal floor
@@ -1337,6 +1402,46 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # AC4/AC5b: delegation must be a make ARGUMENT. As an env prefix, $(origin) is
     # `environment`, so AC5c runs the SAST leg in gate-main too — silent double scan.
     main_blk = _job_block(text, "gate-main")
+    _main_steps = _steps(main_blk)
+    modelled_steps = []
+    for _name in sorted(GATE_MAIN_PHASE_NAMES):
+        _matches = [
+            (index, step)
+            for index, (actual_name, step) in enumerate(_main_steps)
+            if actual_name == _name
+        ]
+        _phase = STEP_PHASES[_name]
+        _step = _matches[0][1] if len(_matches) == 1 else ""
+        _conditions = [_yaml_scalar(value) for value in _step_key_values(_step, "if")]
+        check(
+            f"phase-condition[{_name}]",
+            _conditions == [_derived_condition(_phase)],
+        )
+        if _phase[0] == "PROVISIONING":
+            check(
+                f"provisioning-id[{_name}]",
+                _step_key_values(_step, "id") == [_phase[1]],
+            )
+        if len(_matches) == 1:
+            modelled_steps.append((_matches[0][0], _name, _step, _phase))
+
+    modelled_steps.sort(key=lambda item: item[0])
+    _provisioning = [item for item in modelled_steps if item[3][0] == "PROVISIONING"]
+    _checks = [item for item in modelled_steps if item[3][0] == "CHECK"]
+    _late = next(
+        (provision for provision in _provisioning
+         if _checks and provision[0] > _checks[0][0]),
+        None,
+    )
+    if _late is not None:
+        _order_names = f"{_late[1]} after {_checks[0][1]}"
+    elif _provisioning and _checks:
+        _order_names = f"{_provisioning[-1][1]} before {_checks[0][1]}"
+    else:
+        _order_names = "missing provisioning or check phase"
+    check(f"provisioning-before-checks[{_order_names}]", _late is None
+          and bool(_provisioning) and bool(_checks))
+
     anchor = _step_named(main_blk, "Run make build-check")
     # EQUALITY, not containment. This single pin replaces four separate argv checks and
     # closes what all four missed: `MAKEFLAGS=-n make build-check …` (prefix), `make -i`
@@ -1351,7 +1456,6 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # `SAST_DELEGATED=1 make build-check PACKS_DIR=packs` is simply not equal to the
     # pinned text, so it fails here with the ADR-0086 reasoning above it.
     check("anchor-step", bool(_pinned(anchor, PINNED_ANCHOR)))
-    check("anchor-no-if", bool(anchor) and not _has_if(anchor))
     # AC14(1): lint-nosec-form sets a caveat and exits 0 without bandit, so the
     # install must be in THIS job — it runs inside make build-check's chain, and the
     # split moved the SAST provisioning to gate-sast.
@@ -1424,18 +1528,6 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("pages-concurrency-body-exact",
           _run_lines(_step_named(main_blk, "pages.yml concurrency posture"))
           == [PINNED_PAGES_CONCURRENCY])
-
-    # AC2's second neutering form. `continue-on-error` is covered file-wide, and
-    # cwd redirection by _NO_CWD_STEPS above — but a step-level `if:` was the live
-    # bypass: `if: ${{ false }}` on either pytest step or the contrast step skipped
-    # the gate with this file reporting posture OK. gate-main carries no step-level
-    # `if:` at all, so the honest assertion is that it stays that way.
-    for _step_name in ("pytest guides + catalogue navigation",
-                       "pytest site build + link rewriting",
-                       "docs palette contrast gate",
-                       "pages.yml concurrency posture"):
-        _st = _step_named(main_blk, _step_name)
-        check(f"site-step-no-if[{_step_name}]", bool(_st) and not _has_if(_st))
 
     # AC5. build-check.yml must carry NO paths: filter. Its jobs are required
     # contexts by name, so a filtered trigger means a PR touching none of the
@@ -1564,7 +1656,73 @@ def _baseline() -> str:
     with that mitigation already absent.
     """
     if _FIXTURE.is_file():
-        return _FIXTURE.read_text(encoding="utf-8")
+        text = _FIXTURE.read_text(encoding="utf-8")
+        setup_uses = (
+            "      - uses: actions/setup-python@"
+            "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+        )
+        setup_step = (
+            "      - name: Set up Python\n"
+            "        id: python\n"
+            "        if: '!cancelled()'\n"
+            "        uses: actions/setup-python@"
+            "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+        )
+        if setup_uses not in text:
+            raise SystemExit("baseline fixture lost gate-main setup-python")
+        text = text.replace(setup_uses, setup_step, 1)
+
+        fixture_modelled_steps = (
+            "Install tools dependencies",
+            "Install bandit unconditionally (lint-nosec-form's ID registry)",
+            "Run make build-check",
+            "pytest guides + catalogue navigation",
+            "pytest site build + link rewriting",
+            "docs palette contrast gate",
+            "pages.yml concurrency posture",
+        )
+        for name in fixture_modelled_steps:
+            phase = STEP_PHASES[name]
+            condition = _derived_condition(phase)
+            quoted = f"'{condition}'" if phase[0] == "PROVISIONING" else f'"{condition}"'
+            original = f"      - name: {name}\n"
+            additions = original
+            if phase[0] == "PROVISIONING":
+                additions += f"        id: {phase[1]}\n"
+            additions += f"        if: {quoted}\n"
+            if original not in text:
+                raise SystemExit(f"baseline fixture lost modelled step {name!r}")
+            text = text.replace(original, additions, 1)
+
+        present_names = {
+            name for name, _step in _steps(_job_block(text, "gate-main"))
+        }
+        missing_provisioning = sorted(GATE_MAIN_PROVISIONING - present_names)
+        provisioning_steps = "".join(
+            f"      - name: {name}\n"
+            f"        id: {STEP_PHASES[name][1]}\n"
+            "        if: '!cancelled()'\n"
+            "        run: true\n"
+            for name in missing_provisioning
+        )
+        bandit_marker = (
+            "      - name: Install bandit unconditionally "
+            "(lint-nosec-form's ID registry)\n"
+        )
+        text = text.replace(bandit_marker, provisioning_steps + bandit_marker, 1)
+
+        present_names = {
+            name for name, _step in _steps(_job_block(text, "gate-main"))
+        }
+        missing_checks = sorted(GATE_MAIN_CHECKS - present_names)
+        check_steps = "".join(
+            f"      - name: {name}\n"
+            f"        if: \"{_derived_condition(STEP_PHASES[name])}\"\n"
+            "        run: true\n"
+            for name in missing_checks
+        )
+        first_fixture_check = "      - name: ruff lint\n"
+        return text.replace(first_fixture_check, check_steps + first_fixture_check, 1)
     raise SystemExit(
         f"missing baseline fixture {_FIXTURE.relative_to(REPO_ROOT)} — "
         "the self-test cannot prove anything without it"
@@ -1594,6 +1752,35 @@ def _sub_in_job(text: str, job_id: str, old: str, new: str) -> str:
     if lo < 0:
         return text
     return text[:lo] + text[lo:hi].replace(old, new, 1) + text[hi:]
+
+
+def _move_named_step_after(text: str, source: str, target: str) -> str:
+    """Move one named gate-main step after another for an ordering mutation."""
+    lo, hi = _job_span(text, "gate-main")
+    block = text[lo:hi]
+    source_match = re.search(
+        rf"^      - name: {re.escape(source)}\n.*?(?=^      - |\Z)",
+        block,
+        re.M | re.S,
+    )
+    if source_match is None:
+        return text
+    source_step = source_match.group(0)
+    block = block[:source_match.start()] + block[source_match.end():]
+    target_match = re.search(
+        rf"^      - name: {re.escape(target)}\n.*?(?=^      - |\Z)",
+        block,
+        re.M | re.S,
+    )
+    if target_match is None:
+        return text
+    insertion = target_match.end()
+    block = block[:insertion] + source_step + block[insertion:]
+    return text[:lo] + block + text[hi:]
+
+
+MIN_MUTATIONS = 180
+MIN_ASSERTION_FAMILIES = 80
 
 
 _MUTATIONS: list[tuple[str, str, object]] = [
@@ -1639,10 +1826,11 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          "          python -m pytest tools/test_check_docs_contrast.py -q\n", "")),
     ("drop-pages-concurrency-posture", "pages-concurrency-body-exact",
      lambda t: t.replace("        run: python3 tools/test-pages-concurrency.py\n", "", 1)),
-    ("if-false-on-contrast-step", "site-step-no-if[docs palette contrast gate]",
+    ("if-false-on-contrast-step", "phase-condition[docs palette contrast gate]",
      lambda t: t.replace("      - name: docs palette contrast gate\n",
                          "      - name: docs palette contrast gate\n        if: ${{ false }}\n")),
-    ("if-false-on-site-step", "site-step-no-if[pytest guides + catalogue navigation]",
+    ("if-false-on-site-step",
+     "phase-condition[pytest guides + catalogue navigation]",
      lambda t: t.replace("      - name: pytest guides + catalogue navigation\n",
                          "      - name: pytest guides + catalogue navigation\n        if: ${{ false }}\n")),
     ("cwd-redirect-contrast-step", "no-working-directory[gate-main/docs palette contrast gate]",
@@ -1914,9 +2102,79 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: re.sub(r"\n  push:\n    branches: \[main\]", "", t)),
     ("drop-workflow-dispatch-trigger", "trigger-workflow-dispatch",
      lambda t: re.sub(r"\n  workflow_dispatch:", "", t)),
+    # -- ci-gate-main-failure-reporting T4: roster-derived step posture ---------
+    ("drop-check-condition", "phase-condition[Run make build-check]",
+     lambda t: t.replace(
+         "        if: \"!cancelled() && steps.python.conclusion == 'success' "
+         "&& steps.tools.conclusion == 'success' && steps.bandit.conclusion "
+         "== 'success'\"\n",
+         "",
+         1,
+     )),
+    ("change-check-condition-byte", "phase-condition[Run make build-check]",
+     lambda t: t.replace(
+         "steps.bandit.conclusion == 'success'\"",
+         "steps.bandit.conclusion == 'successx'\"",
+         1,
+     )),
+    ("check-if-false", "phase-condition[Run make build-check]",
+     lambda t: t.replace(
+         "        if: \"!cancelled() && steps.python.conclusion == 'success' "
+         "&& steps.tools.conclusion == 'success' && steps.bandit.conclusion "
+         "== 'success'\"\n",
+         "        if: false\n",
+         1,
+     )),
+    ("check-if-expression-false", "phase-condition[Run make build-check]",
+     lambda t: t.replace(
+         "        if: \"!cancelled() && steps.python.conclusion == 'success' "
+         "&& steps.tools.conclusion == 'success' && steps.bandit.conclusion "
+         "== 'success'\"\n",
+         "        if: ${{ false }}\n",
+         1,
+     )),
+    ("check-quoted-key-if-false", "phase-condition[Run make build-check]",
+     lambda t: t.replace(
+         "        if: \"!cancelled() && steps.python.conclusion == 'success' "
+         "&& steps.tools.conclusion == 'success' && steps.bandit.conclusion "
+         "== 'success'\"\n",
+         "        'if': ${{ false }}\n",
+         1,
+     )),
+    ("check-derived-and-false", "phase-condition[Run make build-check]",
+     lambda t: t.replace(
+         "steps.bandit.conclusion == 'success'\"",
+         "steps.bandit.conclusion == 'success' && false\"",
+         1,
+     )),
+    ("provisioning-if-false", "phase-condition[Set up Python]",
+     lambda t: t.replace("        if: '!cancelled()'\n", "        if: false\n", 1)),
+    ("drop-provisioning-id", "provisioning-id[Install tools dependencies]",
+     lambda t: t.replace("        id: tools\n", "", 1)),
+    ("rename-provisioning-step", "provisioning-id[Install tools dependencies]",
+     lambda t: t.replace(
+         "      - name: Install tools dependencies\n",
+         "      - name: renamed tools provisioning\n",
+         1,
+     )),
+    ("provisioning-after-check",
+     "provisioning-before-checks[Install tools dependencies after Run make build-check]",
+     lambda t: _move_named_step_after(
+         t, "Install tools dependencies", "Run make build-check"
+     )),
+    ("add-job-id", "job-id-set",
+     lambda t: t.replace(
+         "  gate-sast:\n",
+         "  gate-extra:\n    name: gate-extra\n    runs-on: ubuntu-latest\n"
+         "    timeout-minutes: 5\n    steps:\n      - run: echo extra\n"
+         "  gate-sast:\n",
+         1,
+     )),
+    ("change-written-job-name", "job-name-written[gate-main]",
+     lambda t: t.replace("    name: gate-main\n", "    name: renamed-main\n", 1)),
     # The `if:`-disables-a-step class (post-implementation security review). A falsy
     # step-level `if:` is as total as continue-on-error and no scanner flags it.
-    ("if-false-on-anchor", "anchor-no-if",
+    ("if-false-on-anchor", "phase-condition[Run make build-check]",
      lambda t: t.replace("      - name: Run make build-check\n",
                          "      - name: Run make build-check\n        if: ${{ false }}\n")),
     ("if-false-on-export-step", "export-boundary-no-if",
@@ -2329,6 +2587,15 @@ def self_test() -> int:
     # output, which cannot see an assertion no mutation trips (that gap left
     # `checkout-present[*]` asserted, unmutated, and the self-test still green).
     covered = {_family(e) for _, e, _ in _MUTATIONS}
+    if len(_MUTATIONS) < MIN_MUTATIONS:
+        failures.append(
+            f"mutation floor: expected at least {MIN_MUTATIONS}, got {len(_MUTATIONS)}"
+        )
+    if len(covered) < MIN_ASSERTION_FAMILIES:
+        failures.append(
+            "assertion-family floor: expected at least "
+            f"{MIN_ASSERTION_FAMILIES}, got {len(covered)}"
+        )
     uncovered = sorted({_family(i) for i in evaluated} - covered)
     if uncovered:
         failures.append(f"assertion families evaluated but unmutated: {uncovered}")

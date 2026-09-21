@@ -326,7 +326,7 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
                 break  # dedented out of the steps list
             if line.startswith("      - "):
                 current = {
-                    "name": None, "has_if": False, "run": None,
+                    "name": None, "has_if": None, "run": None,
                     "style": None, "continue_on_error": False,
                 }
                 steps.append(current)
@@ -349,7 +349,11 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
                 if key == "name":
                     current["name"] = value.strip()
                 elif key == "if":
-                    current["has_if"] = True
+                    condition = value.strip()
+                    if (len(condition) >= 2 and condition[0] == condition[-1]
+                            and condition[0] in "'\""):
+                        condition = condition[1:-1]
+                    current["has_if"] = condition
                 elif key == "continue-on-error":
                     current["continue_on_error"] = value.strip() not in ("false", "")
                 elif key == "run" and value.strip() in ("|", "|-", ">-", ">"):
@@ -428,12 +432,13 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
             cwd=cwd, env=env, capture_output=True, text=True, check=False,
         )
 
-    def test_step_is_unconditional_and_immediately_precedes_the_gate(self):
+    def test_step_has_sanctioned_condition_and_immediately_precedes_the_gate(self):
         index = self.names.index(self._step()["name"])
-        self.assertFalse(
+        self.assertEqual(
             self._step()["has_if"],
-            "an `if:` here is what made the bandit install skippable in the "
-            "first place; the whole point is that it is not",
+            "!cancelled()",
+            "bandit provisioning must run after a sibling failure and stop only "
+            "when the workflow is cancelled",
         )
         self.assertIn(self.GATE, self.names)
         self.assertFalse(
