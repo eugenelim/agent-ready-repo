@@ -64,9 +64,35 @@ tree is treated as untrusted-origin and confirmed before writing.
 output_dir = "~/Documents/MyVault/product"   # absolute path; ~ is expanded
 ```
 
-## Pinned output — `decompose-intent`'s briefs
+## Pinned output — a hand-off to core is never configured
 
-`decompose-intent`'s `docs/product/briefs/<slug>.md` output is **not** governed
-by this table. That path is the hand-off to core's `author-delivery-brief continue` skill and
-stays pinned (a deliberate non-goal of this layout config). Only `frame-intent`
-(intents) and `align-value-stream` (rollups) read `[product]`.
+A path that hands an artifact to core is pinned, because core has to find it.
+Two of them:
+
+- `decompose-intent`'s `docs/product/briefs/<slug>.md` — the hand-off to core's
+  `author-delivery-brief continue`.
+- **A repository intent's `docs/product/intents/<slug>.md`** — the hand-off to
+  core's `intake-intent`, which admits and registers it. `output_dir` governs an
+  intent you are authoring for yourself, including in a personal vault; it does
+  not govern where a repository intent lands, and `intake-intent` reads no
+  configuration for that path. Authoring personally and admitting into the
+  repository are two stages, not two destinations: `intake-intent` takes a
+  `personal-vault` source and requires a confirmed repository destination,
+  minimized provenance and explicit authority transfer before it writes.
+
+Neither is a gap in this config; both are deliberate non-goals of it.
+
+## Who reads `[product]`
+
+Eight skill bodies, not two: `frame-intent` (intents), `align-value-stream`
+(rollups), `frame-situation`, `identify-opportunities`, `diverge-solutions`,
+`place-bet`, `map-capabilities` (all under `shaping/`), and `lean-canvas`, which
+reads the section to scan but writes a pinned path. `ux-writing` additionally
+reads **`[design]`**, not `[product]` — a cross-pack read this pack owns no
+section for.
+
+Core's `workspace-status` ships a second `[product]` schema doc describing the
+same table differently. Reconciling the two, and the section-naming question
+underneath them, is tracked in `workspace.toml`'s backlog against
+`docs/architecture/agentbundle.md`; this page states its own readers correctly in
+the meantime.

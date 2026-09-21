@@ -203,6 +203,25 @@ real choice remains, create no new artifact.
    tier only. The overlay itself gates which tiers bite — do not enumerate its
    concerns here.
 
+   <!-- shape-axis:start — stable anchor; tests locate this axis by these
+        markers, not by a heading or step number, so renumbering the
+        procedure cannot silently move the boundary. -->
+   Routing has a third, **orthogonal axis — system shape**: descend
+   `concepts/system-shapes/index.md`, whose entries carry a title and a
+   lifecycle label, and no routing signals. Read
+   the titles, and open only the shapes your design plausibly is; each
+   concept's own `Scope and routing signals` section is where the match is
+   confirmed. For an opened shape, check whether an open decision of the
+   proposed design turns on that shape's coordination mechanism. A shape
+   concept is selected only when such an open decision exists — not on a
+   vocabulary match alone. A design carrying an open decision in each of
+   several shapes loads every one of them: several real decisions give the
+   axis no reason to pick between them. A selected shape concept
+   loads whole — no tier selection, unlike the workload axis above. When
+   no shape carries an open decision, record `no shape lens selected` in
+   the working receipt, beside the other selected concept paths.
+   <!-- shape-axis:end -->
+
    **Stage 0 is a valid stopping point — end with a receipt.** After the user
    agrees the shape, they may stop here; a concept does not oblige the full
    doc, and saving one never requires continuing to Stage 1. Create a full
