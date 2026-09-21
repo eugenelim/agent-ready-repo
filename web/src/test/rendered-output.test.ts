@@ -38,31 +38,6 @@ const SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'web/src/lib/shared-chrome.gene
 const DOCS_SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'docs-site/src/shared-chrome.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
 
-// The two halves of "a clause welded to the text that follows it".
-//
-// WHICH ELEMENTS. Not every element must be preceded by a space. A footnote or
-// ordinal marker legitimately abuts the punctuation before it -- `A fact.<sup>1</sup>`
-// and `3<sup>rd</sup>` are correct typography -- so `sup` and `sub` are excluded
-// by construction. The elements below are the ones that carry a word or phrase of
-// running prose, and a word abutting the previous sentence is always a defect.
-// This set, not the punctuation, is what bounds the rule: "which elements may
-// abut punctuation" is a finite and stable question, whereas enumerating the
-// punctuation shapes that precede them is not, and three review rounds spent on
-// the character class each found another shape.
-export const PROSE_ELEMENTS = ['a', 'code', 'strong', 'em', 'b', 'i', 'span', 'abbr'];
-
-// WHICH ENDINGS. Clause punctuation, then any number of closing brackets or
-// quotes, which merely close nesting: `done.`, `done."`, `"(done.)"`.
-//
-// ASCII `"` and `'` are POSITIONAL -- the same character opens and closes -- so
-// neither is a clause ending alone. `the "<code>pack</code>"` ends a text node
-// with an OPENING quote directly before an element, correctly unspaced, and
-// treating a bare `"` as terminal reds that valid prose. The curly closing forms
-// are unambiguous and stand alone. An em dash is positional too (`packs—<a>see</a>`
-// is a valid unspaced style), so the em-dash weld is deliberately NOT covered.
-export const CLAUSE_END = /(?:[.,;:!?…][)"'’”\]]*|[’”])$/;
-
-
 /**
  * spec/site-shared-chrome AC7, for one emitted shared-chrome link.
  *
@@ -661,126 +636,71 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
   });
 
   /**
+   * spec/tech-site-polish-batch's sibling defect, found later: every one of the
+   * 22 emitted /packs/* pages read "above.Browse the catalogue" or
+   * "Desktop.Browse the catalogue", with no space between the sentence and the
+   * link.
+   *
    * Astro's `compressHTML` (on by default) strips the whitespace between a text
    * node and an element that opens on the next source line, so authored prose
-   * reading `above.\n<a>Browse` emits `above.<a>Browse` and a reader sees
-   * "above.Browse". It is invisible in source and invisible to every
-   * source-level lint, which is why it is asserted against the emitted page.
+   * reading `above.\n<a>Browse` emits `above.<a>Browse`. Both install branches
+   * of `pages/packs/[pack].astro` carried it -- 7 pages through the no-plugin
+   * branch, 15 through the plugin branch -- and the repair is the explicit
+   * `{' '}` that `Hero.astro` already uses for the same reason.
    *
-   * Asserted on the text-node/element boundary itself rather than by matching
-   * rendered prose, and bounded by WHICH ELEMENTS may abut punctuation rather
-   * than by which punctuation shapes exist. That second choice is the one that
-   * matters, and it was learned the hard way: four review rounds were spent on
-   * this guard, three of them on the punctuation class, and each fix admitted
-   * the opposite error from the one it repaired.
+   * Asserted here because it is invisible everywhere else: nothing in the source
+   * is wrong to look at, so no source-level lint can see it, and only the
+   * emitted page shows the two words welded.
    *
-   *  - A document-wide `textContent` scan reported 60+ false positives on an
-   *    already-fixed tree, because `textContent` concatenates adjacent block
-   *    elements: a paragraph ending "...engineering." followed by a heading
-   *    "Via..." is indistinguishable from the defect.
-   *  - Narrowing that to one block and matching `/[a-z]\.[A-Z][a-z]+/` was too
-   *    loose AND too tight. Too loose because `<Content />` renders every
-   *    `src/content/packs/*.md` body into `.pack-description`, so an author
-   *    writing `file.Name` -- one text node, no boundary -- would red the
-   *    suite. Too tight because a weld after `?` or `!`, or before a lowercase
-   *    label or an initialism like `<code>CLI</code>`, sailed past it.
-   *  - Widening the clause set to catch `done."` admitted a BARE ASCII quote,
-   *    which is positional and reds the valid `the "<code>pack</code>"`.
-   *  - Requiring clause punctuation fixed that but still reported
-   *    `A fact.<sup>1</sup>`, an ordinary and correct footnote, as a weld.
+   * Deliberately NARROW. An earlier version of this guard tried to state a
+   * general rule -- no clause of prose welded to any following element, anywhere
+   * on the page -- and it cost four review rounds without converging: a
+   * document-wide `textContent` scan could not tell the defect from two adjacent
+   * blocks; a punctuation class admitted the opposite error each time it was
+   * corrected, first redding a valid `file.Name`, then a valid
+   * `the "<code>pack</code>"`, then an ordinary `A fact.<sup>1</sup>` footnote;
+   * and bounding it by element set still missed the element-preceded case. The
+   * general rule needs a taxonomy of which elements and which punctuation may
+   * abut, and that taxonomy has no natural edge.
    *
-   * The last of those is what moved the bound onto the element set. `sup` and
-   * `sub` legitimately abut the punctuation before them; a word of running
-   * prose never does. See PROSE_ELEMENTS and CLAUSE_END for the two halves and
-   * the reasoning, and the sibling contract test for the cases that decided
-   * them.
-   *
-   * WHAT THIS DOES NOT COVER, deliberately, and measured rather than assumed:
-   * only a TEXT-NODE-to-element boundary. If an element sits immediately before
-   * the prose element -- `A fact.<sup>1</sup><a>Browse</a>` -- the anchor's
-   * previous sibling is the `<sup>`, not a text node, so the walk skips it and
-   * a reader still sees `fact.1Browse`. Verified by probe, not reasoned: with a
-   * `<sup>` injected before an unspaced anchor, this suite stays green.
-   *
-   * That case is out of scope on purpose. Closing it means deciding what the
-   * trailing text of an arbitrary preceding element implies, and the sibling
-   * shapes then multiply -- which is precisely how this guard consumed four
-   * review rounds. It asserts the class that was MEASURED on these pages: a
-   * clause of running text welded to the prose element after it, which is what
-   * all 22 pages carried. A reader inheriting this guard should not mistake it
-   * for a general welding detector.
-   *
-   * Applied to every emitted /packs/* page, not a sampled one: the template has
-   * two install branches and each pack renders only one, so a single page
-   * exercises half of it. When this was found, 7 of 22 pages carried the defect
-   * through one branch and the other 15 through the other.
+   * So this asserts the thing that was actually measured and actually broken:
+   * the install note's catalogue link is preceded by whitespace. It checks every
+   * emitted pack page, because each pack renders only one of the two install
+   * branches and a sampled page would exercise half the template.
    */
-  it('emitted prose never welds a sentence to the element that follows it', () => {
+  it('every pack page spaces the install note from its catalogue link', () => {
     const packDirs = readdirSync(join(BUILD_ROOT, 'packs'))
       .filter((name) => statSync(join(BUILD_ROOT, 'packs', name)).isDirectory());
     expect(packDirs.length).toBeGreaterThan(1);
 
-
     const welded: string[] = [];
+    let checked = 0;
+
     for (const name of packDirs) {
-      const main = doc(join(BUILD_ROOT, 'packs', name, 'index.html')).querySelector('main');
-      expect(main, `packs/${name} emitted no <main>`).not.toBeNull();
-      for (const element of main!.querySelectorAll(PROSE_ELEMENTS.join(','))) {
-        const before = element.previousSibling;
-        if (!before || before.nodeType !== 3) continue;
-        const left = before.textContent ?? '';
-        const right = element.textContent ?? '';
-        if (!left || !right) continue;
-        if (/\s$/.test(left) || /^\s/.test(right)) continue;
-        if (!CLAUSE_END.test(left)) continue;
-        welded.push(
-          `packs/${name}: "...${left.slice(-24)}" + <${element.tagName.toLowerCase()}>"${right.slice(0, 24)}..."`,
-        );
+      const notes = doc(join(BUILD_ROOT, 'packs', name, 'index.html'))
+        .querySelectorAll('.install-note');
+      // Each page carries the `agentbundle` note plus exactly one install-route
+      // note, and only the latter links to the catalogue.
+      const links = [...notes].flatMap((note) =>
+        [...note.querySelectorAll('a[href$="/catalogue/"]')],
+      );
+      expect(links.length, `packs/${name} emitted no install-note catalogue link`).toBe(1);
+
+      for (const link of links) {
+        checked += 1;
+        const before = link.previousSibling;
+        const left = before?.textContent ?? '';
+        if (!/\s$/.test(left)) {
+          welded.push(`packs/${name}: "...${left.slice(-40)}" + <a>"${link.textContent}"`);
+        }
       }
     }
-    expect(welded, `emitted prose welds a clause to the element after it:\n${welded.join('\n')}`)
-      .toEqual([]);
-  });
 
-  /**
-   * The two predicates' own contract, pinned case by case.
-   *
-   * Here rather than only in the page guard, because the page guard can prove
-   * only the shapes today's pages happen to contain. This rule moved in four
-   * consecutive review rounds and every move risked the opposite error from the
-   * one it fixed, so the cases that decided its final shape are recorded as
-   * assertions instead of living in a review transcript.
-   */
-  it('the weld predicates fire on welds and not on valid abutments', () => {
-    const welds = [
-      'above.',                       // the original defect
-      'above!',                       // an earlier textual form missed this
-      'It says "done."',              // ASCII closing quote after clause punctuation
-      'done.)',                       // one closing bracket
-      'She wrote "(done.)"',          // several nested closers
-      'For details\u2026',            // ellipsis
-      'he said \u201cyes\u201d',       // curly closing quote, unambiguous alone
-    ];
-    const abutments = [
-      'the "',                        // ASCII quote OPENING, legitimately unspaced
-      "the '",                        // same, single
-      "packs'",                       // a bare apostrophe is not a clause ending
-      'packs\u2014',                  // em dash is positional: out of scope
-      'works directly in',            // plain prose
-    ];
-    expect(welds.filter((text) => !CLAUSE_END.test(text)), 'these are welds and must fire')
+    // Guards the guard: a selector that stopped matching would otherwise report
+    // green having compared nothing.
+    expect(checked, 'no install-note link was examined').toBe(packDirs.length);
+    expect(welded, `install-note prose welded to its catalogue link:\n${welded.join('\n')}`)
       .toEqual([]);
-    expect(abutments.filter((text) => CLAUSE_END.test(text)), 'these are valid and must not fire')
-      .toEqual([]);
-
-    // The element set is the other half of the rule, and the half that excuses
-    // `A fact.<sup>1</sup>`. A footnote or ordinal marker may abut punctuation;
-    // a word of running prose may not.
-    expect(PROSE_ELEMENTS).toContain('a');
-    expect(PROSE_ELEMENTS).toContain('code');
-    for (const excluded of ['sup', 'sub']) {
-      expect(PROSE_ELEMENTS, `${excluded} legitimately abuts punctuation`).not.toContain(excluded);
-    }
   });
 
   it('shared chrome AC8: current states are route-specific and fragments stay non-current', () => {
