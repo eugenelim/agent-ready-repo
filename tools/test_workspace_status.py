@@ -1613,8 +1613,29 @@ _WORK_LOOP_CONTRACT_HASH = (
 # `Status: Shipped`, workspace-status still owns workspace.toml
 # queue/active/shipped. The status vocabulary, the deferral-anchor
 # requirement, and the doc-drift bullet's listed invariants are all untouched.
+# Re-pinned 2026-09-21 for the five-assertion closeout: the seventeen
+# checkboxes are regrouped under five assertions - acceptance criteria
+# satisfied, verification passed, review passed with residuals surfaced,
+# artifacts consistent, repository state valid - with every retained item's
+# text unchanged. Reviewed as the pin requires, and the engine needs no edit.
+# Two window-scope facts drove that review. First, the end marker
+# ("Conventional commit format") still matches, and the ownership-relevant
+# content inside the window - the doc-drift bullet's invariants, the spec
+# status vocabulary, and the deferral-anchor requirement - is byte-identical;
+# a sentence-level diff of the window against origin/main shows every
+# "dropped" line reappearing under its new group header, so nothing was lost.
+# Second, the tail-triage bullet moved INTO the window: it previously sat
+# below the end marker and now sits in the review group above it. It writes
+# no spec.md field, mutates no workspace.toml array, and adds no invariant
+# the engine evaluates, so its arrival changes the hash and nothing else.
+# The retired scratch-note-routing item sat below the end marker too, so its
+# deletion does not reach this hash at all. Ownership is unchanged: work-loop
+# still writes spec.md `Status: Shipped`, workspace-status still owns
+# workspace.toml queue/active/shipped, and the engine states its own boundary
+# at workspace_status_engine.py:4859 ("Its finish checklist only sets spec.md
+# Status: Shipped").
 _WORK_LOOP_FINISH_HASH = (
-    "0698a4524f969342e0f0c2dae4177c1b5a32f544aeb4263cabaf88a5607232c9"
+    "4b67a944dd1aeae78ed3894b998b209d014332240638c6d8273b8b580821035a"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
@@ -1684,8 +1705,10 @@ def case_work_loop_contract_anchor() -> None:
       shaping-item guard.
     - '## Finish checklist' → 'Conventional commit format': the ownership-relevant
       checklist items including the doc-drift invariant (sets spec.md Status: Shipped)
-      but excluding commit format, learnings, and PR-opening guidance — which are
-      routine maintenance that should not fail build-check. workspace-status (not
+      but excluding commit format and PR-opening guidance — which are routine
+      maintenance that should not fail build-check. The scratch-note-routing
+      item this clause used to name as `learnings` was retired when capture
+      moved off the critical path; it sat below the end marker either way. workspace-status (not
       work-loop) owns workspace.toml queue/active/shipped updates (AC3g invariant).
     """
     _check_section_anchor(

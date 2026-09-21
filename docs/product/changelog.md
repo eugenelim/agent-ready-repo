@@ -64,6 +64,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.25] — 2026-09-21
+
+### Highlights
+
+- **Closeout asks five questions instead of seventeen.** `work-loop`'s finish
+  checklist now reads as five assertions — acceptance criteria satisfied,
+  verification passed, review passed with residuals surfaced, artifacts
+  consistent, repository state valid — with the existing obligations grouped
+  underneath each one. Nothing that blocked a release before stops blocking
+  it; the list is easier to hold in mind and easier to answer honestly.
+- **Knowledge capture leaves the critical path.** Routing a session's scratch
+  notes is no longer a condition of declaring done. `## Capture` keeps its
+  routing rules and now runs after the loop closes — at session end, an
+  explicit handoff, or before compaction. A capture obligation enforced at the
+  completion boundary turns "is this lesson worth keeping?" into a blocking
+  judgment, and the cheapest way past a blocking judgment is a low-value note.
+  Recorded against RFC-0077 § Errata.
+
+### Changed
+
+- The finish-checklist item requiring every DECIDE scratch note to be routed
+  is removed, along with the `Looping without capturing learnings`
+  anti-pattern. Closeout remains a legitimate triage boundary and every other
+  semantic gate in RFC-0077 — RFC completion, ADR acceptance, spec approval,
+  plan approval, verified-slice completion, review completion — keeps its
+  obligations unchanged.
+
 ## [core][2.26.24] — 2026-09-21
 
 ### Highlights
