@@ -150,11 +150,21 @@ C and E are genuinely exclusive: C provides **no** lean landing for the work it 
   rather than omitting the reviewer silently, so a considered skip and an
   unconsidered one stay distinguishable at the finish checklist; the whole-spec
   pass on the final loop of a multi-loop spec applies the same three conditions to
-  the spec's whole change surface, not one loop's diff. `adversarial-reviewer`
-  retains correctness, maintainability, test coverage and scope, so no lens is
-  lost when the conditions do not fire. This alters no risk trigger, leaves light
-  mode's default unchanged (still no pass, still the adopter-gate exception), and
-  adds no fourth core lens — ADR-0042's cap is untouched. Authorized by
+  the spec's whole change surface, not one loop's diff. **What this costs, stated
+  rather than implied:** `adversarial-reviewer` covers correctness and scope
+  only — its contract assigns testability, reliability, observability,
+  maintenance cost, and all test-strength judgment exclusively to
+  `quality-engineer` (`packs/core/.apm/agents/adversarial-reviewer.md:328`,
+  `:339`). Full-mode work tripping none of the three conditions therefore ships
+  without that lens. This RFC already called the lens "discretionary at
+  selection" (lines 24, 35) while treating it as a floor at the end-of-session
+  checklist; the conditions above govern selection, and the checklist floor now
+  follows the same three conditions rather than applying to every full-mode
+  loop. That floor removal is the substantive change here and is accepted
+  knowingly, on the same reasoning this RFC used to accept the light-mode lens
+  loss: rigor scales with risk. This alters no risk trigger, leaves light mode's
+  default unchanged (still no pass, still the adopter-gate exception), and adds
+  no fourth core lens — ADR-0042's cap is untouched. Authorized by
   @eugenelim (Approver), 2026-09-20.
 
 - **2026-06-05 — block-equality lint added; "no new executable code" narrowed to

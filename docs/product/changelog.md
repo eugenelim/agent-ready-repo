@@ -75,9 +75,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rule rather than running on every full-mode loop — it is warranted when the
   change warrants at least one `operational-safety` module, is structural, or is
   explicitly requested. The three conditions reuse routers the catalogue already
-  ships; none is a new predicate. `adversarial-reviewer` keeps correctness,
-  maintainability, test coverage and scope, so a change that trips none of the
-  three loses no lens. Recorded against RFC-0025 § Errata.
+  ships; none is a new predicate. `adversarial-reviewer` keeps correctness and
+  scope; testability, reliability, observability, maintenance cost and
+  test-strength judgment belong to `quality-engineer` alone, so work tripping
+  none of the three conditions ships without that lens — a deliberate trade of
+  the lens for speed. Recorded against RFC-0025 § Errata.
 
 ### Changed
 

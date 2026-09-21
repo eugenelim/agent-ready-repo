@@ -446,15 +446,18 @@ adversarial evidence into a summary-only or named-skip path.
 
 For every warranted reviewer role, persist the completed report to the ignored
 session path first. Persistence is unconditional; the adjudicator dispatch is
-not. Dispatch is required on high-risk work as the roster rule below defines it,
-and on any report a human asks to have adjudicated; on other work the
-adjudicator is available but not automatic, and the verdict record names which
-applied. Then run `review raw-classify
+not. **The dispatch predicate, stated once and cited everywhere else it is
+needed:** dispatch is required when the work is high-risk as the roster rule
+below defines it, or when a human asks for a report to be adjudicated; on other
+work the adjudicator is available but not automatic, and the verdict record
+names which applied. Every dispatch rule below narrows that predicate further —
+none widens it. Then run `review raw-classify
 --report <path> --json`: `clean` skips the `finding-adjudicator` dispatch, the paired artifacts, and the adjudication classifier — but never the raw artifact itself — and records with
 `--direct-clean-file` only for byte equality or `--structural-clean-file` for a
 footer-free clean report whose bytes differ only in trailing whitespace;
-`findings` dispatches the adjudicator unless the report is Nit-only and the
-thread does not intend to mutate; then defer each Nit in the verdict record.
+`findings` dispatches the adjudicator when the dispatch predicate above holds,
+unless the report is Nit-only and the thread does not intend to mutate; then
+defer each Nit in the verdict record.
 An intended Nit mutation requires adjudication. `invalid` stops loudly. Do not trim, case-fold, normalize
 Unicode, unwrap Markdown, or accept prose outside that grammar. A missing
 `finding-adjudicator`, invalid structure, or `ADJUDICATION-INDETERMINATE` is a
@@ -491,10 +494,17 @@ An absent or non-Clean adversarial reviewer must not suppress another warranted 
 Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`".
 
 **`select_reviewers(task)` — the whole roster rule.** `adversarial-reviewer` is
-the default and covers correctness, maintainability, test coverage and scope.
-Each row adds a lens only when the change reaches it; each role's bullet below
-owns its exact boundary, this table owns the roster and what high-risk means. A
-row that does not fire is recorded `<role>: not warranted`, never dropped.
+the default and covers correctness and scope. It does **not** cover the rest:
+its own contract assigns testability, reliability, observability, maintenance
+cost, and every test-strength judgment — mode fit, tautology, mock shape,
+mirrors, and whether an artifact can actually fail — exclusively to
+`quality-engineer`. Work tripping none of the high-risk conditions therefore
+ships without that lens. That is a deliberate trade of the lens for speed, not a
+claim some other reviewer picks it up; raise the work to high-risk, or ask for
+the pass, when the trade is wrong. Each row adds a lens only when the change
+reaches it; each role's bullet below owns its exact boundary, this table owns
+the roster and what high-risk means. A row that does not fire is recorded
+`<role>: not warranted`, never dropped.
 
 | The change reaches | Adds |
 |---|---|
@@ -513,9 +523,11 @@ failure-mode→module routing authority; that condition subsumes persistent stat
 infrastructure, and reliability-critical behaviour, so none of the three is a
 separate predicate. (2) The change is structural exactly as the pre-EXECUTE
 footnote 1 defines it — new module boundary, new dependency, new abstraction
-layer, new top-level directory. (3) A human asks for the pass. Light mode runs no `quality-engineer` pass except
-under the exception in [`references/light-mode.md`](references/light-mode.md).
-Act on the observed change surface; don't scan for config files.
+layer, new top-level directory. (3) A human asks for the pass, which warrants it in either mode and is the
+light-mode exception's sibling — light mode otherwise runs no `quality-engineer`
+pass except under the adopter exception in
+[`references/light-mode.md`](references/light-mode.md). Act on the observed
+change surface; don't scan for config files.
 
 - **`security-reviewer`** — the diff changes a security boundary, data flow, or guarding control: auth, secrets, untrusted input, deserialization, dependency trust, or file/network validation, confinement, redirect policy, timeout/resource limits, or metadata/internal-range blocking. For LLM/agent code, dispatch only when authority, untrusted-input handling, tool exposure, permissions, sandboxing, or data handling changes; ordinary prompt wording with none of those effects does not fire this reviewer. Current lens: OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25 + STRIDE + LINDDUN open pass. Complements SAST/SCA scanners; does not replace them. **Inline its depth, don't make it self-discover:** detect which trust boundaries the diff crosses, load only the matching `security-checklists` modules, inline them into the subagent's brief (subagent has no Skill tool). Route via [`security-checklists` Module index](../security-checklists/SKILL.md#module-index); load only modules the diff crosses, never a flat march. **Mandatory and multi-module on infra-flavored work** (destructive/irreversible trigger + diff matches IaC/deploy-config entry): non-skippable, runs at spec stage and on diff, force-loads `config-misconfig` always, plus `access-control` / `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips each module's entry. Missing `security-reviewer` on infra work = loud blocker; run both reviewer and scanner.
 
@@ -557,7 +569,7 @@ rail, and the retry-cap interaction:
 [`references/full-mode-engine.md`](references/full-mode-engine.md)
 § *REVIEW and the human gate*.
 
-**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
+**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation, under the same dispatch predicate — parallelism changes the ordering, never which reports are owed adjudication. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?
