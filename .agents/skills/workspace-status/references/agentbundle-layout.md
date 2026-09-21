@@ -59,9 +59,10 @@ When no `[product]` section resolves, each consuming skill falls back to its own
 pack's declared default — `docs/product` for product-engineering
 (`packs/product-engineering/pack.toml` `[pack.layout.repo]`). ADR-0030 keeps that
 default in the pack rather than here, so this page states no fallback of its own.
-Whether a consumer reaches that default before eliciting is unsettled: RFC-0040's
-resolution tail puts it before elicitation and RFC-0096 § 4 has no such step, and
-the two are not reconciled.
+Whether a consumer reaches that default *before* asking you is not settled, so
+do not rely on either order: a skill may offer the pack default first, or ask
+first and treat the default as the fallback. Set `output_dir` explicitly if the
+distinction matters to you.
 
 `core` ships **no `[pack.layout.user]` default** for this section — product
 output is per-repo and there is no sensible cross-repo absolute path. For a
