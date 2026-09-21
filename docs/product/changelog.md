@@ -64,27 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.25] — 2026-09-21
-
-### Highlights
-
-- **The layout reference answers your question instead of citing ours.** Where
-  it used to say that two of our internal proposals disagree about whether a
-  skill offers the default path before asking you, it now tells you what to do:
-  do not rely on either order, and set `output_dir` explicitly if the
-  distinction matters.
-
-### Fixed
-
-- `workspace-status` `references/agentbundle-layout.md`: the unsettled-order
-  paragraph named two internal records by number. Shipped pack guidance states
-  its rule directly and cites no catalogue-internal record, which
-  `verify-host-checks` enforces; the earlier wording would have failed that
-  gate on any adopter's clone as much as on ours.
 
 ## [core][2.26.24] — 2026-09-21
 
 ### Highlights
+
+- **A path that hands your work to another skill is fixed, not configurable, and
+  the reference now says which paths those are.** `workspace-status`' layout page
+  documented a `shaping` key nothing reads and left out `output_dir`, the one
+  every consumer does read. It now describes the real key, explains that the
+  shaping folder is composed under it rather than configured beside it, and
+  states plainly that your briefs and intents folders are hand-offs — redirect
+  them and the artifact stops being found.
 
 - **A new intent now gets a readable name, not just a slug.** An intent admitted
   through `work-intake` at a recognized altitude lands as
@@ -99,6 +90,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nothing is renamed.** An intent already on disk keeps its filename whatever
   its altitude, so existing links and registry entries keep resolving.
 
+- **The layout reference answers your question instead of citing ours.** Where
+  it used to say that two of our internal proposals disagree about whether a
+  skill offers the default path before asking you, it now tells you what to do:
+  do not rely on either order, and set `output_dir` explicitly if the
+  distinction matters.
+
 ### Added
 
 - `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py` — allocates a
@@ -108,30 +105,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unreadable remote view, or a bound it would exceed. A duplicate check reports
   records sharing an altitude and a number in one directory, and refuses instead
   of reporting clean for a directory it could not fully read.
-
-### Changed
-
-- `work-intake` resolves the altitude against its closed table before invoking
-  anything, passes only the resulting token on a command line, and treats a
-  refusal as a change of destination rather than a reason to stop.
-- `intake-intent` accepts a destination that already carries a prefix, records
-  one of six fixed tokens when no number was allocated, and does not treat a
-  prefix supplied with a request as evidence that one was.
-- The published routing table, the workspace schema reference, the start-the-work
-  walkthrough and the product directory README state both destinations and what
-  selects between them.
-
-## [core][2.26.23] — 2026-09-21
-
-### Highlights
-
-- **A path that hands your work to another skill is fixed, not configurable, and
-  the reference now says which paths those are.** `workspace-status`' layout page
-  documented a `shaping` key nothing reads and left out `output_dir`, the one
-  every consumer does read. It now describes the real key, explains that the
-  shaping folder is composed under it rather than configured beside it, and
-  states plainly that your briefs and intents folders are hand-offs — redirect
-  them and the artifact stops being found.
 
 ### Changed
 
@@ -147,6 +120,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default before asking is unsettled between two accepted records.
 - Same page: the user-profile example uses `output_dir`, and a closing note
   separates a personal authoring destination from a repository hand-off.
+
+- `work-intake` resolves the altitude against its closed table before invoking
+  anything, passes only the resulting token on a command line, and treats a
+  refusal as a change of destination rather than a reason to stop.
+- `intake-intent` accepts a destination that already carries a prefix, records
+  one of six fixed tokens when no number was allocated, and does not treat a
+  prefix supplied with a request as evidence that one was.
+- The published routing table, the workspace schema reference, the start-the-work
+  walkthrough and the product directory README state both destinations and what
+  selects between them.
+
+### Fixed
+
+- `workspace-status` `references/agentbundle-layout.md`: the unsettled-order
+  paragraph named two internal records by number. Shipped pack guidance states
+  its rule directly and cites no catalogue-internal record, which
+  `verify-host-checks` enforces; the earlier wording would have failed that
+  gate on any adopter's clone as much as on ours.
+
 
 ## [core][2.26.22] — 2026-09-20
 
