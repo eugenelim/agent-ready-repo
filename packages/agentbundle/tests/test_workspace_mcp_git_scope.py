@@ -34,7 +34,7 @@ from agentbundle.workspace_mcp import (
     _LIFECYCLE_MANIFEST,
     _GitTools,
     _read_layout_bases,
-    _read_raw_layout_output_dirs,
+    _select_layout_bases,
 )
 
 _SLUG = "alpha"
@@ -436,11 +436,11 @@ def _write_layout(path: Path, layout: dict[str, str]) -> None:
     path.write_text("".join(lines), encoding="utf-8")
 
 
-# `both-scopes` is the load-bearing row. Every other case configures one file,
-# so a precedence flip in the raw reader would still agree with the shared one —
-# the property the whole test exists for would go unchecked. Here the two scopes
-# disagree on every key, so whichever one each key must prefer is decided.
-_AGREEMENT_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
+# `both-scopes` is the load-bearing row for precedence: every other case
+# configures one file, so a precedence error would go unnoticed. The two
+# container rows are load-bearing for selection: `Path(raw)` raises on them
+# inside a scope-wide `suppress`, abandoning the rest of that scope.
+_SELECTION_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
     "nothing-configured": ({}, {}),
     "one-key": ({"product": "artifacts"}, {}),
     "every-key": ({"research": "r/one", "product": "p/two", "design": "d/three"}, {}),
@@ -451,33 +451,36 @@ _AGREEMENT_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
         {"research": "repo/r", "product": "repo/p", "design": "repo/d"},
         {"research": "USER", "product": "USER", "design": "USER"},
     ),
-    # A value `Path(raw)` cannot take. Both readers must drop it and fall back to
-    # the other scope; a raw reader that kept it would select `product` from a
-    # different scope than the shared one and screen a value that is not in use.
-    "container-typed-preferred-value": (
-        {"product": '["x"]'},
+    "container-typed-value": ({"product": '["x"]'}, {"product": "USER"}),
+    "container-typed-value-before-a-clean-one": (
+        {"research": '["x"]', "product": "artifacts"},
         {"product": "USER"},
     ),
 }
 
 
-@pytest.mark.parametrize("shape", sorted(_AGREEMENT_LAYOUTS))
-def test_the_raw_reader_and_the_resolved_reader_agree(
+@pytest.mark.parametrize("shape", sorted(_SELECTION_LAYOUTS))
+def test_both_forms_of_a_base_come_from_one_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, shape: str
 ) -> None:
-    """`_read_raw_layout_output_dirs` reproduces `_read_layout_bases`'s per-key
-    precedence because it may not share it — the shared reader is one the spec
-    forbids modifying. Duplicated precedence drifts silently, so this pins the
-    two to one answer: every key one returns, the other returns, and resolving
-    the raw value reproduces the resolved one exactly.
+    """`_select_layout_bases` returns `(configured, resolved)` per key, and the
+    screen reads the first while the staging scope is built from the second. The
+    invariant that makes that safe is that they are the same decision: resolving
+    the configured form reproduces the resolved one, for every key, always.
+
+    A second reader could not hold this. `_read_scope` wraps its whole per-key
+    loop in one `contextlib.suppress(Exception)`, so a value `Path(raw)` raises
+    on abandons the rest of that scope and hands the decision to the other one —
+    which is why the two container rows exist, and why the second places its
+    container *before* a clean key in iteration order.
 
     A user-scope value must be absolute to count at all, so the `USER` marker
-    below stands for an absolute path under this test's own home.
+    stands for an absolute path under this test's own home.
     """
     repo = tmp_path / "repo"
     repo.mkdir(parents=True)
     home = tmp_path / "home"
-    repo_layout, user_layout = _AGREEMENT_LAYOUTS[shape]
+    repo_layout, user_layout = _SELECTION_LAYOUTS[shape]
     user_layout = {
         key: str((home / "vault" / key).resolve()) if value == "USER" else value
         for key, value in user_layout.items()
@@ -489,19 +492,27 @@ def test_the_raw_reader_and_the_resolved_reader_agree(
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("USERPROFILE", str(home))
 
-    raw = _read_raw_layout_output_dirs(repo)
-    resolved = _read_layout_bases(repo)
+    selected = _select_layout_bases(repo)
 
-    assert set(raw) == set(resolved)
-    assert {key: _resolved_base(repo, value) for key, value in raw.items()} == resolved
+    for key, (configured, resolved) in selected.items():
+        assert _resolved_base(repo, configured) == resolved, key
+    # The projection publishes exactly the resolved half and decides nothing.
+    assert _read_layout_bases(repo) == {
+        key: resolved for key, (_c, resolved) in selected.items()
+    }
     if shape == "both-scopes":
         # research takes the user-scope value; product and design take the repo's.
-        assert raw["research"] == user_layout["research"]
-        assert raw["product"] == repo_layout["product"]
-        assert raw["design"] == repo_layout["design"]
+        assert selected["research"][0] == user_layout["research"]
+        assert selected["product"][0] == repo_layout["product"]
+        assert selected["design"][0] == repo_layout["design"]
+    if shape.startswith("container-typed-value"):
+        # `Path(["x"])` raises, abandoning the repository scope entirely — so
+        # `product` comes from the user scope even in the row where the
+        # repository file also carries a clean `product`.
+        assert selected["product"][0] == user_layout["product"]
 
 
-def test_the_raw_reader_drops_a_user_scope_relative_value_like_the_shared_reader(
+def test_a_user_scope_relative_value_is_dropped_by_the_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A user-scope relative value never reaches a staging scope, so screening it
@@ -516,7 +527,7 @@ def test_the_raw_reader_drops_a_user_scope_relative_value_like_the_shared_reader
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("USERPROFILE", str(home))
 
-    assert _read_raw_layout_output_dirs(repo) == {}
+    assert _select_layout_bases(repo) == {}
     assert _read_layout_bases(repo) == {}
 
 

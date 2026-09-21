@@ -162,21 +162,29 @@ _LAYOUT_TYPE_BASES: dict[str, tuple[str, str]] = {
 _RESERVED_BASE_CHARS: tuple[str, ...] = ("*", "?", "[", "{", "}")
 
 
-def _read_layout_bases(repo_root: Path) -> dict[str, str]:
-    """Read output_dir from agentbundle-layout.toml with type-specific precedence.
+def _select_layout_bases(repo_root: Path) -> dict[str, tuple[str, str]]:
+    """Select each key's output_dir, returning `(configured, resolved)` pairs.
+
+    One selection, read once. `configured` is the adopter's value exactly as
+    written; `resolved` is that same value expanded, anchored and resolved.
+
+    Both forms come from one decision because two readers cannot be kept in
+    agreement by hand. `_read_scope` wraps its whole per-key loop in one
+    `contextlib.suppress(Exception)`, so any raise from `Path(raw)`,
+    `is_absolute()` or `resolve()` abandons the rest of that scope and hands the
+    decision to the other one. A screen that reads a second, independently
+    computed answer about the configured value screens a value that may not be
+    the one in use — measured three times before this shape replaced it.
 
     research: user-scope wins (personal vault applies across repos).
     product, design: repo-scope wins (team convention takes priority).
-
-    Values come back absolute and resolved. A caller that publishes one is
-    responsible for re-expressing it — see `_publishable_output_pattern`.
     """
     import tomllib
 
-    def _read_scope(path: Path, *, scope: str) -> dict[str, str]:
+    def _read_scope(path: Path, *, scope: str) -> dict[str, tuple[str, str]]:
         if not path.exists() or path.is_symlink():
             return {}
-        out: dict[str, str] = {}
+        out: dict[str, tuple[str, str]] = {}
         with contextlib.suppress(Exception):
             with path.open("rb") as fh:
                 data = tomllib.load(fh)
@@ -208,81 +216,32 @@ def _read_layout_bases(repo_root: Path) -> dict[str, str]:
                         )
                         continue
                     candidate = repo_root / candidate
-                out[key] = str(candidate.resolve())
+                out[key] = (raw, str(candidate.resolve()))
         return out
 
     repo = _read_scope(repo_root / "agentbundle-layout.toml", scope="repo")
     user = _read_scope(
         Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
     )
-    result: dict[str, str] = {}
+    result: dict[str, tuple[str, str] | None] = {}
     # research: user-scope wins
-    result["research"] = user.get("research") or repo.get("research", "")
+    result["research"] = user.get("research") or repo.get("research")
     # product/design: repo-scope wins
-    result["product"] = repo.get("product") or user.get("product", "")
-    result["design"] = repo.get("design") or user.get("design", "")
+    result["product"] = repo.get("product") or user.get("product")
+    result["design"] = repo.get("design") or user.get("design")
     return {k: v for k, v in result.items() if v}
 
 
-def _read_raw_layout_output_dirs(repo_root: Path) -> dict[str, str]:
-    """Return each key's configured `output_dir` exactly as the adopter wrote it.
+def _read_layout_bases(repo_root: Path) -> dict[str, str]:
+    """The resolved half of `_select_layout_bases`, for callers that need only it.
 
-    `_read_layout_bases` yields the same values resolved, which is what the
-    status payload and the staging scope both need and what this function
-    deliberately does not do. A screen for characters the adopter typed cannot
-    read a resolved path: resolution normalises `a*/../b` down to `b`, hiding a
-    reserved character that was configured, and it splices in the repository's
-    own location, which may carry one the adopter never typed.
-
-    This function must *select* what `_read_layout_bases` selects, not merely
-    follow its precedence. Its body therefore mirrors `_read_scope` step for
-    step, including the two places that decide which value wins: the
-    `Path(raw).expanduser()` call, which a non-string value raises on, and the
-    `contextlib.suppress` around the whole per-key loop, which that raise exits
-    — abandoning every later key in that scope and handing the decision to the
-    other one. Reproducing the precedence while reading one key more than the
-    shared reader does makes the two select from different scopes, which is a
-    defect this screen has already shipped once.
-
-    `test_the_raw_reader_and_the_resolved_reader_agree` pins the two to one
-    answer, and the call site refuses on any disagreement, so a divergence this
-    mirror fails to reproduce costs a commit rather than a containment.
+    A projection, never a second selection: it opens nothing and decides
+    nothing. Values come back absolute and resolved. A caller that publishes one
+    is responsible for re-expressing it — see `_publishable_output_pattern`.
     """
-    import tomllib
-
-    def _raw_scope(path: Path, *, scope: str) -> dict[str, str]:
-        if not path.exists() or path.is_symlink():
-            return {}
-        out: dict[str, str] = {}
-        with contextlib.suppress(Exception):
-            with path.open("rb") as fh:
-                data = tomllib.load(fh)
-            for key in ("research", "product", "design"):
-                if not isinstance(data.get(key), dict):
-                    continue
-                raw = data[key].get("output_dir", "")
-                if not raw:
-                    continue
-                # Mirrors `_read_scope`: a non-string raises here and the raise
-                # exits the suppressed block, ending this scope's whole loop.
-                candidate = Path(raw).expanduser()
-                if scope == "user" and not candidate.is_absolute():
-                    # The shared reader drops this one and warns about it, so it
-                    # never reaches a staging scope and must not be screened.
-                    continue
-                out[key] = raw
-        return out
-
-    repo = _raw_scope(repo_root / "agentbundle-layout.toml", scope="repo")
-    user = _raw_scope(
-        Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
-    )
-    result = {
-        "research": user.get("research") or repo.get("research", ""),
-        "product": repo.get("product") or user.get("product", ""),
-        "design": repo.get("design") or user.get("design", ""),
+    return {
+        key: resolved for key, (_raw, resolved) in _select_layout_bases(repo_root).items()
     }
-    return {k: v for k, v in result.items() if v}
 
 
 def _apply_layout_overrides(
@@ -1810,72 +1769,42 @@ class _GitTools:
             patterns_list: list[str] = (
                 raw_patterns if isinstance(raw_patterns, list) else [raw_patterns]
             )
-            bases = _read_layout_bases(self._repo_root)
-            # Screen the configured base before it is spliced in, so a value that
-            # cannot bound a scope never reaches the pattern list. Two things the
-            # check must not read: the substituted pattern, because the manifest
-            # contributes `*` and `**` of its own and after substitution the two
-            # are textually indistinguishable; and the resolved base, because
-            # resolution both hides a configured `a*/../b` and invents a `*` the
-            # adopter never typed when the repository's own path carries one.
+            selected = _select_layout_bases(self._repo_root)
+            # Screen the adopter's own value, taken from the same selection that
+            # produced the base being spliced in. Two things the check must not
+            # read: the substituted pattern, because the manifest contributes `*`
+            # and `**` of its own and after substitution the two are textually
+            # indistinguishable; and the resolved base, because resolution both
+            # hides a configured `a*/../b` and invents a `*` the adopter never
+            # typed when the repository's own path carries one.
             mapping = _LAYOUT_TYPE_BASES.get(item_type)
             if mapping is not None:
                 toml_key = mapping[0]
-                configured = bases.get(toml_key)
-                if configured is not None:
-                    raw_configured = _read_raw_layout_output_dirs(
-                        self._repo_root
-                    ).get(toml_key)
-                    # The screen has to read the value that produced `configured`,
-                    # and the raw reader is a second answer about it rather than
-                    # that value itself. Rather than enumerate the ways the two
-                    # can diverge — a type one accepts and the other drops, a
-                    # precedence difference, a file rewritten between the reads —
-                    # any disagreement at all is refused. Screening a divergent
-                    # answer is how this defect was reintroduced once already, and
-                    # an enumerated list would only ever cover the cases someone
-                    # thought of.
-                    try:
-                        agrees = configured == str(
-                            (
-                                self._repo_root / Path(raw_configured).expanduser()
-                            ).resolve()
-                        )
-                    except Exception:
-                        agrees = False
-                    # Short-circuits: a disagreeing value is refused without the
-                    # membership test, which a container-typed value answers
-                    # `False` instead of raising.
-                    reserved = not agrees or any(
-                        char in raw_configured for char in _RESERVED_BASE_CHARS
+                pair = selected.get(toml_key)
+                if pair is not None and any(
+                    char in pair[0] for char in _RESERVED_BASE_CHARS
+                ):
+                    self._refused_layout_key = toml_key
+                    # stdout is the MCP protocol channel, so the adopter-facing
+                    # report goes to stderr.
+                    print(
+                        f"workspace-mcp: warning: the configured [{toml_key}] "
+                        "output_dir contains one of the characters "
+                        f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
+                        "staging scope, so git_commit is unavailable for "
+                        f"{item_type!r} items. Give it a directory name built "
+                        "without those characters.",
+                        file=sys.stderr,
                     )
-                    if reserved:
-                        self._refused_layout_key = toml_key
-                        # stdout is the MCP protocol channel, so the adopter-facing
-                        # report goes to stderr.
-                        detail = (
-                            "contains one of the characters "
-                            f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound "
-                            "a staging scope. Give it a directory name built "
-                            "without those characters."
-                            if agrees
-                            else (
-                                "could not be read as one consistent value, so no "
-                                "staging scope can be built from it. Give it a "
-                                "single quoted directory path."
-                            )
-                        )
-                        print(
-                            f"workspace-mcp: warning: the configured [{toml_key}] "
-                            f"output_dir {detail} git_commit is unavailable for "
-                            f"{item_type!r} items.",
-                            file=sys.stderr,
-                        )
-                        return None
+                    return None
             # Apply agentbundle-layout.toml overrides (user-scope > repo-scope >
             # convention). Stage 1: resolve at bind-time; Stage 2 defers to the
             # first git_branch() call.
-            patterns_list = _apply_layout_overrides(item_type, patterns_list, bases)
+            patterns_list = _apply_layout_overrides(
+                item_type,
+                patterns_list,
+                {key: resolved for key, (_raw, resolved) in selected.items()},
+            )
             return [p.format(slug=slug) for p in patterns_list]
         except Exception:
             return None
@@ -1971,9 +1900,10 @@ class _GitTools:
                 "error": (
                     f"git_commit unavailable: the configured "
                     f"[{self._refused_layout_key}] output_dir in "
-                    f"agentbundle-layout.toml cannot bound a staging scope. "
-                    f"Give it a single quoted directory path built without the "
-                    f"characters {' '.join(_RESERVED_BASE_CHARS)}."
+                    f"agentbundle-layout.toml contains one of the characters "
+                    f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
+                    f"staging scope. Give it a directory name built without "
+                    f"those characters."
                 )
             }
         if self._output_pattern is None:

@@ -334,3 +334,42 @@ prohibition on the one change that serves it: a single selection, read once,
 yielding both forms. No existing caller's behaviour changes —
 `_read_layout_bases` keeps its signature and its return type, and becomes a thin
 projection of the richer reader.
+
+## T5: one selection, and what it cost to get here
+
+`_select_layout_bases` opens, parses and selects once, returning
+`(configured, resolved)` per key. `_read_layout_bases` keeps its signature,
+return type and every caller, and is now a projection of the resolved half that
+opens nothing and decides nothing. `_read_raw_layout_output_dirs` is deleted,
+and the agreement check with it — with one selection there is nothing left to
+disagree.
+
+Both bypasses this defect class produced are closed, driven through the real
+`git_commit`:
+
+| Scenario | Result |
+| --- | --- |
+| repo `output_dir = ["x"]`, user base carrying `*` | refused, no pattern |
+| repo `research = ["x"]` before a clean `product`, user base whose `*` normalises away | refused, no pattern |
+| clean configured base, nothing else | accepted, pattern set |
+
+Mutations:
+
+| Mutation | Caught by |
+| --- | --- |
+| screen reads `pair[1]` (resolved) instead of `pair[0]` (configured) | the two resolution-asymmetry tests and the scope-abort test |
+| the selection stores a raw form that is not the adopter's value | the repository-path-with-`*` test and the `both-scopes` selection row |
+
+`test_workspace_mcp_layout_override.py` passes unchanged, which is T5's guard
+against this refactor reopening the status-payload disagreement the amended
+rule exists to prevent. 122 passed across both suites, 94s.
+
+### What the three rounds actually taught
+
+Not "screen the raw value" or "mirror the precedence" — both were tried and both
+shipped the defect again. The lesson is narrower and it is now a spec rule: a
+check about a selected value has to read the selection, because any second
+computation of "which value won" is a second answer, and two answers is the
+defect the layout resolver was consolidated to prevent in the first place. The
+mirror was not a weaker version of the right fix; it was the original defect
+wearing the fix's name.
