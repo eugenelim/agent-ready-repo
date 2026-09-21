@@ -239,6 +239,34 @@ subprocess so the claim is standing rather than a one-off, and it must be a
 subprocess because the suite sets `sys.dont_write_bytecode` itself and would
 mask a script that does not.
 
+## 2026-09-21 — where the security review actually stands
+
+**No round has returned Clean.** Five rounds, eighteen findings, every premise
+reproduced and every fix carrying a standing test — and round 5 still found
+four. The rate is not obviously converging, and saying so is more useful than a
+summary that implies it is.
+
+A sixth round is running at `37490f57b` for a specific reason rather than to chase
+the count: round 5's own fixes replaced the security-critical environment
+handling *after* the reviewer last saw it. Leaving that change unreviewed would
+be exactly the gap this exercise exists to close.
+
+**What the eighteen say about the earlier passes.** Two spec-stage rounds
+returned Clean on the contract, and the contract was right. Every one of the
+eighteen was an implementation that agreed with the criteria's words and not
+their intent — a bound that inverted when its input was zero, an allowlist that
+failed open on a value nobody enumerated, a status code standing in for a
+message. A criterion cannot catch that, which is the argument for this pass
+existing rather than being folded into the earlier ones.
+
+**Two patterns, both worth carrying forward.** Four findings were one
+conflation — *could not run* versus *ran and said no* — fixed by giving `_git`
+an exit code rather than a truthy string. And three were a set enumerated in the
+wrong direction: an allowlist where the closed set was its complement, a status
+where the message was the signal. The denylist of `GIT_*` variables grew four
+times before becoming an allowlist; each growth was a real hole someone else
+found.
+
 ## 2026-09-21 — the implementation-stage security review, and four real defects
 
 **Why it ran.** Owed at GATES once code existed. Two spec-stage passes had
