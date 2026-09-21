@@ -111,6 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/specs/work-item-mechanical-tier/spec.md`'s and has not landed), and
   the complete list of accepted, unmitigated residuals this delivery
   carries.
+
 ## [core][2.26.25] — 2026-09-21
 
 ### Highlights
