@@ -3,6 +3,7 @@
 - **Slug:** `duplicate-coverage-check` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
 - **Level:** `feature`
+- **Owner:** eugenelim
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`

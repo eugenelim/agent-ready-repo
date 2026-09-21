@@ -3,6 +3,7 @@
 - **Slug:** `work-item-capture-and-disposition` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
 - **Level:** capability
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** none

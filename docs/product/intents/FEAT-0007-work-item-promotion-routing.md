@@ -3,6 +3,7 @@
 - **Slug:** `work-item-promotion-routing` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
 - **Level:** `feature`
+- **Owner:** eugenelim
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
