@@ -38,26 +38,29 @@ const SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'web/src/lib/shared-chrome.gene
 const DOCS_SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'docs-site/src/shared-chrome.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
 
-// A clause ending, which must be followed by a space before the next element.
+// The two halves of "a clause welded to the text that follows it".
 //
-// ASCII `"` and `'` are POSITIONAL -- the same character opens and closes --
-// so neither is a clause ending on its own. `the "<code>pack</code>"` ends a
-// text node with an OPENING quote directly before an element, correctly and
-// deliberately unspaced; treating a bare `"` as terminal reds that valid
-// prose. They count only after clause punctuation, which is what makes
-// `It says "done."<a>Browse</a>` a weld. The curly forms are unambiguous and
-// stand alone.
+// WHICH ELEMENTS. Not every element must be preceded by a space. A footnote or
+// ordinal marker legitimately abuts the punctuation before it -- `A fact.<sup>1</sup>`
+// and `3<sup>rd</sup>` are correct typography -- so `sup` and `sub` are excluded
+// by construction. The elements below are the ones that carry a word or phrase of
+// running prose, and a word abutting the previous sentence is always a defect.
+// This set, not the punctuation, is what bounds the rule: "which elements may
+// abut punctuation" is a finite and stable question, whereas enumerating the
+// punctuation shapes that precede them is not, and three review rounds spent on
+// the character class each found another shape.
+export const PROSE_ELEMENTS = ['a', 'code', 'strong', 'em', 'b', 'i', 'span', 'abbr'];
+
+// WHICH ENDINGS. Clause punctuation, then any number of closing brackets or
+// quotes, which merely close nesting: `done.`, `done."`, `"(done.)"`.
 //
-// A bare closing bracket is likewise NOT a clause ending, and this is a
-// deliberate limit rather than an oversight: `(see the docs)<sup>1</sup>` is
-// a legitimately unspaced footnote boundary. `done.)` is caught, because the
-// clause punctuation is what carries the signal. No /packs/* page emits a
-// `<sup>` today, but the guard must not red valid future content.
-//
-// An em dash is out for the same positional reason -- `packs—<a>see</a>` is a
-// valid unspaced style -- so the em-dash weld is NOT covered. Stated here
-// because an earlier revision of this comment claimed it was.
-export const CLAUSE_END = /(?:[.,;:!?…][)"'’”\]]?|[’”])$/;
+// ASCII `"` and `'` are POSITIONAL -- the same character opens and closes -- so
+// neither is a clause ending alone. `the "<code>pack</code>"` ends a text node
+// with an OPENING quote directly before an element, correctly unspaced, and
+// treating a bare `"` as terminal reds that valid prose. The curly closing forms
+// are unambiguous and stand alone. An em dash is positional too (`packs—<a>see</a>`
+// is a valid unspaced style), so the em-dash weld is deliberately NOT covered.
+export const CLAUSE_END = /(?:[.,;:!?…][)"'’”\]]*|[’”])$/;
 
 
 /**
@@ -664,37 +667,48 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
    * "above.Browse". It is invisible in source and invisible to every
    * source-level lint, which is why it is asserted against the emitted page.
    *
-   * Asserted STRUCTURALLY, on the text-node/element boundary itself, rather
-   * than by pattern-matching rendered prose. Two earlier textual forms of this
-   * guard were both wrong, in opposite directions at once, and the structural
-   * form is what removes both:
+   * Asserted on the text-node/element boundary itself rather than by matching
+   * rendered prose, and bounded by WHICH ELEMENTS may abut punctuation rather
+   * than by which punctuation shapes exist. That second choice is the one that
+   * matters, and it was learned the hard way: four review rounds were spent on
+   * this guard, three of them on the punctuation class, and each fix admitted
+   * the opposite error from the one it repaired.
    *
    *  - A document-wide `textContent` scan reported 60+ false positives on an
    *    already-fixed tree, because `textContent` concatenates adjacent block
-   *    elements with no separator: a paragraph ending "...engineering."
-   *    followed by a heading "Via..." is indistinguishable from the defect.
-   *  - Narrowing that to one block and matching `/[a-z]\.[A-Z][a-z]+/` was
-   *    still too loose AND too tight. Too loose because `<Content />` renders
-   *    every `src/content/packs/*.md` body into `.pack-description`, so an
-   *    author writing an ordinary identifier like `file.Name` — one text node,
-   *    no boundary, no missing space — would red this suite. Too tight because
-   *    it saw the defect only after a lowercase letter and a period, and only
-   *    before a capitalised word: the same defect after `?`, `!`, a closing
-   *    quote, or before a lowercase label, a digit or an initialism such as
-   *    `<code>CLI</code>`, sailed straight past it. (An em dash is a
-   *    separate case and is deliberately still out of scope -- see the
-   *    clause-ending note below.)
+   *    elements: a paragraph ending "...engineering." followed by a heading
+   *    "Via..." is indistinguishable from the defect.
+   *  - Narrowing that to one block and matching `/[a-z]\.[A-Z][a-z]+/` was too
+   *    loose AND too tight. Too loose because `<Content />` renders every
+   *    `src/content/packs/*.md` body into `.pack-description`, so an author
+   *    writing `file.Name` -- one text node, no boundary -- would red the
+   *    suite. Too tight because a weld after `?` or `!`, or before a lowercase
+   *    label or an initialism like `<code>CLI</code>`, sailed past it.
+   *  - Widening the clause set to catch `done."` admitted a BARE ASCII quote,
+   *    which is positional and reds the valid `the "<code>pack</code>"`.
+   *  - Requiring clause punctuation fixed that but still reported
+   *    `A fact.<sup>1</sup>`, an ordinary and correct footnote, as a weld.
    *
-   * The boundary test has neither failure. It fires only where a text node
-   * ending in clause-ending punctuation directly abuts an element whose own
-   * text starts without whitespace — which is the defect, and which has no
-   * innocent reading. Prose inside a single text node is never examined, so
-   * `file.Name` cannot trip it.
+   * The last of those is what moved the bound onto the element set. `sup` and
+   * `sub` legitimately abut the punctuation before them; a word of running
+   * prose never does. See PROSE_ELEMENTS and CLAUSE_END for the two halves and
+   * the reasoning, and the sibling contract test for the cases that decided
+   * them.
    *
-   * Scope is every element under `main`, not a hand-listed set of block tags.
-   * An earlier list of `p, li, figcaption, dd, dt, blockquote` silently omitted
-   * the `td`/`th` of the Markdown tables that `build/packs/github/` and
-   * `build/packs/linear/` already emit, and every heading.
+   * WHAT THIS DOES NOT COVER, deliberately, and measured rather than assumed:
+   * only a TEXT-NODE-to-element boundary. If an element sits immediately before
+   * the prose element -- `A fact.<sup>1</sup><a>Browse</a>` -- the anchor's
+   * previous sibling is the `<sup>`, not a text node, so the walk skips it and
+   * a reader still sees `fact.1Browse`. Verified by probe, not reasoned: with a
+   * `<sup>` injected before an unspaced anchor, this suite stays green.
+   *
+   * That case is out of scope on purpose. Closing it means deciding what the
+   * trailing text of an arbitrary preceding element implies, and the sibling
+   * shapes then multiply -- which is precisely how this guard consumed four
+   * review rounds. It asserts the class that was MEASURED on these pages: a
+   * clause of running text welded to the prose element after it, which is what
+   * all 22 pages carried. A reader inheriting this guard should not mistake it
+   * for a general welding detector.
    *
    * Applied to every emitted /packs/* page, not a sampled one: the template has
    * two install branches and each pack renders only one, so a single page
@@ -711,7 +725,7 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     for (const name of packDirs) {
       const main = doc(join(BUILD_ROOT, 'packs', name, 'index.html')).querySelector('main');
       expect(main, `packs/${name} emitted no <main>`).not.toBeNull();
-      for (const element of main!.querySelectorAll('*')) {
+      for (const element of main!.querySelectorAll(PROSE_ELEMENTS.join(','))) {
         const before = element.previousSibling;
         if (!before || before.nodeType !== 3) continue;
         const left = before.textContent ?? '';
@@ -729,37 +743,44 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
   });
 
   /**
-   * The clause-ending predicate's own contract, pinned case by case.
+   * The two predicates' own contract, pinned case by case.
    *
-   * Here rather than only in the page guard because the page guard can only
-   * prove the shapes the current pages happen to contain. Three review rounds
-   * moved this predicate, and each move risked the opposite error from the one
-   * it fixed: widening it to catch `done."` admitted a bare ASCII quote, which
-   * reds the valid `the "<code>pack</code>"`. The rows below are the cases that
-   * decided the final shape, including the ones that must NOT fire.
+   * Here rather than only in the page guard, because the page guard can prove
+   * only the shapes today's pages happen to contain. This rule moved in four
+   * consecutive review rounds and every move risked the opposite error from the
+   * one it fixed, so the cases that decided its final shape are recorded as
+   * assertions instead of living in a review transcript.
    */
-  it('the clause-ending predicate fires on welds and not on valid abutments', () => {
+  it('the weld predicates fire on welds and not on valid abutments', () => {
     const welds = [
       'above.',                       // the original defect
       'above!',                       // an earlier textual form missed this
       'It says "done."',              // ASCII closing quote after clause punctuation
-      'done.)',                       // closing bracket after clause punctuation
+      'done.)',                       // one closing bracket
+      'She wrote "(done.)"',          // several nested closers
       'For details\u2026',            // ellipsis
       'he said \u201cyes\u201d',       // curly closing quote, unambiguous alone
     ];
     const abutments = [
       'the "',                        // ASCII quote OPENING, legitimately unspaced
       "the '",                        // same, single
-      "packs'",                       // bare apostrophe is not a clause ending
-      '(see above)',                  // bare bracket carries no clause signal
-      '(see the docs)',               // the <sup> footnote boundary
-      'packs\u2014',                  // em dash: documented out of scope
+      "packs'",                       // a bare apostrophe is not a clause ending
+      'packs\u2014',                  // em dash is positional: out of scope
       'works directly in',            // plain prose
     ];
     expect(welds.filter((text) => !CLAUSE_END.test(text)), 'these are welds and must fire')
       .toEqual([]);
     expect(abutments.filter((text) => CLAUSE_END.test(text)), 'these are valid and must not fire')
       .toEqual([]);
+
+    // The element set is the other half of the rule, and the half that excuses
+    // `A fact.<sup>1</sup>`. A footnote or ordinal marker may abut punctuation;
+    // a word of running prose may not.
+    expect(PROSE_ELEMENTS).toContain('a');
+    expect(PROSE_ELEMENTS).toContain('code');
+    for (const excluded of ['sup', 'sub']) {
+      expect(PROSE_ELEMENTS, `${excluded} legitimately abuts punctuation`).not.toContain(excluded);
+    }
   });
 
   it('shared chrome AC8: current states are route-specific and fragments stay non-current', () => {
