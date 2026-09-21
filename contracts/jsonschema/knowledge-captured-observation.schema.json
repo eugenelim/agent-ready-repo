@@ -5,11 +5,10 @@
   "description": "Strict producer request admitted by project-knowledge capture before core derives storage identity.",
   "x-spec": ["docs/specs/project-knowledge-foundation/"],
   "type": "object",
-  "contract_version": "knowledge-captured-observation.v1",
+  "contract_version": "knowledge-captured-observation.v2",
   "additionalProperties": false,
   "required": [
     "contract_version",
-    "lesson",
     "kind",
     "project_scope",
     "competency_facets",
@@ -23,13 +22,13 @@
   ],
   "properties": {
     "contract_version": {
-      "const": "knowledge-captured-observation.v1"
+      "const": "knowledge-captured-observation.v2"
     },
     "lesson": {
       "$ref": "#/$defs/safeText2000"
     },
     "kind": {
-      "enum": ["pattern", "gotcha", "antipattern"]
+      "enum": ["pattern", "gotcha", "antipattern", "work-item"]
     },
     "project_scope": {
       "type": "object",
@@ -205,14 +204,123 @@
       "required": ["command", "path"],
       "properties": {
         "command": {
-          "$ref": "#/$defs/safeText500"
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/safeText500" }
         },
         "path": {
           "$ref": "#/$defs/repositoryPath"
         }
       }
+    },
+    "work_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "shape", "blocker", "finished_state", "necessity_rationale"],
+      "properties": {
+        "statement": {
+          "$ref": "#/$defs/safeText2000"
+        },
+        "shape": {
+          "enum": ["defect", "question", "decision"]
+        },
+        "blocker": {
+          "enum": ["decision", "instrument", "elapsed-time", "dependency"]
+        },
+        "finished_state": {
+          "$ref": "#/$defs/safeText2000"
+        },
+        "necessity_rationale": {
+          "$ref": "#/$defs/safeText2000"
+        },
+        "observed": {
+          "$ref": "#/$defs/safeText2000"
+        },
+        "intended": {
+          "$ref": "#/$defs/safeText2000"
+        },
+        "answered_by": {
+          "$ref": "#/$defs/safeText2000"
+        },
+        "significance": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "architecturally-significant",
+              "expensive-to-reverse",
+              "constrains-beyond"
+            ]
+          }
+        }
+      }
     }
   },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "work-item"}}},
+      "then": {"required": ["work_item"]}
+    },
+    {
+      "if": {"not": {"properties": {"kind": {"const": "work-item"}}}},
+      "then": {"required": ["lesson"]}
+    },
+    {
+      "if": {
+        "required": ["work_item"],
+        "properties": {
+          "work_item": {
+            "required": ["shape"],
+            "properties": {"shape": {"const": "defect"}}
+          }
+        }
+      },
+      "then": {
+        "anyOf": [
+          {"required": ["verification_route"]},
+          {
+            "properties": {
+              "work_item": {"required": ["observed", "intended"]}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": ["work_item"],
+        "properties": {
+          "work_item": {
+            "required": ["shape"],
+            "properties": {"shape": {"const": "question"}}
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "work_item": {"required": ["answered_by"]}
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["work_item"],
+        "properties": {
+          "work_item": {
+            "required": ["shape"],
+            "properties": {"shape": {"const": "decision"}}
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "work_item": {"required": ["significance"]}
+        }
+      }
+    }
+  ],
   "$defs": {
     "safeText2000": {
       "type": "string",

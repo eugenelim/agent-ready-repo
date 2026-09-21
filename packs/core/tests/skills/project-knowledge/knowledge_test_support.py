@@ -56,7 +56,7 @@ def load_knowledge_store_module():
 
 def valid_capture_request(**overrides: Any) -> dict[str, Any]:
     request: dict[str, Any] = {
-        "contract_version": "knowledge-captured-observation.v1",
+        "contract_version": "knowledge-captured-observation.v2",
         "lesson": "Prefer the repo-owned contract before adding a local format.",
         "kind": "pattern",
         "project_scope": {"paths": ["packs/core"], "audience": "project"},
@@ -102,11 +102,53 @@ def valid_capture_request(**overrides: Any) -> dict[str, Any]:
             "summary": "The correct contract authority took several attempts to locate.",
         },
         "verification_route": {
-            "command": "python3 tools/catalogue/check_contract_parity.py",
+            # A two-element `cat` of a real repository path: the narrowest
+            # argv the § D6 rules in project_knowledge.py's
+            # `_validate_command_argv` admit. Migrated from a string here
+            # (T3) rather than in T1, which leaves the type conversion in
+            # the one task that changes the type.
+            "command": ["cat", "tools/catalogue/check_contract_parity.py"],
             "path": "tools/catalogue/check_contract_parity.py",
         },
     }
     request.update(overrides)
+    return request
+
+
+def valid_work_item(shape: str, **overrides: Any) -> dict[str, Any]:
+    """Return a complete `work_item` object for one of § D2's three shapes."""
+
+    work_item: dict[str, Any] = {
+        "statement": "The argv character class admits an element the case table refuses.",
+        "shape": shape,
+        "blocker": "instrument",
+        "finished_state": "The class refuses every element form the case table names.",
+        "necessity_rationale": "No existing control refuses this class today.",
+    }
+    if shape == "defect":
+        work_item["observed"] = "The class admits the element unchanged."
+        work_item["intended"] = "The class refuses the element before storage."
+    elif shape == "question":
+        work_item["answered_by"] = "The reviewer who owns the sibling trust boundary."
+    elif shape == "decision":
+        work_item["significance"] = ["architecturally-significant"]
+    work_item.update(overrides)
+    return work_item
+
+
+def valid_work_item_request(shape: str, **overrides: Any) -> dict[str, Any]:
+    """Return a complete `work-item` capture request for one of § D2's shapes.
+
+    `overrides` reaches `valid_capture_request` first — so, for example, a
+    caller wanting a bad `verification_route` passes it here — then `kind`
+    and `work_item` are set afterward and `lesson` is dropped, since a
+    `work-item` record carries `work_item.statement` instead (§ D8).
+    """
+
+    request = valid_capture_request(**overrides)
+    del request["lesson"]
+    request["kind"] = "work-item"
+    request["work_item"] = valid_work_item(shape)
     return request
 
 

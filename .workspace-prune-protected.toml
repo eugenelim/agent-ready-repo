@@ -109,5 +109,6 @@ protected = [
   "docs/specs/unrelated",
   "docs/specs/verification-ledger",
   "docs/specs/work-intake-migration-docs",
+  "docs/specs/work-item-capture",
   "docs/specs/x",
 ]

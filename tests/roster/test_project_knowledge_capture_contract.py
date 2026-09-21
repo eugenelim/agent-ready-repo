@@ -23,7 +23,7 @@ BUNDLED_SCHEMA = (
 
 def _valid_capture_request(**overrides: Any) -> dict[str, Any]:
     request: dict[str, Any] = {
-        "contract_version": "knowledge-captured-observation.v1",
+        "contract_version": "knowledge-captured-observation.v2",
         "lesson": "Prefer the repository-owned contract before adding a local format.",
         "kind": "pattern",
         "project_scope": {"paths": ["docs/architecture"], "audience": "project"},
@@ -66,7 +66,7 @@ def _valid_capture_request(**overrides: Any) -> dict[str, Any]:
             "summary": "The contract authority took several attempts to locate.",
         },
         "verification_route": {
-            "command": "python3 tools/lint-conformance-portability.py --root .",
+            "command": ["cat", "tools/lint-conformance-portability.py"],
             "path": "tools/lint-conformance-portability.py",
         },
     }
@@ -80,7 +80,7 @@ def test_public_capture_contract_is_strict_versioned_and_bundled() -> None:
     validator = Draft202012Validator(schema)
 
     assert schema["additionalProperties"] is False
-    assert schema["contract_version"] == "knowledge-captured-observation.v1"
+    assert schema["contract_version"] == "knowledge-captured-observation.v2"
     assert "capture_id" not in schema["properties"]
     assert list(validator.iter_errors(_valid_capture_request())) == []
 

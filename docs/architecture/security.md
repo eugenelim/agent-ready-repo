@@ -223,6 +223,100 @@ When a platform automates security-policy enforcement, `metadata.boundaries` pro
 machine-readable signal; when it does not, the skill or agent body's security rules carry the
 same intent in prose.
 
+## Work-item capture — the security gap list
+
+`project-knowledge`'s `work-item` kind
+(`docs/specs/work-item-capture/spec.md`, `docs/architecture/knowledge-capture.md`
+§ 7) admits a record that may carry a stored, later-executable command. This
+is the **single home** for that delivery's accepted, unmitigated residuals.
+No count is stated: a fixed number falsifies silently the day a disclosure
+is added, so the list below is itself the assertion, not a tally of it.
+
+**The write-time control.** `verification_route.command` is stored only as
+a bounded, read-only argv array: a four-tool allowlist (`cat`, `wc`,
+`grep`, `ls`), every option-shaped element refused, a positive character
+class over every element, and a re-anchored repository-path rule over
+§ D6's stored-path set, all enforced
+before anything is written. Everything after this paragraph is what that
+control does **not** close.
+
+- **Provenance is not established.** Nothing at write time distinguishes a
+  command the workflow authored from one copied out of untrusted prose an
+  earlier step ingested. Attribution comes from Git history against the
+  introducing commit, not from a field on the record.
+- **The verdict is caller-asserted.** A capture is refused unless it
+  carries a well-formed, recognized verdict correlated to that exact item,
+  which catches an omitted, garbled or stale-reused verdict. It does not
+  establish that a verdict was *obtained*: the cold reasoning check runs at
+  the close, so the capturing agent dispatches it and hands the writer the
+  result, and the correlation key is computable from the submitted request.
+  No in-process gate can verify that a caller consulted an oracle the
+  caller controls, and a writer-issued nonce would simply be relayed. A
+  deliberate agent can therefore assert a verdict it never obtained. This
+  is the delivery's only validation floor, because the mechanical tier is
+  not built.
+- **The merge path is unchecked.** The write-time controls that do run at
+  `--capture` are the argv rules, the privacy scan and the verdict gate;
+  the instruction-shape refusal and the cold reasoning check run at the
+  close, ahead of it. A record can enter the
+  committed store by a merge or a contributor branch instead, carrying
+  content validated elsewhere or not at all, and nothing here re-checks it
+  once it is in the tree.
+- **§ D6's stored-path rules confine; they do not classify.** Every
+  member of § D6's stored-path set is held inside the repository. Two
+  things sit outside that set and are admitted: `grep`'s pattern at index
+  1, which only the character class reaches, so
+  `["grep", "/etc/passwd", "docs"]` passes; and a backslash in
+  `verification_route.path`, which `_expect_repo_path` folds to `/` before
+  testing. Within the set, nothing decides whether an in-repository file
+  is *sensitive* — `credentials.json`, `keys/id_rsa`, `config/prod.env`
+  and `.env` alike clear every write-time check, including the privacy
+  scan. An untracked secret committed under any name is a disclosed,
+  **unowned** residual: it is not the promotion-handoff spec's
+  post-resolution confinement obligation, which refuses a path resolving
+  *outside* the repository, and an in-repository file never does. An
+  earlier draft carried a dot-leading-component rule here; amendment 008
+  removed it, because a filename-convention denylist is the documented
+  antipattern for path security, it added nothing to confinement, and it
+  caught `.env` while missing the three names above.
+- **§ D10's prose residual.** Three controls run on a record's own prose
+  only at the write path: `assert_persistable_text`'s eight patterns, the
+  instruction-shape refusal, and the reasoning dispatch's data-framing.
+  None of the three re-runs on a record that reached the store by the
+  unchecked merge path above, so a merged record's prose can carry an
+  email address, a bearer token, a `/Users/<name>` path, a tenant
+  identifier, or instruction-shaped text into a later reasoning context and
+  into a durable artifact, screened by nothing.
+- **The late-ordering residual (`AC-0069`).** § D6's argv rules run at
+  write time, but *after* the per-item cold reasoning dispatch in the
+  close's own ordering. So an attacker-influenced
+  `verification_route.command` element reaches that reasoning context
+  screened only by the dispatch's data-delimiting framing — not by the argv
+  rules, which have not run yet at that point.
+- **The absent mechanical tier — stated as a consequence, not as a
+  separate gap.** This delivery ships one validation tier: the cold
+  reasoning check. `docs/specs/work-item-mechanical-tier/spec.md` owns the
+  second, deterministic tier and has not landed. Because validation is one
+  tier deep, an unavailable reasoning tier is the whole of validation being
+  unavailable — there is no second tier to fall back to — and the write
+  path's refusal on any unrecognized verdict (`AC-0068`) is what stands in
+  for the structural floor a two-tier design would otherwise supply. When
+  that spec lands, its own settlement — its catalog-code and residual-bit
+  points — amends this list; its admission check (its own `AC-0004`) is
+  conditioned on an item both checks admit and never covers the
+  unavailability case `AC-0068` already refuses.
+- **Six residual runner obligations, handed over, not owed here.** Bounding
+  what happens when a stored command actually **runs** is
+  `docs/specs/work-item-promotion-handoff/spec.md`'s, not this delivery's:
+  post-resolution repository confinement; environment neutralisation; a
+  resource cap; a pre-execution re-check of the stored command against
+  these same argv rules immediately before it runs; which matcher `grep`
+  runs under, since the character class alone does not decide it; and the
+  treatment of the command's output — its sinks, that it carries no
+  instruction authority at a reasoning step, and that it is privacy-scanned
+  before any durable write. These six are listed here as handed to that
+  spec by name, not as gaps this delivery leaves open.
+
 ## Related decisions
 
 - **ADR-0018** — why security review shifts left and uses progressive disclosure rather than

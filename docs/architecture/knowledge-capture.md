@@ -82,7 +82,53 @@ Construction tests reference one canonical gate-to-artifact mapping. Restating
 the path rules per test duplicates a fact that has no owner, and the copies
 drift at the first gate whose artifact set changes.
 
-## 7. Failure and recovery behavior
+## 7. The `work-item` record class
+
+`--capture` accepts a fourth kind, `work-item`, at
+`knowledge-captured-observation.v2`
+(`contracts/jsonschema/knowledge-captured-observation.schema.json`). Where
+the three older kinds (`pattern`, `gotcha`, `antipattern`) carry
+generalisable practice, `work-item` carries its complement: a specific,
+non-generalisable, currently-blocked piece of leftover work — the record a
+`work-loop` close writes for an item it declines rather than dispatches or
+discards. `docs/guides/reference/work-item-capture.md` is the adopter-facing
+reference for writing one; this section is the architectural summary.
+
+A `work_item` object carries a `shape` — `defect`, `question`, or
+`decision` — each with its own admission threshold, and a `blocker` naming
+why it is not done now (`decision`, `instrument`, `elapsed-time`,
+`dependency`). A `defect` may carry `verification_route.command` as a
+bounded, read-only argv array: a four-tool allowlist (`cat`, `wc`, `grep`,
+`ls`), no options, a positive character class, and a repository-path rule
+over § D6's stored-path set, which also takes in `verification_route.path`
+and leaves out `grep`'s pattern. Those rules confine that set to the
+repository; they do not decide whether a file in it is sensitive. `v1` stays a read-only
+legacy version; the writer emits `v2` only, and a v1 record is still read
+under the v1 rules its own `contract_version` selects.
+
+**Validation as delivered: the reasoning tier only.** Every `work-item`
+capture is gated on a per-item cold reasoning check — a dispatch with no
+access to the originating session — and a submission with no recognized
+verdict from that check is never written, whatever the reason the verdict
+is missing (unreachable, unconfigured, malformed, mismatched, or stale on a
+corrected re-submission). There is no second, deterministic tier in this
+delivery: the reasoning check is the whole of validation. The **mechanical
+tier is not built.** It is a separate, not-yet-landed capability —
+`docs/specs/work-item-mechanical-tier/spec.md` — and until it lands, an
+unavailable reasoning dispatch is an unavailable validation floor, full
+stop. `docs/architecture/security.md` § Work-item capture — the gap list is
+the single home for what that leaves open.
+
+**The unchecked merge path.** The write-time controls above — the argv
+rules, the privacy scan, the instruction-shape refusal, the reasoning
+check — run once, at `--capture`. A record can also enter the committed
+store by a path other than that API: a merge, or a contributor branch,
+carrying a record validated elsewhere or not at all. Nothing here
+re-validates a record already in the store; `--enquire` and any later
+consumer read it as committed content, on the same trust footing as any
+other file the merge brought in.
+
+## 8. Failure and recovery behavior
 
 Invalid privacy, provenance, schema, path, or size input is refused before a
 body is persisted. Refusals use redacted diagnostics.
@@ -94,7 +140,7 @@ idempotent missing step or refuses recovery.
 Uncertain, stale, retired, malformed, or out-of-scope topics are excluded from
 ordinary enquiry. Enquiry abstains when it cannot verify eligible evidence.
 
-## 8. Observability and evidence
+## 9. Observability and evidence
 
 Capture returns receipts. Distillation records dispositions and proposed store
 changes. Enquiry returns selected topic identifiers, source pointers, limits,
@@ -103,7 +149,7 @@ and abstention state.
 The store, committed topic map, Git history, and redacted refusal diagnostics
 provide the durable evidence trail.
 
-## 9. Mechanical invariants
+## 10. Mechanical invariants
 
 - `tools/lint-knowledge-surface-parity.py` prevents silent drift among the
   duplicated knowledge-surface taxonomy copies used by architecture skills.
@@ -111,11 +157,12 @@ provide the durable evidence trail.
 The mode authority boundary is documented here. This page does not claim a
 named command enforces it.
 
-## 10. Relevant ADRs
+## 11. Relevant ADRs
 
 - [ADR-0081 — Canonical project knowledge uses per-topic JSON](../adr/0081-canonical-project-knowledge-uses-per-topic-json.md)
 - [ADR-0082 — Project-knowledge modes separate authority](../adr/0082-project-knowledge-modes-separate-authority.md)
 
-## 11. Last verified against commit
+## 12. Last verified against commit
 
-`615b68d8c`
+`615b68d8c` for sections 1-6 and 8-11. Section 7 (`work-item`) added by
+`docs/specs/work-item-capture/spec.md`, current on this pack's landed T1-T7.

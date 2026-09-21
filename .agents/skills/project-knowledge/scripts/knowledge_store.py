@@ -423,7 +423,7 @@ def _validate_partition_name(partition: str) -> str:
     if (
         len(parts) != 3
         or parts[0] != "observations"
-        or parts[1] not in {"pattern", "gotcha", "antipattern"}
+        or parts[1] not in {"pattern", "gotcha", "antipattern", "work-item"}
         or not filename.endswith(".jsonl")
         or len(month) != 7
         or month[4] != "-"
@@ -577,7 +577,7 @@ def _observation_partitions(
         _refuse("confinement")
     paths: list[Path] = []
     total_bytes = 0
-    for kind in ("antipattern", "gotcha", "pattern"):
+    for kind in ("antipattern", "gotcha", "pattern", "work-item"):
         kind_root = root / kind
         if not kind_root.exists():
             continue
@@ -737,9 +737,44 @@ def _check_time_window(request: dict[str, Any], writer_time: str) -> None:
         _refuse("provenance")
 
 
-def _check_pre_admission(request: dict[str, Any]) -> dict[str, Any]:
+def _check_pre_admission(
+    request: dict[str, Any],
+    *,
+    reasoning_verdict: Any | None = None,
+    declined_ordinal: int = 0,
+) -> dict[str, Any]:
+    # Bound to the writable-only selector: a fresh submission tagged with a
+    # non-writable (or unknown) `contract_version` is refused here, never
+    # validated under legacy rules and re-stamped. The read-path sibling,
+    # `_validate_event`, stays on the version-agnostic call, so every stored
+    # legacy record remains readable even though only the writable version
+    # may be freshly submitted here.
+    #
+    # A `work-item` record additionally clears the write-time floor: this is
+    # the only seam that appends such a record, so every reachable caller —
+    # this function's own caller and, through it, the CLI — must supply a
+    # recognized, item-correlated verdict or the write refuses. There is no
+    # second, structural tier in this delivery, so anything short of a
+    # recognized verdict is treated as a refusal.
     try:
-        return PK.validate_capture_request(copy.deepcopy(request))
+        validator = PK.select_validator({"request": request}, require_writable=True)
+        if validator is None:
+            raise ValueError("capture request carries no contract version")
+        validated = validator(copy.deepcopy(request))
+        if validated["kind"] != "work-item":
+            return validated
+        return PK.admit_work_item_capture(
+            copy.deepcopy(request),
+            reasoning_verdict=reasoning_verdict,
+            declined_ordinal=declined_ordinal,
+        )
+    except (PK.WorkItemRefusal, PK.VerificationRouteRefusal) as exc:
+        # Both carry a catalog reason code; surface it. Without this,
+        # VerificationRouteRefusal -- a ValueError subclass -- falls through
+        # to the generic bucket below and every command refusal reaches the
+        # author as `provenance`, telling them their provenance block is
+        # wrong when the real fault is the stored command.
+        _refuse(exc.reason_code)
     except PK.PrivacyRefusal:
         _refuse("privacy")
     except ValueError:
@@ -3102,10 +3137,14 @@ def capture_observation(
     budgets: dict[str, int] | None = None,
     interrupt_after: str | None = None,
     lock_timeout: float = 10.0,
+    reasoning_verdict: Any | None = None,
+    declined_ordinal: int = 0,
 ) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
     writer_time = writer_time or _format_time(datetime.now(tz=UTC))
-    validated = _check_pre_admission(request)
+    validated = _check_pre_admission(
+        request, reasoning_verdict=reasoning_verdict, declined_ordinal=declined_ordinal
+    )
     event = _captured_event(validated, writer_time=writer_time)
     partition_path = _journal_path(repo_root, event["partition"])
     limits = budgets or budget_contract()

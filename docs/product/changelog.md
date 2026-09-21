@@ -64,6 +64,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.26] — 2026-09-21
+
+### Highlights
+
+- **A work-loop close can now record a specific, real piece of leftover
+  work that is genuinely blocked, instead of losing it.** When a defect,
+  an open question, or a decision is blocked on someone else's call, an
+  instrument you don't have, elapsed time, or a dependency, the close
+  captures it as a `work-item` — with what "done" looks like and why it
+  couldn't be finished now — rather than dropping it or writing a vague
+  note that a later reader can't act on.
+- **A work item is checked before it's written, not after.** Each one runs
+  through a cold review with no memory of the session that noticed it; an
+  item that isn't real, isn't necessary, or is missing what its shape
+  requires is refused with a specific reason instead of being written
+  silently.
+- **A blocked defect may carry its own reproduction command,** bounded to a
+  small, read-only set of tools (`cat`, `wc`, `grep`, `ls`) with no options
+  and no path traversal, so a captured item can point at exactly how to
+  confirm it without granting the record any power to write or execute.
+
+### Added
+
+- `project-knowledge`: a fourth capture kind, `work-item`, at contract
+  version `knowledge-captured-observation.v2`
+  (`contracts/jsonschema/knowledge-captured-observation.schema.json`). A
+  `work_item` object carries one of three shapes (`defect`, `question`,
+  `decision`), each with its own admission threshold, and a `blocker`
+  naming why it isn't done now. `v1` stays readable; the writer emits `v2`
+  only.
+- `project-knowledge`: `verification_route.command` becomes a bounded,
+  read-only argv array — a four-tool allowlist, no options, a positive
+  character class, and a repository-path rule over § D6's stored-path set —
+  for any capture kind that carries a `verification_route`.
+- `work-loop`: the close-time capture rule now routes a declined scratch
+  note four ways instead of two — generalisable practice, specific-and-
+  blocked (captured as a `work-item`), specific-and-ready-now (dispatched
+  in-session), and razor-failing (refused, non-silently) — gated on a
+  per-item cold reasoning check, capped at 12 declined items per close.
+- `docs/guides/reference/work-item-capture.md`: a new reference for writing
+  a valid `work-item` record.
+- `docs/architecture/knowledge-capture.md` and `docs/architecture/security.md`:
+  document the `work-item` record class, that this delivery ships the
+  reasoning validation tier only (the deterministic mechanical tier is
+  `docs/specs/work-item-mechanical-tier/spec.md`'s and has not landed), and
+  the complete list of accepted, unmitigated residuals this delivery
+  carries.
+
 ## [core][2.26.25] — 2026-09-21
 
 ### Highlights
