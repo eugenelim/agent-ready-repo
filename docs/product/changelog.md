@@ -150,6 +150,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source still requires its digest, and an omitted key is still refused —
   only an explicit `null` is admitted.
 
+## [agentbundle][0.47.3] — 2026-09-21
+
+### Highlights
+
+- **A commit made for you by a workspace session now stages only that item's
+  own files.** If the directory you configure for a pack's output contains
+  `*`, `?`, `[`, `{` or `}`, it cannot describe a commit scope — a `*` in
+  particular made the commit reach every uncommitted file under the directory
+  above it. Such a value is now refused with an error naming the section to
+  correct, and the rest of the session's git tools keep working. Rename the
+  directory to one without those characters to commit again.
+
+### Fixed
+
+- `git_commit` took the wildcard structure of its staging scope from the
+  configured `output_dir` as well as from the built-in lifecycle manifest,
+  so a base of `docs/*` collapsed the scope's static root to `docs/` and
+  staged every uncommitted file under it. A configured base carrying a
+  reserved character is refused before it reaches the pattern; the wildcard
+  structure now comes only from the manifest. The scope's containment test
+  and the shared layout reader are unchanged.
 ## [frontend-engineering][0.3.1] — 2026-09-21
 
 ### Highlights

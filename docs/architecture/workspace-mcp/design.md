@@ -38,7 +38,11 @@ Workspace MCP reads `workspace.toml`, lifecycle artifacts, and
 `.loop-run/events.jsonl`. It tails events by byte offset and never writes them.
 
 The server invokes loop and Git operations through its bounded tool surface.
-Git tools validate the dispatched lifecycle manifest before subprocess use.
+Git tools validate the dispatched lifecycle manifest before subprocess use. A
+staging scope's wildcard structure comes only from that built-in manifest: a
+configured `output_dir` supplies the scope's static base and nothing else, and
+a base carrying `*`, `?`, `[`, `{`, or `}` is refused before it reaches the
+pattern.
 Third-party pack types may extend `workspace-types.d/` additively.
 
 ## 5. Primary flows
@@ -62,7 +66,11 @@ Response files use a private directory, exclusive creation, and atomic rename.
 A partial or different-UID pre-seeded response cannot be consumed. Same-UID
 isolation is not guaranteed.
 
-Pre-staged files outside the dispatched output pattern cause a Git refusal.
+Pre-staged files outside the dispatched output pattern cause a Git refusal. A
+refused `output_dir` leaves `git_commit` unavailable for that item, returning
+an error that names the configuration section and warning on stderr; the other
+Git tools stay available, because a refused base is not an absent dispatched
+item.
 Discovery and FSM modes disable mutating Git tools. Invalid slugs are rejected
 before output-pattern construction: they must match `^[a-zA-Z0-9._-]+$` and
 cannot be `.`, `..`, or begin with `-`. Manifest branch validation routes pushes
