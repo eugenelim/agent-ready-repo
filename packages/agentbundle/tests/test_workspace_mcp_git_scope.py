@@ -440,21 +440,40 @@ def _write_layout(path: Path, layout: dict[str, str]) -> None:
 # configures one file, so a precedence error would go unnoticed. The two
 # container rows are load-bearing for selection: `Path(raw)` raises on them
 # inside a scope-wide `suppress`, abandoning the rest of that scope.
-_SELECTION_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
-    "nothing-configured": ({}, {}),
-    "one-key": ({"product": "artifacts"}, {}),
-    "every-key": ({"research": "r/one", "product": "p/two", "design": "d/three"}, {}),
-    "dot-segments": ({"product": "./a/../artifacts"}, {}),
-    "reserved-character": ({"research": "vault*/../notes"}, {}),
-    "user-scope-only": ({}, {"research": "USER", "product": "USER", "design": "USER"}),
+# Each row is (repo layout, user layout, the keys the selection must return).
+# The third element is what stops the per-key loop below going vacuous: a
+# selection that silently dropped a configured key would leave nothing to
+# iterate, and the projection comparison would compare two equally-reduced
+# dicts. `nothing-configured` legitimately selects nothing, so a blanket
+# non-empty assertion would not do.
+_SELECTION_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str], set[str]]] = {
+    "nothing-configured": ({}, {}, set()),
+    "one-key": ({"product": "artifacts"}, {}, {"product"}),
+    "every-key": (
+        {"research": "r/one", "product": "p/two", "design": "d/three"},
+        {},
+        {"research", "product", "design"},
+    ),
+    "dot-segments": ({"product": "./a/../artifacts"}, {}, {"product"}),
+    "reserved-character": ({"research": "vault*/../notes"}, {}, {"research"}),
+    "user-scope-only": (
+        {},
+        {"research": "USER", "product": "USER", "design": "USER"},
+        {"research", "product", "design"},
+    ),
     "both-scopes": (
         {"research": "repo/r", "product": "repo/p", "design": "repo/d"},
         {"research": "USER", "product": "USER", "design": "USER"},
+        {"research", "product", "design"},
     ),
-    "container-typed-value": ({"product": '["x"]'}, {"product": "USER"}),
+    # `Path(["x"])` raises, abandoning the repository scope entirely, so
+    # `product` comes from the user scope — and in the second row the
+    # repository's own clean `product` is abandoned with it.
+    "container-typed-value": ({"product": '["x"]'}, {"product": "USER"}, {"product"}),
     "container-typed-value-before-a-clean-one": (
         {"research": '["x"]', "product": "artifacts"},
         {"product": "USER"},
+        {"product"},
     ),
 }
 
@@ -480,7 +499,7 @@ def test_both_forms_of_a_base_come_from_one_selection(
     repo = tmp_path / "repo"
     repo.mkdir(parents=True)
     home = tmp_path / "home"
-    repo_layout, user_layout = _SELECTION_LAYOUTS[shape]
+    repo_layout, user_layout, expected_keys = _SELECTION_LAYOUTS[shape]
     user_layout = {
         key: str((home / "vault" / key).resolve()) if value == "USER" else value
         for key, value in user_layout.items()
@@ -494,6 +513,7 @@ def test_both_forms_of_a_base_come_from_one_selection(
 
     selected = _select_layout_bases(repo)
 
+    assert set(selected) == expected_keys
     for key, (configured, resolved) in selected.items():
         assert _resolved_base(repo, configured) == resolved, key
     # The projection publishes exactly the resolved half and decides nothing.
@@ -661,10 +681,15 @@ def test_the_pattern_strings_are_projected_from_the_scope_spec(
     specs = tools._resolve_output_spec(f"{_INI}/shape:{_SLUG}")
 
     assert specs is not None
+    # One entry per manifest pattern. Without this the loop below is vacuous on
+    # an empty spec, and the projection assertion degenerates to `[] == []`.
+    assert len(specs) == len(_manifest_tails("shape"))
     assert tools._output_pattern == [spec[-1] for spec in specs]
     # The static root of every entry is under the configured base, and the only
     # wildcard components live in the display string's manifest-owned tail.
-    base = _resolved_base(repo, "artifacts")
+    # Compared as paths: `"artifacts-escape".startswith("artifacts")` is true, so
+    # a string prefix admits a sibling directory outside the base.
+    base = Path(_resolved_base(repo, "artifacts"))
     for spec in specs:
-        assert str(spec[1]).startswith(base)
+        assert Path(str(spec[1])).is_relative_to(base)
         assert "*" not in str(spec[1])

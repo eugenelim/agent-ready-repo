@@ -418,3 +418,45 @@ named `*`; its docstring records the distinction so the mid-segment case is not
 mistaken for coverage again.
 
 Full `workspace_mcp` selection after the repair: 167 passed, 42 skipped, 78s.
+
+## Three vacuous assertions, in the tests written to close the last defect
+
+Round 8's quality pass sustained three Concerns, all in the tests added by the
+two preceding repairs. Adversarial was clean on the same commits.
+
+| Defect | Why it could not fail |
+| --- | --- |
+| The projection test's `for spec in specs` loop | An empty spec left `specs is not None` true, made the projection assertion `[] == []`, and iterated nothing |
+| The selection test's per-key loop | A silently dropped key left nothing to iterate, and the projection comparison compared two equally-reduced dicts |
+| `str(spec[1]).startswith(base)` | `"artifacts-escape".startswith("artifacts")` is `True`, so the assertion admitted a sibling directory outside the base it claimed containment under |
+
+Repairs: the projection test asserts its entry count against the manifest before
+iterating; every selection row now declares the key set it must select, with
+`nothing-configured` declaring the empty set, since a blanket non-empty
+assertion would be wrong for it; and containment is compared with
+`Path.is_relative_to` rather than a string prefix.
+
+Mutations, each caught only by the assertion added for it:
+
+| Mutation | Caught by |
+| --- | --- |
+| `_resolve_output_spec` returns `[]` | the projection test's entry-count assertion |
+| the selection drops `product` | eight selection rows and the projection test |
+| the resolved base becomes a `-escape` sibling | the projection test's containment assertion |
+
+The first attempt at that third mutation appended `-escape` to the *leaf* rather
+than the base, which stays inside the base and was correctly not caught. The
+mutation was wrong, not the test — worth recording, because a mutation that
+fails to kill is otherwise read as evidence the assertion is weak.
+
+### The pattern, named
+
+This is the fifth control in this suite that could not fail: the agreement
+matrix whose rows all configured one scope, the resolved-path test whose `*` sat
+mid-segment, and now these three. Every one was written while repairing a real
+defect, and every one asserted the property in a form that the defect's own
+absence guaranteed. The suite's docstring says its checks must not agree with a
+wrong implementation; that is a claim about each assertion, and it needs a
+mutation per assertion to hold, not a passing run.
+
+Both suites after the repairs: 124 passed, 76s.
