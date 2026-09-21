@@ -189,8 +189,8 @@ conditions, and the six cases above are green.
   assertion families, or leaves a family without a mutation — each exits 1 (AC-0005).
 - A `PROVISIONING` id with no `gate-main` step carrying that `id:` exits 1
   naming the entry (AC-0010).
-- A step declaring dependency `X` positioned at or before the step carrying
-  `id: X` exits 1 naming both (AC-0011).
+- A `gate-main` step whose roster phase is `PROVISIONING` appearing after any
+  step whose roster phase is `CHECK` exits 1 naming both steps (AC-0011).
 - A job-id set other than the five, or a job `name:` other than its written
   value, exits 1 (AC-0016, AC-0017).
 
