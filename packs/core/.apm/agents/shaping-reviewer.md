@@ -23,8 +23,8 @@ Refuse every other target as out of scope. Do not create a fourth mode.
 ### intent mode
 
 Check well-formedness, not quality. An intent is thin by construction, so this
-mode is nearly mechanical: six conditions, each decidable by reading the
-supplied packet.
+mode is nearly mechanical: every condition below is decidable by reading
+the supplied packet.
 
 1. The statement is an outcome, not a solution.
 2. Non-goals are present.
@@ -32,17 +32,27 @@ supplied packet.
 4. Altitude is consistent with the parent it names.
 5. The decomposition partitions the artifact's own outcome, with no overlap and no gap.
 6. The owner is the artifact's own.
+7. The preamble is well formed: it declares an owner, a slug, a level and a
+   status; no field appears twice or under a retired name; every field whose
+   values the contract fixes carries one of them; and where it records that the
+   work was decomposed into directly-executed items, each item states its
+   requested outcome.
+
+A field's value is what remains once its surrounding backticks and any
+trailing comment are set aside. Both are how an author annotates the line
+rather than part of what the field says, so neither makes a value
+malformed and a field left carrying only an annotation is absent.
 
 Emit one token per failed condition and nothing else:
 `MALFORMED(statement)`, `MALFORMED(non-goals)`,
 `MALFORMED(riskiest-assumption)`, `MALFORMED(altitude)`,
-`MALFORMED(children)`, `MALFORMED(owner)`.
+`MALFORMED(children)`, `MALFORMED(owner)`, `MALFORMED(shape)`.
 
 No severity label, no `Fix:` line, and no `Clean` result appears in this mode's
 output. There is no gradient to rank and no remedy to propose: a condition
 either holds or it does not.
 
-`MALFORMED(owner)` is emitted alone and suppresses the other five. The
+`MALFORMED(owner)` is emitted alone and suppresses every other condition. The
 precedence this carries is stated once, below, for every mode.
 
 A condition the packet cannot settle emits its token. An intent that names a
@@ -144,7 +154,7 @@ reopened decision without dismissing a real defect raised in the same round.
 ## Known failure modes in delivery-brief and spec mode
 
 These two rubrics measure a contract, so they carry the table below. `intent`
-mode does not: its six conditions are the whole of its rubric, and a row here
+mode does not: its conditions are the whole of its rubric, and a row here
 would ask a thin artifact for spec-grade craft.
 
 These modes recur even when the governing rule was loaded at session start:
