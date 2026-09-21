@@ -18,10 +18,14 @@ most of the secrets it aims at are not dotted: `credentials.json`, `id_rsa`,
 § D6 already had to disclose that as an accepted residual.
 
 **It contributes nothing to confinement**, verified by running the
-derivation: `/etc/passwd` and `../../etc/passwd` are refused by the
-re-anchored `repositoryPath` rule, `a\b` by the character class. `.env` and
-`.ssh/id_rsa` are *inside the repository* — the rule was never confining,
-it was guessing at disclosure.
+derivation. In the argv path slots — the stored-path members —
+`/etc/passwd` and `../../etc/passwd` are refused by the re-anchored
+`repositoryPath` rule and `a\b` by the character class, all without the dot
+rule. (In `grep`'s pattern slot, which is not a stored path, those first
+two are admitted with or without it; and in `verification_route.path`,
+`a\b` folds to `a/b` and is admitted. Neither is a confinement the dot rule
+ever supplied.) `.env` and `.ssh/id_rsa` are *inside the repository* — the
+rule was never confining, it was guessing at disclosure.
 
 **It is the one denylist in an allowlist design.** The four-tool allowlist,
 the positive character class and the positive path pattern are all shaped
@@ -55,7 +59,10 @@ disclosure paragraph, a gap-list entry and two further review rounds.
   discloses the plain fact that the argv rules confine to the repository
   and do not classify sensitivity, so `credentials.json`, `keys/id_rsa`,
   `config/prod.env` and `.env` alike are admitted. The admitted set grew by
-  exactly the four dot-leading rows; the **disclosed risk class** did not
+  exactly the dot-leading names — in the case table, two rows flipped to
+  admit (`["cat", ".git/config"]`, `["cat", ".env"]`) and two were deleted
+  (`["cat", ".ssh/id_rsa"]`, `["cat", "docs/.hidden"]`) — while the
+  **disclosed risk class** did not
   change, because the rule was never a credential control. The residual is
   also restored to **unowned**: an earlier draft of this amendment routed it
   to the promotion-handoff spec's obligation 1, which round 4 had already
@@ -69,5 +76,8 @@ four-tool allowlist, the no-options rule, the arity and size bounds and the
 kind-agnostic binding all stand, and the remaining case rows reproduce.
 
 An in-repository file with a sensitive name is now plainly out of scope
-rather than partially covered — which is the honest state, and one the
-sibling spec's run-time confinement obligation can address properly.
+rather than partially covered, which is the honest state. It has **no
+owner**: the sibling spec's post-resolution confinement obligation refuses a
+path resolving *outside* the repository, and an in-repository file never
+does, which is why round 4 withdrew that routing. Naming an owner here
+would reinstate it.

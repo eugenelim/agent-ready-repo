@@ -123,6 +123,12 @@ CASES = [
     (["grep", ".env", "docs"],
      "grep pattern slot, admitted before and after amendment 008"),
     (["grep", "../../etc/passwd", "docs"], "R4 sec C4: pattern exempt from repositoryPath"),
+    (["grep", "/etc/passwd", "docs"],
+     "amendment 008 review: the pattern slot admits an ABSOLUTE path too -- "
+     "prose cited this verdict, so the table has to witness it"),
+    (["grep", "C:", "docs"],
+     "amendment 008 review: colon in the exempt pattern slot, which "
+     "repositoryPath would refuse in any other position"),
     (["cat"] + [1] * 21, "R5 sec C6: pins count-before-type ordering"),
 ]
 

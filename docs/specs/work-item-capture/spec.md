@@ -380,8 +380,11 @@ spec claimed they refused, and running it is what found them.
   colon, so without it the admitted row `["grep", "TODO:fix", "docs/x.md"]`
   could not hold.
   This is the decidable form of argument confinement — not "path-shaped
-  elements", which no validator can decide. It refuses absolute paths, `..`
-  segments, backslashes and colons.
+  elements", which no validator can decide. For the argv elements it
+  refuses absolute paths, `..` segments, backslashes and colons. Read that
+  list as scoped to argv: `verification_route.path`, a member of the same
+  set, is confined by a different enforcer that does not refuse a
+  backslash — see below.
 
   **The stored-path set, defined once here.** A `verification_route`'s stored
   paths are: every argv element after `argv[0]` except `grep`'s pattern at
@@ -391,14 +394,21 @@ spec claimed they refused, and running it is what found them.
   `AC-0013` dereferences it rather than
   restating it.
   **These rules confine; they do not classify.** Every member of the
-  stored-path set just defined is held inside the repository. Membership is
-  the whole of the claim, and two things fall outside it. `grep`'s pattern at
-  index 1 is not a member, so `["grep", "/etc/passwd", "docs"]` and
-  `["grep", "../../etc/passwd", "docs"]` are **admitted** — the character
-  class is the only rule reaching that slot. And `verification_route.path`
-  is confined by `_expect_repo_path`, which folds a backslash to `/` before
-  testing, so `a\b` is admitted as `a/b` rather than refused; that helper is
-  shared with twenty other call sites and this spec does not change it.
+  stored-path set just defined is held inside the repository. Two
+  qualifications, of different kinds:
+
+  *A non-member.* `grep`'s pattern at index 1 is outside the set, so only
+  the character class reaches it: `["grep", "/etc/passwd", "docs"]` and
+  `["grep", "../../etc/passwd", "docs"]` are **admitted**, and both are
+  rows of the case table below rather than assertions made here.
+
+  *A member enforced differently.* `verification_route.path` **is** a
+  member and **is** confined, but by `_expect_repo_path`, which folds a
+  backslash to `/` before testing. So `docs\x.md` in `path` is admitted and
+  stored as `docs/x.md`, while the same bytes in an argv element are
+  refused by the character class. That helper is shared with twenty other
+  call sites and this spec does not change it. This is a difference in
+  enforcer, not in membership.
 
   Nothing in this section decides whether an in-repository file is
   *sensitive*. A path inside the repository is admitted whatever it is
@@ -435,7 +445,7 @@ table is the whole run, not a selection — an earlier draft carried a subset an
 the omitted rows were where two defects hid.
 
 A row whose verdict changes is a contract change, not a test fix. The table
-carries **44 rows**, one per case the derivation runs; the count is
+carries **46 rows**, one per case the derivation runs; the count is
 stated so a dropped row is detectable, which is how an earlier draft lost the
 row that pins the check order.
 
@@ -484,6 +494,8 @@ row that pins the check order.
 | `["grep", "a", "b\n"]` | `work_item_command_charset` | R4 sec B1: trailing newline in a later path |
 | `["grep", ".env", "docs"]` | **admit** | grep pattern slot, admitted before and after amendment 008 |
 | `["grep", "../../etc/passwd", "docs"]` | **admit** | R4 sec C4: pattern exempt from repositoryPath |
+| `["grep", "/etc/passwd", "docs"]` | **admit** | amendment 008 review: the pattern slot admits an ABSOLUTE path too -- prose cited this verdict, so the table has to witness it |
+| `["grep", "C:", "docs"]` | **admit** | amendment 008 review: colon in the exempt pattern slot, which repositoryPath would refuse in any other position |
 | `["cat", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]` | `work_item_command_size` | R5 sec C6: pins count-before-type ordering |
 
 **Instruction-shaped item prose is refused before the reasoning dispatch.** A
@@ -705,7 +717,7 @@ by it.
 | Maintainer procedure | Applicable: the close-time rule branches | `packs/core/.apm/skills/work-loop/SKILL.md` and its new reference | work-loop | AC-0001, AC-0002 green | The branch is readable without the spec |
 | Interface compatibility | Applicable: `verification_route.command` changes type and gains a trust boundary | `contracts/jsonschema/knowledge-captured-observation.schema.json` and the § D6 validator | project-knowledge | `AC-0049`–`AC-0061` green | A stored command is an argv array every element of which cleared § D6 |
 | Current product truth | Applicable: adopters write captures | `docs/guides/reference/` entry for the work-item kind | maintainers | Guide names the three shapes and their thresholds | A cold adopter can write a valid record |
-| Current architecture (security) | Applicable: the delivery ships accepted, unmitigated residuals | `docs/architecture/security.md` | work-loop | **The single home for the gap list.** The write-time argv rules, then every gap: unestablished provenance, the unchecked merge path, § D10's prose residual, **§ D6's stored-path rules confine but do not classify** — every member of that set is held inside the repository, while `grep`'s pattern at index 1 is not a member and is admitted, and no rule decides whether an in-repository file is sensitive, so `credentials.json`, `keys/id_rsa`, `config/prod.env` and `.env` are all admitted; the residual is **unowned**, obligation 1 having been refuted for it in round 4, and amendment 008 removed the dot-leading-component rule that read as a credential control and was not one — **the caller-asserted verdict** — § D3 puts the cold check at the close, so the agent dispatches it and hands the writer the result; `AC-0068` can require a well-formed, item-correlated verdict but cannot establish that one was obtained, because no in-process gate can verify a caller consulted an oracle the caller controls. It catches omission, garbling and stale reuse, not a deliberate assertion — the late-ordering residual `AC-0069` records — § D6's argv rules run at write time, after the per-item reasoning dispatch under § D3's ordering, so an attacker-influenced `verification_route.command` element reaches the cold reasoning context screened only by `AC-0036`'s framing — and the absent mechanical tier, which `docs/specs/work-item-mechanical-tier/spec.md` owns — stated as its **consequence**, not as a missing artifact: validation is one tier deep, so an unavailable reasoning tier is the whole of validation being unavailable, and `AC-0068` refusing to write is what stands in for the floor. **That spec's settlement amends this list**: its **catalog-code** and **residual-bit** points each move it. The six residual runner obligations are the sibling's and are listed as handed over, not as gaps | The list is complete against this spec's disclosures. No count appears anywhere: a literal falsifies silently when a disclosure is added, so the list is the assertion |
+| Current architecture (security) | Applicable: the delivery ships accepted, unmitigated residuals | `docs/architecture/security.md` | work-loop | **The single home for the gap list.** The write-time argv rules, then every gap: unestablished provenance, the unchecked merge path, § D10's prose residual, **§ D6's stored-path rules confine but do not classify** — every member of that set is held inside the repository, while `grep`'s pattern at index 1 is not a member and is admitted, and no rule decides whether an in-repository file is sensitive, so `credentials.json`, `keys/id_rsa`, `config/prod.env` and `.env` are all admitted; the residual is **unowned**, obligation 1 having been refuted for it in round 4, and amendment 008 removed the dot-leading-component rule that read as a credential control and was not one — **the caller-asserted verdict** — § D3 puts the cold check at the close, so the agent dispatches it and hands the writer the result; `AC-0068` can require a well-formed, item-correlated verdict but cannot establish that one was obtained, because no in-process gate can verify a caller consulted an oracle the caller controls. It catches omission, garbling and stale reuse, not a deliberate assertion — the late-ordering residual `AC-0069` records — § D6's argv rules run at write time, after the per-item reasoning dispatch under § D3's ordering, so an attacker-influenced `verification_route.command` element reaches the cold reasoning context screened only by `AC-0036`'s framing — and the absent mechanical tier, which `docs/specs/work-item-mechanical-tier/spec.md` owns — stated as its **consequence**, not as a missing artifact: validation is one tier deep, so an unavailable reasoning tier is the whole of validation being unavailable, and `AC-0068` refusing to write is what stands in for the floor. **That spec's settlement amends this list**: its **catalog-code** and **residual-bit** points each move it. The six residual runner obligations are the sibling's and are listed as handed over, not as gaps — **and two reachability gaps amendment 009 discloses**: `dispatch_reasoning_check`, `CloseLedger` and `render_close_output` have no production caller, being the agent-side half of a close driver this delivery does not ship; and `refuse_instruction_shaped_work_item` is fully subsumed by `_deterministic_privacy_scan` across all three shapes and all six scanned fields, so `AC-0035`'s outcome holds by the general scan rather than by the dedicated gate, which nothing calls | The list is complete against this spec's disclosures. No count appears anywhere: a literal falsifies silently when a disclosure is added, so the list is the assertion |
 | Release history | Applicable: a published contract changes version | The core pack changelog | maintainers | Entry leads the release | The version bump is recorded |
 | Decision rationale | Applicable: the mechanical tier is split out rather than settled here | This spec § Follow-ons and `docs/specs/work-item-mechanical-tier/spec.md` | eugenelim | The gate approval | The approved spec records that the tier is a separate spec and why, and ships no criterion that depends on it |
 | Reusable learning | Not applicable | — | — | — | The work-loop capture gate already owns it |
@@ -763,6 +775,7 @@ criteria, cited by stable id throughout.
 | `AC-0047`, `AC-0048` | TDD | unit, over the version map | An unknown version and a non-writable submission are both driven directly at the selector |
 | `AC-0069` | Goal-based check | the dispatch's parameter set, derived and compared against the refusals ahead of it | Both bins are total by construction, so the check is the domain's completeness: derived by nested walk over the **schema document** — not a record instance, which drops unset optional fields — widened by the non-schema inputs `AC-0041` shows the dispatch also receives, and pinned to a minimum yield |
 | `AC-0035`, `AC-0036` | TDD | unit, with a dispatch spy | Instruction-shape refusal and the dispatch's data framing, driven one field at a time |
+| `AC-0070` | TDD | **subprocess, at the CLI** | The claim is that an operator running the script can produce a capture, so an in-process call would not exercise it. Four cases: a key is returned and nothing is written; that key admits at its ordinal and is refused at another; a malformed item renders no message; the declined-set cap refuses past its bound. Each reds under mutation of the control it names |
 | `AC-0068` | TDD | unit, **at the writer in `project_knowledge.py`**, four cases | The gate is a write-path refusal, not a spy over skill prose: every way of failing to validate reduces to "no recognized verdict for this item" at one seam a test can drive. The four cases are absent, unrecognized, mismatched identity, and a stale verdict on a corrected re-submission |
 | `AC-0044`, `AC-0045` | TDD | **reasoning-tier dispatch**, not a pure function | The razor and the shape threshold are the reasoning tier's calls, matching T5 |
 | `AC-0046` | TDD | unit, at the kind-agnostic validation seam | The binding is an invocation, so the test asserts the § D6 validator was called for a non-`work-item` kind too and its refusal propagated |
@@ -1097,6 +1110,20 @@ plan owns; they carry no criterion.
       dispatches the first validation.
 - [ ] `AC-0041` Each item's reasoning check runs in a context with no access
       to the originating session's transcript.
+- [ ] `AC-0070` **A caller can obtain the correlation key for a declined
+      item without computing it, and obtaining one writes nothing.** The key
+      is a SHA-256 over the canonical dispatch payload, so a caller cannot
+      produce one by hand; before this existed the capture path had a
+      verified refusal branch and **no reachable admission branch at all** —
+      every submission refused for want of a verdict nothing could be
+      matched to. The mode that returns the key returns the dispatch message
+      with it, so the caller runs the cold check on the exact content the key
+      was computed over.
+
+      **This is reachability, not assurance.** Handing the caller a key does
+      not establish that the caller then consulted the tier; the residual
+      `AC-0069` records is unchanged, and the write-time floor is unchanged.
+      See `notes/amendment-009.md`.
 
 - [ ] `AC-0049` A well-formed read-only argv — `["grep", "pattern",
       "src/a.py"]` — is written and read back element-for-element unchanged.

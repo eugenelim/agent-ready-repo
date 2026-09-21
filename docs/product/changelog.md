@@ -96,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only.
 - `project-knowledge`: `verification_route.command` becomes a bounded,
   read-only argv array — a four-tool allowlist, no options, a positive
-  character class, and a repository-path rule over its stored-path set —
+  character class, and a repository-path rule over § D6's stored-path set —
   for any capture kind that carries a `verification_route`.
 - `work-loop`: the close-time capture rule now routes a declined scratch
   note four ways instead of two — generalisable practice, specific-and-

@@ -236,7 +236,7 @@ is added, so the list below is itself the assertion, not a tally of it.
 a bounded, read-only argv array: a four-tool allowlist (`cat`, `wc`,
 `grep`, `ls`), every option-shaped element refused, a positive character
 class over every element, and a re-anchored repository-path rule over
-its stored-path set, all enforced
+§ D6's stored-path set, all enforced
 before anything is written. Everything after this paragraph is what that
 control does **not** close.
 

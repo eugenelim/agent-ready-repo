@@ -74,5 +74,7 @@ ARGV_CASES: list[tuple[object, str | None, str]] = [
     (['grep', 'a', 'b\n'], 'work_item_command_charset', 'R4 sec B1: trailing newline in a later path'),  # noqa: E501
     (['grep', '.env', 'docs'], None, 'grep pattern slot, admitted before and after amendment 008'),  # noqa: E501
     (['grep', '../../etc/passwd', 'docs'], None, 'R4 sec C4: pattern exempt from repositoryPath'),  # noqa: E501
+    (['grep', '/etc/passwd', 'docs'], None, 'amendment 008 review: the pattern slot admits an ABSOLUTE path too -- prose cited this verdict, so the table has to witness it'),  # noqa: E501
+    (['grep', 'C:', 'docs'], None, 'amendment 008 review: colon in the exempt pattern slot, which repositoryPath would refuse in any other position'),  # noqa: E501
     (['cat', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'work_item_command_size', 'R5 sec C6: pins count-before-type ordering'),  # noqa: E501
 ]
