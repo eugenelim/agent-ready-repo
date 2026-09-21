@@ -185,3 +185,32 @@ every key — is what makes it fail, and the mutation confirms it is the only ro
 that does.
 
 Full `workspace_mcp` selection after the fix: 161 passed, 42 skipped, 132s.
+
+## The raw-value screen reopened the defect it closed
+
+Round 4 returned two Blockers against commit `131385a64`, and the second is
+reproduced. A repository-scope `output_dir` of `["x"]` — a TOML array — is kept
+by the raw reader and dropped by the shared one, because
+`_read_layout_bases`'s `_read_scope` calls `Path(raw).expanduser()` on it and
+`contextlib.suppress(Exception)` swallows the `TypeError`. The two readers then
+disagree about which scope supplies the value:
+
+```
+raw     : {'product': ['x']}
+resolved: {'product': '<repo>/docs/*'}
+refused : None
+pattern : ['<repo>/docs/*/intents/alpha.md', '<repo>/docs/*/shaping/alpha/**']
+```
+
+The screen ran `"*" in ["x"]`, which is element equality and not a substring
+test, returned `False`, and let the user-scope `*` base straight through to
+`_apply_layout_overrides`. That is AC-0002 and AC-0004 broken again, by the
+commit that fixed them.
+
+The lesson is the one the spec's own design decision already recorded and this
+repair did not carry over: the screen must read the value the resolver actually
+used. Reading a *second*, independently-computed answer reintroduces the class
+whatever that second read is — resolved, raw, or otherwise. Mirroring a
+function's precedence is not the same as reusing its result, and a test that
+pins the two readers on well-typed input says nothing about the inputs where
+one of them bails out.
