@@ -292,3 +292,45 @@ row changed meaning with the repair — it previously asserted the two readers
 diverge, which was the defect.
 
 Full `workspace_mcp` selection after the repair: 164 passed, 42 skipped, 115s.
+
+## Owner authorization: amend the `Never do`, and close the live instance
+
+2026-09-21, owner eugenelim, in session: "1 and 2" — in answer to a surfaced
+loud stop offering (1) amending the spec's `Never do` so `_read_layout_bases`
+can yield the selected raw value alongside the resolved one, and (2) adding
+`resolve()` to the raw reader's mirror to close the round-6 instance.
+
+Option 1 subsumes option 2. It deletes `_read_raw_layout_output_dirs`, so no
+second reader survives for a `resolve()` mirror to be added to, and the
+divergence round 6 names cannot exist. Option 2 is retained as the fallback if
+the refactor proves unworkable, not implemented alongside.
+
+### Why the rule is being amended rather than worked around
+
+The `Never do` reads: "Never modify `_read_layout_bases`. It is shared with the
+status payload and legitimately yields an absolute out-of-repository base for a
+user-scope value." Its purpose is that one process must not give two answers
+about where an item's output goes — the defect
+`docs/specs/workspace-mcp/` fixed before this spec.
+
+Reproducing that function's *selection* in a second reader is the thing that
+reopens the two-answers defect, and three review rounds demonstrated it:
+
+| Round | Divergence between the two readers | Settled |
+| --- | --- | --- |
+| 4 | `_read_scope` calls `Path(raw)`; the raw reader accepted a TOML array | sustained, repaired |
+| 5 | That raise aborts the *whole scope*; the raw reader kept reading | sustained, repaired |
+| 6 | `resolve()` is a third raise site in the same suppressed block | indeterminate — unverifiable here |
+
+`_read_scope` wraps a three-key loop in one `contextlib.suppress(Exception)`,
+so any raise from `Path(raw)`, `is_absolute()`, or `resolve()` abandons the rest
+of that scope and hands the decision to the other one. A hand-written mirror has
+to reproduce every exception all three can raise on every supported interpreter
+(`requires-python = ">=3.11"`), and round 6 turned on behaviour that could not be
+exercised in this environment at all.
+
+The amendment therefore preserves the rule's purpose while removing its
+prohibition on the one change that serves it: a single selection, read once,
+yielding both forms. No existing caller's behaviour changes —
+`_read_layout_bases` keeps its signature and its return type, and becomes a thin
+projection of the richer reader.
