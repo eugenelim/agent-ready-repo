@@ -259,6 +259,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the complete list of accepted, unmitigated residuals this delivery
   carries.
 
+## [agentbundle][0.47.2] — 2026-09-21
+
+### Fixed
+
+- `workspace_status` screens a configured `output_dir` with the same character
+  policy as every other path it publishes, withholding the output pattern and
+  warning when the value falls outside letters, digits and `. _ - /`. The
+  screen covers the configured base only; the built-in pattern supplies the
+  `{slug}` and glob tokens and is unaffected.
+
 ## [core][2.26.25] — 2026-09-21
 
 ### Highlights

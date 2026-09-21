@@ -239,36 +239,53 @@ def _publishable_output_pattern(
     path and unpublishable here, so the field is withheld. It is not filled with
     the convention base instead — reporting a base the adopter has overridden is
     the two-answer defect this function exists to close.
+
+    The configured base is the only adopter-controlled part of the result, so it
+    is screened by the same publication policy every other path in this payload
+    passes, and the field is withheld when it fails. The screen applies to the
+    base rather than the whole pattern because the manifest contributes the
+    `{slug}` and glob tokens, which that policy's character set excludes — a
+    screen over the whole pattern would reject a legitimate pattern.
+
+    The shared reader deliberately keeps returning unscreened absolute values:
+    the git tools resolve a user-scope base that is legitimately outside the
+    repository, and this policy refuses an absolute path. Publication is the
+    only surface the screen belongs to.
     """
     raw_patterns = _LIFECYCLE_MANIFEST.get(item_type, {}).get("output_pattern")
     if raw_patterns is None:
         return None
-    patterns = _apply_layout_overrides(
-        item_type,
-        list(raw_patterns) if isinstance(raw_patterns, list) else [raw_patterns],
-        bases,
-    )
-    anchor = repo_root.resolve()
-    relative: list[str] = []
-    for pattern in patterns:
-        candidate = Path(pattern)
-        if not candidate.is_absolute():
-            relative.append(pattern)
-            continue
-        try:
-            relative.append(candidate.relative_to(anchor).as_posix())
-        except ValueError:
-            toml_key = _LAYOUT_TYPE_BASES[item_type][0]
-            print(
-                f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
-                f"resolves outside the repository, so workspace_status reports no "
-                f"output pattern for {item_type!r} items. git_commit cannot stage "
-                "outside the repository either; move the value inside it to use "
-                "either surface.",
-                file=sys.stderr,
-            )
-            return None
-    return relative
+    patterns = list(raw_patterns) if isinstance(raw_patterns, list) else [raw_patterns]
+    mapping = _LAYOUT_TYPE_BASES.get(item_type)
+    if mapping is None:
+        return patterns
+    toml_key = mapping[0]
+    configured = bases.get(toml_key)
+    if configured is None:
+        return patterns
+
+    try:
+        relative_base = Path(configured).relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        print(
+            f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
+            f"resolves outside the repository, so workspace_status reports no "
+            f"output pattern for {item_type!r} items. git_commit cannot stage "
+            "outside the repository either; move the value inside it to use "
+            "either surface.",
+            file=sys.stderr,
+        )
+        return None
+    if _public_canonical_path(relative_base) != relative_base:
+        print(
+            f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
+            f"cannot be published, so workspace_status reports no output pattern "
+            f"for {item_type!r} items. Use only letters, digits, and the "
+            "characters . _ - / in it.",
+            file=sys.stderr,
+        )
+        return None
+    return _apply_layout_overrides(item_type, patterns, {toml_key: relative_base})
 
 
 # ── Session instruction (Component 3) ─────────────────────────────────────────

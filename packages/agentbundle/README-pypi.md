@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.47.2
+
+**Fixed:** `workspace_status` now applies the same character rules to your
+configured `output_dir` that it applies to every other path it reports. A value
+using anything outside letters, digits and `. _ - /` is reported as no pattern,
+with a warning naming the section, instead of being passed through.
+
 ## What's new in 0.47.1
 
 **Fixed:** `workspace_status` now reports the output path your
