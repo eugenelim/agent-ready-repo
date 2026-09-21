@@ -683,9 +683,13 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(packDirs.length).toBeGreaterThan(1);
 
     // Punctuation that ends a clause and therefore must be followed by a space.
-    // An opening bracket, quote or dash is deliberately absent: those legitimately
-    // abut the element after them, as in `(<a>docs</a>)`.
-    const CLAUSE_END = /[.,;:!?’”]$/;
+    // Both quote forms are listed, ASCII and curly: an earlier version named only
+    // the curly ones while its rationale claimed quotes were covered, so
+    // `It says "done."<a>Browse</a>` passed. Closing brackets are here for the
+    // same reason -- `Use (<code>x</code>)<a>Browse</a>` emits `)Browse`.
+    // OPENING brackets, quotes and dashes are deliberately absent, because those
+    // legitimately abut the element after them, as in `(<a>docs</a>)`.
+    const CLAUSE_END = /[.,;:!?"'’”)\]]$/;
 
     const welded: string[] = [];
     for (const name of packDirs) {
