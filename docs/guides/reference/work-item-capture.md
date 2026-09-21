@@ -205,9 +205,14 @@ python3 .claude/skills/project-knowledge/scripts/project_knowledge.py \
   --declined-ordinal 0 < item.json
 ```
 
-`--declined-ordinal` must be the same in both calls: the key is computed
-over the item together with its position in the close, so the same key at a
-different ordinal is refused.
+`--declined-ordinal` must be the same in both calls, and ordinals count
+**from 0**. The key is computed over the item together with its position in
+the close, so the same key at a different ordinal is refused.
+
+Only a **blocked** item goes through these two commands — its
+`work_item.blocker` must be `decision`, `instrument`, `elapsed-time` or
+`dependency`. A ready-now item is fixed in the session and never written,
+so it needs neither command.
 
 You cannot compute the key yourself, and you are not meant to — it is a
 SHA-256 over a canonical form of the dispatch payload. The first command is

@@ -48,6 +48,14 @@ disclosure paragraph, a gap-list entry and two further review rounds.
   residual paragraph. One sentence replaces them: the argv rules confine
   paths to the repository and do not decide whether a file is sensitive.
 - `AC-0065` is removed, with its Testing Strategy row and scenario.
+- **Erratum, 2026-09-21.** `AC-0058` was also removed, two rounds later. It
+  required "a component beginning `.`" to be refused at write time — the same
+  rule under different words, which is why three sweeps for
+  "dot-leading"/"dot-component" all missed it. It was found by mapping every
+  criterion to a case-table row and noticing that `AC-0058` was the one row
+  with no code and no row behind it. **The mechanism:** a text sweep finds
+  the phrasing you already know; mapping criteria to their evidence finds a
+  criterion whose evidence no longer exists. The second is what caught it.
 - The derivation drops its dot cases; the § D6 case table is regenerated
   from the spike, so the row count moves and the table stays byte-pinned to
   what the script emits.

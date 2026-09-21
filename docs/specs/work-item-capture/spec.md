@@ -781,7 +781,7 @@ criteria, cited by stable id throughout.
 | `AC-0046` | TDD | unit, at the kind-agnostic validation seam | The binding is an invocation, so the test asserts the § D6 validator was called for a non-`work-item` kind too and its refusal propagated |
 | `AC-0015`, `AC-0016`, `AC-0017` | Goal-based check | **integration replay** over the whole store | These only prove out across the validator and the widened enum together, so the surface is named rather than implied |
 | `AC-0038`–`AC-0041` | TDD | unit, with a dispatch spy | The correction path, its terminal path, the cap and the cold-context property are driven assertions, not observations of a real close |
-| `AC-0050`–`AC-0060` | TDD | unit, driven from the § D6 case table | Each refusal class is one row of that table, so a row added there is a case here and the table cannot drift from the validator |
+| `AC-0050`–`AC-0057`, `AC-0059`, `AC-0060` | TDD | unit, driven from the § D6 case table | Each refusal class is one row of that table, so a row added there is a case here and the table cannot drift from the validator |
 | `AC-0049` | TDD | unit, **round-trip through the writer and reader** | The admit direction is the one a refusal-only suite never reaches, and element-for-element equality is what catches a writer that flattens the array |
 | `AC-0061` | TDD | unit, with the scan spied per element | The claim is which scan function each element reaches, so the assertion is on the call. A refusal assertion would pass with the wrong scan wired, because § D6 refuses most discriminating strings before any scan runs |
 | `AC-0062` | TDD | unit, at the version selector | A `request` with no `contract_version` is the case the schema used to close and the version map reopened |
@@ -1151,9 +1151,6 @@ plan owns; they carry no criterion.
       against that class being narrowed, and only a narrowing would make it
       detectable — no criterion pins it, because none can.
 
-- [ ] `AC-0058` A stored command any of whose elements after `argv[0]`, other
-      than `grep`'s pattern, has a component beginning `.` is refused at write
-      time and nothing is stored.
 - [ ] `AC-0059` A stored command whose elements total more than 2,000
       characters is refused at write time and nothing is stored.
 - [ ] `AC-0060` A stored command any of whose elements exceeds 500 characters
