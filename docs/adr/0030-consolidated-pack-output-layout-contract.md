@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0120 D3,D8
 - **Related:** RFC-0040 (the accepted decision this records); ADR-0029 (research project
   mode — introduced `research-layout.toml`, the file this generalises, and
   the only prior prompt-only-read layout precedent); ADR-0021 (`pack.toml`

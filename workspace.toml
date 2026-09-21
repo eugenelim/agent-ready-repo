@@ -772,38 +772,6 @@ open = [
   # registered against the brief itself — it sits in a brief queue and cannot
   # also hold a backlog membership.
   {path = "packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md"}, summary = "State the pinned-handoff rule for intents beside the one already stated for briefs, so a core hand-off path is not read as configurable", needs = []},
-  # Does ADR-0030 D8's prompt-only boundary bind a verification lint, or only an
-  # authoring skill's placement path? The repository has no answer and one live
-  # instance. Registered 2026-09-20 as a decision, not an edit, after a repair
-  # attempt found the change is not small and the premise is not settled.
-  # The instance. `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py:224`
-  # `load_layout(root)` parses the repo-root `agentbundle-layout.toml` then
-  # `~/.agentbundle/` with `tomllib`, feeding tier 1 of `resolve_base`'s
-  # documented `config -> designed defaults -> discover-by-marker` contract
-  # (`:255-268`), plus `load_rollup_ids:592` and `_anchor_base`. It reads a
-  # `[traceability]` table that no pack manifest declares.
-  # Reading A, it violates D8. "Reading the layout file is prompt-only" (D8) is
-  # unqualified, and RFC-0040 forecloses the obvious defence twice: `:8` calls a
-  # `tomllib` code-read "**not** a prompt-only-read precedent" and `:361` names
-  # Charter Principle 3 "the prompt-only hard boundary the reader must respect".
-  # Reading B, it does not. D8's second clause names "no runtime engine, index,
-  # daemon, or watcher ... while a skill operates", and Principle 3 is about a
-  # habit not carrying infrastructure. A lint the work-loop invokes to verify is
-  # neither an authoring skill's placement path nor a daemon, and RFC-0040's note
-  # constrains what may be *cited as precedent* rather than banning every script
-  # read.
-  # Why it was not repaired as a ride-along: under Reading A the fix is either
-  # dropping tier 1 — changing four-plus signatures and removing adopter
-  # configurability the lint's own contract promises, inside a block whose
-  # self-test polices path literals (`:128-137`) — or routing the read through
-  # work-loop's prose, which is a CLI change plus prose for a lint called from
-  # several places. Neither is a ride-along, and picking one would settle the
-  # ambiguity by fiat from inside an unrelated slice.
-  # Cost of leaving it: nothing breaks. The lint works and adopters can configure
-  # it. What persists is that the boundary means two things, so the next author
-  # reads whichever suits them — which is how `docs/specs/intake-intent-configured-destination/`
-  # was drafted with a code-side read on 2026-09-20 and had to be redesigned.
-  {path = "packs/core/.apm/skills/work-loop/scripts/lint-traceability.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/adr/0030-consolidated-pack-output-layout-contract.md"}, summary = "Decide whether ADR-0030 D8's prompt-only boundary binds a verification lint or only an authoring skill's placement path, and reconcile lint-traceability's tomllib read with the answer", needs = []},
   # Two answers from one process about where an item's output goes.
   # `workspace_mcp.py:1045` and `:1067` emit `"output_pattern":
   # manifest.get("output_pattern")` into the `workspace_status` payload with **no**
@@ -823,27 +791,6 @@ open = [
   # Natural parent if this wants an outcome rather than a defect row:
   # `docs/product/intents/workspace-mcp-production-readiness.md`.
   {path = "packages/agentbundle/agentbundle/workspace_mcp.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/product/intents/workspace-mcp-production-readiness.md"}, summary = "Apply the layout override in the workspace_status payload, so one process does not report two different output paths for a configured item type", needs = []},
-  # Two accepted precedence orders for the same resolution disagree and nothing
-  # reconciles them: RFC-0040's resolution tail falls back to a pack-owned
-  # default before eliciting, RFC-0096 § 4 has no such step. How the file is
-  # created and which tier a session can read is documented in
-  # `docs/architecture/agentbundle.md` § 7.2 — that is the owning home; do not
-  # restate it here.
-  # This is a decision, not a conformance fix. Elicitation is ratified in six
-  # Shipped `m2-*` specs as an acceptance criterion, and
-  # `packs/desk-research/tests/skills/desk-research-project-start/test_desk_research_project_start_elicitation.py:58-61`
-  # asserts the default is absent, so implementing RFC-0040 step 2 there reds a
-  # standing test. Architect conforms to RFC-0096 § 4 rather than drifting:
-  # `architect-design/SKILL.md:290-293` carries it verbatim under two Shipped
-  # specs.
-  # The one clean conformance case is experience-design, which drifted from its
-  # own pack RFC — RFC-0050 `:154-157` ratifies config -> designed default ->
-  # discover-by-marker with no elicitation tier, and its shipped skills replaced
-  # tier 2 with elicitation.
-  # An ADR is the instrument: the open question is which accepted precedence
-  # governs. ADR-0030's `Revisit if:` names the trigger, "a fourth consumer is
-  # proposed", and there are six by record (`ADR-0078:126-128`).
-  {path = "docs/adr/0030-consolidated-pack-output-layout-contract.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Reconcile RFC-0040's pack-default resolution tail with RFC-0096 section 4, which is later, heavier and has no pack-default step, then fix experience-design's drift from RFC-0050 D6", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because
   # each needs an owner decision, not an edit. Shared root cause: the engine
