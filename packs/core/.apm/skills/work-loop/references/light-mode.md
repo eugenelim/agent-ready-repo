@@ -136,7 +136,8 @@ items carry light-mode deltas:
   required, and its absence is a mandatory `missing` outcome and emits
   `BLOCKED`, never a readiness-compatible named skip. Every finding received
   a requiredness and session-decision disposition, and included fixes passed
-  GATES. Under the external-quality-gate exception, `quality-engineer` also ran
-  and returned Clean or, only when non-mandatory, is an allowed named skip.
+  GATES. Under either exception above — the adopter external-quality gate, or a human
+  asking for the pass — `quality-engineer` also ran and returned Clean or, only
+  when non-mandatory, is an allowed named skip.
 - The findings in the resolve-vs-surface disposition record come from those
   rounds.
