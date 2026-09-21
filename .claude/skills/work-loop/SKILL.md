@@ -723,12 +723,13 @@ repairing its generator or dropping it.
 **Route a ready-now defect in this pass, not at Capture.** A scratch note
 naming a specific, real defect that can be finished this session without a
 decision nobody present will make is loop work, and this pass is where it is
-routed: the table above decides whether the current intent requires it, and
-the bundled-fixes carve-out decides whether it may share this review unit.
-[Capture](#capture) owns only the destinations that outlive the loop — the
-`project-knowledge` seam and a captured `work-item` — so a ready-now defect
-carried past this pass reaches Capture with no route left that could dispatch
-it.
+routed: the intent-fit table opening this step decides whether the current
+intent requires it, and the bundled-fixes carve-out decides whether it may
+share this review unit. [Capture](#capture) names both same-session
+destinations but runs no pass that reaches them — it owns only what outlives
+the loop, the `project-knowledge` seam and a captured `work-item` — so a
+ready-now defect carried past this pass arrives somewhere that can record it
+and not dispatch it.
 
 ### Review verdict record
 
@@ -854,8 +855,8 @@ capturing a ready-now item is a loss.
   | --- | --- |
   | Generalisable practice | The existing `project-knowledge` route, unchanged |
   | Specific, real, blocked | Captured as a `work-item` |
-  | Specific, real, ready now, ride-along eligible | Dispatched in-session, not captured |
-  | Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit |
+  | Specific, real, ready now, ride-along eligible | Dispatched in-session at DECIDE, not captured |
+  | Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit, decided at DECIDE |
   | Specific, failing the razor | Refused, non-silently |
 
   Take the first row that applies and stop: a defect blocked on a decision, an
