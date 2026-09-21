@@ -160,12 +160,11 @@ except by the seam's additive rule.
 >   the first row that applies and stop: a defect blocked on a decision,
 >   an instrument, elapsed time, or a dependency is captured as a
 >   `work-item`; a ready-now defect — one that can be finished this
->   session without a decision nobody present will make — was dispatched
->   at DECIDE, which owns both same-session routes and is the pass that
->   runs while they are still reachable, so neither of its two rows is
->   captured here; and a defect the razor refuses — one an existing
->   artifact already covers, or one no capture criterion admits — is
->   refused, non-silently, rather than discarded. What a `work-item`
+>   session without a decision nobody present will make — is routed at
+>   DECIDE, which owns both same-session routes, so neither of its two
+>   rows is captured here; and a defect the razor refuses — one an
+>   existing artifact already covers, or one no capture criterion admits
+>   — is refused, non-silently, rather than discarded. What a `work-item`
 >   capture must carry, what the razor checks, and what a refusal tells
 >   the author are in [Close-time work-item
 >   branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).

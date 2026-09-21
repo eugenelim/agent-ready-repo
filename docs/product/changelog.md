@@ -68,11 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- **A ready-now defect the loop notices is now dispatched while it can
-  still be dispatched.** The rule that sends it either into this change or
-  into the session's next reviewed unit moved to the DECIDE pass, which
-  runs at a definite point in the loop, replacing a "before the session
-  ends" instruction an agent had no way to act on.
+- **A small defect noticed mid-loop now gets routed while both of its
+  routes are still open.** Deciding where it goes happens at the DECIDE
+  pass, which the loop reaches at a definite point, so a fix that could
+  have shipped in this change no longer reaches the close with nowhere left
+  to go.
 - **The close-time routing table no longer sends two different
   destinations to one row.** A ready-now defect that can ride along and one
   that needs its own review unit are separate rows, so reading the table

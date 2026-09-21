@@ -720,16 +720,14 @@ repairing its generator or dropping it.
 
 **Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture](#capture).
 
-**Dispatch a ready-now defect in this pass, not at Capture.** A scratch note
+**Route a ready-now defect in this pass, not at Capture.** A scratch note
 naming a specific, real defect that can be finished this session without a
 decision nobody present will make is loop work, and this pass is where it is
-routed. One that passes every clause of the bundled-fixes carve-out is
-dispatched now, grouped with related fixes sharing a file or a seam; one that
-does not becomes the session's next independently reviewed unit. Both go over
-the human gate's `blocker-applied` return edge, then back through GATES and
-REVIEW. [Capture](#capture) runs after the loop and owns only the destinations
-that outlive it — the `project-knowledge` seam and a captured `work-item` — so
-a ready-now defect left for it has already missed the pass that could dispatch
+routed: the table above decides whether the current intent requires it, and
+the bundled-fixes carve-out decides whether it may share this review unit.
+[Capture](#capture) owns only the destinations that outlive the loop — the
+`project-knowledge` seam and a captured `work-item` — so a ready-now defect
+carried past this pass reaches Capture with no route left that could dispatch
 it.
 
 ### Review verdict record
@@ -863,9 +861,8 @@ capturing a ready-now item is a loss.
   Take the first row that applies and stop: a defect blocked on a decision, an
   instrument, elapsed time, or a dependency is captured as a `work-item`; a
   ready-now defect — one that can be finished this session without a decision
-  nobody present will make — was dispatched at DECIDE, which owns both
-  same-session routes and is the pass that runs while they are still
-  reachable, so neither of its two rows is captured here; and a defect the
+  nobody present will make — is routed at DECIDE, which owns both same-session
+  routes, so neither of its two rows is captured here; and a defect the
   razor refuses — one an existing artifact already covers, or one no capture
   criterion admits — is refused, non-silently, rather than discarded. What a
   `work-item` capture must carry, what the razor checks, and what a refusal

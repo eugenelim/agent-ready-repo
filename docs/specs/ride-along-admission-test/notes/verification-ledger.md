@@ -1615,3 +1615,74 @@ outside the frozen document per the rule that licenses the exception.
 routing row's first cell as `Does not match`; `SKILL.md` reads `Not required`
 there, having been reworded by later work. No control enforces AC9, so the
 drift is invisible and predates this change. Recorded, not repaired.
+
+### Review round 1 — nine findings, seven applied
+
+`adversarial-reviewer`, read-only, against `origin/main...HEAD`. Every premise
+was re-checked against the live file before the finding was adopted.
+
+**Blocker 1 — the relocated rule contradicted § Step 5. DECIDE.** The first
+draft of the DECIDE paragraph said a ready-now defect failing the carve-out
+"becomes the session's next independently reviewed unit". `SKILL.md:710` says
+"Work that is not required does not open a next unit", and `:584` says a
+change failing any carve-out clause needs the owner's scope change. The old
+C4 wording said the same thing but sat in `## Capture`, eighteen lines away
+from the rule it denies; moving it made one section contradict itself.
+Applied `narrow-the-claim`: the DECIDE paragraph now states only the timing
+bound — this pass is where a ready-now defect is routed — and defers the
+destination to the intent-fit table and the carve-out, which this section
+already owns. It adds no rule. The underlying tension between C4's row four
+and the frontier rule predates this change and is recorded below, not
+resolved here.
+
+**Concern 3 — a false claim and a past-tense assertion.** "Capture runs after
+the loop" contradicts `SKILL.md:831-833`, which fires Capture at an explicit
+handoff or before compaction too. And "was dispatched at DECIDE" is a claim
+about the past that an agent arriving with an undispatched note can observe
+to be false. Both now read normatively: Capture "owns only the destinations
+that outlive the loop", and a ready-now defect "is routed at DECIDE".
+
+**Concern 4 — the `blocker-applied` edge stated twice, with drift.** The draft
+ended "back through GATES and REVIEW" where `:617-618` ends "GATES, REVIEW,
+and the human gate again". Applied `drop-the-claim`: the DECIDE paragraph no
+longer restates the edge, so `:617-618` is its single home.
+
+**Blocker 2, Concerns 6 and 7, Nits 8 and 9 — applied.** The adopter guide's
+Capture step now names DECIDE as the owner of the two same-session routes;
+§ D4 states that rows three and four both carry `dispatched-in-session`, so
+every declined row resolves to one of `AC-0002`'s three values; the
+`[backlog].open` defect entry this branch completed is retired, which also
+disposes of Nit 8's "§ D3" mislabel; and the first Highlights bullet leads
+with the outcome rather than with where the rule moved.
+
+### AC17 re-walk — the five notes against the tree as shipped
+
+Concern 5 was sustained: the walk recorded on 2026-09-20 reasons through
+prose this change replaced. Re-walked against the shipped `## Capture` bullet.
+Each note reaches the named destination and no other.
+
+| Note | First matching clause | Destination |
+| --- | --- | --- |
+| Ready-now non-generalisable defect, stated arbiter, fires a risk trigger | carve-out clause (i) fails → not ride-along eligible; not blocked | Table row four — the session's next independently reviewed unit, routed at DECIDE |
+| The same defect with unstateable verification | carve-out clause (iii) fails; not blocked | Table row four — same |
+| A ride-along whose only bar is an unresolved design call, no citation and no answer | blocked on a decision, which precedes the ready-now clause | Table row two — captured as a `work-item`, `blocked_on: decision` |
+| A pure lesson | names no defect, so the sequence is never entered | The `project-knowledge` seam alone |
+| A generalisable decision-blocked defect | the seam is additive, then blocked on a decision | The seam **and** row two |
+
+What moved is which pass routes notes one and two — DECIDE rather than
+Capture — not where they end up. Note three is not ready-now, because the
+decision it waits on is one nobody present will make, so the blocked clause
+still wins the first match. Note four still leaves at the seam rather than
+falling into discard, and note five is the only one reaching two destinations,
+by the seam's additive rule.
+
+### Carried, not resolved
+
+C4's row four sends a ready-now defect that is not ride-along eligible to the
+session's next reviewed unit. `SKILL.md:710` says work that is not required
+opens no next unit, and such a defect is usually not required — an unrelated
+nearby defect is exactly what the frontier rule excludes. The two rules have
+disagreed since C4 shipped; this change neither introduced nor widened the
+disagreement, and it kept them apart rather than picking a winner, because
+choosing one changes what an agent may do and belongs to whoever owns the
+frontier doctrine. Owner: work-loop maintainer, via `work-intake`.

@@ -216,8 +216,11 @@ rows two, three, four and five of § D9's table. Generalisable practice is not
 a member — it takes the existing `project-knowledge` route and is not leftover
 work. The outcome vocabulary is closed at three values, but it is not a
 per-row lookup: a row-two item that fails validation receives
-`refused`, which is also row five's outcome. Row membership defines the
-declined set `AC-0001` needs; it does not determine the outcome.
+`refused`, which is also row five's outcome. Rows three and four are both
+same-session routes and both carry `dispatched-in-session`; they are separate
+rows because they name different destinations, not different outcomes. Row
+membership defines the declined set `AC-0001` needs; it does not determine
+the outcome.
 
 **Item identity within one close.** D3 has the close enumerate the declined set
 before it dispatches any validation, so each member carries a position-stable
