@@ -1756,6 +1756,34 @@ open = [
   {path = "docs/specs/work-item-promotion-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"}, summary = "Hand a captured item to the owner that handles work of its shape or close it because it should go nowhere, committing the terminal disposition either way", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-capture/spec.md"}]},
   {path = "docs/specs/governance-item-record-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0008-governance-item-record-routing.md"}, summary = "Route a captured question whose deliverable is a decision to a record naming who decides, eliciting the record type rather than deriving it, and refusing loudly when the authoring pack is absent", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
   {path = "docs/specs/duplicate-coverage-offer/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"}, summary = "Offer the artifact that already covers a captured item before promotion creates a second one; path proximity is refuted and the surviving question is whether coverage is discoverable at all", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
+  # Owner assigned this to us on 2026-09-21 after PR #1387 (session bass-b3,
+  # branch eugenelim/simplify-closeout-checklist) raised it and deferred the
+  # ownership call. It lands here rather than there because our unmerged branch
+  # already amended C4 in all three of its homes, so the split starts from text
+  # we control. Four things move together and none of them alone is coherent:
+  # (a) C4's row three conflates two destinations -- the ride-along dispatch and
+  # the next independently reviewed unit -- and becomes two rows; (b) the bound
+  # "before the session ends" is not actionable and is what actually needs
+  # fixing; (c) the session-bound defect dispatch moves to DECIDE, which is loop
+  # work, while the knowledge destinations stay post-loop and optional; (d) our
+  # § D3 ordinal adjustment has to move in the same change or the ordinals
+  # disagree. C4 is byte-pinned in three places that must move together --
+  # docs/specs/ride-along-admission-test/spec.md § The shipped clauses (Status:
+  # Shipped, so this is a governed amendment), the C4 constant in
+  # packs/core/tests/pack/test_ride_along_admission_test.py, and the ## Capture
+  # section of packs/core/.apm/skills/work-loop/SKILL.md.
+  # tests/roster/test_capture_rename_guide.py needs no edit provided the spec
+  # and the pack constant move together; verified 2026-09-21 by running that
+  # test's own _shipped_clause_blockquotes parser against the amended spec.
+  # Nothing is blocked: all four destinations are correct and enforced today.
+  # REBASE RECIPE, agreed with bass-b3 2026-09-21 after it verified our branch:
+  # #1387 does not touch the C4 bullet -- its only ## Capture edit is the intro
+  # paragraph above "What a kept note should say". So the conflict is in the
+  # section, not the bullet. Resolution: keep our C4, keep their intro, then
+  # delete their intro's second paragraph, the one beginning "Run it before the
+  # session ends, though" -- that is the unactionable bound this item replaces,
+  # and leaving it beside an actionable one contradicts it.
+  {path = "docs/specs/ride-along-admission-test/spec.md", kind = "defect", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/SKILL.md"}, summary = "Split C4's conflated ready-now row into its two destinations and replace the unactionable \"before the session ends\" bound, moving the session-bound defect dispatch to DECIDE and our § D3 ordinal with it", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-capture/spec.md"}]},
 
 ]
 
