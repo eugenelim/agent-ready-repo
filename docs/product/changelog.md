@@ -64,21 +64,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.26] — 2026-09-20
+## [core][2.26.22] — 2026-09-20
+
+### Highlights
+
+- **Ordinary work stays on the short path, and the loop stops when the work
+  is done.** A `work-loop` risk trigger that names something you can modify —
+  a security or governance boundary, a structure or public interface, a
+  persistent representation — now fires when a change modifies that thing.
+  Reading it, calling it, testing it, documenting it, or regenerating a
+  projection of it no longer routes the work to full mode. The triggers that
+  name an act still fire on the act, even when everything they touch is
+  unchanged.
+- **The loop stops searching once the work is done.** Resolve the findings
+  the current intent requires, and do not expand the frontier unless a
+  finding blocks correctness, security, or a stated acceptance criterion.
+  Meeting the stop condition ends the iteration: do not continue searching
+  for additional improvements.
+- **Not knowing a file no longer sends ordinary work down the heavy path.**
+  The **Unfamiliar** trigger asks whether you can predict the design, not
+  whether you know the territory. Write down the design you intend and what
+  grounds it; the trigger fires when you cannot, or would be guessing.
 
 ### Changed
 
-- The pre-EXECUTE design-intent pass now says in the skill what it already
-  was: advisory in both modes, and a light-mode surface change receives the
-  recommendation only. It is not a gate and does not block EXECUTE, so an
-  ordinary light change no longer reads as owing a pre-execution review.
-- Two links in `work-loop` references could never resolve, because they
-  pointed at repository paths from inside the installed pack. Both now name
-  the file in prose instead of linking to it.
-- `core`'s design notes no longer repeat the risk-trigger list. The skill's
-  `SKILL.md` is the canonical, complete home; the copy had already drifted
-  two triggers behind it, so the page now points at it and keeps only
-  clearly illustrative examples.
+- The risk-trigger block is two groups, and the group heading carries the
+  rule instead of a preamble repeating every trigger. A modification that
+  preserves behaviour still fires; where you cannot tell whether a change
+  reached the thing, it did. Prose that *is* the rule is the thing itself.
+- Backfill, replay, import, export and destructive transformation are their
+  own trigger rather than a clause inside the persistent-representation
+  trigger, which straddled both groups. Both halves fire exactly as before.
+- `work-loop/SKILL.md` drops from 980 to 822 body lines. The `loop-engine`
+  and `loop-cohort` command sequences moved to
+  `references/full-mode-engine.md`, which full mode loads at the step that
+  fires one; light mode never ran that machine and now never reads it.
+- The self-coverage gate carries two rules that compose in order. The
+  frontier rule decides whether a finding is in scope; the existing rule then
+  decides whether to resolve it against a referent or ask a human. A finding
+  outside the frontier is resolved, with the accepted intent as its referent.
+- DECIDE routes by whether the accepted intent requires a discovery rather
+  than by whether it matches the agent's reading of intent. Required covers
+  the trusted request, accepted-contract obligations, repository and skill
+  rules, and mandatory finish duties; a direct-light run, which has no
+  acceptance criteria, still requires its requested outcome. Requiredness is
+  a property of the work, never of the loop that processes it.
+- The completion boundary is unchanged: the accepted intent remains the
+  boundary, and work it does not require no longer opens another review unit.
+- The pre-EXECUTE design-intent pass now says it is advisory in both modes;
+  a light-mode surface change receives the recommendation only.
+- Two `work-loop` reference links could never resolve from inside the
+  installed pack and now name their file in prose. `core`'s design notes
+  point at the canonical risk-trigger block instead of repeating a copy that
+  had drifted two triggers behind it.
 
 ## [contracts][0.3.7] — 2026-09-20
 
@@ -87,122 +125,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The pack README described `contract-acquisition` as firing when `work-loop`
   "hits an unfamiliar API surface". It fires when the agent codes against a
   contract it does not hold — unfamiliarity alone is not the condition.
-
-## [core][2.26.25] — 2026-09-20
-
-### Highlights
-
-- **Not knowing a file no longer sends ordinary work down the heavy path.**
-  `work-loop`'s **Unfamiliar** risk trigger asked whether this was "territory
-  you don't know well" — a question an agent in any unfamiliar repository
-  answers yes to, which routed everyday work into full mode with two human
-  approvals. It now asks the question its governing decision actually posed:
-  can you predict the design? Not knowing a file or a library does not fire
-  it — though the contract-grounding gate still applies whenever you code
-  against a contract you do not hold.
-
-### Changed
-
-- The trigger reads "you cannot predict the design", restoring the scope
-  RFC-0025 authorised; the skill had drifted to a broader and less checkable
-  wording than the decision that created it.
-- It is decided on evidence where the risk assessment is already recorded,
-  before mode selection: write down the design you intend and what grounds
-  it. The trigger fires when you cannot write it, can write it only as
-  alternatives you cannot choose between, or would be guessing because an
-  unresolved fact could still change the mechanism or the boundary. Being
-  able to state the verification does not settle it — a defect can have an
-  exact regression test and an unpredictable cause.
-
-## [core][2.26.24] — 2026-09-20
-
-### Highlights
-
-- **A work loop now stops when the work is done.** `work-loop` gains a
-  work-frontier rule: resolve the findings the current intent requires, and
-  do not expand the frontier unless a finding blocks correctness, security,
-  or a stated acceptance criterion. Its stop conditions say plainly that
-  meeting them ends the iteration — do not continue searching for additional
-  improvements. Something else worth doing is a scope change for the owner,
-  not a reason to keep going.
-
-### Changed
-
-- The self-coverage gate carries two rules that compose in order. The
-  frontier rule decides whether a finding is in scope; the existing rule then
-  decides whether to resolve it against a referent or ask a human. A finding
-  outside the frontier is resolved, with the accepted intent as its referent,
-  so the cross-loop resolve-versus-surface seam is unchanged.
-- DECIDE routes a discovery by whether the accepted intent requires it rather
-  than by whether it matches the agent's reading of intent. Required means
-  the trusted request, an accepted-contract obligation, a repository or skill
-  rule the work must obey, or a mandatory finish-checklist duty; a
-  direct-light run, which has no acceptance criteria, still requires its
-  requested outcome. A finding showing this change is incorrect or unsafe is
-  required regardless — that is correctness or security of this change, not
-  of any nearby defect.
-- Requiredness is a property of the work, never of the loop that processes
-  it. The duty to dispose of every finding does not make every finding
-  required; read that way the rule is circular and the frontier never closes.
-- The completion boundary is unchanged. The accepted intent remains the
-  boundary; what changes is that work the intent does not require no longer
-  opens another review unit.
-
-## [core][2.26.23] — 2026-09-20
-
-### Highlights
-
-- **The work loop reads as the loop again, not as a state machine.** Its
-  shape — plan, execute, verify, review, decide — is what `SKILL.md` now
-  describes at each step. The `loop-engine` and `loop-cohort` commands that
-  drive full mode's persisted state machine moved into a reference that full
-  mode loads when it needs to fire a transition. Light mode never ran that
-  machine and now never reads it either.
-
-### Changed
-
-- `work-loop/SKILL.md` drops 155 lines, from 980 to 825 body lines. No engine command
-  remains inline; every step that fires one names the sequence and points to
-  `references/full-mode-engine.md`, which carries the init pair and resume,
-  the pre-EXECUTE review transitions, the G-plan sequence and its two human
-  approvals, GATES wave routing, and the REVIEW and human-gate path including
-  specialist findings.
-- The conditional-reference routing table gains a row for the new reference,
-  so the engine loads on the same predicate-fires rule as every other
-  reference rather than sitting resident.
-
-## [core][2.26.22] — 2026-09-20
-
-### Highlights
-
-- **Ordinary work stays on the short path.** `work-loop`'s risk triggers are
-  now split into the ones that name a thing you can modify — a security or
-  governance boundary, a structure or public interface, a persistent
-  representation — and the ones that name an act or the work. The first group
-  fires when a change modifies that thing, so reading it, calling it, testing
-  it, documenting it, or regenerating a projection of it no longer routes the
-  work to full mode. A modification that preserves behaviour still fires, and
-  where you cannot tell whether the change reached the thing, it counts as
-  having reached it.
-
-### Changed
-
-- The risk-trigger block states the touch-versus-modify rule once, as the
-  heading of the group it governs, instead of carrying it on a single bullet.
-  The test is whether the change reaches the thing, not whether the thing's
-  guarantees survive: a behaviour-preserving rewrite of an auth guard, an
-  extraction into a new module, and a compatible re-encoding of a checkpoint
-  all still route to full mode.
-- The triggers that name an act keep firing on the act, even when everything
-  they touch is unchanged: a destructive or irreversible operation, a
-  backfill, replay, import, export, or transformation, and adding a
-  dependency.
-- Backfill, replay, import, export, and destructive transformation are now
-  their own trigger rather than a clause inside the persistent-representation
-  trigger, which had straddled both groups. Both halves fire exactly as
-  before; only their presentation changed.
-- The compliance, governance, or security-boundary trigger reads `changes`
-  rather than `touches`, matching the rule that governs it.
 
 ## [core][2.26.21] — 2026-09-20
 

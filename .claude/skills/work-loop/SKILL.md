@@ -791,10 +791,9 @@ capturing a ready-now item is a loss.
   first destination that applies and stop: a ride-along-eligible defect is
   dispatched now, grouped with related fixes sharing a file or a seam, over
   the human gate's `blocker-applied` return edge; a defect blocked on a
-  decision, an instrument, or elapsed time is captured; a ready-now **required** defect
+  decision, an instrument, or elapsed time is captured; a ready-now defect
   that is not ride-along eligible becomes the next independently reviewed
-  unit in this session, over that same edge — a ready-now defect that is not
-  required is excluded, not scheduled — where ready-now means it can be
+  unit in this session, over that same edge, where ready-now means it can be
   finished this session without a decision nobody present will make; and any
   defect left — one resting on taste, or one with no stated arbiter — is
   discarded. A note that names no defect is done once the seam has taken it,
