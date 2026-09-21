@@ -666,6 +666,117 @@ def test_promisor_detection_uses_gits_false_set_not_a_true_allowlist(
     assert MODULE._is_promisor(config) is designates
 
 
+def test_the_child_environment_is_an_allowlist_not_a_scrub(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """Nothing inherited reaches git except the names it needs to run.
+
+    A denylist kept growing: the redirect set, then GIT_CONFIG*, then
+    GIT_TRACE* which makes a read-only probe write files, then
+    GIT_CEILING_DIRECTORIES which can fence discovery below the real root. The
+    next hole is whichever variable nobody thought of, so the child gets an
+    allowlist instead.
+    """
+    seen: dict[str, object] = {}
+
+    def _record(arguments, **keywords):
+        seen["env"] = keywords["env"]
+        raise OSError("no git in this fixture")
+
+    monkeypatch.setattr(MODULE.subprocess, "Popen", _record)
+    for name in (
+        "GIT_CONFIG", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_COUNT",
+        "GIT_TRACE", "GIT_TRACE2_EVENT", "GIT_CEILING_DIRECTORIES",
+        "GIT_DIR", "GIT_OBJECT_DIRECTORY", "GIT_SOMETHING_UNKNOWN",
+    ):
+        monkeypatch.setenv(name, "/attacker/controlled")
+    MODULE.remote_view(tmp_path)
+
+    inherited = {
+        k for k in seen["env"] if k.startswith("GIT_")
+    } - {"GIT_NO_LAZY_FETCH", "GIT_TERMINAL_PROMPT"}
+    assert inherited == set(), inherited
+    assert set(seen["env"]) <= set(MODULE.GIT_ENVIRONMENT_ALLOWLIST) | {
+        "GIT_NO_LAZY_FETCH", "GIT_TERMINAL_PROMPT", "LC_ALL",
+    }
+
+
+def test_a_read_error_invalidates_the_result_rather_than_ending_it(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """A truncated read is not EOF.
+
+    Accepting it would hide a promisor key, or drop the highest remote
+    ordinal, while git still exited zero.
+    """
+    read_fd, write_fd = os.pipe()
+    os.write(write_fd, b"alias.x\0")
+    os.close(write_fd)
+    calls = {"n": 0}
+    real_read = os.read
+
+    def _read(fd, size):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return real_read(fd, size)
+        raise OSError("pipe failure after a valid prefix")
+
+    class _Child:
+        returncode = 0
+
+        def __init__(self) -> None:
+            self.stdout = os.fdopen(read_fd, "rb", buffering=0)
+            self.stderr = None
+
+        def poll(self) -> int:
+            return 0
+
+        def kill(self) -> None:
+            pass
+
+        def wait(self, timeout=None) -> int:
+            return 0
+
+    monkeypatch.setattr(MODULE.subprocess, "Popen", lambda *a, **k: _Child())
+    monkeypatch.setattr(MODULE.os, "read", _read)
+    result = MODULE._git(tmp_path, ["config", "--list", "-z"], MODULE._deadline())
+    assert result.output is None
+    assert result.code is None
+
+
+def test_a_backslash_in_a_remote_name_is_filename_data(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """Git's path grammar is slash-only on every host.
+
+    A POSIX-authored name containing a backslash would split under Windows
+    `Path(...).name`, reading ordinal 1 from a record whose ordinal is 5 and
+    letting 5 be allocated twice.
+    """
+    token = TOKENS[0]
+    hostile = f"records/{token}-0005-a.md\\{token}-0001-b.md"
+    monkeypatch.setattr(MODULE, "git_config_values", lambda _d, _dl=None: {})
+
+    def _fake(directory, arguments, deadline, **keywords):
+        if "rev-parse" in arguments:
+            return MODULE._GitResult(os.fspath(tmp_path), 0)
+        if "remote" in arguments:
+            return MODULE._GitResult("origin", 0)
+        if "symbolic-ref" in arguments:
+            return MODULE._GitResult("refs/remotes/origin/main", 0)
+        if "ls-tree" in arguments:
+            return MODULE._GitResult(f"100644 blob deadbeef\t{hostile}", 0)
+        return MODULE._GitResult(None, None)
+
+    monkeypatch.setattr(MODULE, "_git", _fake)
+    view = MODULE.remote_view(tmp_path)
+    assert view.state == "ok"
+    # One record, and its ordinal is 5 — not 1 from the text after a backslash.
+    assert view.names == frozenset({f"{token}-0005-a.md\\{token}-0001-b.md"})
+    # So the successor is 6. Reading 1 here would let 5 be allocated twice.
+    assert MODULE.next_typed_ordinal(tmp_path, token) == 6
+
+
 def test_an_inherited_git_config_override_is_scrubbed(
     tmp_path: pathlib.Path, monkeypatch
 ) -> None:

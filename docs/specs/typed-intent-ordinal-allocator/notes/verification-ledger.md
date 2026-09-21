@@ -294,9 +294,25 @@ Four standing cases added, one per finding. The last fix is also a
 simplification — the branch that existed to be a fallback was the branch that
 could not hold the bound, so removing it left one read path instead of two.
 
+**Round 5 found four more, and two of them ended the denylist.**
+
+| Finding | Fix |
+| --- | --- |
+| `GIT_TRACE` and `GIT_TRACE2_EVENT` make a read-only probe **write files** at an inherited path, which breaks AC-0003's zero-write promise outright | — |
+| `GIT_CEILING_DIRECTORIES` fences discovery below the real root, so `rev-parse` emits the very not-a-repository diagnostic the `absent` branch trusts — and the `origin` view is skipped | both closed by the same change: the child's environment is built from an **allowlist** (`PATH`, `HOME`, and the platform temp names) rather than inherited and pruned |
+| An `OSError` from `os.read` was treated as EOF, so a truncated read was accepted while git exited zero — hiding a promisor key or dropping the highest remote ordinal | a read error invalidates the whole result |
+| `Path(path).name` splits on a backslash under Windows, so a POSIX-authored `FEAT-0005-a.md\FEAT-0001-b.md` on `origin` reads as ordinal 1 and lets 5 be allocated twice | the basename comes from `rsplit("/")`, because git's path grammar is slash-only on every host |
+
+The allowlist is the finding worth keeping. The denylist grew four times across
+these rounds — the redirect set, then `GIT_CONFIG*`, then `GIT_TRACE*`, then
+`GIT_CEILING_DIRECTORIES` — and each addition was a real hole found by someone
+else. The next one would have been whichever variable nobody had thought of. An
+allowlist inverts the failure: an unknown variable is excluded by default, and
+the cost is that a genuinely needed name must be added deliberately.
+
 The `(output, code)` shape is the change worth naming: "could not run" and "ran
-and said no" were the same value before, and four of the fourteen findings
-across four rounds were that one conflation wearing different clothes. The other
+and said no" were the same value before, and four of the eighteen findings
+across five rounds were that one conflation wearing different clothes. The other
 pattern is narrower and worth naming too: three findings were a set I had
 enumerated in the wrong direction — an allowlist where the closed set was the
 complement, or a status where the message was the signal.
