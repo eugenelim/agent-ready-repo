@@ -1,6 +1,6 @@
 # Spec: git_commit scope confinement
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0078](../../rfc/0078-workspace-mcp.md) (Accepted)
