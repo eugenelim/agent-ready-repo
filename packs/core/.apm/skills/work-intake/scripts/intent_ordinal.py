@@ -72,6 +72,14 @@ GIT_REDIRECT_VARIABLES = (
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
 )
 _ORIGIN_REF_PREFIX = "refs/remotes/origin/"
+# Git's *false* forms, which is the closed set. Everything else it reads as
+# true — `2` and `-1` included — so an allowlist of true forms is the wrong
+# shape: it fails open on every value nobody thought of.
+_GIT_FALSE_VALUES = frozenset({"", "0", "no", "false", "off"})
+# Git's own words for "there is no repository here", pinned to LC_ALL=C in the
+# child. Exit 128 alone is not this statement: git uses it for every fatal
+# error, so accepting the status would let an unrelated failure read as absence.
+_NO_REPOSITORY_MESSAGE = "fatal: not a git repository"
 
 _LEVEL_RE = re.compile(r"^[a-z][a-z-]{0,63}$")
 _TOKEN_ALTERNATION = "|".join(NAMESPACE_TOKENS)
@@ -88,7 +96,9 @@ RemoteView = collections.namedtuple("RemoteView", "names state")
 # launch failure, timeout, or a breached bound. The distinction matters: exit
 # 128 from `rev-parse` is git positively saying "no repository", while None says
 # nothing about the repository at all.
-_GitResult = collections.namedtuple("_GitResult", "output code")
+_GitResult = collections.namedtuple(
+    "_GitResult", "output code diagnostic", defaults=("",)
+)
 _NOT_A_REPOSITORY = 128
 
 
@@ -143,7 +153,9 @@ def token_for_level(level: str | None) -> str | None:
     return LEVEL_TOKENS.get(level)
 
 
-def _git(directory: Path, arguments: list[str], deadline: float) -> _GitResult:
+def _git(
+    directory: Path, arguments: list[str], deadline: float, *, capture_stderr: bool = False
+) -> _GitResult:
     """Run one git command, reading its output incrementally under a bound.
 
     ``Popen`` rather than ``run``: the byte bound has to hold while reading,
@@ -161,6 +173,9 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> _GitResult:
     # `remote_view` covers a git too old to.
     environment["GIT_NO_LAZY_FETCH"] = "1"
     environment["GIT_TERMINAL_PROMPT"] = "0"
+    # Pins git's diagnostic wording, which the repository probe below matches
+    # on. Without it the message is locale-dependent and the match is luck.
+    environment["LC_ALL"] = "C"
     # A deadline already past is a refusal, not a zero-length wait.
     if min(GIT_TIMEOUT_SECONDS, deadline - time.monotonic()) <= 0:
         raise _ScanRefused("bound-exceeded")
@@ -172,7 +187,7 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> _GitResult:
             env=environment,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE if capture_stderr else subprocess.DEVNULL,
             shell=False,
         )
     except (OSError, ValueError):
@@ -204,7 +219,15 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> _GitResult:
                 break
             if not selector.select(timeout=remaining):
                 raise _ScanRefused("bound-exceeded")
-            chunk = child.stdout.read(65_536)
+            # `os.read` on the raw descriptor, not `BufferedReader.read`: the
+            # buffered form loops until it has the full count, so it can block
+            # past the deadline even after the selector reported readiness.
+            try:
+                chunk = os.read(child.stdout.fileno(), 65_536)
+            except (BlockingIOError, InterruptedError):
+                continue
+            except OSError:
+                break
             if not chunk:
                 break
             total += len(chunk)
@@ -225,8 +248,17 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> _GitResult:
             child.kill()
             with contextlib.suppress(subprocess.TimeoutExpired, OSError, ValueError):
                 child.wait(timeout=1)
+    diagnostic = ""
+    if capture_stderr and child.stderr is not None:
+        # Bounded and read only after the child has exited, so a large stderr
+        # cannot deadlock against the stdout pipe. Used for one comparison and
+        # never reflected anywhere.
+        with contextlib.suppress(OSError, ValueError):
+            diagnostic = child.stderr.read(4096).decode("utf-8", "replace")
     return _GitResult(
-        b"".join(chunks).decode("utf-8", "surrogateescape"), child.returncode
+        b"".join(chunks).decode("utf-8", "surrogateescape"),
+        child.returncode,
+        diagnostic,
     )
 
 
@@ -270,7 +302,7 @@ def _is_promisor(config: dict[str, str]) -> bool:
         return True
     return any(
         key.startswith("remote.") and key.endswith(".promisor")
-        and value.strip().lower() in {"true", "1", "yes", "on"}
+        and value.strip().lower() not in _GIT_FALSE_VALUES
         for key, value in folded.items()
     )
 
@@ -284,12 +316,18 @@ def _repository_root(directory: Path, deadline: float) -> tuple[str | None, str]
     it as "no repository" is how a local-only ordinal collides with an existing
     record on ``origin``.
     """
-    result = _git(directory, ["rev-parse", "--show-toplevel"], deadline)
-    if result.code == _NOT_A_REPOSITORY:
+    result = _git(
+        directory, ["rev-parse", "--show-toplevel"], deadline, capture_stderr=True
+    )
+    if result.code == 0 and result.output and result.output.strip():
+        return result.output.rstrip("\n"), "ok"
+    if result.code == _NOT_A_REPOSITORY and result.diagnostic.startswith(
+        _NO_REPOSITORY_MESSAGE
+    ):
+        # Git's own statement that there is nothing here, not merely a fatal
+        # status. Every other fatal outcome says nothing about the repository.
         return None, "absent"
-    if result.code != 0 or not result.output or not result.output.strip():
-        return None, "failed"
-    return result.output.rstrip("\n"), "ok"
+    return None, "failed"
 
 
 def _deadline() -> float:

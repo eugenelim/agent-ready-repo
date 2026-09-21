@@ -265,9 +265,26 @@ not considered.
 | The deadline could not fire while `stdout.read()` blocked, so an adopter-controlled config include stalling on a FIFO defeated both wall-clock bounds | read from the loop's own shape | the pipe is polled with `selectors` and the remaining budget, so no read begins without the deadline being live; a platform whose pipes cannot be selected falls back to a bounded `communicate` with that degradation stated in the source; and a `finally` kills and reaps the child whichever way the function leaves |
 | `rev-parse` returning nothing conflated "no repository" with "git refused" — unsafe ownership, a timeout or any non-zero status became `absent` and permitted a local-only ordinal | `git rev-parse --show-toplevel` outside a repository exits **128**, a distinguishable signal | `_git` now returns `(output, code)`, and only exit 128 yields `absent`. Everything else refuses |
 
+**Round 3 found three more, and two of them were my round-2 fixes being too
+literal.**
+
+| Finding | Reproduced | Fix |
+| --- | --- | --- |
+| `_is_promisor` allowed `{true, 1, yes, on}`. Git reads **any** non-false value as true | `git config --type=bool --get` returned `true` for `2`, `-1`, `TRUE`, `yes`, `on`, and `false` only for the empty string, `0`, `no`, `off` | the check inverted: a key designates unless its value is in git's *false* set. An allowlist of true forms fails open on every value nobody thought of; the false set is the one that is closed |
+| `BufferedReader.read(65_536)` loops until it has the full count, so it can block past the deadline *after* the selector reported readiness — a short prefix then a stalled FIFO include defeats the bound again | read from the buffered-IO contract | `os.read` on the raw descriptor, which returns whatever is available |
+| Exit 128 is git's status for *every* fatal error, so a dubious-ownership refusal read as "no repository" and skipped the `origin` view | `LC_ALL=C git rev-parse --show-toplevel` outside a repository prints `fatal: not a git repository (or any of the parent directories): .git` and exits 128 | `absent` now requires that message as well as the status, with `LC_ALL=C` pinned in the child so the wording is not luck. Stderr is captured for one comparison, bounded at 4 KiB, read only after the child exits so it cannot deadlock against stdout, and never reflected |
+
+Two runs against real git confirm the probe end to end: inside this repository the
+allocator unions with `origin` and still answers `VISION-0002`, `STRAT-0005`,
+`CAP-0005`, `FEAT-0006`; in a scratch directory outside any repository it reads
+`absent` and allocates from the working tree alone.
+
 The `(output, code)` shape is the change worth naming: "could not run" and "ran
-and said no" were the same value before, and three of the seven findings across
-both rounds were that conflation wearing different clothes.
+and said no" were the same value before, and four of the ten findings across
+the three rounds were that one conflation wearing different clothes. The other
+pattern is narrower and worth naming too: three findings were a set I had
+enumerated in the wrong direction — an allowlist where the closed set was the
+complement, or a status where the message was the signal.
 
 A further one was raised in round 1 and is real but narrower: the remote entry bound counted
 surviving names rather than records consumed, so a tree of unrelated names cost

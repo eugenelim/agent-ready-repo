@@ -430,7 +430,7 @@ def test_an_origin_without_a_resolvable_head_refuses(
         "symbolic-ref": "",
     }
 
-    def _fake(directory, arguments, deadline):
+    def _fake(directory, arguments, deadline, **keywords):
         for key, value in answers.items():
             if key in arguments:
                 return MODULE._GitResult(value, 0)
@@ -503,7 +503,7 @@ def test_a_newline_in_a_config_value_cannot_forge_a_promisor_key(
     """
     seen: list[list[str]] = []
 
-    def _record(directory, arguments, deadline):
+    def _record(directory, arguments, deadline, **keywords):
         seen.append(list(arguments))
         if "config" in arguments:
             # One record whose value contains what would be a forged line.
@@ -527,25 +527,31 @@ def test_unreadable_configuration_refuses_rather_than_assuming_no_promisor(
     assert MODULE.remote_view(tmp_path).state == "failed"
 
 
+_NO_REPO = "fatal: not a git repository (or any of the parent directories): .git"
+
+
 @pytest.mark.parametrize(
     ("rev_parse", "remote", "expected"),
     [
-        # git positively says there is no repository here.
-        ((None, 128), None, "absent"),
+        # git's own statement that there is nothing here.
+        ((None, 128, _NO_REPO), None, "absent"),
+        # exit 128 for some *other* fatal reason is not that statement.
+        ((None, 128, "fatal: detected dubious ownership in repository at '/x'"),
+         None, "failed"),
         # git could not be run, or timed out: nothing is known about the view.
-        ((None, None), None, "failed"),
-        # a non-zero status that is not 128 — unsafe ownership, for instance.
-        ((None, 1), None, "failed"),
+        ((None, None, ""), None, "failed"),
+        # a non-zero status that is not 128.
+        ((None, 1, ""), None, "failed"),
         # exit 0 with no root is not an answer either.
-        (("", 0), None, "failed"),
+        (("", 0, ""), None, "failed"),
         # a real checkout whose remotes could not be listed.
-        (("/tmp/x", 0), (None, None), "failed"),
+        (("/tmp/x", 0, ""), (None, None), "failed"),
         # a real checkout with remotes, none of them origin.
-        (("/tmp/x", 0), ("upstream", 0), "absent"),
+        (("/tmp/x", 0, ""), ("upstream", 0), "absent"),
     ],
 )
 def test_absent_is_a_positive_finding_not_a_failed_command(
-    rev_parse: tuple[str | None, int | None],
+    rev_parse: tuple[str | None, int | None, str],
     remote: tuple[str | None, int | None] | None,
     expected: str,
     tmp_path: pathlib.Path,
@@ -553,13 +559,13 @@ def test_absent_is_a_positive_finding_not_a_failed_command(
 ) -> None:
     """AC-0015: git saying nothing to consult, versus git not answering.
 
-    Only exit 128 from `rev-parse` is a positive "no repository". A launch
-    failure, a timeout or an unsafe-ownership refusal reports nothing *about*
-    the view, and treating one as an empty view is how a duplicate ordinal gets
-    handed out.
+    Only git's own "not a git repository" statement is a positive absence. Exit
+    128 alone is not: git uses it for every fatal error, so a dubious-ownership
+    refusal carries the same status and must refuse rather than read as an empty
+    view — which is how a duplicate ordinal gets handed out.
     """
 
-    def _fake(directory, arguments, deadline):
+    def _fake(directory, arguments, deadline, **keywords):
         if "config" in arguments:
             return MODULE._GitResult("", 0)
         if "rev-parse" in arguments:
@@ -584,7 +590,7 @@ def test_a_valueless_promisor_key_is_true_as_git_reads_it(
     monkeypatch.setattr(
         MODULE,
         "_git",
-        lambda d, a, dl: MODULE._GitResult("remote.origin.promisor\0", 0)
+        lambda d, a, dl, **k: MODULE._GitResult("remote.origin.promisor\0", 0)
         if "config" in a
         else pytest.fail("no command may run after the promisor refusal"),
     )
@@ -638,7 +644,7 @@ def test_a_remote_tree_of_outside_names_still_hits_the_entry_bound(
     monkeypatch.setattr(MODULE, "git_config_values", lambda _d: {})
     listing = "\0".join(f"100644 blob deadbeef\tunrelated-{n}.md" for n in range(10))
 
-    def _fake(directory, arguments, deadline):
+    def _fake(directory, arguments, deadline, **keywords):
         if "rev-parse" in arguments:
             return MODULE._GitResult(os.fspath(tmp_path), 0)
         if "remote" in arguments:
@@ -651,3 +657,21 @@ def test_a_remote_tree_of_outside_names_still_hits_the_entry_bound(
 
     monkeypatch.setattr(MODULE, "_git", _fake)
     assert MODULE.remote_view(tmp_path).state == "failed"
+
+
+@pytest.mark.parametrize(
+    ("value", "designates"),
+    [
+        ("true", True), ("1", True), ("yes", True), ("on", True), ("TRUE", True),
+        # Git reads any non-false value as true, so an allowlist of true forms
+        # fails open on every value nobody thought of.
+        ("2", True), ("-1", True), ("maybe", True),
+        ("", False), ("0", False), ("no", False), ("false", False), ("off", False),
+    ],
+)
+def test_promisor_detection_uses_gits_false_set_not_a_true_allowlist(
+    value: str, designates: bool
+) -> None:
+    """Verified against `git config --type=bool`: 2 and -1 both read as true."""
+    config = {"remote.origin.promisor": value}
+    assert MODULE._is_promisor(config) is designates
