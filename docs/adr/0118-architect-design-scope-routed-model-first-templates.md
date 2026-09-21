@@ -187,3 +187,20 @@ architectural scope appears that none of the three templates fits.
 - `packs/AGENTS.md`, *Shipped pack content carries no internal-governance
   citations* — why a slice states the rule in `packs/` rather than citing this
   record there.
+
+## Errata
+
+- **2026-09-20 — the system-shape overlay adds three cross-slice names, fixed
+  here on the authority of
+  `docs/specs/architect-design-shape-overlay/spec.md` (`docs/specs/architect-design-shape-overlay/`, criteria AC-0099 and AC-0101), since that delivery cannot cite this record from
+  `packs/` and this is the one place the names may live.** Slice 3's trigger
+  reads the system shape, so the names the shape-axis region of
+  `packs/architect/.apm/skills/architect-design/SKILL.md` uses cross a slice
+  boundary the same way `D1`–`D6` and `DA1`–`DA10` do. Three names are fixed:
+  the open-decision trigger — a shape concept is selected only on an
+  `open decision` of the proposed design, never on a vocabulary match alone;
+  the whole-load rule — a selected shape concept `loads whole`, with
+  `no tier selection`, unlike the workload axis's tiered descent; and the
+  receipt value — the working receipt records `no shape lens selected` when
+  no shape carries an open decision. This erratum adds to the record; it does
+  not revise `D1`–`D6` or the Decision section above.
