@@ -391,6 +391,30 @@ pack, so all three references resolved to nothing. They now name `ux-writing`.
   invalid token and `gh repo view` report a connection failure, so neither
   message states the cause — an exit status makes no such claim.
 
+## [architect][0.15.14] — 2026-09-20
+
+### Highlights
+
+- **`architect-design` now reaches for a system-shape concern when your design
+  turns on one.** When an open decision in your design depends on how a
+  system shape coordinates — an event-driven system, a layered application, a
+  distributed service — the skill now loads that shape's concept in full, so
+  the concern reaches the document without you having to name the shape
+  yourself. A design with a live decision in each of several shapes loads
+  every one of them. Where no decision turns on a shape, none is loaded and
+  the working receipt says so, so you can tell the axis considered your design
+  and found nothing to add.
+
+### Added
+
+- `architect-design`: a system-shape routing axis in `SKILL.md`'s Stage-0
+  concept step, beside the existing workload axis, delimited by its own
+  markers. It descends the corpus's `concepts/system-shapes/index.md` and
+  selects a shape only when an open decision turns on that shape's
+  coordination mechanism; a selected concept always loads whole, with no tier
+  selection.
+- `architect-design`: an eval case exercising the new axis.
+
 ## [architect][0.15.13] — 2026-09-20
 
 ### Highlights

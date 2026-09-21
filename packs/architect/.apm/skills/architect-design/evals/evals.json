@@ -198,6 +198,17 @@
         "Treats each verdict as the reviewer's own determination, never adopted from a claim already in the document under review",
         "Names the gate's question or property alongside its identifier rather than the bare code"
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "Our order service writes a row and then calls the inventory service to decrement stock. Under load the two drift apart, and a failed decrement leaves an order nobody can fulfil. We need to redesign how these two exchange that fact. Design it.",
+      "expected_output": "A design doc that routes through the shape axis in Stage 0's concept step: because an open decision in the proposal turns on that coordination mechanism, the skill loads system-shapes/index.md and system-shapes/event-driven-and-streaming.md whole and reasons the direct-call-versus-event-stream trade-off from it, rather than from memory. A shape with no open decision resting on it stays unloaded.",
+      "assertions": [
+        "Identifies the coordination-mechanism choice as an open decision the design still has to make",
+        "Loads the system-shapes/event-driven-and-streaming.md concept whole because that decision turns on it",
+        "Grounds the direct-call-versus-event-stream trade-off in the loaded concept rather than in unstated assumptions",
+        "Does not load a shape concept that no open decision in the proposal turns on"
+      ]
     }
   ]
 }
