@@ -433,8 +433,8 @@ def test_an_origin_without_a_resolvable_head_refuses(
     def _fake(directory, arguments, deadline):
         for key, value in answers.items():
             if key in arguments:
-                return value
-        return None
+                return MODULE._GitResult(value, 0)
+        return MODULE._GitResult(None, None)
 
     monkeypatch.setattr(MODULE, "_git", _fake)
     assert MODULE.remote_view(tmp_path).state == "failed"
@@ -454,16 +454,28 @@ def test_an_oversized_listing_refuses_before_buffering(
     monkeypatch.setattr(MODULE, "MAX_GIT_RESULT_BYTES", 8)
 
     class _Child:
+        """Enough of Popen for the read loop, and no more."""
+
         returncode = 0
 
         def __init__(self) -> None:
             self.stdout = self
             self.reads = 0
 
+        def fileno(self) -> int:
+            # A real fd the selector can register and that is always readable.
+            return sys.stdin.fileno()
+
         def read(self, size: int) -> bytes:
             self.reads += 1
             assert self.reads < 100, "the bound did not stop the read loop"
             return b"x" * 64
+
+        def communicate(self, timeout=None) -> tuple[bytes, bytes]:
+            return b"x" * 4096, b""
+
+        def poll(self) -> int:
+            return 0
 
         def kill(self) -> None:
             pass
@@ -495,8 +507,8 @@ def test_a_newline_in_a_config_value_cannot_forge_a_promisor_key(
         seen.append(list(arguments))
         if "config" in arguments:
             # One record whose value contains what would be a forged line.
-            return "alias.x\0remote.origin.promisor\ntrue\0"
-        return None
+            return MODULE._GitResult("alias.x\0remote.origin.promisor\ntrue\0", 0)
+        return MODULE._GitResult(None, None)
 
     monkeypatch.setattr(MODULE, "_git", _record)
     assert MODULE.remote_view(tmp_path).state == "failed"
@@ -516,31 +528,67 @@ def test_unreadable_configuration_refuses_rather_than_assuming_no_promisor(
 
 
 @pytest.mark.parametrize(
-    ("answers", "expected"),
+    ("rev_parse", "remote", "expected"),
     [
-        ({"config": "", "rev-parse": None}, "absent"),
-        ({"config": "", "rev-parse": "", "remote": ""}, "failed"),
-        ({"config": "", "rev-parse": "/tmp/x", "remote": None}, "failed"),
-        ({"config": "", "rev-parse": "/tmp/x", "remote": "upstream"}, "absent"),
+        # git positively says there is no repository here.
+        ((None, 128), None, "absent"),
+        # git could not be run, or timed out: nothing is known about the view.
+        ((None, None), None, "failed"),
+        # a non-zero status that is not 128 — unsafe ownership, for instance.
+        ((None, 1), None, "failed"),
+        # exit 0 with no root is not an answer either.
+        (("", 0), None, "failed"),
+        # a real checkout whose remotes could not be listed.
+        (("/tmp/x", 0), (None, None), "failed"),
+        # a real checkout with remotes, none of them origin.
+        (("/tmp/x", 0), ("upstream", 0), "absent"),
     ],
 )
 def test_absent_is_a_positive_finding_not_a_failed_command(
-    answers: dict[str, object], expected: str, tmp_path: pathlib.Path, monkeypatch
+    rev_parse: tuple[str | None, int | None],
+    remote: tuple[str | None, int | None] | None,
+    expected: str,
+    tmp_path: pathlib.Path,
+    monkeypatch,
 ) -> None:
     """AC-0015: git saying nothing to consult, versus git not answering.
 
-    A failed command reports nothing *about* the view, so treating it as an
-    empty view is how a duplicate ordinal gets handed out.
+    Only exit 128 from `rev-parse` is a positive "no repository". A launch
+    failure, a timeout or an unsafe-ownership refusal reports nothing *about*
+    the view, and treating one as an empty view is how a duplicate ordinal gets
+    handed out.
     """
 
     def _fake(directory, arguments, deadline):
-        for key, value in answers.items():
-            if key in arguments:
-                return value
-        return None
+        if "config" in arguments:
+            return MODULE._GitResult("", 0)
+        if "rev-parse" in arguments:
+            return MODULE._GitResult(*rev_parse)
+        if "remote" in arguments and remote is not None:
+            return MODULE._GitResult(*remote)
+        return MODULE._GitResult(None, None)
 
     monkeypatch.setattr(MODULE, "_git", _fake)
     assert MODULE.remote_view(tmp_path).state == expected
+
+
+def test_a_valueless_promisor_key_is_true_as_git_reads_it(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """A bare `promisor` line under `[remote "origin"]` reads as true to git.
+
+    `config --list -z` renders it as a record with no value, so mapping it to
+    the empty string would make it falsy here and bypass the no-egress guard
+    on exactly the git versions that ignore GIT_NO_LAZY_FETCH.
+    """
+    monkeypatch.setattr(
+        MODULE,
+        "_git",
+        lambda d, a, dl: MODULE._GitResult("remote.origin.promisor\0", 0)
+        if "config" in a
+        else pytest.fail("no command may run after the promisor refusal"),
+    )
+    assert MODULE.remote_view(tmp_path).state == "failed"
 
 
 def test_an_expired_deadline_refuses_instead_of_waiting_without_limit(
@@ -592,14 +640,14 @@ def test_a_remote_tree_of_outside_names_still_hits_the_entry_bound(
 
     def _fake(directory, arguments, deadline):
         if "rev-parse" in arguments:
-            return os.fspath(tmp_path)
+            return MODULE._GitResult(os.fspath(tmp_path), 0)
         if "remote" in arguments:
-            return "origin"
+            return MODULE._GitResult("origin", 0)
         if "symbolic-ref" in arguments:
-            return "refs/remotes/origin/main"
+            return MODULE._GitResult("refs/remotes/origin/main", 0)
         if "ls-tree" in arguments:
-            return listing
-        return None
+            return MODULE._GitResult(listing, 0)
+        return MODULE._GitResult(None, None)
 
     monkeypatch.setattr(MODULE, "_git", _fake)
     assert MODULE.remote_view(tmp_path).state == "failed"

@@ -255,7 +255,21 @@ positive, and two of them inverted a control into its own absence:
 | `max(0.0, deadline - now)` then `wait(timeout=remaining or None)` — an expired deadline produced `0.0`, which is falsy, so the bound became an unbounded wait. And `stdout.read()` could block before the wait was ever reached | `max(0.0, -1.0)` → `0.0` → falsy | an expired deadline raises `bound-exceeded`; the deadline is checked inside the read loop; `wait` never receives a falsy timeout |
 | `\d{4,}` is unbounded, and CPython refuses `int()` above 4,300 digits — so a remote entry with a long digit run passed the shape and then raised, and a traceback is the one outcome that stops an admission | `int('9' * 5000)` → `ValueError: Exceeds the limit (4300 digits)` | the grammar bounds the run at twelve digits, so an over-long name is *malformed* and refuses. AC-0004 records the bound and its origin |
 
-A fifth was raised and is real but narrower: the remote entry bound counted
+**Round 2 found three more, all sharper versions of my own fixes.** That is the
+useful part: each one was a control I had just written, defeated on a case I had
+not considered.
+
+| Finding | Reproduced | Fix |
+| --- | --- | --- |
+| `config --list -z` renders a **valueless** key as a bare record, and git reads a bare `promisor` line as `true` — my parse mapped it to `""`, which is falsy, so the no-egress guard was bypassed on exactly the git versions that ignore `GIT_NO_LAZY_FETCH` | a fixture with `[remote "origin"]` + bare `promisor`: `git config --type=bool --get` returned `true`, and `--list -z` showed the record with no value | a valueless key maps to `"true"`, which is git's own reading |
+| The deadline could not fire while `stdout.read()` blocked, so an adopter-controlled config include stalling on a FIFO defeated both wall-clock bounds | read from the loop's own shape | the pipe is polled with `selectors` and the remaining budget, so no read begins without the deadline being live; a platform whose pipes cannot be selected falls back to a bounded `communicate` with that degradation stated in the source; and a `finally` kills and reaps the child whichever way the function leaves |
+| `rev-parse` returning nothing conflated "no repository" with "git refused" — unsafe ownership, a timeout or any non-zero status became `absent` and permitted a local-only ordinal | `git rev-parse --show-toplevel` outside a repository exits **128**, a distinguishable signal | `_git` now returns `(output, code)`, and only exit 128 yields `absent`. Everything else refuses |
+
+The `(output, code)` shape is the change worth naming: "could not run" and "ran
+and said no" were the same value before, and three of the seven findings across
+both rounds were that conflation wearing different clothes.
+
+A further one was raised in round 1 and is real but narrower: the remote entry bound counted
 surviving names rather than records consumed, so a tree of unrelated names cost
 the work the bound exists to cap. It counts records now.
 
