@@ -157,7 +157,7 @@ C and E are genuinely exclusive: C provides **no** lean landing for the work it 
   `quality-engineer` (`packs/core/.apm/agents/adversarial-reviewer.md:328`,
   `:339`). Full-mode work tripping none of the three conditions therefore ships
   without that lens. This RFC already called the lens "discretionary at
-  selection" (lines 24, 35) while treating it as a floor at the end-of-session
+  selection" (lines 24 and 96) while treating it as a floor at the end-of-session
   checklist; the conditions above govern selection, and the checklist floor now
   follows the same three conditions rather than applying to every full-mode
   loop. That floor removal is the substantive change here and is accepted

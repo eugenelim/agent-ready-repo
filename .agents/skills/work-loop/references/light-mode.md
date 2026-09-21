@@ -49,12 +49,13 @@ than creating a durable artifact.
    the trend read and into anything you Surface, because it is what tells a
    reader whether the loop is chasing itself. It cannot be calibrated, so it
    never decides the checkpoint.
-3. **No `quality-engineer` pass** by default. Exception: if the adopter
-   declared in `AGENTS.md` that the repo is judged by a strict external quality
-   gate (SonarQube, CI-only coverage threshold), retain the pass. Act on the
-   declaration; don't scan for config files. Light mode has no other route to
-   that lens, so Surface a maintainability concern that needs it: absent a risk
-   trigger, only the requester can move the work to full mode.
+3. **No `quality-engineer` pass** by default. Two exceptions retain it. The
+   adopter declared in `AGENTS.md` that the repo is judged by a strict external
+   quality gate (SonarQube, CI-only coverage threshold) — act on the
+   declaration; don't scan for config files. Or a human asked for the pass,
+   which is the third high-risk condition and warrants the lens in either mode
+   without escalating to full. Absent either, Surface a maintainability concern
+   that needs the lens rather than resolving it unaided.
 4. **No `loop-cohort` state machine.** Run finish-time `lint-spec-status.py`
    only when a persisted spec exists.
 
