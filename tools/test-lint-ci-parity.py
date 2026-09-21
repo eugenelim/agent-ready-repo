@@ -694,11 +694,15 @@ composed:
                  "empty reason")
 
     # ── ci-gate-main-failure-reporting T2: phase/dependency roster axis ────
-    _check_fires("phase-axis-missing-entry-fails",
-                 chk(_classified(["s"], {"s": ["a.py"]}), {"a.py"}, wf,
-                     wrap_phases=False,
-                     dispositions={"s": LOCAL("test")}),
-                 "has no phase entry")
+    _check(
+        "phase-axis-missing-entry-message",
+        chk(_classified(["s"], {"s": ["a.py"]}), {"a.py"}, wf,
+            wrap_phases=False,
+            dispositions={"s": LOCAL("test")}),
+        ["step 's' — has no phase-and-dependency axis entry in "
+         "STEP_DISPOSITION. Declare one of the two admissible values: "
+         "PROVISIONING(id=...) or CHECK(needs=(...), evidence=...)."],
+    )
     _check_fires("phase-axis-dead-entry-fails",
                  chk(_classified(["s"]), set(), wf,
                      dispositions={

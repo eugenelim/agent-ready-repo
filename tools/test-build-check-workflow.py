@@ -225,6 +225,12 @@ EXPECTED_JOB_NAMES = {
     "gate-credbroker": "gate-credbroker",
     "build-check": "make build-check",
 }
+GATE_MAIN_PHASE_HEADER = (
+    "    # gate-main has two ordered phases: provisioning first, then checks.\n"
+    "    # A check runs only when every provisioning dependency it declares "
+    "succeeded,\n"
+    "    # so a broken install skips its dependents rather than reddening them.\n"
+)
 
 # spec/site-ci-contract-closure AC2. The seven site/catalogue modules that
 # spec/build-check-coverage-gaps AC1 moved into gate-main. Enumerated HERE rather
@@ -1060,6 +1066,10 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         if not ok:
             bad.append(label)
 
+    check(
+        "gate-main-phase-header",
+        GATE_MAIN_PHASE_HEADER in _job_block(text, "gate-main"),
+    )
     text = _strip_comments(text)
     job_ids = _job_ids(text)
     check("jobs-parsed", bool(job_ids))
@@ -1657,6 +1667,14 @@ def _baseline() -> str:
     """
     if _FIXTURE.is_file():
         text = _FIXTURE.read_text(encoding="utf-8")
+        gate_main_runner = "  gate-main:\n    runs-on: ubuntu-latest\n"
+        if gate_main_runner not in text:
+            raise SystemExit("baseline fixture lost gate-main runner")
+        text = text.replace(
+            gate_main_runner,
+            gate_main_runner + GATE_MAIN_PHASE_HEADER,
+            1,
+        )
         setup_uses = (
             "      - uses: actions/setup-python@"
             "a26af69be951a213d495a4c3e4e4022e16d87065\n"
@@ -2102,6 +2120,9 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: re.sub(r"\n  push:\n    branches: \[main\]", "", t)),
     ("drop-workflow-dispatch-trigger", "trigger-workflow-dispatch",
      lambda t: re.sub(r"\n  workflow_dispatch:", "", t)),
+    # -- ci-gate-main-failure-reporting T6: operative header guidance -----------
+    ("drop-gate-main-phase-header", "gate-main-phase-header",
+     lambda t: t.replace(GATE_MAIN_PHASE_HEADER, "", 1)),
     # -- ci-gate-main-failure-reporting T4: roster-derived step posture ---------
     ("drop-check-condition", "phase-condition[Run make build-check]",
      lambda t: t.replace(

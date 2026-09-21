@@ -72,6 +72,9 @@ jobs:
   gate-main:
     name: gate-main
     runs-on: ubuntu-latest
+    # gate-main has two ordered phases: provisioning first, then checks.
+    # A check runs only when every provisioning dependency it declares succeeded,
+    # so a broken install skips its dependents rather than reddening them.
     # Budget note: the two merge-driver steps below are the heaviest pytest
     # steps here. Both are dominated by a full self-host run; one also clones
     # the repo and runs `make build-self`. Timings are machine-dependent and

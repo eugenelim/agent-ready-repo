@@ -2780,9 +2780,9 @@ def check(
         if step not in steps and step not in phase_entries
     ]
     v += [
-        f"step {step!r} — has no phase entry in STEP_DISPOSITION. Add "
-        "PROVISIONING(id=...) or CHECK(needs=(...), evidence=...) beside its "
-        "LOCAL/CI_ONLY disposition."
+        f"step {step!r} — has no phase-and-dependency axis entry in "
+        "STEP_DISPOSITION. Declare one of the two admissible values: "
+        "PROVISIONING(id=...) or CHECK(needs=(...), evidence=...)."
         for step in steps
         if step in dispositions and step not in phase_entries
     ]
