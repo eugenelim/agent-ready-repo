@@ -423,7 +423,7 @@ def _validate_partition_name(partition: str) -> str:
     if (
         len(parts) != 3
         or parts[0] != "observations"
-        or parts[1] not in {"pattern", "gotcha", "antipattern"}
+        or parts[1] not in {"pattern", "gotcha", "antipattern", "work-item"}
         or not filename.endswith(".jsonl")
         or len(month) != 7
         or month[4] != "-"
@@ -577,7 +577,7 @@ def _observation_partitions(
         _refuse("confinement")
     paths: list[Path] = []
     total_bytes = 0
-    for kind in ("antipattern", "gotcha", "pattern"):
+    for kind in ("antipattern", "gotcha", "pattern", "work-item"):
         kind_root = root / kind
         if not kind_root.exists():
             continue
@@ -738,8 +738,18 @@ def _check_time_window(request: dict[str, Any], writer_time: str) -> None:
 
 
 def _check_pre_admission(request: dict[str, Any]) -> dict[str, Any]:
+    # Bound to the writable-only selector: a fresh submission tagged with a
+    # non-writable (or unknown) `contract_version` is refused here, never
+    # validated under legacy rules and re-stamped. `_validate_event`, the
+    # read-path sibling, stays on the version-agnostic call — see
+    # docs/specs/work-item-capture/notes/amendment-002.md, which records the
+    # regression from binding this in the wrong place: every stored legacy
+    # record refused at read.
     try:
-        return PK.validate_capture_request(copy.deepcopy(request))
+        validator = PK.select_validator({"request": request}, require_writable=True)
+        if validator is None:
+            raise ValueError("capture request carries no contract version")
+        return validator(copy.deepcopy(request))
     except PK.PrivacyRefusal:
         _refuse("privacy")
     except ValueError:

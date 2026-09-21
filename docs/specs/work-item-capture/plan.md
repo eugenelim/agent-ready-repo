@@ -605,7 +605,7 @@ code.
 
 **Depends on:** T7
 
-**Touches:** docs/guides/reference/, docs/architecture/knowledge-capture.md, docs/architecture/security.md, packs/core/CHANGELOG.md, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, packs/core/.apm/skills/project-knowledge/evals/eval_queries.json
+**Touches:** docs/guides/reference/, docs/architecture/knowledge-capture.md, docs/architecture/security.md, docs/product/changelog.md, docs/specs/ride-along-admission-test/spec.md, packs/core/tests/pack/test_ride_along_admission_test.py, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, packs/core/.apm/skills/project-knowledge/evals/eval_queries.json
 
 **Tests:**
 - Goal-based: the guide names all three shapes and their thresholds.
@@ -630,7 +630,16 @@ code.
   command refusal. `packs/AGENTS.md` requires a non-cosmetic pack update to
   update that pack's eval harness, and `project-knowledge` is in
   `pack.toml`'s `[pack.evals] skills` list.
-- The changelog entry is the topmost release heading.
+- The changelog entry is the topmost release heading, in
+  `docs/product/changelog.md` — there is no pack-level changelog in this
+  repository, verified against a real core-pack version bump.
+- The four-blocker wording replaces the stale three-blocker pin at both
+  sites `docs/specs/ride-along-admission-test/` carries it, and
+  `test_ride_along_admission_test.py::test_capture_section_routing_bullet`
+  passes. Record in that spec's own notes why its pin moved, so its owner
+  inherits the reason rather than a silent edit. Amendment 006 has the
+  grounds: our spec settles four blockers, the shipped prose is now correct,
+  and the frozen copy is not.
 - `agentbundle catalogue self-host --check` is clean after `make build-self`.
 - No false-or-already-fixed count is derived here. The spec withdrew it to the
   registered freshness owner, because both instruments that could produce it

@@ -865,6 +865,10 @@ capturing a ready-now item is a loss.
   `work-item` capture must carry, what the razor checks, and what a refusal
   tells the author are in
   [Close-time work-item branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).
+  Before any `work-item` is written, one cold reasoning check runs per
+  declined item, over at most twelve per close; an unavailable, timed-out,
+  or unrecognized check refuses rather than admits — see
+  [The reasoning check](references/work-item-capture.md#the-reasoning-check).
   A note that names no defect is done once the seam has taken it, and
   discarded if it had nothing for the seam either.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
