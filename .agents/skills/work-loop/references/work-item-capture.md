@@ -74,6 +74,44 @@ item's content can never admit a different item, and a corrected
 re-submission needs its own fresh verdict — reusing the verdict from before
 the correction refuses just as a missing verdict does.
 
+## Running it
+
+Two commands per item, in this order. The first gives you the key; the
+second does the write.
+
+**1. Get the dispatch message and its correlation key.** This writes
+nothing.
+
+```
+python3 <skill-dir>/scripts/project_knowledge.py --reasoning-payload \
+  --repo-root . --declined-ordinal <n> < item.json
+```
+
+It returns `{"correlation_key": ..., "declined_ordinal": ..., "message":
+...}`. Run your cold check on `message` exactly as given — it carries the
+data delimiters, and the item's content sits inside them as data.
+
+**2. Capture, with the verdict you got back.**
+
+```
+python3 <skill-dir>/scripts/project_knowledge.py --capture \
+  --repo-root . --writer-time <iso8601> \
+  --reasoning-verdict admit \
+  --reasoning-correlation-key <the key from step 1> \
+  --declined-ordinal <the same n> < item.json
+```
+
+`--declined-ordinal` must match between the two calls. The key is computed
+over the item *and* its ordinal, so the same key at a different ordinal is
+refused — that is the correlation working, not a bug.
+
+Do not try to compute the key yourself. It is a SHA-256 over a canonical
+serialisation of the dispatch payload; step 1 is the only way to obtain one.
+
+If the verdict is `work_item_unnecessary` or `work_item_threshold`, pass it
+in place of `admit` and the writer refuses with that code. Anything other
+than these three is refused as though no verdict were given.
+
 ## Refused, non-silently
 
 A refusal is never a silent drop. The author is told which item was refused

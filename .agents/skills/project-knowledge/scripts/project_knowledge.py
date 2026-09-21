@@ -205,21 +205,6 @@ _ARGV_REPOSITORY_PATH = re.compile(
 )
 
 
-def _refuse_dot_leading_component(value: str) -> None:
-    """Refuse a stored path with any `.`-leading component.
-
-    Applies to the whole stored-path set: every argv element after
-    `argv[0]` except `grep`'s pattern, plus `verification_route.path`. One
-    rule over the whole object, because a class refused on one field and
-    admitted on the other is not refused. `_expect_repo_path` has no dot
-    rule and is left unchanged for its other callers; this check runs in
-    addition to it.
-    """
-
-    if any(part.startswith(".") for part in value.split("/")):
-        raise VerificationRouteRefusal("work_item_command_path")
-
-
 def _validate_command_argv(value: Any) -> list[str]:
     """Validate a stored `verification_route.command` against the argv
     trust boundary above.
@@ -256,7 +241,6 @@ def _validate_command_argv(value: Any) -> list[str]:
             continue  # grep's pattern: the charset above is the whole rule
         if not _ARGV_REPOSITORY_PATH.match(element):
             raise VerificationRouteRefusal("work_item_command_path")
-        _refuse_dot_leading_component(element)
     return value
 
 
@@ -1113,7 +1097,7 @@ def _expect_bool(value: Any, expected: bool) -> None:
 def _validate_verification_route_v1(value: Any) -> None:
     """v1's own `verification_route` rule, retained unchanged: `command` is
     a bounded string and `path` clears only `_expect_repo_path`. v1 predates
-    the argv trust boundary and the dot-leading-component rule, both
+    the argv trust boundary and the stored-path rules, both
     v2-only, so a v1 record is never held to either -- the same record a v1
     submitter wrote and a v1 reader must still accept."""
 
@@ -1358,17 +1342,41 @@ def _validate_friction(value: Any) -> None:
     _expect_text(value["summary"], 500)
 
 
+def _confine_stored_path(value: Any) -> str:
+    """Confine `verification_route.path` -- § D6 makes it a member of the
+    stored-path set -- carrying the catalog code the fault actually belongs
+    to.
+
+    `_expect_repo_path` is shared with twenty other call sites and raises one
+    bare `ValueError` for four different faults. Mapping all of them to
+    `work_item_command_path` would tell an author their path escaped the
+    repository when it was really the wrong type, and `SAFE_DIAGNOSTIC_FIELDS`
+    is closed, so the code is the whole signal they get. The classification
+    below is done here rather than by widening that shared helper.
+    """
+
+    if not isinstance(value, str):
+        raise VerificationRouteRefusal("work_item_command_shape")
+    if not value or len(value) > 1000:
+        raise VerificationRouteRefusal("work_item_command_size")
+    try:
+        # Same normalisation `_expect_repo_path` applies before its own
+        # unicode check, so this classifies the value that helper will see.
+        _assert_safe_unicode(unicodedata.normalize("NFC", value).replace("\\", "/"))
+    except ValueError as exc:
+        raise VerificationRouteRefusal("work_item_command_charset") from exc
+    try:
+        return _expect_repo_path(value)
+    except ValueError as exc:
+        raise VerificationRouteRefusal("work_item_command_path") from exc
+
+
 def _validate_verification_route(value: Any) -> None:
     if not isinstance(value, dict):
         raise ValueError("invalid verification route")
     _expect_keys(value, {"command", "path"}, set())
     value["command"] = _validate_command_argv(value["command"])
-    value["path"] = _expect_repo_path(value["path"])
-    # The dot-component rule binds `path` too, on the value
-    # `_expect_repo_path` returns — which also catches its `"."` early
-    # return, since `_refuse_dot_leading_component` runs on the returned
-    # string regardless of which branch produced it.
-    _refuse_dot_leading_component(value["path"])
+    value["path"] = _confine_stored_path(value["path"])
 
 
 def _expect_slug(value: Any) -> str:
@@ -1610,6 +1618,7 @@ def _run_main(argv: list[str] | None = None) -> int:
     mode.add_argument("--enquire", action="store_true")
     mode.add_argument("--migrate-legacy", action="store_true")
     mode.add_argument("--activate-staged", action="store_true")
+    mode.add_argument("--reasoning-payload", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--writer-time")
     parser.add_argument("--pending", action="store_true")
@@ -1630,6 +1639,8 @@ def _run_main(argv: list[str] | None = None) -> int:
         if args.migrate_legacy
         else "activate-staged"
         if args.activate_staged
+        else "reasoning-payload"
+        if args.reasoning_payload
         else "enquire"
     )
     store = _knowledge_store()
@@ -1654,6 +1665,52 @@ def _run_main(argv: list[str] | None = None) -> int:
         raise ValueError("producer profile mode does not accept an artifact")
     elif selected not in {"capture", "distill", "enquire"}:
         raise ValueError("producer profile does not support this mode")
+    if selected == "reasoning-payload":
+        # The only way a caller obtains a correlation key. The key is a
+        # SHA-256 over the canonical payload, so a caller cannot produce one
+        # by hand and, before this mode existed, could not produce a
+        # `work-item` capture at all -- every submission refused for want of
+        # a verdict nothing could be matched to. See
+        # `notes/amendment-009.md`.
+        #
+        # Obtaining a key is not obtaining a verdict. This mode hands back
+        # the message to run the cold check on; the caller still runs it and
+        # still has to give the writer a verdict that matches. The residual
+        # `AC-0069` records is unchanged.
+        raw = _read_bounded_stdin(_BUDGETS["capture_event_bytes"])
+        # `parse_capture_request` validates, so a malformed item never
+        # reaches a rendered message. Not re-validated below: a second call
+        # would be a no-op.
+        validated = parse_capture_request(raw)
+        enforce_declined_set_cap(args.declined_ordinal + 1)
+        if validated["kind"] != "work-item":
+            raise ValueError("reasoning payload is only valid for a work-item")
+        # § D3 requires the instruction-shape refusal ahead of the dispatch,
+        # and it is: `validate_capture_request` runs
+        # `_deterministic_privacy_scan`, which applies the same
+        # `_INSTRUCTION_SHAPE` pattern to the same six fields, before this
+        # line. `refuse_instruction_shaped_work_item` is NOT called here
+        # because it would be a no-op -- measured across all three shapes and
+        # all six fields, the general scan already refuses everything the
+        # dedicated gate refuses. Adding the call would ship a control that
+        # cannot fail. See `notes/verification-ledger.md`.
+        payload = build_reasoning_dispatch_payload(
+            validated["work_item"],
+            verification_route=validated.get("verification_route"),
+            friction=validated.get("friction"),
+            declined_ordinal=args.declined_ordinal,
+        )
+        print(
+            json.dumps(
+                {
+                    "message": render_reasoning_dispatch_message(payload),
+                    "correlation_key": reasoning_dispatch_correlation_key(payload),
+                    "declined_ordinal": args.declined_ordinal,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
     if selected == "capture":
         raw = _read_bounded_stdin(_BUDGETS["capture_event_bytes"])
         if args.producer_profile is None:

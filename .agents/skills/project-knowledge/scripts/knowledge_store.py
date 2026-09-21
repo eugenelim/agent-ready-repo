@@ -768,7 +768,12 @@ def _check_pre_admission(
             reasoning_verdict=reasoning_verdict,
             declined_ordinal=declined_ordinal,
         )
-    except PK.WorkItemRefusal as exc:
+    except (PK.WorkItemRefusal, PK.VerificationRouteRefusal) as exc:
+        # Both carry a catalog reason code; surface it. Without this,
+        # VerificationRouteRefusal -- a ValueError subclass -- falls through
+        # to the generic bucket below and every command refusal reaches the
+        # author as `provenance`, telling them their provenance block is
+        # wrong when the real fault is the stored command.
         _refuse(exc.reason_code)
     except PK.PrivacyRefusal:
         _refuse("privacy")
