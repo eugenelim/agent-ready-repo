@@ -635,6 +635,53 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     );
   });
 
+  /**
+   * Astro's `compressHTML` (on by default) strips the whitespace between a text
+   * node and an element that opens on the next source line, so authored prose
+   * that reads `above.\n<a>Browse` emits `above.<a>Browse` and a reader sees
+   * "above.Browse". It is invisible in source and invisible to every source-level
+   * lint, which is why it is asserted against the emitted page.
+   *
+   * Scoped to ONE block element at a time, which is the whole difficulty. A
+   * document-wide `textContent` scan cannot express this rule: `textContent`
+   * concatenates adjacent block elements with no separator, so a paragraph
+   * ending "…engineering." followed by a heading "Via…" reads as `g.Via` and is
+   * indistinguishable from the defect. That form reported 60+ false positives
+   * across these pages on a tree where the defect was already fixed. Within a
+   * single paragraph or list item, a period welded to a capitalised word has no
+   * innocent reading.
+   *
+   * Read from rendered text rather than markup: the defect is that two words
+   * weld together for a reader, and only `textContent` sees that. A markup check
+   * would additionally have to enumerate which elements are inline.
+   *
+   * Applied to every emitted /packs/* page, not a sampled one: the source has
+   * two install branches and each pack renders only one, so a single page
+   * exercises half the template. When this was found, 7 of 22 pages carried it
+   * through one branch and the other 15 through the other.
+   */
+  it('emitted prose never welds a sentence to the link that follows it', () => {
+    const packDirs = readdirSync(join(BUILD_ROOT, 'packs'))
+      .filter((name) => statSync(join(BUILD_ROOT, 'packs', name)).isDirectory());
+    expect(packDirs.length).toBeGreaterThan(1);
+
+    const welded: string[] = [];
+    for (const name of packDirs) {
+      const page = doc(join(BUILD_ROOT, 'packs', name, 'index.html'));
+      for (const block of page.querySelectorAll('p, li, figcaption, dd, dt, blockquote')) {
+        // Nested blocks would double-count and re-weld their children; assert
+        // each innermost text container on its own.
+        if (block.querySelector('p, li, figcaption, dd, dt, blockquote')) continue;
+        const text = block.textContent ?? '';
+        for (const match of text.matchAll(/[a-z]\.[A-Z][a-z]+/g)) {
+          welded.push(`packs/${name}: ...${match[0]}...`);
+        }
+      }
+    }
+    expect(welded, `emitted prose welds a sentence to a following element:\n${welded.join('\n')}`)
+      .toEqual([]);
+  });
+
   it('shared chrome AC8: current states are route-specific and fragments stay non-current', () => {
     const readPage = (path: string) => doc(join(BUILD_ROOT, path, 'index.html'));
     const home = doc(homePage);
