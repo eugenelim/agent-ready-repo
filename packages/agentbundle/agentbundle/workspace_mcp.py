@@ -148,6 +148,19 @@ _LAYOUT_TYPE_BASES: dict[str, tuple[str, str]] = {
     "design": ("design", "docs/design"),
 }
 
+# Characters a configured `output_dir` may not carry, because a staging scope
+# built on one of them is not the directory the adopter named.
+#
+# They are reserved as one rule an adopter can hold, but they do not all reach
+# the same place. `*` reaches `git_commit`'s scope grammar, which splits a
+# pattern at the literal sequence `/*`: a base of `docs/*` moves that split
+# point into the base itself, collapsing the scope's static root to `docs/`
+# with an empty wildcard suffix, so every uncommitted file under it is staged.
+# `{` and `}` are consumed by the `{slug}` substitution that runs after the
+# base is spliced in, which relocates the staged tree or raises. `?` and `[`
+# reach neither, and a scope carrying one simply matches nothing.
+_RESERVED_BASE_CHARS: tuple[str, ...] = ("*", "?", "[", "{", "}")
+
 
 def _read_layout_bases(repo_root: Path) -> dict[str, str]:
     """Read output_dir from agentbundle-layout.toml with type-specific precedence.
@@ -1527,8 +1540,12 @@ class _GitTools:
                 )
                 spec_path = None
         # Validate dispatched: if it fails to parse into a known type, treat as absent.
+        # A configured base this session refuses is represented distinctly here:
+        # clearing `dispatched` would engage discovery mode and take `git_branch`
+        # and `git_push` down with it, when only `git_commit` has no usable scope.
+        self._refused_layout_key: str | None = None
         self._output_pattern: list[str] | None = self._resolve_output_pattern(dispatched)
-        if dispatched and self._output_pattern is None:
+        if dispatched and self._output_pattern is None and self._refused_layout_key is None:
             _log.warning(
                 "WORKSPACE_MCP_DISPATCHED_ITEM %r is malformed or uses unknown type; "
                 "treating as absent — git writes are blocked",
@@ -1732,12 +1749,36 @@ class _GitTools:
             patterns_list: list[str] = (
                 raw_patterns if isinstance(raw_patterns, list) else [raw_patterns]
             )
+            bases = _read_layout_bases(self._repo_root)
+            # Screen the configured base before it is spliced in, so a value that
+            # cannot bound a scope never reaches the pattern list. The check keys
+            # on the adopter's base and never on the substituted pattern: the
+            # manifest contributes `*` and `**` of its own, and after substitution
+            # the two are textually indistinguishable.
+            mapping = _LAYOUT_TYPE_BASES.get(item_type)
+            if mapping is not None:
+                toml_key = mapping[0]
+                configured = bases.get(toml_key)
+                if configured is not None and any(
+                    char in configured for char in _RESERVED_BASE_CHARS
+                ):
+                    self._refused_layout_key = toml_key
+                    # stdout is the MCP protocol channel, so the adopter-facing
+                    # report goes to stderr.
+                    print(
+                        f"workspace-mcp: warning: the configured [{toml_key}] "
+                        "output_dir contains one of the characters "
+                        f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
+                        f"staging scope, so git_commit is unavailable for "
+                        f"{item_type!r} items. Give it a directory name built "
+                        "without those characters.",
+                        file=sys.stderr,
+                    )
+                    return None
             # Apply agentbundle-layout.toml overrides (user-scope > repo-scope >
             # convention). Stage 1: resolve at bind-time; Stage 2 defers to the
             # first git_branch() call.
-            patterns_list = _apply_layout_overrides(
-                item_type, patterns_list, _read_layout_bases(self._repo_root)
-            )
+            patterns_list = _apply_layout_overrides(item_type, patterns_list, bases)
             return [p.format(slug=slug) for p in patterns_list]
         except Exception:
             return None
@@ -1828,6 +1869,17 @@ class _GitTools:
         if self._discovery_mode:
             return {"error": "git_commit is not available in discovery mode"}
         message = arguments.get("message", "workspace-mcp: commit artifacts")
+        if self._refused_layout_key is not None:
+            return {
+                "error": (
+                    f"git_commit unavailable: the configured "
+                    f"[{self._refused_layout_key}] output_dir in "
+                    f"agentbundle-layout.toml contains one of the characters "
+                    f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
+                    f"staging scope. Give it a directory name built without "
+                    f"those characters."
+                )
+            }
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
 

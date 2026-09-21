@@ -257,3 +257,115 @@ def test_a_reserved_character_never_widens_the_staged_set(
         f"a configured base carrying {character!r} staged a file outside the "
         f"dispatched item's own output: {staged}"
     )
+
+
+def _head(root: Path) -> str:
+    return _git(root, "rev-parse", "HEAD").stdout.strip()
+
+
+@pytest.mark.parametrize("character", sorted(_RESERVED_BASES))
+@pytest.mark.parametrize("item_type", _PATTERNED_TYPES)
+def test_a_reserved_character_is_refused_and_leaves_the_repository_alone(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    item_type: str,
+    character: str,
+) -> None:
+    """The refusal is the whole behaviour: an error the caller can act on, a
+    warning on the channel that is not the MCP protocol channel, and a
+    repository in exactly the state it was in before the call."""
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    section = _LAYOUT_TYPE_BASES[item_type][0]
+    _configure(repo, section, _RESERVED_BASES[character])
+    _write(repo / "docs" / "product" / "shaping" / _SLUG / "own.md")
+    _write(repo / _UNRELATED)
+    before = _head(repo)
+
+    _dispatch(monkeypatch, item_type)
+    result = _GitTools(repo).git_commit({"message": "scope"})
+    captured = capsys.readouterr()
+
+    assert "committed" not in result
+    assert f"[{section}]" in result["error"]
+    assert "output_dir" in result["error"]
+    assert f"[{section}]" in captured.err
+    assert captured.out == "", "a diagnostic must not reach the MCP protocol channel"
+    assert _head(repo) == before
+    assert _git(repo, "diff", "--cached", "--name-only").stdout == ""
+
+
+# The three types whose pattern's static prefix already contains `{slug}`, so
+# their wildcard component carries an empty literal suffix. That shape is
+# correct, and the refusal must not reach it.
+_SLUG_PREFIXED_TYPES = ("shape", "strategy", "design")
+
+_DEEP_FILE_TAIL: dict[str, str] = {
+    "shape": "/shaping/{slug}/one/two/three/note.md",
+    "strategy": "/shaping/{slug}/one/two/three/note.md",
+    "design": "/screens/{slug}/one/two/three/note.md",
+}
+
+
+@pytest.mark.parametrize("item_type", _SLUG_PREFIXED_TYPES)
+@pytest.mark.parametrize("raw_base", [None, "artifacts/product"])
+def test_a_deep_file_under_a_slug_bearing_prefix_is_still_staged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, raw_base: str | None
+) -> None:
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    if raw_base is None:
+        base = str(repo.resolve() / _LAYOUT_TYPE_BASES[item_type][1])
+    else:
+        _configure(repo, _LAYOUT_TYPE_BASES[item_type][0], raw_base)
+        base = _resolved_base(repo, raw_base)
+
+    deep = Path(base + _DEEP_FILE_TAIL[item_type].format(slug=_SLUG))
+    _write(deep)
+    _write(repo / _UNRELATED)
+
+    _dispatch(monkeypatch, item_type)
+    staged = _staged(_GitTools(repo).git_commit({"message": "deep"}))
+
+    assert staged == [deep.resolve().relative_to(repo.resolve()).as_posix()]
+
+
+def _sibling_results(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, raw_base: str | None
+) -> tuple[dict, dict]:
+    """`git_branch` and `git_push` results for one configuration."""
+    _seed_repo(repo)
+    origin = repo.parent / "origin.git"
+    subprocess.run(
+        ["git", "init", "--bare", "-q", str(origin)],
+        check=True, capture_output=True, text=True,
+    )
+    _git(repo, "remote", "add", "origin", str(origin))
+    if raw_base is not None:
+        _configure(repo, _LAYOUT_TYPE_BASES[item_type][0], raw_base)
+
+    _dispatch(monkeypatch, item_type)
+    tools = _GitTools(repo)
+    branch = f"{_INI}/{item_type}/{_SLUG}"
+    return tools.git_branch({"name": branch}), tools.git_push({"branch": branch})
+
+
+@pytest.mark.parametrize("character", sorted(_RESERVED_BASES))
+@pytest.mark.parametrize("item_type", _PATTERNED_TYPES)
+def test_a_refused_base_leaves_the_sibling_git_tools_working(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, character: str
+) -> None:
+    """Only `git_commit` loses its scope. Representing the refusal by clearing
+    the dispatched item would engage discovery mode and answer `git_branch` and
+    `git_push` with the generic discovery error instead."""
+    refused = _sibling_results(
+        tmp_path / "refused" / "repo", monkeypatch, item_type, _RESERVED_BASES[character]
+    )
+    unconfigured = _sibling_results(
+        tmp_path / "unconfigured" / "repo", monkeypatch, item_type, None
+    )
+
+    assert refused == unconfigured
+    assert refused[0] == {"branch": f"{_INI}/{item_type}/{_SLUG}"}
+    assert refused[1] == {"pushed": f"{_INI}/{item_type}/{_SLUG}"}
