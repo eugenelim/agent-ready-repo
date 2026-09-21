@@ -904,3 +904,36 @@ optional capability.
 4. Later specs for individual skill integrations at their semantic gates.
 5. A separate RFC for any external capture backend or
    multi-project bank.
+
+## Errata
+
+Entries are append-only; a later entry supersedes an earlier one by being
+later. Where an entry disagrees with the body above, the entry is the current
+state.
+
+1. **2026-09-20 — work-loop closeout is a capture boundary, not a blocking
+   gate.** D4 answers "when does capture run" with "at semantic completion
+   gates", and § Semantic gates lists "work-loop closeout" among them. That
+   was implemented in `work-loop` as a finish-checklist item — *"Every scratch
+   note from this session's DECIDE passes was routed to a destination"* —
+   which made an unrouted note block the declaration of done.
+
+   **Mechanism of the correction.** The finish-checklist item is removed and
+   the checklist is restated as five assertions: acceptance criteria
+   satisfied, verification passed, review passed with residuals surfaced,
+   artifacts consistent, repository state valid. `work-loop`'s `## Capture`
+   section keeps its routing rules unchanged and now runs after the loop
+   closes, at session end, an explicit handoff, or a pre-compaction boundary.
+
+   **What is unchanged.** Closeout remains a legitimate triage boundary; the
+   triage procedure, the `CapturedObservation` contract (D3), the
+   `project-knowledge` seam, and every other gate in § Semantic gates — RFC
+   completion, ADR acceptance, spec approval, plan approval, verified-slice
+   completion, and review completion — keep the obligations this RFC gave
+   them. Only work-loop closeout stops being a completion condition.
+
+   **Why.** A capture obligation enforced at the completion boundary
+   converts an optional judgment — is this lesson worth keeping? — into a
+   blocking one, and the cheapest way past a blocking judgment is a low-value
+   note. Moving it off the critical path keeps the boundary and drops the
+   coercion.

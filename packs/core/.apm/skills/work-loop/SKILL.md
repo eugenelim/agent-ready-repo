@@ -734,64 +734,75 @@ Apply the linked [stop conditions](references/delivery-contract-lifecycle.md); a
 
 ## Finish checklist
 
-Refuse to declare done until every item is true. Light mode's checklist deltas are in [`references/light-mode.md`](references/light-mode.md).
+Refuse to declare done until all five assertions hold. Each one groups the
+obligations it asserts, and nothing nested under it is optional. Light
+mode's checklist deltas are in [`references/light-mode.md`](references/light-mode.md).
+Knowledge capture is not a completion condition and is not on this list; it
+runs after the loop closes, under [Capture](#capture).
 
-- [ ] GATES were clean (lint, typecheck, tests).
-- [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
-- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) has no unresolved Blocker or Concern or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
-- [ ] **Light mode:** the reviewer obligations in [`references/light-mode.md`](references/light-mode.md) are satisfied.
-- [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only, and only when the spec's whole change surface is high-risk): same select-or-note rule.
-- [ ] The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation.
-- [ ] One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
-- [ ] **Implementation completion only (code mode and direct-light):** the
-  completion evidence handoff exists, including durable-output status
-  and stable evidence references; tests and implementation evidence are
-  capability proof, not product intent, rationale, ownership, or authority, and
-  close-work remains separate.
-- [ ] **Direct-light only:** the session handoff states the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any discovered reason future work should use a durable spec.
-- [ ] The original accepted intent is complete, or its owner explicitly narrowed
+- [ ] **Acceptance criteria satisfied.** The original accepted intent is complete, or its owner explicitly narrowed
   or waived the remaining required work. A merged PR, retry cap, or review
   stasis alone is not completion; work the intent did not require needs no
   backlog entry unless the owner explicitly requested capture through
   `work-intake`.
-- [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
-- [ ] **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — in `spec.md` use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` there is invalid and will fail `lint-spec-status.py`); every final accepted AC is `[x]`; any separable follow-on is outside the AC list with its own owner/artifact reference; historical `(deferred: <slug>)` anchors still resolve in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. Per-spec invariants cover the specs changed against the base ref; the dangling-reference and deferral-anchor invariants always cover every spec. Add `--all` for the exhaustive per-spec sweep — use it when a base ref will not resolve, or in a gate. Add `--verbose` to list the warn-only findings the clean summary only counts. When no spec exists, do not run the spec-status lint.
-- [ ] **A shipped feature's user-facing documentation is updated.** A spec is the
-  team's permanent record of the contract; its user-facing description belongs in
-  the guides — reference for authoritative description, how-to if users need a
-  recipe, explanation if it introduces a concept. The spec workflow is not done
-  until those are updated.
-- [ ] Conventional commit format used; no force-push to shared branches.
-- [ ] Every scratch note from this session's DECIDE passes was routed to a destination per [Capture](#capture).
-- [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,
-  and reviewable behavior and test lines for each intended PR or stack layer.
-  Above 2,000 reviewable behavior and test lines, record review shape. WIDE
-  work links its source artifact, transformation invariant, command, zero-diff
-  re-run, tests, sampled review, and rollback; MIXED and DEEP work links its
-  dependency-ordered boundaries.
-- [ ] **Pull request opened, or the offer withheld.** Decide capability from
-  exit status and the `viewerPermission` enum. The delimited table below is the
-  whole decision; nothing outside it is an input.
 
-  <!-- pr-capability-decision:start -->
-  - when: `gh api user` exits non-zero | offer: no | message: none | record: `probe-unavailable`
-  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is unreadable | offer: no | message: none | record: `permission-unavailable`
-  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is outside `WRITE` `MAINTAIN` `ADMIN` | offer: no | message: none | record: `permission-insufficient`
-  - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is one of `WRITE` `MAINTAIN` `ADMIN` | offer: yes | message: none | record: `pull-request-opened` or `offer-declined`
-  <!-- pr-capability-decision:end -->
+- [ ] **Verification passed.**
+  - GATES were clean (lint, typecheck, tests).
+  - **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
 
-  Fill this repository's own pull-request template when it has one — the
-  installer preserves an existing convention precisely so it stays
-  authoritative, and overriding it here would hand reviewers a body in a shape
-  their repository does not use. Fall back to the template in this skill's
-  `assets` folder only when the repository has none. Either way, write the body
-  by [`references/pr-authoring.md`](references/pr-authoring.md). Record the outcome
-  name in the completion evidence: silence is owed to the reader, not to the
-  record, and without it a run that never probed is indistinguishable from one
-  that probed and refused. The reason the table reads an exit status rather than
-  a message is that a blocked credential store makes `gh auth status` report an
-  invalid token and `gh repo view` report a connection failure, so neither
-  message states the cause; an exit status carries no such claim.
+- [ ] **Review passed, residuals surfaced.**
+  - **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) has no unresolved Blocker or Concern or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
+  - **Light mode:** the reviewer obligations in [`references/light-mode.md`](references/light-mode.md) are satisfied.
+  - Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only, and only when the spec's whole change surface is high-risk): same select-or-note rule.
+  - The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation.
+  - One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
+  - **Tail-triage check completed.** Inspect raw diff lines, material volume,
+    and reviewable behavior and test lines for each intended PR or stack layer.
+    Above 2,000 reviewable behavior and test lines, record review shape. WIDE
+    work links its source artifact, transformation invariant, command, zero-diff
+    re-run, tests, sampled review, and rollback; MIXED and DEEP work links its
+    dependency-ordered boundaries.
+
+- [ ] **Artifacts consistent.**
+  - **Implementation completion only (code mode and direct-light):** the
+    completion evidence handoff exists, including durable-output status
+    and stable evidence references; tests and implementation evidence are
+    capability proof, not product intent, rationale, ownership, or authority, and
+    close-work remains separate.
+  - **Direct-light only:** the session handoff states the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any discovered reason future work should use a durable spec.
+  - **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — in `spec.md` use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` there is invalid and will fail `lint-spec-status.py`); every final accepted AC is `[x]`; any separable follow-on is outside the AC list with its own owner/artifact reference; historical `(deferred: <slug>)` anchors still resolve in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. Per-spec invariants cover the specs changed against the base ref; the dangling-reference and deferral-anchor invariants always cover every spec. Add `--all` for the exhaustive per-spec sweep — use it when a base ref will not resolve, or in a gate. Add `--verbose` to list the warn-only findings the clean summary only counts. When no spec exists, do not run the spec-status lint.
+  - **A shipped feature's user-facing documentation is updated.** A spec is the
+    team's permanent record of the contract; its user-facing description belongs in
+    the guides — reference for authoritative description, how-to if users need a
+    recipe, explanation if it introduces a concept. The spec workflow is not done
+    until those are updated.
+
+- [ ] **Repository state valid.**
+  - `git status` shows no uncommitted or untracked files (except gitignored scratch).
+  - Conventional commit format used; no force-push to shared branches.
+  - [ ] **Pull request opened, or the offer withheld.** Decide capability from
+    exit status and the `viewerPermission` enum. The delimited table below is the
+    whole decision; nothing outside it is an input.
+
+    <!-- pr-capability-decision:start -->
+    - when: `gh api user` exits non-zero | offer: no | message: none | record: `probe-unavailable`
+    - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is unreadable | offer: no | message: none | record: `permission-unavailable`
+    - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is outside `WRITE` `MAINTAIN` `ADMIN` | offer: no | message: none | record: `permission-insufficient`
+    - when: `gh api user` exits zero and `gh repo view --json viewerPermission --jq .viewerPermission` is one of `WRITE` `MAINTAIN` `ADMIN` | offer: yes | message: none | record: `pull-request-opened` or `offer-declined`
+    <!-- pr-capability-decision:end -->
+
+    Fill this repository's own pull-request template when it has one — the
+    installer preserves an existing convention precisely so it stays
+    authoritative, and overriding it here would hand reviewers a body in a shape
+    their repository does not use. Fall back to the template in this skill's
+    `assets` folder only when the repository has none. Either way, write the body
+    by [`references/pr-authoring.md`](references/pr-authoring.md). Record the outcome
+    name in the completion evidence: silence is owed to the reader, not to the
+    record, and without it a run that never probed is indistinguishable from one
+    that probed and refused. The reason the table reads an exit status rather than
+    a message is that a blocked credential store makes `gh auth status` report an
+    invalid token and `gh repo view` report a connection failure, so neither
+    message states the cause; an exit status carries no such claim.
 
 ## FIX
 
@@ -802,6 +813,17 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
 5. **Light mode:** return to GATES, then re-review under the rounds rule in [`references/light-mode.md`](references/light-mode.md).
 
 ## Capture
+
+Capture is not a completion condition. The finish checklist does not ask
+about it, and a loop that ends with notes still unrouted is finished, not
+incomplete. Run it once the five assertions hold, at an explicit handoff,
+or before compaction — whichever comes first — and skip it when the session
+produced nothing worth keeping.
+
+Run it before the session ends, though, not merely after the loop: two of
+the first bullet's defect destinations — a ride-along dispatched now, and
+the next independently reviewed unit in this session — exist only while the
+session is open, so a capture deferred past it silently loses them.
 
 What a kept note should say, and how to write it, is in [`references/capture.md`](references/capture.md).
 
@@ -861,7 +883,6 @@ For unattended execution, load [Unattended-loop eligibility](references/unattend
 - **Declaring victory because gates pass.** Gates are necessary, not sufficient; review catches what gates can't.
 - **Declaring spec-complete from per-task gates.** Where the spec's whole change surface is high-risk, run `quality-engineer` against it before the final loop's DECIDE — per-task gates verify N contracts; this is the pass that verifies the integrated journey.
 - **Running an unattended loop on a fresh task.** Do at least one in-session pass first to validate the approach.
-- **Looping without capturing learnings.** Every loop that ends without updating some doc, skill, or note loses its lessons.
 - **Grepping top-level keys in structured config.** `grep '^key' file.toml` matches `key` under every section, not just the top level — the same trap applies to YAML and JSON. Parse structured config with its native library rather than using line-pattern greps.
 - **Judging a gate through `tail` or `grep`.** `<gate> | tail -2` reports the *filter's* exit code, not the gate's, and truncates away the per-item errors. Run every gate unfiltered and read its exit code.
 
