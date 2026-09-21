@@ -116,7 +116,7 @@ ordinal out of circulation for as long as its tombstone stands.
   covers AC-0001's full scope. The `workspace.toml` reconciliation below
   reports `missing_artifact` and sees no stale Markdown target, so neither
   check substitutes for the other.
-- **Transactionality (AC-0003): TDD.** A failure injected at each write point leaves the
+- **Transactionality (AC-0003, AC-0026): TDD.** A failure injected at each write point leaves the
   tree and index as they were, or the rename applies in full — a property a
   test asserts and a reviewer cannot. Which failure classes recover
   automatically is `plan.md`'s to design and its tests to drive.
@@ -160,7 +160,7 @@ ordinal out of circulation for as long as its tombstone stands.
   of the workspace reconciliation over the real `workspace.toml` reports no
   `missing_artifact`, which is the existing fail-closed control at
   `tests/roster/test_workspace_status_projection.py:948`.
-- **Tombstone target validity and resolution (AC-0007, AC-0008, AC-0009, AC-0010): TDD.** An absent target, a target that is itself a
+- **Tombstone target validity and resolution (AC-0007, AC-0008, AC-0009): TDD.** An absent target, a target that is itself a
   tombstone, a pointer resolving onto a tombstone, and a corpus whose
   tombstones already point at the source.
 - **The operator how-to: manual QA.** A person follows the page through one
@@ -181,9 +181,12 @@ ordinal out of circulation for as long as its tombstone stands.
       unaffected intent keeps its prior `Slug:` bytes. The corpus gains an
       occurrence of that value rather than preserving a collection, so the
       mapping is stated directly.
-- [ ] **AC-0003.** A rename either applies every change it makes or leaves the
-      working tree and the index as they were before it ran. Which failures it
-      recovers from automatically, and how, is design.
+- [ ] **AC-0003.** A failure before the rename begins applying leaves the
+      working tree and the index as they were before it ran.
+- [ ] **AC-0026.** An interruption while the rename is applying leaves the
+      repository in one of two observable states — every change applied, or a
+      recoverable partial state naming every path the rename intended to
+      write. Which failures recover automatically, and how, is design.
 - [ ] **AC-0004.** For every token the allocator recognizes — its
       `NAMESPACE_TOKENS`, derived from the closed level-to-token table the
       parent intent owns — its next ordinal exceeds every ordinal that token
@@ -197,20 +200,19 @@ ordinal out of circulation for as long as its tombstone stands.
       that every file in the directory is routed by it and validated against one
       of the two contracts is `intent-metadata-shape-contract`'s corpus-lint routing criterion, whose
       gate owns the check.
-- [ ] **AC-0007.** A `Reissued as:` value naming a path that does not exist fails and names
-      both the tombstone and the missing path.
-- [ ] **AC-0008.** A `Reissued as:` value naming a file that itself carries `Tombstone:`
-      fails and names both paths.
+- [ ] **AC-0007.** Resolving a tombstone whose `Reissued as:` names a path
+      that does not exist yields a diagnostic naming the tombstone and the
+      missing path, on the same surface AC-0009 names.
+- [ ] **AC-0008.** Resolving a tombstone whose `Reissued as:` names a file that
+      itself carries `Tombstone:` yields a diagnostic naming both paths, on
+      that same surface.
 - [ ] **AC-0009.** Resolving a path that lands on a tombstone yields a
       diagnostic naming the tombstone and its `Reissued as:` target, and never
       the successor's content. Resolution stops at the tombstone rather than
       following it.
-- [ ] **AC-0010.** A rename re-points every tombstone whose `Reissued as:` named the moved
-      artifact, inside the same transaction.
 - [ ] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
-      for the target token, measured once against the corpus as it stands
-      before the operation's first write, and never the vacated ordinal reused
-      under a different token.
+      for the target token over the corpus as it stood before the rename, and
+      never the vacated ordinal reused under a different token.
 - [ ] **AC-0025.** A rename completes through the surface an installed
       `packs/core` exposes to an operator, exercised as an operator invokes it
       rather than through an internal entry point.
@@ -225,10 +227,13 @@ ordinal out of circulation for as long as its tombstone stands.
       either cause, leaving a tombstone at the vacated path whose
       `Reissued as:` value is the new live artifact's repository-relative path.
       AC-0020 is the exclusion for a dirty path; an unregistered source is
-      refused because the Outcome requires the registry to move in lockstep.
-- [ ] **AC-0015.** `Tombstone:` carries an ISO 8601 date, sampled once in UTC
-      at the moment the operation opens its transaction, so an operation
-      spanning midnight writes one date rather than two.
+      refused because the Outcome requires the registry to move in lockstep;
+      and a corpus the allocator cannot answer for, or a target filename
+      already occupied, are each excluded and refused rather than forced to
+      succeed.
+- [ ] **AC-0015.** `Tombstone:` carries one ISO 8601 date: the UTC calendar
+      date at the rename's start. An operation spanning midnight therefore
+      writes that date and not the one it finished on.
 - [ ] **AC-0016.** `Reissued as:` carries a repository-relative path under
       `docs/product/intents/`; an absolute path, or one resolving outside that
       directory, is refused.
@@ -239,8 +244,10 @@ ordinal out of circulation for as long as its tombstone stands.
       outside this criterion, because it becomes a tombstone; AC-0024 governs
       it.
 - [ ] **AC-0024.** The successor's bytes equal the retired source's bytes
-      except where another criterion requires a change. The operation carries
-      the intent across rather than authoring a new one.
+      after substituting the new path for the vacated one, and differ nowhere
+      else. A source that cites its own path is the case that distinguishes
+      this from plain equality: the substitution is what lets AC-0001 and this
+      criterion both hold.
 - [ ] **AC-0020.** The operation refuses before its first write when any path
       it would touch carries an uncommitted change, so the `git restore`
       recovery AC-0003 relies on cannot discard unrelated work.
@@ -251,6 +258,11 @@ ordinal out of circulation for as long as its tombstone stands.
   - first-time allocation for an intent authored through a
   non-allocating route. A separate outcome, releasable and verifiable on its
   own, recorded under `## Follow-ons` with its owner.
+- `AC-0010`
+  - re-pointing an inbound tombstone. An inbound tombstone is a file citing the
+    vacated path, so `AC-0018` already requires it to cite the new path with
+    nothing else changed, and `AC-0003` already places that change in the
+    rename. The criterion added no state that could fail on its own.
 - `AC-0023`
   - the mid-write journal and its exact recovery set. Unsatisfiable
   as a criterion, because recording a path before or after mutating it leaves a
@@ -307,6 +319,15 @@ ordinal out of circulation for as long as its tombstone stands.
 
 ## Assumptions
 
+- Process: applying ADR-0108 D3's non-reuse rule to intent filenames, with one
+  tombstone file per retired name standing in for that ADR's per-directory
+  retired list, is an extension of a decision scoped to loop-contract items. No
+  accepted record authorises it yet. The ADR that would is `plan.md`'s T7, and
+  T8 — the task that ships the operator surface — depends on it, so the
+  convention is ratified before anything reaches an adopter. What is open is
+  whether the ADR ratifies `AC-0005` and `AC-0006` as written; if it does not,
+  both need amendment and the sibling lint that reads them needs telling
+  (settled by: eugenelim, when the ADR is drafted)
 - Technical: a tombstone deleted by hand frees its ordinal, and no criterion
   here can see that. AC-0004 holds over the directory as it stands, and the
   tombstone file is the whole reservation record — deliberately, because

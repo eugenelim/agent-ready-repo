@@ -45,6 +45,9 @@ sessions working in this worktree.
   (`validate_confined_directory`, `list_confined_regular_files`,
   `read_confined_regular_file`), already vendored into this skill's `scripts/`.
   It exposes no move or rename, which is why T4 builds one.
+- T7's ADR must be `Accepted` before T8 ships: it authorises applying
+  ADR-0108 D3's non-reuse rule to intent filenames, which extends a decision
+  scoped to loop-contract items. The `Depends on:` edge carries it.
 - `work-intake` declares `Read Write Edit Bash`. No tool surface widens.
 
 ## Construction tests
@@ -158,7 +161,7 @@ written outside the working tree and index, which is what makes `git restore`
 sufficient.
 
 Edge cases: the source cites its own path (it becomes the tombstone, so it is
-excluded from the citing set); a tombstone already points at the source (AC-0010
+excluded from the citing set); a tombstone already points at the source (AC-0018
 re-points it in the same transaction); the allocator refuses (`allocator-refused`
 — the operation does not guess an ordinal, matching `intent_ordinal.py`'s own
 refuse-rather-than-answer rule).
@@ -223,13 +226,15 @@ AC-0015, AC-0016, AC-0017, and AC-0006's biconditional on both arms.
 
 ### T4 — A rename applies in full or leaves the tree and index unchanged
 
-**Tests:** A failure injected at each write point in Stage and at each in
-Commit. Stage failures leave the tree and index byte-identical. Commit failures
-leave either the full rename or the pre-run state, and the staging directory
-names every intended path. A successful rename is compared byte for byte: the
-successor equals the source, each citing file differs only at the path, no other
-file differs, and every intent the rename did not touch keeps its prior `Slug:`
-bytes. Covers AC-0003, AC-0013, AC-0018, AC-0024, and AC-0002's successor and
+**Tests:** A failure injected at each write point in Stage, and at each in
+Commit. A Stage failure leaves the tree and index byte-identical. A Commit
+interruption leaves either the full rename or a recoverable partial state whose
+staging directory names every intended path, and nothing else. A successful
+rename is compared byte for byte: the successor equals the source with the
+vacated path substituted and differs nowhere else, which is the self-citing
+source case; each citing file differs only at the path; no other file differs;
+every intent the rename did not touch keeps its prior `Slug:` bytes. Covers
+AC-0003, AC-0026, AC-0013, AC-0018, AC-0024, and AC-0002's successor and
 unaffected-intent arms.
 
 **Approach:** Stage-then-`os.replace` with directory descriptors, as
@@ -257,7 +262,7 @@ tombstone and its `Reissued as:` target, and never the successor's content. A
 corpus where two tombstones already point at the source: after the rename both
 name the final target, inside the same transaction. A `Reissued as:` naming an
 absent path, and one naming a file that itself carries `Tombstone:`, each fail
-naming both paths. Covers AC-0007, AC-0008, AC-0009, AC-0010.
+naming both paths. Covers AC-0007, AC-0008, AC-0009.
 
 **Depends on:** T3, T4
 
