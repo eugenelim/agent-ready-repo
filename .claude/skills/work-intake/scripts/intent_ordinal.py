@@ -294,10 +294,14 @@ def git_config_values(
 def _is_promisor(config: dict[str, str]) -> bool:
     """Whether any of git's promisor designations is present.
 
-    Two keys designate one, either sufficient on its own: a modern clone
-    records only the per-remote key while the repository-level key alone is
-    equally effective. A ``false`` value means that remote is not designated,
-    never that transport is suppressed.
+    Three keys designate one, any sufficient on its own, all verified against
+    git 2.50.1 by pointing a ``--filter=tree:0`` clone at an unreachable
+    remote: a clone records ``remote.<name>.promisor``; repository-level
+    ``extensions.partialClone`` works alone; and ``remote.<name>.partialclonefilter``
+    alone also attempts the transport, because git builds a promisor remote
+    from the filter by itself. A ``false`` promisor value means that remote is
+    not designated, never that transport is suppressed — and a filter spec has
+    no false form at all, so its presence is the designation.
     """
     # Case-insensitively: git's own `config --list` lowercases a key, while the
     # documented spelling is `extensions.partialClone`, and a caller may hand
@@ -305,11 +309,20 @@ def _is_promisor(config: dict[str, str]) -> bool:
     folded = {key.lower(): value for key, value in config.items()}
     if folded.get("extensions.partialclone"):
         return True
-    return any(
-        key.startswith("remote.") and key.endswith(".promisor")
-        and value.strip().lower() not in _GIT_FALSE_VALUES
-        for key, value in folded.items()
-    )
+    for key, value in folded.items():
+        if not key.startswith("remote."):
+            continue
+        # Three designations, and any one of them is enough. Verified on git
+        # 2.50.1: a clone records `promisor`, the repository-level key works
+        # alone, and `partialclonefilter` alone also attempts the transport —
+        # git builds a promisor remote from the filter by itself.
+        if key.endswith(".promisor"):
+            if value.strip().lower() not in _GIT_FALSE_VALUES:
+                return True
+        elif key.endswith(".partialclonefilter") and value.strip():
+            # A filter spec has no false form; its presence is the designation.
+            return True
+    return False
 
 
 def _repository_root(directory: Path, deadline: float) -> tuple[str | None, str]:
