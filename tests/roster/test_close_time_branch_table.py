@@ -8,7 +8,7 @@ restatement to the contract so the two cannot silently diverge.
 
 The one permitted difference is citation-shaped: `packs/AGENTS.md` § Shipped
 pack content carries no internal-governance citations forbids `SKILL.md`
-from citing an internal decision label such as "D4", so the fourth row's
+from citing an internal decision label such as "D4", so the fifth row's
 trailing ", per D4" is stripped from the spec side before comparing. Every
 other character must match.
 """
@@ -60,8 +60,8 @@ def test_skill_branch_table_matches_spec_d9_table() -> None:
     skill_rows = _branch_table_rows(SKILL.read_text(encoding="utf-8"))
     spec_rows = _branch_table_rows(SPEC.read_text(encoding="utf-8"))
 
-    assert len(spec_rows) == 4, (
-        f"expected § D9's table to carry exactly four rows, found "
+    assert len(spec_rows) == 5, (
+        f"expected § D9's table to carry exactly five rows, found "
         f"{len(spec_rows)}: {spec_rows}"
     )
     normalized_spec_rows = [
@@ -87,7 +87,7 @@ def test_skill_branch_table_names_generalisable_practice_unchanged_route() -> No
 
 def test_skill_branch_table_omits_no_row_and_adds_none() -> None:
     """`AC-0001` membership: the branch gains a row for declined work and
-    never widens row one. The declined set is rows two to four; generalisable
+    never widens row one. The declined set is rows two to five; generalisable
     practice is not a member and keeps its existing route. This is the
     membership assertion, distinct from the outcome vocabulary `AC-0002`
     pins."""
@@ -96,6 +96,7 @@ def test_skill_branch_table_omits_no_row_and_adds_none() -> None:
     assert whats == [
         "Generalisable practice",
         "Specific, real, blocked",
-        "Specific, real, ready now",
+        "Specific, real, ready now, ride-along eligible",
+        "Specific, real, ready now, not ride-along eligible",
         "Specific, failing the razor",
     ]

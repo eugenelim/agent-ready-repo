@@ -136,39 +136,49 @@ is additive and stated first, because a note can be both a lesson to keep and
 a defect to dispose of, and a seam stated as a ranked alternative would be
 unreachable for every note an earlier alternative already matched. The
 sequence then disposes of the defect, first match winning, which is what
-keeps a decision-blocked item out of the same-session route it would
-otherwise also match. The sequence is gated on the note naming a defect, so a
-lesson-only note leaves at the seam rather than falling into discard, and the
-closing sentence routes a note that is neither defect nor lesson. Every note
-therefore reaches a destination and no note reaches two, except by the seam's
-additive rule.
+keeps a decision-blocked item out of a route it would otherwise also match,
+and why the blocked clause leads. The table separates the two ready-now
+destinations into their own rows, so no row names more than one place a note
+can go, and the sequence states each route in full. Neither the table nor the
+sequence names the pass that settles the route: `SKILL.md` § Step 5. DECIDE
+owns that, and stating it here too would be the same rule in two places. The
+sequence is gated on the note naming a
+defect, so a lesson-only note leaves at the seam rather than falling into
+discard, and the closing sentence routes a note that is neither defect nor
+lesson. Every note therefore reaches a destination and no note reaches two,
+except by the seam's additive rule.
 
-> - **Review scratch notes** from this session's DECIDE passes. Anything
->   generalisable that would have changed the approach goes to the
->   `project-knowledge` public seam, and the examples below are instances of
->   that; the seam is additive. A note that names a defect routes by what it
->   is: | What the note is | Where it goes | | --- | --- | | Generalisable
->   practice | The existing `project-knowledge` route, unchanged | |
->   Specific, real, blocked | Captured as a `work-item` | | Specific, real,
->   ready now | Dispatched in-session, not captured | | Specific, failing
->   the razor | Refused, non-silently | Take the first row that applies and
->   stop: a ride-along-eligible defect is dispatched now, grouped with
->   related fixes sharing a file or a seam, over the human gate's
->   `blocker-applied` return edge, ahead of this table; a defect blocked on
->   a decision, an instrument, elapsed time, or a dependency is captured as
->   a `work-item`; a ready-now defect that is not ride-along eligible
->   becomes the next independently reviewed unit in this session, over that
->   same edge, where ready-now means it can be finished this session
->   without a decision nobody present will make; and a defect the razor
->   refuses — one an existing artifact already covers, or one no capture
->   criterion admits — is refused, non-silently, rather than discarded.
->   What a `work-item` capture must carry, what the razor checks, and what
->   a refusal tells the author are in [Close-time work-item branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).
+> - **Review scratch notes** from this session's DECIDE passes.
+>   Anything generalisable that would have changed the approach goes to
+>   the `project-knowledge` public seam, and the examples below are
+>   instances of that; the seam is additive. A note that names a defect
+>   routes by what it is: | What the note is | Where it goes | | --- |
+>   --- | | Generalisable practice | The existing `project-knowledge`
+>   route, unchanged | | Specific, real, blocked | Captured as a
+>   `work-item` | | Specific, real, ready now, ride-along eligible |
+>   Dispatched in-session, not captured | | Specific, real, ready now,
+>   not ride-along eligible | The session's next independently reviewed
+>   unit | | Specific, failing the razor | Refused, non-silently | Take
+>   the first row that applies and stop: a defect blocked on a decision,
+>   an instrument, elapsed time, or a dependency is captured as a
+>   `work-item`; a ride-along-eligible defect is dispatched now, grouped
+>   with related fixes sharing a file or a seam, over the human gate's
+>   `blocker-applied` return edge; a ready-now defect that is not
+>   ride-along eligible becomes the next independently reviewed unit in
+>   this session, over that same edge, where ready-now means it can be
+>   finished this session without a decision nobody present will make;
+>   and a defect the razor refuses — one an existing artifact already
+>   covers, or one no capture criterion admits — is refused,
+>   non-silently, rather than discarded. What a `work-item` capture must
+>   carry, what the razor checks, and what a refusal tells the author are
+>   in [Close-time work-item
+>   branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).
 >   Before any `work-item` is written, one cold reasoning check runs per
 >   declined item, over at most twelve per close; an unavailable,
 >   timed-out, or unrecognized check refuses rather than admits — see
->   [The reasoning check](references/work-item-capture.md#the-reasoning-check).
->   A note that names no defect is done once the seam has taken it, and
+>   [The reasoning
+>   check](references/work-item-capture.md#the-reasoning-check). A note
+>   that names no defect is done once the seam has taken it, and
 >   discarded if it had nothing for the seam either.
 
 **C5 — the capture obligation and its economics.** Carried in `SKILL.md`

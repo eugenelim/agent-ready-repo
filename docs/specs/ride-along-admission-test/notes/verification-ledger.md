@@ -850,6 +850,12 @@ re-authored.)
 **`## Capture` walk — five notes, each reaching its named destination and no
 other, read against the shipped bullet:**
 
+> **Superseded 2026-09-21.** This walk reasons through prose the C4
+> capture-row split replaced. The current walk is under
+> § AC17 re-walk — the five notes against the tree as shipped, at the end of
+> this file. Destinations are unchanged; the pass that routes notes one and
+> two moved from Capture to DECIDE.
+
 1. *Ready-now, non-generalisable, stated arbiter, fires a risk trigger.* Not
    generalisable → the seam does not take it. Fires a trigger → fails
    carve-out clause (i) → not ride-along eligible. Not blocked on a decision
@@ -1548,3 +1554,317 @@ and `test_capture_section_routing_bullet` passes again against the shipped
 working material's copy of another artifact's content (§ The shipped
 clauses is not itself listed as one of this document's contract-tier
 sections), and the correction traces to `work-item-capture/notes/amendment-006.md`.
+
+## 2026-09-21 — C4's ready-now row splits, and the session-bound dispatch moves to DECIDE
+
+Registered as a `kind = "defect"` entry in `workspace.toml` `[backlog].open`
+against this spec's path, dispatchable once
+`docs/specs/work-item-capture/spec.md` shipped in core 2.26.26.
+
+**Two defects, one change.** C4's routing table sent two destinations to one
+row: the routing sentence below it distinguished a ride-along-eligible defect
+dispatched now from a ready-now defect that is not ride-along eligible and
+becomes the session's next reviewed unit, but the table gave them a single
+`Specific, real, ready now` row. Separately, `## Capture`'s intro carried
+"Run it before the session ends, though, not merely after the loop" — a bound
+naming no point in the loop an agent reaches, written by the session that
+shipped it (PR #1387) and flagged there as its own open question.
+
+**What changed.** This paragraph is written against the tree as shipped, and
+was rewritten in round 3 after two review rounds changed what shipped.
+
+The table is five rows: the ready-now row splits into `ride-along eligible`
+and `not ride-along eligible`, each naming one destination and nothing else.
+§ Step 5. DECIDE gains **Route a ready-now defect in this pass, not at
+Capture**, which is the actionable bound: it names the pass where the route
+is settled, and it states no destination, no return edge and no claim about
+when Capture runs, because that section already owns all three and a second
+statement of any of them is a drift surface. The unactionable intro
+paragraph was deleted only after that bound existed.
+
+C4's routing sentence keeps every normative clause it carried on
+`origin/main`, verbatim, including the grouping rule "grouped with related
+fixes sharing a file or a seam". Its clauses are reordered to the table's
+order, and its one deletion is "ahead of this table", which the split makes
+false because the ride-along case now has a row. A word-level comparison of
+the whole clause against `origin/main` shows that phrase as the only
+normative removal.
+
+**A fourth pin the dispatch brief did not list.**
+`tests/roster/test_close_time_branch_table.py` pins `SKILL.md`'s table to
+`docs/specs/work-item-capture/spec.md` § D9's table, asserting exact row
+equality, `len(spec_rows) == 4`, and the exact four-item `whats` list. § D9 is
+contract in that spec (its `Contract tier` block names D9), the spec is
+`Status: Shipped`, and `docs/README.md:52` says a shipped spec is corrected by
+superseding it rather than by editing the body. Two further contract
+statements dereference the row numbering: § D4's declined set
+("rows two, three and four of § D9's table", and "row four's outcome"), and
+ticked `AC-0001` ("membership is rows two, three and four of § D9's table").
+So the fifth row could not be added without either reddening the roster suite
+or falsifying a ticked criterion in a frozen document.
+
+**Owner ruling, 2026-09-21, eugenelim.** Surfaced with three options —
+edit in place under an owner ruling, supersede § D9 with a new governance
+record, or keep four rows and disambiguate in prose only. The owner chose
+**edit in place**: the § D9 table, § D4's two ordinal sentences, and
+`AC-0001`'s ordinal are corrected as an in-place correction, and the roster
+test's three assertions move with them. This record is the authority, held
+outside the frozen document per the rule that licenses the exception.
+
+**Verification.**
+
+- `python3 -m pytest packs/core/tests/pack/ -q` — 250 passed, 17.61s. This is
+  the suite pinning C1–C7 and the `## Capture` section.
+- `python3 -m pytest tests/roster/test_capture_rename_guide.py::test_pinned_clauses_match_the_spec tests/roster/test_close_time_branch_table.py -q`
+  — 4 passed, 0.22s. AC3 still holds: C4's spec blockquote and the pack
+  constant were regenerated from the edited `SKILL.md` by one script rather
+  than transcribed, so neither could drift from the shipped bytes.
+- Release surface: `packs/core` 2.26.26 → 2.26.27 in `pack.toml` and
+  `.claude-plugin/plugin.json`, with its own free-standing changelog entry
+  directly above `[core][2.26.26]`.
+- Eval harness: one case added,
+  `ready-now-defect-dispatches-at-decide-not-at-capture`, grading that a
+  ready-now defect failing carve-out clause (i) becomes the next reviewed unit
+  at DECIDE and is neither captured nor left for `## Capture`.
+
+**Pre-existing and out of frontier.** This spec's ticked `AC9` pins the DECIDE
+routing row's first cell as `Does not match`; `SKILL.md` reads `Not required`
+there, having been reworded by later work. No control enforces AC9, so the
+drift is invisible and predates this change. Recorded, not repaired.
+
+### Review round 1 — nine findings, seven applied
+
+`adversarial-reviewer`, read-only, against `origin/main...HEAD`. Every premise
+was re-checked against the live file before the finding was adopted.
+
+**Blocker 1 — the relocated rule contradicted § Step 5. DECIDE.** The first
+draft of the DECIDE paragraph said a ready-now defect failing the carve-out
+"becomes the session's next independently reviewed unit". `SKILL.md:710` says
+"Work that is not required does not open a next unit", and `:584` says a
+change failing any carve-out clause needs the owner's scope change. The old
+C4 wording said the same thing but sat in `## Capture`, eighteen lines away
+from the rule it denies; moving it made one section contradict itself.
+Applied `narrow-the-claim`: the DECIDE paragraph now states only the timing
+bound — this pass is where a ready-now defect is routed — and defers the
+destination to the intent-fit table and the carve-out, which this section
+already owns. It adds no rule. The underlying tension between C4's row four
+and the frontier rule predates this change and is recorded below, not
+resolved here.
+
+**Concern 3 — a false claim and a past-tense assertion.** "Capture runs after
+the loop" contradicts `SKILL.md:831-833`, which fires Capture at an explicit
+handoff or before compaction too. And "was dispatched at DECIDE" is a claim
+about the past that an agent arriving with an undispatched note can observe
+to be false. Both now read normatively: Capture "owns only the destinations
+that outlive the loop", and a ready-now defect "is routed at DECIDE".
+
+**Concern 4 — the `blocker-applied` edge stated twice, with drift.** The draft
+ended "back through GATES and REVIEW" where `:617-618` ends "GATES, REVIEW,
+and the human gate again". Applied `drop-the-claim`: the DECIDE paragraph no
+longer restates the edge, so `:617-618` is its single home.
+
+**Blocker 2, Concerns 6 and 7, Nits 8 and 9 — applied.** The adopter guide's
+Capture step now names DECIDE as the owner of the two same-session routes;
+§ D4 states that rows three and four both carry `dispatched-in-session`, so
+every declined row resolves to one of `AC-0002`'s three values; the
+`[backlog].open` defect entry this branch completed is retired, which also
+disposes of Nit 8's "§ D3" mislabel; and the first Highlights bullet leads
+with the outcome rather than with where the rule moved.
+
+### AC17 re-walk — the five notes against the tree as shipped
+
+Concern 5 was sustained: the walk recorded on 2026-09-20 reasons through
+prose this change replaced. Re-walked against the shipped `## Capture` bullet.
+Each note reaches the named destination and no other.
+
+| Note | First matching clause | Destination |
+| --- | --- | --- |
+| Ready-now non-generalisable defect, stated arbiter, fires a risk trigger | carve-out clause (i) fails → not ride-along eligible; not blocked | Table row four — the session's next independently reviewed unit, routed at DECIDE |
+| The same defect with unstateable verification | carve-out clause (iii) fails; not blocked | Table row four — same |
+| A ride-along whose only bar is an unresolved design call, no citation and no answer | blocked on a decision, which precedes the ready-now clause | Table row two — captured as a `work-item`, `blocked_on: decision` |
+| A pure lesson | names no defect, so the sequence is never entered | The `project-knowledge` seam alone |
+| A generalisable decision-blocked defect | the seam is additive, then blocked on a decision | The seam **and** row two |
+
+What moved is which pass routes notes one and two — DECIDE rather than
+Capture — not where they end up. Note three is not ready-now, because the
+decision it waits on is one nobody present will make, so the blocked clause
+still wins the first match. Note four still leaves at the seam rather than
+falling into discard, and note five is the only one reaching two destinations,
+by the seam's additive rule.
+
+### Carried, not resolved
+
+C4's row four sends a ready-now defect that is not ride-along eligible to the
+session's next reviewed unit. `SKILL.md:710` says work that is not required
+opens no next unit, and such a defect is usually not required — an unrelated
+nearby defect is exactly what the frontier rule excludes. The two rules have
+disagreed since C4 shipped; this change neither introduced nor widened the
+disagreement, and it kept them apart rather than picking a winner, because
+choosing one changes what an agent may do and belongs to whoever owns the
+frontier doctrine. Row four names its destination and points nowhere, which
+is the state `origin/main` shipped; round 2 briefly added a `decided at
+DECIDE` pointer that sent the reader into the section denying that
+destination, and round 3 removed it. Owner: work-loop maintainer, via
+`work-intake`.
+
+### Review round 2 — ten findings, seven applied, three carried
+
+**Blockers 1 and 2 — the repair left its own companion behind.** The eval case
+this change adds was written before round 1, and round 1 never revisited it.
+Its `expected_output` still carried "Capture runs after the loop" — the claim
+Concern 3 struck — and "back through GATES and REVIEW", the edge wording
+Concern 4 struck for drifting from `SKILL.md:617-618`; its second assertion
+graded the answer against "the session's next independently reviewed unit",
+the destination the round-1 `narrow-the-claim` repair deliberately stopped
+stating. So the pack shipped the carried disagreement in two directions at
+once, with the eval asserting the side the skill declines to take. The case
+now grades only what the skill states: route it in this pass, using the
+intent-fit table and the carve-out. That also makes round 1's two claims
+true where round 1 asserted them, which Concern 4 correctly said they were
+not.
+
+**Concern 3 — the closing claim read against the table it points at.** Rows
+three and four sit under `Where it goes` and name two dispatch destinations,
+so "reaches Capture with no route left" read as a contradiction. Both rows
+now say where the routing happens — `at DECIDE`, `decided at DECIDE` — and
+the DECIDE sentence says Capture names both destinations but runs no pass
+that reaches them. Same change in § D9, or the roster pin reds.
+
+**Concern 5 — the fourth ordinal.** `docs/specs/work-item-capture/plan.md:524`
+still read "D9's rows two to four". This is the same ordinal the owner ruling
+covers and the same one the retired register entry named as its item (d);
+leaving it would reproduce exactly the disagreement the item existed to
+close. Corrected in place, and the ruling's applied scope is therefore four
+sites, not three: § D9's table, § D4's ordinal sentences, `AC-0001`, and this
+plan line.
+
+**Nits 6, 8, 9 applied.** The DECIDE paragraph names the intent-fit table
+rather than saying "the table above" from 144 lines away; the superseded
+AC17 walk carries a marker where a reader meets it; the retired register
+entry's blank line is gone.
+
+### Carried from round 2
+
+- **Nit 7 — § D9 says "It gains one branch" above a five-row table.** Now two
+  branches over the pre-existing routing. This is contract prose in a frozen
+  spec, and the owner ruling covers the row ordinals, not the branch count;
+  extending it on our own judgement is the kind of quiet widening the ruling
+  exists to prevent. Named, not edited. Owner: work-loop maintainer.
+- **Nit 10 — ticked `AC11` names a discard branch `## Capture` does not.**
+  `spec.md:384-385` requires "a defect resting on taste or with no stated
+  arbiter"; the bullet names only the razor's two refusal grounds. The phrase
+  is absent on `origin/main` too, so this predates the change, which neither
+  widened nor narrowed it. Out of frontier.
+- The C4-row-four versus `SKILL.md:710` disagreement, recorded above.
+
+### Review round 3 — the class, named
+
+Three rounds, three blockers, one failure mode. Round 1's repair created
+round 2's blocker; round 2's repair created round 3's. Each time the same
+thing happened: a statement was rewritten in one place and left standing in
+another that carried it.
+
+**The class.** The prose being edited is a single clause replicated across
+seven surfaces — `SKILL.md`, its C4 blockquote in this spec, the `C4`
+constant in the pack suite, § D9 in `work-item-capture/spec.md`, the eval
+harness, the reference the clause links to, and three generated projections.
+Rewriting a sentence there is a seven-surface edit, and each round walked
+only the surfaces its own finding named.
+
+**The generator, not the instances.** The root cause is not that a surface
+was missed. It is that the change rewrote a sentence the brief never asked
+to rewrite. The brief said the only substantive content change is row
+three's split, and the routing sentence below the table was rewritten
+anyway — first to point at DECIDE, then again, then again. Each rewrite
+opened a fresh conservation obligation across all seven surfaces, and round
+3 found the cost: "grouped with related fixes sharing a file or a seam", a
+normative grouping rule shipped on `origin/main`, had been deleted from
+every surface with no record and no authority. `git grep` returned zero hits
+under `packs/`, `.claude/`, `.agents/` and `guides/`.
+
+**The repair.** Round 3 rebuilt the sentence from `origin/main`'s wording
+rather than patching the rewrite. Every normative clause returns verbatim,
+the clauses are reordered to the table's order, and the one deletion is
+"ahead of this table", which the split makes false. The DECIDE paragraph was
+cut back to a timing bound that states no destination, no return edge and no
+claim about when Capture runs. What it does carry is one general proposition
+— a route taken in-session needs a loop that is still open — which is pinned
+to no table, no count of rows and no wording elsewhere, so no edit to
+§ Capture can falsify it. That is a smaller surface than the paragraph had,
+not the absence of one.
+
+**The instrument that would have caught it in round 1.** A word-level
+comparison of the whole C4 clause against `origin/main`, reporting every
+token added and removed. Run after the repair, it reports exactly four
+opcodes: the row-three cell gaining `, ride-along eligible`; the new row
+four; the blocked clause moving ahead of the ride-along clause; and the
+removal of `edge, ahead of this table;`. Nothing else in C4 changed. A
+sentence rewrite would have shown as a wall of replacements, which is the
+signal that was missing for two rounds.
+
+**Concern 5's surface was walked by neither earlier round.**
+`packs/core/.apm/skills/work-loop/references/work-item-capture.md` enumerated
+the declined set as three rows. It is the file C4's own text links to, and
+it appears in no round-1 or round-2 record. Corrected to four rows, with the
+note that both ready-now rows carry `dispatched-in-session`.
+
+### Round 3 dispositions
+
+- **Blockers 1, 2, 3 and Concerns 4, 5, Nit 7 — applied**, as above.
+- **Concern 6 — refuted on the text.** `AC15` describes two eval cases and
+  their required properties; both are present and unchanged. It does not
+  say `evals.json` carries only two, and no control counts them. The third
+  case is required by `packs/AGENTS.md` § Version bump rule, which obliges a
+  non-cosmetic pack update to update that pack's eval harness. Recorded
+  rather than edited, because editing a ticked criterion to absorb a case it
+  never described would be the widening this ledger already refused once.
+- **Nit 8 — pre-existing, out of frontier.** § D9's intro names the retired
+  `§ Capture learnings`. `git show origin/main:docs/specs/work-item-capture/spec.md`
+  carries the same text at line 600, and at line 69. `AC12`'s sweep covers
+  `packs/`, `tools/` and `guides/`, so `docs/` drift is outside it. Not
+  caused, widened or narrowed here.
+
+### Review round 4 — the class recurred once more, and a control that could not fail
+
+**Blocker 3 is the finding that matters.** Round 3's regeneration script
+sliced C4 with a hardcoded `+ 47` where the closing literal is 48 characters,
+so the `C4` constant and this spec's blockquote both lost C4's terminal
+period while `SKILL.md` kept it. **Every control stayed green.**
+`test_pinned_clauses_match_the_spec` compares the constant to the blockquote,
+and both were truncated identically. `test_capture_section_routing_bullet`
+asserted `C4 in <flattened section>`, and a clause missing its last character
+is still a substring. `C4_CLOSE` in the same module asserted the period the
+constant had dropped, and nothing compared the two.
+
+So three pins over one clause could not see a one-character loss at its tail,
+because two of them compared copies to each other and the third was blind at
+both ends. This is the failure the ledger already records as a class — a
+control that agrees with another copy rather than with the source — arriving
+inside the repair for that class.
+
+**Repaired at the generator and at the control.** The slice now uses
+`len(CLOSE)`; the magic number is gone. `test_capture_section_routing_bullet`
+slices the section at `C4_OPEN` and `C4_CLOSE` and compares for **equality**,
+with a distinct message for a tail that does not reach the closing sentence.
+
+**Mutation proof, run against the tree as shipped.** Truncating the `C4`
+constant by its final character — the exact defect — reds
+`test_capture_section_routing_bullet`:
+`1 failed, 15 passed`. Restored: `16 passed`. Under the previous containment
+form that same mutation passed, which is why it shipped through round 3.
+
+**Blockers 1 and 2, Concerns 4, 5, 6 and Nit 7 — applied.** The C4 narrative
+in this spec described round 2's blockquote and now describes the shipped
+sequence, including why neither the table nor the sequence names DECIDE.
+Both `### Changed` changelog bullets described the reverted shape and now
+describe HEAD. The two superseded round-1 and round-2 records carry a
+supersession marker where a reader meets them, matching the convention this
+ledger already used for the AC17 walk. The DECIDE paragraph's count of
+destinations is gone, so the paragraph is pinned to nothing in § Capture, and
+the ledger's claim about it is stated as a smaller surface rather than none.
+
+**Standing instruction for any later edit to this clause.** Regenerate the
+constant and the blockquote from `SKILL.md` with `len()` on the boundary
+literals, never an offset, and run the word-level opcode dump against
+`origin/main` before review. Two rounds were spent on defects that dump would
+have shown immediately.

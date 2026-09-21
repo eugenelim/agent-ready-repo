@@ -64,6 +64,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.27] — 2026-09-21
+
+### Highlights
+
+- **A small defect noticed mid-loop now gets routed while both of its
+  routes are still open.** Deciding where it goes happens at the DECIDE
+  pass, which the loop reaches at a definite point, so a fix that could
+  have shipped in this change no longer reaches the close with nowhere left
+  to go.
+- **You can now read one row of the close-time table and know where your
+  defect goes.** A ready-now fix that can ride along and one that needs its
+  own review unit sit on separate rows, so telling them apart no longer
+  means reading past the table into the paragraph below it.
+
+### Changed
+
+- `work-loop` § Capture states the close-time routing table in five rows
+  instead of four. The row that read `Specific, real, ready now` becomes two,
+  separating a ride-along-eligible defect from one that needs its own review
+  unit; the four destinations and the routing sentence below the table are
+  otherwise unchanged.
+- `work-loop` § Step 5. DECIDE gains the bound that a ready-now defect's
+  route is settled in that pass. It replaces a "before the session ends"
+  instruction in § Capture that named no point in the loop an agent reaches.
+
 ## [core][2.26.26] — 2026-09-21
 
 ### Highlights

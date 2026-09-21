@@ -521,7 +521,7 @@ the routing suite is green.
 **Tests:**
 - A declined item with a suppressed outcome fails the close (`AC-0001`, `AC-0002`).
 - The outcome vocabulary is exactly the three values, and the declined set is
-  asserted to contain D9's rows two to four and not the generalisable-practice
+  asserted to contain D9's rows two to five and not the generalisable-practice
   row (`AC-0001`, `AC-0002`).
 - Each captured item's `necessity_rationale` appears in the close output
   (`AC-0014`).

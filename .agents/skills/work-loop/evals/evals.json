@@ -974,6 +974,18 @@
         "Response says the refuted finding is recorded in the audit rather than discarded",
         "Response does not say the finding is sustained at advisory severity"
       ]
+    },
+    {
+      "id": "ready-now-defect-dispatches-at-decide-not-at-capture",
+      "prompt": "I'm at DECIDE. A scratch note from this pass names a specific, real defect in a file the change already touches. It can be finished this session and needs no decision from anyone who isn't here. Do I settle where it goes now, or write it down and let Capture route it once the loop closes?",
+      "expected_output": "Settle it in this pass. A ready-now defect is loop work, and DECIDE is where its route is settled. Which route it takes is the routing already stated for a scratch note: a ride-along-eligible defect is dispatched now, grouped with related fixes sharing a file or a seam, over the human gate's `blocker-applied` return edge; one that is not ride-along eligible becomes the session's next independently reviewed unit over that same edge. Do not write it down for Capture to settle later.",
+      "assertions": [
+        "Response settles the route in the DECIDE pass rather than deferring the decision to Capture",
+        "Response decides the route by ride-along eligibility under the bundled-fixes carve-out",
+        "Response groups a dispatched ride-along with related fixes sharing a file or a seam",
+        "Response does NOT capture it as a `work-item`, because it is not blocked",
+        "Response does NOT rely on a 'before the session ends' bound"
+      ]
     }
   ]
 }
