@@ -30,6 +30,13 @@ def _args(pack: str, catalogue: Path) -> SimpleNamespace:
     )
 
 
+def _first_heading(text: str, prefix: str) -> str:
+    """The first line of `text` starting with `prefix`."""
+    matches = [line for line in text.splitlines() if line.startswith(prefix)]
+    assert matches, f"no heading starting {prefix!r}"
+    return matches[0]
+
+
 def _assert_show_schema(response: dict[str, object]) -> None:
     schema = json.loads(SHOW_SCHEMA.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
@@ -64,6 +71,13 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
         assert required in readme
     assert f"## [{expected}]" in changelog
     assert "Engine-Change-RFC: RFC-0087" in changelog
+    # Position, not containment. Every assertion above stays green when a newer
+    # heading sits above the released one, which is the state a half-finished
+    # release leaves behind.
+    assert _first_heading(changelog, "## [").startswith(f"## [{expected}]")
+    assert _first_heading(
+        PRODUCT_CHANGELOG.read_text(encoding="utf-8"), "## [agentbundle]["
+    ).startswith(f"## [agentbundle][{expected}]")
     assert "pre-release" in agentbundle_doc
     assert "list-packs" in agentbundle_doc
     assert "marketplace" in agentbundle_doc

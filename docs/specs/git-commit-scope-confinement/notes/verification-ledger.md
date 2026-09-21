@@ -32,11 +32,18 @@ defect, observable through the real tool.
 The other four reserved characters were green at T1, and that agrees with the
 measurement the design decision records: only `*` reaches the scope grammar.
 
-## T2 — mutation proof for the refusal assertions
+## T2 — what the pre-fix revert measured
 
 With `workspace_mcp.py` reverted to its pre-fix bytes and the new tests kept,
 the refusal-bearing selection ran **32 failed, 28 passed**. Restoring the fix
 returns the whole file to **98 passed in 92.7s**.
+
+That measures one thing: each of those 32 cases reaches a first failing
+assertion without the fix. It is not per-assertion mutation proof — the stderr,
+empty-stdout, `HEAD` and `git diff --cached` assertions grouped inside
+`test_a_reserved_character_is_refused_and_leaves_the_repository_alone` are not
+shown individually mutation-sensitive by a whole-file revert, and this ledger
+does not claim they are.
 
 The load-bearing rows in that red are
 `test_a_refused_base_leaves_the_sibling_git_tools_working[<type>-{]` and
@@ -63,3 +70,27 @@ unaffected.
 `packages/agentbundle/pyproject.toml` sets `addopts = "-q"`, so a run invoked
 with `-q` doubles to `-qq` and suppresses the pass/fail summary line. Every
 count above was taken with `-o addopts= -q`.
+
+## Review round 1 — two artifact errors worth the owner's attention
+
+The `adversarial-reviewer` round sustained one Concern and one Advisory.
+
+The Concern was real and is repaired: `tests/roster/test_okf_catalogue_discovery.py`
+asserted AC-0007's version by substring containment and never read
+`docs/product/changelog.md` at all, so a package changelog whose `## [0.47.3]`
+sat below a newer heading passed the gate. The test now asserts position for
+both changelogs. That control was checked by replaying its predicate over the
+real files and over a mutated copy with a newer heading inserted above the
+released one; the suite itself runs on CI, not on this machine.
+
+The Advisory is an error in the frozen plan and is **not** repaired here,
+because a frozen plan takes controlled amendment and that is the owner's call.
+T3's `Tests` says the product changelog "keeps core's newest entry adjacent to
+`[Unreleased]`, checked by `tools/test_build_site_routing.py`", and `Done when`
+rests on that suite passing. That file asserts changelog parsing,
+`[Unreleased]` classification, and blank-line separation — no adjacency,
+topmost, or newest-entry property — and it is absent from T3's `Touches`. The
+adjacency property itself holds in the shipped file and the `agentbundle` entry
+sits immediately below core's newest, but no suite asserts it. Either T3's
+`Tests` should name a check that exists, or the claim should be recorded as
+unverified.

@@ -102,10 +102,6 @@ def _manifest_tails(item_type: str) -> list[str]:
     return tails
 
 
-def _wildcard_components(pattern: str) -> list[str]:
-    return [component for component in pattern.split("/") if "*" in component]
-
-
 def _dispatch(monkeypatch: pytest.MonkeyPatch, item_type: str) -> None:
     monkeypatch.delenv("WORKSPACE_MCP_SPEC_PATH", raising=False)
     monkeypatch.setenv("WORKSPACE_MCP_DISPATCHED_ITEM", f"{_INI}/{item_type}:{_SLUG}")
@@ -130,8 +126,13 @@ _ACCEPTED_BASES: dict[str, str] = {
 
 def _accepted_case(
     repo: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, raw_base: str | None
-) -> tuple[list[str], list[str]]:
-    """Run one accepted-base row; return (staged set, resolved patterns)."""
+) -> tuple[dict, list[str]]:
+    """Run one accepted-base row; return (the tool's own result, resolved patterns).
+
+    The raw result, not a staged set: `_staged` turns every error shape into
+    `[]`, so a row that asserts nothing was staged would also pass on a tool
+    that failed for an unrelated reason.
+    """
     _seed_repo(repo)
     if raw_base is None:
         base = str(repo.resolve() / _LAYOUT_TYPE_BASES[item_type][1])
@@ -144,8 +145,7 @@ def _accepted_case(
 
     _dispatch(monkeypatch, item_type)
     tools = _GitTools(repo)
-    result = tools.git_commit({"message": "scope"})
-    return _staged(result), list(tools._output_pattern or [])
+    return tools.git_commit({"message": "scope"}), list(tools._output_pattern or [])
 
 
 def _expected_staged(repo: Path, base: str, item_type: str) -> list[str]:
@@ -162,7 +162,8 @@ def test_an_unconfigured_type_stages_only_its_own_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, item_type: str
 ) -> None:
     repo = tmp_path / "repo"
-    staged, patterns = _accepted_case(repo, monkeypatch, item_type, None)
+    result, patterns = _accepted_case(repo, monkeypatch, item_type, None)
+    staged = _staged(result)
 
     convention = _LAYOUT_TYPE_BASES[item_type][1]
     assert staged == _expected_staged(repo, str(repo.resolve() / convention), item_type)
@@ -179,7 +180,8 @@ def test_an_accepted_base_keeps_the_manifest_wildcard_structure(
 ) -> None:
     repo = tmp_path / "repo"
     raw_base = _ACCEPTED_BASES[shape]
-    staged, patterns = _accepted_case(repo, monkeypatch, item_type, raw_base)
+    result, patterns = _accepted_case(repo, monkeypatch, item_type, raw_base)
+    staged = _staged(result)
     base = _resolved_base(repo, raw_base)
 
     assert staged == _expected_staged(repo, base, item_type)
@@ -187,9 +189,6 @@ def test_an_accepted_base_keeps_the_manifest_wildcard_structure(
     # The static root is the configured base followed by the manifest pattern's
     # own literal tail, and every wildcard component comes from the manifest.
     assert patterns == [base + tail.format(slug=_SLUG) for tail in _manifest_tails(item_type)]
-    assert [_wildcard_components(p) for p in patterns] == [
-        _wildcard_components(tail.format(slug=_SLUG)) for tail in _manifest_tails(item_type)
-    ]
 
 
 @pytest.mark.parametrize("item_type", _PATTERNED_TYPES)
@@ -198,7 +197,8 @@ def test_an_absolute_base_inside_the_repository_is_accepted(
 ) -> None:
     repo = tmp_path / "repo"
     raw_base = str((tmp_path / "repo" / "inside" / "base").resolve())
-    staged, patterns = _accepted_case(repo, monkeypatch, item_type, raw_base)
+    result, patterns = _accepted_case(repo, monkeypatch, item_type, raw_base)
+    staged = _staged(result)
     base = _resolved_base(repo, raw_base)
 
     assert staged == _expected_staged(repo, base, item_type)
@@ -216,11 +216,12 @@ def test_an_absolute_base_outside_the_repository_stages_nothing_and_leaks_nothin
     all it does not fall back to anything inside the repository."""
     repo = tmp_path / "repo"
     raw_base = str((tmp_path / "vault" / "base").resolve())
-    staged, patterns = _accepted_case(repo, monkeypatch, item_type, raw_base)
+    result, patterns = _accepted_case(repo, monkeypatch, item_type, raw_base)
     base = _resolved_base(repo, raw_base)
 
-    assert staged == []
-    assert _UNRELATED not in staged
+    assert result == {
+        "error": "no uncommitted files match the dispatched item's output_pattern"
+    }
     assert patterns == [base + tail.format(slug=_SLUG) for tail in _manifest_tails(item_type)]
 
 
