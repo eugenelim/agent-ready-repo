@@ -113,3 +113,56 @@ heading. The amendment makes T3's pinned fields say so.
 T1 and T2 are the completed tasks at the time of the amendment (waves 0 and 1;
 wave 2 holds T3 and T4). This file is their evidence binding: T1's red and its
 counts, and T2's pre-fix revert measurement, are recorded above.
+
+## Carried into EXECUTE: the screen reads the resolved base, not the configured value
+
+The pre-EXECUTE review of the T3 amendment found a defect in the shipped guard
+rather than in the amendment. It is sustained, contract-tier, and measured
+against the running code, so it is required work — not a plan change. The
+contract already forbids both behaviours; the implementation does not match it.
+
+`_read_layout_bases` returns `str(candidate.resolve())`, and the screen tested
+that resolved string. Two consequences, both reproduced:
+
+- `output_dir = "scratch*/../artifacts"` contains `*` and resolves to
+  `<repo>/artifacts`, so `_refused_layout_key` stayed `None`. AC-0002 requires
+  a configured value containing any of the five characters to be refused.
+- In a repository whose own path contains `*`, the clean value
+  `output_dir = "artifacts"` produced `_refused_layout_key == "product"`.
+  AC-0001 requires unchanged staging for a base carrying none of them.
+
+The fix screens the selected configured value before resolution.
+`_read_layout_bases` is not modified — the spec's `Never do` forbids it — so the
+raw value comes from a sibling read that reproduces the same per-key scope
+precedence: user-scope wins for `research`, repo-scope for `product` and
+`design`. Duplicated precedence drifts silently, so a test pins the two readers
+to one answer rather than trusting them to stay aligned.
+
+No acceptance criterion, task boundary, or plan field moves for this. T2's
+`Tests` and `Done when` already cover AC-0001, AC-0002 and AC-0004.
+
+## T3's pre-amendment text, quoted for the record
+
+An amendment should leave the text it replaced where a later reader can see it
+without a git archaeology step. This is T3 exactly as it stood at the approved
+baseline, before the 2026-09-21 amendment:
+
+```markdown
+### T3: Released surfaces name one version
+
+**Depends on:** T2
+
+**Tests:**
+- Goal-based: `version.py` and `pyproject.toml` both read `0.47.3`; the package changelog's
+  topmost entry and the product changelog's first `agentbundle` entry carry
+  that version; `README-pypi.md` has its `What's new` section. Covers AC-0007.
+- The product changelog keeps core's newest entry adjacent to `[Unreleased]`,
+  checked by `tools/test_build_site_routing.py`.
+
+**Touches:** packages/agentbundle/agentbundle/version.py,
+packages/agentbundle/pyproject.toml, packages/agentbundle/CHANGELOG.md,
+packages/agentbundle/README-pypi.md, docs/product/changelog.md,
+tests/roster/test_okf_catalogue_discovery.py
+
+**Done when:** AC-0007 holds and the routing suite passes.
+```
