@@ -1907,9 +1907,10 @@ status    = "active"
 milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires the ladder"
 
 ["ini-010".brief_queue]
-executing = []
-ready = [
+executing = [
   { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
+]
+ready = [
 ]
 draft = []
 
@@ -1918,9 +1919,9 @@ active  = []
 backlog = []
 
 ["ini-010".work]
-queue   = [
+queue   = []
+active  = [
   { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
 ]
-active  = []
 shipped = []
 
