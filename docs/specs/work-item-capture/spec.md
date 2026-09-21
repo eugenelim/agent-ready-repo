@@ -607,8 +607,8 @@ discards the rest. It gains one branch:
 | --- | --- |
 | Generalisable practice | The existing `project-knowledge` route, unchanged |
 | Specific, real, blocked | Captured as a `work-item` |
-| Specific, real, ready now, ride-along eligible | Dispatched in-session, not captured |
-| Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit |
+| Specific, real, ready now, ride-along eligible | Dispatched in-session at DECIDE, not captured |
+| Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit, decided at DECIDE |
 | Specific, failing the razor | Refused, non-silently, per D4 |
 
 ### D10 — existing records stay readable and are never rewritten

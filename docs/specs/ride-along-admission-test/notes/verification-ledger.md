@@ -850,6 +850,12 @@ re-authored.)
 **`## Capture` walk — five notes, each reaching its named destination and no
 other, read against the shipped bullet:**
 
+> **Superseded 2026-09-21.** This walk reasons through prose the C4
+> capture-row split replaced. The current walk is under
+> § AC17 re-walk — the five notes against the tree as shipped, at the end of
+> this file. Destinations are unchanged; the pass that routes notes one and
+> two moved from Capture to DECIDE.
+
 1. *Ready-now, non-generalisable, stated arbiter, fires a risk trigger.* Not
    generalisable → the seam does not take it. Fires a trigger → fails
    carve-out clause (i) → not ride-along eligible. Not blocked on a decision
@@ -1686,3 +1692,53 @@ disagreed since C4 shipped; this change neither introduced nor widened the
 disagreement, and it kept them apart rather than picking a winner, because
 choosing one changes what an agent may do and belongs to whoever owns the
 frontier doctrine. Owner: work-loop maintainer, via `work-intake`.
+
+### Review round 2 — ten findings, seven applied, three carried
+
+**Blockers 1 and 2 — the repair left its own companion behind.** The eval case
+this change adds was written before round 1, and round 1 never revisited it.
+Its `expected_output` still carried "Capture runs after the loop" — the claim
+Concern 3 struck — and "back through GATES and REVIEW", the edge wording
+Concern 4 struck for drifting from `SKILL.md:617-618`; its second assertion
+graded the answer against "the session's next independently reviewed unit",
+the destination the round-1 `narrow-the-claim` repair deliberately stopped
+stating. So the pack shipped the carried disagreement in two directions at
+once, with the eval asserting the side the skill declines to take. The case
+now grades only what the skill states: route it in this pass, using the
+intent-fit table and the carve-out. That also makes round 1's two claims
+true where round 1 asserted them, which Concern 4 correctly said they were
+not.
+
+**Concern 3 — the closing claim read against the table it points at.** Rows
+three and four sit under `Where it goes` and name two dispatch destinations,
+so "reaches Capture with no route left" read as a contradiction. Both rows
+now say where the routing happens — `at DECIDE`, `decided at DECIDE` — and
+the DECIDE sentence says Capture names both destinations but runs no pass
+that reaches them. Same change in § D9, or the roster pin reds.
+
+**Concern 5 — the fourth ordinal.** `docs/specs/work-item-capture/plan.md:524`
+still read "D9's rows two to four". This is the same ordinal the owner ruling
+covers and the same one the retired register entry named as its item (d);
+leaving it would reproduce exactly the disagreement the item existed to
+close. Corrected in place, and the ruling's applied scope is therefore four
+sites, not three: § D9's table, § D4's ordinal sentences, `AC-0001`, and this
+plan line.
+
+**Nits 6, 8, 9 applied.** The DECIDE paragraph names the intent-fit table
+rather than saying "the table above" from 144 lines away; the superseded
+AC17 walk carries a marker where a reader meets it; the retired register
+entry's blank line is gone.
+
+### Carried from round 2
+
+- **Nit 7 — § D9 says "It gains one branch" above a five-row table.** Now two
+  branches over the pre-existing routing. This is contract prose in a frozen
+  spec, and the owner ruling covers the row ordinals, not the branch count;
+  extending it on our own judgement is the kind of quiet widening the ruling
+  exists to prevent. Named, not edited. Owner: work-loop maintainer.
+- **Nit 10 — ticked `AC11` names a discard branch `## Capture` does not.**
+  `spec.md:384-385` requires "a defect resting on taste or with no stated
+  arbiter"; the bullet names only the razor's two refusal grounds. The phrase
+  is absent on `origin/main` too, so this predates the change, which neither
+  widened nor narrowed it. Out of frontier.
+- The C4-row-four versus `SKILL.md:710` disagreement, recorded above.

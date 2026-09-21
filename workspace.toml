@@ -1711,7 +1711,6 @@ open = [
   {path = "docs/specs/work-item-promotion-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"}, summary = "Hand a captured item to the owner that handles work of its shape or close it because it should go nowhere, committing the terminal disposition either way", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-capture/spec.md"}]},
   {path = "docs/specs/governance-item-record-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0008-governance-item-record-routing.md"}, summary = "Route a captured question whose deliverable is a decision to a record naming who decides, eliciting the record type rather than deriving it, and refusing loudly when the authoring pack is absent", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
   {path = "docs/specs/duplicate-coverage-offer/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"}, summary = "Offer the artifact that already covers a captured item before promotion creates a second one; path proximity is refuted and the surviving question is whether coverage is discoverable at all", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
-
 ]
 
 
