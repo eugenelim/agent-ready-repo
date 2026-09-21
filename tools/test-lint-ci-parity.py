@@ -1478,6 +1478,60 @@ composed:
             (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
             return M.pr_gate_sources(fake).get("a/tests/", [])
 
+    # ── ci-gate-main-failure-reporting T3: sanctioned step conditions ──
+    _T3_STEP = "Run make build-check"
+    _T3_WHERE = f"w.yml / j / {_T3_STEP}"
+    _T3_DERIVED = (
+        "!cancelled()"
+        " && steps.python.conclusion == 'success'"
+        " && steps.tools.conclusion == 'success'"
+        " && steps.bandit.conclusion == 'success'"
+    )
+    _t3_roster = dict(full)
+    _t3_roster["a/tests/"] = M.PR_GATED(_T3_WHERE)
+
+    def _t3_sources(condition_line: str) -> dict[str, list[dict]]:
+        return {
+            "a/tests/": _sources_for(
+                f"      - name: {_T3_STEP}\n"
+                f"        {condition_line}\n"
+                "        run: python -m pytest a/tests/ -q\n"
+            )
+        }
+
+    _check(
+        "pr-gated-admits-the-steps-exact-derived-condition",
+        _suites(
+            one_line,
+            _t3_roster,
+            _t3_sources(f'if: "{_T3_DERIVED}"'),
+        ),
+        [],
+    )
+    for _case, _condition_line in (
+        ("literal-false", "if: false"),
+        ("expression-false", "if: ${{ false }}"),
+        ("quoted-key-expression-false", "'if': ${{ false }}"),
+        ("derived-with-false", f'if: "{_T3_DERIVED} && false"'),
+    ):
+        _check_fires(
+            f"pr-gated-rejects-{_case}",
+            _suites(one_line, _t3_roster, _t3_sources(_condition_line)),
+            _T3_STEP,
+        )
+    _check_fires(
+        "pr-gated-rejects-another-well-formed-condition",
+        _suites(
+            one_line,
+            _t3_roster,
+            _t3_sources(
+                'if: "!cancelled() '
+                "&& steps.python.conclusion == 'success'\""
+            ),
+        ),
+        _T3_STEP,
+    )
+
     # F5. `if: false` loads as Boolean False, so a truthiness test read a step
     # that never runs as unconditional and let it corroborate PR_GATED.
     _false_if = _sources_for(

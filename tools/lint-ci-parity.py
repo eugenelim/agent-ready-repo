@@ -2337,11 +2337,11 @@ _SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
 }
 
 
-def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
+def pr_gate_sources(root: Path) -> dict[str, list[dict[str, object]]]:
     """Map recognised suite targets to their pull-request workflow sources."""
     import yaml
 
-    sources: dict[str, list[dict[str, str | bool]]] = {}
+    sources: dict[str, list[dict[str, object]]] = {}
     workflow_dir = root / WORKFLOW_DIR
     chain_targets: set[str] | None = None
     for path in sorted(workflow_dir.glob("*.y*ml")):
@@ -2369,8 +2369,8 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
                 continue
             # PRESENCE, not truth. `if: false` loads as Python False, so a
             # truthiness test read a step that never runs as unconditional and
-            # let it corroborate a PR_GATED claim. Any `if` at all makes the
-            # coverage conditional; that is what the disposition has to say.
+            # let it corroborate a PR_GATED claim. The exact roster-derived
+            # guard is admitted later; every other `if` stays conditional.
             job_conditional = "if" in job or bool(job.get("continue-on-error"))
             job_wd = (
                 (job.get("defaults") or {}).get("run") or job_defaults
@@ -2380,9 +2380,11 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
                     continue
                 step_name = str(step.get("name") or "<unnamed step>")
                 where = f"{path.name} / {job_name} / {step_name}"
-                conditional = job_conditional or "if" in step or bool(
+                step_condition = step.get("if") if "if" in step else None
+                non_step_conditional = job_conditional or bool(
                     step.get("continue-on-error")
                 )
+                conditional = non_step_conditional or "if" in step
                 run = str(step.get("run") or "")
                 # Attributed per STEP, not per step NAME. `extract_ci_targets`
                 # groups by name, and two steps sharing one name then share the
@@ -2419,9 +2421,39 @@ def pr_gate_sources(root: Path) -> dict[str, list[dict[str, str | bool]]]:
                             "where": where,
                             "filtered": filtered,
                             "conditional": conditional,
+                            "step": step_name,
+                            "step_condition": step_condition,
+                            "non_step_conditional": non_step_conditional,
                         }
                     )
     return sources
+
+
+def _derived_step_condition(step: str) -> str | None:
+    """Return the exact sanctioned condition for a rostered check *step*."""
+    entry = STEP_DISPOSITION.get(step)
+    if entry is None or len(entry) != 2 or not isinstance(entry[1], tuple):
+        return None
+    phase = entry[1]
+    if len(phase) != 3 or phase[0] != "CHECK":
+        return None
+    return "!cancelled()" + "".join(
+        f" && steps.{dependency}.conclusion == 'success'"
+        for dependency in phase[1]
+    )
+
+
+def _source_satisfies_pr_gated(source: dict[str, object]) -> bool:
+    """Whether *source* is unconditional or carries its exact sanctioned guard."""
+    if source["filtered"]:
+        return False
+    if not source["conditional"]:
+        return True
+    if source.get("non_step_conditional"):
+        return False
+    step = source.get("step")
+    expected = _derived_step_condition(step) if isinstance(step, str) else None
+    return expected is not None and source.get("step_condition") == expected
 
 
 def check_suites(
@@ -2429,7 +2461,7 @@ def check_suites(
     *,
     makefile_text: str | None = None,
     dispositions: dict[str, tuple[str, ...]] | None = None,
-    sources: dict[str, list[dict[str, str | bool]]] | None = None,
+    sources: dict[str, list[dict[str, object]]] | None = None,
 ) -> list[str]:
     """Check suite-roster completeness and pull-request coverage claims."""
     dispositions = SUITE_DISPOSITION if dispositions is None else dispositions
@@ -2533,10 +2565,7 @@ def check_suites(
             # emitting both makes an author read two lines to learn one thing —
             # and made a self-test case that asserts a single violation fail for
             # the wrong reason.
-            if any(
-                not source["filtered"] and not source["conditional"]
-                for source in named
-            ):
+            if any(_source_satisfies_pr_gated(source) for source in named):
                 pass  # corroborated
             elif any(source["filtered"] for source in named):
                 violations.append(
