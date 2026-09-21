@@ -475,3 +475,131 @@ def test_an_oversized_listing_refuses_before_buffering(
     with pytest.raises(MODULE._ScanRefused) as refusal:
         MODULE._git(tmp_path, ["config", "--list"], MODULE._deadline())
     assert refusal.value.cause == "bound-exceeded"
+
+
+# ── Implementation-stage security findings, each with a standing case ─────────
+
+
+def test_a_newline_in_a_config_value_cannot_forge_a_promisor_key(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """A config value may contain a newline, so the delimited form is ambiguous.
+
+    `git config --list` is newline-delimited and an adopter controls the file,
+    so a value carrying a newline forges a later key — including one that
+    cancels the promisor check. `--list -z` is NUL-delimited and cannot.
+    """
+    seen: list[list[str]] = []
+
+    def _record(directory, arguments, deadline):
+        seen.append(list(arguments))
+        if "config" in arguments:
+            # One record whose value contains what would be a forged line.
+            return "alias.x\0remote.origin.promisor\ntrue\0"
+        return None
+
+    monkeypatch.setattr(MODULE, "_git", _record)
+    assert MODULE.remote_view(tmp_path).state == "failed"
+    assert seen[0] == ["config", "--list", "-z"]
+    assert not [a for a in seen if "ls-tree" in a]
+
+
+def test_unreadable_configuration_refuses_rather_than_assuming_no_promisor(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """No answer about the configuration is not an answer of `no promisor`."""
+    monkeypatch.setattr(MODULE, "git_config_values", lambda _d: None)
+    monkeypatch.setattr(
+        MODULE.subprocess, "Popen", lambda *a, **k: pytest.fail("no command may run")
+    )
+    assert MODULE.remote_view(tmp_path).state == "failed"
+
+
+@pytest.mark.parametrize(
+    ("answers", "expected"),
+    [
+        ({"config": "", "rev-parse": None}, "absent"),
+        ({"config": "", "rev-parse": "", "remote": ""}, "failed"),
+        ({"config": "", "rev-parse": "/tmp/x", "remote": None}, "failed"),
+        ({"config": "", "rev-parse": "/tmp/x", "remote": "upstream"}, "absent"),
+    ],
+)
+def test_absent_is_a_positive_finding_not_a_failed_command(
+    answers: dict[str, object], expected: str, tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0015: git saying nothing to consult, versus git not answering.
+
+    A failed command reports nothing *about* the view, so treating it as an
+    empty view is how a duplicate ordinal gets handed out.
+    """
+
+    def _fake(directory, arguments, deadline):
+        for key, value in answers.items():
+            if key in arguments:
+                return value
+        return None
+
+    monkeypatch.setattr(MODULE, "_git", _fake)
+    assert MODULE.remote_view(tmp_path).state == expected
+
+
+def test_an_expired_deadline_refuses_instead_of_waiting_without_limit(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0021: a deadline already past is a refusal, not a zero-length wait.
+
+    The earlier shape computed `max(0.0, ...)` and passed `remaining or None`
+    to `wait`, so an expired deadline became an unbounded wait — the bound
+    inverting into its own absence.
+    """
+    monkeypatch.setattr(
+        MODULE.subprocess, "Popen", lambda *a, **k: pytest.fail("no command may run")
+    )
+    with pytest.raises(MODULE._ScanRefused) as refusal:
+        MODULE._git(tmp_path, ["config", "--list", "-z"], MODULE.time.monotonic() - 1)
+    assert refusal.value.cause == "bound-exceeded"
+
+
+def test_an_absurd_digit_run_is_malformed_not_a_crash(tmp_path: pathlib.Path) -> None:
+    """A name that passes the shape must not raise on conversion.
+
+    CPython refuses `int()` above 4300 digits, so an unbounded `\\d{4,}` would
+    classify a name as valid and then raise a traceback instead of refusing —
+    and a traceback is the one outcome that stops an admission.
+    """
+    # Past CPython's conversion limit: classified without writing it, because a
+    # 5000-character filename exceeds what the filesystem accepts.
+    assert MODULE.classify(f"{TOKENS[0]}-{'9' * 5000}-x.md") == "malformed"
+    # Past this module's own bound and short enough to write, so the scan-level
+    # refusal is observed rather than inferred from the classifier alone.
+    over_bound = f"{TOKENS[0]}-{'9' * (MODULE.MAX_ORDINAL_DIGITS + 8)}-x.md"
+    assert MODULE.classify(over_bound) == "malformed"
+    (tmp_path / over_bound).write_text("", encoding="utf-8")
+    assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) is None
+
+
+def test_a_remote_tree_of_outside_names_still_hits_the_entry_bound(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0021: the bound counts records consumed, not names kept.
+
+    Counting only surviving names let a tree of unrelated entries cost the work
+    the bound exists to cap.
+    """
+    monkeypatch.setattr(MODULE, "MAX_ENTRIES", 4)
+    monkeypatch.setattr(MODULE, "git_config_values", lambda _d: {})
+    listing = "\0".join(f"100644 blob deadbeef\tunrelated-{n}.md" for n in range(10))
+
+    def _fake(directory, arguments, deadline):
+        if "rev-parse" in arguments:
+            return os.fspath(tmp_path)
+        if "remote" in arguments:
+            return "origin"
+        if "symbolic-ref" in arguments:
+            return "refs/remotes/origin/main"
+        if "ls-tree" in arguments:
+            return listing
+        return None
+
+    monkeypatch.setattr(MODULE, "_git", _fake)
+    assert MODULE.remote_view(tmp_path).state == "failed"

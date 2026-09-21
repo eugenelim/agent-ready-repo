@@ -239,6 +239,45 @@ subprocess so the claim is standing rather than a one-off, and it must be a
 subprocess because the suite sets `sys.dont_write_bytecode` itself and would
 mask a script that does not.
 
+## 2026-09-21 — the implementation-stage security review, and four real defects
+
+**Why it ran.** Owed at GATES once code existed. Two spec-stage passes had
+turned findings into criteria; this one asked whether the code upholds them.
+Diff against merge-base `3031b9fce`, source review only.
+
+**Four findings, every premise reproduced before fixing.** None was a false
+positive, and two of them inverted a control into its own absence:
+
+| Finding | Reproduced | Fix |
+| --- | --- | --- |
+| `git config --list` is newline-delimited, and a config *value* may contain a newline — so an adopter-controlled repository can forge a `remote.origin.promisor=false` line and cancel the promisor check | a three-line parse showed the forged key appearing in the dict | `--list -z`, NUL-delimited, key and value split on the first newline *inside* a record. An unreadable configuration now refuses rather than reading as "no promisor" |
+| A failed `rev-parse` or `remote` was classified `absent`, so a command that answered nothing about the view was treated as an empty view — the exact way a duplicate ordinal gets handed out | read directly from the branches at `:239-256` | `absent` only where git positively reports nothing to consult; every failure is `failed` |
+| `max(0.0, deadline - now)` then `wait(timeout=remaining or None)` — an expired deadline produced `0.0`, which is falsy, so the bound became an unbounded wait. And `stdout.read()` could block before the wait was ever reached | `max(0.0, -1.0)` → `0.0` → falsy | an expired deadline raises `bound-exceeded`; the deadline is checked inside the read loop; `wait` never receives a falsy timeout |
+| `\d{4,}` is unbounded, and CPython refuses `int()` above 4,300 digits — so a remote entry with a long digit run passed the shape and then raised, and a traceback is the one outcome that stops an admission | `int('9' * 5000)` → `ValueError: Exceeds the limit (4300 digits)` | the grammar bounds the run at twelve digits, so an over-long name is *malformed* and refuses. AC-0004 records the bound and its origin |
+
+A fifth was raised and is real but narrower: the remote entry bound counted
+surviving names rather than records consumed, so a tree of unrelated names cost
+the work the bound exists to cap. It counts records now.
+
+**Standing coverage, not one-off checks.** Six cases added, one per finding plus
+the entry-bound one: `test_a_newline_in_a_config_value_cannot_forge_a_promisor_key`,
+`test_unreadable_configuration_refuses_rather_than_assuming_no_promisor`,
+`test_absent_is_a_positive_finding_not_a_failed_command`,
+`test_an_expired_deadline_refuses_instead_of_waiting_without_limit`,
+`test_an_absurd_digit_run_is_malformed_not_a_crash`, and
+`test_a_remote_tree_of_outside_names_still_hits_the_entry_bound`.
+
+**After the fixes.** 80 cases in the allocator suite, 199 across the two pack
+suites, `make lint-ruff lint-mypy` clean. The real corpus still answers
+`VISION-0002`, `STRAT-0005`, `CAP-0005`, `FEAT-0006` with a clean duplicate
+check, so the hardening changed no answer it should not have.
+
+**What this says about the spec-stage passes.** Both returned Clean on the
+contract, and the contract was right; the code still had four defects, two of
+which were bounds that inverted. A criterion cannot catch an implementation that
+agrees with its words and not its intent — which is the argument for this pass
+existing rather than being folded into the earlier ones.
+
 ## 2026-09-21 — the allocator agrees with the numbers a human chose
 
 **Why run it.** The plan's named uncertainty was that the existing typed corpus
