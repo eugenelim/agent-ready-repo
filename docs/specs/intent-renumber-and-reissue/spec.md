@@ -2,6 +2,7 @@
 
 - **Status:** Draft
 - **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098
 - **Brief:** docs/product/briefs/intent-identity-and-registration.md
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
@@ -52,7 +53,7 @@ ordinal out of circulation for as long as its tombstone stands.
 - A tombstone retires a *filename*; `Status: Superseded by <slug>` retires a
   *bet*. They cannot substitute for each other: a renumber preserves `Slug:`
   by AC-0002, and `Superseded by` takes a slug that
-  `intent-metadata-shape-contract` AC-0021 resolves against a live intent's
+  `intent-metadata-shape-contract` resolves against a live intent's
   `Slug:`, so expressing a renumber that way would point an artifact at itself.
   Whether `Superseded by` stays on `Status:` is that spec's open question and
   `FEAT-0005-lifecycle-and-closure`'s to settle
@@ -101,7 +102,7 @@ ordinal out of circulation for as long as its tombstone stands.
 
 ## Testing Strategy
 
-- **The sweep's completeness: TDD.** After a rename the vacated path occurs in
+- **The sweep's completeness (AC-0001): TDD.** After a rename the vacated path occurs in
   no tracked file but the two named exclusions, which is one predicate a test
   holds. The fixture is the repository's own tracked set restricted to the
   AC-0001's whole parent set — every pre-run tracked file plus every file the
@@ -115,42 +116,42 @@ ordinal out of circulation for as long as its tombstone stands.
   covers AC-0001's full scope. The `workspace.toml` reconciliation below
   reports `missing_artifact` and sees no stale Markdown target, so neither
   check substitutes for the other.
-- **Transactionality: TDD.** A failure injected at each write point leaves the
+- **Transactionality (AC-0003): TDD.** A failure injected at each write point leaves the
   tree and index as they were, or the rename applies in full — a property a
   test asserts and a reviewer cannot. Which failure classes recover
   automatically is `plan.md`'s to design and its tests to drive.
-- **Fresh allocation: TDD.** A fixture where the vacated ordinal is free under
+- **Fresh allocation (AC-0012): TDD.** A fixture where the vacated ordinal is free under
   the target token is the case a carried-across ordinal would pass; the
   assertion is that the operation still takes the allocator's next value.
-- **The success path: TDD.** Both causes run to completion against a fixture
+- **The success path (AC-0013): TDD.** Both causes run to completion against a fixture
   corpus and the tombstone left behind is read back for its `Reissued as:`
   value. Asserting only the refusals would let a rename that wrote no successor
   pointer pass every other criterion.
-- **Field value shapes: TDD.** One rejecting fixture per rule — a non-ISO
+- **Field value shapes (AC-0015, AC-0016, AC-0017): TDD.** One rejecting fixture per rule — a non-ISO
   date, an absolute `Reissued as:`, one resolving outside
   `docs/product/intents/`, an empty `Retired:` line — and a transaction opened
   either side of midnight to fix the date to one sample.
-- **Citation conservation: TDD.** The fixture's citing files are compared byte
+- **Citation conservation (AC-0018): TDD.** The fixture's citing files are compared byte
   for byte before and after, so a citation removed rather than repointed fails
   even though the vacated path is gone.
-- **The pre-run refusal: TDD.** A fixture with an uncommitted change on a path
+- **The pre-run refusal (AC-0020): TDD.** A fixture with an uncommitted change on a path
   the operation would touch must refuse before writing anything.
-- **The request contract: TDD.** One refusing fixture per part — an absent
+- **The request contract (AC-0021): TDD.** One refusing fixture per part — an absent
   source, a source outside `docs/product/intents/`, a token outside
   `NAMESPACE_TOKENS`, an unrecognized cause — so a positive path cannot be
   satisfied by refusing everything.
-- **The operator surface: goal-based check.** A rename driven through the
+- **The operator surface (AC-0025): goal-based check.** A rename driven through the
   surface an installed `packs/core` exposes, not through an internal entry
   point, because every other check here passes against a helper an adopter
   cannot reach.
-- **Content carried across: TDD.** The successor is compared byte for byte
+- **Content carried across (AC-0002, AC-0024): TDD.** The successor is compared byte for byte
   against the retired source, so a shape-valid but skeletal successor fails.
-- **The tombstone's three-field shape: TDD.** A parse with conforming and
+- **The tombstone's three-field shape (AC-0005, AC-0006): TDD.** A parse with conforming and
   non-conforming fixtures. The partition walk over a whole corpus belongs to
   `intent-metadata-shape-contract`'s lint; what this slice proves is that every
   tombstone it writes carries `Tombstone:` and nothing it writes elsewhere
   does, which is AC-0006's biconditional on both arms.
-- **Tombstone name safety: inherited, re-run not re-authored.** Already pinned
+- **Tombstone name safety (AC-0004): inherited, re-run not re-authored.** Already pinned
   before this spec by `test_tombstone_filename_shapes_pin_allocation_and_check`
   in `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, committed
   87768ba4d. This slice re-runs it and adds nothing; it is cited here so the
@@ -159,6 +160,9 @@ ordinal out of circulation for as long as its tombstone stands.
   of the workspace reconciliation over the real `workspace.toml` reports no
   `missing_artifact`, which is the existing fail-closed control at
   `tests/roster/test_workspace_status_projection.py:948`.
+- **Tombstone target validity and resolution (AC-0007, AC-0008, AC-0009, AC-0010): TDD.** An absent target, a target that is itself a
+  tombstone, a pointer resolving onto a tombstone, and a corpus whose
+  tombstones already point at the source.
 - **The operator how-to: manual QA.** A person follows the page through one
   rename; a test cannot tell whether the page is followable.
 
@@ -191,7 +195,7 @@ ordinal out of circulation for as long as its tombstone stands.
 - [ ] **AC-0006.** A file in `docs/product/intents/` is a tombstone if and only
       if its preamble carries a `Tombstone:` field. This is the partition rule;
       that every file in the directory is routed by it and validated against one
-      of the two contracts is `intent-metadata-shape-contract` AC-0017, whose
+      of the two contracts is `intent-metadata-shape-contract`'s corpus-lint routing criterion, whose
       gate owns the check.
 - [ ] **AC-0007.** A `Reissued as:` value naming a path that does not exist fails and names
       both the tombstone and the missing path.
@@ -243,21 +247,25 @@ ordinal out of circulation for as long as its tombstone stands.
 
 ## Retired identifiers
 
-- `AC-0011` — first-time allocation for an intent authored through a
+- `AC-0011`
+  - first-time allocation for an intent authored through a
   non-allocating route. A separate outcome, releasable and verifiable on its
   own, recorded under `## Follow-ons` with its owner.
-- `AC-0023` — the mid-write journal and its exact recovery set. Unsatisfiable
+- `AC-0023`
+  - the mid-write journal and its exact recovery set. Unsatisfiable
   as a criterion, because recording a path before or after mutating it leaves a
   different gap under termination, and no criterion can name the atomic
   mechanism that would close both. The transaction design is `plan.md`'s;
   `AC-0003` keeps the observable.
-- `AC-0019` — standalone retirement's success path. Sustained in all three
+- `AC-0019`
+  - standalone retirement's success path. Sustained in all three
   shaping rounds as an independently shippable outcome with its own input,
   semantics and refusals; sharing the transaction is not sharing the outcome.
   The `Retired:` field shape stays in the tombstone contract at `AC-0005` and
   `AC-0017`, because the sibling lint validates both tombstone shapes whoever
   writes them. What left is the operation.
-- `AC-0014` — the three tombstone field value shapes as one criterion. Split
+- `AC-0014`
+  - the three tombstone field value shapes as one criterion. Split
   into `AC-0015`, `AC-0016` and `AC-0017`: date parsing, path confinement and
   free-text non-emptiness are different failures with different remedies.
 
@@ -269,15 +277,15 @@ ordinal out of circulation for as long as its tombstone stands.
   `docs/specs/intent-renumber-and-reissue/spec.md` own the partition rule and
   the tombstone field contract. This plan implements them and states neither."
   The split:
-  AC-0006 is the rule and this spec's only claim on it; that spec's AC-0017 and
-  AC-0028 own routing every file and failing the gate. No `needs` edge is
+  AC-0006 is the rule and this spec's only claim on it; that spec's corpus-lint routing
+  criterion and its gate criterion own routing every file and failing the gate. No `needs` edge is
   recorded either way, because that spec's plan implements text this spec
   already carries while this spec's tombstones are what its lint validates, so
   an edge would assert a false block and two edges would cycle.
 - eugenelim: `docs/specs/intent-metadata-shape-contract/spec.md` — nothing in
   the pack checks the ordinal after allocation. Allocation is a prose-invoked
   step at `work-intake/SKILL.md:357`, and `--check` ships with no caller, so a
-  hand-made rename that reuses an ordinal leaves no trace. That spec's AC-0028
+  hand-made rename that reuses an ordinal leaves no trace. That spec's gate criterion
   introduces a gate over `docs/product/intents/`, which is a place such a check
   could run; deciding whether it belongs there is that spec's, and how an
   adopter runs it is theirs.
