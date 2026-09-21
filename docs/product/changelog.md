@@ -64,6 +64,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.28] — 2026-09-21
+
+### Highlights
+
+- **A knowledge topic can now be recorded as a durable lesson that owns no
+  file.** Some lessons are about how a tool behaves, not about a defect
+  living in particular bytes, and pinning them to a file made them go stale
+  on every unrelated edit to it. Such a topic can now be written with no
+  owning source at all, which is a state the store could already hold and
+  read but its writer could not produce.
+
+### Fixed
+
+- `project-knowledge`: the topic writer accepts an explicit
+  `owning_source: null`. `validate_topic` already admitted it, and 63 stored
+  topics are in that state, but `complete_mutation_proposal` and
+  `_validate_mutation_proposal` required a source carrying a digest, so the
+  store could represent a topic its only sanctioned writer could not write.
+  The two writer guards now match `validate_topic`'s. A non-null owning
+  source still requires its digest, and an omitted key is still refused —
+  only an explicit `null` is admitted.
+
 ## [core][2.26.27] — 2026-09-21
 
 ### Highlights

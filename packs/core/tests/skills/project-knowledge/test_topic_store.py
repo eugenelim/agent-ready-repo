@@ -191,6 +191,38 @@ def test_ac12_persisted_topic_and_proposal_paths_are_canonical(repo: Path, store
     assert completed["occurrence"]["scope"] == "packs/core"
 
 
+def test_mutation_proposal_allows_an_explicit_null_owning_source(store) -> None:
+    completed = store.complete_mutation_proposal(mutation_proposal(owning_source=None))
+
+    validated = store._validate_mutation_proposal(completed)
+    assert validated["owning_source"] is None
+
+    topic = store._topic_from_proposal(validated)
+    assert store.validate_topic(topic)["owning_source"] is None
+
+
+@pytest.mark.parametrize(
+    "owning_source",
+    (
+        {"path": "contracts/jsonschema/knowledge-captured-observation.schema.json"},
+        pytest.param(None, id="omitted"),
+    ),
+)
+def test_mutation_proposal_refuses_malformed_or_omitted_owning_source(
+    store, owning_source: dict[str, Any] | None
+) -> None:
+    proposal = mutation_proposal()
+    if owning_source is None:
+        proposal.pop("owning_source")
+    else:
+        proposal["owning_source"] = owning_source
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.complete_mutation_proposal(proposal)
+
+    assert refused.value.diagnostic["reason_code"] == "strict_parse"
+
+
 @pytest.mark.parametrize(
     "target",
     (
