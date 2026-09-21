@@ -21,9 +21,11 @@ it could not read, and for a bound it would have to exceed.
 """
 import argparse
 import collections
+import contextlib
 import importlib.util
 import os
 import re
+import selectors
 import stat
 import subprocess
 import sys
@@ -82,6 +84,12 @@ _VALID = re.compile(
 )
 
 RemoteView = collections.namedtuple("RemoteView", "names state")
+# `code` is git's exit status, or None when it could not be run to completion —
+# launch failure, timeout, or a breached bound. The distinction matters: exit
+# 128 from `rev-parse` is git positively saying "no repository", while None says
+# nothing about the repository at all.
+_GitResult = collections.namedtuple("_GitResult", "output code")
+_NOT_A_REPOSITORY = 128
 
 
 class _ScanRefused(Exception):
@@ -135,11 +143,14 @@ def token_for_level(level: str | None) -> str | None:
     return LEVEL_TOKENS.get(level)
 
 
-def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
+def _git(directory: Path, arguments: list[str], deadline: float) -> _GitResult:
     """Run one git command, reading its output incrementally under a bound.
 
     ``Popen`` rather than ``run``: the byte bound has to hold while reading,
-    and ``run`` buffers the whole result before anything can check it.
+    and ``run`` buffers the whole result before anything can check it. The
+    deadline is enforced by polling the pipe rather than by blocking on a read,
+    because an adopter-controlled config include can stall git with no output
+    and a blocked ``read`` lets no deadline check run at all.
     """
     environment = os.environ.copy()
     for variable in GIT_REDIRECT_VARIABLES:
@@ -150,11 +161,10 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
     # `remote_view` covers a git too old to.
     environment["GIT_NO_LAZY_FETCH"] = "1"
     environment["GIT_TERMINAL_PROMPT"] = "0"
-    # A deadline already past is a refusal, not a zero-length wait: passing a
-    # falsy timeout through to `wait` would have made it unbounded.
-    remaining = min(GIT_TIMEOUT_SECONDS, deadline - time.monotonic())
-    if remaining <= 0:
+    # A deadline already past is a refusal, not a zero-length wait.
+    if min(GIT_TIMEOUT_SECONDS, deadline - time.monotonic()) <= 0:
         raise _ScanRefused("bound-exceeded")
+    command_deadline = min(deadline, time.monotonic() + GIT_TIMEOUT_SECONDS)
     try:
         child = subprocess.Popen(
             ["git", "--literal-pathspecs", *arguments],
@@ -166,37 +176,58 @@ def _git(directory: Path, arguments: list[str], deadline: float) -> str | None:
             shell=False,
         )
     except (OSError, ValueError):
-        return None
+        return _GitResult(None, None)
     if child is None or getattr(child, "stdout", None) is None:
-        return None
+        return _GitResult(None, None)
+
     chunks: list[bytes] = []
     total = 0
     try:
+        try:
+            selector = selectors.DefaultSelector()
+            selector.register(child.stdout, selectors.EVENT_READ)
+        except (OSError, ValueError, PermissionError):
+            # No selector for this pipe on this platform. Fall back to a bounded
+            # whole-read, which still honours the deadline but can only check
+            # the byte bound once the buffer is in hand. Stated, not hidden.
+            selector = None
         while True:
-            # The deadline governs the read loop too: a stalled child can block
-            # in `read` indefinitely, which a timeout on `wait` alone never sees.
-            if time.monotonic() >= deadline:
-                child.kill()
+            remaining = command_deadline - time.monotonic()
+            if remaining <= 0:
+                raise _ScanRefused("bound-exceeded")
+            if selector is None:
+                output, _ = child.communicate(timeout=remaining)
+                total += len(output or b"")
+                if total > MAX_GIT_RESULT_BYTES:
+                    raise _ScanRefused("bound-exceeded")
+                chunks.append(output or b"")
+                break
+            if not selector.select(timeout=remaining):
                 raise _ScanRefused("bound-exceeded")
             chunk = child.stdout.read(65_536)
             if not chunk:
                 break
             total += len(chunk)
             if total > MAX_GIT_RESULT_BYTES:
-                child.kill()
                 raise _ScanRefused("bound-exceeded")
             chunks.append(chunk)
-        child.wait(timeout=max(0.001, min(remaining, deadline - time.monotonic())))
+        if selector is not None:
+            child.wait(timeout=max(0.001, command_deadline - time.monotonic()))
     except _ScanRefused:
         raise
     except subprocess.TimeoutExpired:
-        child.kill()
-        return None
+        return _GitResult(None, None)
     except (OSError, ValueError):
-        return None
-    if child.returncode != 0:
-        return None
-    return b"".join(chunks).decode("utf-8", "surrogateescape")
+        return _GitResult(None, None)
+    finally:
+        # Never leave a running or unreaped child behind, whichever way we left.
+        if child.poll() is None:
+            child.kill()
+            with contextlib.suppress(subprocess.TimeoutExpired, OSError, ValueError):
+                child.wait(timeout=1)
+    return _GitResult(
+        b"".join(chunks).decode("utf-8", "surrogateescape"), child.returncode
+    )
 
 
 def git_config_values(directory: Path) -> dict[str, str] | None:
@@ -208,15 +239,18 @@ def git_config_values(directory: Path) -> dict[str, str] | None:
     the ambiguous form is an injection into the promisor check below. Each NUL
     record is ``key\nvalue``, or a bare key for a valueless one.
     """
-    output = _git(directory, ["config", "--list", "-z"], _deadline())
-    if output is None:
+    result = _git(directory, ["config", "--list", "-z"], _deadline())
+    if result.output is None or result.code != 0:
         return None
     values: dict[str, str] = {}
-    for record in output.split("\0"):
+    for record in result.output.split("\0"):
         if not record:
             continue
         key, separator, value = record.partition("\n")
-        values[key.strip()] = value if separator else ""
+        # A valueless key is git's own spelling of true — `[remote "origin"]`
+        # with a bare `promisor` line reads as `true` to `--type=bool`. Mapping
+        # it to the empty string would make it falsy here and bypass the check.
+        values[key.strip()] = value if separator else "true"
     return values
 
 
@@ -239,6 +273,23 @@ def _is_promisor(config: dict[str, str]) -> bool:
         and value.strip().lower() in {"true", "1", "yes", "on"}
         for key, value in folded.items()
     )
+
+
+def _repository_root(directory: Path, deadline: float) -> tuple[str | None, str]:
+    """Return ``(root, state)`` where state is ``ok``, ``absent`` or ``failed``.
+
+    Only exit 128 means git positively determined there is no repository here.
+    A launch failure, a timeout, an unsafe-ownership refusal or any other
+    non-zero status says nothing about the repository, so it refuses: treating
+    it as "no repository" is how a local-only ordinal collides with an existing
+    record on ``origin``.
+    """
+    result = _git(directory, ["rev-parse", "--show-toplevel"], deadline)
+    if result.code == _NOT_A_REPOSITORY:
+        return None, "absent"
+    if result.code != 0 or not result.output or not result.output.strip():
+        return None, "failed"
+    return result.output.rstrip("\n"), "ok"
 
 
 def _deadline() -> float:
@@ -266,25 +317,25 @@ def remote_view(directory: Path) -> RemoteView:
 
     # `absent` is a positive finding — git ran and reported nothing to consult.
     # A command that failed reports nothing *about* the view, so it refuses.
-    toplevel = _git(directory, ["rev-parse", "--show-toplevel"], deadline)
-    if toplevel is None:
-        # Not a repository at all, or git is unavailable: nothing to consult.
-        return RemoteView(frozenset(), "absent")
-    if not toplevel.strip():
-        return RemoteView(frozenset(), "failed")
+    toplevel, state = _repository_root(directory, deadline)
+    if state != "ok":
+        return RemoteView(frozenset(), state)
     remotes = _git(directory, ["remote"], deadline)
-    if remotes is None:
+    if remotes.output is None or remotes.code != 0:
         return RemoteView(frozenset(), "failed")
-    if "origin" not in remotes.split():
+    if "origin" not in remotes.output.split():
         return RemoteView(frozenset(), "absent")
 
-    ref = _git(directory, ["symbolic-ref", "--quiet", _ORIGIN_REF_PREFIX + "HEAD"], deadline)
-    if ref is None or not ref.strip().startswith(_ORIGIN_REF_PREFIX):
+    ref_result = _git(
+        directory, ["symbolic-ref", "--quiet", _ORIGIN_REF_PREFIX + "HEAD"], deadline
+    )
+    ref = ref_result.output
+    if ref_result.code != 0 or not ref or not ref.strip().startswith(_ORIGIN_REF_PREFIX):
         # origin exists and its default branch cannot be established, so the
         # view is incomplete in an unknown way rather than empty.
         return RemoteView(frozenset(), "failed")
 
-    root = Path(toplevel.rstrip("\n"))
+    root = Path(toplevel)
     try:
         relative = directory.resolve().relative_to(root.resolve())
     except (OSError, ValueError):
@@ -296,9 +347,10 @@ def remote_view(directory: Path) -> RemoteView:
     # starts with a quote and so matches no introducer — the record would be
     # invisible and its ordinal handed out again. The mode is kept (no
     # --name-only) so a non-blob entry inside the namespace can fail closed.
-    listing = _git(root, ["ls-tree", "-z", ref.strip(), "--", pathspec], deadline)
-    if listing is None:
+    listing_result = _git(root, ["ls-tree", "-z", ref.strip(), "--", pathspec], deadline)
+    if listing_result.code != 0 or listing_result.output is None:
         return RemoteView(frozenset(), "failed")
+    listing = listing_result.output
 
     names: set[str] = set()
     consumed = 0
