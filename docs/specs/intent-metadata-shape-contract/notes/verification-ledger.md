@@ -169,3 +169,53 @@ obligation now contradicts the sibling spec, which records it as settled. The
 sibling's AC-0006 is the partition rule; AC-0017 and AC-0028 own routing every
 file and failing the gate. The Follow-on is working material and should become a
 settled note, naming who settled it and on what ground, before this spec ships.
+
+# Owner decisions — 2026-09-21
+
+Recorded here so the controlled amendment has a stable authority reference. Each
+was decided by the scope owner (eugenelim) in session on 2026-09-21.
+
+1. **`Owner:` on the five unowned intents is `eugenelim`.** None of
+   `CAP-0005`, `FEAT-0006`, `FEAT-0007`, `FEAT-0008` or `FEAT-0009` declared an
+   owner in a preamble field, a body section, or its `workspace.toml`
+   registration, and the spec's Agent Rules forbid deriving the field from git
+   authorship. The owner declared the value rather than the migration inferring
+   it.
+
+2. **The `Level:` conflict is resolved by a new ADR superseding ADR-0098 D3 in
+   part.** AC-0001 requires `Level:` on every live intent. ADR-0098 D3 states
+   that "Product fields — level, opportunity, assumptions, scale, and JTBD —
+   stay optional enrichment on a repository intent." The two cannot both hold:
+   `intake-intent` writes to `docs/product/intents/<slug>.md`, the directory
+   AC-0028's gate guards, and every existing `render_minimal_intent` call passes
+   no `level`, so admission would produce an intent the gate rejects.
+
+   The owner chose the superseding ADR over an erratum and over narrowing
+   AC-0018. RFC-0102 fixes the instrument: an accepted record's body is frozen,
+   status-only changes are the sole permitted edit, and "anything else is a
+   *new* ADR that supersedes". An erratum records an error, and D3 was correct
+   when written, so a decision change is not an erratum. ADR-0098's metadata
+   block stays writable after acceptance by RFC-0102's prose/metadata split,
+   which is what lets `Superseded in part` be added to it.
+
+   This overrides the plan's T9 Approach sentence "No new ADR", which is why
+   the change goes through the controlled amendment rather than in place.
+
+## A cross-spec criterion citation resolves locally, and silently
+
+`lint-contract-item-alignment.py` rule 4 (line 642) runs `CRITERION_REF`
+(`\bAC-\d{4}\b`) over the **whole** text of `spec.md` and `plan.md`, subtracting
+the live and retired identifiers of *that* spec directory. AC-0017 cites
+"`docs/specs/intent-renumber-and-reissue/spec.md` AC-0006" and "that spec's
+AC-0005". Both numbers also exist in this spec, meaning different things —
+AC-0005 is the `De-risked:` / `Shaping-reviewed:` rule and AC-0006 is the
+`Decomposed:` rule — so the lint resolves them to the local criteria and reports
+nothing.
+
+The run is clean (0 findings) for the wrong reason. A dangling reference would
+be caught; a reference that resolves to the wrong criterion never will, and
+ADR-0108 D1 scopes an identifier to its own spec directory, so a number crossing
+a boundary has no addressing guarantee. The remedy is to cite the obligation by
+name and the spec by path, dropping the number. No gate will catch a regression,
+so the property to preserve is that a reader resolving a citation in its own
+directory cannot get a coherent wrong answer.
