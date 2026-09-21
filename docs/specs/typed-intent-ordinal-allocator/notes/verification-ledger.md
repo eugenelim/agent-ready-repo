@@ -583,3 +583,40 @@ and a refusal arm renders to the unprefixed target with
 **What it settles.** All 22 ACs tick against evidence that exists and
 discriminates. The gap this found was not in the allocator; it was the belief
 that testing the allocator tested the feature.
+
+## 2026-09-21 — what the tombstone decision inherits from this slice
+
+**Why run it.** `docs/specs/intent-renumber-and-reissue/spec.md` carries an
+explicit owed decision: "how a tombstone coexists with the shape contract — how
+it is identified, how it is excluded from intent-shape validation". That
+decision is not free. The allocator this slice shipped partitions the intent
+directory by filename, so a tombstone's **name** decides whether the allocator
+still works. Measured rather than reasoned about, one fixture per candidate
+shape, each beside a live `CAP-0001`:
+
+| Candidate tombstone name | `--dir/--token` | `--check` | Consequence |
+| --- | --- | --- | --- |
+| `CAP-0003-old-slug.md` | `CAP-0004`, exit 0 | exit 0 | correct — counted, ordinal not reused |
+| `CAP-0003-old-slug.tombstone.md` | `CAP-0004`, exit 0 | exit 0 | correct — `[^/]+` absorbs the infix |
+| `CAP-0003-old-slug.tombstone` | `unparsed-name`, exit 1 | exit 1 | **refuses the whole directory** |
+| `CAP-0003.tombstone.md` | `unparsed-name`, exit 1 | exit 1 | **refuses the whole directory** |
+| `CAP-0003-old-slug.md.tombstone` | `unparsed-name`, exit 1 | exit 1 | **refuses the whole directory** |
+| `tombstone-CAP-0003-old-slug.md` | `CAP-0002`, exit 0 | exit 0 | **silently reuses CAP-0003** |
+
+**What it settles.** A tombstone must keep the `<TYPE>-NNNN-<slug>` shape and
+the `.md` extension. Anything else is one of two failures, and the second is
+worse than the first:
+
+- A name that is in-namespace but not valid is `malformed`, which is an
+  AC-0011 scan failure. Every later admission in that directory then refuses
+  and lands unprefixed — so one badly-named tombstone quietly switches the
+  whole feature off, and AC-0015's "refuse rather than answer plausibly" is
+  what makes it loud enough to notice at all.
+- A name outside the namespace is `outside`, which is exit **0** and a lower
+  maximum. `CAP-0003` becomes allocatable again, violating ADR-0108 D3's
+  non-reuse rule with no error anywhere. This is the shape to avoid: the
+  refusing names fail visibly, this one does not.
+
+So the third acceptance criterion in that spec — "a tombstone the allocator
+counts" — is satisfied by exactly the two top rows, and `--check` (AC-0012) is
+already the post-rename duplicate control that slice's completeness sweep needs.
