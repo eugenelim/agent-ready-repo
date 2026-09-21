@@ -42,3 +42,130 @@ These measurements predate the 2026-09-21 spike and were not re-run:
   a bolded `## Source` owner attribution; and an unbolded `## Source`
   provenance token whose values are `repo-origin` (27) and
   `transferred-to-repository` (4).
+
+# Execution observations — 2026-09-21
+
+Recorded here rather than in `spec.md` or `plan.md`, both of which are pinned in
+substance from their 2026-09-21 approval.
+
+## The corpus moved under the plan
+
+The branch was rebased onto `origin/main` (34 commits) before T1. The intent
+corpus is now **150 files, all live, no tombstones** — 145 before the rebase and
+148 at the measurement spike above. The five files upstream added
+(`CAP-0005-work-item-capture-and-disposition.md`,
+`FEAT-0006-work-item-capture-contract.md`,
+`FEAT-0007-work-item-promotion-routing.md`,
+`FEAT-0008-governance-item-record-routing.md`,
+`FEAT-0009-duplicate-coverage-check.md`) each **omit `Owner:`**, so AC-0033 does
+not hold on the rebased base and T10 carries a residual pass beyond commit
+`e03205242`.
+
+None of the five declares an owner anywhere — no `Owner:` field and no `## Owner`
+section — and `workspace.toml` registers all five with no owner either. The
+spec's Agent Rules forbid inferring the field from git authorship, so the value
+was **declared by the owner (eugenelim) on 2026-09-21** rather than derived.
+144 of the other 145 intents carry `eugenelim`; one carries
+`Repository maintainers (ini-002)`.
+
+## T1 verification, beyond the suite
+
+Two checks that the 78 passing tests do not themselves establish:
+
+1. **Agreement with the real corpus.** The validator refuses exactly 5 of the
+   150 real intents, every refusal an absent `Owner:`, and refuses no value the
+   corpus legitimately carries. This reproduces the spike's AC-0002 and AC-0022
+   zero-refusal result against live values, and matches an independent ad-hoc
+   measurement written before the validator existed.
+2. **The ordering assertion can fail.** Reversing normalization to strip
+   backticks before discarding the comment fails 10 tests — the direct
+   `normalize_value` assertion plus every `backticked-and-commented` accept case
+   across `Status`, `Superseded by`, `Kind`, `Scale` and `Maturity`. The
+   composed-shape control is therefore not passing by construction.
+
+## AC-0002's test shape departs from the plan's wording
+
+T1's plan bullet asks that the `Status` vocabulary be "read from the same table
+the implementation uses rather than a second literal list". Iterating a table
+against itself cannot fail, so an implementation whose table gained or lost a
+member would pass. The suite does both: accept cases iterate the implementation's
+table, so a new member needs no test edit, and one assertion pins bare membership
+literally, so a wrong table fails. This satisfies the plan's anti-drift intent
+without leaving AC-0002 unfalsifiable.
+
+## Gate coverage is narrower than `make lint-ruff lint-mypy` suggests
+
+`tools/lint-mypy.py` is scoped to three typed packages and states that skill
+scripts are not checked, so its green says nothing about
+`packs/core/.apm/skills/work-intake/scripts/intent_shape.py`. `tools/lint-ruff.py`
+runs `ruff check` at the repository root and does cover it. The new module was
+additionally type-checked directly as a self-check (clean), which is not a gate.
+
+## Obligations the plan does not state
+
+- **`packs/AGENTS.md` version bump.** A non-cosmetic `.apm/**` change bumps
+  matching versions in `packs/core/pack.toml` and
+  `packs/core/.claude-plugin/plugin.json`. Upstream already advanced both during
+  the rebase window, so the bump is taken once for this branch rather than per
+  task, and must not borrow an unreleased version.
+- **`packs/AGENTS.md` eval harness.** "A non-cosmetic pack update also updates
+  that pack's eval harness." Agents carry no eval directory, so this misses T5
+  and lands on T7, which touches `intake-intent` (which has one).
+- **Projection drift predates this change.** `.claude/agents/shaping-reviewer.md`
+  and `.claude/agents/adversarial-reviewer.md` both lack the 3-line
+  `metadata: boundaries: [filesystem_read_untrusted]` block their `.apm/` sources
+  carry; the other four core agents are clean. A self-host run during T5 sweeps
+  in both files' drift, only one of which T5 authors.
+- **T4's confinement needs the parity fallback.** The plan names
+  `agentbundle.catalogue_tooling.file_safety` as the blessed helper. A shipped
+  pack cannot assume `agentbundle` is importable, and
+  `intake_guard.py:154` already establishes the pattern: import the helper, and
+  on `ImportError` fall through to a portable parity path. T4 follows that
+  rather than importing the helper bare.
+
+## Pre-EXECUTE review was recorded not-warranted, not passed
+
+The engine refused `spec-approved` directly from `SPEC-PLAN-REVIEW`, so the
+already-recorded 2026-09-21 human approvals could not be registered without
+leaving that state. No mandatory pre-EXECUTE reviewer is warranted: the spec's
+Durable Outputs record that the lint "ships inside an existing skill's script
+directory and adds no module boundary", the change adds no trust boundary
+(reusing the existing confinement pattern over repository-local files), and the
+design-intent pass is advisory in both modes. `reviewers-clean` was therefore
+fired as a vacuous clean rather than an earned one.
+
+Worth noting for a later run: the `reviewers-clean` edge out of
+`SPEC-PLAN-REVIEW` carries **no guard** —
+`_guard_check_spec_status_on_code_review` returns `None` unless the state is
+`CODE-REVIEW` — so the engine would not have stopped an unearned clean here.
+
+## T5's site list is correct, and two pins constrain it
+
+The shaping reviewer carries four count-bearing sentences, but only three are
+intent-mode condition counts (the intent-mode opener, the `MALFORMED(owner)`
+suppression sentence, and the sentence under
+`## Known failure modes in delivery-brief and spec mode`). The fourth, the
+`six-predicate self-check` reference, counts `finding-adjudicator`'s predicates,
+which AC-0030 does not reach; the plan correctly leaves it alone.
+
+`packs/core/tests/pack/test_shaping_review_contract.py` pins both
+`"six-predicate self-check"` and `"MALFORMED(owner)` is emitted alone"`, as well
+as `"suppresses the other five"`. So the suppression rewrite must drop the
+"other five" wording while preserving the "emitted alone" substring, and must
+not strip the adjudicator's own count. Neither unpinned prose site is guarded by
+any test.
+
+## Concurrent session
+
+A peer session held uncommitted work in this shared worktree and committed it as
+`c8a82bd04` before the rebase, then revised the sibling spec further in
+`be771c08f`. `docs/specs/intent-renumber-and-reissue/spec.md`'s AC-0005 and
+AC-0006 — the two criteria AC-0017 cites — were verified byte-identical across
+that second commit by hashing the AC-0005-to-AC-0007 span. That spec's AC-0006 is
+now preamble-bounded, which agrees with AC-0011 rather than conflicting with it.
+
+**Open, not owed to T1:** the spec's Follow-on asking which side owns the routing
+obligation now contradicts the sibling spec, which records it as settled. The
+sibling's AC-0006 is the partition rule; AC-0017 and AC-0028 own routing every
+file and failing the gate. The Follow-on is working material and should become a
+settled note, naming who settled it and on what ground, before this spec ships.
