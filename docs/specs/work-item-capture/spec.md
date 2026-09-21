@@ -212,11 +212,11 @@ rather than partway through.
 ### D4 — a refusal tells the author, is not stored, and admits one correction
 
 **The declined set** is the close's specific, non-generalisable leftover work:
-rows two, three and four of § D9's table. Generalisable practice is not a
-member — it takes the existing `project-knowledge` route and is not leftover
+rows two, three, four and five of § D9's table. Generalisable practice is not
+a member — it takes the existing `project-knowledge` route and is not leftover
 work. The outcome vocabulary is closed at three values, but it is not a
 per-row lookup: a row-two item that fails validation receives
-`refused`, which is also row four's outcome. Row membership defines the
+`refused`, which is also row five's outcome. Row membership defines the
 declined set `AC-0001` needs; it does not determine the outcome.
 
 **Item identity within one close.** D3 has the close enumerate the declined set
@@ -604,7 +604,8 @@ discards the rest. It gains one branch:
 | --- | --- |
 | Generalisable practice | The existing `project-knowledge` route, unchanged |
 | Specific, real, blocked | Captured as a `work-item` |
-| Specific, real, ready now | Dispatched in-session, not captured |
+| Specific, real, ready now, ride-along eligible | Dispatched in-session, not captured |
+| Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit |
 | Specific, failing the razor | Refused, non-silently, per D4 |
 
 ### D10 — existing records stay readable and are never rewritten
@@ -915,7 +916,7 @@ plan owns; they carry no criterion.
 > silently broke most of the plan's references when this list was renumbered.
 
 - [x] `AC-0001` A loop's close emits the set of items it declined, whose
-      membership is rows two, three and four of § D9's table.
+      membership is rows two, three, four and five of § D9's table.
 - [x] `AC-0002` Every member of that emitted set carries exactly one outcome
       from `captured`, `refused`, `dispatched-in-session`; a member with no
       outcome fails the close.

@@ -64,6 +64,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.27] — 2026-09-21
+
+### Highlights
+
+- **A ready-now defect the loop notices is now dispatched while it can
+  still be dispatched.** The rule that sends it either into this change or
+  into the session's next reviewed unit moved to the DECIDE pass, which
+  runs at a definite point in the loop, replacing a "before the session
+  ends" instruction an agent had no way to act on.
+- **The close-time routing table no longer sends two different
+  destinations to one row.** A ready-now defect that can ride along and one
+  that needs its own review unit are separate rows, so reading the table
+  tells you which of the two you have.
+
+### Changed
+
+- `work-loop` § Capture states the close-time routing table in five rows
+  instead of four, and points at DECIDE for both same-session routes rather
+  than restating them.
+- `work-loop` § Step 5. DECIDE carries the session-bound dispatch rule for a
+  scratch-note defect. § Capture keeps only the destinations that outlive the
+  loop — the `project-knowledge` seam and a captured `work-item`.
+
 ## [core][2.26.26] — 2026-09-21
 
 ### Highlights

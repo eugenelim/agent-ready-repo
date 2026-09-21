@@ -720,6 +720,18 @@ repairing its generator or dropping it.
 
 **Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture](#capture).
 
+**Dispatch a ready-now defect in this pass, not at Capture.** A scratch note
+naming a specific, real defect that can be finished this session without a
+decision nobody present will make is loop work, and this pass is where it is
+routed. One that passes every clause of the bundled-fixes carve-out is
+dispatched now, grouped with related fixes sharing a file or a seam; one that
+does not becomes the session's next independently reviewed unit. Both go over
+the human gate's `blocker-applied` return edge, then back through GATES and
+REVIEW. [Capture](#capture) runs after the loop and owns only the destinations
+that outlive it — the `project-knowledge` seam and a captured `work-item` — so
+a ready-now defect left for it has already missed the pass that could dispatch
+it.
+
 ### Review verdict record
 
 Emit exactly one fenced `json review-verdict.v1` block per review unit; full mode copies the pre-gate block byte-identical into the PR `Review verdict` section. States are `BLOCKED` → `CHANGES_REQUIRED` → `READY_WITH_RESIDUAL_RISK` → `READY`; no score is a gate; it never replaces the human merge decision. Load schema, state precedence, and residual-eligibility from [`references/review-verdict-record.md`](references/review-verdict-record.md).
@@ -820,11 +832,6 @@ incomplete. Run it once the five assertions hold, at an explicit handoff,
 or before compaction — whichever comes first — and skip it when the session
 produced nothing worth keeping.
 
-Run it before the session ends, though, not merely after the loop: two of
-the first bullet's defect destinations — a ride-along dispatched now, and
-the next independently reviewed unit in this session — exist only while the
-session is open, so a capture deferred past it silently loses them.
-
 What a kept note should say, and how to write it, is in [`references/capture.md`](references/capture.md).
 
 A captured item carries its discriminator: the one fact the decision turns
@@ -849,19 +856,18 @@ capturing a ready-now item is a loss.
   | --- | --- |
   | Generalisable practice | The existing `project-knowledge` route, unchanged |
   | Specific, real, blocked | Captured as a `work-item` |
-  | Specific, real, ready now | Dispatched in-session, not captured |
+  | Specific, real, ready now, ride-along eligible | Dispatched in-session, not captured |
+  | Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit |
   | Specific, failing the razor | Refused, non-silently |
 
-  Take the first row that applies and stop: a ride-along-eligible defect is
-  dispatched now, grouped with related fixes sharing a file or a seam, over
-  the human gate's `blocker-applied` return edge, ahead of this table; a
-  defect blocked on a decision, an instrument, elapsed time, or a dependency
-  is captured as a `work-item`; a ready-now defect that is not ride-along
-  eligible becomes the next independently reviewed unit in this session, over
-  that same edge, where ready-now means it can be finished this session
-  without a decision nobody present will make; and a defect the razor refuses
-  — one an existing artifact already covers, or one no capture criterion
-  admits — is refused, non-silently, rather than discarded. What a
+  Take the first row that applies and stop: a defect blocked on a decision, an
+  instrument, elapsed time, or a dependency is captured as a `work-item`; a
+  ready-now defect — one that can be finished this session without a decision
+  nobody present will make — was dispatched at DECIDE, which owns both
+  same-session routes and is the pass that runs while they are still
+  reachable, so neither of its two rows is captured here; and a defect the
+  razor refuses — one an existing artifact already covers, or one no capture
+  criterion admits — is refused, non-silently, rather than discarded. What a
   `work-item` capture must carry, what the razor checks, and what a refusal
   tells the author are in
   [Close-time work-item branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).

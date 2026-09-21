@@ -1548,3 +1548,70 @@ and `test_capture_section_routing_bullet` passes again against the shipped
 working material's copy of another artifact's content (§ The shipped
 clauses is not itself listed as one of this document's contract-tier
 sections), and the correction traces to `work-item-capture/notes/amendment-006.md`.
+
+## 2026-09-21 — C4's ready-now row splits, and the session-bound dispatch moves to DECIDE
+
+Registered as a `kind = "defect"` entry in `workspace.toml` `[backlog].open`
+against this spec's path, dispatchable once
+`docs/specs/work-item-capture/spec.md` shipped in core 2.26.26.
+
+**Two defects, one change.** C4's routing table sent two destinations to one
+row: the routing sentence below it distinguished a ride-along-eligible defect
+dispatched now from a ready-now defect that is not ride-along eligible and
+becomes the session's next reviewed unit, but the table gave them a single
+`Specific, real, ready now` row. Separately, `## Capture`'s intro carried
+"Run it before the session ends, though, not merely after the loop" — a bound
+naming no point in the loop an agent reaches, written by the session that
+shipped it (PR #1387) and flagged there as its own open question.
+
+**What changed.** The table is five rows: the ready-now row splits into
+`ride-along eligible` and `not ride-along eligible`, each naming one
+destination. § Step 5. DECIDE gains **Dispatch a ready-now defect in this
+pass, not at Capture**, which states both same-session routes and the
+`blocker-applied` return edge; that is the actionable bound, because DECIDE is
+a pass the loop reaches at a definite point. The unactionable paragraph was
+deleted only after that rule existed, so the section was never left with no
+timing guidance. `## Capture` now owns only the destinations that outlive the
+loop — the `project-knowledge` seam and a captured `work-item`.
+
+**A fourth pin the dispatch brief did not list.**
+`tests/roster/test_close_time_branch_table.py` pins `SKILL.md`'s table to
+`docs/specs/work-item-capture/spec.md` § D9's table, asserting exact row
+equality, `len(spec_rows) == 4`, and the exact four-item `whats` list. § D9 is
+contract in that spec (its `Contract tier` block names D9), the spec is
+`Status: Shipped`, and `docs/README.md:52` says a shipped spec is corrected by
+superseding it rather than by editing the body. Two further contract
+statements dereference the row numbering: § D4's declined set
+("rows two, three and four of § D9's table", and "row four's outcome"), and
+ticked `AC-0001` ("membership is rows two, three and four of § D9's table").
+So the fifth row could not be added without either reddening the roster suite
+or falsifying a ticked criterion in a frozen document.
+
+**Owner ruling, 2026-09-21, eugenelim.** Surfaced with three options —
+edit in place under an owner ruling, supersede § D9 with a new governance
+record, or keep four rows and disambiguate in prose only. The owner chose
+**edit in place**: the § D9 table, § D4's two ordinal sentences, and
+`AC-0001`'s ordinal are corrected as an in-place correction, and the roster
+test's three assertions move with them. This record is the authority, held
+outside the frozen document per the rule that licenses the exception.
+
+**Verification.**
+
+- `python3 -m pytest packs/core/tests/pack/ -q` — 250 passed, 17.61s. This is
+  the suite pinning C1–C7 and the `## Capture` section.
+- `python3 -m pytest tests/roster/test_capture_rename_guide.py::test_pinned_clauses_match_the_spec tests/roster/test_close_time_branch_table.py -q`
+  — 4 passed, 0.22s. AC3 still holds: C4's spec blockquote and the pack
+  constant were regenerated from the edited `SKILL.md` by one script rather
+  than transcribed, so neither could drift from the shipped bytes.
+- Release surface: `packs/core` 2.26.26 → 2.26.27 in `pack.toml` and
+  `.claude-plugin/plugin.json`, with its own free-standing changelog entry
+  directly above `[core][2.26.26]`.
+- Eval harness: one case added,
+  `ready-now-defect-dispatches-at-decide-not-at-capture`, grading that a
+  ready-now defect failing carve-out clause (i) becomes the next reviewed unit
+  at DECIDE and is neither captured nor left for `## Capture`.
+
+**Pre-existing and out of frontier.** This spec's ticked `AC9` pins the DECIDE
+routing row's first cell as `Does not match`; `SKILL.md` reads `Not required`
+there, having been reworded by later work. No control enforces AC9, so the
+drift is invisible and predates this change. Recorded, not repaired.
