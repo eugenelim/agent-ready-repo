@@ -6,7 +6,7 @@ remember Y"), gotchas ("the auth middleware caches tokens for 15
 minutes"), and antipatterns ("don't mock the database in integration
 tests"). One JSON object per line, scoped to a file glob. The schema
 and curation conventions live in
-[`docs/knowledge/README.md`](knowledge/README.md).
+the repository's `docs/knowledge/README.md`.
 
 **Why a separate bucket.** ADRs answer *why we decided X*;
 `architecture/` describes *current structure*; `guides/` is for

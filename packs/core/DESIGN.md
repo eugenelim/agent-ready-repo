@@ -96,15 +96,11 @@ Throughout this skill, **surface** means: stop the current loop, emit a short de
 
 `work-loop` has two modes chosen by the **risk of the work, not its file count**. A two-file change whose design the agent can predict can be light when no trigger fires. A one-file auth change is full.
 
-**Risk triggers — any one routes to full mode:**
-
-- **Unfamiliar** — the agent cannot predict the design.
-- **Multi-person** — multiple implementers or external collaborators participate; mandatory automated reviewers do not count.
-- **Multi-feature or dependent tasks** — it decomposes a multi-feature brief, or its tasks depend on one another.
-- **Compliance, governance, or security boundary** — auth, secrets, untrusted input, deserialization, or a changed file/network trust boundary, data flow, or guarding control.
-- **Structural or public-interface change** — new module, layer, or boundary; or a public/published interface.
-- **Destructive or irreversible operation** — deletes data, force-pushes, drops tables.
-- **New dependency** — adds a dependency.
+**Risk triggers — any one routes to full mode.** The `work-loop` skill's
+`SKILL.md` carries the canonical, complete list; this page does not repeat it,
+because a second copy drifts and this one had. Illustrative examples only: a
+changed security boundary, a new module or published interface, a changed
+persistent representation, a destructive operation, a new dependency.
 
 No trigger fires → light mode.
 

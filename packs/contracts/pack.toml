@@ -1,6 +1,6 @@
 [pack]
 name = "contracts"
-version = "0.3.6"
+version = "0.3.7"
 description = "Write the OpenAPI or AsyncAPI contract before anyone writes a handler."
 readme = "README.md"
 display_name = "Contracts"

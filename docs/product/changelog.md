@@ -64,6 +64,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.26] — 2026-09-20
+
+### Changed
+
+- The pre-EXECUTE design-intent pass now says in the skill what it already
+  was: advisory in both modes, and a light-mode surface change receives the
+  recommendation only. It is not a gate and does not block EXECUTE, so an
+  ordinary light change no longer reads as owing a pre-execution review.
+- Two links in `work-loop` references could never resolve, because they
+  pointed at repository paths from inside the installed pack. Both now name
+  the file in prose instead of linking to it.
+- `core`'s design notes no longer repeat the risk-trigger list. The skill's
+  `SKILL.md` is the canonical, complete home; the copy had already drifted
+  two triggers behind it, so the page now points at it and keeps only
+  clearly illustrative examples.
+
+## [contracts][0.3.7] — 2026-09-20
+
+### Changed
+
+- The pack README described `contract-acquisition` as firing when `work-loop`
+  "hits an unfamiliar API surface". It fires when the agent codes against a
+  contract it does not hold — unfamiliarity alone is not the condition.
+
 ## [core][2.26.25] — 2026-09-20
 
 ### Highlights

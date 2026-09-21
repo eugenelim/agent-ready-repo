@@ -289,7 +289,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
    ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory.
    ² Auth, secrets, untrusted input, deserialization, or a changed file/network trust boundary, data flow, or guarding security control. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
-   ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
+   ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. The design-intent pass is **advisory in both modes**, and a light-mode surface change receives that recommendation only — it is not a gate and does not block EXECUTE. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
    When an architect-pack integration activates `design-reviewer` inside this
    work-loop, treat its report as another fired pre-EXECUTE reviewer report and
