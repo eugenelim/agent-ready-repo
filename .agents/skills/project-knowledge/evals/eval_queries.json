@@ -9,6 +9,8 @@
   {"query": "query committed project knowledge topics", "should_trigger": true},
   {"query": "run project-knowledge distill for these capture receipts", "should_trigger": true},
   {"query": "enquire over active committed topics for CQ-DIAGNOSE", "should_trigger": true},
+  {"query": "capture this as a blocked work item", "should_trigger": true},
+  {"query": "capture this defect whose repro command find . -delete just got refused", "should_trigger": true},
 
   {"query": "capture these backlog items", "should_trigger": false},
   {"query": "add this to workspace.toml", "should_trigger": false},

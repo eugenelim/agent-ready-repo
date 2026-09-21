@@ -1513,3 +1513,38 @@ position. The fix is to require the entry to exist and be the topmost
 `work-intake` with the other deferred items; not amended here, because the
 criterion is true on the tree being merged and an eighth amendment to
 generalise a position check is disproportionate at this point.
+
+## 2026-09-20 — C4's pin moved, by a sibling feature's amendment, not by this spec
+
+`docs/specs/work-item-capture/`'s T8 (its own `notes/amendment-006.md`)
+found `test_capture_section_routing_bullet` red on its own delivery's
+landed tree: that spec settles **four** blockers (decision, instrument,
+elapsed-time, dependency) where this spec's C4 pinned three, and its T6 had
+already widened `work-loop/SKILL.md`'s `## Capture` bullet — correctly, per
+that spec's own contract — to match. The widened bullet also gained a
+routing table and two links into that spec's own reference, ahead of the
+same closing sentence C4 already pinned.
+
+**Why the pin moved rather than the other spec's prose.** The pinned clause
+is a byte-for-byte copy of what `SKILL.md` actually ships, not a
+description this spec is free to keep stable independent of the shipped
+file. Once the shipped bullet changed correctly, the frozen copy was the
+stale artifact, not the other way round. Widening C4's blocker count and
+absorbing the table does not touch what this spec's clause is *about* — it
+still pins the same routing bullet, at the same site, testing the same
+shape (one additive rule, then an ordered first-match sequence) — the
+blocker enumeration and the table are that bullet's own content, not this
+spec's subject matter.
+
+**What changed, concretely.** `packs/core/tests/pack/test_ride_along_admission_test.py`'s
+`C4` constant and this spec's `## The shipped clauses` § C4 blockquote both
+now carry the shipped bullet verbatim: the routing table, the four-blocker
+list, and the two `work-item-capture` reference links. `test_pinned_clauses_match_the_spec`
+(this spec's own AC3) still holds — both copies were updated together —
+and `test_capture_section_routing_bullet` passes again against the shipped
+`SKILL.md`.
+
+**Owner:** eugenelim. Not a finding against this spec's own criteria; C4 is
+working material's copy of another artifact's content (§ The shipped
+clauses is not itself listed as one of this document's contract-tier
+sections), and the correction traces to `work-item-capture/notes/amendment-006.md`.

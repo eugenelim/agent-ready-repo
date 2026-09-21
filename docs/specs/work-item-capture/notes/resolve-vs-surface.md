@@ -438,3 +438,32 @@ review.
 **Two residuals ship accepted and unmitigated**, both disclosed in the spec:
 the dot-component rule reaches dot-leading names only, and no write-time prose
 control is re-established at execution.
+
+## Known transient: the register has no slot for approved-and-unmerged
+
+`tests/roster/test_workspace_status_projection.py::RepositoryHealthTests::test_no_fail_closed_lifecycle_findings`
+reports an `impossible_transition` against this spec, and it is **correct**:
+the spec is registered in `[backlog].open`, which holds work not yet started,
+and its `Status:` is now `Approved`.
+
+**Caused by this delivery**, not pre-existing. The entry was `Draft` in
+`[backlog].open`, which is valid; approving the spec is what made the pairing
+impossible. An implementer report called it pre-existing; that was wrong.
+
+**Left open deliberately, 2026-09-20.** The register has no honest slot for
+this state. The top-level `[backlog]` carries only `open`; an initiative's
+work collections carry `active` and `shipped`; this spec is approved and
+implemented but **not merged**, so none of the three is true. The three ways
+to silence the gate now are: mark it shipped (false), revert its status to
+draft (false), or invent an `active` list at the top level (a schema change
+to a shared file, which is the repository owner's call and not this
+delivery's).
+
+**Resolves at merge.** When the branch lands the spec becomes `Shipped` and
+the entry moves to a terminal collection, which is the transition
+`[backlog].shipped` exists for elsewhere in this file. Until then the finding
+is expected and this note is the record that it was seen, understood and
+chosen rather than missed.
+
+Anyone running the full roster suite before that merge will see one failure.
+It is this one.

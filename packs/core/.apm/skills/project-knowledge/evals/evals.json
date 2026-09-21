@@ -124,6 +124,33 @@
         "Allows recovery from the unchanged preimage or the semantically verified postimage",
         "Preserves lifecycle and retirement metadata when the update does not explicitly change them"
       ]
+    },
+    {
+      "id": "capture-work-item-blocked-defect",
+      "prompt": "A work-loop close found a specific, real defect it cannot fix now: the retry helper double-counts a timeout, and fixing it needs an owner decision on which counter is authoritative. Capture it as a work item rather than as a reusable lesson.",
+      "expected_output": "The response selects capture mode and shapes a work-item request, not a pattern/gotcha/antipattern one: kind work-item, and a work_item object carrying statement, shape defect, blocker decision, finished_state, necessity_rationale, and either a verification_route or both observed and intended. It states that the record is validated by a per-item cold reasoning check with no access to this session before anything is written, and that a submission with no recognized verdict from that check is refused rather than written. It must not write the record itself, skip the reasoning check, or treat this defect as generalisable practice bound for the pattern/gotcha/antipattern route.",
+      "assertions": [
+        "Selects capture mode and sets kind to work-item, not pattern/gotcha/antipattern",
+        "Shapes a work_item object with statement, shape=defect, blocker, finished_state, and necessity_rationale",
+        "Supplies a verification_route or both observed and intended for the defect shape",
+        "States that a per-item cold reasoning check with no access to this session runs before any write",
+        "States that a submission with no recognized verdict from that check is refused, not written",
+        "Does NOT treat the item as generalisable practice routed to pattern/gotcha/antipattern",
+        "Does NOT write the record directly, bypassing the reasoning check"
+      ]
+    },
+    {
+      "id": "capture-work-item-command-refusal",
+      "prompt": "Capture a work-item defect whose reproduction step is `find . -maxdepth 1 -fprint out.txt` against docs/x.md, blocked on an instrument. What happens to the stored command?",
+      "expected_output": "The response explains the command is refused at write time before any dispatch: `find` is outside the four-tool verification_route.command allowlist (cat, wc, grep, ls), and separately every option-shaped element (one beginning `-`) is refused outright, since a stored command must be read-only and options are exactly what make find -fprint write a file. It returns a refusal from the closed diagnostic catalog (work_item_command_tool or work_item_command_option) and states nothing is stored — the whole record is refused, not just the command field, and the author may supply observed/intended instead since a defect does not require a command.",
+      "assertions": [
+        "States the command is refused at write time before storage",
+        "Names find as outside the argv[0] allowlist (cat, wc, grep, ls)",
+        "Separately names the leading `-` in -fprint / -maxdepth as refused under the no-options rule",
+        "Names a diagnostic code from the closed catalog (work_item_command_tool or work_item_command_option)",
+        "States nothing is stored on this refusal",
+        "Names observed/intended as the available substitute for a defect with no admissible command"
+      ]
     }
   ]
 }
