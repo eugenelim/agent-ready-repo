@@ -428,6 +428,38 @@ shipped = [
   # proves both sides absent. ADR-0114 forbids an atomic prune, so the invariant
   # closes the operation rather than the window. Shipped 2026-09-14.
   {path = "docs/specs/two-sided-prune-closure-invariant/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md"}, summary = "Remove an approved selection of delivery artifacts and every workspace.toml membership resolving to them, proving both absent in one coherent locked observation before exit zero, and failing whenever either half survives", needs = [{type = "local", kind = "spec", path = "docs/specs/selection-scoped-membership-absence/spec.md"}]},
+  # Shipped 2026-09-20. Membership tracked this spec's Status: `queue` while
+  # it was Draft or Approved, `shipped` at closeout. The engine refuses a
+  # mismatch as `impossible_transition`.
+  # S1 of the architect-design conditional-overlays intent, authored 2026-09-20.
+  # It adds a system-shape axis to the `architect-design` router: the routing
+  # region, its construction suite, an eval case, and the ADR-0118 erratum that
+  # homes the shared names. The overlay probe the intent pairs with it was cut
+  # from this spec after eight review rounds established its open questions are
+  # empirical, not specificational. It then ran as a spike against T1's
+  # working-tree draft of the axis -- not the delivered bytes; review changed
+  # two sentences afterwards, and `notes/probe/method.md` names both and what
+  # they cost. It returned no verdict, so S2 and S3 stay gated -- the
+  # condition they wait on is unmet, not lifted;
+  # `docs/specs/architect-design-shape-overlay/notes/probe/` holds the record.
+  # The parent intent carried a `needs` edge to
+  # `architect-design-gate-calibration` on its own `backlog.open` entry, and
+  # that is what blocked the parent canonically; the edge was
+  # verification-only in the intent's prose and `needs` has no soft kind. It
+  # was also unsatisfiable by construction: `intent` is terminal only at
+  # `Accepted` or `Fulfilled`, and `backlog.open` admits a non-defect entry at
+  # `Draft` only, so the calibration intent could not go terminal while it sat
+  # there — running the calibration would not have cleared it. The owner
+  # decided 2026-09-20 to register this spec independently of that edge; the
+  # same day the parent reached `Accepted`, its entry was unregistered, and
+  # the edge went with it. The intent's `## De-risk` measurement-dependency
+  # paragraph is that dependency's home now.
+  # `source.revision` is omitted deliberately. Measured 2026-09-20 over this
+  # file: of 25 distinct (`ref`, `sha256-bytes-v1`) pairs, 4 reproduce from
+  # the cited artifact's current bytes, 20 differ and 1 `ref` is not a file.
+  # A computed digest here would therefore assert a provenance check that
+  # nothing performs and that most entries already fail.
+  {path = "docs/specs/architect-design-shape-overlay/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/architect-design-conditional-overlays.md"}, summary = "Add a system-shape axis to the architect-design router; the overlay probe ran separately as a spike and returned no verdict", needs = []},
 ]
 queue   = [
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
@@ -533,7 +565,6 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  {path = "docs/product/intents/architect-design-conditional-overlays.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0118-architect-design-scope-routed-model-first-templates.md", revision = "c4b2f5912bad080f095ffb32d354b54c31d6c54f"}, summary = "Route the system-shape and workload-class lenses a design turns on, and show a layered subsystem's internal boundaries when the boundary is the decision", needs = [{type = "local", kind = "intent", path = "docs/product/intents/architect-design-gate-calibration.md"}]},
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified

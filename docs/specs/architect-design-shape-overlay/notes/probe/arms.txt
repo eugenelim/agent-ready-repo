@@ -1,0 +1,30 @@
+# The four design arms
+
+All four answer `source-problem.md`, frozen before any was authored. Full
+SHA-256 values are in `arms.sha256`, computed over the files committed here, so
+the counts in `verdict-final.md` can be re-derived rather than taken on trust.
+
+| Arm | Author | Router | Words | Used in |
+| --- | --- | --- | --- | --- |
+| `arm-a.md` | Claude | skill at commit `7c794b79`, no shape axis | 3854 | treatment pair, control pair |
+| `arm-b.md` | Claude | skill with T1's axis at SHA-256 `604962f3…`, **not** the delivered file; `method.md` states the two sentences that differ and why no delivered digest is pinned | 3873 | treatment pair |
+| `arm-c.md` | Claude | skill at commit `7c794b79`, byte-identical to arm A's | 3902 | control pair |
+| `arm-d.md` | Codex `gpt-5.6-sol` | skill at commit `7c794b79`, no shape axis | 3275 | **no judgment — see below** |
+
+## Why arm D exists and why no judgment used it
+
+Arm D was the unrouted half of a planned cross-family pair: a Codex baseline
+against a Codex routed arm, to test whether the overlay helps an author from a
+different model family. Its routed partner was started and then deliberately
+stopped once the control pair returned, because a single cross-family pair would
+inherit the same defect the control had just exposed — one pair cannot separate
+an overlay from that author's own run-to-run spread, and answering it for Codex
+would have needed a Codex control too.
+
+Arm D is kept rather than deleted because it is real evidence of something else:
+the same procedure and brief, run by a different model family, produced a
+document of 3275 words against arm A's 3854 — 2728 against 3300 by the gate's
+own count. That is the cross-family baseline spread on the one dimension this
+record can re-derive, and a later measurement study starts from it rather than
+re-running it. The two runs also reported loading different concept sets, but
+no committed artifact records either list, so no count is claimed here.
