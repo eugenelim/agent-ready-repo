@@ -86,6 +86,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source still requires its digest, and an omitted key is still refused —
   only an explicit `null` is admitted.
 
+## [frontend-engineering][0.3.1] — 2026-09-21
+
+### Highlights
+
+- **Verify mode's gate list now names the rendered-page inspection.** The
+  inspection gate has shipped for some time, and both the visual QA checklist
+  and the evidence manifest already required it. The verify procedure now
+  enumerates all five gates and counts five.
+
+### Fixed
+
+- `frontend-engineering`: the verify-mode procedure enumerates the
+  rendered-page inspection gate, and the prose beneath it counts five gates
+  rather than four. Gate 5's capture, judgement, privacy, completeness, and
+  no-baseline rules are unchanged; the step points at them rather than
+  restating them.
+- `frontend-engineering`: the state-matrix rationale no longer cites a study of
+  AI-generated dashboards that cannot be sourced. The instruction it supported
+  — enumerate every state, naming empty and error explicitly — remains.
+- The pack README's verify job described a gate sequence the pack does not run:
+  a typecheck, a Playwright baseline, and a Core Web Vitals measurement. It now
+  names the five gates that exist, and no longer claims the run writes nothing
+  while it writes the evidence manifest.
+- The README's worked example routed a notification panel to
+  `documentation-design`; the skill's routing table sends a component
+  interaction to `interaction-design`. The example also reported LCP, CLS, and
+  INP values that no gate produced; it no longer reports them.
+
 ## [core][2.26.27] — 2026-09-21
 
 ### Highlights
