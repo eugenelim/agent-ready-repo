@@ -73,10 +73,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pass, which the loop reaches at a definite point, so a fix that could
   have shipped in this change no longer reaches the close with nowhere left
   to go.
-- **The close-time routing table no longer sends two different
-  destinations to one row.** A ready-now defect that can ride along and one
-  that needs its own review unit are separate rows, so reading the table
-  tells you which of the two you have.
+- **You can now read one row of the close-time table and know where your
+  defect goes.** A ready-now fix that can ride along and one that needs its
+  own review unit sit on separate rows, so telling them apart no longer
+  means reading past the table into the paragraph below it.
 
 ### Changed
 

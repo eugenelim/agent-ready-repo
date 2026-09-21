@@ -1570,15 +1570,25 @@ becomes the session's next reviewed unit, but the table gave them a single
 naming no point in the loop an agent reaches, written by the session that
 shipped it (PR #1387) and flagged there as its own open question.
 
-**What changed.** The table is five rows: the ready-now row splits into
-`ride-along eligible` and `not ride-along eligible`, each naming one
-destination. § Step 5. DECIDE gains **Dispatch a ready-now defect in this
-pass, not at Capture**, which states both same-session routes and the
-`blocker-applied` return edge; that is the actionable bound, because DECIDE is
-a pass the loop reaches at a definite point. The unactionable paragraph was
-deleted only after that rule existed, so the section was never left with no
-timing guidance. `## Capture` now owns only the destinations that outlive the
-loop — the `project-knowledge` seam and a captured `work-item`.
+**What changed.** This paragraph is written against the tree as shipped, and
+was rewritten in round 3 after two review rounds changed what shipped.
+
+The table is five rows: the ready-now row splits into `ride-along eligible`
+and `not ride-along eligible`, each naming one destination and nothing else.
+§ Step 5. DECIDE gains **Route a ready-now defect in this pass, not at
+Capture**, which is the actionable bound: it names the pass where the route
+is settled, and it states no destination, no return edge and no claim about
+when Capture runs, because that section already owns all three and a second
+statement of any of them is a drift surface. The unactionable intro
+paragraph was deleted only after that bound existed.
+
+C4's routing sentence keeps every normative clause it carried on
+`origin/main`, verbatim, including the grouping rule "grouped with related
+fixes sharing a file or a seam". Its clauses are reordered to the table's
+order, and its one deletion is "ahead of this table", which the split makes
+false because the ride-along case now has a row. A word-level comparison of
+the whole clause against `origin/main` shows that phrase as the only
+normative removal.
 
 **A fourth pin the dispatch brief did not list.**
 `tests/roster/test_close_time_branch_table.py` pins `SKILL.md`'s table to
@@ -1691,7 +1701,11 @@ nearby defect is exactly what the frontier rule excludes. The two rules have
 disagreed since C4 shipped; this change neither introduced nor widened the
 disagreement, and it kept them apart rather than picking a winner, because
 choosing one changes what an agent may do and belongs to whoever owns the
-frontier doctrine. Owner: work-loop maintainer, via `work-intake`.
+frontier doctrine. Row four names its destination and points nowhere, which
+is the state `origin/main` shipped; round 2 briefly added a `decided at
+DECIDE` pointer that sent the reader into the section denying that
+destination, and round 3 removed it. Owner: work-loop maintainer, via
+`work-intake`.
 
 ### Review round 2 — ten findings, seven applied, three carried
 
@@ -1742,3 +1756,66 @@ entry's blank line is gone.
   is absent on `origin/main` too, so this predates the change, which neither
   widened nor narrowed it. Out of frontier.
 - The C4-row-four versus `SKILL.md:710` disagreement, recorded above.
+
+### Review round 3 — the class, named
+
+Three rounds, three blockers, one failure mode. Round 1's repair created
+round 2's blocker; round 2's repair created round 3's. Each time the same
+thing happened: a statement was rewritten in one place and left standing in
+another that carried it.
+
+**The class.** The prose being edited is a single clause replicated across
+seven surfaces — `SKILL.md`, its C4 blockquote in this spec, the `C4`
+constant in the pack suite, § D9 in `work-item-capture/spec.md`, the eval
+harness, the reference the clause links to, and three generated projections.
+Rewriting a sentence there is a seven-surface edit, and each round walked
+only the surfaces its own finding named.
+
+**The generator, not the instances.** The root cause is not that a surface
+was missed. It is that the change rewrote a sentence the brief never asked
+to rewrite. The brief said the only substantive content change is row
+three's split, and the routing sentence below the table was rewritten
+anyway — first to point at DECIDE, then again, then again. Each rewrite
+opened a fresh conservation obligation across all seven surfaces, and round
+3 found the cost: "grouped with related fixes sharing a file or a seam", a
+normative grouping rule shipped on `origin/main`, had been deleted from
+every surface with no record and no authority. `git grep` returned zero hits
+under `packs/`, `.claude/`, `.agents/` and `guides/`.
+
+**The repair.** Round 3 rebuilt the sentence from `origin/main`'s wording
+rather than patching the rewrite. Every normative clause returns verbatim,
+the clauses are reordered to the table's order, and the one deletion is
+"ahead of this table", which the split makes false. The DECIDE paragraph was
+cut back to a timing bound that states no destination, no return edge and no
+Capture-timing claim — so it has no drift surface at all.
+
+**The instrument that would have caught it in round 1.** A word-level
+comparison of the whole C4 clause against `origin/main`, reporting every
+token added and removed. Run after the repair, it reports exactly four
+opcodes: the row-three cell gaining `, ride-along eligible`; the new row
+four; the blocked clause moving ahead of the ride-along clause; and the
+removal of `edge, ahead of this table;`. Nothing else in C4 changed. A
+sentence rewrite would have shown as a wall of replacements, which is the
+signal that was missing for two rounds.
+
+**Concern 5's surface was walked by neither earlier round.**
+`packs/core/.apm/skills/work-loop/references/work-item-capture.md` enumerated
+the declined set as three rows. It is the file C4's own text links to, and
+it appears in no round-1 or round-2 record. Corrected to four rows, with the
+note that both ready-now rows carry `dispatched-in-session`.
+
+### Round 3 dispositions
+
+- **Blockers 1, 2, 3 and Concerns 4, 5, Nit 7 — applied**, as above.
+- **Concern 6 — refuted on the text.** `AC15` describes two eval cases and
+  their required properties; both are present and unchanged. It does not
+  say `evals.json` carries only two, and no control counts them. The third
+  case is required by `packs/AGENTS.md` § Version bump rule, which obliges a
+  non-cosmetic pack update to update that pack's eval harness. Recorded
+  rather than edited, because editing a ticked criterion to absorb a case it
+  never described would be the widening this ledger already refused once.
+- **Nit 8 — pre-existing, out of frontier.** § D9's intro names the retired
+  `§ Capture learnings`. `git show origin/main:docs/specs/work-item-capture/spec.md`
+  carries the same text at line 600, and at line 69. `AC12`'s sweep covers
+  `packs/`, `tools/` and `guides/`, so `docs/` drift is outside it. Not
+  caused, widened or narrowed here.

@@ -722,14 +722,10 @@ repairing its generator or dropping it.
 
 **Route a ready-now defect in this pass, not at Capture.** A scratch note
 naming a specific, real defect that can be finished this session without a
-decision nobody present will make is loop work, and this pass is where it is
-routed: the intent-fit table opening this step decides whether the current
-intent requires it, and the bundled-fixes carve-out decides whether it may
-share this review unit. [Capture](#capture) names both same-session
-destinations but runs no pass that reaches them — it owns only what outlives
-the loop, the `project-knowledge` seam and a captured `work-item` — so a
-ready-now defect carried past this pass arrives somewhere that can record it
-and not dispatch it.
+decision nobody present will make is loop work, and this pass is where its
+route is settled. [Capture](#capture) maps where a note goes; it does not
+reopen a route, and two of the destinations it maps need a loop that is
+still open.
 
 ### Review verdict record
 
@@ -855,17 +851,20 @@ capturing a ready-now item is a loss.
   | --- | --- |
   | Generalisable practice | The existing `project-knowledge` route, unchanged |
   | Specific, real, blocked | Captured as a `work-item` |
-  | Specific, real, ready now, ride-along eligible | Dispatched in-session at DECIDE, not captured |
-  | Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit, decided at DECIDE |
+  | Specific, real, ready now, ride-along eligible | Dispatched in-session, not captured |
+  | Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit |
   | Specific, failing the razor | Refused, non-silently |
 
   Take the first row that applies and stop: a defect blocked on a decision, an
   instrument, elapsed time, or a dependency is captured as a `work-item`; a
-  ready-now defect — one that can be finished this session without a decision
-  nobody present will make — is routed at DECIDE, which owns both same-session
-  routes, so neither of its two rows is captured here; and a defect the
-  razor refuses — one an existing artifact already covers, or one no capture
-  criterion admits — is refused, non-silently, rather than discarded. What a
+  ride-along-eligible defect is dispatched now, grouped with related fixes
+  sharing a file or a seam, over the human gate's `blocker-applied` return
+  edge; a ready-now defect that is not ride-along eligible becomes the next
+  independently reviewed unit in this session, over that same edge, where
+  ready-now means it can be finished this session without a decision nobody
+  present will make; and a defect the razor refuses — one an existing
+  artifact already covers, or one no capture criterion admits — is refused,
+  non-silently, rather than discarded. What a
   `work-item` capture must carry, what the razor checks, and what a refusal
   tells the author are in
   [Close-time work-item branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).
