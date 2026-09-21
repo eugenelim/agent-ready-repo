@@ -94,3 +94,22 @@ adjacency property itself holds in the shipped file and the `agentbundle` entry
 sits immediately below core's newest, but no suite asserts it. Either T3's
 `Tests` should name a check that exists, or the claim should be recorded as
 unverified.
+
+## Owner authorization for the T3 plan amendment
+
+2026-09-21, owner eugenelim, in session: "authorized the plan change" — the
+controlled amendment correcting T3's `Tests` and `Touches` so they name a check
+that exists. The defect is the one recorded directly above: T3 credited
+`tools/test_build_site_routing.py` with an adjacency, topmost, or newest-entry
+assertion that file does not make, and did not name that file in `Touches`
+either.
+
+The substance is already shipped. `tests/roster/test_okf_catalogue_discovery.py`
+now asserts position for all three ordered release surfaces — the package
+changelog's topmost `## [` heading, the product changelog's first
+`## [agentbundle][` heading, and the README's newest `## What's new in`
+heading. The amendment makes T3's pinned fields say so.
+
+T1 and T2 are the completed tasks at the time of the amendment (waves 0 and 1;
+wave 2 holds T3 and T4). This file is their evidence binding: T1's red and its
+counts, and T2's pre-fix revert measurement, are recorded above.
