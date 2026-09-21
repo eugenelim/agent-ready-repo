@@ -38,7 +38,9 @@ ordinal out of circulation for as long as its tombstone stands.
   ordinal is never carried across a rename, so this is a retire-and-issue
   operation rather than a renumber in place, and ADR-0108 D2's bar on
   renumbering on insertion or reorder is never reached
-- A tombstone left at every filename an intent vacates — `docs/product/intents/`
+- A tombstone left at every filename an intent vacates —
+  `docs/product/intents/`. This slice writes the reissue shape; the retirement
+  shape is contracted here and written by a follow-on
 - The citation sweep — `docs/product/**`, `docs/specs/**`, and `workspace.toml`,
   the three trees that cite an intent by path
 - A `Tombstone:` preamble field and the shape of the artifact carrying it —
@@ -89,7 +91,9 @@ ordinal out of circulation for as long as its tombstone stands.
 
 ### Never do
 
-- Reuse an ordinal, including one whose tombstone was deleted by hand.
+- Reuse an ordinal whose tombstone stands. Deleting a tombstone by hand is
+  out-of-contract corpus corruption of the same kind as deleting a live intent,
+  and nothing here detects either; `## Assumptions` carries the residual.
 - Delete an intent file. A retirement is a tombstone, not a deletion.
 - Add a new top-level directory, a new module boundary, or a new dependency.
   The operation ships inside an existing owner.
@@ -127,11 +131,15 @@ ordinal out of circulation for as long as its tombstone stands.
 - **Citation conservation: TDD.** The fixture's citing files are compared byte
   for byte before and after, so a citation removed rather than repointed fails
   even though the vacated path is gone.
-- **Retirement's own success path: TDD.** A retirement request completes and
-  its tombstone is read back for `Retired:` and for the absence of
-  `Reissued as:`.
 - **The pre-run refusal: TDD.** A fixture with an uncommitted change on a path
   the operation would touch must refuse before writing anything.
+- **The request contract: TDD.** One refusing fixture per part — an absent
+  source, a source outside `docs/product/intents/`, a token outside
+  `NAMESPACE_TOKENS`, an unrecognized cause — so a positive path cannot be
+  satisfied by refusing everything.
+- **Journal completeness: TDD.** The operation is killed at each write point
+  and the journal is compared against the paths the filesystem and index
+  actually show changed, in both directions.
 - **The tombstone's three-field shape: TDD.** A parse with conforming and
   non-conforming fixtures. The partition walk over a whole corpus belongs to
   `intent-metadata-shape-contract`'s lint; what this slice proves is that every
@@ -153,20 +161,24 @@ ordinal out of circulation for as long as its tombstone stands.
 
 - [ ] **AC-0001.** After a rename, the vacated path occurs in no tracked file
       except the tombstone standing at it and this spec's own
-      `notes/verification-ledger.md`. The relation is string occurrence over
-      git's tracked set, not a list of citation forms: enumerating forms is
-      what leaves a stale citation passing, and a bare path in a `Discovery:`
-      or `Brief:` header is already a form no link-target rule reaches.
-- [ ] **AC-0002.** Every `Slug:` value in the intent corpus is byte-identical
-      before and after a rename. The field is the identity anchor a rename does
-      not touch; `intent-metadata-shape-contract` AC-0001 is what requires it on
-      every live intent, and this criterion does not assert that the corpus
-      already satisfies that requirement.
-- [ ] **AC-0003.** Any failure the operation surfaces leaves the working tree
-      byte-identical to its pre-run state, and the operation makes no durable
-      change outside that tree. A process killed mid-write is outside this
-      guarantee: because nothing durable lands elsewhere, recovery is `git
-      restore`, which the operation relies on rather than reimplements.
+      `notes/verification-ledger.md`. The searched set is the pre-run tracked
+      set plus every file the operation creates, whatever its index state, so
+      an unstaged successor cannot escape the search. The relation is string
+      occurrence, not a list of citation forms: enumerating forms is what
+      leaves a stale citation passing, and a bare path in a `Discovery:` or
+      `Brief:` header is already a form no link-target rule reaches.
+- [ ] **AC-0002.** After a rename the successor's `Slug:` bytes equal the
+      retired source's, the tombstone carries those same bytes, and every
+      unaffected intent keeps its prior `Slug:` bytes. The corpus gains an
+      occurrence of that value rather than preserving a collection, so the
+      mapping is stated directly.
+- [ ] **AC-0003.** A failure the operation detects and surfaces — a refused
+      validation, a rejected path, a failed read or write it observes — leaves
+      the working tree and the index byte-identical to their pre-run state.
+- [ ] **AC-0023.** After a process killed mid-write, every path the operation
+      created, modified, deleted or staged is named in its journal, and no
+      other path is. Recovery is restoring exactly that set, and the operation
+      makes no durable change outside the working tree and index.
 - [ ] **AC-0004.** For every token the allocator recognizes — its
       `NAMESPACE_TOKENS`, derived from the closed level-to-token table the
       parent intent owns — its next ordinal exceeds every ordinal that token
@@ -192,10 +204,15 @@ ordinal out of circulation for as long as its tombstone stands.
       for the target token, measured once against the corpus as it stands
       before the operation's first write, and never the vacated ordinal reused
       under a different token.
-- [ ] **AC-0013.** A well-formed rename request for either cause — a duplicate
-      ordinal, or an altitude change — succeeds, leaving a tombstone at the
-      vacated path whose `Reissued as:` value is the new live artifact's
-      repository-relative path.
+- [ ] **AC-0021.** A rename request carries exactly three things: the
+      repository-relative path of an existing live intent inside
+      `docs/product/intents/`, the target token from the allocator's
+      `NAMESPACE_TOKENS`, and the cause, one of `duplicate-ordinal` or
+      `altitude-change`. A request missing or failing any of the three is
+      refused, naming the part at fault.
+- [ ] **AC-0013.** A request satisfying AC-0021 succeeds for either cause,
+      leaving a tombstone at the vacated path whose `Reissued as:` value is the
+      new live artifact's repository-relative path.
 - [ ] **AC-0015.** `Tombstone:` carries an ISO 8601 date, sampled once in UTC
       at the moment the operation opens its transaction, so an operation
       spanning midnight writes one date rather than two.
@@ -206,9 +223,6 @@ ordinal out of circulation for as long as its tombstone stands.
 - [ ] **AC-0018.** Every file that cited the vacated path before a rename cites
       the new path after it, and no other content in that file changes. A
       citation is repointed, never removed.
-- [ ] **AC-0019.** A retirement request with no successor succeeds, leaving a
-      tombstone whose `Retired:` value is the supplied reason and which carries
-      no `Reissued as:`.
 - [ ] **AC-0020.** The operation refuses before its first write when any path
       it would touch carries an uncommitted change, so the `git restore`
       recovery AC-0003 relies on cannot discard unrelated work.
@@ -218,6 +232,12 @@ ordinal out of circulation for as long as its tombstone stands.
 - `AC-0011` — first-time allocation for an intent authored through a
   non-allocating route. A separate outcome, releasable and verifiable on its
   own, recorded under `## Follow-ons` with its owner.
+- `AC-0019` — standalone retirement's success path. Sustained in all three
+  shaping rounds as an independently shippable outcome with its own input,
+  semantics and refusals; sharing the transaction is not sharing the outcome.
+  The `Retired:` field shape stays in the tombstone contract at `AC-0005` and
+  `AC-0017`, because the sibling lint validates both tombstone shapes whoever
+  writes them. What left is the operation.
 - `AC-0014` — the three tombstone field value shapes as one criterion. Split
   into `AC-0015`, `AC-0016` and `AC-0017`: date parsing, path confinement and
   free-text non-emptiness are different failures with different remedies.
@@ -242,6 +262,11 @@ ordinal out of circulation for as long as its tombstone stands.
   introduces a gate over `docs/product/intents/`, which is a place such a check
   could run; deciding whether it belongs there is that spec's, and how an
   adopter runs it is theirs.
+- eugenelim: `docs/product/briefs/intent-identity-and-registration.md` —
+  retiring an intent with no successor. Its tombstone shape is contracted here,
+  at `AC-0005` and `AC-0017`, so a retirement written by any means is
+  validated; the operation that writes one is a separate outcome and left as
+  retired `AC-0019`. The brief's Spec map is where its slice would be cut.
 - eugenelim: `docs/product/briefs/intent-identity-and-registration.md` — an
   intent authored after cutover through a route that allocates no ordinal still
   acquires none. That outcome is releasable and verifiable on its own, so it
