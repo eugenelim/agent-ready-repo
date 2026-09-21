@@ -18,24 +18,32 @@
 
 ## Outcome
 
-A product engineer whose decomposition shows an intent was framed at the wrong
-altitude corrects its filename in one operation, breaking no reference and
-freeing no ordinal for reuse. The change lands whole or not at all: every
-citation moves, the registry moves with it, and anyone arriving on an old link
-is told where the artifact went.
+A product engineer whose intent must change filename — because two branches
+minted the same ordinal, or because its altitude changed and the type token
+moves — retires the old name and issues a new one in a single operation. The
+new ordinal always comes from the allocator for the target type, every citation
+moves with it, the registry moves in lockstep, and the vacated name is never
+minted again.
 
 ## What Changes
 
-- Numbering, renumbering, and retiring an intent — one confined transactional
-  operation, where today no surface may rename an intent at all. It is the
-  correction step the shaping loop already assumes: `frame-intent` asserts
-  `Level`, admission mints the ordinal from it, and `decompose-intent` is where
-  the altitude is actually tested
+- Retiring one intent filename and issuing another — one confined transactional
+  operation, where today no surface may rename an intent at all
+- Two causes, one mechanism. A duplicate ordinal, which `max + 1` cannot
+  prevent because ADR-0108's Context records that it "cannot see an unpushed
+  sibling"; and an altitude change, which the shaping loop already assumes —
+  `frame-intent` asserts `Level`, admission mints the ordinal from it, and
+  `decompose-intent` is where the altitude is actually tested
+- The new ordinal comes from the allocator for the target type, always. An
+  ordinal is never carried across a rename, so this is a retire-and-issue
+  operation rather than a renumber in place, and ADR-0108 D2's bar on
+  renumbering on insertion or reorder is never reached
 - A tombstone left at every filename an intent vacates — `docs/product/intents/`
 - The citation sweep — `docs/product/**`, `docs/specs/**`, and `workspace.toml`,
   the three trees that cite an intent by path
 - A `Tombstone:` preamble field and the shape of the artifact carrying it —
-  home open, see `## Assumptions`
+  defined by this spec, and validated by
+  `intent-metadata-shape-contract`'s lint under its AC-0017
 - An operator how-to — `guides/product-engineering/how-to/`
 - Where it ships — inside `packs/core`, so an adopter installing core has it,
   beside the allocator it depends on
@@ -53,7 +61,7 @@ is told where the artifact went.
 | --- | --- | --- | --- | --- | --- |
 | Decision rationale | Applicable — the tombstone convention constrains every later intent, and ADR-0108 D3's non-reuse rule is the thing it implements for a second artifact class | `docs/adr/` | eugenelim | An Accepted ADR stating the tombstone convention and its two rejected alternatives | The ADR exists and this spec cites it in `Constrained by:` |
 | Interface compatibility | Applicable — `Tombstone:` is a new durable field in an adopter-visible artifact | `guides/product-engineering/reference/intent-fields-and-modes.md` | eugenelim | The field and its three-field contract documented alongside the existing intent fields | The reference page describes the field an adopter will see |
-| Maintainer procedure | Applicable — the operation is operator-invoked and its refusals need a recovery story | `guides/product-engineering/how-to/` | eugenelim | A how-to covering the three callers and what to do after a refusal | The page walks one real renumber end to end |
+| Maintainer procedure | Applicable — the operation is operator-invoked and its refusals need a recovery story | `guides/product-engineering/how-to/` | eugenelim | A how-to covering both causes and what to do after a refusal | The page walks one real rename end to end |
 | Current product truth | Applicable — `intake-intent` and `work-intake` both state that nothing renames an intent | the two `SKILL.md` bodies | eugenelim | Those statements point at this operation instead of asserting the capability wall | No skill still claims an intent can never be renamed |
 | Release history | Applicable — the operation ships inside `packs/core` | `packs/core/CHANGELOG.md` | eugenelim | One entry for the shipped operation | Entry present under the released version |
 | Reusable learning | Applicable — the sweep's reach was measured rather than assumed | `docs/specs/intent-renumber-and-reissue/notes/verification-ledger.md` | eugenelim | The measured citation counts and what they bound | The ledger records the measurement the criteria rest on |
@@ -67,6 +75,8 @@ is told where the artifact went.
   before any write.
 - Edit `workspace.toml` inside the same transaction as the rename, never after it.
 - Leave a tombstone at every filename the operation vacates.
+- Take the new ordinal from the allocator for the target type. Never carry an
+  ordinal across a rename and never choose one by hand.
 - Refuse to a human. The operation is operator-invoked only: no workflow calls
   it unattended, so every refusal has a reader.
 
@@ -88,11 +98,14 @@ is told where the artifact went.
 ## Testing Strategy
 
 - **The sweep's completeness: TDD.** A compressible invariant — after a
-  renumber, no citation of the old path survives in the three cited trees — so
+  rename, no citation of the old path survives in the three cited trees — so
   a test can hold it over a fixture corpus.
 - **Transactionality: TDD.** A failure injected at each write point must leave
   the tree byte-identical, which is a property a test asserts and a reviewer
   cannot.
+- **Fresh allocation: TDD.** A fixture where the vacated ordinal is free under
+  the target token is the case a carried-across ordinal would pass; the
+  assertion is that the operation still takes the allocator's next value.
 - **The tombstone's three-field shape: TDD.** A parse with conforming and
   non-conforming fixtures. The partition walk over a whole corpus belongs to
   `intent-metadata-shape-contract`'s lint; what this slice proves is that every
@@ -103,25 +116,26 @@ is told where the artifact went.
   in `packs/core/tests/skills/work-intake/test_intent_ordinal.py`, committed
   87768ba4d. This slice re-runs it and adds nothing; it is cited here so the
   contract records where that coverage lives rather than promising it again.
-- **The corpus stays clean after a real renumber: goal-based check.** One run
+- **The corpus stays clean after a real rename: goal-based check.** One run
   of the workspace reconciliation over the real `workspace.toml` reports no
   `missing_artifact`, which is the existing fail-closed control at
   `tests/roster/test_workspace_status_projection.py:948`.
 - **The operator how-to: manual QA.** A person follows the page through one
-  renumber; a test cannot tell whether the page is followable.
+  rename; a test cannot tell whether the page is followable.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** After a renumber, no citation of the vacated path survives in
+- [ ] **AC-0001.** After a rename, no citation of the vacated path survives in
       `docs/product/**`, `docs/specs/**`, or `workspace.toml` — the closed set
       of trees that cite an intent by path.
 - [ ] **AC-0002.** Every `Slug:` value in the intent corpus is byte-identical
-      before and after a renumber. `intent-metadata-shape-contract` AC-0001
-      requires the field on every live intent, so the anchor exists for every
-      artifact a renumber can move.
-- [ ] **AC-0003.** A renumber that fails at any write point leaves the repository
+      before and after a rename. The field is the identity anchor a rename does
+      not touch; `intent-metadata-shape-contract` AC-0001 is what requires it on
+      every live intent, and this criterion does not assert that the corpus
+      already satisfies that requirement.
+- [ ] **AC-0003.** A rename that fails at any write point leaves the repository
       byte-identical to its pre-run state.
-- [ ] **AC-0004.** After a renumber, the allocator's next ordinal for the vacated type is
+- [ ] **AC-0004.** After a rename, the allocator's next ordinal for the vacated type is
       never the vacated ordinal.
 - [ ] **AC-0005.** A tombstone carries exactly three fields: `Slug:`, unchanged from the
       retired artifact; `Tombstone:`, the retirement date; and exactly one of
@@ -137,17 +151,17 @@ is told where the artifact went.
       fails and names both paths.
 - [ ] **AC-0009.** A live pointer whose target is a tombstone is reported as a stale
       citation rather than resolved to that tombstone's successor.
-- [ ] **AC-0010.** A renumber re-points every tombstone whose `Reissued as:` named the moved
+- [ ] **AC-0010.** A rename re-points every tombstone whose `Reissued as:` named the moved
       artifact, inside the same transaction.
-- [ ] **AC-0011.** An intent authored after cutover through a route that
-      allocates no ordinal acquires the filename `<TOKEN>-NNNN-<slug>.md` on
-      request, with `NNNN` from the allocator. An intent carrying no ordinal at
-      cutover is out of scope and keeps none, per the brief's forward-only
-      non-goal and ADR-0108 D6.
+- [ ] **AC-0012.** The new filename's ordinal is the allocator's next ordinal
+      for the target type, never the vacated ordinal reused under a different
+      token.
 
 ## Retired identifiers
 
-none
+- `AC-0011` — first-time allocation for an intent authored through a
+  non-allocating route. A separate outcome, releasable and verifiable on its
+  own, so it is not this slice's to close.
 
 ## Follow-ons
 
