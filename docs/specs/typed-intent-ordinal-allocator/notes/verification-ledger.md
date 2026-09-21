@@ -150,11 +150,22 @@ re-read the brief, because each round measured the spec against the previous
 round's spec. An accepted upstream artifact is not a reviewer input unless the
 author supplies it.
 
-**The decisions, 2026-09-20.** Admission always proceeds: a refusal or an
-unmapped altitude both yield an unprefixed intent that is admitted and
-registered, with the reason recorded in the artifact's own `## Unresolved
-questions` for a later re-issue. And a not-yet-admitted intent at a mapped level
-questions` for a later re-issue.
+**The decisions, 2026-09-20.** Admission always proceeds. Five cases, and the
+distinction that matters is which of them leaves a marker:
+
+| Case | Filename | Marker in `## Unresolved questions` |
+| --- | --- | --- |
+| `work-intake` creates, altitude maps | typed | none |
+| `work-intake` creates, altitude unmapped | unprefixed | **none** — the intended outcome for that altitude, not a gap |
+| `work-intake` creates, allocator refused | unprefixed | the refusal's reason |
+| direct `intake-intent` creates | unprefixed | that no ordinal was allocated |
+| intent already on disk, any path | unchanged | none |
+
+Marking the unmapped case would train a reader to ignore the marker the two
+middle rows depend on, which is why it is deliberately absent rather than
+overlooked. A second decision — that a not-yet-admitted intent be allocated and
+renamed — was taken the same day and withdrawn the same day; see below.
+
 
 **Superseded the same day, on evidence the decision did not have.** The second
 decision — that a not-yet-admitted intent be allocated and renamed — was
@@ -165,8 +176,9 @@ backend, and `intake_transaction.py`'s validated target is the only path the
 materializer may write. Honouring it would have cost a transaction-core change,
 a capability widening and a fresh secure-design pass — none of which was visible
 when the options were put to the owner. The case went to
-`intent-renumber-and-reissue`, which must build that rename for renumbering
-anyway. AC-0022 and AC-0023 are retired in the spec.
+`intent-renumber-and-reissue`. That is where the mechanism belongs on its own
+merits, since renumbering needs a confined transactional rename regardless — but
+the reason it is not here is the capability wall, not convenience. AC-0022 and AC-0023 are retired in the spec.
 
 The transferable part is the shape of the mistake: the options offered to the
 owner were priced without first checking what the affected surfaces are

@@ -9,27 +9,29 @@
 
 ## Outcome
 
-A new intent admitted into the repository carries a human-friendly typed identity in its filename — `CAP-0001-repository-work-graph.md` is a live example of the shape — so a reader can name an intent by its altitude and number rather than by a slug.
+An intent that admission **creates** at a recognized altitude carries a human-friendly typed identity in its filename — `CAP-0001-repository-work-graph.md` is a live example of the shape — so a reader can name an intent by its altitude and number rather than by a slug.
 
-**Admission never blocks on an ordinal.** Owner decision, 2026-09-20. Four cases, and all four admit:
+**Admission never blocks on an ordinal.** Owner decision, 2026-09-20. Five cases, and all five admit:
 
-| Case | Filename | Recorded in `## Unresolved questions` |
+| Case | Filename | Marker in `## Unresolved questions` |
 | --- | --- | --- |
-| `work-intake`, altitude the table maps | `<TYPE>-NNNN-<slug>.md` | nothing |
-| `work-intake`, altitude it does not map | `<slug>.md` | nothing |
-| `work-intake`, allocator refused | `<slug>.md` | the refusal's sanitized reason |
-| direct `intake-intent` | `<slug>.md` | that no ordinal was allocated, the request having arrived through a path that cannot allocate |
-| any path, intent already on disk | unchanged | nothing — its identity is already settled, and nothing here renames |
+| `work-intake` creates, altitude the table maps | `<TYPE>-NNNN-<slug>.md` | none |
+| `work-intake` creates, altitude it does not map | `<slug>.md` | **none** |
+| `work-intake` creates, allocator refused | `<slug>.md` | the refusal's sanitized reason |
+| direct `intake-intent` creates | `<slug>.md` | that no ordinal was allocated |
+| intent already on disk, either path | unchanged | none |
 
-`kind:slug` is canonical and the ordinal is an alias, so losing the alias costs identity nothing — which is what makes proceeding the right answer rather than a concession. A recorded reason is what makes a missing alias re-issuable later. An unmapped altitude records nothing, because that outcome is intended for that altitude rather than a gap, and marking it would train a reader to ignore the marker the other two rows depend on.
+Only the third and fourth rows leave a marker, and the distinction is the point: an unmapped altitude is the intended outcome for that altitude rather than a gap, so marking it would train a reader to ignore the marker the other two depend on. A marker is what makes a missing alias re-issuable later.
+
+`kind:slug` is canonical and the ordinal is an alias, so an intent without one is whole. That is what makes proceeding the right answer rather than a concession — and why no row stops.
 
 ## What Changes
 
 - **New** `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py` — allocates `max + 1` per type over the intent directory unioned with the records visible on `origin`, and refuses rather than guessing.
-- **`packs/core/.apm/skills/work-intake/SKILL.md` § 6** — runs the allocator before it passes the confirmed destination to `intake-intent`, and validates what comes back before composing a path from it.
-- **`packs/core/.apm/skills/intake-intent/SKILL.md` Procedure step 3** — one clause: creating at a mapped altitude requires an already-allocated ordinal, and refuses otherwise. No capability or control declaration changes.
-- **`guides/core/reference/work-intake-routing-and-lifecycle.md`** — the published `Start routing` table names both intent destinations and what selects between them.
-- **Unchanged:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py`, every existing intent filename, and `intake-intent`'s `allowed-tools` and `## Boundaries`.
+- **`packs/core/.apm/skills/work-intake/SKILL.md` § 6** — resolves the altitude against the closed table, runs the allocator when it maps, validates what comes back before composing a path from it, and supplies whichever destination results. It never stops.
+- **`packs/core/.apm/skills/intake-intent/SKILL.md` Procedure step 3** — one clause: lacking an allocated ordinal it admits at the unprefixed path and records why, rather than refusing. Its identity rule is untouched, and no capability or control declaration changes.
+- **Seven adopter-facing prose surfaces** — each states both destinations and what selects between them; `## Durable Outputs` names them.
+- **Unchanged:** `next-ordinal.py`; every existing intent filename, because nothing here renames; `intake-intent`'s `allowed-tools` and `## Boundaries`; and all code outside the new allocator — `intent_renderer.py` already composes its target from the `slug` it is handed, so a prefixed slug needs no edit.
 
 The existing `next-ordinal.py` cannot be reused: it matches an anchored four-digit-then-separator pattern, so on a directory of typed filenames it returns `0001` with exit 0 and reports `--check` clean because nothing matched. That silent-wrong behaviour is the single most important failure to design against.
 
@@ -37,9 +39,9 @@ The prefix table is closed, and this slice consumes it rather than owning it. Th
 
 What this slice owns is the matching behaviour. The lookup is an exact match on the bare `Level` value, so any string the parent's table does not list — an adopter's intervening altitude, an absent field, or a decorated value such as a backticked `` `feature` `` — is unmapped. An unmapped altitude is a normal outcome with a defined result, an unprefixed filename, not an error.
 
-An ordinal is assigned at admission, so this slice also owns the minimal integration. Admission has **two entry paths**. `work-intake` § 6 delegates a classified intent, and `work-intake/SKILL.md:60` routes a request that explicitly names `intake-intent` straight to that owner instead. **Owner decision, 2026-09-20: admission always proceeds.** Neither path may block, refuse or stop on an ordinal. The brief's promise is that a refused ordinal still leaves the intent admitted and registered, and the identity design already assumes it: `kind:slug` is canonical, so an intent without its alias is whole. What each path owes is that the allocator was consulted where it could be and that a missing ordinal is recorded rather than silent. Adoption stays forward-only, so an intent carrying no ordinal today keeps none.
+Admission has **two entry paths**. `work-intake` § 6 delegates a classified intent, and `work-intake/SKILL.md:60` routes a request that explicitly names `intake-intent` straight to that owner instead. Neither may block, refuse or stop on an ordinal — that is the owner decision above, and the brief's promise at `:26` that a refused ordinal still leaves the intent admitted and registered is its authority. What each path owes is that the allocator was consulted where it could be, and that a missing ordinal is recorded rather than silent.
 
-They reach it with different mechanisms, because they have different capabilities, and the capability line is not moved by this slice. `work-intake` declares `Bash` and already "passes the confirmed repository destination, and authority mode to `intake-intent`" (`work-intake/SKILL.md:332`), so it resolves the altitude against the closed table, runs the allocator when the altitude maps, and supplies whichever destination results. `intake-intent` declares no shell — its `## Boundaries` refuses one outright — so it cannot allocate, and this slice does not grant it one. On the direct path it therefore admits at the unprefixed path and records in `## Unresolved questions` that no ordinal was allocated, because the request did not arrive through a path that could allocate one. It never derives one: a prompt-only `max + 1` has no view of `origin`, and a prefix supplied with the request is unverifiable for the same reason, so neither becomes an ordinal. Recording the gap is what replaces refusing to write.
+They differ in what they can do, and the capability line is not moved by this slice. `work-intake` declares `Bash` and already "passes the confirmed repository destination, and authority mode to `intake-intent`" (`work-intake/SKILL.md:332`), so it resolves the altitude, allocates when the altitude maps, and supplies whichever destination results. `intake-intent` declares no shell — its `## Boundaries` refuses one outright — so on the direct path it cannot allocate and does not try: it admits at the unprefixed path and records that no ordinal was allocated. It never derives one, because a prompt-only `max + 1` has no view of `origin`; and it does not accept a prefix supplied with the request, because that is unverifiable for the same reason. Neither limitation is a reason to withhold admission.
 
 ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of admitting a repository intent, and confinement, provenance and authority transfer are preserved rather than re-specified. One clause of its Procedure changes; none of its capability or control declarations do.
 
@@ -117,7 +119,7 @@ The unit artifact is `packs/core/tests/skills/work-intake/test_intent_ordinal.py
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** An intent that **admission itself creates** at a level the prefix table maps receives an ordinal, sequenced per type so `CAP-0001` and `FEAT-0001` coexist. An intent that already exists on disk when admission runs — the shape `frame-intent` leaves behind — is outside this criterion and keeps its filename, because no admission surface can rename a file without a capability widening this slice forbids. Owner decision, 2026-09-20; the case is handed on under Follow-ons.
+- [ ] **AC-0001.** An intent that **`work-intake` creates** at a level the prefix table maps receives an ordinal, sequenced per type so `CAP-0001` and `FEAT-0001` coexist. Two exclusions, both owner decisions of 2026-09-20: an intent already on disk when admission runs keeps its filename, because no admission surface can rename one; and a direct `intake-intent` creation is outside this criterion and takes AC-0009's unprefixed outcome, because that path has no allocator to consult. The allocating path is the one that promises a typed filename.
 - [ ] **AC-0002.** An intent whose `Level` is absent or unmapped receives no ordinal and no derived prefix, and keeps its full `kind:slug` identity, admission and graph participation.
 - [ ] **AC-0003.** Allocation performs **zero** filesystem mutations — no counter file, no shared retired list, no cache, not the intent, and no `__pycache__`. Bytecode is a write: the CLI runs under ordinary Python and loads a sibling module by path, so import caching is suppressed on the production path and not only in the tests. Selecting a destination is not writing one: only the existing admission transaction writes or registers it, after `intake-intent` has applied confinement, provenance and authority transfer.
 - [ ] **AC-0004.** The classes are defined against one namespace introducer, `^<TOKEN>-` where `<TOKEN>` is any value in the parent's table, so they are complementary and exhaustive by construction: a name **outside** the namespace does not match the introducer and is skipped without incident; a name matching the introducer **and** the owner's complete filename shape — `^<TOKEN>-\d{4,}-<nonempty slug>\.md$`, end-anchored — is **valid** and counted; a name matching the introducer but **not** that shape is **malformed within the namespace**, and makes the scan incomplete so no ordinal is returned and no clean duplicate check is reported. No name can fall outside all three, and none can satisfy two.
