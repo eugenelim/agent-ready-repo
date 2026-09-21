@@ -23,6 +23,12 @@ from pathlib import Path
 _PACK = Path(__file__).resolve().parents[3]
 _PLAN_ASSET = _PACK / ".apm" / "skills" / "new-spec" / "assets" / "plan.md"
 _WORK_LOOP = _PACK / ".apm" / "skills" / "work-loop" / "SKILL.md"
+# The G-plan sequence moved into work-loop's own full-mode reference; the
+# per-mode completeness invariant below is about each mode branch carrying
+# its own instruction, not about which of the skill's files holds it.
+_FULL_MODE_ENGINE = (
+    _PACK / ".apm" / "skills" / "work-loop" / "references" / "full-mode-engine.md"
+)
 _RESUMPTION = (
     _PACK / ".apm" / "skills" / "work-loop" / "references" / "session-resumption.md"
 )
@@ -46,10 +52,11 @@ def _flat_shell_comments(text: str) -> str:
 
     The G-plan instructions live in a bash fence, so a wrapped sentence carries
     a `#` at each continuation. Flattening alone leaves those inside the phrase
-    and every assertion misses. The leading-space requirement keeps a top-level
-    Markdown heading (`## Step 1`) intact.
+    and every assertion misses. `(?!#)` keeps a Markdown heading (`## Step 1`)
+    intact; the indent is optional because the fence is no longer nested inside
+    a numbered-list item, so its comments now start at column 0.
     """
-    return _flat(re.sub(r"\n\s+#\s*", " ", text))
+    return _flat(re.sub(r"\n\s*#(?!#)\s*", " ", text))
 
 
 def _changelog_note(asset: str) -> str:
@@ -115,18 +122,27 @@ _PER_MODE_PHRASES = (
 )
 
 
-def _gate_mode_blocks(body: str) -> dict[str, str]:
-    """The `code` and `spec-plan` G-plan blocks, sliced from their own headings."""
-    code_at = body.index("**`code` mode** (implementation work)")
-    plan_at = body.index("**`spec-plan` mode** (spec/plan-only work")
-    after = body.index("`spec-approved` = the scope decision", plan_at)
-    return {"code": body[code_at:plan_at], "spec-plan": body[plan_at:after]}
+def _gate_mode_blocks(raw: str) -> dict[str, str]:
+    """The `code` and `spec-plan` G-plan blocks, sliced RAW from their headings.
+
+    Sliced before flattening so the ```bash fence stays observable. Delete the
+    fence and the continuation comments become column-zero Markdown headings,
+    which the comment flattener would strip -- reconstructing every required
+    phrase out of prose that is no longer a copyable shell block. The arm
+    below asserts the fence so that mutation cannot pass.
+    """
+    code_at = raw.index("**`code` mode** (implementation work)")
+    plan_at = raw.index("**`spec-plan` mode** (spec/plan-only work")
+    after = raw.index("`spec-approved` = the scope decision", plan_at)
+    return {"code": raw[code_at:plan_at], "spec-plan": raw[plan_at:after]}
 
 
 class WorkLoopOwnsTheTiming(unittest.TestCase):
     def setUp(self) -> None:
-        self.body = _flat_shell_comments(_WORK_LOOP.read_text(encoding="utf-8"))
-        self.blocks = _gate_mode_blocks(self.body)
+        raw = _FULL_MODE_ENGINE.read_text(encoding="utf-8")
+        self.body = _flat_shell_comments(raw)
+        self.raw_blocks = _gate_mode_blocks(raw)
+        self.blocks = {m: _flat_shell_comments(b) for m, b in self.raw_blocks.items()}
 
     def test_both_gate_modes_are_sliced(self) -> None:
         # Guards the arms below: a failed slice would make them vacuous.
@@ -135,6 +151,36 @@ class WorkLoopOwnsTheTiming(unittest.TestCase):
             with self.subTest(mode=mode):
                 self.assertIn("plan-approved", block)
 
+    def test_each_mode_keeps_a_copyable_bash_fence(self) -> None:
+        # Guards the flattener: see _gate_mode_blocks. Both boundaries, because
+        # an opening token with no close still carries every phrase while the
+        # mode has stopped being a self-contained copyable block.
+        for mode, block in self.raw_blocks.items():
+            with self.subTest(mode=mode):
+                fences = [ln.strip() for ln in block.split("\n") if ln.strip().startswith("```")]
+                # Exact lines: an info-string cannot close a CommonMark fence,
+                # so a counted-substring arm accepts ```bash as a closer.
+                self.assertIn("```bash", fences)
+                self.assertIn("```", fences)
+
+    def test_skill_md_still_routes_to_the_relocated_sequence(self) -> None:
+        """The arms above read the reference, so they cannot see it go orphan.
+
+        Relocating the sequence moved the failure mode: deleting SKILL.md's
+        step-local pointer and its conditional-routing row would leave every
+        assertion here green while no reader could reach the commands.
+        """
+        raw = _WORK_LOOP.read_text(encoding="utf-8")
+        # Slice the OWNING step. A file-wide search passes while this step's own
+        # pointer is deleted, because other steps carry the same destination.
+        start = raw.index("12. **Full mode:** the **G-plan sequence**")
+        step = _flat(raw[start:raw.index("### Project-knowledge integration", start)])
+        # The Markdown DESTINATION, not the label: a pointer whose visible text
+        # still reads `references/full-mode-engine.md` while its target moved
+        # elsewhere orphans the reference just as completely.
+        self.assertIn("](references/full-mode-engine.md)", step)
+        self.assertIn("PLAN — the G-plan sequence", step)
+
     def test_each_mode_carries_every_required_phrase_exactly_once(self) -> None:
         for mode, block in self.blocks.items():
             for phrase in _PER_MODE_PHRASES:
@@ -142,10 +188,18 @@ class WorkLoopOwnsTheTiming(unittest.TestCase):
                     self.assertEqual(1, block.count(phrase))
 
     def test_work_loop_defers_the_form_rather_than_restating_it(self) -> None:
+        """The absence half must cover every file work-loop ships.
+
+        Re-pointing this class of assertion is where scope leaks: `self.body`
+        moved from `SKILL.md` to the reference, so an absence checked only
+        there stops guarding the file it used to guard. The form may appear in
+        neither.
+        """
         self.assertIn("the plan template's Changelog note", self.body)
+        both = self.body + _flat(_WORK_LOOP.read_text(encoding="utf-8"))
         for form in _ENTRY_FORMS:
             with self.subTest(form=form):
-                self.assertNotIn(form, self.body)
+                self.assertNotIn(form, both)
 
 
 class TheResumePathCannotPinAnUnrecordedApproval(unittest.TestCase):

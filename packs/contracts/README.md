@@ -70,7 +70,7 @@ event-contract [order.placed event]
 
 **Upstream — `architect`:** Contracts inform architecture. When an OpenAPI or AsyncAPI contract exists, `architect-design` reads it as a boundary specification before proposing a backend shape.
 
-**Downstream — `core`:** Contracts feed the build loop via `contract-acquisition`. When `work-loop` hits an unfamiliar API surface, `contract-acquisition` grounds the implementation against the contract before code is written.
+**Downstream — `core`:** Contracts feed the build loop via `contract-acquisition`. When `work-loop` codes against a contract it does not hold, `contract-acquisition` grounds the implementation against the contract before code is written.
 
 ---
 

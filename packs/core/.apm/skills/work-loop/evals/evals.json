@@ -26,9 +26,9 @@
     {
       "id": "spec-missing-ac-section-explicit-opt-out",
       "prompt": "The finish-time spec lint reports invariant (vi) because a spec has no `## Acceptance Criteria` section. When is that legal, and what exact metadata is required?",
-      "expected_output": "A missing Acceptance-Criteria section is legal only when the spec intentionally has no criteria and carries `- **Acceptance Criteria:** none \u2014 <one-line reason>` in its metadata header. The reason is required: bare `none` is a hard violation. A real section and the opt-out together are also a hard contradiction.",
+      "expected_output": "A missing Acceptance-Criteria section is legal only when the spec intentionally has no criteria and carries `- **Acceptance Criteria:** none — <one-line reason>` in its metadata header. The reason is required: bare `none` is a hard violation. A real section and the opt-out together are also a hard contradiction.",
       "assertions": [
-        "Response gives the exact `- **Acceptance Criteria:** none \u2014 <one-line reason>` marker",
+        "Response gives the exact `- **Acceptance Criteria:** none — <one-line reason>` marker",
         "Response requires a non-empty one-line reason",
         "Response says missing section without the marker is a hard violation",
         "Response says a real section plus the marker is a hard contradiction"
@@ -37,7 +37,7 @@
     {
       "id": "phase1-sequential-wave-routing",
       "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
-      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. That advance is not unconditional: it refuses a wave whose tasks are not accounted for, so wave 0's every task must already carry a `loop-cohort dispatch-receipt` record \u2014 `--receipt` or `--decline <reason>`. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
+      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. That advance is not unconditional: it refuses a wave whose tasks are not accounted for, so wave 0's every task must already carry a `loop-cohort dispatch-receipt` record — `--receipt` or `--decline <reason>`. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
       "assertions": [
         "Response mentions `loop-engine transition` with the `wave-passed` event",
         "Response mentions `loop-cohort wave advance` with `--from-index` and `--expect-run-id`",
@@ -74,7 +74,7 @@
     {
       "id": "phase1-last-event-routing",
       "prompt": "You resume a work-loop session and `loop-engine status` shows `last_event: 'wave-passed'` and `state: 'CODE-IMPLEMENTATION'`. What does this tell you and what is the correct next action?",
-      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` \u2014 replaying an advance that already landed is a no-op, but if it did not land this is the advancing branch, which refuses a wave whose tasks are not accounted for, so record any missing `dispatch-receipt` first; (3) then proceed to implement the tasks in the current (next) wave.",
+      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` — replaying an advance that already landed is a no-op, but if it did not land this is the advancing branch, which refuses a wave whose tasks are not accounted for, so record any missing `dispatch-receipt` first; (3) then proceed to implement the tasks in the current (next) wave.",
       "assertions": [
         "Response reads `last_event_context.completed_wave_index` to determine the completed wave",
         "Response re-issues `wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` before proceeding",
@@ -97,7 +97,7 @@
     },
     {
       "id": "phase1-explicit-auth-clean-record-replay",
-      "prompt": "The adversarial reviewer returned exactly `Clean \u2014 ready to commit.` and you recorded it with `loop-cohort review record --direct-clean-file <raw-report-path> --expect-run-id $run_id`. The same clean signal was already recorded in the previous round. What must you do before replaying it, and how would the record form differ if clean came from adjudication?",
+      "prompt": "The adversarial reviewer returned exactly `Clean — ready to commit.` and you recorded it with `loop-cohort review record --direct-clean-file <raw-report-path> --expect-run-id $run_id`. The same clean signal was already recorded in the previous round. What must you do before replaying it, and how would the record form differ if clean came from adjudication?",
       "expected_output": "Before replaying an already-recorded clean signal, obtain and record explicit human authorization. Replay the original form only: exact raw clean uses `review record --direct-clean-file <raw-report-path>`, replayed against the same persisted artifact and identified by `last_review_clean_source` in `state.json`; clean produced by adjudication uses `review record --report <adjudication-report-path> --adjudication`. Replaying either form distorts audit history by incrementing `review_round_count` a second time for the same signal and may overwrite one level of fingerprint audit history. Surface the situation, explain both impacts, require explicit confirmation, and name the minimum viable recovery rung: steer.",
       "assertions": [
         "Response requires explicit human authorization before the replay",
@@ -132,7 +132,7 @@
     {
       "id": "step0-no-canonical-ready-or-active",
       "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports no active specs and no ready specs. What should you say?",
-      "expected_output": "Surface exactly: 'No canonical ready or active spec found \u2014 run `workspace-status` to see blocked findings.' Then stop without proceeding to PLAN.",
+      "expected_output": "Surface exactly: 'No canonical ready or active spec found — run `workspace-status` to see blocked findings.' Then stop without proceeding to PLAN.",
       "assertions": [
         "Response surfaces the exact no-canonical-ready-or-active message",
         "Response does NOT proceed to PLAN",
@@ -164,7 +164,7 @@
     {
       "id": "reconcile-stale-routes-to-workspace-status",
       "prompt": "Several specs in workspace.toml are showing Status: Shipped but are still listed in the queue. How do I find and fix all stale queue entries?",
-      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan \u2014 reconcile is the canonical tool for portfolio-wide stale detection.",
+      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan — reconcile is the canonical tool for portfolio-wide stale detection.",
       "assertions": [
         "Response recommends `workspace-status reconcile` as the correct tool",
         "Response does NOT say to use work-loop for this",
@@ -175,7 +175,7 @@
     {
       "id": "find-untracked-specs-routes-to-reconcile",
       "prompt": "I want to find spec files that exist on disk but are not declared in workspace.toml and are actively in progress (Approved or Implementing). What command should I run?",
-      "expected_output": "Run `workspace-status reconcile` \u2014 it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
+      "expected_output": "Run `workspace-status reconcile` — it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
       "assertions": [
         "Response recommends `workspace-status reconcile`",
         "Response mentions Type 1 findings or untracked spec detection",
@@ -185,7 +185,7 @@
     {
       "id": "two-gate-resumption-spec-human-gate-auto-fire",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `last_event: reviewers-clean`, `pending_human_wait: true`. You read spec.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `spec-approved` immediately \u2014 this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
+      "expected_output": "Fire `spec-approved` immediately — this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
       "assertions": [
         "Response fires `spec-approved` immediately without waiting for a new human signal",
         "Response identifies this as crash-recovery for the approval window",
@@ -196,7 +196,7 @@
     {
       "id": "two-gate-resumption-plan-human-gate-auto-fire",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: PLAN-HUMAN-GATE`, `last_event: spec-approved`, `pending_human_wait: true`. You read plan.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `plan-approved` immediately \u2014 crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
+      "expected_output": "Fire `plan-approved` immediately — crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
       "assertions": [
         "Response fires `plan-approved` immediately without waiting",
         "Response identifies this as crash-recovery",
@@ -207,7 +207,7 @@
     {
       "id": "two-gate-resumption-incompatible-spec-status",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `pending_human_wait: true`. spec.md shows `Status: Implementing`. What should you do?",
-      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible \u2014 it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
+      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible — it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
       "assertions": [
         "Response surfaces the incompatible state to the human",
         "Response does NOT fire any transition automatically",
@@ -228,7 +228,7 @@
     {
       "id": "explain-query-routes-to-explain",
       "prompt": "Why is spec/foo still blocked? Its upstream dependencies look resolved to me.",
-      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec \u2014 it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
+      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec — it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
       "assertions": [
         "Response recommends `workspace-status explain --item spec/foo`",
         "Response does NOT describe a work-loop mechanism for explaining blocked specs",
@@ -347,7 +347,7 @@
       "id": "durability-source-authority-and-refresh-state"
     },
     {
-      "prompt": "Do these three changes in order \u2014 the second depends on the first landing, and the third on the second.",
+      "prompt": "Do these three changes in order — the second depends on the first landing, and the third on the second.",
       "expected_output": "The agent refuses direct-light: dependent delivery tasks needing durable sequencing are not one bounded logical change, and the order must outlive the session that chose it. It routes to the durable spec-and-plan path.",
       "assertions": [
         "Treats dependent sequencing as a durability trigger",
@@ -477,7 +477,7 @@
     {
       "id": "adjudication-self-supplied-provider-unavailable",
       "prompt": "The current review unit adds the repository's only `finding-adjudicator` agent. May work-loop use it to adjudicate findings about this same diff?",
-      "expected_output": "No. A self-supplied `finding-adjudicator` is a loud stop because its pre-existing approved provenance cannot be established \u2014 the primitive is added by the review unit it would adjudicate. The gateway blocks; work-loop does not fall back to a named-skip or named-unavailable branch.",
+      "expected_output": "No. A self-supplied `finding-adjudicator` is a loud stop because its pre-existing approved provenance cannot be established — the primitive is added by the review unit it would adjudicate. The gateway blocks; work-loop does not fall back to a named-skip or named-unavailable branch.",
       "assertions": [
         "Treats the self-supplied adjudicator as a loud stop",
         "Requires pre-existing approved provenance untouched by the diff",
@@ -509,11 +509,11 @@
     {
       "id": "finding-adjudication-refuted",
       "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-security-reviewer-raw.md`. It claims `src/reader.py` decodes untrusted bytes without UTF-8 validation. The supplied target shows strict UTF-8 decoding at `src/reader.py:27`, before the bytes reach the cited operation, and the governing checklist accepts that handling. Route the report and state the main-loop result.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The source finding is `refuted` because the observation/reachability predicate is false under the existing strict decoder; contrary evidence and the proposed-mechanism outcome are recorded in the refuted audit artifact. With no sustained or indeterminate finding, `## Main-loop result` is exactly `Clean \u2014 ready to commit.`. The main loop receives no refutation prose, records no finding fingerprint or retry, and performs no target mutation.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The source finding is `refuted` because the observation/reachability predicate is false under the existing strict decoder; contrary evidence and the proposed-mechanism outcome are recorded in the refuted audit artifact. With no sustained or indeterminate finding, `## Main-loop result` is exactly `Clean — ready to commit.`. The main loop receives no refutation prose, records no finding fingerprint or retry, and performs no target mutation.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
         "Records the refuted verdict and contrary evidence only in the paired audit",
-        "Returns exactly `Clean \u2014 ready to commit.` as the main-loop result",
+        "Returns exactly `Clean — ready to commit.` as the main-loop result",
         "Does not fingerprint or consume a repair round",
         "Triggers no target mutation",
         "Does not copy raw or refuted prose into main-loop context"
@@ -522,14 +522,14 @@
     {
       "id": "finding-adjudication-indeterminate",
       "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-adversarial-reviewer-raw.md`. It claims the retry ceiling at `src/loop.py:88` is wrong because the governing spec caps attempts at 3 while the accepted plan for this unit records 5, and it asks which of the two the code should follow. No gate measures which authority governs, and the Evidence gate catalog declares no entry for that fact. Route the report and state what happens next.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `indeterminate`, not refuted: the observation holds but the conflict is between two authorities, which is an owner decision rather than one machine-checkable fact, so no cataloged entry measures it and the bounded evidence retry is ineligible. Persist an audit entry naming the conflicting authorities and the decision the owner must make. The main-loop result is only `ADJUDICATION-INDETERMINATE`; it does not contain `Clean \u2014 ready to commit.` and does not include the raw claim. Stop for owner direction before a transition, clean record, retry increment, fingerprint, or mutation.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `indeterminate`, not refuted: the observation holds but the conflict is between two authorities, which is an owner decision rather than one machine-checkable fact, so no cataloged entry measures it and the bounded evidence retry is ineligible. Persist an audit entry naming the conflicting authorities and the decision the owner must make. The main-loop result is only `ADJUDICATION-INDETERMINATE`; it does not contain `Clean — ready to commit.` and does not include the raw claim. Stop for owner direction before a transition, clean record, retry increment, fingerprint, or mutation.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
         "Returns indeterminate because conflicting authority is an owner decision, not a machine-checkable fact",
         "Refuses the bounded evidence retry when no cataloged gate measures the fact",
         "Names the conflicting authorities in the paired audit",
         "Returns `ADJUDICATION-INDETERMINATE` to the main loop as its exact signal",
-        "Main-loop output does not contain `Clean \u2014 ready to commit.`",
+        "Main-loop output does not contain `Clean — ready to commit.`",
         "Stops before any state change, retry accounting, fingerprint, or target mutation"
       ]
     },
@@ -592,7 +592,7 @@
     },
     {
       "id": "exact-clean-bypasses-adjudication",
-      "prompt": "A reviewer returns exactly `Clean \u2014 ready to commit.`. Contrast the required handling with a return that has the same text plus one trailing newline, and state the reviewer-model call impact for direct-light and ordinary full review.",
+      "prompt": "A reviewer returns exactly `Clean — ready to commit.`. Contrast the required handling with a return that has the same text plus one trailing newline, and state the reviewer-model call impact for direct-light and ordinary full review.",
       "expected_output": "Compare the entire returned text value before persistence. The exact sentinel is direct clean: do not persist or validate it, dispatch finding-adjudicator, create paired artifacts, or run an adjudication classifier. The trailing-newline variant is non-exact and must enter the fail-closed adjudication gateway. Direct-light clean review therefore uses one reviewer-model call instead of two; an ordinary full review with adversarial and quality reviewers uses two model calls instead of four when both return the exact sentinel.",
       "assertions": [
         "Requires whole-value exact equality before persistence",
@@ -649,7 +649,7 @@
     {
       "id": "review-record-operation-id-crash-window",
       "prompt": "You fired `findings-remain`, then ran `loop-cohort review record --fingerprint <fp1> --fingerprint <fp2> --expect-run-id <run-id> --operation-id <run-id>:12`. The session died before you saw the result, so you do not know whether the write landed. You resume: `loop-engine status --json` reports `transition_sequence: 12` and `last_event: findings-remain`. What do you do?",
-      "expected_output": "Read `last_review_record_operation_id` from `loop-cohort status --json` and compare it with the id you would compute now, `<run-id>:12`. If they match, the round is already recorded \u2014 continue without recording again, and note that re-issuing the identical payload under that id would be a no-op anyway. If it is absent or different you cannot tell whether the round landed: an absent id also describes a round recorded before this field existed, so re-issuing would count it twice. Do not auto-reissue; surface to the human. Never mint a fresh operation id for the same round \u2014 that records a second round rather than replaying the first.",
+      "expected_output": "Read `last_review_record_operation_id` from `loop-cohort status --json` and compare it with the id you would compute now, `<run-id>:12`. If they match, the round is already recorded — continue without recording again, and note that re-issuing the identical payload under that id would be a no-op anyway. If it is absent or different you cannot tell whether the round landed: an absent id also describes a round recorded before this field existed, so re-issuing would count it twice. Do not auto-reissue; surface to the human. Never mint a fresh operation id for the same round — that records a second round rather than replaying the first.",
       "assertions": [
         "Response compares `last_review_record_operation_id` with the id recomputed from `transition_sequence`",
         "Response treats a matching id as a completed write and does not record again",
@@ -746,7 +746,7 @@
     {
       "id": "register-implementer-reuses-before-it-writes",
       "prompt": "You are dispatched as the `implementer` subagent for plan task T1. The task asks you to add `render_label(raw)` to `store/report.py`, returning the label with whitespace runs collapsed, surrounding whitespace removed, and the result upper-cased. `store/textnorm.py` already exports `collapse_whitespace(text)`, which collapses runs and strips, and `store/invoice.py` already imports it. The task's `Approach:` says only \"Add `render_label` to `store/report.py`\". What do you do before writing the function, and what does your report say?",
-      "expected_output": "Take the `Cut before adding` ladder's search rung once across the assigned execution root before writing anything. The search finds `store.textnorm.collapse_whitespace`, which satisfies the collapse-and-strip part of the outcome, so reuse it rather than reimplementing it: `collapse_whitespace(raw).upper()`. Report the search in one line under `Summary` \u2014 reporting it is required every time, because a silent search cannot be told apart from no search at all \u2014 naming the hit that was reused and the rung the implementation stopped at.",
+      "expected_output": "Take the `Cut before adding` ladder's search rung once across the assigned execution root before writing anything. The search finds `store.textnorm.collapse_whitespace`, which satisfies the collapse-and-strip part of the outcome, so reuse it rather than reimplementing it: `collapse_whitespace(raw).upper()`. Report the search in one line under `Summary` — reporting it is required every time, because a silent search cannot be told apart from no search at all — naming the hit that was reused and the rung the implementation stopped at.",
       "assertions": [
         "Response searches the execution root before writing the helper",
         "Response reuses `collapse_whitespace` instead of reimplementing it",
@@ -758,7 +758,7 @@
     {
       "id": "register-implementer-takes-the-lighter-rung",
       "prompt": "You are dispatched as the `implementer` subagent for plan task T1. Its `Approach:` says to introduce a `LabelFormatter` class in a new module `store/labelfmt.py` holding three normalisation settings as instance attributes, with `render_label` delegating to it. Its `Done when:` is satisfied by a single expression in the existing `store/report.py`, and only one caller exists. Do you build the class?",
-      "expected_output": "No. Where the ladder's first sufficient rung is lighter than the task's `Approach:`, implement the lighter rung: `Approach:` is working material an implementer corrects in place, not contract, and no completion gate reads it. Add the function to `store/report.py`, create no new module, and record the substitution under `Deviations from the task body`. The task's `Done when:` must still hold. This never overrides an explicit requirement, a recorded decision, or a trust-boundary control \u2014 if the heavier construction were genuinely required, for instance by several callers needing different settings, build it.",
+      "expected_output": "No. Where the ladder's first sufficient rung is lighter than the task's `Approach:`, implement the lighter rung: `Approach:` is working material an implementer corrects in place, not contract, and no completion gate reads it. Add the function to `store/report.py`, create no new module, and record the substitution under `Deviations from the task body`. The task's `Done when:` must still hold. This never overrides an explicit requirement, a recorded decision, or a trust-boundary control — if the heavier construction were genuinely required, for instance by several callers needing different settings, build it.",
       "assertions": [
         "Response does not create the new module",
         "Response states that `Approach:` is working material rather than contract",
@@ -819,13 +819,13 @@
     {
       "id": "a-shipped-spec-is-not-a-live-constraint",
       "prompt": "A spec under docs/specs/ shipped months ago and says the exporter writes CSV. My change makes it write Parquet instead. Is that a violation I have to fix or reverse?",
-      "expected_output": "No. A spec binds its own delivery, not the repository forever: it is living while the plan is drafting, pinned from plan approval, and frozen once it is `Shipped`. From that point the code is the truth and the spec is the record of what was agreed, not a description of current behaviour. Change the code, and record the reversal in a decision record \u2014 never by rewriting the shipped spec. What survives the freeze is narrow: its status line still takes the two pointers the contract licenses, and the deferral anchors its body names still have to resolve.",
+      "expected_output": "No. A spec binds its own delivery, not the repository forever: it is living while the plan is drafting, pinned from plan approval, and frozen once it is `Shipped`. From that point the code is the truth and the spec is the record of what was agreed, not a description of current behaviour. Change the code, and record the reversal in a decision record — never by rewriting the shipped spec. What survives the freeze is narrow: its status line still takes the two pointers the contract licenses, and the deferral anchors its body names still have to resolve.",
       "assertions": [
         "Response says the shipped spec does not block the change",
         "Response says the code is the truth once the spec is `Shipped`",
         "Response says a reversal is recorded in a decision record, not by rewriting the shipped spec",
         "Response does not treat the shipped spec's content as a live requirement",
-        "Response names what still survives the freeze \u2014 the status line's two licensed pointers and the body's deferral anchors \u2014 rather than saying a shipped spec obliges nothing"
+        "Response names what still survives the freeze — the status line's two licensed pointers and the body's deferral anchors — rather than saying a shipped spec obliges nothing"
       ]
     },
     {
@@ -863,6 +863,74 @@
         "Response captures the item with `blocked_on: decision`",
         "Response does not wait for a reply before continuing",
         "Response does not treat the unresolved decision as blocking the loop"
+      ]
+    },
+    {
+      "id": "risk-trigger-modify-not-touch",
+      "prompt": "You are adding a unit test that imports and calls the repository's existing path-confinement helper. You change no line of that helper. Does the compliance, governance, or security-boundary risk trigger fire, routing the work to full mode?",
+      "expected_output": "No. That trigger names a thing you can modify, and it fires only when the change modifies that thing — its definition, its implementation, or what it guarantees. Reading it, calling it, testing it, documenting it, or regenerating a projection of it does not change the thing, so none of those fire it. Writing a test that calls the helper is calling it. The documentation exemption is not unconditional: prose *about* such a thing is exempt, but prose that *is* the rule — agent guidance, policy, an interface document — is the thing itself, so editing it fires the trigger. If instead you rewrote the helper's internals while preserving its behaviour, the trigger would fire: a modification that preserves behaviour still modifies the thing.",
+      "assertions": [
+        "Response answers that the trigger does not fire",
+        "Response distinguishes modifying the thing from reading, calling, testing, documenting, or reprojecting it",
+        "Response identifies writing a test that calls the helper as calling it",
+        "Response states that editing prose which IS the rule -- agent guidance, policy, an interface document -- fires the trigger, unlike prose merely about it",
+        "Response states that a behaviour-preserving rewrite of the helper would fire the trigger",
+        "Response does not treat mere contact with a security-relevant file as firing the trigger"
+      ]
+    },
+    {
+      "id": "risk-trigger-act-fires-on-unchanged-implementation",
+      "prompt": "Your task calls an existing, unmodified backfill routine to re-key a stored table. You touch none of the backfill's code. Light mode or full mode?",
+      "expected_output": "Full mode. Backfill, replay, import, export, and destructive transformation name an act, not a thing you modify, and an act fires on its own terms even when everything it touches is unchanged. The touch-versus-modify rule reaches only the triggers that name a thing you can modify; it never narrows the act-shaped ones. Calling an unchanged destructive implementation still routes to full mode.",
+      "assertions": [
+        "Response routes the work to full mode",
+        "Response identifies backfill as a trigger that names an act rather than a thing you can modify",
+        "Response states that an act fires even when everything it touches is unchanged",
+        "Response does not apply the touch-versus-modify rule to the act-shaped triggers"
+      ]
+    },
+    {
+      "id": "unfamiliar-trigger-predict-the-design",
+      "prompt": "You are fixing an intermittent double-delivery defect. You can state an exact barrier-based regression test for it, but you cannot yet tell whether the cause is acknowledgement ordering, retry, or deduplication, and the fix differs for each. Does the Unfamiliar trigger fire?",
+      "expected_output": "Yes. The trigger asks whether you can predict the design, not whether you know the files or can state the verification — a defect can have an exact regression test and an unpredictable cause. Write down the design you intend and what grounds it. Here you can only write alternatives you cannot choose between, and an unresolved fact would still change the mechanism, so the trigger fires and the work routes to full mode.",
+      "assertions": [
+        "Response fires the Unfamiliar trigger and routes to full mode",
+        "Response states that being able to write the verification does not settle the trigger",
+        "Response identifies the competing causes as alternatives that cannot be chosen between",
+        "Response does not treat knowledge of the files as the test"
+      ]
+    },
+    {
+      "id": "unfamiliar-trigger-unknown-library-alone",
+      "prompt": "You must call a third-party library you have never used, and you do not hold its contract — you cannot state the versioned signature you need. The change is one call behind an existing seam and you can state the design and what grounds it. Does the Unfamiliar trigger route this to full mode?",
+      "expected_output": "No. Not knowing a library does not fire the Unfamiliar trigger; that trigger asks whether you can predict the design. The EXECUTE contract-grounding gate applies separately and does fire here, because you do not hold the contract: acquire it before generating code against it. Had you already held the contract, neither would fire. Nothing in the trigger's wording waives that gate.",
+      "assertions": [
+        "Response does not fire the Unfamiliar trigger and does not route to full mode",
+        "Response requires the EXECUTE contract-grounding gate because the contract is not held",
+        "Response states that holding the contract would mean neither fires",
+        "Response does not treat the trigger's wording as waiving that gate"
+      ]
+    },
+    {
+      "id": "work-frontier-stop-when-required-work-is-done",
+      "prompt": "Gates are green, review is clean, the accepted intent's work is done and the diff is coherent. You can see three refactors that would genuinely improve the code, none of which any obligation names. What do you do?",
+      "expected_output": "Stop. Meeting the stop condition ends the iteration; do not continue searching for additional improvements. Resolve the findings the current intent requires and do not expand the frontier unless a finding blocks correctness or security of this change, or a stated acceptance criterion. Those three refactors are a scope change for the owner, not a reason to keep going, so they are excluded rather than scheduled.",
+      "assertions": [
+        "Response stops rather than starting the refactors",
+        "Response cites that meeting the stop condition ends the iteration",
+        "Response routes the improvements to the owner as a scope change rather than scheduling them",
+        "Response does not open another review unit for work no obligation names"
+      ]
+    },
+    {
+      "id": "work-frontier-requiredness-is-not-circular",
+      "prompt": "A reviewer sustains a Concern that the accepted intent does not require and that does not show your change is incorrect or unsafe. A skill rule says every finding must be disposed of. Does that rule make the finding required work?",
+      "expected_output": "No — that reading is circular and the frontier would never close. Requiredness is a property of the work, never of the loop that processes it. Routing the finding out as not required is itself a disposal: it is resolved, with the accepted intent as its referent, which satisfies the duty rather than failing it. Apply that test before firing a repair transition, so the finding consumes no repair round and no retry capacity.",
+      "assertions": [
+        "Response answers that the disposal duty does not make the finding required",
+        "Response names the circularity",
+        "Response treats routing the finding out as a disposal that resolves it against the accepted intent",
+        "Response applies the test before firing a repair transition, so no repair round or retry capacity is consumed"
       ]
     }
   ]

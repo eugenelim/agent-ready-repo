@@ -126,3 +126,82 @@ def test_unattended_loops_pointer_routes_eligibility_rules() -> None:
         "review every commit after",
     ):
         assert statement in reference
+
+
+# --- Relocated full-mode engine sequences -----------------------------------
+#
+# The `loop-engine` / `loop-cohort` sequences moved out of SKILL.md into
+# `references/full-mode-engine.md`. Every control over their CONTENT now reads
+# the reference, so none of them can see the reference go unreachable: delete a
+# step's pointer and the commands are still present, still correct, and no
+# longer findable from the step that fires them.
+#
+# Per owning step, not per file. A file-wide search stays green while one
+# step's pointer is deleted, because the other steps carry the same
+# destination.
+_ENGINE_REFERENCE = "](references/full-mode-engine.md)"
+
+_RELOCATED_SEQUENCES = (
+    # (owning step start, step end, section cue named by the pointer)
+    ("10. **Full mode:** run the init pair", "11. **Run every fired",
+     "PLAN — init pair, or resume"),
+    ("Transitions for this step:", "12. **Full mode:**",
+     "PLAN — pre-EXECUTE review transitions"),
+    ("12. **Full mode:** the **G-plan sequence**", "### Project-knowledge integration",
+     "PLAN — the G-plan sequence"),
+    ("**Full mode — wave routing.**", "**Pre-existing failure triage.**",
+     "GATES — wave routing"),
+    ("**A spec-backed run** normally writes", "**A direct-light run**",
+     "REVIEW and the human gate"),
+)
+
+# A pointer summarises the sequence it replaces, and a summary is new prose --
+# which is where an obligation silently widens or narrows. These are the
+# qualifiers whose loss changes what the step requires, pinned per owning step.
+# Narrow phrases, not a byte-pin: the surrounding wording stays editable.
+_LOAD_BEARING_QUALIFIERS = (
+    ("**A spec-backed run** normally writes", "**A direct-light run**",
+     "if at least one reviewer produced a clean report"),
+    ("10. **Full mode:** run the init pair", "11. **Run every fired",
+     "the destructive reset pair"),
+)
+
+
+def _flatten(text: str) -> str:
+    return re.sub(r"\s+", " ", text)
+
+
+def test_every_relocated_sequence_is_reachable_from_its_owning_step() -> None:
+    raw = _skill_text()
+    for start, end, cue in _RELOCATED_SEQUENCES:
+        assert start in raw, f"owning-step anchor vanished: {start!r}"
+        assert end in raw, f"owning-step end anchor vanished: {end!r}"
+        step = _flatten(raw[raw.index(start) : raw.index(end, raw.index(start))])
+        assert _ENGINE_REFERENCE in step, f"{start!r} no longer routes to the engine reference"
+        assert cue in step, f"{start!r} no longer names its section: {cue!r}"
+
+
+def test_every_named_engine_section_exists_in_the_reference() -> None:
+    """A pointer naming a section the reference lacks is a dead end.
+
+    Paired with the arm above: that one proves the step points somewhere, this
+    one proves the somewhere is real.
+    """
+    body = (REFERENCES / "full-mode-engine.md").read_text(encoding="utf-8")
+    headings = [ln.lstrip("# ").strip() for ln in body.splitlines() if ln.startswith("## ")]
+    for _, _, cue in _RELOCATED_SEQUENCES:
+        assert any(h.startswith(cue) for h in headings), f"no section for cue {cue!r}"
+
+
+def test_each_pointer_keeps_its_load_bearing_qualifier() -> None:
+    """Unconditional prose in a pointer is how a relocated rule loses its edge.
+
+    Dropping "if at least one reviewer produced a clean report" makes recording
+    look mandatory when a run satisfied by deferred Nits must record nothing;
+    widening "the destructive reset pair" to any reset gates unrelated work.
+    Both shipped during this relocation and were caught only by review.
+    """
+    raw = _skill_text()
+    for start, end, qualifier in _LOAD_BEARING_QUALIFIERS:
+        step = _flatten(raw[raw.index(start) : raw.index(end, raw.index(start))])
+        assert qualifier in step, f"{start!r} lost its qualifier: {qualifier!r}"

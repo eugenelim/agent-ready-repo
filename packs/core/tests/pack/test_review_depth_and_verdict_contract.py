@@ -13,6 +13,10 @@ WORK_LOOP = APM_ROOT / "skills" / "work-loop" / "SKILL.md"
 WORK_LOOP_REFS = APM_ROOT / "skills" / "work-loop" / "references"
 ADJUDICATION_REF = WORK_LOOP_REFS / "finding-adjudication.md"
 VERDICT_REF = WORK_LOOP_REFS / "review-verdict-record.md"
+# The REVIEW transition/recording sequence is disclosed progressively too:
+# it moved out of SKILL.md into the full-mode engine reference, which full
+# mode loads at the step that records.
+FULL_MODE_ENGINE_REF = WORK_LOOP_REFS / "full-mode-engine.md"
 # Light mode's checklist obligations are disclosed progressively: SKILL.md
 # routes to this reference rather than restating them, so the readiness pins
 # below have to read it or they would pass by absence.
@@ -444,7 +448,7 @@ def test_work_loop_adjudication_gateway_is_mandatory_and_per_report() -> None:
 
 
 def test_work_loop_emits_closed_categorical_verdict_without_score_authority() -> None:
-    text = _flat_all(WORK_LOOP, VERDICT_REF, ADJUDICATION_REF)
+    text = _flat_all(WORK_LOOP, VERDICT_REF, ADJUDICATION_REF, FULL_MODE_ENGINE_REF)
 
     assert "```json review-verdict.v1" in text
     for state in (

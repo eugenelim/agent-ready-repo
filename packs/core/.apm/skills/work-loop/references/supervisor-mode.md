@@ -348,7 +348,7 @@ Keep the tree two levels deep: supervisor → leaf implementers.
 `.worktrees/<task-id>/` checked out on its own branch
 (`<base-branch>-<task-id>`). Worktrees are git-native, support parallel
 checkout of the same repo, and avoid lockfile contention. The directory
-is gitignored ([`.gitignore`](../.gitignore)); branches live in git
+is gitignored by the repository's own `.gitignore`; branches live in git
 history for traceability.
 
 **Merge discipline.** The supervisor merges with `git merge --no-ff

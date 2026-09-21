@@ -245,8 +245,14 @@ full mode, or pass `--report <raw-report-path>`.
 | `findings` | Use only sustained entries and returned fingerprints. |
 | `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Full mode only — light mode holds no prior-round fingerprints. |
 
-For sustained findings, transition before recording so the retry guard sees the
-pre-increment count. **Do not record if the transition exits non-zero.** The
+Route each sustained finding through DECIDE's requiredness test before firing
+a repair transition. A sustained finding the accepted intent does not
+require, and which does not show this change is incorrect or unsafe, is
+resolved against that intent and opens no repair round: it must not consume
+`findings-remain`, FIX, or retry capacity.
+
+For the sustained findings that remain, transition before recording so the
+retry guard sees the pre-increment count. **Do not record if the transition exits non-zero.** The
 transition carries the review-retry cap guard; `review record --fingerprint`
 carries its own cap as well, so the transition is the earlier of two. Issue them
 ungated and a refused transition still records, leaving the engine parked in

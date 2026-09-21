@@ -146,15 +146,27 @@ the planning run never invents delivery evidence for work it did not perform.
 
 Stop the current iteration when any of these is true:
 
-1. Gates are green and the mode's review requirements are satisfied for the
-   current review unit. Proceed to the finish checklist. A clean or merged unit
-   does not complete accepted intent while matching work remains.
+1. What the accepted intent requires is done, verification passes, no
+   unresolved Blocker or Concern remains, the diff is coherent, and review is
+   clean. Proceed to the finish checklist. **Do not continue searching for
+   additional improvements.** A clean or merged unit does not complete the
+   accepted intent while work that intent requires remains.
 2. `loop-cohort.py check` exits non-zero, other than the expected pending plan
    review that triggers pre-EXECUTE reviewers. Implementation/review retry caps
    identify their condition. A repeated finding fingerprint from `review inspect`
    is Surfaced, not a stop; it bounds nothing.
 3. The diff is shrinking but findings are not. Stop spot-fixing and return to the
    plan/root cause.
+
+Condition 1 is a stop, not a checkpoint to look past. Meeting it ends the
+iteration even when you can see something else worth doing; that something
+else is a scope change for the owner, not a reason to keep going. Three
+things reopen the work and nothing else does: a finding showing this change
+is incorrect or unsafe; any obligation the accepted intent requires — the
+trusted request, a contract obligation, a stated acceptance criterion — found
+incomplete; and a mandatory finish-checklist duty not yet satisfied. Use the
+same definition of required that DECIDE uses. An improvement no obligation
+names is not one of them.
 
 If the work is incomplete, record what was learned and re-plan. Retry caps, review
 stasis, and a clean intermediate unit never complete intent or create follow-ons.
