@@ -638,47 +638,73 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
   /**
    * Astro's `compressHTML` (on by default) strips the whitespace between a text
    * node and an element that opens on the next source line, so authored prose
-   * that reads `above.\n<a>Browse` emits `above.<a>Browse` and a reader sees
-   * "above.Browse". It is invisible in source and invisible to every source-level
-   * lint, which is why it is asserted against the emitted page.
+   * reading `above.\n<a>Browse` emits `above.<a>Browse` and a reader sees
+   * "above.Browse". It is invisible in source and invisible to every
+   * source-level lint, which is why it is asserted against the emitted page.
    *
-   * Scoped to ONE block element at a time, which is the whole difficulty. A
-   * document-wide `textContent` scan cannot express this rule: `textContent`
-   * concatenates adjacent block elements with no separator, so a paragraph
-   * ending "…engineering." followed by a heading "Via…" reads as `g.Via` and is
-   * indistinguishable from the defect. That form reported 60+ false positives
-   * across these pages on a tree where the defect was already fixed. Within a
-   * single paragraph or list item, a period welded to a capitalised word has no
-   * innocent reading.
+   * Asserted STRUCTURALLY, on the text-node/element boundary itself, rather
+   * than by pattern-matching rendered prose. Two earlier textual forms of this
+   * guard were both wrong, in opposite directions at once, and the structural
+   * form is what removes both:
    *
-   * Read from rendered text rather than markup: the defect is that two words
-   * weld together for a reader, and only `textContent` sees that. A markup check
-   * would additionally have to enumerate which elements are inline.
+   *  - A document-wide `textContent` scan reported 60+ false positives on an
+   *    already-fixed tree, because `textContent` concatenates adjacent block
+   *    elements with no separator: a paragraph ending "...engineering."
+   *    followed by a heading "Via..." is indistinguishable from the defect.
+   *  - Narrowing that to one block and matching `/[a-z]\.[A-Z][a-z]+/` was
+   *    still too loose AND too tight. Too loose because `<Content />` renders
+   *    every `src/content/packs/*.md` body into `.pack-description`, so an
+   *    author writing an ordinary identifier like `file.Name` — one text node,
+   *    no boundary, no missing space — would red this suite. Too tight because
+   *    it saw the defect only after a lowercase letter and a period, and only
+   *    before a capitalised word: the same defect after `?`, `!`, a closing
+   *    quote or an em dash, or before a lowercase label, a digit or an
+   *    initialism such as `<code>CLI</code>`, sailed straight past it.
    *
-   * Applied to every emitted /packs/* page, not a sampled one: the source has
+   * The boundary test has neither failure. It fires only where a text node
+   * ending in clause-ending punctuation directly abuts an element whose own
+   * text starts without whitespace — which is the defect, and which has no
+   * innocent reading. Prose inside a single text node is never examined, so
+   * `file.Name` cannot trip it.
+   *
+   * Scope is every element under `main`, not a hand-listed set of block tags.
+   * An earlier list of `p, li, figcaption, dd, dt, blockquote` silently omitted
+   * the `td`/`th` of the Markdown tables that `build/packs/github/` and
+   * `build/packs/linear/` already emit, and every heading.
+   *
+   * Applied to every emitted /packs/* page, not a sampled one: the template has
    * two install branches and each pack renders only one, so a single page
-   * exercises half the template. When this was found, 7 of 22 pages carried it
+   * exercises half of it. When this was found, 7 of 22 pages carried the defect
    * through one branch and the other 15 through the other.
    */
-  it('emitted prose never welds a sentence to the link that follows it', () => {
+  it('emitted prose never welds a sentence to the element that follows it', () => {
     const packDirs = readdirSync(join(BUILD_ROOT, 'packs'))
       .filter((name) => statSync(join(BUILD_ROOT, 'packs', name)).isDirectory());
     expect(packDirs.length).toBeGreaterThan(1);
 
+    // Punctuation that ends a clause and therefore must be followed by a space.
+    // An opening bracket, quote or dash is deliberately absent: those legitimately
+    // abut the element after them, as in `(<a>docs</a>)`.
+    const CLAUSE_END = /[.,;:!?’”]$/;
+
     const welded: string[] = [];
     for (const name of packDirs) {
-      const page = doc(join(BUILD_ROOT, 'packs', name, 'index.html'));
-      for (const block of page.querySelectorAll('p, li, figcaption, dd, dt, blockquote')) {
-        // Nested blocks would double-count and re-weld their children; assert
-        // each innermost text container on its own.
-        if (block.querySelector('p, li, figcaption, dd, dt, blockquote')) continue;
-        const text = block.textContent ?? '';
-        for (const match of text.matchAll(/[a-z]\.[A-Z][a-z]+/g)) {
-          welded.push(`packs/${name}: ...${match[0]}...`);
-        }
+      const main = doc(join(BUILD_ROOT, 'packs', name, 'index.html')).querySelector('main');
+      expect(main, `packs/${name} emitted no <main>`).not.toBeNull();
+      for (const element of main!.querySelectorAll('*')) {
+        const before = element.previousSibling;
+        if (!before || before.nodeType !== 3) continue;
+        const left = before.textContent ?? '';
+        const right = element.textContent ?? '';
+        if (!left || !right) continue;
+        if (/\s$/.test(left) || /^\s/.test(right)) continue;
+        if (!CLAUSE_END.test(left)) continue;
+        welded.push(
+          `packs/${name}: "...${left.slice(-24)}" + <${element.tagName.toLowerCase()}>"${right.slice(0, 24)}..."`,
+        );
       }
     }
-    expect(welded, `emitted prose welds a sentence to a following element:\n${welded.join('\n')}`)
+    expect(welded, `emitted prose welds a clause to the element after it:\n${welded.join('\n')}`)
       .toEqual([]);
   });
 
