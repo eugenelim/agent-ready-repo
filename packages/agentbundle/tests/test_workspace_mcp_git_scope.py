@@ -451,9 +451,9 @@ _AGREEMENT_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
         {"research": "repo/r", "product": "repo/p", "design": "repo/d"},
         {"research": "USER", "product": "USER", "design": "USER"},
     ),
-    # A value `Path(raw)` cannot take. The shared reader drops it and falls back
-    # to the other scope; a raw reader that keeps it would disagree, and the
-    # disagreement is what the screen refuses on.
+    # A value `Path(raw)` cannot take. Both readers must drop it and fall back to
+    # the other scope; a raw reader that kept it would select `product` from a
+    # different scope than the shared one and screen a value that is not in use.
     "container-typed-preferred-value": (
         {"product": '["x"]'},
         {"product": "USER"},
@@ -491,13 +491,6 @@ def test_the_raw_reader_and_the_resolved_reader_agree(
 
     raw = _read_raw_layout_output_dirs(repo)
     resolved = _read_layout_bases(repo)
-
-    if shape == "container-typed-preferred-value":
-        # The two readers disagree here by construction, which is the point: the
-        # screen refuses on the disagreement rather than trusting either answer.
-        assert raw["product"] == ["x"]
-        assert resolved["product"] == _resolved_base(repo, user_layout["product"])
-        return
 
     assert set(raw) == set(resolved)
     assert {key: _resolved_base(repo, value) for key, value in raw.items()} == resolved
@@ -562,3 +555,42 @@ def test_a_container_typed_value_cannot_smuggle_a_reserved_base_past_the_screen(
     assert "committed" not in result
     assert _head(repo) == before
     assert _git(repo, "diff", "--cached", "--name-only").stdout == ""
+
+
+def test_a_bad_key_earlier_in_one_scope_does_not_let_the_other_scope_go_unscreened(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_read_scope` suppresses around its whole per-key loop, so a container
+    value under `research` — read before `product` — abandons the rest of that
+    scope and hands the decision to the other one. A raw reader that kept going
+    would select `product` from the repository scope while the shared reader
+    selected it from the user scope, and screen a value that is not the one in
+    use.
+
+    The user value here carries `*` in a segment that `..` normalises away, so
+    the two selections resolve to the same path and an equality check between
+    them cannot tell them apart. Only reproducing the abort catches it.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    home = tmp_path / "home"
+    _write_layout(
+        repo / "agentbundle-layout.toml",
+        {"research": '["x"]', "product": "artifacts"},
+    )
+    _write_layout(
+        home / ".agentbundle" / "agentbundle-layout.toml",
+        {"product": str(repo / "scratch*" / ".." / "artifacts")},
+    )
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    _write(repo / _UNRELATED)
+    before = _head(repo)
+
+    _dispatch(monkeypatch, "shape")
+    tools = _GitTools(repo)
+    result = tools.git_commit({"message": "scope"})
+
+    assert tools._refused_layout_key == "product"
+    assert "committed" not in result
+    assert _head(repo) == before

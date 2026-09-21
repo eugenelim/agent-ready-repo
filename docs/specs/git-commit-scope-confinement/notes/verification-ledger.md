@@ -253,3 +253,42 @@ already carrying a bracket or brace unquoted. This is the same shape as the
 what matters.
 
 Full `workspace_mcp` selection after the repair: 163 passed, 42 skipped, 130s.
+
+## The agreement check is a backstop, not a substitute for the mirror
+
+Round 5 sustained a Blocker that refutes the previous entry's reasoning, and the
+correction belongs on the record next to the claim it corrects.
+
+The claim was that refusing on disagreement is *total*, so reproducing
+`_read_layout_bases`'s selection is unnecessary. It is not. Two different raw
+values can resolve to the same path, and equality of the resolved forms
+therefore does not establish that the screened value is the one the resolver
+selected.
+
+The case: `_read_scope` suppresses around its whole per-key loop, so
+`[research] output_dir = ["x"]` — read before `product` — abandons the rest of
+the repository scope and hands `product` to the user scope. The raw reader kept
+reading and returned the repository's `"artifacts"`. The user value,
+`<repo>/scratch*/../artifacts`, resolves to `<repo>/artifacts`, so the two
+agreed and a value from a different file and scope was screened.
+
+What follows and what does not. AC-0002's refusal was missed for the effective
+configured value, which carries `*`. AC-0004 was not breached: what reaches
+`_apply_layout_overrides` is the resolved base `<repo>/artifacts`, carrying no
+reserved character, and a reserved character surviving resolution is still
+refused. The reviewer's stated consequence — that the star-bearing value
+reaches the splice — is false as written, measured before dispatch and
+confirmed on adjudication.
+
+The repair reproduces `_read_scope` step for step, including the
+`Path(raw).expanduser()` call and the scope-wide abort its raise causes. The
+agreement check stays, in its correct role: a backstop for divergences the
+mirror fails to reproduce, which cost a commit rather than a containment.
+
+Mutation: removing the abort mirror reds both
+`test_a_bad_key_earlier_in_one_scope_does_not_let_the_other_scope_go_unscreened`
+and the `container-typed-preferred-value` agreement row, and nothing else. That
+row changed meaning with the repair — it previously asserted the two readers
+diverge, which was the defect.
+
+Full `workspace_mcp` selection after the repair: 164 passed, 42 skipped, 115s.

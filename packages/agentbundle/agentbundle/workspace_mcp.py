@@ -234,11 +234,19 @@ def _read_raw_layout_output_dirs(repo_root: Path) -> dict[str, str]:
     reserved character that was configured, and it splices in the repository's
     own location, which may carry one the adopter never typed.
 
-    The per-key precedence and the user-scope-must-be-absolute rule are
-    `_read_layout_bases`'s, reproduced rather than shared because that function
-    may not be modified. `test_the_raw_reader_and_the_resolved_reader_agree`
-    pins the two to one answer, so a change to either that the other does not
-    follow fails rather than drifting.
+    This function must *select* what `_read_layout_bases` selects, not merely
+    follow its precedence. Its body therefore mirrors `_read_scope` step for
+    step, including the two places that decide which value wins: the
+    `Path(raw).expanduser()` call, which a non-string value raises on, and the
+    `contextlib.suppress` around the whole per-key loop, which that raise exits
+    — abandoning every later key in that scope and handing the decision to the
+    other one. Reproducing the precedence while reading one key more than the
+    shared reader does makes the two select from different scopes, which is a
+    defect this screen has already shipped once.
+
+    `test_the_raw_reader_and_the_resolved_reader_agree` pins the two to one
+    answer, and the call site refuses on any disagreement, so a divergence this
+    mirror fails to reproduce costs a commit rather than a containment.
     """
     import tomllib
 
@@ -255,7 +263,10 @@ def _read_raw_layout_output_dirs(repo_root: Path) -> dict[str, str]:
                 raw = data[key].get("output_dir", "")
                 if not raw:
                     continue
-                if scope == "user" and not Path(raw).expanduser().is_absolute():
+                # Mirrors `_read_scope`: a non-string raises here and the raise
+                # exits the suppressed block, ending this scope's whole loop.
+                candidate = Path(raw).expanduser()
+                if scope == "user" and not candidate.is_absolute():
                     # The shared reader drops this one and warns about it, so it
                     # never reaches a staging scope and must not be screened.
                     continue
