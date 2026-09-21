@@ -239,6 +239,40 @@ subprocess so the claim is standing rather than a one-off, and it must be a
 subprocess because the suite sets `sys.dont_write_bytecode` itself and would
 mask a script that does not.
 
+## 2026-09-21 — the allocator agrees with the numbers a human chose
+
+**Why run it.** The plan's named uncertainty was that the existing typed corpus
+was authored by hand, so the allocator's first real run has to agree with
+choices nobody derived. That is checkable, so it was checked rather than
+assumed — and this run is also the only one so far that exercised the `origin`
+union for real, since every unit fixture is a bare directory with no remote.
+
+**What was run.** At revision `1bca9160e`, from the repository root, against the live
+`docs/product/intents/`:
+
+```
+python3 packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py --dir docs/product/intents --token <TOKEN>
+python3 packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py --check docs/product/intents
+```
+
+**Observed.**
+
+| Token | Highest on disk | Allocator |
+| --- | --- | --- |
+| `VISION` | `VISION-0001` | `VISION-0002` |
+| `STRAT` | `STRAT-0004` | `STRAT-0005` |
+| `CAP` | `CAP-0004` | `CAP-0005` |
+| `FEAT` | `FEAT-0005` | `FEAT-0006` |
+
+`--check` exited 0 with `no duplicate ordinals` on stderr and nothing on stdout.
+
+**What it settles.** Four for four, and the duplicate check is clean on a corpus
+it actually read — the distinction that matters, since the helper this replaces
+reports clean for a directory it never matched. The remaining gap is the one the
+Assumptions section already owns: a peer's unpushed record is invisible to this
+view by construction, so two concurrent sessions can still take the same number
+and `--check` is what surfaces it afterwards.
+
 ## 2026-09-21 — T2 and T3 executed
 
 **T2, verified remotely by instruction.** `tests/roster/` is not run on this
