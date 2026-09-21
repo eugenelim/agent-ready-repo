@@ -1,9 +1,9 @@
 # Spec: Intent metadata shape contract and its two enforcement points
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111
+- **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111; ADR-0121
 - **Brief:** docs/product/briefs/intent-identity-and-registration.md
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
 - **Contract:** none
@@ -236,10 +236,12 @@ third criterion enumerates a further silence.
       shaping review when it fails any of that review's other conditions.
 - [ ] **AC-0017.** The corpus lint validates every file in
       `docs/product/intents/`, routing each to the live-intent contract or to
-      the tombstone contract by the partition rule at
-      `docs/specs/intent-renumber-and-reissue/spec.md` AC-0006, and validating
-      the tombstone branch against the three-field contract at that spec's
-      AC-0005.
+      the tombstone contract by the partition rule in
+      `docs/specs/intent-renumber-and-reissue/spec.md`, and validating the
+      tombstone branch against that spec's tombstone field contract. Both are
+      cited by name and by path rather than by criterion number, because a bare
+      number resolves inside this directory, where those numbers name unrelated
+      criteria.
 - [ ] **AC-0033.** The corpus lint exits zero over the real
       `docs/product/intents/`.
 - [ ] **AC-0018.** A rendered intent produced by `intake-intent`'s renderer, and
@@ -274,10 +276,12 @@ third criterion enumerates a further silence.
   reaches the renderer and the template only, so those copies are out of
   contract; bring them under one owning template or replace them with a
   pointer to it.
-- eugenelim: `docs/specs/intent-renumber-and-reissue/spec.md` — that spec's
-  AC-0006 and this spec's AC-0017 state the same routing obligation from
-  opposite sides. Record which gate owns it and reduce the other to a
-  cross-reference before either ships.
+- Settled 2026-09-21 by eugenelim, with
+  `docs/specs/intent-renumber-and-reissue/spec.md`: that spec states the
+  partition rule, and this spec's AC-0017 and AC-0028 own routing every file
+  and failing the gate. Neither slice blocks the other and no dependency edge
+  is recorded, because an edge either way would assert a false block and both
+  would cycle.
 - eugenelim: `docs/specs/intent-review-mandate-split/spec.md` is `Shipped`, and
   two of its ticked criteria assert the condition count AC-0030 removes. No
   amendment: a shipped spec's criteria record what was true at delivery, not a

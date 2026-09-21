@@ -1,7 +1,7 @@
 # Plan: Intent metadata shape contract and its two enforcement points
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py`
   (the sibling corpus-walking script this one sits beside, and the source of the
   refuse-rather-than-guess posture); `packs/core/tests/skills/work-intake/test_intent_ordinal.py`
@@ -360,9 +360,14 @@ passes once it is removed.
 - Manual QA: the how-to is followed out of one refusal of each kind.
 
 **Approach:**
-- No new ADR. ADR-0111 already carries the erratum this change owes it, and the
-  field contract's own decision record is deferred — see the spec's
-  `Follow-ons`.
+- One new ADR, and only one. ADR-0121 supersedes ADR-0098 D3 in part: D3 fixes
+  `level` as optional enrichment while AC-0001 requires it on every live
+  intent, and `intake-intent` writes into the directory AC-0028's gate guards,
+  so admission would otherwise produce an intent the gate rejects. RFC-0102
+  fixes the instrument — an accepted record's body is frozen and "anything else
+  is a *new* ADR that supersedes", and an erratum records an error rather than
+  a changed decision. ADR-0111 still takes its erratum, and the field
+  contract's own decision record stays deferred — see the spec's `Follow-ons`.
 
 **Touches:** guides/product-engineering/reference/intent-fields-and-modes.md, guides/product-engineering/how-to/, packs/core/CHANGELOG.md, packs/product-engineering/CHANGELOG.md
 
