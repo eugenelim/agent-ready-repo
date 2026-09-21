@@ -86,11 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `finding-adjudicator` refutes on the Authority predicate any finding that
   names no violated acceptance criterion, repository rule, security property, or
   concrete defect. Reviewer taste stated confidently no longer reaches FIX.
-- The adjudicator dispatch gains a work-risk condition beside its existing
-  content conditions (byte-exact clean, Nit-only): it is required on the same
-  three conditions above, and otherwise available rather than automatic. Every
-  report is still persisted and validated; only the dispatch narrows. Refuted
-  findings keep their audit record.
+  Refuted findings keep their audit record, so a later round can see a claim was
+  tested rather than re-litigate it. Dispatch conditions are unchanged: making
+  them risk-conditional would strand a non-Nit finding outside `findings[]`,
+  which `references/review-verdict-record.md` admits only through adjudication.
 
 ## [core][2.26.22] — 2026-09-20
 

@@ -445,19 +445,12 @@ adversarial evidence into a summary-only or named-skip path.
 ### Finding-adjudication gateway
 
 For every warranted reviewer role, persist the completed report to the ignored
-session path first. Persistence is unconditional; the adjudicator dispatch is
-not. **The dispatch predicate, stated once and cited everywhere else it is
-needed:** dispatch is required when the work is high-risk as the roster rule
-below defines it, or when a human asks for a report to be adjudicated; on other
-work the adjudicator is available but not automatic, and the verdict record
-names which applied. Every dispatch rule below narrows that predicate further —
-none widens it. Then run `review raw-classify
+session path first. Persistence is unconditional. Then run `review raw-classify
 --report <path> --json`: `clean` skips the `finding-adjudicator` dispatch, the paired artifacts, and the adjudication classifier — but never the raw artifact itself — and records with
 `--direct-clean-file` only for byte equality or `--structural-clean-file` for a
 footer-free clean report whose bytes differ only in trailing whitespace;
-`findings` dispatches the adjudicator when the dispatch predicate above holds,
-unless the report is Nit-only and the thread does not intend to mutate; then
-defer each Nit in the verdict record.
+`findings` dispatches the adjudicator unless the report is Nit-only and the
+thread does not intend to mutate; then defer each Nit in the verdict record.
 An intended Nit mutation requires adjudication. `invalid` stops loudly. Do not trim, case-fold, normalize
 Unicode, unwrap Markdown, or accept prose outside that grammar. A missing
 `finding-adjudicator`, invalid structure, or `ADJUDICATION-INDETERMINATE` is a
@@ -516,8 +509,7 @@ the roster and what high-risk means. A row that does not fire is recorded
 | **high-risk work** | `quality-engineer` |
 
 **High-risk work** means any one of three conditions, and this is its only
-definition — the adjudication gateway above reuses it rather than restating it.
-(1) The change warrants at least one module from [`operational-safety`'s Module
+definition. (1) The change warrants at least one module from [`operational-safety`'s Module
 index](../operational-safety/SKILL.md#module-index), already the deterministic
 failure-mode→module routing authority; that condition subsumes persistent state,
 infrastructure, and reliability-critical behaviour, so none of the three is a
@@ -569,7 +561,7 @@ rail, and the retry-cap interaction:
 [`references/full-mode-engine.md`](references/full-mode-engine.md)
 § *REVIEW and the human gate*.
 
-**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation, under the same dispatch predicate — parallelism changes the ordering, never which reports are owed adjudication. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
+**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?

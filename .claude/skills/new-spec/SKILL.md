@@ -602,9 +602,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    sentence appears exactly once, no findings parse, and nothing else but blank
    lines surrounds it; that skips `finding-adjudicator`. A report carrying a
    `## Not checked` footer always dispatches, because the footer is prose. A
-   report with findings dispatches when `work-loop`'s dispatch predicate holds —
-   that predicate is stated once there and cited here, never restated; a
-   malformed one is a loud stop. Follow the installed
+   report with findings dispatches; a malformed one is a loud stop. Follow the installed
    [`work-loop` pre-EXECUTE review protocol](../work-loop/references/pre-execute-review.md)
    for spec-stage artifact identity and validation: prove `.context/reviews/` is ignored,
    persist the complete non-exact raw report, validate that artifact before dispatch,

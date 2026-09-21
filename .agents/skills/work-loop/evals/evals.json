@@ -965,16 +965,6 @@
       ]
     },
     {
-      "id": "adjudicator-dispatch-follows-one-predicate",
-      "prompt": "A reviewer returned findings on a low-risk full-mode change. Must I dispatch `finding-adjudicator`?",
-      "expected_output": "No, not automatically. The dispatch predicate is stated once: dispatch is required when the work is high-risk or when a human asks for a report to be adjudicated. On other work the adjudicator is available but not automatic, and the verdict record names which applied. The report is still persisted and validated either way — only the dispatch narrows, and every later dispatch rule narrows that predicate further rather than widening it.",
-      "assertions": [
-        "Response says the dispatch is not automatic on low-risk work",
-        "Response says the report is still persisted and validated",
-        "Response says the verdict record names which case applied"
-      ]
-    },
-    {
       "id": "ungrounded-finding-is-refuted-on-authority",
       "prompt": "A reviewer finding says a helper 'would read better split in two' and cites no rule. What does `finding-adjudicator` do with it?",
       "expected_output": "It refutes the finding on the Authority predicate. A finding must identify the ground it rests on — a violated acceptance criterion, repository rule, security property, or concrete defect — and this one names none, so it states a preference that gives a repair nothing to discharge. The refusal is recorded in the Refuted audit with the broken predicate; it never reaches the main-loop result or FIX.",
