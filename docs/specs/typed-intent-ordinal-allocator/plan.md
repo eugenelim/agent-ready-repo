@@ -57,7 +57,7 @@ The integration covers two entry paths, and **neither stops an admission** — t
 
 **Integration, at the repository** — `tests/roster/test_typed_ordinal_collision_equivalence.py`. It is a roster test because it reads a second pack's script and the repository's own `docs/`, both of which a pack test may not reach. It asserts equivalence over **paired** typed and untyped fixtures, not over the real ADR/RFC corpora: a directory with no typed records is indistinguishable from a valid intent directory holding only legacy names, which AC-0001 requires to yield `0001`, so a real-corpus non-answer assertion would contradict the first-allocation criterion.
 
-**Manual verification — the canonical session inventory.** Seven sessions. Every other mention of manual QA in this plan refers to this table rather than repeating it or its count, because a count restated in three places is a count that disagrees with itself.
+**Manual verification — the canonical session inventory.** Every other mention of manual QA in this plan refers to these rows, and none restates their number — a count in three places is a count that disagrees with itself.
 
 | # | Path | Input | Expected | Stops at | Criteria |
 | --- | --- | --- | --- | --- | --- |
@@ -69,7 +69,7 @@ The integration covers two entry paths, and **neither stops an admission** — t
 | 6 | `work-intake` | an allocator stub returning `../escape` | the value is refused as a destination, admission continues at `<slug>.md`, registered, with the malformed value neither used nor reflected | the registry entry | AC-0016 |
 | 7 | `work-intake` | an existing unprefixed intent at a mapped altitude | admitted in place, filename unchanged, registered | the registry entry | AC-0001 |
 
-Session 4 is the one that would otherwise be assumed: the direct path does not register, and that was already true before this slice. Each row's *Stops at* column is the load-bearing part — a session that stops at the file cannot see a registration, and three of these six criteria are about registration.
+Session 4 is the one that would otherwise be assumed: the direct path does not register, and that was already true before this slice. Each row's *Stops at* column is the load-bearing part — a session that stops at the file cannot observe a registration or a returned response, and four of these rows claim one or the other.
 
 ## Durable-output map
 
@@ -119,16 +119,18 @@ The spec's `## Durable Outputs` names three applicable roles. The first: the pub
 - `test_a_promisor_designation_refuses_before_any_object_read` (AC-0018) — `stub: true`; asserts the refusal with the subprocess seam recording no `ls-tree` launch, which is what isolates the configuration check from `GIT_NO_LAZY_FETCH`. A configuration read may launch; an object read may not.
 - `test_either_promisor_designation_is_refused_on_a_real_clone` (AC-0018) — deferred to EXECUTE; needs three `--filter=tree:0` clone fixtures with an unreachable remote — `remote.origin.promisor=true`, `extensions.partialClone` alone, and `remote.origin.promisor=false` beside `extensions.partialClone` — each asserted with lazy-fetch suppression *removed* from the child environment
 - `test_the_child_environment_forbids_a_lazy_fetch` (AC-0018) — `stub: true`
+- `test_the_refusal_causes_are_a_closed_set` (AC-0010, AC-0024) — `stub: true`
 - `test_the_bounds_are_module_constants` (AC-0021) — `stub: true`
 - `test_each_bound_refuses_when_lowered` (AC-0021) — deferred to EXECUTE; each case drives a lowered bound, so it needs the module's bound constants to exist
 
-The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **56 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
+The block below is exact and materializes unchanged at `packs/core/tests/skills/work-intake/test_intent_ordinal.py` when the engine enters `CODE-IMPLEMENTATION`. It compiles under `python3 -m py_compile`, and it earned its red from disposable scratch on 2026-09-20 against a deliberately-wrong skeleton (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` → `1`, `remote_view` → `absent`, `main` → `0`): **57 failed, 11 passed**. Every case derives its tokens and levels from `MODULE.LEVEL_TOKENS`, so the owner's table appears nowhere in this file — T2 is the single place the concrete mapping is checked, against the parent intent that owns it.
 
 Deferred to EXECUTE as assertions added to this file rather than a rewrite of it: the `origin`-reachable arm of `test_a_reachable_or_absent_remote_allocates`, whose `"ok"` parametrization needs a local Git fixture this file does not build (T2 carries the equivalent at the repository boundary), and the induced-timeout variant of the failed-query case. Both are construction-level detail on an already-red contract surface.
 
 ```python
 # STUB: AC-0001, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0011,
-#       AC-0012, AC-0013, AC-0015, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021
+#       AC-0012, AC-0013, AC-0015, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021,
+#       AC-0024
 # Stored and validated in PLAN's T1 Tests: subsection. Every case derives its
 # tokens and levels from the module's own mapping, so this file never restates
 # the owner's closed table — T2 is where the mapping is checked against the
@@ -482,6 +484,16 @@ def test_a_promisor_designation_refuses_before_any_object_read(
     assert not [a for a in launched if "ls-tree" in a]
 
 
+def test_the_refusal_causes_are_a_closed_set(tmp_path: pathlib.Path) -> None:
+    """AC-0010, AC-0024: a marker is selected from tokens, never composed."""
+    assert MODULE.REFUSAL_CAUSES == (
+        "unparsed-name",
+        "incomplete-scan",
+        "remote-unavailable",
+        "bound-exceeded",
+    )
+
+
 def test_the_bounds_are_module_constants(tmp_path: pathlib.Path) -> None:
     """AC-0021: every bound is lowerable, so no test builds an oversized input."""
     assert MODULE.GIT_TIMEOUT_SECONDS == 5
@@ -519,7 +531,7 @@ def test_diagnostics_reflect_no_untrusted_text(
   | 0 | `<TYPE>-NNNN` | empty | supplies `<TYPE>-NNNN-<slug>.md` as the confirmed repository destination (AC-0006) |
   | 1 | empty | one line naming the refusal | supplies the bare `<slug>.md`, and passes the stderr line through for `intake-intent` to record in `## Unresolved questions` (AC-0010) |
 
-  Two codes, and **neither stops admission** — that is the owner decision of 2026-09-20, and it is why exit 1 has a destination in the right-hand column rather than a halt. The stderr line is load-bearing rather than diagnostic: it is the text that ends up on the artifact, so a reader of the intent learns why it has no alias. The unmapped case has no exit code at all, because § 6 recognizes an unmapped altitude and never invokes the allocator (AC-0007).
+  Two codes, and **neither stops admission** — that is the owner decision of 2026-09-20, and it is why exit 1 has a destination in the right-hand column rather than a halt. The stderr line is for a log, and its **first token** is the machine-readable cause the caller maps to a marker — the caller selects from the closed set rather than copying the line, so no byte of the allocator's output reaches the artifact. The unmapped case has no exit code at all, because § 6 recognizes an unmapped altitude and never invokes the allocator (AC-0007).
 
   The script still refuses an out-of-set `--token` and a `--dir` carrying a `..` segment or resolving outside the repository (AC-0020). That is defence in depth for a caller that got its own resolution wrong, not the control that makes the boundary safe; the ordering above is.
 - Match the owner's contract, not a prefix. Two patterns, so the classes cannot leave a gap: the introducer `^<TOKEN>-` decides in-or-out of the namespace, and the end-anchored shape `^<TOKEN>-\d{4,}-[^/]+\.md$` decides valid-or-malformed inside it. Both build their alternation from the mapping's own values, so the token set appears once in the module. Deriving malformed as "introducer and not shape" is what makes the partition exhaustive by construction; enumerating malformed shapes instead is how `FEAT-0001x.md` and `FEAT-0001` escaped an earlier draft.
@@ -532,12 +544,12 @@ def test_diagnostics_reflect_no_untrusted_text(
   | --- | --- | --- |
   | not a Git repository | `absent` | proceeds, working tree only |
   | repository with no remote | `absent` | proceeds, working tree only |
-  | remote present, no `refs/remotes/origin/HEAD` | `absent` | proceeds, working tree only |
+| remote present, no resolvable default branch | `failed` | **refuses** — `refs/remotes/origin/main` can hold records while the symbolic ref is missing, so a working-tree-only answer here is the plausible duplicate (AC-0015) |
   | `ls-tree` succeeded | `ok` | proceeds, union of both |
   | Git invocation failed, or the ref lookup errored | `failed` | refuses |
   | Git invocation timed out | `failed` | refuses |
 
-  The three `absent` rows are the complete available view, which is why every positive fixture in the suite is an `origin`-less `tmp_path`; conflating them with `failed` makes the suite unsatisfiable. The two `failed` rows are an unknowably incomplete view, and refusing there is the deliberate divergence from the script being modelled. AC-0005's equivalence is scoped to fixtures where `origin` answers, so the two claims do not collide.
+  The two `absent` rows are the complete available view, which is why every positive fixture in the suite is an `origin`-less `tmp_path`; conflating them with `failed` makes the suite unsatisfiable. The three `failed` rows are an unknowably incomplete view, and refusing there is the deliberate divergence from the script being modelled. AC-0005's equivalence is scoped to fixtures where `origin` answers, so the two claims do not collide.
 - **Allocation unions, `--check` does not.** The two modes read different scopes, and that is inherited rather than invented: `next-ordinal.py` calls `_remote_ordinals` only from `next_ordinal:260`, never from `duplicate_ordinals:213`. So allocation classifies the union of local entries and remote names, deduplicating by repository-relative path so a file present in both counts once; `--check` reports duplicates in the directory it was given. AC-0012 is therefore a statement about one directory, which is also the only scope in which a duplicate is actionable — a remote-only collision is already committed and needs a reissue, not a refusal. The script says so in its own `--help`, because an operator who expects `--check` to see `origin` would read a clean result as more than it is.
 - **Nothing the allocator says can stop an admission (AC-0010).** The allocator's job ends at returning an ordinal or not returning one; whether an intent exists is admission's decision and was never the allocator's to influence. This is why exit 1 is a destination rather than a halt, and why the stderr line is text for the artifact rather than an operator-facing error. Three review rounds drove the contract the other way before the owner decision restored it, so the reasoning is recorded here rather than left to be re-derived: refusing to admit would have made a git failure into an inability to record work, and `kind:slug` identity never needed the alias.
 - **Zero writes includes bytecode (AC-0003).** The script sets `sys.dont_write_bytecode = True` before it loads its sibling `file_safety.py` and restores the previous value afterwards — the pattern `next-ordinal.py:_load_helper` already uses for exactly this reason. Without it a first invocation writes `__pycache__` into a skill directory, which is a mutation the contract forbids and which the test stub's own `sys.dont_write_bytecode` would have hidden.

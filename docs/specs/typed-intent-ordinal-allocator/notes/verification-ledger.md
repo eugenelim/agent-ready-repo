@@ -214,7 +214,7 @@ repository test file.
 (`token_for_level` → `None`, `classify` → `"outside"`, `next_typed_ordinal` →
 `1`, `remote_view` → `absent`, `main` → `0`).
 
-**Observed.** Compiles. **56 failed, 11 passed.**
+**Observed.** Compiles. **57 failed, 11 passed.**
 
 **What it settles.** The assertions are reachable rather than vacuous. The 11
 passing are the cases whose expected value the degenerate skeleton happens to
