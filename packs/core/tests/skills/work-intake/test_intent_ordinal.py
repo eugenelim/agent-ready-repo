@@ -762,6 +762,8 @@ def test_a_backslash_in_a_remote_name_is_filename_data(
             return MODULE._GitResult(os.fspath(tmp_path), 0)
         if "remote" in arguments:
             return MODULE._GitResult("origin", 0)
+        if "for-each-ref" in arguments:
+            return MODULE._GitResult("refs/remotes/origin/main", 0)
         if "symbolic-ref" in arguments:
             return MODULE._GitResult("refs/remotes/origin/main", 0)
         if "ls-tree" in arguments:
@@ -860,3 +862,150 @@ def test_every_promisor_designation_git_recognizes_is_refused(
 ) -> None:
     """AC-0018: three keys, any one enough, none of them an allowlist."""
     assert MODULE._is_promisor(config) is designates
+
+
+def _ci_shaped_clone(root: pathlib.Path, *, remote_only: str, local: str) -> pathlib.Path:
+    """A clone with origin refs but no `refs/remotes/origin/HEAD`.
+
+    This is the ordinary shape of a CI checkout, not a contrived one: the
+    action fetches a branch and never writes the symbolic ref. `remote_only`
+    is committed and then deleted from the working tree, so the union is the
+    only way to see it.
+    """
+    import subprocess
+
+    def _run(*arguments: str, cwd: pathlib.Path) -> None:
+        subprocess.run(
+            ["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", *arguments],
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+        )
+
+    source = root / "source"
+    intents = source / "docs/product/intents"
+    intents.mkdir(parents=True)
+    (intents / local).write_text("", encoding="utf-8")
+    (intents / remote_only).write_text("", encoding="utf-8")
+    _run("init", "-q", "-b", "main", ".", cwd=source)
+    _run("add", "-A", cwd=source)
+    _run("commit", "-qm", "seed", cwd=source)
+
+    clone = root / "clone"
+    _run("clone", "-q", str(source), str(clone), cwd=root)
+    (clone / ".git/refs/remotes/origin/HEAD").unlink(missing_ok=True)
+    _run("update-ref", "-d", "refs/remotes/origin/HEAD", cwd=clone)
+    (clone / "docs/product/intents" / remote_only).unlink()
+    return clone / "docs/product/intents"
+
+
+def test_a_checkout_without_origin_head_still_unions_the_remote(
+    tmp_path: pathlib.Path,
+) -> None:
+    """AC-0015: a missing default-branch symref is a clone shape, not a failure.
+
+    An earlier revision refused here, which made the allocator return nothing on
+    every CI checkout while the origin refs it needed were sitting right there.
+    """
+    token = TOKENS[0]
+    directory = _ci_shaped_clone(
+        tmp_path, remote_only=f"{token}-0009-b.md", local=f"{token}-0003-a.md"
+    )
+    assert MODULE.remote_view(directory).state == "ok"
+    assert MODULE.next_typed_ordinal(directory, token) == 10
+
+
+def test_a_dangling_origin_head_falls_back_instead_of_refusing(
+    tmp_path: pathlib.Path,
+) -> None:
+    """AC-0015: `origin/HEAD` can resolve to a name that is not an object.
+
+    A clone whose source sits on a branch it did not copy leaves the symref
+    pointing at a ref that was never created. Honouring it unread turns every
+    later Git call into a fatal error, so the candidate has to be one the ref
+    listing proves exists.
+    """
+    import subprocess
+
+    token = TOKENS[0]
+    directory = _ci_shaped_clone(
+        tmp_path, remote_only=f"{token}-0009-b.md", local=f"{token}-0003-a.md"
+    )
+    subprocess.run(
+        ["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/absent"],
+        cwd=directory,
+        check=True,
+        capture_output=True,
+    )
+    assert MODULE.remote_view(directory).state == "ok"
+    assert MODULE.next_typed_ordinal(directory, token) == 10
+
+
+def test_an_origin_holding_no_refs_is_absent_not_failed(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0015: a configured origin with nothing fetched has nothing to miss."""
+
+    def _fake(directory, arguments, deadline, **keywords):
+        if "config" in arguments:
+            return MODULE._GitResult("", 0)
+        if "rev-parse" in arguments:
+            return MODULE._GitResult(str(tmp_path), 0)
+        if "remote" in arguments:
+            return MODULE._GitResult("origin", 0)
+        if "for-each-ref" in arguments:
+            return MODULE._GitResult("", 0)
+        return pytest.fail(f"unexpected command: {arguments}")
+
+    monkeypatch.setattr(MODULE, "_git", _fake)
+    assert MODULE.remote_view(tmp_path).state == "absent"
+
+
+def test_an_unlistable_origin_still_refuses(tmp_path: pathlib.Path, monkeypatch) -> None:
+    """AC-0011: the fallback widens what counts as readable, not what counts
+    as answered. A ref listing that fails is still no answer."""
+
+    def _fake(directory, arguments, deadline, **keywords):
+        if "config" in arguments:
+            return MODULE._GitResult("", 0)
+        if "rev-parse" in arguments:
+            return MODULE._GitResult(str(tmp_path), 0)
+        if "remote" in arguments:
+            return MODULE._GitResult("origin", 0)
+        if "for-each-ref" in arguments:
+            return MODULE._GitResult("", 1)
+        return pytest.fail(f"unexpected command: {arguments}")
+
+    monkeypatch.setattr(MODULE, "_git", _fake)
+    assert MODULE.remote_view(tmp_path).state == "failed"
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        # the conventional default wins over an alphabetically earlier branch.
+        (("aaa", "main"), "main"),
+        (("aaa", "master"), "master"),
+        (("main", "master"), "main"),
+        # no conventional name, so the choice is the sorted first, never
+        # whichever ref git happened to list first.
+        (("zzz", "bbb"), "bbb"),
+    ],
+)
+def test_the_fallback_ref_choice_is_deterministic(
+    refs: tuple[str, ...], expected: str, tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0015: two runs on one checkout must consult the same ref."""
+    prefix = MODULE._ORIGIN_REF_PREFIX
+
+    def _fake(directory, arguments, deadline, **keywords):
+        if "for-each-ref" in arguments:
+            return MODULE._GitResult("\n".join(prefix + name for name in refs), 0)
+        if "symbolic-ref" in arguments:
+            return MODULE._GitResult("", 1)
+        if "rev-parse" in arguments:
+            return MODULE._GitResult("", 1)
+        return pytest.fail(f"unexpected command: {arguments}")
+
+    monkeypatch.setattr(MODULE, "_git", _fake)
+    assert MODULE._origin_ref(tmp_path, 0.0) == (prefix + expected, "ok")

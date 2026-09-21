@@ -325,6 +325,61 @@ def _is_promisor(config: dict[str, str]) -> bool:
     return False
 
 
+def _origin_ref(directory: Path, deadline: float) -> tuple[str | None, str]:
+    """Return ``(ref, state)`` naming the origin ref whose tree to read.
+
+    Two ordinary clones break the obvious `refs/remotes/origin/HEAD` lookup,
+    and an earlier revision of this file refused on both:
+
+    * A CI checkout fetches one branch and never writes the symbolic ref at
+      all, so the lookup finds nothing.
+    * A clone can leave `origin/HEAD` **dangling** — pointing at a branch
+      whose remote-tracking ref was never created — so the lookup succeeds and
+      the name it returns is not a valid object.
+
+    Neither is an attack, and refusing there makes the allocator unusable in
+    CI. So the candidates come from `for-each-ref`, which lists only refs that
+    exist, and `origin/HEAD` is honoured only when it points into that set.
+    Only an origin with no refs at all yields ``absent`` — at that point it
+    holds no records locally, so there is nothing this view could miss.
+    Anything that fails to answer still refuses.
+    """
+    listing = _git(
+        directory,
+        ["for-each-ref", "--format=%(refname)", _ORIGIN_REF_PREFIX],
+        deadline,
+    )
+    if listing.code != 0 or listing.output is None:
+        return None, "failed"
+    head_ref = _ORIGIN_REF_PREFIX + "HEAD"
+    existing = {
+        line.strip()
+        for line in listing.output.splitlines()
+        if line.strip().startswith(_ORIGIN_REF_PREFIX) and line.strip() != head_ref
+    }
+    if not existing:
+        # origin is configured but holds no records here: nothing to consult.
+        return None, "absent"
+
+    head = _git(directory, ["symbolic-ref", "--quiet", head_ref], deadline)
+    if head.code == 0 and head.output and head.output.strip() in existing:
+        return head.output.strip(), "ok"
+
+    # No usable default branch, so pick one deterministically rather than
+    # taking whichever ref git listed first: this branch's own upstream, then
+    # the conventional default names, then the lexicographically first.
+    upstream = _git(
+        directory, ["rev-parse", "--symbolic-full-name", "@{upstream}"], deadline
+    )
+    if upstream.code == 0 and upstream.output and upstream.output.strip() in existing:
+        return upstream.output.strip(), "ok"
+    for name in ("main", "master"):
+        candidate = _ORIGIN_REF_PREFIX + name
+        if candidate in existing:
+            return candidate, "ok"
+    return sorted(existing)[0], "ok"
+
+
 def _repository_root(directory: Path, deadline: float) -> tuple[str | None, str]:
     """Return ``(root, state)`` where state is ``ok``, ``absent`` or ``failed``.
 
@@ -383,14 +438,9 @@ def remote_view(directory: Path, deadline: float | None = None) -> RemoteView:
     if "origin" not in remotes.output.split():
         return RemoteView(frozenset(), "absent")
 
-    ref_result = _git(
-        directory, ["symbolic-ref", "--quiet", _ORIGIN_REF_PREFIX + "HEAD"], deadline
-    )
-    ref = ref_result.output
-    if ref_result.code != 0 or not ref or not ref.strip().startswith(_ORIGIN_REF_PREFIX):
-        # origin exists and its default branch cannot be established, so the
-        # view is incomplete in an unknown way rather than empty.
-        return RemoteView(frozenset(), "failed")
+    ref, ref_state = _origin_ref(directory, deadline)
+    if ref_state != "ok":
+        return RemoteView(frozenset(), ref_state)
 
     root = Path(toplevel)
     try:
@@ -404,7 +454,7 @@ def remote_view(directory: Path, deadline: float | None = None) -> RemoteView:
     # starts with a quote and so matches no introducer — the record would be
     # invisible and its ordinal handed out again. The mode is kept (no
     # --name-only) so a non-blob entry inside the namespace can fail closed.
-    listing_result = _git(root, ["ls-tree", "-z", ref.strip(), "--", pathspec], deadline)
+    listing_result = _git(root, ["ls-tree", "-z", ref, "--", pathspec], deadline)
     if listing_result.code != 0 or listing_result.output is None:
         return RemoteView(frozenset(), "failed")
     listing = listing_result.output

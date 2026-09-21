@@ -476,3 +476,48 @@ passing are the cases whose expected value the degenerate skeleton happens to
 return; each is pinned by a sibling in the same parametrization rather than
 standing alone, and the split is recorded so a later reader does not mistake the
 stub for fully discriminating on its own.
+
+## 2026-09-20 — CI proved the remote refusal too broad
+
+**Why run it.** T2's baseline assertion — the allocator's next number must agree
+with numbers a human chose — ran for the first time on CI, which is the first
+run on a checkout this session did not create.
+
+**What was run.** `gate-main` step 41 on `796d087d0`, then two local fixtures
+built to reproduce it.
+
+**Observed.** On CI, 8 of 9 roster cases passed and the baseline failed:
+
+```
+AssertionError: assert None == 5
+  where None = next_typed_ordinal(PosixPath('.../docs/product/intents'), 'CAP')
+```
+
+Two distinct clone shapes reproduce it, and the first theory was wrong:
+
+| Fixture | `refs/remotes/origin/HEAD` | Old result | Cause |
+| --- | --- | --- | --- |
+| `git clone` of this worktree | present, **dangling** | `remote-unavailable` | symref names `refs/remotes/origin/<branch>`, which the clone never created, so `ls-tree` exits `fatal: Not a valid object name` |
+| clone with the symref removed, one branch ref kept | absent | `remote-unavailable` | `symbolic-ref` finds nothing |
+
+**What it settles.** The refusal AC-0015 previously required was too broad, and
+the defect is mine from security round 3. Both shapes are ordinary clones, and
+the second is what `actions/checkout` produces on every run — so the rule
+refused on precisely the machine that runs the gates. A dangling symref also
+shows that resolving the ref is not enough; the name has to be one that exists.
+
+Both are now fixed by taking candidates from `git for-each-ref`, which lists
+only refs that exist. After the fix the same fixtures allocate `CAP-0005` and
+`CAP-0010` (the second holding a record present only on the remote ref, which
+proves the union still works without `origin/HEAD`), an `origin` with zero refs
+reads `absent` and allocates, and a ref listing that fails still refuses.
+
+**What it cost.** AC-0015 amended, the plan's tri-state table split into three
+remote rows, five tests added, and one existing fixture taught the new command.
+`120 passed` in the unit suite; ruff and mypy clean.
+
+**The lesson worth keeping.** I asserted the cause was the missing symref before
+measuring it, and the fixture I built to confirm that still had the symref — it
+failed for the other reason and I nearly read the agreement as confirmation. The
+theory and the fixture have to be checked against each other, not just against
+the failure.

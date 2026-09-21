@@ -544,7 +544,9 @@ def test_diagnostics_reflect_no_untrusted_text(
   | --- | --- | --- |
   | not a Git repository | `absent` | proceeds, working tree only |
   | repository with no remote | `absent` | proceeds, working tree only |
-| remote present, no resolvable default branch | `failed` | **refuses** — `refs/remotes/origin/main` can hold records while the symbolic ref is missing, so a working-tree-only answer here is the plausible duplicate (AC-0015) |
+| remote refs present, no resolvable default branch | `ok` | **reads an existing ref** — a CI checkout never writes `refs/remotes/origin/HEAD`, and a clone can leave it dangling, so candidates come from the ref listing and the choice is deterministic (AC-0015) |
+| remote present, ref listing fails | `failed` | **refuses** — a command that did not answer, so a working-tree-only answer here is the plausible duplicate (AC-0011) |
+| remote present, zero remote-tracking refs | `absent` | allocates — nothing was fetched, so no record exists there to miss (AC-0015) |
   | `ls-tree` succeeded | `ok` | proceeds, union of both |
   | Git invocation failed, or the ref lookup errored | `failed` | refuses |
   | Git invocation timed out | `failed` | refuses |
