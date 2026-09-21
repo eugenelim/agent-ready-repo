@@ -978,14 +978,13 @@
     {
       "id": "ready-now-defect-dispatches-at-decide-not-at-capture",
       "prompt": "I'm at DECIDE. A scratch note from this pass names a specific, real defect in a file the change already touches. It can be finished this session and needs no decision from anyone who isn't here. Do I settle where it goes now, or write it down and let Capture route it once the loop closes?",
-      "expected_output": "Settle it in this pass. A ready-now defect is loop work, and DECIDE is where it is routed: the intent-fit table decides whether the current intent requires it, and the bundled-fixes carve-out decides whether it may share this review unit. Capture owns only the destinations that outlive the loop — the `project-knowledge` seam and a captured `work-item` — so carrying a ready-now defect past this pass leaves it with no route that could dispatch it.",
+      "expected_output": "Settle it in this pass. A ready-now defect is loop work, and DECIDE is where its route is settled. Which route it takes is the routing already stated for a scratch note: a ride-along-eligible defect is dispatched now, grouped with related fixes sharing a file or a seam, over the human gate's `blocker-applied` return edge; one that is not ride-along eligible becomes the session's next independently reviewed unit over that same edge. Do not write it down for Capture to settle later.",
       "assertions": [
-        "Response routes the defect in the DECIDE pass rather than deferring the decision to Capture",
-        "Response uses the intent-fit table to decide whether the current intent requires the fix",
-        "Response uses the bundled-fixes carve-out to decide whether the fix may share this review unit",
+        "Response settles the route in the DECIDE pass rather than deferring the decision to Capture",
+        "Response decides the route by ride-along eligibility under the bundled-fixes carve-out",
+        "Response groups a dispatched ride-along with related fixes sharing a file or a seam",
         "Response does NOT capture it as a `work-item`, because it is not blocked",
-        "Response does NOT rely on a 'before the session ends' bound",
-        "Response does NOT claim Capture runs after the loop"
+        "Response does NOT rely on a 'before the session ends' bound"
       ]
     }
   ]

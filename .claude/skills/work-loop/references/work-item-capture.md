@@ -46,10 +46,10 @@ self-report: it is the reasoning check below's judgement.
 
 ## The reasoning check
 
-Every declined item — blocked, ready-now-dispatched, or razor-failing (the
-row this branch adds, and the two the existing seam's routing already
-carries) — gets exactly one outcome: `captured`, `refused`, or
-`dispatched-in-session`. The close enumerates its full declined set first,
+Every declined item — blocked, ready-now and ride-along eligible, ready-now
+and not ride-along eligible, or razor-failing — gets exactly one outcome:
+`captured`, `refused`, or `dispatched-in-session`. The two ready-now rows
+name different destinations and both carry `dispatched-in-session`. The close enumerates its full declined set first,
 before any per-item work runs. That enumeration is what gives each member a
 position-stable ordinal: session-local, never stored, and the identity a
 refusal, a correction, and a re-submission share for the rest of the close.
