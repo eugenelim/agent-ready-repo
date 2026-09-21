@@ -127,6 +127,46 @@ C and E are genuinely exclusive: C provides **no** lean landing for the work it 
 
 ## Errata
 
+- **2026-09-20 — the `quality-engineer` lens is conditional in full mode, and
+  its boundary is enumerated.** This RFC forgoes the lens in light mode (line 57)
+  without saying when full mode owes it, and `work-loop` SKILL.md had drifted to
+  "full mode — every loop". RFC-0051 ("`security-reviewer` / `quality-engineer`
+  as the work crosses their boundary") and RFC-0099 ("`quality-engineer`
+  independently rechecks it only when its trigger fires"), both Accepted, already
+  make the lens conditional; neither states the boundary, so this entry supplies
+  it rather than changing it. **Mechanism:** the lens is warranted when any of
+  three conditions holds — (1) the change warrants at least one
+  `operational-safety` module, decided by that skill's Module index, already the
+  deterministic failure-mode→module routing authority, whose *Load when* column
+  covers provisioning or mutating infra, stateful migration and persistent-state
+  writes, destroy/teardown paths, production-touching iteration, billable
+  provisioning, drift and rollback, and user-reachable deploys; (2) the change is
+  structural exactly as SKILL.md's pre-EXECUTE footnote 1 defines it — new module
+  boundary, new dependency, new abstraction layer, new top-level directory; or
+  (3) a human explicitly requests the pass. Condition 1 subsumes persistent state,
+  infrastructure, and reliability-critical behaviour, which is why three named
+  conditions collapse to one router rather than three new predicates. **Edge
+  case:** when none holds, the loop records `quality-engineer: not warranted`
+  rather than omitting the reviewer silently, so a considered skip and an
+  unconsidered one stay distinguishable at the finish checklist; the whole-spec
+  pass on the final loop of a multi-loop spec applies the same three conditions to
+  the spec's whole change surface, not one loop's diff. **What this costs, stated
+  rather than implied:** `adversarial-reviewer` covers correctness and scope
+  only — its contract assigns testability, reliability, observability,
+  maintenance cost, and all test-strength judgment exclusively to
+  `quality-engineer` (`packs/core/.apm/agents/adversarial-reviewer.md:328`,
+  `:339`). Full-mode work tripping none of the three conditions therefore ships
+  without that lens. This RFC already called the lens "discretionary at
+  selection" (lines 24 and 96) while treating it as a floor at the end-of-session
+  checklist; the conditions above govern selection, and the checklist floor now
+  follows the same three conditions rather than applying to every full-mode
+  loop. That floor removal is the substantive change here and is accepted
+  knowingly, on the same reasoning this RFC used to accept the light-mode lens
+  loss: rigor scales with risk. This alters no risk trigger, leaves light mode's
+  default unchanged (still no pass, still the adopter-gate exception), and adds
+  no fourth core lens — ADR-0042's cap is untouched. Authorized by
+  @eugenelim (Approver), 2026-09-20.
+
 - **2026-06-05 — block-equality lint added; "no new executable code" narrowed to
   vehicle-scope.** The implementation (`docs/specs/work-loop-light-mode/`, PR #239)
   added a standing block-equality guard to `tools/lint-agents-md.py` (check 10g

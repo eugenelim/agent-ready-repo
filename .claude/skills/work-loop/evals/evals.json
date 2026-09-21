@@ -932,6 +932,48 @@
         "Response treats routing the finding out as a disposal that resolves it against the accepted intent",
         "Response applies the test before firing a repair transition, so no repair round or retry capacity is consumed"
       ]
+    },
+    {
+      "id": "quality-engineer-not-warranted-on-low-risk-full-mode",
+      "prompt": "Full mode fired because my change edits a published interface. It touches no infrastructure, no persistent state, and adds no module boundary. Does `quality-engineer` review it?",
+      "expected_output": "No. `quality-engineer` is warranted only on high-risk work: the change warrants at least one `operational-safety` module, it is structural per the pre-EXECUTE footnote, or a human asks. None fires here, so the loop records `quality-engineer: not warranted`. That ships the change without testability, reliability, observability, maintenance-cost and test-strength review, which `adversarial-reviewer` does not cover — ask for the pass if that trade is wrong.",
+      "assertions": [
+        "Response says `quality-engineer` is not warranted",
+        "Response names the three high-risk conditions",
+        "Response says the outcome is recorded rather than silently skipped",
+        "Response does not claim `adversarial-reviewer` covers maintainability or test coverage"
+      ]
+    },
+    {
+      "id": "quality-engineer-warranted-by-operational-safety-module",
+      "prompt": "My change adds a backfill over a stored value. Is `quality-engineer` warranted, and how is that decided?",
+      "expected_output": "Yes. The change warrants at least one `operational-safety` module — a persistent-state write and backfill routes to `state-and-idempotency` — and that Module index is the deterministic failure-mode-to-module routing authority the first high-risk condition reads. Persistent state, infrastructure and reliability-critical behaviour are all that one condition, not three separate predicates.",
+      "assertions": [
+        "Response says `quality-engineer` is warranted",
+        "Response cites the `operational-safety` Module index as the deciding authority",
+        "Response does not treat persistent state as a predicate separate from the module condition"
+      ]
+    },
+    {
+      "id": "explicit-request-warrants-quality-engineer-in-either-mode",
+      "prompt": "I am in light mode and my repo declares no external quality gate, but I want the `quality-engineer` pass on this change. Can I have it?",
+      "expected_output": "Yes. An explicit human request is the third high-risk condition and warrants the pass in either mode; it sits alongside the adopter external-quality-gate exception rather than being blocked by light mode's default of no pass.",
+      "assertions": [
+        "Response says the pass runs on request",
+        "Response says the request warrants it in either mode",
+        "Response does not say light mode forbids the pass when it was requested"
+      ]
+    },
+    {
+      "id": "ungrounded-finding-is-refuted-on-authority",
+      "prompt": "A reviewer finding says a helper 'would read better split in two' and cites no rule. What does `finding-adjudicator` do with it?",
+      "expected_output": "It refutes the finding on the Authority predicate. A finding must identify the ground it rests on — a violated acceptance criterion, repository rule, security property, or concrete defect — and this one names none, so it states a preference that gives a repair nothing to discharge. The refusal is recorded in the Refuted audit with the broken predicate; it never reaches the main-loop result or FIX.",
+      "assertions": [
+        "Response says the finding is refuted on the Authority predicate",
+        "Response names the four admissible grounds",
+        "Response says the refuted finding is recorded in the audit rather than discarded",
+        "Response does not say the finding is sustained at advisory severity"
+      ]
     }
   ]
 }
