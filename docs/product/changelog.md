@@ -64,6 +64,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.25] — 2026-09-21
+
+### Highlights
+
+- **The layout reference answers your question instead of citing ours.** Where
+  it used to say that two of our internal proposals disagree about whether a
+  skill offers the default path before asking you, it now tells you what to do:
+  do not rely on either order, and set `output_dir` explicitly if the
+  distinction matters.
+
+### Fixed
+
+- `workspace-status` `references/agentbundle-layout.md`: the unsettled-order
+  paragraph named two internal records by number. Shipped pack guidance states
+  its rule directly and cites no catalogue-internal record, which
+  `verify-host-checks` enforces; the earlier wording would have failed that
+  gate on any adopter's clone as much as on ours.
+
 ## [core][2.26.24] — 2026-09-21
 
 ### Highlights
