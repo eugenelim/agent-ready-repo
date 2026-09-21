@@ -26,7 +26,8 @@ a local harness: GitHub's step-conclusion semantics have no local equivalent.
 - `tools/test_build_gate_chain.py` pins the bandit install as unconditional and
   immediately preceding the anchor, and asserts `has_if` is false for it. Bandit
   is provisioning and now carries `!cancelled()`, so that assertion must be
-  retargeted in the same commit or the chain reds — T3 owns it. The hoist orders
+  retargeted in the same commit that adds that condition, or the chain
+  reds — T4 owns it. The hoist orders
   the other ten installs above it, preserving the adjacency the same file pins.
   Retarget by comparison against the sanctioned value, never by deleting the
   assertion and never by a falsy conjunct: `False and <expr>` trips ruff
@@ -218,9 +219,13 @@ conditions, and the six cases above are green.
   green: no other `CHECK` is `skipped` (AC-0015).
 
 **Approach:**
-- Injection branches are scratch and never merged. Mark every other step so the
-  break stays local — an unmarked neighbour skips and conflates the result,
-  which is the defect the first `b6-provfail` probe had.
+- Injection branches are scratch and never merged. The branch leaves every
+  delivered step condition exactly as shipped and breaks only the one
+  provisioning step's command. Do not re-mark any step: the "mark every
+  neighbour" setup belonged to the matrix measurement, which ran before the
+  roster axis existed and before any check carried a derived condition.
+  Re-marking here would overwrite those conditions and make dependents run and
+  red instead of skip, so the run would exercise neither AC-0013 nor AC-0014.
 - Record each run id in the verification ledger. AC-0013 ranges over the recorded
   matrix, so this is one run per provisioning step, not one run total.
 

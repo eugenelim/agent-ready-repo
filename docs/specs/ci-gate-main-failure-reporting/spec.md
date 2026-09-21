@@ -151,18 +151,28 @@ in [`notes/partition-evidence.md`](notes/partition-evidence.md).
   `tools/lint-ci-parity.py` exits 1, naming the entry, when a `CHECK` entry
   declares a dependency that is not the id of a step declared `PROVISIONING` in
   the same roster.
-- [ ] **AC-0010.** Every declared provisioning id exists in the workflow.
-  `tools/test-build-check-workflow.py` exits 1, naming the entry, when a step
-  declared `PROVISIONING` with id `X` is not matched by a `gate-main` step
-  carrying `id: X`.
-- [ ] **AC-0011.** A dependency precedes every step that declares it.
+- [ ] **AC-0010.** Every declared provisioning id sits on the step that declares it.
+  `tools/test-build-check-workflow.py` exits 1, naming the entry, when the
+  `gate-main` step whose name matches a roster entry declared `PROVISIONING`
+  with id `X` does not itself carry `id: X`. Binding the id to the job rather
+  than to its own step would let two provisioning steps exchange ids while both
+  ids remain present, and every derived condition would then read the wrong
+  install's conclusion.
+- [ ] **AC-0011.** Every provisioning step precedes every check step.
   `tools/test-build-check-workflow.py` exits 1, naming both steps, when a
-  `gate-main` step declaring dependency `X` appears at or before the step
-  carrying `id: X`.
-- [ ] **AC-0012.** Every declared dependency set equals its recorded matrix row.
-  `tools/lint-ci-parity.py` exits 1, naming the entry, when a `CHECK` entry's
-  dependency set differs from the set the recorded matrix gives for that step,
-  or when its evidence string does not name that row's run id.
+  `gate-main` step whose roster phase is `PROVISIONING` appears after any step
+  whose roster phase is `CHECK`. Full phase ordering rather than
+  dependency-wise ordering, because a provisioning step with no dependents —
+  `pip install httpx …` has none in the recorded matrix — satisfies the weaker
+  rule while sitting behind the checks.
+- [ ] **AC-0012.** Every declared dependency set equals what the recorded
+  matrix measured. `tools/lint-ci-parity.py` exits 1, naming the entry, when a
+  `CHECK` entry's dependency set, with `python` removed, differs from the set of
+  provisioning steps whose recorded-matrix member list names that check; and
+  exits 1, naming the entry, when its evidence string does not name the run id
+  of every such matrix row. `python` is removed before the comparison because
+  it is declared rather than measured, for the reason Assumptions records; a
+  check with two dependencies appears in two rows and so names two run ids.
 - [ ] **AC-0013.** A provisioning failure skips exactly its declared dependents.
   For each provisioning step listed in the recorded matrix, on a dispatched run
   of `build-check.yml` in which exactly that step fails and every other

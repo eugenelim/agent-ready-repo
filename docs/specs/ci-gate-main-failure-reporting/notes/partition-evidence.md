@@ -267,12 +267,22 @@ distinct checks. Roughly 55 of the 70 checks depend on no provisioning step that
 can fail independently, so per-check gating is worth its mechanism: a broken
 `.msg` reader skips one check rather than greying all seventy.
 
-**No universal prefix exists, so the derivation rule needs no shorthand.** Each
-check's condition is `!cancelled()`, plus one
+**The measured edges are sparse, and one further edge is declared rather than
+measured.** Each check's condition is `!cancelled()`, plus one
 `&& steps.<id>.conclusion == 'success'` per declared dependency in roster order.
-A check with no dependencies carries `!cancelled()` alone. `Set up Python` is
-universal by construction — it is a `uses:` step whose failure stops the job —
-and is not a declarable dependency.
+
+The ten rows above are the *measured* edges. `Set up Python` carries an
+eleventh, **declared** edge to every check, and this section originally said the
+opposite — that a dependency-free check carries `!cancelled()` alone and that
+`Set up Python` is not declarable, being a `uses:` step whose failure stops the
+job. That reading is refuted by this note's own § *Containment*: `!cancelled()`
+does not skip on a prior failure, so an unconditioned check would run against
+the runner's fallback interpreter. The spec declares the edge instead, and
+records it as a declaration rather than a measurement.
+
+The table and member lists above record measured edges only, which is the
+surface AC-0012 compares a roster against; it removes `python` before
+comparing, for that reason.
 
 ### A discovery this surfaced, not acted on here
 
