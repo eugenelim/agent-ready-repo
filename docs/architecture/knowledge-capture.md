@@ -100,9 +100,9 @@ why it is not done now (`decision`, `instrument`, `elapsed-time`,
 `dependency`). A `defect` may carry `verification_route.command` as a
 bounded, read-only argv array: a four-tool allowlist (`cat`, `wc`, `grep`,
 `ls`), no options, a positive character class, and a repository-path rule
-that also binds `verification_route.path`. Those rules confine every
-element to the repository; they do not decide whether a file is
-sensitive. `v1` stays a read-only
+over § D6's stored-path set, which also takes in `verification_route.path`
+and leaves out `grep`'s pattern. Those rules confine that set to the
+repository; they do not decide whether a file in it is sensitive. `v1` stays a read-only
 legacy version; the writer emits `v2` only, and a v1 record is still read
 under the v1 rules its own `contract_version` selects.
 

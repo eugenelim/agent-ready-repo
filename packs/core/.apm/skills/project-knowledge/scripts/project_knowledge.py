@@ -1347,7 +1347,15 @@ def _validate_verification_route(value: Any) -> None:
         raise ValueError("invalid verification route")
     _expect_keys(value, {"command", "path"}, set())
     value["command"] = _validate_command_argv(value["command"])
-    value["path"] = _expect_repo_path(value["path"])
+    # § D6 puts `path` in the same stored-path set as the argv operands, so a
+    # refusal here must carry the same catalog code. `_expect_repo_path` is
+    # shared with twenty other call sites and raises a bare `ValueError`;
+    # re-raising as a typed refusal keeps that helper unchanged while stopping
+    # the store from reporting a confinement failure as `provenance`.
+    try:
+        value["path"] = _expect_repo_path(value["path"])
+    except ValueError as exc:
+        raise VerificationRouteRefusal("work_item_command_path") from exc
 
 
 def _expect_slug(value: Any) -> str:

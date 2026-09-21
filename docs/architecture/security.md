@@ -235,7 +235,8 @@ is added, so the list below is itself the assertion, not a tally of it.
 **The write-time control.** `verification_route.command` is stored only as
 a bounded, read-only argv array: a four-tool allowlist (`cat`, `wc`,
 `grep`, `ls`), every option-shaped element refused, a positive character
-class over every element, and a re-anchored repository-path rule, all enforced
+class over every element, and a re-anchored repository-path rule over
+its stored-path set, all enforced
 before anything is written. Everything after this paragraph is what that
 control does **not** close.
 
@@ -261,19 +262,23 @@ control does **not** close.
   committed store by a merge or a contributor branch instead, carrying
   content validated elsewhere or not at all, and nothing here re-checks it
   once it is in the tree.
-- **§ D6's argv rules confine; they do not classify.** Every element
-  after `argv[0]` is held inside the repository — absolute paths, `..`
-  segments, backslashes and colons are refused — but nothing decides
-  whether an in-repository file is *sensitive*. `credentials.json`,
-  `keys/id_rsa`, `config/prod.env` and `.env` alike clear every write-time
-  check, including the privacy scan. An untracked secret committed under
-  any name is a disclosed, unowned residual. An earlier draft carried a
-  dot-leading-component rule here; amendment 008 removed it, because a
-  filename-convention denylist is the documented antipattern for path
-  security, it added nothing to confinement, and it caught `.env` while
-  missing the three names above. Deciding which in-repository files a
-  command may read is run-time confinement, and it is
-  `docs/specs/work-item-promotion-handoff/spec.md`'s obligation 1.
+- **§ D6's stored-path rules confine; they do not classify.** Every
+  member of § D6's stored-path set is held inside the repository. Two
+  things sit outside that set and are admitted: `grep`'s pattern at index
+  1, which only the character class reaches, so
+  `["grep", "/etc/passwd", "docs"]` passes; and a backslash in
+  `verification_route.path`, which `_expect_repo_path` folds to `/` before
+  testing. Within the set, nothing decides whether an in-repository file
+  is *sensitive* — `credentials.json`, `keys/id_rsa`, `config/prod.env`
+  and `.env` alike clear every write-time check, including the privacy
+  scan. An untracked secret committed under any name is a disclosed,
+  **unowned** residual: it is not the promotion-handoff spec's
+  post-resolution confinement obligation, which refuses a path resolving
+  *outside* the repository, and an in-repository file never does. An
+  earlier draft carried a dot-leading-component rule here; amendment 008
+  removed it, because a filename-convention denylist is the documented
+  antipattern for path security, it added nothing to confinement, and it
+  caught `.env` while missing the three names above.
 - **§ D10's prose residual.** Three controls run on a record's own prose
   only at the write path: `assert_persistable_text`'s eight patterns, the
   instruction-shape refusal, and the reasoning dispatch's data-framing.

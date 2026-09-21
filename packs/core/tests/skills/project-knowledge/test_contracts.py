@@ -467,6 +467,51 @@ def test_every_d6_refusal_leaves_the_store_byte_equal(tmp_path: Path) -> None:
         assert _journal_bytes(repo) == before
 
 
+# § D6 binds `verification_route.path` into the same stored-path set as the
+# argv operands, and `_expect_repo_path` at the single call site is the whole
+# of that enforcement -- there is no runtime JSON-Schema check on the write
+# path. Amendment 008 deleted the only test that drove a bad `path`, and with
+# it the coverage: with that call replaced by a no-op the suite stayed green
+# at 325 passed. These two cases red on that mutation.
+@pytest.mark.parametrize(
+    "unsafe_path",
+    ["/etc/passwd", "../etc/passwd", "../../etc/passwd", "docs/../../etc/passwd"],
+)
+def test_verification_route_path_outside_the_repository_is_refused(
+    unsafe_path: str,
+) -> None:
+    module = load_project_knowledge_module()
+    request = valid_capture_request(
+        verification_route={"command": ["cat", "docs/x.md"], "path": unsafe_path}
+    )
+    with pytest.raises(module.VerificationRouteRefusal) as refused:
+        module.validate_capture_request(request)
+    # The catalog code, not merely a refusal. `_expect_repo_path` raises a bare
+    # `ValueError`, which reached the author as `provenance` -- the same
+    # mislabel the command half already fixed.
+    assert refused.value.reason_code == "work_item_command_path"
+
+
+def test_verification_route_path_refusal_reaches_the_author_with_its_code(
+    tmp_path: Path,
+) -> None:
+    """The store, not the validator: the write seam is where the author reads
+    the code, and a typed refusal that no seam catches surfaces as
+    `provenance`."""
+
+    store = load_knowledge_store_module()
+    repo = initialize_empty_v1_repo(tmp_path, store)
+    before = _journal_bytes(repo)
+    request = valid_capture_request(
+        verification_route={"command": ["cat", "docs/x.md"], "path": "/etc/passwd"}
+    )
+    request["observed_at"] = "2026-08-13T12:34:56Z"
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.capture_observation(repo, request, writer_time="2026-08-13T12:40:00Z")
+    assert refused.value.diagnostic["reason_code"] == "work_item_command_path"
+    assert _journal_bytes(repo) == before
+
+
 def test_defect_missing_finished_state_is_refused() -> None:
     """`stub: true` red case named in the plan: every base field § D2
     requires is enforced, `finished_state` among them."""

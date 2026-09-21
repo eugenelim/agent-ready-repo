@@ -2,6 +2,7 @@
 
 **Authorised by:** eugenelim, 2026-09-21
 **Tier:** contract — removes a § D6 rule, `AC-0065`, and case rows.
+**Against:** approved_spec_hash 67ea736e
 
 ## Why it goes
 
@@ -53,9 +54,13 @@ disclosure paragraph, a gap-list entry and two further review rounds.
   restates it. It no longer discloses the *limits of a partial rule*; it
   discloses the plain fact that the argv rules confine to the repository
   and do not classify sensitivity, so `credentials.json`, `keys/id_rsa`,
-  `config/prod.env` and `.env` alike are admitted. The residual did not
-  widen — it was already every non-dot-leading name — only its description
-  became accurate.
+  `config/prod.env` and `.env` alike are admitted. The admitted set grew by
+  exactly the four dot-leading rows; the **disclosed risk class** did not
+  change, because the rule was never a credential control. The residual is
+  also restored to **unowned**: an earlier draft of this amendment routed it
+  to the promotion-handoff spec's obligation 1, which round 4 had already
+  refuted — that obligation refuses a path resolving *outside* the
+  repository, and an in-repository file never does.
 
 ## What does not change
 

@@ -390,18 +390,31 @@ spec claimed they refused, and running it is what found them.
   question, and `docs/specs/work-item-promotion-handoff/spec.md`'s
   `AC-0013` dereferences it rather than
   restating it.
-**The argv rules confine; they do not classify.** Every element after
-`argv[0]` is held inside the repository by the re-anchored `repositoryPath`
-rule and the character class — absolute paths, `..` segments, backslashes
-and colons are refused. Nothing here decides whether a file is *sensitive*.
-A path inside the repository is admitted whatever it is called, and an
-earlier draft's dot-leading-component rule is removed: it was a
-filename-convention denylist, which is the documented antipattern for path
-security, it contributed nothing to confinement, and it caught `.env` while
-missing `credentials.json`, `keys/id_rsa` and `config/prod.env`. See
-`notes/amendment-008.md`. Deciding which in-repository files a command may
-read is run-time confinement, and it is
-`docs/specs/work-item-promotion-handoff/spec.md`'s obligation 1.
+  **These rules confine; they do not classify.** Every member of the
+  stored-path set just defined is held inside the repository. Membership is
+  the whole of the claim, and two things fall outside it. `grep`'s pattern at
+  index 1 is not a member, so `["grep", "/etc/passwd", "docs"]` and
+  `["grep", "../../etc/passwd", "docs"]` are **admitted** — the character
+  class is the only rule reaching that slot. And `verification_route.path`
+  is confined by `_expect_repo_path`, which folds a backslash to `/` before
+  testing, so `a\b` is admitted as `a/b` rather than refused; that helper is
+  shared with twenty other call sites and this spec does not change it.
+
+  Nothing in this section decides whether an in-repository file is
+  *sensitive*. A path inside the repository is admitted whatever it is
+  called, so `credentials.json`, `keys/id_rsa`, `config/prod.env` and `.env`
+  alike pass every write-time check. An earlier draft carried a
+  dot-leading-component rule here; amendment 008 removed it, because a
+  filename-convention denylist is the documented antipattern for path
+  security, it added nothing to confinement, and it caught `.env` while
+  missing the other three. See `notes/amendment-008.md`.
+
+  In-repository sensitivity is therefore **disclosed and unowned**. It is
+  *not* `docs/specs/work-item-promotion-handoff/spec.md`'s obligation 1:
+  post-resolution repository confinement refuses a path resolving *outside*
+  the repository, and an in-repository file never does. Round 4 routed it
+  there, found it had zero homes rather than one, and withdrew the routing;
+  amendment 008 does not reinstate it.
 
 
 ### D6 cases
@@ -692,7 +705,7 @@ by it.
 | Maintainer procedure | Applicable: the close-time rule branches | `packs/core/.apm/skills/work-loop/SKILL.md` and its new reference | work-loop | AC-0001, AC-0002 green | The branch is readable without the spec |
 | Interface compatibility | Applicable: `verification_route.command` changes type and gains a trust boundary | `contracts/jsonschema/knowledge-captured-observation.schema.json` and the § D6 validator | project-knowledge | `AC-0049`–`AC-0061` green | A stored command is an argv array every element of which cleared § D6 |
 | Current product truth | Applicable: adopters write captures | `docs/guides/reference/` entry for the work-item kind | maintainers | Guide names the three shapes and their thresholds | A cold adopter can write a valid record |
-| Current architecture (security) | Applicable: the delivery ships accepted, unmitigated residuals | `docs/architecture/security.md` | work-loop | **The single home for the gap list.** The write-time argv rules, then every gap: unestablished provenance, the unchecked merge path, § D10's prose residual, **the argv rules confine but do not classify** — every element is held inside the repository, and no rule decides whether an in-repository file is sensitive, so `credentials.json`, `keys/id_rsa` and `config/prod.env` are all admitted; amendment 008 removed the dot-leading-component rule that read as a credential control and was not one — **the caller-asserted verdict** — § D3 puts the cold check at the close, so the agent dispatches it and hands the writer the result; `AC-0068` can require a well-formed, item-correlated verdict but cannot establish that one was obtained, because no in-process gate can verify a caller consulted an oracle the caller controls. It catches omission, garbling and stale reuse, not a deliberate assertion — the late-ordering residual `AC-0069` records — § D6's argv rules run at write time, after the per-item reasoning dispatch under § D3's ordering, so an attacker-influenced `verification_route.command` element reaches the cold reasoning context screened only by `AC-0036`'s framing — and the absent mechanical tier, which `docs/specs/work-item-mechanical-tier/spec.md` owns — stated as its **consequence**, not as a missing artifact: validation is one tier deep, so an unavailable reasoning tier is the whole of validation being unavailable, and `AC-0068` refusing to write is what stands in for the floor. **That spec's settlement amends this list**: its **catalog-code** and **residual-bit** points each move it. The six residual runner obligations are the sibling's and are listed as handed over, not as gaps | The list is complete against this spec's disclosures. No count appears anywhere: a literal falsifies silently when a disclosure is added, so the list is the assertion |
+| Current architecture (security) | Applicable: the delivery ships accepted, unmitigated residuals | `docs/architecture/security.md` | work-loop | **The single home for the gap list.** The write-time argv rules, then every gap: unestablished provenance, the unchecked merge path, § D10's prose residual, **§ D6's stored-path rules confine but do not classify** — every member of that set is held inside the repository, while `grep`'s pattern at index 1 is not a member and is admitted, and no rule decides whether an in-repository file is sensitive, so `credentials.json`, `keys/id_rsa`, `config/prod.env` and `.env` are all admitted; the residual is **unowned**, obligation 1 having been refuted for it in round 4, and amendment 008 removed the dot-leading-component rule that read as a credential control and was not one — **the caller-asserted verdict** — § D3 puts the cold check at the close, so the agent dispatches it and hands the writer the result; `AC-0068` can require a well-formed, item-correlated verdict but cannot establish that one was obtained, because no in-process gate can verify a caller consulted an oracle the caller controls. It catches omission, garbling and stale reuse, not a deliberate assertion — the late-ordering residual `AC-0069` records — § D6's argv rules run at write time, after the per-item reasoning dispatch under § D3's ordering, so an attacker-influenced `verification_route.command` element reaches the cold reasoning context screened only by `AC-0036`'s framing — and the absent mechanical tier, which `docs/specs/work-item-mechanical-tier/spec.md` owns — stated as its **consequence**, not as a missing artifact: validation is one tier deep, so an unavailable reasoning tier is the whole of validation being unavailable, and `AC-0068` refusing to write is what stands in for the floor. **That spec's settlement amends this list**: its **catalog-code** and **residual-bit** points each move it. The six residual runner obligations are the sibling's and are listed as handed over, not as gaps | The list is complete against this spec's disclosures. No count appears anywhere: a literal falsifies silently when a disclosure is added, so the list is the assertion |
 | Release history | Applicable: a published contract changes version | The core pack changelog | maintainers | Entry leads the release | The version bump is recorded |
 | Decision rationale | Applicable: the mechanical tier is split out rather than settled here | This spec § Follow-ons and `docs/specs/work-item-mechanical-tier/spec.md` | eugenelim | The gate approval | The approved spec records that the tier is a separate spec and why, and ships no criterion that depends on it |
 | Reusable learning | Not applicable | — | — | — | The work-loop capture gate already owns it |
