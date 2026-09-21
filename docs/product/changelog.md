@@ -139,6 +139,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `verify-host-checks` enforces; the earlier wording would have failed that
   gate on any adopter's clone as much as on ours.
 
+## [core][2.26.23] — 2026-09-20
+
+### Highlights
+
+- **A review pass runs when something names a reason for it.** `work-loop`
+  selects reviewers from one table instead of several scattered triggers:
+  `adversarial-reviewer` always, and security, user-facing, architecture and
+  quality lenses only as the change reaches them. `quality-engineer` joins that
+  rule rather than running on every full-mode loop — it is warranted when the
+  change warrants at least one `operational-safety` module, is structural, or is
+  explicitly requested. The three conditions reuse routers the catalogue already
+  ships; none is a new predicate. `adversarial-reviewer` keeps correctness and
+  scope; testability, reliability, observability, maintenance cost and
+  test-strength judgment belong to `quality-engineer` alone, so work tripping
+  none of the three conditions ships without that lens — a deliberate trade of
+  the lens for speed. Recorded against RFC-0025 § Errata.
+
+### Changed
+
+- `finding-adjudicator` refutes on the Authority predicate any finding that
+  names no violated acceptance criterion, repository rule, security property, or
+  concrete defect. Reviewer taste stated confidently no longer reaches FIX.
+  Refuted findings keep their audit record, so a later round can see a claim was
+  tested rather than re-litigate it. Dispatch conditions are unchanged: making
+  them risk-conditional would strand a non-Nit finding outside `findings[]`,
+  which `references/review-verdict-record.md` admits only through adjudication.
 
 ## [core][2.26.22] — 2026-09-20
 

@@ -47,7 +47,7 @@ The loop scales by risk: **light mode** for low-risk work — a session-local pl
 |---|---|---|
 | `adversarial-reviewer` | Spec/plan/impl drift, scope creep, missing edge cases | Every diff |
 | `security-reviewer` | OWASP 2025 + ASVS, STRIDE + LINDDUN — depth pulled per boundary | Security-boundary work, at spec stage *and* on the diff |
-| `quality-engineer` | Testability, observability, reliability — "cost to live with this code" | Logic and interfaces worth maintaining |
+| `quality-engineer` | Testability, observability, reliability — "cost to live with this code" | High-risk work: it warrants an `operational-safety` module, it is structural, or you ask |
 
 The security lens **shifts left**: on security-boundary work it also runs at spec stage, catching a missing control as a one-sentence acceptance criterion instead of a post-implementation round-trip.
 

@@ -1601,8 +1601,20 @@ _WORK_LOOP_CONTRACT_HASH = (
 # writes spec.md `Status: Shipped`, workspace-status still owns workspace.toml
 # queue/active/shipped. The status vocabulary, the deferral-anchor requirement,
 # and the doc-drift bullet's listed invariants are all untouched.
+# Re-pinned 2026-09-20 for conditional reviewer selection: the full-mode
+# reviewer bullet and the whole-spec quality-engineer bullet now name the
+# roster rule's three high-risk conditions instead of running that lens on
+# every full-mode loop. Reviewed as the pin requires, and the engine needs no
+# edit: reviewer selection writes no spec.md field, mutates no workspace.toml
+# array, and adds no invariant the engine evaluates - the engine carries zero
+# references to any reviewer, and states its own boundary at
+# workspace_status_engine.py:4859 ("Its finish checklist only sets spec.md
+# Status: Shipped"). Ownership is unchanged: work-loop still writes spec.md
+# `Status: Shipped`, workspace-status still owns workspace.toml
+# queue/active/shipped. The status vocabulary, the deferral-anchor
+# requirement, and the doc-drift bullet's listed invariants are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "13b1e401450b9f9ce3d1aadbcb75ff9c31064011f8e1df0ba3ff2a6814664a7a"
+    "0698a4524f969342e0f0c2dae4177c1b5a32f544aeb4263cabaf88a5607232c9"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
