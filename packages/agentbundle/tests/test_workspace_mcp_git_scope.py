@@ -420,14 +420,20 @@ def test_a_clean_base_is_accepted_under_a_repository_path_carrying_a_reserved_ch
 
 
 def _write_layout(path: Path, layout: dict[str, str]) -> None:
+    """Write a layout file. A value already carrying a TOML bracket or brace is
+    emitted unquoted, so a row can configure an array or an inline table — the
+    shapes `Path(raw)` refuses and a quoted-string-only matrix can never reach.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        "".join(
-            f'[{key}]\noutput_dir = "{value}"\n'.replace("\\", "\\\\")
-            for key, value in layout.items()
-        ),
-        encoding="utf-8",
-    )
+    lines = []
+    for key, value in layout.items():
+        literal = (
+            value
+            if value.startswith(("[", "{"))
+            else '"' + value.replace("\\", "\\\\") + '"'
+        )
+        lines.append(f"[{key}]\noutput_dir = {literal}\n")
+    path.write_text("".join(lines), encoding="utf-8")
 
 
 # `both-scopes` is the load-bearing row. Every other case configures one file,
@@ -444,6 +450,13 @@ _AGREEMENT_LAYOUTS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
     "both-scopes": (
         {"research": "repo/r", "product": "repo/p", "design": "repo/d"},
         {"research": "USER", "product": "USER", "design": "USER"},
+    ),
+    # A value `Path(raw)` cannot take. The shared reader drops it and falls back
+    # to the other scope; a raw reader that keeps it would disagree, and the
+    # disagreement is what the screen refuses on.
+    "container-typed-preferred-value": (
+        {"product": '["x"]'},
+        {"product": "USER"},
     ),
 }
 
@@ -479,6 +492,13 @@ def test_the_raw_reader_and_the_resolved_reader_agree(
     raw = _read_raw_layout_output_dirs(repo)
     resolved = _read_layout_bases(repo)
 
+    if shape == "container-typed-preferred-value":
+        # The two readers disagree here by construction, which is the point: the
+        # screen refuses on the disagreement rather than trusting either answer.
+        assert raw["product"] == ["x"]
+        assert resolved["product"] == _resolved_base(repo, user_layout["product"])
+        return
+
     assert set(raw) == set(resolved)
     assert {key: _resolved_base(repo, value) for key, value in raw.items()} == resolved
     if shape == "both-scopes":
@@ -505,3 +525,40 @@ def test_the_raw_reader_drops_a_user_scope_relative_value_like_the_shared_reader
 
     assert _read_raw_layout_output_dirs(repo) == {}
     assert _read_layout_bases(repo) == {}
+
+
+def test_a_container_typed_value_cannot_smuggle_a_reserved_base_past_the_screen(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The shape that reopened this defect once. A repository-scope `output_dir`
+    of `["x"]` is kept by the raw reader and dropped by the shared one, whose
+    `Path(raw)` raises into a suppressed block, so the user-scope value wins.
+    The screen then ran `"*" in ["x"]` — element equality, not a substring test —
+    answered `False`, and spliced a `*`-bearing base into the staging scope.
+
+    The refusal now keys on the two readers disagreeing at all, so this passes
+    without anyone having enumerated container types as a case.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    home = tmp_path / "home"
+    _write_layout(repo / "agentbundle-layout.toml", {"product": '["x"]'})
+    _write_layout(
+        home / ".agentbundle" / "agentbundle-layout.toml",
+        {"product": str((repo / "docs" / "*").resolve())},
+    )
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    _write(repo / "docs" / "product" / "shaping" / _SLUG / "own.md")
+    _write(repo / _UNRELATED)
+    before = _head(repo)
+
+    _dispatch(monkeypatch, "shape")
+    tools = _GitTools(repo)
+    result = tools.git_commit({"message": "scope"})
+
+    assert tools._refused_layout_key == "product"
+    assert "[product]" in result["error"]
+    assert "committed" not in result
+    assert _head(repo) == before
+    assert _git(repo, "diff", "--cached", "--name-only").stdout == ""

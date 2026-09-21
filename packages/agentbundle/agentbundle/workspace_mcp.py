@@ -1811,25 +1811,56 @@ class _GitTools:
             if mapping is not None:
                 toml_key = mapping[0]
                 configured = bases.get(toml_key)
-                raw_configured = _read_raw_layout_output_dirs(self._repo_root).get(
-                    toml_key
-                )
-                if configured is not None and any(
-                    char in (raw_configured or "") for char in _RESERVED_BASE_CHARS
-                ):
-                    self._refused_layout_key = toml_key
-                    # stdout is the MCP protocol channel, so the adopter-facing
-                    # report goes to stderr.
-                    print(
-                        f"workspace-mcp: warning: the configured [{toml_key}] "
-                        "output_dir contains one of the characters "
-                        f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
-                        f"staging scope, so git_commit is unavailable for "
-                        f"{item_type!r} items. Give it a directory name built "
-                        "without those characters.",
-                        file=sys.stderr,
+                if configured is not None:
+                    raw_configured = _read_raw_layout_output_dirs(
+                        self._repo_root
+                    ).get(toml_key)
+                    # The screen has to read the value that produced `configured`,
+                    # and the raw reader is a second answer about it rather than
+                    # that value itself. Rather than enumerate the ways the two
+                    # can diverge — a type one accepts and the other drops, a
+                    # precedence difference, a file rewritten between the reads —
+                    # any disagreement at all is refused. Screening a divergent
+                    # answer is how this defect was reintroduced once already, and
+                    # an enumerated list would only ever cover the cases someone
+                    # thought of.
+                    try:
+                        agrees = configured == str(
+                            (
+                                self._repo_root / Path(raw_configured).expanduser()
+                            ).resolve()
+                        )
+                    except Exception:
+                        agrees = False
+                    # Short-circuits: a disagreeing value is refused without the
+                    # membership test, which a container-typed value answers
+                    # `False` instead of raising.
+                    reserved = not agrees or any(
+                        char in raw_configured for char in _RESERVED_BASE_CHARS
                     )
-                    return None
+                    if reserved:
+                        self._refused_layout_key = toml_key
+                        # stdout is the MCP protocol channel, so the adopter-facing
+                        # report goes to stderr.
+                        detail = (
+                            "contains one of the characters "
+                            f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound "
+                            "a staging scope. Give it a directory name built "
+                            "without those characters."
+                            if agrees
+                            else (
+                                "could not be read as one consistent value, so no "
+                                "staging scope can be built from it. Give it a "
+                                "single quoted directory path."
+                            )
+                        )
+                        print(
+                            f"workspace-mcp: warning: the configured [{toml_key}] "
+                            f"output_dir {detail} git_commit is unavailable for "
+                            f"{item_type!r} items.",
+                            file=sys.stderr,
+                        )
+                        return None
             # Apply agentbundle-layout.toml overrides (user-scope > repo-scope >
             # convention). Stage 1: resolve at bind-time; Stage 2 defers to the
             # first git_branch() call.
@@ -1929,10 +1960,9 @@ class _GitTools:
                 "error": (
                     f"git_commit unavailable: the configured "
                     f"[{self._refused_layout_key}] output_dir in "
-                    f"agentbundle-layout.toml contains one of the characters "
-                    f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
-                    f"staging scope. Give it a directory name built without "
-                    f"those characters."
+                    f"agentbundle-layout.toml cannot bound a staging scope. "
+                    f"Give it a single quoted directory path built without the "
+                    f"characters {' '.join(_RESERVED_BASE_CHARS)}."
                 )
             }
         if self._output_pattern is None:

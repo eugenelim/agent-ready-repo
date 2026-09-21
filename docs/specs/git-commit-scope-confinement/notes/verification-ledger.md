@@ -214,3 +214,42 @@ whatever that second read is — resolved, raw, or otherwise. Mirroring a
 function's precedence is not the same as reusing its result, and a test that
 pins the two readers on well-typed input says nothing about the inputs where
 one of them bails out.
+
+## The repair: refuse on disagreement, rather than enumerate the divergences
+
+The sustained Blocker's prescribed mechanism was to mirror
+`Path(raw).expanduser()` inside `_raw_scope`, so a non-string aborts the raw
+reader's loop exactly as it aborts the shared one. That was not taken, and the
+deviation is deliberate.
+
+Mirroring closes the divergence someone found and says nothing about the next
+one. This defect class has now been shipped twice by enumeration: first
+screening the resolved base, which both hides a configured character and
+invents one; then mirroring the readers' scope precedence while missing that
+they also differ on which *types* they accept. The third enumeration would have
+no better claim than the first two.
+
+The screen now refuses unless the raw value, resolved, equals the base
+`_read_layout_bases` returned. That is total: either the two agree, in which
+case screening the raw value is screening what produced the base, or they
+disagree for any reason at all — type, precedence, a malformed file, a file
+rewritten between the reads — and the commit is refused. `_read_layout_bases`
+is still untouched, so no amendment to the spec's `Never do` was needed.
+
+It is also the better answer for the adopter. Under the prescribed fix a
+repository-scope `output_dir = ["x"]` silently falls back to user scope; under
+this one the session says the value could not be read as one consistent value.
+
+Mutation: deleting `not agrees or` from the condition reds
+`test_a_container_typed_value_cannot_smuggle_a_reserved_base_past_the_screen`
+and nothing else.
+
+One defect no reviewer raised, found while writing the row the adjudicator did
+ask for: the agreement matrix's `_write_layout` helper emitted every value as a
+quoted string, so no row could express an array or an inline table — the matrix
+could not reach the case it was being extended to cover. It now emits a value
+already carrying a bracket or brace unquoted. This is the same shape as the
+`both-scopes` row: a parametrisation that looks exhaustive and cannot reach
+what matters.
+
+Full `workspace_mcp` selection after the repair: 163 passed, 42 skipped, 130s.
