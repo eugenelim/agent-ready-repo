@@ -241,19 +241,34 @@ mask a script that does not.
 
 ## 2026-09-21 — where the security review actually stands
 
-**No round has returned Clean.** Five rounds, eighteen findings, every premise
+**Round 6 found the third promisor designation.** `remote.<name>.partialclonefilter`
+designates a promisor remote **on its own** — git builds one from the filter by
+itself — and every fixture I had built carried it *alongside* `promisor=true`, so
+the case was never isolated. Verified on git 2.50.1 by removing both other keys
+and pointing a `--filter=tree:0` clone at an unreachable remote: the transport
+was attempted. `_is_promisor` covers all three now, with nine parametrized
+cases, and the fixture refuses end to end with `remote-unavailable`.
+
+That is three rounds in a row where the finding was a set I had enumerated
+incompletely: git's true values, git's promisor keys, and the `GIT_*` variables
+that reach a child. Two of the three are now closed by construction — the false
+set and the environment allowlist are complements rather than lists — and this
+one is not, because git's designation keys have no complement to take. It stays
+an enumeration, and a git that adds a fourth key would defeat it silently.
+
+**No round has returned Clean.** Six rounds, nineteen findings, every premise
 reproduced and every fix carrying a standing test — and round 5 still found
 four. The rate is not obviously converging, and saying so is more useful than a
 summary that implies it is.
 
-A sixth round is running at `37490f57b` for a specific reason rather than to chase
+A sixth round was run at `37490f57b` for a specific reason rather than to chase
 the count: round 5's own fixes replaced the security-critical environment
 handling *after* the reviewer last saw it. Leaving that change unreviewed would
 be exactly the gap this exercise exists to close.
 
-**What the eighteen say about the earlier passes.** Two spec-stage rounds
+**What the nineteen say about the earlier passes.** Two spec-stage rounds
 returned Clean on the contract, and the contract was right. Every one of the
-eighteen was an implementation that agreed with the criteria's words and not
+nineteen was an implementation that agreed with the criteria's words and not
 their intent — a bound that inverted when its input was zero, an allowlist that
 failed open on a value nobody enumerated, a status code standing in for a
 message. A criterion cannot catch that, which is the argument for this pass

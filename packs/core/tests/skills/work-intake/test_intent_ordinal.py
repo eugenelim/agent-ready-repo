@@ -834,3 +834,29 @@ def test_the_local_scan_is_inside_the_whole_invocation_deadline(
     ordinal, cause = MODULE.allocate(tmp_path, TOKENS[0])
     assert ordinal is None
     assert cause == "bound-exceeded"
+
+
+@pytest.mark.parametrize(
+    ("config", "designates"),
+    [
+        ({"remote.origin.promisor": "true"}, True),
+        ({"extensions.partialClone": "origin"}, True),
+        # Verified on git 2.50.1: the filter alone attempts the transport,
+        # because git builds a promisor remote from it by itself. A filter spec
+        # has no false form, so presence is the designation.
+        ({"remote.origin.partialclonefilter": "tree:0"}, True),
+        ({"remote.upstream.partialCloneFilter": "blob:none"}, True),
+        # A disabled promisor beside a live filter is still designated.
+        ({"remote.origin.promisor": "false",
+          "remote.origin.partialclonefilter": "tree:0"}, True),
+        ({"remote.origin.promisor": "false"}, False),
+        ({"remote.origin.partialclonefilter": ""}, False),
+        ({"remote.origin.url": "https://example.invalid/x.git"}, False),
+        ({}, False),
+    ],
+)
+def test_every_promisor_designation_git_recognizes_is_refused(
+    config: dict[str, str], designates: bool
+) -> None:
+    """AC-0018: three keys, any one enough, none of them an allowlist."""
+    assert MODULE._is_promisor(config) is designates
