@@ -13,6 +13,7 @@
 - **Received:** 2026-05-20
 - **Owner:** billing team
 - **Epic:** <!-- none; this brief is self-contained, so the pointer is omitted -->
+- **Parent intent:** <!-- none; this brief was received directly rather than projected from a product intent, so the pointer is omitted -->
 
 ## Outcome
 
