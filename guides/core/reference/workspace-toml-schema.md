@@ -393,7 +393,7 @@ The repository intent artifact requires:
 optional enrichment. An upstream shaping pass supplies them; admission
 preserves what is already there rather than re-deriving it.
 
-The default path is `docs/product/intents/<slug>.md`. A repository may relocate
+The default path is `docs/product/intents/<TYPE>-NNNN-<slug>.md` for an intent admitted through `work-intake` at a recognized `Level`, and `docs/product/intents/<slug>.md` otherwise — an unrecognized `Level`, a direct `intake-intent` request, or an ordinal that was owed and unavailable. A repository may relocate
 the parent through its configured core layout, but the resolved output must stay
 inside the repository so it can be indexed by `workspace.toml`.
 

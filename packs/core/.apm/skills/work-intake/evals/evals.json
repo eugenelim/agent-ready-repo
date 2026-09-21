@@ -316,6 +316,39 @@
         "Writes no narrative comments or copied source text",
         "Does not use workspace.toml as the rationale or finding store"
       ]
+    },
+    {
+      "id": "typed-ordinal-allocated-at-a-mapped-altitude",
+      "prompt": "Admit this as a repository intent: teams cannot tell which capability an intent belongs to. Level: capability.",
+      "expected_output": "Resolve the altitude against the closed table, allocate the ordinal by running the allocator with the token as a discrete argument, and pass docs/product/intents/CAP-NNNN-<slug>.md as the confirmed destination to intake-intent.",
+      "assertions": [
+        "Resolves Level to the CAP token before invoking anything",
+        "Passes the token, not the Level string, on the command line",
+        "Validates the returned value before composing a destination from it",
+        "Hands the prefixed destination to intake-intent rather than writing the artifact itself"
+      ]
+    },
+    {
+      "id": "unmapped-altitude-admits-unprefixed-without-a-marker",
+      "prompt": "Admit this as a repository intent: we should track experiments per squad. Level: initiative.",
+      "expected_output": "Recognize that the table maps no token for this altitude, skip the allocator entirely, and pass docs/product/intents/<slug>.md as the confirmed destination with nothing recorded about an ordinal.",
+      "assertions": [
+        "Does not invoke the allocator for an unmapped altitude",
+        "Uses the unprefixed destination",
+        "Records no ordinal marker, because none is owed at this altitude",
+        "Admits and registers the intent as usual"
+      ]
+    },
+    {
+      "id": "allocator-refusal-still-admits-and-records-its-cause",
+      "prompt": "Admit this as a repository intent: contributors need a shorter first task. Level: feature. The intents directory currently contains FEAT-12-partial.md.",
+      "expected_output": "Read the allocator's exit 1 and its cause token, use docs/product/intents/<slug>.md, and pass the cause to intake-intent so the intent records it. Admission proceeds and no failure is reported to the operator.",
+      "assertions": [
+        "Treats exit 1 as a destination change, never as a reason to stop",
+        "Passes the cause token through rather than the allocator's stderr text",
+        "Registers the intent as usual",
+        "Reports no failure, because the intent was admitted"
+      ]
     }
   ]
 }

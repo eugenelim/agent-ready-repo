@@ -37,7 +37,13 @@ delegation from neutral intake is the same route, not a second public answer.
 
 | Input shape | Canonical artifact | Initial lifecycle | Processor |
 | --- | --- | --- | --- |
-| Minimal outcome needing repository admission | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+| Minimal outcome routed through `work-intake`, `Level: product-vision` | Intent at `docs/product/intents/VISION-NNNN-<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+| Minimal outcome routed through `work-intake`, `Level: product-strategy` | Intent at `docs/product/intents/STRAT-NNNN-<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+| Minimal outcome routed through `work-intake`, `Level: capability` | Intent at `docs/product/intents/CAP-NNNN-<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+| Minimal outcome routed through `work-intake`, `Level: feature` | Intent at `docs/product/intents/FEAT-NNNN-<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+| Minimal outcome routed through `work-intake`, a mapped `Level`, no ordinal available | Intent at `docs/product/intents/<slug>.md`, with the reason recorded in it | Draft, non-dispatchable | `intake-intent` |
+| Minimal outcome routed through `work-intake`, any other `Level` or none | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
+| Request naming `intake-intent` directly, any `Level` | Intent at `docs/product/intents/<slug>.md`, noting that no ordinal was allocated | Draft, non-dispatchable | `intake-intent` |
 | One independently shippable contract | Spec at `docs/specs/<slug>/spec.md` | Ready only after approval and a sibling plan | `new-spec` |
 | Coherent multi-spec outcome | Brief at `docs/product/briefs/<slug>.md` | Draft, non-dispatchable | `author-delivery-brief create` |
 | Cited regression or defect evidence | Defect context | Ready only after canonical context exists | `bug-fix` |

@@ -64,6 +64,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.24] — 2026-09-21
+
+### Highlights
+
+- **A new intent now gets a readable name, not just a slug.** An intent admitted
+  through `work-intake` at a recognized altitude lands as
+  `CAP-0004-external-tracker-projection.md` rather than
+  `external-tracker-projection.md`, so you can say which one you mean out loud.
+  The number is per altitude, so a capability and a feature can both be `0001`.
+- **Admission never stops because a number was unavailable.** If the altitude has
+  no prefix, or the allocator cannot be sure of its answer, the intent is still
+  written and registered under its plain name and records why — so nothing you
+  were doing is lost, and the number can be added later. The slug is the
+  identity; the number is a label for humans.
+- **Nothing is renamed.** An intent already on disk keeps its filename whatever
+  its altitude, so existing links and registry entries keep resolving.
+
+### Added
+
+- `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py` — allocates a
+  typed ordinal as `max + 1` per altitude over the intent directory unioned with
+  the records visible on `origin`, and returns nothing rather than a plausible
+  number for a malformed name in its namespace, an incomplete scan, an
+  unreadable remote view, or a bound it would exceed. A duplicate check reports
+  records sharing an altitude and a number in one directory, and refuses instead
+  of reporting clean for a directory it could not fully read.
+
+### Changed
+
+- `work-intake` resolves the altitude against its closed table before invoking
+  anything, passes only the resulting token on a command line, and treats a
+  refusal as a change of destination rather than a reason to stop.
+- `intake-intent` accepts a destination that already carries a prefix, records
+  one of six fixed tokens when no number was allocated, and does not treat a
+  prefix supplied with a request as evidence that one was.
+- The published routing table, the workspace schema reference, the start-the-work
+  walkthrough and the product directory README state both destinations and what
+  selects between them.
+
 ## [core][2.26.23] — 2026-09-21
 
 ### Highlights

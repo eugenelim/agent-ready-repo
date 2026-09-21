@@ -155,7 +155,7 @@ Admit this as a repository intent: we want new contributors productive without r
 **Agent returns:**
 <!-- rung: packs/core/.apm/skills/intake-intent/SKILL.md -->
 
-> **Agent:** Done — I've written an intent recorded at the level it belongs, with its status and parent if it has one to `docs/product/intents/<slug>.md`.
+> **Agent:** Done — I've written an intent recorded at the level it belongs, with its status and parent if it has one, to `docs/product/intents/<slug>.md`. You asked for `intake-intent` directly, so there was no allocating step in front of it and the file carries no typed ordinal; the intent notes that. Route the request through `work-intake` if you want one.
 
 **You push back:**
 <!-- rung: packs/core/.apm/skills/intake-intent/SKILL.md -->
@@ -176,7 +176,7 @@ Admit this as a repository intent: we want new contributors productive without r
 **Watch out for:** Level is easy to get wrong and expensive later, because decomposition inherits it. Notice an intent that names something a single change could deliver but is tagged as a capability, or the reverse.
 <!-- rung: packs/core/.apm/skills/intake-intent/SKILL.md -->
 
-**Where it lands:** `docs/product/intents/<slug>.md`.
+**Where it lands:** `docs/product/intents/<slug>.md` for a direct `intake-intent` request. Routed through `work-intake`, a recognized `Level` gets a typed ordinal instead — `docs/product/intents/FEAT-0006-<slug>.md` — and anything else still lands unprefixed.
 <!-- rung: packs/core/.apm/skills/intake-intent/SKILL.md -->
 
 **What it looks like:**
