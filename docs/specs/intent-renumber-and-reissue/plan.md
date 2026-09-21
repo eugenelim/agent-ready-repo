@@ -160,6 +160,15 @@ recovery is re-running the commit phase or `git restore`. Nothing durable is
 written outside the working tree and index, which is what makes `git restore`
 sufficient.
 
+A concurrent reader is the one cross-component case. `intent-metadata-shape-contract`'s
+corpus lint reads `docs/product/intents/` and holds no lock, and neither does
+this operation. Commit is a sequence of `os.replace` calls, so a lint running
+across it can see a half-applied directory. That is acceptable because its read
+is confined: a torn read surfaces as an unreadable corpus and a non-zero exit,
+never as a false clean. Do not add a lock to make this quieter — a loud failure
+is the property worth keeping, and its owning session confirmed the behaviour
+on 2026-09-21.
+
 Edge cases: the source cites its own path (it becomes the tombstone, so it is
 excluded from the citing set); a tombstone already points at the source (AC-0018
 re-points it in the same transaction); the allocator refuses (`allocator-refused`
