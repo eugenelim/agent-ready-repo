@@ -94,11 +94,11 @@ Throughout this skill, **surface** means: stop the current loop, emit a short de
 
 ### Light vs. full
 
-`work-loop` has two modes chosen by the **risk of the work, not its file count**. A two-file familiar change is light. A one-file auth change is full.
+`work-loop` has two modes chosen by the **risk of the work, not its file count**. A two-file change whose design the agent can predict can be light when no trigger fires. A one-file auth change is full.
 
 **Risk triggers — any one routes to full mode:**
 
-- **Unfamiliar** — territory the agent doesn't know well.
+- **Unfamiliar** — the agent cannot predict the design.
 - **Multi-person** — multiple implementers or external collaborators participate; mandatory automated reviewers do not count.
 - **Multi-feature or dependent tasks** — it decomposes a multi-feature brief, or its tasks depend on one another.
 - **Compliance, governance, or security boundary** — auth, secrets, untrusted input, deserialization, or a changed file/network trust boundary, data flow, or guarding control.
@@ -345,7 +345,7 @@ implementation into a solution whose problem was never established.
 
 Two skills extend `work-loop`'s EXECUTE phase inline rather than being entry points. They are not invoked directly; `work-loop` loads them selectively based on the task shape:
 
-- **`contract-acquisition`** — fires when the implementation touches an unfamiliar API or library. Grounds the interface contract (method signatures, auth model, error shapes) before code is written. Prevents guessed signatures that compile locally but fail against the real service.
+- **`contract-acquisition`** — fires when the implementation codes against a contract the agent does not hold. Grounds the interface contract (method signatures, auth model, error shapes) before code is written. Prevents guessed signatures that compile locally but fail against the real service.
 - **`frontend-engineering`** — fires when the task output is HTML/CSS/JS. Establishes design intent and craft rules (layout model, type scale decisions, animation contracts) as a pre-flight before the first line of markup. Acts as the bridge between the experience-design pack's output artifacts and the code that implements them.
 
 Neither skill appears in the entry points table because neither is an entry point. They extend an in-progress `work-loop` run; they are not how you start work.

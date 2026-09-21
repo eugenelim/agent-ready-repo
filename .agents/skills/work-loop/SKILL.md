@@ -80,7 +80,7 @@ inapplicable, or widen scope.
 
 ## Select: light or full mode
 
-Mode is determined by **risk, not file count** — a familiar two-file change is light; a one-file auth change is full.
+Mode is determined by **risk, not file count** — a two-file change whose design you can predict can be light when no trigger below fires; a one-file auth change is full.
 
 <!-- risk-triggers:start — this skill is the canonical and only home.
      Other surfaces name this skill instead of copying the block; a copy
@@ -114,7 +114,17 @@ when everything it touches is unchanged.
 - **Backfill, replay, import, export, or destructive transformation** — it
   runs one, whether or not the implementation it calls is unchanged.
 - **New dependency** — it adds a dependency.
-- **Unfamiliar** — territory you don't know well.
+- **Unfamiliar** — you cannot predict the design. Not knowing a file or a
+  library does not fire *this* trigger; the EXECUTE contract-grounding gate
+  still applies whenever you code against a contract you do not hold, and
+  this wording never waives it. Decide the trigger on evidence where you
+  already record the risk assessment: write down the design you intend, and
+  what grounds it — a known cause, or a contract that governs the choice. If
+  you cannot write it, can write it only as alternatives you cannot choose
+  between, or are guessing because an unresolved fact could still change the
+  mechanism or where the boundary falls, the trigger fires. Being able to
+  state the verification does not settle it — a defect can have an exact
+  regression test and an unpredictable cause.
 - **Multi-person** — multiple implementers or external collaborators must
   coordinate the work. Mandatory automated reviewers do not count.
 - **Multi-feature or dependent tasks** — it decomposes a multi-feature

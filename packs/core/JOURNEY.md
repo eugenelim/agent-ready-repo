@@ -85,7 +85,7 @@ humanGates:
     duration: "5–10 minutes"
     whatToCheck:
       - "Is the Trio complete? (problem, user, success criteria — each in one sentence)"
-      - "Do the stated risk triggers match the actual change? (a one-file auth change is full-mode; a familiar two-file change can be light)"
+      - "Do the stated risk triggers match the actual change? (a one-file auth change is full-mode; a two-file change whose design you can predict can be light)"
       - "Is the plan scoped to what was asked — nothing more?"
       - "Are the assumption surfacings plausible, not defensive?"
     whatGoodLooksLike: "A bounded plan with a clear trio, no scope creep, correct risk-trigger assessment, and plausible assumptions."

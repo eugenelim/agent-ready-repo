@@ -64,6 +64,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.25] — 2026-09-20
+
+### Highlights
+
+- **Not knowing a file no longer sends ordinary work down the heavy path.**
+  `work-loop`'s **Unfamiliar** risk trigger asked whether this was "territory
+  you don't know well" — a question an agent in any unfamiliar repository
+  answers yes to, which routed everyday work into full mode with two human
+  approvals. It now asks the question its governing decision actually posed:
+  can you predict the design? Not knowing a file or a library does not fire
+  it — though the contract-grounding gate still applies whenever you code
+  against a contract you do not hold.
+
+### Changed
+
+- The trigger reads "you cannot predict the design", restoring the scope
+  RFC-0025 authorised; the skill had drifted to a broader and less checkable
+  wording than the decision that created it.
+- It is decided on evidence where the risk assessment is already recorded,
+  before mode selection: write down the design you intend and what grounds
+  it. The trigger fires when you cannot write it, can write it only as
+  alternatives you cannot choose between, or would be guessing because an
+  unresolved fact could still change the mechanism or the boundary. Being
+  able to state the verification does not settle it — a defect can have an
+  exact regression test and an unpredictable cause.
+
 ## [core][2.26.24] — 2026-09-20
 
 ### Highlights

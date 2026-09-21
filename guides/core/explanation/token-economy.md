@@ -84,7 +84,7 @@ Anti-drift alignment is the thing being bought here. Fresh context and the spec 
 
 There is no single right amount to spend, so the loop makes it a dial. Eligible
 light mode keeps its bounded plan in the current session, with adversarial review
-and no state machine. A risk trigger (unfamiliar territory, a security boundary,
+and no state machine. A risk trigger (a design you cannot predict, a security boundary,
 a structural or irreversible change, a new dependency) or a need for durability
 escalates to a durable spec and plan, where the extra rigor and review passes earn
 their cost. You invest more context exactly where a miss is expensive, and you
