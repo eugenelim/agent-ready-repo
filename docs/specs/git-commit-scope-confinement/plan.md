@@ -75,7 +75,7 @@ against a copy of the scope grammar would agree with a wrong implementation.
 
 ### Design decisions
 
-Owned by: T2
+Owned by: T2, T5
 
 - **Refuse at pattern resolution.** `_resolve_output_pattern` returns the
   pattern list that `__init__` stores; returning `None` there is the existing
@@ -103,6 +103,17 @@ Owned by: T2
   tail>` and its wildcard structure is the manifest's alone. That is decidable
   for a generated family of accepted bases, which is what makes AC-0004's
   universal checkable rather than sampled at one point.
+- **The screen reads the selection, never a reconstruction of it.** The value
+  AC-0002 speaks of is the one the layout resolver selected, and only that
+  resolver knows which scope won. A second reader that reproduces the selection
+  is the two-answers defect returning: `_read_scope` wraps its three-key loop in
+  one `contextlib.suppress(Exception)`, so any raise from `Path(raw)`,
+  `is_absolute()` or `resolve()` abandons the rest of that scope and hands the
+  decision to the other one, and a hand-written mirror must reproduce every
+  such raise on every supported interpreter. Three review rounds each found a
+  different one. One selection therefore yields both forms, and
+  `_read_layout_bases` becomes a projection of it that keeps its own signature,
+  return type and callers unchanged.
 - **A refusal must not engage discovery mode.** `_GitTools.__init__` currently
   derives `self._discovery_mode` from `dispatched`, and the existing
   malformed-item branch clears `dispatched` when the pattern list is `None`.
@@ -233,6 +244,36 @@ tests/roster/test_okf_catalogue_discovery.py
 or by position in `tests/roster/test_okf_catalogue_discovery.py`, and the
 routing suite passes.
 
+### T5: One selection decides the configured base, and the screen reads it
+
+**Depends on:** T3
+
+**Tests:**
+- The reserved-character screen reads the configured value paired with the
+  resolved base by the same selection, so no input can make it screen a value
+  other than the one that produced the base. Covers AC-0001, AC-0002, AC-0004.
+- Driven through the real `git_commit` in a temporary repository, each of these
+  refuses and stages nothing, and `HEAD` is unchanged: a repository-scope
+  `output_dir` of `["x"]` with a user-scope base carrying `*`; a repository
+  file whose `research` value is a container and whose `product` value is clean,
+  with a user-scope `product` whose reserved character normalises away under
+  resolution. Covers AC-0002, AC-0003.
+- A clean configured base at either scope still stages exactly the dispatched
+  item's own file, including under a repository path containing `*`. Covers
+  AC-0001.
+- `git_branch` and `git_push` return their unconfigured results under every
+  refusing configuration above. Covers AC-0008.
+- The `workspace_status` payload reports the same resolved location as the git
+  path for a configured base, which `test_workspace_mcp_layout_override.py`
+  already pins and this task must not regress.
+
+**Touches:** packages/agentbundle/agentbundle/workspace_mcp.py,
+packages/agentbundle/tests/test_workspace_mcp_git_scope.py
+
+**Done when:** no second reader of the layout configuration exists, every
+assertion above holds, and `test_workspace_mcp_layout_override.py` still passes
+unchanged.
+
 ### T4: The design document states where wildcard structure comes from
 
 **Depends on:** T2
@@ -284,3 +325,20 @@ this.
   and `Done when` reached clean on the third pre-EXECUTE round, the first of
   which sustained a contract-tier implementation defect now carried into
   EXECUTE and recorded in `notes/verification-ledger.md`.
+- Amended 2026-09-21 under owner authority recorded in
+  `notes/verification-ledger.md`. The spec's `Never do` barred modifying
+  `_read_layout_bases`, which forced the reserved-character screen to read a
+  second, independently computed answer about the configured base. Two review
+  rounds sustained a different divergence between the two readers each, and a
+  third raised a `resolve()` divergence that was adjudicated indeterminate
+  because it turns on interpreter behaviour this environment cannot exercise.
+  The rule now bars a second *selection* rather than a change to that function,
+  which is
+  what its stated purpose was always protecting. T5 carries the work; T1 and T2
+  are sealed and unedited.
+- Scope re-approved 2026-09-21 by eugenelim after the second amendment: the
+  acceptance criteria are unchanged and one `Never do` entry was rewritten to
+  bar a second selection rather than a change to `_read_layout_bases`.
+- Build strategy re-approved 2026-09-21 by eugenelim: T5 added to carry the
+  single-selection work, reached clean on the second pre-EXECUTE round after
+  one sustained Changelog correction and one refuted decidability finding.

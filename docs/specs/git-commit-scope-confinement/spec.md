@@ -74,9 +74,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Never alter `_in_scope`'s containment test. The defect is where the scope's
   split point comes from; containment is a separately registered question.
 - Never add a dependency, a module boundary, or a top-level directory.
-- Never modify `_read_layout_bases`. It is shared with the status payload and
-  legitimately yields an absolute out-of-repository base for a user-scope
-  value.
+- Never give the layout configuration a second selection. One function decides
+  which scope's `output_dir` wins for an item type, and every consumer reads
+  that decision rather than reconstructing it. `_read_layout_bases` may be
+  changed only to yield more of the one selection it already makes — the
+  adopter's configured value alongside the resolved one — and only with every
+  existing caller's behaviour, signature and return type preserved. It is
+  shared with the status payload and legitimately yields an absolute
+  out-of-repository base for a user-scope value; both must stay true.
 - Never let a refusal be silent, and never fall back to the built-in base when
   a configured one is refused.
 - Never reject a wildcard pattern for carrying an empty literal suffix; that
