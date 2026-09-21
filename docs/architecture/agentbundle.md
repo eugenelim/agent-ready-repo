@@ -183,6 +183,49 @@ value anchored there rather than to the process working directory. `section`
 becomes a TOML table header and carries the same character class as a pack
 name.
 
+### 7.2 How the file is created, and which tier a session can read
+
+§7.1 maintains the file. It cannot create one, so something else has to, and
+RFC-0040 names three routes:
+
+| Route | Creates | Maintains |
+| --- | --- | --- |
+| Hand-authored by the adopter | yes | — |
+| Skill elicitation, on consent | yes | its own section |
+| `_append_layout_section` | no | an existing file |
+
+A default install writes nothing. All five declaring packs — `architect`,
+`desk-research`, `experience-design`, `product-engineering`,
+`product-strategy` — set `default-scope = "user"` and declare no
+`[pack.layout.user]`, so the user-scope append has no section to write, and a
+repo-scope install writes only into a file that already exists. The route that
+delivers a first file is therefore the skill's own: when no section resolves, a
+consuming skill offers its pack default and, on consent, scaffolds the file
+with that one section.
+
+**Tier reachability is asymmetric, and it decides which tier matters.** A
+session rooted in a repository reads `./agentbundle-layout.toml` without any
+grant, because it sits inside the working root. `~/.agentbundle/agentbundle-layout.toml`
+does not: reading outside the working root needs an explicit grant, so the
+user-profile tier is unreachable from an ordinary repository session and
+resolution falls through past it. Where the grant is given, a user-scope value
+governs output produced inside the repository — which is why a personal
+destination and a repository hand-off are different questions.
+
+**A hand-off path is pinned, not configured.** `docs/product/briefs/` and
+`docs/product/intents/` are where core's `author-delivery-brief continue` and
+`intake-intent` look for work, so neither is governed by this file. `output_dir`
+governs the adopter's own material: each consuming skill composes its own
+subpath under it, and the value is a base rather than a leaf.
+
+**Whether a pack default precedes elicitation is unsettled.** RFC-0040's
+resolution tail falls back to a pack-owned default before eliciting; RFC-0096
+§ 4 is later, heavier, and has no pack-default step, treating the layout file as
+candidate evidence. Six shipped `m2-*` specs pin the three-tier order as an
+acceptance criterion and one pack test asserts the default is absent, so the two
+orders cannot both be implemented. Tracked in `workspace.toml` `[backlog].open`
+against ADR-0030.
+
 ## 8. Mechanical invariants
 
 - `agentbundle catalogue verify` verifies projected agent artifacts and
@@ -213,6 +256,9 @@ name.
 ## 9. Relevant ADRs
 
 - [ADR-0002 — Per-pack install scope](../adr/0002-install-scope-per-pack-default-and-allowance.md)
+- [ADR-0030 — Consolidated pack output layout contract](../adr/0030-consolidated-pack-output-layout-contract.md) — D2 precedence, D6 path resolution, D8 prompt-only reads, D9 never-create, D10 adopter-owned
+- [RFC-0040 — Consolidated pack layout config](../rfc/0040-consolidated-pack-layout-config.md) — the three creation routes and the resolution tail
+- [RFC-0096 — Portable delivery artifact lifecycle](../rfc/0096-portable-delivery-artifact-lifecycle.md) — § 4's competing surface-resolution order
 
 ## 10. Last verified against commit
 

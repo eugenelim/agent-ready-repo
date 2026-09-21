@@ -448,6 +448,14 @@ jobs:
       - name: pytest capture-rename guide contract (roster-owned)
         run: python -m pytest tests/roster/test_capture_rename_guide.py
 
+      # The allocator's owner-parity and cross-pack equivalence claims read
+      # `docs/product/intents/` and a second pack's script, which a pack test
+      # may not reach. It sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
+      # step placed after that one never runs and can attribute nothing.
+      - name: pytest typed-ordinal owner parity and equivalence (roster-owned)
+        run: python -m pytest tests/roster/test_typed_ordinal_collision_equivalence.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         run: |
           python tools/lint-conformance-portability.py --root .

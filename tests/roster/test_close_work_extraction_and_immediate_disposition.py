@@ -850,9 +850,19 @@ def test_close_work_construction_suite_is_in_local_and_ci_pack_gates() -> None:
     ).read_text(encoding="utf-8")
 
 
-def test_projected_file_safety_matches_the_agentbundle_canonical() -> None:
-    """Cross-tree parity: the pack copy is byte-identical to the engine helper."""
-    projected = ROOT / "packs/core/.apm/skills/close-work/scripts/file_safety.py"
+@pytest.mark.parametrize(
+    "skill",
+    ["close-work", "work-intake"],
+)
+def test_projected_file_safety_matches_the_agentbundle_canonical(skill: str) -> None:
+    """Cross-tree parity: each pack copy is byte-identical to the engine helper.
+
+    `packs/AGENTS.local.md` requires this pin for every hand-maintained
+    `packs/**` copy: no destination is declared for one, so a source-side
+    hardening fix never reaches it and the tree stays green while the patch
+    quietly does not apply.
+    """
+    projected = ROOT / f"packs/core/.apm/skills/{skill}/scripts/file_safety.py"
     assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
 
 

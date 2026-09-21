@@ -716,7 +716,134 @@ open = [
   # each pack's skills already read. The cost is that the configuration
   # vocabulary stays off-canon.
   # Unblocks when: `docs/specs/layout-install-sections/` ships.
+  # Reader inventory, merged here 2026-09-20 rather than registered separately:
+  # the same files this rename already has to touch also mis-state who reads each
+  # section, so correcting both is one edit per file. Measured:
+  # `frame-intent/references/agentbundle-layout.md:72` says "Only `frame-intent`
+  # (intents) and `align-value-stream` (rollups) read `[product]`", while eight
+  # bodies name it — adding `lean-canvas:65`, `frame-situation:68`,
+  # `map-capabilities:44`, `diverge-solutions:81`, `place-bet:43` and
+  # `identify-opportunities:75`. There is also a **second, differently worded**
+  # `[product]` schema doc at
+  # `packs/core/.apm/skills/workspace-status/references/agentbundle-layout.md`,
+  # and core reads the section at `workspace-status/SKILL.md:696`, so the surface
+  # is nine bodies across two packs and two divergent docs.
+  # `ux-writing/SKILL.md:68` reads `[design] output_dir` — a cross-pack read named
+  # in neither pack's schema doc — and silently defaults to `docs/design`, which
+  # is an adjacent defect worth fixing in the same pass.
+  # Checked and NOT a defect: `product-strategy`'s nine-consumer list is
+  # **accurate**. No product-strategy body contains the literal `[strategy]`; all
+  # nine delegate with "Resolve the artifact path following
+  # `references/agentbundle-layout.md`", so under a consistent reader criterion
+  # all nine are readers. An earlier registration claimed the opposite by
+  # applying a different test to each pack.
+  # `Unblocks when:` above is satisfied — `docs/specs/layout-install-sections/spec.md`
+  # is Shipped.
   {path = "docs/architecture/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
+  # A recorded "live defect" that is the designed flow, and the reason a whole
+  # delivery slice was built and retired on 2026-09-20. Registered so it is not
+  # re-discovered as a defect a third time.
+  # The claim, from `docs/product/briefs/intent-identity-and-registration.md`
+  # `## Current-state evidence`: an adopter pointing `[product] output_dir` at a
+  # personal vault "gets `frame-intent` writing to the vault and `intake-intent`
+  # writing to the repository. This is the deterministic-placement defect already
+  # live, not a hypothetical."
+  # Why it is not a defect. `intake-intent` admits personal and vault sources by
+  # design. `SKILL.md:81-85` requires a human-confirmed repository-relative
+  # destination, minimized provenance, and explicit authority transfer before such
+  # a write, and `intent_renderer.py:63` carries
+  # `_TRANSFER_MODES = {"chat-only", "personal", "personal-vault", "vault"}`.
+  # Authoring in a vault and admitting into the repository are two stages of one
+  # flow, not two skills disagreeing about one path.
+  # And `intake-intent`'s `docs/product/intents/{slug}.md` (`:69`) is a pinned
+  # core hand-off rather than a hardcode to fix. `frame-intent`'s own layout
+  # reference states the rule for the sibling case at `:69-72`: a path that hands
+  # off to core "stays pinned (a deliberate non-goal of this layout config)". That
+  # rule is stated for briefs and not for intents, which is the real gap and is
+  # part of the reader/vocabulary reconciliation above.
+  # What it cost: a slice that reached 54 acceptance criteria, three security
+  # findings that could not be closed, a cross-pack execution channel, three
+  # transport mechanisms, and a `Bash` grant — all to repair something that
+  # already worked. The full record is in
+  # `docs/specs/frame-intent-escape-verdicts/notes/verification-ledger.md`.
+  # Remaining work is one sentence in this file: state the pinned-handoff rule
+  # for intents beside the one it already states for briefs at `:69-72`. The
+  # brief's own evidence bullet is already corrected in place, so nothing is
+  # registered against the brief itself — it sits in a brief queue and cannot
+  # also hold a backlog membership.
+  {path = "packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md"}, summary = "State the pinned-handoff rule for intents beside the one already stated for briefs, so a core hand-off path is not read as configurable", needs = []},
+  # Does ADR-0030 D8's prompt-only boundary bind a verification lint, or only an
+  # authoring skill's placement path? The repository has no answer and one live
+  # instance. Registered 2026-09-20 as a decision, not an edit, after a repair
+  # attempt found the change is not small and the premise is not settled.
+  # The instance. `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py:224`
+  # `load_layout(root)` parses the repo-root `agentbundle-layout.toml` then
+  # `~/.agentbundle/` with `tomllib`, feeding tier 1 of `resolve_base`'s
+  # documented `config -> designed defaults -> discover-by-marker` contract
+  # (`:255-268`), plus `load_rollup_ids:592` and `_anchor_base`. It reads a
+  # `[traceability]` table that no pack manifest declares.
+  # Reading A, it violates D8. "Reading the layout file is prompt-only" (D8) is
+  # unqualified, and RFC-0040 forecloses the obvious defence twice: `:8` calls a
+  # `tomllib` code-read "**not** a prompt-only-read precedent" and `:361` names
+  # Charter Principle 3 "the prompt-only hard boundary the reader must respect".
+  # Reading B, it does not. D8's second clause names "no runtime engine, index,
+  # daemon, or watcher ... while a skill operates", and Principle 3 is about a
+  # habit not carrying infrastructure. A lint the work-loop invokes to verify is
+  # neither an authoring skill's placement path nor a daemon, and RFC-0040's note
+  # constrains what may be *cited as precedent* rather than banning every script
+  # read.
+  # Why it was not repaired as a ride-along: under Reading A the fix is either
+  # dropping tier 1 — changing four-plus signatures and removing adopter
+  # configurability the lint's own contract promises, inside a block whose
+  # self-test polices path literals (`:128-137`) — or routing the read through
+  # work-loop's prose, which is a CLI change plus prose for a lint called from
+  # several places. Neither is a ride-along, and picking one would settle the
+  # ambiguity by fiat from inside an unrelated slice.
+  # Cost of leaving it: nothing breaks. The lint works and adopters can configure
+  # it. What persists is that the boundary means two things, so the next author
+  # reads whichever suits them — which is how `docs/specs/intake-intent-configured-destination/`
+  # was drafted with a code-side read on 2026-09-20 and had to be redesigned.
+  {path = "packs/core/.apm/skills/work-loop/scripts/lint-traceability.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/adr/0030-consolidated-pack-output-layout-contract.md"}, summary = "Decide whether ADR-0030 D8's prompt-only boundary binds a verification lint or only an authoring skill's placement path, and reconcile lint-traceability's tomllib read with the answer", needs = []},
+  # Two answers from one process about where an item's output goes.
+  # `workspace_mcp.py:1045` and `:1067` emit `"output_pattern":
+  # manifest.get("output_pattern")` into the `workspace_status` payload with **no**
+  # layout override applied, while `_resolve_output_pattern:1519` does apply one.
+  # So an adopter who has configured `[product] output_dir` sees the
+  # un-overridden default in the status surface and the overridden path
+  # everywhere else.
+  # Registered 2026-09-20 in place of an earlier, wrong framing that asked to
+  # "extend the MCP to all five sections". That was a category error:
+  # `_LAYOUT_TYPE_BASES:1556` is keyed by **item type**, not by pack, so
+  # `strategy -> ("product", ...)` is correct because the strategy item dispatches
+  # `frame-situation`, a product-engineering skill that reads `[product]`; and
+  # `architecture` cannot be missing because `_LIFECYCLE_MANIFEST:75-160` defines
+  # no architecture item type. RFC-0040:444-447 states the item-type keying
+  # deliberately. An unmapped type also returns the default pattern rather than a
+  # wrong one (`:1567`), so the original claim was cosmetic as well as wrong.
+  # Natural parent if this wants an outcome rather than a defect row:
+  # `docs/product/intents/workspace-mcp-production-readiness.md`.
+  {path = "packages/agentbundle/agentbundle/workspace_mcp.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/product/intents/workspace-mcp-production-readiness.md"}, summary = "Apply the layout override in the workspace_status payload, so one process does not report two different output paths for a configured item type", needs = []},
+  # Two accepted precedence orders for the same resolution disagree and nothing
+  # reconciles them: RFC-0040's resolution tail falls back to a pack-owned
+  # default before eliciting, RFC-0096 § 4 has no such step. How the file is
+  # created and which tier a session can read is documented in
+  # `docs/architecture/agentbundle.md` § 7.2 — that is the owning home; do not
+  # restate it here.
+  # This is a decision, not a conformance fix. Elicitation is ratified in six
+  # Shipped `m2-*` specs as an acceptance criterion, and
+  # `packs/desk-research/tests/skills/desk-research-project-start/test_desk_research_project_start_elicitation.py:58-61`
+  # asserts the default is absent, so implementing RFC-0040 step 2 there reds a
+  # standing test. Architect conforms to RFC-0096 § 4 rather than drifting:
+  # `architect-design/SKILL.md:290-293` carries it verbatim under two Shipped
+  # specs.
+  # The one clean conformance case is experience-design, which drifted from its
+  # own pack RFC — RFC-0050 `:154-157` ratifies config -> designed default ->
+  # discover-by-marker with no elicitation tier, and its shipped skills replaced
+  # tier 2 with elicitation.
+  # An ADR is the instrument: the open question is which accepted precedence
+  # governs. ADR-0030's `Revisit if:` names the trigger, "a fourth consumer is
+  # proposed", and there are six by record (`ADR-0078:126-128`).
+  {path = "docs/adr/0030-consolidated-pack-output-layout-contract.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Reconcile RFC-0040's pack-default resolution tail with RFC-0096 section 4, which is later, heavier and has no pack-default step, then fix experience-design's drift from RFC-0050 D6", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because
   # each needs an owner decision, not an edit. Shared root cause: the engine
@@ -1653,15 +1780,18 @@ open = [
   # by directory scan regardless.
   { path = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Give an intent and a brief a way to be closed mechanically: what each Status value means, which transitions are legal, and which workflow sets them, with Fulfilled set in the close-work flow; no workflow can close an intent today and Fulfilled appears in no skill", needs = [] },
   # The five confirmed delivery slices of docs/product/briefs/intent-identity-and-registration.md,
-  # materialised 2026-09-19 after the brief reached Ready and the slice cut was confirmed. Registered
+  # materialised 2026-09-19 after the brief reached Ready and the slice cut was confirmed. Six since
+  # 2026-09-20: `intent-placement-and-admission` was re-cut into two slices and then one of
+  # them, `intake-intent-configured-destination`, was retired the same day when its founding
+  # defect proved not to be one. Only `frame-intent-escape-verdicts` survives from that
+  # re-cut. The brief's `## Post-Ready amendment` records why, and its Spec map owns the set. Registered
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
-  { path = "docs/specs/intent-placement-and-admission/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Deterministic intent placement and admission", needs = [] },
-  { path = "docs/specs/intent-metadata-shape-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent metadata shape contract and its two enforcement points", needs = [] },
-  { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
-  { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
-  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
+  { path = "docs/specs/frame-intent-escape-verdicts/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Three out-of-root escape forms get three verdicts: a symlink refuses, a dot-dot segment refuses under ADR-0030 D6, and an absolute-only external path keeps D7 Ask-first", needs = [] },
+  { path = "docs/specs/intent-metadata-shape-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent metadata shape contract and its two enforcement points", needs = [] },
+  { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
+  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make a feature intent's mapping to its independently shippable spec, or to a delivery brief and its child specs, visible from the intent side; needs its own de-risk before decomposition", needs = [] },
@@ -1808,9 +1938,10 @@ status    = "active"
 milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires the ladder"
 
 ["ini-010".brief_queue]
-executing = []
+executing = [
+  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
+]
 ready = [
-  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-19 bound to a Clean independent review, Spec map empty pending the slice decision", needs = [] },
 ]
 draft = []
 
@@ -1820,6 +1951,8 @@ backlog = []
 
 ["ini-010".work]
 queue   = []
-active  = []
+active  = [
+  { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
+]
 shipped = []
 

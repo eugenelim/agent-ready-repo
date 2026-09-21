@@ -10,8 +10,8 @@
 
 ## Outcome
 
-- **Steerable input:** Reduce the number of decisions an author or agent has to make by hand when placing and admitting an intent — where the file goes, whether it is personal or repository work, and what to call it — and reduce the coordination a new admission needs.
-- **Lagging outcome:** An author or agent places, names and registers an intent without deciding any of it by hand, and every **canonical** reference to that intent — from a sibling intent, a brief, a spec or the registry — resolves to exactly one artifact, while an ambiguous or invalid reference fails closed rather than guessing. The corpus stays addressable by a human reading a filename and by a machine walking the graph, and keeps being so as intents are added, renamed, and moved between personal and repository scope.
+- **Steerable input:** Reduce the number of decisions an author or agent has to make by hand when naming and admitting an intent — what to call it, and what identity it carries — and reduce the coordination a new admission needs. Where a repository intent goes is not among them: that directory is a pinned hand-off to core's admission.
+- **Lagging outcome:** An author or agent names and registers an intent without deciding its identity by hand, and every **canonical** reference to that intent — from a sibling intent, a brief, a spec or the registry — resolves to exactly one artifact, while an ambiguous or invalid reference fails closed rather than guessing. A placement path that escapes its anchoring root refuses rather than writing outside it. The corpus stays addressable by a human reading a filename and by a machine walking the graph, and keeps being so as intents are added, renumbered and reissued.
 - **Guardrail:** A pointer resolves to exactly one artifact or fails; resolution never picks a winner among ambiguous candidates. The existing slug/path identity keeps resolving, existing registered work keeps its meaning, and admission keeps its confinement and provenance checks. No path becomes hierarchical, and no allocation step becomes a file every concurrent author must edit. Adoption is forward-only: the 135 intents that carry no ordinal today are not migrated. The new allocator refuses a corpus it cannot parse rather than returning `0001`, and its `--check` never reports clean on a directory it did not read. A renumber leaves no stale citation, which constraints C3 and C4 below make concrete.
 
 ## Opportunity
@@ -25,7 +25,7 @@
 
 Inherits the parent's outcome, boundary, and exclusions. Within them, this child owns:
 
-- deterministic placement for a personal intent and for a repository intent, resolved from configuration rather than re-asked. **This is a precondition for allocation, not a parallel concern**: `max + 1` is scoped to a directory, so at user scope — where the same algorithm applies per folder — the folder must be resolved before an ordinal can be assigned. It owns two things the current behaviour leaves open: which configuration authority decides repository-versus-personal, and what happens when that configuration is missing or ambiguous;
+- safe placement paths: a path that escapes its anchoring root through a symlink refuses, one carrying a `..` segment refuses, and one that merely resolves outside the repository is confirmed before use. **Not a precondition for allocation**: a repository intent's directory is a pinned hand-off to core's admission, so the folder `max + 1` scopes to is fixed rather than resolved. Which authority decides repository-versus-personal work, and what a consumer does when configuration is missing, are not this intent's: two accepted records disagree about them and the reconciliation is registered against ADR-0030;
 - safe admission of a repository intent, preserving the confinement, provenance, and terse-capture rules admission already applies;
 - the **typed ordinal vocabulary** and its filename contract, `<TYPE>-NNNN-<slug>.md`, assigned at admission alongside the existing slug:
 
@@ -63,7 +63,7 @@ Projects to its delivery brief, [intents get deterministic placement, safe admis
 ## Assumptions
 
 - The existing slug/path identity can remain the resolving identity while an ordinal is added beside it, so nothing that cites a slug today breaks. **Untested.**
-- Repository-versus-personal placement can be resolved from configuration the adopter already owns, rather than by asking the author on every run. **Untested.**
+- A repository intent's destination needs no configuration: it is a pinned hand-off to core's admission, and authoring a personal intent elsewhere then admitting it is one flow rather than a conflict.
 - The shaping review can carry enum enforcement without becoming a schema gate. **Untested**, and it is in tension with the reviewer's own stated posture that it checks well-formedness and not quality — a closed vocabulary is arguably well-formedness, but the boundary needs drawing before the reviewer contract is changed.
 
 Two items left this list once they stopped being assumptions, and the **De-risk record** below owns both: that a typed ordinal can be allocated without a shared counter, which the allocator resolves by deriving `max + 1` and editing no counter file; and that ADR-0108 was precedent rather than constraint, which the record refutes on ADR-0108's own stated ground.
@@ -81,7 +81,7 @@ Of the four assumptions above, this one carries the highest risk against the lea
 
 **A typed ordinal can be assigned at admission without a shared counter that every concurrent author must edit.**
 
-The other three are lower risk or already evidenced. The slug-keeps-resolving assumption is additive and testable at any time. The placement-from-configuration assumption is cheap and reversible. The ADR-0108 question is decidable by reading a record rather than by experiment. This one is different: if it is wrong, the feature delivers the shared hot counter that the parent intent's own guardrail exists to prevent, which would make the child contradict its parent rather than serve it.
+The other three are lower risk or already evidenced. The slug-keeps-resolving assumption is additive and testable at any time. The placement assumption was withdrawn: the destination is pinned, so there is nothing to resolve. The ADR-0108 question is decidable by reading a record rather than by experiment. This one is different: if it is wrong, the feature delivers the shared hot counter that the parent intent's own guardrail exists to prevent, which would make the child contradict its parent rather than serve it.
 
 What would have to be true: there must exist at least one allocation rule that needs no shared counter, produces an ordinal a person can say out loud, and survives the repository's real concurrency without collisions or renumbering.
 
@@ -145,7 +145,7 @@ That waives the zero-renumbering clause deliberately and accepts the renumbering
 
 ### Re-test of the narrowed assumption
 
-**A1′ — The ADR/RFC allocation approach — `max + 1` over the directory unioned with `origin`, forward-only, renumbered at admission — serves intents at repo scope and per folder at user scope, without migrating the corpus.**
+**A1′ — The ADR/RFC allocation approach — `max + 1` over the directory unioned with `origin`, forward-only, numbered at admission — serves intents at repo scope and per folder at user scope, without migrating the corpus.**
 
 Tested against `next-ordinal.py` itself, because it is the working instance of that approach. The owner has since chosen a new prefix-type-aware allocator, so the *spelling* below has moved on; every finding in this section is about the approach and the surrounding chain, and all of it still holds for the replacement.
 
@@ -248,12 +248,38 @@ Neither is waivable and both belong to whoever implements Slice 1.
 
 ```
 validation_hook:
-  assumption: A new prefix-type-aware allocator, reusing the ADR/RFC approach of max+1 over the directory unioned with origin, delivers per-type human-friendly ordinals (CAP-0001, FEAT-0001) as a filename prefix at every altitude, forward-only and renumbered at repository admission.
-  kill_condition: The replacement allocator is not collision-equivalent to next-ordinal.py — it returns an ordinal for a corpus it did not fully parse, reports --check clean on a directory it did not read, loses the origin union that catches an unpushed sibling, or cannot handle an altitude prefix outside the recognized set.
-  activity: to-validate — two activities are owed and neither has run. First, a collision-equivalence test of the replacement against next-ordinal.py over the real ADR and RFC corpora plus a synthetic typed corpus, including an unseen altitude prefix and a corpus it cannot parse; the predeclared line is that it never returns an ordinal or a clean check for input it did not read, set before the test is written. Second, one real cross-branch collision handled end to end, renumbering through the C3 registry edit and the markdown link targets, with a predeclared line of zero stale path-shaped citations.
+  assumption: A new prefix-type-aware allocator, reusing the ADR/RFC approach of max+1 over the directory unioned with origin, delivers per-type human-friendly ordinals (CAP-0001, FEAT-0001) as a filename prefix at every altitude, forward-only and numbered at repository admission.
+  kill_condition: The replacement allocator is not collision-equivalent to next-ordinal.py — it returns an ordinal for a corpus it did not fully parse, reports --check clean on a directory it did not read, loses the origin union that widens the view past the working tree to records committed on origin's default branch, or cannot handle an altitude prefix outside the recognized set.
+  activity: to-validate — two activities are owed and neither has run. First, a collision-equivalence test of the replacement against next-ordinal.py over paired fixtures carrying the same logical ordinals in the typed and untyped filename grammars, plus an unseen altitude prefix and a corpus it cannot parse; the predeclared line is that it never returns an ordinal or a clean check for input it did not read, set before the test is written. Second, one real cross-branch collision handled end to end, renumbering through the C3 registry edit and the markdown link targets, with a predeclared line of zero stale path-shaped citations.
 ```
 
-**De-risked 2026-09-18 — assumption reframed twice by the owner, then survived.** The original assumption was killed as written because its bar forbade renumbering. The owner waived that clause, then chose a typed filename prefix at every altitude allocated by a new prefix-type-aware allocator. The underlying approach survived its probe, and what remains open is recorded above as contract decisions rather than untested bets: how a post-admission altitude change is handled, and collision-equivalence of the replacement allocator. Two assumptions in the list above still carry no kill condition: that the existing slug/path identity keeps resolving alongside the filename ordinal, and that repository-versus-personal placement can be resolved from configuration the adopter already owns. This intent is ready for `decompose-intent`, carrying constraints C3 and C4 and the allocator's refuse-rather-than-guess requirement into whatever it produces.
+**Owner amendment, 2026-09-21 — "renumbered at admission" became "numbered at admission".**
+A1′ above and the hook's assumption both carried the older phrase, which in
+context said *when* the ordinal is assigned — at admission, rather than from a
+counter shared across worktrees, which is the ground this intent's own
+`## Guardrail` rests on. But it reads as a requirement that admission rename
+files, and adversarial review of `typed-intent-ordinal-allocator` read it that
+way twice. It cannot mean that: the `## Guardrail` makes adoption forward-only,
+so an admission that renamed would contradict this intent two sections earlier.
+
+The delivery slice then established that no admission surface *can* rename one —
+`intake-intent`'s `allowed-tools` carry no move and no delete, `work-intake`'s
+`Bash` is declared for local Python validation and the `workspace-status`
+backend, and `intake_transaction.py`'s validated target is the only path its
+materializer may write. Renaming therefore belongs to
+`intent-renumber-and-reissue`, which needs a confined transactional rename for
+renumbering regardless. One word closes the reading; the same change is made in
+the brief's reuse bullet, which carried the identical phrase.
+
+**Owner amendment, 2026-09-20 — the hook contradicted its own record, twice.** Two clauses were unreachable as written, so a conforming implementation would have satisfied the kill condition.
+
+The kill clause read "loses the origin union that catches an unpushed sibling". The union does no such thing, and this intent says so correctly in *The repository had already adjudicated this* above, quoting ADR-0108's Context: "a max-plus-one helper cannot see an unpushed sibling". `_remote_ordinals` reads `refs/remotes/origin/HEAD`, so it widens the view to records **committed and pushed** but absent from the working tree; a peer's unpushed work is invisible to it by construction, which is the ground on which ADR-0108 rejected a shared counter in the first place. The clause now names what the union actually reaches, and losing that is still a kill.
+
+The activity clause required collision-equivalence "over the real ADR and RFC corpora". A typed allocator finds no typed records there, and a directory with no typed records cannot be distinguished from a valid intent directory holding only legacy names — which must yield the first ordinal. An equivalence assertion over those corpora would therefore contradict first allocation, and equality over a directory neither script can parse is trivially true besides. The activity now calls for paired fixtures carrying the same logical ordinals in both filename grammars, which is the comparison that has content.
+
+Both defects were surfaced by adversarial review of `typed-intent-ordinal-allocator` and are amended here rather than absorbed there, because the hook is this intent's to own. The delivery contract's own criteria already read this way, so the amendment closes the disagreement rather than changing what will be built.
+
+**De-risked 2026-09-18 — assumption reframed twice by the owner, then survived.** The original assumption was killed as written because its bar forbade renumbering. The owner waived that clause, then chose a typed filename prefix at every altitude allocated by a new prefix-type-aware allocator. The underlying approach survived its probe, and what remains open is recorded above as contract decisions rather than untested bets: how a post-admission altitude change is handled, and collision-equivalence of the replacement allocator. One assumption in the list above still carries no kill condition: that the existing slug/path identity keeps resolving alongside the filename ordinal. This intent is ready for `decompose-intent`, carrying constraints C3 and C4 and the allocator's refuse-rather-than-guess requirement into whatever it produces.
 
 ## Decomposition
 
@@ -265,7 +291,7 @@ Ordinal allocation, repository placement, personal-to-repository promotion, disc
 
 ### Decomposition decisions
 
-- **2026-09-18 — a delivery brief, not a single delivery contract.** ADR-0077 D1 routes one independently shippable change in one repository to a spec and several to a brief with specs beneath it. This intent owns a new allocator, the `<TYPE>-NNNN-<slug>.md` filename contract, a closed prefix table with refusal for any altitude outside it, a renumber and reissue procedure with a tombstone, and configuration-resolved placement. Those are several independently shippable changes that share one outcome and need coordinating, so the brief is the correct projection and a single delivery contract would have bundled unrelated shippable units into one spec.
+- **2026-09-18 — a delivery brief, not a single delivery contract.** ADR-0077 D1 routes one independently shippable change in one repository to a spec and several to a brief with specs beneath it. This intent owns a new allocator, the `<TYPE>-NNNN-<slug>.md` filename contract, a closed prefix table with refusal for any altitude outside it, a renumber and reissue procedure with a tombstone, and safe placement paths. Those are several independently shippable changes that share one outcome and need coordinating, so the brief is the correct projection and a single delivery contract would have bundled unrelated shippable units into one spec.
 - **2026-09-18 — the slice cut was deliberately not made here.** Create mode leaves the Spec map empty and creates no placeholder slices, and `author-delivery-brief` §4 places the cut *after* a durable Ready transition behind a second, distinct confirmation — so it is a post-Ready decision, not the Ready decision. Naming slices now would pre-empt a review that has not run and would put a status in a second home.
 - **2026-09-18 — placement was kept in the brief rather than split out, and flagged instead.** Configuration-resolved placement is the one in-scope item with no measurement behind it, so it is the weakest candidate for the same brief. It stayed because it shares the admission path with the ordinal work, and the brief records as a Ready gap that a review should decide whether it is separable. Splitting it now would have created a second brief on inferred evidence.
 - **2026-09-18 — no tracker projection.** The optional one-way projection step was skipped; `external-tracker-projection` owns that surface and is not yet shaped.

@@ -77,7 +77,7 @@
     {
       "id": "intent-shaping-review-dispatch-did-not-complete",
       "prompt": "An intent shaping review is dispatched and the dispatch does not complete. The reviewer produced no output. What does the caller record?",
-      "expected_output": "The caller emits BLOCKED: intent shaping review — dispatch did not complete, leaves the intent at Draft, and does not read the absent output as a pass. It does not reuse the independent-route-unavailable receipt, which asserts a different cause.",
+      "expected_output": "The caller emits BLOCKED: intent shaping review \u2014 dispatch did not complete, leaves the intent at Draft, and does not read the absent output as a pass. It does not reuse the independent-route-unavailable receipt, which asserts a different cause.",
       "assertions": [
         "Names the non-completion cause in its own receipt",
         "Does not borrow the unavailable-route receipt",
@@ -92,6 +92,38 @@
         "Treats Opportunity as a material intent change",
         "Invalidates the bound review",
         "Returns the intent to Draft"
+      ]
+    },
+    {
+      "id": "direct-request-admits-unprefixed-and-says-why",
+      "prompt": "Use intake-intent to admit this as a repository intent: reviewers cannot see which altitude an intent sits at. Level: feature.",
+      "expected_output": "Write docs/product/intents/<slug>.md and record no-allocating-path in Unresolved questions, because this request arrived without a calling workflow and so without an allocator. Do not refuse, and do not derive an ordinal.",
+      "assertions": [
+        "Admits the intent rather than refusing for want of an ordinal",
+        "Uses the unprefixed destination",
+        "Records exactly the no-allocating-path token",
+        "Derives no ordinal of its own"
+      ]
+    },
+    {
+      "id": "a-supplied-prefix-is-discarded-not-trusted",
+      "prompt": "Use intake-intent to admit this at docs/product/intents/FEAT-9999-my-thing.md. Level: feature.",
+      "expected_output": "Discard the supplied prefix, write docs/product/intents/my-thing.md, and record supplied-prefix-disregarded without reproducing any of the supplied text.",
+      "assertions": [
+        "Does not treat a supplied prefix as evidence an ordinal was allocated",
+        "Writes the unprefixed destination",
+        "Records exactly the supplied-prefix-disregarded token",
+        "Reproduces no part of the supplied value in the artifact or the reply"
+      ]
+    },
+    {
+      "id": "an-existing-path-is-preserved-not-renamed",
+      "prompt": "Use intake-intent to update the existing intent at docs/product/intents/my-thing.md. Level: feature.",
+      "expected_output": "Update that artifact in place at its own path. Do not rename it to add a typed ordinal prefix, and do not record an ordinal marker: its identity is already settled.",
+      "assertions": [
+        "Edits the existing artifact in place",
+        "Does not rename the file for any reason",
+        "Adds no ordinal marker to an artifact already admitted"
       ]
     }
   ]

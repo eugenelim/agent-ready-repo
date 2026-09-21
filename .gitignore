@@ -3,10 +3,18 @@
 # *is* the scope (repo-scope marker only here — user-scope marker
 # lives inside ~/.agentbundle/, outside any repo).
 .adapt-install-marker.toml
-# Adopter-owned pack-output layout file (RFC-0040). A contributor who
-# exercises a consumer skill (research / architect / product-engineering)
-# in this catalogue may hand-write one at the repo root; it must never be
-# committed (and would otherwise trip the self-host drift gate).
+# Adopter-owned pack-output layout file (RFC-0040, ADR-0030 D10: adopter-owned
+# and never shipped). Ignored again on 2026-09-20 after being briefly committed.
+# Committing it was wrong for three reasons: every value in it equalled the
+# pack's own declared `[pack.layout.repo] output_dir`, so it carried no
+# information; this catalogue publishes the packs, so a fork would inherit our
+# paths as if they were the contract; and it worked around the unimplemented
+# RFC-0040 resolution step registered against ADR-0030, removing the friction
+# from the one repository that self-hosts and would otherwise notice it.
+# A contributor exercising a consumer skill gets the file created for them on
+# first use — measured 2026-09-20, `frame-intent` wrote
+# `[product] output_dir = "docs/product"` and proceeded — so nothing needs it
+# committed.
 agentbundle-layout.toml
 !packs/**/evals/files/agentbundle-layout.toml
 

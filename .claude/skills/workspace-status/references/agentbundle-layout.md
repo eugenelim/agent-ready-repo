@@ -7,21 +7,33 @@ default section to one you already have — **append-if-exists / never-create /
 never-overwrite**). On the append of a *missing* section, the installer adds that one table and
 leaves every other byte of the file unchanged — comments, key order, quoting
 style and line endings included. An existing section is never replaced. This page documents the `[product]` section that
-product-facing skills read to locate the `shaping/` directory.
+product-facing skills read to locate their output base.
 
 ## The `[product]` table
 
-One configurable key; `briefs` is intentionally absent (pinned):
+One configurable key, `output_dir`:
 
 ```toml
 [product]
-shaping  = "docs/product/shaping"    # vision docs, opportunity assessments, capability maps
-# briefs path is pinned at docs/product/briefs/ — not configurable here
+output_dir = "docs/product"    # a base; each skill composes its own subpath under it
+# briefs and intents are pinned hand-offs to core — not configurable here
 ```
 
-- **`shaping`** is the base directory for upstream shaping artifacts: product
-  vision docs, opportunity assessments, capability maps, initiative briefs. Produced
-  by the PE six-step shaping sequence and the product-strategy pack.
+- **`output_dir`** is a base directory, never a leaf. Each consuming skill
+  composes its own subpath under it: `frame-intent` writes
+  `<output_dir>/intents/<slug>.md`, `align-value-stream` writes
+  `<output_dir>/rollups/<slug>.md`, and the six-step shaping sequence writes
+  `<output_dir>/shaping/<slug>/...`.
+- **`shaping` is not a key of this section.** No skill body reads
+  `[product] shaping`; the shaping directory is composed under `output_dir` by
+  the skills above, and the product-strategy pack has its own `[strategy]`
+  section. This page previously documented `shaping` as the section's only key,
+  which was wrong in both directions — it named a key nobody reads and omitted
+  the one every consumer does.
+- **A hand-off to core is pinned, not configured.** `docs/product/briefs/` and
+  `docs/product/intents/` are where core's `author-delivery-brief continue` and
+  `intake-intent` look for work; redirecting either breaks the `Brief:` chain or
+  intent admission. Both are deliberate non-goals of this config.
 - **`briefs`** stays pinned at `docs/product/briefs/`. It is the hand-off point
   to Core's `author-delivery-brief continue` mode and must not be redirected — moving briefs breaks
   the `Brief:` back-link chain and coverage rollup.
@@ -43,9 +55,14 @@ the user file still applies.
 
 ## Default and posture
 
-When no `[product]` section resolves, skills fall back to the conventional
-default `docs/product/shaping` for `shaping`. This matches the structure
-documented in `docs/product/README.md`.
+When no `[product]` section resolves, each consuming skill falls back to its own
+pack's declared default — `docs/product` for product-engineering
+(`packs/product-engineering/pack.toml` `[pack.layout.repo]`). ADR-0030 keeps that
+default in the pack rather than here, so this page states no fallback of its own.
+Whether a consumer reaches that default *before* asking you is not settled, so
+do not rely on either order: a skill may offer the pack default first, or ask
+first and treat the default as the fallback. Set `output_dir` explicitly if the
+distinction matters to you.
 
 `core` ships **no `[pack.layout.user]` default** for this section — product
 output is per-repo and there is no sensible cross-repo absolute path. For a
@@ -55,5 +72,10 @@ file by hand:
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml
 [product]
-# shaping  = "/abs/path/to/shaping"    # uncomment + set an absolute path
+# output_dir = "/abs/path/to/product"    # uncomment + set an absolute path
 ```
+
+A user-profile value governs your own authoring — a personal vault, for
+instance. It does not govern a repository hand-off: a repository intent still
+goes to `docs/product/intents/` for `intake-intent` to admit, which is a
+deliberate non-goal of this config rather than an omission.

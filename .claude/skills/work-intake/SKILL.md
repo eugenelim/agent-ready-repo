@@ -254,9 +254,12 @@ is repository-confined before that use; refuse symlink, junction, and
 dot-segment traversal. This locator validation is applicable before
 classification, not deferred until implementation.
 
-The default minimal intent parent is `docs/product/intents`; the default target
-shape is `docs/product/intents/<slug>.md`. Confirm before changing location,
-authority mode, or processor mapping.
+The default minimal intent parent is `docs/product/intents`. For a new artifact
+the default target shape is `docs/product/intents/<TYPE>-NNNN-<slug>.md` when
+the intent's `Level` maps to a token in § 6's table, and
+`docs/product/intents/<slug>.md` otherwise — including when an ordinal was owed
+but could not be allocated. An artifact already on disk keeps its own path.
+Confirm before changing location, authority mode, or processor mapping.
 
 ### 4. Classify
 
@@ -333,6 +336,42 @@ confirmed repository destination, and authority mode to `intake-intent`.
 `intake-intent` alone minimizes intent provenance and renders or updates the
 artifact. Do not copy its template, reconstruct its fields, or certify the
 result in this router.
+
+**Allocate the typed ordinal before that hand-off, for a new artifact only.**
+Resolve the intent's `Level` against this closed table first, and pass only the
+resulting token on a command line — never the `Level` string itself, which an
+adopter controls and this skill runs through a shell:
+
+| `Level` | Token |
+| --- | --- |
+| `product-vision` | `VISION` |
+| `product-strategy` | `STRAT` |
+| `capability` | `CAP` |
+| `feature` | `FEAT` |
+
+Matching is exact on the bare value; any other string, or an absent field, is
+unmapped. For an unmapped `Level`, skip the allocation entirely and use
+`<output-base>/intents/<slug>.md`. For a mapped one, run:
+
+```
+python3 '<skill-dir>/scripts/intent_ordinal.py' --dir <repo-relative directory> --token <TOKEN>
+```
+
+from the repository root, with the directory and token as separate quoted
+arguments. Exit 0 prints `<TOKEN>-NNNN` on stdout: use
+`<output-base>/intents/<TOKEN>-NNNN-<slug>.md`, after checking the value
+against `^<TOKEN>-[0-9]{4,}$` so an unexpected return cannot become a path.
+Exit 1 prints one cause token on stderr — `unparsed-name`,
+`incomplete-scan`, `remote-unavailable` or `bound-exceeded`.
+
+**Exit 1 never stops an admission.** Use the unprefixed destination and pass
+the cause token to `intake-intent` so it records which refusal occurred. An
+intent without an ordinal is whole: the slug is its identity and the ordinal is
+a human-facing alias. Report no failure to the operator, because none occurred.
+
+Never rename an artifact that already exists to add or change an ordinal. A
+path already on disk keeps it, whatever its `Level`; renumbering is a separate
+workflow with its own citation sweep.
 
 After the owner returns a durable artifact, register it as a Draft,
 non-dispatchable entry with repository-relative path, source provenance,

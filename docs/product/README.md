@@ -61,7 +61,7 @@ answer to "what is the product up to right now?"
 | --- | --- | --- |
 | `roadmap.md` | Direction for the next few quarters | Direction, not commitments. An item that has not moved in two consecutive reviews is a drift signal. |
 | `changelog.md` | User-visible changes by release | One section per release, naming every artifact it covers. |
-| `intents/<slug>.md` | One admitted outcome, recorded before a solution is chosen | Optional. |
+| `intents/<TYPE>-NNNN-<slug>.md`, or `intents/<slug>.md` | One admitted outcome, recorded before a solution is chosen | Optional. The typed prefix is allocated at admission for a recognized altitude; an intent without one is complete, and its slug is its identity either way. |
 | `briefs/<slug>.md` | One delivery outcome and the specs that deliver it | Optional, for work too large to be one spec. |
 | `shaping/<slug>.md` | One outcome still being framed, before it is admitted | Optional. Closes by becoming an intent or being dropped. |
 | `findings/<slug>.md` | One observation from real use, with its evidence | Optional. A finding is evidence, not a commitment to act. |

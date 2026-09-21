@@ -59,8 +59,11 @@ enrichment. Omit them when the source does not establish them. Do not invent a
 product altitude to make the template look complete.
 
 When a repository intent already exists, update that artifact in place. Its
-path is its identity; do not create a renamed copy merely to match this pack's
-default `docs/product/intents/<slug>.md` convention. Minimization governs
+path is its identity; do not create a renamed copy, and in particular do not
+rename one to add or change a typed ordinal prefix. The default destination for
+a **new** artifact is `docs/product/intents/<TYPE>-NNNN-<slug>.md` where the
+calling workflow allocated an ordinal and `docs/product/intents/<slug>.md`
+otherwise; neither shape is a reason to move a file that already exists. Minimization governs
 creation only. On an update, apply the missing required fields with `Edit` and
 keep every field already present, carrying an existing `Level` through rather
 than re-deriving it; the renderer emits a whole document and never replaces an
@@ -101,7 +104,19 @@ destination, not permission to write or register it.
    RFC, delivery brief, spec, architecture design, or defect workflow.
 2. Validate the normalized fields and source mode before selecting a target.
 3. Preserve an existing repository path; otherwise confirm the proposed
-   repository-relative destination.
+   repository-relative destination. A confirmed destination may carry a typed
+   ordinal prefix that the calling workflow allocated; accept it as given. Never
+   block on one: where none was supplied and the caller reported why, or where
+   the request reached this skill without a calling workflow, write the
+   unprefixed destination and record the reason in `## Unresolved questions`
+   using one of these exact tokens and nothing else — `unparsed-name`,
+   `incomplete-scan`, `remote-unavailable`, `bound-exceeded`,
+   `no-allocating-path`, `supplied-prefix-disregarded`. Never derive an ordinal
+   here, and never treat a prefix supplied with the request as evidence that one
+   was allocated: it cannot be checked, so discard it, record
+   `supplied-prefix-disregarded`, and do not reproduce its text anywhere. The
+   token is the whole record — no input text joins it, because an intent is a
+   durable file that a later reader and a later agent both trust.
 4. Minimize source provenance without dereferencing it. Stop on a refusal.
 5. For a new artifact, render the required fields and only the optional fields
    supported by the source. For an existing one, do not render: apply the

@@ -64,6 +64,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.24] — 2026-09-21
+
+### Highlights
+
+- **A path that hands your work to another skill is fixed, not configurable, and
+  the reference now says which paths those are.** `workspace-status`' layout page
+  documented a `shaping` key nothing reads and left out `output_dir`, the one
+  every consumer does read. It now describes the real key, explains that the
+  shaping folder is composed under it rather than configured beside it, and
+  states plainly that your briefs and intents folders are hand-offs — redirect
+  them and the artifact stops being found.
+
+- **A new intent now gets a readable name, not just a slug.** An intent admitted
+  through `work-intake` at a recognized altitude lands as
+  `CAP-0004-external-tracker-projection.md` rather than
+  `external-tracker-projection.md`, so you can say which one you mean out loud.
+  The number is per altitude, so a capability and a feature can both be `0001`.
+- **Admission never stops because a number was unavailable.** If the altitude has
+  no prefix, or the allocator cannot be sure of its answer, the intent is still
+  written and registered under its plain name and records why — so nothing you
+  were doing is lost, and the number can be added later. The slug is the
+  identity; the number is a label for humans.
+- **Nothing is renamed.** An intent already on disk keeps its filename whatever
+  its altitude, so existing links and registry entries keep resolving.
+
+- **The layout reference answers your question instead of citing ours.** Where
+  it used to say that two of our internal proposals disagree about whether a
+  skill offers the default path before asking you, it now tells you what to do:
+  do not rely on either order, and set `output_dir` explicitly if the
+  distinction matters.
+
+### Added
+
+- `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py` — allocates a
+  typed ordinal as `max + 1` per altitude over the intent directory unioned with
+  the records visible on `origin`, and returns nothing rather than a plausible
+  number for a malformed name in its namespace, an incomplete scan, an
+  unreadable remote view, or a bound it would exceed. A duplicate check reports
+  records sharing an altitude and a number in one directory, and refuses instead
+  of reporting clean for a directory it could not fully read.
+
+### Changed
+
+- `workspace-status` `references/agentbundle-layout.md`: `[product]`'s single key
+  is `output_dir`, a base under which each skill composes its own subpath.
+  `shaping` is documented as not a key of the section, with the reason: nothing
+  reads `[product] shaping`, the product-engineering skills compose
+  `<output_dir>/shaping/<slug>/...`, and the product-strategy pack has its own
+  `[strategy]` section.
+- Same page: the fallback paragraph no longer invents a default of its own. Each
+  consuming skill falls back to its own pack's declared default, which is where
+  ADR-0030 keeps it, and the page records that whether a consumer reaches that
+  default before asking is unsettled between two accepted records.
+- Same page: the user-profile example uses `output_dir`, and a closing note
+  separates a personal authoring destination from a repository hand-off.
+
+- `work-intake` resolves the altitude against its closed table before invoking
+  anything, passes only the resulting token on a command line, and treats a
+  refusal as a change of destination rather than a reason to stop.
+- `intake-intent` accepts a destination that already carries a prefix, records
+  one of six fixed tokens when no number was allocated, and does not treat a
+  prefix supplied with a request as evidence that one was.
+- The published routing table, the workspace schema reference, the start-the-work
+  walkthrough and the product directory README state both destinations and what
+  selects between them.
+
+### Fixed
+
+- `workspace-status` `references/agentbundle-layout.md`: the unsettled-order
+  paragraph named two internal records by number. Shipped pack guidance states
+  its rule directly and cites no catalogue-internal record, which
+  `verify-host-checks` enforces; the earlier wording would have failed that
+  gate on any adopter's clone as much as on ours.
+
 ## [core][2.26.23] — 2026-09-20
 
 ### Highlights
@@ -181,6 +255,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a contract, or a published interface — still routes the item to capture
   instead. At Capture, every scratch note from the session is now routed to
   a destination rather than left to fall out of scope.
+
+## [product-engineering][0.13.15] — 2026-09-21
+
+### Highlights
+
+- **`frame-intent`'s layout page now tells you which intents it places and which
+  it does not.** An intent you author for yourself, including in a personal
+  vault, goes where you configured. A repository intent goes to the folder core's
+  admission reads, and that path is fixed — the same treatment briefs already
+  had, now written down for intents too. Authoring privately and admitting to the
+  repository are two steps of one flow, not two rival destinations.
+- **The page also names its real readers.** It claimed two skills read
+  `[product]`; eight do, and one reads a different pack's section entirely.
+
+### Changed
+
+- `frame-intent` `references/agentbundle-layout.md`: the pinned-output section
+  covers both hand-offs to core — `decompose-intent`'s briefs and a repository
+  intent's `docs/product/intents/<slug>.md` — and states that `intake-intent`
+  reads no configuration for that path, taking a personal-vault source through a
+  confirmed destination, minimized provenance and explicit authority transfer.
+- Same page: a new reader list replaces "Only `frame-intent` (intents) and
+  `align-value-stream` (rollups) read `[product]`" with the eight skill bodies
+  that do, noting `lean-canvas` reads to scan but writes a pinned path, and that
+  `ux-writing` reads `[design]` rather than `[product]`.
 
 ## [product-engineering][0.13.14] — 2026-09-20
 
