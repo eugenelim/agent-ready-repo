@@ -139,6 +139,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plan approval, verified-slice completion, review completion — keeps its
   obligations unchanged.
 
+## [agentbundle][0.47.1] — 2026-09-21
+
+### Highlights
+
+- **The status surface and the commit scope agree on where work goes.**
+  `workspace_status` reported an item type's built-in default output path even
+  when `agentbundle-layout.toml` configured a different `output_dir`, while the
+  git tools already scoped commits to the configured one. Anyone reading the
+  status surface saw one location and got another. Nothing was written to the
+  wrong place — the label was wrong, not the write.
+
+### Fixed
+
+- `workspace_status` resolves an item's `output_pattern` through the same
+  layout-config precedence the git tools use, so one process cannot report two
+  answers for one item type.
+- A configured directory resolving outside the repository is reported as no
+  pattern, with a warning naming the section, instead of as the default path.
+  Commits are confined to the repository, so no glob in that payload can name
+  such a location.
+
 ## [core][2.26.24] — 2026-09-21
 
 ### Highlights

@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.47.1] — 2026-09-21
+
+### Fixed
+
+- `workspace_status` reported an item type's output path from the built-in
+  default even when `agentbundle-layout.toml` configured a different
+  `output_dir`, while the git tools scoped their commit to the configured one.
+  One process gave two answers about where an item's output goes; the status
+  surface now resolves the same configured path. Nothing was written to the
+  wrong place — only reported from it.
+- A configured `output_dir` that resolves outside the repository is now
+  reported as no pattern at all, with a warning naming the section, rather than
+  as the default path. `git_commit` stages only files inside the repository, so
+  no glob in this payload can describe such a location.
+
 ## [0.47.0] — 2026-09-16
 
 ### Removed

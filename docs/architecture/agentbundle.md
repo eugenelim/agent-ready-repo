@@ -218,13 +218,13 @@ destination and a repository hand-off are different questions.
 governs the adopter's own material: each consuming skill composes its own
 subpath under it, and the value is a base rather than a leaf.
 
-**Whether a pack default precedes elicitation is unsettled.** RFC-0040's
-resolution tail falls back to a pack-owned default before eliciting; RFC-0096
-§ 4 is later, heavier, and has no pack-default step, treating the layout file as
-candidate evidence. Six shipped `m2-*` specs pin the three-tier order as an
-acceptance criterion and one pack test asserts the default is absent, so the two
-orders cannot both be implemented. Tracked in `workspace.toml` `[backlog].open`
-against ADR-0030.
+**A pack default never precedes elicitation.** RFC-0096 § 4's single precedence
+order governs every consumer of this file, and it has no pack-default tier. A
+pack's `[pack.layout.repo] output_dir` is an install-time seed — the value the
+installer appends into an adopter's file — so it enters resolution only once
+written there, as declared configuration, and never as a silent fallback ahead
+of confirmation. ADR-0120 records that decision, why RFC-0040's resolution tail
+does not govern, and what it supersedes in ADR-0030.
 
 ## 8. Mechanical invariants
 
@@ -256,9 +256,10 @@ against ADR-0030.
 ## 9. Relevant ADRs
 
 - [ADR-0002 — Per-pack install scope](../adr/0002-install-scope-per-pack-default-and-allowance.md)
-- [ADR-0030 — Consolidated pack output layout contract](../adr/0030-consolidated-pack-output-layout-contract.md) — D2 precedence, D6 path resolution, D8 prompt-only reads, D9 never-create, D10 adopter-owned
-- [RFC-0040 — Consolidated pack layout config](../rfc/0040-consolidated-pack-layout-config.md) — the three creation routes and the resolution tail
-- [RFC-0096 — Portable delivery artifact lifecycle](../rfc/0096-portable-delivery-artifact-lifecycle.md) — § 4's competing surface-resolution order
+- [ADR-0030 — Consolidated pack output layout contract](../adr/0030-consolidated-pack-output-layout-contract.md) — D2 precedence, D6 path resolution, D8 prompt-only reads (superseded in part by ADR-0120), D9 never-create, D10 adopter-owned
+- [RFC-0040 — Consolidated pack layout config](../rfc/0040-consolidated-pack-layout-config.md) — the three creation routes; its resolution tail does not govern
+- [RFC-0096 — Portable delivery artifact lifecycle](../rfc/0096-portable-delivery-artifact-lifecycle.md) — § 4's governing surface-resolution order
+- [ADR-0120 — Layout-config resolution follows RFC-0096 § 4](../adr/0120-layout-config-resolution-follows-rfc-0096.md) — owns which order governs
 
 ## 10. Last verified against commit
 

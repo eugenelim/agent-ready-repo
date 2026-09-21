@@ -125,6 +125,152 @@ _LIFECYCLE_MANIFEST: dict[str, dict] = {
     },
 }
 
+# ── Layout-config resolution ──────────────────────────────────────────────────
+#
+# One precedence order decides where a requested surface goes: an explicit
+# destination, then declared configuration, then an established in-repository
+# convention, then confirmation. The manifest patterns above carry the
+# convention base; an adopter's `agentbundle-layout.toml` `output_dir` is the
+# declared configuration that displaces it. No packaged default sits between
+# them, and nothing here falls back silently past configuration.
+#
+# These live at module scope because both the `workspace_status` payload and the
+# git tools resolve through them. Keeping the resolution in one place is what
+# stops one process reporting two different output paths for one item type.
+
+# Maps item_type → (layout_toml_key, convention_base_in_pattern).
+# Keyed by item type rather than by pack, deliberately: `strategy` dispatches
+# `frame-situation`, a product-engineering skill, so it reads `[product]`.
+_LAYOUT_TYPE_BASES: dict[str, tuple[str, str]] = {
+    "research": ("research", "docs/product/research"),
+    "shape": ("product", "docs/product"),
+    "strategy": ("product", "docs/product"),
+    "design": ("design", "docs/design"),
+}
+
+
+def _read_layout_bases(repo_root: Path) -> dict[str, str]:
+    """Read output_dir from agentbundle-layout.toml with type-specific precedence.
+
+    research: user-scope wins (personal vault applies across repos).
+    product, design: repo-scope wins (team convention takes priority).
+
+    Values come back absolute and resolved. A caller that publishes one is
+    responsible for re-expressing it — see `_publishable_output_pattern`.
+    """
+    import tomllib
+
+    def _read_scope(path: Path, *, scope: str) -> dict[str, str]:
+        if not path.exists() or path.is_symlink():
+            return {}
+        out: dict[str, str] = {}
+        with contextlib.suppress(Exception):
+            with path.open("rb") as fh:
+                data = tomllib.load(fh)
+            for key in ("research", "product", "design"):
+                if not isinstance(data.get(key), dict):
+                    continue
+                raw = data[key].get("output_dir", "")
+                if not raw:
+                    continue
+                candidate = Path(raw).expanduser()
+                if not candidate.is_absolute():
+                    # A relative value is anchored by the layout file's own
+                    # location, never by the ambient working directory.
+                    # At repo scope that anchor is
+                    # the repository root. At user scope there is no stable
+                    # base — the same process serves many repositories — so
+                    # the value is surfaced rather than guessed at. stdout
+                    # is the MCP protocol channel, so the report goes to
+                    # stderr; returning silently here is indistinguishable
+                    # from an unconfigured file and hides the adopter's
+                    # configured path from them.
+                    if scope == "user":
+                        print(
+                            f"workspace-mcp: warning: [{key}] output_dir "
+                            f"{raw!r} in {path} is relative; a user-scope "
+                            "value must be absolute (~-anchored is fine). "
+                            "Ignoring it.",
+                            file=sys.stderr,
+                        )
+                        continue
+                    candidate = repo_root / candidate
+                out[key] = str(candidate.resolve())
+        return out
+
+    repo = _read_scope(repo_root / "agentbundle-layout.toml", scope="repo")
+    user = _read_scope(
+        Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
+    )
+    result: dict[str, str] = {}
+    # research: user-scope wins
+    result["research"] = user.get("research") or repo.get("research", "")
+    # product/design: repo-scope wins
+    result["product"] = repo.get("product") or user.get("product", "")
+    result["design"] = repo.get("design") or user.get("design", "")
+    return {k: v for k, v in result.items() if v}
+
+
+def _apply_layout_overrides(
+    item_type: str, patterns: list[str], bases: dict[str, str]
+) -> list[str]:
+    """Substitute configured output_dir into patterns per layout.toml precedence."""
+    if item_type not in _LAYOUT_TYPE_BASES:
+        return patterns
+    toml_key, convention_base = _LAYOUT_TYPE_BASES[item_type]
+    configured = bases.get(toml_key)
+    if configured is None:
+        return patterns
+    return [p.replace(convention_base, configured, 1) for p in patterns]
+
+
+def _publishable_output_pattern(
+    repo_root: Path, item_type: str, bases: dict[str, str]
+) -> list[str] | None:
+    """Resolve an item type's output pattern for the `workspace_status` payload.
+
+    Patterns come back repository-relative, keeping the `{slug}` placeholder
+    unformatted, because repository-relative is the only form this payload
+    publishes: `_public_canonical_path` rejects an absolute path outright, and
+    `git_commit` intersects against `git status` output, every entry of which is
+    repository-relative.
+
+    A configured base outside the repository is therefore unusable by the write
+    path and unpublishable here, so the field is withheld. It is not filled with
+    the convention base instead — reporting a base the adopter has overridden is
+    the two-answer defect this function exists to close.
+    """
+    raw_patterns = _LIFECYCLE_MANIFEST.get(item_type, {}).get("output_pattern")
+    if raw_patterns is None:
+        return None
+    patterns = _apply_layout_overrides(
+        item_type,
+        list(raw_patterns) if isinstance(raw_patterns, list) else [raw_patterns],
+        bases,
+    )
+    anchor = repo_root.resolve()
+    relative: list[str] = []
+    for pattern in patterns:
+        candidate = Path(pattern)
+        if not candidate.is_absolute():
+            relative.append(pattern)
+            continue
+        try:
+            relative.append(candidate.relative_to(anchor).as_posix())
+        except ValueError:
+            toml_key = _LAYOUT_TYPE_BASES[item_type][0]
+            print(
+                f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
+                f"resolves outside the repository, so workspace_status reports no "
+                f"output pattern for {item_type!r} items. git_commit cannot stage "
+                "outside the repository either; move the value inside it to use "
+                "either surface.",
+                file=sys.stderr,
+            )
+            return None
+    return relative
+
+
 # ── Session instruction (Component 3) ─────────────────────────────────────────
 
 DEFAULT_SESSION_INSTRUCTION = """\
@@ -961,6 +1107,10 @@ class _WorkspaceStatusTool:
                 )
 
         # Work queue items (ready / blocked)
+        # One read per call, shared by every item below: re-reading
+        # agentbundle-layout.toml per item would let two items in one payload
+        # disagree if the file changed mid-call.
+        layout_bases = _read_layout_bases(repo_root)
         manifest = _LIFECYCLE_MANIFEST.get("work", {})
         for candidate in canonical_projection["ready"]:
             if (
@@ -977,7 +1127,9 @@ class _WorkspaceStatusTool:
                 "dispatchable": True,
                 "findings": candidate["findings"],
                 "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": manifest.get("output_pattern"),
+                "output_pattern": _publishable_output_pattern(
+                    repo_root, "work", layout_bases
+                ),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
                 **_surface_metadata(candidate),
@@ -1003,7 +1155,9 @@ class _WorkspaceStatusTool:
                 "dispatchable": False,
                 "findings": candidate["findings"],
                 "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": manifest.get("output_pattern"),
+                "output_pattern": _publishable_output_pattern(
+                    repo_root, "work", layout_bases
+                ),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
                 **_surface_metadata(candidate),
@@ -1023,7 +1177,9 @@ class _WorkspaceStatusTool:
                 "dispatchable": False,
                 "findings": [],
                 "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": manifest.get("output_pattern"),
+                "output_pattern": _publishable_output_pattern(
+                    repo_root, "work", layout_bases
+                ),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
                 **_surface_metadata(candidate),
@@ -1042,7 +1198,9 @@ class _WorkspaceStatusTool:
                 "type": item_type,
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": manifest.get("output_pattern"),
+                "output_pattern": _publishable_output_pattern(
+                    repo_root, item_type, layout_bases
+                ),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
                 "unmet_needs": _public_needs(cls.blocking_needs),
@@ -1064,14 +1222,25 @@ class _WorkspaceStatusTool:
                 "type": item_type,
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": manifest.get("output_pattern"),
+                "output_pattern": _publishable_output_pattern(
+                    repo_root, item_type, layout_bases
+                ),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
             }
             skill = manifest.get("dispatch_skill")
             if skill and not _is_skill_present(skill, repo_root):
                 item["available"] = False
-            # Slug containment check for output_pattern formatting
+            # Slug containment check for output_pattern formatting.
+            # Deliberately the un-overridden manifest pattern: this guard
+            # proves a crafted *slug* cannot escape its base, and the convention
+            # base still proves that. Re-running it against a configured base
+            # would reject a user-scope value that legitimately resolves outside
+            # the repository and drop the item from the payload entirely — a
+            # worse outcome than the wrong label. A configured base is an
+            # adopter-owned value that `_read_layout_bases` has already
+            # resolved, and `_publishable_output_pattern` withholds any that
+            # leaves the repository.
             patterns = manifest.get("output_pattern")
             if patterns:
                 static_base = repo_root
@@ -1545,93 +1714,15 @@ class _GitTools:
             patterns_list: list[str] = (
                 raw_patterns if isinstance(raw_patterns, list) else [raw_patterns]
             )
-            # Apply agentbundle-layout.toml overrides (user-scope > repo-scope > default).
-            # Stage 1: resolve at bind-time; Stage 2 defers to first git_branch() call.
-            patterns_list = self._apply_layout_overrides(item_type, patterns_list)
+            # Apply agentbundle-layout.toml overrides (user-scope > repo-scope >
+            # convention). Stage 1: resolve at bind-time; Stage 2 defers to the
+            # first git_branch() call.
+            patterns_list = _apply_layout_overrides(
+                item_type, patterns_list, _read_layout_bases(self._repo_root)
+            )
             return [p.format(slug=slug) for p in patterns_list]
         except Exception:
             return None
-
-    # Maps item_type → (layout_toml_key, default_base_in_pattern)
-    _LAYOUT_TYPE_BASES: dict[str, tuple[str, str]] = {
-        "research": ("research", "docs/product/research"),
-        "shape": ("product", "docs/product"),
-        "strategy": ("product", "docs/product"),
-        "design": ("design", "docs/design"),
-    }
-
-    def _apply_layout_overrides(
-        self, item_type: str, patterns: list[str]
-    ) -> list[str]:
-        """Substitute configured output_dir into patterns per layout.toml precedence."""
-        if item_type not in self._LAYOUT_TYPE_BASES:
-            return patterns
-        toml_key, default_base = self._LAYOUT_TYPE_BASES[item_type]
-        layout = self._read_layout_bases()
-        configured = layout.get(toml_key)
-        if configured is None:
-            return patterns
-        return [p.replace(default_base, configured, 1) for p in patterns]
-
-    def _read_layout_bases(self) -> dict[str, str]:
-        """Read output_dir from agentbundle-layout.toml with type-specific precedence.
-
-        research: user-scope wins (personal vault applies across repos).
-        product, design: repo-scope wins (team convention takes priority).
-        """
-        import tomllib
-
-        def _read_scope(path: Path, *, scope: str) -> dict[str, str]:
-            if not path.exists() or path.is_symlink():
-                return {}
-            out: dict[str, str] = {}
-            with contextlib.suppress(Exception):
-                with path.open("rb") as fh:
-                    data = tomllib.load(fh)
-                for key in ("research", "product", "design"):
-                    if not isinstance(data.get(key), dict):
-                        continue
-                    raw = data[key].get("output_dir", "")
-                    if not raw:
-                        continue
-                    candidate = Path(raw).expanduser()
-                    if not candidate.is_absolute():
-                        # A relative value is anchored by the layout file's own
-                        # location, never by the ambient working directory
-                        # (RFC-0040 Decision 9). At repo scope that anchor is
-                        # the repository root. At user scope there is no stable
-                        # base — the same process serves many repositories — so
-                        # the value is surfaced rather than guessed at. stdout
-                        # is the MCP protocol channel, so the report goes to
-                        # stderr; returning silently here is indistinguishable
-                        # from an unconfigured file and hides the adopter's
-                        # configured path from them.
-                        if scope == "user":
-                            print(
-                                f"workspace-mcp: warning: [{key}] output_dir "
-                                f"{raw!r} in {path} is relative; a user-scope "
-                                "value must be absolute (~-anchored is fine). "
-                                "Ignoring it.",
-                                file=sys.stderr,
-                            )
-                            continue
-                        candidate = self._repo_root / candidate
-                    out[key] = str(candidate.resolve())
-            return out
-
-        repo = _read_scope(
-            self._repo_root / "agentbundle-layout.toml", scope="repo"
-        )
-        user = _read_scope(
-            Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
-        )
-        result: dict[str, str] = {}
-        # research: user-scope wins
-        result["research"] = user.get("research") or repo.get("research", "")
-        # product/design: repo-scope wins
-        result["product"] = repo.get("product") or user.get("product", "")
-        result["design"] = repo.get("design") or user.get("design", "")
-        return {k: v for k, v in result.items() if v}
 
     def _read_head_branch(self) -> str | None:
         with contextlib.suppress(Exception):
