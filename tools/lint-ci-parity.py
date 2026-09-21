@@ -230,7 +230,7 @@ AGGREGATORS = ("tools/catalogue/pre_pr_catalogue.py", "tools/hooks/pre-pr.py")
 # still yield the gate. A leading `sudo` is stripped before matching, so
 # `sudo apt-get install …` is provisioning while `sudo python3 tools/gate.py`
 # is not.
-PROVISIONING = (
+PROVISIONING_COMMAND_PREFIXES = (
     "pip", "pip3", "python -m pip", "python3 -m pip",
     "apt-get", "npm", "brew",
 )
@@ -303,6 +303,19 @@ def CI_ONLY(reason: str) -> tuple[str, str]:
     return ("ci-only", reason)
 
 
+def PROVISIONING(step_id: str) -> tuple[str, str]:
+    """Declare a workflow step as provisioning with stable workflow *step_id*."""
+    return ("PROVISIONING", step_id)
+
+
+def CHECK(
+    needs: tuple[str, ...] = (),
+    evidence: str = "no recorded matrix dependency",
+) -> tuple[str, tuple[str, ...], str]:
+    """Declare a check step's provisioning dependencies and matrix evidence."""
+    return ("CHECK", needs, evidence)
+
+
 def PR_GATED(where: str) -> tuple[str, str]:
     """Declare a suite reached by an unconditional pull-request check."""
     return ("pr-gated", where)
@@ -325,7 +338,7 @@ def NO_PR_GATE(reason: str) -> tuple[str, str]:
     return ("no-pr-gate", reason)
 
 
-STEP_DISPOSITION: dict[str, tuple[str, str]] = {
+_LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "<unnamed step in build-check>":
         CI_ONLY(
             "`uses: actions/checkout` in the AGGREGATOR job (this key is job-id "
@@ -677,6 +690,268 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("build-check"),
     "pack description drift backstop + self-test":
         LOCAL("build-check"),
+}
+
+
+_PROVISIONING_IDS = {
+    "<unnamed step in build-check>": "checkout_aggregator",
+    "Set up Python": "python",
+    "Install tools dependencies": "tools",
+    "Install SAST/SCA tools": "sast_tools",
+    "Install bandit unconditionally (lint-nosec-form's ID registry)": "bandit",
+    "<unnamed step in gate-main>": "checkout_gate_main",
+    "<unnamed step in gate-sast>": "checkout_gate_sast",
+    "Set up Python (gate-sast)": "python_sast",
+    "<unnamed step in gate-export-boundary>": "checkout_export_boundary",
+    "Set up Python (gate-export-boundary)": "python_export_boundary",
+    "Install tools dependencies (gate-export-boundary)": "tools_export_boundary",
+    "Install agentbundle (editable) + pytest (gate-export-boundary)":
+        "agentbundle_export_boundary",
+    "Install credbroker (editable, with crypto extra) (gate-export-boundary)":
+        "credbroker_export_boundary",
+    "<unnamed step in gate-credbroker>": "checkout_gate_credbroker",
+    "Set up Python (gate-credbroker)": "python_gate_credbroker",
+    "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)":
+        "credbroker_gate_credbroker",
+    "Set up Python (aggregator)": "python_aggregator",
+    "Install ripgrep": "ripgrep",
+    "Install agentbundle (editable) + pytest": "agentbundle",
+    "Install ruff + mypy": "ruff_mypy",
+    "Install credbroker (editable, with crypto extra)": "credbroker",
+    "pip install httpx for the atlassian SSO suites (RFC-0035)": "httpx",
+    "pip install the Markdown→Office render libraries (RFC-0036)":
+        "markdown_office",
+    "pip install the Tier-0 PDF library (extraction-tier0)": "tier0_pdf",
+    "pip install the Tier-0 .msg reader (extraction-msg olefile, ADR-0046)":
+        "tier0_msg",
+}
+
+_CHECK_DEPENDENCIES = {
+    "Run make build-check": ("tools", "bandit"),
+    "pytest import-time path leaks (collector sys.path guard)": ("tools",),
+    "pytest catalogue-test carve-out destinations (RFC-0082)": ("tools",),
+    "pytest loop-telemetry contracts (roster-owned)": ("tools",),
+    "pytest make-free gate chains (windows-build-gate-chain)": ("agentbundle", "bandit"),
+    "converters source-attribution scrub (AC2)": ("ripgrep",),
+    "converters Rail-C marker scrub (AC3)": ("ripgrep",),
+    "mypy type-check (typed packages only)": ("ruff_mypy",),
+    "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
+        ("credbroker",),
+    "pytest jira SSO suites (atlassian-sso-cookie)": ("credbroker",),
+    "pytest confluence-crawler SSO suites (atlassian-sso-cookie)": ("credbroker",),
+    "pytest markdown-to-pptx renderer (markdown-to-office-publishing)":
+        ("markdown_office",),
+    "pytest markdown-to-docx renderer (markdown-to-office-publishing)":
+        ("markdown_office",),
+    "pytest markdown-to-xlsx renderer (markdown-to-office-publishing)":
+        ("markdown_office",),
+    "pytest file-to-markdown extraction (extraction-tier0-and-output-contract)":
+        ("markdown_office", "tier0_pdf"),
+    "pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)":
+        ("tier0_msg",),
+}
+
+_CHECK_EVIDENCE = {
+    "Run make build-check": "35642465134 35642529928",
+    "pytest import-time path leaks (collector sys.path guard)": "35642465134",
+    "pytest catalogue-test carve-out destinations (RFC-0082)": "35642465134",
+    "pytest loop-telemetry contracts (roster-owned)": "35642465134",
+    "pytest make-free gate chains (windows-build-gate-chain)":
+        "35642472761 35642529928",
+    "converters source-attribution scrub (AC2)": "35642480505",
+    "converters Rail-C marker scrub (AC3)": "35642480505",
+    "mypy type-check (typed packages only)": "35642487339",
+    "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
+        "35642494151",
+    "pytest jira SSO suites (atlassian-sso-cookie)": "35642494151",
+    "pytest confluence-crawler SSO suites (atlassian-sso-cookie)": "35642494151",
+    "pytest markdown-to-pptx renderer (markdown-to-office-publishing)":
+        "35642509557",
+    "pytest markdown-to-docx renderer (markdown-to-office-publishing)":
+        "35642509557",
+    "pytest markdown-to-xlsx renderer (markdown-to-office-publishing)":
+        "35642509557",
+    "pytest file-to-markdown extraction (extraction-tier0-and-output-contract)":
+        "35642509557 35642516579",
+    "pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)":
+        "35642522857",
+}
+
+_MATRIX_MEMBER_LABELS = {
+    "tools dependencies": "Install tools dependencies",
+    "agentbundle": "Install agentbundle (editable) + pytest",
+    "ripgrep": "Install ripgrep",
+    "ruff + mypy": "Install ruff + mypy",
+    "credbroker": "Install credbroker (editable, with crypto extra)",
+    "httpx": "pip install httpx for the atlassian SSO suites (RFC-0035)",
+    "Markdown→Office libs":
+        "pip install the Markdown→Office render libraries (RFC-0036)",
+    "Tier-0 PDF": "pip install the Tier-0 PDF library (extraction-tier0)",
+    "Tier-0 .msg": "pip install the Tier-0 .msg reader (extraction-msg olefile, ADR-0046)",
+    "bandit": "Install bandit unconditionally (lint-nosec-form's ID registry)",
+}
+
+_MATRIX_STEP_NAMES = {
+    "Install bandit unconditionally":
+        "Install bandit unconditionally (lint-nosec-form's ID registry)",
+    "pip install httpx …":
+        "pip install httpx for the atlassian SSO suites (RFC-0035)",
+    "pip install the Markdown→Office render libraries":
+        "pip install the Markdown→Office render libraries (RFC-0036)",
+    "pip install the Tier-0 PDF library":
+        "pip install the Tier-0 PDF library (extraction-tier0)",
+    "pip install the Tier-0 .msg reader":
+        "pip install the Tier-0 .msg reader (extraction-msg olefile, ADR-0046)",
+}
+
+_MATRIX_CHECK_NAMES = {
+    "pytest import-time path leaks":
+        "pytest import-time path leaks (collector sys.path guard)",
+    "pytest catalogue-test carve-out destinations":
+        "pytest catalogue-test carve-out destinations (RFC-0082)",
+    "pytest loop-telemetry contracts":
+        "pytest loop-telemetry contracts (roster-owned)",
+    "pytest make-free gate chains":
+        "pytest make-free gate chains (windows-build-gate-chain)",
+    "pytest credential-setup skill":
+        "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)",
+    "pytest jira SSO suites":
+        "pytest jira SSO suites (atlassian-sso-cookie)",
+    "pytest confluence-crawler SSO suites":
+        "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
+    "pytest markdown-to-pptx renderer":
+        "pytest markdown-to-pptx renderer (markdown-to-office-publishing)",
+    "pytest markdown-to-docx renderer":
+        "pytest markdown-to-docx renderer (markdown-to-office-publishing)",
+    "pytest markdown-to-xlsx renderer":
+        "pytest markdown-to-xlsx renderer (markdown-to-office-publishing)",
+    "pytest file-to-markdown extraction":
+        "pytest file-to-markdown extraction (extraction-tier0-and-output-contract)",
+    "pytest msg-to-markdown extraction":
+        "pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)",
+}
+
+_PARTITION_EVIDENCE = (
+    "docs/specs/ci-gate-main-failure-reporting/notes/partition-evidence.md"
+)
+
+
+_GATE_MAIN_CHECKS = (
+    "Run make build-check",
+    "ruff lint (style, imports, common bugs)",
+    "mypy type-check (typed packages only)",
+    "pytest version constants (CLI_VERSION ↔ pyproject drift guard)",
+    "pytest adapter resolver (RFC-0011/0012, ADR-0004 rebrand)",
+    "pytest converters install/uninstall (AC6a)",
+    "pytest pack-profiles (RFC-0034)",
+    "pytest convenient-install-defaults (RFC-0046)",
+    "pytest credbroker floor precedence (credbroker-user-scope T1)",
+    "pytest shared-libs projection retirement (credbroker T9)",
+    "pytest self-host recipe config (externalize-self-host-config)",
+    "pytest self-host fixture guard (windows-build-self-entry)",
+    "pytest make-free gate chains (windows-build-gate-chain)",
+    "pytest import-time path leaks (collector sys.path guard)",
+    "pytest gitattributes merge-driver scope (AC1)",
+    "pytest merge-driver behaviour (AC2-AC4)",
+    "Pull-request template installer and release checker",
+    "pytest guides sidebar generation",
+    "pytest journey editorial decisions",
+    "pytest guides + catalogue navigation",
+    "pytest stasis-stop retirement claims",
+    "pytest site build + link rewriting",
+    "docs palette contrast gate",
+    "pages.yml deploy-gate posture",
+    "pages.yml concurrency posture",
+    "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)",
+    "pytest jira SSO suites (atlassian-sso-cookie)",
+    "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
+    "pytest spec-authority note live/seed parity (roster-owned)",
+    "pytest capture-rename guide contract (roster-owned)",
+    "pytest typed-ordinal owner parity and equivalence (roster-owned)",
+    "pytest catalogue-test carve-out destinations (RFC-0082)",
+    "pytest pack-test compatibility class characterization (ADR-0101)",
+    "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",
+    "pytest shared-test dedup guard (pr-gate-suite-disposition)",
+    "pytest user-libs vendored floor (credbroker-user-scope T3)",
+    "pytest cursor adapter (cursor-full-parity)",
+    "pytest gemini adapter (gemini-full-parity)",
+    "pytest architect design-reviewer guards (RFC-0032)",
+    "pytest enriched-pack-manifest (RFC-0031)",
+    "pytest catalogue Wave 4 live contracts (roster-owned)",
+    "pytest consolidated-pack-layout installer append (RFC-0040)",
+    "pytest kiro drop-warning contract",
+    "pytest core work-loop activation hook (roster-owned)",
+    "pytest design-handoff contract vs the real design corpus (roster-owned)",
+    "pytest package pytest pythonpath (roster-owned)",
+    "pytest shaping-review contracts (roster-owned)",
+    "pytest RFC-0099 activation + fixture register (roster-owned)",
+    "pytest load-bearing-claim routing surfaces (roster-owned)",
+    "pytest TDD stub lifecycle contract (roster-owned)",
+    "pytest loop-telemetry contracts (roster-owned)",
+    "pytest agent-skill-engineering consumer integrations (roster-owned)",
+    "pytest curation QA + RFC template contracts (roster-owned)",
+    "pytest experience-design output-addressing contracts (roster-owned)",
+    "pytest decision-record index generator (roster-owned)",
+    "pytest ADR shape lint corpus partition (roster-owned)",
+    "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
+    "converters source-attribution scrub (AC2)",
+    "converters Rail-C marker scrub (AC3)",
+    "converters evals.json carry-over disposition (AC4 + AC4a)",
+    "pytest markdown-to-html installed entry-point contract",
+    "pytest mermaid-renderer installed entry-point contract",
+    "pytest markdown-to-pptx renderer (markdown-to-office-publishing)",
+    "pytest markdown-to-docx renderer (markdown-to-office-publishing)",
+    "pytest markdown-to-xlsx renderer (markdown-to-office-publishing)",
+    "pytest file-to-markdown extraction (extraction-tier0-and-output-contract)",
+    "pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)",
+    "catalogue-curation guard lint + self-test (RFC-0059 D6)",
+    "catalogue-curation skill-script tests (RFC-0059 security ACs)",
+    "experience framework-agnosticism lint + self-test (design-craft-pack AC8)",
+    "pack description drift backstop + self-test",
+)
+
+_NON_GATE_MAIN_CHECKS = (
+    "Detect whether SAST-relevant files changed",
+    "Run make sast",
+    "pytest export-boundary gate",
+    "pytest credbroker (RFC-0023 Phase 1)",
+    "Run the build-check.yml posture test",
+    "Require every gate",
+)
+
+_STEP_PHASE = {
+    **{
+        step: PROVISIONING(step_id)
+        for step, step_id in _PROVISIONING_IDS.items()
+    },
+    **{
+        step: CHECK(
+            ("python", *_CHECK_DEPENDENCIES.get(step, ())),
+            _CHECK_EVIDENCE.get(step, "no recorded matrix dependency"),
+        )
+        for step in _GATE_MAIN_CHECKS
+    },
+    **{
+        step: CHECK((), "outside gate-main; no recorded matrix dependency")
+        for step in _NON_GATE_MAIN_CHECKS
+    },
+}
+
+
+def _step_disposition(step: str) -> tuple:
+    """Combine explicit axes while preserving either missing-axis violation."""
+    local = _LOCAL_STEP_DISPOSITION.get(step)
+    phase = _STEP_PHASE.get(step)
+    if local is None:
+        return (("", ""), phase)
+    if phase is None:
+        return local
+    return (local, phase)
+
+
+STEP_DISPOSITION: dict[str, tuple] = {
+    step: _step_disposition(step)
+    for step in set(_LOCAL_STEP_DISPOSITION) | set(_STEP_PHASE)
 }
 
 
@@ -1410,7 +1685,10 @@ def _is_provisioning(segment: str) -> bool:
     cmd = segment.strip().lstrip("@-(").strip()
     if cmd.startswith("sudo "):  # `sudo apt-get …` provisions; `sudo python3 x.py` does not
         cmd = cmd[len("sudo "):].strip()
-    return any(cmd == p or cmd.startswith(p + " ") for p in PROVISIONING)
+    return any(
+        cmd == p or cmd.startswith(p + " ")
+        for p in PROVISIONING_COMMAND_PREFIXES
+    )
 
 
 def _cd_target(segment: str, subshell: bool) -> str | None:
@@ -2338,14 +2616,93 @@ def check_suites(
     return violations
 
 
+def _disposition_axis(entry: tuple) -> tuple[str, str]:
+    """Return the local/CI-only axis from an old or two-axis roster entry."""
+    if entry and isinstance(entry[0], tuple):
+        return entry[0]
+    return entry
+
+
+def _phase_axis(entry: tuple) -> tuple | None:
+    """Return the phase axis, or None when a roster entry has not declared it."""
+    if len(entry) == 2 and isinstance(entry[0], tuple) and isinstance(entry[1], tuple):
+        return entry[1]
+    return None
+
+
+def _recorded_matrix(root: Path) -> dict[str, tuple[str, set[str]]]:
+    """Read the committed provisioning matrix note as provisioning -> checks."""
+    path = root / _PARTITION_EVIDENCE
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    runs: dict[str, str] = {}
+    members: dict[str, set[str]] = {}
+    current_step: str | None = None
+    current_members: list[str] = []
+
+    def flush_members() -> None:
+        nonlocal current_step, current_members
+        if current_step is not None:
+            members[current_step] = {
+                _MATRIX_CHECK_NAMES.get(check, check)
+                for check in re.findall(r"`([^`]+)`", " ".join(current_members))
+            }
+        current_step = None
+        current_members = []
+
+    for line in text.splitlines():
+        row = re.match(r"^\| `([^`]+)` \| ([0-9]+) \|", line)
+        if row:
+            runs[_MATRIX_STEP_NAMES.get(row.group(1), row.group(1))] = row.group(2)
+            continue
+        bullet = re.match(r"^- \*\*([^*]+)\*\* → (.*)$", line)
+        if bullet:
+            flush_members()
+            label, raw_members = bullet.groups()
+            step = _MATRIX_MEMBER_LABELS.get(label)
+            if step is None:
+                continue
+            current_step = step
+            current_members = [raw_members]
+        elif current_step is not None and line.startswith("  "):
+            current_members.append(line.strip())
+        else:
+            flush_members()
+    flush_members()
+    return {
+        step: (run_id, members.get(step, set()))
+        for step, run_id in runs.items()
+        if step in _MATRIX_MEMBER_LABELS.values()
+    }
+
+
+def _expected_check_dependencies(
+    matrix: dict[str, tuple[str, set[str]]],
+    provisioning_ids: dict[str, str],
+) -> dict[str, tuple[set[str], set[str]]]:
+    """Invert the recorded matrix into check -> dependency ids and run ids."""
+    expected: dict[str, tuple[set[str], set[str]]] = {}
+    for provisioning_step, (run_id, checks) in matrix.items():
+        provisioning_id = provisioning_ids.get(provisioning_step)
+        if provisioning_id is None:
+            continue
+        for check_step in checks:
+            dependencies, evidence = expected.setdefault(check_step, (set(), set()))
+            dependencies.add(provisioning_id)
+            evidence.add(run_id)
+    return expected
+
+
 def check(
     classified: dict,
     local: set[str],
     reachable: set[str],
     workflow_files: set[str],
     *,
-    dispositions: dict[str, tuple[str, str]] | None = None,
+    dispositions: dict[str, tuple] | None = None,
     scope: dict[str, str | None] | None = None,
+    matrix: dict[str, tuple[str, set[str]]] | None = None,
 ) -> list[str]:
     """Every violation, in a stable order.
 
@@ -2369,10 +2726,16 @@ def check(
     """
     dispositions = STEP_DISPOSITION if dispositions is None else dispositions
     scope = WORKFLOW_SCOPE if scope is None else scope
+    matrix = {} if matrix is None else matrix
 
     steps = classified["steps"]           # every run:/uses: step name, in order
     by_step = classified["by_step"]       # step name -> extracted targets
     where = classified["where"]           # step name -> "<workflow> step '<name>'"
+    phase_entries = {
+        step: phase
+        for step, entry in dispositions.items()
+        if (phase := _phase_axis(entry)) is not None
+    }
 
     v = [
         f"step {step!r} ({where.get(step, 'in-scope workflow')}) has no entry in "
@@ -2385,10 +2748,23 @@ def check(
         f"step {step!r} — dead STEP_DISPOSITION entry: no in-scope workflow has a "
         "step by that name. Remove it."
         for step in sorted(dispositions)
+        if step not in steps and step not in phase_entries
+    ]
+    v += [
+        f"step {step!r} — has no phase entry in STEP_DISPOSITION. Add "
+        "PROVISIONING(id=...) or CHECK(needs=(...), evidence=...) beside its "
+        "LOCAL/CI_ONLY disposition."
+        for step in steps
+        if step in dispositions and step not in phase_entries
+    ]
+    v += [
+        f"step {step!r} — dead phase entry: no in-scope workflow has a step by "
+        "that name. Remove it."
+        for step in sorted(phase_entries)
         if step not in steps
     ]
     for step in sorted(set(dispositions) & set(steps)):
-        kind, value = dispositions[step]
+        kind, value = _disposition_axis(dispositions[step])
         if kind == "local":
             if value not in reachable:
                 v.append(
@@ -2412,6 +2788,65 @@ def check(
             )
         elif kind != "ci-only":
             v.append(f"step {step!r} — unknown disposition kind {kind!r}.")
+    provisioning_ids = {
+        phase[1]: step
+        for step, phase in phase_entries.items()
+        if len(phase) >= 2 and phase[0] == "PROVISIONING"
+    }
+    provisioning_ids_by_step = {
+        step: phase[1]
+        for step, phase in phase_entries.items()
+        if len(phase) >= 2 and phase[0] == "PROVISIONING"
+    }
+    for step in sorted(set(matrix) - set(provisioning_ids_by_step)):
+        v.append(
+            f"step {step!r} — recorded matrix row has no declared PROVISIONING "
+            "id. Restore its phase and stable id."
+        )
+    expected_dependencies = _expected_check_dependencies(
+        matrix,
+        provisioning_ids_by_step,
+    )
+    for step in sorted(set(phase_entries) & set(steps)):
+        phase = phase_entries[step]
+        kind = phase[0] if phase else ""
+        if kind == "PROVISIONING":
+            if len(phase) != 2 or not str(phase[1]).strip():
+                v.append(
+                    f"step {step!r} — PROVISIONING has an empty id; declare the "
+                    "stable workflow id this step owns."
+                )
+        elif kind == "CHECK":
+            if len(phase) != 3:
+                v.append(
+                    f"step {step!r} — CHECK phase must declare needs and evidence."
+                )
+                continue
+            needs = tuple(phase[1])
+            evidence = str(phase[2])
+            unknown = sorted(dep for dep in needs if dep not in provisioning_ids)
+            if unknown:
+                v.append(
+                    f"step {step!r} — unknown provisioning dependency id(s): "
+                    f"{', '.join(unknown)}."
+                )
+                continue
+            expected, required_runs = expected_dependencies.get(step, (set(), set()))
+            declared = set(needs) - {"python"}
+            if declared != expected:
+                v.append(
+                    f"step {step!r} — CHECK dependencies differ from the recorded "
+                    f"matrix: declared {sorted(declared)!r}, expected "
+                    f"{sorted(expected)!r}."
+                )
+            missing_runs = sorted(run for run in required_runs if run not in evidence)
+            if missing_runs:
+                v.append(
+                    f"step {step!r} — CHECK evidence does not name recorded matrix "
+                    f"run id(s): {', '.join(missing_runs)}."
+                )
+        else:
+            v.append(f"step {step!r} — unknown phase {kind!r}.")
     v += [
         f"step {step!r} — appears more than once in an in-scope workflow, so one "
         "disposition would silence both. Give each step a distinct name."
@@ -2511,7 +2946,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lint-ci-parity: cannot read a local gate source: {exc}", file=sys.stderr)
         return 2
 
-    violations = check(classified, local, reachable, workflow_files)
+    violations = check(
+        classified,
+        local,
+        reachable,
+        workflow_files,
+        matrix=_recorded_matrix(root),
+    )
     try:
         violations += check_suites(root, makefile_text=makefile)
     except (OSError, yaml.YAMLError) as exc:
@@ -2525,7 +2966,10 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
-    ci_only = sum(1 for k, _ in STEP_DISPOSITION.values() if k == "ci-only")
+    ci_only = sum(
+        1 for entry in STEP_DISPOSITION.values()
+        if _disposition_axis(entry)[0] == "ci-only"
+    )
     # Both rosters report their own counts, so a green run says which checks
     # actually ran. A silently deleted arm would otherwise leave this line
     # unchanged, which is the shape that makes a dead gate look like a passing

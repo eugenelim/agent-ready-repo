@@ -424,6 +424,24 @@ def _classified(steps=None, by_step=None, duplicates=None) -> dict:
     }
 
 
+def _entry(disposition: tuple[str, str], phase: tuple) -> tuple[tuple[str, str], tuple]:
+    """Build a synthetic two-axis step roster entry."""
+    return (disposition, phase)
+
+
+def _prov(step_id: str) -> tuple[str, str]:
+    """Build a synthetic PROVISIONING phase entry."""
+    return ("PROVISIONING", step_id)
+
+
+def _check_phase(
+    needs: tuple[str, ...] = (),
+    evidence: str = "no recorded matrix dependency",
+) -> tuple[str, tuple[str, ...], str]:
+    """Build a synthetic CHECK phase entry."""
+    return ("CHECK", needs, evidence)
+
+
 MAKEFILE = """\
 PYTHON ?= python3
 SAST_DIRS := tools packs packages
@@ -603,9 +621,23 @@ composed:
     _check("uncovered-partial-name", M.is_covered("a/bc.py", {"a/b"}), False)
 
     # ── check(): the roster, then corroboration ─────────────────────────────
-    def chk(classified, local, files, reachable=("test", "build-check"), **tables):
+    def chk(
+        classified,
+        local,
+        files,
+        reachable=("test", "build-check"),
+        wrap_phases=True,
+        **tables,
+    ):
         tables.setdefault("dispositions", {})
+        if wrap_phases:
+            tables["dispositions"] = {
+                step: entry if isinstance(entry[0], tuple)
+                else _entry(entry, _check_phase())
+                for step, entry in tables["dispositions"].items()
+            }
         tables.setdefault("scope", ONLY_BUILD_CHECK)
+        tables.setdefault("matrix", {})
         return M.check(classified, local, set(reachable), files, **tables)
 
     wf = {"build-check.yml"}
@@ -629,6 +661,7 @@ composed:
                  "no entry in STEP_DISPOSITION")
     _check_fires("check-dead-disposition-fails",
                  chk(_classified(), set(), wf,
+                     wrap_phases=False,
                      dispositions={"gone": CI_ONLY("was provisioning")}),
                  "dead STEP_DISPOSITION")
     # A LOCAL disposition must name a target `make ci` actually reaches, or the
@@ -659,6 +692,100 @@ composed:
                  chk(_classified(), set(), wf | {"new.yml"},
                      scope={"build-check.yml": M.IN_SCOPE, "new.yml": "  "}),
                  "empty reason")
+
+    # ── ci-gate-main-failure-reporting T2: phase/dependency roster axis ────
+    _check_fires("phase-axis-missing-entry-fails",
+                 chk(_classified(["s"], {"s": ["a.py"]}), {"a.py"}, wf,
+                     wrap_phases=False,
+                     dispositions={"s": LOCAL("test")}),
+                 "has no phase entry")
+    _check_fires("phase-axis-dead-entry-fails",
+                 chk(_classified(["s"]), set(), wf,
+                     dispositions={
+                         "s": _entry(CI_ONLY("x"), _check_phase()),
+                         "gone": _entry(CI_ONLY("x"), _check_phase()),
+                     }),
+                 "dead phase entry")
+    _check_fires("phase-axis-closed-vocabulary-fails",
+                 chk(_classified(["s"]), set(), wf,
+                     dispositions={"s": _entry(CI_ONLY("x"), ("OPTIONAL",))}),
+                 "unknown phase")
+    _check_fires("phase-axis-check-dependency-resolves-to-provisioning-id",
+                 chk(_classified(["s"]), set(), wf,
+                     dispositions={
+                         "s": _entry(CI_ONLY("x"), _check_phase(("missing",))),
+                     }),
+                 "unknown provisioning dependency")
+    matrix_steps = _classified([
+        "Set up Python",
+        "Install tools dependencies",
+        "Install bandit unconditionally (lint-nosec-form's ID registry)",
+        "Run make build-check",
+    ])
+    matrix_provisioning = {
+        "Set up Python": _entry(CI_ONLY("x"), _prov("python")),
+        "Install tools dependencies": _entry(CI_ONLY("x"), _prov("tools")),
+        "Install bandit unconditionally (lint-nosec-form's ID registry)":
+            _entry(CI_ONLY("x"), _prov("bandit")),
+    }
+    recorded_matrix = {
+        step: row
+        for step, row in M._recorded_matrix(REPO_ROOT).items()
+        if step in {
+            "Install tools dependencies",
+            "Install bandit unconditionally (lint-nosec-form's ID registry)",
+        }
+    }
+    bad_dependencies = chk(matrix_steps, set(), wf,
+                           matrix=recorded_matrix,
+                           dispositions={
+                               **matrix_provisioning,
+                               "Run make build-check": _entry(
+                                   LOCAL("test"),
+                                   _check_phase(
+                                       ("python", "tools"),
+                                       "35642465134 35642529928",
+                                   ),
+                               ),
+                           })
+    bad_evidence = chk(matrix_steps, set(), wf,
+                       matrix=recorded_matrix,
+                       dispositions={
+                           **matrix_provisioning,
+                           "Run make build-check": _entry(
+                               LOCAL("test"),
+                               _check_phase(
+                                   ("python", "tools", "bandit"),
+                                   "35642465134",
+                               ),
+                           ),
+                       })
+    missing_matrix_provisioning = chk(
+        matrix_steps,
+        set(),
+        wf,
+        matrix=recorded_matrix,
+        dispositions={
+            **matrix_provisioning,
+            "Install tools dependencies": _entry(CI_ONLY("x"), _check_phase()),
+            "Run make build-check": _entry(
+                LOCAL("test"),
+                _check_phase(("python", "bandit"), "35642529928"),
+            ),
+        },
+    )
+    _check(
+        "phase-axis-check-agrees-with-the-recorded-matrix",
+        (
+            len(bad_dependencies) == 1 and "recorded matrix" in bad_dependencies[0],
+            len(bad_evidence) == 1
+            and "evidence does not name recorded matrix" in bad_evidence[0],
+            len(missing_matrix_provisioning) == 1
+            and "recorded matrix row has no declared PROVISIONING id"
+            in missing_matrix_provisioning[0],
+        ),
+        (True, True, True),
+    )
 
     # ── prose in a Makefile recipe is not coverage ──────────────────────────
     # A tab-indented `#` line inside a reachable recipe used to be scanned like a
