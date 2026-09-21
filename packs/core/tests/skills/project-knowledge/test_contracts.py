@@ -6,6 +6,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 from argv_cases import ARGV_CASES
@@ -193,7 +194,12 @@ def test_ac37_diagnostics_are_typed_redacted_and_allowlisted() -> None:
         "ambiguous_grouping",
         "forward_recovery_required",
     }
-    assert set(module.REQUIRED_DIAGNOSTIC_CODES) == codes
+    # § D4's baseline: fifteen values before this spec's eleven additions.
+    # `test_ac0037_every_d4_added_code_is_a_required_diagnostic_code` below
+    # covers the addition, quantified over the D4 table rather than a
+    # literal count, so this set stays the pre-existing floor rather than
+    # growing into a second hand-written list of the same eleven codes.
+    assert codes <= set(module.REQUIRED_DIAGNOSTIC_CODES)
     diagnostic = module.render_diagnostic(
         module.KnowledgeDiagnostic(
             reason_code="strict_parse",
@@ -519,6 +525,255 @@ def test_ac0013_a_written_work_item_record_carries_a_necessity_rationale() -> No
     request = valid_work_item_request("question")
     validated = module.validate_capture_request(request)
     assert validated["work_item"]["necessity_rationale"]
+
+
+def test_work_item_statement_reaches_privacy_scan() -> None:
+    """`stub: true` red case named in the plan: `work_item.statement` is one
+    of the six free-text fields `AC-0031` requires the deterministic privacy
+    scan to reach. Before that scan is wired, a violating string here is
+    admitted rather than refused."""
+
+    module = load_project_knowledge_module()
+    request = valid_work_item_request("question")
+    request["work_item"]["statement"] = "Reach out to agent@example.com about this."
+    with pytest.raises(module.PrivacyRefusal):
+        module.validate_capture_request(request)
+
+
+# --- T5: the scanned field set is derived from the schema, not hand-written -
+#
+# AC-0031 requires the six `work_item` free-text fields the privacy scan
+# reaches to be *derived* from the canonical schema document at test time —
+# every `work_item` property that resolves (through its `$ref`, where
+# present) to `type: string` with no `enum` — rather than compared against a
+# second hand-written list beside the implementation's own list. The
+# derivation below is that mechanism; `WORK_ITEM_SCANNED_FREE_TEXT_FIELDS` in
+# `project_knowledge.py` is the only hand-written list, and this file checks
+# it against the schema rather than repeating it.
+
+
+def _work_item_schema_properties() -> tuple[dict[str, Any], dict[str, Any]]:
+    schema = json.loads(CANONICAL_SCHEMA.read_text(encoding="utf-8"))
+    return schema["properties"]["work_item"]["properties"], schema["$defs"]
+
+
+def _resolve_schema_ref(prop: dict[str, Any], definitions: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a `{"$ref": "#/$defs/<name>"}` property to its definition.
+
+    Every `work_item` free-text field is written in the schema as a `$ref`
+    to `safeText2000`, not an inline `type: string` — a walk that reads
+    `prop.get("type")` without resolving the ref first would see nothing and
+    silently derive an empty set.
+    """
+
+    if "$ref" in prop:
+        name = prop["$ref"].removeprefix("#/$defs/")
+        return definitions[name]
+    return prop
+
+
+def _derive_work_item_free_text_fields() -> set[str]:
+    """§ D2's rule, run against the schema **document** — every `work_item`
+    property that is string-typed and carries no `enum` — not a record
+    instance, which would drop an unset optional field."""
+
+    properties, definitions = _work_item_schema_properties()
+    return {
+        name
+        for name, prop in properties.items()
+        if (resolved := _resolve_schema_ref(prop, definitions)).get("type") == "string"
+        and "enum" not in resolved
+    }
+
+
+def test_ac0031_the_scanned_field_set_is_derived_from_the_schema() -> None:
+    module = load_project_knowledge_module()
+    derived = _derive_work_item_free_text_fields()
+    # The comparison, not this loop, is what makes a `work_item` property
+    # added later without a matching production update fail this suite.
+    assert derived == set(module.WORK_ITEM_SCANNED_FREE_TEXT_FIELDS)
+    assert derived == {
+        "statement",
+        "finished_state",
+        "necessity_rationale",
+        "observed",
+        "intended",
+        "answered_by",
+    }
+
+
+def test_ac0031_every_work_item_property_reaches_a_scan_or_is_excluded_on_a_stated_ground() -> (
+    None
+):
+    """Without this, a `work_item` property added later as an array of free
+    text is excluded by "string-typed", reaches no scan, and the
+    derived-set comparison above still passes — the string case fails
+    loudly and the array case would not. Walking **every** property, not
+    only the string-typed ones, is what closes that gap. `shape` and
+    `blocker` are string-typed but enumerated; `significance` is an array of
+    enumerated values. All three are excluded on the same ground: a
+    violating value in a closed set is refused by the enum check before any
+    scan runs, so the case could not fail."""
+
+    properties, _definitions = _work_item_schema_properties()
+    scanned = _derive_work_item_free_text_fields()
+    excluded_on_stated_ground = {"shape", "blocker", "significance"}
+    assert set(properties) == scanned | excluded_on_stated_ground
+
+
+# The shape each field needs to be present under § D2 — domain knowledge
+# about *which record carries which field*, distinct from the *set itself*
+# the two tests above already pin against the schema.
+_WORK_ITEM_FREE_TEXT_FIELD_SHAPES = {
+    "statement": "question",
+    "finished_state": "question",
+    "necessity_rationale": "question",
+    "observed": "defect",
+    "intended": "defect",
+    "answered_by": "question",
+}
+
+
+@pytest.mark.parametrize(
+    "field,shape", sorted(_WORK_ITEM_FREE_TEXT_FIELD_SHAPES.items())
+)
+def test_ac0031_each_work_item_free_text_field_reaches_the_privacy_scan(
+    field: str, shape: str
+) -> None:
+    module = load_project_knowledge_module()
+    request = valid_work_item_request(shape)
+    request["work_item"][field] = "Reach out to agent@example.com about this."
+    with pytest.raises(module.PrivacyRefusal):
+        module.validate_capture_request(request)
+
+
+# --- T5: every § D6 command element after argv[0] reaches the text scan ----
+
+
+def test_ac0061_each_command_element_after_argv0_reaches_the_text_scan_only() -> None:
+    """The claim AC-0061 makes is **which scan function each element
+    reached**, not that the element was refused: a refusal assertion passes
+    with the wrong scan wired, because most discriminating strings are
+    refused by § D6 before any scan runs. `argv[0]` is outside the
+    quantifier because the four-member allowlist refuses anything else
+    before the scan runs, so an index-0 case could not fail."""
+
+    module = load_project_knowledge_module()
+    text_calls: list[tuple[str, ...]] = []
+    path_calls: list[tuple[str, ...]] = []
+    original_text = module.assert_persistable_text
+    original_paths = module.assert_persistable_paths
+
+    def spy_text(*values: str) -> None:
+        text_calls.append(values)
+        original_text(*values)
+
+    def spy_paths(*values: str) -> None:
+        path_calls.append(values)
+        original_paths(*values)
+
+    module.assert_persistable_text = spy_text
+    module.assert_persistable_paths = spy_paths
+
+    # `path` is deliberately distinct from every command element: it
+    # legitimately reaches `assert_persistable_paths` in its own right
+    # (`verification_route.path`), and sharing a value with a command
+    # element would make that field's own scan look like the command
+    # element's, defeating the discrimination this test drives.
+    command = ["cat", "docs/a-b_c.py"]
+    request = valid_capture_request(
+        verification_route={"command": command, "path": "tools/catalogue/check_contract_parity.py"}
+    )
+    assert module.validate_capture_request(request)
+
+    scanned_text_values = {value for call in text_calls for value in call}
+    scanned_path_values = {value for call in path_calls for value in call}
+    for element in command[1:]:
+        assert element in scanned_text_values
+        assert element not in scanned_path_values
+
+
+def test_ac0061_two_end_to_end_cases_discriminate_the_text_scan_from_the_path_scan() -> None:
+    """`_URL` and `_NON_HTTP_LOCATOR` both need a colon, which the
+    re-anchored `repositoryPath` rule refuses before any scan runs, so a
+    plain refusal assertion does not discriminate which scan ran. These two
+    cases clear every § D6 rule and are refused by `assert_persistable_text`
+    alone; wiring the wrong scan (`assert_persistable_paths`, which carries
+    `_EMAIL`, `_USER_PATH`, `_SECRET_SHAPE` and `_PRIVATE_IDENTIFIER` but not
+    `_URL`, `_NON_HTTP_LOCATOR` or `_BARE_HOSTNAME`) would admit both."""
+
+    module = load_project_knowledge_module()
+    bare_hostname_request = valid_capture_request(
+        verification_route={"command": ["cat", "example.com"], "path": "docs/x.md"}
+    )
+    with pytest.raises(module.PrivacyRefusal):
+        module.validate_capture_request(bare_hostname_request)
+
+    grep_pattern_url_request = valid_capture_request(
+        verification_route={
+            "command": ["grep", "https://evil.example.com/x", "docs"],
+            "path": "docs/x.md",
+        }
+    )
+    with pytest.raises(module.PrivacyRefusal):
+        module.validate_capture_request(grep_pattern_url_request)
+
+
+# --- T5: every § D4-added code is a `REQUIRED_DIAGNOSTIC_CODES` member ------
+
+
+def test_ac0037_every_d4_added_code_is_returned_by_its_refusal_and_is_a_catalog_member() -> (
+    None
+):
+    """Quantified over § D4's table rather than a literal count: the seven
+    command-shaped codes are read straight from `ARGV_CASES` — T3's own
+    fixture, not a second hand list — so a row added there with a new code
+    becomes a case here automatically. `work_item_unnecessary` has no
+    validator-level trigger: it is the necessity razor's own verdict, a
+    reasoning-tier judgement `docs/specs/work-item-capture/plan.md`'s T7
+    wires the dispatch for; it is asserted as a catalog member only."""
+
+    module = load_project_knowledge_module()
+
+    def refuse_incomplete() -> None:
+        request = valid_work_item_request("question")
+        del request["work_item"]["blocker"]
+        module.validate_capture_request(request)
+
+    def refuse_not_blocked() -> None:
+        request = valid_work_item_request("question")
+        request["work_item"] = valid_work_item("question", blocker="urgency")
+        module.validate_capture_request(request)
+
+    def refuse_threshold() -> None:
+        request = valid_work_item_request("decision")
+        request["work_item"] = valid_work_item("decision", significance=[])
+        module.validate_capture_request(request)
+
+    triggers: dict[str, Any] = {
+        "work_item_incomplete": refuse_incomplete,
+        "work_item_not_blocked": refuse_not_blocked,
+        "work_item_threshold": refuse_threshold,
+    }
+    for argv, code, _why in ARGV_CASES:
+        if code is None or code in triggers:
+            continue
+
+        def trigger(argv: object = argv) -> None:
+            request = valid_capture_request(
+                verification_route={"command": argv, "path": "docs/x.md"}
+            )
+            module.validate_capture_request(request)
+
+        triggers[code] = trigger
+
+    for code, trigger in triggers.items():
+        with pytest.raises(ValueError) as excinfo:
+            trigger()
+        assert getattr(excinfo.value, "reason_code", None) == code
+        assert code in module.REQUIRED_DIAGNOSTIC_CODES
+
+    assert "work_item_unnecessary" in module.REQUIRED_DIAGNOSTIC_CODES
 
 
 # --- T4: the kind-vocabulary sweep and its negative control ----------------

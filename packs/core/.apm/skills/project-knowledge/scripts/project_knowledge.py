@@ -61,6 +61,25 @@ REQUIRED_DIAGNOSTIC_CODES = (
     "staged_dual_writer",
     "ambiguous_grouping",
     "forward_recovery_required",
+    # § D4's eleven added codes (docs/specs/work-item-capture/spec.md): four
+    # record-shaped, raised by `WorkItemRefusal`, and seven command-shaped,
+    # raised by `VerificationRouteRefusal` — exactly § D6's distinct verdict
+    # column. `work_item_unnecessary` has no validator-level raise site: it
+    # is the necessity razor's own verdict, a reasoning-tier judgement that
+    # docs/specs/work-item-capture/plan.md's T7 wires: this catalog entry is
+    # its home ahead of that dispatch existing, per D4's "this spec is the
+    # single home for that catalog's baseline size".
+    "work_item_incomplete",
+    "work_item_not_blocked",
+    "work_item_unnecessary",
+    "work_item_threshold",
+    "work_item_command_shape",
+    "work_item_command_size",
+    "work_item_command_option",
+    "work_item_command_tool",
+    "work_item_command_operand",
+    "work_item_command_charset",
+    "work_item_command_path",
 )
 SAFE_DIAGNOSTIC_FIELDS = frozenset(
     {
@@ -342,6 +361,25 @@ _WORK_ITEM_BLOCKERS = frozenset(
 )
 _WORK_ITEM_SIGNIFICANCE = frozenset(
     {"architecturally-significant", "expensive-to-reverse", "constrains-beyond"}
+)
+# § D2's six `work_item` free-text fields the deterministic privacy scan
+# must reach (`AC-0031`, docs/specs/work-item-capture/spec.md). Every one
+# resolves to `$defs/safeText2000` in the canonical schema — a string with
+# no `enum` — which is the same rule a test derives independently from the
+# schema document at test time and compares against this tuple, so a
+# `work_item` property added later without a matching update here fails
+# that comparison rather than silently going unscanned. `shape`, `blocker`
+# and `significance` are excluded from this tuple: each is a closed enum
+# (or an array of one), so a violating value is refused by the enum check
+# in `_validate_work_item`/`_validate_work_item_significance` before this
+# scan would ever run.
+WORK_ITEM_SCANNED_FREE_TEXT_FIELDS = (
+    "statement",
+    "finished_state",
+    "necessity_rationale",
+    "observed",
+    "intended",
+    "answered_by",
 )
 
 
@@ -642,20 +680,26 @@ def assert_persistable_paths(*values: str) -> None:
 
 
 def _deterministic_privacy_scan(request: dict[str, Any]) -> None:
-    # `lesson` is absent on a `work-item` record (§ D8); scanning the six
-    # `work_item` free-text fields is a later task's (`AC-0031`) — this
-    # guard only keeps that absence from raising `KeyError` here.
+    # `lesson` is absent on a `work-item` record (§ D8), which instead
+    # carries `WORK_ITEM_SCANNED_FREE_TEXT_FIELDS` (`AC-0031`) — each
+    # guarded by presence, since `observed`/`intended`/`answered_by` are
+    # shape-conditional and a shape that omits one must not raise `KeyError`
+    # here.
     prose = [request["lesson"]] if "lesson" in request else []
+    if "work_item" in request:
+        work_item = request["work_item"]
+        prose.extend(
+            work_item[field]
+            for field in WORK_ITEM_SCANNED_FREE_TEXT_FIELDS
+            if field in work_item
+        )
     if "friction" in request:
         prose.append(request["friction"]["summary"])
     if "verification_route" in request:
         # `command` is a § D6 argv array, not a string: scan each element,
-        # not the list itself. `argv[0]` cannot fail — the four-member
-        # allowlist refuses anything else before this scan runs — so
-        # including it here costs nothing. Naming which scan each element
-        # reaches, and asserting the per-element call, is a later task's
-        # (`AC-0061`); this is the minimal change that keeps this scan from
-        # raising `TypeError` on the type this task introduces.
+        # not the list itself (`AC-0061`). `argv[0]` cannot fail — the
+        # four-member allowlist refuses anything else before this scan
+        # runs — so including it here costs nothing.
         prose.extend(request["verification_route"]["command"])
     prose.extend(
         (

@@ -471,16 +471,6 @@ DAG rather than by prose)
   string does not discriminate, because both scans carry `_SECRET_SHAPE`.
   Index 0 is covered by the four-member allowlist and is refused before the
   scan runs.
-- An item whose prose matches the existing instruction-shape pattern is
-  refused before any reasoning dispatch, driven one field at a time across
-  the same six fields `AC-0031` derives (`AC-0035`). `significance` is not
-  among them: it is a closed enum, so its case would pass with no
-  instruction-shape scan at all.
-- An item the razor refuses is not written and returns `work_item_unnecessary`;
-  a `decision` whose declared grounds fail the § D1 three-ground test is not
-  written and returns `work_item_threshold` (`AC-0044`, `AC-0045`). Both are
-  the reasoning tier's calls, so both are driven through it rather than
-  through the field validator.
 - `stub: true` — `test_work_item_statement_reaches_privacy_scan`, asserting
   `_deterministic_privacy_scan` raises on a `work_item.statement` carrying a
   known violating string.
@@ -504,7 +494,10 @@ scan's enumeration turns the suite red.
 
 **Depends on:** T4
 
-**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/, packs/core/tests/skills/work-loop/
+
+<!-- Amendment 004 (notes/amendment-004.md): T6 must prove its branch
+     table matches the spec's and owned no test location to prove it in. -->
 
 **Tests:**
 - Goal-based: `skill_spec_lint` reports no **error-severity** body-length
@@ -562,6 +555,19 @@ the routing suite is green.
   partial or empty derivation fails. Adding a dispatch input without placing
   it must fail. Both bins are total by construction, so
   the domain's completeness is the whole check.
+- An item whose prose matches the existing instruction-shape pattern is
+  refused before any reasoning dispatch, driven one field at a time across
+  the same six fields `AC-0031` derives (`AC-0035`). `significance` is not
+  among them: it is a closed enum, so its case would pass with no
+  instruction-shape scan at all.
+- An item the razor refuses is not written and returns `work_item_unnecessary`;
+  a `decision` whose declared grounds fail the § D1 three-ground test is not
+  written and returns `work_item_threshold` (`AC-0044`, `AC-0045`). Both are
+  the reasoning tier's calls, so both are driven through it rather than
+  through the field validator.
+<!-- Amendment 005 (notes/amendment-005.md) moved the three bullets above
+     from T5: all three assert against the reasoning dispatch, which this
+     task builds and T5 has no work-loop file to reach. -->
 - The reasoning dispatch wraps item content in its data delimiter, and no item
   field is interpolated into instruction position (`AC-0036`).
 - **The write path refuses any submission without a recognized verdict for
