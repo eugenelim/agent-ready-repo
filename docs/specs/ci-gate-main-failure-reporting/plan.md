@@ -1,6 +1,6 @@
 # Plan: gate-main reports every independent failure in one round
 
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 - **Repository anchors:** `tools/AGENTS.md` (roster obligation, and that roster
   reasons are checked for presence not truth); `docs/specs/ci-gate-parallelization/spec.md`
@@ -286,4 +286,5 @@ conditions land together in the same history.
 
 ## Changelog
 
-<!-- approvals only, not how the approach evolved -->
+- 2026-09-21: spec approved.
+- 2026-09-21: plan approved.

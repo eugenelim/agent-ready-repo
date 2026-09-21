@@ -1,6 +1,6 @@
 # Spec: gate-main reports every independent failure in one round
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0121 <!-- ordinal confirmed at authoring; see Assumptions -->
