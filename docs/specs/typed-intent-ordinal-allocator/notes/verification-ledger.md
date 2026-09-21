@@ -521,3 +521,65 @@ measuring it, and the fixture I built to confirm that still had the symref — i
 failed for the other reason and I nearly read the agreement as confirmation. The
 theory and the fixture have to be checked against each other, not just against
 the failure.
+
+## 2026-09-21 — closeout: the integration had no test, and VI-0005's QA had never run
+
+**Why run it.** Marking `Shipped` requires every AC ticked
+(`lint-spec-status.py:1214-1222` fails a transition to `Shipped` with an
+unchecked AC), and a tick is a claim. So each of the 22 was mapped to the
+evidence that supports it before any box was ticked.
+
+**What the map showed.** Cross-referencing the `AC-NNNN` citations in the three
+suites, **20 of 22 ACs had at least one citing test and two had none** —
+AC-0009 and AC-0016. Worse, the ones that did cite tests were not always
+citing evidence of the right claim: AC-0006 says the router *invokes* the
+allocator at a named point, but its only test asserted the **script's** CLI
+contract (exit 0, ordinal on stdout). So the allocator was covered 120 tests
+deep while the integration that makes the feature real — does `work-intake`
+actually invoke it, guard its output, and survive a refusal? — had no test at
+all. `test_intent_ordinal.py` never opens `SKILL.md`, so it could not have.
+
+**What was added.** `packs/core/tests/skills/work-intake/test_work_intake_ordinal_integration.py`,
+8 cases reading the procedure the claims are about, with every expected token
+derived from the allocator module's own mapping rather than restated.
+
+**Mutation proof, because a prose test that cannot fail is worthless.** Nine
+mutations applied to a throwaway copy of the pack tree, all nine detected:
+the invocation name, the token-only rule, the never-the-`Level` rule, the
+unmapped skip, the `^<TOKEN>-[0-9]{4,}$` output guard, one refusal cause, one
+mapped token, one mapped level, and the never-rename rule. Restored copy: 8
+passed.
+
+Two of the first-round mutations reported "no failure" and were **instrument
+failures, not findings**: the `sed` expressions carried backticks, which the
+shell command-substituted (`command not found: bound-exceeded`). Re-run through
+Python with no shell parsing, both detected. A blind spot and a broken probe
+look identical in the output.
+
+**VI-0005's manual QA, finally run.** The Testing Strategy assigned the
+admission half to "visual / manual QA at the verification ledger" and it had
+never been done. Run on a throwaway clone with a Codex worker
+(`gpt-5.6-sol`, `--sandbox workspace-write`) told to follow § 6 exactly, given
+no spec and no expected values:
+
+| Case | `Level` | Command | Exit | Destination | Marker | Admitted |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | `capability` | ran with `--token CAP` | 0 → `CAP-0005` | `.../CAP-0005-repository-work-graph-probe.md` | none | YES |
+| B | `monitoring-signal` | **NONE** — skipped entirely | n/a | `.../some-operational-signal.md` | none | YES |
+| C | `capability`, malformed dir | ran | 1 → `unparsed-name` | `.../refusal-arm.md` | `unparsed-name` | YES |
+
+Case B is AC-0007 and AC-0016's second half: an unmapped altitude runs no
+command at all. Case C is AC-0010: a refusal changed the filename and not
+whether the intent was admitted. The worker also set
+`PYTHONDONTWRITEBYTECODE=1` unprompted, which is AC-0003's no-bytecode rule.
+
+**The composed path, written rather than inferred.** The worker was told not to
+write, so "the intent exists and carries the reason" was still two half-proofs.
+Closed by driving the real renderer: `repository_intent_target` composes the
+router's prefixed name to `docs/product/intents/CAP-0005-repository-work-graph-probe.md`,
+and a refusal arm renders to the unprefixed target with
+`- Ordinal unresolved: unparsed-name` under `## Unresolved questions`.
+
+**What it settles.** All 22 ACs tick against evidence that exists and
+discriminates. The gap this found was not in the allocator; it was the belief
+that testing the allocator tested the feature.
