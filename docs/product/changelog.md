@@ -64,6 +64,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.23] — 2026-09-20
+
+### Highlights
+
+- **A review pass runs when something names a reason for it.** `work-loop`
+  selects reviewers from one table instead of several scattered triggers:
+  `adversarial-reviewer` always, and security, user-facing, architecture and
+  quality lenses only as the change reaches them. `quality-engineer` joins that
+  rule rather than running on every full-mode loop — it is warranted when the
+  change warrants at least one `operational-safety` module, is structural, or is
+  explicitly requested. The three conditions reuse routers the catalogue already
+  ships; none is a new predicate. `adversarial-reviewer` keeps correctness,
+  maintainability, test coverage and scope, so a change that trips none of the
+  three loses no lens. Recorded against RFC-0025 § Errata.
+
+### Changed
+
+- `finding-adjudicator` refutes on the Authority predicate any finding that
+  names no violated acceptance criterion, repository rule, security property, or
+  concrete defect. Reviewer taste stated confidently no longer reaches FIX.
+- The adjudicator dispatch gains a work-risk condition beside its existing
+  content conditions (byte-exact clean, Nit-only): it is required on the same
+  three conditions above, and otherwise available rather than automatic. Every
+  report is still persisted and validated; only the dispatch narrows. Refuted
+  findings keep their audit record.
+
 ## [core][2.26.22] — 2026-09-20
 
 ### Highlights

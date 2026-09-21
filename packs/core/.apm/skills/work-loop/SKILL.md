@@ -139,7 +139,7 @@ in-session rather than creating a durable artifact. Load
 [`references/light-mode.md`](references/light-mode.md) for its procedure,
 eligibility and durability routing, review rounds, and trims.
 
-**Full mode**: any risk trigger fires. Full `new-spec` with all sections, `loop-cohort` state machine, `adversarial-reviewer` iterated to direct or adjudicated Clean, `quality-engineer` floor, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the trims in that reference.
+**Full mode**: any risk trigger fires. Full `new-spec` with all sections, `loop-cohort` state machine, `adversarial-reviewer` iterated to direct or adjudicated Clean, `quality-engineer` on high-risk work, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the trims in that reference.
 
 **Script paths.** `<skill-dir>` is the installer- or harness-supplied directory
 containing this `SKILL.md`. From the repository root, invoke every Python script
@@ -445,7 +445,11 @@ adversarial evidence into a summary-only or named-skip path.
 ### Finding-adjudication gateway
 
 For every warranted reviewer role, persist the completed report to the ignored
-session path first. Persistence is unconditional. Then run `review raw-classify
+session path first. Persistence is unconditional; the adjudicator dispatch is
+not. Dispatch is required on high-risk work as the roster rule below defines it,
+and on any report a human asks to have adjudicated; on other work the
+adjudicator is available but not automatic, and the verdict record names which
+applied. Then run `review raw-classify
 --report <path> --json`: `clean` skips the `finding-adjudicator` dispatch, the paired artifacts, and the adjudication classifier — but never the raw artifact itself — and records with
 `--direct-clean-file` only for byte equality or `--structural-clean-file` for a
 footer-free clean report whose bytes differ only in trailing whitespace;
@@ -486,7 +490,32 @@ An absent or non-Clean adversarial reviewer must not suppress another warranted 
 
 Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`".
 
-**`quality-engineer` trigger:** full mode — every loop; light mode — only under the exception in [`references/light-mode.md`](references/light-mode.md). A persistent representation or mixed-version deployment change is a full-mode trigger above, so it always receives this pass. Act on declarations and the observed change surface; don't scan for config files.
+**`select_reviewers(task)` — the whole roster rule.** `adversarial-reviewer` is
+the default and covers correctness, maintainability, test coverage and scope.
+Each row adds a lens only when the change reaches it; each role's bullet below
+owns its exact boundary, this table owns the roster and what high-risk means. A
+row that does not fire is recorded `<role>: not warranted`, never dropped.
+
+| The change reaches | Adds |
+|---|---|
+| *(always)* | `adversarial-reviewer` |
+| a security boundary, data flow, or guarding control | `security-reviewer` |
+| what a reader or adopter sees | `experience-reviewer` (full mode) |
+| HTML/CSS/JS as its primary output | `frontend-reviewer` (full mode) |
+| an architecture artifact an architect-pack integration activates | `design-reviewer` |
+| **high-risk work** | `quality-engineer` |
+
+**High-risk work** means any one of three conditions, and this is its only
+definition — the adjudication gateway above reuses it rather than restating it.
+(1) The change warrants at least one module from [`operational-safety`'s Module
+index](../operational-safety/SKILL.md#module-index), already the deterministic
+failure-mode→module routing authority; that condition subsumes persistent state,
+infrastructure, and reliability-critical behaviour, so none of the three is a
+separate predicate. (2) The change is structural exactly as the pre-EXECUTE
+footnote 1 defines it — new module boundary, new dependency, new abstraction
+layer, new top-level directory. (3) A human asks for the pass. Light mode runs no `quality-engineer` pass except
+under the exception in [`references/light-mode.md`](references/light-mode.md).
+Act on the observed change surface; don't scan for config files.
 
 - **`security-reviewer`** — the diff changes a security boundary, data flow, or guarding control: auth, secrets, untrusted input, deserialization, dependency trust, or file/network validation, confinement, redirect policy, timeout/resource limits, or metadata/internal-range blocking. For LLM/agent code, dispatch only when authority, untrusted-input handling, tool exposure, permissions, sandboxing, or data handling changes; ordinary prompt wording with none of those effects does not fire this reviewer. Current lens: OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25 + STRIDE + LINDDUN open pass. Complements SAST/SCA scanners; does not replace them. **Inline its depth, don't make it self-discover:** detect which trust boundaries the diff crosses, load only the matching `security-checklists` modules, inline them into the subagent's brief (subagent has no Skill tool). Route via [`security-checklists` Module index](../security-checklists/SKILL.md#module-index); load only modules the diff crosses, never a flat march. **Mandatory and multi-module on infra-flavored work** (destructive/irreversible trigger + diff matches IaC/deploy-config entry): non-skippable, runs at spec stage and on diff, force-loads `config-misconfig` always, plus `access-control` / `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips each module's entry. Missing `security-reviewer` on infra work = loud blocker; run both reviewer and scanner.
 
@@ -707,7 +736,7 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
 - [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) has no unresolved Blocker or Concern or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
 - [ ] **Light mode:** the reviewer obligations in [`references/light-mode.md`](references/light-mode.md) are satisfied.
-- [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
+- [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only, and only when the spec's whole change surface is high-risk): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation.
 - [ ] One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
 - [ ] **Implementation completion only (code mode and direct-light):** the
@@ -826,7 +855,7 @@ For unattended execution, load [Unattended-loop eligibility](references/unattend
 - **Editing the test until it passes.** Fix the code. If the test is wrong, fix it in a separate commit with justification.
 - **Deferring a test because the code fails it.** Fix the code. "Flaky / out of scope / covered elsewhere" is how regressions ship. If genuinely wrong, separate commit with reason; if the code can't pass it this session, surface it, don't bury it.
 - **Declaring victory because gates pass.** Gates are necessary, not sufficient; review catches what gates can't.
-- **Declaring spec-complete from per-task gates.** Run `quality-engineer` against the whole spec before the final loop's DECIDE — per-task gates verify N contracts; this is the pass that verifies the integrated journey.
+- **Declaring spec-complete from per-task gates.** Where the spec's whole change surface is high-risk, run `quality-engineer` against it before the final loop's DECIDE — per-task gates verify N contracts; this is the pass that verifies the integrated journey.
 - **Running an unattended loop on a fresh task.** Do at least one in-session pass first to validate the approach.
 - **Looping without capturing learnings.** Every loop that ends without updating some doc, skill, or note loses its lessons.
 - **Grepping top-level keys in structured config.** `grep '^key' file.toml` matches `key` under every section, not just the top level — the same trap applies to YAML and JSON. Parse structured config with its native library rather than using line-pattern greps.

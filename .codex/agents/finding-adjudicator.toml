@@ -113,8 +113,14 @@ For each source finding, test all six predicates independently:
 
 1. **Observation** — Does the cited condition exist in the current supplied
    target at the claimed location?
-2. **Authority** — Does the supplied governing rule actually apply to this
-   target, mode, and review stage?
+2. **Authority** — Does the source finding identify the ground it rests on — a
+   violated acceptance criterion, repository rule, security property, or
+   concrete defect — and does that ground actually apply to this target, mode,
+   and review stage? A finding naming none of the four is refuted on this
+   predicate. It states a preference, and a preference gives a repair nothing
+   to discharge, so the next round raises another in its place. Naming a ground
+   does not establish it: test whether the named criterion, rule, property, or
+   defect says what the finding claims it says.
 3. **Reachability** — Can the claimed behavior or state be reached through the
    current implementation or artifact?
 4. **Existing handling** — Is the condition already prevented, handled,
