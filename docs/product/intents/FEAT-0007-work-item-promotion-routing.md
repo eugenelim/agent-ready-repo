@@ -94,6 +94,33 @@ not whether it still holds. Open them.
   canonical and only home; cite it, never copy it.
 - **When a dependency counts as satisfied.** The workspace status engine under
   `packs/core/.apm/skills/workspace-status/scripts/`.
+## Upstream state, 2026-09-21
+
+`docs/specs/work-item-capture/spec.md` ships, so the record this child
+routes now exists and its shape is fixed. Four consequences for this child:
+
+**What it will receive.** A `work-item` record carrying a closed `shape`
+and `blocker`, a per-shape required-field set, and an optional
+`verification_route` whose `command` is a bounded argv array — four tools,
+no options, a positive character class, a repository-path rule.
+
+**Six residual controls are handed to this child by name**, and its
+criteria carry them: post-resolution repository confinement, environment
+neutralisation, a resource cap, a re-check of the stored command against
+§ D6's argv rules before it runs, which matcher `grep` uses, and the
+treatment of the command's output.
+
+**One residual is not handed over and has no owner.** The argv rules
+confine every stored path to the repository; they do not decide whether an
+in-repository file is sensitive, so `credentials.json`, `keys/id_rsa`,
+`config/prod.env` and `.env` are all admissible. This is **not** covered by
+this child's post-resolution confinement obligation, which refuses a path
+resolving *outside* the repository — an in-repository file never does. That
+routing was asserted and withdrawn twice upstream. If this child is to own
+it, it needs a criterion of its own, not the existing one.
+
+**Volume is lower than this child assumes.** See the parent's measurement.
+
 ## Non-goals
 
 - **Governance items.** Where a decision is the deliverable, the destination is

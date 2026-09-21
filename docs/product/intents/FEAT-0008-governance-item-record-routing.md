@@ -64,6 +64,16 @@ not whether it still holds. Open them.
   above sit outside it, which is the boundary this intent leaves open.
 - **The absent-pack precedent, as context only.** `work-loop`'s handling of a
   missing reviewer pack. It is scoped to reviewers and settles nothing here.
+## Upstream state, 2026-09-21
+
+The capture contract ships. A `decision`-shaped `work-item` — the input
+this child routes — exists as a record, requires a `significance` list
+naming why it needs a durable record rather than an in-session call, and
+has a closed `blocker`.
+
+This child remains blocked on `docs/specs/work-item-promotion-handoff/spec.md`,
+which is not built. Nothing upstream changed its framing.
+
 ## Non-goals
 
 - **The other routes.** Bug, improvement and the rest are the sibling's.

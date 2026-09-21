@@ -89,6 +89,22 @@ not whether it still holds. Open them.
   `packs/core/.apm/skills/project-knowledge/scripts/project_knowledge.py`.
 - **Where the refuted probe was taken.** The `[backlog].open` array in
   `workspace.toml`.
+## Upstream state, 2026-09-21
+
+The capture contract ships. Two facts bear on this child's measure:
+
+**A necessity razor already runs at capture.** Every `work-item` carries a
+`necessity_rationale` and is refused unless a cold reasoning check admits
+it. That check is asked whether the item clears the razor, not whether an
+artifact already covers it, so this child's question is still open — but
+the volume reaching it is smaller than an unfiltered capture stream.
+
+**Path proximity is refuted** as a coverage signal; the surviving question
+is whether coverage is discoverable at all.
+
+This child remains blocked on `docs/specs/work-item-promotion-handoff/spec.md`,
+which is not built.
+
 ## Non-goals
 
 - **Deciding.** Whatever is offered, a human accepts or rejects it.

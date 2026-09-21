@@ -167,6 +167,52 @@ silent must not be the only guard.
 
 None. One outcome, one measure.
 
+## Delivered state, 2026-09-21
+
+`docs/specs/work-item-capture/spec.md` ships the contract. What that means
+concretely:
+
+**A `work-item` record exists as a kind.** Payload version
+`knowledge-captured-observation.v2` carries a `work_item` object with a
+closed `shape` (`defect`, `question`, `decision`), a closed `blocker`
+(`decision`, `instrument`, `elapsed-time`, `dependency`), a per-shape
+required-field set, and an optional `verification_route`. `v1` stays
+readable; the writer emits `v2` only.
+
+**A stored reproduction command is a bounded argv array.** Four tools
+(`cat`, `wc`, `grep`, `ls`), no options, a positive character class, and a
+repository-path rule over a defined stored-path set. Seven catalog codes
+name the refusal classes. The boundary is derived by a script that emits
+the case table, so the contract and its 46 cases cannot drift.
+
+**Validation at capture is one tier deep.** The reasoning tier only. A
+capture is refused unless it carries a recognized verdict correlated to
+that exact item and close position, which catches an omitted, garbled,
+mismatched or stale-reused verdict.
+
+**Three facts this intent's § Validation at capture should be read
+against:**
+
+1. *The mechanical tier is not built.* It moved to
+   `docs/specs/work-item-mechanical-tier/spec.md`, a fifth child this
+   intent's parent does not list. Until it lands, an unavailable reasoning
+   tier is the whole of validation being unavailable, and the write-time
+   refusal is what stands in for a floor.
+2. *The verdict is caller-asserted.* The cold check runs at the close, so
+   the capturing agent dispatches it and hands the writer the result. No
+   in-process gate can establish that a caller consulted an oracle the
+   caller controls. A deliberate agent can assert a verdict it never
+   obtained.
+3. *The argv rules confine but do not classify.* Any file inside the
+   repository is admissible whatever it is named. Deciding which
+   in-repository files a command may read is run-time confinement, and it
+   is **unowned** — the promotion spec's post-resolution obligation refuses
+   paths resolving outside the repository, which an in-repository file
+   never does.
+
+All three are disclosed in `docs/architecture/security.md`, which is the
+single home for the list.
+
 ## Observed demand — first measurement, 2026-09-21
 
 **The opportunity holds; the volume behind it is lower than the downstream

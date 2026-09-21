@@ -40,12 +40,46 @@ It does not own:
 
 ## Decomposition
 
-Four children, cut by the question each answers rather than by the artifact each touches.
+**Five children**, cut by the question each answers rather than by the
+artifact each touches. The fifth was split out of the first on 2026-09-21
+and is listed last.
 
 - [Work-item capture contract](FEAT-0006-work-item-capture-contract.md) — what a record must carry for a later session to act on it, and what is refused before it is written. Answers *is it real, is it worth recording, and is the record usable*.
 - [Work-item promotion routing](FEAT-0007-work-item-promotion-routing.md) — handing a captured item to the owner that handles work of its shape, and closing its capture, including closing one that goes nowhere because it is stale, superseded or overtaken. Answers *where does it go or why does it not, and has it left the well*.
 - [Governance item record routing](FEAT-0008-governance-item-record-routing.md) — the route for an item whose deliverable is a decision rather than work. Answers *who decides this*.
 - [Duplicate coverage offer](FEAT-0009-duplicate-coverage-check.md) — surfacing an artifact that already covers an item before promotion creates a second one. Answers *does this already exist*.
+- [Work-item mechanical tier](../../specs/work-item-mechanical-tier/spec.md) — the deterministic half of capture validation: checks over a cited repair target that do not depend on a reasoning tier being reachable. Answers *does the item's own claim hold, without asking anyone*. Split out of the capture child rather than cut from the start; it has a spec and no intent of its own yet.
+
+### State, 2026-09-21
+
+| Child | Spec | Status | Blocked on |
+| --- | --- | --- | --- |
+| Capture contract | `docs/specs/work-item-capture/` | **Shipped** | — |
+| Promotion routing | `docs/specs/work-item-promotion-handoff/` | Draft | — |
+| Governance record routing | `docs/specs/governance-item-record-routing/` | Draft | promotion routing |
+| Duplicate coverage offer | `docs/specs/duplicate-coverage-offer/` | Draft | promotion routing |
+| Mechanical tier | `docs/specs/work-item-mechanical-tier/` | Draft | — |
+
+Three facts that change how the remaining four should be read:
+
+1. **Validation as shipped is one tier deep.** The mechanical tier is not
+   built, so an unavailable reasoning tier is the whole of validation being
+   unavailable. The capture child's write-time refusal stands in for a
+   floor; it is not one.
+2. **The verdict is caller-asserted.** The cold check runs at the close, so
+   the capturing agent dispatches it and hands the writer the result. No
+   in-process gate can establish that a caller consulted an oracle the
+   caller controls.
+3. **One residual has zero owners.** The stored-command rules confine paths
+   to the repository and do not decide whether an in-repository file is
+   sensitive. It is not the promotion child's post-resolution confinement
+   obligation, which refuses paths resolving *outside* the repository. It
+   is disclosed and unowned.
+
+This capability's § Assumptions holds that ready-now work is dispatched
+in-session. The capture contract enforces the complement rather than
+relying on the assumption: a ready-now item has no admissible `blocker`, so
+a capture attempt is refused `work_item_not_blocked`.
 
 ### Decomposition decisions
 
