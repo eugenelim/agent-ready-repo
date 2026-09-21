@@ -187,6 +187,16 @@ The transferable part is the shape of the mistake: the options offered to the
 owner were priced without first checking what the affected surfaces are
 permitted to do. A capability declaration is cheap to read and was not read.
 
+**The capability evidence, with its commands.** Recorded at revision `fbcd5f8ff`
+so the conclusions are reproducible rather than asserted:
+
+| Claim | Command | Observed |
+| --- | --- | --- |
+| `intake-intent` holds no move or delete | `sed -n '195,212p' packs/core/.apm/skills/intake-intent/SKILL.md` | `allowed-tools` lists `Read`, `Write`, `Edit`, `Agent`, and states "No network, shell, tracker, credential, or external-locator filesystem access is permitted" |
+| `work-intake`'s `Bash` is not declared for moving files | `sed -n '428,437p' packs/core/.apm/skills/work-intake/SKILL.md` | "Bash - run local Python validation or the `workspace-status` backend with discrete arguments; do not use network commands" |
+| the materializer may write one path only | `sed -n '298,316p' packs/core/.apm/skills/work-intake/SKILL.md` | "its validated target is the only path the materializer may write" |
+| registration follows the artifact write | `sed -n '336,340p' packs/core/.apm/skills/work-intake/SKILL.md` | "After the owner returns a durable artifact, register it as a Draft, non-dispatchable entry" |
+
 **What the withdrawn decision had argued, and why it did not survive.** This paragraph is the reasoning *for* the rename, recorded because it was load-bearing at the time and is now superseded — not as a current-state claim. `work-intake/SKILL.md:336-340` registers *after*
 the owner returns a durable artifact, so a rename that happens before
 registration writes the entry once at the final path. There is no lockstep edit
