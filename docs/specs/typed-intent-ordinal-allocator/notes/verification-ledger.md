@@ -297,10 +297,14 @@ vocabulary gate — none of `unreleased`, `work index`, `backlog`, `queue`,
 three release gates themselves are roster-owned and therefore remote.
 
 **The sixteen core suites.** `2,547 passed, 6 skipped, 147 subtests`, no
-failures. Two of them — `work-loop` at 13m29s and `workspace-status` — overlapped
-my own edits in that window, so they were re-run on the settled tree rather than
-trusted; a gate measured while the worker is still editing measures neither
-state.
+failures. Two of them — `work-loop` at 13m29s and `workspace-status` —
+overlapped my own edits in that window, so they were re-run on the settled tree
+rather than trusted; a gate measured while the worker is still editing measures
+neither state. The re-run agreed exactly — `work-loop` 1227 passed, 5 skipped,
+68 subtests in 13m36s; `workspace-status` 130 passed, 1 skipped — so the overlap
+cost nothing this time. Recorded anyway, because the agreement is the outcome
+and not the reason: a result read off an overlapping run is not evidence about
+either tree, whichever way it lands.
 
 **One collection defect found and left alone.** `pytest packs/core/tests/ -q`
 fails at collection on a basename clash between
