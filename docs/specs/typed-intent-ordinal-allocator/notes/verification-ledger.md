@@ -187,7 +187,7 @@ The transferable part is the shape of the mistake: the options offered to the
 owner were priced without first checking what the affected surfaces are
 permitted to do. A capability declaration is cheap to read and was not read.
 
-**What made the rename cheap.** `work-intake/SKILL.md:336-340` registers *after*
+**What the withdrawn decision had argued, and why it did not survive.** This paragraph is the reasoning *for* the rename, recorded because it was load-bearing at the time and is now superseded — not as a current-state claim. `work-intake/SKILL.md:336-340` registers *after*
 the owner returns a durable artifact, so a rename that happens before
 registration writes the entry once at the final path. There is no lockstep edit
 and no citation sweep, which is what keeps this out of
