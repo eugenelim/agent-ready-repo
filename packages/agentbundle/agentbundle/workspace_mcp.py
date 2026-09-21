@@ -280,8 +280,9 @@ def _publishable_output_pattern(
         print(
             f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
             f"cannot be published, so workspace_status reports no output pattern "
-            f"for {item_type!r} items. Use only letters, digits, and the "
-            "characters . _ - / in it.",
+            f"for {item_type!r} items. Give it a directory below the repository "
+            "root built only from letters, digits, and the characters . _ - / "
+            "with no . or .. path segment.",
             file=sys.stderr,
         )
         return None

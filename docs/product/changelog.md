@@ -261,6 +261,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [agentbundle][0.47.2] — 2026-09-21
 
+### Highlights
+
+- **What the status surface reports about your output paths now follows the
+  same rules as everything else it reports.** If the directory you configure
+  for a pack's output uses anything beyond letters, digits and `. _ - /`, or
+  points at the repository root itself, the status surface reports no output
+  pattern and tells you which section to correct, rather than passing the value
+  through. Renaming the directory to a plain, repository-relative path restores
+  the reported path.
+
 ### Fixed
 
 - `workspace_status` screens a configured `output_dir` with the same character
