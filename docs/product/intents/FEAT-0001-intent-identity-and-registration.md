@@ -145,7 +145,7 @@ That waives the zero-renumbering clause deliberately and accepts the renumbering
 
 ### Re-test of the narrowed assumption
 
-**A1′ — The ADR/RFC allocation approach — `max + 1` over the directory unioned with `origin`, forward-only, renumbered at admission — serves intents at repo scope and per folder at user scope, without migrating the corpus.**
+**A1′ — The ADR/RFC allocation approach — `max + 1` over the directory unioned with `origin`, forward-only, numbered at admission — serves intents at repo scope and per folder at user scope, without migrating the corpus.**
 
 Tested against `next-ordinal.py` itself, because it is the working instance of that approach. The owner has since chosen a new prefix-type-aware allocator, so the *spelling* below has moved on; every finding in this section is about the approach and the surrounding chain, and all of it still holds for the replacement.
 
@@ -248,10 +248,28 @@ Neither is waivable and both belong to whoever implements Slice 1.
 
 ```
 validation_hook:
-  assumption: A new prefix-type-aware allocator, reusing the ADR/RFC approach of max+1 over the directory unioned with origin, delivers per-type human-friendly ordinals (CAP-0001, FEAT-0001) as a filename prefix at every altitude, forward-only and renumbered at repository admission.
+  assumption: A new prefix-type-aware allocator, reusing the ADR/RFC approach of max+1 over the directory unioned with origin, delivers per-type human-friendly ordinals (CAP-0001, FEAT-0001) as a filename prefix at every altitude, forward-only and numbered at repository admission.
   kill_condition: The replacement allocator is not collision-equivalent to next-ordinal.py — it returns an ordinal for a corpus it did not fully parse, reports --check clean on a directory it did not read, loses the origin union that widens the view past the working tree to records committed on origin's default branch, or cannot handle an altitude prefix outside the recognized set.
   activity: to-validate — two activities are owed and neither has run. First, a collision-equivalence test of the replacement against next-ordinal.py over paired fixtures carrying the same logical ordinals in the typed and untyped filename grammars, plus an unseen altitude prefix and a corpus it cannot parse; the predeclared line is that it never returns an ordinal or a clean check for input it did not read, set before the test is written. Second, one real cross-branch collision handled end to end, renumbering through the C3 registry edit and the markdown link targets, with a predeclared line of zero stale path-shaped citations.
 ```
+
+**Owner amendment, 2026-09-21 — "renumbered at admission" became "numbered at admission".**
+A1′ above and the hook's assumption both carried the older phrase, which in
+context said *when* the ordinal is assigned — at admission, rather than from a
+counter shared across worktrees, which is the ground this intent's own
+`## Guardrail` rests on. But it reads as a requirement that admission rename
+files, and adversarial review of `typed-intent-ordinal-allocator` read it that
+way twice. It cannot mean that: the `## Guardrail` makes adoption forward-only,
+so an admission that renamed would contradict this intent two sections earlier.
+
+The delivery slice then established that no admission surface *can* rename one —
+`intake-intent`'s `allowed-tools` carry no move and no delete, `work-intake`'s
+`Bash` is declared for local Python validation and the `workspace-status`
+backend, and `intake_transaction.py`'s validated target is the only path its
+materializer may write. Renaming therefore belongs to
+`intent-renumber-and-reissue`, which needs a confined transactional rename for
+renumbering regardless. One word closes the reading; the same change is made in
+the brief's reuse bullet, which carried the identical phrase.
 
 **Owner amendment, 2026-09-20 — the hook contradicted its own record, twice.** Two clauses were unreachable as written, so a conforming implementation would have satisfied the kill condition.
 

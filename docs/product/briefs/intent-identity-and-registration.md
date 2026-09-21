@@ -5,6 +5,7 @@
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Ready
 - **Ready confirmed:** 2026-09-20 by eugenelim, bound to revision `sha256:62c26b6c92f56952`, which returned `Clean` from an independent delivery-brief shaping review. Five slices confirmed; each is a `Draft` spec.
+- **Amended 2026-09-21 by eugenelim**, after the Ready confirmation above: the reuse bullet's "renumbered at admission" became "numbered at admission". Wording only — it changes no slice, no scope and no confirmation, and the parent intent's A1′ and validation hook took the same change. The older phrase said *when* an ordinal is assigned, but read as a requirement that admission rename files, which this brief's own forward-only non-goal forbids and which the delivery slice then found no admission surface can do. Renaming belongs to `intent-renumber-and-reissue`.
 
 ## Outcome
 
@@ -64,7 +65,7 @@ Measured 2026-09-18 against the working tree.
 
 - **Non-waivable, two refusing arms:** a placement path whose resolution passes through a symlink out of its anchoring root refuses, per `security-checklists/references/path-and-file.md:30-32`; a path carrying a `..` segment refuses, because ADR-0030 D6 resolves paths "with `..` rejected". An absolute-only resolution outside the repository is confirmed rather than refused, per ADR-0030 D7 with D6's disclosure as its control.
 - **Not scoped: destination selection.** Which authority decides repository-versus-personal work, whether a pack default precedes elicitation, and whether an elicited answer is persisted are an unreconciled conflict between RFC-0040's resolution tail and RFC-0096 § 4. Owner: eugenelim, via `workspace.toml` `[backlog].open` at `path = "docs/adr/0030-consolidated-pack-output-layout-contract.md"`. The mechanism is documented in `docs/architecture/agentbundle.md` § 7.2.
-- **Reuse the ADR/RFC approach, not its script.** `max + 1` over the directory unioned with `origin`, forward-only, renumbered at admission — implemented fresh so it can key on the type prefix.
+- **Reuse the ADR/RFC approach, not its script.** `max + 1` over the directory unioned with `origin`, forward-only, **numbered at admission** — the ordinal is assigned when an intent is admitted rather than drawn from a counter shared across worktrees. Implemented fresh so it can key on the type prefix. *Numbered*, not *renumbered*: admission assigns an ordinal to an artifact it creates and never renames one that already exists, which `intent-renumber-and-reissue` owns.
 - **The allocator refuses rather than guesses.** It must not return an ordinal, or report a clean duplicate check, for a corpus it could not fully parse. The shipped script already states this discipline for itself and the replacement must inherit it.
 - **No shared mutable allocation state.** ADR-0108's ground is that a repository-global identifier counter is a shared mutable resource this repository has twice failed to coordinate. That rules out a counter file and a repository-global retired list alike.
 - **Renumbering is accepted; stale citations are not.** The owner accepted the renumber cost, so the constraint is on completeness of the sweep, not on frequency.
