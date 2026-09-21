@@ -1,6 +1,6 @@
 # Spec: Capture a loop's leftover work as an actionable record
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full
@@ -914,20 +914,20 @@ plan owns; they carry no criterion.
 > the sibling uses the id, never a list position — positional citation is what
 > silently broke most of the plan's references when this list was renumbered.
 
-- [ ] `AC-0001` A loop's close emits the set of items it declined, whose
+- [x] `AC-0001` A loop's close emits the set of items it declined, whose
       membership is rows two, three and four of § D9's table.
-- [ ] `AC-0002` Every member of that emitted set carries exactly one outcome
+- [x] `AC-0002` Every member of that emitted set carries exactly one outcome
       from `captured`, `refused`, `dispatched-in-session`; a member with no
       outcome fails the close.
-- [ ] `AC-0003` A `work-item` record missing any field its shape requires, per
+- [x] `AC-0003` A `work-item` record missing any field its shape requires, per
       § D2, is refused.
-- [ ] `AC-0004` A complete `work-item` record of each of the three shapes is
+- [x] `AC-0004` A complete `work-item` record of each of the three shapes is
       written.
-- [ ] `AC-0005` A `defect`-shaped item carrying no `verification_route` but
+- [x] `AC-0005` A `defect`-shaped item carrying no `verification_route` but
       both `work_item.observed` and `work_item.intended` is written.
-- [ ] `AC-0006` A `question`- or `decision`-shaped item carrying no
+- [x] `AC-0006` A `question`- or `decision`-shaped item carrying no
       `verification_route` is written.
-- [ ] `AC-0046` **Any** record carrying a `verification_route` is validated
+- [x] `AC-0046` **Any** record carrying a `verification_route` is validated
       against § D6 at write time, whatever its kind, and one whose command fails
       those rules is refused with the matching § D4 code. `verification_route` is a
       kind-agnostic top-level property validated by one shared function, so
@@ -935,43 +935,43 @@ plan owns; they carry no criterion.
       command unbound. This is the enforcing home for a command-bearing
       capture: without it the argv rules exist in a spec nothing on this path
       invokes.
-- [ ] `AC-0007` A capture whose `work_item.blocker` is absent is refused with
+- [x] `AC-0007` A capture whose `work_item.blocker` is absent is refused with
       `work_item_incomplete`.
-- [ ] `AC-0008` A capture whose `work_item.blocker` is present but outside
+- [x] `AC-0008` A capture whose `work_item.blocker` is present but outside
       `decision`, `instrument`, `elapsed-time`, `dependency` is refused with
       `work_item_not_blocked`.
-- [ ] `AC-0009` A `decision`-shaped item whose `work_item.significance` is
+- [x] `AC-0009` A `decision`-shaped item whose `work_item.significance` is
       empty is refused. Per § D1 this checks declaration only.
-- [ ] `AC-0013` Every written `work-item` record carries a non-empty
+- [x] `AC-0013` Every written `work-item` record carries a non-empty
       `work_item.necessity_rationale`.
-- [ ] `AC-0014` The close output prints each captured item's
+- [x] `AC-0014` The close output prints each captured item's
       `necessity_rationale` beside that item.
-- [ ] `AC-0015` Every record in the store carrying a
+- [x] `AC-0015` Every record in the store carrying a
       `request.contract_version` reads under the validator that field selects.
-- [ ] `AC-0016` Every record in the store carrying **no `request` object**
+- [x] `AC-0016` Every record in the store carrying **no `request` object**
       reads under the `observation-event.v1` envelope and is not passed to
       capture version selection. The partition keys on capture-payload
       presence, per § D10, not on whether the version field happens to be
       there.
-- [ ] `AC-0062` A record carrying a `request` object with no
+- [x] `AC-0062` A record carrying a `request` object with no
       `contract_version` is refused with a code from
       `REQUIRED_DIAGNOSTIC_CODES`, not admitted as an envelope-only event.
       The schema made an absent field fail by construction; moving selection
       into a map removed that, so absence is closed here as explicitly as an
       unknown value is by `AC-0047`.
-- [ ] `AC-0017` Replaying the store rewrites no record: every file's bytes are
+- [x] `AC-0017` Replaying the store rewrites no record: every file's bytes are
       unchanged.
-- [ ] `AC-0047` A capture payload whose `request.contract_version` names no
+- [x] `AC-0047` A capture payload whose `request.contract_version` names no
       known validator is refused with a code drawn from
       `REQUIRED_DIAGNOSTIC_CODES`, and nothing is stored. It is never
       validated by a default, by the oldest validator, or not at all.
-- [ ] `AC-0048` A submission whose `request.contract_version` is not the
+- [x] `AC-0048` A submission whose `request.contract_version` is not the
       writable version is refused at the write path, rather than validated
       under that version's rules and emitted at the writable one.
-- [ ] `AC-0018` A payload the writer emits carries
+- [x] `AC-0018` A payload the writer emits carries
       `knowledge-captured-observation.v2` and no other version, asserted over
       the write path.
-- [ ] `AC-0031` Every free-text field a `work-item` record carries —
+- [x] `AC-0031` Every free-text field a `work-item` record carries —
       `work_item`'s `statement`, `finished_state`, `necessity_rationale`,
       `observed`, `intended` and `answered_by` — is passed to the
       deterministic privacy scan. The scanned set is **derived from the
@@ -989,19 +989,19 @@ plan owns; they carry no criterion.
       a closed set is refused by the enum before any scan runs, so the case
       could not fail. Repository paths in the record are excluded too, on the
       different ground that they reach `assert_persistable_paths`.
-- [ ] `AC-0032` A `work-item` record whose `lesson` is absent is
+- [x] `AC-0032` A `work-item` record whose `lesson` is absent is
       privacy-scanned without error.
-- [ ] `AC-0034` A privacy-scan failure on a `work-item` record returns a
+- [x] `AC-0034` A privacy-scan failure on a `work-item` record returns a
       reason code drawn from `REQUIRED_DIAGNOSTIC_CODES`, and the store's
       bytes are unchanged. The scan raises rather than returns, so without the
       second half an implementation that appends, catches and reports
       satisfies the criterion while committing the string the scan refuses.
-- [ ] `AC-0035` An item any of whose six free-text fields — the set
+- [x] `AC-0035` An item any of whose six free-text fields — the set
       `AC-0031` derives — matches the existing instruction-shape pattern is
       refused before the reasoning dispatch.
-- [ ] `AC-0036` The reasoning dispatch presents item content as delimited
+- [x] `AC-0036` The reasoning dispatch presents item content as delimited
       data, and an item's prose never reaches it as instruction text.
-- [ ] `AC-0069` **Every input the reasoning dispatch can receive is
+- [x] `AC-0069` **Every input the reasoning dispatch can receive is
       enumerated and placed in exactly one bin** — deterministically refused
       before the dispatch, or recorded as unscreened.
 
@@ -1035,9 +1035,9 @@ plan owns; they carry no criterion.
       `verification_route.command` is in the **unscreened** bin — § D6's
       argv rules run at write time, after the per-item dispatch under
       § D3's ordering, so only `AC-0036`'s framing is ahead of it.
-- [ ] `AC-0037` A refused capture returns a reason code drawn from
+- [x] `AC-0037` A refused capture returns a reason code drawn from
       `REQUIRED_DIAGNOSTIC_CODES`.
-- [ ] `AC-0068` **The write path refuses any submission that does not carry
+- [x] `AC-0068` **The write path refuses any submission that does not carry
       a well-formed, recognized, item-correlated verdict.** The gate is in
       `project_knowledge.py`, at the write, not in the skill prose that
       obtains the verdict — prose is enforced by source-text assertions,
@@ -1096,21 +1096,21 @@ plan owns; they carry no criterion.
       admitted here is permanent. This criterion does **not** retire when
       the mechanical tier lands: that spec's `AC-0004` is conditioned on an
       item both its checks admit, so it never covers unavailability.
-- [ ] `AC-0044` An item the necessity razor refuses is not written, and the
+- [x] `AC-0044` An item the necessity razor refuses is not written, and the
       refusal returns `work_item_unnecessary`. This is the razor FEAT-0006
       § Validation at capture calls the test that keeps the well a well rather
       than a heap; without it a validator that admits every syntactically
       valid record satisfies every other criterion in this spec.
-- [ ] `AC-0045` An item whose shape's § D1 threshold is not met is not
+- [x] `AC-0045` An item whose shape's § D1 threshold is not met is not
       written, and the refusal returns `work_item_threshold`.
-- [ ] `AC-0038` A refused item corrected and re-submitted once within the same
+- [x] `AC-0038` A refused item corrected and re-submitted once within the same
       close is admitted, matched by the declined-set ordinal § D4 defines.
-- [ ] `AC-0039` A second refusal of that same item ends that close.
-- [ ] `AC-0040` A close declining more than 12 items refuses before it
+- [x] `AC-0039` A second refusal of that same item ends that close.
+- [x] `AC-0040` A close declining more than 12 items refuses before it
       dispatches the first validation.
-- [ ] `AC-0041` Each item's reasoning check runs in a context with no access
+- [x] `AC-0041` Each item's reasoning check runs in a context with no access
       to the originating session's transcript.
-- [ ] `AC-0070` **A caller can obtain the correlation key for a declined
+- [x] `AC-0070` **A caller can obtain the correlation key for a declined
       item without computing it, and obtaining one writes nothing.** The key
       is a SHA-256 over the canonical dispatch payload, so a caller cannot
       produce one by hand; before this existed the capture path had a
@@ -1125,23 +1125,23 @@ plan owns; they carry no criterion.
       `AC-0069` records is unchanged, and the write-time floor is unchanged.
       See `notes/amendment-009.md`.
 
-- [ ] `AC-0049` A well-formed read-only argv — `["grep", "pattern",
+- [x] `AC-0049` A well-formed read-only argv — `["grep", "pattern",
       "src/a.py"]` — is written and read back element-for-element unchanged.
-- [ ] `AC-0050` A `verification_route.command` that is a string rather than an
+- [x] `AC-0050` A `verification_route.command` that is a string rather than an
       array is refused at write time and nothing is stored.
-- [ ] `AC-0051` A stored command any of whose elements is not a string is
+- [x] `AC-0051` A stored command any of whose elements is not a string is
       refused at write time with a catalog code, and nothing is stored.
-- [ ] `AC-0052` A stored command of fewer than 1 or more than 20 elements is
+- [x] `AC-0052` A stored command of fewer than 1 or more than 20 elements is
       refused at write time and nothing is stored.
-- [ ] `AC-0053` A stored command carrying fewer operands than § D6 requires
+- [x] `AC-0053` A stored command carrying fewer operands than § D6 requires
       for its `argv[0]` is refused at write time and nothing is stored.
-- [ ] `AC-0054` A stored command any of whose elements begins with `-` is
+- [x] `AC-0054` A stored command any of whose elements begins with `-` is
       refused at write time and nothing is stored.
-- [ ] `AC-0055` A stored command whose `argv[0]` is outside `cat`, `wc`,
+- [x] `AC-0055` A stored command whose `argv[0]` is outside `cat`, `wc`,
       `grep`, `ls` is refused at write time and nothing is stored.
-- [ ] `AC-0056` A stored command any of whose elements after `argv[0]` fails
+- [x] `AC-0056` A stored command any of whose elements after `argv[0]` fails
       § D6's character class is refused at write time and nothing is stored.
-- [ ] `AC-0057` A stored command any of whose elements after `argv[0]`, other
+- [x] `AC-0057` A stored command any of whose elements after `argv[0]`, other
       than `grep`'s pattern, fails the **re-anchored** `repositoryPath` rule
       § D6 defines — the schema's pattern with its trailing `$` rewritten to
       `\Z` — is refused at write time and nothing is stored. The re-anchoring
@@ -1151,11 +1151,11 @@ plan owns; they carry no criterion.
       against that class being narrowed, and only a narrowing would make it
       detectable — no criterion pins it, because none can.
 
-- [ ] `AC-0059` A stored command whose elements total more than 2,000
+- [x] `AC-0059` A stored command whose elements total more than 2,000
       characters is refused at write time and nothing is stored.
-- [ ] `AC-0060` A stored command any of whose elements exceeds 500 characters
+- [x] `AC-0060` A stored command any of whose elements exceeds 500 characters
       is refused at write time and nothing is stored.
-- [ ] `AC-0061` Every element of a stored command **after `argv[0]`** is
+- [x] `AC-0061` Every element of a stored command **after `argv[0]`** is
       passed to `assert_persistable_text`, the eight-pattern scan the string `command`
       is scanned against today — not `assert_persistable_paths`, which carries
       four and would drop `_URL`, `_NON_HTTP_LOCATOR` and `_BARE_HOSTNAME` from a
