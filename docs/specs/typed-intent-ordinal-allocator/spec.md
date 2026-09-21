@@ -9,7 +9,7 @@
 
 ## Outcome
 
-An intent that admission **creates** at a recognized altitude carries a human-friendly typed identity in its filename — `CAP-0001-repository-work-graph.md` is a live example of the shape — so a reader can name an intent by its altitude and number rather than by a slug.
+An intent that **`work-intake` creates** at a recognized altitude carries a human-friendly typed identity in its filename — `CAP-0001-repository-work-graph.md` is a live example of the shape — so a reader can name an intent by its altitude and number rather than by a slug. A direct `intake-intent` request has no allocator to consult and lands unprefixed, which the table below states rather than leaves as an exception.
 
 **Admission never blocks on an ordinal.** Owner decision, 2026-09-20. Five cases, and all five admit:
 
@@ -21,7 +21,7 @@ An intent that admission **creates** at a recognized altitude carries a human-fr
 | direct `intake-intent` creates | `<slug>.md` | that no ordinal was allocated |
 | intent already on disk, either path | unchanged | none |
 
-Only the third and fourth rows leave a marker, and the distinction is the point: an unmapped altitude is the intended outcome for that altitude rather than a gap, so marking it would train a reader to ignore the marker the other two depend on. A marker is what makes a missing alias re-issuable later.
+A marker appears on exactly two rows, and never on the unmapped one. A refusal means the allocator was asked and could not answer, so the ordinal is owed and the marker is what makes it re-issuable. An unmapped altitude means the allocator was never asked, because the table has no token for that altitude — the bare path is the intended outcome, not a shortfall, and marking it would train a reader to ignore the marker the two real cases depend on.
 
 `kind:slug` is canonical and the ordinal is an alias, so an intent without one is whole. That is what makes proceeding the right answer rather than a concession — and why no row stops.
 
@@ -54,7 +54,7 @@ ADR-0098 D2 is preserved on both paths: `intake-intent` remains the owner of adm
 | Interface compatibility | Applicable — a new `work-intake` → allocator boundary with two exit codes and a caller-side unmapped route that never invokes it | `packs/core/.apm/skills/work-intake/SKILL.md` § 6 and the script's own `--help` | T1, T3 | The exit-code contract stated in both, with one stub case per code | An adopter reading either surface gets the same three outcomes |
 | Decision rationale | Not applicable — every load-bearing decision is an owner decision already recorded in the parent intent's `## Boundary` or in ADR-0033, ADR-0098 and ADR-0108 | — | — | — | — |
 | Maintainer procedure | Not applicable — no operator runbook changes; the allocator is invoked by a skill, not by a person | — | — | — | — |
-| Adopter-facing authoring promise | **Not applicable** — `guides/product-engineering/**` and `guides/_shared/how-to/run-a-full-inception.md` name the same path for `frame-intent`, which *authors* an intent into `<output_dir>/intents/<slug>.md` and is untouched by this slice. Authoring and admission are two stages: an intent framed at the unprefixed path is later admitted, and admission is where the ordinal is assigned | — | — | — | — |
+| Adopter-facing authoring promise | **Not applicable** — `guides/product-engineering/**` and `guides/_shared/how-to/run-a-full-inception.md` name the same path for `frame-intent`, which authors an intent into `<output_dir>/intents/<slug>.md`. That path stays correct because nothing in this slice changes it and nothing renames it: an intent already on disk when admission runs keeps its filename, so these surfaces describe what an adopter will still see. The authoring route therefore yields untyped intents until `intent-renumber-and-reissue` ships, which `## Follow-ons` records | — | — | — | — |
 | Reusable learning | Not applicable — the one transferable finding, that a max-plus-one helper cannot see an unpushed peer, is already recorded in ADR-0108's Context | — | — | — | — |
 
 ## Agent Rules

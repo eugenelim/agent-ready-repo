@@ -176,9 +176,12 @@ backend, and `intake_transaction.py`'s validated target is the only path the
 materializer may write. Honouring it would have cost a transaction-core change,
 a capability widening and a fresh secure-design pass — none of which was visible
 when the options were put to the owner. The case went to
-`intent-renumber-and-reissue`. That is where the mechanism belongs on its own
-merits, since renumbering needs a confined transactional rename regardless — but
-the reason it is not here is the capability wall, not convenience. AC-0022 and AC-0023 are retired in the spec.
+`intent-renumber-and-reissue`. The reason is the capability wall,
+not a judgement about where a rename fits best. The pre-registration argument
+that made the rename look cheap — that registration follows the artifact write,
+so an entry would be created once at the final path — was the rationale for the
+withdrawn decision and is superseded by it: no admission surface can perform the
+move that argument assumed. AC-0022 and AC-0023 are retired in the spec.
 
 The transferable part is the shape of the mistake: the options offered to the
 owner were priced without first checking what the affected surfaces are
