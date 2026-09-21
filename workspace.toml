@@ -583,7 +583,6 @@ open = [
   # to the document it retires; the retirement instead narrows its scaffold-link
   # criteria to the links it touches, which leaves these untouched and visible.
   {slug = "core-seeds-mandate-other-packs-content", source = "spec/conventions-retirement (round-5 adopter-boundary review)"},
-  {slug = "pre-existing-local-ci-shared-test-dedup-drift", source = "pre-flight/2026-09-16"},  # 2 cases in tools/test_local_ci_shared_test_deduplication.py fail on a clean tree: test_real_make_root_tool_groups_match_the_approved_profiles (4 errors - standalone/composed process-count and membership drift; needs a decision on which of FIRST_TOOL_BATCH / RETAINED_TOOL_SINGLETONS / FINAL_TOOL_BATCH owns the two pytest commands 2b1574e19 added) and test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation (APPROVED_STANDALONE_PLAN_DIGEST / APPROVED_COMPOSED_PLAN_DIGEST; the 133 reported items are a printout of the computed plan, not 133 defects). Both trace to 2b1574e19 adding packages/jsonl-otlp-exporter to the Makefile. The third case, the sast-unleased byte pin, was re-pinned 2026-09-16. Proven pre-existing by differential: they fail with this branch's new tools/ files removed, and the Makefile is unmodified in the diff. NOTE: this file is in make test (Makefile:643), so make test is red on main until these land.
   # The sender cannot explain its own effective configuration. `resolve_telemetry`
   # returns a merged mapping, so once resolution SUCCEEDS nothing records which
   # scope supplied an admitted value, whether either file existed at all, or which
@@ -740,57 +739,6 @@ open = [
   # `Unblocks when:` above is satisfied — `docs/specs/layout-install-sections/spec.md`
   # is Shipped.
   {path = "docs/architecture/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
-  # A recorded "live defect" that is the designed flow, and the reason a whole
-  # delivery slice was built and retired on 2026-09-20. Registered so it is not
-  # re-discovered as a defect a third time.
-  # The claim, from `docs/product/briefs/intent-identity-and-registration.md`
-  # `## Current-state evidence`: an adopter pointing `[product] output_dir` at a
-  # personal vault "gets `frame-intent` writing to the vault and `intake-intent`
-  # writing to the repository. This is the deterministic-placement defect already
-  # live, not a hypothetical."
-  # Why it is not a defect. `intake-intent` admits personal and vault sources by
-  # design. `SKILL.md:81-85` requires a human-confirmed repository-relative
-  # destination, minimized provenance, and explicit authority transfer before such
-  # a write, and `intent_renderer.py:63` carries
-  # `_TRANSFER_MODES = {"chat-only", "personal", "personal-vault", "vault"}`.
-  # Authoring in a vault and admitting into the repository are two stages of one
-  # flow, not two skills disagreeing about one path.
-  # And `intake-intent`'s `docs/product/intents/{slug}.md` (`:69`) is a pinned
-  # core hand-off rather than a hardcode to fix. `frame-intent`'s own layout
-  # reference states the rule for the sibling case at `:69-72`: a path that hands
-  # off to core "stays pinned (a deliberate non-goal of this layout config)". That
-  # rule is stated for briefs and not for intents, which is the real gap and is
-  # part of the reader/vocabulary reconciliation above.
-  # What it cost: a slice that reached 54 acceptance criteria, three security
-  # findings that could not be closed, a cross-pack execution channel, three
-  # transport mechanisms, and a `Bash` grant — all to repair something that
-  # already worked. The full record is in
-  # `docs/specs/frame-intent-escape-verdicts/notes/verification-ledger.md`.
-  # Remaining work is one sentence in this file: state the pinned-handoff rule
-  # for intents beside the one it already states for briefs at `:69-72`. The
-  # brief's own evidence bullet is already corrected in place, so nothing is
-  # registered against the brief itself — it sits in a brief queue and cannot
-  # also hold a backlog membership.
-  {path = "packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md"}, summary = "State the pinned-handoff rule for intents beside the one already stated for briefs, so a core hand-off path is not read as configurable", needs = []},
-  # Two answers from one process about where an item's output goes.
-  # `workspace_mcp.py:1045` and `:1067` emit `"output_pattern":
-  # manifest.get("output_pattern")` into the `workspace_status` payload with **no**
-  # layout override applied, while `_resolve_output_pattern:1519` does apply one.
-  # So an adopter who has configured `[product] output_dir` sees the
-  # un-overridden default in the status surface and the overridden path
-  # everywhere else.
-  # Registered 2026-09-20 in place of an earlier, wrong framing that asked to
-  # "extend the MCP to all five sections". That was a category error:
-  # `_LAYOUT_TYPE_BASES:1556` is keyed by **item type**, not by pack, so
-  # `strategy -> ("product", ...)` is correct because the strategy item dispatches
-  # `frame-situation`, a product-engineering skill that reads `[product]`; and
-  # `architecture` cannot be missing because `_LIFECYCLE_MANIFEST:75-160` defines
-  # no architecture item type. RFC-0040:444-447 states the item-type keying
-  # deliberately. An unmapped type also returns the default pattern rather than a
-  # wrong one (`:1567`), so the original claim was cosmetic as well as wrong.
-  # Natural parent if this wants an outcome rather than a defect row:
-  # `docs/product/intents/workspace-mcp-production-readiness.md`.
-  {path = "packages/agentbundle/agentbundle/workspace_mcp.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/product/intents/workspace-mcp-production-readiness.md"}, summary = "Apply the layout override in the workspace_status payload, so one process does not report two different output paths for a configured item type", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because
   # each needs an owner decision, not an edit. Shared root cause: the engine
@@ -948,6 +896,14 @@ open = [
 
   {path = "docs/specs/apm-install-route-parity/notes/apm-install-route-parity.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/apm-install-route-parity/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Record the outstanding APM core, converters, Copilot, Cursor, and Gemini live-install checks in manual-QA matrix rows 32 through 34", needs = []},
 
+  # Its own subject work is DONE -- the note records `Retired on 2026-09-08`
+  # with a full disposition -- but this entry stays, because it is a deferral
+  # anchor rather than open work. `docs/specs/house-voice-writing-craft/spec.md`
+  # carries two live `(deferred: apm-leak-lint-rfc)` markers at :93 and :101,
+  # and lint-spec-status.py invariant (iv) is a HARD repo-wide check that every
+  # such anchor resolve in `[backlog].open`. Removing the entry fails that gate
+  # twice. Retiring it means first amending those two criteria on a Shipped
+  # spec, which is a governed amendment, not register hygiene.
   {path = "docs/specs/house-voice-writing-craft/notes/apm-leak-lint-rfc.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/house-voice-writing-craft/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Retire the obsolete APM leak-lint RFC proposal after the concrete sweep shipped and catalogue verification replaced the deleted standalone linter", needs = []},
 
   # Not mechanical, despite the note file naming the exact two-line edit. The
