@@ -2,6 +2,8 @@
 
 - **Slug:** `rendered-page-visual-inspection`
 - **Level:** `feature`
+- **Status:** Fulfilled
+- **Owner:** eugenelim
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** none

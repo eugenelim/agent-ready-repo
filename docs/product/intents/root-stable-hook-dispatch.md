@@ -1,7 +1,9 @@
 # Root-stable repository hook dispatch
 
+- **Slug:** `root-stable-hook-dispatch`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

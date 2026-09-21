@@ -1,7 +1,9 @@
 # Tracker refresh carries trusted authority inputs
 
+- **Slug:** `tracker-refresh-trusted-authority-inputs`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

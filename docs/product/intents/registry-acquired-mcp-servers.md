@@ -1,8 +1,10 @@
 # Registry-acquired MCP servers
 
+- **Slug:** `registry-acquired-mcp-servers`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0092 D7](../../rfc/0092-first-class-distribution-routes.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0092 D7](../../rfc/0092-first-class-distribution-routes.md)
 
 ## Outcome
 

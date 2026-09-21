@@ -1,7 +1,9 @@
 # Nontechnical-pack first-value rollout
 
+- **Slug:** `nontechnical-pack-first-value-rollout`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 

@@ -1,7 +1,9 @@
 # SSO browser state is bounded and minimally retained
 
+- **Slug:** `sso-browser-state-protection`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 

@@ -1,8 +1,10 @@
 # Work-loop repair correctness
 
-- **Status:** Draft
+- **Slug:** `work-loop-repair-correctness`
+- **Status:** Withdrawn
 - **Kind:** outcome
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)

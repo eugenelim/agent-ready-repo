@@ -1,8 +1,10 @@
 # Spec authoring and response protocols: deferred until a frozen-case run can score them
 
+- **Slug:** `spec-authoring-protocol-measured-before-shipping`
 - **Status:** Draft
 - **Kind:** outcome
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)

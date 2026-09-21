@@ -1,7 +1,9 @@
 # Give native Windows and macOS verification a coverage contract worth running
 
+- **Slug:** `native-platform-verification-coverage`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 
@@ -26,10 +28,6 @@ where a reader can act on it and enforced where a mechanism can decide it.
 - Exclude Xcode builds, signing identities, simulators, nested virtualization,
   Apple deployment, larger or self-hosted runners, and any weakening of an
   existing gate or required check.
-
-## Owner
-
-- eugenelim
 
 ## Unresolved questions
 

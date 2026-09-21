@@ -1,7 +1,9 @@
 # Semgrep registry ruleset pinning
 
+- **Slug:** `semgrep-registry-ruleset-pinning`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

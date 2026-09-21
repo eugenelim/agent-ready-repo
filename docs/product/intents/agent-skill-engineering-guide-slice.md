@@ -1,8 +1,10 @@
 # Agent skill engineering has a dedicated guide route
 
+- **Slug:** `agent-skill-engineering-guide-slice`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/agent-skill-engineering-foundation AC21](../../specs/agent-skill-engineering-foundation/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/agent-skill-engineering-foundation AC21](../../specs/agent-skill-engineering-foundation/spec.md)
 
 ## Outcome
 

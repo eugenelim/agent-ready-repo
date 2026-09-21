@@ -1,8 +1,10 @@
 # Work-loop review economics
 
-- **Status:** Draft
+- **Slug:** `work-loop-review-economics`
+- **Status:** Withdrawn
 - **Kind:** outcome
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)

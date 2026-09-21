@@ -1,7 +1,9 @@
 # Cross-adapter behavior enforcement
 
+- **Slug:** `cross-adapter-behavior-enforcement`
 - **Status:** Draft
 - **Level:** product-strategy
+- **Owner:** eugenelim
 
 ## Outcome
 

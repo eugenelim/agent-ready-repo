@@ -1,7 +1,9 @@
 # Reviewer agent vacuous-assertion coverage
 
-- **Status:** Draft
+- **Slug:** `reviewer-agent-vacuous-assertion-coverage`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

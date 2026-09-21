@@ -1,7 +1,9 @@
 # A new team can walk the whole SDLC from the guides
 
+- **Slug:** `sdlc-guide-uplift-and-learning-paths`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

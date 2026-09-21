@@ -1,7 +1,9 @@
 # New-spec review acceptance uses its exact clean-result contract
 
-- **Status:** Draft
+- **Slug:** `new-spec-review-phrase-contract`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

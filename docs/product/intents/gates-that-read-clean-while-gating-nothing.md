@@ -1,7 +1,9 @@
 # Gates report their declared failure conditions
 
+- **Slug:** `gates-that-read-clean-while-gating-nothing`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

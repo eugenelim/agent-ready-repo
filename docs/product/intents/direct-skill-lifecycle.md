@@ -1,7 +1,9 @@
 # Keeping a directly installed skill current
 
+- **Slug:** `direct-skill-lifecycle`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 
 ## Outcome

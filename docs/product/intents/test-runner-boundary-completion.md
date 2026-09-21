@@ -1,9 +1,10 @@
 # Test runner boundary completion
 
+- **Slug:** `test-runner-boundary-completion`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/build-check-coverage-gaps runner-boundary follow-on](../../specs/build-check-coverage-gaps/spec.md)
-- **Authority:** [spec/site-browser-quality-gate review](../../specs/site-browser-quality-gate/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/build-check-coverage-gaps runner-boundary follow-on](../../specs/build-check-coverage-gaps/spec.md); [spec/site-browser-quality-gate review](../../specs/site-browser-quality-gate/spec.md)
 
 ## Outcome
 

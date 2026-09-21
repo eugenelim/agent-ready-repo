@@ -1,7 +1,9 @@
 # Native Codex plugin route
 
+- **Slug:** `codex-plugin-route`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

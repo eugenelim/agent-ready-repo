@@ -1,6 +1,9 @@
 # Two contract corrections that a frozen task section could not accept
 
+- **Slug:** `loop-telemetry-contract-corrections`
+- **Level:** feature
 - **Status:** Draft
+- **Owner:** eugenelim
 
 
 ## Outcome

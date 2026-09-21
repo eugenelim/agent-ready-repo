@@ -1,8 +1,10 @@
 # Catalogue marketing evaluator surface
 
+- **Slug:** `catalogue-wave7-marketing-evaluator`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0076 D10](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0076 D10](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 
 ## Outcome
 

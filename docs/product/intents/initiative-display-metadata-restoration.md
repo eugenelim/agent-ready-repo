@@ -1,7 +1,9 @@
 # Show an initiative's name and milestone at orientation
 
-- **Status:** Accepted
+- **Slug:** `initiative-display-metadata-restoration`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 
@@ -27,10 +29,6 @@ since placed out of scope.
   projection emits, not what an author may write.
 - Determinism is a property of this tool. Same input, same output, before and
   after.
-
-## Owner
-
-eugenelim
 
 ## Unresolved questions
 

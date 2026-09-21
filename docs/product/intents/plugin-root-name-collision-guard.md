@@ -1,6 +1,9 @@
 # Claude plugin root-name collision guard
 
+- **Slug:** `plugin-root-name-collision-guard`
+- **Level:** feature
 - **Status:** Accepted
+- **Owner:** eugenelim
 
 
 ## Outcome

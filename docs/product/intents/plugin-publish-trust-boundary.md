@@ -1,10 +1,10 @@
 # Plugin publication has a reviewable trust boundary
 
+- **Slug:** `plugin-publish-trust-boundary`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md)
-- **Authority:** [spec/claude-plugin-hook-parity AC35](../../specs/claude-plugin-hook-parity/spec.md)
-- **Authority:** [spec/marketplace-generator-single-source review concern 4](../../specs/marketplace-generator-single-source/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md); [spec/claude-plugin-hook-parity AC35](../../specs/claude-plugin-hook-parity/spec.md); [spec/marketplace-generator-single-source review concern 4](../../specs/marketplace-generator-single-source/spec.md)
 
 ## Outcome
 

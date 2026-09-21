@@ -1,7 +1,9 @@
 # Bind checked paths to the objects later read
 
+- **Slug:** `checked-then-reopened-path-confinement`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

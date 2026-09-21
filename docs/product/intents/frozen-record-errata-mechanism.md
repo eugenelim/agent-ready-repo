@@ -1,7 +1,9 @@
 # Correct frozen records through a licensed errata mechanism
 
-- **Status:** Draft
+- **Slug:** `frozen-record-errata-mechanism`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

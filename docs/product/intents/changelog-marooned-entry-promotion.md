@@ -1,7 +1,9 @@
 # Promote marooned changelog releases to published sections
 
+- **Slug:** `changelog-marooned-entry-promotion`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

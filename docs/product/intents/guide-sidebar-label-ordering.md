@@ -1,8 +1,10 @@
 # Guide sidebar ordering remains stable when curated labels change
 
+- **Slug:** `guide-sidebar-label-ordering`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/guide-metadata-completion sidebar decision](../../specs/guide-metadata-completion/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/guide-metadata-completion sidebar decision](../../specs/guide-metadata-completion/spec.md)
 
 ## Outcome
 

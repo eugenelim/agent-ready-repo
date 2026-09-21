@@ -1,7 +1,9 @@
 # SSO-cookie lint wording matches the check carve-out
 
+- **Slug:** `sso-cookie-lint-contract-wording`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

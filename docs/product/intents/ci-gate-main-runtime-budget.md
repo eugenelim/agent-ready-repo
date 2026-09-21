@@ -1,7 +1,9 @@
 # CI gate-main meets its runtime budget
 
+- **Slug:** `ci-gate-main-runtime-budget`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

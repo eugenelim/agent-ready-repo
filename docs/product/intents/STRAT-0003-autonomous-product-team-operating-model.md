@@ -4,6 +4,7 @@
 - **Kind:** opportunity <!-- chain rung: the need this strategy addresses on the opportunity-solution tree; orthogonal to Level -->
 - **Status:** Draft
 - **Level:** product-strategy
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** ai-native-ecosystem — [AI-native ecosystem](VISION-0001-ai-native-ecosystem.md)

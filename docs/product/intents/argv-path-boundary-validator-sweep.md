@@ -1,8 +1,10 @@
 # Argv path boundary validator sweep
 
+- **Slug:** `argv-path-boundary-validator-sweep`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/pack-script-root-boundary-validation](../../specs/pack-script-root-boundary-validation/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/pack-script-root-boundary-validation](../../specs/pack-script-root-boundary-validation/spec.md)
 
 ## Outcome
 

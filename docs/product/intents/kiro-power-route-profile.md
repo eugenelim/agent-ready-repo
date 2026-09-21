@@ -1,7 +1,9 @@
 # Kiro Power route profile
 
+- **Slug:** `kiro-power-route-profile`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

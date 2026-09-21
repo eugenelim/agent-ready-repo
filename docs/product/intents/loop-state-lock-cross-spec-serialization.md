@@ -1,8 +1,10 @@
 # Serialize loop state recovery across specs
 
+- **Slug:** `loop-state-lock-cross-spec-serialization`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/loop-cohort-state-lock AC11](../../specs/loop-cohort-state-lock/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/loop-cohort-state-lock AC11](../../specs/loop-cohort-state-lock/spec.md)
 
 ## Outcome
 

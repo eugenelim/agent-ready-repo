@@ -5,6 +5,7 @@
 - **Status:** Fulfilled
 - **Fulfilled:** 2026-09-19 by eugenelim, on an independent fulfilment verification against the repository rather than against this artifact's own account of its delivery.
 - **Level:** product-strategy
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** ai-native-ecosystem — [AI-native ecosystem](VISION-0001-ai-native-ecosystem.md)

@@ -1,7 +1,9 @@
 # Canonical MCP install parity
 
+- **Slug:** `canonical-mcp-install-parity`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

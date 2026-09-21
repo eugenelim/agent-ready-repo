@@ -1,7 +1,9 @@
 # Consolidate workflow-posture harnesses without weakening their contracts
 
+- **Slug:** `workflow-posture-harness-consolidation`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

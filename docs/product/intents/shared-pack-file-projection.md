@@ -1,7 +1,9 @@
 # One shared source projects a file into every skill location that needs it
 
+- **Slug:** `shared-pack-file-projection`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

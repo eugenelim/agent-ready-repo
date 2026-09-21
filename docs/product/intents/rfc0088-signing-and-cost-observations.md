@@ -1,9 +1,10 @@
 # RFC-0088 signing and destination-cost observations are complete
 
+- **Slug:** `rfc0088-signing-and-cost-observations`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/rfc0088-round12-consumer-shaped-residuals AC5](../../specs/rfc0088-round12-consumer-shaped-residuals/spec.md)
-- **Authority:** [RFC-0088 item 6 per-group amendment](../../rfc/0088-web-pilot-foundation.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/rfc0088-round12-consumer-shaped-residuals AC5](../../specs/rfc0088-round12-consumer-shaped-residuals/spec.md); [RFC-0088 item 6 per-group amendment](../../rfc/0088-web-pilot-foundation.md)
 
 ## Outcome
 

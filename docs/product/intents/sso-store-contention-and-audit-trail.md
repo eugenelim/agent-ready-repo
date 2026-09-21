@@ -1,9 +1,10 @@
 # Make SSO contention recoverable and auditable
 
+- **Slug:** `sso-store-contention-and-audit-trail`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/sso-store-transition-serialization AC24](../../specs/sso-store-transition-serialization/spec.md)
-- **Authority:** [spec/sso-store-transition-serialization AC10](../../specs/sso-store-transition-serialization/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/sso-store-transition-serialization AC24](../../specs/sso-store-transition-serialization/spec.md); [spec/sso-store-transition-serialization AC10](../../specs/sso-store-transition-serialization/spec.md)
 
 ## Outcome
 

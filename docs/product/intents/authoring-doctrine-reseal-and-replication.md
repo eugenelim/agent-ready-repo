@@ -1,8 +1,10 @@
 # Replicate authoring doctrine and reseal shaping gates
 
+- **Slug:** `authoring-doctrine-reseal-and-replication`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0099 §7](../../rfc/0099-cut-before-adding-and-artifact-shaping.md); [spec/shaping-review-contracts follow-ons](../../specs/shaping-review-contracts/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0099 §7](../../rfc/0099-cut-before-adding-and-artifact-shaping.md); [spec/shaping-review-contracts follow-ons](../../specs/shaping-review-contracts/spec.md)
 
 ## Outcome
 

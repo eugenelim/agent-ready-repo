@@ -1,8 +1,10 @@
 # Include the guide corpus in catalogue archives
 
+- **Slug:** `catalogue-archive-guide-corpus`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/documentation-entry-navigation](../../specs/documentation-entry-navigation/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/documentation-entry-navigation](../../specs/documentation-entry-navigation/spec.md)
 
 ## Outcome
 

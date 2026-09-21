@@ -1,7 +1,9 @@
 # Emitted guide-link fallback detector
 
+- **Slug:** `emitted-guide-link-fallback-detector`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

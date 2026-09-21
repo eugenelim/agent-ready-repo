@@ -1,7 +1,9 @@
 # Projected-tree planning doctrine
 
+- **Slug:** `projected-tree-planning-doctrine`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

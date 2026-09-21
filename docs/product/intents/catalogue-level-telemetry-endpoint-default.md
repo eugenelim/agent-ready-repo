@@ -1,7 +1,9 @@
 # An enterprise catalogue configures the telemetry endpoint once, for all its users
 
+- **Slug:** `catalogue-level-telemetry-endpoint-default`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

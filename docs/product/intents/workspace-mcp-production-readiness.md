@@ -1,7 +1,9 @@
 # Workspace-MCP reaches production readiness
 
+- **Slug:** `workspace-mcp-production-readiness`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 

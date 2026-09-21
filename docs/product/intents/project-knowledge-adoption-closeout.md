@@ -1,7 +1,9 @@
 # Project-knowledge adoption closeout
 
+- **Slug:** `project-knowledge-adoption-closeout`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 

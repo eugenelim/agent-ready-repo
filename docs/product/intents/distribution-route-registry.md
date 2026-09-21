@@ -1,7 +1,9 @@
 # Distribution route registry extraction
 
-- **Status:** Draft
+- **Slug:** `distribution-route-registry`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

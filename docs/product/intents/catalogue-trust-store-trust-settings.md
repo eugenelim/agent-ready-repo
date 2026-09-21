@@ -1,6 +1,9 @@
 # Catalogue trust-store Never Trust enforcement
 
+- **Slug:** `catalogue-trust-store-trust-settings`
+- **Level:** feature
 - **Status:** Accepted
+- **Owner:** eugenelim
 
 
 ## Outcome

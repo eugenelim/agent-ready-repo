@@ -1,9 +1,10 @@
 # Skill description semantic drift gate
 
+- **Slug:** `skill-description-semantic-drift-gate`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/local-gate-ci-parity AC12](../../specs/local-gate-ci-parity/spec.md)
-- **Authority:** [spec/pack-description-quality](../../specs/pack-description-quality/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/local-gate-ci-parity AC12](../../specs/local-gate-ci-parity/spec.md); [spec/pack-description-quality](../../specs/pack-description-quality/spec.md)
 
 ## Outcome
 

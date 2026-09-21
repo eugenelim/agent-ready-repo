@@ -1,8 +1,10 @@
 # Pinned packages governance markers are renamed consistently
 
+- **Slug:** `packages-marker-rename-sweep`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/packages-governance-marker-sweep AC5](../../specs/packages-governance-marker-sweep/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/packages-governance-marker-sweep AC5](../../specs/packages-governance-marker-sweep/spec.md)
 
 ## Outcome
 

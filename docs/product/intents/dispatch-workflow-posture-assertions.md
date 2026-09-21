@@ -1,5 +1,7 @@
 # Pin the dispatch-only workflows' posture against drift
 
+- **Slug:** `dispatch-workflow-posture-assertions`
+- **Level:** feature
 - **Status:** Draft
 - **Owner:** eugenelim
 

@@ -1,7 +1,9 @@
 # Close tracker write-back receipt and result contracts
 
+- **Slug:** `tracker-writeback-result-contracts`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

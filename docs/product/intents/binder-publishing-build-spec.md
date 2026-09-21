@@ -1,7 +1,9 @@
 # Define the binder-publishing build contract
 
+- **Slug:** `binder-publishing-build-spec`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

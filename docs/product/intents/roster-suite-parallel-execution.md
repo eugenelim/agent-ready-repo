@@ -1,6 +1,8 @@
 # Make the roster suite safe to run in parallel
 
-- **Status:** Draft
+- **Slug:** `roster-suite-parallel-execution`
+- **Level:** feature
+- **Status:** Fulfilled
 - **Owner:** eugenelim
 
 ## Outcome

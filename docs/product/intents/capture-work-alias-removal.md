@@ -1,7 +1,9 @@
 # The capture-work compatibility bridge is removed safely
 
+- **Slug:** `capture-work-alias-removal`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

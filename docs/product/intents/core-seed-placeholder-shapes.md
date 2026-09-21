@@ -1,7 +1,9 @@
 # Declared placeholder shapes for every core seed file
 
-- **Status:** Draft
+- **Slug:** `core-seed-placeholder-shapes`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Disposition — refuted 2026-08-29, no change made
 

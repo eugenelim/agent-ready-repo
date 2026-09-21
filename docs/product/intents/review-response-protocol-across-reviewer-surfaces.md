@@ -1,8 +1,10 @@
 # Review-response protocol across reviewer surfaces
 
+- **Slug:** `review-response-protocol-across-reviewer-surfaces`
 - **Status:** Draft
 - **Kind:** outcome
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** work-loop-review-economics — [Work-loop review economics](work-loop-review-economics.md)

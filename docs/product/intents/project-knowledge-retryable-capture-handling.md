@@ -1,6 +1,9 @@
 # Project-knowledge retryable capture handling
 
+- **Slug:** `project-knowledge-retryable-capture-handling`
+- **Level:** feature
 - **Status:** Draft
+- **Owner:** eugenelim
 
 
 ## Outcome

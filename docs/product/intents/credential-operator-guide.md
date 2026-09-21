@@ -1,8 +1,10 @@
 # Credential operators have a setup guide
 
+- **Slug:** `credential-operator-guide`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [credential architecture](../../architecture/credentials.md)
+- **Owner:** eugenelim
+- **Governed by:** [credential architecture](../../architecture/credentials.md)
 
 ## Outcome
 

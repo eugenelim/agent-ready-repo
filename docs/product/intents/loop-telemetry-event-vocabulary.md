@@ -1,6 +1,9 @@
 # Reconcile INI-005's telemetry event names with what the loop can emit
 
+- **Slug:** `loop-telemetry-event-vocabulary`
+- **Level:** feature
 - **Status:** Draft
+- **Owner:** eugenelim
 
 
 ## Outcome

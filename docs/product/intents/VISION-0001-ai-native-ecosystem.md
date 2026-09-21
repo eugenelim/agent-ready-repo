@@ -7,6 +7,7 @@
 - **Nonmaterial correction 2026-09-19 by eugenelim, lifecycle owner.** `Unresolved questions`, `Projection` and `Source` were backfilled to meet ADR-0098 D2's admission contract, which this family met only in part because it was framed by `frame-intent` and never admitted through `intake-intent`. `intake-intent` classes a change to projection, unresolved questions or source authority as material, which would return this intent to `Draft`; the lifecycle owner recorded it as nonmaterial because the sections record open matters and provenance that already existed in the artifact, and decide nothing new. Prior review evidence stands.
 - **Kind:** outcome <!-- chain rung: the North Star / chain root; orthogonal to Level -->
 - **Level:** product-vision
+- **Owner:** eugenelim
 - **Scale:** business-unit
 - **Maturity:** brownfield
 - **Parent intent:** none <!-- deliberate entry at product-vision altitude; an ABSENT field means legacy or unclassified -->

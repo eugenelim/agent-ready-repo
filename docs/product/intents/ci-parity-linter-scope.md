@@ -1,8 +1,10 @@
 # Extend CI parity to each remaining workflow
 
+- **Slug:** `ci-parity-linter-scope`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/local-gate-ci-parity](../../specs/local-gate-ci-parity/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/local-gate-ci-parity](../../specs/local-gate-ci-parity/spec.md)
 
 ## Outcome
 

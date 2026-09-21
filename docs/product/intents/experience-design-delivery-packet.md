@@ -1,5 +1,6 @@
 # A practitioner can account for every deliverable the experience-design pack owes
 
+- **Slug:** `experience-design-delivery-packet`
 - **Status:** Draft
 - **Level:** capability
 - **Owner:** eugenelim

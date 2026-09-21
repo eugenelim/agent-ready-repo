@@ -1,7 +1,9 @@
 # Claude manifest migration and support claims
 
+- **Slug:** `claude-manifest-migration-support-claims`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

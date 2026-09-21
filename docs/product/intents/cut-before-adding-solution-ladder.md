@@ -1,7 +1,9 @@
 # Cut-before-adding solution ladder
 
-- **Status:** Accepted
+- **Slug:** `cut-before-adding-solution-ladder`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** business-unit
 - **Maturity:** brownfield
 

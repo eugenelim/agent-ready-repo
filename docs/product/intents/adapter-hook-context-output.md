@@ -1,7 +1,9 @@
 # Runtime-specific hook context output
 
+- **Slug:** `adapter-hook-context-output`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

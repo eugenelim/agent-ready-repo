@@ -1,9 +1,10 @@
 # Agentbundle installation supports importable markers and mergeable YAML policies
 
+- **Slug:** `agentbundle-install-artifact-layout`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/engine-export-boundary Product boundary](../../specs/engine-export-boundary/spec.md)
-- **Authority:** [spec/pack-script-root-boundary-validation deferred YAML merge](../../specs/pack-script-root-boundary-validation/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/engine-export-boundary Product boundary](../../specs/engine-export-boundary/spec.md); [spec/pack-script-root-boundary-validation deferred YAML merge](../../specs/pack-script-root-boundary-validation/spec.md)
 
 ## Outcome
 

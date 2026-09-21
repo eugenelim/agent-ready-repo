@@ -1,7 +1,9 @@
 # Route the lenses a design's shape and workload require
 
+- **Slug:** `architect-design-conditional-overlays`
 - **Status:** Accepted
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

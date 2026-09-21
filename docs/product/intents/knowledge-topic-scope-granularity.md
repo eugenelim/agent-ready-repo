@@ -1,7 +1,9 @@
 # Knowledge topic scope granularity
 
+- **Slug:** `knowledge-topic-scope-granularity`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

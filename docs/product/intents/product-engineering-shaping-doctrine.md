@@ -3,11 +3,12 @@
 - **Slug:** `product-engineering-shaping-doctrine` <!-- canonical identity; independent of any filename ordinal -->
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** [Digital experience doctrine](digital-experience-doctrine.md)
 - **Milestone:** M2b in RFC-0071's implementation sequence
-- **Authority:** [RFC-0071 Area C and D2](../../rfc/0071-digital-experience-doctrine.md)
+- **Governed by:** [RFC-0071 Area C and D2](../../rfc/0071-digital-experience-doctrine.md)
 
 ## Outcome
 
