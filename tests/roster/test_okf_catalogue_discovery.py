@@ -74,6 +74,7 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
     # Position, not containment. Every assertion above stays green when a newer
     # heading sits above the released one, which is the state a half-finished
     # release leaves behind.
+    assert _first_heading(readme, "## What's new in ") == f"## What's new in {expected}"
     assert _first_heading(changelog, "## [").startswith(f"## [{expected}]")
     assert _first_heading(
         PRODUCT_CHANGELOG.read_text(encoding="utf-8"), "## [agentbundle]["
