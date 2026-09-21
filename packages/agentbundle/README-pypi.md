@@ -14,6 +14,15 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.47.1
+
+**Fixed:** `workspace_status` now reports the output path your
+`agentbundle-layout.toml` configures. It previously showed the built-in default
+for an item type while the git tools committed to your configured `output_dir`,
+so the status surface and everything else disagreed. If your configured
+directory resolves outside the repository, the status surface now reports no
+pattern and says why, because commits are confined to the repository.
+
 ## What's new in 0.47.0
 
 **Removed:** the work-loop telemetry resolver. `jsonl-otlp-export` now reads

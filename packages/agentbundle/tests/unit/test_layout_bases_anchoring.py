@@ -23,13 +23,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from agentbundle.workspace_mcp import _GitTools
+from agentbundle.workspace_mcp import _read_layout_bases
 
 
-def _reader(repo_root: Path) -> _GitTools:
-    """`_read_layout_bases` lives on `_GitTools`, which owns the scope
-    containment that consumes the resolved base."""
-    return _GitTools(repo_root)
+def _reader(repo_root: Path) -> dict[str, str]:
+    """`_read_layout_bases` is module-level: the git tools own the scope
+    containment that consumes the resolved base, and the `workspace_status`
+    payload publishes it, so neither consumer owns the read."""
+    return _read_layout_bases(repo_root)
 
 
 def _write_repo_layout(repo_root: Path, body: str) -> None:
@@ -49,7 +50,7 @@ def test_repo_scope_relative_anchors_to_the_repository_root(
     # Keep the user-scope file out of the picture.
     monkeypatch.setenv("HOME", str(tmp_path / "nohome"))
 
-    bases = _reader(repo)._read_layout_bases()
+    bases = _reader(repo)
 
     assert bases["design"] == str((repo / "docs" / "design").resolve())
     assert not bases["design"].startswith(str(elsewhere.resolve())), (
@@ -67,7 +68,7 @@ def test_repo_scope_absolute_is_left_alone(
     _write_repo_layout(repo, f'[design]\noutput_dir = "{vault}"\n')
     monkeypatch.setenv("HOME", str(tmp_path / "nohome"))
 
-    assert _reader(repo)._read_layout_bases()["design"] == str(vault.resolve())
+    assert _reader(repo)["design"] == str(vault.resolve())
 
 
 def test_user_scope_relative_is_reported_and_ignored(
@@ -84,7 +85,7 @@ def test_user_scope_relative_is_reported_and_ignored(
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
 
-    bases = _reader(repo)._read_layout_bases()
+    bases = _reader(repo)
 
     assert "research" not in bases
     err = capsys.readouterr().err
@@ -110,7 +111,7 @@ def test_user_scope_absolute_still_resolves(
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
 
-    assert _reader(repo)._read_layout_bases()["research"] == str(vault.resolve())
+    assert _reader(repo)["research"] == str(vault.resolve())
 
 
 def test_a_fix_anchoring_both_scopes_alike_fails_the_user_case(
@@ -132,7 +133,7 @@ def test_a_fix_anchoring_both_scopes_alike_fails_the_user_case(
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
 
-    bases = _reader(repo)._read_layout_bases()
+    bases = _reader(repo)
 
     assert bases.get("research") != str((repo / "vault").resolve())
     assert "vault" in capsys.readouterr().err
