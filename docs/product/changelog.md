@@ -221,6 +221,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead. At Capture, every scratch note from the session is now routed to
   a destination rather than left to fall out of scope.
 
+## [product-engineering][0.13.15] — 2026-09-21
+
+### Highlights
+
+- **`frame-intent`'s layout page now tells you which intents it places and which
+  it does not.** An intent you author for yourself, including in a personal
+  vault, goes where you configured. A repository intent goes to the folder core's
+  admission reads, and that path is fixed — the same treatment briefs already
+  had, now written down for intents too. Authoring privately and admitting to the
+  repository are two steps of one flow, not two rival destinations.
+- **The page also names its real readers.** It claimed two skills read
+  `[product]`; eight do, and one reads a different pack's section entirely.
+
+### Changed
+
+- `frame-intent` `references/agentbundle-layout.md`: the pinned-output section
+  covers both hand-offs to core — `decompose-intent`'s briefs and a repository
+  intent's `docs/product/intents/<slug>.md` — and states that `intake-intent`
+  reads no configuration for that path, taking a personal-vault source through a
+  confirmed destination, minimized provenance and explicit authority transfer.
+- Same page: a new reader list replaces "Only `frame-intent` (intents) and
+  `align-value-stream` (rollups) read `[product]`" with the eight skill bodies
+  that do, noting `lean-canvas` reads to scan but writes a pinned path, and that
+  `ux-writing` reads `[design]` rather than `[product]`.
+
 ## [product-engineering][0.13.14] — 2026-09-20
 
 The intent triad is now executed by the surfaces that run the discovery loop,
@@ -1952,31 +1977,6 @@ updates but never removes:
 - A second, optional read attacks the bet itself and may only hand back an open
   question with a named decider or a kill condition with its real-world trigger.
   It cannot ask you to reword anything, and an empty answer is a real answer.
-
-## [product-engineering][0.13.13] — 2026-09-20
-
-### Highlights
-
-- **`frame-intent`'s layout page now tells you which intents it places and which
-  it does not.** An intent you author for yourself, including in a personal
-  vault, goes where you configured. A repository intent goes to the folder core's
-  admission reads, and that path is fixed — the same treatment briefs already
-  had, now written down for intents too. Authoring privately and admitting to the
-  repository are two steps of one flow, not two rival destinations.
-- **The page also names its real readers.** It claimed two skills read
-  `[product]`; eight do, and one reads a different pack's section entirely.
-
-### Changed
-
-- `frame-intent` `references/agentbundle-layout.md`: the pinned-output section
-  covers both hand-offs to core — `decompose-intent`'s briefs and a repository
-  intent's `docs/product/intents/<slug>.md` — and states that `intake-intent`
-  reads no configuration for that path, taking a personal-vault source through a
-  confirmed destination, minimized provenance and explicit authority transfer.
-- Same page: a new reader list replaces "Only `frame-intent` (intents) and
-  `align-value-stream` (rollups) read `[product]`" with the eight skill bodies
-  that do, noting `lean-canvas` reads to scan but writes a pinned path, and that
-  `ux-writing` reads `[design]` rather than `[product]`.
 
 ## [product-engineering][0.13.12] — 2026-09-12
 
