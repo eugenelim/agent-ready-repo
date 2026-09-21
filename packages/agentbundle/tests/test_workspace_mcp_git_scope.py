@@ -605,3 +605,66 @@ def test_a_bad_key_earlier_in_one_scope_does_not_let_the_other_scope_go_unscreen
     assert tools._refused_layout_key == "product"
     assert "committed" not in result
     assert _head(repo) == before
+
+
+def test_a_star_the_base_resolves_through_is_not_pattern_syntax(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The wildcard boundary belongs to the built-in manifest. Deriving it by
+    scanning the joined absolute path let a `*` the base contributed become
+    pattern syntax: a clean `output_dir` of `out`, symlinked to a directory
+    literally named `*`, collapsed the scope's static root to the repository
+    root and staged every changed file in it.
+
+    AC-0002 cannot help here and should not try — `out` carries no reserved
+    character, and AC-0001 requires it to keep working. The fix is that the
+    split point never reads a character the base contributed.
+
+    The mid-segment sibling of this case (a repository directory named
+    `pro*ject`) cannot fail, because `find("/*")` needs the `*` to follow a
+    separator. A suite that covers only that shape looks like it covers this one.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    target = repo / "*" / "actual"
+    target.mkdir(parents=True)
+    try:
+        (repo / "out").symlink_to(target)
+    except OSError:  # pragma: no cover - platform without symlink support
+        pytest.skip("symlinks unavailable")
+    _configure(repo, "product", "out")
+    _write(repo / "*" / "actual" / "intents" / f"{_SLUG}.md")
+    _write(repo / _UNRELATED)
+
+    _dispatch(monkeypatch, "shape")
+    staged = _staged(_GitTools(repo).git_commit({"message": "scope"}))
+
+    assert staged == [f"*/actual/intents/{_SLUG}.md"]
+    assert _UNRELATED not in staged
+
+
+def test_the_pattern_strings_are_projected_from_the_scope_spec(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_resolve_output_pattern` must stay a projection of `_resolve_output_spec`
+    rather than a second computation of the same thing — the defect class this
+    module has now shipped twice. The payload-agreement test in
+    `test_workspace_mcp_layout_override.py` reads these strings, so they must
+    keep naming exactly the locations the spec scopes to.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    _configure(repo, "product", "artifacts")
+    _dispatch(monkeypatch, "shape")
+    tools = _GitTools(repo)
+
+    specs = tools._resolve_output_spec(f"{_INI}/shape:{_SLUG}")
+
+    assert specs is not None
+    assert tools._output_pattern == [spec[-1] for spec in specs]
+    # The static root of every entry is under the configured base, and the only
+    # wildcard components live in the display string's manifest-owned tail.
+    base = _resolved_base(repo, "artifacts")
+    for spec in specs:
+        assert str(spec[1]).startswith(base)
+        assert "*" not in str(spec[1])

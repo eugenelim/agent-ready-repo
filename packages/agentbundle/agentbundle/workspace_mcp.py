@@ -1564,7 +1564,10 @@ class _GitTools:
         # clearing `dispatched` would engage discovery mode and take `git_branch`
         # and `git_push` down with it, when only `git_commit` has no usable scope.
         self._refused_layout_key: str | None = None
-        self._output_pattern: list[str] | None = self._resolve_output_pattern(dispatched)
+        self._output_spec: list[tuple] | None = self._resolve_output_spec(dispatched)
+        self._output_pattern: list[str] | None = (
+            None if self._output_spec is None else [spec[-1] for spec in self._output_spec]
+        )
         if dispatched and self._output_pattern is None and self._refused_layout_key is None:
             _log.warning(
                 "WORKSPACE_MCP_DISPATCHED_ITEM %r is malformed or uses unknown type; "
@@ -1741,6 +1744,23 @@ class _GitTools:
             return None
 
     def _resolve_output_pattern(self, dispatched: str | None) -> list[str] | None:
+        """The displayable pattern strings, projected from the scope spec.
+
+        A projection, never a second computation: the spec below owns the
+        wildcard boundary and this rebuilds the string from it.
+        """
+        specs = self._resolve_output_spec(dispatched)
+        if specs is None:
+            return None
+        return [spec[-1] for spec in specs]
+
+    def _resolve_output_spec(self, dispatched: str | None) -> list[tuple] | None:
+        """Scope entries for `git_commit`, with the wildcard boundary already
+        decided by the built-in manifest rather than by scanning a joined path.
+
+        Each entry is `("file", abs_path, display)` or
+        `("wildcard_dir", abs_static_root, literal_suffix, display)`.
+        """
         if dispatched is None:
             return None
         # dispatched = "ini_slug/type:slug"
@@ -1797,15 +1817,37 @@ class _GitTools:
                         file=sys.stderr,
                     )
                     return None
-            # Apply agentbundle-layout.toml overrides (user-scope > repo-scope >
-            # convention). Stage 1: resolve at bind-time; Stage 2 defers to the
-            # first git_branch() call.
-            patterns_list = _apply_layout_overrides(
-                item_type,
-                patterns_list,
-                {key: resolved for key, (_raw, resolved) in selected.items()},
-            )
-            return [p.format(slug=slug) for p in patterns_list]
+            resolved_bases = {
+                key: resolved for key, (_raw, resolved) in selected.items()
+            }
+            # Split each manifest pattern at its own `/*` BEFORE any base is
+            # spliced in. The wildcard boundary belongs to the manifest, which is
+            # trusted source; rediscovering it by scanning the joined absolute
+            # path lets a `*` the base contributed become pattern syntax — a
+            # symlink resolving through a directory named `*` collapsed the scope
+            # root to the repository root and staged every changed file.
+            specs: list[tuple] = []
+            for pattern in patterns_list:
+                index = pattern.find("/*")
+                if index == -1:
+                    static_rel, remainder = pattern, None
+                else:
+                    static_rel, remainder = pattern[:index], pattern[index + 1:]
+                static_rel = _apply_layout_overrides(
+                    item_type, [static_rel], resolved_bases
+                )[0].format(slug=slug)
+                static_abs = (self._repo_root / static_rel).resolve()
+                if remainder is None:
+                    specs.append(("file", static_abs, static_rel))
+                else:
+                    remainder = remainder.format(slug=slug)
+                    # The literal tail after the wildcard component's `*`, taken
+                    # from the manifest and never from the base.
+                    suffix = remainder.split("/")[0].lstrip("*")
+                    specs.append(
+                        ("wildcard_dir", static_abs, suffix, f"{static_rel}/{remainder}")
+                    )
+            return specs
         except Exception:
             return None
 
@@ -1909,27 +1951,19 @@ class _GitTools:
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
 
-        # Build scope entries for each pattern (design.md:524-526).
-        # Two cases:
-        #   file         — no "/*": match the exact resolved file path
-        #   wildcard_dir — contains "/*": check containment under static root AND
-        #                  first varying component ends with the literal suffix of the
-        #                  wildcard component (e.g. research/*-slug/** → suffix="-slug")
-        # Note: find("/*") always points at "/" followed by "*", so _remainder always
-        # starts with "*" — there is no reachable non-wildcard "dir" case.
-        _scope_entries: list[tuple] = []
-        for _pat in self._output_pattern:
-            _idx = _pat.find("/*")
-            if _idx == -1:
-                # Exact file
-                _scope_entries.append(("file", (self._repo_root / _pat).resolve()))
-            else:
-                _static = _pat[:_idx]
-                _remainder = _pat[_idx + 1:]           # strip leading / only; keep *
-                _next_comp = _remainder.split("/")[0]  # first wildcard component
-                _dir = (self._repo_root / _static).resolve()
-                _suffix = _next_comp.lstrip("*")       # literal suffix after *
-                _scope_entries.append(("wildcard_dir", _dir, _suffix))
+        # Scope entries come from `_resolve_output_spec`, which decided the
+        # wildcard boundary from the built-in manifest before any configured base
+        # was spliced in. Two cases:
+        #   file         — match the exact resolved file path
+        #   wildcard_dir — check containment under the static root AND that the
+        #                  first varying component ends with the manifest's
+        #                  literal suffix (research/*-slug/** → suffix="-slug")
+        # Deriving the split here by scanning the joined path is what let a `*`
+        # contributed by the base — or by a symlink resolving through a directory
+        # named `*` — become pattern syntax and collapse the scope root.
+        _scope_entries: list[tuple] = [
+            entry[:-1] for entry in (self._output_spec or [])
+        ]
 
         def _in_scope(rel_path: str) -> bool:
             try:

@@ -373,3 +373,48 @@ computation of "which value won" is a second answer, and two answers is the
 defect the layout resolver was consolidated to prevent in the first place. The
 mirror was not a weaker version of the right fix; it was the original defect
 wearing the fix's name.
+
+## The screen was never the whole defect
+
+Round 7 sustained a Blocker at contract tier that no earlier round reached, and
+it is the one the spec's `What Changes` was actually about.
+
+`git_commit` derived its split point by scanning the *fully substituted
+absolute path* for the literal `/*`. So the wildcard boundary was rediscovered
+from the final string rather than known from the manifest, and any `*` arriving
+by resolution became pattern syntax. Measured, with a clean configured value:
+
+```
+[product] output_dir = "out"          # carries no reserved character
+<repo>/out -> <repo>/*/actual         # a directory literally named *
+committed: ['*/actual/intents/alpha.md', 'agentbundle-layout.toml',
+            'out', 'unrelated/other.md']
+```
+
+Every changed file in the repository. AC-0002 cannot help and must not try:
+`out` is innocent, and AC-0001 requires it to keep working. Rounds 1 through 6
+all asked *which value the screen reads*; this is a second, independent hole in
+*where the structure comes from*.
+
+The repair splits each manifest pattern at its own `/*` before any base is
+spliced in. `_resolve_output_spec` owns the boundary and hands `git_commit`
+ready-made entries; `_resolve_output_pattern` is a projection of it, the same
+shape as `_read_layout_bases` over `_select_layout_bases`. After the repair the
+same configuration stages `['*/actual/intents/alpha.md']` and nothing else, and
+a clean configured base is unaffected.
+
+Mutation: restoring the scan over the joined path reds
+`test_a_star_the_base_resolves_through_is_not_pattern_syntax` and
+`test_the_pattern_strings_are_projected_from_the_scope_spec`, and nothing else.
+
+### A test that could not fail, and read as though it could
+
+`test_a_clean_base_is_accepted_under_a_repository_path_carrying_a_reserved_character`
+puts the `*` mid-segment, in a repository directory named `pro*ject`.
+`find("/*")` needs the star to follow a separator, so that arrangement can never
+trip the scan. The test passes, it names resolved-path stars, and it covers the
+one shape that is safe by construction. The new test uses a directory literally
+named `*`; its docstring records the distinction so the mid-segment case is not
+mistaken for coverage again.
+
+Full `workspace_mcp` selection after the repair: 167 passed, 42 skipped, 78s.
