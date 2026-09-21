@@ -279,9 +279,24 @@ allocator unions with `origin` and still answers `VISION-0002`, `STRAT-0005`,
 `CAP-0005`, `FEAT-0006`; in a scratch directory outside any repository it reads
 `absent` and allocates from the working tree alone.
 
+**Round 4 found four more, and none was a blocker — but all four were defects
+rather than accepted risk, which is the distinction the round was asked to
+make.**
+
+| Finding | Fix |
+| --- | --- |
+| `GIT_CONFIG`, `GIT_CONFIG_GLOBAL` and the `GIT_CONFIG_COUNT`/`_KEY_n` family redirect what `git config` *reports* without changing what an object read *obeys*, so an inherited one could hide a promisor designation from the guard while `ls-tree` still honoured it | the whole `GIT_CONFIG` prefix is scrubbed from the child, alongside the five redirect variables already there |
+| `max + 1` could leave the grammar: a directory holding `FEAT-999999999999-x.md` returned `FEAT-1000000000000` with exit 0, which the caller writes once and every later scan then refuses as malformed — a success that poisons the directory | a successor wider than the twelve-digit bound refuses as `bound-exceeded` |
+| The whole-invocation deadline began at the first git call, so 65,536 local metadata inspections happened outside it — the stated bound was not the bound | one deadline is created in `allocate` and threaded through the local scan, `git_config_values` and `remote_view`, checked per entry |
+| The selector fallback used `communicate`, which allocates the whole git result before any ceiling applies — a platform-dependent hole in the byte bound | the selector is gone. One path everywhere: the descriptor is set non-blocking and polled with `os.read` against the deadline, so the ceiling is enforced while reading on every platform rather than on the lucky ones |
+
+Four standing cases added, one per finding. The last fix is also a
+simplification — the branch that existed to be a fallback was the branch that
+could not hold the bound, so removing it left one read path instead of two.
+
 The `(output, code)` shape is the change worth naming: "could not run" and "ran
-and said no" were the same value before, and four of the ten findings across
-the three rounds were that one conflation wearing different clothes. The other
+and said no" were the same value before, and four of the fourteen findings
+across four rounds were that one conflation wearing different clothes. The other
 pattern is narrower and worth naming too: three findings were a set I had
 enumerated in the wrong direction — an allowlist where the closed set was the
 complement, or a status where the message was the signal.

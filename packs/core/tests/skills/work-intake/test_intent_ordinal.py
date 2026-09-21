@@ -133,7 +133,7 @@ def test_a_failed_remote_query_refuses(tmp_path: pathlib.Path, monkeypatch) -> N
     """AC-0011: an unknowably incomplete view refuses, unlike the ADR helper."""
     (tmp_path / f"{TOKENS[0]}-0001-a.md").write_text("", encoding="utf-8")
     monkeypatch.setattr(
-        MODULE, "remote_view", lambda _d: MODULE.RemoteView(frozenset(), "failed")
+        MODULE, "remote_view", lambda _d, _dl=None: MODULE.RemoteView(frozenset(), "failed")
     )
     assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) is None
 
@@ -170,7 +170,7 @@ def test_a_malformed_remote_name_fails_the_scan(
     monkeypatch.setattr(
         MODULE,
         "remote_view",
-        lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-12-bad.md"}), "ok"),
+        lambda _d, _dl=None: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-12-bad.md"}), "ok"),
     )
     assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) is None
 
@@ -182,7 +182,7 @@ def test_a_path_in_both_views_counts_once(
     name = f"{TOKENS[0]}-0004-a.md"
     (tmp_path / name).write_text("", encoding="utf-8")
     monkeypatch.setattr(
-        MODULE, "remote_view", lambda _d: MODULE.RemoteView(frozenset({name}), "ok")
+        MODULE, "remote_view", lambda _d, _dl=None: MODULE.RemoteView(frozenset({name}), "ok")
     )
     assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) == 5
 
@@ -195,7 +195,7 @@ def test_a_remote_only_record_raises_the_maximum(
     monkeypatch.setattr(
         MODULE,
         "remote_view",
-        lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0009-b.md"}), "ok"),
+        lambda _d, _dl=None: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0009-b.md"}), "ok"),
     )
     assert MODULE.next_typed_ordinal(tmp_path, TOKENS[0]) == 10
 
@@ -209,7 +209,7 @@ def test_check_does_not_consult_the_remote_view(
     monkeypatch.setattr(
         MODULE,
         "remote_view",
-        lambda _d: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0001-b.md"}), "ok"),
+        lambda _d, _dl=None: MODULE.RemoteView(frozenset({f"{TOKENS[0]}-0001-b.md"}), "ok"),
     )
     assert MODULE.main(["--check", "."]) == 0
 
@@ -348,7 +348,7 @@ def test_a_promisor_designation_refuses_before_any_object_read(
         raise OSError("no git in this fixture")
 
     monkeypatch.setattr(MODULE.subprocess, "Popen", _record)
-    monkeypatch.setattr(MODULE, "git_config_values", lambda _d: dict(config))
+    monkeypatch.setattr(MODULE, "git_config_values", lambda _d, _dl=None: dict(config))
     view = MODULE.remote_view(tmp_path)
     assert view.state == "failed"
     assert not [a for a in launched if "ls-tree" in a]
@@ -449,9 +449,13 @@ def test_an_oversized_listing_refuses_before_buffering(
 
     Driven by lowering the bound rather than by building an 8 MiB listing: the
     shipped value proves nothing the lowered one does not, and a real fixture
-    that size is slow.
+    that size is slow. A genuine pipe, because the reader sets the descriptor
+    non-blocking and reads it raw — a stand-in object would not exercise that.
     """
     monkeypatch.setattr(MODULE, "MAX_GIT_RESULT_BYTES", 8)
+    read_fd, write_fd = os.pipe()
+    os.write(write_fd, b"x" * 4096)
+    os.close(write_fd)
 
     class _Child:
         """Enough of Popen for the read loop, and no more."""
@@ -459,20 +463,8 @@ def test_an_oversized_listing_refuses_before_buffering(
         returncode = 0
 
         def __init__(self) -> None:
-            self.stdout = self
-            self.reads = 0
-
-        def fileno(self) -> int:
-            # A real fd the selector can register and that is always readable.
-            return sys.stdin.fileno()
-
-        def read(self, size: int) -> bytes:
-            self.reads += 1
-            assert self.reads < 100, "the bound did not stop the read loop"
-            return b"x" * 64
-
-        def communicate(self, timeout=None) -> tuple[bytes, bytes]:
-            return b"x" * 4096, b""
+            self.stdout = os.fdopen(read_fd, "rb", buffering=0)
+            self.stderr = None
 
         def poll(self) -> int:
             return 0
@@ -485,11 +477,8 @@ def test_an_oversized_listing_refuses_before_buffering(
 
     monkeypatch.setattr(MODULE.subprocess, "Popen", lambda *a, **k: _Child())
     with pytest.raises(MODULE._ScanRefused) as refusal:
-        MODULE._git(tmp_path, ["config", "--list"], MODULE._deadline())
+        MODULE._git(tmp_path, ["config", "--list", "-z"], MODULE._deadline())
     assert refusal.value.cause == "bound-exceeded"
-
-
-# ── Implementation-stage security findings, each with a standing case ─────────
 
 
 def test_a_newline_in_a_config_value_cannot_forge_a_promisor_key(
@@ -520,7 +509,7 @@ def test_unreadable_configuration_refuses_rather_than_assuming_no_promisor(
     tmp_path: pathlib.Path, monkeypatch
 ) -> None:
     """No answer about the configuration is not an answer of `no promisor`."""
-    monkeypatch.setattr(MODULE, "git_config_values", lambda _d: None)
+    monkeypatch.setattr(MODULE, "git_config_values", lambda _d, _dl=None: None)
     monkeypatch.setattr(
         MODULE.subprocess, "Popen", lambda *a, **k: pytest.fail("no command may run")
     )
@@ -641,7 +630,7 @@ def test_a_remote_tree_of_outside_names_still_hits_the_entry_bound(
     the bound exists to cap.
     """
     monkeypatch.setattr(MODULE, "MAX_ENTRIES", 4)
-    monkeypatch.setattr(MODULE, "git_config_values", lambda _d: {})
+    monkeypatch.setattr(MODULE, "git_config_values", lambda _d, _dl=None: {})
     listing = "\0".join(f"100644 blob deadbeef\tunrelated-{n}.md" for n in range(10))
 
     def _fake(directory, arguments, deadline, **keywords):
@@ -675,3 +664,62 @@ def test_promisor_detection_uses_gits_false_set_not_a_true_allowlist(
     """Verified against `git config --type=bool`: 2 and -1 both read as true."""
     config = {"remote.origin.promisor": value}
     assert MODULE._is_promisor(config) is designates
+
+
+def test_an_inherited_git_config_override_is_scrubbed(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """`GIT_CONFIG*` redirects what `git config` reports, not what a read obeys.
+
+    An inherited one could hide a promisor designation from the guard while the
+    later `ls-tree` still honours it, so the whole prefix leaves the child.
+    """
+    seen: dict[str, object] = {}
+
+    def _record(arguments, **keywords):
+        seen["env"] = keywords["env"]
+        raise OSError("no git in this fixture")
+
+    monkeypatch.setattr(MODULE.subprocess, "Popen", _record)
+    for name in ("GIT_CONFIG", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_COUNT"):
+        monkeypatch.setenv(name, "/attacker/config")
+    MODULE.remote_view(tmp_path)
+    assert not [k for k in seen["env"] if k.startswith("GIT_CONFIG")]
+
+
+def test_a_successor_outside_the_grammar_refuses(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """max + 1 must stay inside the shape it will be written under.
+
+    Otherwise the allocator returns a value the caller writes once and every
+    later scan refuses as malformed — a success that poisons the directory.
+    """
+    token = TOKENS[0]
+    highest = "9" * MODULE.MAX_ORDINAL_DIGITS
+    (tmp_path / f"{token}-{highest}-x.md").write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        MODULE, "remote_view", lambda _d, _dl=None: MODULE.RemoteView(frozenset(), "absent")
+    )
+    ordinal, cause = MODULE.allocate(tmp_path, token)
+    assert ordinal is None
+    assert cause == "bound-exceeded"
+
+
+def test_the_local_scan_is_inside_the_whole_invocation_deadline(
+    tmp_path: pathlib.Path, monkeypatch
+) -> None:
+    """AC-0021: a bound that starts at the first git call is not this bound.
+
+    65,536 metadata inspections is real work, and it all happens before any
+    subprocess runs.
+    """
+    for index in range(3):
+        (tmp_path / f"{TOKENS[0]}-000{index}-x.md").write_text("", encoding="utf-8")
+    monkeypatch.setattr(MODULE, "TOTAL_TIMEOUT_SECONDS", -1)
+    monkeypatch.setattr(
+        MODULE.subprocess, "Popen", lambda *a, **k: pytest.fail("no command may run")
+    )
+    ordinal, cause = MODULE.allocate(tmp_path, TOKENS[0])
+    assert ordinal is None
+    assert cause == "bound-exceeded"

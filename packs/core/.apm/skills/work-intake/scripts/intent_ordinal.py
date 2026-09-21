@@ -25,7 +25,6 @@ import contextlib
 import importlib.util
 import os
 import re
-import selectors
 import stat
 import subprocess
 import sys
@@ -71,6 +70,12 @@ GIT_REDIRECT_VARIABLES = (
     "GIT_OBJECT_DIRECTORY",
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
 )
+# `GIT_CONFIG`, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM` and the
+# `GIT_CONFIG_COUNT`/`_KEY_n`/`_VALUE_n` family all redirect what
+# `git config` reports without changing what an object read obeys. An inherited
+# one could therefore hide a promisor designation from the guard while the
+# later `ls-tree` still honours it, so the whole prefix is scrubbed.
+_GIT_CONFIG_PREFIX = "GIT_CONFIG"
 _ORIGIN_REF_PREFIX = "refs/remotes/origin/"
 # Git's *false* forms, which is the closed set. Everything else it reads as
 # true — `2` and `-1` included — so an allowlist of true forms is the wrong
@@ -167,6 +172,10 @@ def _git(
     environment = os.environ.copy()
     for variable in GIT_REDIRECT_VARIABLES:
         environment.pop(variable, None)
+    for variable in [
+        name for name in environment if name.startswith(_GIT_CONFIG_PREFIX)
+    ]:
+        environment.pop(variable, None)
     # An argument vector free of `fetch` does not prove no egress: ls-tree on a
     # partial clone resolves a missing object through the promisor remote. This
     # fails that closed on a git that honours it; the configuration check in
@@ -197,34 +206,22 @@ def _git(
 
     chunks: list[bytes] = []
     total = 0
+    descriptor = child.stdout.fileno()
     try:
-        try:
-            selector = selectors.DefaultSelector()
-            selector.register(child.stdout, selectors.EVENT_READ)
-        except (OSError, ValueError, PermissionError):
-            # No selector for this pipe on this platform. Fall back to a bounded
-            # whole-read, which still honours the deadline but can only check
-            # the byte bound once the buffer is in hand. Stated, not hidden.
-            selector = None
+        # Non-blocking, then polled: one path on every platform, so the byte
+        # bound is enforced while reading rather than after a buffered whole.
+        # `communicate` was the earlier fallback and had to go — it allocates
+        # the full result before any ceiling can apply to it.
+        os.set_blocking(descriptor, False)
         while True:
-            remaining = command_deadline - time.monotonic()
-            if remaining <= 0:
+            if time.monotonic() >= command_deadline:
                 raise _ScanRefused("bound-exceeded")
-            if selector is None:
-                output, _ = child.communicate(timeout=remaining)
-                total += len(output or b"")
-                if total > MAX_GIT_RESULT_BYTES:
-                    raise _ScanRefused("bound-exceeded")
-                chunks.append(output or b"")
-                break
-            if not selector.select(timeout=remaining):
-                raise _ScanRefused("bound-exceeded")
-            # `os.read` on the raw descriptor, not `BufferedReader.read`: the
-            # buffered form loops until it has the full count, so it can block
-            # past the deadline even after the selector reported readiness.
             try:
-                chunk = os.read(child.stdout.fileno(), 65_536)
-            except (BlockingIOError, InterruptedError):
+                chunk = os.read(descriptor, 65_536)
+            except BlockingIOError:
+                time.sleep(0.005)
+                continue
+            except InterruptedError:
                 continue
             except OSError:
                 break
@@ -234,8 +231,7 @@ def _git(
             if total > MAX_GIT_RESULT_BYTES:
                 raise _ScanRefused("bound-exceeded")
             chunks.append(chunk)
-        if selector is not None:
-            child.wait(timeout=max(0.001, command_deadline - time.monotonic()))
+        child.wait(timeout=max(0.001, command_deadline - time.monotonic()))
     except _ScanRefused:
         raise
     except subprocess.TimeoutExpired:
@@ -262,7 +258,9 @@ def _git(
     )
 
 
-def git_config_values(directory: Path) -> dict[str, str] | None:
+def git_config_values(
+    directory: Path, deadline: float | None = None
+) -> dict[str, str] | None:
     """Return git's effective configuration, or ``None`` when it is unreadable.
 
     ``--list -z`` rather than ``--list``: the newline-delimited form cannot be
@@ -271,7 +269,9 @@ def git_config_values(directory: Path) -> dict[str, str] | None:
     the ambiguous form is an injection into the promisor check below. Each NUL
     record is ``key\nvalue``, or a bare key for a valueless one.
     """
-    result = _git(directory, ["config", "--list", "-z"], _deadline())
+    result = _git(
+        directory, ["config", "--list", "-z"], deadline if deadline is not None else _deadline()
+    )
     if result.output is None or result.code != 0:
         return None
     values: dict[str, str] = {}
@@ -335,7 +335,7 @@ def _deadline() -> float:
     return time.monotonic() + TOTAL_TIMEOUT_SECONDS
 
 
-def remote_view(directory: Path) -> RemoteView:
+def remote_view(directory: Path, deadline: float | None = None) -> RemoteView:
     """Return the record names visible on ``origin`` and how complete they are.
 
     Three states, because "nothing there" and "could not look" are different
@@ -343,11 +343,12 @@ def remote_view(directory: Path) -> RemoteView:
     the working tree is the whole available view. ``failed`` means there is
     something to consult and no way to read it, which refuses.
     """
-    deadline = _deadline()
+    if deadline is None:
+        deadline = _deadline()
     # Before any object-reading command: a promisor designation means a read
     # could reach the network, and this check is observable independently of
     # GIT_NO_LAZY_FETCH precisely because it runs first.
-    config = git_config_values(directory)
+    config = git_config_values(directory, deadline)
     if config is None or _is_promisor(config):
         # Unreadable configuration is not "no promisor": it is no answer, and
         # the next command would be the object read this check exists to precede.
@@ -415,13 +416,19 @@ def remote_view(directory: Path) -> RemoteView:
     return RemoteView(frozenset(names), "ok")
 
 
-def _local_names(directory: Path) -> set[str]:
+def _local_names(directory: Path, deadline: float) -> set[str]:
     """Return in-namespace record names, refusing an incomplete scan."""
     names: set[str] = set()
     try:
         with os.scandir(directory) as entries:
             for count, entry in enumerate(entries, start=1):
                 if count > MAX_ENTRIES:
+                    raise _ScanRefused("bound-exceeded")
+                # The whole-invocation deadline covers the local scan too: a
+                # directory at the entry bound is 65,536 metadata inspections,
+                # and a bound that starts only at the first git call is not the
+                # bound this contract states.
+                if time.monotonic() >= deadline:
                     raise _ScanRefused("bound-exceeded")
                 kind = classify(entry.name)
                 if kind == "outside":
@@ -463,9 +470,10 @@ def allocate(directory: Path, token: str) -> tuple[int | None, str | None]:
     """Return ``(ordinal, None)`` or ``(None, cause)`` for one type."""
     if token not in NAMESPACE_TOKENS:
         return None, "unparsed-name"
+    deadline = _deadline()
     try:
-        names = _local_names(directory)
-        view = remote_view(directory)
+        names = _local_names(directory, deadline)
+        view = remote_view(directory, deadline)
         if view.state == "failed":
             return None, "remote-unavailable"
         for name in view.names:
@@ -476,7 +484,12 @@ def allocate(directory: Path, token: str) -> tuple[int | None, str | None]:
         ordinals = _ordinals(names | set(view.names), token)
     except _ScanRefused as refusal:
         return None, refusal.cause
-    return (max(ordinals) + 1 if ordinals else 1), None
+    allocated = (max(ordinals) + 1) if ordinals else 1
+    if len(str(allocated)) > MAX_ORDINAL_DIGITS:
+        # The successor would not match the shape this allocator counts, so it
+        # would be written once and refused as malformed on every later scan.
+        return None, "bound-exceeded"
+    return allocated, None
 
 
 def next_typed_ordinal(directory: Path, token: str) -> int | None:
@@ -492,7 +505,7 @@ def duplicate_ordinals(directory: Path) -> dict[tuple[str, int], list[str]]:
     this does not, because a remote-only collision is already committed.
     """
     records: dict[tuple[str, int], list[str]] = {}
-    for name in _local_names(directory):
+    for name in _local_names(directory, _deadline()):
         match = _VALID.match(name)
         if match is None:
             raise _ScanRefused("unparsed-name")
