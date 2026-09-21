@@ -477,3 +477,4 @@ def test_every_route_the_readme_offers_is_one_the_skill_routes_to(
             f"the README offers {offered!r} as a genre route, but the skill's "
             f"routing table does not name it"
         )
+

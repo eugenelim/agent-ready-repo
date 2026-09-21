@@ -113,6 +113,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `documentation-design`; the skill's routing table sends a component
   interaction to `interaction-design`. The example also reported LCP, CLS, and
   INP values that no gate produced; it no longer reports them.
+- Three more places described a gate run the pack does not perform. The README's
+  create-mode job listed "performance gates", though no gate in the GATES phase
+  measures performance. The journey's verify
+  step said the run records Core Web Vitals at p75, which belongs to audit mode's
+  own measurement step, not to the gate run. And `fe-status` reported "the four
+  GATES steps", naming four of the five — as did the scaffold-a-component
+  tutorial, which now runs five and gives the rendered-page inspection its own
+  gate.
 
 ## [core][2.26.27] — 2026-09-21
 

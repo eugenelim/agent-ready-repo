@@ -173,9 +173,9 @@ mode:
 
 ## Step 5b. Inspect the rendered page
 
-The four gates above read the markup, the accessibility tree, the stylesheet and
-the source. None of them opens the page, so none can see one element covering
-another, text out of its container, or a control too small to hit.
+A surface can pass every step above while a banner covers the heading, a price
+runs out of its card, or the only button sits half off-screen. This step looks at
+the rendered page and writes down what it saw.
 
 Run the rendered-page inspection and carry its result into the manifest below:
 [Inspect the rendered page](inspect-the-rendered-page.md). On an audit you are

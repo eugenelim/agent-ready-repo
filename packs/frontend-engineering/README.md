@@ -28,7 +28,7 @@ The pack runs in four modes — **create**, **retrofit**, **audit**, or **verify
 
 **Create a new surface from a design handoff**
 Describe the surface and point to the design brief or screen spec.
-Returns a genre-route pre-flight (pick the genre skill matching the surface — `conversion-design`, `documentation-design`, `analytical-design`, `interaction-design` and the rest — if `experience-design` is co-installed), then implement through token setup, semantic HTML, base CSS, responsive, states, a11y, and performance gates. Result: committed source files + evidence manifest. Nothing is committed until you approve.
+Returns a genre-route pre-flight (pick the genre skill matching the surface — `conversion-design`, `documentation-design`, `analytical-design`, `interaction-design` and the rest — if `experience-design` is co-installed), then implement through token setup, semantic HTML, base CSS, responsive, states, and a11y. Result: committed source files + evidence manifest. Nothing is committed until you approve.
 
 **Retrofit an existing surface**
 Say "retrofit this surface to pass WCAG 2.2 AA" or "bring this component up to the design system tokens."
