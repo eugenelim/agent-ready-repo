@@ -62,16 +62,15 @@ REQUIRED_DIAGNOSTIC_CODES = (
     "staged_dual_writer",
     "ambiguous_grouping",
     "forward_recovery_required",
-    # § D4's eleven added codes (docs/specs/work-item-capture/spec.md): four
-    # record-shaped, raised by `WorkItemRefusal`, and seven command-shaped,
-    # raised by `VerificationRouteRefusal` — exactly § D6's distinct verdict
-    # column. `work_item_unnecessary` and `work_item_threshold` are also the
-    # necessity razor's own reasoning-tier verdicts (T7,
-    # `WORK_ITEM_REASONING_VERDICTS`): `admit_work_item_capture` raises
+    # Eleven codes for a `work-item` capture: four record-shaped, raised by
+    # `WorkItemRefusal` for a `work_item` field rule; seven command-shaped,
+    # raised by `VerificationRouteRefusal` for the stored-command trust
+    # boundary. `work_item_unnecessary` and `work_item_threshold` double as
+    # the necessity razor's own reasoning-tier verdicts
+    # (`WORK_ITEM_REASONING_VERDICTS`): `admit_work_item_capture` raises
     # `WorkItemRefusal` with the tier's own verdict when it refuses, and with
     # `work_item_unnecessary` for every other way the write-path floor fails
-    # closed (`AC-0068`) — no recognized verdict, or one computed for a
-    # different item.
+    # closed — no recognized verdict, or one computed for a different item.
     "work_item_incomplete",
     "work_item_not_blocked",
     "work_item_unnecessary",
@@ -171,14 +170,15 @@ _PRIVATE_IDENTIFIER = re.compile(
     r"[a-z0-9][a-z0-9._-]{5,}(?![a-z0-9])|"
     r"(?<![a-z0-9])[a-z0-9.-]+\.(?:internal|local|corp|lan)(?![a-z0-9]))"
 )
-# § D6's argv trust boundary — docs/specs/work-item-capture/spec.md. A stored
-# `verification_route.command` is read-only iff it clears every rule below,
-# checked in this order: structure, size, no options, tool allowlist, arity,
-# character class, then the stored-path rules. The derivation is
-# docs/specs/work-item-capture/notes/spike-argv-boundary.py, run against the
-# case table `packs/core/tests/skills/project-knowledge/argv_cases.py`
-# reproduces byte-for-byte; a rule changed here without a matching spike and
-# table change is a contract change, not an implementation detail.
+# The stored-command trust boundary. A stored `verification_route.command`
+# is read-only iff it clears every rule below, checked in this order:
+# structure, size, no options, tool allowlist, arity, character class, then
+# the stored-path rules. Each rule is derived from a documented escape a
+# security review demonstrated (`find -delete`, `git -c diff.external=`, a
+# quote-split re-serialisation, and the others the option and character-class
+# rules below close); a rule changed here without re-deriving it against
+# every documented escape is a contract change, not an implementation
+# detail.
 _ARGV_ALLOWED_TOOLS = frozenset({"cat", "wc", "grep", "ls"})
 _ARGV_MIN_ARITY = {"cat": 2, "wc": 2, "ls": 2, "grep": 3}
 _ARGV_MAX_ELEMENTS = 20
@@ -208,11 +208,12 @@ _ARGV_REPOSITORY_PATH = re.compile(
 def _refuse_dot_leading_component(value: str) -> None:
     """Refuse a stored path with any `.`-leading component.
 
-    Applies to the § D6 stored-path set: every argv element after `argv[0]`
-    except `grep`'s pattern, plus `verification_route.path`. One rule over
-    the whole object, because a class refused on one field and admitted on
-    the other is not refused. `_expect_repo_path` has no dot rule and is left
-    unchanged for its other callers; this check runs in addition to it.
+    Applies to the whole stored-path set: every argv element after
+    `argv[0]` except `grep`'s pattern, plus `verification_route.path`. One
+    rule over the whole object, because a class refused on one field and
+    admitted on the other is not refused. `_expect_repo_path` has no dot
+    rule and is left unchanged for its other callers; this check runs in
+    addition to it.
     """
 
     if any(part.startswith(".") for part in value.split("/")):
@@ -220,15 +221,15 @@ def _refuse_dot_leading_component(value: str) -> None:
 
 
 def _validate_command_argv(value: Any) -> list[str]:
-    """Validate a stored `verification_route.command` against § D6.
+    """Validate a stored `verification_route.command` against the argv
+    trust boundary above.
 
     Returns the validated argv list on success; raises
-    `VerificationRouteRefusal` with the matching catalog code otherwise. The
-    check order mirrors
-    docs/specs/work-item-capture/notes/spike-argv-boundary.py exactly, which
-    two case-table rows pin: a 21-element non-string command refuses on
-    count before type, and `[1, 2]` refuses on type before either length
-    check.
+    `VerificationRouteRefusal` with the matching catalog code otherwise.
+    The check order is: count, then element type, then the two length
+    checks -- a 21-element non-string command refuses on count before
+    type, and a command with a non-string second element refuses on type
+    before either length check.
     """
 
     if not isinstance(value, list):
@@ -301,17 +302,15 @@ class PrivacyRefusal(ValueError):
 
 
 class VerificationRouteRefusal(ValueError):
-    """A stored `verification_route` violates § D6's argv trust boundary.
+    """A stored `verification_route` violates the argv trust boundary.
 
-    Carries the specific catalog reason code
-    (`docs/specs/work-item-capture/spec.md` § D4) as `.reason_code`, so a
-    caller that wants the exact verdict reads that attribute rather than
-    parsing a message. It subclasses `ValueError` so every existing catch of
-    a validation failure — `knowledge_store.py`'s generic
+    Carries the specific catalog reason code as `.reason_code`, so a caller
+    that wants the exact verdict reads that attribute rather than parsing a
+    message. It subclasses `ValueError` so every existing catch of a
+    validation failure — `knowledge_store.py`'s generic
     `except ValueError: _refuse("strict_parse")` among them — still sees it
-    as a refusal. Registering these codes in `REQUIRED_DIAGNOSTIC_CODES` and
-    binding them to a `KnowledgeDiagnostic` is a later task's, per the plan;
-    this exception does not require catalog membership to be raised.
+    as a refusal. Every code it can carry is a member of
+    `REQUIRED_DIAGNOSTIC_CODES`.
     """
 
     def __init__(self, reason_code: str) -> None:
@@ -320,18 +319,16 @@ class VerificationRouteRefusal(ValueError):
 
 
 class WorkItemRefusal(ValueError):
-    """A `work_item` record fails § D2's base or per-shape required-field rules
-    (`docs/specs/work-item-capture/spec.md`).
+    """A `work_item` record fails a base or per-shape required-field rule.
 
     Carries the closed diagnostic catalog's reason code as `.reason_code`,
     the same contract `VerificationRouteRefusal` carries — a `ValueError`
     subclass so every existing `except ValueError` still sees it as a
-    refusal — but kept as a distinct class because it is scoped to § D2's
-    shape rules rather than § D6's argv trust boundary: a missing
-    `work_item.blocker` is not a command-shape violation and should not be
-    diagnosed as one. Registering these codes in `REQUIRED_DIAGNOSTIC_CODES`
-    is a later task's, per the plan; this exception does not require
-    catalog membership to be raised.
+    refusal — but kept as a distinct class because it is scoped to a
+    `work_item`'s own field rules rather than the stored-command trust
+    boundary: a missing `work_item.blocker` is not a command-shape
+    violation and should not be diagnosed as one. Every code it can carry
+    is a member of `REQUIRED_DIAGNOSTIC_CODES`.
     """
 
     def __init__(self, reason_code: str) -> None:
@@ -339,7 +336,7 @@ class WorkItemRefusal(ValueError):
         self.reason_code = reason_code
 
 
-# § D2's closed vocabulary for `work_item.shape` and the per-shape required
+# The closed vocabulary for `work_item.shape` and the per-shape required
 # fields *beyond* `WORK_ITEM_BASE_REQUIRED_FIELDS`, every shape carries. The
 # `defect` shape's threshold is a disjunction over `verification_route` — a
 # sibling of `work_item`, not a field inside it — so it carries no entry
@@ -365,9 +362,17 @@ _WORK_ITEM_BLOCKERS = frozenset(
 _WORK_ITEM_SIGNIFICANCE = frozenset(
     {"architecturally-significant", "expensive-to-reverse", "constrains-beyond"}
 )
-# § D2's six `work_item` free-text fields the deterministic privacy scan
-# must reach (`AC-0031`, docs/specs/work-item-capture/spec.md). Every one
-# resolves to `$defs/safeText2000` in the canonical schema — a string with
+# The schema's full `work_item` property set, less the base required
+# fields: every optional property any shape may carry. Not shape-scoped --
+# the schema's `additionalProperties: false` is flat, so `_expect_keys`
+# closes the same set regardless of shape and the per-shape completeness
+# rules run separately, below.
+_WORK_ITEM_OPTIONAL_FIELDS = frozenset(
+    {"observed", "intended", "answered_by", "significance"}
+)
+# The six `work_item` free-text fields the deterministic privacy scan must
+# reach. Every one resolves to `$defs/safeText2000` in the canonical
+# schema — a string with
 # no `enum` — which is the same rule a test derives independently from the
 # schema document at test time and compares against this tuple, so a
 # `work_item` property added later without a matching update here fails
@@ -398,7 +403,7 @@ def _validate_work_item_significance(value: Any) -> None:
 
 
 def _validate_work_item(work_item: Any, request: dict[str, Any]) -> None:
-    """Validate `request["work_item"]` against § D2's base and per-shape rules.
+    """Validate `request["work_item"]` against its base and per-shape rules.
 
     `request` is the enclosing capture request, not just `work_item`,
     because the `defect` shape's threshold is a disjunction over
@@ -411,6 +416,12 @@ def _validate_work_item(work_item: Any, request: dict[str, Any]) -> None:
         raise ValueError("invalid work_item")
     if any(field not in work_item for field in WORK_ITEM_BASE_REQUIRED_FIELDS):
         raise WorkItemRefusal("work_item_incomplete")
+    # Closes the schema's `additionalProperties: false` for `work_item`, the
+    # same seam every sibling sub-object validator uses. Every base field is
+    # already known present (checked above with its own reason code), so
+    # this can only fire on a key outside the schema's declared property
+    # set.
+    _expect_keys(work_item, set(WORK_ITEM_BASE_REQUIRED_FIELDS), _WORK_ITEM_OPTIONAL_FIELDS)
     for field in ("statement", "finished_state", "necessity_rationale"):
         _expect_text(work_item[field], 2000)
     shape = work_item["shape"]
@@ -434,43 +445,41 @@ def _validate_work_item(work_item: Any, request: dict[str, Any]) -> None:
             _expect_text(work_item["intended"], 2000)
 
 
-# --- T7: the close's per-item reasoning dispatch ---------------------------
-# docs/specs/work-item-capture/spec.md § D3, § D4, § D9;
-# docs/specs/work-item-capture/plan.md T7.
+# --- The close's per-item reasoning dispatch --------------------------------
 #
-# The declined set (§ D9 rows two-four: blocked, ready-now-dispatched, and
-# razor-failing) is enumerated by the close before any dispatch runs, so
-# each member's index in that enumeration is a position-stable ordinal
-# (§ D4) -- the identity a refusal, a correction and a re-submission share.
-# It is session-local and never stored.
+# The declined set (the close's specific, non-generalisable leftover work:
+# blocked items, items dispatched in-session, and items the necessity razor
+# refuses) is enumerated by the close before any dispatch runs, so each
+# member's index in that enumeration is a position-stable ordinal -- the
+# identity a refusal, a correction and a re-submission share. It is
+# session-local and never stored.
 
-# § D3: a chosen provisional bound, not a coupling to
+# A chosen provisional bound, not a coupling to
 # `_MAX_DISTILL_CANDIDATES`/`_MAX_NAMED_SOURCES` in `knowledge_store.py` --
 # those bound one distillation request, not a declined set's size.
 _MAX_DECLINED_ITEMS_PER_CLOSE = 12
 
 # The reasoning tier's closed verdict vocabulary. `admit` clears the item for
 # capture; the other two are refusals the tier itself names, carrying their
-# own § D4 catalog code so the author is told which rule fired.
+# own catalog code so the author is told which rule fired.
 WORK_ITEM_REASONING_VERDICTS = frozenset(
     {"admit", "work_item_unnecessary", "work_item_threshold"}
 )
 
-# § D4's three outcomes a declined-set member's close output carries.
+# The three outcomes a declined-set member's close output carries.
 DECLINED_ITEM_OUTCOMES = frozenset({"captured", "refused", "dispatched-in-session"})
 
 
 class DeclinedSetTooLarge(ValueError):
-    """§ D3, `AC-0040`: more than 12 declined items refuses before the close
-    dispatches the first validation. Raised by `enforce_declined_set_cap`,
-    which the close calls against its full enumeration before any per-item
-    work runs."""
+    """More than 12 declined items refuses before the close dispatches the
+    first validation. Raised by `enforce_declined_set_cap`, which the close
+    calls against its full enumeration before any per-item work runs."""
 
 
 class SecondRefusalEndsClose(ValueError):
-    """§ D4, `AC-0039`: a second refusal of the same declined-set ordinal is
-    terminal for that close. Carries the ordinal so the caller can report
-    which item ended it."""
+    """A second refusal of the same declined-set ordinal is terminal for
+    that close. Carries the ordinal so the caller can report which item
+    ended it."""
 
     def __init__(self, ordinal: int) -> None:
         super().__init__(f"second refusal of ordinal {ordinal} ends the close")
@@ -478,55 +487,55 @@ class SecondRefusalEndsClose(ValueError):
 
 
 def enforce_declined_set_cap(declined_count: int) -> None:
-    """§ D3, `AC-0040`: enumeration happens before any dispatch, so the cap
-    is enforceable before the first validation call -- proven by a dispatch
-    spy recording zero calls when this raises."""
+    """Enumeration happens before any dispatch, so the cap is enforceable
+    before the first validation call -- proven by a dispatch spy recording
+    zero calls when this raises."""
 
     if declined_count > _MAX_DECLINED_ITEMS_PER_CLOSE:
         raise DeclinedSetTooLarge(declined_count)
 
 
 def refuse_instruction_shaped_work_item(work_item: dict[str, Any]) -> None:
-    """`AC-0035`: refuse before any reasoning dispatch if any of the six
-    free-text fields (`WORK_ITEM_SCANNED_FREE_TEXT_FIELDS`, `AC-0031`'s
-    derived set) matches the existing instruction-shape pattern. This runs
-    ahead of the dispatch call as a trust-boundary gate, in addition to --
-    not instead of -- the general privacy scan `_deterministic_privacy_scan`
-    runs over the same fields at write time. `significance` is not among
-    these fields: it is a closed enum (`AC-0031`), so it carries no case that
-    could ever match."""
+    """Refuse before any reasoning dispatch if any of the six free-text
+    fields (`WORK_ITEM_SCANNED_FREE_TEXT_FIELDS`) matches the existing
+    instruction-shape pattern. This runs ahead of the dispatch call as a
+    trust-boundary gate, in addition to -- not instead of -- the general
+    privacy scan `_deterministic_privacy_scan` runs over the same fields at
+    write time. `significance` is not among these fields: it is a closed
+    enum, so it carries no case that could ever match."""
 
     for field in WORK_ITEM_SCANNED_FREE_TEXT_FIELDS:
         if field in work_item and _INSTRUCTION_SHAPE.search(work_item[field]):
             raise PrivacyRefusal("captured body failed deterministic privacy checks")
 
 
-# `AC-0069`'s domain: every input the reasoning dispatch call can receive.
-# The schema-sourced part is derived independently, by a nested walk of the
-# schema document, at test time -- this tuple is the runtime payload's own
-# key set, not a second hand-written list, so a key the payload gains
-# without a matching bin fails `reasoning_dispatch_parameter_bins` below.
+# Every input the reasoning dispatch call can receive. The schema-sourced
+# part is derived independently, by a nested walk of the schema document, at
+# test time -- this tuple is the runtime payload's own key set, not a second
+# hand-written list, so a key the payload gains without a matching bin fails
+# `reasoning_dispatch_parameter_bins` below.
 REASONING_DISPATCH_SCHEMA_FIELDS = (
-    *WORK_ITEM_SCANNED_FREE_TEXT_FIELDS,  # AC-0031's six
+    *WORK_ITEM_SCANNED_FREE_TEXT_FIELDS,
     "verification_route.command",
     "verification_route.path",
     "friction.summary",
 )
-# § D4: the position-stable ordinal names no schema property -- it is
-# assigned by the close's own enumeration. `AC-0041` is why it exists: the
-# dispatch runs in a cold context with no transcript, so this ordinal, not
-# conversational continuity, is what ties a verdict back to the item it was
-# computed for -- the one dispatch input the schema cannot supply.
+# The position-stable ordinal names no schema property -- it is assigned by
+# the close's own enumeration. It exists because the dispatch runs in a cold
+# context with no transcript, so this ordinal, not conversational
+# continuity, is what ties a verdict back to the item it was computed for --
+# the one dispatch input the schema cannot supply.
 REASONING_DISPATCH_CONTEXT_FIELDS = ("declined_ordinal",)
 
-# The two bins `AC-0069` requires: refused before the dispatch call, or
-# unscreened at this stage. The six free-text fields are refused beforehand
-# by `refuse_instruction_shaped_work_item`. `verification_route.command` and
-# `.path` reach the dispatch unscreened -- § D6's argv rules run at write
-# time, after the per-item dispatch (§ D3's ordering), so only `AC-0036`'s
-# data-delimiter framing is ahead of them. `friction.summary` is unscreened
-# because `AC-0035` names only the six `work_item` fields. `declined_ordinal`
-# carries no author-supplied prose to screen.
+# The two bins the dispatch domain is partitioned into: refused before the
+# dispatch call, or unscreened at this stage. The six free-text fields are
+# refused beforehand by `refuse_instruction_shaped_work_item`.
+# `verification_route.command` and `.path` reach the dispatch unscreened --
+# the argv trust-boundary rules run at write time, after the per-item
+# dispatch, so only the data-delimiter framing below is ahead of them.
+# `friction.summary` is unscreened because the instruction-shape refusal
+# above names only the six `work_item` fields. `declined_ordinal` carries no
+# author-supplied prose to screen.
 REASONING_DISPATCH_REFUSED_BEFOREHAND = frozenset(WORK_ITEM_SCANNED_FREE_TEXT_FIELDS)
 REASONING_DISPATCH_UNSCREENED = frozenset(
     {"verification_route.command", "verification_route.path", "friction.summary"}
@@ -568,13 +577,13 @@ def build_reasoning_dispatch_payload(
     friction: dict[str, Any] | None,
     declined_ordinal: int,
 ) -> dict[str, Any]:
-    """`AC-0069`'s actual dispatch payload -- built from exactly the names
+    """The actual dispatch payload -- built from exactly the names
     `reasoning_dispatch_parameter_bins` enumerates, each guarded by presence
     the same way `_deterministic_privacy_scan` guards its shape-conditional
     fields. Carries no field named for the originating session's transcript
-    or scratch (`AC-0041`): the closed parameter list above is the whole of
-    what this function can ever return, so nothing outside it -- a
-    transcript included -- can reach the dispatch through this seam.
+    or scratch: the closed parameter list above is the whole of what this
+    function can ever return, so nothing outside it -- a transcript
+    included -- can reach the dispatch through this seam.
     """
 
     payload: dict[str, Any] = {
@@ -591,10 +600,10 @@ def build_reasoning_dispatch_payload(
     return payload
 
 
-# `AC-0036`: the fixed instruction text below carries no `{}`-style
-# substitution of item content -- only the delimited block does, rendered as
-# one JSON unit rather than field-by-field string interpolation. Nothing
-# between the delimiters is read as an instruction, however it reads.
+# The fixed instruction text below carries no `{}`-style substitution of
+# item content -- only the delimited block does, rendered as one JSON unit
+# rather than field-by-field string interpolation. Nothing between the
+# delimiters is read as an instruction, however it reads.
 REASONING_DISPATCH_INSTRUCTION = (
     "Decide, from the delimited item data below and nothing else, whether "
     "this item clears the necessity razor and its shape's threshold. "
@@ -607,7 +616,7 @@ REASONING_DISPATCH_DATA_END = "<<<END_WORK_ITEM_DATA>>>"
 
 
 def render_reasoning_dispatch_message(payload: dict[str, Any]) -> str:
-    """`AC-0036`: item content reaches the dispatch as delimited data, never
+    """Item content reaches the dispatch as delimited data, never
     interpolated into instruction position."""
 
     return (
@@ -620,7 +629,7 @@ def render_reasoning_dispatch_message(payload: dict[str, Any]) -> str:
 
 def reasoning_dispatch_correlation_key(payload: dict[str, Any]) -> str:
     """A single per-call identity binding a verdict to the exact item
-    content and close-position it was computed for -- `AC-0068`'s per-item
+    content and close-position it was computed for -- an exact per-item
     correspondence, never a count. A corrected re-submission's payload
     differs from its pre-correction payload in at least one scanned field,
     so its correlation key differs too: a stale verdict can never satisfy
@@ -650,7 +659,7 @@ def dispatch_reasoning_check(
     `None` if no recognized verdict was obtained.
 
     Every failure mode collapses to `None` here, which is what lets the
-    write-time floor (`admit_work_item_capture`, `AC-0068`) treat them as
+    write-time floor (`admit_work_item_capture`) treat them as
     one seam: `dispatch is None` is the tier not configured at all -- a skip
     branch no endpoint manipulation reaches, since `dispatch` is never
     called; a raised exception, a response arriving after `timeout_seconds`,
@@ -681,15 +690,15 @@ def admit_work_item_capture(
     reasoning_verdict: ReasoningVerdict | None,
     declined_ordinal: int,
 ) -> dict[str, Any]:
-    """The write-path floor for a `work-item` capture (`AC-0068`).
+    """The write-path floor for a `work-item` capture.
 
     Refuses any `work-item` submission that does not carry a recognized
     verdict from the reasoning tier, matched to this exact item by
     recomputing its own correlation key and requiring an exact match --
     never a count of dispatch calls. `validate_capture_request` stays
-    version-agnostic and verdict-unaware (§ D10: the store's read path calls
-    it too); this gate runs only here, on the write path this module owns,
-    and never against a record already in the store.
+    version-agnostic and verdict-unaware, because the store's read path
+    calls it too; this gate runs only here, on the write path this module
+    owns, and never against a record already in the store.
 
     Four cases collapse into the same refusal: no verdict at all, a verdict
     outside the recognized set, a verdict computed for a different item (the
@@ -723,12 +732,12 @@ def admit_work_item_capture(
 
 @dataclasses.dataclass(frozen=True)
 class DeclinedItemOutcome:
-    """One declined-set member's final outcome (§ D4). `ordinal` is the
+    """One declined-set member's final outcome. `ordinal` is the
     close's own position-stable enumeration index; `outcome` is one of
     `DECLINED_ITEM_OUTCOMES`; `detail` is the capture id for `captured`, the
-    § D4 reason code for `refused`, and `None` for `dispatched-in-session`.
-    `necessity_rationale` is carried only for `captured`, so `AC-0014`'s
-    close-output print has something to print beside it.
+    catalog reason code for `refused`, and `None` for `dispatched-in-session`.
+    `necessity_rationale` is carried only for `captured`, so the close-output
+    print has something to print beside it.
     """
 
     ordinal: int
@@ -742,11 +751,11 @@ class DeclinedItemOutcome:
 
 
 class CloseLedger:
-    """Accounts for one close's declined set by ordinal (§ D4).
+    """Accounts for one close's declined set by ordinal.
 
     One correction is admitted per ordinal: a second `refused` outcome
     recorded against the same ordinal ends the close
-    (`SecondRefusalEndsClose`, `AC-0039`) -- recorded as that ordinal's
+    (`SecondRefusalEndsClose`) -- recorded as that ordinal's
     outcome before the exception is raised, so `finalize` still sees it.
     """
 
@@ -764,8 +773,8 @@ class CloseLedger:
         self._outcomes[outcome.ordinal] = outcome
 
     def finalize(self, declined_ordinals: range) -> tuple[DeclinedItemOutcome, ...]:
-        """`AC-0001`/`AC-0002`: every declined-set member carries exactly
-        one outcome; a member absent from the ledger fails the close."""
+        """Every declined-set member carries exactly one outcome; a member
+        absent from the ledger fails the close."""
 
         missing = [
             ordinal for ordinal in declined_ordinals if ordinal not in self._outcomes
@@ -776,8 +785,8 @@ class CloseLedger:
 
 
 def render_close_output(outcomes: Sequence[DeclinedItemOutcome]) -> str:
-    """`AC-0014`: each captured item's `necessity_rationale` is printed
-    beside it in the close output."""
+    """Each captured item's `necessity_rationale` is printed beside it in
+    the close output."""
 
     lines = []
     for outcome in outcomes:
@@ -1042,8 +1051,8 @@ def assert_persistable_paths(*values: str) -> None:
 
 
 def _deterministic_privacy_scan(request: dict[str, Any]) -> None:
-    # `lesson` is absent on a `work-item` record (§ D8), which instead
-    # carries `WORK_ITEM_SCANNED_FREE_TEXT_FIELDS` (`AC-0031`) — each
+    # `lesson` is absent on a `work-item` record, which instead
+    # carries `WORK_ITEM_SCANNED_FREE_TEXT_FIELDS` — each
     # guarded by presence, since `observed`/`intended`/`answered_by` are
     # shape-conditional and a shape that omits one must not raise `KeyError`
     # here.
@@ -1058,11 +1067,17 @@ def _deterministic_privacy_scan(request: dict[str, Any]) -> None:
     if "friction" in request:
         prose.append(request["friction"]["summary"])
     if "verification_route" in request:
-        # `command` is a § D6 argv array, not a string: scan each element,
-        # not the list itself (`AC-0061`). `argv[0]` cannot fail — the
-        # four-member allowlist refuses anything else before this scan
-        # runs — so including it here costs nothing.
-        prose.extend(request["verification_route"]["command"])
+        command = request["verification_route"]["command"]
+        if isinstance(command, list):
+            # v2's argv array: scan each element, not the list itself.
+            # `argv[0]` cannot fail — the four-member allowlist refuses
+            # anything else before this scan runs — so including it here
+            # costs nothing.
+            prose.extend(command)
+        else:
+            # v1's own `command` shape is a single bounded string, scanned
+            # whole -- retained unchanged for a v1 record.
+            prose.append(command)
     prose.extend(
         (
             request["producer"]["workflow"],
@@ -1095,9 +1110,24 @@ def _expect_bool(value: Any, expected: bool) -> None:
         raise ValueError("invalid attestation")
 
 
+def _validate_verification_route_v1(value: Any) -> None:
+    """v1's own `verification_route` rule, retained unchanged: `command` is
+    a bounded string and `path` clears only `_expect_repo_path`. v1 predates
+    the argv trust boundary and the dot-leading-component rule, both
+    v2-only, so a v1 record is never held to either -- the same record a v1
+    submitter wrote and a v1 reader must still accept."""
+
+    if not isinstance(value, dict):
+        raise ValueError("invalid verification route")
+    _expect_keys(value, {"command", "path"}, set())
+    _expect_text(value["command"], 500)
+    value["path"] = _expect_repo_path(value["path"])
+
+
 def _validate_capture_request_shape(
     request: dict[str, Any], *, contract_version: str
 ) -> dict[str, Any]:
+    is_v2 = contract_version == CONTRACT_VERSION
     required = {
         "contract_version",
         "kind",
@@ -1111,17 +1141,25 @@ def _validate_capture_request_shape(
         "observed_at",
         "privacy_attestation",
     }
-    optional = {"friction", "verification_route", "lesson", "work_item"}
+    optional = {"friction", "verification_route", "lesson"}
+    if is_v2:
+        optional = optional | {"work_item"}
     _expect_keys(request, required, optional)
     if request["contract_version"] != contract_version:
         raise ValueError("invalid contract version")
     if request["kind"] not in {"pattern", "gotcha", "antipattern", "work-item"}:
         raise ValueError("invalid kind")
-    # § D8: `lesson` is required unless `kind` is `work-item`, which carries
+    # v1 predates `work-item`: a v1-tagged payload carrying the v2-only
+    # kind is refused here, on top of the widened check above, rather than
+    # admitted because it happens to be a recognized value.
+    if not is_v2 and request["kind"] not in {"pattern", "gotcha", "antipattern"}:
+        raise ValueError("invalid kind")
+    # `lesson` is required unless `kind` is `work-item`, which carries
     # `work_item.statement` instead; `work_item` is required only when it
     # is. Both are `if`/`then` blocks in the schema; this is their Python
-    # mirror.
-    if request["kind"] == "work-item":
+    # mirror. `kind == "work-item"` is unreachable under v1's own
+    # vocabulary, so `lesson` is unconditionally required there.
+    if is_v2 and request["kind"] == "work-item":
         if "work_item" not in request:
             raise WorkItemRefusal("work_item_incomplete")
         _validate_work_item(request["work_item"], request)
@@ -1150,7 +1188,10 @@ def _validate_capture_request_shape(
     if "friction" in request:
         _validate_friction(request["friction"])
     if "verification_route" in request:
-        _validate_verification_route(request["verification_route"])
+        if is_v2:
+            _validate_verification_route(request["verification_route"])
+        else:
+            _validate_verification_route_v1(request["verification_route"])
     _deterministic_privacy_scan(request)
     return request
 
@@ -1172,7 +1213,8 @@ def _validate_capture_request_v2(request: dict[str, Any]) -> dict[str, Any]:
 # map does not hold is refused, never validated by the oldest entry or by
 # none at all. `CONTRACT_VERSION` names the one entry a fresh submission may
 # be tagged with; the others stay resolvable for a record already in the
-# store, per `knowledge-captured-observation.v2`'s § D11.
+# store, so a stored legacy record stays readable even after the writable
+# version moves on.
 CAPTURE_VALIDATORS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "knowledge-captured-observation.v1": _validate_capture_request_v1,
     "knowledge-captured-observation.v2": _validate_capture_request_v2,
@@ -1322,7 +1364,7 @@ def _validate_verification_route(value: Any) -> None:
     _expect_keys(value, {"command", "path"}, set())
     value["command"] = _validate_command_argv(value["command"])
     value["path"] = _expect_repo_path(value["path"])
-    # § D6's dot-component rule binds `path` too, on the value
+    # The dot-component rule binds `path` too, on the value
     # `_expect_repo_path` returns — which also catches its `"."` early
     # return, since `_refuse_dot_leading_component` runs on the returned
     # string regardless of which branch produced it.
@@ -1575,6 +1617,9 @@ def _run_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--semantic-gate")
     parser.add_argument("--artifact")
     parser.add_argument("--refinement", action="store_true")
+    parser.add_argument("--reasoning-verdict")
+    parser.add_argument("--reasoning-correlation-key")
+    parser.add_argument("--declined-ordinal", type=int, default=0)
     args = parser.parse_args(argv)
     selected = (
         "capture"
@@ -1621,12 +1666,28 @@ def _run_main(argv: list[str] | None = None) -> int:
                 artifact=args.artifact,
                 repo_root=repo_root,
             )
+        # The write-path floor is verdict-unaware at the parser: a
+        # `work-item` submission with no verdict refuses at the writer,
+        # never here. The verdict and its correlation key both come from
+        # the caller that ran the reasoning dispatch, or neither does --
+        # one supplied without the other cannot be matched to any item and
+        # is refused before it reaches the writer.
+        if (args.reasoning_verdict is None) != (args.reasoning_correlation_key is None):
+            raise ValueError("reasoning verdict and correlation key must both be supplied")
+        reasoning_verdict = None
+        if args.reasoning_verdict is not None:
+            reasoning_verdict = ReasoningVerdict(
+                verdict=args.reasoning_verdict,
+                correlation_key=args.reasoning_correlation_key,
+            )
         receipt = call_helper(
             "capture",
             "capture_observation",
             repo_root,
             request,
             writer_time=args.writer_time,
+            reasoning_verdict=reasoning_verdict,
+            declined_ordinal=args.declined_ordinal,
         )
         print(json.dumps(receipt, sort_keys=True))
         return 0

@@ -228,7 +228,15 @@ def test_version_selection_dispatches_on_payload_field() -> None:
 
 def test_ac15_a_v1_record_validates_under_the_v1_validator_unchanged() -> None:
     module = load_project_knowledge_module()
-    v1_request = valid_capture_request(contract_version="knowledge-captured-observation.v1")
+    # v1 predates § D6's argv array: its own `verification_route.command`
+    # is a bounded string, not the v2 fixture's default list.
+    v1_request = valid_capture_request(
+        contract_version="knowledge-captured-observation.v1",
+        verification_route={
+            "command": "cat tools/catalogue/check_contract_parity.py",
+            "path": "tools/catalogue/check_contract_parity.py",
+        },
+    )
     validator = module.select_validator({"request": v1_request})
     assert validator is module.CAPTURE_VALIDATORS["knowledge-captured-observation.v1"]
     assert validator(copy.deepcopy(v1_request)) == v1_request
@@ -274,7 +282,16 @@ def test_ac47_an_unknown_contract_version_is_refused_with_a_catalog_code() -> No
 
 def test_ac48_a_non_writable_version_is_refused_rather_than_re_stamped() -> None:
     module = load_project_knowledge_module()
-    v1_request = valid_capture_request(contract_version="knowledge-captured-observation.v1")
+    # v1's own `verification_route.command` is a bounded string, not the
+    # v2 fixture's default argv list -- `validate_capture_request` below
+    # runs the real v1 rules, not just the version lookup.
+    v1_request = valid_capture_request(
+        contract_version="knowledge-captured-observation.v1",
+        verification_route={
+            "command": "cat tools/catalogue/check_contract_parity.py",
+            "path": "tools/catalogue/check_contract_parity.py",
+        },
+    )
     with pytest.raises(ValueError):
         module.select_validator({"request": v1_request}, require_writable=True)
     # validate_capture_request stays version-agnostic on purpose: knowledge_store
@@ -526,6 +543,21 @@ def test_ac0013_a_written_work_item_record_carries_a_necessity_rationale() -> No
     request = valid_work_item_request("question")
     validated = module.validate_capture_request(request)
     assert validated["work_item"]["necessity_rationale"]
+
+
+def test_work_item_refuses_an_undeclared_property() -> None:
+    """The schema's `work_item` carries `additionalProperties: false`, the
+    same as every sibling sub-object; `_validate_work_item` must close that
+    set with `_expect_keys` like every one of them does. An extra key is
+    refused here rather than admitted and committed unscanned -- proved
+    with a value that would clear every declared field's own checks but
+    must still never reach the store under an undeclared name."""
+
+    module = load_project_knowledge_module()
+    request = valid_work_item_request("question")
+    request["work_item"]["home_directory"] = "/Users/example-user"
+    with pytest.raises(ValueError):
+        module.validate_capture_request(request)
 
 
 def test_work_item_statement_reaches_privacy_scan() -> None:
@@ -913,13 +945,29 @@ def test_capture_observation_refuses_a_non_writable_version_and_writes_nothing(
 def test_a_work_item_record_round_trips_through_the_store(tmp_path: Path) -> None:
     """Running the write path during PLAN showed the request validator
     refuses the kind first and the partition validator refuses the
-    directory second, so both must widen before this passes."""
+    directory second, so both must widen before this passes. The write path
+    also enforces the floor (`AC-0068`), so this exercises it with a
+    recognized, item-correlated `admit` verdict rather than bypassing it."""
 
+    module = load_project_knowledge_module()
     store = load_knowledge_store_module()
     repo = initialize_empty_v1_repo(tmp_path, store)
     request = valid_work_item_request("question")
     request["observed_at"] = "2026-08-13T12:34:56Z"
-    receipt = store.capture_observation(repo, request, writer_time="2026-08-13T12:40:00Z")
+    payload = module.build_reasoning_dispatch_payload(
+        request["work_item"],
+        verification_route=request.get("verification_route"),
+        friction=request.get("friction"),
+        declined_ordinal=0,
+    )
+    verdict = module.dispatch_reasoning_check(payload, dispatch=lambda message: "admit")
+    receipt = store.capture_observation(
+        repo,
+        request,
+        writer_time="2026-08-13T12:40:00Z",
+        reasoning_verdict=verdict,
+        declined_ordinal=0,
+    )
     assert receipt["partition"] == "observations/work-item/2026-08.jsonl"
     events = [
         json.loads(line)
@@ -929,6 +977,27 @@ def test_a_work_item_record_round_trips_through_the_store(tmp_path: Path) -> Non
     assert len(events) == 1
     assert events[0]["request"]["kind"] == "work-item"
     assert events[0]["capture_id"] == receipt["capture_id"]
+
+
+def test_capture_observation_refuses_a_work_item_with_no_verdict_and_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    """The floor (`AC-0068`) is wired onto `capture_observation` itself --
+    the real write path every caller including the CLI routes through, not
+    a test-composed call to `admit_work_item_capture` followed by a separate
+    call to the writer. A `work-item` submission with no reasoning verdict
+    must refuse here, at the production entry point, with nothing written."""
+
+    store = load_knowledge_store_module()
+    repo = initialize_empty_v1_repo(tmp_path, store)
+    before = _journal_bytes(repo)
+    request = valid_work_item_request("question")
+    request["observed_at"] = "2026-08-13T12:34:56Z"
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.capture_observation(repo, request, writer_time="2026-08-13T12:40:00Z")
+    assert refused.value.diagnostic["reason_code"] == "work_item_unnecessary"
+    assert _journal_bytes(repo) == before
+    assert not list((repo / "docs" / "knowledge" / "observations").glob("*/*.jsonl"))
 
 
 def test_the_real_corpus_replays_through_version_selection_and_bytes_are_unchanged() -> None:
@@ -973,6 +1042,49 @@ def test_the_real_corpus_replays_through_version_selection_and_bytes_are_unchang
     assert envelope_only_seen, "the corpus must exercise the envelope-only partition"
     for path, raw in before.items():
         assert path.read_bytes() == raw
+
+
+def test_a_v1_record_with_a_string_command_replays_under_v1_rules_not_v2s() -> None:
+    """The real corpus carries no stored `verification_route` yet, so the
+    replay above cannot exercise this divergence. v1 predates § D6's argv
+    array: its own `verification_route.command` is a bounded string, and
+    the v1 validator must accept that shape rather than the v2 argv rules
+    -- both directions are pinned here, since the v1 and v2 entries in
+    `CAPTURE_VALIDATORS` must enforce different rules for this to matter."""
+
+    pk_module = load_project_knowledge_module()
+    v1_request = valid_capture_request(
+        contract_version="knowledge-captured-observation.v1",
+        verification_route={
+            "command": "x" * 500,
+            "path": "tools/catalogue/check_contract_parity.py",
+        },
+    )
+    validator = pk_module.select_validator({"request": v1_request})
+    assert validator is pk_module.CAPTURE_VALIDATORS["knowledge-captured-observation.v1"]
+    validated = validator(copy.deepcopy(v1_request))
+    assert validated["verification_route"]["command"] == "x" * 500
+
+    # The same string command is not the v2 argv shape § D6 requires: a
+    # v1-shaped payload re-tagged v2 is refused, rather than silently
+    # admitted as an argv of one giant element.
+    v2_request = dict(v1_request, contract_version="knowledge-captured-observation.v2")
+    v2_validator = pk_module.CAPTURE_VALIDATORS["knowledge-captured-observation.v2"]
+    with pytest.raises(pk_module.VerificationRouteRefusal):
+        v2_validator(copy.deepcopy(v2_request))
+
+
+def test_a_v1_record_carrying_the_v2_only_work_item_kind_is_refused() -> None:
+    """§ D1: `work-item` is v2-only. A v1-tagged payload carrying it must
+    not be admitted just because the kind is recognized somewhere."""
+
+    pk_module = load_project_knowledge_module()
+    request = valid_work_item_request(
+        "question", contract_version="knowledge-captured-observation.v1"
+    )
+    validator = pk_module.CAPTURE_VALIDATORS["knowledge-captured-observation.v1"]
+    with pytest.raises(ValueError):
+        validator(copy.deepcopy(request))
 
 
 # --- T7: the close's per-item reasoning dispatch ----------------------------

@@ -737,19 +737,39 @@ def _check_time_window(request: dict[str, Any], writer_time: str) -> None:
         _refuse("provenance")
 
 
-def _check_pre_admission(request: dict[str, Any]) -> dict[str, Any]:
+def _check_pre_admission(
+    request: dict[str, Any],
+    *,
+    reasoning_verdict: Any | None = None,
+    declined_ordinal: int = 0,
+) -> dict[str, Any]:
     # Bound to the writable-only selector: a fresh submission tagged with a
     # non-writable (or unknown) `contract_version` is refused here, never
-    # validated under legacy rules and re-stamped. `_validate_event`, the
-    # read-path sibling, stays on the version-agnostic call — see
-    # docs/specs/work-item-capture/notes/amendment-002.md, which records the
-    # regression from binding this in the wrong place: every stored legacy
-    # record refused at read.
+    # validated under legacy rules and re-stamped. The read-path sibling,
+    # `_validate_event`, stays on the version-agnostic call, so every stored
+    # legacy record remains readable even though only the writable version
+    # may be freshly submitted here.
+    #
+    # A `work-item` record additionally clears the write-time floor: this is
+    # the only seam that appends such a record, so every reachable caller —
+    # this function's own caller and, through it, the CLI — must supply a
+    # recognized, item-correlated verdict or the write refuses. There is no
+    # second, structural tier in this delivery, so anything short of a
+    # recognized verdict is treated as a refusal.
     try:
         validator = PK.select_validator({"request": request}, require_writable=True)
         if validator is None:
             raise ValueError("capture request carries no contract version")
-        return validator(copy.deepcopy(request))
+        validated = validator(copy.deepcopy(request))
+        if validated["kind"] != "work-item":
+            return validated
+        return PK.admit_work_item_capture(
+            copy.deepcopy(request),
+            reasoning_verdict=reasoning_verdict,
+            declined_ordinal=declined_ordinal,
+        )
+    except PK.WorkItemRefusal as exc:
+        _refuse(exc.reason_code)
     except PK.PrivacyRefusal:
         _refuse("privacy")
     except ValueError:
@@ -3112,10 +3132,14 @@ def capture_observation(
     budgets: dict[str, int] | None = None,
     interrupt_after: str | None = None,
     lock_timeout: float = 10.0,
+    reasoning_verdict: Any | None = None,
+    declined_ordinal: int = 0,
 ) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
     writer_time = writer_time or _format_time(datetime.now(tz=UTC))
-    validated = _check_pre_admission(request)
+    validated = _check_pre_admission(
+        request, reasoning_verdict=reasoning_verdict, declined_ordinal=declined_ordinal
+    )
     event = _captured_event(validated, writer_time=writer_time)
     partition_path = _journal_path(repo_root, event["partition"])
     limits = budgets or budget_contract()
