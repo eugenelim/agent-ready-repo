@@ -58,3 +58,37 @@ command codes, now in the capture spec's § D4 (they were `work-item-command-con
 `resolve_worktree_root` shells out to `git rev-parse --show-toplevel`, and a
 bare `.git` directory is not a repository. A spike without a control is a
 confident guess with output attached.
+
+## Amendment 009 — three redundancies mutation testing found
+
+Wiring `--reasoning-payload` meant calling controls that already existed. Each
+call looked correct and each turned out to be a no-op. **Only mutation
+testing found them; all three passed their own tests.**
+
+| Control the mode called | What killed it |
+| --- | --- |
+| `refuse_instruction_shaped_work_item` | `_deterministic_privacy_scan` already applies the same `_INSTRUCTION_SHAPE` pattern to the same six fields. Measured across all 3 shapes × 6 fields: **0** inputs the gate refuses that the general scan admits. |
+| `validate_capture_request`, called after `parse_capture_request` | `parse_capture_request` ends `return validate_capture_request(parsed)`. The second call re-validated an already-validated request. |
+| the first instruction-shape test | Asserted a non-zero exit. The writer refuses instruction-shaped content anyway, so the test passed with the gate deleted — a consequence, not the property. Replaced by an assertion that **no rendered dispatch message is produced**, walked over every shape-field pair. |
+
+`AC-0035`'s outcome still holds: nothing instruction-shaped reaches the cold
+context. It holds by the general scan, not by the dedicated gate, and that is
+now stated in the spec's security row rather than implied by a function name.
+
+**The generalisable point.** Each redundancy was introduced while *closing a
+finding that said a control had no production caller*. Wiring a control
+without first checking whether its effect is already delivered elsewhere
+produces a call site that can be deleted with every test still green — which
+is the same defect the finding complained about, one layer up.
+
+## Amendment 009 — the bundled-fixes declaration in `c38fd5fb1` was wrong
+
+That commit declared amendment 007 and the `knowledge_store.py` refusal
+routing under `Bundled fixes:`. Both are authorised work, but neither
+qualifies for that carve-out: the routing change alters a caller-visible
+diagnostic code, which is a behavior change, and amendment 007 changes an
+Acceptance Criterion, which is contract tier.
+`work-loop/references/bundled-fixes.md` § "Case: refused regardless" refuses
+a change reaching a contract or published interface however settled the
+authorisation. They are scope, carried by their amendment records; the PR
+description states them that way and does not repeat the ride-along framing.
