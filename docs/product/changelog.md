@@ -72,6 +72,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of once per use. A `wave-complete` transition now starts a single `git`
   process where it previously started three.
 
+### Fixed
+
+- The `docs/AGENTS.md` seed carries the Mermaid authoring constraints, so an
+  adopter receives them and they survive a projection rebuild. They previously
+  existed only in this repository's generated copy, where every self-host run
+  removed them.
+
 ## [core][2.26.33] — 2026-09-22
 
 ### Changed
