@@ -1151,6 +1151,167 @@ def test_component_alias_uses_canonical_id() -> None:
 
 
 # --------------------------------------------------------------------------
+# `intent:` recognition — the fourth recognizer (RFC-0103 D2)
+# --------------------------------------------------------------------------
+
+# STUB: AC-0006 — an unclaimed intent file becomes an `intent:` node keyed on
+# its own `Slug:` field; a ladder-typed sibling (recognize_ladder already
+# claims it) must not double-register.
+def test_unclaimed_intent_file_becomes_intent_node() -> None:
+    spec = importlib.util.spec_from_file_location("_trace_intent_node_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "o.md", "# I\n\n- **Slug:** `o`\n- **Kind:** outcome\n")
+        write(base / "plain.md", "# I\n\n- **Slug:** `plain-intent`\n")
+
+        g = mod.Graph()
+        ladder_paths = mod.recognize_ladder(base, root, g)
+        found = mod.recognize_intents(base, root, g, claimed=set(ladder_paths.values()))
+
+        expect(list(found.keys()) == ["intent:plain-intent"],
+               f"only the unclaimed file is recognized, keyed on its Slug: {found!r}")
+        expect(g.nodes.get("intent:plain-intent") == "intent",
+               f"the node is registered under kind 'intent': {g.nodes!r}")
+        expect("intent:o" not in g.nodes,
+               f"the ladder-typed file must not also be an intent: node "
+               f"(RFC-0103 D2's exclusion): {g.nodes!r}")
+
+
+def test_ordinal_prefixed_intent_filename_uses_slug_field_not_stem() -> None:
+    """The slug is the `Slug:` field value, never the filename stem — 5 of the
+    117 real intent filenames carry an ordinal prefix, and a stem-derived id
+    would put that ordinal inside a pointer value (AC-0005 refuses it)."""
+    spec = importlib.util.spec_from_file_location("_trace_intent_ordinal_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "FEAT-0001-intent-identity-and-registration.md",
+              "# I\n\n- **Slug:** `intent-identity-and-registration`\n")
+
+        g = mod.Graph()
+        found = mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(list(found.keys()) == ["intent:intent-identity-and-registration"],
+               f"the id must come from Slug:, not the ordinal-prefixed stem: {found!r}")
+        expect(not any("FEAT-0001" in nid for nid in g.nodes),
+               f"no id may contain the ordinal: {g.nodes!r}")
+
+
+def test_intent_file_without_slug_is_reported() -> None:
+    """AC-0014: an intent file carrying no `Slug:` field is reported."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_intent_no_slug_report_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "no-slug.md", "# I\n\nNo slug field here.\n")
+
+        g = mod.Graph()
+        mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(any("no-slug.md" in n and "Slug" in n for n in g.notes),
+               f"a file with no Slug: field must be reported: {g.notes!r}")
+
+
+def test_intent_file_without_slug_contributes_no_node() -> None:
+    """AC-0015: that same fixture contributes no node — asserted separately
+    from AC-0014 because an implementation can emit the report and still
+    register a node, falling back to the filename stem, which AC-0005 refuses
+    as a pointer value."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_intent_no_slug_node_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "no-slug.md", "# I\n\nNo slug field here.\n")
+
+        g = mod.Graph()
+        found = mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(found == {}, f"no node should be returned for edge wiring: {found!r}")
+        expect("intent:no-slug" not in g.nodes,
+               f"must not fall back to the filename stem: {g.nodes!r}")
+        expect(len(g.nodes) == 0, f"no node registered at all: {g.nodes!r}")
+
+
+def test_duplicate_derived_intent_id_caught_over_pre_insertion_sequence() -> None:
+    """AC-0007: no two nodes share an id. `Graph.add` (`:352`) assigns into
+    `self.nodes`, so a second registration silently overwrites the first — the
+    assertion must read the id sequence as it is *derived*, not the built node
+    set, which would be true for every corpus including a colliding one."""
+    spec = importlib.util.spec_from_file_location("_trace_intent_dup_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "a.md", "# I\n\n- **Slug:** `dup`\n")
+        write(base / "b.md", "# I\n\n- **Slug:** `dup`\n")
+
+        g = mod.Graph()
+        derived: list[str] = []
+        original_add = g.add
+
+        def spy_add(node_id: str, kind: str) -> None:
+            derived.append(node_id)
+            original_add(node_id, kind)
+
+        g.add = spy_add
+        mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(len(derived) == 2 and len(set(derived)) == 1,
+               f"two artifacts derive the same id — the pre-insertion sequence "
+               f"must carry the duplicate: {derived!r}")
+        expect(len(g.nodes) == 1,
+               f"the built node set alone hides the collision (Graph.add "
+               f"overwrites), which is exactly why the sequence is asserted "
+               f"instead: {g.nodes!r}")
+
+
+def test_unclaimed_intent_parent_pointer_wires_the_in_edge() -> None:
+    """Registration alone is not enough: the edge builder wires
+    `Parent intent:` from the brief and ladder path maps, so a recognizer that
+    returns nodes without joining that wiring leaves 14 real pointers unbuilt
+    in the live corpus. This fixture proves an `intent:` node gains its
+    in-edge."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_intent_wiring_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        write(root / "docs" / "product" / "intents" / "o.md",
+              "# I\n\n- **Slug:** `o`\n- **Kind:** outcome\n")
+        write(root / "docs" / "product" / "intents" / "child.md",
+              "# I\n\n- **Slug:** `child`\n- **Parent intent:** o\n")
+
+        g = mod.Graph()
+        mod.build_standalone(root, {}, g, {})
+
+        expect(("outcome:o", "intent:child") in g.edges,
+               f"the unclaimed intent's own Parent intent: pointer must wire "
+               f"the in-edge, got edges={g.edges!r}")
+
+
+# --------------------------------------------------------------------------
 # Structural-only / output-shape / stdlib / no-hardcoded-path NFRs
 # --------------------------------------------------------------------------
 

@@ -595,3 +595,52 @@ ride-along: the docstring said "the first that resolves wins", which *this
 change* falsified. Repairing a statement the change itself made false is part of
 the change, not an unrelated improvement carried alongside it. No unauthorized
 carve-out occurred.
+
+## 2026-09-22 — T3 complete, and it falsified an accepted claim
+
+`recognize_intents` registers the 117 unclaimed intent files as `intent:<slug>`
+nodes, keyed on `Slug:`, skipping what `recognize_ladder` already claimed and
+skipping — with a report and no node — any file lacking `Slug:`. Its path map
+joins the existing `Parent intent:` wiring pass, so a new node's own producer
+pointer wires like a brief's or a ladder rung's.
+
+- `make lint-ruff lint-mypy`: pass
+- `test_lint_traceability.py`: **63 passed** in 15.2s (57 + 6 new)
+- Red proved by reverting the production file to the T2a state
+- Nodes **640 → 757**, exactly the projected 594 local + 117 + 46 stubs
+- Edges **109 → 115**
+- `--strict`: 487 orphans, matching the projection of 488 → 487 with none
+  introduced, because `intent` is not in `CHAIN`
+
+### The finding: default mode now exits 1
+
+Wiring the 14 newly visible `Parent intent:` values resolves 6 and leaves 8
+`dangling`, which is a hard violation in every mode. The 8 are markdown links:
+
+    - **Parent intent:** [Digital experience doctrine](digital-experience-doctrine.md)
+
+`field_re` truncates at the first space, so the value becomes `[Digital`, which
+contains no `/` and therefore fails `_CROSSREPO_RE`; it lands `dangling` rather
+than `unresolvable`. The implementer did not suppress them, correctly: the Agent
+Rules forbid sweeping a value the corpus cannot resolve and require reporting it.
+
+**This is expected and temporary, but it was not predicted.** T3's `Done when`
+does not require exit 0, so T3 is complete against its contract. The controller's
+dispatch brief said "Expect exit 0", which was wrong — extrapolated from T2 and
+T2a rather than derived. RFC-0103's Risks section asserted the same thing, and
+now carries an erratum.
+
+The end state is unaffected: both link targets resolve to existing capability
+nodes — `capability:digital-experience-doctrine` and
+`capability:nontechnical-pack-first-value-rollout` — so T5's sweep rewrites all
+8 to the canonical form and default exit returns to 0, which is where AC-0012
+is read. **T5 must cover these 8; they are inside AC-0008's "every resolvable
+value" predicate precisely because their targets resolve.**
+
+### The same half-verification, a third time
+
+The projection that produced "488 → 487, zero new orphans" measured nodes, edges
+and orphans. It never read the exit code, and never inspected `g.dangling`. The
+earlier reachability gap and the `Brief:`-probe gap were the same shape: a
+mechanism checked on one axis and reported as checked. The implementer's real
+run found in one command what three projections had missed.

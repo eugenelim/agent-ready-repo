@@ -301,4 +301,19 @@ A **collision slug** is a slug that more than one node id ends in, so a bare poi
   arbitrary ones. `workspace_status_engine` and `intent_shape` are the two. The
   claim was this record's headline evidence for its own premise, which is why
   the correction is recorded rather than quietly applied.
+- 2026-09-22: **the default invocation does not stay at exit 0 through the
+  migration.** The Risks section states that `--strict` already exits 1 on
+  pre-existing orphans while "the default invocation exits 0 … neither changes
+  because of it". Implementation falsified the second half. Recognizing the
+  intent files makes 14 of their own `Parent intent:` values builder-visible;
+  6 resolve, and 8 are markdown links whose field regex truncates at the first
+  space, yielding a token like `[Digital` that matches no cross-repo shape and
+  so classifies `dangling` — a hard violation in every mode. Default exit is 1
+  between the recognizer landing and the sweep that rewrites those values. The
+  targets resolve (`capability:digital-experience-doctrine` and
+  `capability:nontechnical-pack-first-value-rollout`), so the sweep clears them
+  and the end state is exit 0; the interim is not. The projection behind the
+  original claim measured node, edge and orphan counts and never read the exit
+  code, which is the same half-verification this record has had to correct
+  twice before.
 

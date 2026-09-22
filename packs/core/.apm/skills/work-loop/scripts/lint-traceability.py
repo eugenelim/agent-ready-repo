@@ -562,6 +562,44 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
     return found
 
 
+def recognize_intents(base: Path, root: Path, g: Graph,
+                      claimed: set[Path]) -> dict[str, Path]:
+    """File-backed `intent` nodes: `<intents-base>/*.md` that no ladder rung
+    already claims (`claimed` is `recognize_ladder`'s own recognized paths —
+    the `outcome`/`opportunity`/`capability` files). Covering the whole
+    directory would give each of those 33 files a second id, taking every live
+    bare `Parent intent:` pointer to ambiguous against its own target
+    (RFC-0103 D2, measured); the exclusion is the whole design.
+
+    Id `intent:<slug>`, where `slug` is the **`Slug:` field value, never the
+    filename stem** — 5 of the 117 filenames carry an ordinal prefix, and
+    AC-0005 refuses an ordinal-prefixed stem as a pointer value. A file
+    carrying no `Slug:` field is reported via `g.notes` and contributes no
+    node; it does not fall back to the stem (AC-0014, AC-0015).
+
+    Returns id→path for edge build, so an unclaimed intent file's own
+    `Parent intent:` pointer joins the same producer-pointer wiring pass as
+    briefs and ladder rungs — registration alone leaves that pointer unbuilt."""
+    found: dict[str, Path] = {}
+    for p in sorted(_confined(base.glob("*.md"), root)):
+        if p.name.startswith("_") or p in claimed:
+            continue
+        text = _read(p)
+        if text is None:
+            continue
+        slug = _first(text, _SLUG_RE)
+        if not slug:
+            g.notes.append(
+                f"{p.relative_to(root).as_posix()}: no Slug: field — "
+                f"no intent: node created"
+            )
+            continue
+        iid = _slug_id("intent", slug)
+        g.add(iid, "intent")
+        found[iid] = p
+    return found
+
+
 def recognize_entries(base: Path, root: Path, g: Graph, kind: str,
                       pat: re.Pattern[str]) -> dict[str, Path]:
     """Container-embedded `action` (journey-map) / `service` (service-blueprint)
@@ -1061,8 +1099,12 @@ def build_standalone(root: Path, layout: dict, g: Graph,
     if "contract" in bases:
         recognize_contracts(bases["contract"], root, g)
     ladder_paths: dict[str, Path] = {}
+    intent_paths: dict[str, Path] = {}
     if bases.get("outcome") is not None:  # intents share one base
         ladder_paths = recognize_ladder(bases["outcome"], root, g)
+        intent_paths = recognize_intents(
+            bases["outcome"], root, g, claimed=set(ladder_paths.values())
+        )
     if "action" in bases:
         recognize_entries(bases["action"], root, g, "action", _ACTION_RE)
     if "service" in bases:
@@ -1084,9 +1126,10 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         _wire_up(g, consumer=spec_id, candidates=_spec_up_values(text),
                  local_ids=local_ids, rollup=rollup)
 
-    # Edge: brief ← parent intent, and ladder rungs ← parent intent — both via
-    # the rendered `**Parent intent:**` up-pointer.
-    for origin_id, path in {**brief_paths, **ladder_paths}.items():
+    # Edge: brief ← parent intent, ladder rungs ← parent intent, and unclaimed
+    # intent files ← parent intent — all via the rendered `**Parent intent:**`
+    # up-pointer.
+    for origin_id, path in {**brief_paths, **ladder_paths, **intent_paths}.items():
         parent = _first(_read(path) or "", field_re("Parent intent"))
         if parent:
             _wire_up(g, consumer=origin_id, candidates=[parent],
