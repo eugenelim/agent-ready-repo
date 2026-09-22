@@ -126,8 +126,11 @@ def _literal(text: str) -> str:
     The quote character is removed rather than escaped: arXiv documents no
     escape for a quote inside a quoted phrase, so leaving one in would close
     the phrase early and hand the remainder to the parser as boolean syntax.
+    The backslash goes with it. A trailing backslash was measured to make arXiv
+    answer HTTP 400 rather than to grant operator authority, so removing it
+    buys a usable query rather than closing a hole.
     """
-    return text.replace('"', " ").strip()
+    return text.replace('"', " ").replace("\\", " ").strip()
 
 
 def _terms(text: str) -> list[str]:
@@ -481,11 +484,23 @@ class Sender:
             return 0.0
         return max(0.0, self.min_interval - (self.clock.monotonic() - self._last_completed))
 
-    def _throttle(self) -> None:
+    def _throttle(self, budget: Budget | None = None) -> None:
+        """Wait out the courtesy interval, or fail closed rather than overrun.
+
+        A redirect arriving near the deadline must not be followed by a full
+        interval's sleep: that spends the attempt's bound on waiting and
+        overruns the limit the caller was promised.
+        """
         wait = self.delay_before_next()
-        if wait > 0:
-            print(f"arxiv-retriever: throttling {wait:.1f}s", file=sys.stderr)
-            self.clock.sleep(wait)
+        if wait <= 0:
+            return
+        if budget is not None and wait >= budget.remaining():
+            raise LimitExceeded(
+                f"the {wait:.1f}s courtesy interval would outlast the attempt's "
+                f"{ATTEMPT_DEADLINE_S:g}s deadline"
+            )
+        print(f"arxiv-retriever: throttling {wait:.1f}s", file=sys.stderr)
+        self.clock.sleep(wait)
 
     def _read_bounded(self, response, budget: Budget) -> bytes:
         """Read at most the cap plus one probe byte, re-arming before each read.
@@ -524,7 +539,7 @@ class Sender:
             # A redirect hop is another outbound request, so it owes the same
             # courtesy interval. Throttling once per attempt would let a chain
             # of hops issue several requests back to back.
-            self._throttle()
+            self._throttle(budget)
             check_url(target)
             check_addresses(
                 _normalise_host(urllib.parse.urlsplit(target).hostname), budget=budget
@@ -1105,12 +1120,18 @@ def _mode_get(target: str, sender: Sender, **options) -> dict[str, object]:
     if options.get("full_text"):
         wanted = tuple(options.get("sections") or DEFAULT_SECTIONS)
         cap = effective_full_text_cap(options.get("full_text_cap"))
-        document = sender.get(f"https://arxiv.org/html/{cite['arxiv_id']}").decode(
+        # Include the resolved version: arxiv.org/html/<id> serves the latest
+        # revision, and v1 and v7 of one paper are different documents.
+        revision = f"{cite['arxiv_id']}{cite.get('version', '')}"
+        document = sender.get(f"https://arxiv.org/html/{revision}").decode(
             "utf-8", "replace"
         )
         kept, dropped, truncated = select_sections(document, wanted, cap)
         lines.append("")
-        lines.append(f"## Full text — sections {', '.join(wanted)}; {cap} character budget")
+        lines.append(
+            f"## Full text of {revision} — sections {', '.join(wanted)}; "
+            f"{cap} character budget"
+        )
         for title, body in kept:
             lines.append("")
             lines.append(f"### {title}")

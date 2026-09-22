@@ -945,6 +945,46 @@ class ArxivRetrieverConformance(unittest.TestCase):
         with self.assertRaises(module.LimitExceeded):
             module._finish(short_content, cites)
 
+    def test_a_backslash_cannot_reach_arxivs_parser(self) -> None:
+        """A trailing backslash was measured to make arXiv answer HTTP 400."""
+        module = _load(ARXIV_SCRIPT)
+        params = module.build_request(title="safe\\", author="OR all:injected\\")
+        self.assertNotIn("\\", params["search_query"])
+        outside = re.sub(r'"[^"]*"', "", params["search_query"])
+        self.assertRegex(outside, r"^(ti:|au:| AND )*$", params["search_query"])
+
+    def test_full_text_comes_from_the_cited_revision(self) -> None:
+        """v1 and v7 of one paper are different documents, and the
+        version-free URL serves the latest — measured at 180,279 against
+        187,983 bytes. Fetching without the version answered a versioned
+        request with different text under its citation."""
+        module = _load(ARXIV_SCRIPT)
+        document = LATEXML_EIGHT.read_text(encoding="utf-8")
+        sender = _sender(module, FakeResponse(ATOM_FEED),
+                         FakeResponse(document.encode("utf-8")))
+        result = module.retrieve("1706.03762v7", mode="get", sender=sender,
+                                 full_text=True)
+        self.assertIn("1706.03762v7", sender._opener.urls[1])
+        self.assertIn("Full text of 1706.03762v7", result["content"])
+        # The citation URL stays version-free, as AC-0008 requires.
+        self.assertEqual(result["citations"][0]["url"],
+                         "https://arxiv.org/abs/1706.03762")
+
+    def test_the_courtesy_interval_never_overruns_the_deadline(self) -> None:
+        """AC-0014 and AC-0046 must both hold; waiting cannot spend the bound."""
+        module = _load(ARXIV_SCRIPT)
+        clock = module.Clock(now=0.0)
+        sender = module.Sender(clock=clock, min_interval=3.0, opener=FakeOpener())
+        sender.note_completed(0.0)
+        budget = module.Budget(clock, 1.0)          # less than the interval
+        with self.assertRaises(module.LimitExceeded) as caught:
+            sender._throttle(budget)
+        self.assertIn("deadline", str(caught.exception))
+        # With room, it simply waits.
+        roomy = module.Budget(clock, module.ATTEMPT_DEADLINE_S)
+        sender._throttle(roomy)
+        self.assertGreaterEqual(clock.monotonic(), 3.0)
+
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
         source = ARXIV_SCRIPT.read_text(encoding="utf-8")

@@ -52,7 +52,7 @@ courteous.
 ## Mutation evidence
 
 Every control added for a sustained review finding was checked by reverting the
-fix and confirming the suite fails. All twenty-three failed when reverted, so
+fix and confirming the suite fails. All twenty-six failed when reverted, so
 none is a control that cannot fail. Six tests that passed under their own
 mutation were strengthened until they failed, and are counted below in their
 strengthened form.
@@ -82,6 +82,9 @@ strengthened form.
 | date bound confined to its value grammar | suite fails |
 | socket re-armed before each read | suite fails |
 | drained-stream treated as EOF rather than an unbounded read | suite fails |
+| backslash removed from every query literal | suite fails |
+| full text fetched from the revision the citation names | suite fails |
+| courtesy interval refused when it would outlast the deadline | suite fails |
 
 ## Suites and gates
 
@@ -89,7 +92,7 @@ strengthened form.
 | --- | --- |
 | `make lint-ruff` | clean |
 | `make lint-mypy` | clean, 148 source files |
-| `tests/skills/desk-research/` (floor 9) | 79 passed |
+| `tests/skills/desk-research/` (floor 9) | 82 passed |
 | `tests/skills/desk-research-project-start/` (floor 7) | 8 passed |
 | `tests/pack/` + five project suites + devils-advocate, `--import-mode=importlib` | 17 passed |
 | `agentbundle catalogue lint --deep` | no errors |
@@ -150,6 +153,20 @@ sending a request, and a caller's double quote escaped the phrase literal into
 live arXiv boolean syntax — the same defect class this delivery exists to
 remove. Both lanes independently converged on one root cause, network-security
 criteria written before establishing what `urllib` enforces.
+
+## A final security round, and one claim it could not sustain
+
+The last security pass raised three concerns. Two were sustained and fixed: a
+versioned request fetched full text from the version-free URL, which serves the
+latest revision, so an older revision's citation carried the newest text —
+measured at 180,279 bytes for v1 against 187,983 for v7; and the courtesy
+interval could sleep past an attempt's deadline, which now fails closed instead.
+
+The third claimed that a trailing backslash in a structured field could
+reacquire operator authority under Lucene syntax. The reviewer said it was not
+dynamically confirmed, and a probe refutes it: `ti:"safe\"` answers HTTP 400
+rather than executing. The backslash is still removed from every literal, but
+as robustness — it buys a usable query rather than closing a hole.
 
 ## Accepted residuals
 
