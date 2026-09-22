@@ -644,3 +644,110 @@ and orphans. It never read the exit code, and never inspected `g.dangling`. The
 earlier reachability gap and the `Brief:`-probe gap were the same shape: a
 mechanism checked on one axis and reported as checked. The implementer's real
 run found in one command what three projections had missed.
+
+## 2026-09-22 — T4 complete
+
+`notes/corpus-probe.py` re-derives the graph through the production
+recognizers, unchanged, then spies on `_wire_up` during that one real build to
+capture the exact `local_ids`/`rollup` each call used, and replays its
+winner-selection logic per consumer with `resolve_endpoint` — both pure
+functions taken from the production module, never re-derived — to record which
+candidate field supplied the winning producer. Report:
+`notes/corpus-probe.md`.
+
+- `make lint-ruff lint-mypy`: pass
+- Two consecutive runs of `corpus-probe.py --root .` on the unchanged tree
+  produce byte-identical `corpus-probe.md`
+- **Nodes 757, edges 115** — unchanged from T3's own measurement, confirming no
+  drift between the two independent readings
+- **Structural orphans: 487**, against the pre-delivery baseline of 488
+  recorded in this plan's Design section — **AC-0025 PASSES** (non-increase,
+  none introduced)
+
+### The stale cross-reference in T4's own `Tests:`
+
+T4's `Tests:` cites AC-0012 for the orphan non-increase. AC-0012 was later
+split by the second amendment into "the default invocation exits 0" and
+AC-0025 "`--strict` reports no more structural orphans than before". The
+non-increase is recorded against **AC-0025** above; AC-0012 does not hold yet
+and is not expected to until T5's sweep clears the 8 dangling values below —
+the probe does not assert it.
+
+### Collision set: 7 slugs, matching the plan's own projection
+
+The probe groups local node ids (external reference stubs excluded) by their
+post-kind slug — the exact suffix `resolve_endpoint`'s bare-slug scan matches
+against. It finds **7 colliding slugs** over the live 757-node graph, which
+matches the Design section's own projection for this exclusion design at
+"711 nodes, 7 collision slugs" (the 46 difference is external reference
+stubs, absent from the Design section's local-node count). The
+**ambiguous-pointer set is 0** — no live pointer today actually suffix-matches
+more than one id — matching the Design section's "0 of 19 live bare `Parent
+intent:` pointers ambiguous" exactly.
+
+### Reachability: measured as not run, not assumed
+
+`check()` (`lint-traceability.py:1292`) guards `reachability_sidecar` with
+`if using_sidecar:`, and the probe calls `discover_sidecar` directly and
+observes it return `None` on this tree — there is no
+`_state/traceability.json` sidecar. The standalone path runs instead, so the
+reachability pass never executes and there is no reachability figure for this
+corpus. Recorded as an honest absence, not a number.
+
+### The 8 pre-sweep dangling `Parent intent:` values, named for T5
+
+T3 wired 14 newly-visible `Parent intent:` pointers; 6 resolve and 8 are
+`dangling` because `field_re` truncates a markdown-link value at the first
+space. All 8 are intent files, and both truncated tokens' link targets resolve
+to existing `capability:` nodes:
+
+- `intent:claude-apps-first-value-entry` → `[Nontechnical-pack` → resolves to
+  `capability:nontechnical-pack-first-value-rollout`
+- `intent:cross-pack-experience-eval` → `[Digital` → resolves to
+  `capability:digital-experience-doctrine`
+- `intent:digital-product-guides-update` → `[Digital` → same target
+- `intent:product-engineering-shaping-doctrine` → `[Digital` → same target
+- `intent:product-strategy-adoption-doctrine` → `[Digital` → same target
+- `intent:xd-design-system-foundations` → `[Digital` → same target
+- `intent:xd-ia-archetypes-objects` → `[Digital` → same target
+- `intent:xd-state-reviewer-doctrine` → `[Digital` → same target
+
+This is the pre-sweep baseline T5 must clear; the after-sweep comparison
+against these 8 named ids is what proves the sweep worked, and AC-0012 (exit 0
+by default) is read there, not here.
+
+### Field-origin recording: T7's only oracle
+
+For every consumer wired through `_wire_up` — 503 specs and 37
+brief/ladder-rung/intent `Parent intent:` consumers, 540 total — the probe
+records which field won. Today, before the `Brief:` sweep (T5, T7): of the
+specs with a resolving producer, **26 win on `Brief:`** (matching the "26 to
+34" figure T2a's Approach projected for the post-sweep move), 38 on
+`Contract:`, 22 on `Discovery:`, and 417 have no resolving candidate (an
+orphan). Of the 37 `Parent intent:` candidates, 29 resolve and 8 are the
+dangling set named above (29 + 8 = 37, cross-checking T3's own count). Because
+`Graph.add_edge` (`:357`) stores only `(producer, consumer)`, this recording —
+not the built edge set — is the only oracle T7 has for "no in-edge is won by a
+field other than `Brief:`".
+
+### T4 controller verification, and one figure corrected before T7 uses it
+
+Probe re-run on an unchanged tree produced an identical md5
+(`1f1f62fe5e4f263f6709d215058ed9ca`), so the zero-diff property holds.
+`make lint-ruff lint-mypy` passes. Every figure matched the projection: 757
+nodes, 115 edges, 487 orphans (AC-0025 passes against the 488 baseline), 7
+collision slugs, 0 ambiguous pointers, reachability recorded as not run.
+
+**Corrected before T7 consumes it.** T4's handoff says T7's sweep is "expected to
+move those 60 non-Brief winners to `Brief`". That reads as 60 and is wrong as a
+headline, though its own trailing caveat — "wherever a `Brief:` value is typed" —
+is what saves it.
+
+Only **34** specs carry a `Brief:` value at all, and 26 already win their in-edge
+on `Brief:`. A spec with no `Brief:` value cannot win on `Brief:`, so the ceiling
+is 34 and the movement is **26 → 34: eight specs flip**. The 38 `Contract:` and
+22 `Discovery:` winners without a `Brief:` value stay where they are.
+
+That is exactly the bound the owner measured when granting T2a under `Ask first`:
+brief in-edges 26 to 34, and no spec's in-edge moving to a field other than
+`Brief:`. T7 asserts against 34, not 86.
