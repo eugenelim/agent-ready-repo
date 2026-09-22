@@ -538,3 +538,19 @@ discarded the wave-0 receipts recorded before it. They were re-recorded against
 the new hash. Waves 0 and 1 are now closed: T1 and T0 as `human-directed`
 declines (controller-implemented), T2 and T6 as receipts (implementer subagents).
 Current wave is 2 — T2a and T3.
+
+### Owner decision — 2026-09-22 (third amendment: the version bump)
+
+The owner directed that the pack version bump be placed. It goes to T8, which
+already owns the changelog entry and the reprojection, so the release surface
+moves as one unit. Authority for the controlled amendment below.
+
+`packs/AGENTS.md:43-47` requires a non-cosmetic change under `.apm/**` or
+`seeds/**` to bump matching versions in `pack.toml` and
+`.claude-plugin/plugin.json` — patch for changed content, minor for a new
+primitive, major for a removal, never borrowing another change's unreleased
+version. This delivery changes `.apm/**` in T2, T2a, T3 and T6 and `seeds/**`
+in T6, all content changes rather than new primitives, so the bump is a patch
+from `2.26.29`.
+
+Surfaced independently by both wave-2 implementers.

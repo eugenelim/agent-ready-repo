@@ -548,7 +548,7 @@ verdicts match, and the sweep script re-runs with a zero diff.
 
 **Verification mode:** visual / manual QA — the evidence is the commands' actual stdout, stderr and exit codes.
 
-**Touches:** .agents/**, .claude/**, packages/agentbundle/agentbundle/_data/workspace_status_engine.py, docs/product/briefs/intent-identity-and-registration.md, CHANGELOG.md
+**Touches:** .agents/**, .claude/**, packages/agentbundle/agentbundle/_data/workspace_status_engine.py, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/briefs/intent-identity-and-registration.md, CHANGELOG.md
 
 **Tests:**
 - The three `lint-traceability.py` copies and the three spec-template copies are
@@ -567,6 +567,13 @@ verdicts match, and the sweep script re-runs with a zero diff.
   the spec's Follow-ons section cites it, so the delivery does not ship naming a
   follow-on that nothing owns.
 - `python .claude/skills/work-loop/scripts/lint-spec-status.py --root .` passes.
+- `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the
+  same bumped version, one patch above the value at the start of this delivery.
+  `packs/AGENTS.md:43-47` requires a non-cosmetic change under `.apm/**` or
+  `seeds/**` to bump both, and this delivery changes `.apm/**` in T2, T2a, T3
+  and T6 and `seeds/**` in T6. Patch, not minor: every change is to existing
+  content and none adds a primitive. The two files must match, and the version
+  must not be one borrowed from another unreleased change.
 - The changelog entry names the retained bare-slug and path fallbacks, not only
   the new canonical form.
 - The brief erratum states that its collision count depends on reading `Slug:`
@@ -574,7 +581,12 @@ verdicts match, and the sweep script re-runs with a zero diff.
 
 **Approach:**
 - `make build-self` refuses a dirty tree, so the edits from T2 through T7 commit
-  before this task runs. `tests/roster/` is dispatched on CI, never run here.
+  before this task runs.
+- The version bump belongs here rather than in each task that edits pack content:
+  one delivery is one release, and a per-task bump would either collide between
+  the tasks sharing a wave or borrow an unreleased version, which the rule
+  forbids. Both wave-2 implementers surfaced the obligation independently, and
+  neither bumped, for that reason. `tests/roster/` is dispatched on CI, never run here.
 
 **Done when:** every check in this task's `Tests:` list passes and the recorded
 command output is in the ledger.
@@ -646,3 +658,5 @@ command output is in the ledger.
 - 2026-09-22: amended plan approved by eugenelim
 - 2026-09-22: second amendment — spec approved by eugenelim
 - 2026-09-22: second amendment — plan approved by eugenelim
+- 2026-09-22: third amendment (version bump placed in T8) — spec approved by eugenelim
+- 2026-09-22: third amendment (version bump placed in T8) — plan approved by eugenelim
