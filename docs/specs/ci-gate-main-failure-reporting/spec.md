@@ -1,6 +1,6 @@
 # Spec: gate-main reports every independent failure in one round
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0121 <!-- ordinal confirmed at authoring; see Assumptions -->
@@ -116,56 +116,56 @@ Throughout, **derived expression** means `!cancelled()` followed by one
 declares, in roster order. **Recorded matrix** means the table and member lists
 in [`notes/partition-evidence.md`](notes/partition-evidence.md).
 
-- [ ] **AC-0001.** Every check step's condition is its derived expression.
+- [x] **AC-0001.** Every check step's condition is its derived expression.
   `tools/test-build-check-workflow.py` exits 1, naming the step, when a
   `gate-main` step whose roster phase is `CHECK` carries no `if:`, or carries
   one differing by any byte from its derived expression.
-- [ ] **AC-0002.** Every provisioning step runs independently.
+- [x] **AC-0002.** Every provisioning step runs independently.
   `tools/test-build-check-workflow.py` exits 1, naming the step, when a
   `gate-main` step whose roster phase is `PROVISIONING` carries an `if:` other
   than exactly `!cancelled()`.
-- [ ] **AC-0003.** A falsy or unknown condition is rejected by the posture test.
+- [x] **AC-0003.** A falsy or unknown condition is rejected by the posture test.
   `tools/test-build-check-workflow.py` exits 1 for each of: `if: false`,
   `if: ${{ false }}`, `'if': ${{ false }}`, and the step's correct derived
   expression with ` && false` appended.
-- [ ] **AC-0004.** A falsy or unknown condition is rejected by the parity linter.
+- [x] **AC-0004.** A falsy or unknown condition is rejected by the parity linter.
   `tools/lint-ci-parity.py` exits 1, naming the step, when a step reached by a
   `PR_GATED` entry carries an `if:` that is not exactly that step's derived
   expression, including each of the four forms AC-0003 enumerates.
-- [ ] **AC-0005.** The posture test's mutation coverage does not fall below its
+- [x] **AC-0005.** The posture test's mutation coverage does not fall below its
   recorded baseline. The baseline is the spike run recorded in
   `notes/partition-evidence.md`: 180 mutations caught across 80 assertion
   families. `tools/test-build-check-workflow.py` exits 1 when its self-test
   catches fewer than 180 mutations, when fewer than 80 assertion families are
   exercised, or when any family has no mutation.
-- [ ] **AC-0006.** Every workflow step has a roster entry.
+- [x] **AC-0006.** Every workflow step has a roster entry.
   `tools/lint-ci-parity.py` exits 1, naming the step, when a `run:` or `uses:`
   step of `build-check.yml` has no phase entry.
-- [ ] **AC-0007.** No roster entry is stale.
+- [x] **AC-0007.** No roster entry is stale.
   `tools/lint-ci-parity.py` exits 1, naming the entry, when a phase entry names
   no step in `build-check.yml`.
-- [ ] **AC-0008.** The phase vocabulary is closed.
+- [x] **AC-0008.** The phase vocabulary is closed.
   `tools/lint-ci-parity.py` exits 1, naming the entry, when a phase entry's
   value is outside the set `PROVISIONING`, `CHECK`.
-- [ ] **AC-0009.** A declared dependency resolves to a provisioning step.
+- [x] **AC-0009.** A declared dependency resolves to a provisioning step.
   `tools/lint-ci-parity.py` exits 1, naming the entry, when a `CHECK` entry
   declares a dependency that is not the id of a step declared `PROVISIONING` in
   the same roster.
-- [ ] **AC-0010.** Every declared provisioning id sits on the step that declares it.
+- [x] **AC-0010.** Every declared provisioning id sits on the step that declares it.
   `tools/test-build-check-workflow.py` exits 1, naming the entry, when the
   `gate-main` step whose name matches a roster entry declared `PROVISIONING`
   with id `X` does not itself carry `id: X`. Binding the id to the job rather
   than to its own step would let two provisioning steps exchange ids while both
   ids remain present, and every derived condition would then read the wrong
   install's conclusion.
-- [ ] **AC-0011.** Every provisioning step precedes every check step.
+- [x] **AC-0011.** Every provisioning step precedes every check step.
   `tools/test-build-check-workflow.py` exits 1, naming both steps, when a
   `gate-main` step whose roster phase is `PROVISIONING` appears after any step
   whose roster phase is `CHECK`. Full phase ordering rather than
   dependency-wise ordering, because a provisioning step with no dependents —
   `pip install httpx …` has none in the recorded matrix — satisfies the weaker
   rule while sitting behind the checks.
-- [ ] **AC-0012.** Every declared dependency set equals what the recorded
+- [x] **AC-0012.** Every declared dependency set equals what the recorded
   matrix measured. `tools/lint-ci-parity.py` exits 1, naming the entry, when a
   `CHECK` entry's dependency set, with `python` removed, differs from the set of
   provisioning steps whose recorded-matrix member list names that check; and
@@ -173,28 +173,28 @@ in [`notes/partition-evidence.md`](notes/partition-evidence.md).
   of every such matrix row. `python` is removed before the comparison because
   it is declared rather than measured, for the reason Assumptions records; a
   check with two dependencies appears in two rows and so names two run ids.
-- [ ] **AC-0013.** A provisioning failure skips exactly its declared dependents.
+- [x] **AC-0013.** A provisioning failure skips exactly its declared dependents.
   For each provisioning step listed in the recorded matrix, on a dispatched run
   of `build-check.yml` in which exactly that step fails and every other
   provisioning step succeeds: every `CHECK` step declaring a dependency on it
   has conclusion `skipped`, and no `CHECK` step that does not declare a
   dependency on it has conclusion `skipped`. The recorded matrix is the closed
   set this criterion ranges over; `Set up Python` is outside it per Assumptions.
-- [ ] **AC-0014.** A provisioning failure reddens nothing else.
+- [x] **AC-0014.** A provisioning failure reddens nothing else.
   On each run AC-0013 ranges over, no step has conclusion `failure` except the
   failed provisioning step.
-- [ ] **AC-0015.** A check failure leaves every other check reporting.
+- [x] **AC-0015.** A check failure leaves every other check reporting.
   On a dispatched run in which exactly one `CHECK` step fails and every
   provisioning step succeeds, every other `CHECK` step has conclusion `success`
   or `failure`, and none has conclusion `skipped`. One run discharges this: the
   behaviour of the other checks under a sibling's failure is fixed by AC-0001,
   which pins every condition to reference only provisioning ids, so no check's
   condition can read another check's conclusion.
-- [ ] **AC-0016.** The job id set is exactly five.
+- [x] **AC-0016.** The job id set is exactly five.
   `tools/test-build-check-workflow.py` exits 1 when `build-check.yml` declares
   a set of job ids other than exactly `gate-main`, `gate-sast`,
   `gate-export-boundary`, `gate-credbroker`, `build-check`.
-- [ ] **AC-0017.** Each job's name is the written value.
+- [x] **AC-0017.** Each job's name is the written value.
   `tools/test-build-check-workflow.py` exits 1, naming the job, when a job's
   `name:` differs from the value written here: `gate-main` → `gate-main`,
   `gate-sast` → `gate-sast`, `gate-export-boundary` → `gate-export-boundary`,
