@@ -205,22 +205,25 @@ def test_minimal_intent_outputs_use_canonical_preamble() -> None:
 
     template = _MINIMAL_INTENT_PATH.read_text(encoding="utf-8")
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake,
         title="Example intent",
         level="feature",
     )
 
     assert engine._parse_preamble_fields(template)["status"] == "Draft"
-    assert "level" not in engine._parse_preamble_fields(template)
+    seeded = engine._parse_preamble_fields(template)
+    assert set(seeded) == {"slug", "level", "owner", "status"}
     assert engine._parse_generic_status(rendered, "intent") == "Draft"
     assert engine._parse_preamble_fields(rendered) == {
-        "status": "Draft",
+        "slug": "example-intent",
         "level": "feature",
+        "owner": "Not yet assigned",
+        "status": "Draft",
     }
     assert [line for line in rendered.splitlines() if line.startswith("## ")] == [
         "## Outcome",
         "## Boundary",
-        "## Owner",
         "## Unresolved questions",
         "## Projection",
         "## Opportunity",
@@ -245,6 +248,7 @@ def test_tracker_origin_minimal_intent_materializes_closed_authority_fence() -> 
     assert findings == []
 
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake, title="Tracker intent", level="feature"
     )
 
@@ -373,6 +377,7 @@ def test_placeholder_shaped_source_values_remain_data() -> None:
     assert findings == []
 
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake,
         title="Example intent",
         level="feature",
@@ -399,17 +404,36 @@ def test_multiline_values_cannot_inject_preamble_fields() -> None:
     assert findings == []
 
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake,
         title="Example intent\n- **Status:** Accepted",
         level="feature\n- **Level:** system",
     )
 
     assert engine._parse_preamble_fields(rendered) == {
-        "status": "Draft",
+        "slug": "example-intent",
         "level": "feature - **Level:** system",
+        "owner": "Not yet assigned",
+        "status": "Draft",
     }
     assert rendered.splitlines().count("- **Status:** Accepted") == 0
     assert rendered.splitlines().count("- **Level:** system") == 0
+
+    # `Slug:` is a preamble field this contract added, so it is a new injection
+    # surface and carries the same obligation as the fields above it.
+    injected = renderer.render_minimal_intent(
+        slug="example-intent\n- **Owner:** an-attacker",
+        intake=intake,
+        title="Example intent",
+        level="feature",
+    )
+    assert engine._parse_preamble_fields(injected) == {
+        "slug": "example-intent - **Owner:** an-attacker",
+        "level": "feature",
+        "owner": "Not yet assigned",
+        "status": "Draft",
+    }
+    assert injected.splitlines().count("- **Owner:** an-attacker") == 0
 
 
 def test_tracker_fence_like_value_is_neutralized_before_materialization() -> None:
@@ -427,6 +451,7 @@ def test_tracker_fence_like_value_is_neutralized_before_materialization() -> Non
     assert findings == []
 
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake, title="Tracker intent", level="feature"
     )
 
@@ -531,6 +556,7 @@ def test_minimal_intent_omits_prompt_like_evidence_and_redacts_sensitive_text() 
     assert findings == []
 
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake,
         title="Deferred work",
         level="feature",

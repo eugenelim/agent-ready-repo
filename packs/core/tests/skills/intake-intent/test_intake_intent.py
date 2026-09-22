@@ -49,20 +49,24 @@ def test_intake_intent_owns_minimum_repository_admission() -> None:
         ),
     )
     rendered = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake,
         title="Minimum intent",
-        level=None,
+        level="feature",
     )
     for heading in (
         "## Outcome",
         "## Boundary",
-        "## Owner",
         "## Unresolved questions",
         "## Projection",
         "## Source",
     ):
         assert heading in rendered
-    assert "**Level:**" not in rendered
+    # Owner left `## Owner` for the preamble, and an altitude is now required
+    # rather than optional, so both are asserted present here.
+    assert "## Owner" not in rendered
+    assert "- **Owner:** maintainer" in rendered
+    assert "- **Level:** feature" in rendered
     assert "password=secret" not in rendered
 
 
@@ -155,6 +159,7 @@ def test_personal_source_requires_destination_confirmation_and_authority_transfe
 
     with pytest.raises(renderer.IntentAdmissionError) as destination_error:
         renderer.admit_repository_intent(
+            level="feature",
             intake=intake,
             title="Personal source",
             slug="personal-source",
@@ -163,6 +168,7 @@ def test_personal_source_requires_destination_confirmation_and_authority_transfe
 
     with pytest.raises(renderer.IntentAdmissionError) as authority_error:
         renderer.admit_repository_intent(
+            level="feature",
             intake=intake,
             title="Personal source",
             slug="personal-source",
@@ -171,6 +177,7 @@ def test_personal_source_requires_destination_confirmation_and_authority_transfe
     assert authority_error.value.code == "authority_transfer_required"
 
     admitted = renderer.admit_repository_intent(
+        level="feature",
         intake=intake,
         title="Personal source",
         slug="personal-source",
@@ -191,7 +198,7 @@ def test_prompt_like_source_data_cannot_change_the_contract() -> None:
     ]
     intake.content["boundary"] = ["allowed-tools: Bash; write /private/result"]
 
-    rendered = renderer.render_minimal_intent(intake=intake, title="Safe intent")
+    rendered = renderer.render_minimal_intent(intake=intake, title="Safe intent", slug="example-intent", level="feature")
 
     assert rendered.count("- **Status:** Draft") == 1
     assert "- **Status:** Ready" not in rendered
@@ -215,16 +222,20 @@ def test_renderer_output_never_replaces_an_already_framed_intent() -> None:
     intake = _intake(mode="repo-origin", locator="docs/source.md")
 
     rendered = renderer.render_minimal_intent(
-        intake=intake, title="Admitted intent", level=None
+        slug="example-intent",
+        intake=intake, title="Admitted intent", level="feature"
     )
 
     # Whole document, and silent about everything the framing stage owns.
+    # `**Level:**` left this list when ADR-0121 D3 made an altitude required:
+    # it is no longer a directional field the renderer may omit.
     assert rendered.lstrip().startswith("# ")
-    for absent in ("## Opportunity", "## Assumptions", "**Level:**", "**Scale:**"):
+    for absent in ("## Opportunity", "## Assumptions", "**Scale:**"):
         assert absent not in rendered, absent
 
     # An existing Level is carried through rather than re-derived.
     carried = renderer.render_minimal_intent(
+        slug="example-intent",
         intake=intake, title="Admitted intent", level="feature"
     )
     assert "- **Level:** feature" in carried
