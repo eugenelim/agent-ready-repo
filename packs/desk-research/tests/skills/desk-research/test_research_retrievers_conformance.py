@@ -1053,23 +1053,31 @@ class ArxivRetrieverConformance(unittest.TestCase):
     def test_shipped_content_cites_no_internal_record(self) -> None:
         """Shipped pack content states its rules; it never cites ours.
 
-        This was a grep in the task list, which is exactly why it regressed:
-        two acceptance-criterion identifiers reached the script's comments
-        after the grep had last been run by hand.
+        The expression is the one `packs/AGENTS.local.md` publishes for this
+        rule, not a paraphrase of it, so the test and the documented check
+        cannot drift apart. It runs here because the documented check is a grep
+        someone remembers to run, and two acceptance-criterion identifiers
+        reached the script's comments in the gap after one was last run.
+
+        Scoped to the five surfaces this skill ships. That scope is deliberate:
+        the same rule permits an illustrative ordinal that teaches a reader
+        about their own artifacts, so a repository-wide assertion would be
+        wrong, and judging intent is not a test's job.
         """
-        banned = ("AC-0", "VI-0", "docs/specs", "docs/rfc", "docs/adr",
-                  "AGENTS.local.md", "acceptance criteri")
-        surfaces = [
+        canonical = re.compile(
+            r"\b(RFC|ADR)-0[0-9]{3}\b"
+            r"|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b"
+            r"|docs/(specs|rfc|adr|contracts)/[a-z0-9]"
+        )
+        for surface in (
             ARXIV_SCRIPT,
             PERPLEXITY_SCRIPT,
             RESEARCH_SKILL / "references" / "retriever-interface.md",
             SKILL_MD,
             PACK / "DESIGN.md",
-        ]
-        for surface in surfaces:
-            body = surface.read_text(encoding="utf-8")
-            for token in banned:
-                self.assertNotIn(token, body, f"{surface.name} cites {token!r}")
+        ):
+            hits = canonical.findall(surface.read_text(encoding="utf-8"))
+            self.assertEqual(hits, [], f"{surface.name} cites an internal record")
 
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
