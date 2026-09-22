@@ -2574,6 +2574,34 @@ def check_suites(
                     f"suite {suite!r} — PR_GATED names filtered source {value!r}. "
                     "Use PR_GATED_IF with its path condition."
                 )
+            elif any(
+                source["conditional"]
+                and not source.get("non_step_conditional")
+                and isinstance(source.get("step"), str)
+                and _derived_step_condition(source["step"]) is not None
+                for source in named
+            ):
+                # A step whose `if:` differs from its derived expression is a
+                # WRONG condition, not an unguarded one. Prescribing
+                # PR_GATED_IF here would make the entry green while leaving the
+                # wrong condition in place and drop the step out of the
+                # equality check's domain entirely — retiring the control this
+                # rule exists to be.
+                mismatched = next(
+                    source for source in named
+                    if source["conditional"]
+                    and not source.get("non_step_conditional")
+                    and isinstance(source.get("step"), str)
+                    and _derived_step_condition(source["step"]) is not None
+                )
+                violations.append(
+                    f"suite {suite!r} — PR_GATED source {value!r} carries a step "
+                    f"condition that is not its roster-derived expression. "
+                    f"expected {_derived_step_condition(mismatched['step'])!r}, "
+                    f"got {mismatched.get('step_condition')!r}. Fix the workflow "
+                    "condition or the roster entry; PR_GATED_IF is for a path or "
+                    "job-level condition, not for this."
+                )
             elif any(source["conditional"] for source in named):
                 violations.append(
                     f"suite {suite!r} — PR_GATED names conditional source {value!r}. "

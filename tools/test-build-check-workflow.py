@@ -163,15 +163,42 @@ GATE_MAIN_CHECKS = frozenset(
     for name, phase in STEP_PHASES.items()
     if phase[0] == "CHECK" and phase[1][:1] == ("python",)
 )
-GATE_MAIN_PROVISIONING = frozenset(
-    name
-    for name, phase in STEP_PHASES.items()
-    if phase[0] == "PROVISIONING"
-    and not name.startswith("<unnamed step")
-    and "(gate-" not in name
-    and not name.endswith("(aggregator)")
-    and name != "Install SAST/SCA tools"
+# Every PROVISIONING entry this file does NOT audit, named one by one.
+#
+# A name-shape filter is what exempted them before, and a filter is silent: a
+# gate-main provisioning step added later whose name happened to match one
+# would drop out of the audited set with nothing failing. That is the
+# "no weakening a guard to make a step pass" line in the spec's Agent Rules,
+# arriving through the guard's own domain rather than through an assertion.
+# Enumerated instead, so `provisioning-domain` below can fail when a named
+# exclusion stops matching a step the workflow still has.
+_PROVISIONING_NOT_AUDITED = frozenset({
+    "<unnamed step in gate-main>",          # checkout; no `name:`, so no id to carry
+    "<unnamed step in gate-sast>",
+    "<unnamed step in gate-export-boundary>",
+    "<unnamed step in gate-credbroker>",
+    "<unnamed step in build-check>",        # aggregator checkout
+    "Set up Python (gate-sast)",
+    "Set up Python (gate-export-boundary)",
+    "Set up Python (gate-credbroker)",
+    "Set up Python (aggregator)",
+    "Install tools dependencies (gate-export-boundary)",
+    "Install agentbundle (editable) + pytest (gate-export-boundary)",
+    "Install credbroker (editable, with crypto extra) (gate-export-boundary)",
+    "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)",
+    "Install SAST/SCA tools",
+})
+_ALL_PROVISIONING = frozenset(
+    name for name, phase in STEP_PHASES.items() if phase[0] == "PROVISIONING"
 )
+_STALE_EXCLUSIONS = sorted(_PROVISIONING_NOT_AUDITED - _ALL_PROVISIONING)
+if _STALE_EXCLUSIONS:
+    raise SystemExit(
+        "test-build-check-workflow: these PROVISIONING exclusions name no roster "
+        "entry, so each covers nothing while still reading as deliberate — "
+        "remove them or fix the name: " + ", ".join(_STALE_EXCLUSIONS)
+    )
+GATE_MAIN_PROVISIONING = _ALL_PROVISIONING - _PROVISIONING_NOT_AUDITED
 GATE_MAIN_PHASE_NAMES = GATE_MAIN_CHECKS | GATE_MAIN_PROVISIONING
 
 
