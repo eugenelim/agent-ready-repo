@@ -549,3 +549,107 @@ def test_the_traversal_bounds_reach_the_confinement_helper(
     assert bounded.unreadable, "a bound below the file count must refuse the walk"
     assert bounded.exit_code != 0
     assert not bounded.is_clean
+
+
+# ── Raised by review round 2 ──────────────────────────────────────────────────
+
+
+def test_two_nested_files_sharing_a_basename_are_both_validated(
+    tmp_path: Path,
+) -> None:
+    """Keying by basename let one overwrite the other and vanish silently.
+
+    The walk admits nesting, so this is reachable: one file was validated, the
+    other was never routed, and the run could still report clean.
+    """
+    directory = _corpus(tmp_path, {})
+    for sub in ("first", "second"):
+        (directory / sub).mkdir()
+    (directory / "first" / "FEAT-0001-a.md").write_text(_live("a"), encoding="utf-8")
+    (directory / "second" / "FEAT-0001-a.md").write_text(
+        _broken("b", status="Shipped"), encoding="utf-8"
+    )
+
+    result = lint.lint_corpus(tmp_path, directory)
+    assert len(result.routed) == 2, result.routed
+    assert result.exit_code != 0, "the nested non-conforming file must be seen"
+    assert any("second" in v.path for v in result.violations), result.violations
+
+
+@pytest.mark.parametrize("value", ["", " ", "<!-- retired, date to follow -->"])
+def test_a_tombstone_field_with_no_value_still_partitions_as_a_tombstone(
+    tmp_path: Path, value: str
+) -> None:
+    """The partition is a rule about a field's name.
+
+    This module's own rule is that a value emptied by normalization makes the
+    value absent, not the line, and a name rule still sees the field. An empty
+    `Tombstone:` was routing as a live intent, which then held it to the wrong
+    contract entirely.
+    """
+    text = "\n".join(
+        [
+            "# Retired: a fixture",
+            "",
+            "- **Slug:** `gone`",
+            f"- **Tombstone:** {value}",
+            "- **Retired:** a reason",
+            "",
+        ]
+    )
+    result = _run(tmp_path, {"FEAT-0002-gone.md": text})
+    assert result.routed["FEAT-0002-gone.md"] == lint.CONTRACT_TOMBSTONE
+
+
+def test_the_summary_count_covers_every_entry(tmp_path: Path) -> None:
+    """Live plus tombstone plus unreadable equals the reported file count.
+
+    The how-to tells a reader to check exactly that sum, so a summary counting
+    only routed files made the documented check fail on a correct run.
+    """
+    directory = _corpus(
+        tmp_path,
+        {
+            "FEAT-0001-a.md": _live("a"),
+            "FEAT-0002-gone.md": TOMBSTONE.format(
+                slug="gone", edge="Retired", target="a reason"
+            ),
+        },
+    )
+    (directory / "FEAT-0003-binary.md").write_bytes(b"\xff\xfe")
+
+    result = lint.lint_corpus(tmp_path, directory)
+    live = sum(1 for c in result.routed.values() if c == lint.CONTRACT_LIVE)
+    tombstone = sum(1 for c in result.routed.values() if c == lint.CONTRACT_TOMBSTONE)
+    assert live + tombstone + len(result.unreadable) == len(result.accounted)
+    assert len(result.accounted) == 3
+
+
+def test_a_four_space_indented_checkbox_is_not_an_item(tmp_path: Path) -> None:
+    """CommonMark renders four-space indentation as a code block.
+
+    Counting it would credit an item no reader can see, which is the opposite
+    of what requiring an item is for.
+    """
+    text = "\n".join(
+        [
+            "# Intent: a fixture",
+            "",
+            "- **Owner:** eugenelim",
+            "- **Slug:** `a-fixture`",
+            "- **Level:** feature",
+            "- **Status:** Draft",
+            "- **Decomposed:** 2026-09-22 direct-light",
+            "",
+            "## Outcome",
+            "",
+            "Text.",
+            "",
+            "## Decomposition",
+            "",
+            "    - [ ] This is a code block, not an item",
+            "",
+        ]
+    )
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert "Decomposed" in {v.field for v in result.violations}

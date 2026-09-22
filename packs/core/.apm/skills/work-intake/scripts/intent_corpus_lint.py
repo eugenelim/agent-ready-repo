@@ -162,8 +162,8 @@ def _validate_tombstone(text: str) -> list[tuple[str, str]]:
 def _is_tombstone(text: str) -> bool:
     """The partition rule, read over the preamble alone."""
     return any(
-        name == TOMBSTONE_PARTITION_FIELD and value
-        for name, value in _shape.read_preamble(text)
+        name == TOMBSTONE_PARTITION_FIELD
+        for name, _ in _shape.read_preamble(text)
     )
 
 
@@ -195,7 +195,13 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
     # supersession is resolved, so validation cannot run in the same pass.
     texts: dict[str, str] = {}
     for path in sorted(paths):
-        name = path.name
+        # Relative to the directory, not the basename: two files with the same
+        # name in different subdirectories are different files, and a basename
+        # key silently dropped one of them.
+        try:
+            name = path.relative_to(directory).as_posix()
+        except ValueError:
+            name = path.name
         try:
             raw = _safety.read_confined_regular_file(root, path, max_bytes=_MAX_BYTES)
             text = raw.decode("utf-8")
@@ -276,9 +282,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"unreadable: {entry}", file=sys.stderr)
 
     counts = (
-        f"{len(result.routed)} file(s), "
+        # "entries", not "files": on a walk failure the one entry accounted for
+        # is the directory itself, and calling that a file would be a lie in
+        # the summary line a reader trusts most.
+        f"{len(result.accounted)} entr{'y' if len(result.accounted) == 1 else 'ies'}, "
         f"{sum(1 for c in result.routed.values() if c == CONTRACT_LIVE)} live, "
-        f"{sum(1 for c in result.routed.values() if c == CONTRACT_TOMBSTONE)} tombstone"
+        f"{sum(1 for c in result.routed.values() if c == CONTRACT_TOMBSTONE)} tombstone, "
+        f"{len(result.unreadable)} unreadable"
     )
     if result.is_clean:
         print(f"intent-corpus-lint: clean — {counts}")

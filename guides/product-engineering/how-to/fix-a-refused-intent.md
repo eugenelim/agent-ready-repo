@@ -189,14 +189,18 @@ refused, and both edges at once is as wrong as neither:
 - **Reissued as:** CAP-0007-work-item-capture-and-disposition.md
 ```
 
-`Slug` is the one the artifact had before retirement, unchanged. `Tombstone` is
-the retirement date, written the same way every other date in an intent is.
-Use `Reissued as:` with the path the artifact moved to when it still exists
-somewhere, and `Retired:` with a short reason when it does not:
+`Slug` is the one the artifact had before retirement, unchanged. `Tombstone`
+carries the retirement date. Use `Reissued as:` with the path the artifact
+moved to when it still exists somewhere, and `Retired:` with a short reason
+when it does not:
 
 ```markdown
 - **Retired:** the bet was withdrawn before any work started
 ```
+
+The check counts the fields and does not read the three values, so a malformed
+date passes it. Write the date the way every other date in an intent is
+written.
 
 ### The shaping review says `MALFORMED(shape)`
 
@@ -223,27 +227,34 @@ changing anything; the repair is to fix the encoding or move the file out of the
 directory, not to raise a limit.
 
 ```text
-unreadable: FEAT-0011-binary.md: UnicodeDecodeError
-intent-corpus-lint: 0 violation(s), 1 unreadable — 10 file(s), 9 live, 1 tombstone
+unreadable: FEAT-0005-binary.md: UnicodeDecodeError
+intent-corpus-lint: 0 violation(s), 1 unreadable — 5 entries, 3 live, 1 tombstone, 1 unreadable
 ```
 
-The named file is skipped and every other file is still checked — the counts
-show ten files routed. One unreadable file does not hide the rest.
+The named file is skipped and every other file is still checked — three live
+intents and one tombstone were validated. One unreadable file does not hide the
+rest.
 
-**The directory could not be walked.** A link somewhere in it is the usual
-cause — either the directory itself or an entry inside it. The message names
-the directory in both cases, so it does not tell you which entry is at fault:
+**The directory could not be walked.** Two causes produce this. A link
+somewhere in it is the usual one — either the directory itself or an entry
+inside it. The other is size: the walk refuses a tree deeper than eight levels,
+or one holding more than ten thousand files or fifty thousand entries. The
+message names the directory either way, so it does not say which entry, or
+which bound, is at fault:
 
 ```text
 unreadable: /path/to/intents: UnsafeContentError
-intent-corpus-lint: 0 violation(s), 1 unreadable — 0 file(s), 0 live, 0 tombstone
+intent-corpus-lint: 0 violation(s), 1 unreadable — 1 entry, 0 live, 0 tombstone, 1 unreadable
 ```
 
-Here the path is the directory, not a file, and the counts are all zero: the
-walk stopped, so the run says nothing about any intent. Do not read this as a
-clean corpus with one bad file. List the directory, find the link, replace it
-with a regular file, and re-run before trusting anything else the run
-reported.
+Here the path is the directory, not a file, and nothing was validated: the one
+entry accounted for is the directory itself, and the walk stopped, so the run
+says nothing about any intent. Do not read this as a
+clean corpus with one bad file. List the directory. If an entry is a link,
+replace it with a regular file. If the tree is simply very large or deeply
+nested, that is the other cause, and an intents directory that big is worth
+questioning rather than working around. Re-run before trusting anything else
+the run reported.
 
 Either way the exit code stays non-zero until every file can be read.
 
@@ -253,10 +264,10 @@ Re-run the command. Exit `0` with `clean` in the summary line means every file
 was read and every file conforms:
 
 ```text
-intent-corpus-lint: clean — 150 file(s), 150 live, 0 tombstone
+intent-corpus-lint: clean — 150 entries, 150 live, 0 tombstone, 0 unreadable
 ```
 
 The counts are worth a glance. Live plus tombstone plus unreadable should
-equal the file count. If they do not, a file went unmentioned, which is a
+equal the entry count. If they do not, a file went unmentioned, which is a
 defect in the check rather than in your intent — report it rather than editing
 an intent to satisfy it.

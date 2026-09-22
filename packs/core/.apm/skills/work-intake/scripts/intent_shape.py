@@ -84,10 +84,12 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
 )
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-# Leading whitespace and `*`/`+` markers are ordinary Markdown for a list
-# item. Matching only an unindented hyphen made an indented item read as
-# absent, which refuses a conforming intent and skips an empty one.
-_CHECKBOX = re.compile(r"^\s*[-*+] \[[ xX]\]\s*(.*)$")
+# `*`/`+` markers and up to three spaces of indentation are ordinary Markdown
+# for a list item. Matching only an unindented hyphen made an indented item
+# read as absent, which refuses a conforming intent and skips an empty one.
+# Four spaces is deliberately excluded: CommonMark renders that as a code
+# block, so counting it would credit an item no reader can see.
+_CHECKBOX = re.compile(r"^ {0,3}[-*+] \[[ xX]\]\s*(.*)$")
 _DECOMPOSITION_HEADING = "## Decomposition"
 
 _COMMENT_SUFFIX = re.compile(r"\s*<!--.*?-->\s*$", re.DOTALL)
