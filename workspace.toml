@@ -575,6 +575,17 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Found while memoising the engine's own `_get_repo_root` in
+  # docs/specs/loop-engine-repo-root-memo. `loop-cohort.py:148` carries a second,
+  # uncached copy of the same helper. The two share one process whenever
+  # `_cohort_mutator()` loads the cohort module (`loop-engine.py`, reached from
+  # `cmd_transition` on a contract-amendment), so after that spec
+  # ships one copy memoises and its twin does not. Deferring was safe because
+  # the memo caches only successes and alters no refusal text, leaving the
+  # convergence `test_git_lookup_failure_refuses_boundedly_in_both_tools` pins
+  # between the two copies untouched. Mechanical: apply the same cwd-keyed,
+  # success-only memo, or record why the cohort copy should stay uncached.
+  {slug = "loop-cohort-repo-root-uncached", summary = "loop-cohort.py keeps an uncached _get_repo_root after the engine's copy was memoised; the two run in one process on a contract-amendment transition", source = "spec/loop-engine-repo-root-memo (post-GATES adversarial review)"},
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified
