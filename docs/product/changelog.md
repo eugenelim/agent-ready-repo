@@ -64,6 +64,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.32] — 2026-09-22
+
+### Changed
+
+- The `work-loop` entrypoint carries less reviewer-dispatch text for the same
+  rules. Each role's firing condition stays where reviewers are chosen, while
+  the depth needed only once a role has fired moves into the
+  `references/reviewer-roster.md` the routing table already loads on demand:
+  `security-reviewer`'s framework lens, its inline-the-depth rule and its
+  infra-flavored force-load set, and `quality-engineer`'s `operational-safety`
+  module inlining, reliability-vs-security carve and independent contract
+  re-derivation. The `security-checklists` Module index routing sentence and
+  the loud blocker for a missing `security-reviewer` on infra work both stay on
+  the entrypoint. No rule changed, and no behaviour changed.
+- The skill-engineering provider handshake moved to a
+  `references/skill-engineering-provider.md` the routing table loads when the
+  task concerns a skill, a skill script or evaluation, agent-loop
+  orchestration, a hook, or a plugin. Because the handshake handles untrusted
+  provider text, the entrypoint keeps a fail-closed guard as well as the
+  pointer: no provider is resolved, invoked or read until that reference is
+  loaded, so a task that misreads the predicate reaches no provider at all
+  rather than reaching one without the containment rules. The consumer
+  declaration — the contract version, both task kinds and the absent-case
+  diagnostic — stays on the entrypoint. No rule changed, and no behaviour
+  changed.
+
 ## [core][2.26.31] — 2026-09-22
 
 ### Changed

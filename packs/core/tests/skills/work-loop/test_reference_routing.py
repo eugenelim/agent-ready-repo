@@ -205,3 +205,98 @@ def test_each_pointer_keeps_its_load_bearing_qualifier() -> None:
     for start, end, qualifier in _LOAD_BEARING_QUALIFIERS:
         step = _flatten(raw[raw.index(start) : raw.index(end, raw.index(start))])
         assert qualifier in step, f"{start!r} lost its qualifier: {qualifier!r}"
+
+
+# --- Relocated skill-engineering provider handoff ----------------------------
+#
+# The provider handshake moved out of Step 1 PLAN into
+# `references/skill-engineering-provider.md`. Unlike the engine relocation
+# above, what moved is a containment control over untrusted provider text, so
+# the entrypoint keeps a fail-closed guard: no provider is reached before the
+# reference is loaded. These arms pin the guard and the rules the two pack
+# suites in `test_work_loop_skill_engineering_reference_boundary.py` and
+# `test_reviewer_project_knowledge_boundary.py` do not already cover.
+
+_PROVIDER_REFERENCE = "references/skill-engineering-provider.md"
+
+
+def test_no_provider_envelope_survives_in_skill_md() -> None:
+    """The envelope's only home is the reference.
+
+    Counted rather than asserted through a shell `grep`: `grep -c` exits
+    non-zero when it matches nothing, so the passing case would read as a
+    failure.
+    """
+    assert _skill_text().count("knowledge-evidence") == 0
+
+
+def test_the_entrypoint_guard_fails_closed_before_the_link() -> None:
+    """A predicate that only routes would let a mis-read reach provider text.
+
+    The guard is what makes a mis-evaluated predicate yield *no* provider
+    contact rather than ungoverned contact, so it must be stated, and stated
+    before the reader is handed the link.
+    """
+    step = _flatten(_skill_text())
+    guard = (
+        "Do not resolve, invoke, or read any provider before that reference is "
+        "loaded"
+    )
+    assert guard in step
+    assert step.index(guard) < step.index("it carries the selection")
+
+
+def test_the_entrypoint_keeps_its_consumer_declaration() -> None:
+    """These four literals are read off this file by the roster consumer suite.
+
+    Moving them into the reference would leave that suite reading a file its
+    predicate may never load.
+    """
+    body = _skill_text()
+    for literal in (
+        "agent-skill-engineering-reference/v1",
+        "skill-authoring",
+        "skill-eval-ci",
+        "knowledge provider unavailable",
+    ):
+        assert literal in body, literal
+    for unassigned in ("skill-review", "agent-extension-design"):
+        assert unassigned not in body, unassigned
+
+
+def test_the_predicate_names_every_task_shape_it_covers() -> None:
+    """A narrowed predicate silently un-governs the shapes it drops."""
+    step = _flatten(_skill_text())
+    assert (
+        "Only when the task concerns a skill, a skill script or evaluation, "
+        "agent-loop orchestration, a hook, or a plugin, follow"
+    ) in step
+    assert _PROVIDER_REFERENCE in step
+
+
+def test_the_provider_reference_is_routed_exactly_once() -> None:
+    rows = [
+        line
+        for line in _outside_fences(_skill_text())
+        if line.startswith("|") and _PROVIDER_REFERENCE in line
+    ]
+    assert len(rows) == 1, rows
+
+
+def test_the_reference_carries_the_rules_the_pack_suites_do_not_reach() -> None:
+    """Coverage seam, stated so it cannot drift.
+
+    The two pack suites assert containment ordering, the envelope, the
+    refusal sentence and the seven-member closed set. Nothing asserted the
+    selection, request-shape and do-not-locate rules, which would have moved
+    unnoticed.
+    """
+    reference = _flatten((REFERENCES / "skill-engineering-provider.md").read_text(encoding="utf-8"))
+    for rule in (
+        "Before invoking or reading provider text, close selection.",
+        "no call is made and no provider text is read until selection succeeds",
+        "Make one call with no refinement",
+        '"contract_version":"agent-skill-engineering-reference/v1"',
+        "Do not locate the provider's implementation, generated router path, persistence, or corpus",
+    ):
+        assert rule in reference, rule

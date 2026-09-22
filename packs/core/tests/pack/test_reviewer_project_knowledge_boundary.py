@@ -189,13 +189,22 @@ def test_active_work_loop_has_no_reviewer_knowledge_enquiry() -> None:
     assert "project-knowledge --enquire" not in skill
     # The ban is on the review-time captured-knowledge enquiry, not the
     # envelope format: planning-time containment from a different provider is
-    # deliberately admitted only in this bounded integration section.
-    integration = skill.split("### Skill-engineering reference integration", 1)[1]
-    integration = integration.split("For durable work", 1)[0]
-    start = skill.index(integration)
-    end = start + len(integration)
-    for occurrence in re.finditer("knowledge-evidence", skill):
-        assert start <= occurrence.start() < end
+    # deliberately admitted, and it now lives in its own reference. That makes
+    # the containment claim strictly simpler to state -- no envelope occurs in
+    # this file at all -- and the window that used to bound it would no longer
+    # be able to fail, because the section it bounded has moved.
+    assert "knowledge-evidence" not in skill
+    provider_reference = _text(
+        PACK_ROOT
+        / ".apm"
+        / "skills"
+        / "work-loop"
+        / "references"
+        / "skill-engineering-provider.md"
+    )
+    # Absence in SKILL.md only means something alongside presence in the
+    # reference: without this arm, deleting the envelope everywhere passes.
+    assert '<knowledge-evidence version="knowledge-evidence.v1">' in provider_reference
     # Guard the eval payload, not just the id prefix: a retained review-time
     # enquiry eval renamed off "review-enquiry-" would still train the
     # behaviour this change removes.
