@@ -533,8 +533,9 @@ def test_dangling_local_target() -> None:
 
 def test_up_field_fallthrough_reference() -> None:
     """A cross-repo-shaped (unresolvable) `Contract:` must not shadow a valid
-    `Brief:` up-edge: up-fields are alternatives, the first that resolves wins,
-    and a well-formed cross-repo reference is not a defect."""
+    `Brief:` up-edge: up-fields are alternatives and a well-formed cross-repo
+    reference is not a defect, so the spec is parented either way — regardless
+    of which of the two resolving candidates wins the edge."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -545,6 +546,74 @@ def test_up_field_fallthrough_reference() -> None:
         expect("DANGLING" not in err, f"cross-repo ref is not dangling: {err}")
         expect("ORPHAN spec:alpha" not in out,
                f"spec parented via Brief is not an orphan: {out}")
+
+
+# STUB: AC-0013 — a local producer candidate must win the in-edge over an
+# earlier one that resolves only to an external reference.
+def test_local_candidate_wins_over_earlier_external_only_producer() -> None:
+    """AC-0013: a later candidate resolving `local` outranks an earlier one
+    that resolves only to an external reference — a typed `Brief:` must take
+    the in-edge from an earlier path-shaped `Contract:` or `Discovery:` that
+    resolves only to an external stub."""
+    spec = importlib.util.spec_from_file_location("_trace_local_wins_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    g = mod.Graph()
+    mod._wire_up(
+        g, consumer="spec:alpha",
+        candidates=["cat:ns/external-contract", "b"],
+        local_ids={"brief:b"}, rollup={},
+    )
+
+    expect(("brief:b", "spec:alpha") in g.edges,
+           f"the local candidate must win the in-edge, got edges={g.edges!r}")
+    expect(("cat:ns/external-contract", "spec:alpha") not in g.edges,
+           f"the earlier external-only candidate must not win, got edges={g.edges!r}")
+
+
+def test_external_only_candidate_still_wires_when_none_resolve_local() -> None:
+    """A consumer whose only resolving candidate is external still carries the
+    external in-edge — the existing orphan behaviour is unchanged."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_external_only_still_wires_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    g = mod.Graph()
+    mod._wire_up(
+        g, consumer="spec:alpha",
+        candidates=["cat:ns/external-contract"],
+        local_ids=set(), rollup={},
+    )
+
+    expect(("cat:ns/external-contract", "spec:alpha") in g.edges,
+           f"the sole external candidate must still wire, got edges={g.edges!r}")
+
+
+def test_dangling_candidate_reported_regardless_of_candidate_order() -> None:
+    """A dangling candidate is a hard violation in every mode regardless of
+    where it sits in the candidate order — the local-over-external preference
+    pass must not swallow a trailing dangling sibling."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_dangling_order_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    g = mod.Graph()
+    mod._wire_up(
+        g, consumer="spec:alpha",
+        candidates=["b", "ghost-local"],  # resolving candidate first, dangling trailing
+        local_ids={"brief:b"}, rollup={},
+    )
+
+    expect(any("ghost-local" in d for d in g.dangling),
+           f"a trailing dangling candidate must still be reported, got {g.dangling!r}")
+    expect(("brief:b", "spec:alpha") in g.edges,
+           f"the resolving sibling still wires despite the trailing dangling one, "
+           f"got edges={g.edges!r}")
 
 
 def test_dangling_up_field_still_fires() -> None:

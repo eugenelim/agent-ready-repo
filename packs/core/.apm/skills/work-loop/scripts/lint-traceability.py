@@ -1111,17 +1111,25 @@ def _wire_up(g: Graph, *, consumer: str, candidates: list[str],
 
     The two questions the candidates answer are independent:
     - **Is a producer asserted?** (the orphan question) The candidates are
-      *alternatives* — the first that resolves (local / satisfied-by-reference /
-      unresolvable) wins and gives the consumer an in-edge, so a valid `Brief:`
-      parents the spec even when an adjacent `Contract:` is absent.
+      *alternatives*. Among those that resolve (local / satisfied-by-reference /
+      unresolvable), a second pass over the already-resolved states prefers a
+      **local** candidate over an earlier one that resolves only to an
+      external reference — a typed `Brief:` parents the spec even behind an
+      earlier `Contract:` or `Discovery:` that resolves only to an external
+      stub. This is a preference over resolved states, not a reordering of
+      `_SPEC_UP_FIELDS`: among non-local resolving candidates the first still
+      wins, unchanged, so field priority is untouched for every consumer whose
+      candidates never resolve local.
     - **Is any asserted pointer broken?** A candidate that is *dangling* (a
-      missing local-shaped target) is a hard violation **in every mode**, fired
-      regardless of whether a sibling resolves — a broken pointer is broken.
+      missing local-shaped target) or *ambiguous* (a bare slug matching more
+      than one local id) is a hard violation **in every mode**, fired
+      regardless of whether a sibling resolves or where it sits in the
+      candidate order — a broken pointer is broken.
     When no candidate resolves but one is dangling, the consumer is flagged
     `dangling_in` so the break is reported once (dangling), not also as a
     backward orphan."""
-    resolving: str | None = None
     has_dangling = False
+    resolved_candidates: list[tuple[str, bool, str]] = []
     for target in candidates:
         state, pinned, resolved = resolve_endpoint(target, local_ids, rollup)
         if state == "dangling":
@@ -1138,14 +1146,22 @@ def _wire_up(g: Graph, *, consumer: str, candidates: list[str],
             )
             has_dangling = True
             continue
-        if resolving is None:
-            resolving = resolved
-            if state in ("satisfied-by-reference", "unresolvable"):
-                g.ref_state[resolved] = state
-                g.ref_pinned[resolved] = pinned
-                g.nodes.setdefault(resolved, "external")
-    if resolving is not None:
-        g.add_edge(resolving, consumer)
+        resolved_candidates.append((state, pinned, resolved))
+
+    # Second pass: a local candidate wins over an earlier one that resolved
+    # only to an external reference; among non-local candidates the first
+    # still wins (the pre-existing order).
+    winner = next((c for c in resolved_candidates if c[0] == "local"), None)
+    if winner is None and resolved_candidates:
+        winner = resolved_candidates[0]
+
+    if winner is not None:
+        state, pinned, resolved = winner
+        if state in ("satisfied-by-reference", "unresolvable"):
+            g.ref_state[resolved] = state
+            g.ref_pinned[resolved] = pinned
+            g.nodes.setdefault(resolved, "external")
+        g.add_edge(resolved, consumer)
     elif has_dangling:
         g.dangling_in.add(consumer)  # break already reported as dangling
 

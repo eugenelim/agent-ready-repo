@@ -554,3 +554,44 @@ in T6, all content changes rather than new primitives, so the bump is a patch
 from `2.26.29`.
 
 Surfaced independently by both wave-2 implementers.
+
+## 2026-09-22 — T2a complete; the brief was narrower than the criterion
+
+`_wire_up` is now two passes: candidates are classified first, with `dangling`
+and `ambiguous` still reported immediately in every position, then the winner is
+picked from the resolved candidates, preferring `local`. `_SPEC_UP_FIELDS` and
+its field priority are untouched, as the Approach requires.
+
+- `make lint-ruff lint-mypy`: pass
+- `test_lint_traceability.py`: 57 passed in 17.0s
+- `lint-traceability.py --root .`: exit 0, **640 nodes, 109 edges** — both
+  unchanged, which is `Done when`'s actual test: no `Brief:` value is typed yet,
+  so a correct preference change moves nothing in the live corpus
+
+### The controller's brief was narrower than AC-0013
+
+The dispatch brief said "make a candidate resolving `local` win over an earlier
+one resolving only `unresolvable`". The implementer implemented `local` beating
+*either* non-local resolving state, and flagged the difference rather than
+absorbing it.
+
+The implementer is right. AC-0013 says "an earlier producer pointer that
+resolves only to an **external reference**". `satisfied-by-reference` is an
+external reference resolved through the rollup; `unresolvable` is a well-formed
+cross-repo reference with no resolution. Both are external, so the criterion
+covers both and the brief narrowed it.
+
+Measured, to confirm the wider rule is not a widening past the owner's granted
+bound: across all 120 up-field candidates the states are 101 `unresolvable` and
+19 `local`. **`satisfied-by-reference` occurs zero times, and the rollup holds
+zero entries.** The two readings are therefore identical on this corpus, which
+is independently confirmed by the unchanged edge count.
+
+### The "bundled fix" is better classified as in-scope repair
+
+The implementer recorded a corrected docstring in `test_up_field_fallthrough_reference`
+as a bundled fix, noting the brief had not authorized the carve-out. It is not a
+ride-along: the docstring said "the first that resolves wins", which *this
+change* falsified. Repairing a statement the change itself made false is part of
+the change, not an unrelated improvement carried alongside it. No unauthorized
+carve-out occurred.
