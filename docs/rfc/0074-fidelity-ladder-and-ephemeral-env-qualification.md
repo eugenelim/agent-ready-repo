@@ -383,6 +383,62 @@ Budget:    n/a (human-gated; not an outer-loop target)
   pack ships a fidelity-ladder reference with scaffold templates, that replaces this
   section. This RFC names that handoff explicitly.
 
+## Errata
+
+- **2026-09-22 — D3's ladder section in `work-loop` is replaced by a
+  conditional-reference routing row; the section itself is deleted.** D3 decided
+  "A — `work-loop` skill gains the ladder section", and that section shipped. This
+  entry reverses the *placement* half of D3, not its substance: `work-loop` no
+  longer carries a ladder summary, tier table, budget sentence, or build-pack
+  handoff line of its own. D1, D2, D4 and D5 are untouched, and the
+  `fidelity-ladder` reference module D4 created remains the canonical home.
+  **Mechanism:** `work-loop`'s `## Conditional-reference routing` table gains the
+  row `A task needs local-infra-equivalents →
+  operational-safety/references/fidelity-ladder.md`, so the predicate that used to
+  introduce the inline section now routes to the module instead. The substance is
+  preserved rather than dropped, and each piece was checked in the module before
+  the section was cut. The seven-level ladder is `## The seven-level fidelity
+  ladder` and `## Per-level descriptors`. The budget heuristic is `## Inner-loop
+  budget heuristic`, which states "Push up the ladder as high as a sub-5-minute
+  local budget tolerates"; the deleted sentence carried the same heuristic behind
+  the lead clause "When a task needs local-infra-equivalents", and that clause is
+  now the routing row's predicate rather than lost. The build-pack handoff is
+  `## Build-pack handoff`, which did not previously state the deleted section's
+  precedence rule — check an installed build pack first, fall back to this
+  module's technology examples — so this change adds that rule to the module
+  rather than claiming it was already there. The routing row is load-bearing for that
+  claim, not decoration: before this change the module was reachable from
+  `work-loop` only through the deleted section, because it is not listed in
+  `operational-safety`'s own `## Module index`. Deleting the section without
+  landing the row would have made the module unreachable from `work-loop`
+  entirely. **Why the reversal:** D3's rationale was that no build pack had
+  shipped, so `work-loop` should carry the ladder rather than leave the gap open.
+  That reasoning justified surfacing the ladder somewhere reachable from
+  `work-loop`; it did not require an inline copy. This RFC does not settle what
+  should happen next, and the reversal does not claim it did: D3's rationale says
+  a deeper reference "extends rather than replaces this section", while the
+  Drawbacks bullet says a build pack's scaffold reference "replaces this section".
+  Those two halves disagree, and neither describes the case at hand, because D4's
+  module is a `core` reference module carrying no scaffold templates. This entry
+  resolves that tension rather than inheriting it: D4's module shipped in the same
+  change as D3's section, so `work-loop` has carried a summary of a document it
+  also pointed at, and the routing row keeps the reachability D3 wanted while
+  dropping the duplication. **What this does not do:** it adds no row to
+  `operational-safety`'s `## Module index`. That index is the routing authority
+  for `work-loop`'s high-risk `quality-engineer` trigger, and RFC-0025's
+  2026-09-20 erratum enumerates the failure modes its *Load when* column covers;
+  adding an eighth would widen the high-risk trigger set and falsify that
+  enumeration, which is a separate governance decision and is not taken here. The
+  module stays reachable by the routing row instead. **Historical record:**
+  `docs/specs/release-loop-gap-extensions/` is Shipped and its AC5 — "`work-loop`
+  SKILL.md gains a fidelity-ladder section with heuristic and ladder summary" — is
+  ticked. That spec is frozen and historical rather than binding, so it takes no
+  erratum of its own and is deliberately left unedited; AC5 stays `[x]` because it
+  records what shipped. This entry is the sole record of the reversal, so a reader
+  who arrives at that spec first will not see it noted there. Authorized by
+  @eugenelim (Approver), 2026-09-22.
+
+
 ## Follow-on artifacts
 
 On acceptance:

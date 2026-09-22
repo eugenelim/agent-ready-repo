@@ -64,6 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.31] — 2026-09-22
+
+### Changed
+
+- The `work-loop` entrypoint no longer carries its own copy of the fidelity
+  ladder. The section holding the tier table, the sub-5-minute budget sentence
+  and the build-pack handoff line is gone; the conditional-reference routing
+  table gains a row that sends a task needing local-infra-equivalents to the
+  `operational-safety` skill's `fidelity-ladder` reference module. That module
+  already held the seven-level ladder and the same budget heuristic, and it now
+  also states the build-pack precedence rule the deleted line carried, so no
+  guidance was dropped. No rule changed; what moved is where the ladder is read,
+  from the entrypoint on every run to the reference module when a task needs it.
+
 ## [core][2.26.30] — 2026-09-22
 
 ### Changed
