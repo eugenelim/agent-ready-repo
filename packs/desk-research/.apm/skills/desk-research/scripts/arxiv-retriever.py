@@ -54,6 +54,10 @@ API_URL = "https://export.arxiv.org/api/query"
 
 # The only hosts any request or redirect may reach. Whole-host equality after
 # normalisation — never a suffix test, which `evil-arxiv.org` would satisfy.
+# The hosts that serve an arXiv record. A subset of ALLOWED_HOSTS: enrichment
+# may reach further, but a record identifier may not come from elsewhere.
+RECORD_HOSTS = frozenset({"arxiv.org", "export.arxiv.org"})
+
 ALLOWED_HOSTS = frozenset(
     {"export.arxiv.org", "arxiv.org", "www.alphaxiv.org", "huggingface.co"}
 )
@@ -257,6 +261,20 @@ def _date_stamp(value: str | None, default: str) -> str:
     return digits if len(digits) == 12 else digits + "0000"
 
 
+def _url_form(candidate: str) -> str | None:
+    """The candidate rewritten as a URL to parse, or None if it is not one.
+
+    Names no host on purpose. Deciding whether unparsed text points at an
+    allowed site by searching it for a host name is the bypass pattern this
+    exists to avoid; whether a parsed URL is allowed is decided elsewhere,
+    against its hostname.
+    """
+    if "://" in candidate:
+        return candidate
+    head, _, rest = candidate.partition("/")
+    return f"https://{candidate}" if rest and "." in head else None
+
+
 def parse_identifier(text: str) -> str | None:
     """Return the arXiv identifier `text` denotes, or None if it is not one.
 
@@ -264,18 +282,26 @@ def parse_identifier(text: str) -> str | None:
     or without a subject class, and an arxiv.org abs, pdf, or html URL.
     """
     candidate = text.strip()
-    if "://" in candidate or candidate.startswith("arxiv.org"):
-        parsed = urllib.parse.urlsplit(
-            candidate if "://" in candidate else f"https://{candidate}"
-        )
-        if _normalise_host(parsed.hostname) not in {"arxiv.org", "export.arxiv.org"}:
-            return None
-        matched = ABS_PATH.match(parsed.path)
-        if not matched:
-            return None
-        candidate = matched.group("ident")
+    # Grammars first. A legacy identifier such as `math.GT/0309136` carries a
+    # dot and a slash, so anything that guessed "URL" from its shape would
+    # misroute it.
     if MODERN_ID.fullmatch(candidate) or LEGACY_ID.fullmatch(candidate):
         return candidate
+    url = _url_form(candidate)
+    if url is None:
+        return None
+    parsed = urllib.parse.urlsplit(url)
+    # The host decision is made on the parsed hostname, never on a substring of
+    # unparsed text: `arxiv.org.example.invalid` starts with an allowed name
+    # and is not one.
+    if _normalise_host(parsed.hostname) not in RECORD_HOSTS:
+        return None
+    matched = ABS_PATH.match(parsed.path)
+    if not matched:
+        return None
+    ident = matched.group("ident")
+    if MODERN_ID.fullmatch(ident) or LEGACY_ID.fullmatch(ident):
+        return ident
     return None
 
 
@@ -286,7 +312,7 @@ def looks_like_identifier(text: str) -> bool:
     papers under a heading the caller asked to be one exact record.
     """
     candidate = text.strip()
-    if "://" in candidate or candidate.startswith("arxiv.org"):
+    if _url_form(candidate) is not None:
         return True
     return bool(re.fullmatch(r"[A-Za-z0-9./-]+", candidate) and re.search(r"\d", candidate))
 

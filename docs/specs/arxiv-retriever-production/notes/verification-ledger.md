@@ -100,6 +100,8 @@ strengthened form.
 | the ladder advances only on a refused query, never on an outage | suite fails |
 | a ladder cut short by refusals is not reported as terminal | suite fails |
 | shipped content free of internal-record citations | suite fails |
+| the record-host decision made on the parsed hostname | suite fails |
+| identifier grammars tried before any URL parse | suite fails |
 
 ## Suites and gates
 
@@ -107,7 +109,7 @@ strengthened form.
 | --- | --- |
 | `make lint-ruff` | clean |
 | `make lint-mypy` | clean, 148 source files |
-| `tests/skills/desk-research/` (floor 9) | 86 passed |
+| `tests/skills/desk-research/` (floor 9) | 87 passed |
 | `tests/skills/desk-research-project-start/` (floor 7) | 8 passed |
 | `tests/pack/` + five project suites + devils-advocate, `--import-mode=importlib` | 17 passed |
 | `agentbundle catalogue lint --deep` | no errors |
@@ -204,6 +206,22 @@ rather than executing. The backslash is removed from a structured field's
 literal as robustness — it buys a usable query rather than closing a hole — but
 not from tier 1, where AC-0003 promises the caller's wording and a candidate
 arXiv refuses advances to the next tier anyway.
+
+## What CI found that local gates did not
+
+CodeQL raised two high-severity `py/incomplete-url-substring-sanitization`
+alerts against `parse_identifier`. It read `candidate.startswith("arxiv.org")`
+— a host test on unparsed text — sitting next to a routing decision. The parsed
+allowlist beneath it was the actual control, so the pattern was not exploitable,
+but it is the shape that becomes a bypass under one edit.
+
+Both string tests are gone. Identifier grammars are tried first, which a legacy
+form such as `math.GT/0309136` requires because it carries both a dot and a
+slash; only then is a URL parsed, and only its hostname decides. A regression
+covers four lookalikes including `arxiv.org.example.invalid/abs/...`.
+
+Worth recording: no local gate caught this. Ruff, mypy, the pack suites and
+`make sast`'s Bandit and semgrep legs were all clean over the same code.
 
 ## Accepted residuals
 

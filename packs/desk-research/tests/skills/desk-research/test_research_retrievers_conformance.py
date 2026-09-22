@@ -1088,6 +1088,29 @@ class ArxivRetrieverConformance(unittest.TestCase):
                 f"here with the reason",
             )
 
+    def test_a_lookalike_host_is_not_an_arxiv_record(self) -> None:
+        """The host decision is made on the parsed hostname, not on a substring.
+
+        `arxiv.org.example.invalid` starts with an allowed name and is not one;
+        a substring test on unparsed text accepts it.
+        """
+        module = _load(ARXIV_SCRIPT)
+        for hostile in (
+            "arxiv.org.example.invalid/abs/1706.03762",
+            "https://arxiv.org.example.invalid/abs/1706.03762",
+            "https://evil.example/abs/1706.03762",
+            "https://example.invalid/arxiv.org/abs/1706.03762",
+        ):
+            self.assertIsNone(module.parse_identifier(hostile), hostile)
+
+        # And the legacy form that carries both a dot and a slash is still an
+        # identifier, not a URL — which is why the grammars are tried first.
+        self.assertEqual(module.parse_identifier("math.GT/0309136"), "math.GT/0309136")
+        self.assertEqual(
+            module.parse_identifier("https://arxiv.org/abs/math.GT/0309136"),
+            "math.GT/0309136",
+        )
+
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
         source = ARXIV_SCRIPT.read_text(encoding="utf-8")
