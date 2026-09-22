@@ -1,0 +1,23 @@
+# workspace.toml
+#
+# Repository coordination index. Canonical artifacts own requirements; this
+# file records lifecycle membership, source provenance, display summaries, and
+# hard dependencies.
+#
+# Target entries are inline tables with exactly:
+#   path, kind, source, summary, needs
+#
+# Example:
+#   { path = "docs/specs/<slug>/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Example spec", needs = [] }
+#
+# Comments, summaries, list order, tracker labels, and profile hints are
+# non-semantic. They must not determine routing, dependency satisfaction,
+# processor selection, or dispatch.
+#
+# Paths are repository-relative POSIX paths. Consumers must reject absolute
+# paths, backslashes, ".." segments, and any symlink-resolved target outside the
+# repository root.
+
+[backlog]
+open = []
+closed = []

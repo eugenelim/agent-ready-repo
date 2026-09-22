@@ -64,6 +64,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.33] — 2026-09-22
+
+### Changed
+
+- The `workspace-status` entrypoint carries the same rules in a dispatcher
+  shape. The body now states the four modes — `status`, `reconcile`, `explain`
+  and `mutate` — and maps each of the eight backend subcommands to one of them,
+  then holds the invocation contract, the status rendering contract and the
+  hard prohibitions. Depth that only one mode reads moved into references the
+  mode table loads on demand: the full-audit guidance and the
+  coordination-receipt contract into `references/reconcile.md`, the
+  single-item investigation into `references/explain.md`, and the prune
+  workflow, interrupted-prune recovery, the repair workflow, legacy-migration
+  planning and effects, and `selected-membership` into `references/mutate.md`.
+  The `workspace.toml` initialisation template is now
+  `assets/workspace.toml.template`, written out unchanged rather than inlined.
+  The body falls from 685 lines to 465. No rule changed: every relocated
+  sentence moved byte-for-byte, and the canonical-findings table, the rendering
+  contract and the cooling-exclusion statement stay on the entrypoint.
+- The consent requirement for the mutating subcommands stays on the entrypoint
+  even though its procedure moved. `prune`, `repair-apply` and
+  `repair-rollback` each need a confirmation the authorized person writes out
+  of band, and a guard that arrives only once the mutate reference has loaded
+  would be guarding a decision already taken.
+
 ## [core][2.26.32] — 2026-09-22
 
 ### Changed

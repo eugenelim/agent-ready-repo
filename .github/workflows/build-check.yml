@@ -566,6 +566,18 @@ jobs:
           tests/roster/test_experience_design_artifact_folder_registry.py
           tests/roster/test_content_design_communication_mode_contract.py
 
+      # workspace-status ships as a dispatcher: the body holds mode selection,
+      # the invocation contract and the rendering contract, and each mode's
+      # depth loads from references/. Three claims here read outside packs/core
+      # — the backend's subcommand set, the prune source's refusal codes, and
+      # this workflow plus tests/AGENTS.md — so lint-pack-test-boundary forbids
+      # a pack home. It sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it, so that a failure is attributed to
+      # this named step rather than to the broad one.
+      - name: pytest workspace-status progressive disclosure (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_workspace_status_progressive_disclosure.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

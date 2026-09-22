@@ -491,7 +491,16 @@ print(engine.canonical_result_identity(canonical, **{base!r}))
             reason, action = documented_findings[code]
             assert reason
             assert action
-    for text in (skill, reference):
+    # The receipt contract travelled with the reconcile depth it belongs to
+    # when the skill became a dispatcher: authoring a receipt and recovering
+    # from a bad one is remediation an agent reaches only after reconciliation
+    # reports the code, so it loads with that mode rather than on every
+    # orientation. The findings table above stays in SKILL.md and is still
+    # asserted there; only this half follows the prose.
+    reconcile_reference = (
+        CORE_PACK / ".apm" / "skills" / SKILL_NAME / "references" / "reconcile.md"
+    ).read_text(encoding="utf-8")
+    for text in (reconcile_reference, reference):
         assert "```toml coordination-receipts" in text
         assert "invalid_receipt" in text
         assert "refresh_conflict = false" in text

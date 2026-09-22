@@ -33,8 +33,11 @@ Adding `tests/roster/test_x.py` obliges three further edits, each guarded
 separately:
 
 1. a step in `.github/workflows/build-check.yml` naming the file, placed **above**
-   that bulk step. The job is fail-fast with no step-level `if:`, so a named step
-   below the bulk step never runs and attributes nothing;
+   that bulk step. Every roster step carries an
+   `if: "!cancelled() && steps.python.conclusion == 'success'"` guard, so a step
+   below the bulk step does run — it just reports the same failure a second time
+   against a broad target instead of the named one. Placement decides
+   attribution, not whether the step executes;
 2. a matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`.
    `LOCAL("test-after-build-check")` is the right value for roster, because that
    target's `run-test-suite` includes `pytest tests/ -q`;
