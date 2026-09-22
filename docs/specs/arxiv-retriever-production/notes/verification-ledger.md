@@ -124,6 +124,32 @@ invocations: every fielded flag raised `TypeError` before sending a request,
 and a caller's double quote escaped the phrase literal into live arXiv boolean
 syntax — the same defect class this delivery exists to remove.
 
+### Security re-review on the delta
+
+| Finding | Disposition |
+| --- | --- |
+| Structured flags still permitted query-language injection: a category such as `cs.CL OR ti:attention`, and interpolated date bounds | sustained. Category and date bounds now match declared value grammars and are refused otherwise; only the raw passthrough carries arXiv syntax |
+| DNS resolution remained outside the enforceable deadline, because `getaddrinfo` takes no timeout and bracketing it cannot bound it | sustained. Resolution runs on a daemon thread the caller stops waiting on, following the bounded resolver in the repository's credential broker |
+| The captured fixtures committed real author names and contact addresses, against the repository's prohibition on personal information in fixtures | sustained. See below |
+
+The fixtures took three attempts and each failure taught something:
+
+1. Sections were regex-extracted non-greedily, which truncated every section
+   containing a subsection and left unbalanced markup. The section-count oracle
+   caught it: the parser reported 3 of 8.
+2. Whole real documents fixed the structure but carried ten real email
+   addresses and author names, which the security lane caught.
+3. Sanitising a real paper's prose is not winnable — a paper's body cites real
+   people. The fixtures are now arXiv's own structural skeleton: every tag,
+   class and nesting level as arXiv emits it, section headings kept because
+   name-based selection is what they exercise, and every other text node
+   replaced. No name or address remains, and the oracle still holds at 8 of 8
+   and 5 of 5.
+
+Refusing a category or a date bound also escaped `main()` as a traceback, the
+same class as the earlier `TypeError`: a caller-input error is now a message
+and exit code 2 with nothing on stdout.
+
 ## Accepted residuals
 
 Two findings are accepted as proportionate rather than repaired, because each

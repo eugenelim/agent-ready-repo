@@ -816,6 +816,64 @@ class ArxivRetrieverConformance(unittest.TestCase):
             module.retrieve("1706.03762", mode="get",
                             sender=_sender(module, FakeResponse(other)))
 
+    def test_a_category_is_a_value_never_syntax(self) -> None:
+        """AC-0037: only the raw passthrough may carry arXiv syntax."""
+        module = _load(ARXIV_SCRIPT)
+        for good in ("cs.CL", "astro-ph", "math.GT", "cond-mat.stat-mech"):
+            params = module.build_request(category=good)
+            self.assertIn(f"cat:{good}", params["search_query"], good)
+        for bad in ("cs.CL OR ti:attention", "cs.CL AND all:x", 'cs.CL"', "cs.CL cs.LG"):
+            with self.assertRaises(ValueError, msg=bad):
+                module.build_request(category=bad)
+
+    def test_a_date_bound_is_a_value_never_syntax(self) -> None:
+        """AC-0039: an unchecked bound lands inside the range clause."""
+        module = _load(ARXIV_SCRIPT)
+        params = module.build_request(category="cs.LG", submitted_from="20240101")
+        self.assertIn("submittedDate:[202401010000 TO", params["search_query"])
+        params = module.build_request(category="cs.LG", submitted_to="202401020000")
+        self.assertIn("TO 202401020000]", params["search_query"])
+        for bad in ("2024", "] OR all:x", "20240101 TO 20240102", "yesterday"):
+            with self.assertRaises(ValueError, msg=bad):
+                module.build_request(category="cs.LG", submitted_from=bad)
+
+    def test_a_stalled_resolver_does_not_outlast_the_deadline(self) -> None:
+        """AC-0046: getaddrinfo takes no timeout, so bracketing it is not enough."""
+        import threading as _threading
+
+        module = _load(ARXIV_SCRIPT)
+        clock = module.Clock(now=0.0)
+        budget = module.Budget(clock, 0.05)
+        release = _threading.Event()
+
+        def stalled(host, port, proto=0):
+            release.wait(30)
+            return [(0, 0, 0, "", ("151.101.3.5", 443))]
+
+        try:
+            with self.assertRaises(module.LimitExceeded) as caught:
+                module.check_addresses("arxiv.org", resolver=stalled, budget=budget)
+            self.assertIn("deadline", str(caught.exception))
+        finally:
+            release.set()
+
+    def test_a_refused_value_exits_cleanly_with_no_stdout(self) -> None:
+        """AC-0026: a refused input is a message and an exit code, not a traceback."""
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+
+        module = _load(ARXIV_SCRIPT)
+        for argv in (
+            ["--category", "cs.CL OR ti:attention"],
+            ["--category", "cs.LG", "--from", "] OR all:x"],
+        ):
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                code = module.main(argv)
+            self.assertEqual(code, 2, argv)
+            self.assertEqual(out.getvalue(), "", argv)
+            self.assertIn("arxiv-retriever:", err.getvalue(), argv)
+
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
         source = ARXIV_SCRIPT.read_text(encoding="utf-8")

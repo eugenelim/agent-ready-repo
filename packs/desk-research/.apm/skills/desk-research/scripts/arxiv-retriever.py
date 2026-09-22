@@ -37,6 +37,7 @@ import json
 import re
 import socket
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -87,6 +88,10 @@ STOPWORDS = frozenset({
 MODERN_ID = re.compile(r"\d{4}\.\d{4,5}(v\d+)?")
 LEGACY_ID = re.compile(r"[a-z][a-z-]*(\.[A-Z]{2})?/\d{7}(v\d+)?")
 ABS_PATH = re.compile(r"^/(abs|pdf|html)/(?P<ident>.+?)(\.pdf)?$")
+# A category is a value, never syntax: `cs.CL OR ti:attention` would
+# otherwise reach arXiv as a boolean clause the caller did not own.
+CATEGORY = re.compile(r"[a-z][a-z-]*(\.[A-Za-z][A-Za-z-]*)?")
+DATE_STAMP = re.compile(r"\d{8}|\d{12}")
 
 
 class ArxivUnavailable(RuntimeError):
@@ -193,20 +198,41 @@ def build_request(
         ("cat", category),
     ):
         if value:
-            literal = _literal(value)
-            clauses.append(
-                f"cat:{literal}" if prefix == "cat" else f'{prefix}:"{literal}"'
-            )
+            if prefix == "cat":
+                if not CATEGORY.fullmatch(value.strip()):
+                    raise ValueError(
+                        f"category {value!r} is not an arXiv category; "
+                        f"use --search-query for raw syntax"
+                    )
+                clauses.append(f"cat:{value.strip()}")
+            else:
+                clauses.append(f'{prefix}:"{_literal(value)}"')
     if query:
         clauses.append(build_tiers(query)[0])
     if submitted_from or submitted_to:
-        lo = (submitted_from or "190001010000").replace("-", "")
-        hi = (submitted_to or "210001010000").replace("-", "")
+        lo = _date_stamp(submitted_from, "190001010000")
+        hi = _date_stamp(submitted_to, "210001010000")
         clauses.append(f"submittedDate:[{lo} TO {hi}]")
     if not clauses:
         raise ValueError("build_request: no query terms supplied")
     params["search_query"] = " AND ".join(clauses)
     return params
+
+
+def _date_stamp(value: str | None, default: str) -> str:
+    """A date bound as arXiv's timestamp, or a refusal.
+
+    Interpolating an unchecked bound would put caller text inside the range
+    clause, where arXiv reads it as syntax rather than as a date.
+    """
+    if not value:
+        return default
+    digits = value.strip().replace("-", "").replace(":", "").replace(" ", "")
+    if not DATE_STAMP.fullmatch(digits):
+        raise ValueError(
+            f"date bound {value!r} is not YYYYMMDD or YYYYMMDDHHMM"
+        )
+    return digits if len(digits) == 12 else digits + "0000"
 
 
 def parse_identifier(text: str) -> str | None:
@@ -287,10 +313,7 @@ def check_addresses(host: str, resolver=socket.getaddrinfo, budget=None) -> None
     """
     if budget is not None:
         budget.check()
-    try:
-        infos = resolver(host, 443, proto=socket.IPPROTO_TCP)
-    except OSError as exc:
-        raise ArxivUnavailable(f"cannot resolve {host}: {exc}") from exc
+    infos = _resolve_bounded(host, resolver, budget)
     if budget is not None:
         budget.check()
     for info in infos:
@@ -305,6 +328,43 @@ def check_addresses(host: str, resolver=socket.getaddrinfo, budget=None) -> None
             or raw == "169.254.169.254"
         ):
             raise HostNotAllowed(f"{host} resolves to a refused address {raw}")
+
+
+def _resolve_bounded(host: str, resolver, budget) -> list:
+    """Resolve `host`, abandoning the wait when the budget runs out.
+
+    `getaddrinfo` is synchronous and takes no timeout, so a stalled resolver
+    would outlast the attempt's deadline however carefully it is bracketed.
+    It runs on a daemon thread that the caller stops waiting on; the thread
+    cannot be cancelled, but the deadline holds. This follows the bounded
+    resolver in the repository's credential broker, for the same reason.
+    """
+    if budget is None:
+        try:
+            return resolver(host, 443, proto=socket.IPPROTO_TCP)
+        except OSError as exc:
+            raise ArxivUnavailable(f"cannot resolve {host}: {exc}") from exc
+
+    got: list = []
+    failed: list = []
+
+    def work() -> None:
+        try:
+            got.append(resolver(host, 443, proto=socket.IPPROTO_TCP))
+        except BaseException as exc:  # noqa: BLE001 - relayed to the caller
+            failed.append(exc)
+
+    thread = threading.Thread(target=work, daemon=True)
+    thread.start()
+    thread.join(max(0.0, budget.remaining()))
+    if thread.is_alive():
+        raise LimitExceeded(
+            f"resolving {host} outlasted the attempt's "
+            f"{ATTEMPT_DEADLINE_S:g}s deadline"
+        )
+    if failed:
+        raise ArxivUnavailable(f"cannot resolve {host}: {failed[0]}")
+    return got[0]
 
 
 class _NoAutoRedirect(urllib.request.HTTPRedirectHandler):
@@ -1086,6 +1146,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = retrieve(text, mode=args.mode, **options)
     except MalformedIdentifier as exc:
+        print(f"arxiv-retriever: {exc}", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        # A refused category or date bound is caller input, not a service
+        # failure. Letting it escape printed a traceback instead of a message.
         print(f"arxiv-retriever: {exc}", file=sys.stderr)
         return 2
     except (ArxivUnavailable, HostNotAllowed, UnsafeDocument, LimitExceeded) as exc:
