@@ -1051,10 +1051,13 @@ open = [
   # closed note rather than deleted, so the third-instance count stays legible
   # if the same contradiction appears a fourth time.
 
-  # MODERATE. /now/ renders 122 unpaginated releases and is tens of viewport
-  # heights long. Information architecture, not styling: no pagination, no
-  # in-page contents, no return-to-top. The retrofit made the page lighter per
-  # release and therefore longer, so this got worse, not better.
+  # MODERATE. /now/ renders every released entry on one unpaginated page and is
+  # tens of viewport heights long. The list grows monotonically -- the page
+  # gains a group for each release and drops none -- so no count stated here
+  # would stay true; the property is what the finding turns on. Information
+  # architecture, not styling: no pagination, no in-page contents, no
+  # return-to-top. The retrofit made the page lighter per release and therefore
+  # longer, so this got worse, not better.
   # THE LENGTH FIGURE IS CONTESTED AND NEITHER IS CARRIED FORWARD. Two passes
   # measured it and disagree: 61,638 CSS px / 402 KB at 390, and 75,240 CSS px /
   # 160 KB at 320. Different viewport widths explain part of the height gap but
@@ -1128,22 +1131,26 @@ open = [
   # Unblocks when: ready now.
 
   # MINOR, NEEDS A SCALE DECISION. 11 off-scale font sizes survive the new
-  # stylelint gate, all in src/pages/direction-preview.astro: 11px x5 (no token
-  # exists), 13px x4 (--ds-type-mono-sm matches numerically, but one of the four
-  # sites is sans, so adopting it would make one token carry two meanings),
-  # 0.9375rem, and 1.0625rem. The gate is deliberately left RED on these rather
-  # than forced green; 6 sibling findings that were unambiguous token
-  # substitutions were fixed and verified computed-identical.
+  # stylelint gate, all in web/src/pages/direction-preview.astro: 11px x5 (no
+  # token exists), 13px x4, 0.9375rem, and 1.0625rem.
+  # THE DISCRIMINATOR IS THE 13px GROUP'S FONT FAMILY. --ds-type-mono-sm matches
+  # all four numerically, but three are mono (.dp__wordmark:303, the hero rule
+  # :496, .dp__rec:601) and ONE is sans: .dp__navlinks:313 sets
+  # font-family: var(--ds-font-sans). Adopting the mono token across all four
+  # would make one token carry two meanings, which is the decision this entry is
+  # waiting on -- not the numeric match. The gate is deliberately left RED on
+  # these rather than forced green; 6 sibling findings that were unambiguous
+  # token substitutions were fixed and verified computed-identical.
   # Unblocks when: someone decides whether the type scale gains an 11px step and
   # whether --ds-type-mono-sm may be used on a sans element.
 
-  # MINOR x3, route-level, found in the 80-capture matrix.
-  # (a) 7 of 22 /packs/* pages emit `...above.<a>Browse the catalogue</a>` with
-  #     no space, so readers see "above.Browse". It is in the markup, not a wrap
-  #     artefact, and it is a one-character fix in a template.
-  # (b) /packs/* at >=1100 leaves ~375px of the 1140px container unused down the
+  # MINOR x2, route-level, found in the 80-capture matrix. Registered as x3; the
+  # third -- 7 of 22 /packs/* pages emitting `...above.<a>Browse the
+  # catalogue</a>` with no space -- was fixed by #1395 and the string returns no
+  # hits in web/src today.
+  # (a) /packs/* at >=1100 leaves ~375px of the 1140px container unused down the
   #     right edge.
-  # (c) /journeys/* at 320 wraps the hero meta line after a plain-text
+  # (b) /journeys/* at 320 wraps the hero meta line after a plain-text
   #     separator, leaving it dangling. Channel 1 only.
   # Unblocks when: ready now.
 
