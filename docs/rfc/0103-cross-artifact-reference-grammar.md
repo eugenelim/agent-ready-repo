@@ -1,4 +1,4 @@
-# RFC-0103: One pointer grammar, and `intent:` as a node kind
+# RFC-0103: Pointer grammar update — `<kind>:<slug>` for `Parent intent:` and `Brief:`, and `intent:` as a node kind
 
 - **Status:** Draft
 - **Author:** eugenelim
@@ -8,15 +8,44 @@
 - **Decision weight:** standard
 - **Related:** [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md), [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md), [ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md), [`docs/specs/intent-reference-grammar-migration/`](../specs/intent-reference-grammar-migration/), [`guides/core/reference/product-brief-fields.md`](../../guides/core/reference/product-brief-fields.md)
 
+## What this is about, for a reader arriving cold
+
+Repository artifacts are Markdown files with a metadata preamble of
+`- **Field:** value` lines. Four of those fields point from one artifact to
+another, and a check called the *traceability graph* walks them.
+
+| Field | Sits on | Points at |
+| --- | --- | --- |
+| `Parent intent:` | a brief or an intent file | the intent it descends from |
+| `Brief:` | a spec | the product brief it was derived from |
+| `Contract:` | a spec | the interface contract it implements |
+| `Discovery:` | a spec | the upstream research or intent it came from |
+
+Each pointer is written today in one of three shapes — a bare slug
+(`payment-retries`), a repository-relative path
+(`docs/product/briefs/payment-retries.md`), or a typed id
+(`brief:payment-retries`). This record proposes the typed shape as canonical
+for the first two fields, and leaves the other two alone.
+
+A few terms recur. A **node** is an artifact the graph recognizes; its **kind**
+is the prefix of its id (`spec:`, `brief:`) and its **slug** is the rest,
+taken from the file's own `Slug:` field. A **reader** is code that consumes a
+pointer value — three do, and they disagree about which shapes they accept. A
+**collision slug** is a slug that more than one node id ends in, so a bare
+pointer carrying it matches several artifacts. **Dispatch** is the check that
+decides whether a queued spec may be worked on; it reads `Brief:` and is the
+consumer this record's third decision reaches. A **projection** is a generated
+copy of a source file, which must never be edited directly.
+
 ## Reviewer brief
 
-- **Decision:** A pointer from one repository artifact to another is written `<kind>:<slug>` — a kind token, a colon, and the target's own slug. The form is adopted now for the two fields whose target kinds are defined, `Parent intent:` and `Brief:`, and a name matching more than one artifact is refused rather than resolved.
+- **Decision:** This updates the pointer grammar for two of the four pointer fields; it does not claim to settle one grammar for all of them. A pointer written under the updated grammar is `<kind>:<slug>` — a kind token, a colon, and the target's own slug — and it is adopted now for `Parent intent:` and `Brief:`, the two fields whose target kinds are defined. Separately, a name matching more than one artifact is refused rather than resolved, in every field the resolver sees.
 - **Recommended outcome:** accept
 - **Change if accepted:**
   - `<kind>:<slug>` becomes the canonical form for `Parent intent:` and `Brief:`. The fallbacks each survive only where their reader already accepts them: the traceability resolver keeps taking a unique bare slug and a path, and the dispatch reader keeps taking a path and keeps refusing a bare slug. No existing artifact breaks. One reader does gain a shape: dispatch begins accepting `brief:<slug>`, which it refuses today — that is the point of D3, and the rest of its refusals, including the bare slug, are unchanged.
   - `intent:` joins the recognized node kinds, covering the 117 files under `docs/product/intents/` that no ladder rung already types. A node's slug comes from its `Slug:` field, never from the filename stem.
   - `brief:<slug>` replaces the repository-relative path as the canonical `Brief:` value, superseding the pin at `guides/core/reference/product-brief-fields.md:100`. The guide says explicitly which reader accepts which fallback: traceability and coverage take a unique bare slug, dispatch does not and never has.
-- **Affected surface:** the resolver `resolve_endpoint` in `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py:629` and its two projections; the `Brief:` field row in `guides/core/reference/product-brief-fields.md:100`; the join in `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`; the dispatch provenance check in `workspace_status_engine.py`, whose source is `packs/core/.apm/skills/workspace-status/scripts/` with three generated projections, and which refuses the typed form today; and the surfaces that *write* the old `Brief:` form — enumerated by the implementing spec's derivation, not counted here, since every count this RFC has stated was falsified by the next review. Known members include — the `new-spec` spec template at `packs/core/.apm/skills/new-spec/assets/spec.md:7`, the instruction stamping it at `packs/core/.apm/skills/new-spec/SKILL.md:213-217`, and the back-link instruction at `packs/core/.apm/skills/author-delivery-brief/SKILL.md:196`.
+- **Affected surface:** the resolver `resolve_endpoint` in `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py:629` and its two projections; the `Brief:` field row in `guides/core/reference/product-brief-fields.md:100`; the join in `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`; the dispatch provenance check in `workspace_status_engine.py`, whose source is `packs/core/.apm/skills/workspace-status/scripts/` with three generated projections, and which refuses the typed form today; and the surfaces that *write* the old `Brief:` form — enumerated by the implementing spec's derivation, not counted here, since every count this RFC has stated was falsified by the next review. Known members include the `new-spec` spec template at `packs/core/.apm/skills/new-spec/assets/spec.md:7`, the instruction stamping it at `packs/core/.apm/skills/new-spec/SKILL.md:213-217`, and the back-link instruction at `packs/core/.apm/skills/author-delivery-brief/SKILL.md:196`.
 - **Stakes:** reversible, but one change is load-bearing. Every change lands in version control and nothing is migrated outside it. D3 does reach a validation control on the dispatch path that gates every queued spec, so that edit carries a security review even though the decision itself is reversible by revert.
 - **Review focus:** whether refusing an ambiguous name is right where a tiebreak would be cheaper; whether `intent:` should exclude the 33 ladder-typed files rather than cover the directory; whether holding `Contract:` and `Discovery:` back is the right call or an evasion; and whether admitting the typed form at the dispatch provenance check is worth the reach into a second package.
 - **Not in scope:** adopting the form for `Contract:` and `Discovery:`, and migrating their 38 and 25 values. Those two fields are deliberately left governed by nothing new here — see D1's scope limit, which is the reason rather than an omission.
@@ -31,13 +60,13 @@ This cohort widens the exposure. Attaching the intent corpus raises the graph fr
 
 | ID | Question | Recommendation | Why | Decide by | Reviewer action |
 | --- | --- | --- | --- | --- | --- |
-| D1 | What is the canonical pointer form, and which fields adopt it now? | `<kind>:<slug>`, adopted by `Parent intent:` and `Brief:`; an ambiguous name is refused rather than tiebroken | The kind token is what makes a name unique; the two adopting fields are the two whose target kinds this RFC defines | 2026-09-22 | Accept, or name a tiebreak you would rather have than a refusal |
+| D1 | What is the canonical pointer form, and which fields adopt it now? | `<kind>:<slug>`, adopted by `Parent intent:` and `Brief:`; an ambiguous name is refused rather than tiebroken | The kind token is what makes a name unique; the two adopting fields are the two whose target kinds are already defined | 2026-09-22 | Accept, or name a tiebreak you would rather have than a refusal |
 | D2 | Are intent files graph nodes, and under what id? | Yes — `intent:<Slug: field value>`, covering only the intent files no ladder rung already types | Covering the whole directory makes all 19 live bare pointers ambiguous; a stem-derived id would put an ordinal inside a pointer value | 2026-09-22 | Accept, or choose whole-directory coverage or no `intent:` nodes at all |
 | D3 | What is the canonical `Brief:` value? | `brief:<slug>`, superseding the repository-relative path fixed at `guides/core/reference/product-brief-fields.md:100`; the path stays an accepted fallback | One field cannot have two canonical forms, and `Brief:` is the only pointer field whose guide pins a path | 2026-09-22 | Accept, or keep the path canonical and exempt `Brief:` from D1 |
 
 ## Problem & goals
 
-**A pointer names a target, and the fields disagree about how.** `Contract:`, `Discovery:`, `Brief:` and `Parent intent:` are the spec-side up-edges the traceability check walks (`lint-traceability.py:185`). They are written by hand, by adopters, in three different shapes: a bare slug, a repository-relative path, and a typed id. Nothing reconciles them, so which shape is correct depends on which guide the author happened to read.
+**A pointer names a target, and the fields disagree about how.** `Contract:`, `Discovery:`, `Brief:` and `Parent intent:` are the spec-side up-edges the traceability check walks (`lint-traceability.py:185`). They are written by hand, by adopters, in three different shapes: a bare slug, a repository-relative path, and a typed id. The resolver accepts all three, so nothing *breaks* — but no convention says which an author should write, and each field's guide answers differently or not at all.
 
 Three specific failures follow.
 
@@ -109,10 +138,10 @@ Several surfaces state or write the old form, and they move together, because a 
 
 and at least `packs/core/.apm/skills/new-spec/SKILL.md`, which stamps the path, and `packs/core/seeds/docs/product/briefs/_template.md`, whose own `Slug:` comment instructs derived specs to back-link by path. Each of these was missed by an enumeration that preceded it, which is the evidence for delegating the set rather than listing it.
 
-Three surfaces **act on** it, and the third is the one that nearly got missed. Their count, like the writers' above, is delegated to the implementing spec's derivation rather than fixed here.
+Some surfaces **act on** the value and others merely see it, and the authoritative split is the implementing spec's derivation rather than any count fixed here. The three that act on it at the time of writing are below, and the third is the one that nearly got missed.
 
 - `lint-brief-coverage.py` joins a spec to its brief on this value and must accept `brief:<slug>` alongside the two fallbacks.
-- `lint-traceability.py` reads the same field but resolves it through `resolve_endpoint`, so it needs no change of its own for D3 — the typed form simply resolves `local` where the path form resolved to an external stub.
+- `lint-traceability.py` reads the same field but resolves it through `resolve_endpoint`, so it needs no change of its own for D3. The three words this RFC uses for the path form's fate are not synonyms: the resolver *accepts* the value (it is well-formed and does not error), classifies its endpoint state as `unresolvable` (it names no local node), and therefore attaches it to an *external stub* rather than to the brief. The typed form resolves `local` instead, which is the edge D3 is buying.
 - `workspace_status_engine.py` reads it on the **dispatch** path, and refuses the typed form today. Its source is `packs/core/.apm/skills/workspace-status/scripts/`; the copy under `packages/agentbundle/agentbundle/_data/` is one of three byte-identical projections, and editing a projection is the error this delivery corrects elsewhere.
 
 A further set merely **parses** it. The implementing spec's derivation (its task T0) found **five** generic preamble parsers in this repository, not one — `workspace_status_engine`, `intent_shape`, `lint-spec-status`, `lint-contract-item-alignment` and `lint-adr-shape` — each compiling the same `^- \*\*…:\*\*` line shape, so each sees every preamble field including `Brief:`. Three of them mention `brief` zero times and do nothing with it: they are unaffected by D3 and carry no obligation under it. The distinction matters, because a criterion discharged against "readers" would otherwise oblige `lint-adr-shape` to accept `brief:<slug>`, which is meaningless.
@@ -152,11 +181,24 @@ Options are enumerated along an axis that is *mutually exclusive, collectively e
 
 ## Risks & what would make this wrong
 
-**117 files become orphan- and reachability-checkable at once.** `--strict` treats a structural orphan as exit 1, and no existing test covers that classification at this corpus size. The figures here say what the node and collision sets look like; they do not say what the orphan verdict will be, because that is a property of the built edge set after both sweeps rather than of the node set.
+**Registering 117 files as nodes does not make them orphan-checkable — measured, after an earlier draft claimed it would.** A draft of this section called that the largest unmeasured quantity in the work: 117 files becoming orphan- and reachability-checkable at once, with `--strict` treating a structural orphan as exit 1. It was inferred from "these files become nodes", and it is wrong.
 
-This is the largest unmeasured quantity in the work, and it is deliberately not a question for this RFC. The grammar is the same grammar whichever way the orphan verdict falls: no answer to "how many intent files end up unreachable" changes whether a pointer should be typed, whether ambiguity should refuse, or what a brief's canonical form is. What it changes is how much repair the migration carries, which is why it is owned by `docs/specs/intent-reference-grammar-migration/spec.md` and measured by that spec's task T4 — before either sweep, so the answer can add work rather than invalidate it. That spec already records the Surface-rather-than-repair rule for an orphan finding. Accepting this RFC does not commit anyone to a repair volume.
+`classify_standalone` (`lint-traceability.py:792-826`) classifies only nodes whose kind is in `CHAIN` (`:112-115`) — `outcome`, `opportunity`, `capability`, `screen`, `action`, `service`, `contract`, `spec`, `component`. `intent` is not in that tuple and neither is `brief`. Registering a kind does not enrol its files in the chain check; only joining `CHAIN` does, and D2 does not do that.
 
-**Holding two fields back may be the wrong shape.** `Contract:` and `Discovery:` keep three competing value shapes after this lands, and a reader could reasonably call a grammar that governs half its fields no grammar at all. The counter is that the alternative on offer was a canonical form some values cannot express. If the review disagrees, the remedy is to answer the kind-coverage question now rather than to widen the claim without answering it.
+Projected by building the graph, adding the 117 `intent:` nodes exactly as D2 specifies, and wiring the 14 parent pointers they carry:
+
+| | Today | With `intent:` nodes |
+| --- | ---: | ---: |
+| Nodes | 640 | 757 |
+| Edges | 109 | 115 |
+| Structural orphans | 488 | **487** |
+| New orphans introduced | — | **0** |
+
+The count falls by one, because a newly wired parent edge gives an existing node a producer it lacked. No `intent`-kind node is classified as an orphan, because none can be.
+
+**What this leaves.** `--strict` already exits 1 today on 488 pre-existing orphans, almost all specs with no producer up-edge; the default invocation exits 0. Neither figure is this delivery's doing and neither changes because of it. The honest risk is therefore not orphan breakage but the opposite: this delivery adds 117 nodes to a graph whose strict mode is already failing, and does not improve it. Enrolling `intent` in `CHAIN` would be a separate decision with a real orphan question attached, and this RFC does not propose it.
+
+**Holding two fields back leaves the repository mid-migration.** `Contract:` and `Discovery:` keep their current shapes after this lands, so for a while two fields have a canonical form and two do not. That is what an incremental grammar update costs, and it is why this record is scoped as an update rather than as the final word. The alternative on offer was a canonical form some values cannot express — `contract:<name>@<version>` does not fit `<kind>:<slug>`, and some `Discovery:` targets have no registered kind at all. If the review would rather settle all four now, the remedy is to answer the kind-coverage question, not to widen the claim without answering it.
 
 **Refusal could be noisier than predicted.** The claim that no live pointer is ambiguous rests on the corpus as of 2026-09-22. A pointer added between acceptance and execution could be ambiguous, and its author would meet a refusal they did not expect. The corpus holds one collision slug today and would hold seven after the recommended registration, so the case is reachable rather than theoretical. The mitigation is that the refusal names every candidate, so the fix is mechanical — but the cost is real and lands on whoever is nearest.
 
@@ -206,7 +248,7 @@ A **collision slug** is a slug that more than one node id ends in, so a bare poi
 
 ## Follow-on artifacts
 
-- `docs/specs/intent-reference-grammar-migration/spec.md` — authored, and reopened to `Draft` by a controlled amendment when execution found the dispatch reader. It implements D1, D2 and D3 and sweeps the 19 `Parent intent:` and 34 `Brief:` values; its `Constrained by:` already cites RFC-0103. Its AC-0009 now covers all five writing surfaces above, and AC-0016 to AC-0018 carry the dispatch reader's acceptance, its refusals, and the untouched behaviour of the shared helper's other call sites.
+- `docs/specs/intent-reference-grammar-migration/spec.md` — authored, and reopened to `Draft` by a controlled amendment when execution found the dispatch reader. It implements D1, D2 and D3 and sweeps the 19 `Parent intent:` and 34 `Brief:` values; its `Constrained by:` already cites RFC-0103. Its AC-0009 now discharges against the derived inventory rather than a count, and AC-0016 to AC-0018 carry the dispatch reader's acceptance, its refusals, and the untouched behaviour of the shared helper's other call sites.
 - `guides/core/reference/product-brief-fields.md` — the `Brief:` field row is amended by that spec's task T6, which is where the supersession in D3 lands.
 - A later decision and spec for `Contract:` and `Discovery:`, answering what kind their targets carry — the versioned `contract:<name>@<version>` shape for the first, and a kind for the `docs/product/research/` targets of the second — and sweeping their 38 and 25 values once it can.
 
@@ -233,3 +275,21 @@ A **collision slug** is a slug that more than one node id ends in, so a bare poi
   `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md:133-137`.
   The second of those already stated that a bare slug blocks dispatch, which
   corroborated the correction above from a source the draft had not read.
+- 2026-09-22: reframed from "one pointer grammar" to a pointer grammar
+  *update*, at the owner's direction. The earlier title and decision line read
+  as though this record settled the grammar for all four pointer fields, while
+  the body adopts it for two and explicitly leaves `Contract:` and `Discovery:`
+  alone. Both reviews flagged the gap independently. The scope did not change;
+  the claim was brought down to it.
+- 2026-09-22: replaced the orphan risk with a measurement that falsifies it.
+  The section had called 117 files becoming orphan-checkable the largest
+  unmeasured quantity in the work. `classify_standalone` only classifies kinds
+  in `CHAIN`, which contains neither `intent` nor `brief`, so the projected
+  change is 488 structural orphans to 487 and no new orphan at all. A
+  fresh-reader review had named this the one thing blocking approval, which is
+  what prompted measuring it rather than deferring it to the implementing
+  spec's T4.
+- 2026-09-22: added an opening orientation section, and distinguished
+  "accepted", "unresolvable" and "external stub", after a fresh-reader review
+  found the Reviewer brief unusable without repository context — "ladder rung"
+  used 29 lines before anything defines it, "collision slug" 150 lines before.

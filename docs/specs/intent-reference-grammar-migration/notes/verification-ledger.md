@@ -286,3 +286,101 @@ is accurate in that the owner directed T0's execution, though the precise fact
 is that the controller implemented it rather than dispatching. The closed
 reason vocabulary has no value for that case. Later tasks dispatch the
 `implementer` subagent per the cohort's dispatch instruction.
+
+## 2026-09-22 — the orphan risk is null, and AC-0012 is unsatisfiable
+
+Measured while reviewing RFC-0103, after a fresh-reader pass named the unmeasured
+orphan impact as the one thing blocking approval. It is measurable before
+acceptance, so it was measured rather than deferred to T4.
+
+### The orphan risk does not exist
+
+`classify_standalone` (`lint-traceability.py:792-826`) classifies only nodes whose
+kind is in `CHAIN` (`:112-115`):
+
+    ("outcome", "opportunity", "capability", "screen", "action",
+     "service", "contract", "spec", "component")
+
+`intent` is not in it, and neither is `brief`. **Registering a kind does not make
+its files chain-checkable; only joining `CHAIN` does, and D2 does not do that.**
+
+Projected by building the graph, adding the 117 `intent:` nodes exactly as D2
+specifies, and wiring the 14 parent edges they carry:
+
+| | Baseline | With `intent:` nodes |
+| --- | ---: | ---: |
+| Nodes | 640 | 757 |
+| Edges | 109 | 115 |
+| Structural orphans | 488 | **487** |
+| New orphans introduced | — | **0** |
+| `intent`-kind nodes classified as orphans | — | **0** |
+
+The count falls by one, because a newly wired parent edge gives an existing node
+a producer it lacked.
+
+So the claim in `plan.md` § Risks and in RFC-0103 § Risks — "117 files become
+orphan- and reachability-checkable at once", "the largest unmeasured quantity in
+the work", "`--strict` fails on a structural orphan" — is **false as stated**. It
+was inferred from "these files become nodes" without checking what makes a node
+chain-checkable. T4 still has work (edge counts, field-origin for T7's oracle)
+but its stated headline risk is null.
+
+### AC-0012 cannot pass, and could not before this delivery began
+
+    $ lint-traceability.py --root . --strict   -> exit 1  (488 structural orphans)
+    $ lint-traceability.py --root .            -> exit 0
+
+AC-0012 requires the `--strict` invocation to exit 0 over the repository. It
+exits 1 today, on a clean tree, from 488 pre-existing orphans that have nothing
+to do with this change — overwhelmingly specs with no producer up-edge.
+
+The criterion is unsatisfiable as written and always was. It survived the four
+pre-EXECUTE review rounds recorded in `.context/reviews/r1`-`r4` and all five
+amendment rounds, because every round reasoned about the criterion's wording and
+none of them ran the command.
+
+The repairable form asserts what the delivery can control: the default
+invocation continues to exit 0, and the `--strict` orphan count does not
+increase. Both are measured above.
+
+### The spec's open Assumption is answered: the sweep changes no orphan verdict
+
+`spec.md` § Assumptions asks "whether attaching the 34 newly local `Brief:`
+edges changes `lint-traceability`'s orphan, reachability, or cycle verdict".
+
+Projected over the full post-sweep state — 117 `intent:` nodes, their 14 parent
+edges, and all 34 `Brief:` values typed:
+
+| | Orphans |
+| --- | ---: |
+| Today | 488 |
+| Full post-sweep projection | **487** |
+| New orphans introduced | **0** |
+
+Net −1, and the −1 comes from a parent edge, not from the brief sweep. The
+brief sweep moves no spec in or out of orphan status, because the path form
+*already* produces an in-edge: it resolves `unresolvable` and attaches the spec
+to an external stub, which satisfies the has-producer test just as a local edge
+would. Typing the value repoints that edge from the stub to the real brief
+node. That is a correctness gain in the graph, not a change in the orphan
+verdict.
+
+So the Assumption resolves to "no", and T4's orphan measurement — the reason
+T4 was placed between the resolver work and the sweeps — has been answered
+before either sweep runs, by projection rather than by execution.
+
+### Consequences for the pinned contract
+
+Four statements in the sealed artifacts are now false or unsatisfiable:
+
+1. `spec.md` AC-0012 — requires `--strict` to exit 0. It exits 1 today on 488
+   pre-existing orphans and always did. Unsatisfiable as written.
+2. `spec.md` § Assumptions — states the orphan question as open. It is answered.
+3. `plan.md` § Approach — "the riskiest part is not the sweep but the node-set
+   growth … `--strict` treats a structural orphan as exit 1".
+4. `plan.md` § Risks and T4 § Approach — the same claim, and T4's instruction to
+   Surface on an orphan finding, which now has nothing to fire on.
+
+All four sit under `approved_spec_hash` / `approved_plan_hash`, so correcting
+them is a controlled amendment, not an in-place edit. Recorded here and raised
+with the owner rather than actioned unilaterally.
