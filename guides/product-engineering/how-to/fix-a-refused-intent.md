@@ -85,7 +85,9 @@ FEAT-0005-bad-decomposed.md: Decomposed: value '2026-09-22 brief spec' is
 neither the literal `no` nor an ISO 8601 date followed by exactly one terminus
 ```
 
-`De-risked` and `Shaping-reviewed` each take a date or the literal `no`.
+`De-risked` and `Shaping-reviewed` each take a date or the literal `no`. A
+date means the calendar form `YYYY-MM-DD`: the basic form `20260922`, a week
+date, and an ordinal date are all refused.
 `Decomposed` takes `no`, or a date plus **exactly one** terminus from
 `children`, `brief`, `spec`, `direct-light`. Two termini is a refusal, and so
 is a date with none.

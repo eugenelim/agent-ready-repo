@@ -734,9 +734,15 @@ def _reviewer_intent_mode() -> str:
     return text[start:end]
 
 
-def test_ac0016_an_intent_the_lint_accepts_can_still_fail_the_review() -> None:
-    """The fixture's preamble conforms; its body names no non-goals and states a
-    solution rather than an outcome, which are the review's to judge."""
+def test_ac0016_a_conforming_preamble_leaves_the_reviews_conditions_unjudged() -> None:
+    """The lint accepts a fixture that visibly fails the review's conditions.
+
+    Named for what it establishes rather than for the review's verdict. The
+    shaping review is prose an agent reads, so no test here can run it or
+    observe its refusal; what is checkable is that the lint accepts this
+    fixture and that the conditions it fails are the review's, not the lint's.
+    A test asserting the refusal itself would be asserting its own fixture.
+    """
     text = _preamble(
         body="We will add a dropdown to the settings page.\n\n"
         "(no non-goals, and no riskiest assumption)"

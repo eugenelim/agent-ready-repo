@@ -439,3 +439,93 @@ def test_ac0015_one_unreadable_file_does_not_stop_the_others(tmp_path: Path) -> 
     assert result.routed["FEAT-0001-a.md"] == lint.CONTRACT_LIVE
     # The unreadable file is not routed, because nothing could be read to route.
     assert "FEAT-0002-binary.md" not in result.routed
+
+
+# ── Raised by adversarial review ──────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        "- [ ] An unindented hyphen item",
+        "  - [ ] An indented hyphen item",
+        "* [ ] A star item",
+        "+ [ ] A plus item",
+        "- [x] A checked item",
+    ],
+)
+def test_a_decomposition_item_is_recognized_in_every_markdown_spelling(
+    tmp_path: Path, item: str
+) -> None:
+    """AC-0007 refuses a `direct-light` intent with no item, so a spelling the
+    reader sees as an item and the check does not is a refused conforming
+    intent."""
+    text = "\n".join(
+        [
+            "# Intent: a fixture",
+            "",
+            "- **Owner:** eugenelim",
+            "- **Slug:** `a-fixture`",
+            "- **Level:** feature",
+            "- **Status:** Draft",
+            "- **Decomposed:** 2026-09-22 direct-light",
+            "",
+            "## Outcome",
+            "",
+            "Text.",
+            "",
+            "## Decomposition",
+            "",
+            item,
+            "",
+        ]
+    )
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert result.violations == [], [f"{v.field}: {v.reason}" for v in result.violations]
+
+
+@pytest.mark.parametrize("item", ["  - [ ]   ", "* [ ] ", "+ [ ]"])
+def test_an_empty_item_is_refused_in_every_spelling(tmp_path: Path, item: str) -> None:
+    """The mirror of the case above: widening what counts as an item must
+    widen AC-0008's reach too, or an empty item hides behind its spelling."""
+    text = "\n".join(
+        [
+            "# Intent: a fixture",
+            "",
+            "- **Owner:** eugenelim",
+            "- **Slug:** `a-fixture`",
+            "- **Level:** feature",
+            "- **Status:** Draft",
+            "- **Decomposed:** 2026-09-22 direct-light",
+            "",
+            "## Outcome",
+            "",
+            "Text.",
+            "",
+            "## Decomposition",
+            "",
+            "- [ ] A real item",
+            item,
+            "",
+        ]
+    )
+    result = _run(tmp_path, {"FEAT-0001-a.md": text})
+    assert "Decomposed" in {v.field for v in result.violations}
+
+
+def test_every_directory_entry_is_accounted_for(tmp_path: Path) -> None:
+    """Routed plus unreadable covers the directory, so no entry goes unmentioned.
+
+    `routed` alone cannot carry this: a file that could not be read cannot be
+    routed to a contract, so it is absent from `routed` by construction.
+    """
+    directory = _corpus(
+        tmp_path,
+        {"FEAT-0001-a.md": _live("a"), "FEAT-0004-bad.md": _broken("bad", status="Shipped")},
+    )
+    (directory / "FEAT-0002-binary.md").write_bytes(b"\xff\xfe")
+
+    result = lint.lint_corpus(tmp_path, directory)
+    on_disk = {p.name for p in directory.iterdir() if p.is_file()}
+    assert result.accounted == on_disk
+    assert "FEAT-0002-binary.md" not in result.routed

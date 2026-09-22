@@ -85,6 +85,19 @@ class LintResult:
     unreadable: list[str] = field(default_factory=list)
 
     @property
+    def accounted(self) -> set[str]:
+        """Every entry this run reached, routed or refused as unreadable.
+
+        A file that could not be read cannot be routed to a contract, so it is
+        absent from `routed` by construction. Reporting both sets lets a caller
+        check that no directory entry went unmentioned, which the exit code
+        alone cannot express.
+        """
+        return set(self.routed) | {
+            entry.split(":", 1)[0] for entry in self.unreadable
+        }
+
+    @property
     def is_clean(self) -> bool:
         """True only when every file was read and every file conformed."""
         return not self.violations and not self.unreadable

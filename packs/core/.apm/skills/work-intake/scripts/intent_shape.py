@@ -84,7 +84,10 @@ DECOMPOSITION_TERMINI: tuple[str, ...] = (
 )
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-_CHECKBOX = re.compile(r"^- \[[ xX]\]\s*(.*)$")
+# Leading whitespace and `*`/`+` markers are ordinary Markdown for a list
+# item. Matching only an unindented hyphen made an indented item read as
+# absent, which refuses a conforming intent and skips an empty one.
+_CHECKBOX = re.compile(r"^\s*[-*+] \[[ xX]\]\s*(.*)$")
 _DECOMPOSITION_HEADING = "## Decomposition"
 
 _COMMENT_SUFFIX = re.compile(r"\s*<!--.*?-->\s*$", re.DOTALL)
