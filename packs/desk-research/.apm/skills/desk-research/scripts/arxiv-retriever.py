@@ -59,6 +59,7 @@ ALLOWED_HOSTS = frozenset(
 ATTEMPT_DEADLINE_S = 30.0          # total elapsed per attempt, not a socket timeout
 MIN_REQUEST_INTERVAL_S = 3.0       # arXiv's courtesy interval between requests
 MAX_ATTEMPTS = 4                   # one try plus three retries
+MAX_REDIRECTS = 5                  # hops followed within one attempt
 RESPONSE_BYTE_CAP = 8 * 1024 * 1024
 INVOCATION_BYTE_CAP = 32 * 1024 * 1024
 READ_CHUNK = 64 * 1024
@@ -126,7 +127,10 @@ def _literal(text: str) -> str:
 def _terms(text: str) -> list[str]:
     """Split free text into content terms, dropping arXiv field metacharacters."""
     cleaned = re.sub(r'["()\[\]:]', " ", text)
-    return [w for w in cleaned.lower().split() if w not in STOPWORDS and len(w) > 1]
+    words = [w for w in cleaned.lower().split() if w not in STOPWORDS and len(w) > 1]
+    # De-duplicate: a repeated term makes the conjunction and disjunction tiers
+    # match the same set, so a later tier would not be strictly wider.
+    return list(dict.fromkeys(words))
 
 
 def build_tiers(text: str) -> list[str]:
@@ -270,18 +274,25 @@ def check_redirect(from_url: str, to_url: str) -> None:
         raise HostNotAllowed(f"redirect from {from_url} refused: {exc}") from exc
 
 
-def check_addresses(host: str, resolver=socket.getaddrinfo) -> None:
+def check_addresses(host: str, resolver=socket.getaddrinfo, budget=None) -> None:
     """Refuse a host resolving to an address class this retriever will not reach.
 
     Known limit: this resolves and then connects, so it does not close DNS
     rebinding. `urllib` connects by hostname and offers no way to pin the
     connection to the address that passed here; pinning would mean replacing
     `urllib` with a hand-built HTTPS client this retriever does not carry.
+
+    `budget`, when given, is checked before and after resolution, so a stalled
+    resolver spends the attempt's deadline rather than sitting outside it.
     """
+    if budget is not None:
+        budget.check()
     try:
         infos = resolver(host, 443, proto=socket.IPPROTO_TCP)
     except OSError as exc:
         raise ArxivUnavailable(f"cannot resolve {host}: {exc}") from exc
+    if budget is not None:
+        budget.check()
     for info in infos:
         raw = info[4][0]
         address = ipaddress.ip_address(raw)
@@ -296,16 +307,23 @@ def check_addresses(host: str, resolver=socket.getaddrinfo) -> None:
             raise HostNotAllowed(f"{host} resolves to a refused address {raw}")
 
 
-class _ConfinedRedirects(urllib.request.HTTPRedirectHandler):
-    """Re-checks scheme, port, and host on every redirect, not once up front.
+class _NoAutoRedirect(urllib.request.HTTPRedirectHandler):
+    """Surfaces a redirect instead of following it.
 
-    A single pre-flight check is exactly what a redirect defeats.
+    The inherited handler drains each redirect body with an unbounded `read()`
+    before following, which puts that body outside the elapsed and byte bounds
+    every other response goes through. Returning None leaves the 3xx to surface
+    as an `HTTPError`, so `Sender` follows it itself, under the same budget and
+    the same per-hop checks.
     """
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: PLR0913
-        check_redirect(req.full_url, newurl)
-        check_addresses(_normalise_host(urllib.parse.urlsplit(newurl).hostname))
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
+    def http_error_301(self, req, fp, code, msg, headers):
+        return None
+
+    http_error_302 = http_error_301
+    http_error_303 = http_error_301
+    http_error_307 = http_error_301
+    http_error_308 = http_error_301
 
 
 class Clock:
@@ -378,7 +396,7 @@ class Sender:
         self.min_interval = min_interval
         self._last_completed: float | None = None
         self._invocation_bytes = 0
-        self._opener = opener or urllib.request.build_opener(_ConfinedRedirects)
+        self._opener = opener or urllib.request.build_opener(_NoAutoRedirect)
 
     def note_completed(self, at: float) -> None:
         self._last_completed = at
@@ -425,27 +443,63 @@ class Sender:
             raise LimitExceeded(f"invocation exceeded {INVOCATION_BYTE_CAP} bytes")
         return b"".join(chunks)
 
-    def get(self, url: str, params: dict[str, str | int] | None = None) -> bytes:
-        """Send one request, retrying transient failures, and return the body."""
+    def _one_attempt(self, url: str, budget: Budget) -> bytes:
+        """One attempt: resolution, connection, redirects and reads, one budget."""
+        target = url
+        for hop in range(MAX_REDIRECTS + 1):
+            check_url(target)
+            check_addresses(
+                _normalise_host(urllib.parse.urlsplit(target).hostname), budget=budget
+            )
+            budget.check()
+            request = urllib.request.Request(
+                target, headers={"User-Agent": "desk-research-arxiv-retriever/2"}
+            )
+            try:
+                # B310: scheme, port and host are checked just above, and again
+                # for each redirect target before it is fetched.
+                with self._opener.open(  # nosec B310
+                    request,
+                    timeout=max(0.001, min(ATTEMPT_DEADLINE_S, budget.remaining())),
+                ) as response:
+                    return self._read_bounded(response, budget)
+            except urllib.error.HTTPError as exc:
+                location = exc.headers.get("Location") if exc.headers else None
+                if exc.code in (301, 302, 303, 307, 308) and location:
+                    if hop >= MAX_REDIRECTS:
+                        raise ArxivUnavailable(
+                            f"more than {MAX_REDIRECTS} redirects from {url}"
+                        ) from exc
+                    nxt = urllib.parse.urljoin(target, location)
+                    check_redirect(target, nxt)
+                    target = nxt
+                    continue
+                raise
+        raise ArxivUnavailable(f"redirect loop from {url}")
+
+    def get(
+        self,
+        url: str,
+        params: dict[str, str | int] | None = None,
+        retry_if=None,
+    ) -> bytes:
+        """Send one request, retrying transient failures, and return the body.
+
+        `retry_if(body)` lets a caller declare a 200 response retryable. An
+        arXiv feed reporting matches while carrying no entries is the case that
+        needs it, and only a caller that parses the feed can see it.
+        """
         full = f"{url}?{urllib.parse.urlencode(params)}" if params else url
-        check_url(full)
-        check_addresses(_normalise_host(urllib.parse.urlsplit(full).hostname))
         last = "no attempt was made"
         for attempt in range(1, MAX_ATTEMPTS + 1):
             self._throttle()
             budget = Budget(self.clock, ATTEMPT_DEADLINE_S)
-            request = urllib.request.Request(
-                full, headers={"User-Agent": "desk-research-arxiv-retriever/2"}
-            )
             try:
-                # B310: scheme, port, and host are checked above and on every
-                # redirect; only the query string varies with caller input.
-                with self._opener.open(  # nosec B310
-                    request, timeout=min(ATTEMPT_DEADLINE_S, budget.remaining())
-                ) as response:
-                    body = self._read_bounded(response, budget)
+                body = self._one_attempt(full, budget)
                 self.note_completed(self.clock.monotonic())
-                return body
+                if retry_if is None or not retry_if(body):
+                    return body
+                last = "reported matches but carried no entries"
             except urllib.error.HTTPError as exc:
                 self.note_completed(self.clock.monotonic())
                 if exc.code != 429 and exc.code < 500:
@@ -453,7 +507,16 @@ class Sender:
                 last = f"HTTP {exc.code}"
             except urllib.error.URLError as exc:
                 self.note_completed(self.clock.monotonic())
+                if isinstance(exc.reason, TimeoutError):
+                    raise LimitExceeded(
+                        f"attempt exceeded its {ATTEMPT_DEADLINE_S:g}s deadline"
+                    ) from exc
                 last = f"network error — {exc.reason}"
+            except TimeoutError as exc:
+                self.note_completed(self.clock.monotonic())
+                raise LimitExceeded(
+                    f"attempt exceeded its {ATTEMPT_DEADLINE_S:g}s deadline"
+                ) from exc
             if attempt < MAX_ATTEMPTS:
                 backoff = self.min_interval * attempt
                 print(
@@ -476,8 +539,10 @@ def parse_feed(body: str | bytes) -> ET.Element:
     a document this retriever has no reason to accept from arXiv.
     """
     text = body.decode("utf-8", "replace") if isinstance(body, bytes) else body
-    head = text[:4096].lower()
-    if "<!doctype" in head or "<!entity" in head:
+    # Scan the whole bounded document, not a prefix: a response can pad past any
+    # fixed window before its declaration. The body is already byte-capped.
+    lowered = text.lower()
+    if "<!doctype" in lowered or "<!entity" in lowered:
         raise UnsafeDocument("response carries a doctype or entity declaration")
     try:
         # B314: stdlib ElementTree resolves no external entities or DTDs on
@@ -488,6 +553,19 @@ def parse_feed(body: str | bytes) -> ET.Element:
     if not root.tag.startswith(ATOM):
         raise UnsafeDocument(f"root element {root.tag!r} is not an Atom feed")
     return root
+
+
+def is_unexpectedly_empty(body: bytes) -> bool:
+    """True when arXiv reports matches but the feed carries no entries.
+
+    arXiv does this intermittently. Returning it as zero matches would report an
+    empty result for a query that has answers, so it is retried instead.
+    """
+    try:
+        root = parse_feed(body)
+    except UnsafeDocument:
+        return False
+    return reported_total(root) > 0 and not root.findall(f"{ATOM}entry")
 
 
 def reported_total(root: ET.Element) -> int:
@@ -677,13 +755,19 @@ def select_sections(
     Returns the kept sections, how many were dropped, and whether the cap did
     the dropping, so the caller can report why the text is short.
     """
+    # The ceiling is the contract's, not the caller's: a larger request is
+    # clamped rather than honoured.
+    cap = min(cap, FULL_TEXT_CHAR_CAP)
     available: list[tuple[str, str]] = []
     abstract = extract_abstract(document)
     if abstract:
         available.append(("Abstract", abstract))
     available.extend(extract_sections(document))
     lowered = tuple(w.lower() for w in wanted)
-    chosen = [s for s in available if any(w in s[0].lower() for w in lowered)] or available
+    # No fallback to every section: a caller asking for three named sections and
+    # silently receiving the whole paper is the context flood the budget exists
+    # to prevent.
+    chosen = [s for s in available if any(w in s[0].lower() for w in lowered)]
 
     kept: list[tuple[str, str]] = []
     used = 0
@@ -803,7 +887,16 @@ def retrieve(query: str, *, mode: str = "search", sender: Sender | None = None, 
 def _finish(content: str, citations: list[dict[str, object]]) -> dict[str, object]:
     if len(citations) > MAX_CITATIONS:
         raise LimitExceeded(f"response carried more than {MAX_CITATIONS} citations")
-    return {"content": _cap_render(content), "citations": citations, "shape": "raw"}
+    result = {"content": _cap_render(content), "citations": citations, "shape": "raw"}
+    # Citation fields reach the caller too, so the cap is measured over the whole
+    # serialized result. Bounding `content` alone lets a large abstract flood the
+    # caller's context while the rendered text stays short.
+    serialized = len(json.dumps(result))
+    if serialized > RENDER_CHAR_CAP:
+        raise LimitExceeded(
+            f"result exceeded {RENDER_CHAR_CAP} characters ({serialized})"
+        )
+    return result
 
 
 def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
@@ -818,7 +911,7 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
             "submitted_from", "submitted_to", "sort", "max_results",
         )
         params = build_request(**{k: v for k, v in options.items() if k in accepted})
-        root = parse_feed(sender.get(API_URL, params))
+        root = parse_feed(sender.get(API_URL, params, retry_if=is_unexpectedly_empty))
         citations = [map_entry(e) for e in root.findall(f"{ATOM}entry")]
         kind = "caller-composed" if options.get("search_query") else "fielded"
         return _finish(
@@ -831,7 +924,7 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
     for index, candidate in enumerate(tiers, start=1):
         params = build_request(search_query=candidate, sort=sort,
                                max_results=options.get("max_results", DEFAULT_MAX_RESULTS))
-        root = parse_feed(sender.get(API_URL, params))
+        root = parse_feed(sender.get(API_URL, params, retry_if=is_unexpectedly_empty))
         total = reported_total(root)
         chosen = (index, root, total)
         if 1 <= total <= TIER_MATCH_CEILING:
@@ -849,11 +942,25 @@ def _resolve_one(target: str, sender: Sender) -> dict[str, object]:
     ident = parse_identifier(target)
     if ident is None:
         raise MalformedIdentifier(f"{target!r} is not a well-formed arXiv identifier")
-    root = parse_feed(sender.get(API_URL, build_request(identifiers=[ident])))
+    root = parse_feed(
+        sender.get(
+            API_URL, build_request(identifiers=[ident]), retry_if=is_unexpectedly_empty
+        )
+    )
     entries = root.findall(f"{ATOM}entry")
     if not entries:
         raise ArxivUnavailable(f"arXiv returned no record for {ident}")
-    return map_entry(entries[0])
+    wanted = re.sub(r"v\d+$", "", ident)
+    for entry in entries:
+        cite = map_entry(entry)
+        if cite["arxiv_id"] == wanted:
+            return cite
+    # Returning the first entry regardless would answer a request for one paper
+    # with a different paper, under the heading the caller asked for.
+    raise UnsafeDocument(
+        f"arXiv returned no entry matching {ident}; "
+        f"got {[e.findtext(f'{ATOM}id') for e in entries][:3]}"
+    )
 
 
 def _mode_get(target: str, sender: Sender, **options) -> dict[str, object]:
@@ -897,7 +1004,15 @@ def _mode_enrich(target: str, sender: Sender, **options) -> dict[str, object]:
     cite = _resolve_one(target, sender)
     check = options.get("check") or _default_presence_check(sender)
     links = enrich(str(cite["arxiv_id"]), check)
-    lines = [f"# {cite['title']}", f"arXiv:{cite['arxiv_id']}", "", "Confirmed links:"]
+    lines = [
+        f"# {cite['title']}",
+        f"arXiv:{cite['arxiv_id']}",
+        "",
+        "Confirmed links. Checking these disclosed this arXiv identifier to "
+        "arxiv.org, alphaxiv.org and huggingface.co; a link appears only when "
+        "that host answered differently for this paper than for an absent one.",
+        "",
+    ]
     lines.extend(f"- {link['label']}: {link['url']}" for link in links)
     if not links:
         lines.append("- none confirmed")
@@ -931,8 +1046,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    # Guarded: a wrapped or captured stream has no `reconfigure`, and crashing
+    # there would make every caller-visible path unreachable under a wrapper.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
 
     args = _build_parser().parse_args(argv)
     text = " ".join(args.query).strip()

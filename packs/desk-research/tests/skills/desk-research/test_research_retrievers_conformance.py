@@ -39,6 +39,9 @@ RESEARCH_SKILL = PACK / ".apm" / "skills" / "desk-research"
 ARXIV_SCRIPT = RESEARCH_SKILL / "scripts" / "arxiv-retriever.py"
 PERPLEXITY_SCRIPT = RESEARCH_SKILL / "scripts" / "perplexity-retriever.py"
 SKILL_MD = RESEARCH_SKILL / "SKILL.md"
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+LATEXML_ATTENTION = FIXTURES / "latexml-1706.03762v7.html"
+LATEXML_TINYLLAMA = FIXTURES / "latexml-2401.02385v1.html"
 
 VALID_SHAPES = {"raw", "synthesized", "meta"}
 REQUIRED_KEYS = {"content", "citations", "shape"}
@@ -608,6 +611,210 @@ class ArxivRetrieverConformance(unittest.TestCase):
             result = module.retrieve("", sender=sender, **{**cli_shaped, **extra})
             self.assertEqual(set(result.keys()), REQUIRED_KEYS, extra)
             self.assertEqual(len(sender._opener.urls), 1, extra)
+
+    def test_an_unexpectedly_empty_page_is_retried(self) -> None:
+        """AC-0016: arXiv reports matches but sends no entries, intermittently."""
+        module = _load(ARXIV_SCRIPT)
+        empty = ATOM_FEED[: ATOM_FEED.index(b"<entry>")] + b"</feed>"
+        self.assertTrue(module.is_unexpectedly_empty(empty))
+        self.assertFalse(module.is_unexpectedly_empty(ATOM_FEED))
+        sender = _sender(module, FakeResponse(empty), FakeResponse(ATOM_FEED))
+        result = module.retrieve("anything", sender=sender)
+        self.assertEqual(len(sender._opener.urls), 2, "the empty page was not retried")
+        self.assertGreater(len(result["citations"]), 0)
+
+    def test_an_always_empty_page_exhausts_and_writes_no_stdout(self) -> None:
+        """AC-0017, AC-0049: the caller-visible failure, through the CLI."""
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+
+        module = _load(ARXIV_SCRIPT)
+        empty = ATOM_FEED[: ATOM_FEED.index(b"<entry>")] + b"</feed>"
+        # Build the sender before patching: a factory that reached back through
+        # the helper would recurse into the name being patched.
+        stub = _sender(module, *[FakeResponse(empty) for _ in range(8)])
+        out, err = io.StringIO(), io.StringIO()
+        with (
+            patch.object(module, "Sender", lambda *a, **k: stub),
+            redirect_stdout(out), redirect_stderr(err),
+        ):
+            code = module.main(["anything"])
+        self.assertEqual(code, 1)
+        self.assertEqual(out.getvalue(), "", "a failed run wrote a partial result")
+        self.assertIn("attempts", err.getvalue())
+
+    def test_cumulative_bytes_span_distinct_requests(self) -> None:
+        """AC-0052: scoped to one invocation, not to one retried request."""
+        module = _load(ARXIV_SCRIPT)
+        chunk = b"y" * (module.RESPONSE_BYTE_CAP // 2)
+        sender = _sender(module, *[FakeResponse(chunk) for _ in range(12)])
+        with self.assertRaises(module.LimitExceeded) as caught:
+            for _ in range(12):
+                sender.get(module.API_URL, {"search_query": "all:x"})
+        self.assertIn("invocation", str(caught.exception))
+
+    def test_the_render_cap_spans_citation_fields_not_just_content(self) -> None:
+        """AC-0048: a bulky citation floods the caller while `content` stays short.
+
+        Enrich renders a title and its links only, so the rendered text is short
+        whatever the record carries. Bounding `content` alone would pass this.
+        """
+        module = _load(ARXIV_SCRIPT)
+        bulky = ATOM_FEED.replace(b"An abstract about a paper.", b"z" * 60000)
+        result_content_len = None
+        with self.assertRaises(module.LimitExceeded) as caught:
+            module.retrieve(
+                "1706.03762", mode="enrich",
+                sender=_sender(module, FakeResponse(bulky)),
+                check=lambda url: "9999.99999" not in url,
+            )
+        self.assertIn("characters", str(caught.exception))
+        self.assertIsNone(result_content_len)
+        # The rendered content for this mode is far below the cap, so only a
+        # bound measured over the whole result can have raised.
+        cite = module.map_entry(module.parse_feed(bulky).find(f"{{{module.ATOM[1:-1]}}}entry"))
+        self.assertGreater(len(str(cite["abstract"])), module.RENDER_CHAR_CAP)
+
+    def test_a_declaration_past_any_prefix_window_is_refused(self) -> None:
+        """AC-0043: padding walked past an earlier fixed 4 KiB scan."""
+        module = _load(ARXIV_SCRIPT)
+        padded = ("<!-- " + "p" * 9000 + " -->"
+                  '<!DOCTYPE feed [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
+                  '<feed xmlns="http://www.w3.org/2005/Atom"><entry/></feed>')
+        with self.assertRaises(module.UnsafeDocument):
+            module.parse_feed(padded)
+
+    def test_a_redirect_is_followed_under_the_same_budget(self) -> None:
+        """The inherited handler drained each redirect body unbounded."""
+        module = _load(ARXIV_SCRIPT)
+        hop = urllib.error.HTTPError(
+            module.API_URL, 302, "Found",
+            {"Location": "https://arxiv.org/abs/1706.03762"}, None,
+        )
+        sender = _sender(module, hop, FakeResponse(ATOM_FEED))
+        body = sender.get(module.API_URL, {"search_query": "all:x"})
+        self.assertEqual(body, ATOM_FEED)
+        self.assertEqual(len(sender._opener.urls), 2)
+        self.assertIn("arxiv.org/abs/1706.03762", sender._opener.urls[1])
+
+    def test_a_redirect_off_the_host_set_is_refused_mid_attempt(self) -> None:
+        module = _load(ARXIV_SCRIPT)
+        hop = urllib.error.HTTPError(
+            module.API_URL, 302, "Found",
+            {"Location": "https://evil-arxiv.org/abs/1"}, None,
+        )
+        with self.assertRaises(module.HostNotAllowed) as caught:
+            _sender(module, hop).get(module.API_URL, {"search_query": "all:x"})
+        # Name the redirect in the message. The loop's own check_url would also
+        # refuse this host on the next hop, so asserting the type alone cannot
+        # tell the redirect guard from the general one.
+        self.assertIn("redirect", str(caught.exception).lower())
+
+    def test_a_socket_timeout_becomes_the_contracted_limit_error(self) -> None:
+        """AC-0046, AC-0049: a bare timeout would surface as a traceback."""
+        module = _load(ARXIV_SCRIPT)
+        wrapped = urllib.error.URLError(TimeoutError("timed out"))
+        with self.assertRaises(module.LimitExceeded) as caught:
+            _sender(module, wrapped).get(module.API_URL, {"search_query": "all:x"})
+        self.assertIn("deadline", str(caught.exception))
+        bare = TimeoutError("timed out")
+        with self.assertRaises(module.LimitExceeded):
+            _sender(module, bare).get(module.API_URL, {"search_query": "all:x"})
+
+    def test_resolution_draws_on_the_attempt_budget(self) -> None:
+        """AC-0046: resolution used to sit outside the deadline entirely."""
+        module = _load(ARXIV_SCRIPT)
+        clock = module.Clock(now=0.0)
+        budget = module.Budget(clock, module.ATTEMPT_DEADLINE_S)
+
+        def slow(host, port, proto=0):
+            clock.advance(module.ATTEMPT_DEADLINE_S + 1)
+            return [(0, 0, 0, "", ("151.101.3.5", 443))]
+
+        # After: resolution itself consumed the budget.
+        with self.assertRaises(module.LimitExceeded):
+            module.check_addresses("arxiv.org", resolver=slow, budget=budget)
+
+        # Before: the budget was already spent when resolution was reached, and
+        # a resolver that never returns must not be entered at all.
+        spent_clock = module.Clock(now=0.0)
+        spent = module.Budget(spent_clock, module.ATTEMPT_DEADLINE_S)
+        spent_clock.advance(module.ATTEMPT_DEADLINE_S + 1)
+        entered = []
+
+        def never(host, port, proto=0):
+            entered.append(host)
+            return [(0, 0, 0, "", ("151.101.3.5", 443))]
+
+        with self.assertRaises(module.LimitExceeded):
+            module.check_addresses("arxiv.org", resolver=never, budget=spent)
+        self.assertEqual(entered, [], "resolution ran on an exhausted budget")
+
+    def test_a_missing_named_section_does_not_return_the_whole_paper(self) -> None:
+        """AC-0020: silently widening to every section is the context flood."""
+        module = _load(ARXIV_SCRIPT)
+        document = LATEXML_ATTENTION.read_text(encoding="utf-8")
+        kept, dropped, truncated = module.select_sections(document, ("nonexistent",))
+        self.assertEqual(kept, [])
+        self.assertGreater(dropped, 0)
+
+    def test_the_caller_cannot_raise_the_full_text_ceiling(self) -> None:
+        """AC-0021: the ceiling is the contract's, not the caller's."""
+        module = _load(ARXIV_SCRIPT)
+        document = LATEXML_ATTENTION.read_text(encoding="utf-8")
+        # These two sections together run past the ceiling in this document, so
+        # an unclamped cap would return more than the contract permits. A single
+        # short section would satisfy the assertion either way.
+        wanted = ("model architecture", "results")
+        uncapped = module.select_sections(document, wanted, cap=10**6)[0]
+        self.assertGreater(
+            sum(len(b) for _, b in module.select_sections(document, wanted,
+                                                          cap=10**9)[0]),
+            0,
+        )
+        self.assertLessEqual(
+            sum(len(b) for _, b in uncapped), module.FULL_TEXT_CHAR_CAP
+        )
+        # And the same sections without a cap override exceed it, which is what
+        # makes the clamp observable.
+        raw_total = sum(
+            len(b) for tt, b in module.extract_sections(document)
+            if any(w in tt.lower() for w in wanted)
+        )
+        self.assertGreater(raw_total, module.FULL_TEXT_CHAR_CAP)
+
+    def test_section_count_matches_the_oracle_on_real_renders(self) -> None:
+        """AC-0022, against two captured documents rather than a synthetic one."""
+        module = _load(ARXIV_SCRIPT)
+        for fixture in (LATEXML_ATTENTION, LATEXML_TINYLLAMA):
+            document = fixture.read_text(encoding="utf-8")
+            oracle = document.count('class="ltx_title ltx_title_section"')
+            self.assertEqual(
+                len(module.extract_sections(document)), oracle, fixture.name
+            )
+
+    def test_real_render_titles_are_names_not_numbers(self) -> None:
+        module = _load(ARXIV_SCRIPT)
+        document = LATEXML_ATTENTION.read_text(encoding="utf-8")
+        titles = [tt for tt, _ in module.extract_sections(document)]
+        self.assertIn("Introduction", titles)
+        for title in titles:
+            self.assertFalse(title.strip().isdigit(), titles)
+
+    def test_a_repeated_term_still_widens_strictly(self) -> None:
+        """AC-0002: duplicate terms made two tiers match the same set."""
+        module = _load(ARXIV_SCRIPT)
+        tiers = module.build_tiers("cat cat")
+        self.assertEqual(len(tiers), len(set(tiers)))
+        self.assertEqual(len(tiers), 1, tiers)
+
+    def test_a_feed_entry_for_another_paper_is_refused(self) -> None:
+        """AC-0006: answering for one paper with another is worse than failing."""
+        module = _load(ARXIV_SCRIPT)
+        other = ATOM_FEED.replace(b"1706.03762", b"2401.02385")
+        with self.assertRaises(module.UnsafeDocument):
+            module.retrieve("1706.03762", mode="get",
+                            sender=_sender(module, FakeResponse(other)))
 
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
