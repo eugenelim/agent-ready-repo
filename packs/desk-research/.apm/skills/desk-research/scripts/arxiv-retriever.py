@@ -113,6 +113,16 @@ class MalformedIdentifier(ValueError):
 # --------------------------------------------------------------------------
 
 
+def _literal(text: str) -> str:
+    """A caller's text as an arXiv phrase literal.
+
+    The quote character is removed rather than escaped: arXiv documents no
+    escape for a quote inside a quoted phrase, so leaving one in would close
+    the phrase early and hand the remainder to the parser as boolean syntax.
+    """
+    return text.replace('"', " ").strip()
+
+
 def _terms(text: str) -> list[str]:
     """Split free text into content terms, dropping arXiv field metacharacters."""
     cleaned = re.sub(r'["()\[\]:]', " ", text)
@@ -125,7 +135,7 @@ def build_tiers(text: str) -> list[str]:
     Tier 1 quotes the caller's wording untouched. Later tiers widen; the last
     always returns something rather than leaving a query with no answer.
     """
-    exact = text.strip()
+    exact = _literal(text)
     tiers = [f'all:"{exact}"']
     terms = _terms(exact)
     if len(terms) > 1:
@@ -179,7 +189,10 @@ def build_request(
         ("cat", category),
     ):
         if value:
-            clauses.append(f'{prefix}:"{value}"' if prefix != "cat" else f"cat:{value}")
+            literal = _literal(value)
+            clauses.append(
+                f"cat:{literal}" if prefix == "cat" else f'{prefix}:"{literal}"'
+            )
     if query:
         clauses.append(build_tiers(query)[0])
     if submitted_from or submitted_to:
@@ -800,7 +813,11 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
         options.get(k) for k in ("search_query", "title", "author", "abstract", "category")
     )
     if fielded:
-        params = build_request(**{k: v for k, v in options.items() if k != "full_text"})
+        accepted = (
+            "search_query", "title", "author", "abstract", "category",
+            "submitted_from", "submitted_to", "sort", "max_results",
+        )
+        params = build_request(**{k: v for k, v in options.items() if k in accepted})
         root = parse_feed(sender.get(API_URL, params))
         citations = [map_entry(e) for e in root.findall(f"{ATOM}entry")]
         kind = "caller-composed" if options.get("search_query") else "fielded"

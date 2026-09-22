@@ -562,6 +562,53 @@ class ArxivRetrieverConformance(unittest.TestCase):
         for word in ("[high]", "[moderate]", "confidence", "in summary", "this suggests"):
             self.assertNotIn(word, lowered)
 
+    def test_a_quote_in_caller_text_cannot_open_a_second_clause(self) -> None:
+        """AC-0001: a caller's quote would close the phrase and hand arXiv syntax."""
+        module = _load(ARXIV_SCRIPT)
+        hostile = 'foo" OR all:"bar'
+        # Outside the quoted literals, only syntax the ladder itself authored may
+        # appear. A caller's quote would otherwise close a phrase and leave the
+        # remainder to arXiv's parser as live boolean syntax.
+        for candidate in module.build_tiers(hostile):
+            self.assertEqual(candidate.count('"') % 2, 0, candidate)
+            outside = re.sub(r'"[^"]*"', "", candidate)
+            self.assertRegex(outside, r"^(all:| AND | OR )*$", candidate)
+        # Tier 1 stays a single phrase clause however the caller quotes. The
+        # count is taken outside the quotes: an `all:` the caller typed survives
+        # inside the literal, where it is text and not syntax.
+        tier_one = module.build_tiers(hostile)[0]
+        self.assertEqual(re.sub(r'"[^"]*"', "", tier_one).count("all:"), 1, tier_one)
+        params = module.build_request(title=hostile)
+        outside = re.sub(r'"[^"]*"', "", params["search_query"])
+        self.assertEqual(outside.count("ti:"), 1, params["search_query"])
+        self.assertRegex(outside, r"^(ti:| AND )*$", params["search_query"])
+
+    def test_every_documented_flag_set_reaches_a_request(self) -> None:
+        """Each documented search-control combination must build, not raise.
+
+        main() forwards its whole option set; a branch that hands an unsupported
+        key to build_request raises TypeError before any request is sent, which
+        is how every fielded invocation broke while free-text search passed.
+        """
+        module = _load(ARXIV_SCRIPT)
+        cli_shaped = {
+            "sort": "relevance",
+            "max_results": 10,
+            "full_text_cap": module.FULL_TEXT_CHAR_CAP,
+        }
+        for extra in (
+            {"title": "attention"},
+            {"search_query": 'ti:"x" ANDNOT cat:cs.CV'},
+            {"author": "someone"},
+            {"abstract": "transformer"},
+            {"category": "cs.CL"},
+            {"category": "cs.LG", "submitted_from": "202401010000"},
+        ):
+            sender = _sender(module)
+            result = module.retrieve("", sender=sender, **{**cli_shaped, **extra})
+            self.assertEqual(set(result.keys()), REQUIRED_KEYS, extra)
+            self.assertEqual(len(sender._opener.urls), 1, extra)
+
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
         source = ARXIV_SCRIPT.read_text(encoding="utf-8")
