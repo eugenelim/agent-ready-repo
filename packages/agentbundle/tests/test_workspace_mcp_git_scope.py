@@ -376,11 +376,17 @@ def _sibling_results(
         _configure(repo, _LAYOUT_TYPE_BASES[item_type][0], raw_base)
     if repo_layout:
         _write_layout(repo / "agentbundle-layout.toml", repo_layout)
+    # Every call gets its own home, whether or not it configures one. `HOME` is
+    # bound per test rather than per call — by the autouse fixture, and by any
+    # earlier call here — so a baseline that set nothing would otherwise inherit
+    # the layout of the call before it and compare a refused session against
+    # another refused session.
+    home = repo.parent / "home"
+    home.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
     if user_layout:
-        home = repo.parent / "home"
         _write_layout(home / ".agentbundle" / "agentbundle-layout.toml", user_layout)
-        monkeypatch.setenv("HOME", str(home))
-        monkeypatch.setenv("USERPROFILE", str(home))
 
     _dispatch(monkeypatch, item_type)
     tools = _GitTools(repo)

@@ -653,3 +653,39 @@ Final tree: `lint-ruff` and `lint-mypy` clean over 148 source files;
 `packages/agentbundle/tests/` 5087 passed, 50 skipped, 1 xfailed, 77 subtests,
 11m41s; `tools/` 1529 passed, 2 skipped, 87 subtests, 19m46s. `tests/roster/`
 runs on CI only and carries AC-0007's version pin.
+
+## A parity control that compared refused against refused
+
+The quality cold read found a defect in a test written minutes earlier to close
+the gap the adversarial cold read had found. `_sibling_results` set `HOME` only
+inside `if user_layout:`, and `HOME` is bound per test rather than per call — by
+the autouse conftest fixture and by any earlier call — so the second call, the
+one standing in for an unconfigured session, inherited the first call's refused
+user-scope layout. T5 asks that the sibling tools match an *unconfigured*
+session; the equality compared refused against refused.
+
+The literal branch and push payload assertions below it still bit, so no
+AC-0008 coverage hole opened, but the parity claim was unproven. Every call now
+runs under its own isolated home, and the layout file is written only when one
+is configured.
+
+Mutation: reinstating the trap AC-0008 forbids — a refused base clearing
+`dispatched` and engaging discovery mode — reds all 22 sibling-tool rows,
+including both selection-fallback rows, which under the old helper would have
+stayed green.
+
+The second finding of that read was refuted, and worth recording for the
+reason: it proposed that `_resolve_output_pattern` project the stored
+`self._output_spec` instead of delegating. The adjudicator found no reachable
+divergence, and found the remedy would break
+`test_workspace_mcp_layout_override.py`, which never sets
+`WORKSPACE_MCP_DISPATCHED_ITEM` and so has `self._output_spec is None`. Acting
+on a plausible-sounding finding before adjudication would have broken a passing
+suite.
+
+### The tally the cold reads produced
+
+Three unled passes returned seven findings. Four were defects in this session's
+own repairs, two of them in tests written specifically to close gaps a previous
+cold read had named. Eleven led rounds, by contrast, found members of whatever
+class the brief pointed at and never once a defect in a fix.
