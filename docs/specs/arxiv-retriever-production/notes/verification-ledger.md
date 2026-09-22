@@ -61,7 +61,7 @@ courteous.
 ## Mutation evidence
 
 Every control added for a sustained review finding was checked by reverting the
-fix and confirming the suite fails. All thirty-one failed when reverted, so
+fix and confirming the suite fails. All thirty-two failed when reverted, so
 none is a control that cannot fail. Seven tests that passed under their own
 mutation were strengthened until they failed, and are counted below in their
 strengthened form.
@@ -99,6 +99,7 @@ strengthened form.
 | tier 1 keeping the backslash the structured path removes | suite fails |
 | the ladder advances only on a refused query, never on an outage | suite fails |
 | a ladder cut short by refusals is not reported as terminal | suite fails |
+| shipped content free of internal-record citations | suite fails |
 
 ## Suites and gates
 
@@ -106,7 +107,7 @@ strengthened form.
 | --- | --- |
 | `make lint-ruff` | clean |
 | `make lint-mypy` | clean, 148 source files |
-| `tests/skills/desk-research/` (floor 9) | 85 passed |
+| `tests/skills/desk-research/` (floor 9) | 86 passed |
 | `tests/skills/desk-research-project-start/` (floor 7) | 8 passed |
 | `tests/pack/` + five project suites + devils-advocate, `--import-mode=importlib` | 17 passed |
 | `agentbundle catalogue lint --deep` | no errors |

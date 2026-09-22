@@ -1050,6 +1050,27 @@ class ArxivRetrieverConformance(unittest.TestCase):
         self.assertIsNotNone(sender._last_completed)
         self.assertGreater(sender.delay_before_next(), 0.0)
 
+    def test_shipped_content_cites_no_internal_record(self) -> None:
+        """Shipped pack content states its rules; it never cites ours.
+
+        This was a grep in the task list, which is exactly why it regressed:
+        two acceptance-criterion identifiers reached the script's comments
+        after the grep had last been run by hand.
+        """
+        banned = ("AC-0", "VI-0", "docs/specs", "docs/rfc", "docs/adr",
+                  "AGENTS.local.md", "acceptance criteri")
+        surfaces = [
+            ARXIV_SCRIPT,
+            PERPLEXITY_SCRIPT,
+            RESEARCH_SKILL / "references" / "retriever-interface.md",
+            SKILL_MD,
+            PACK / "DESIGN.md",
+        ]
+        for surface in surfaces:
+            body = surface.read_text(encoding="utf-8")
+            for token in banned:
+                self.assertNotIn(token, body, f"{surface.name} cites {token!r}")
+
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
         source = ARXIV_SCRIPT.read_text(encoding="utf-8")

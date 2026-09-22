@@ -135,8 +135,8 @@ def _literal(text: str) -> str:
     The quote character is removed rather than escaped: arXiv documents no
     escape for a quote inside a quoted phrase, so leaving one in would close
     the phrase early and hand the remainder to the parser as boolean syntax.
-    Nothing else is removed here: AC-0003 promises the caller's wording in
-    tier 1, and a query arXiv rejects advances to the next tier anyway.
+    Nothing else is removed here: the first tier promises the caller's exact
+    wording, and a query arXiv rejects advances to the next tier anyway.
     """
     return text.replace('"', " ").strip()
 
@@ -1095,9 +1095,9 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
     index, root, total = chosen  # type: ignore[misc]
     in_bound = 1 <= total <= TIER_MATCH_CEILING
     if not in_bound and index != len(tiers):
-        # AC-0005's terminal result is the FINAL tier's. If later tiers were
-        # refused, the widest one never ran, and calling an earlier result
-        # terminal would claim the ladder was exhausted when it was cut short.
+        # A terminal result is the FINAL tier's. If later tiers were refused,
+        # the widest one never ran, and calling an earlier result terminal
+        # would claim the ladder was exhausted when it was cut short.
         raise ArxivUnavailable(
             f"the ladder could not complete: tier {index} of {len(tiers)} was the "
             f"widest that ran and returned {total} matches — " + "; ".join(refused)
