@@ -580,6 +580,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest typed-ordinal owner parity and equivalence (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest intent shape contract cross-tree claims (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest capture-rename guide contract (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
