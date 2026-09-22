@@ -180,7 +180,11 @@ These constraints must never be violated by any skill in the desk-research pack 
    verdict, or governance authority. Missing project knowledge creates a named
    skip and no fallback file.
 
----
+8. **A retriever returns raw material; the calling skill owns synthesis.**
+   `"shape": "raw"` is a division of labour, not a formatting note: a retriever
+   extracts and cites, and the skill that invoked it reasons, summarises and
+   grades. A retriever emitting its own summary or confidence rating produces
+   ungraded synthesis that no confidence schema has been applied to.
 
 ## 9. Design decisions and rationale log
 

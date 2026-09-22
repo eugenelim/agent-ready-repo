@@ -244,6 +244,14 @@ active  = [
   {path = "docs/specs/checkable-adr-metadata/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0102-mechanically-checkable-adrs.md"}, summary = "Make an ADR's metadata mechanically checkable and split acceptance's freeze so it binds prose rather than metadata", needs = []},
 ]
 shipped = [
+  # Rewrites the desk-research pack's arXiv retriever as a production retriever
+  # with three optional modes: search, get, and enrich. The originating evidence
+  # is the 429 recorded in the agents-md-size survey, which cost that survey its
+  # structured arXiv path. `source.revision` is omitted for the reason the
+  # entry above records: the recorded values here do not reproduce from their
+  # cited artifacts' current bytes, so a computed one would assert a provenance
+  # check that is not actually performed.
+  {path = "docs/specs/arxiv-retriever-production/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/research/agents-md-size-survey.md"}, summary = "Rewrite the arXiv retriever as a production retriever with search, get and enrich modes, a tiered query ladder that reports how loose the match was, canonical metadata, and rate-limit survival", needs = []},
   # Shipped 2026-09-22. Restores the scoping promise AC14 of the Shipped
   # `workspace-mcp` spec already made, on which its AC17 rests the six-tool
   # `permissions.allow` pre-approval. Membership tracks Status: `queue` while

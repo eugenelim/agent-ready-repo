@@ -186,6 +186,54 @@ those requirements, so a brief could ship without the field and still pass.
   that only Outcome and Opportunity were load-bearing and the rest were offered
   but never required. Four fields are now required.
 
+## [desk-research][1.1.9] — 2026-09-22
+
+### Highlights
+
+- **arXiv searches now find the paper you asked for.** Free text used to be
+  pasted straight into arXiv's query language, where a phrase quietly became a
+  loose word match: asking about instruction adherence in agent config files
+  returned 124,103 papers with an unrelated one first. The retriever now
+  composes the query properly and widens it only as far as it must, returning
+  97 matches with the right paper at the top — and it tells you which attempt
+  produced them, so you can see when a match was loose.
+- **You can ask arXiv precise questions.** Search by title, author, abstract
+  or category, combine them, sort by newest or by relevance, and restrict to a
+  submission-date window. If you already know arXiv's own query syntax, pass it
+  through untouched.
+- **Fetch one paper exactly, instead of searching for it.** Give the retriever
+  an arXiv identifier or a link and it returns that record — including papers
+  from before 2015 and the older slashed identifiers — with its abstract,
+  authors, categories, DOI and journal reference where arXiv publishes them.
+  Ask for the full text and you get named sections within a stated budget
+  rather than a whole paper.
+- **A paper's submission date and its revision date are now separate.** The
+  previous version showed only one, so a 2017 paper revised in 2023 could be
+  read as a 2023 paper.
+- **Rate limits no longer end a research session.** Requests are spaced and
+  retried, so the retriever keeps working where it previously became
+  unavailable mid-investigation.
+
+### Added
+
+- `search`, `get` and `enrich` modes. `enrich` returns a paper's external links
+  and emits only those it confirmed for that paper.
+
+### Changed
+
+- `perplexity-retriever.py` is now the minimal template for writing a new
+  retriever; `arxiv-retriever.py` is the production one.
+- Each citation carries the arXiv identifier, version, both dates, categories
+  and primary category, with the abstract URL version-free and stable.
+
+### Fixed
+
+- A quote in a search phrase could change the query's meaning; text is now
+  always treated as text.
+- Requests are bounded end to end — a deadline per attempt, caps on what is
+  read and returned, redirects confined to known hosts — and every limit
+  refuses cleanly rather than returning a partial answer.
+
 ## [core][2.26.28] — 2026-09-21
 
 ### Highlights
