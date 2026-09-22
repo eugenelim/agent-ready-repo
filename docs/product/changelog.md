@@ -171,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reserved character is refused before it reaches the pattern; the wildcard
   structure now comes only from the manifest. The scope's containment test
   and the shared layout reader are unchanged.
+
 ## [frontend-engineering][0.3.1] — 2026-09-21
 
 ### Highlights
