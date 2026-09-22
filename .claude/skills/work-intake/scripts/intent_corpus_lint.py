@@ -44,6 +44,15 @@ TOMBSTONE_FIELD_COUNT = 3
 
 _MAX_BYTES = 1_000_000
 
+# Traversal bounds. The confinement helper refuses mid-walk as soon as the next
+# entry would exceed one, so an unbounded or concurrently growing tree is
+# refused rather than materialised. Set far above any real intent corpus — the
+# largest today is 150 files in one flat directory — so a bound firing means
+# something is wrong rather than large.
+_MAX_FILES = 10_000
+_MAX_DEPTH = 8
+_MAX_ENTRIES = 50_000
+
 
 def _load_sibling(name: str, module_name: str):
     """Load a sibling script by path under a pack-and-skill-qualified name.
@@ -83,6 +92,19 @@ class LintResult:
     violations: list[FileViolation] = field(default_factory=list)
     progress: dict[str, dict[str, str]] = field(default_factory=dict)
     unreadable: list[str] = field(default_factory=list)
+
+    @property
+    def accounted(self) -> set[str]:
+        """Every entry this run reached, routed or refused as unreadable.
+
+        A file that could not be read cannot be routed to a contract, so it is
+        absent from `routed` by construction. Reporting both sets lets a caller
+        check that no directory entry went unmentioned, which the exit code
+        alone cannot express.
+        """
+        return set(self.routed) | {
+            entry.split(":", 1)[0] for entry in self.unreadable
+        }
 
     @property
     def is_clean(self) -> bool:
@@ -140,8 +162,8 @@ def _validate_tombstone(text: str) -> list[tuple[str, str]]:
 def _is_tombstone(text: str) -> bool:
     """The partition rule, read over the preamble alone."""
     return any(
-        name == TOMBSTONE_PARTITION_FIELD and value
-        for name, value in _shape.read_preamble(text)
+        name == TOMBSTONE_PARTITION_FIELD
+        for name, _ in _shape.read_preamble(text)
     )
 
 
@@ -158,7 +180,13 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
 
     try:
         _safety.validate_confined_directory(root, directory)
-        paths = _safety.list_confined_regular_files(root, directory)
+        paths = _safety.list_confined_regular_files(
+            root,
+            directory,
+            max_files=_MAX_FILES,
+            max_depth=_MAX_DEPTH,
+            max_entries=_MAX_ENTRIES,
+        )
     except (_safety.UnsafeContentError, OSError, RuntimeError, ValueError) as error:
         result.unreadable.append(f"{directory}: {type(error).__name__}")
         return result
@@ -167,7 +195,13 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
     # supersession is resolved, so validation cannot run in the same pass.
     texts: dict[str, str] = {}
     for path in sorted(paths):
-        name = path.name
+        # Relative to the directory, not the basename: two files with the same
+        # name in different subdirectories are different files, and a basename
+        # key silently dropped one of them.
+        try:
+            name = path.relative_to(directory).as_posix()
+        except ValueError:
+            name = path.name
         try:
             raw = _safety.read_confined_regular_file(root, path, max_bytes=_MAX_BYTES)
             text = raw.decode("utf-8")
@@ -220,7 +254,14 @@ def main(argv: list[str] | None = None) -> int:
         description="Lint repository intents against the metadata shape contract."
     )
     parser.add_argument("--dir", required=True, help="repository-relative directory")
-    parser.add_argument("--root", default=".", help="repository root")
+    parser.add_argument(
+        "--root",
+        default=".",
+        help=(
+            "repository root; this is the confinement boundary the caller "
+            "declares, so never pass a value taken from untrusted input"
+        ),
+    )
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
@@ -241,9 +282,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"unreadable: {entry}", file=sys.stderr)
 
     counts = (
-        f"{len(result.routed)} file(s), "
+        # "entries", not "files": on a walk failure the one entry accounted for
+        # is the directory itself, and calling that a file would be a lie in
+        # the summary line a reader trusts most.
+        f"{len(result.accounted)} entr{'y' if len(result.accounted) == 1 else 'ies'}, "
         f"{sum(1 for c in result.routed.values() if c == CONTRACT_LIVE)} live, "
-        f"{sum(1 for c in result.routed.values() if c == CONTRACT_TOMBSTONE)} tombstone"
+        f"{sum(1 for c in result.routed.values() if c == CONTRACT_TOMBSTONE)} tombstone, "
+        f"{len(result.unreadable)} unreadable"
     )
     if result.is_clean:
         print(f"intent-corpus-lint: clean — {counts}")

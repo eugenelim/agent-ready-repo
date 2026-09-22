@@ -304,4 +304,8 @@ def _inline(value: str) -> str:
     )
     if re.match(r"(?:`|~){3,}", rendered):
         rendered = "\\" + rendered
-    return rendered
+    # An HTML comment delimiter is the one sequence whitespace collapse cannot
+    # defuse: an unclosed `<!--` comments out everything after it, which hides
+    # the rendered `## Source` provenance block rather than forging a field.
+    # Entity-escaping the angle bracket leaves the text visible and inert.
+    return rendered.replace("<!--", "&lt;!--").replace("-->", "--&gt;")
