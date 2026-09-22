@@ -693,3 +693,58 @@ def test_the_pattern_strings_are_projected_from_the_scope_spec(
     for spec in specs:
         assert Path(str(spec[1])).is_relative_to(base)
         assert "*" not in str(spec[1])
+
+
+@pytest.mark.parametrize(
+    ("item_type", "tail", "entry_kind"),
+    [
+        pytest.param("shape", "/intents/{slug}.md", "file", id="exact-file-entry"),
+        pytest.param(
+            "strategy", "/shaping/{slug}/plan.md", "wildcard_dir", id="wildcard-root-entry"
+        ),
+    ],
+)
+def test_braces_the_base_resolves_through_are_not_substitution_syntax(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    item_type: str,
+    tail: str,
+    entry_kind: str,
+) -> None:
+    """The sibling of the `*` case, through `str.format` instead of `find("/*")`.
+
+    A clean `output_dir` of `out`, symlinked to a directory literally named
+    `{slug}`, had its own resolved base rewritten by the `{slug}` substitution —
+    so the scope named `<repo>/alpha/actual` while the adopter's directory was
+    `<repo>/{slug}/actual`. That staged a file outside the configured directory
+    and left the file inside it unstaged, breaking AC-0004 and AC-0001 at once.
+    AC-0002 cannot reach it: `out` carries no reserved character.
+
+    Both entry kinds run, because one line feeds the exact-file entry and the
+    wildcard static root alike.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    target = repo / "{slug}" / "actual"
+    target.mkdir(parents=True)
+    try:
+        (repo / "out").symlink_to(target)
+    except OSError:  # pragma: no cover - platform without symlink support
+        pytest.skip("symlinks unavailable")
+    _configure(repo, _LAYOUT_TYPE_BASES[item_type][0], "out")
+
+    mine = Path(str(target) + tail.format(slug=_SLUG))
+    _write(mine)
+    # The location the substitution would have rewritten the base to.
+    _write(Path(str(repo / _SLUG / "actual") + tail.format(slug=_SLUG)))
+
+    _dispatch(monkeypatch, item_type)
+    tools = _GitTools(repo)
+    staged = _staged(tools.git_commit({"message": "scope"}))
+
+    assert staged == [mine.relative_to(repo.resolve()).as_posix()]
+    specs = tools._resolve_output_spec(f"{_INI}/{item_type}:{_SLUG}")
+    assert specs is not None
+    assert any(spec[0] == entry_kind for spec in specs)
+    for spec in specs:
+        assert Path(str(spec[1])).is_relative_to(target)

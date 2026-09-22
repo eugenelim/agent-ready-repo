@@ -1833,9 +1833,15 @@ class _GitTools:
                     static_rel, remainder = pattern, None
                 else:
                     static_rel, remainder = pattern[:index], pattern[index + 1:]
+                # Substitute `{slug}` into the manifest text BEFORE the base is
+                # spliced in. Running it afterwards lets the base's own
+                # characters be read as substitution syntax: a base resolving
+                # through a directory named `{slug}` was rewritten to a
+                # different directory entirely, and an unmatched brace raised
+                # into the handler below and cleared the dispatched item.
                 static_rel = _apply_layout_overrides(
-                    item_type, [static_rel], resolved_bases
-                )[0].format(slug=slug)
+                    item_type, [static_rel.format(slug=slug)], resolved_bases
+                )[0]
                 static_abs = (self._repo_root / static_rel).resolve()
                 if remainder is None:
                     specs.append(("file", static_abs, static_rel))

@@ -460,3 +460,51 @@ wrong implementation; that is a claim about each assertion, and it needs a
 mutation per assertion to hold, not a passing run.
 
 Both suites after the repairs: 124 passed, 76s.
+
+## The same class through a third mechanism, and its structural statement
+
+Round 9's security pass sustained a Blocker at contract tier: a clean
+`output_dir` of `out`, symlinked to a directory literally named `{slug}`, had
+its own resolved base rewritten by the `{slug}` substitution.
+
+```
+selected : ('out', '<repo>/{slug}/actual')   # AC-0002 correctly does not refuse
+pattern  : ['<repo>/alpha/actual/intents/alpha.md', ...]
+committed: ['alpha/actual/intents/alpha.md']
+```
+
+AC-0004 and AC-0001 broken together: a file outside the directory `out` names
+was staged, and the file inside it was not. The adjudicator settled a question
+the reviewer did not raise — an unmatched brace does reach the `except
+Exception` and clear the dispatched item, but AC-0008's precondition is a base
+AC-0002 *refuses*, and this value is clean, so that path is real behaviour and
+not a criterion breach.
+
+Repair: `.format(slug=slug)` now runs on the manifest prefix before
+`_apply_layout_overrides` splices the base in. Behaviour-preserving for
+AC-0005's `{slug}`-bearing prefixes, because every `_LAYOUT_TYPE_BASES`
+convention base is brace-free.
+
+Mutation: restoring `.format` to after the splice reds both rows of
+`test_braces_the_base_resolves_through_are_not_substitution_syntax` — one per
+entry kind, since a single line feeds the exact-file entry and the wildcard
+static root — and nothing else.
+
+### The class, stated so it can be checked rather than enumerated
+
+The staging scope joins trusted manifest text to an untrusted resolved base.
+Every step that *interprets* the joined string can read the base's characters as
+syntax. Two such steps existed, and both now run on manifest text before the
+join:
+
+| Step | Interprets | Runs on |
+| --- | --- | --- |
+| wildcard split | `/*` | the manifest pattern alone |
+| slug substitution | `{…}` | the manifest prefix alone |
+
+Rounds 1 through 6 all asked *which value the screen reads*, which is a
+different question and could never have reached either of these. A third
+interpreting step, if one exists, has this signature: something that scans or
+substitutes over a string the base has already been spliced into.
+
+Full `workspace_mcp` selection after the repair: 169 passed, 42 skipped, 167s.
