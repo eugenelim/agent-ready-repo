@@ -23,15 +23,23 @@ FIELDS = ("Parent intent", "Brief", "Contract", "Discovery")
 # Directories holding artifact *instances* that carry these fields. They are the
 # data the fields point between, not surfaces that define or consume the form.
 CORPUS_PREFIXES = ("docs/product/intents/", "docs/product/briefs/", "docs/specs/")
+# Prose that *discusses* a field is not a surface that stamps or governs it. A
+# decision record argues about the form, and a generated index inherits whatever
+# its records are titled — this RFC's own title put `docs/rfc/README.md` into
+# two `states` groups, which is noise AC-0009 would then quantify over.
+DISCUSSES_ONLY_PREFIXES = ("docs/rfc/", "docs/adr/")
 SKIP_DIRS = {".git", "node_modules", "build", "dist", ".venv", "__pycache__", ".pytest_cache"}
 
-# Both real preamble parsers in this repository — `workspace_status_engine`'s
-# `field_re` and `intent_shape._FIELD_LINE` — compile the same anchored shape:
-# a line-start `- **`, a capture, `:**`, then a value capture. Matching bold
-# markdown generally instead flagged 35 files, most of them shape linters and
-# tests that regex `**...**` for unrelated reasons.
-_PREAMBLE_BULLET = "^- \\*\\*"
+# A *generic* preamble parser opens with a line-anchored `- **`, captures the
+# field name, and closes with `:**` — all inside one pattern. Testing for the
+# opener and the closer independently was not enough: `lint-spec-status` has
+# `^- \*\*Acceptance Criteria:\*\*` and a separate `\*\*Status:\*\*`,
+# `lint-adr-shape` has `^- \*\*D(\d+):\*\*`, and neither parses arbitrary
+# fields. The name must be a bare capture: a literal before it means the
+# pattern is looking for one known field, not any of them.
+_PREAMBLE_OPEN = "^- \\*\\*"
 _PREAMBLE_CLOSE = ":\\*\\*"
+_NAME_CAPTURE_WINDOW = 40
 
 
 def iter_files(root: Path):
@@ -51,9 +59,29 @@ def is_corpus(relpath: str) -> bool:
     return any(relpath.startswith(pre) for pre in CORPUS_PREFIXES)
 
 
+def code_only(text: str) -> str:
+    """Strip comments and docstrings, so a field named in prose is not a read.
+
+    `intake_router.py` mentions a field in a docstring and consumes nothing;
+    matching raw source counted it as a consumer.
+    """
+    without_docstrings = re.sub(r'(?s)("""|\'\'\').*?\1', "", text)
+    return re.sub(r"#[^\n]*", "", without_docstrings)
+
+
 def reads_generically(text: str) -> bool:
     """True when the file parses preamble fields by pattern rather than by name."""
-    return _PREAMBLE_BULLET in text and _PREAMBLE_CLOSE in text
+    start = 0
+    while True:
+        i = text.find(_PREAMBLE_OPEN, start)
+        if i < 0:
+            return False
+        start = i + len(_PREAMBLE_OPEN)
+        rest = text[start:start + _NAME_CAPTURE_WINDOW]
+        # The captured name must follow the opener immediately; a literal
+        # character there names one field instead of matching any.
+        if rest.startswith("(") and _PREAMBLE_CLOSE in rest:
+            return True
 
 
 def _loads_module(text: str, stem: str) -> bool:
@@ -91,13 +119,31 @@ def derive(root: Path) -> dict[str, dict[str, list[str]]]:
 
         if path.suffix == ".py":
             generic = reads_generically(text)
-            lowered = text.lower()
+            code = code_only(text)
+            lowered = code.lower()
             for field in FIELDS:
                 # Acting on a field means naming it somewhere: as the header
                 # form `Contract:`, or as the lower-cased key a generic parser
                 # returns. The bare word alone is not enough — "Contract"
                 # matches unrelated prose and inflated this list threefold.
-                acts = f"{field}:" in text or f'"{field.lower()}"' in lowered
+                # Three ways a file acts on a field, and case is what separates
+                # them from coincidence. Naming it in exact case inside a string
+                # is deliberate — `field_re("Parent intent")` in the resolver.
+                # Indexing a generic parser's output is deliberate —
+                # `fields.get("brief")`. A bare lower-case `"brief"` is not:
+                # `intake_router` uses it as an artifact *kind* and a route-table
+                # key and never touches the pointer.
+                named = re.search(rf"""["']{re.escape(field)}:?["']""", code)
+                # A lower-cased key lookup only means "acts on this field" in a
+                # file that parses preambles: that is where `fields["brief"]`
+                # comes from. Elsewhere it is an unrelated dict —
+                # `journey_validator` reads `data["contract"]` from a journey
+                # manifest and never sees a pointer.
+                looks_up = generic and re.search(
+                    rf"""(?:get\(\s*|\[\s*)["']{re.escape(field.lower())}["']""",
+                    lowered,
+                )
+                acts = f"{field}:" in code or bool(named) or bool(looks_up)
                 if acts:
                     inventory[field]["reads"].append(relpath)
                 elif generic:
@@ -109,6 +155,8 @@ def derive(root: Path) -> dict[str, dict[str, list[str]]]:
             continue
 
         if path.suffix != ".md" or is_corpus(relpath):
+            continue
+        if relpath.startswith(DISCUSSES_ONLY_PREFIXES):
             continue
 
         for field in FIELDS:
@@ -137,13 +185,16 @@ def derive(root: Path) -> dict[str, dict[str, list[str]]]:
         Path(r).stem for r, txt in py_text.items() if reads_generically(txt)
     }
     for field in FIELDS:
-        readers = set(inventory[field]["reads"])
-        relevant = {s for s in generic_stems if any(Path(r).stem == s for r in readers)}
+        already = set(inventory[field]["reads"]) | set(inventory[field]["parses"])
         for relpath, text in py_text.items():
-            if relpath in readers:
+            if relpath in already:
                 continue
-            if any(_loads_module(text, stem) for stem in relevant):
-                inventory[field]["reads"].append(relpath)
+            if any(_loads_module(text, stem) for stem in generic_stems):
+                # It reaches the field through a generic parser and names no
+                # field of its own, so it sees the value without acting on it.
+                # `intent_corpus_lint` iterates `read_preamble`'s pairs and
+                # names none of the four.
+                inventory[field]["parses"].append(relpath)
 
     # Generated copies: byte-identical duplicates. The pack source is the one
     # under packs/*/.apm/; the rest are projections of it.
@@ -201,8 +252,9 @@ KNOWN_MEMBERS = (
     ("Discovery", "parses", "workspace_status_engine.py", "generic preamble parser"),
     ("Brief", "generated-copy", "workspace_status_engine.py", "generated projection"),
     ("Parent intent", "writes", "intent-template.md", "template emitting the form"),
-    ("Parent intent", "reads", "intent_corpus_lint.py", "reader via dynamic import"),
+    ("Parent intent", "parses", "intent_corpus_lint.py", "reached via a dynamic import"),
     ("Brief", "reads", "workspace_status_engine.py", "acts on the value it parses"),
+    ("Parent intent", "reads", "work-loop/scripts/lint-traceability.py", "the resolver itself"),
 )
 
 

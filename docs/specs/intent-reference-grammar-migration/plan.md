@@ -25,17 +25,22 @@
 
 The change is a resolver change followed by two mechanical sweeps, gated on one
 governance round. `resolve_endpoint` gains a refusal state and a fourth
-recognizer adds `intent:` nodes; then 19 `Parent intent:` values and 34 `Brief:`
+recognizer adds `intent:` nodes; then 25 `Parent intent:` values and 34 `Brief:`
 values are rewritten to `<kind>:<slug>` by a script that re-derives its own
-cohort. The rewrite count is not 19: T3's recognition exposes 14 further
-`Parent intent:` values, taking the builder-visible set to 37 — 25 resolvable
-and therefore rewritten, and 12 link-shaped values that stay report-only. Any
-figure stated before T3 runs undercounts. The riskiest part is not the sweep
-but the node-set growth: adding 117
-`intent:` nodes makes those files orphan- and reachability-checkable for the
-first time, and `--strict` treats a structural orphan as exit 1. So the
-measurement task sits between the resolver work and the sweeps, and its result
-can add repair work to them rather than being read afterwards as a receipt.
+cohort. **25 `Parent intent:` values are rewritten.** 19 is the pre-recognition
+count of bare values and is not the rewrite cohort: T3's recognition exposes 14
+further values, taking the builder-visible set to 37 — 25 of which resolve and
+are rewritten, and 12 of which are link-shaped and stay report-only. An earlier revision
+called the node-set growth the riskiest part: adding 117
+`intent:` nodes were said to make those files orphan- and
+reachability-checkable for the first time. Measurement refuted that:
+`classify_standalone` classifies only kinds in `CHAIN`, which contains neither
+`intent` nor `brief`, so the projected orphan count over the full post-sweep
+state is 487 against a baseline of 488, with no new orphan. The riskiest part
+is therefore the breadth of the writer surfaces, which T0 derives, not the node
+set. The measurement task still sits between the resolver work and the sweeps,
+because T7 needs its field-origin oracle, but it is no longer a gate that can
+add repair work.
 
 ## Constraints
 
@@ -168,6 +173,8 @@ exit-code, coverage-rollup, and producer-candidate-preference criteria.
 
 **Depends on:** none
 
+**Verification mode:** goal-based check — the record's `Status:` and the ordinal checker.
+
 **Tests:**
 - `python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc`
   reports clean after the record lands, so the assigned ordinal collides with
@@ -191,6 +198,8 @@ exit-code, coverage-rollup, and producer-candidate-preference criteria.
 ### T0: The surface inventory is derived
 
 **Depends on:** none
+
+**Verification mode:** goal-based check — the committed inventory and its zero-diff re-run are the test.
 
 <!-- T0 gates on nothing. It reads the repository and writes a derivation
      script and its output under this spec's notes/; it changes no guide, no
@@ -238,6 +247,8 @@ each of the three named members appears under its correct label.
 
 **Depends on:** T1
 
+**Verification mode:** TDD — `resolve_endpoint` is a pure function of a target and a node-id set.
+
 **Touches:** packs/core/.apm/skills/work-loop/scripts/lint-traceability.py, packs/core/tests/skills/work-loop/test_lint_traceability.py
 
 **Tests:**
@@ -273,6 +284,8 @@ repository run still exits 0.
 
 **Depends on:** T2
 
+**Verification mode:** TDD — the outcome is which id the in-edge carries, a predicate over the built edge set.
+
 **Touches:** packs/core/.apm/skills/work-loop/scripts/lint-traceability.py, packs/core/tests/skills/work-loop/test_lint_traceability.py
 
 **Tests:**
@@ -297,6 +310,8 @@ repository run's edge count is unchanged, because no `Brief:` value is typed yet
 ### T3: Intent files are graph nodes
 
 **Depends on:** T2
+
+**Verification mode:** TDD — recognition is a derivation from a directory to a set of ids.
 
 **Touches:** packs/core/.apm/skills/work-loop/scripts/lint-traceability.py, packs/core/tests/skills/work-loop/test_lint_traceability.py
 
@@ -333,6 +348,8 @@ whose two candidates resolve to the same file.
 
 **Depends on:** T3
 
+**Verification mode:** goal-based check — the probe's output and its zero-diff re-run are the test.
+
 **Touches:** docs/specs/intent-reference-grammar-migration/notes/
 
 **Tests:**
@@ -346,22 +363,34 @@ whose two candidates resolve to the same file.
   no other oracle.
 - Re-running the probe on an unchanged tree produces a zero diff, so the numbers
   are reproducible rather than transcribed.
+- The structural-orphan count after the change is no greater than before it —
+  AC-0012. This is a standing non-increase assertion, not an open question: the
+  answer was projected before either sweep (488 to 487, none introduced) and
+  the probe's job is to detect a regression against it, not to discover it.
 
 **Approach:**
-- This sits between the resolver work and the sweeps, not after them, because its
-  result can add repair work to both. 117 new nodes become orphan- and
-  reachability-checkable here for the first time, and `--strict` fails on a
-  structural orphan.
-- If the run reports orphans, stop and Surface: the remedy is either repair work
-  this plan does not carry or an accepted classification change, and neither is
-  an implementer's call.
+- This still sits between the resolver work and the sweeps, but for one reason
+  only: T7 asserts that no in-edge is won by a field other than `Brief:`, and
+  `Graph.add_edge` stores just `(producer, consumer)` (`:357`). The probe
+  recording the winning field beside each resolved endpoint is that assertion's
+  only oracle, so it must run before the sweep it constrains.
+- An earlier revision gave this task a second job: measure the orphan impact,
+  and Surface if it reported orphans, because the remedy would be repair work
+  the plan does not carry. That job is discharged. `classify_standalone`
+  classifies only kinds in `CHAIN`, which excludes `intent` and `brief`, so
+  registering the kind cannot produce an orphan; the measurement is in
+  `notes/verification-ledger.md`. What remains is the non-increase check above,
+  which is cheap and worth keeping as a regression guard.
 
 **Done when:** the ledger holds the before and after numbers, the probe re-runs
-with a zero diff, and any orphan finding has been Surfaced.
+with a zero diff, the orphan count has not increased, and the winning field is
+recorded for every consumer T7 will assert over.
 
 ### T5: Every `Parent intent:` value is typed
 
 **Depends on:** T0, T4
+
+**Verification mode:** goal-based check — the outcome is an absence over the corpus, which no example-based test reaches.
 
 **Touches:** docs/product/intents/*.md, docs/product/briefs/*.md, plus every surface the T0 inventory labels as writing or stating the `Parent intent:` form
 
@@ -370,6 +399,9 @@ with a zero diff, and any orphan finding has been Surfaced.
   value that is not `<kind>:<slug>` — AC-0008. The predicate is the canonical
   shape, not the absence of bare slugs: 4 of the 23 builder-visible values are
   markdown links, and a bare-slug predicate leaves them.
+- The cohort is re-derived after T3, not before it — AC-0023 — because
+  recognition makes 14 further `Parent intent:` values builder-visible and takes
+  the set from 23 to 37.
 - Every surface the T0 inventory labels as writing or stating the
   `Parent intent:` form emits `<kind>:<slug>` after this task — AC-0020. The
   inventory finds 15 such surfaces today, including
@@ -396,6 +428,8 @@ repository run's edge count is unchanged from T4's recorded figure.
 
 **Depends on:** T0, T1
 
+**Verification mode:** mixed: TDD for the coverage join and the dispatch predicate, goal-based for the cross-surface agreement.
+
 **Touches:** every surface T0's inventory labels as writing, stating or reading the `Brief:` form — the list is derived, not fixed here, because four successive revisions each stated a set the next round falsified. Known members at planning time, not exhaustive: guides/core/reference/product-brief-fields.md, guides/core/how-to/write-the-contract.md, packs/core/seeds/docs/product/briefs/_template.md, packs/core/.apm/skills/new-spec/assets/spec.md, packs/core/.apm/skills/new-spec/SKILL.md, packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md, packs/core/.apm/skills/author-delivery-brief/SKILL.md, packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py, packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py, packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py, packs/core/tests/skills/workspace-status/
 
 **Tests:**
@@ -407,6 +441,9 @@ repository run's edge count is unchanged from T4's recorded figure.
   `states` or `reads`, and fails when any one names a different canonical form
   — AC-0009. It iterates the inventory and this plan states no count, because
   three successive revisions each stated a total the next round falsified.
+- Each brief's identity, as `recognize_briefs` derives it, equals its filename
+  stem — AC-0021. A one-line assertion over the 17 briefs; it holds today and
+  nothing enforces it, and `brief:<slug>` misresolves silently where it fails.
 - The inventory contains at least `packs/core/.apm/skills/new-spec/SKILL.md`
   and `packs/core/seeds/docs/product/briefs/_template.md`, asserted by name.
   Both were missed by earlier enumerations and neither is found by searching
@@ -424,6 +461,9 @@ repository run's edge count is unchanged from T4's recorded figure.
   `brief:ok!`, `brief:two:parts` and a spaced slug unasserted, and an
   implementation admitting every `brief:`-prefixed string passes them all. The
   named cases below are evidence inside that test, never the test itself.
+- A `brief:<slug>` value whose slug names an existing brief is admitted, and
+  the surviving path form still is — AC-0016; an omitted, blank, comment-only
+  or `none` header is treated as absence and produces no finding — AC-0024.
 - A case whose `brief:<slug>` target is a symlink resolving outside
   `docs/product/briefs/` but still inside the repository, and a second
   resolving outside the repository entirely, each produce a provenance finding
@@ -473,6 +513,8 @@ repository run's edge count is unchanged from T4's recorded figure.
 
 **Depends on:** T0, T2a, T5, T6
 
+**Verification mode:** goal-based check — cohort re-derivation plus the recorded rollup comparison.
+
 **Touches:** docs/specs/*/spec.md
 
 **Tests:**
@@ -504,6 +546,8 @@ verdicts match, and the sweep script re-runs with a zero diff.
 
 **Depends on:** T7
 
+**Verification mode:** visual / manual QA — the evidence is the commands' actual stdout, stderr and exit codes.
+
 **Touches:** .agents/**, .claude/**, packages/agentbundle/agentbundle/_data/workspace_status_engine.py, docs/product/briefs/intent-identity-and-registration.md, CHANGELOG.md
 
 **Tests:**
@@ -514,8 +558,14 @@ verdicts match, and the sweep script re-runs with a zero diff.
   projections — are byte-identical after `make build-self`. The fourth copy is
   why this check is not covered by AC-0011's three-copy comparison.
 - `make lint-ruff lint-mypy` passes.
-- `python packs/core/.apm/skills/work-loop/scripts/lint-traceability.py --root . --strict`
-  exits 0, with its stdout, stderr, and exit code recorded — AC-0012.
+- `lint-traceability.py --root .` exits 0 — AC-0012.
+- `--strict` reports no more structural orphans than the figure T4 recorded
+  before the sweeps — AC-0025. It exits 1 either way, on pre-existing orphans
+  this delivery did not cause. Both invocations' stdout, stderr and exit code
+  are recorded in the ledger.
+- The `work-intake` record for the `Contract:`/`Discovery:` follow-on exists and
+  the spec's Follow-ons section cites it, so the delivery does not ship naming a
+  follow-on that nothing owns.
 - `python .claude/skills/work-loop/scripts/lint-spec-status.py --root .` passes.
 - The changelog entry names the retained bare-slug and path fallbacks, not only
   the new canonical form.
@@ -555,10 +605,14 @@ command output is in the ledger.
   to replace that method; a criterion that names surfaces inline instead of
   citing T0's inventory has reintroduced the defect.
 
-- **117 nodes become orphan-checkable at once.** `--strict` fails on a
-  structural orphan and no existing test covers that classification at this
-  size. T4 measures it before either sweep; an orphan finding Surfaces rather
-  than being repaired inside this scope.
+- **The orphan risk was asserted, then refuted by measurement.** An earlier
+  revision recorded 117 nodes becoming orphan-checkable as the largest risk
+  here. `classify_standalone` only classifies kinds in `CHAIN`, which excludes
+  `intent` and `brief`, so the projection is 488 orphans to 487 with none
+  introduced. The residual risk is the inverse and is not this delivery's to
+  fix: `--strict` already exits 1 on 488 pre-existing orphans, and this change
+  adds 117 nodes to that graph without improving it. AC-0012 asserts
+  non-increase for that reason.
 - **The brief's collision count is not reproducible from its own method.** It
   records 6 and names a set that reading `Slug:` does not reproduce exactly.
   Any task trusting the recorded number instead of re-deriving it will
@@ -590,3 +644,5 @@ command output is in the ledger.
 
 - 2026-09-22: amended spec approved by eugenelim
 - 2026-09-22: amended plan approved by eugenelim
+- 2026-09-22: second amendment — spec approved by eugenelim
+- 2026-09-22: second amendment — plan approved by eugenelim

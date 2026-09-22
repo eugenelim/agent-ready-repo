@@ -384,3 +384,52 @@ Four statements in the sealed artifacts are now false or unsatisfiable:
 All four sit under `approved_spec_hash` / `approved_plan_hash`, so correcting
 them is a controlled amendment, not an in-place edit. Recorded here and raised
 with the owner rather than actioned unilaterally.
+
+### Owner decision — 2026-09-22 (second amendment)
+
+The scope owner directed that the spec and plan be corrected, on the grounds
+that the falsified orphan claim and the unsatisfiable AC-0012 affect the work
+rather than only the prose. Authority for the controlled amendment below.
+
+Scope of the amendment:
+
+- AC-0012 replaced with a form the delivery can satisfy and that still detects
+  the regression it was reaching for.
+- The `Assumptions` entry closed: it asked the orphan question, which is now
+  measured and answered "no change".
+- `plan.md` § Approach and § Risks corrected — the node-set growth is not the
+  riskiest part, because it carries no orphan consequence.
+- T4 retained but re-shaped: its orphan measurement becomes a standing
+  non-increase assertion rather than an open question with a Surface clause,
+  and its remaining reason to exist is the field-origin oracle T7 needs,
+  because `Graph.add_edge` stores only `(producer, consumer)`.
+
+### The "reachability" half of the refuted claim fails for a second reason
+
+The claim under repair was that 117 files become "orphan- **and
+reachability**-checkable". The orphan half is refuted by `CHAIN` membership
+above. The reachability half fails independently and more simply: the
+reachability pass runs only in sidecar mode.
+
+`check()` guards it with `if using_sidecar:` (`lint-traceability.py:~1197`), and
+`discover_sidecar` returns `None` in this repository — there is no
+`_state/traceability.json` anywhere in the tree. `reachability_sidecar` is
+therefore never called on any invocation this delivery affects, for any node
+kind, before or after the change.
+
+Caught because a reviewer began reading the reachability code and the
+verification above had only covered `classify_standalone`. Half a refutation
+read as a whole one is the same defect as the claim it was refuting: a
+conclusion drawn about a mechanism that was never executed.
+
+### Owner decision — 2026-09-22 (accept and proceed)
+
+The owner accepted RFC-0103, accepted the amended contract as it stands, and
+directed that implementation continue, with verification to come from code and
+tests and the contract to adapt as that evidence arrives. Recorded as the
+authority for approving without a further review round: the round-2 findings
+were applied, and the alignment lint reports nothing against this spec.
+
+T1 is discharged: RFC-0103 is `Accepted` (closed 2026-09-22), its `Amendments`
+section renamed to `Errata` per the `new-rfc` convention, and `spec.md`'s
+`Constrained by:` already cites the ordinal.

@@ -10,44 +10,60 @@ pack source that reads or writes it.
 
 ## `Parent intent:`
 
-### reads (15)
+### reads (6)
+
+- `.agents/skills/work-loop/scripts/lint-traceability.py`
+- `.claude/skills/work-loop/scripts/lint-traceability.py`
+- `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
+- `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
+- `packs/core/tests/skills/work-intake/test_intent_shape.py`
+- `packs/core/tests/skills/work-loop/test_lint_traceability.py`
+
+### parses (43)
 
 - `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
-- `.agents/skills/work-loop/scripts/lint-traceability.py`
+- `.agents/skills/work-intake/scripts/refresh.py`
+- `.agents/skills/workspace-status/scripts/workspace_status.py`
+- `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
+- `.agents/skills/workspace-status/scripts/workspace_status_prune.py`
 - `.claude/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.claude/skills/work-intake/scripts/intent_shape.py`
-- `.claude/skills/work-loop/scripts/lint-traceability.py`
-- `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
+- `.claude/skills/work-intake/scripts/refresh.py`
+- `.claude/skills/workspace-status/scripts/workspace_status.py`
+- `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
+- `.claude/skills/workspace-status/scripts/workspace_status_prune.py`
+- `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`
+- `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
+- `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`
+- `packages/agentbundle/agentbundle/workspace_mcp.py`
+- `packages/agentbundle/tests/integration/test_build_check_drift_gates.py`
+- `packages/agentbundle/tests/test_workspace_mcp_tools.py`
 - `packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py`
 - `packs/core/.apm/skills/work-intake/scripts/intent_shape.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
+- `packs/core/.apm/skills/work-intake/scripts/refresh.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_prune.py`
+- `packs/core/tests/pack/test_work_intake_surface.py`
+- `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`
 - `packs/core/tests/skills/intake-intent/test_intent_template_conformance.py`
-- `packs/core/tests/skills/work-intake/test_intent_shape.py`
-- `packs/core/tests/skills/work-loop/test_lint_traceability.py`
+- `packs/core/tests/skills/work-intake/test_work_intake.py`
+- `packs/core/tests/skills/work-loop/test_finding_response_fields.py`
+- `packs/core/tests/skills/workspace-status/test_semantic_surface_locator_wave1.py`
+- `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
+- `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`
 - `tests/roster/test_intent_field_reference_parity.py`
 - `tests/roster/test_intent_template_shape_conformance.py`
-
-### parses (18)
-
-- `.agents/skills/new-adr/scripts/lint-adr-shape.py`
-- `.agents/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `.agents/skills/work-loop/scripts/lint-spec-status.py`
-- `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
-- `.claude/skills/new-adr/scripts/lint-adr-shape.py`
-- `.claude/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `.claude/skills/work-loop/scripts/lint-spec-status.py`
-- `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
-- `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
-- `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
-- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`
-- `packs/core/tests/skills/work-loop/test_finding_response_fields.py`
-- `packs/governance-extras/.apm/skills/new-adr/scripts/lint-adr-shape.py`
-- `packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py`
-- `tests/roster/test_agent_skill_engineering_consumer_integrations.py`
-- `tests/roster/test_intent_template_shape_conformance.py`
-- `tools/test_guide_typed_asides.py`
+- `tests/roster/test_packaged_runtime_closure.py`
+- `tests/roster/test_reclassified_lifecycle_result.py`
+- `tests/roster/test_selection_scoped_membership_absence.py`
+- `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_projection.py`
+- `tools/bench-workspace-status.py`
+- `tools/test_pack_test_compatibility.py`
+- `tools/test_workspace_status.py`
+- `tools/test_workspace_status_cli.py`
 
 ### writes (11)
 
@@ -63,128 +79,95 @@ pack source that reads or writes it.
 - `packs/product-engineering/.apm/skills/align-value-stream/assets/rollup-template.md`
 - `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`
 
-### states (19)
+### states (16)
 
 - `.context/reviews/amend-adversarial-prompt.md`
 - `.context/reviews/amend-r1-adversarial.md`
 - `.context/reviews/amend-r2-adversarial.md`
 - `.context/reviews/amend-r4-adversarial.md`
 - `.context/reviews/amend-r5-adversarial.md`
+- `.context/reviews/amend2-adversarial.md`
+- `.context/reviews/amend2-r2.md`
 - `.context/reviews/r1-contract-adjudication.md`
 - `.context/reviews/r2-contract-adjudication.md`
 - `.context/reviews/r2-contract.md`
 - `.context/reviews/rfc0103-r1-adversarial.md`
 - `.context/reviews/rfc0103-r2-adversarial.md`
 - `.context/reviews/rfc0103-r3-adversarial.md`
-- `docs/adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md`
-- `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`
-- `docs/rfc/0043-product-rung-above-capability.md`
-- `docs/rfc/0048-autonomous-product-team-operating-model.md`
-- `docs/rfc/0103-cross-artifact-reference-grammar.md`
 - `guides/product-engineering/how-to/shape-a-product-strategy.md`
 - `packs/product-engineering/.apm/skills/decompose-intent/SKILL.md`
 - `packs/product-engineering/.apm/skills/decompose-intent/references/recursive-decomposition.md`
 
-### generated-copy (10)
+### generated-copy (6)
 
 - `.agents/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
 - `.agents/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
-- `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
-- `.agents/skills/work-intake/scripts/intent_shape.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
 - `.claude/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
-- `.claude/skills/work-intake/scripts/intent_corpus_lint.py`
-- `.claude/skills/work-intake/scripts/intent_shape.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
 
 ## `Brief:`
 
-### reads (66)
+### reads (17)
 
 - `.agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
-- `.agents/skills/work-intake/scripts/intake_router.py`
+- `.agents/skills/work-loop/scripts/lint-traceability.py`
+- `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
+- `.claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
+- `.claude/skills/work-loop/scripts/lint-traceability.py`
+- `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
+- `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
+- `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
+- `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
+- `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`
+- `packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py`
+- `packs/core/tests/skills/work-loop/test_lint_traceability.py`
+- `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`
+- `tools/test_live_demo_guide.py`
+- `tools/test_workspace_status.py`
+- `tools/test_workspace_status_cli.py`
+
+### parses (37)
+
 - `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
 - `.agents/skills/work-intake/scripts/refresh.py`
-- `.agents/skills/work-loop/scripts/lint-traceability.py`
 - `.agents/skills/workspace-status/scripts/workspace_status.py`
-- `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
 - `.agents/skills/workspace-status/scripts/workspace_status_prune.py`
-- `.claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
-- `.claude/skills/work-intake/scripts/intake_router.py`
 - `.claude/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.claude/skills/work-intake/scripts/intent_shape.py`
 - `.claude/skills/work-intake/scripts/refresh.py`
-- `.claude/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/workspace-status/scripts/workspace_status.py`
-- `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
 - `.claude/skills/workspace-status/scripts/workspace_status_prune.py`
-- `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
 - `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`
-- `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
 - `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`
 - `packages/agentbundle/agentbundle/workspace_mcp.py`
 - `packages/agentbundle/tests/integration/test_build_check_drift_gates.py`
-- `packages/agentbundle/tests/test_workspace_mcp_lifecycle.py`
 - `packages/agentbundle/tests/test_workspace_mcp_tools.py`
-- `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
-- `packs/core/.apm/skills/work-intake/scripts/intake_router.py`
 - `packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py`
 - `packs/core/.apm/skills/work-intake/scripts/intent_shape.py`
 - `packs/core/.apm/skills/work-intake/scripts/refresh.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
 - `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`
-- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`
 - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_prune.py`
-- `packs/core/tests/pack/test_shaping_finding_responses.py`
 - `packs/core/tests/pack/test_work_intake_surface.py`
-- `packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py`
 - `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`
 - `packs/core/tests/skills/intake-intent/test_intent_template_conformance.py`
 - `packs/core/tests/skills/work-intake/test_intent_shape.py`
-- `packs/core/tests/skills/work-intake/test_routing_precedence.py`
 - `packs/core/tests/skills/work-intake/test_work_intake.py`
-- `packs/core/tests/skills/work-loop/test_lint_traceability.py`
+- `packs/core/tests/skills/work-loop/test_finding_response_fields.py`
 - `packs/core/tests/skills/workspace-status/test_semantic_surface_locator_wave1.py`
 - `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
-- `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`
-- `tests/roster/test_cooling_brief_child_scope_closure.py`
-- `tests/roster/test_dependency_scoped_completion_receipts.py`
-- `tests/roster/test_github_refresh_processor.py`
 - `tests/roster/test_intent_field_reference_parity.py`
 - `tests/roster/test_intent_template_shape_conformance.py`
 - `tests/roster/test_packaged_runtime_closure.py`
 - `tests/roster/test_reclassified_lifecycle_result.py`
 - `tests/roster/test_selection_scoped_membership_absence.py`
 - `tests/roster/test_status_projection_and_context_exclusion.py`
-- `tests/roster/test_tracker_refresh_lifecycle_matrix.py`
-- `tests/roster/test_work_intake_contracts.py`
-- `tests/roster/test_work_intake_refresh_coordinator.py`
-- `tests/roster/test_workspace_initiative_provenance.py`
 - `tests/roster/test_workspace_status_projection.py`
 - `tools/bench-workspace-status.py`
-- `tools/test_live_demo_guide.py`
 - `tools/test_pack_test_compatibility.py`
-- `tools/test_workspace_status.py`
-- `tools/test_workspace_status_cli.py`
-
-### parses (14)
-
-- `.agents/skills/new-adr/scripts/lint-adr-shape.py`
-- `.agents/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `.agents/skills/work-loop/scripts/lint-spec-status.py`
-- `.claude/skills/new-adr/scripts/lint-adr-shape.py`
-- `.claude/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `.claude/skills/work-loop/scripts/lint-spec-status.py`
-- `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
-- `packs/core/tests/skills/work-loop/test_finding_response_fields.py`
-- `packs/governance-extras/.apm/skills/new-adr/scripts/lint-adr-shape.py`
-- `packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py`
-- `tests/roster/test_agent_skill_engineering_consumer_integrations.py`
-- `tests/roster/test_intent_template_shape_conformance.py`
-- `tools/test_guide_typed_asides.py`
 
 ### writes (19)
 
@@ -208,7 +191,7 @@ pack source that reads or writes it.
 - `packs/core/tests/skills/work-loop/fixtures/corpus/022-architect-design-reviewer/spec.md`
 - `packs/core/tests/skills/work-loop/fixtures/corpus/023-author-brief-docs/spec.md`
 
-### states (59)
+### states (51)
 
 - `.agents/skills/author-delivery-brief/SKILL.md`
 - `.agents/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
@@ -230,6 +213,7 @@ pack source that reads or writes it.
 - `.context/reviews/amend-r4-adversarial.md`
 - `.context/reviews/amend-r5-adversarial.md`
 - `.context/reviews/amend-security-prompt.md`
+- `.context/reviews/amend2-r2.md`
 - `.context/reviews/r1-adversarial-adjudication.md`
 - `.context/reviews/r1-adversarial.md`
 - `.context/reviews/r1-contract-adjudication.md`
@@ -241,20 +225,11 @@ pack source that reads or writes it.
 - `.context/reviews/rfc0103-r2-adversarial.md`
 - `.context/reviews/rfc0103-r3-adversarial.md`
 - `.context/reviews/rfc0103-r4-adversarial.md`
-- `docs/adr/0009-product-brief-layer-and-plan-owned-lld.md`
-- `docs/adr/0076-briefs-persist-dispatch-starts-from-specs.md`
-- `docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md`
 - `docs/architecture/loop-contract.md`
 - `docs/architecture/work-intake-and-artifact-routing.md`
 - `docs/product/changelog.md`
 - `docs/product/findings/new-team-sdlc-guide-uplift-audit.md`
 - `docs/product/shaping/ecosystem-overview.md`
-- `docs/rfc/0019-product-brief-intake.md`
-- `docs/rfc/0048-autonomous-product-team-operating-model.md`
-- `docs/rfc/0048-notes/02-worked-example-flow-trace.md`
-- `docs/rfc/0048-notes/09-gap-resolutions.md`
-- `docs/rfc/0048-notes/10-composed-end-to-end-walkthrough.md`
-- `docs/rfc/0103-cross-artifact-reference-grammar.md`
 - `guides/core/explanation/why-a-brief-layer.md`
 - `guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md`
 - `guides/core/how-to/run-a-live-demo.md`
@@ -270,14 +245,10 @@ pack source that reads or writes it.
 - `packs/core/seeds/docs/product/briefs/_template.md`
 - `packs/product-engineering/.apm/skills/align-value-stream/references/cross-component-rollup.md`
 
-### generated-copy (37)
+### generated-copy (23)
 
 - `.agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
 - `.agents/skills/new-spec/assets/spec.md`
-- `.agents/skills/work-intake/scripts/intake_router.py`
-- `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
-- `.agents/skills/work-intake/scripts/intent_shape.py`
-- `.agents/skills/work-intake/scripts/refresh.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
 - `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
 - `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
@@ -286,15 +257,9 @@ pack source that reads or writes it.
 - `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
 - `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
 - `.agents/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
-- `.agents/skills/workspace-status/scripts/workspace_status.py`
 - `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
-- `.agents/skills/workspace-status/scripts/workspace_status_prune.py`
 - `.claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
 - `.claude/skills/new-spec/assets/spec.md`
-- `.claude/skills/work-intake/scripts/intake_router.py`
-- `.claude/skills/work-intake/scripts/intent_corpus_lint.py`
-- `.claude/skills/work-intake/scripts/intent_shape.py`
-- `.claude/skills/work-intake/scripts/refresh.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
 - `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
@@ -303,86 +268,72 @@ pack source that reads or writes it.
 - `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
 - `.claude/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
 - `.claude/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
+- `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
+- `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
+
+## `Contract:`
+
+### reads (12)
+
+- `.agents/skills/work-loop/scripts/lint-spec-status.py`
+- `.agents/skills/work-loop/scripts/lint-traceability.py`
+- `.claude/skills/work-loop/scripts/lint-spec-status.py`
+- `.claude/skills/work-loop/scripts/lint-traceability.py`
+- `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
+- `packages/agentbundle/tests/unit/test_catalogue_wave3_contracts_inspector.py`
+- `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
+- `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
+- `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
+- `packs/core/tests/skills/work-loop/test_lint_traceability.py`
+- `packs/linear/tests/skills/linear/test_linear_primitive.py`
+- `tools/lint-guidebook-steps.py`
+
+### parses (44)
+
+- `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
+- `.agents/skills/work-intake/scripts/intent_shape.py`
+- `.agents/skills/work-intake/scripts/refresh.py`
+- `.agents/skills/workspace-status/scripts/workspace_status.py`
+- `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
+- `.agents/skills/workspace-status/scripts/workspace_status_prune.py`
+- `.claude/skills/work-intake/scripts/intent_corpus_lint.py`
+- `.claude/skills/work-intake/scripts/intent_shape.py`
+- `.claude/skills/work-intake/scripts/refresh.py`
 - `.claude/skills/workspace-status/scripts/workspace_status.py`
 - `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
 - `.claude/skills/workspace-status/scripts/workspace_status_prune.py`
 - `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`
 - `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
 - `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`
-
-## `Contract:`
-
-### reads (48)
-
-- `.agents/skills/project-knowledge/scripts/knowledge_store.py`
-- `.agents/skills/work-loop/scripts/_loop_guards.py`
-- `.agents/skills/work-loop/scripts/lint-spec-status.py`
-- `.agents/skills/work-loop/scripts/lint-traceability.py`
-- `.claude/skills/project-knowledge/scripts/knowledge_store.py`
-- `.claude/skills/work-loop/scripts/_loop_guards.py`
-- `.claude/skills/work-loop/scripts/lint-spec-status.py`
-- `.claude/skills/work-loop/scripts/lint-traceability.py`
-- `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
-- `packages/agentbundle/agentbundle/catalogue_tooling/index_generator.py`
-- `packages/agentbundle/agentbundle/catalogue_tooling/journey_validator.py`
-- `packages/agentbundle/agentbundle/commands/install.py`
-- `packages/agentbundle/agentbundle/commands/validate.py`
-- `packages/agentbundle/agentbundle/version.py`
-- `packages/agentbundle/tests/build_pipeline/test_adapter_cursor.py`
-- `packages/agentbundle/tests/build_pipeline/test_adapter_gemini.py`
-- `packages/agentbundle/tests/build_pipeline/test_adapter_kiro_ide.py`
-- `packages/agentbundle/tests/build_pipeline/test_agent_plugin_projection.py`
-- `packages/agentbundle/tests/build_pipeline/test_contract.py`
-- `packages/agentbundle/tests/build_pipeline/test_contract_scope.py`
-- `packages/agentbundle/tests/build_pipeline/test_contract_v07.py`
-- `packages/agentbundle/tests/build_pipeline/test_contract_v08.py`
-- `packages/agentbundle/tests/build_pipeline/test_distribution_route_contract.py`
-- `packages/agentbundle/tests/build_pipeline/test_shared_prefix_contract.py`
-- `packages/agentbundle/tests/build_pipeline/test_validate.py`
-- `packages/agentbundle/tests/integration/test_catalogue_wave4_journey_validator.py`
-- `packages/agentbundle/tests/integration/test_catalogue_wave4_schema.py`
-- `packages/agentbundle/tests/unit/test_catalogue_wave3_contracts_inspector.py`
-- `packages/agentbundle/tests/unit/test_contract_v0_3_schema.py`
-- `packages/agentbundle/tests/unit/test_kiro_ide_hook_schema.py`
-- `packages/agentbundle/tests/unit/test_version.py`
-- `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py`
-- `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
-- `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
-- `packs/core/tests/skills/work-loop/test_lint_traceability.py`
-- `packs/core/tests/skills/work-loop/test_loop_concurrency.py`
-- `packs/core/tests/skills/work-loop/test_loop_guards.py`
-- `packs/linear/tests/skills/linear/test_linear_primitive.py`
-- `tests/roster/test_work_loop_root_validation.py`
-- `tools/build-site.py`
-- `tools/lint-ci-parity.py`
-- `tools/lint-generated-path-ownership.py`
-- `tools/lint-guidebook-steps.py`
-- `tools/repo/build_gate_chain.py`
-- `tools/test-check-contract-drift.py`
-- `tools/test-lint-ci-parity.py`
-
-### parses (18)
-
-- `.agents/skills/new-adr/scripts/lint-adr-shape.py`
-- `.agents/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `.agents/skills/work-intake/scripts/intent_shape.py`
-- `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
-- `.claude/skills/new-adr/scripts/lint-adr-shape.py`
-- `.claude/skills/new-spec/scripts/lint-contract-item-alignment.py`
-- `.claude/skills/work-intake/scripts/intent_shape.py`
-- `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
-- `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
-- `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`
+- `packages/agentbundle/agentbundle/workspace_mcp.py`
+- `packages/agentbundle/tests/integration/test_build_check_drift_gates.py`
+- `packages/agentbundle/tests/test_workspace_mcp_tools.py`
+- `packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py`
 - `packs/core/.apm/skills/work-intake/scripts/intent_shape.py`
+- `packs/core/.apm/skills/work-intake/scripts/refresh.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`
 - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_prune.py`
+- `packs/core/tests/pack/test_work_intake_surface.py`
+- `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`
+- `packs/core/tests/skills/intake-intent/test_intent_template_conformance.py`
+- `packs/core/tests/skills/work-intake/test_intent_shape.py`
+- `packs/core/tests/skills/work-intake/test_work_intake.py`
 - `packs/core/tests/skills/work-loop/test_finding_response_fields.py`
-- `packs/governance-extras/.apm/skills/new-adr/scripts/lint-adr-shape.py`
-- `packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py`
-- `tests/roster/test_agent_skill_engineering_consumer_integrations.py`
+- `packs/core/tests/skills/workspace-status/test_semantic_surface_locator_wave1.py`
+- `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
+- `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`
+- `tests/roster/test_intent_field_reference_parity.py`
 - `tests/roster/test_intent_template_shape_conformance.py`
-- `tools/test_guide_typed_asides.py`
+- `tests/roster/test_packaged_runtime_closure.py`
+- `tests/roster/test_reclassified_lifecycle_result.py`
+- `tests/roster/test_selection_scoped_membership_absence.py`
+- `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_projection.py`
+- `tools/bench-workspace-status.py`
+- `tools/test_pack_test_compatibility.py`
+- `tools/test_workspace_status.py`
+- `tools/test_workspace_status_cli.py`
 
 ### writes (23)
 
@@ -410,7 +361,7 @@ pack source that reads or writes it.
 - `packs/core/tests/skills/work-loop/fixtures/corpus/023-author-brief-docs/spec.md`
 - `packs/core/tests/skills/work-loop/fixtures/corpus/024-agentbundle-engine-stragglers/spec.md`
 
-### states (46)
+### states (35)
 
 - `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/references/contract-types.md`
@@ -430,19 +381,8 @@ pack source that reads or writes it.
 - `.context/reviews/rfc0103-r1-adversarial.md`
 - `.context/reviews/rfc0103-r3-adversarial.md`
 - `.context/reviews/rfc0103-r4-adversarial.md`
-- `docs/adr/0008-contract-authoring-seam.md`
-- `docs/adr/0019-product-intent-ontology-and-brief-projection.md`
-- `docs/adr/0022-value-stream-meta-repo-cross-component-layer.md`
 - `docs/product/changelog.md`
 - `docs/product/initiatives/ini-009-agent-skill-engineering.md`
-- `docs/rfc/0017-pluggable-api-contract-standards.md`
-- `docs/rfc/0018-event-asyncapi-authoring-engine.md`
-- `docs/rfc/0019-product-brief-intake.md`
-- `docs/rfc/0028-tdd-stub-generation-in-the-core-loop.md`
-- `docs/rfc/0030-product-engineering-pack.md`
-- `docs/rfc/0059-catalogue-curation-pack.md`
-- `docs/rfc/0097-agent-skill-engineering.md`
-- `docs/rfc/0103-cross-artifact-reference-grammar.md`
 - `guides/core/reference/product-brief-fields.md`
 - `guides/product-engineering/how-to/shape-a-feature-intent.md`
 - `guides/product-engineering/reference/intent-fields-and-modes.md`
@@ -459,11 +399,9 @@ pack source that reads or writes it.
 - `packs/product-engineering/DESIGN.md`
 - `packs/product-strategy/.apm/skills/synthesize-stakeholder-research/references/digital-experience-contract.md`
 
-### generated-copy (24)
+### generated-copy (20)
 
 - `.agents/skills/new-spec/assets/spec.md`
-- `.agents/skills/project-knowledge/scripts/knowledge_store.py`
-- `.agents/skills/work-loop/scripts/_loop_guards.py`
 - `.agents/skills/work-loop/scripts/lint-spec-status.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
 - `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
@@ -474,8 +412,6 @@ pack source that reads or writes it.
 - `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
 - `.agents/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
 - `.claude/skills/new-spec/assets/spec.md`
-- `.claude/skills/project-knowledge/scripts/knowledge_store.py`
-- `.claude/skills/work-loop/scripts/_loop_guards.py`
 - `.claude/skills/work-loop/scripts/lint-spec-status.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
@@ -488,48 +424,66 @@ pack source that reads or writes it.
 
 ## `Discovery:`
 
-### reads (10)
+### reads (6)
 
-- `.agents/skills/new-spec/scripts/explore-grounding.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
-- `.claude/skills/new-spec/scripts/explore-grounding.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
 - `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
 - `packages/agentbundle/agentbundle/config.py`
-- `packs/core/.apm/skills/new-spec/scripts/explore-grounding.py`
 - `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
-- `packs/core/tests/skills/new-spec/test_explore_grounding.py`
 - `packs/core/tests/skills/work-loop/test_lint_traceability.py`
 
-### parses (21)
+### parses (44)
 
-- `.agents/skills/new-adr/scripts/lint-adr-shape.py`
-- `.agents/skills/new-spec/scripts/lint-contract-item-alignment.py`
+- `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
-- `.agents/skills/work-loop/scripts/lint-spec-status.py`
+- `.agents/skills/work-intake/scripts/refresh.py`
+- `.agents/skills/workspace-status/scripts/workspace_status.py`
 - `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
-- `.claude/skills/new-adr/scripts/lint-adr-shape.py`
-- `.claude/skills/new-spec/scripts/lint-contract-item-alignment.py`
+- `.agents/skills/workspace-status/scripts/workspace_status_prune.py`
+- `.claude/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.claude/skills/work-intake/scripts/intent_shape.py`
-- `.claude/skills/work-loop/scripts/lint-spec-status.py`
+- `.claude/skills/work-intake/scripts/refresh.py`
+- `.claude/skills/workspace-status/scripts/workspace_status.py`
 - `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
+- `.claude/skills/workspace-status/scripts/workspace_status_prune.py`
+- `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`
 - `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
-- `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py`
+- `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`
+- `packages/agentbundle/agentbundle/workspace_mcp.py`
+- `packages/agentbundle/tests/integration/test_build_check_drift_gates.py`
+- `packages/agentbundle/tests/test_workspace_mcp_tools.py`
+- `packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py`
 - `packs/core/.apm/skills/work-intake/scripts/intent_shape.py`
-- `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
+- `packs/core/.apm/skills/work-intake/scripts/refresh.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`
 - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`
+- `packs/core/.apm/skills/workspace-status/scripts/workspace_status_prune.py`
+- `packs/core/tests/pack/test_work_intake_surface.py`
+- `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`
+- `packs/core/tests/skills/intake-intent/test_intent_template_conformance.py`
+- `packs/core/tests/skills/work-intake/test_intent_shape.py`
+- `packs/core/tests/skills/work-intake/test_work_intake.py`
 - `packs/core/tests/skills/work-loop/test_finding_response_fields.py`
-- `packs/governance-extras/.apm/skills/new-adr/scripts/lint-adr-shape.py`
-- `packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py`
-- `tests/roster/test_agent_skill_engineering_consumer_integrations.py`
+- `packs/core/tests/skills/workspace-status/test_semantic_surface_locator_wave1.py`
+- `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
+- `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py`
+- `tests/roster/test_intent_field_reference_parity.py`
 - `tests/roster/test_intent_template_shape_conformance.py`
-- `tools/test_guide_typed_asides.py`
+- `tests/roster/test_packaged_runtime_closure.py`
+- `tests/roster/test_reclassified_lifecycle_result.py`
+- `tests/roster/test_selection_scoped_membership_absence.py`
+- `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_projection.py`
+- `tools/bench-workspace-status.py`
+- `tools/test_pack_test_compatibility.py`
+- `tools/test_workspace_status.py`
+- `tools/test_workspace_status_cli.py`
 
-### writes (9)
+### writes (8)
 
 - `.agents/skills/new-spec/assets/spec.md`
 - `.claude/skills/new-spec/assets/spec.md`
-- `docs/adr/0002-install-scope-per-pack-default-and-allowance.md`
 - `guides/core/how-to/write-the-contract.md`
 - `packs/core/.apm/skills/new-spec/assets/spec.md`
 - `packs/core/tests/skills/work-loop/fixtures/corpus/004-agentbundle-first-value-handoff/spec.md`
@@ -537,7 +491,7 @@ pack source that reads or writes it.
 - `packs/core/tests/skills/work-loop/fixtures/corpus/014-build-check-single-verify/spec.md`
 - `packs/core/tests/skills/work-loop/fixtures/corpus/023-author-brief-docs/spec.md`
 
-### states (23)
+### states (16)
 
 - `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/references/spec-and-plan-contract.md`
@@ -552,21 +506,13 @@ pack source that reads or writes it.
 - `.context/reviews/rfc0103-r3-adversarial.md`
 - `.context/reviews/rfc0103-r4-adversarial.md`
 - `docs/product/changelog.md`
-- `docs/rfc/0017-pluggable-api-contract-standards.md`
-- `docs/rfc/0048-autonomous-product-team-operating-model.md`
-- `docs/rfc/0048-notes/04-artifact-inventory.md`
-- `docs/rfc/0048-notes/09-gap-resolutions.md`
-- `docs/rfc/0048-notes/10-composed-end-to-end-walkthrough.md`
-- `docs/rfc/0053-the-discovery-loop.md`
-- `docs/rfc/0103-cross-artifact-reference-grammar.md`
 - `packs/core/.apm/skills/new-spec/SKILL.md`
 - `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`
 - `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md`
 
-### generated-copy (20)
+### generated-copy (18)
 
 - `.agents/skills/new-spec/assets/spec.md`
-- `.agents/skills/new-spec/scripts/explore-grounding.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
 - `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
 - `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
@@ -576,7 +522,6 @@ pack source that reads or writes it.
 - `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
 - `.agents/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
 - `.claude/skills/new-spec/assets/spec.md`
-- `.claude/skills/new-spec/scripts/explore-grounding.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
 - `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`

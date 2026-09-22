@@ -1,10 +1,10 @@
 # RFC-0103: Pointer grammar update — `<kind>:<slug>` for `Parent intent:` and `Brief:`, and `intent:` as a node kind
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-09-22
-- **Date closed:**
+- **Date closed:** 2026-09-22
 - **Decision weight:** standard
 - **Related:** [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md), [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md), [ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md), [`docs/specs/intent-reference-grammar-migration/`](../specs/intent-reference-grammar-migration/), [`guides/core/reference/product-brief-fields.md`](../../guides/core/reference/product-brief-fields.md)
 
@@ -144,9 +144,11 @@ Some surfaces **act on** the value and others merely see it, and the authoritati
 - `lint-traceability.py` reads the same field but resolves it through `resolve_endpoint`, so it needs no change of its own for D3. The three words this RFC uses for the path form's fate are not synonyms: the resolver *accepts* the value (it is well-formed and does not error), classifies its endpoint state as `unresolvable` (it names no local node), and therefore attaches it to an *external stub* rather than to the brief. The typed form resolves `local` instead, which is the edge D3 is buying.
 - `workspace_status_engine.py` reads it on the **dispatch** path, and refuses the typed form today. Its source is `packs/core/.apm/skills/workspace-status/scripts/`; the copy under `packages/agentbundle/agentbundle/_data/` is one of three byte-identical projections, and editing a projection is the error this delivery corrects elsewhere.
 
-A further set merely **parses** it. The implementing spec's derivation (its task T0) found **five** generic preamble parsers in this repository, not one — `workspace_status_engine`, `intent_shape`, `lint-spec-status`, `lint-contract-item-alignment` and `lint-adr-shape` — each compiling the same `^- \*\*…:\*\*` line shape, so each sees every preamble field including `Brief:`. Three of them mention `brief` zero times and do nothing with it: they are unaffected by D3 and carry no obligation under it. The distinction matters, because a criterion discharged against "readers" would otherwise oblige `lint-adr-shape` to accept `brief:<slug>`, which is meaningless.
+A further set merely **parses** it. Two modules in this repository compile a *generic* preamble pattern — `workspace_status_engine`'s `field_re` and `intent_shape`'s `_FIELD_LINE`, each matching a line-anchored `- **`, a captured name, then `:**`. Both therefore see every preamble field including `Brief:`; only the first acts on it. `intent_shape` names no pointer field at all, so it is unaffected by D3 and carries no obligation under it. The distinction matters because a criterion discharged against "readers" would otherwise oblige a parser that does nothing with the value to accept `brief:<slug>`.
 
-That five such parsers exist, and that none of them names the field it parses, is the strongest evidence available for this RFC's central claim: a pointer field's consumer set cannot be established by searching for the field's name. The derivation also found a sixth consumer, `intent_corpus_lint`, which reaches `Parent intent:` only through a dynamic `_load_sibling("intent_shape", …)` — invisible to a name search and to a static import scan alike.
+The consumer that makes the point best is `intent_corpus_lint`, which reaches `Parent intent:` only through a dynamic `_load_sibling("intent_shape", …)`, iterates the returned pairs, and names no field. It is invisible to a name search and to a static import scan alike. Together with the dispatch reader above — which parses `Brief:` through a pattern that never contains the word — these are the evidence for this RFC's premise: a pointer field's consumer set cannot be established by searching for the field's name.
+
+An earlier revision of this paragraph claimed five such parsers, adding `lint-spec-status`, `lint-contract-item-alignment` and `lint-adr-shape`. That was wrong, and wrong in this RFC's own characteristic way: the derivation behind it tested for the pattern's opening and closing fragments *independently*, so a file with `^- \*\*Acceptance Criteria:\*\*` in one regex and `\*\*Status:\*\*` in another satisfied both. Those three parse named fields, not arbitrary ones. The count is two.
 
 **The dispatch reader is real, and the guide was right about it.** The parenthetical this supersedes — "a bare slug fails reconciliation and blocks dispatch" — is an accurate description of live behaviour, not a stale claim about another surface. The chain is four steps, and none of them names the field, which is why a search for the string `Brief` in that module does not find it:
 
@@ -252,7 +254,7 @@ A **collision slug** is a slug that more than one node id ends in, so a bare poi
 - `guides/core/reference/product-brief-fields.md` — the `Brief:` field row is amended by that spec's task T6, which is where the supersession in D3 lands.
 - A later decision and spec for `Contract:` and `Discovery:`, answering what kind their targets carry — the versioned `contract:<name>@<version>` shape for the first, and a kind for the `docs/product/research/` targets of the second — and sweeping their 38 and 25 values once it can.
 
-## Amendments
+## Errata
 
 - 2026-09-22: corrected D3 while in flight. The draft asserted that
   `workspace_status_engine.py` does not read the spec's `Brief:` header and that
@@ -293,3 +295,10 @@ A **collision slug** is a slug that more than one node id ends in, so a bare poi
   "accepted", "unresolvable" and "external stub", after a fresh-reader review
   found the Reviewer brief unusable without repository context — "ladder rung"
   used 29 lines before anything defines it, "collision slug" 150 lines before.
+- 2026-09-22: corrected "five generic preamble parsers" to two. The figure came
+  from a derivation that tested the pattern's opening and closing fragments
+  independently, so files parsing *named* fields were counted as parsing
+  arbitrary ones. `workspace_status_engine` and `intent_shape` are the two. The
+  claim was this record's headline evidence for its own premise, which is why
+  the correction is recorded rather than quietly applied.
+

@@ -38,13 +38,11 @@ candidates on the author's behalf.
 - `intent:` becomes a recognized graph node kind — the intent files under
   `docs/product/intents/` that no ladder rung already claims
 - The canonical `Brief:` form moves from a repository-relative path to
-  `brief:<slug>` — five surfaces that state or stamp the old form
-  (`guides/core/reference/product-brief-fields.md`,
-  `guides/core/how-to/write-the-contract.md`, the `new-spec` spec template,
-  `new-spec`'s `references/spec-and-plan-contract.md`, and
-  `author-delivery-brief`'s `SKILL.md`), plus `lint-brief-coverage.py`'s join
-  and the dispatch provenance check in `workspace-status`'s
-  `workspace_status_engine.py`
+  `brief:<slug>` — every surface AC-0019's derivation labels as writing or
+  stating the old form, plus `lint-brief-coverage.py`'s join and the dispatch
+  provenance check in `workspace-status`'s `workspace_status_engine.py`. No
+  count is given here: three successive revisions each stated a total the next
+  round falsified
 - Slug identity becomes the `Slug:` field value rather than a filename stem —
   node-id derivation for every `intent:` node
 - A locally-resolving producer pointer outranks an earlier external-only one —
@@ -127,8 +125,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   the test. It is derived by behaviour — resolving each field's readers through
   the functions that consume it, and each writer by the form it emits — because
   the three surfaces this delivery missed (a generic preamble parser, a
-  four-copy projection set, and fifteen templates that emit the form without
-  reading it) are each invisible to a search for the field's name. AC-0021 is a
+  four-copy projection set, and the templates that emit the form without
+  reading it) are each invisible to a search for the field's name. The
+  inventory reports the counts; this section names the classes, because a
+  count written here goes stale the moment a surface is added. AC-0021 is a
   one-line assertion over the brief corpus rather than a fixture, because the
   property it pins is a fact about real files.
 - **Corpus sweep completeness (AC-0008):** goal-based check. The outcome is an
@@ -142,6 +142,18 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   stamp the field, and the coverage join; and TDD for the join itself, whose
   implementation is separate from `resolve_endpoint` and which a green
   traceability suite therefore does not cover.
+- **Confinement of the typed form (AC-0022):** TDD. The boundary is the
+  resolved briefs directory, not the repository root, so the decisive fixture is
+  a symlink landing elsewhere *inside* the repository — the case repo-root
+  confinement passes and this criterion must fail.
+- **Optional-field handling (AC-0024):** TDD. An omitted, blank, comment-only or
+  `none` header means absence. It shares no group with AC-0016 because the
+  failure is opposite in sign: AC-0016 fails by refusing what it should admit,
+  AC-0024 by refusing what it should ignore, and the second would break every
+  spec that legitimately has no brief.
+- **Cohort derivation order (AC-0023):** goal-based check. The cohort is derived
+  after recognition, and the check is that the derived count matches what the
+  post-recognition corpus holds rather than the pre-recognition figure.
 - **Dispatch acceptance and its refusals (AC-0016, AC-0017, AC-0018):** TDD.
   `workspace_status_engine.py` reads the `Brief:` header through a generic
   preamble parser (`_parse_preamble_fields`), lands it in the artifact's
@@ -171,10 +183,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   case today, which is why it needs a fixture rather than a corpus check.
 - **Projection consistency (AC-0011):** goal-based check. A byte comparison
   across the three copies is the whole test; there is no behaviour to drive.
+- **Orphan non-increase (AC-0025):** goal-based check. The figure is a
+  before-and-after comparison against what T4 recorded, not a threshold: the
+  `--strict` invocation exits 1 on both sides, so an exit-code assertion would
+  say nothing and only the delta carries information.
 - **The lint's behaviour on the real repository (AC-0012):** visual / manual
   QA, exercised end to end. `lint-traceability` is a command a maintainer runs,
   so the evidence is its actual stdout, stderr, and exit code over the
-  repository rather than a unit gate standing in for them.
+  repository rather than a unit gate standing in for them. Running it is also
+  what settles the criterion: the earlier "exits 0 under `--strict`" form was
+  wrong about live behaviour and survived nine review rounds, every one of
+  which read the wording and none of which ran the command.
 
 ## Acceptance Criteria
 
@@ -237,8 +256,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       specs whose `Brief:` value is `brief:<slug>`.
 - [ ] **AC-0011.** `lint-traceability.py` is byte-identical across its
       `packs/core/.apm/`, `.agents/`, and `.claude/` copies.
-- [ ] **AC-0012.** `python packs/core/.apm/skills/work-loop/scripts/lint-traceability.py
-      --root . --strict` exits 0 over the repository.
+- [ ] **AC-0012.** `lint-traceability.py --root .` exits 0 over the repository.
+- [ ] **AC-0025.** `lint-traceability.py --root . --strict` reports no more
+      structural orphans after the change than T4 recorded before the sweeps.
+      It exits 1 either way, on pre-existing orphans this delivery did not
+      cause; non-increase is the property this change can own.
 - [ ] **AC-0013.** A producer pointer resolving to a local node takes the
       consumer's in-edge in preference to an earlier producer pointer that
       resolves only to an external reference.
@@ -282,8 +304,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Follow-ons
 
-- eugenelim: recorded in `notes/verification-ledger.md` § Follow-ons until a
-  `work-intake` record exists — migrate the 38 `Contract:` and 25 `Discovery:`
+- eugenelim: **no durable record yet — to be created through `work-intake`
+  before this spec ships.** Migrate the 38 `Contract:` and 25 `Discovery:`
   values to the grammar this spec establishes. RFC-0103 deliberately leaves
   those two fields ungoverned — `Contract:` ids carry a version and some
   `Discovery:` targets have no registered kind at all — so their migration needs
@@ -295,12 +317,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   these report `unresolvable` rather than `dangling` and are invisible today.
   The count of eight recorded in an earlier revision did not reproduce under any
   stated method and is withdrawn; T0's inventory supplies the real figure.
-- eugenelim: same record — `author-delivery-brief`'s `continue`-mode stamping
-  instruction, if the template change does not already reach it.
 
 ## Assumptions
 
-- Technical: whether attaching the 34 newly local `Brief:` edges changes
-  `lint-traceability`'s orphan, reachability, or cycle verdict — it changes
-  which tasks the plan's sweep task must also repair (settled by: running the
-  changed resolver over the corpus, which is a plan task)
+- none. The one entry this spec carried — whether the sweep changes
+  `lint-traceability`'s orphan verdict — was settled by measurement on
+  2026-09-22 and moved out: the answer and its mechanism are in
+  `notes/verification-ledger.md`, and the obligation it implies is AC-0012.
