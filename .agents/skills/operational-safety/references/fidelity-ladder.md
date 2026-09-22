@@ -190,6 +190,9 @@ is intentionally harness-neutral. Choose the emulator that fits your license pos
 
 When a build pack ships a fidelity-ladder scaffold reference — Testcontainers configuration
 templates, LocalStack bootstrap scripts, Docker Compose service templates — the
-`work-loop` skill's ladder summary section should link to it. This module is the canonical
-level-descriptor reference; the build pack's scaffold reference extends it with
-tool-specific setup detail.
+`work-loop` skill's conditional-reference routing row for this module should link to it as
+well. This module is the canonical level-descriptor reference; the build pack's scaffold
+reference extends it with tool-specific setup detail.
+
+**Precedence when both exist.** Check the installed build pack first and use its scaffold
+detail; fall back to this module's technology examples when no build pack is installed.

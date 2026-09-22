@@ -985,6 +985,20 @@
         "Response does NOT capture it as a `work-item`, because it is not blocked",
         "Response does NOT rely on a 'before the session ends' bound"
       ]
+    },
+    {
+      "id": "fidelity-ladder-is-conditionally-routed",
+      "prompt": "My plan task needs local-infra-equivalents and I want the fidelity ladder \u2014 the levels, and how high to push before the local budget runs out. I read the whole `work-loop` SKILL.md and there is no ladder section in it. Is the ladder gone?",
+      "expected_output": "No. The ladder is not in the `work-loop` entrypoint by design; it is reached through `## Conditional-reference routing`, whose row `A task needs local-infra-equivalents` points at the `operational-safety` skill's `fidelity-ladder` reference module. Your task fires that predicate, so load the module now: it carries the seven-level ladder and per-level descriptors, the budget heuristic \"Push up the ladder as high as a sub-5-minute local budget tolerates\", the outer-loop three-dimension qualification test, the isolation provability classification, and the build-pack handoff with its precedence rule \u2014 check an installed build pack first, and fall back to the module's technology examples when none is installed. The routing table is load-on-predicate, so an entrypoint with no ladder section means the ladder is routed, not removed.",
+      "assertions": [
+        "Response says the ladder still exists and is reached through the conditional-reference routing table",
+        "Response names the `operational-safety` `fidelity-ladder` reference module as the destination",
+        "Response says the predicate `A task needs local-infra-equivalents` fires for this task",
+        "Response gives the sub-5-minute local budget heuristic",
+        "Response states the build-pack precedence: installed build pack first, module technology examples as fallback",
+        "Response does NOT claim the ladder was deleted or that the guidance was lost",
+        "Response does NOT tell the reader to look for a ladder section in `work-loop` SKILL.md"
+      ]
     }
   ]
 }

@@ -891,21 +891,6 @@ For unattended execution, load [Unattended-loop eligibility](references/unattend
 - **Grepping top-level keys in structured config.** `grep '^key' file.toml` matches `key` under every section, not just the top level — the same trap applies to YAML and JSON. Parse structured config with its native library rather than using line-pattern greps.
 - **Judging a gate through `tail` or `grep`.** `<gate> | tail -2` reports the *filter's* exit code, not the gate's, and truncates away the per-item errors. Run every gate unfiltered and read its exit code.
 
-## Fidelity ladder
-
-When a task needs local-infra-equivalents, push up the ladder as high as a sub-5-minute local budget tolerates:
-
-| Tier | Levels | Budget | Notes |
-|------|--------|--------|-------|
-| Always in-loop | L0 (in-memory fake), L1 (contract test) | < 1–10 s | Never skip |
-| Inner-loop ceiling | L2 (Docker Compose), L3 (Testcontainers / LocalStack) | < 60 s – 3 min | Right ceiling for most services |
-| Outer-loop territory | L4 (k8s namespace), L4+ (vCluster), L5 (cloud sandbox) | minutes+ | CI-managed |
-| Human-supervised | L6 (staging / pre-prod) | n/a | Never autonomous-zone |
-
-When a dependency can't be represented at L0–L3 within budget, defer the integration test to CI's ephemeral environment rather than cutting the test or inflating the budget. Full specification — per-level coverage, isolation gaps, the three-dimension outer-loop qualification test, and the provability classification — in the `operational-safety` skill's `fidelity-ladder` reference module.
-
-Build-pack handoff: check installed build pack first; fall back to the reference module's technology examples if none is installed.
-
 ## Conditional-reference routing
 
 Load when the predicate fires; don't load speculatively.
@@ -915,6 +900,7 @@ Load when the predicate fires; don't load speculatively.
 | Deciding direct-light eligibility, or light mode selected | [`references/light-mode.md`](references/light-mode.md) |
 | Task picks Visual / manual QA mode | [`references/verification-modes.md`](references/verification-modes.md) |
 | Task is infra-flavored | [`references/infra-verification.md`](references/infra-verification.md) |
+| A task needs local-infra-equivalents | [`fidelity-ladder`](../operational-safety/references/fidelity-ladder.md) |
 | TDD mode, need red stub mechanics | [`references/tdd-stubs.md`](references/tdd-stubs.md) |
 | Pre-existing gate failure suspected | [`references/pre-flight-failures.md`](references/pre-flight-failures.md) |
 | Pre-EXECUTE review full conditions or `approve-plan` gate | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
