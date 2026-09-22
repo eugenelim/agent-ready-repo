@@ -28,7 +28,7 @@ The pack runs in four modes — **create**, **retrofit**, **audit**, or **verify
 
 **Create a new surface from a design handoff**
 Describe the surface and point to the design brief or screen spec.
-Returns a genre-route pre-flight (pick `conversion-design`, `documentation-design`, or `analytical-design` if `experience-design` is co-installed), then implement through token setup, semantic HTML, base CSS, responsive, states, a11y, and performance gates. Result: committed source files + evidence manifest. Nothing is committed until you approve.
+Returns a genre-route pre-flight (pick the genre skill matching the surface — `conversion-design`, `documentation-design`, `analytical-design`, `interaction-design` and the rest — if `experience-design` is co-installed), then implement through token setup, semantic HTML, base CSS, responsive, states, and a11y. Result: committed source files + evidence manifest. Nothing is committed until you approve.
 
 **Retrofit an existing surface**
 Say "retrofit this surface to pass WCAG 2.2 AA" or "bring this component up to the design system tokens."
@@ -40,7 +40,7 @@ Returns structured findings against a WCAG 2.2 AA target with severity (blocker 
 
 **Verify a surface before shipping**
 Say "verify this surface before the release."
-Runs the full gate sequence: lint, typecheck, Playwright baseline, a11y scan, CWV measurement. Returns a pass/fail verdict per gate and a completed evidence manifest you can attach to the release record. Read-only — no writes.
+Runs the five-gate sequence: structural HTML validation, accessibility audit, CSS token enforcement (when stylelint is already configured), the visual QA checklist, and rendered-page inspection. Returns a result per gate, naming the missing capability where a gate could not run, and a completed evidence manifest you can attach to the release record. Your source files are untouched; the run writes the evidence manifest and the inspection captures it records.
 
 ---
 
@@ -49,12 +49,11 @@ Runs the full gate sequence: lint, typecheck, Playwright baseline, a11y scan, CW
 ```text
 Build the notification panel from this design brief: ...
 
-  ● Genre route: documentation-design (co-installed XD detected)
+  ● Genre route: interaction-design (co-installed XD detected)
   ● Token audit: DS tokens loaded — 3 colour tokens, 1 spacing token
   ● Component contract: NotificationPanel(items, onDismiss, maxVisible)
   ● Implement: HTML structure ✓ → base CSS ✓ → responsive ✓ → states ✓
   ● A11y check: keyboard nav ✓ | focus trap ✓ | ARIA list ✓
-  ● Performance: LCP 0.8s ✓ | CLS 0.01 ✓ | INP 90ms ✓
 
   Evidence manifest written to docs/evidence/notification-panel.md
 

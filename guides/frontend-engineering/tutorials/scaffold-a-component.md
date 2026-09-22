@@ -289,7 +289,7 @@ Key rules from the token block and craft rules:
 
 ## Step 9. Run the GATES
 
-After the HTML and CSS are written, run the four GATES in order:
+After the HTML and CSS are written, run the five GATES in order:
 
 **Gate 1 — HTML validation:**
 ```bash
@@ -323,6 +323,11 @@ Output should return only the `:root` token definition block.
 - [ ] Rendered-page inspection run and its observations recorded — a screenshot
       filename is not an observation. See
       [Inspect the rendered page](../how-to/inspect-the-rendered-page.md)
+
+**Gate 5 — Rendered-page inspection:**
+
+Run it and record what you saw — the result state and the verdict, not a list of
+filenames: [Inspect the rendered page](../how-to/inspect-the-rendered-page.md).
 
 ---
 
