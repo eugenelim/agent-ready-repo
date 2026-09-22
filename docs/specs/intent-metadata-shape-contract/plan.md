@@ -73,7 +73,7 @@ each kind.
 | Current product truth — both intent templates | T7 | Both renderers' output fed to the validator in test | Neither template seeds a refused shape |
 | Interface compatibility — `intent-fields-and-modes.md` | T9 | The field table rewritten in the four tiers | Every field the validator decides on appears; no orphan rows |
 | Maintainer procedure — `guides/product-engineering/how-to/` | T9 | A how-to per refusal kind | One real refusal of each kind resolved by following it |
-| Release history — two `CHANGELOG.md` | T9 | One entry per pack | Entries under the released versions |
+| Release history — `docs/product/changelog.md` | T9 | One free-standing `## [<pack>][<version>]` entry per pack beneath `[Unreleased]` | Both entries under the versions this change sets |
 | Reusable learning — `notes/verification-ledger.md` | T1, T3 | The measured field inventory and the three distinct `Authority` usages | The counts the Follow-ons rest on are recorded, all three `Authority` usages distinguished |
 
 ## Design (LLD)
@@ -318,9 +318,13 @@ directory from the repository root.
   including the authority modes that change the rendered body — AC-0018.
 - `frame-intent`'s template with every placeholder resolved to a representative
   value is accepted, and the unresolved asset is not corpus input — AC-0018.
-- The existing `intake-intent` admission suite runs unamended and green, which
-  is how the ADR-0098 D2 controls are evidenced as preserved rather than
-  re-specified.
+- The existing `intake-intent` admission suite stays green, with its
+  confinement, provenance and authority-transfer assertions unedited — that is
+  how the ADR-0098 D2 controls are evidenced as preserved rather than
+  re-specified. Two of its assertions move with the contract and only those
+  two: the pin on `level`'s optional default, which ADR-0121 D3 removes, and
+  the `## Owner` heading, which becomes a preamble field. Editing any other
+  assertion in that suite is out of contract.
 
 **Approach:**
 - Owner moves into the preamble here, so the renderer's `## Owner` section and
@@ -369,7 +373,7 @@ passes once it is removed.
   a changed decision. ADR-0111 still takes its erratum, and the field
   contract's own decision record stays deferred — see the spec's `Follow-ons`.
 
-**Touches:** guides/product-engineering/reference/intent-fields-and-modes.md, guides/product-engineering/how-to/, packs/core/CHANGELOG.md, packs/product-engineering/CHANGELOG.md
+**Touches:** guides/product-engineering/reference/intent-fields-and-modes.md, guides/product-engineering/how-to/, docs/product/changelog.md
 
 **Done when:** the parity check is green and the how-to resolves one refusal of
 each kind.
@@ -431,3 +435,8 @@ ledger records the before and after counts.
   settled
 - 2026-09-21: spec approved by eugenelim (post-amendment)
 - 2026-09-21: plan approved by eugenelim (post-amendment)
+- 2026-09-21: contract amended by eugenelim — T7's Tests restated because
+  ADR-0121 D3 makes an unamended admission suite impossible, naming the two
+  assertions that may move and forbidding any other; T9's Touches rehomed to
+  `docs/product/changelog.md`
+- 2026-09-21: plan approved by eugenelim (second amendment)
