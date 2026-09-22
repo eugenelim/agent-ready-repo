@@ -219,3 +219,34 @@ a boundary has no addressing guarantee. The remedy is to cite the obligation by
 name and the spec by path, dropping the number. No gate will catch a regression,
 so the property to preserve is that a reader resolving a citation in its own
 directory cannot get a coherent wrong answer.
+
+# Release history rehomed to the existing convention — 2026-09-21
+
+The spec's Release-history Durable Output named "each pack's `CHANGELOG.md`",
+and no pack has one: the only `CHANGELOG.md` files in the repository are
+`packages/agentbundle/`, `packages/credbroker/` and
+`packages/jsonl-otlp-exporter/`. Building two new per-pack changelogs would
+have invented a convention rather than followed one.
+
+The existing convention is `docs/product/changelog.md`. Its own header states
+the rules: an entry is owed in the same change that bumps a released artifact's
+version; a released section is free-standing and directly beneath
+`[Unreleased]`, written `## [<artifact>][<version>] — YYYY-MM-DD` at the top
+level, newest first; a versioned entry nested under `[Unreleased]` is
+permanently invisible to the `/now/` projection; and exactly one blank line
+sits above and below every heading, which `tools/test_build_site_routing.py`
+checks on any pull request into `main`. Both packs already release this way —
+`## [core][2.26.28]` and `## [product-engineering][0.13.15]` are current
+entries.
+
+Rehomed on the owner's direction (2026-09-21). The Durable Outputs table is
+working material under the spec's own contract note, so this is a correction in
+place rather than an amendment.
+
+**Still owed at T9:** that task's `Touches` field names the two non-existent
+pack changelogs. `Touches` is a pinned plan field, so correcting it is
+controlled-amendment work and is folded into T9 rather than taken as a second
+amendment for one path. Nothing gates on `Touches` mechanically — `loop-cohort`
+reads it only for a wave disjointness prediction it labels "never a greenlight",
+and `explore-grounding` reads it as an exploration seed — so the pin is
+substantive rather than enforced.
