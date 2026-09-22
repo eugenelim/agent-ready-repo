@@ -1,7 +1,7 @@
 # Plan: Intent metadata shape contract and its two enforcement points
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py`
   (the sibling corpus-walking script this one sits beside, and the source of the
   refuse-rather-than-guess posture); `packs/core/tests/skills/work-intake/test_intent_ordinal.py`

@@ -1,6 +1,6 @@
 # Spec: Intent metadata shape contract and its two enforcement points
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111; ADR-0121
@@ -181,67 +181,67 @@ token, so a reviewer asked to resolve a pointer would refuse every intent
 carrying one. AC-0012 and AC-0026 are a closed biconditional over this set; no
 third criterion enumerates a further silence.
 
-- [ ] **AC-0001.** The corpus lint refuses a live intent whose preamble omits any
+- [x] **AC-0001.** The corpus lint refuses a live intent whose preamble omits any
       of exactly `Owner:`, `Slug:`, `Level:`, `Status:`.
-- [ ] **AC-0002.** A `Status:` value outside `Draft`, `Accepted`, `Fulfilled`,
+- [x] **AC-0002.** A `Status:` value outside `Draft`, `Accepted`, `Fulfilled`,
       `Withdrawn`, `Cancelled`, and `Superseded by ` followed by a non-empty
       slug, is refused.
-- [ ] **AC-0021.** The corpus lint refuses a `Superseded by` slug that equals
+- [x] **AC-0021.** The corpus lint refuses a `Superseded by` slug that equals
       no live intent's `Slug:` value, naming both the intent and the unresolved slug.
-- [ ] **AC-0022.** A value outside its field's closed vocabulary is refused, at
+- [x] **AC-0022.** A value outside its field's closed vocabulary is refused, at
       each of `Kind:` (`outcome`, `opportunity`), `Scale:` (`app`,
       `business-unit`) and `Maturity:` (`greenfield`, `brownfield`).
-- [ ] **AC-0003.** `Level:` is never refused for its value.
-- [ ] **AC-0004.** A field value enclosed in backticks is accepted wherever the
+- [x] **AC-0003.** `Level:` is never refused for its value.
+- [x] **AC-0004.** A field value enclosed in backticks is accepted wherever the
       same value bare is accepted.
-- [ ] **AC-0034.** A field value carrying a trailing HTML comment is accepted
+- [x] **AC-0034.** A field value carrying a trailing HTML comment is accepted
       wherever the same value without it is accepted, including where the value
       is also enclosed in backticks. A value that is empty once the stage has
       run is absent, not malformed.
-- [ ] **AC-0005.** `De-risked:` and `Shaping-reviewed:` each carry an ISO 8601
+- [x] **AC-0005.** `De-risked:` and `Shaping-reviewed:` each carry an ISO 8601
       date or the literal `no`; any other value is refused.
-- [ ] **AC-0023.** The lint's report carries one line per intent stating, for
+- [x] **AC-0023.** The lint's report carries one line per intent stating, for
       each of `De-risked:`, `Shaping-reviewed:` and `Decomposed:`, whether the
       field is absent or carries the literal `no`. Absence alone does not change
       the exit code.
-- [ ] **AC-0006.** `Decomposed:` carries the literal `no`, or an ISO 8601 date
+- [x] **AC-0006.** `Decomposed:` carries the literal `no`, or an ISO 8601 date
       followed by exactly one terminus from `children`, `brief`, `spec`,
       `direct-light`; any other value is refused.
-- [ ] **AC-0007.** An intent whose `Decomposed:` terminus is `direct-light` and
+- [x] **AC-0007.** An intent whose `Decomposed:` terminus is `direct-light` and
       whose `## Decomposition` section carries no checkbox item is refused.
-- [ ] **AC-0008.** Every checkbox item under a `direct-light` `## Decomposition`
+- [x] **AC-0008.** Every checkbox item under a `direct-light` `## Decomposition`
       carries non-empty text.
-- [ ] **AC-0009.** A preamble field named `Type`, `Raised`, `Stage`, `Parent`,
+- [x] **AC-0009.** A preamble field named `Type`, `Raised`, `Stage`, `Parent`,
       `Source` or `Authority` is refused, and a preamble field named outside
       both that set and the contract is accepted.
-- [ ] **AC-0025.** A preamble field occurring more than once is refused, naming
+- [x] **AC-0025.** A preamble field occurring more than once is refused, naming
       the field and the intent.
-- [ ] **AC-0011.** A field-shaped line below the preamble block does not satisfy
+- [x] **AC-0011.** A field-shaped line below the preamble block does not satisfy
       or violate any obligation of that field.
-- [ ] **AC-0012.** The shaping reviewer's intent mode emits `MALFORMED(shape)`
+- [x] **AC-0012.** The shaping reviewer's intent mode emits `MALFORMED(shape)`
       for a preamble that fails any packet-decidable criterion, except where
       `MALFORMED(owner)` is emitted, which suppresses it.
-- [ ] **AC-0026.** The shaping reviewer's intent mode emits no
+- [x] **AC-0026.** The shaping reviewer's intent mode emits no
       `MALFORMED(shape)` for a preamble that satisfies every packet-decidable
       criterion.
-- [ ] **AC-0030.** No sentence anywhere in the shaping reviewer's text states a
+- [x] **AC-0030.** No sentence anywhere in the shaping reviewer's text states a
       count of intent-mode conditions. An ordinal label naming one condition,
       such as `Condition 4`, is not a count. Its `MALFORMED(owner)` suppression
       sentence suppresses every other condition rather than a fixed set or a
       number.
-- [ ] **AC-0027.** The shaping reviewer's six existing intent-mode tokens are
+- [x] **AC-0027.** The shaping reviewer's six existing intent-mode tokens are
       unchanged.
-- [ ] **AC-0013.** The corpus lint names every non-conforming intent together
+- [x] **AC-0013.** The corpus lint names every non-conforming intent together
       with the field at fault.
-- [ ] **AC-0014.** The corpus lint exits non-zero when any intent is
+- [x] **AC-0014.** The corpus lint exits non-zero when any intent is
       non-conforming.
-- [ ] **AC-0015.** The corpus lint exits non-zero, rather than clean, when it
+- [x] **AC-0015.** The corpus lint exits non-zero, rather than clean, when it
       could not fully read the corpus.
-- [ ] **AC-0028.** The gate that runs the corpus lint over
+- [x] **AC-0028.** The gate that runs the corpus lint over
       `docs/product/intents/` fails when the lint exits non-zero.
-- [ ] **AC-0016.** An intent the corpus lint accepts is still refused by the
+- [x] **AC-0016.** An intent the corpus lint accepts is still refused by the
       shaping review when it fails any of that review's other conditions.
-- [ ] **AC-0017.** The corpus lint validates every file in
+- [x] **AC-0017.** The corpus lint validates every file in
       `docs/product/intents/`, routing each to the live-intent contract or to
       the tombstone contract by the partition rule in
       `docs/specs/intent-renumber-and-reissue/spec.md`, and validating the
@@ -249,9 +249,9 @@ third criterion enumerates a further silence.
       cited by name and by path rather than by criterion number, because a bare
       number resolves inside this directory, where those numbers name unrelated
       criteria.
-- [ ] **AC-0033.** The corpus lint exits zero over the real
+- [x] **AC-0033.** The corpus lint exits zero over the real
       `docs/product/intents/`.
-- [ ] **AC-0018.** A rendered intent produced by `intake-intent`'s renderer, and
+- [x] **AC-0018.** A rendered intent produced by `intake-intent`'s renderer, and
       `frame-intent`'s template with every placeholder resolved to a
       representative value, each satisfy the contract. The template asset itself
       is not corpus input to the lint.
