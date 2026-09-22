@@ -1064,10 +1064,20 @@ class ArxivRetrieverConformance(unittest.TestCase):
         to run, and two acceptance-criterion identifiers reached the script's
         comments in the gap after one was last run.
 
-        Scoped to the surfaces this skill ships. That scope is deliberate: the
-        same rule permits an illustrative ordinal that teaches a reader about
-        their own artifacts, so a repository-wide assertion would be wrong,
-        and judging that intent is not a test's job.
+        Deliberately stricter than the rule it serves, and the difference is
+        worth stating. The rule permits an illustrative ordinal that teaches a
+        reader about their own artifacts, and says to judge what an ordinal
+        points at rather than the number. No regex can judge that. So this
+        checks something narrower and decidable: these particular surfaces
+        carry NO ordinal of any kind. They can afford it — none teaches with
+        one, and each has portable phrasing available instead.
+
+        The consequence is a deliberate false positive. An author who later
+        needs a genuine illustrative ordinal on one of these surfaces should
+        exempt that surface here, with the reason, rather than reword around a
+        guard that was never the rule. What this test proves is the absence of
+        ordinals, not the absence of internal citations; the declared
+        three-surface check in the verification ledger is what covers the rule.
         """
         canonical = re.compile(
             r"\b(RFC|ADR)-0[0-9]{3}\b"
