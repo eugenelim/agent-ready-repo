@@ -20,11 +20,14 @@ anchor makes every extraction `None`, and "one distinct value" over an empty
 set passes vacuously (answered by asserting each extraction is non-`None`
 before comparing).
 
-C1 and C2 are the contract; the spec pins their wording and a roster test
-binds the constants below to it, because a canonical constant that only the
-copies agree with proves nothing. C3-C7 are working material: this file is
-their only pin, which is why their assertions live here and no acceptance
-criterion names them.
+C1 and C2 are the contract; C3-C7 are working material. All seven are pinned
+here and nowhere else. The roster test that compared these constants against
+`docs/specs/ride-along-admission-test/spec.md` was removed: that spec is a
+frozen historical record, so pinning live constants to it also froze the
+shipped clauses, leaving a correct repair no landing place. The cost is named
+rather than implied — an identical reword applied to every site *and* to the
+constants below now passes, because no source outside this file and its sites
+asserts the wording.
 
 Three blind spots, named rather than implied: the comparison normalises
 whitespace, so it cannot see a rewrap; the fenced-block check recognises
@@ -47,6 +50,7 @@ ADVERSARIAL = APM_ROOT / "agents" / "adversarial-reviewer.md"
 SUPERVISOR_MODE = APM_ROOT / "skills" / "work-loop" / "references" / "supervisor-mode.md"
 EVALS_JSON = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
 BUNDLED_FIXES = APM_ROOT / "skills" / "work-loop" / "references" / "bundled-fixes.md"
+CAPTURE_REFERENCE = APM_ROOT / "skills" / "work-loop" / "references" / "capture.md"
 
 # AC23's guide check is not here. It reads `guides/core/explanation/core-pack.md`,
 # which sits above this pack, and `tools/lint-pack-test-boundary.py` forbids a
@@ -120,12 +124,12 @@ C4 = (
     "discarded. What a `work-item` capture must carry, what the razor "
     "checks, and what a refusal tells the author are in [Close-time "
     "work-item "
-    "branch](references/work-item-capture.md#what-a-work-item-capture-must-carry). "
+    "branch](work-item-capture.md#what-a-work-item-capture-must-carry). "
     "Before any `work-item` is written, one cold reasoning check runs "
     "per declined item, over at most twelve per close; an unavailable, "
     "timed-out, or unrecognized check refuses rather than admits — see "
     "[The reasoning "
-    "check](references/work-item-capture.md#the-reasoning-check). A "
+    "check](work-item-capture.md#the-reasoning-check). A "
     "note that names no defect is done once the seam has taken it, and "
     "discarded if it had nothing for the seam either."
 )
@@ -167,13 +171,18 @@ C4_CLOSE = "discarded if it had nothing for the seam either."
 C5_OPEN = "A captured item carries its discriminator:"
 C5_CLOSE = "and capturing a ready-now item is a loss."
 
+# The `## ` heading in `capture.md` that hosts C4 and C5. `_section`
+# bounds a section by the next `^## ` line, so the destination must be a
+# top-level section heading, not a `###` one.
+CAPTURE_HEADING = "Capturing and routing a note"
+
 # § Host markers, verbatim.
 HOST_ROWS: tuple[tuple[Path, str, tuple[str, ...]], ...] = (
     (SKILL, "**Bundled-fixes carve-out.**", ("C1", "C2")),
     (IMPLEMENTER, "- **One task:**", ("C1", "C2", "C3")),
     (ADVERSARIAL, "4. **Scope.**", ("C1", "C2", "C3")),
     (SUPERVISOR_MODE, "\"Bundled fixes authorized per the carve-out in", ("C1", "C2", "C3")),
-    (SKILL, "## Capture", ("C4", "C5")),
+    (CAPTURE_REFERENCE, f"## {CAPTURE_HEADING}", ("C4", "C5")),
     (IMPLEMENTER, "**Bundled fixes:**", ("C6",)),
     (SUPERVISOR_MODE, "**Lift `Bundled fixes:` into the PR body.**", ("C7",)),
 )
@@ -598,7 +607,7 @@ def test_decide_row_disposition_sentence() -> None:
 
 
 def test_capture_section_routing_bullet() -> None:
-    """C4 equals the clause `SKILL.md` ships, end to end.
+    """C4 equals the clause `references/capture.md` ships, end to end.
 
     Containment was the earlier form and could not see a truncated tail: a
     `C4` missing its final character is still a substring of the section, and
@@ -607,11 +616,15 @@ def test_capture_section_routing_bullet() -> None:
     section at the same open and close literals and comparing for equality is
     what makes a short clause red.
     """
-    section = _section(_text(SKILL), "Capture")
-    assert section is not None, "SKILL.md has no '## Capture' section"
+    section = _section(_text(CAPTURE_REFERENCE), CAPTURE_HEADING)
+    assert section is not None, (
+        f"capture.md has no '## {CAPTURE_HEADING}' section"
+    )
     flat = re.sub(r"\s+", " ", section)
     start = flat.find(C4_OPEN)
-    assert start != -1, "the '## Capture' section has no scratch-note bullet"
+    assert start != -1, (
+        f"the '## {CAPTURE_HEADING}' section has no scratch-note bullet"
+    )
     end = flat.find(C4_CLOSE, start)
     assert end != -1, (
         "the scratch-note bullet does not reach C4's closing sentence; the "
@@ -619,19 +632,23 @@ def test_capture_section_routing_bullet() -> None:
     )
     shipped = flat[start : end + len(C4_CLOSE)]
     assert shipped == C4, (
-        "the '## Capture' section's scratch-note bullet does not read exactly "
-        f"C4\nshipped: {shipped!r}\nC4:      {C4!r}"
+        f"the '## {CAPTURE_HEADING}' section's scratch-note bullet does not "
+        f"read exactly C4\nshipped: {shipped!r}\nC4:      {C4!r}"
     )
 
 
 def test_capture_section_economics() -> None:
-    section = _section(_text(SKILL), "Capture")
-    assert section is not None, "SKILL.md has no '## Capture' section"
+    section = _section(_text(CAPTURE_REFERENCE), CAPTURE_HEADING)
+    assert section is not None, (
+        f"capture.md has no '## {CAPTURE_HEADING}' section"
+    )
     flat_section = re.sub(r"\s+", " ", section)
-    assert C5 in flat_section, "the '## Capture' section does not contain C5"
+    assert C5 in flat_section, (
+        f"the '## {CAPTURE_HEADING}' section does not contain C5"
+    )
     assert "otherwise discard it" not in flat_section, (
-        "the '## Capture' section still contains the retired 'otherwise "
-        "discard it' phrase"
+        f"the '## {CAPTURE_HEADING}' section still contains the retired "
+        "'otherwise discard it' phrase"
     )
 
 

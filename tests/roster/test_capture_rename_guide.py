@@ -16,28 +16,28 @@ step-level `if:` means the named step never runs and the failure is reported
 under the bulk step's name instead. AC24 is that ordering, not the guide's
 content.
 
-`test_pinned_clauses_match_the_spec` (AC3) carries a third, unrelated
-responsibility: comparing `packs/core/tests/pack/test_ride_along_admission_test.py`'s
-`C1`...`C7` constants against `docs/specs/ride-along-admission-test/spec.md`
-§ The shipped clauses. That pack test cannot make the comparison itself —
-`lint-pack-test-boundary` forbids a pack test reading `docs/` — so it lives
-here instead, where both trees are reachable.
+No test here compares the pack module's `C1`...`C7` constants against
+`docs/specs/ride-along-admission-test/spec.md` § The shipped clauses. That
+comparison (AC3) was removed: the spec is a frozen historical record of what
+shipped at acceptance, so pinning live constants to it froze the shipped
+artifact too — a correct repair to a clause could not land anywhere without
+body-editing a frozen document. The clauses keep the byte-equality and
+placement pins in `packs/core/tests/pack/test_ride_along_admission_test.py`,
+which compare each site against the canonical constant. What that loses,
+stated rather than implied: an identical reword applied to every site *and*
+to the constants would now pass, because no source outside those files
+asserts the wording.
 """
 from __future__ import annotations
 
-import importlib.util
 import pathlib
 import re
-import sys
-from types import ModuleType
 
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "guides/core/explanation/core-pack.md"
 WORKFLOW = ROOT / ".github/workflows/build-check.yml"
-SPEC = ROOT / "docs" / "specs" / "ride-along-admission-test" / "spec.md"
-PACK_MODULE_PATH = ROOT / "packs/core/tests/pack/test_ride_along_admission_test.py"
 
 THIS_ROSTER_FILE = "tests/roster/test_capture_rename_guide.py"
 BULK_PYTEST_INVOCATION = "python -m pytest tests/ -q"
@@ -47,10 +47,6 @@ BULK_PYTEST_INVOCATION = "python -m pytest tests/ -q"
 # appearing elsewhere in the guide cannot satisfy the routing assertion.
 CAPTURE_STEP_ENTRY_RE = re.compile(r"^\d+\.\s+\*\*Capture\.\*\*.*$", re.MULTILINE)
 
-# AC3: a `**C<n> — ...**` heading, at the start of a line, in
-# § The shipped clauses. Bounded to one line so an inline mention like
-# "clause (ii)" elsewhere in the spec cannot match.
-_CLAUSE_HEADING_RE = re.compile(r"^\*\*C(\d)\s+—[^*]*\*\*", re.MULTILINE)
 
 # AC12: the retired step name, case-insensitively, across all three
 # separators. The needles are assembled from parts below: AC12 allows exactly
@@ -94,128 +90,6 @@ def test_guide_names_the_step_as_shipped() -> None:
         "the guide's 'Capture' step entry describes recording a learning but "
         "not routing a scratch note"
     )
-
-
-def _flat(text: str) -> str:
-    """Collapse every whitespace run in `text` to one space, the way the
-    pack module's own `_flat` collapses a whole file — applied here to an
-    already-sliced clause string rather than to a file."""
-    return re.sub(r"\s+", " ", text).strip()
-
-
-# Both fence characters and an indented fence; anchored so a fence opening
-# at byte 0 is seen. Named blind spot: fences are counted, not matched by
-# delimiter, so a backtick fence nested in a tilde fence is miscounted.
-_FENCE_RE = re.compile(r"^[ \t]{0,3}(?:```|~~~)", re.MULTILINE)
-
-
-def _in_fence(text: str, offset: int) -> bool:
-    """True when `offset` falls inside a ``` fenced block.
-
-    Counted with a line-anchored pattern rather than `count("\\n```")`: the
-    latter cannot see a fence that opens at byte 0, so a file beginning with
-    a fenced copy of a heading would read as live.
-    """
-    return sum(1 for m in _FENCE_RE.finditer(text, 0, offset)) % 2 == 1
-
-
-def _in_comment(text: str, offset: int) -> bool:
-    """True when `offset` falls inside an HTML comment.
-
-    An unclosed `<!--` extends to end of file, so one opener cannot hide
-    every heading after it from the live-heading count.
-    """
-    opened = text.rfind("<!--", 0, offset + 1)
-    if opened == -1:
-        return False
-    closed = text.find("-->", opened)
-    return closed == -1 or offset < closed + 3
-
-
-def _shipped_clause_blockquotes(path: pathlib.Path) -> dict[str, str]:
-    """Parse `path`'s § The shipped clauses into `{label: text}`.
-
-    Each clause sits under a `**C<n> — ...**` heading, followed by prose and
-    then a blockquote: a contiguous run of lines starting with `>`. The
-    blockquote is what a site actually carries, so its `>` markers are
-    stripped and the remaining lines are joined, one label per clause."""
-    whole = path.read_text(encoding="utf-8")
-    # Bound the parse to § The shipped clauses. Scanning the whole file lets a
-    # blockquote elsewhere -- a quoted example, a Follow-on, an appendix --
-    # shadow the canonical one and hide a divergence inside the section.
-    # Exactly one live heading. A copy inside a fence or an HTML comment
-    # earlier in the file would otherwise be selected by a plain `find`, and
-    # could carry canonical text while the rendered section below diverged.
-    heading = re.compile(r"^## The shipped clauses$", re.MULTILINE)
-    live = [
-        m.start()
-        for m in heading.finditer(whole)
-        if not _in_fence(whole, m.start()) and not _in_comment(whole, m.start())
-    ]
-    assert len(live) == 1, (
-        f"{path.name} has {len(live)} live '## The shipped clauses' headings, "
-        f"expected exactly 1"
-    )
-    start = live[0]
-    end = whole.find("\n## ", start + 1)
-    raw = whole[start:] if end == -1 else whole[start:end]
-
-    blocks: dict[str, str] = {}
-    for match in _CLAUSE_HEADING_RE.finditer(raw):
-        # The clause heading must be live too. Filtering only the section
-        # heading let a commented-out or fenced canonical clause be parsed
-        # as the pinned text while the rendered spec showed something else.
-        if _in_fence(raw, match.start()) or _in_comment(raw, match.start()):
-            continue
-        label = f"C{match.group(1)}"
-        assert label not in blocks, (
-            f"{path.name} § The shipped clauses declares {label} more than "
-            f"once; a duplicate label would silently overwrite the first"
-        )
-        quoted: list[str] = []
-        started = False
-        for line in raw[match.end():].splitlines():
-            if line.startswith(">"):
-                started = True
-                quoted.append(line[1:].lstrip(" "))
-            elif started:
-                break
-        # The blockquote must be live as well as the heading above it.
-        quote_at = raw.find(">", match.end())
-        if quote_at != -1 and (_in_fence(raw, quote_at) or _in_comment(raw, quote_at)):
-            continue
-        assert quoted, f"{label} in {path.name} has no blockquote after its heading"
-        blocks[label] = " ".join(quoted)
-    return blocks
-
-
-def _load_pack_module() -> ModuleType:
-    """Import the pack module under a unique name naming its pack and file,
-    per `packs/AGENTS.md` § Writing pack tests."""
-    module_spec = importlib.util.spec_from_file_location(
-        "packs_core_tests_pack_test_ride_along_admission_test", PACK_MODULE_PATH
-    )
-    assert module_spec is not None and module_spec.loader is not None
-    module = importlib.util.module_from_spec(module_spec)
-    sys.modules[module_spec.name] = module
-    module_spec.loader.exec_module(module)
-    return module
-
-
-def test_pinned_clauses_match_the_spec() -> None:
-    """AC3: C1 through C7 in the pack module equal this spec's blockquotes,
-    not merely each other — a reword applied identically at every site and
-    to the pack module's own constants would otherwise still pass. Only C1
-    and C2 are contract (AC3); C3-C7 are working material this loop still
-    pins by equality, matching the content pin already in the pack module."""
-    spec_blocks = _shipped_clause_blockquotes(SPEC)
-    module = _load_pack_module()
-    for label in ("C1", "C2", "C3", "C4", "C5", "C6", "C7"):
-        text = getattr(module, label)
-        assert _flat(text) == _flat(spec_blocks[label]), (
-            f"{label} in the pack test module diverges from spec.md "
-            f"§ The shipped clauses"
-        )
 
 
 def test_roster_step_precedes_the_bulk_pytest_step() -> None:
