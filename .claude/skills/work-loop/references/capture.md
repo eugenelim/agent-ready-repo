@@ -1,8 +1,9 @@
 # Capture: what to write, and what makes a note worth keeping
 
 Load when routing a DECIDE scratch note to the `project-knowledge` seam.
-`SKILL.md` § Capture owns the routing itself — which destination a note
-reaches — and this file owns what a kept note should say.
+`SKILL.md` § Capture owns the routing rule and its table — which destination a
+note reaches — and this file owns what a kept note should say, plus the worked
+examples of those destinations.
 
 ## The question a capture answers
 
@@ -34,3 +35,13 @@ It owns receipts and terminal-gate distillation; unresolved observations
 remain pending. Any knowledge diff returns through the next verification and
 review barrier before commit. If unavailable, record
 `project-knowledge unavailable`; create no fallback file.
+
+## Worked examples of destinations
+
+Instances of the routing rule in `SKILL.md` § Capture. Each is a note shape
+seen often enough to name, with the destination it reaches.
+
+- "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
+- "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
+- "Made the same wrong assumption twice" → knowledge-base-shaped: the seam route above. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
+- "This workflow is the third time I've done it" → propose it as a new skill.

@@ -150,8 +150,9 @@ except by the seam's additive rule.
 
 > - **Review scratch notes** from this session's DECIDE passes.
 >   Anything generalisable that would have changed the approach goes to
->   the `project-knowledge` public seam, and the examples below are
->   instances of that; the seam is additive. A note that names a defect
+>   the `project-knowledge` public seam, and the examples in the capture
+>   reference are instances of that; the seam is additive. A note that
+>   names a defect
 >   routes by what it is: | What the note is | Where it goes | | --- |
 >   --- | | Generalisable practice | The existing `project-knowledge`
 >   route, unchanged | | Specific, real, blocked | Captured as a

@@ -64,6 +64,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.30] — 2026-09-22
+
+### Changed
+
+- The `work-loop` entrypoint carries less text for the same rules. The reviewer
+  roster's explanation of the lens it gives up moved to a
+  `references/reviewer-roster.md` the routing table loads on demand, so the
+  explanation is read when reviewers are being chosen instead of on every run.
+- The DECIDE step no longer argues for why a disposal duty does not make a
+  finding required. The sentences that state the rule stay; only the argument
+  for it is gone, and the work-frontier contract already settles the same point.
+  No rule changed, and no behaviour changed.
+- The four worked examples of where a capture note goes moved from the skill
+  into its capture reference, next to the guidance on what a kept note should
+  say. The routing rule and its table stay in the skill; only the examples
+  moved, and the reference now says it owns them.
+
 ## [core][2.26.29] — 2026-09-22
 
 ### Highlights
