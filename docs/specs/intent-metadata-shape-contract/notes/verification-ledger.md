@@ -370,3 +370,40 @@ the generator is the place to look. See also
 The same generator is why `check-adr-index` failed this branch on CI: the ADR
 index is generated from its records, and adding ADR-0121 obliged a regeneration
 that no local gate in the documented set runs.
+
+# The corpus migration made 17 lifecycle transitions — 2026-09-22
+
+`tests/roster/test_workspace_status_projection.py::test_no_fail_closed_lifecycle_findings`
+failed on this branch with four `impossible_transition` findings, all "open
+backlog status": an artifact carrying a terminal status while a
+`[backlog].open` entry still names it.
+
+Measuring the migration commit rather than the four findings showed the wider
+fact. It changed `Status:` on **18 intents**: one absent value to `Draft`, and
+**17 to a terminal value** — 13 `Fulfilled` and 3 `Withdrawn`, four of them
+from `Accepted` and nine from `Draft`.
+
+This spec disclaims that authority. Its Follow-ons say "most intents remain
+`Draft`. `FEAT-0005-lifecycle-and-closure` owns the transition rule, including
+whether an intent may reach a terminal status without first passing
+`Accepted`. This spec fixes the member set only." A migration that moves nine
+intents from `Draft` to `Fulfilled` is a lifecycle claim, not a field-shape
+change.
+
+**What was repaired, and why only three.** Three intents —
+`frozen-record-errata-mechanism`, `new-spec-review-phrase-contract` and
+`roster-suite-parallel-execution` — were returned to `Draft`, the value the
+migration found. Those three are not chosen for convenience: each carries an
+open backlog entry, which is the repository's own statement that the work is
+not done, and that refutes `Fulfilled` on evidence. The gate reported exactly
+these.
+
+**What was not repaired.** The other 14 transitions stand. Nothing in the
+repository contradicts them, they are outside this spec's accepted intent, and
+reverting a lifecycle claim on no evidence would be as unfounded as making one.
+They are recorded here for `FEAT-0005`'s owner, who owns the rule.
+
+**This spec's own entry was retired**, not reverted: the spec is `Shipped`, so
+its `[backlog].open` entry is discharged and its removal is the disposition.
+Open entries fell from 171 to 170, and the fail-closed reconciliation now
+reports zero findings across all nine codes.

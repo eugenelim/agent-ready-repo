@@ -2,7 +2,7 @@
 
 - **Slug:** `roster-suite-parallel-execution`
 - **Level:** feature
-- **Status:** Fulfilled
+- **Status:** Draft
 - **Owner:** eugenelim
 
 ## Outcome
