@@ -72,6 +72,9 @@ jobs:
   gate-main:
     name: gate-main
     runs-on: ubuntu-latest
+    # gate-main has two ordered phases: provisioning first, then checks.
+    # A check runs only when every provisioning dependency it declares succeeded,
+    # so a broken install skips its dependents rather than reddening them.
     # Budget note: the two merge-driver steps below are the heaviest pytest
     # steps here. Both are dominated by a full self-host run; one also clones
     # the repo and runs `make build-self`. Timings are machine-dependent and
@@ -82,7 +85,10 @@ jobs:
     # with gate-export-boundary, which now hosts that gate.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Checkout (gate-main)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        id: checkout_gate_main
+        if: '!cancelled()'
         with:
           # Full history: the chain gates below fail OPEN without it — lint-catalogue-curation-guard's path-gate, lint-build's top-level audit, and lint-spec-status's base-ref resolution each exit 0 when the base ref is unreachable (AC12).
           fetch-depth: 0
@@ -91,17 +97,74 @@ jobs:
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
       - name: Set up Python
+        id: python
+        if: '!cancelled()'
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.11"
       - name: Install tools dependencies
+        id: tools
+        if: '!cancelled()'
         # `make build-check` chains `tools/hooks/pre-pr.py` and
         # `tools/catalogue/pre_pr_catalogue.py`. Install tools/requirements.txt
         # before invoking make so the projected-artifact lint surface is reachable in CI.
         run: pip install -r tools/requirements.txt
       - name: Install agentbundle (editable) + pytest
+        id: agentbundle
+        if: '!cancelled()'
         run: python -m pip install -e packages/agentbundle/ pytest
+      - name: Install ripgrep
+        id: ripgrep
+        if: '!cancelled()'
+        # A third-party Google index outage can otherwise red this required gate,
+        # even though ripgrep comes from Ubuntu. Remove this once runner images
+        # stop adding Google's unused Chrome source.
+        run: |
+          for source in /etc/apt/sources.list.d/*; do
+            if [ -f "$source" ] && grep -q 'dl.google.com' "$source"; then
+              sudo rm -- "$source"
+            fi
+          done
+          sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Install ruff + mypy
+        id: ruff_mypy
+        if: '!cancelled()'
+        run: pip install ruff mypy
+      - name: Install credbroker (editable, with crypto extra)
+        id: credbroker
+        if: '!cancelled()'
+        # Required by four LATER steps in this job that import credbroker and its
+        # crypto extras: the credential-setup skill suite (which probes
+        # `import credbroker, cryptography, argon2` directly), the jira and
+        # confluence-crawler SSO suites, and the user-libs vendored-floor purity
+        # test.
+        #
+        # It no longer backs the stdlib-purity gate: that lives in
+        # packages/credbroker/tests/unit/ and travelled to gate-credbroker with the
+        # suite (spec/ci-gate-credbroker). Do not delete this step on the strength
+        # of the purity gate having moved — the four consumers above are the reason
+        # it stays.
+        run: python -m pip install -e './packages/credbroker[crypto]'
+      - name: pip install httpx for the atlassian SSO suites (RFC-0035)
+        id: httpx
+        if: '!cancelled()'
+        run: pip install 'httpx>=0.27'
+      - name: pip install the Markdown→Office render libraries (RFC-0036)
+        id: markdown_office
+        if: '!cancelled()'
+        run: pip install 'python-pptx==1.0.2' 'docxtpl==0.20.2' 'openpyxl==3.1.5' 'python-docx==1.2.0'
+      - name: pip install the Tier-0 PDF library (extraction-tier0)
+        id: tier0_pdf
+        if: '!cancelled()'
+        run: pip install 'pypdf==5.1.0'
+      - name: pip install the Tier-0 .msg reader (extraction-msg olefile, ADR-0046)
+        id: tier0_msg
+        if: '!cancelled()'
+        # Exact pin for CI reproducibility; the runtime hint floor is olefile>=0.47.
+        run: pip install 'olefile==0.47'
       - name: Install bandit unconditionally (lint-nosec-form's ID registry)
+        id: bandit
+        if: '!cancelled()'
         # Unconditional, and deliberately not the whole of requirements-sast.txt.
         #
         # `make build-check` chains tools/lint-nosec-form.py on every run. One of
@@ -140,8 +203,8 @@ jobs:
         # compiled out under PYTHONOPTIMIZE, which would restore the silent pass
         # this probe exists to remove.
         #
-        # tools/test_build_gate_chain.py pins this step's existence, its lack of
-        # an `if:`, and its position — extracting this very body and running it
+        # tools/test_build_gate_chain.py pins this step's existence, its sanctioned
+        # `if:`, and its position — extracting this very body and running it
         # against two mutated inputs. Nothing else does: lint-ci-parity's roster
         # only demands a disposition for steps that exist, so deleting this step
         # and its row would leave both gates green.
@@ -160,30 +223,20 @@ jobs:
               )
           PROBE
       - name: Run make build-check
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success' && steps.bandit.conclusion == 'success'"
         # SAST_DELEGATED is passed as a make ARGUMENT, not an env prefix:
         # $(origin SAST_DELEGATED) must be `command line` for the Makefile to
         # treat the delegation as deliberate (ADR-0086). As a prefix the origin
         # is `environment`, the recipe would run the SAST leg here as well as in
         # gate-sast, and the scan would silently run twice.
         run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
-      - name: Install ripgrep
-        # A third-party Google index outage can otherwise red this required gate,
-        # even though ripgrep comes from Ubuntu. Remove this once runner images
-        # stop adding Google's unused Chrome source.
-        run: |
-          for source in /etc/apt/sources.list.d/*; do
-            if [ -f "$source" ] && grep -q 'dl.google.com' "$source"; then
-              sudo rm -- "$source"
-            fi
-          done
-          sudo apt-get update && sudo apt-get install -y ripgrep
-      - name: Install ruff + mypy
-        run: pip install ruff mypy
       - name: ruff lint (style, imports, common bugs)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.ruff_mypy.conclusion == 'success'"
         # tools/lint-ruff.py delegates to `python -m ruff check .` with the
         # project config from pyproject.toml. Fails the build on any violation.
         run: python3 tools/lint-ruff.py
       - name: mypy type-check (typed packages only)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.ruff_mypy.conclusion == 'success'"
         # tools/lint-mypy.py scopes mypy to packages/agentbundle/agentbundle and
         # packages/credbroker/credbroker; tests/build_pipeline/ is a test tree, not library code.
         run: python3 tools/lint-mypy.py
@@ -194,6 +247,7 @@ jobs:
       # makes `agentbundle --version` lie (it was stuck at 0.1.0 across several
       # releases); the release workflow only asserts the tag matches pyproject.
       - name: pytest version constants (CLI_VERSION ↔ pyproject drift guard)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/unit/test_version.py
 
@@ -203,6 +257,7 @@ jobs:
       # green. make build-check runs no pytest, so wire these paths explicitly
       # or the resolver coverage never gates.
       - name: pytest adapter resolver (RFC-0011/0012, ADR-0004 rebrand)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -210,6 +265,7 @@ jobs:
           tests/unit/test_resolve_target_adapter_user_config.py
           tests/unit/test_install_argparse_adapter_flag.py
       - name: pytest converters install/uninstall (AC6a)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
 
@@ -217,6 +273,7 @@ jobs:
       # gate, CLI surface (mutex + list-profiles), and the install orchestrator.
       # make build-check runs no pytest, so wire these paths explicitly.
       - name: pytest pack-profiles (RFC-0034)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -231,6 +288,7 @@ jobs:
       # keystone editable-detection test (a real `pip install -e` in a throwaway
       # venv). make build-check runs no pytest, so wire these paths explicitly.
       - name: pytest convenient-install-defaults (RFC-0046)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -249,6 +307,7 @@ jobs:
       # no pytest). Deps-free — the behavioral check uses a planted fake
       # credbroker, not httpx.
       - name: pytest credbroker floor precedence (credbroker-user-scope T1)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest ../../tests/roster/test_credential_broker_floor_precedence.py
 
@@ -258,18 +317,21 @@ jobs:
       # companion-rail source is retained — is this test; wire it into CI
       # explicitly (make build-check runs no pytest).
       - name: pytest shared-libs projection retirement (credbroker T9)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/build_pipeline/test_shared_libs_projection.py
 
       # self_host derives SELF_HOST_PACKS / SELF_HOST_ADAPTERS from the recipe;
       # make build-check runs no pytest, so wire this unit test explicitly.
       - name: pytest self-host recipe config (externalize-self-host-config)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/build_pipeline/test_self_host_recipe_config.py
 
       # The fixture-overwrite guard now lives in cmd_self (not the Makefile);
       # wire its test explicitly since make build-check runs no pytest.
       - name: pytest self-host fixture guard (windows-build-self-entry)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/build_pipeline/test_self_host_fixture_guard.py
 
@@ -277,6 +339,7 @@ jobs:
       # tools/, not the agentbundle package); wire its test explicitly since
       # make build-check runs no pytest.
       - name: pytest make-free gate chains (windows-build-gate-chain)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.agentbundle.conclusion == 'success' && steps.bandit.conclusion == 'success'"
         run: python -m pytest tools/test_build_gate_chain.py
 
       # Collector-level guard: no test file may duplicate a packaged source
@@ -290,6 +353,7 @@ jobs:
       # file shares in `make test` took 8s in CI. make build-check runs no
       # pytest; wire it explicitly.
       - name: pytest import-time path leaks (collector sys.path guard)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: python -m pytest tools/test_import_time_path_leaks.py -q
 
       # AC1 of docs/specs/record-index-merge-driver: the `merge=regen` set
@@ -299,6 +363,7 @@ jobs:
       # left to a local run.
       # make build-check runs no pytest; wire it explicitly.
       - name: pytest gitattributes merge-driver scope (AC1)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_gitattributes_merge_driver.py
 
       # AC2-AC4 of docs/specs/self-host-projection-merge-driver: what the driver
@@ -309,15 +374,18 @@ jobs:
       # git rather than asserting on .gitattributes, so it catches a block that
       # was written but is not honoured. make build-check runs no pytest.
       - name: pytest merge-driver behaviour (AC2-AC4)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_merge_driver_behaviour.py
 
       - name: Pull-request template installer and release checker
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         # Behavioural suites: the installer is RUN in temporary repositories,
         # because a text check cannot catch a wrong search depth or a path that
         # escapes the repository. Both shipped once and were found by running it.
         run: python -m pytest tools/test_pull_request_template_adoption.py tools/test_check_core_release.py -q
 
       - name: pytest journey editorial decisions
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_journey_editorial_decisions.py
 
       # The generated guides sidebar: sidebar-config.json is gitignored, so
@@ -325,22 +393,10 @@ jobs:
       # thing standing between a generator regression and a broken published
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
-      - name: Install credbroker (editable, with crypto extra)
-        # Required by four LATER steps in this job that import credbroker and its
-        # crypto extras: the credential-setup skill suite (which probes
-        # `import credbroker, cryptography, argon2` directly), the jira and
-        # confluence-crawler SSO suites, and the user-libs vendored-floor purity
-        # test.
-        #
-        # It no longer backs the stdlib-purity gate: that lives in
-        # packages/credbroker/tests/unit/ and travelled to gate-credbroker with the
-        # suite (spec/ci-gate-credbroker). Do not delete this step on the strength
-        # of the purity gate having moved — the four consumers above are the reason
-        # it stays.
-        run: python -m pip install -e './packages/credbroker[crypto]'
-
       - name: pytest guides + catalogue navigation
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tools/test_validate_guides.py
@@ -349,6 +405,7 @@ jobs:
           tools/test_documentation_entry_links.py
 
       - name: pytest stasis-stop retirement claims
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tools/test_stasis_retirement_claims.py
@@ -356,6 +413,7 @@ jobs:
       # test_check_rendered_site_links.py appears in pages.yml as a `paths:`
       # trigger and never as a run step — easy to miscount as covered.
       - name: pytest site build + link rewriting
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tools/test_build_site_link_rewrites.py
@@ -373,6 +431,7 @@ jobs:
       # manifest. Its step name is registered in tools/lint-ci-parity.py; renaming
       # it without updating that roster fails the parity gate in both directions.
       - name: docs palette contrast gate
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: |
           python3 tools/check-docs-contrast.py
           python -m pytest tools/test_check_docs_contrast.py -q
@@ -382,11 +441,13 @@ jobs:
       # as a script, not via pytest: it defines no `test_` function, so a pytest
       # collection would silently run nothing.
       - name: pages.yml deploy-gate posture
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python3 tools/test-pages-workflow.py
       # Pages is not a required context, so its concurrency isolation must be
       # asserted from this required job. The script's self-test mutates both the
       # group and cancellation scope on every invocation.
       - name: pages.yml concurrency posture
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python3 tools/test-pages-concurrency.py
       # The credential-setup skill's own suite (RFC-0023 T8 + the
       # missing-credbroker guard) lives under packs/credential-brokers/tests/skills/credential-setup/ (ADR-0071), which
@@ -394,6 +455,7 @@ jobs:
       # explicitly or it never gates. Placed after the credbroker[crypto]
       # install above so the in-process import + crypto-extra cases resolve.
       - name: pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.credbroker.conclusion == 'success'"
         working-directory: packs/credential-brokers/tests/skills/credential-setup
         # `requires_crypto` gates on find_spec("cryptography") and ("argon2"), so a
         # missing extra skips the no-token-to-stdout and reserved-namespace cases
@@ -412,13 +474,12 @@ jobs:
       # neither `make build-check` nor any package pytest discovers. Wire them
       # explicitly or the client-side security contract never gates. credbroker is
       # installed editable above; httpx is the only extra runtime dep.
-      - name: pip install httpx for the atlassian SSO suites (RFC-0035)
-        run: pip install 'httpx>=0.27'
       # Both trios `pytest.importorskip("credbroker")` at module scope, so a
       # missing dependency exits 0 with the whole file skipped and the cookie
       # confinement / fail-closed-config assertions silently stop running. The
       # in-step import is what survives a future reordering of the installs above.
       - name: pytest jira SSO suites (atlassian-sso-cookie)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.credbroker.conclusion == 'success'"
         working-directory: packs/atlassian/tests/skills/jira
         # test_check_sso_login.py covers the `check` auto-recovery flow —
         # jira-check-sso-auto-login AC11–AC20, AC30–AC32.
@@ -427,6 +488,7 @@ jobs:
           python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py \
             test_check_sso_login.py
       - name: pytest confluence-crawler SSO suites (atlassian-sso-cookie)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.credbroker.conclusion == 'success'"
         working-directory: packs/atlassian/tests/skills/confluence-crawler
         run: |
           python -c "import credbroker, httpx"
@@ -436,24 +498,33 @@ jobs:
       # syncs them — the seed is Excluded from the self-host check. Reading
       # both puts the guard above any one pack's test tree, so it is
       # roster-owned. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
-      # step placed after that one never runs and can attribute nothing.
+      # `pytest tests/ -q` also collects it. Placement above it still matters,
+      # for a changed reason: the job no longer stops at the first failure, so
+      # a step after the carve-out runs — and reports the same failure a second
+      # time against a broad target instead of the named one.
       - name: pytest spec-authority note live/seed parity (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_authority_note.py
 
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
-      # step placed after that one never runs and can attribute nothing.
+      # `pytest tests/ -q` also collects it. Placement above it still matters,
+      # for a changed reason: the job no longer stops at the first failure, so
+      # a step after the carve-out runs — and reports the same failure a second
+      # time against a broad target instead of the named one.
       - name: pytest capture-rename guide contract (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
 
       # The allocator's owner-parity and cross-pack equivalence claims read
       # `docs/product/intents/` and a second pack's script, which a pack test
       # may not reach. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
-      # step placed after that one never runs and can attribute nothing.
+      # `pytest tests/ -q` also collects it. Placement above it still matters,
+      # for a changed reason: the job no longer stops at the first failure, so
+      # a step after the carve-out runs — and reports the same failure a second
+      # time against a broad target instead of the named one.
       - name: pytest typed-ordinal owner parity and equivalence (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_typed_ordinal_collision_equivalence.py
 
       # The intent metadata shape contract's two roster-owned claims. The field
@@ -461,15 +532,19 @@ jobs:
       # intent template lives in `packs/product-engineering` while the validator
       # that judges it lives in core — so each reads two trees and neither can
       # live in a pack's own test tree. Both sit ABOVE the carve-out step below,
-      # whose `pytest tests/ -q` also collects them: this job is fail-fast, so a
-      # named step placed after that one never runs and can attribute nothing.
+      # whose `pytest tests/ -q` also collects them. Placement above it still
+      # matters, for a changed reason: the job no longer stops at the first
+      # failure, so a step after the carve-out runs — and reports the same
+      # failure a second time against a broad target instead of the named one.
       - name: pytest intent shape contract cross-tree claims (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_intent_field_reference_parity.py
           tests/roster/test_intent_template_shape_conformance.py
 
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
           python tools/lint-conformance-portability.py --root .
           python tools/lint-direct-code-table.py --root .
@@ -513,6 +588,7 @@ jobs:
       # which covers the SILENT hazard this cannot: a mis-bound subject module
       # or a sys.path mutation does not change a node-ID set.
       - name: pytest pack-test compatibility class characterization (ADR-0101)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_pack_test_class_characterization.py -q
 
       # spec/pr-gate-suite-disposition: the two suites the SUITE_DISPOSITION
@@ -531,6 +607,7 @@ jobs:
       # directory matches neither, so the shorter form reported a true gate as
       # absent in both.
       - name: pytest frontend-engineering pack suite (pr-gate-suite-disposition)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           packs/frontend-engineering/tests/skills/frontend-engineering/ -q
@@ -543,6 +620,7 @@ jobs:
       # class this spec exists to close, so leaving it ungated left the
       # guard-of-the-guard unguarded.
       - name: pytest shared-test dedup guard (pr-gate-suite-disposition)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_local_ci_shared_test_deduplication.py -q
 
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
@@ -554,6 +632,7 @@ jobs:
       # the base import stays third-party-free under the STRONGER condition —
       # cryptography/argon2 importable but unreached (mirrors credbroker AC4).
       - name: pytest user-libs vendored floor (credbroker-user-scope T3)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -566,6 +645,7 @@ jobs:
       # the tests/build_pipeline root, which `make build-check` does not run. Wire it in
       # explicitly or it never gates (CI does not auto-discover package pytest).
       - name: pytest cursor adapter (cursor-full-parity)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/build_pipeline/test_adapter_cursor.py
 
@@ -573,6 +653,7 @@ jobs:
       # the tests/build_pipeline root, which `make build-check` does not run. Wire it in
       # explicitly or it never gates (CI does not auto-discover package pytest).
       - name: pytest gemini adapter (gemini-full-parity)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/build_pipeline/test_adapter_gemini.py
 
@@ -584,6 +665,7 @@ jobs:
       # does not run. Wire them in explicitly or they never gate (CI does not
       # auto-discover package pytest).
       - name: pytest architect design-reviewer guards (RFC-0032)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -598,6 +680,7 @@ jobs:
       # enriched floor, and the @catalogue/pack identity invariant would
       # otherwise rot silently.
       - name: pytest enriched-pack-manifest (RFC-0031)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -613,6 +696,7 @@ jobs:
       # They cannot live in the engine sdist, and CI does not auto-discover
       # roster tests, so keep their relocated acceptance suite explicit here.
       - name: pytest catalogue Wave 4 live contracts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_catalogue_wave4_live_contracts.py
 
       # consolidated-pack-layout (RFC-0040): the installer _append_layout_section
@@ -623,6 +707,7 @@ jobs:
       # package pytest). The [pack.layout] schema + contract-version 0.16 assertions
       # for this change ride the test_pack_schema.py / test_contract.py steps above.
       - name: pytest consolidated-pack-layout installer append (RFC-0040)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: python -m pytest tests/unit/test_append_layout_section.py
 
@@ -634,15 +719,18 @@ jobs:
       # which this spec changed (work-loop-check.toml joins session-start.toml as
       # a dropped-for-kiro wiring); they were CI-ungated, so wire them too.
       - name: pytest kiro drop-warning contract
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
           tests/unit/test_install_event_dropped_wirings.py
           tests/unit/test_validate_hook_wiring_per_file_compatibility.py
       - name: pytest core work-loop activation hook (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_core_work_loop_hook.py
 
       - name: pytest design-handoff contract vs the real design corpus (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_design_handoff_contract_matches_corpus.py
 
       # package-pytest-pythonpath: each distribution under packages/ carries its
@@ -657,12 +745,14 @@ jobs:
       # extracted workspace holding only that one package. CI does not
       # auto-discover roster tests, so keep it explicit.
       - name: pytest package pytest pythonpath (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_package_pytest_pythonpath.py
 
       # shaping-review-contracts: source-agent boundary metadata and the closed
       # shaping-review documentation set are repository-owned contracts. CI does
       # not auto-discover roster tests, so keep both acceptance suites explicit.
       - name: pytest shaping-review contracts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_agent_boundary_metadata_contract.py
@@ -674,6 +764,7 @@ jobs:
       # lint-pack-test-boundary forbids both from packs/core/tests. CI does not
       # auto-discover roster tests, so keep both suites explicit.
       - name: pytest RFC-0099 activation + fixture register (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_rfc0099_activation_coverage.py
@@ -685,6 +776,7 @@ jobs:
       # lint-pack-test-boundary forbids both arms from packs/core/tests. CI does
       # not auto-discover roster tests, so keep this one explicit.
       - name: pytest load-bearing-claim routing surfaces (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_load_bearing_claim_routing_surfaces.py
 
       # tdd-stub lifecycle: the PLAN-proof / EXECUTE-materialization boundary
@@ -692,6 +784,7 @@ jobs:
       # roster-owned rather than pack-owned. CI does not auto-discover roster
       # tests, so keep it explicit.
       - name: pytest TDD stub lifecycle contract (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py
 
       # loop-telemetry-export: four repository-level contracts. The event-line
@@ -706,6 +799,7 @@ jobs:
       # against an extracted workspace that has no contracts/ or packs/. CI does
       # not auto-discover roster tests, so keep all of them explicit.
       - name: pytest loop-telemetry contracts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_loop_run_event_contract.py
@@ -724,6 +818,7 @@ jobs:
       # named in the workflow; in a fail-fast job whichever step runs first is
       # what reports a failure.
       - name: pytest agent-skill-engineering consumer integrations (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_agent_skill_engineering_consumer_integrations.py
@@ -735,6 +830,7 @@ jobs:
       # Both are therefore roster-owned, and CI does not auto-discover roster
       # tests, so keep them explicit.
       - name: pytest curation QA + RFC template contracts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_curation_qa_contracts.py
@@ -751,6 +847,7 @@ jobs:
       # them named in the workflow; in a fail-fast job whichever step runs
       # first is what reports a failure.
       - name: pytest experience-design output-addressing contracts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_experience_design_guide_agreement.py
@@ -762,6 +859,7 @@ jobs:
       # confinement behaviour can regress into a merge with every required gate
       # green.
       - name: pytest decision-record index generator (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_index_records.py
 
       # checkable-adr-metadata AC-0005 + AC-0011: the real docs/adr corpus is
@@ -770,6 +868,7 @@ jobs:
       # roster tests, so without this step that partition can regress
       # unobserved into a merge with every required gate green.
       - name: pytest ADR shape lint corpus partition (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_lint_adr_shape_corpus.py
 
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
@@ -779,6 +878,7 @@ jobs:
       # package pytest), so the new preview/confirm behaviour would never gate
       # without this step.
       - name: pytest CLI-hygiene sweep (agentbundle-cli-hygiene)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
@@ -790,6 +890,7 @@ jobs:
           tests/integration/test_reconcile.py
           tests/unit/test_list_targets_cmd.py
       - name: converters source-attribution scrub (AC2)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.ripgrep.conclusion == 'success'"
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error
           # (invalid pattern, missing path, IO error). Explicitly
@@ -809,6 +910,7 @@ jobs:
               exit 1 ;;
           esac
       - name: converters Rail-C marker scrub (AC3)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.ripgrep.conclusion == 'success'"
         run: |
           [ -d packs/converters ] || { echo "::error::packs/converters/ missing"; exit 1; }
           rc=0
@@ -824,6 +926,7 @@ jobs:
               exit 1 ;;
           esac
       - name: converters evals.json carry-over disposition (AC4 + AC4a)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: |
           # Pin the spec's skill disposition mechanically:
           # file-to-markdown, markdown-to-html, and the three Markdown→Office
@@ -855,11 +958,13 @@ jobs:
       # contract, so this leg keeps them apart. A class permits grouping; it does
       # not oblige every runner to group.
       - name: pytest markdown-to-html installed entry-point contract
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/markdown-to-html
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: python -m pytest -p no:cacheprovider -q
       - name: pytest mermaid-renderer installed entry-point contract
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/mermaid-renderer
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -877,15 +982,16 @@ jobs:
       # reproducible (docxtpl's get_undeclared_template_variables() has had
       # version-specific breakage — see plan § Risks). The SKILL.md prereqs
       # keep the `>=floor` guidance for users; CI pins what it actually tested.
-      - name: pip install the Markdown→Office render libraries (RFC-0036)
-        run: pip install 'python-pptx==1.0.2' 'docxtpl==0.20.2' 'openpyxl==3.1.5' 'python-docx==1.2.0'
       - name: pytest markdown-to-pptx renderer (markdown-to-office-publishing)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.markdown_office.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/markdown-to-pptx
         run: python -m pytest test_render.py
       - name: pytest markdown-to-docx renderer (markdown-to-office-publishing)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.markdown_office.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/markdown-to-docx
         run: python -m pytest test_render.py
       - name: pytest markdown-to-xlsx renderer (markdown-to-office-publishing)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.markdown_office.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/markdown-to-xlsx
         run: python -m pytest test_render.py
 
@@ -896,9 +1002,8 @@ jobs:
       # or the contract / no-ML-floor / defensive-parsing behaviour never gates.
       # pypdf is the Tier-0 PDF library (pip-on-demand at runtime, pinned here);
       # the Office libraries installed above cover the docx/xlsx/pptx lib paths.
-      - name: pip install the Tier-0 PDF library (extraction-tier0)
-        run: pip install 'pypdf==5.1.0'
       - name: pytest file-to-markdown extraction (extraction-tier0-and-output-contract)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.markdown_office.conclusion == 'success' && steps.tier0_pdf.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/file-to-markdown
         # test_convert.py importorskips the Office libraries in-function; they come
         # from the RFC-0036 install above, not from this step's own pip line. Probe
@@ -912,13 +1017,12 @@ jobs:
       # and .eml converters, the untrusted-input security wrap, and the parity
       # cross-check. olefile is the Tier-0 .msg reader (pip-on-demand at runtime,
       # pinned here — ADR-0046). CI does not auto-discover skill-script pytest.
-      - name: pip install the Tier-0 .msg reader (extraction-msg olefile, ADR-0046)
-        # Exact pin for CI reproducibility; the runtime hint floor is olefile>=0.47.
-        run: pip install 'olefile==0.47'
       - name: pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)
+        if: "!cancelled() && steps.python.conclusion == 'success' && steps.tier0_msg.conclusion == 'success'"
         working-directory: packs/converters/tests/skills/msg-to-markdown
         run: python -m pytest test_drift.py test_convert.py test_security.py test_parity.py
       - name: catalogue-curation guard lint + self-test (RFC-0059 D6)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         # RFC-0059: the catalogue-curation skills must never change this repo's
         # agentbundle engine behaviour or credential-brokers. Two honest layers:
         # a presence lint (every skill carries its scoped refusal clause) and a
@@ -931,6 +1035,7 @@ jobs:
           python3 tools/test-lint-catalogue-curation-guard.py
           python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main
       - name: catalogue-curation skill-script tests (RFC-0059 security ACs)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         # The deterministic helpers behind the catalogue-curation skills:
         # SSRF allowlist + write-jail (assimilate-primitive), the resumable
         # ledger (assimilate-repo). Pure-stdlib pytest; run from each test dir so
@@ -966,6 +1071,7 @@ jobs:
           run_with_floor packs/catalogue-curation/tests/skills/assimilate-primitive 30
           run_with_floor packs/catalogue-curation/tests/skills/assimilate-repo 7
       - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         # RFC-0033: the experience pack (renamed from design-craft, ADR-0038)
         # ships portable design method, never a stack or a values table. The
         # self-test proves the linter catches a planted stack token /
@@ -978,6 +1084,7 @@ jobs:
           python3 tools/test-lint-experience-agnostic.py
           python3 tools/lint-experience-agnostic.py
       - name: pack description drift backstop + self-test
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         # A pack's `[pack].description` is display copy — what a person reads in
         # a listing while deciding whether to install. The quality bar is
         # catalogue-authoring-standards.md § 2; this lint is only a runaway-drift

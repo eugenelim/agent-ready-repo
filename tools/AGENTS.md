@@ -29,11 +29,14 @@ Applies to `tools/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
   `packs/credential-brokers/`: a commit touching either needs an
   `Engine-Change-RFC:` trailer, conventionally `n/a — <justification>` when no
   RFC governs the change.
-- `tools/lint-ci-parity.py` holds two dispositions, one per direction, and
-  editing either surface obliges the matching entry:
+- `tools/lint-ci-parity.py` holds two rosters, one per direction, and the step
+  roster carries two axes. Editing any of these surfaces obliges its entry:
   - **Adding a step to `.github/workflows/build-check.yml`** requires a
     `STEP_DISPOSITION` entry naming either the make target that covers it
     locally or why none can.
+  - **Declaring that step's phase and dependencies** requires the same
+    `STEP_DISPOSITION` entry to name either `PROVISIONING(id=...)` or
+    `CHECK(needs=(...), evidence=...)` on its phase-and-dependency axis.
   - **Adding or moving a line in the Makefile's `run-test-suite` define**
     requires a `SUITE_DISPOSITION` entry per target on that line, naming the
     pull-request check that gates the suite (`PR_GATED`), the condition under
