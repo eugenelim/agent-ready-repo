@@ -407,3 +407,67 @@ They are recorded here for `FEAT-0005`'s owner, who owns the rule.
 its `[backlog].open` entry is discharged and its removal is the disposition.
 Open entries fell from 171 to 170, and the fail-closed reconciliation now
 reports zero findings across all nine codes.
+
+# `backlog.open` admits only `Draft`, and that is correct — 2026-09-22
+
+The lifecycle reconciliation's `impossible_transition` check admits exactly
+`{"Draft"}` for a non-defect `backlog.open` entry. Two widenings were proposed
+during this branch and both are refuted, each on its own evidence.
+
+**Admitting terminal states** (`Fulfilled`, `Withdrawn`) is refused because a
+terminal carrier cannot own tracked remaining work. Either the status is
+premature or the entry is discharged, and the pair says both. That is the
+control, not a gap.
+
+**Admitting the other open states** (`Accepted`, `Approved`, `Implementing`)
+looked like the coherent fix and is also wrong.
+`packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py::test_t2_positive_dispatch_and_reconciliation_surface`
+asserts that a `backlog.open` entry naming an `Approved` spec *and* one naming
+an `Accepted` intent both raise `impossible_transition`. `backlog.open` is the
+**unstarted** backlog, not open work of any kind: a carrier that has advanced
+belongs in `work.queue` or a shaping queue, and leaving it in the backlog is
+the contradiction. `Draft` alone is the whole admitted set by design.
+
+The reusable part: the engine's expected-status sets encode collection
+*semantics*, so widening one on the reasoning that a status is "still open"
+inverts what the collection means. The codified contract is in that test, not
+in the constant.
+
+# The three Fulfilled intents, checked properly — 2026-09-22
+
+A first pass claimed all three were unfinished. Two of those findings were
+instrument errors and are retracted.
+
+- **`frozen-record-errata-mechanism` — delivered.** The first check asked
+  whether ADR-0098 carries a `## Errata` section (it does not) when the intent's
+  outcome is that the *mechanism is licensed*. It is: ADR-0117 applies to "every
+  ADR's metadata block and its `## Errata` section … there is no grandfathered
+  set", the shipped ADR template states "Frozen — every prose section except
+  ## Errata. Append-only — ## Errata", and 12 ADRs carry one. An ADR without an
+  erratum simply has nothing to correct.
+
+  A related claim is also retracted: that this session "hit the wall" this
+  intent names. It did not. An erratum was unavailable for ADR-0098 because the
+  change was a *decision change* rather than an error correction — the
+  instrument boundary working as designed, not a missing capability.
+
+- **`new-spec-review-phrase-contract` — delivered.** The first check grepped for
+  phrase strings this session invented. The test that owns the contract,
+  `test_spec_review_accepts_only_exact_clean_before_adjudication`, **passes**,
+  and it runs in a local suite the Makefile drives.
+
+- **`roster-suite-parallel-execution` — not delivered.** Its own
+  `## Unresolved questions` section still asks two live questions: how many
+  roster cases are non-isolated ("One is confirmed … the true count is unknown
+  and could be larger") and whether worker parallelism or job sharding is the
+  right shape. No parallel invocation of `tests/roster` exists. A terminal
+  status is unsupported, so it returns to `Draft` and keeps its entry.
+
+Disposition: the two delivered intents keep `Fulfilled` and their entries are
+discharged; the third returns to `Draft` with its entry restored. Fail-closed
+findings across all nine codes: zero.
+
+The lesson is about the instrument, not the intents: both retracted findings
+came from testing a proxy this session chose — one ADR's section, invented
+phrase strings — rather than the artifact the claim names. Where a contract has
+a test, run the test.
