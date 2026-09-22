@@ -529,3 +529,23 @@ def test_every_directory_entry_is_accounted_for(tmp_path: Path) -> None:
     on_disk = {p.name for p in directory.iterdir() if p.is_file()}
     assert result.accounted == on_disk
     assert "FEAT-0002-binary.md" not in result.routed
+
+
+def test_the_traversal_bounds_reach_the_confinement_helper(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Declaring a bound and not passing it would be a control that cannot fire.
+
+    The real bounds sit far above any corpus, so the only way to observe that
+    they are threaded through is to lower one and watch the walk refuse.
+    """
+    directory = _corpus(
+        tmp_path, {"FEAT-0001-a.md": _live("a"), "FEAT-0002-b.md": _live("b")}
+    )
+    assert lint.lint_corpus(tmp_path, directory).is_clean
+
+    monkeypatch.setattr(lint, "_MAX_FILES", 1)
+    bounded = lint.lint_corpus(tmp_path, directory)
+    assert bounded.unreadable, "a bound below the file count must refuse the walk"
+    assert bounded.exit_code != 0
+    assert not bounded.is_clean

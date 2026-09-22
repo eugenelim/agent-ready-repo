@@ -177,3 +177,47 @@ def test_the_slug_reaches_the_rendered_preamble_and_the_target() -> None:
     )
     assert "a-distinct-slug" in admission.target
     assert dict(shape.read_preamble(admission.content))["Slug"] == "a-distinct-slug"
+
+
+# ── Raised by security review ─────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("field", ["title", "slug"])
+def test_an_untrusted_value_cannot_open_an_html_comment(field: str) -> None:
+    """An unclosed `<!--` would comment out the rest of the rendered document.
+
+    Whitespace collapse defuses a forged field or heading, but not this: a
+    comment opener hides everything after it, including the `## Source` block
+    that carries the artifact's provenance. The rendered document must keep
+    that section visible.
+    """
+    payload = "an-example <!-- "
+    rendered = _render(**{field: payload})
+
+    assert "<!--" not in rendered
+    assert "## Source" in rendered
+    assert "- Mode: repo-origin" in rendered
+
+
+def test_an_untrusted_value_cannot_close_an_html_comment() -> None:
+    """The closing delimiter is neutralized too, so a value cannot escape a
+    comment the template itself opened."""
+    rendered = _render(title="an-example --> and then prose")
+    assert "-->" not in rendered
+    assert "## Source" in rendered
+
+
+def test_a_neutralized_comment_keeps_its_text_visible() -> None:
+    """Inert, not deleted: a reader still sees what the value said."""
+    rendered = _render(slug="a-slug")
+    assert "a-slug" in rendered
+    rendered = _render(title="before <!-- after")
+    assert "before" in rendered and "after" in rendered
+
+
+def test_the_owner_list_is_neutralized_too() -> None:
+    """Owner reaches the preamble through `_inline_list`, a path this change
+    introduced, so it carries the same obligation as the fields beside it."""
+    rendered = _render(intake=_intake(owners=["maintainer", "second <!-- "]))
+    assert "<!--" not in rendered
+    assert "## Source" in rendered

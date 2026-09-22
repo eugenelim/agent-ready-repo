@@ -44,6 +44,15 @@ TOMBSTONE_FIELD_COUNT = 3
 
 _MAX_BYTES = 1_000_000
 
+# Traversal bounds. The confinement helper refuses mid-walk as soon as the next
+# entry would exceed one, so an unbounded or concurrently growing tree is
+# refused rather than materialised. Set far above any real intent corpus — the
+# largest today is 150 files in one flat directory — so a bound firing means
+# something is wrong rather than large.
+_MAX_FILES = 10_000
+_MAX_DEPTH = 8
+_MAX_ENTRIES = 50_000
+
 
 def _load_sibling(name: str, module_name: str):
     """Load a sibling script by path under a pack-and-skill-qualified name.
@@ -171,7 +180,13 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
 
     try:
         _safety.validate_confined_directory(root, directory)
-        paths = _safety.list_confined_regular_files(root, directory)
+        paths = _safety.list_confined_regular_files(
+            root,
+            directory,
+            max_files=_MAX_FILES,
+            max_depth=_MAX_DEPTH,
+            max_entries=_MAX_ENTRIES,
+        )
     except (_safety.UnsafeContentError, OSError, RuntimeError, ValueError) as error:
         result.unreadable.append(f"{directory}: {type(error).__name__}")
         return result
@@ -233,7 +248,14 @@ def main(argv: list[str] | None = None) -> int:
         description="Lint repository intents against the metadata shape contract."
     )
     parser.add_argument("--dir", required=True, help="repository-relative directory")
-    parser.add_argument("--root", default=".", help="repository root")
+    parser.add_argument(
+        "--root",
+        default=".",
+        help=(
+            "repository root; this is the confinement boundary the caller "
+            "declares, so never pass a value taken from untrusted input"
+        ),
+    )
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
