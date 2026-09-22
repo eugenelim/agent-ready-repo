@@ -103,8 +103,12 @@ FEAT-0006-retired-name.md: Authority: retired preamble field name
 ```
 
 Six names are refused: `Type`, `Raised`, `Stage`, `Parent`, `Source`,
-`Authority`. Rename to the replacement in the reference's field table —
-`Authority` becomes `Governed by`, `Parent` becomes `Parent intent`.
+`Authority`. The reference's field table gives each one its answer, and they
+are not all renames. `Authority` becomes `Governed by`, `Parent` becomes
+`Parent intent`, `Stage` becomes `Status`, and `Type` becomes `Kind`. The other
+two move rather than rename: `Source` becomes a `## Source` body section, and
+`Raised` becomes `De-risked` or `Shaping-reviewed` if it recorded a dated
+fact — or is deleted if it recorded nothing the contract keeps.
 
 Only the preamble is checked, so an `Authority:` line *below* the first heading
 is untouched. There it is an attribution or a provenance token, not this field,
@@ -116,9 +120,15 @@ and renaming it would lose that distinction.
 FEAT-0007-repeated.md: Governed by: preamble field appears more than once (2)
 ```
 
-Merge the values onto one line. A preamble field ends at its newline, so a
-second line is a second field rather than a continuation, and nothing decides
-which of the two wins.
+Merge the values onto one line, keeping both:
+
+```markdown
+- **Governed by:** the first value, the second value
+```
+
+Nothing is dropped, because nothing decides which of the two lines would have
+won. A preamble field ends at its newline, so a second line is a second field
+rather than a continuation.
 
 ### A `direct-light` decomposition has no items
 
@@ -168,16 +178,34 @@ this one carries 2
 ```
 
 A file whose preamble carries `Tombstone:` is checked as a tombstone instead of
-a live intent. It carries exactly three fields: the `Slug` it had before
-retirement, the `Tombstone` date, and exactly one of `Reissued as:` or
-`Retired:`. Both is as wrong as neither, and a fourth field is refused.
+a live intent. It carries exactly three fields and no others — a fourth is
+refused, and both edges at once is as wrong as neither:
+
+```markdown
+# Retired: work-item capture and disposition
+
+- **Slug:** `work-item-capture-and-disposition`
+- **Tombstone:** 2026-09-22
+- **Reissued as:** CAP-0007-work-item-capture-and-disposition.md
+```
+
+`Slug` is the one the artifact had before retirement, unchanged. `Tombstone` is
+the retirement date, written the same way every other date in an intent is.
+Use `Reissued as:` with the path the artifact moved to when it still exists
+somewhere, and `Retired:` with a short reason when it does not:
+
+```markdown
+- **Retired:** the bet was withdrawn before any work started
+```
 
 ### The shaping review says `MALFORMED(shape)`
 
 The cold review reads one intent and reports conditions it can settle from the
 text alone. `MALFORMED(shape)` means the preamble fails one of the rules above.
-Run the corpus check on that file to learn which — the review names the
-condition, the check names the field.
+Run the corpus check over the directory and read the line for that file to
+learn which — the review names the condition, the check names the field. The
+check takes a directory rather than a single file, so there is nothing to
+narrow.
 
 One exception: a preamble with no owner emits `MALFORMED(owner)` alone, and
 every other condition stays silent. Fix the owner first, then re-run.
@@ -187,8 +215,12 @@ every other condition stays silent. Fix the owner first, then re-run.
 Exit `2` with an `unreadable:` line means the check could not read something.
 Two shapes, and they differ in how much of the run survives.
 
-**One file could not be read.** It is not valid UTF-8, or it exceeds the size
-bound:
+**One file could not be read.** It is not valid UTF-8, or it is larger than
+one megabyte, which is the bound the check reads up to. An intent is prose, so
+either usually means the file is not the intent you think it is — a binary
+committed under the wrong name, or generated output. Open it and confirm before
+changing anything; the repair is to fix the encoding or move the file out of the
+directory, not to raise a limit.
 
 ```text
 unreadable: FEAT-0011-binary.md: UnicodeDecodeError
@@ -198,8 +230,9 @@ intent-corpus-lint: 0 violation(s), 1 unreadable — 10 file(s), 9 live, 1 tombs
 The named file is skipped and every other file is still checked — the counts
 show ten files routed. One unreadable file does not hide the rest.
 
-**The directory itself could not be walked.** A link, rather than a regular
-file, is the usual cause:
+**The directory could not be walked.** A link somewhere in it is the usual
+cause — either the directory itself or an entry inside it. The message names
+the directory in both cases, so it does not tell you which entry is at fault:
 
 ```text
 unreadable: /path/to/intents: UnsafeContentError
@@ -208,8 +241,9 @@ intent-corpus-lint: 0 violation(s), 1 unreadable — 0 file(s), 0 live, 0 tombst
 
 Here the path is the directory, not a file, and the counts are all zero: the
 walk stopped, so the run says nothing about any intent. Do not read this as a
-clean corpus with one bad file. Replace the link with a regular file and re-run
-before trusting anything else the run reported.
+clean corpus with one bad file. List the directory, find the link, replace it
+with a regular file, and re-run before trusting anything else the run
+reported.
 
 Either way the exit code stays non-zero until every file can be read.
 
@@ -222,6 +256,7 @@ was read and every file conforms:
 intent-corpus-lint: clean — 150 file(s), 150 live, 0 tombstone
 ```
 
-The counts are worth a glance. If the live and tombstone totals do not add up
-to the file count, a file went unrouted, which is a defect in the check rather
-than in your intent.
+The counts are worth a glance. Live plus tombstone plus unreadable should
+equal the file count. If they do not, a file went unmentioned, which is a
+defect in the check rather than in your intent — report it rather than editing
+an intent to satisfy it.

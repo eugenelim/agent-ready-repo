@@ -32,7 +32,7 @@ additions keep working.
 | Field | Tier | Value |
 | --- | --- | --- |
 | `Owner` | required | who is accountable — a person or a role. Declared, never inferred from commit history |
-| `Slug` | required | kebab-case canonical identity, independent of the filename's ordinal |
+| `Slug` | required | the canonical identity, independent of the filename's ordinal. Presence is checked; the value is not, so kebab-case is a convention the check does not enforce |
 | `Level` | required | the altitude — an **open recognized set**, `product-vision › product-strategy › capability › feature`. Present or absent is checked; the value never is, so name an intervening altitude if your org has one |
 | `Status` | required | one of `Draft`, `Accepted`, `Fulfilled`, `Withdrawn`, `Cancelled`, or `Superseded by <slug>` naming a live intent. `Withdrawn` and `Cancelled` are peers of `Fulfilled`, not flavours of it |
 | `Kind` | constrained when present | `outcome` or `opportunity` — the rung this intent occupies on the opportunity-solution tree |
