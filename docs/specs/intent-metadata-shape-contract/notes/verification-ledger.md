@@ -326,3 +326,40 @@ Measured in scratch against the real page and validator: 19 rows parsed, nothing
 missing, no orphan rows, no tier mismatches, and the replaced sentence absent.
 The roster suite itself is **verified on CI, not locally**, per the standing
 instruction not to run `tests/roster/` on this machine.
+
+# T8's gate placement, and the Done-when run — 2026-09-22
+
+The plan left which gate runs the lint as "a repository-local placement decision
+recorded here at execution". The plan is sealed, so the decision is recorded
+here instead.
+
+**`.github/workflows/docs.yml`.** It already runs doc-tree linters against the
+real tree rather than against fixtures, which is what AC-0028 needs, and its
+existing `paths:` filter already carries both triggers: `docs/**` covers the
+intents themselves, and `packs/**/.apm/skills/**` covers the validator that
+decides them. A rule change therefore re-checks the corpus it governs, which a
+filter on the intents alone would miss.
+
+The job fails on either non-zero exit. Exit 1 is a non-conforming intent; exit 2
+is a corpus the lint could not fully read, and both fail the step.
+
+**The Done-when, run literally.** A violation was seeded in the real
+`docs/product/intents/` — `Status: Accepted` changed to `Status: Shipped` on
+`FEAT-0001-intent-identity-and-registration.md`. The lint exited 1 and named
+the file and the field. Restoring the file returned it to `exit 0` and
+`clean — 150 file(s), 150 live, 0 tombstone`. The tree was left unmodified.
+`tools/test_intent_corpus_gate.py` re-asserts the same property against a
+temporary directory, so the standing check needs no write to the real corpus.
+
+## A stale Confirmation on a frozen record
+
+ADR-0117's `## Confirmation` names `.github/workflows/build-check.yml`'s
+`check-adr-shape` step as its enforcing signal. No such step exists:
+`lint-adr-shape` appears nowhere in `.github/` or the `Makefile`. The lint is
+real and passes when invoked by hand, but nothing invokes it in CI, so that
+record's stated confirmation does not hold.
+
+Not touched here, and deliberately. An accepted record's prose is frozen, the
+finding is outside this spec's accepted intent, and the remedy — wiring the lint
+or correcting the record — is a decision for that record's owner. Recorded so it
+is not lost; it needs no work from this spec.

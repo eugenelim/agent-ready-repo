@@ -707,3 +707,88 @@ def test_an_unknown_name_with_an_emptied_value_is_still_accepted() -> None:
     fields = dict(BASE)
     fields["Milestone"] = "<!-- not yet placed -->"
     assert _accepted(_preamble(fields))
+
+
+# ══ T6 / AC-0016: neither enforcement point substitutes for the other ═════════
+#
+# Co-located with the fixture corpus on purpose. In separate modules one rule
+# could drift and both suites would stay green, which is the failure AC-0016
+# exists to catch.
+#
+# The corpus lint decides the preamble's shape. The cold shaping review decides
+# six other things, none of which the lint can see: whether the statement is an
+# outcome rather than a solution, whether non-goals are present, whether the
+# riskiest assumption is named, whether the altitude agrees with the parent,
+# whether the decomposition partitions the outcome, and whether the owner is the
+# artifact's own. A conforming preamble is therefore not a passing review.
+
+REVIEWER = (
+    Path(__file__).resolve().parents[3] / ".apm" / "agents" / "shaping-reviewer.md"
+)
+
+
+def _reviewer_intent_mode() -> str:
+    text = REVIEWER.read_text(encoding="utf-8")
+    start = text.index("### intent mode")
+    end = text.index("### delivery-brief mode", start)
+    return text[start:end]
+
+
+def test_ac0016_an_intent_the_lint_accepts_can_still_fail_the_review() -> None:
+    """The fixture's preamble conforms; its body names no non-goals and states a
+    solution rather than an outcome, which are the review's to judge."""
+    text = _preamble(
+        body="We will add a dropdown to the settings page.\n\n"
+        "(no non-goals, and no riskiest assumption)"
+    )
+    assert _accepted(text), "the preamble must conform, or the test proves nothing"
+
+    mode = _reviewer_intent_mode()
+    assert "an outcome, not a solution" in mode
+    assert "Non-goals are present" in mode
+    assert "riskiest assumption is named" in mode
+
+
+def test_ac0016_the_review_judges_conditions_the_lint_cannot_decide() -> None:
+    """Named explicitly, so collapsing the review into the lint fails here."""
+    mode = _reviewer_intent_mode()
+    for condition in (
+        "an outcome, not a solution",
+        "Non-goals are present",
+        "riskiest assumption is named",
+        "Altitude is consistent with the parent",
+        "decomposition partitions",
+        "owner is the artifact's own",
+    ):
+        assert condition in mode, condition
+
+    # None of those is a preamble field rule, so none is in the contract table.
+    for name in intent_shape.REQUIRED_FIELDS:
+        assert name in ("Owner", "Slug", "Level", "Status"), name
+
+
+def test_ac0016_the_lint_decides_shape_and_claims_nothing_more() -> None:
+    """An intent with an empty body is accepted: the lint reads the preamble,
+    so a passing lint cannot stand in for a passing review."""
+    bare = "\n".join(
+        [
+            "# Intent: a fixture with nothing in it",
+            "",
+            "- **Owner:** eugenelim",
+            "- **Slug:** a-hollow-intent",
+            "- **Level:** feature",
+            "- **Status:** Draft",
+            "",
+            "## Outcome",
+            "",
+        ]
+    )
+    assert _accepted(bare)
+
+
+def test_ac0016_the_reviewer_emits_its_own_token_for_shape() -> None:
+    """The two points share the rules and keep separate reports: the review
+    emits a token, the lint names a file and a field."""
+    mode = _reviewer_intent_mode()
+    assert "MALFORMED(shape)" in mode
+    assert "MALFORMED(owner)" in mode
