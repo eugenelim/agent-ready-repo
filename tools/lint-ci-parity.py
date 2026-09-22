@@ -869,6 +869,7 @@ _GATE_MAIN_CHECKS = (
     "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
     "pytest spec-authority note live/seed parity (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
+    "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
     "pytest catalogue-test carve-out destinations (RFC-0082)",
     "pytest pack-test compatibility class characterization (ADR-0101)",

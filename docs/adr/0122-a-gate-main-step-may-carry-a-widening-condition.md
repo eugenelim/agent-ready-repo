@@ -1,4 +1,4 @@
-# ADR-0121: A gate-main step may carry a roster-authorized widening condition
+# ADR-0122: A gate-main step may carry a roster-authorized widening condition
 
 - **Status:** Accepted
 - **Date:** 2026-09-21

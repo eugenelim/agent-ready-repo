@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0121 <!-- ordinal confirmed at authoring; see Assumptions -->
+- **Constrained by:** ADR-0122
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -39,13 +39,13 @@ greys the whole job.
 - The `PR_GATED` conditional-source rule admits the sanctioned expressions instead of rejecting every `if:` — `tools/lint-ci-parity.py`
 - The admitted `if:` set becomes roster-derived instead of "no `if:` at all" — `tools/test-build-check-workflow.py`
 - The rule a reader must follow when adding a step moves to the two living surfaces that enforce it — the workflow header comment and the linter's failure message
-- The reversal of the no-step-`if` control is recorded — `docs/adr/0121-*`
+- The reversal of the no-step-`if` control is recorded — `docs/adr/0122-*`
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable — this reverses a control three shipped specs installed | `docs/adr/0121-*.md` | spec owner | ADR Accepted, naming what it reverses and why the widening marker is not the neutering form | ADR exists, status Accepted, cited by this spec's `Constrained by:` |
+| Decision rationale | Applicable — this reverses a control three shipped specs installed | `docs/adr/0122-*.md` | spec owner | ADR Accepted, naming what it reverses and why the widening marker is not the neutering form | ADR exists, status Accepted, cited by this spec's `Constrained by:` |
 | Maintainer procedure | Applicable — adding a step now obliges a phase declaration | `tools/AGENTS.md` roster bullet; the linter's failure message | spec owner | The existing `lint-ci-parity.py` bullet names the new axis; a failing run prints what to declare | `tools/AGENTS.md` names the third axis; the failure message is asserted by a test |
 | Current architecture | Applicable — the job's phase structure is new and non-obvious | Header comment in the `gate-main` job | spec owner | Comment states the two phases and the containment rule | Comment present and pinned by the posture test |
 | Reusable learning | Applicable — the spike produced findings a later author needs | `docs/specs/ci-gate-main-failure-reporting/notes/partition-evidence.md` | spec owner | The recorded runs, reds, and conclusions | Note committed with the run ids it cites |
@@ -213,9 +213,10 @@ in [`notes/partition-evidence.md`](notes/partition-evidence.md).
 
 ## Assumptions
 
-- **Process: the ADR ordinal.** `0121` is the next free number as of authoring,
-  but reserved ordinals in this repository do not reliably hold. Confirm against
-  `docs/adr/` at the moment the ADR lands and renumber if it has been taken.
+- **Process: the ADR ordinal — settled, and it did slip.** `0121` was free at
+  authoring and was taken by another change before this one merged, so the
+  record is ADR-0122. Recorded here because the assumption's whole point was
+  that a reserved ordinal in this repository does not hold, and it did not.
 - **Design: the guard reads a human-review control.** Deriving the admitted
   `if:` set from `STEP_DISPOSITION` means a roster edit can widen what the
   posture test accepts, and `tools/AGENTS.md` records that roster reasons are

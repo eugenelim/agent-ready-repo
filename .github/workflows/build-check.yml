@@ -498,16 +498,20 @@ jobs:
       # syncs them — the seed is Excluded from the self-host check. Reading
       # both puts the guard above any one pack's test tree, so it is
       # roster-owned. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
-      # step placed after that one never runs and can attribute nothing.
+      # `pytest tests/ -q` also collects it. Placement above it still matters,
+      # for a changed reason: the job no longer stops at the first failure, so
+      # a step after the carve-out runs — and reports the same failure a second
+      # time against a broad target instead of the named one.
       - name: pytest spec-authority note live/seed parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_authority_note.py
 
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
-      # step placed after that one never runs and can attribute nothing.
+      # `pytest tests/ -q` also collects it. Placement above it still matters,
+      # for a changed reason: the job no longer stops at the first failure, so
+      # a step after the carve-out runs — and reports the same failure a second
+      # time against a broad target instead of the named one.
       - name: pytest capture-rename guide contract (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
@@ -515,8 +519,10 @@ jobs:
       # The allocator's owner-parity and cross-pack equivalence claims read
       # `docs/product/intents/` and a second pack's script, which a pack test
       # may not reach. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: this job is fail-fast, so a named
-      # step placed after that one never runs and can attribute nothing.
+      # `pytest tests/ -q` also collects it. Placement above it still matters,
+      # for a changed reason: the job no longer stops at the first failure, so
+      # a step after the carve-out runs — and reports the same failure a second
+      # time against a broad target instead of the named one.
       - name: pytest typed-ordinal owner parity and equivalence (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_typed_ordinal_collision_equivalence.py
@@ -526,9 +532,12 @@ jobs:
       # intent template lives in `packs/product-engineering` while the validator
       # that judges it lives in core — so each reads two trees and neither can
       # live in a pack's own test tree. Both sit ABOVE the carve-out step below,
-      # whose `pytest tests/ -q` also collects them: this job is fail-fast, so a
-      # named step placed after that one never runs and can attribute nothing.
+      # whose `pytest tests/ -q` also collects them. Placement above it still
+      # matters, for a changed reason: the job no longer stops at the first
+      # failure, so a step after the carve-out runs — and reports the same
+      # failure a second time against a broad target instead of the named one.
       - name: pytest intent shape contract cross-tree claims (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
           tests/roster/test_intent_field_reference_parity.py

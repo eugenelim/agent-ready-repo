@@ -34,7 +34,7 @@ dependents exactly.
 The first round (runs 356637xxxxx) failed AC-0014 on 8 of 11. Neither defect was
 visible to any local gate.
 
-1. **`check-adr-index` failed inside `make build-check`.** ADR-0121 landed
+1. **`check-adr-index` failed inside `make build-check`.** ADR-0122 (authored as 0121, renumbered when that ordinal was taken) landed
    without regenerating `docs/adr/README.md`. The anchor reddened wherever it
    ran; the three branches where it skipped hid the defect entirely.
 2. **`ruff lint` did not declare its install.** On the `ruff + mypy` break it
