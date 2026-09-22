@@ -1053,16 +1053,21 @@ class ArxivRetrieverConformance(unittest.TestCase):
     def test_shipped_content_cites_no_internal_record(self) -> None:
         """Shipped pack content states its rules; it never cites ours.
 
-        The expression is the one `packs/AGENTS.local.md` publishes for this
-        rule, not a paraphrase of it, so the test and the documented check
-        cannot drift apart. It runs here because the documented check is a grep
-        someone remembers to run, and two acceptance-criterion identifiers
-        reached the script's comments in the gap after one was last run.
+        The expression is copied from the one the repository publishes for
+        this rule. It is a copy and not a reference: a pack test may not read
+        above its own pack, which `tools/lint-pack-test-boundary.py` enforces,
+        so nothing here can compare the two. If the published expression
+        changes, this one needs updating by hand — that is a real gap, stated
+        rather than papered over with a no-drift claim.
 
-        Scoped to the five surfaces this skill ships. That scope is deliberate:
-        the same rule permits an illustrative ordinal that teaches a reader
-        about their own artifacts, so a repository-wide assertion would be
-        wrong, and judging intent is not a test's job.
+        It runs here because the published check is a grep someone remembers
+        to run, and two acceptance-criterion identifiers reached the script's
+        comments in the gap after one was last run.
+
+        Scoped to the surfaces this skill ships. That scope is deliberate: the
+        same rule permits an illustrative ordinal that teaches a reader about
+        their own artifacts, so a repository-wide assertion would be wrong,
+        and judging that intent is not a test's job.
         """
         canonical = re.compile(
             r"\b(RFC|ADR)-0[0-9]{3}\b"

@@ -118,12 +118,23 @@ named `test_project_knowledge_boundary.py`, and without that mode collection
 fails on the basename collision. The Makefile passes it; a hand-run invocation
 that omits it reports four collection errors that are not defects.
 
-AC-0028's declared check is the grep `packs/AGENTS.local.md` publishes for the
-rule. The test runs that exact expression rather than a paraphrase, so the two
-cannot drift, and it is scoped to the five surfaces this skill ships — the same
-rule permits an illustrative ordinal that teaches a reader about their own
-artifacts, so a repository-wide assertion would be wrong. Verified to catch the
-`AC-0003`, `AC10`, `RFC-0102` and `docs/specs/...` forms.
+AC-0028's declared artifact is the plan's three-surface grep — the script, the
+interface reference and the skill's `SKILL.md` — using the expression the
+repository publishes for the rule. Run over those three: **0 matches**.
+
+A broader guard in the conformance suite is supplementary, not the declared
+artifact. It covers those three plus the sibling retriever and `DESIGN.md`, and
+was verified to catch the `AC-0003`, `AC10`, `RFC-0102` and `docs/specs/...`
+forms. Two scope facts matter and neither is a defect:
+
+- Running the published expression across the whole pack does **not** report
+  clean, because this suite's own docstrings name the criteria their cases
+  cover. A test is not shipped content, and the rule governs shipped content.
+- The guard's expression is a copy, not a reference. A pack test may not read
+  above its own pack — `tools/lint-pack-test-boundary.py` enforces that — so
+  nothing mechanically ties the copy to the published original. If the
+  published expression changes, the copy needs updating by hand. That is a real
+  gap, recorded here rather than claimed away.
 
 One pre-existing warning is unchanged: `CAT-S003` on the skill's `SKILL.md`,
 already past the 500-line recommendation before this change at 548 lines.
