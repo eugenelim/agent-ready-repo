@@ -38,6 +38,14 @@ rules live with that split.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
+- **STATUS: PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
+  proposes a `pending_transition` replay marker generalising the shipped
+  `amendment_pending` marker to every event that needs one,
+  and treats serialising the wave-exit verdict and raising plan width as the two
+  dependent changes behind concurrent execution. It introduces one unified
+  transition history and a `schema_version` bump that refuses in-flight state.
+  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D8 defers the schema and
+  D5 defers parallel-wave orchestration.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by
