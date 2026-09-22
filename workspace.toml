@@ -1642,29 +1642,6 @@ open = [
   # Unblocks now; no dependency.
   { path = "packs/core/.apm/skills/work-loop/scripts/loop-engine.py", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md" }, summary = "Serialise the wave-exit verdict against the cohort mutation that can invalidate it: the guard reads state.json under the engine lock while wave advance moves current_wave_index under the cohort lock, so a concurrent advance lets a wave exit with no dispatch receipt through sanctioned verbs alone", needs = [] },
 
-  # Found 2026-09-18 by the post-gates adversarial review of the same spec. The
-  # unsupported-schema verdict row is worded as preserving the `wave-complete`
-  # transition's verdict for that state class. It does not, and cannot:
-  # `_run_id_preflight` runs on every transition and its identity guard refuses
-  # an unsupported cohort `schema_version` before any event guard is reached.
-  # That behaviour predates this change -- the same rejection and the same
-  # preflight call exist at the merge-base -- so the transition's verdict really
-  # is unchanged, and the criterion holds; only its stated reason is wrong. The
-  # row does decide the direct `check --phase wave-exit` invocation the skill
-  # instructs before each fire. The slip has TWO locations, not one: the row's
-  # own rationale and a second instance reading "buys the transition, not the
-  # run" -- found by the adjudicator, which also confirmed the pre-existence
-  # independently of a revision read, via the frozen Shipped
-  # `work-loop-in-process-guards` contract that pins both `check_identity`'s
-  # refusal on `schema_version != 1` and the `_run_id_preflight` call onto it.
-  # Fix both or neither; one reworded and one left is how this class survives. Recorded rather than amended: the obligation is
-  # met and a third amendment cycle to reword one explanatory clause would be
-  # disproportionate. Correct the wording the next time the spec is legitimately
-  # open. Do NOT close this by loosening the preflight, which the reviewer
-  # proposed -- that widens what every transition accepts.
-  # Unblocks now; no dependency.
-  { path = "docs/specs/wave-complete-dispatch-receipts/spec.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md" }, summary = "Reword the unsupported-schema verdict row's rationale: it claims to preserve the wave-complete transition's verdict, but the run-id preflight refuses that state class before any event guard runs, so the row only ever decides the direct check invocation", needs = [] },
-
   # A wave exit that passes with no receipts container, or with every task
   # declined, leaves no record an after-the-fact reader can find: the read-only
   # guard cannot write, and a durable side effect on a transition is ADR-0061
