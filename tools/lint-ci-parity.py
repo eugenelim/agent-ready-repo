@@ -885,6 +885,7 @@ _GATE_MAIN_CHECKS = (
     "pytest architect design-reviewer guards (RFC-0032)",
     "pytest enriched-pack-manifest (RFC-0031)",
     "pytest catalogue Wave 4 live contracts (roster-owned)",
+    "pytest catalogue-sync decline branch alignment (roster-owned)",
     "pytest consolidated-pack-layout installer append (RFC-0040)",
     "pytest kiro drop-warning contract",
     "pytest core work-loop activation hook (roster-owned)",
