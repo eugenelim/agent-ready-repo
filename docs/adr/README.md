@@ -122,3 +122,4 @@
 | 0118 | [`architect-design` authors from three scope-routed model-first templates, not one generic design doc](0118-architect-design-scope-routed-model-first-templates.md) | Accepted | 2026-09-18 |
 | 0119 | [Retire the Initiative ladder into the recursive intent graph](0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md) | Accepted | 2026-09-18 |
 | 0120 | [Layout-config resolution follows RFC-0096 § 4, not RFC-0040's pack-default tail](0120-layout-config-resolution-follows-rfc-0096.md) | Accepted | 2026-09-21 |
+| 0121 | [A repository intent declares its altitude](0121-a-repository-intent-declares-its-altitude.md) | Accepted | 2026-09-21 |

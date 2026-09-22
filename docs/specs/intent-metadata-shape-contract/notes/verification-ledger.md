@@ -351,15 +351,22 @@ the file and the field. Restoring the file returned it to `exit 0` and
 `tools/test_intent_corpus_gate.py` re-asserts the same property against a
 temporary directory, so the standing check needs no write to the real corpus.
 
-## A stale Confirmation on a frozen record
+## Retracted: ADR-0117's Confirmation is not stale
 
-ADR-0117's `## Confirmation` names `.github/workflows/build-check.yml`'s
-`check-adr-shape` step as its enforcing signal. No such step exists:
-`lint-adr-shape` appears nowhere in `.github/` or the `Makefile`. The lint is
-real and passes when invoked by hand, but nothing invokes it in CI, so that
-record's stated confirmation does not hold.
+An earlier entry here claimed ADR-0117's `## Confirmation` named a
+`check-adr-shape` step that does not exist, on the evidence that
+`lint-adr-shape` appears nowhere in `.github/` or the `Makefile`. **That was
+wrong, and the search was the defect.** The gate chain is generated:
+`tools/repo/build_gate_chain.py` declares `check-adr-shape` alongside
+`check-adr-index` and `check-adr-ordinals`, each invoking the projected script
+under `.claude/skills/new-adr/scripts/`. Grepping the two consuming surfaces
+could not see a step the generator emits.
 
-Not touched here, and deliberately. An accepted record's prose is frozen, the
-finding is outside this spec's accepted intent, and the remedy — wiring the lint
-or correcting the record — is a decision for that record's owner. Recorded so it
-is not lost; it needs no work from this spec.
+Recorded rather than deleted because the mistake is the reusable part: a gate
+absent from `.github/` and the `Makefile` may still be generated into both, so
+the generator is the place to look. See also
+[[name-the-invocation-before-trusting-a-gate]].
+
+The same generator is why `check-adr-index` failed this branch on CI: the ADR
+index is generated from its records, and adding ADR-0121 obliged a regeneration
+that no local gate in the documented set runs.

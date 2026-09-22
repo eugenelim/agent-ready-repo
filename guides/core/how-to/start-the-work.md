@@ -185,8 +185,10 @@ Admit this as a repository intent: we want new contributors productive without r
 ```markdown
 # <intent title>
 
+- **Slug:** <intent slug>
+- **Level:** <intent level>
+- **Owner:** <bounded owner>
 - **Status:** Draft
-<optional level>
 
 ## Outcome
 
@@ -195,10 +197,6 @@ Admit this as a repository intent: we want new contributors productive without r
 ## Boundary
 
 <bounded boundary>
-
-## Owner
-
-<bounded owner>
 
 ## Unresolved questions
 ```
