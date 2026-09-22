@@ -1,7 +1,7 @@
 # Plan: work-loop provider-handoff reference
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (§ Version bump rule, § Self-hosting
   projection) and `packs/core/AGENTS.md`; analogous implementations
   `4b5c2f4a5` (reviewer-roster relocation) and `2ba77ff8e` (fidelity-ladder

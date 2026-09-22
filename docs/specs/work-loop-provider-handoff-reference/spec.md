@@ -1,6 +1,6 @@
 # Spec: work-loop provider-handoff reference
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -101,9 +101,9 @@ control intact and its consumer declaration still visible on the entrypoint.
 
 ## Acceptance Criteria
 
-- [ ] **AC1** `packs/core/.apm/skills/work-loop/SKILL.md` contains no
+- [x] **AC1** `packs/core/.apm/skills/work-loop/SKILL.md` contains no
       occurrence of the literal `knowledge-evidence`.
-- [ ] **AC2** `references/skill-engineering-provider.md` contains each of: the
+- [x] **AC2** `references/skill-engineering-provider.md` contains each of: the
       selection sentence beginning `Before invoking or reading provider text`;
       `no call is made and no provider text is read until selection succeeds`;
       the six selection outcomes; `Make one call with no refinement`; the
@@ -113,37 +113,37 @@ control intact and its consumer declaration still visible on the entrypoint.
       the sentence beginning `Refuse the response before using`; and each of
       the seven diagnostics of the closed set published by the provider pack's
       `provider-contract.md`, which owns that vocabulary.
-- [ ] **AC3** In that reference, the containment sentence precedes both
+- [x] **AC3** In that reference, the containment sentence precedes both
       `Retain it only within:` and the sentence beginning `Cite returned`.
-- [ ] **AC4** Step 1 PLAN of `SKILL.md` states that no provider capability is
+- [x] **AC4** Step 1 PLAN of `SKILL.md` states that no provider capability is
       resolved, invoked, or read before that reference is loaded.
-- [ ] **AC5** Step 1 PLAN of `SKILL.md` names all five task shapes the
+- [x] **AC5** Step 1 PLAN of `SKILL.md` names all five task shapes the
       predicate covers: a skill, a skill script or evaluation, agent-loop
       orchestration, a hook, a plugin.
-- [ ] **AC6** Step 1 PLAN of `SKILL.md` links
+- [x] **AC6** Step 1 PLAN of `SKILL.md` links
       `references/skill-engineering-provider.md`.
-- [ ] **AC7** `SKILL.md` contains the literals
+- [x] **AC7** `SKILL.md` contains the literals
       `agent-skill-engineering-reference/v1` and `knowledge provider unavailable`.
-- [ ] **AC8** `SKILL.md` contains `skill-authoring` and `skill-eval-ci`, and no
+- [x] **AC8** `SKILL.md` contains `skill-authoring` and `skill-eval-ci`, and no
       other member of the provider's published task-kind set.
-- [ ] **AC9** `SKILL.md`'s `## Conditional-reference routing` table contains
+- [x] **AC9** `SKILL.md`'s `## Conditional-reference routing` table contains
       exactly one row whose reference cell names
       `references/skill-engineering-provider.md`.
-- [ ] **AC10** Once the contract-version literal is excised, neither `SKILL.md`
+- [x] **AC10** Once the contract-version literal is excised, neither `SKILL.md`
       nor the new reference contains `agent-skill-engineering` or
       `ase-okf-reference`.
-- [ ] **AC11** Every assertion that `packs/core/tests/skills/work-loop/test_work_loop_skill_engineering_reference_boundary.py`
+- [x] **AC11** Every assertion that `packs/core/tests/skills/work-loop/test_work_loop_skill_engineering_reference_boundary.py`
       and `packs/core/tests/pack/test_reviewer_project_knowledge_boundary.py`
       make today about a moved literal still runs and still passes.
-- [ ] **AC12** The consumer criteria in
+- [x] **AC12** The consumer criteria in
       `tests/roster/test_agent_skill_engineering_consumer_integrations.py` pass
       on CI for both `work-loop` and `architect-design`.
-- [ ] **AC13** A test asserts that `.claude/skills/work-loop/` and
+- [x] **AC13** A test asserts that `.claude/skills/work-loop/` and
       `.agents/skills/work-loop/` are byte-identical to the pack copy for both
       `SKILL.md` and `references/skill-engineering-provider.md`.
-- [ ] **AC14** `docs/specs/agent-skill-engineering-consumer-integrations/spec.md`
+- [x] **AC14** `docs/specs/agent-skill-engineering-consumer-integrations/spec.md`
       has a Status line naming `references/skill-engineering-provider.md`.
-- [ ] **AC15** That spec's acceptance-criteria lines are byte-unchanged.
+- [x] **AC15** That spec's acceptance-criteria lines are byte-unchanged.
 
 ## Follow-ons
 
