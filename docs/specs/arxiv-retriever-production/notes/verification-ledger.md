@@ -122,29 +122,21 @@ AC-0028's declared artifact is the plan's three-surface grep — the script, the
 interface reference and the skill's `SKILL.md` — using the expression the
 repository publishes for the rule. Run over those three: **0 matches**.
 
-A broader guard in the conformance suite is supplementary, not the declared
-artifact. It covers those three plus the sibling retriever and `DESIGN.md`, and
-was verified to catch the `AC-0003`, `AC10`, `RFC-0102` and `docs/specs/...`
-forms. Two scope facts matter and neither is a defect:
+A supplementary test in the conformance suite runs that same published
+expression over those three surfaces plus the sibling retriever and
+`DESIGN.md`, and expects no match. That sentence is its whole claim. It does
+not establish the rule's property: the rule permits an illustrative reference
+and says to judge what a reference points at, which no expression does, so a
+permitted illustration would fail it and the failure message says to exempt the
+surface rather than reword. Its expression is a copy — a pack test may not read
+above its own pack, which `tools/lint-pack-test-boundary.py` enforces — so it
+needs updating by hand if the published one changes.
 
-- Running the published expression across the whole pack does **not** report
-  clean, because this suite's own docstrings name the criteria their cases
-  cover. A test is not shipped content, and the rule governs shipped content.
-- The guard's expression is a copy, not a reference. A pack test may not read
-  above its own pack — `tools/lint-pack-test-boundary.py` enforces that — so
-  nothing mechanically ties the copy to the published original. If the
-  published expression changes, the copy needs updating by hand. That is a real
-  gap, recorded here rather than claimed away.
-- The guard is stricter than the rule, on purpose, and proves something
-  narrower than the rule's property. It establishes that none of its surfaces
-  contains a zero-padded RFC or ADR ordinal, an AC-style identifier, or a
-  `docs/{specs,rfc,adr,contracts}` path — not that none carries an internal
-  citation, which is the rule's property and needs judgement the expression
-  cannot supply. The rule permits an illustrative reference and says to judge
-  what it points at; these surfaces can afford the stricter line because none
-  teaches with one. A permitted illustration would therefore fail the guard.
-  That is a deliberate false positive, and an author who needs one should
-  exempt that surface with a reason rather than reword around it.
+It exists because the declared check is a grep someone remembers to run, and
+two acceptance-criterion identifiers reached the script in the gap after one
+was last run. Running the published expression across the whole pack does not
+report clean, because this suite's own docstrings name the criteria their cases
+cover; a test is not shipped content, and the rule governs shipped content.
 
 One pre-existing warning is unchanged: `CAT-S003` on the skill's `SKILL.md`,
 already past the 500-line recommendation before this change at 548 lines.

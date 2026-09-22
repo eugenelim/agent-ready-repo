@@ -1050,40 +1050,26 @@ class ArxivRetrieverConformance(unittest.TestCase):
         self.assertIsNotNone(sender._last_completed)
         self.assertGreater(sender.delay_before_next(), 0.0)
 
-    def test_shipped_surfaces_carry_no_catalogue_shaped_reference(self) -> None:
-        """No catalogue-shaped reference appears on the surfaces this skill ships.
+    def test_the_published_citation_expression_matches_nothing_shipped(self) -> None:
+        """Runs the repository's published citation expression; expects no match.
 
-        Not "no internal citation": that is the rule's property, and this
-        cannot decide it. What this decides is narrower and exact — none of
-        these surfaces contains a zero-padded RFC or ADR ordinal, an
-        AC-style identifier, or a `docs/{specs,rfc,adr,contracts}` path.
+        That sentence is the whole claim. This proves nothing about internal
+        citations: the rule permits an illustrative reference and says to judge
+        what a reference points at, and no expression judges that. Earlier
+        wordings tried to describe a property and each one overstated the
+        regex, so this describes the mechanism instead.
 
-        The expression is copied from the one the repository publishes for
-        this rule. It is a copy and not a reference: a pack test may not read
-        above its own pack, which `tools/lint-pack-test-boundary.py` enforces,
-        so nothing here can compare the two. If the published expression
-        changes, this one needs updating by hand — that is a real gap, stated
-        rather than papered over with a no-drift claim.
+        A failure means the expression matched. Read the match and decide: if
+        it is an internal citation, rewrite it; if it is a permitted
+        illustration, exempt this surface here with the reason.
 
-        It runs here because the published check is a grep someone remembers
-        to run, and two acceptance-criterion identifiers reached the script's
-        comments in the gap after one was last run.
-
-        That is deliberately stricter than the rule. The rule permits an
-        illustrative reference that teaches a reader about their own
-        artifacts, and says to judge what a reference points at rather than
-        its shape. No regex judges that. These surfaces can afford the
-        stricter line because none teaches with such a reference and each has
-        portable phrasing available instead.
-
-        So a permitted illustration would fail here. That is a deliberate
-        false positive, not a verdict that the illustration is an internal
-        citation. An author who needs one should exempt that surface here,
-        with the reason, rather than reword around a guard that was never the
-        rule. The declared three-surface check in the verification ledger is
-        what covers the rule itself.
+        The expression is copied, not referenced — a pack test may not read
+        above its own pack, which `tools/lint-pack-test-boundary.py` enforces —
+        so it needs updating by hand if the published one changes. It runs
+        because the published check is a grep someone remembers to run, and two
+        identifiers reached the script in the gap after one was last run.
         """
-        canonical = re.compile(
+        published = re.compile(
             r"\b(RFC|ADR)-0[0-9]{3}\b"
             r"|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b"
             r"|docs/(specs|rfc|adr|contracts)/[a-z0-9]"
@@ -1095,12 +1081,11 @@ class ArxivRetrieverConformance(unittest.TestCase):
             SKILL_MD,
             PACK / "DESIGN.md",
         ):
-            hits = canonical.findall(surface.read_text(encoding="utf-8"))
             self.assertEqual(
-                hits, [],
-                f"{surface.name} carries a catalogue-shaped reference. If it is a "
-                f"permitted illustration rather than an internal citation, exempt "
-                f"this surface here with the reason.",
+                published.findall(surface.read_text(encoding="utf-8")), [],
+                f"the published citation expression matched in {surface.name}; "
+                f"read the match and either rewrite it or exempt this surface "
+                f"here with the reason",
             )
 
     def test_streams_are_reconfigured_to_utf8(self) -> None:
