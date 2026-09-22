@@ -198,9 +198,9 @@ when it does not:
 - **Retired:** the bet was withdrawn before any work started
 ```
 
-The check counts the fields and does not read the three values, so a malformed
-date passes it. Write the date the way every other date in an intent is
-written.
+The check counts the fields and notices whether each carries a value, but it
+does not judge the values' format — so a malformed date passes it. Write the
+date the way every other date in an intent is written.
 
 ### The shaping review says `MALFORMED(shape)`
 
@@ -235,12 +235,13 @@ The named file is skipped and every other file is still checked — three live
 intents and one tombstone were validated. One unreadable file does not hide the
 rest.
 
-**The directory could not be walked.** Two causes produce this. A link
-somewhere in it is the usual one — either the directory itself or an entry
-inside it. The other is size: the walk refuses a tree deeper than eight levels,
-or one holding more than ten thousand files or fifty thousand entries. The
-message names the directory either way, so it does not say which entry, or
-which bound, is at fault:
+**The directory could not be walked.** A link somewhere in it is the usual
+cause — either the directory itself or an entry inside it. Size is the next
+most likely: the walk refuses a tree deeper than eight levels, or one holding
+more than ten thousand files or fifty thousand entries. Any other read failure
+surfaces the same way, a permission error among them. The message names the
+directory in every case, so it does not say which entry, which bound, or which
+error is at fault — the exception name after the colon is the clue:
 
 ```text
 unreadable: /path/to/intents: UnsafeContentError
@@ -250,11 +251,12 @@ intent-corpus-lint: 0 violation(s), 1 unreadable — 1 entry, 0 live, 0 tombston
 Here the path is the directory, not a file, and nothing was validated: the one
 entry accounted for is the directory itself, and the walk stopped, so the run
 says nothing about any intent. Do not read this as a
-clean corpus with one bad file. List the directory. If an entry is a link,
-replace it with a regular file. If the tree is simply very large or deeply
-nested, that is the other cause, and an intents directory that big is worth
-questioning rather than working around. Re-run before trusting anything else
-the run reported.
+clean corpus with one bad file. List the directory and read the exception
+name. `UnsafeContentError` means a link or a bound: replace the link with a
+regular file, or question an intents directory large enough to hit a bound
+rather than working around it. An `OSError` or `PermissionError` means the
+entry could not be opened at all. Re-run before trusting anything else the run
+reported.
 
 Either way the exit code stays non-zero until every file can be read.
 
