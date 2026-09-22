@@ -241,7 +241,7 @@ by deletion, not by a falsy conjunct.
 | `Install tools dependencies` | 35642465134 | 4 |
 | `Install agentbundle (editable) + pytest` | 35642472761 | 1 |
 | `Install ripgrep` | 35642480505 | 2 |
-| `Install ruff + mypy` | 35642487339 | 1 |
+| `Install ruff + mypy` | 35642487339 | 2 |
 | `Install credbroker (editable, with crypto extra)` | 35642494151 | 3 |
 | `pip install httpx …` | 35642502543 | **0** |
 | `pip install the Markdown→Office render libraries` | 35642509557 | 4 |
@@ -268,7 +268,7 @@ Members, by provisioning step:
 
 ### What the matrix decides
 
-**The dependency graph is sparse.** Nineteen dependency edges over fifteen
+**The dependency graph is sparse.** Twenty dependency edges over fifteen
 distinct checks. Roughly 55 of the 70 checks depend on no provisioning step that
 can fail independently, so per-check gating is worth its mechanism: a broken
 `.msg` reader skips one check rather than greying all seventy.
