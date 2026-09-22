@@ -21,21 +21,29 @@ import pytest
 
 PACK = Path(__file__).resolve().parents[3]
 
+# Literal segments, one constant per module. Both skills are this pack's own, so
+# neither path leaves `packs/core` — but `tools/lint-pack-test-boundary.py`
+# resolves these statically, and a path assembled from a parameter reads to it
+# as a reach above the pack even when every value is in-pack.
+_RENDERER_PATH = (
+    PACK / ".apm" / "skills" / "intake-intent" / "scripts" / "intent_renderer.py"
+)
+_SHAPE_PATH = (
+    PACK / ".apm" / "skills" / "work-intake" / "scripts" / "intent_shape.py"
+)
 
-def _load(skill: str, module: str, qualified: str):
-    path = PACK / ".apm" / "skills" / skill / "scripts" / f"{module}.py"
+
+def _load(path: Path, qualified: str):
     spec = importlib.util.spec_from_file_location(qualified, path)
-    assert spec and spec.loader, path
+    assert spec is not None and spec.loader is not None
     loaded = importlib.util.module_from_spec(spec)
     sys.modules[qualified] = loaded
     spec.loader.exec_module(loaded)
     return loaded
 
 
-renderer = _load(
-    "intake-intent", "intent_renderer", "core_intake_intent_intent_renderer"
-)
-shape = _load("work-intake", "intent_shape", "core_work_intake_intent_shape_t7")
+renderer = _load(_RENDERER_PATH, "core_intake_intent_intent_renderer")
+shape = _load(_SHAPE_PATH, "core_work_intake_intent_shape_t7")
 
 
 def _intake(*, mode: str = "repo-origin", owners: list[str] | None = None):
