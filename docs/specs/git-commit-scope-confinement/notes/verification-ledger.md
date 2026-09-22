@@ -601,3 +601,55 @@ rest on the enumeration being complete, which is why it was taken here over the
 call-site fix that was offered.
 
 Full `workspace_mcp` selection after the repair: 170 passed, 42 skipped, 144s.
+
+## The cold read, and what eleven led rounds could not see
+
+The owner directed that reviewers be given the diff and the contract with no
+history and no instruction about what to look for. The difference was immediate.
+
+Eleven led rounds found members of the class the brief pointed at. One cold read
+found three things no brief had pointed at, and its first finding was a defect
+in the *remedy* from the round before:
+
+| Finding | Why a led round could not reach it |
+| --- | --- |
+| `GIT_LITERAL_PATHSPECS` in the shared env leaks into adopter hooks | it is a defect in the fix, and the briefs asked about the original defect |
+| two fixtures create Windows-illegal filenames before any guard | no brief mentioned portability |
+| T5's `Tests` has two bullets with no executable home | the briefs asked about mechanisms, not whether the task's own contract was discharged |
+
+A second cold read, security, independently returned the hook Blocker as its
+first finding. Two unled reviewers converging is the strongest corroboration
+this run produced for any single defect.
+
+Measured, before and after:
+
+```
+before: hook saw LITERAL=1      and its `-- "*.md"` glob matched nothing
+after : hook saw LITERAL=unset  and the glob matched artifacts/intents/alpha.md
+```
+
+The repair restricts the variable to the one call passed a pathspec. Of the
+module's nine git invocations exactly one takes a pathspec; `git commit`,
+`git checkout` and `git push` run adopter-owned hooks and take none.
+
+### The reasoning error, recorded because it was argued for at length
+
+The seam was chosen over the call site on the stated grounds that it "does not
+rest on the enumeration being complete". That enumeration was one line of
+checking, and the breadth it bought silently changed the meaning of commands
+adopters wrote for their own repositories. An argument that a fix is safer
+*because* it is broader should be suspected wherever the narrow version's scope
+is cheaply decidable.
+
+### A fix is not covered until its mutation fails
+
+The hook repair passed its own new test and the pathspec test, and the mutation
+restoring the leak — defaulting `literal_pathspecs` back to `True` — was **not
+caught**: the defect had been repaired and nothing could detect its return.
+`test_an_adopter_hook_does_not_inherit_literal_pathspec_mode` closes that, and
+both directions are now pinned.
+
+Final tree: `lint-ruff` and `lint-mypy` clean over 148 source files;
+`packages/agentbundle/tests/` 5087 passed, 50 skipped, 1 xfailed, 77 subtests,
+11m41s; `tools/` 1529 passed, 2 skipped, 87 subtests, 19m46s. `tests/roster/`
+runs on CI only and carries AC-0007's version pin.

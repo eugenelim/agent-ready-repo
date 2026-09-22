@@ -351,9 +351,20 @@ def test_a_deep_file_under_a_slug_bearing_prefix_is_still_staged(
 
 
 def _sibling_results(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, raw_base: str | None
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    item_type: str,
+    raw_base: str | None,
+    *,
+    repo_layout: dict[str, str] | None = None,
+    user_layout: dict[str, str] | None = None,
 ) -> tuple[dict, dict]:
-    """`git_branch` and `git_push` results for one configuration."""
+    """`git_branch` and `git_push` results for one configuration.
+
+    `raw_base` configures the item type's own key at repository scope; the two
+    layout arguments configure both scopes directly, for the refusals that arise
+    from one scope's read being abandoned rather than from the key's own value.
+    """
     _seed_repo(repo)
     origin = repo.parent / "origin.git"
     subprocess.run(
@@ -363,6 +374,13 @@ def _sibling_results(
     _git(repo, "remote", "add", "origin", str(origin))
     if raw_base is not None:
         _configure(repo, _LAYOUT_TYPE_BASES[item_type][0], raw_base)
+    if repo_layout:
+        _write_layout(repo / "agentbundle-layout.toml", repo_layout)
+    if user_layout:
+        home = repo.parent / "home"
+        _write_layout(home / ".agentbundle" / "agentbundle-layout.toml", user_layout)
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.setenv("USERPROFILE", str(home))
 
     _dispatch(monkeypatch, item_type)
     tools = _GitTools(repo)
@@ -641,6 +659,7 @@ def test_a_bad_key_earlier_in_one_scope_does_not_let_the_other_scope_go_unscreen
     assert _head(repo) == before
 
 
+@pytest.mark.skipif(os.name == "nt", reason="`*` is not a legal Windows filename")
 def test_a_star_the_base_resolves_through_is_not_pattern_syntax(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -763,6 +782,7 @@ def test_braces_the_base_resolves_through_are_not_substitution_syntax(
         assert Path(str(spec[1])).is_relative_to(target)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="`:` is not a legal Windows filename")
 def test_a_base_carrying_pathspec_magic_stages_the_file_it_reports(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -793,3 +813,108 @@ def test_a_base_carrying_pathspec_magic_stages_the_file_it_reports(
     ).stdout.split()
     assert _staged(result) == [f":(glob)artifacts/intents/{_SLUG}.md"]
     assert committed_in_head == [f":(glob)artifacts/intents/{_SLUG}.md"]
+
+
+def test_a_clean_user_scope_base_stages_the_items_own_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """T5 asks that a clean configured base at *either* scope keep staging. Every
+    other staging row writes the repository-scope file, so this is the only one
+    that drives `git_commit` against a user-scope value — which for `product`
+    wins only when the repository scope configures nothing.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    home = tmp_path / "home"
+    base = repo.resolve() / "from-user-scope"
+    _write_layout(
+        home / ".agentbundle" / "agentbundle-layout.toml", {"product": str(base)}
+    )
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    _write(base / "intents" / f"{_SLUG}.md")
+    _write(repo / _UNRELATED)
+
+    _dispatch(monkeypatch, "shape")
+    tools = _GitTools(repo)
+    staged = _staged(tools.git_commit({"message": "scope"}))
+
+    assert tools._refused_layout_key is None
+    assert staged == [f"from-user-scope/intents/{_SLUG}.md"]
+
+
+# The two refusals that arise from one scope's read being abandoned, rather than
+# from the dispatched type's own key carrying a reserved character.
+_FALLBACK_REFUSALS: dict[str, tuple[dict[str, str], dict[str, str]]] = {
+    "container-typed-value": ({"product": '["x"]'}, {"product": "USER"}),
+    "container-before-a-clean-key": (
+        {"research": '["x"]', "product": "artifacts"},
+        {"product": "USER"},
+    ),
+}
+
+
+@pytest.mark.parametrize("shape", sorted(_FALLBACK_REFUSALS))
+def test_a_selection_fallback_refusal_leaves_the_sibling_git_tools_working(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, shape: str
+) -> None:
+    """T5 asks that `git_branch` and `git_push` return their unconfigured
+    results under *every* refusing configuration. The reserved-character rows
+    already do; these two refuse for a different reason — the repository scope's
+    read is abandoned and the user-scope value wins — and must not engage
+    discovery mode either.
+    """
+    repo_layout, user_layout = _FALLBACK_REFUSALS[shape]
+    user_layout = {
+        key: str((tmp_path / "refused" / "vault").resolve()) + "/docs/*"
+        if value == "USER"
+        else value
+        for key, value in user_layout.items()
+    }
+    refused = _sibling_results(
+        tmp_path / "refused" / "repo",
+        monkeypatch,
+        "shape",
+        None,
+        repo_layout=repo_layout,
+        user_layout=user_layout,
+    )
+    unconfigured = _sibling_results(
+        tmp_path / "unconfigured" / "repo", monkeypatch, "shape", None
+    )
+
+    assert refused == unconfigured
+    assert refused[0] == {"branch": f"{_INI}/shape/{_SLUG}"}
+    assert refused[1] == {"pushed": f"{_INI}/shape/{_SLUG}"}
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX hook script and execute bit")
+def test_an_adopter_hook_does_not_inherit_literal_pathspec_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`GIT_LITERAL_PATHSPECS` belongs to the one call passed a pathspec, and
+    must not reach the hooks `git commit`, `git checkout` and `git push` run.
+
+    A hook is the adopter's own code in the adopter's own repository. With the
+    variable inherited, a hook filtering by glob — the shape below — matches
+    nothing and its validation passes with nothing to show it was skipped.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    hook.write_text(
+        "#!/bin/sh\n"
+        'echo "LITERAL=${GIT_LITERAL_PATHSPECS:-unset}" > "$PWD/hook-out.txt"\n'
+        'git diff --cached --name-only -- "*.md" >> "$PWD/hook-out.txt" 2>&1\n',
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+    _configure(repo, "product", "artifacts")
+    _write(repo / "artifacts" / "intents" / f"{_SLUG}.md")
+
+    _dispatch(monkeypatch, "shape")
+    result = _GitTools(repo).git_commit({"message": "scope"})
+
+    assert "committed" in result, result
+    observed = (repo / "hook-out.txt").read_text(encoding="utf-8").split()
+    assert observed == ["LITERAL=unset", f"artifacts/intents/{_SLUG}.md"]

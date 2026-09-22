@@ -363,23 +363,23 @@ _GIT_OVERRIDE_VARS = frozenset({
 })
 
 
-def _git_env() -> dict[str, str]:
-    """Return os.environ with git repository-override variables stripped, and
-    pathspec magic disabled.
+def _git_env(*, literal_pathspecs: bool = False) -> dict[str, str]:
+    """Return os.environ with git repository-override variables stripped.
 
-    Every path this module hands git is a literal one — read back from
-    `git status` output, or built from a directory an adopter configured — and
-    none is a pattern. `--` ends option parsing but leaves pathspec magic active,
-    so without this a directory literally named `:(glob)artifacts` is re-read as
-    a glob and `git add` stages a different tree than the one the tool reports
-    committing.
+    `literal_pathspecs` disables git's pathspec magic, and belongs only to a call
+    that is passed a pathspec. `--` ends option parsing but leaves magic active,
+    so a directory literally named `:(glob)artifacts` is otherwise re-read as a
+    glob and `git add` stages a different tree than the tool reports committing.
 
-    It is set here rather than on the one call known to be exploitable because
-    every git invocation in this module reaches this function, and a per-call
-    fix protects only the call someone has already found.
+    It is off by default because the variable is inherited by adopter-owned
+    hooks: `git commit`, `git checkout` and `git push` all run them, and a hook
+    filtering with a glob pathspec would silently match nothing. Of this
+    module's git invocations only `git add` is passed a pathspec, so that is the
+    only call that opts in.
     """
     env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
-    env["GIT_LITERAL_PATHSPECS"] = "1"
+    if literal_pathspecs:
+        env["GIT_LITERAL_PATHSPECS"] = "1"
     return env
 
 
@@ -2056,6 +2056,7 @@ class _GitTools:
             r = self._run_git(
                 ["git", "add", "--", *matched],
                 cwd=str(self._repo_root), timeout=_GIT_TIMEOUT,
+                env=_git_env(literal_pathspecs=True),
             )
             if r.returncode != 0:
                 return {"error": f"git add failed: {r.stderr.strip()}"}
