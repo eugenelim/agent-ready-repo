@@ -92,3 +92,31 @@ Recorded by `docs/specs/review-record-idempotency/`, core 2.18.2. Whether the
 remaining prerequisite is worth pursuing is a separate decision this erratum does
 not take. The body above is left as written; this ADR is Accepted → Frozen
 (`docs/CONVENTIONS.md`). Approver: eugenelim.
+
+**2026-09-22 Erratum — D3's channel, and D4's invoker, no longer describe the
+code.** The decision is unchanged and this erratum takes none. It records that
+two statements have drifted from what ships, so a reader who lands mid-file does
+not take either as current.
+
+- *"The engine never writes cohort state"* — the `contract-amendment` transition
+  loads `loop-cohort.py` in-process and calls `apply_contract_amendment`, which
+  takes the cohort lock and writes `state.json`. This is the only event that does
+  so; the other fourteen invoke no cohort mutation from the engine.
+- *"reads it only through the designated read-only verbs (`identity`, `plan
+  check-current`, `schedule check-current`, `wave check`, `check --phase`)"* — the
+  guard layer reads `state.json` directly through `_loop_guards.read_state`,
+  having previously shelled out to `loop-cohort.py`. Those verbs remain the CLI
+  surface; they are no longer the engine's read path.
+- *"D4: Every cohort mutation is invoked explicitly by the skill"* — inexact on
+  the same path. The skill invokes the transition, and the engine performs the
+  amendment mutation as part of it, so that one mutation is a transition effect
+  rather than an explicit skill call. D4 holds for every other cohort mutation.
+
+The ownership split in D1 and D2 is unaffected: `loop-cohort.py` remains the
+writer of record for cohort state, and the engine reaches it through that
+module rather than around it.
+
+Whether to re-align the code to D3 and D4 or to supersede them is a decision this
+erratum does not take, and an erratum could not carry it. Current behaviour is
+described in `docs/architecture/loop-infrastructure.md` § 3, § 4 and § 6. The body
+above is left as written. Approver: eugenelim.
