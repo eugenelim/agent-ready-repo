@@ -925,10 +925,9 @@
     {
       "id": "work-frontier-requiredness-is-not-circular",
       "prompt": "A reviewer sustains a Concern that the accepted intent does not require and that does not show your change is incorrect or unsafe. A skill rule says every finding must be disposed of. Does that rule make the finding required work?",
-      "expected_output": "No — that reading is circular and the frontier would never close. Requiredness is a property of the work, never of the loop that processes it. Routing the finding out as not required is itself a disposal: it is resolved, with the accepted intent as its referent, which satisfies the duty rather than failing it. Apply that test before firing a repair transition, so the finding consumes no repair round and no retry capacity.",
+      "expected_output": "No. Routing the finding out as not required is itself a disposal: it is resolved, with the accepted intent as its referent, which satisfies the duty rather than failing it. Ask what the intent needs, not what the procedure obliges you to do about a finding you already have. Apply that test before firing a repair transition, so the finding consumes no repair round and no retry capacity.",
       "assertions": [
         "Response answers that the disposal duty does not make the finding required",
-        "Response names the circularity",
         "Response treats routing the finding out as a disposal that resolves it against the accepted intent",
         "Response applies the test before firing a repair transition, so no repair round or retry capacity is consumed"
       ]

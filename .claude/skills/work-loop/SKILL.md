@@ -487,17 +487,11 @@ An absent or non-Clean adversarial reviewer must not suppress another warranted 
 Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`".
 
 **`select_reviewers(task)` — the whole roster rule.** `adversarial-reviewer` is
-the default and covers correctness and scope. It does **not** cover the rest:
-its own contract assigns testability, reliability, observability, maintenance
-cost, and every test-strength judgment — mode fit, tautology, mock shape,
-mirrors, and whether an artifact can actually fail — exclusively to
-`quality-engineer`. Work tripping none of the high-risk conditions therefore
-ships without that lens. That is a deliberate trade of the lens for speed, not a
-claim some other reviewer picks it up; raise the work to high-risk, or ask for
-the pass, when the trade is wrong. Each row adds a lens only when the change
-reaches it; each role's bullet below owns its exact boundary, this table owns
-the roster and what high-risk means. A row that does not fire is recorded
-`<role>: not warranted`, never dropped.
+the default and covers correctness and scope. Each row adds a lens only when the
+change reaches it; each role's bullet below owns its exact boundary, this table
+owns the roster and what high-risk means. A row that does not fire is recorded
+`<role>: not warranted`, never dropped. What the default roster gives up where
+`quality-engineer` does not fire: [`references/reviewer-roster.md`](references/reviewer-roster.md).
 
 | The change reaches | Adds |
 |---|---|
@@ -599,13 +593,8 @@ not required, because every nearby defect as scope is the boundary the
 completion doctrine rejects. Those grounds, and a stated acceptance
 criterion, are the only ones for expanding the frontier past current intent.
 
-Requiredness is a property of the work, never of the loop that processes it.
-The rule that every finding must be disposed of does not make every finding
-required: routing one out as not required **is** a disposal — resolved, with
-the accepted intent as its referent — so it satisfies that duty rather than
-failing it. Read the other way the rule is circular: the duty to handle a
-finding would make the finding required, and the frontier would never close. Ask what the intent needs, not what the procedure obliges you to
-do about a finding you already have.
+Ask what the intent needs, not what the procedure obliges you to do about a
+finding you already have.
 
 Everything else is not required, however much it would improve the code. Your
 own judgement that a discovery fits the spirit of the work is not an
@@ -842,9 +831,9 @@ capturing a ready-now item is a loss.
 
 - **Review scratch notes** from this session's DECIDE passes. Anything
   generalisable that would have changed the approach goes to the
-  `project-knowledge` public seam, and the examples below are instances of
-  that; the seam is additive. A note that names a defect routes by what it
-  is:
+  `project-knowledge` public seam, and the examples in the capture reference
+  are instances of that; the seam is additive. A note that names a defect
+  routes by what it is:
 
   | What the note is | Where it goes |
   | --- | --- |
@@ -873,10 +862,6 @@ capturing a ready-now item is a loss.
   [The reasoning check](references/work-item-capture.md#the-reasoning-check).
   A note that names no defect is done once the seam has taken it, and
   discarded if it had nothing for the seam either.
-- "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
-- "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
-- "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
-- "This workflow is the third time I've done it" → propose it as a new skill.
 
 ## Context hygiene
 
@@ -940,6 +925,7 @@ Load when the predicate fires; don't load speculatively.
 | Full mode needs to fire a transition or record cohort state | [`references/full-mode-engine.md`](references/full-mode-engine.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
 | A repair or claimed fix needs mutation proof | [`references/mutation-proof.md`](references/mutation-proof.md) |
+| Selecting reviewers, or weighing the lens the default roster gives up | [`references/reviewer-roster.md`](references/reviewer-roster.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |
