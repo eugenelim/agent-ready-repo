@@ -550,3 +550,54 @@ different sweep. This one surfaced only because a finding about the line beneath
 it sent me to look.
 
 Both suites after the removals: 126 passed, 157s.
+
+## The third interpreting step is git's own, and the class was drawn too narrowly
+
+Round 11 asked the question the previous entry set up — is there a third step
+that reads the base's characters as syntax — and found one outside this module.
+
+`--` ends git's option parsing but not its *pathspec magic* parsing. A
+configured `output_dir` of `:(glob)artifacts` carries none of AC-0002's five
+reserved characters, so the screen correctly does not refuse it, and `_in_scope`
+correctly admits the file under it. `git add -- ':(glob)artifacts/intents/alpha.md'`
+then re-read the path as a glob:
+
+```
+git_commit returned : committed: [':(glob)artifacts/intents/alpha.md']
+HEAD actually holds : artifacts/intents/alpha.md
+```
+
+AC-0004 breached, and the returned list names a file the commit does not
+contain. The adjudicator ruled that second consequence the same defect at the
+same call site, not a separate matter: it is worse than a refusal, because
+nothing looks wrong.
+
+Repair at `_git_env()`, which all nine git invocations in the module already
+reach, rather than `--literal-pathspecs` on the one call with a proven exploit.
+The adjudicator also narrowed the reviewer's remedy: regressions for a leading
+`-` (already neutralised by `--`) and for delimiter-heavy filenames exceeded the
+smallest adequate change, so one test covers the case that reproduces.
+
+Mutation: deleting the `GIT_LITERAL_PATHSPECS` line reds
+`test_a_base_carrying_pathspec_magic_stages_the_file_it_reports` and nothing
+else.
+
+### The class, redrawn
+
+The previous entry defined it as "steps that interpret the joined string" and
+listed the two in this module. That boundary was wrong — it was drawn around the
+code I had written. The class is *anything downstream that re-reads a path as a
+pattern*, and the consumer counts:
+
+| Step | Interprets | Confined by |
+| --- | --- | --- |
+| wildcard split | `/*` | running on the manifest pattern alone |
+| slug substitution | `{…}` | running on the manifest prefix alone |
+| `git add` pathspec parsing | `:(magic)`, globs | `GIT_LITERAL_PATHSPECS` at the shared env |
+
+Three times now a class has been declared closed and the next round has found
+the member that was not enumerated. The seam fix is the one move that does not
+rest on the enumeration being complete, which is why it was taken here over the
+call-site fix that was offered.
+
+Full `workspace_mcp` selection after the repair: 170 passed, 42 skipped, 144s.

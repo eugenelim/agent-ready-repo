@@ -761,3 +761,35 @@ def test_braces_the_base_resolves_through_are_not_substitution_syntax(
     assert any(spec[0] == entry_kind for spec in specs)
     for spec in specs:
         assert Path(str(spec[1])).is_relative_to(target)
+
+
+def test_a_base_carrying_pathspec_magic_stages_the_file_it_reports(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--` ends git's option parsing but not its pathspec-magic parsing, so a
+    directory literally named `:(glob)artifacts` was re-read as a glob: the
+    commit contained `artifacts/intents/alpha.md` while `git_commit` reported
+    having committed `:(glob)artifacts/intents/alpha.md`. The staged set left
+    the configured directory, and the tool's own answer disagreed with the
+    repository — which is worse than a refusal, because nothing looks wrong.
+
+    AC-0002 cannot reach this: `:(glob)artifacts` carries none of the five
+    reserved characters, and AC-0001 requires it to keep staging.
+    """
+    repo = tmp_path / "repo"
+    _seed_repo(repo)
+    _configure(repo, "product", ":(glob)artifacts")
+    mine = repo / ":(glob)artifacts" / "intents" / f"{_SLUG}.md"
+    _write(mine)
+    # The tree the magic pathspec resolves to when it is not taken literally.
+    decoy = repo / "artifacts" / "intents" / f"{_SLUG}.md"
+    _write(decoy)
+
+    _dispatch(monkeypatch, "shape")
+    result = _GitTools(repo).git_commit({"message": "scope"})
+
+    committed_in_head = _git(
+        repo, "show", "--name-only", "--format=", "HEAD"
+    ).stdout.split()
+    assert _staged(result) == [f":(glob)artifacts/intents/{_SLUG}.md"]
+    assert committed_in_head == [f":(glob)artifacts/intents/{_SLUG}.md"]

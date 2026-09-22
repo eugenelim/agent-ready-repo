@@ -364,8 +364,23 @@ _GIT_OVERRIDE_VARS = frozenset({
 
 
 def _git_env() -> dict[str, str]:
-    """Return os.environ with git repository-override variables stripped."""
-    return {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
+    """Return os.environ with git repository-override variables stripped, and
+    pathspec magic disabled.
+
+    Every path this module hands git is a literal one — read back from
+    `git status` output, or built from a directory an adopter configured — and
+    none is a pattern. `--` ends option parsing but leaves pathspec magic active,
+    so without this a directory literally named `:(glob)artifacts` is re-read as
+    a glob and `git add` stages a different tree than the one the tool reports
+    committing.
+
+    It is set here rather than on the one call known to be exploitable because
+    every git invocation in this module reaches this function, and a per-call
+    fix protects only the call someone has already found.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
+    env["GIT_LITERAL_PATHSPECS"] = "1"
+    return env
 
 
 def _get_repo_root() -> Path:
