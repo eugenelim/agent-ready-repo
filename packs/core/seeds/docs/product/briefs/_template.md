@@ -8,7 +8,7 @@
 > heading is a prompt, not an error. Keep only the sections that earn their
 > place.
 
-- **Slug:** `<slug>` <!-- kebab-case; matches the filename. Derived specs back-link this brief by path (`docs/product/briefs/<slug>.md`), not by the bare slug -->
+- **Slug:** `<slug>` <!-- kebab-case; matches the filename. Derived specs back-link this brief by `brief:<slug>` (canonical) or by its repository-relative path (`docs/product/briefs/<slug>.md`, an accepted fallback), never by the bare slug alone -->
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
 - **Status:** Draft <!-- Draft | Ready | Executing | Shipped | Withdrawn | Cancelled -->

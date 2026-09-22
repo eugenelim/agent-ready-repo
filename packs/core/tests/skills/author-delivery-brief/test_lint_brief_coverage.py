@@ -367,6 +367,22 @@ def test_path_form_backlink_attributes_to_the_named_brief() -> None:
                f"gamma must not be attributed to myb: {out}{err}")
 
 
+def test_typed_form_backlink_joins_to_brief() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # `brief:<slug>` is the canonical `Brief:` spelling (RFC-0103 D3). It
+        # must resolve to the brief exactly as the path and bare-slug forms
+        # do, or the coverage join does not converge on the canonical form —
+        # AC-0010.
+        write_spec(root, "gamma", "Draft", brief="brief:myb")
+        write_brief(root, "myb", [("alpha", "<auto>")])
+        rc, out, err = run_lint(root)
+        combined = (out + err).lower()
+        expect(rc == 0, f"untracked is informational, got {rc}: {err}")
+        expect("gamma" in combined and "untracked" in combined,
+               f"typed-form back-link must resolve to the brief: {out}{err}")
+
+
 def test_prose_pipe_after_table_is_not_a_row() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

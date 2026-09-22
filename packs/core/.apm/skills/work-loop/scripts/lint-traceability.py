@@ -625,28 +625,52 @@ def load_rollup_ids(root: Path, layout: dict) -> dict[str, bool]:
 
 _CROSSREPO_RE = re.compile(r".+/.+|.+@.+|.+·.+")
 
+# An ordinal (`FEAT-0001`) or an ordinal-prefixed filename stem
+# (`FEAT-0001-intent-identity-and-registration`) — never accepted as a pointer
+# value (a series position is not a name; RFC-0103 D2). Checked ahead of the
+# bare-slug suffix scan so an ordinal-shaped target refuses even where it would
+# otherwise suffix-match a local id derived — wrongly — from a filename stem.
+_ORDINAL_RE = re.compile(r"^[A-Z]+-\d{4}(-.+)?$")
+
 
 def resolve_endpoint(target: str, local_ids: set[str],
                      rollup: dict[str, bool]) -> tuple[str, bool, str]:
-    """Classify an edge target into one of the three endpoint states.
+    """Classify an edge target into one of the five endpoint states.
 
     Returns (state, pinned, resolved-id). `local` when the id (or its bare-slug
     form) is in the local node set — `resolved-id` is then the *canonical* local
     node id, so the edge attaches to the node, not the bare token.
-    `satisfied-by-reference` when it resolves through the rollup (pinned if it
-    carries `@version`); `unresolvable` for a well-formed cross-repo reference
-    with no resolution; `dangling` for a missing *local-shaped* target (the
-    caller treats that as a hard violation). For non-local states `resolved-id`
-    is the target itself (the external stable-id)."""
+    `ambiguous` when a bare slug suffix-matches more than one local node id —
+    `resolved-id` is then every matching candidate, sorted and comma-joined, so
+    the caller can name them without a second scan. It is its own state, not a
+    reuse of `dangling`: `dangling` means the target names *no* local node and
+    its message says so, while `ambiguous` means it names *several* — a caller
+    cannot otherwise tell one from the other, and no candidate is chosen on the
+    author's behalf (the caller treats this as a hard violation, same as
+    `dangling`). `satisfied-by-reference` when it resolves through the rollup
+    (pinned if it carries `@version`); `unresolvable` for a well-formed
+    cross-repo reference with no resolution; `dangling` for a missing
+    *local-shaped* target, which also covers an ordinal or an ordinal-prefixed
+    filename stem (the caller treats that as a hard violation). For non-local,
+    non-ambiguous states `resolved-id` is the target itself (the external
+    stable-id)."""
     if target in local_ids:
         return "local", False, target
-    # Bare-slug match against any local node id ending in `:<slug>` / `/<slug>`,
-    # sorted for determinism (a slug could in principle suffix-match >1 id). The
-    # O(N log N)-per-miss scan is intentional at chain scale (hundreds of nodes,
-    # not thousands); a suffix index is the move only if a monorepo outgrows it.
-    for nid in sorted(local_ids):
-        if nid.endswith((f":{target}", f"/{target}")):
-            return "local", False, nid
+    if _ORDINAL_RE.fullmatch(target):
+        return "dangling", False, target
+    # Bare-slug match against every local node id ending in `:<slug>` /
+    # `/<slug>`. A slug can suffix-match more than one id — the old comment
+    # here only conceded the risk before silently taking the sorted-first
+    # match; now every match is collected and, when there is more than one,
+    # the caller refuses rather than choosing one on the author's behalf.
+    matches = sorted(
+        nid for nid in local_ids
+        if nid.endswith((f":{target}", f"/{target}"))
+    )
+    if len(matches) > 1:
+        return "ambiguous", False, ", ".join(matches)
+    if matches:
+        return "local", False, matches[0]
     if target in rollup:
         return "satisfied-by-reference", rollup[target], target
     base = target.split("@", 1)[0]
@@ -868,19 +892,28 @@ def resolve_sidecar_endpoints(g: Graph, rollup: dict[str, bool]) -> None:
     becomes a `satisfied-by-reference` / `unresolvable` **external** node — so it is
     no longer a `sidecar_dangling` endpoint and can serve as a reachability terminus
     — while a bare / malformed token is left out of inventory for `sidecar_dangling`
-    to flag (hard, every mode). Mirrors the standalone `_wire` endpoint handling;
-    reuses `resolve_endpoint`, never a parallel scheme. The sidecar graph is
-    untrusted input, so this only ever *adds* a clearly-labelled external node — it
-    never silences a missing-local target."""
+    to flag (hard, every mode). An `ambiguous` bare slug is reported here, by name
+    and with every matching candidate, and registered as an external node so
+    `sidecar_dangling` does not also flag it with a bare, candidate-less message —
+    one break, one class. Mirrors the standalone `_wire` endpoint handling; reuses
+    `resolve_endpoint`, never a parallel scheme. The sidecar graph is untrusted
+    input, so this only ever *adds* a clearly-labelled external node — it never
+    silences a missing-local target."""
     local_ids = set(g.nodes)
     for a, b in sorted(g.edges):
         for ep in (a, b):
-            if ep in local_ids or ep in g.ref_state:
+            if ep in local_ids or ep in g.ref_state or ep in g.nodes:
                 continue
-            state, pinned, _ = resolve_endpoint(ep, local_ids, rollup)
+            state, pinned, resolved = resolve_endpoint(ep, local_ids, rollup)
             if state in ("satisfied-by-reference", "unresolvable"):
                 g.ref_state[ep] = state
                 g.ref_pinned[ep] = pinned
+                g.nodes.setdefault(ep, "external")
+            elif state == "ambiguous":
+                g.dangling.append(
+                    f"sidecar edge endpoint '{ep}' is ambiguous — matches "
+                    f"{resolved}"
+                )
                 g.nodes.setdefault(ep, "external")
 
 
@@ -1098,6 +1131,13 @@ def _wire_up(g: Graph, *, consumer: str, candidates: list[str],
             )
             has_dangling = True
             continue
+        if state == "ambiguous":
+            g.dangling.append(
+                f"{consumer}: producer pointer '{target}' is ambiguous — "
+                f"matches {resolved}"
+            )
+            has_dangling = True
+            continue
         if resolving is None:
             resolving = resolved
             if state in ("satisfied-by-reference", "unresolvable"):
@@ -1123,6 +1163,13 @@ def _wire(g: Graph, *, origin: str, target: str, local_ids: set[str],
     if state == "dangling":
         g.dangling.append(
             f"{origin}: forward pointer names missing/malformed target '{target}'"
+        )
+        g.dangling_out.add(origin)
+        return
+    if state == "ambiguous":
+        g.dangling.append(
+            f"{origin}: forward pointer '{target}' is ambiguous — matches "
+            f"{resolved}"
         )
         g.dangling_out.add(origin)
         return

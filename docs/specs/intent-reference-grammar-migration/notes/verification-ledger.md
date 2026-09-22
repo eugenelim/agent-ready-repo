@@ -433,3 +433,108 @@ were applied, and the alignment lint reports nothing against this spec.
 T1 is discharged: RFC-0103 is `Accepted` (closed 2026-09-22), its `Amendments`
 section renamed to `Errata` per the `new-rfc` convention, and `spec.md`'s
 `Constrained by:` already cites the ordinal.
+
+## 2026-09-22 — T2 complete; a scoped rule the contract never wired in
+
+### T2 result
+
+`resolve_endpoint` gained a fifth state, `ambiguous`, routed at all three call
+sites including `resolve_sidecar_endpoints`, and the docstring's "three endpoint
+states" undercount was corrected to five. AC-0005's ordinal refusal reuses
+`dangling` rather than adding a sixth state, on the reading that `dangling`
+already means a missing or malformed target.
+
+- `make lint-ruff lint-mypy`: pass
+- `test_lint_traceability.py`: 54 passed in 16.6s (48 pre-existing + 6 new)
+- Red proved by reverting the production file to HEAD and re-running: the stub
+  and three others failed; the two tests pinning pre-existing behaviour passed
+  on unmodified code, which is what they are for
+- `lint-traceability.py --root .`: exit 0, 640 nodes, 109 edges, 488 structural
+  orphans — the recorded baseline, confirming the refusal is inert as T2's
+  Approach predicted
+
+### The gap the implementer surfaced
+
+`packs/AGENTS.md:43-47` requires every non-cosmetic change under `.apm/**` or
+`seeds/**` to bump matching versions in `pack.toml` and
+`.claude-plugin/plugin.json` — patch for changed content, minor for new
+primitives, major for removals, and never borrowing another change's unreleased
+version.
+
+This delivery changes `packs/core/.apm/**` in T2, T2a, T3 and T6, and
+`packs/core/seeds/**` in T6. **No task owns the bump.** T8's `Touches:` covers
+`.agents/**`, `.claude/**`, the `_data/` engine projection, the brief erratum
+and `CHANGELOG.md` — not `packs/core/pack.toml` or
+`packs/core/.claude-plugin/plugin.json`, which currently both read `2.26.29`.
+
+This is the same class as the surface-inventory findings: an obligation that
+lives in a scoped `AGENTS.md`, applies to files the delivery certainly touches,
+and was never enumerated because nobody walked the rule down to a task. The
+difference is that this one was caught by an implementer reading its own scope
+rather than by a review round.
+
+It needs a contract amendment to place: T8 is the natural owner, alongside the
+changelog entry it already carries. Raised with the owner rather than actioned,
+because `Touches:` is pinned.
+
+## 2026-09-22 — T6 complete; waves 1 and 2 closed
+
+### T6 result
+
+`brief:<slug>` is canonical across every writing and stating surface the T0
+inventory names for the field; the coverage join accepts it (AC-0010); and the
+dispatch provenance check admits it by normalizing to
+`docs/product/briefs/<slug>.md` before the existing lexical checks, leaving
+`_is_canonical_local_brief_path` untouched. Confinement is the one check not
+reused: two small pure functions were added because the plan's Approach
+explicitly forbids relaxing the repo-root helper for the stricter briefs-root
+case.
+
+Verified by the controller, not taken from the report:
+
+- no projection under `.agents/`, `.claude/` or `packages/agentbundle/_data/`
+  was modified
+- `make lint-ruff lint-mypy`: pass
+- `lint-traceability.py --root .`: exit 0
+- work-loop + author-delivery-brief + workspace-status: **253 passed, 1 skipped** in 29.8s
+- new-spec + pack (the five prose-pinned template suites): **545 passed, 79 subtests** in 114s
+
+### AC-0017's predicate-equivalence test earned its place immediately
+
+It failed on two length-boundary mismatches — a 200-character slug was wrongly
+refused — and those are exactly the cases the ten-example list the criterion
+forbids would have missed. The criterion was written to reject a finite negative
+list; the first run of the test that replaced it found a real boundary defect.
+
+### Parallel dispatch, and a scheduler prediction that was wrong
+
+T2 and T6 ran as two concurrent `implementer` subagents. The cohort reported
+`predicted-disjoint: yes` for this wave, and that prediction was **wrong**: it
+reads the literal `Touches:` text, and T6's is prose — "every surface the
+inventory labels…" — so it could not see that the inventory lists
+`lint-traceability.py` under `Brief: reads`, which is T2's file.
+
+The controller partitioned the write surface instead: T2 owned that file, and
+T6's brief carried the exclusion with its reason from RFC-0103 D3 plus an
+instruction to surface rather than edit if it disagreed. T6 read
+`resolve_endpoint`, confirmed an exact `brief:<slug>` id already matches
+`local_ids` directly, and left it alone.
+
+**A task whose `Touches:` is derived rather than enumerated cannot be checked by
+the disjointness predictor.** That is a property of the scheduler worth knowing
+before trusting `predicted-disjoint` on any future inventory-scoped task.
+
+### Both implementers independently flagged the version-bump gap
+
+Neither was told about the other's finding. `packs/core/pack.toml` and
+`.claude-plugin/plugin.json` remain at `2.26.29` while `.apm/**` and `seeds/**`
+have changed, and no task owns the bump. Two independent reads of the same
+scoped rule reaching the same conclusion is stronger evidence than one.
+
+### Wave bookkeeping
+
+`dispatch_receipts` is keyed by plan hash, so the second amendment's re-schedule
+discarded the wave-0 receipts recorded before it. They were re-recorded against
+the new hash. Waves 0 and 1 are now closed: T1 and T0 as `human-directed`
+declines (controller-implemented), T2 and T6 as receipts (implementer subagents).
+Current wave is 2 — T2a and T3.

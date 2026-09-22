@@ -3549,3 +3549,218 @@ def test_migration_finding_remains_non_dispatchable_in_autonomous_mode() -> None
     mod = _load_engine()
     build = getattr(mod, "build_migration_finding", None)
     assert callable(build)
+
+
+# --- RFC-0103 D3: `brief:<slug>` at the dispatch provenance check ----------
+#
+# `_provenance_path_is_invalid` (require_local_brief=True) is the function
+# that decides whether a spec's `Brief:` value blocks dispatch — see
+# `_dependency_metadata_safety_finding` and the direct provenance checks in
+# `_membership_findings`. It is exercised both directly (fast, exhaustive
+# mutation coverage) and through `run_canonical_reconciliation` (the real
+# entry point a queued spec is evaluated through).
+
+
+def _write_probe_spec(tmp_path: Path, brief_value: str | None) -> None:
+    spec_dir = tmp_path / "docs" / "specs" / "probe"
+    spec_dir.mkdir(parents=True, exist_ok=True)
+    header = "# Spec: probe\n\n- **Status:** Approved\n"
+    if brief_value is not None:
+        header += f"- **Brief:** {brief_value}\n"
+    header += "\n## Acceptance Criteria\n\n- [ ] AC1\n"
+    (spec_dir / "spec.md").write_text(header, encoding="utf-8")
+    (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+
+def _probe_findings(
+    tmp_path: Path, mod, *, header_value: str | None, source_parent: str | None
+) -> set[str]:
+    _write_probe_spec(tmp_path, header_value)
+    source: dict[str, object] = {"mode": "repo-origin"}
+    if source_parent is not None:
+        source["parent"] = source_parent
+    workspace = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [
+                    {
+                        "path": "docs/specs/probe/spec.md",
+                        "kind": "spec",
+                        "source": source,
+                        "summary": "Probe spec",
+                        "needs": [],
+                    }
+                ],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result = mod.run_canonical_reconciliation(workspace, tmp_path)
+    return {finding.code for finding in result.dispatch_by_path["docs/specs/probe/spec.md"].findings}
+
+
+def test_dispatch_admits_typed_and_path_brief_forms(tmp_path: Path) -> None:
+    """AC-0016. `stub: true` — the typed form is refused before this task lands."""
+    mod = _load_engine()
+    for brief_value in ("brief:parent", "docs/product/briefs/parent.md"):
+        codes = _probe_findings(
+            tmp_path, mod, header_value=brief_value, source_parent=brief_value
+        )
+        assert "invalid_artifact_path" not in codes, (brief_value, codes)
+
+
+def test_dispatch_brief_predicate_equivalence(tmp_path: Path) -> None:
+    """AC-0017. Compares the dispatch entry point's verdict against the stated
+    predicate over a generated input space — both admitted forms, mutations
+    injecting each excluded character class at each position, and length
+    boundaries — rather than a fixed list of malformed examples, which cannot
+    converge: `brief:ok!`, `brief:two:parts` and a spaced slug are exactly the
+    cases a ten-item list would leave unasserted, and an implementation
+    admitting every `brief:`-prefixed string would pass such a list."""
+    mod = _load_engine()
+    (tmp_path / "docs" / "product" / "briefs").mkdir(parents=True)
+
+    def slug_ok(slug: str) -> bool:
+        if not 1 <= len(slug) <= 200:
+            return False
+        if not (slug[0].isascii() and slug[0].isalnum()):
+            return False
+        return all(ch.isascii() and (ch.isalnum() or ch in "_-") for ch in slug)
+
+    def stated_predicate(value: str) -> bool:
+        if value.startswith("brief:"):
+            return slug_ok(value[len("brief:"):])
+        prefix, suffix = "docs/product/briefs/", ".md"
+        if value.startswith(prefix) and value.endswith(suffix):
+            return slug_ok(value[len(prefix):-len(suffix)])
+        return False
+
+    def implementation_admits(value: str) -> bool:
+        return not mod._provenance_path_is_invalid(tmp_path, value, require_local_brief=True)
+
+    base = "valid-slug_123"
+    excluded_chars = [" ", "!", "%", ":", ".", "/", "\\", "\x01", "é"]
+    mutated_slugs = {
+        base[:pos] + ch + base[pos:]
+        for ch in excluded_chars
+        for pos in range(len(base) + 1)
+    }
+    candidates = {
+        "brief:" + base,
+        f"docs/product/briefs/{base}.md",
+        base,  # bare slug — dispatch has never accepted it.
+        "brief:",
+        "docs/product/briefs/.md",
+        "brief:" + "a" * 200,
+        "brief:" + "a" * 201,
+        f"docs/product/briefs/{'a' * 200}.md",
+        f"docs/product/briefs/{'a' * 201}.md",
+        "brief:ok!",
+        "brief:two:parts",
+        "brief:has space",
+    }
+    for slug in mutated_slugs:
+        candidates.add(f"brief:{slug}")
+        candidates.add(f"docs/product/briefs/{slug}.md")
+
+    mismatches = sorted(
+        value
+        for value in candidates
+        if stated_predicate(value) != implementation_admits(value)
+    )
+    assert mismatches == []
+
+
+def test_dispatch_confines_typed_brief_beneath_resolved_briefs_root(tmp_path: Path) -> None:
+    """AC-0022. A symlink landing elsewhere inside the repository passes
+    repo-root confinement and must still be refused — the decisive case,
+    since the boundary is the resolved briefs directory, not the repo root.
+    A symlink resolving outside the repository entirely must be refused too."""
+    mod = _load_engine()
+    (tmp_path / "docs" / "product" / "briefs").mkdir(parents=True)
+    (tmp_path / "docs" / "product" / "elsewhere").mkdir(parents=True)
+    (tmp_path / "docs" / "product" / "elsewhere" / "escaped.md").write_text("# Brief\n")
+    try:
+        (tmp_path / "docs" / "product" / "briefs" / "escaped.md").symlink_to(
+            tmp_path / "docs" / "product" / "elsewhere" / "escaped.md"
+        )
+    except OSError:
+        pytest.skip("symlink creation is unavailable in this environment")
+    outside = tmp_path.parent / "outside-escaped.md"
+    outside.write_text("# Brief\n")
+    (tmp_path / "docs" / "product" / "briefs" / "outside.md").symlink_to(outside)
+    (tmp_path / "docs" / "product" / "briefs" / "real.md").write_text("# Brief\n")
+
+    assert mod._provenance_path_is_invalid(tmp_path, "brief:escaped", require_local_brief=True)
+    assert mod._provenance_path_is_invalid(
+        tmp_path, "docs/product/briefs/escaped.md", require_local_brief=True
+    )
+    assert mod._provenance_path_is_invalid(tmp_path, "brief:outside", require_local_brief=True)
+    assert not mod._provenance_path_is_invalid(tmp_path, "brief:real", require_local_brief=True)
+
+
+def test_dispatch_brief_optional_field_is_absence(tmp_path: Path) -> None:
+    """AC-0024. Omitted, blank, comment-only, and `none` all mean absence and
+    produce no provenance finding — distinct in sign from AC-0016/AC-0017,
+    which govern only a non-placeholder value."""
+    mod = _load_engine()
+    cases = {
+        "omitted": None,
+        "blank": "",
+        "comment": "<!-- optional: the delivery brief this spec was derived from -->",
+        "none": "none",
+    }
+    for name, header_value in cases.items():
+        codes = _probe_findings(tmp_path, mod, header_value=header_value, source_parent=None)
+        assert "invalid_artifact_path" not in codes, (name, codes)
+        assert "provenance_mismatch" not in codes, (name, codes)
+
+
+def test_shared_brief_path_rule_unaffected_at_other_call_sites(tmp_path: Path) -> None:
+    """AC-0018. A typed value and a malformed `brief:` value both remain
+    invalid at each of the shared helper's other call sites — the
+    `workspace.toml` entry, dependency, legacy-queue and receipt paths —
+    where a slug is meaningless. This is the test that catches a repair that
+    widened `_is_canonical_local_brief_path` instead of normalizing at the
+    provenance read."""
+    mod = _load_engine()
+    for value in ("brief:parent", "brief:ok!"):
+        dep, dep_findings = mod._parse_dependency(
+            {"type": "local", "kind": "brief", "path": value}
+        )
+        assert dep is None, value
+        assert any(f.code == "invalid_artifact_path" for f in dep_findings), (value, dep_findings)
+
+        entry, entry_findings = mod.parse_workspace_entry(
+            {
+                "path": value,
+                "kind": "brief",
+                "source": {"mode": "repo-origin"},
+                "summary": "probe",
+                "needs": [],
+            }
+        )
+        assert entry is None, value
+        assert any(f.code == "invalid_artifact_path" for f in entry_findings), (
+            value,
+            entry_findings,
+        )
+
+        legacy = mod.parse_legacy_workspace_entry("brief_queue.ready", value)
+        assert legacy.finding.code != "legacy_entry", value
+
+        satisfied, receipt_finding = mod._cross_repo_receipt_satisfied(
+            mod.Dependency(
+                type="cross-repo",
+                kind="brief",
+                path=value,
+                containing_brief=value,
+                receipt_id="r1",
+                accepted_revision="rev-1",
+            ),
+            tmp_path,
+        )
+        assert not satisfied, value
+        assert receipt_finding is not None, value

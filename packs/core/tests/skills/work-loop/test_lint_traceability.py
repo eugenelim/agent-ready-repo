@@ -586,6 +586,114 @@ def test_annotated_none_up_fields_are_placeholders() -> None:
 
 
 # --------------------------------------------------------------------------
+# Ambiguous bare-slug refusal — the fifth endpoint state
+# --------------------------------------------------------------------------
+
+# STUB: AC-0003 — the first test in the suite to call resolve_endpoint.
+def test_resolve_endpoint_ambiguous_bare_slug_refuses() -> None:
+    """A bare slug that suffix-matches more than one local node id refuses —
+    its own state, not a reuse of `dangling` — and the message names every
+    candidate."""
+    spec = importlib.util.spec_from_file_location("_trace_ambiguous_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    local_ids = {"spec:foo", "brief:foo"}
+    state, pinned, resolved = mod.resolve_endpoint("foo", local_ids, {})
+
+    expect(state == "ambiguous", f"a slug matching two ids must refuse, got {state!r}")
+    expect("spec:foo" in resolved and "brief:foo" in resolved,
+           f"the refusal must name every candidate, got {resolved!r}")
+
+
+def test_resolve_endpoint_unique_bare_slug_still_resolves_local() -> None:
+    """AC-0002: a bare slug matching exactly one node id still resolves — the
+    fallback is not collateral damage from the ambiguity refusal."""
+    spec = importlib.util.spec_from_file_location("_trace_unique_slug_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    state, pinned, resolved = mod.resolve_endpoint("foo", {"spec:foo"}, {})
+
+    expect(state == "local", f"a uniquely-matching slug must still resolve, got {state!r}")
+    expect(resolved == "spec:foo", f"resolves to the canonical id, got {resolved!r}")
+
+
+def test_resolve_endpoint_exact_id_skips_suffix_scan() -> None:
+    """AC-0001: a target equal to a node id takes the fast path without
+    entering the suffix scan — pinned with a fixture where the scan alone
+    would answer with a different id."""
+    spec = importlib.util.spec_from_file_location("_trace_exact_id_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    # Without the fast path, "widget:x/spec:foo" is the only suffix match for
+    # "spec:foo" (it ends in "/spec:foo"), so a refactor that dropped the fast
+    # path would answer with the wrong node instead of failing loudly.
+    local_ids = {"spec:foo", "widget:x/spec:foo"}
+    state, pinned, resolved = mod.resolve_endpoint("spec:foo", local_ids, {})
+
+    expect(state == "local" and resolved == "spec:foo",
+           f"exact id must resolve to itself via the fast path, got {state!r} {resolved!r}")
+
+
+def test_resolve_endpoint_ordinal_and_ordinal_prefixed_stem_refuse() -> None:
+    """AC-0005: an ordinal, or an ordinal-prefixed filename stem, refuses even
+    where it would otherwise suffix-match a local id — never accepted as a
+    pointer value."""
+    spec = importlib.util.spec_from_file_location("_trace_ordinal_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    ordinal_state, _, _ = mod.resolve_endpoint("FEAT-0001", {"strat:FEAT-0001"}, {})
+    stem_state, _, _ = mod.resolve_endpoint(
+        "FEAT-0001-intent-identity-and-registration",
+        {"intent:FEAT-0001-intent-identity-and-registration"}, {},
+    )
+
+    expect(ordinal_state == "dangling", f"a bare ordinal must refuse, got {ordinal_state!r}")
+    expect(stem_state == "dangling",
+           f"an ordinal-prefixed stem must refuse, got {stem_state!r}")
+
+
+def test_ambiguous_producer_pointer_exits_nonzero_in_both_modes() -> None:
+    """AC-0004: an ambiguous producer pointer is a hard violation in both the
+    default and `--strict` invocations — the closed set of modes that affect
+    the exit code."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "dup")
+        write_spec(root, "dup")
+        write_spec(root, "consumer", contract="dup")
+        rc, out, err = run(root)
+        expect(rc == 1, f"ambiguous producer pointer → exit 1 default, got {rc}: {err}")
+        expect("brief:dup" in err and "spec:dup" in err,
+               f"both candidates named in the report: {err}")
+        expect("ORPHAN spec:consumer" not in out,
+               f"ambiguous producer already reported dangling, not also an orphan: {out}")
+        rc2, _, err2 = run(root, "--strict")
+        expect(rc2 == 1, f"ambiguous producer pointer → exit 1 --strict, got {rc2}: {err2}")
+
+
+def test_sidecar_ambiguous_endpoint_names_every_candidate() -> None:
+    """AC-0003 / AC-0004 at the third call site: a sidecar edge endpoint that
+    suffix-matches more than one local node id refuses and names every
+    candidate, rather than degrading to a bare `sidecar_dangling` message."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = [{"id": "spec:foo", "kind": "spec"},
+                 {"id": "brief:foo", "kind": "brief"},
+                 {"id": "comp", "kind": "component"}]
+        edges = [{"from": "spec:foo", "to": "comp"},
+                 {"from": "comp", "to": "foo"}]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="spec:foo")
+        rc, out, err = run(root)
+        expect(rc == 1, f"ambiguous sidecar endpoint → exit 1 always, got {rc}")
+        expect("brief:foo" in err and "spec:foo" in err,
+               f"both candidates named in the report: {err}")
+
+
+# --------------------------------------------------------------------------
 # Root→leaf reachability (sidecar mode) — the disconnected-subtree backstop
 # --------------------------------------------------------------------------
 

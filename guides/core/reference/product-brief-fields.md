@@ -97,7 +97,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 | Field / marker | Where | Meaning |
 | --- | --- | --- |
-| `Brief: docs/product/briefs/<slug>.md` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from, named by its repository-relative path (a bare slug fails reconciliation and blocks dispatch). Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
+| `Brief: brief:<slug>` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from. `brief:<slug>` is the canonical form (RFC-0103 D3, superseding the earlier path pin). The repository-relative path (`docs/product/briefs/<slug>.md`) is an accepted fallback everywhere; a bare slug is accepted by traceability and the coverage join, but dispatch reconciliation refuses a bare slug and always has, so a bare slug still blocks dispatch. Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
 | `Satisfies: US-n` | appended to an acceptance criterion | Story trace (Shape B only). Marks the AC that satisfies story `US-n`, giving story-granular coverage. Omitted in Shape A. |
 
 ## The coverage lint
