@@ -163,7 +163,8 @@ GATE_MAIN_CHECKS = frozenset(
     for name, phase in STEP_PHASES.items()
     if phase[0] == "CHECK" and phase[1][:1] == ("python",)
 )
-# Every PROVISIONING entry this file does NOT audit, named one by one.
+# Every PROVISIONING entry this file does NOT audit — all of them in a job
+# other than gate-main — named one by one.
 #
 # A name-shape filter is what exempted them before, and a filter is silent: a
 # gate-main provisioning step added later whose name happened to match one
@@ -173,7 +174,6 @@ GATE_MAIN_CHECKS = frozenset(
 # Enumerated instead, so `provisioning-domain` below can fail when a named
 # exclusion stops matching a step the workflow still has.
 _PROVISIONING_NOT_AUDITED = frozenset({
-    "<unnamed step in gate-main>",          # checkout; no `name:`, so no id to carry
     "<unnamed step in gate-sast>",
     "<unnamed step in gate-export-boundary>",
     "<unnamed step in gate-credbroker>",

@@ -85,7 +85,10 @@ jobs:
     # with gate-export-boundary, which now hosts that gate.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Checkout (gate-main)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        id: checkout_gate_main
+        if: '!cancelled()'
         with:
           # Full history: the chain gates below fail OPEN without it — lint-catalogue-curation-guard's path-gate, lint-build's top-level audit, and lint-spec-status's base-ref resolution each exit 0 when the base ref is unreachable (AC12).
           fetch-depth: 0

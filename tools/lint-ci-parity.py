@@ -384,7 +384,7 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # command equals any single CI job — gate-main runs the local gate minus SAST.
     # That is AC16's one-to-many parity model; per-job reproduction is
     # `make build-check SAST_DELEGATED=1` and `make sast` respectively.
-    "<unnamed step in gate-main>":
+    "Checkout (gate-main)":
         CI_ONLY(
             "`uses: actions/checkout@v4` — repository checkout. No local "
             "equivalent; a working tree is the local precondition, not a gate."
@@ -699,7 +699,7 @@ _PROVISIONING_IDS = {
     "Install tools dependencies": "tools",
     "Install SAST/SCA tools": "sast_tools",
     "Install bandit unconditionally (lint-nosec-form's ID registry)": "bandit",
-    "<unnamed step in gate-main>": "checkout_gate_main",
+    "Checkout (gate-main)": "checkout_gate_main",
     "<unnamed step in gate-sast>": "checkout_gate_sast",
     "Set up Python (gate-sast)": "python_sast",
     "<unnamed step in gate-export-boundary>": "checkout_export_boundary",
