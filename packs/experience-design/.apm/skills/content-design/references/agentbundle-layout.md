@@ -66,19 +66,10 @@ repo tree is treated as untrusted-origin and confirmed before writing.
 output_dir = "~/Documents/MyVault/design"   # absolute path; ~ is expanded
 ```
 
-## Frontmatter contract
-
-Every content brief written by this skill includes the following frontmatter:
-
-```
-type: content-brief
-surface-type: <acquisition | product-or-reference>
-persona: <short persona name or pointer>
-date: <YYYY-MM-DD>
-```
-
-The `type: content-brief` field is the discover-by-marker key. Do not omit it; without it the artifact cannot be found by Tier 3 resolution.
-
 ## Extension to the pack's marker set
 
+The marker is the `type: content-brief` frontmatter field. Do not omit it: a consumer that scans `<output_dir>` reads the marker to tell a content brief from every other file it finds there, and an artifact without it is not discoverable that way whatever its path.
+
 `content-brief` extends the `design` pack's existing discover-by-marker set alongside the creative-direction artifact (`type: creative-direction`). An adopter who stores both types in non-default locations can configure each independently via the `[design]` table.
+
+The brief's other frontmatter fields do not address the artifact and are not restated here; `assets/content-brief-template.md` owns them.
