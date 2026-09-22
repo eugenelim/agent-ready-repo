@@ -1007,6 +1007,18 @@ class ArxivRetrieverConformance(unittest.TestCase):
             module.retrieve("some multi word query here", sender=allbad)
         self.assertIn("every query tier was refused", str(caught.exception))
 
+        # An outage is not a candidate to widen past. Advancing on one would
+        # multiply a single failure by the number of tiers: four tiers each
+        # retrying four times is sixteen requests for one broken upstream.
+        outage = _sender(module, *[urllib.error.HTTPError(
+            module.API_URL, 503, "Service Unavailable", None, None)
+            for _ in range(24)])
+        with self.assertRaises(module.ArxivUnavailable) as caught:
+            module.retrieve("some multi word query here", sender=outage)
+        self.assertNotIn("every query tier was refused", str(caught.exception))
+        self.assertEqual(len(outage._opener.urls), module.MAX_ATTEMPTS,
+                         "an outage advanced the ladder")
+
     def test_a_failed_read_still_owes_the_next_request_its_interval(self) -> None:
         """AC-0014: the request went out, so the interval is owed regardless.
 

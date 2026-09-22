@@ -58,7 +58,7 @@ courteous.
 ## Mutation evidence
 
 Every control added for a sustained review finding was checked by reverting the
-fix and confirming the suite fails. All twenty-nine failed when reverted, so
+fix and confirming the suite fails. All thirty failed when reverted, so
 none is a control that cannot fail. Seven tests that passed under their own
 mutation were strengthened until they failed, and are counted below in their
 strengthened form.
@@ -94,6 +94,7 @@ strengthened form.
 | a tier arXiv refuses advances instead of failing the search | suite fails |
 | completion recorded even when the read of that response failed | suite fails |
 | tier 1 keeps a backslash the structured path removes | suite fails |
+| the ladder advances only on a refused query, never on an outage | suite fails |
 
 ## Suites and gates
 

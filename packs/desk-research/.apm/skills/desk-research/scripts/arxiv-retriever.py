@@ -99,6 +99,15 @@ class ArxivUnavailable(RuntimeError):
     """arXiv could not be reached, or refused, after every permitted attempt."""
 
 
+class QueryRefused(ArxivUnavailable):
+    """arXiv rejected this query's syntax.
+
+    Distinct from every other unavailability: only a refused query identifies a
+    candidate worth widening past. Advancing the ladder on an outage instead
+    would multiply one failure by the number of tiers.
+    """
+
+
 class HostNotAllowed(RuntimeError):
     """A request or redirect targeted a host or scheme outside the allowed set."""
 
@@ -611,6 +620,8 @@ class Sender:
                 last = "reported matches but carried no entries"
             except urllib.error.HTTPError as exc:
                 self.note_completed(self.clock.monotonic())
+                if exc.code == 400:
+                    raise QueryRefused(f"HTTP 400 — {exc.reason}") from exc
                 if exc.code != 429 and exc.code < 500:
                     raise ArxivUnavailable(f"HTTP {exc.code} — {exc.reason}") from exc
                 last = f"HTTP {exc.code}"
@@ -1066,10 +1077,10 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
                                max_results=options.get("max_results", DEFAULT_MAX_RESULTS))
         try:
             body = sender.get(API_URL, params, retry_if=is_unexpectedly_empty)
-        except ArxivUnavailable as exc:
-            # arXiv refused this candidate's syntax. The ladder's job is to
-            # widen, and a rejected tier is one to widen past rather than a
-            # reason to abandon the search.
+        except QueryRefused as exc:
+            # Only a refused query advances. An outage, an exhausted retry or a
+            # redirect failure is not a candidate to widen past, and treating
+            # it as one would multiply a single failure by the tier count.
             refused.append(f"tier {index}: {exc}")
             continue
         root = parse_feed(body)
