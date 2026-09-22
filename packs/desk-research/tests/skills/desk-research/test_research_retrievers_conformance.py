@@ -1019,6 +1019,21 @@ class ArxivRetrieverConformance(unittest.TestCase):
         self.assertEqual(len(outage._opener.urls), module.MAX_ATTEMPTS,
                          "an outage advanced the ladder")
 
+    def test_a_truncated_ladder_is_not_reported_as_terminal(self) -> None:
+        """AC-0005: the terminal result is the final tier's, not an earlier one.
+
+        An early out-of-bound tier followed by refusals means the widest tier
+        never ran; calling that result terminal claims an exhausted ladder.
+        """
+        module = _load(ARXIV_SCRIPT)
+        broad = FakeResponse(_feed_with_total(500000))
+        refuse = [urllib.error.HTTPError(module.API_URL, 400, "Bad Request", None, None)
+                  for _ in range(6)]
+        sender = _sender(module, broad, *refuse)
+        with self.assertRaises(module.ArxivUnavailable) as caught:
+            module.retrieve("some multi word query here", sender=sender)
+        self.assertIn("could not complete", str(caught.exception))
+
     def test_a_failed_read_still_owes_the_next_request_its_interval(self) -> None:
         """AC-0014: the request went out, so the interval is owed regardless.
 

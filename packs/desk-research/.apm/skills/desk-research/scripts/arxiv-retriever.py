@@ -1093,7 +1093,16 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
             "every query tier was refused — " + "; ".join(refused)
         )
     index, root, total = chosen  # type: ignore[misc]
-    terminal = not (1 <= total <= TIER_MATCH_CEILING)
+    in_bound = 1 <= total <= TIER_MATCH_CEILING
+    if not in_bound and index != len(tiers):
+        # AC-0005's terminal result is the FINAL tier's. If later tiers were
+        # refused, the widest one never ran, and calling an earlier result
+        # terminal would claim the ladder was exhausted when it was cut short.
+        raise ArxivUnavailable(
+            f"the ladder could not complete: tier {index} of {len(tiers)} was the "
+            f"widest that ran and returned {total} matches — " + "; ".join(refused)
+        )
+    terminal = not in_bound
     entries = root.findall(f"{ATOM}entry")
     citations = [map_entry(e) for e in entries]
     abstracts = {

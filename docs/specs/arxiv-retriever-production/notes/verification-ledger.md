@@ -8,21 +8,21 @@ The plan is frozen; this file is where its execution evidence lands.
 Ran 2026-09-22 against the live arXiv API from the repository root on the
 feature branch. Every invocation is the shipped script, not a test double. The
 interpreter and script path are omitted from the arguments column, which is
-otherwise verbatim and reproducible. The one exception is the author case: it
-necessarily passes a surname at the command line, shown as `<surname>` because
-the repository forbids a real name in its prose. The observed result is the
-evidence there, not the name.
+otherwise verbatim, shell-quoted and reproducible as written. The one exception
+is the author case: it necessarily passes a surname at the command line, shown
+as `<surname>` because the repository forbids a real name in its prose. The
+observed result is the evidence there, not the name.
 
 | Case | Arguments | Exit | Observed |
 | --- | --- | --- | --- |
-| search, free text through the tier ladder | `instruction adherence in agent config files` | 0 | 3 keys, shape=raw, 10 citation(s), 18049 content chars. First line: `Query: tier 3 of 4; arXiv reported 97 matches.` |
-| search, --title + --category | `--title attention is all you need --category cs.CL` | 0 | 3 keys, shape=raw, 10 citation(s), 13292 content chars. First line: `Query: fielded; arXiv reported 10 matches.` |
-| search, --search-query raw passthrough | `--search-query ti:"attention is all you need" ANDNOT cat:cs.CV` | 0 | 3 keys, shape=raw, 10 citation(s), 13964 content chars. First line: `Query: caller-composed; arXiv reported 28 matches.` |
+| search, free text through the tier ladder | `'instruction adherence in agent config files'` | 0 | 3 keys, shape=raw, 10 citation(s), 18049 content chars. First line: `Query: tier 3 of 4; arXiv reported 97 matches.` |
+| search, --title + --category | `--title 'attention is all you need' --category cs.CL` | 0 | 3 keys, shape=raw, 10 citation(s), 13292 content chars. First line: `Query: fielded; arXiv reported 10 matches.` |
+| search, --search-query raw passthrough | `--search-query 'ti:"attention is all you need" ANDNOT cat:cs.CV'` | 0 | 3 keys, shape=raw, 10 citation(s), 13964 content chars. First line: `Query: caller-composed; arXiv reported 28 matches.` |
 | search, --author | `--author <surname> --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 3151 content chars. First line: `Query: fielded; arXiv reported 772 matches.` |
-| search, --abstract | `--abstract retrieval augmented generation --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 4879 content chars. First line: `Query: fielded; arXiv reported 5834 matches.` |
+| search, --abstract | `--abstract 'retrieval augmented generation' --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 4879 content chars. First line: `Query: fielded; arXiv reported 5834 matches.` |
 | search, --sort submitted | `--category cs.CL --sort submitted --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 5520 content chars. First line: `Query: fielded; arXiv reported 119681 matches.` |
 | search, --from/--to date window | `--category cs.LG --from 202401010000 --to 202401020000 --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 5287 content chars. First line: `Query: fielded; arXiv reported 47 matches.` |
-| search, category refusing injected syntax | `--category cs.CL OR ti:attention` | 2 | refused: `arxiv-retriever: category 'cs.CL OR ti:attention' is not an arXiv `; stdout empty: True |
+| search, category refusing injected syntax | `--category 'cs.CL OR ti:attention'` | 2 | refused: `arxiv-retriever: category 'cs.CL OR ti:attention' is not an arXiv `; stdout empty: True |
 | get, modern five-digit identifier | `--mode get 1706.03762` | 0 | 3 keys, shape=raw, 1 citation(s), 1427 content chars. First line: `# Attention Is All You Need` |
 | get, modern four-digit identifier carrying a DOI | `--mode get 0710.4003` | 0 | 3 keys, shape=raw, 1 citation(s), 852 content chars. First line: `# YREC: The Yale Rotating Stellar Evolution Code` |
 | get, legacy slashed identifier via an abs URL | `--mode get https://arxiv.org/abs/quant-ph/0201082` | 0 | 3 keys, shape=raw, 1 citation(s), 562 content chars. First line: `# Quantum Computers and Quantum Computer Languages: Quantu` |
@@ -42,13 +42,16 @@ category are each refused with a diagnostic on stderr and nothing on stdout, so
 a caller parsing stdout cannot read a refusal as a result. The default
 ten-result search emits 23,315 characters against the 40,000 cap.
 
-**Session boundary.** The approved plan set T9's floor at the three modes and
-left the field, ordering, date-window and passthrough controls to T2a's
-request-level tests. This session covered that floor and went past it, taking
-every documented search control live as well; exceeding the planned minimum
-needs no amendment, and the plan's statement remains true of what it required.
+**Session boundary, and where it diverges from the plan.** T9's approved scope
+is the three modes; the plan states plainly that the field, ordering,
+date-window and passthrough controls receive no live coverage and are left to
+T2a's request-level tests. This session exercised them live anyway. That is a
+divergence from the approved scope, not a reading of it: the plan is frozen and
+says what it says, and the rows above cover more than it asked for. Nothing
+approved went unexercised, so the divergence adds evidence rather than removing
+any, and it is recorded here rather than resolved by amendment.
 
-What this session does **not** exercise is unchanged: the retry, throttle, byte,
+What this session does **not** exercise: the retry, throttle, byte,
 elapsed-budget, redirect, resolved-address and parser-refusal paths. Those are
 driven by unit cases against injected seams in
 `packs/desk-research/tests/skills/desk-research/test_research_retrievers_conformance.py`,
@@ -58,7 +61,7 @@ courteous.
 ## Mutation evidence
 
 Every control added for a sustained review finding was checked by reverting the
-fix and confirming the suite fails. All thirty failed when reverted, so
+fix and confirming the suite fails. All thirty-one failed when reverted, so
 none is a control that cannot fail. Seven tests that passed under their own
 mutation were strengthened until they failed, and are counted below in their
 strengthened form.
@@ -88,13 +91,14 @@ strengthened form.
 | date bound confined to its value grammar | suite fails |
 | socket re-armed before each read | suite fails |
 | drained-stream treated as EOF rather than an unbounded read | suite fails |
-| backslash removed from every query literal | suite fails |
+| backslash removed from a structured field's literal | suite fails |
 | full text fetched from the revision the citation names | suite fails |
 | courtesy interval refused when it would outlast the deadline | suite fails |
 | a tier arXiv refuses advances instead of failing the search | suite fails |
 | completion recorded even when the read of that response failed | suite fails |
-| tier 1 keeps a backslash the structured path removes | suite fails |
+| tier 1 keeping the backslash the structured path removes | suite fails |
 | the ladder advances only on a refused query, never on an outage | suite fails |
+| a ladder cut short by refusals is not reported as terminal | suite fails |
 
 ## Suites and gates
 
@@ -102,7 +106,7 @@ strengthened form.
 | --- | --- |
 | `make lint-ruff` | clean |
 | `make lint-mypy` | clean, 148 source files |
-| `tests/skills/desk-research/` (floor 9) | 84 passed |
+| `tests/skills/desk-research/` (floor 9) | 85 passed |
 | `tests/skills/desk-research-project-start/` (floor 7) | 8 passed |
 | `tests/pack/` + five project suites + devils-advocate, `--import-mode=importlib` | 17 passed |
 | `agentbundle catalogue lint --deep` | no errors |
@@ -175,8 +179,10 @@ interval could sleep past an attempt's deadline, which now fails closed instead.
 The third claimed that a trailing backslash in a structured field could
 reacquire operator authority under Lucene syntax. The reviewer said it was not
 dynamically confirmed, and a probe refutes it: `ti:"safe\"` answers HTTP 400
-rather than executing. The backslash is still removed from every literal, but
-as robustness — it buys a usable query rather than closing a hole.
+rather than executing. The backslash is removed from a structured field's
+literal as robustness — it buys a usable query rather than closing a hole — but
+not from tier 1, where AC-0003 promises the caller's wording and a candidate
+arXiv refuses advances to the next tier anyway.
 
 ## Accepted residuals
 
