@@ -250,3 +250,35 @@ amendment for one path. Nothing gates on `Touches` mechanically — `loop-cohort
 reads it only for a wave disjointness prediction it labels "never a greenlight",
 and `explore-grounding` reads it as an exploration seed — so the pin is
 substantive rather than enforced.
+
+# T7's "unamended suite" is falsified by ADR-0121 — 2026-09-21
+
+T7's `Tests` field requires that "the existing `intake-intent` admission suite
+runs unamended and green, which is how the ADR-0098 D2 controls are evidenced
+as preserved rather than re-specified." That is no longer achievable, and the
+reason is the decision the owner took two steps earlier.
+
+The suite pins precisely what ADR-0121 D3 changes:
+
+- `packs/core/tests/skills/intake-intent/test_intake_intent.py:32` asserts
+  `inspect.signature(renderer.render_minimal_intent).parameters["level"].default
+  is None` — the optionality ADR-0121 D3 removes.
+- The same file calls `render_minimal_intent(..., level=None)` at lines 54 and
+  218, which must now be refused rather than rendered.
+- `test_intake_intent.py:59` and
+  `packs/core/tests/skills/work-intake/test_work_intake.py:223` both assert
+  `"## Owner"` is a rendered heading, and the spec moves owner out of that
+  section into a preamble field.
+
+Five assertions across two files. The intent behind the field still holds — the
+ADR-0098 D2 admission controls must be evidenced as preserved rather than
+re-specified — but "unamended" is the wrong instrument for it now, because the
+suite also pins two things this change is required to alter. The amendment
+restates the obligation as: the confinement, provenance and authority-transfer
+controls stay green and unedited, while the level-optionality and
+`## Owner`-heading assertions move with the contract.
+
+Also folded into this amendment: T9's `Touches` field still names
+`packs/core/CHANGELOG.md` and `packs/product-engineering/CHANGELOG.md`, which
+do not exist. The destination is `docs/product/changelog.md` per the owner's
+direction, already corrected in the spec's Durable Outputs.
