@@ -70,8 +70,9 @@ different again from one that was looked at and failed.
 field. Note: which exceptions have an owner and a planned resolution date,
 and which are undated (stale).
 
-**3. Most recent gate run** — the last recorded run of the four GATES steps:
-HTML validation, a11y audit, CSS token enforcement, and visual QA checklist.
+**3. Most recent gate run** — the last recorded run of the five GATES steps:
+HTML validation, a11y audit, CSS token enforcement, visual QA checklist, and
+rendered-page inspection.
 Note which steps passed, which failed, and which were skipped.
 
 **4. Open TODOs** — grep the HTML/CSS for `TODO`, `FIXME`, or `HACK` comments

@@ -47,6 +47,18 @@
         "Records each refusal by its given name, halts the mode, and does not fall back to the canonical product-reference set",
         "Reaches the canonical product-reference set only from a named skip"
       ]
+    },
+    {
+      "id": "verify-mode-gate-sequence",
+      "prompt": "Run verify mode on a completed surface and report the gate results, then hand back the evidence manifest.",
+      "expected_output": "The run reports one result per gate for all five gates the GATES phase ships — structural HTML validation, the accessibility audit, CSS token enforcement where stylelint is already configured, the visual QA checklist, and the rendered-page inspection — and then generates the evidence manifest. It claims no gate the pack does not ship: no typecheck, no comparison against a stored screenshot baseline, and no Core Web Vitals measurement, whose value reaches the manifest's performance field from a separate measurement rather than from this sequence. Where a gate could not run, the run names the missing capability and records it as unverified rather than reporting a pass. A surface at production tier also carries the security/privacy and reliability review status, recorded as a handoff and its outcome rather than as a verdict of the run's own.",
+      "assertions": [
+        "Reports a result for all five gates, including the rendered-page inspection",
+        "Claims no typecheck, stored-image baseline, or Core Web Vitals gate",
+        "Generates the evidence manifest after the gates rather than in place of one",
+        "Names the missing capability and records an unverified item instead of passing a gate it could not run",
+        "Records the security/privacy and reliability review status as a handoff at production tier"
+      ]
     }
   ]
 }

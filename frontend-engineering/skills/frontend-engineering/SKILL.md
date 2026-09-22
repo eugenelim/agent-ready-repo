@@ -305,9 +305,9 @@ responsive variants (`sm:`, `md:`) for fixed-dimension artifacts.
 
 Enumerate all states for every async component as a table in the spec.
 LLMs are trained predominantly on happy-path code; they will not generate
-missing-state branches without explicit enumeration. A 2025 study of
-50 AI-generated dashboards found 92% had no empty state and 78% had no
-error state.
+missing-state branches without explicit enumeration. Name empty and error
+explicitly rather than assuming they are there: a state absent from the
+table is a state the implementation will not have.
 
 The canonical 18-state set for this skill, aligned with the XD quality-floor:
 
@@ -440,8 +440,9 @@ Run the full GATES suite in order:
 2. **Accessibility audit** (GATES phase step 2) — WCAG 2.2 AA is our declared target; what is verified today is the axe/pa11y `wcag21aa` tag group plus two named manual checks (2.5.8 Target Size (Minimum), AA; 2.4.13 Focus Appearance, AAA enhancement). Not yet covered against the AA baseline: 2.4.11 Focus Not Obscured (Minimum), 2.5.7 Dragging Movements, 3.2.6 Consistent Help, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication (Minimum)
 3. **CSS token enforcement** (GATES phase step 3, if stylelint is configured)
 4. **Visual QA checklist** (GATES phase step 4) — confirm all 18 applicable states are present
+5. **Rendered-page inspection** (GATES phase step 5) — run it as that section and its reference define it
 
-After running all four gates, generate the evidence manifest (see Evidence manifest section below) with the results. On a production-tier surface, the manifest's two production fields are part of that output: record the security/privacy and reliability review status, routing anything you cannot answer to `security-reviewer` or `quality-engineer` and recording that it is outstanding. A gate run that reports four green gates while saying nothing about either is the shape this manifest exists to prevent.
+After running all five gates, generate the evidence manifest (see Evidence manifest section below) with the results. On a production-tier surface, the manifest's two production fields are part of that output: record the security/privacy and reliability review status, routing anything you cannot answer to `security-reviewer` or `quality-engineer` and recording that it is outstanding. A gate run that reports five green gates while saying nothing about either is the shape this manifest exists to prevent.
 
 ---
 
