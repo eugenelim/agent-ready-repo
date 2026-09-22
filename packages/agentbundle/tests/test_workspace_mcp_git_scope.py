@@ -170,7 +170,6 @@ def test_an_unconfigured_type_stages_only_its_own_file(
 
     convention = _LAYOUT_TYPE_BASES[item_type][1]
     assert staged == _expected_staged(repo, str(repo.resolve() / convention), item_type)
-    assert _UNRELATED not in staged
     assert patterns == [
         (convention + tail).format(slug=_SLUG) for tail in _manifest_tails(item_type)
     ]
@@ -188,7 +187,6 @@ def test_an_accepted_base_keeps_the_manifest_wildcard_structure(
     base = _resolved_base(repo, raw_base)
 
     assert staged == _expected_staged(repo, base, item_type)
-    assert _UNRELATED not in staged
     # The static root is the configured base followed by the manifest pattern's
     # own literal tail, and every wildcard component comes from the manifest.
     assert patterns == [base + tail.format(slug=_SLUG) for tail in _manifest_tails(item_type)]
@@ -205,7 +203,6 @@ def test_an_absolute_base_inside_the_repository_is_accepted(
     base = _resolved_base(repo, raw_base)
 
     assert staged == _expected_staged(repo, base, item_type)
-    assert _UNRELATED not in staged
     assert patterns == [base + tail.format(slug=_SLUG) for tail in _manifest_tails(item_type)]
 
 
@@ -248,6 +245,24 @@ _RESERVED_BASES: dict[str, str] = {
 def test_a_reserved_character_never_widens_the_staged_set(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, character: str
 ) -> None:
+    """AC-0004's outcome, which two independent mechanisms now guarantee.
+
+    This was the suite's original red: a base of `docs/*` reached the scope
+    grammar and staged every uncommitted file under `docs/`. It no longer
+    distinguishes the mechanisms, and a reader should not take it for a guard on
+    either. Disabling the reserved-character screen leaves it passing, because
+    the wildcard boundary now comes from the manifest and a base's `*` is a
+    literal directory name; regressing that boundary also leaves it passing,
+    because the screen refuses the base first.
+
+    Each mechanism has its own mutation-pinned test:
+    `test_a_reserved_character_is_refused_and_leaves_the_repository_alone` and
+    its siblings die when the screen is disabled;
+    `test_a_star_the_base_resolves_through_is_not_pattern_syntax` and
+    `test_braces_the_base_resolves_through_are_not_substitution_syntax` die when
+    the boundary is rediscovered from the joined path. This one asserts the
+    outcome they exist to produce.
+    """
     repo = tmp_path / "repo"
     _seed_repo(repo)
     _configure(repo, _LAYOUT_TYPE_BASES[item_type][0], _RESERVED_BASES[character])
@@ -416,7 +431,6 @@ def test_a_clean_base_is_accepted_under_a_repository_path_carrying_a_reserved_ch
 
     assert tools._refused_layout_key is None
     assert staged == _expected_staged(repo, base, "shape")
-    assert _UNRELATED not in staged
 
 
 def _write_layout(path: Path, layout: dict[str, str]) -> None:
@@ -660,7 +674,6 @@ def test_a_star_the_base_resolves_through_is_not_pattern_syntax(
     staged = _staged(_GitTools(repo).git_commit({"message": "scope"}))
 
     assert staged == [f"*/actual/intents/{_SLUG}.md"]
-    assert _UNRELATED not in staged
 
 
 def test_the_pattern_strings_are_projected_from_the_scope_spec(

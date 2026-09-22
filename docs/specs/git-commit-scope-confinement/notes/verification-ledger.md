@@ -508,3 +508,45 @@ interpreting step, if one exists, has this signature: something that scans or
 substitutes over a string the base has already been spliced into.
 
 Full `workspace_mcp` selection after the repair: 169 passed, 42 skipped, 167s.
+
+## An assertion whose subject moved
+
+Round 10 sustained a Concern: `assert _UNRELATED not in staged` sitting under an
+exact equality that already proves it. The adjudicator walked it to five
+instances and checked the four whose equality compares against a *computed*
+value — `_expected_staged` returns `[]` or one path ending in `notes.md`,
+`{slug}.md` or `plan.md`, so it can never equal `docs/unrelated/other.md` in any
+parametrised row. All five deleted. Line 260's stays: it has no equality above
+it and is the primary assertion of the reserved-character leak test.
+
+Checking that surviving assertion still bites turned up something the
+per-assertion discipline could not have found.
+
+| Mutation | `test_a_reserved_character_never_widens_the_staged_set` |
+| --- | --- |
+| the reserved-character screen never fires | **passes** (20 rows) |
+| the wildcard boundary regressed to a joined-path scan | **passes** (20 rows) |
+
+It was the suite's original red at T1, and it no longer distinguishes either
+mechanism: with the boundary taken from the manifest a base's `*` is a literal
+directory name, so the screen's absence leaks nothing; and with the screen
+present a regressed boundary is never reached. It can only fail if both regress
+together.
+
+There is no coverage gap — disabling the screen reds 23 tests, the twenty rows
+of `test_a_reserved_character_is_refused_and_leaves_the_repository_alone` plus
+the three resolution-asymmetry and selection tests. AC-0004's outcome and each
+mechanism that produces it are separately pinned. The test's docstring now says
+which tests die for which mechanism, so its name and its history do not invite a
+later reader to treat it as a guard on the screen.
+
+### What this adds to the discipline
+
+A per-assertion mutation catches an assertion that cannot fail. It does not
+catch an assertion that is still correct while the thing it was written to guard
+has moved underneath it — the assertion passes honestly, for a reason nobody
+recorded. Finding that needs a mutation per *mechanism*, named, which is a
+different sweep. This one surfaced only because a finding about the line beneath
+it sent me to look.
+
+Both suites after the removals: 126 passed, 157s.
