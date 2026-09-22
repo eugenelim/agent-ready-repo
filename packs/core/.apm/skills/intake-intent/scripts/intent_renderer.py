@@ -308,5 +308,4 @@ def _inline(value: str) -> str:
     # defuse: an unclosed `<!--` comments out everything after it, which hides
     # the rendered `## Source` provenance block rather than forging a field.
     # Entity-escaping the angle bracket leaves the text visible and inert.
-    rendered = rendered.replace("<!--", "&lt;!--").replace("-->", "--&gt;")
-    return rendered
+    return rendered.replace("<!--", "&lt;!--").replace("-->", "--&gt;")
