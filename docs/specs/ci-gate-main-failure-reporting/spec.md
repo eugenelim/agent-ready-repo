@@ -190,15 +190,20 @@ in [`notes/partition-evidence.md`](notes/partition-evidence.md).
   behaviour of the other checks under a sibling's failure is fixed by AC-0001,
   which pins every condition to reference only provisioning ids, so no check's
   condition can read another check's conclusion.
-- [x] **AC-0016.** The job id set is exactly five.
-  `tools/test-build-check-workflow.py` exits 1 when `build-check.yml` declares
-  a set of job ids other than exactly `gate-main`, `gate-sast`,
-  `gate-export-boundary`, `gate-credbroker`, `build-check`.
-- [x] **AC-0017.** Each job's name is the written value.
-  `tools/test-build-check-workflow.py` exits 1, naming the job, when a job's
-  `name:` differs from the value written here: `gate-main` → `gate-main`,
-  `gate-sast` → `gate-sast`, `gate-export-boundary` → `gate-export-boundary`,
+- [x] **AC-0016.** The five branch-protection jobs are present.
+  `tools/test-build-check-workflow.py` exits 1, naming the missing id, when
+  `build-check.yml` does not declare all of `gate-main`, `gate-sast`,
+  `gate-export-boundary`, `gate-credbroker`, `build-check`. A job outside that
+  set is permitted: these criteria exist to stop a required job being split,
+  removed or renamed out from under branch protection, and an additional
+  non-required job does not threaten that.
+- [x] **AC-0017.** Each required job's name is the written value.
+  `tools/test-build-check-workflow.py` exits 1, naming the job, when one of the
+  five jobs AC-0016 names carries a `name:` other than the value written here:
+  `gate-main` → `gate-main`, `gate-sast` → `gate-sast`,
+  `gate-export-boundary` → `gate-export-boundary`,
   `gate-credbroker` → `gate-credbroker`, `build-check` → `make build-check`.
+  A job outside that set carries no pinned name.
 
 ## Follow-ons
 

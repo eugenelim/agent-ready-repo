@@ -1102,7 +1102,14 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("jobs-parsed", bool(job_ids))
     # Before any per-job loop: a job the enumerator cannot see is a job no loop checks.
     check("job-ids-modelled", _job_ids_modelled(text))
-    check("job-id-set", set(job_ids) == set(EXPECTED_JOB_NAMES))
+    # PRESENCE of the five branch-protection jobs, not exclusivity. These
+    # criteria exist to stop a required job being split, removed or renamed out
+    # from under branch protection; a job outside the set does not threaten
+    # that, and forbidding one made every added job a contract amendment.
+    # A MISSING required job still fails here, which is the direction that
+    # matters — see AC-0016.
+    _missing_jobs = sorted(set(EXPECTED_JOB_NAMES) - set(job_ids))
+    check(f"job-id-set[{','.join(_missing_jobs) or 'complete'}]", not _missing_jobs)
     for expected_job_id, expected_name in EXPECTED_JOB_NAMES.items():
         check(
             f"job-name-written[{expected_job_id}]",
@@ -2210,14 +2217,11 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: _move_named_step_after(
          t, "Install tools dependencies", "Run make build-check"
      )),
-    ("add-job-id", "job-id-set",
-     lambda t: t.replace(
-         "  gate-sast:\n",
-         "  gate-extra:\n    name: gate-extra\n    runs-on: ubuntu-latest\n"
-         "    timeout-minutes: 5\n    steps:\n      - run: echo extra\n"
-         "  gate-sast:\n",
-         1,
-     )),
+    # Adding a job is no longer a violation — AC-0016 pins the presence of the
+    # five branch-protection jobs, not exclusivity. Removing one is the
+    # direction that matters, so that is what this family is mutated against.
+    ("remove-required-job", "job-id-set[gate-credbroker]",
+     lambda t: t.replace("\n  gate-credbroker:\n", "\n  gate-credbroker-renamed:\n", 1)),
     ("change-written-job-name", "job-name-written[gate-main]",
      lambda t: t.replace("    name: gate-main\n", "    name: renamed-main\n", 1)),
     # The `if:`-disables-a-step class (post-implementation security review). A falsy
