@@ -1,11 +1,10 @@
 # Intent: cross-module depth for the route-decision analysis
 
+- **Slug:** `route-decision-analysis-depth`
 - **Level:** capability
 - **Scale:** app
 - **Owner:** eugenelim
 - **Status:** Draft
-- **Source:** split out of `docs/specs/distribution-route-registry/` during its
-  post-gates review, 2026-09-04
 
 ## Outcome
 
@@ -78,3 +77,6 @@ bounded checker plus its recorded limit may be the right permanent shape.
 
 - Whole-program typed data-flow, callback interpretation, or runtime code generation.
 - Any change to the distribution-route contract or to the surfaces that read it.
+
+split out of `docs/specs/distribution-route-registry/` during its
+post-gates review, 2026-09-04

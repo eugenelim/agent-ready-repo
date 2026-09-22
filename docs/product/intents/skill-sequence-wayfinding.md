@@ -1,7 +1,9 @@
 # A practitioner always knows what to run next, where they are in the sequence, and what the step leaves them holding
 
+- **Slug:** `skill-sequence-wayfinding`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 
@@ -328,10 +330,6 @@ independently, because it rests on a single well-formed field in 63 skills.
    standalone run does not. If no deliverable's required form varies by path,
    one descriptor per skill suffices — the same shape of question as item 2, and
    it should be answered with the same evidence.
-
-## Owner
-
-eugenelim.
 
 ## Projection
 

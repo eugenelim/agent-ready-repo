@@ -11,6 +11,7 @@
 - **Received:** 2026-05-18
 - **Owner:** platform team
 - **Epic:** ACME-2231 <!-- this slice is part of a larger "reduce support load" epic tracked in the company tracker; we own only the password-reset portion -->
+- **Parent intent:** [`account-self-service`](../intents/account-self-service.md) <!-- the product intent this slice was projected from; provenance only, never interpreted. Distinct from `Epic:`, which names an external coordinator -->
 
 ## Outcome
 

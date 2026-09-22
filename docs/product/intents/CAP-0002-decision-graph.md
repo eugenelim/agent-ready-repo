@@ -3,6 +3,7 @@
 - **Slug:** `decision-graph` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** graph-powered-sdlc — [Graph-powered SDLC](STRAT-0001-graph-powered-sdlc.md)

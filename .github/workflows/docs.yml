@@ -113,6 +113,21 @@ jobs:
       - name: Run shipped-guide governance-reference linter
         run: python3 tools/lint-guides-no-repo-only-refs.py
 
+  lint-intent-corpus:
+    name: Intents satisfy the metadata shape contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      # Runs the CLI against the REAL tree, so a non-conforming intent fails
+      # this job rather than only a fixture suite. The lint exits 1 for a
+      # non-conforming file and 2 for a corpus it could not fully read; both
+      # fail the step, because "no violations found" and "clean" are different
+      # claims about a directory whose files would not open.
+      - name: Run the intent corpus lint
+        run: |
+          python3 packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py \
+            --dir docs/product/intents --root .
+
   lint-guide-titles:
     name: Guide frontmatter title matches body H1
     runs-on: ubuntu-latest

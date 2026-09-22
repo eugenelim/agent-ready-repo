@@ -1,8 +1,10 @@
 # Identify each Claude marketplace pack by content
 
+- **Slug:** `claude-marketplace-pack-identity`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md)
 
 ## Outcome
 

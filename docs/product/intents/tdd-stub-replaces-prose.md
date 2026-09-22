@@ -1,7 +1,9 @@
 # A TDD stub is proved in PLAN and materialized in EXECUTE
 
-- **Status:** Accepted
+- **Slug:** `tdd-stub-replaces-prose`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 

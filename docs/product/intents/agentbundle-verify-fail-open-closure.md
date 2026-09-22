@@ -1,8 +1,10 @@
 # Agentbundle verify fail-open closure
 
+- **Slug:** `agentbundle-verify-fail-open-closure`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/agentbundle-engine-stragglers AC12](../../specs/agentbundle-engine-stragglers/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/agentbundle-engine-stragglers AC12](../../specs/agentbundle-engine-stragglers/spec.md)
 
 ## Outcome
 

@@ -4,6 +4,7 @@
 - **Received:** 2026-09-18
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Executing
+- **Parent intent:** [`intent-identity-and-registration`](../intents/FEAT-0001-intent-identity-and-registration.md)
 - **Ready confirmed:** 2026-09-20 by eugenelim, bound to revision `sha256:62c26b6c92f56952`, which returned `Clean` from an independent delivery-brief shaping review. Five slices confirmed; each is a `Draft` spec.
 - **Amended 2026-09-21 by eugenelim**, after the Ready confirmation above: the reuse bullet's "renumbered at admission" became "numbered at admission". Wording only — it changes no slice, no scope and no confirmation, and the parent intent's A1′ and validation hook took the same change. The older phrase said *when* an ordinal is assigned, but read as a requirement that admission rename files, which this brief's own forward-only non-goal forbids and which the delivery slice then found no admission surface can do. Renaming belongs to `intent-renumber-and-reissue`.
 - **Executing from 2026-09-21.** `typed-intent-ordinal-allocator` moved to `Implementing`, and `lint-brief-coverage` holds that a `Ready` brief cannot have a child carrying execution evidence — the brief's lifecycle and its children's have to agree. The Ready confirmation above stands as the record of that gate; this line records the transition off it.
@@ -95,7 +96,7 @@ Recorded so they are not mistaken for omissions. `author-delivery-brief` §4 pla
 - **Mode:** repo-origin
 - **Locator:** [`docs/product/intents/FEAT-0001-intent-identity-and-registration.md`](../intents/FEAT-0001-intent-identity-and-registration.md)
 - Projected from that feature intent by `decompose-intent` on 2026-09-18. The intent is `Accepted` and owns the de-risk record this brief delivers against.
-- No `Parent intent:` preamble pointer is carried. ADR-0019 D9 makes that back-pointer an optional addition **at business-unit scale**, and this intent is `Scale: app`. Because the brief and the intent share a slug, writing one also makes the traceability lint resolve the brief's up-edge to the brief itself — a self-referential cycle that exits non-zero. The linkage lives in the locator above and in this brief's `source.ref` registry entry instead.
+- A `Parent intent:` preamble pointer is carried, added 2026-09-21 by eugenelim. It was previously omitted on two grounds: ADR-0019 D9 makes the back-pointer an optional addition **at business-unit scale** and this intent is `Scale: app`, and the brief and the intent share a slug, so a bare-slug value would resolve to the brief itself. The first ground makes it optional rather than forbidden. The second is avoided by writing the value as a path to `FEAT-0001-intent-identity-and-registration.md` rather than as a bare slug, which is what the untyped-resolution hazard recorded above at `resolve_endpoint` actually turns on. Measured on the day it was added: `lint-traceability` reports 626 nodes and 100 edges with the pointer against 625 and 99 without it, exit 0 in both runs, so the edge resolves and no cycle forms. The locator above and this brief's `source.ref` registry entry still carry the linkage too.
 
 ## Governance references
 

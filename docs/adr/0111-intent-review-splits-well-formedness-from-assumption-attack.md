@@ -180,3 +180,34 @@ real target.
   intent rows.
 - `docs/CONVENTIONS.md` § *Superseding a frozen document* — the one-way `Status`-line pointer this
   ADR receives from that spec and its plan.
+
+## Errata
+
+- **2026-09-21 — the intent mode's condition count is delivery-owned, not
+  fixed by this record, recorded here on the authority of
+  `docs/specs/intent-metadata-shape-contract/spec.md`, whose AC-0012 adds a
+  seventh well-formedness condition.** The frozen prose above states a count in
+  five places: D1's "across six conditions"; D3's "suppresses the other five";
+  the Decision section's numbered enumeration and its following narrative,
+  "emitted alone and suppresses the other five"; `## Confirmation`'s signal,
+  "asserts intent mode's six well-formedness fields"; and `## Alternatives
+  considered`, "the six well-formedness conditions are cheap". None of those
+  numbers is what D1 decides. D1 decides the *split* — intent mode checks
+  well-formedness, not quality, and does not run the failure-mode table — and
+  that is unchanged and still binds. The count was an instantiation recorded
+  inside a decision line, where it bound a later delivery it had no reason to
+  bind: a seventh condition that is well-formedness and not quality satisfies
+  D1's principle while contradicting its arithmetic.
+- **Current state, authoritative where it differs from the frozen prose.** The
+  intent mode's condition set is whatever ships in
+  `packs/core/.apm/agents/shaping-reviewer.md` and is pinned by its contract
+  test; this record fixes the set's character, not its size. D3 reads as: a
+  wrong-owner token is emitted alone and suppresses every other condition,
+  whatever the set contains. The `six-predicate self-check` in D7 is a
+  different subject — the `finding-adjudicator`'s predicates — and is
+  unchanged. `## References` cites `docs/CONVENTIONS.md` § *Superseding a
+  frozen document*, retired by `813f533f1`; that obligation now lives in
+  [`guides/governance-extras/how-to/new-adr.md`](../../guides/governance-extras/how-to/new-adr.md).
+  This erratum adds to the record; it does not revise the Decision section or
+  any other frozen prose above.
+

@@ -1,8 +1,10 @@
 # Catalogue technical documentation architecture
 
+- **Slug:** `catalogue-wave6-technical-docs-ia`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0076 D9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0076 D9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 
 ## Outcome
 

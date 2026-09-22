@@ -1,9 +1,11 @@
 # A non-technical adopter reaches first value from the site home, without a terminal
 
+- **Slug:** `claude-apps-first-value-entry`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
-- **Parent:** docs/product/intents/nontechnical-pack-first-value-rollout.md
+- **Parent intent:** [Nontechnical-pack first-value rollout](nontechnical-pack-first-value-rollout.md)
 
 ## Outcome
 

@@ -1,6 +1,9 @@
 # Upgrade orphan removal on projection-shape change
 
+- **Slug:** `upgrade-orphan-removal-on-projection-shape-change`
+- **Level:** feature
 - **Status:** Accepted
+- **Owner:** eugenelim
 
 
 ## Outcome

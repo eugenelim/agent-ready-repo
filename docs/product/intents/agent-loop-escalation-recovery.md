@@ -1,10 +1,10 @@
 # Intent: what a loop does when it discovers the contract is wrong
 
 - **Slug:** `agent-loop-escalation-recovery`
-- **Type:** `research`
-- **Raised:** 2026-09-02
+- **Level:** feature
+- **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)
+- **Status:** Draft
 - **Owner:** Repository maintainers (`ini-002`)
-- **Stage:** Shaping — outcome not yet defined, competing hypotheses
 
 ## Why this exists, and what it is not
 

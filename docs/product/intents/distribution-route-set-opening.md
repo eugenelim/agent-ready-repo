@@ -1,7 +1,9 @@
 # Distribution route set opening
 
+- **Slug:** `distribution-route-set-opening`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

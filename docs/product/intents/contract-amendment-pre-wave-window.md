@@ -1,7 +1,9 @@
 # Contract amendment reachable before the first wave runs
 
-- **Status:** Draft
+- **Slug:** `contract-amendment-pre-wave-window`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Disposition — shipped 2026-08-29 as a bug fix
 

@@ -1,8 +1,10 @@
 # Make catalogue.toml the marketplace configuration authority
 
+- **Slug:** `marketplace-config-single-authority`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/marketplace-generator-single-source](../../specs/marketplace-generator-single-source/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/marketplace-generator-single-source](../../specs/marketplace-generator-single-source/spec.md)
 
 ## Outcome
 

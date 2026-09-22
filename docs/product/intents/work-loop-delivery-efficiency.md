@@ -1,7 +1,9 @@
 # Work-loop delivery efficiency
 
+- **Slug:** `work-loop-delivery-efficiency`
 - **Status:** Accepted
 - **Level:** capability
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 
@@ -328,8 +330,8 @@ published savings do not cover this loop's protected software judgments.
 
 ## Decomposition
 
-Six intents carry a `Parent intent:` pointer to this one. Three are the killed
-original cut; three were shaped later. A seventh sits one level further down,
+Seven intents carry a `Parent intent:` pointer to this one. Three are the killed
+original cut. An eighth sits one level further down,
 under the first killed child. Each child's lifecycle status lives in that child,
 and its queue membership lives in `workspace.toml`; this tree records structure
 and the decomposition decisions, which are what the parent owns.
@@ -342,6 +344,7 @@ work-loop-delivery-efficiency (capability)
 ├─ work-loop-repair-correctness (feature; killed 2026-09-10)
 ├─ spec-authoring-protocol-measured-before-shipping (feature)
 ├─ grounding-probe-extensions (feature)
+├─ agent-loop-escalation-recovery (feature)
 └─ loop-contract-item-identity-mechanism (feature)
 ```
 

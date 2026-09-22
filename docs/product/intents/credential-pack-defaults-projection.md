@@ -1,7 +1,9 @@
 # Credential-pack defaults are safely projected
 
+- **Slug:** `credential-pack-defaults-projection`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

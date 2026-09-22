@@ -126,6 +126,7 @@ INTENT_TOKENS = (
     "MALFORMED(altitude)",
     "MALFORMED(children)",
     "MALFORMED(owner)",
+    "MALFORMED(shape)",
 )
 
 
@@ -683,7 +684,7 @@ def test_the_intent_rubric_states_no_precedence_of_its_own() -> None:
     """
     rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
 
-    assert "suppresses the other five" in rubric
+    assert "suppresses every other condition" in rubric
     assert "stated once, below, for every mode" in rubric
     for re_derivation in (
         "outranks every other observation",
@@ -706,3 +707,115 @@ def test_the_adversarial_intent_mode_establishes_nothing() -> None:
     assert "does not claim that the dispatch completed" in branch
     assert "that the bet was attacked" in branch
     assert "no lifecycle transition may rest on it" in branch
+
+
+# ── The seventh intent-mode condition ─────────────────────────────────────────
+
+
+def test_the_intent_rubric_states_no_count_of_its_conditions() -> None:
+    """A count in the prose has to be rewritten every time a condition lands.
+
+    The rule is a count *of intent-mode conditions*, so the discriminator is a
+    number attached to "condition", not a number word. The adjudicator's
+    six-predicate self-check keeps its own count and is asserted elsewhere in
+    this file; a check keyed on bare number words would refuse it.
+    """
+    text = AGENT.read_text(encoding="utf-8")
+    flat = re.sub(r"\s+", " ", text)
+
+    counted = re.findall(
+        r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)"
+        r"[- ]conditions?\b",
+        flat,
+        re.I,
+    )
+    assert counted == [], counted
+
+    # The three sentences that carried a count before the seventh condition.
+    for removed in (
+        "six conditions, each decidable",
+        "suppresses the other five",
+        "its six conditions are the whole of its rubric",
+    ):
+        assert removed not in flat, removed
+
+
+def test_the_intent_rubric_carries_a_seventh_condition_and_its_token() -> None:
+    """The condition exists, is numbered, and emits the token."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "7." in rubric
+    assert "MALFORMED(shape)" in rubric
+
+
+def test_the_seventh_condition_states_its_rule_without_a_second_vocabulary() -> None:
+    """It names the required fields and defers the member lists.
+
+    A reviewer carrying its own copy of the value tables is a second home that
+    drifts from the one the corpus lint reads, which is the failure this
+    condition's wording exists to avoid. It also cites no repository-only path,
+    because shipped pack content carries no internal-governance citations.
+    """
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    for required in ("owner", "slug", "level", "status"):
+        assert required in rubric.lower(), required
+    # The members live in one home; the reviewer names the obligation only.
+    assert "values the contract fixes" in rubric
+
+    # No vocabulary member is enumerated in the reviewer's text.
+    for member in (
+        "Withdrawn",
+        "Cancelled",
+        "Superseded by",
+        "greenfield",
+        "brownfield",
+        "business-unit",
+        "direct-light",
+    ):
+        assert member not in rubric, member
+
+    # No repository-only path, and no acceptance-criterion citation.
+    assert "docs/specs" not in rubric
+    assert "AC-00" not in rubric
+
+
+def test_the_owner_token_suppresses_the_seventh_condition_too() -> None:
+    """AC-0012's exception: a preamble with no owner cannot settle condition 6,
+    so `MALFORMED(owner)` is emitted alone and the shape token stays silent."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "`MALFORMED(owner)` is emitted alone" in rubric
+    assert "suppresses every other condition" in rubric
+
+
+def test_the_seventh_condition_reaches_every_packet_decidable_obligation() -> None:
+    """AC-0012 fires on *any* packet-decidable criterion, not only the
+    required-field tier.
+
+    The condition therefore has to reach repeats, retired names, fixed-value
+    fields and the decomposition items — otherwise a preamble failing one of
+    those passes the review and fails the lint, and the two enforcement points
+    disagree about the same contract.
+    """
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "appears twice" in rubric          # a repeated field
+    assert "retired name" in rubric           # a retired field name
+    assert "values the contract fixes" in rubric  # the closed vocabularies
+    assert "requested outcome" in rubric      # the decomposition items
+
+
+def test_the_intent_rubric_states_how_a_value_is_read() -> None:
+    """Without this, a reviewer refuses the shape both templates produce.
+
+    The corpus's dominant field line is backticked with a trailing comment, so
+    a reviewer that treats the annotation as part of the value emits
+    `MALFORMED(shape)` on a conforming intent — the false positive AC-0026
+    forbids.
+    """
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "surrounding backticks" in rubric
+    assert "trailing comment" in rubric
+    assert "carrying only an annotation is absent" in rubric

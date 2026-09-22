@@ -1,7 +1,9 @@
 # Kiro hook projection on the standalone v1 schema
 
+- **Slug:** `kiro-hook-schema-v1`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

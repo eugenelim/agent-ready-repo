@@ -108,26 +108,39 @@ def render_minimal_intent(
     *,
     intake: NormalizedIntakeLike,
     title: str,
+    slug: str = "",
     level: str | None = None,
     authority_transferred: bool = False,
 ) -> str:
-    """Render the minimum repository-intent contract from validated fields."""
+    """Render the minimum repository-intent contract from validated fields.
+
+    `level` keeps its `None` default and is refused rather than defaulted: a
+    guessed altitude is a declared fact the artifact did not carry, and a wrong
+    placement on the intent tree is harder to notice than a missing one.
+    """
 
     source = intake.source
     mode = _inline(str(getattr(source, "mode", "unknown")))
     if mode in _TRANSFER_MODES and not authority_transferred:
         raise IntentAdmissionError("authority_transfer_required")
 
+    # Shape refusals come after the authority check, never before it: a missing
+    # altitude must not mask a refusal to transfer authority into the
+    # repository, which is the more serious of the two.
+    if not (level or "").strip():
+        raise IntentAdmissionError("level_required")
+    if not slug.strip():
+        raise IntentAdmissionError("slug_required")
+
     content = intake.content
     outcome = _first(content, "outcomes", "Not yet stated")
     boundary = _items(content, "boundary", "Not yet bounded")
-    owner = _items(content, "owner", "Not yet assigned")
+    owner = _inline_list(content, "owner", "Not yet assigned")
     unresolved = _items(content, "unresolved_questions", "None recorded")
     projection = _items(content, "projection", "Not yet selected")
     locator = minimize_source_locator(str(getattr(source, "locator", "")))
     revision = _inline(str(getattr(source, "revision", "unknown")))
 
-    optional_level = f"- **Level:** {_inline(level)}" if level else ""
     optional_sections: list[str] = []
     if content.get("named_gaps"):
         optional_sections.append(
@@ -141,7 +154,8 @@ def render_minimal_intent(
     authority = "transferred-to-repository" if mode in _TRANSFER_MODES else mode
     replacements = {
         "<intent title>": _inline(title),
-        "<optional level>": optional_level,
+        "<intent slug>": _inline(slug),
+        "<intent level>": _inline(level or ""),
         "<bounded outcome>": outcome,
         "<bounded boundary>": boundary,
         "<bounded owner>": owner,
@@ -187,6 +201,7 @@ def admit_repository_intent(
     rendered = render_minimal_intent(
         intake=intake,
         title=title,
+        slug=slug,
         level=level,
         authority_transferred=authority_transferred,
     )
@@ -239,6 +254,17 @@ def _first(content: dict[str, list[str]], key: str, fallback: str) -> str:
     return _inline(values[0]) if values else fallback
 
 
+def _inline_list(content: dict[str, list[str]], key: str, fallback: str) -> str:
+    """Join every value onto one line, for a preamble field.
+
+    `_items` renders a bulleted block, which a preamble field cannot hold: the
+    field ends at its newline, so a list would leave the remaining values as
+    stray body lines.
+    """
+    values = content.get(key, [])
+    return ", ".join(_inline(value) for value in values) if values else fallback
+
+
 def _items(content: dict[str, list[str]], key: str, fallback: str) -> str:
     values = content.get(key, [])
     return "\n".join(f"- {_inline(value)}" for value in values) if values else fallback
@@ -278,4 +304,8 @@ def _inline(value: str) -> str:
     )
     if re.match(r"(?:`|~){3,}", rendered):
         rendered = "\\" + rendered
-    return rendered
+    # An HTML comment delimiter is the one sequence whitespace collapse cannot
+    # defuse: an unclosed `<!--` comments out everything after it, which hides
+    # the rendered `## Source` provenance block rather than forging a field.
+    # Entity-escaping the angle bracket leaves the text visible and inert.
+    return rendered.replace("<!--", "&lt;!--").replace("-->", "--&gt;")

@@ -456,6 +456,19 @@ jobs:
       - name: pytest typed-ordinal owner parity and equivalence (roster-owned)
         run: python -m pytest tests/roster/test_typed_ordinal_collision_equivalence.py
 
+      # The intent metadata shape contract's two roster-owned claims. The field
+      # reference lives in `guides/` and the validator in `packs/core`, and the
+      # intent template lives in `packs/product-engineering` while the validator
+      # that judges it lives in core — so each reads two trees and neither can
+      # live in a pack's own test tree. Both sit ABOVE the carve-out step below,
+      # whose `pytest tests/ -q` also collects them: this job is fail-fast, so a
+      # named step placed after that one never runs and can attribute nothing.
+      - name: pytest intent shape contract cross-tree claims (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_intent_field_reference_parity.py
+          tests/roster/test_intent_template_shape_conformance.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         run: |
           python tools/lint-conformance-portability.py --root .

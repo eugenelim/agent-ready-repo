@@ -1,7 +1,9 @@
 # Agentbundle installation preserves dependency, state, and pack integrity
 
+- **Slug:** `agentbundle-install-integrity`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

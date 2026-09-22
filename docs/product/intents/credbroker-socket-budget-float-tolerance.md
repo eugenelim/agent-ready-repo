@@ -1,7 +1,9 @@
 # The socket-budget assertion tolerates timer precision
 
-- **Status:** Draft
+- **Slug:** `credbroker-socket-budget-float-tolerance`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

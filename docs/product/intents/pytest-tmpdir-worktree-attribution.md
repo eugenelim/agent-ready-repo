@@ -1,8 +1,10 @@
 # Attribute pytest temporary trees to their worktrees
 
+- **Slug:** `pytest-tmpdir-worktree-attribution`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0097 worktree attribution](../../rfc/0097-agent-skill-engineering.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0097 worktree attribution](../../rfc/0097-agent-skill-engineering.md)
 
 ## Outcome
 

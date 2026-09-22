@@ -1,7 +1,9 @@
 # Add JavaScript CI for pack skills
 
+- **Slug:** `pack-javascript-ci-workflow`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

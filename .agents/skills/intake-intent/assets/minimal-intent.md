@@ -1,7 +1,9 @@
 # <intent title>
 
+- **Slug:** <intent slug>
+- **Level:** <intent level>
+- **Owner:** <bounded owner>
 - **Status:** Draft
-<optional level>
 
 ## Outcome
 
@@ -10,10 +12,6 @@
 ## Boundary
 
 <bounded boundary>
-
-## Owner
-
-<bounded owner>
 
 ## Unresolved questions
 

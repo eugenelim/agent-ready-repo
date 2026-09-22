@@ -1,7 +1,9 @@
 # Code-graph review benchmark
 
+- **Slug:** `code-graph-review-benchmark`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

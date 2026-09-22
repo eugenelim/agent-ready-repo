@@ -3,6 +3,7 @@
 - **Slug:** `intent-graph-navigation` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** repository-work-graph — [Repository work graph](CAP-0001-repository-work-graph.md)

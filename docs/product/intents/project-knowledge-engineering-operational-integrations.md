@@ -1,7 +1,9 @@
 # Project-knowledge engineering and operational integrations
 
+- **Slug:** `project-knowledge-engineering-operational-integrations`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 

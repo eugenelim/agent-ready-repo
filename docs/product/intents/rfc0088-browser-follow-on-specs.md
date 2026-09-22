@@ -1,8 +1,10 @@
 # RFC-0088 browser pilot follow-on specifications are ready to author
 
+- **Slug:** `rfc0088-browser-follow-on-specs`
 - **Status:** Draft
 - **Level:** capability
-- **Authority:** [RFC-0088 follow-on release gates](../../rfc/0088-web-pilot-foundation.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0088 follow-on release gates](../../rfc/0088-web-pilot-foundation.md)
 
 ## Outcome
 

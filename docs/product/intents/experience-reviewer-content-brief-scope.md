@@ -1,8 +1,10 @@
 # Extend experience-reviewer to review content briefs
 
+- **Slug:** `experience-reviewer-content-brief-scope`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0062 OQ1](../../rfc/0062-content-design-and-copy-direction-skills.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0062 OQ1](../../rfc/0062-content-design-and-copy-direction-skills.md)
 
 ## Outcome
 

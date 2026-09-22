@@ -1,8 +1,10 @@
 # Scanner suppression and pin hygiene
 
+- **Slug:** `scanner-suppression-and-pin-hygiene`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/build-check-coverage-gaps Decision 1](../../specs/build-check-coverage-gaps/spec.md), [spec/semgrep-selftest-batching](../../specs/semgrep-selftest-batching/spec.md), [spec/npm-sca-gate](../../specs/npm-sca-gate/spec.md), and [spec/secret-scanner-for-api-key-workflows Assumption 5](../../specs/secret-scanner-for-api-key-workflows/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/build-check-coverage-gaps Decision 1](../../specs/build-check-coverage-gaps/spec.md), [spec/semgrep-selftest-batching](../../specs/semgrep-selftest-batching/spec.md), [spec/npm-sca-gate](../../specs/npm-sca-gate/spec.md), and [spec/secret-scanner-for-api-key-workflows Assumption 5](../../specs/secret-scanner-for-api-key-workflows/spec.md)
 
 ## Outcome
 

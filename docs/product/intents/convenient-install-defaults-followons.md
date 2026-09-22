@@ -1,6 +1,9 @@
 # Convenient install default-source integrity
 
+- **Slug:** `convenient-install-defaults-followons`
+- **Level:** feature
 - **Status:** Accepted
+- **Owner:** eugenelim
 
 
 ## Outcome

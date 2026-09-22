@@ -1,8 +1,10 @@
 # Catalogue migration and closeout
 
+- **Slug:** `catalogue-wave9-migration-closeout`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0076 § Wave-to-decision mapping — Wave 9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0076 § Wave-to-decision mapping — Wave 9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 
 ## Outcome
 

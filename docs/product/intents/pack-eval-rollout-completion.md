@@ -1,8 +1,10 @@
 # Pack-eval rollout completion
 
+- **Slug:** `pack-eval-rollout-completion`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0037 Errata E3](../../rfc/0037-pack-activation-evals.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0037 Errata E3](../../rfc/0037-pack-activation-evals.md)
 
 ## Outcome
 

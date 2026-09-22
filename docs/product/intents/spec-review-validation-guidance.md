@@ -3,6 +3,7 @@
 - **Slug:** `spec-review-validation-guidance`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 

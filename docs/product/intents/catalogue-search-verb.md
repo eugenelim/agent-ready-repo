@@ -1,7 +1,9 @@
 # Catalogue search verb
 
+- **Slug:** `catalogue-search-verb`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

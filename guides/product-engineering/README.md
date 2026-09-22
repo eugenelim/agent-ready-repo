@@ -26,6 +26,7 @@ Shape this feature intent: workspace owners need export retention controls so co
 - [Shape a feature intent in an app repo](how-to/shape-a-feature-intent.md) — frame, de-risk, and decompose a single piece of work down to a spec.
 - [Run a discovery end-to-end](how-to/run-a-discovery.md) — turn a raw idea into a build-ready decision brief with the discovery loop: the one-prompt form, the consent gates, recursion, resume, and folding in existing requirements.
 - [Run a capability across a value stream](how-to/run-a-capability-across-a-value-stream.md) — coordinate one capability across several component repos from a meta-repo.
+- [Fix a refused intent](how-to/fix-a-refused-intent.md) — read the refusal, find the field it names, and apply the one remedy that clears it.
 - [Write a product's voice and microcopy](how-to/write-product-microcopy.md) — characterize the product's voice, then write the error, empty, button, and label copy from blame-free formulas.
 
 ## Reference

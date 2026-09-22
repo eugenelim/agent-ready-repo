@@ -1,8 +1,10 @@
 # Brief backlink lints report canonical and legacy forms
 
+- **Slug:** `brief-backlink-provenance-lints`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/traceability-lint](../../specs/traceability-lint/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/traceability-lint](../../specs/traceability-lint/spec.md)
 
 ## Outcome
 

@@ -1,8 +1,10 @@
 # Live adapter and client smoke evidence
 
+- **Slug:** `live-adapter-and-client-smoke-evidence`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/claude-plugin-route-scope AC15](../../specs/claude-plugin-route-scope/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/claude-plugin-route-scope AC15](../../specs/claude-plugin-route-scope/spec.md)
 
 ## Outcome
 

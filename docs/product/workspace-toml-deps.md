@@ -38,7 +38,7 @@ dependencies on items in different queues (RFC-0064 D7):
 | Prefix | Meaning | Example |
 | --- | --- | --- |
 | `work:<path>` | depends on a work-queue entry at the given spec path | `"work:spec/m1-workspace-core"` |
-| `shape:<slug>` | depends on a shaping-queue entry (an upstream PE artifact) | `"shape:capability-map-ini-002"` |
+| `shape:<slug>` | depends on a shaping-queue entry (an upstream PE artifact) | `"shape:nontechnical-pack-first-value-rollout"` |
 | `brief:<path>` | depends on a brief-queue entry at the given brief path | `"brief:docs/product/briefs/platform-core.md"` |
 
 ---
@@ -51,7 +51,7 @@ express dependencies across shaping subtypes (RFC-0064 D9):
 | Prefix | Meaning | Example |
 | --- | --- | --- |
 | `research:<slug>` | depends on a research entry (desk-research pack output) | `"research:adopter-persona"` |
-| `strategy:<slug>` | depends on a strategy/shaping entry at the given slug | `"strategy:ini-002-initiative-brief"` |
+| `strategy:<slug>` | depends on a strategy/shaping entry at the given slug | `"strategy:STRAT-0001-graph-powered-sdlc"` |
 
 ---
 

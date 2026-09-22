@@ -1,7 +1,9 @@
 # Offload full and selective verification to remote CI
 
+- **Slug:** `remote-ci-verification-parity`
 - **Status:** Accepted
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 
@@ -34,10 +36,6 @@ For any pushed branch in this repository, a maintainer can independently dispatc
 - Keep Ubuntu authoritative for complete semantic coverage. Keep Windows and macOS as focused native-portability lanes whose owned checks participate in the full composition and whose expected skips are explicit and fail closed when a required native test is not collected.
 - Reuse the existing Windows workflow commands and guards rather than constructing a second Windows definition. Any extraction needed to make those commands callable belongs to this feature and must preserve their current automatic triggers and aggregate status.
 - Establish the macOS lane from the current repository census, not by copying the Ubuntu job or inheriting unrelated historical commitments. Admit only native checks owned by this feature's platform contract.
-
-## Owner
-
-- eugenelim
 
 ## Decomposition
 

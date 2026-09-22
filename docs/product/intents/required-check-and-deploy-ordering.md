@@ -1,9 +1,10 @@
 # Required checks and Pages deployments preserve their intended ordering
 
+- **Slug:** `required-check-and-deploy-ordering`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/ci-gate-parallelization AC3](../../specs/ci-gate-parallelization/spec.md)
-- **Authority:** [spec/pages-concurrency-isolation AC3](../../specs/pages-concurrency-isolation/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/ci-gate-parallelization AC3](../../specs/ci-gate-parallelization/spec.md); [spec/pages-concurrency-isolation AC3](../../specs/pages-concurrency-isolation/spec.md)
 
 ## Outcome
 

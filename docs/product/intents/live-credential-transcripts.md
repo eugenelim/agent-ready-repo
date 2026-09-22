@@ -1,8 +1,10 @@
 # Live credential transcripts
 
+- **Slug:** `live-credential-transcripts`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/atlassian-sso-cookie AC19](../../specs/atlassian-sso-cookie/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/atlassian-sso-cookie AC19](../../specs/atlassian-sso-cookie/spec.md)
 
 ## Outcome
 

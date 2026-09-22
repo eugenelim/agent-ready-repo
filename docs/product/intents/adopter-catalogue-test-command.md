@@ -1,8 +1,10 @@
 # Give catalogue adopters a canonical test command
 
+- **Slug:** `adopter-catalogue-test-command`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [ADR-0071](../../adr/0071-pack-runtime-export-boundary-and-test-placement.md)
+- **Owner:** eugenelim
+- **Governed by:** [ADR-0071](../../adr/0071-pack-runtime-export-boundary-and-test-placement.md)
 
 ## Outcome
 

@@ -1,7 +1,9 @@
 # Self-test untracked plant window
 
+- **Slug:** `selftest-untracked-plant-window`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

@@ -1,7 +1,9 @@
 # Extend SAST coverage and required merge protection
 
+- **Slug:** `sast-scanner-coverage-expansion`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

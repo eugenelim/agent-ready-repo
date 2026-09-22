@@ -1,7 +1,9 @@
 # Record installed-skill governance evidence
 
+- **Slug:** `installed-skill-governance-inventory`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

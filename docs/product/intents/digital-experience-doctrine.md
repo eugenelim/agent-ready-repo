@@ -3,10 +3,11 @@
 - **Slug:** `digital-experience-doctrine` <!-- canonical identity; independent of any filename ordinal -->
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** none — see Placement
-- **Authority:** [RFC-0071 Digital Experience Doctrine](../../rfc/0071-digital-experience-doctrine.md) (Accepted)
+- **Governed by:** [RFC-0071 Digital Experience Doctrine](../../rfc/0071-digital-experience-doctrine.md) (Accepted)
 
 ## Outcome
 

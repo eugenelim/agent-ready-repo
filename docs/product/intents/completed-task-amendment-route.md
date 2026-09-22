@@ -1,7 +1,9 @@
 # A completed task's section has no amendment route
 
+- **Slug:** `completed-task-amendment-route`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

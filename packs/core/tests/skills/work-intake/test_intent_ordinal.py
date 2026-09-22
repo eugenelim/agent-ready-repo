@@ -93,6 +93,36 @@ def test_an_outside_name_is_skipped_and_a_malformed_one_is_fatal(
     assert MODULE.next_typed_ordinal(tmp_path, token) is None
 
 
+@pytest.mark.parametrize(
+    ("tombstone_name", "expected_ordinal", "expected_check"),
+    [
+        ("{t}-0003-old-slug.md", 4, 0),
+        ("{t}-0003-old-slug.tombstone.md", 4, 0),
+        ("{t}-0003-old-slug.tombstone", None, 1),
+        ("{t}-0003.tombstone.md", None, 1),
+        ("{t}-0003-old-slug.md.tombstone", None, 1),
+        # An out-of-namespace name classifies as outside, which is exit 0 and
+        # a lower maximum, so it violates the no-reuse rule with no error anywhere.
+        ("tombstone-{t}-0003-old-slug.md", 2, 0),
+    ],
+)
+def test_tombstone_filename_shapes_pin_allocation_and_check(
+    tombstone_name: str,
+    expected_ordinal: int | None,
+    expected_check: int,
+    tmp_path: pathlib.Path,
+    monkeypatch,
+) -> None:
+    """Tombstone names either preserve ordinal history, refuse, or silently reuse it."""
+    token = TOKENS[0]
+    (tmp_path / f"{token}-0001-live.md").write_text("", encoding="utf-8")
+    (tmp_path / tombstone_name.format(t=token)).write_text("", encoding="utf-8")
+
+    assert MODULE.next_typed_ordinal(tmp_path, token) == expected_ordinal
+    monkeypatch.chdir(tmp_path)
+    assert MODULE.main(["--check", "."]) == expected_check
+
+
 def test_an_outside_namespace_symlink_does_not_fail_the_scan(
     tmp_path: pathlib.Path,
 ) -> None:

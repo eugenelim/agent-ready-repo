@@ -1,7 +1,9 @@
 # Growth strategy pack charter
 
+- **Slug:** `growth-strategy-pack-charter`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

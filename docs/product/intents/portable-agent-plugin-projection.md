@@ -1,7 +1,9 @@
 # Portable Agent Plugin projection
 
-- **Status:** Draft
+- **Slug:** `portable-agent-plugin-projection`
+- **Status:** Fulfilled
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

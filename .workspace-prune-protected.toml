@@ -57,6 +57,7 @@ protected = [
   "docs/specs/initiative-canonical",
   "docs/specs/initiative-legacy",
   "docs/specs/intake-target",
+  "docs/specs/intent-metadata-shape-contract",
   "docs/specs/known-present",
   "docs/specs/legacy",
   "docs/specs/legacy-active",

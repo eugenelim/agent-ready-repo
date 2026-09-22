@@ -1,7 +1,9 @@
 # Add a digital-product-maker profile
 
+- **Slug:** `digital-product-maker-profile`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

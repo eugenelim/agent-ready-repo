@@ -1,9 +1,10 @@
 # Credential broker capture and refresh have bounded modes and errors
 
+- **Slug:** `credential-broker-bounded-modes-and-errors`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/jira-check-sso-auto-login AC35](../../specs/jira-check-sso-auto-login/spec.md)
-- **Authority:** [spec/skill-script-exit-2-collision review](../../specs/skill-script-exit-2-collision/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/jira-check-sso-auto-login AC35](../../specs/jira-check-sso-auto-login/spec.md); [spec/skill-script-exit-2-collision review](../../specs/skill-script-exit-2-collision/spec.md)
 
 ## Outcome
 

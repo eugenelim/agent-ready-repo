@@ -13,19 +13,65 @@ kind: reference
 
 ## Intent fields
 
-The `intent` template (shipped with the `frame-intent` skill at `frame-intent/assets/intent-template.md`). Only Outcome and Opportunity are load-bearing; the rest are offered, never required.
+The `intent` template (shipped with the `frame-intent` skill at
+`frame-intent/assets/intent-template.md`). An intent's **preamble** is the run
+of `- **Field:** value` lines before the first `## ` heading. A corpus check
+reads that region and decides each field by the tier below; a field-shaped line
+in the body is neither read nor judged.
 
-| Field | Meaning |
+Four tiers:
+
+- **Required** — absent is refused.
+- **Constrained when present** — omitting it is fine; a value outside its set is refused.
+- **Unconstrained** — read, never judged.
+- **Retired** — the name itself is refused; use the replacement.
+
+A field whose name appears in none of these tiers is accepted, so your own
+additions keep working.
+
+| Field | Tier | Value |
+| --- | --- | --- |
+| `Owner` | required | who is accountable — a person or a role. Declared, never inferred from commit history |
+| `Slug` | required | the canonical identity, independent of the filename's ordinal. Presence is checked; the value is not, so kebab-case is a convention the check does not enforce |
+| `Level` | required | the altitude — an **open recognized set**, `product-vision › product-strategy › capability › feature`. Present or absent is checked; the value never is, so name an intervening altitude if your org has one |
+| `Status` | required | one of `Draft`, `Accepted`, `Fulfilled`, `Withdrawn`, `Cancelled`, or `Superseded by <slug>` naming a live intent. `Withdrawn` and `Cancelled` are peers of `Fulfilled`, not flavours of it |
+| `Kind` | constrained when present | `outcome` or `opportunity` — the rung this intent occupies on the opportunity-solution tree |
+| `Scale` | constrained when present | `app` or `business-unit` — resolved at intake (see Modes) |
+| `Maturity` | constrained when present | `greenfield` or `brownfield` — gates current-state inputs |
+| `De-risked` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no`. The basic form `20260922`, a week date, and an ordinal date are refused |
+| `Shaping-reviewed` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no` |
+| `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light` |
+| `Governed by` | unconstrained | the governing decision this intent answers to |
+| `Parent intent` | unconstrained | back-link to the intent this was decomposed from; omit at the top of the tree |
+| `Milestone` | unconstrained | where this sits in an implementation sequence |
+| `Type` | retired | use `Kind` |
+| `Raised` | retired | use `De-risked` or `Shaping-reviewed` for a dated fact |
+| `Stage` | retired | use `Status` |
+| `Parent` | retired | use `Parent intent` |
+| `Source` | retired | keep provenance in a `## Source` body section |
+| `Authority` | retired | use `Governed by` in the preamble. The name stays valid *below* the first heading, where it is an attribution or a provenance token rather than this field |
+
+**Absent is not `no`.** For the three progress fields, an absent field means
+nobody recorded the answer; the literal `no` means someone decided against it.
+A corpus report states which of the two it found, and absence alone never fails
+a check.
+
+**Backticks and trailing comments are not part of a value.** `` - **Level:**
+`feature` `` and `` - **Level:** `feature` <!-- the altitude --> `` and
+`- **Level:** feature` all carry the same value. A line left holding only a
+comment is absent, not malformed — so a seeded field you have not filled in
+costs nothing and asserts nothing.
+
+## Body sections
+
+These are sections, not preamble fields, and no tier above applies to them.
+
+| Section | Meaning |
 | --- | --- |
-| `Slug` | kebab-case; matches the filename |
-| `Level` | the altitude this intent sits at — an **open recognized set**, `product-vision › product-strategy › capability › feature` (name an intervening altitude if your org has one; not a closed enum) |
-| `Scale` | `app` or `business-unit` — resolved at intake (see Modes) |
-| `Maturity` | `greenfield` or `brownfield` — gates current-state inputs |
-| `Parent intent` | optional back-link to the intent this was decomposed from |
 | **Outcome** | a steerable *input* metric + the *lagging* outcome + a *guardrail* |
 | **Opportunity** | the solution-independent need (a job to be done) |
 | `Assumptions` | what must be true for the bet to pay off |
-| `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf |
+| `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf. When `Decomposed` ends in `direct-light`, each checkbox item here states its own requested outcome |
 
 ## Product-altitude fields (level-conditional)
 

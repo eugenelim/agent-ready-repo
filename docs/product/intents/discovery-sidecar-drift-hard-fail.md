@@ -1,8 +1,10 @@
 # Discovery sidecar drift hard fail
 
+- **Slug:** `discovery-sidecar-drift-hard-fail`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0048 Decision 7](../../rfc/0048-autonomous-product-team-operating-model.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0048 Decision 7](../../rfc/0048-autonomous-product-team-operating-model.md)
 
 ## Outcome
 

@@ -1,7 +1,9 @@
 # Role-journey guidance covers coordinated agent swarms
 
+- **Slug:** `role-journey-agent-swarm-section`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

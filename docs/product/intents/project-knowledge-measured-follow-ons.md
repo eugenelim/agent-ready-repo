@@ -1,7 +1,9 @@
 # Project-knowledge measured follow-ons
 
+- **Slug:** `project-knowledge-measured-follow-ons`
 - **Status:** Draft
 - **Level:** capability
+- **Owner:** eugenelim
 
 ## Outcome
 

@@ -1,8 +1,10 @@
 # Loop-contract item identity mechanism
 
+- **Slug:** `loop-contract-item-identity-mechanism`
 - **Status:** Draft
 - **Kind:** outcome
 - **Level:** feature
+- **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)

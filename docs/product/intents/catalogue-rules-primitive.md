@@ -1,7 +1,9 @@
 # Catalogue rules primitive
 
+- **Slug:** `catalogue-rules-primitive`
 - **Status:** Draft
 - **Level:** feature
+- **Owner:** eugenelim
 
 ## Outcome
 

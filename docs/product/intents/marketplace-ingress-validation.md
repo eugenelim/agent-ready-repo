@@ -1,8 +1,10 @@
 # Marketplace ingress accepts valid repository references
 
+- **Slug:** `marketplace-ingress-validation`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [spec/marketplace-generator-single-source Assumptions](../../specs/marketplace-generator-single-source/spec.md)
+- **Owner:** eugenelim
+- **Governed by:** [spec/marketplace-generator-single-source Assumptions](../../specs/marketplace-generator-single-source/spec.md)
 
 ## Outcome
 

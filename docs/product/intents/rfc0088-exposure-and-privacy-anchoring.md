@@ -1,8 +1,10 @@
 # RFC-0088 exposure and cross-round term identity are evidenced at their stated boundaries
 
+- **Slug:** `rfc0088-exposure-and-privacy-anchoring`
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0088](../../rfc/0088-web-pilot-foundation.md)
+- **Owner:** eugenelim
+- **Governed by:** [RFC-0088](../../rfc/0088-web-pilot-foundation.md)
 
 ## Outcome
 
