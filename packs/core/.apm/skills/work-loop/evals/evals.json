@@ -999,6 +999,20 @@
         "Response does NOT claim the ladder was deleted or that the guidance was lost",
         "Response does NOT tell the reader to look for a ladder section in `work-loop` SKILL.md"
       ]
+    },
+    {
+      "id": "reviewer-dispatch-depth-is-conditionally-routed",
+      "prompt": "I am dispatching `security-reviewer` on an infra-flavored change. Step 4 of `work-loop` SKILL.md tells me to route via the `security-checklists` Module index, but it never says which modules are force-loaded on infra work, and it no longer lists the framework lens. Did those rules get deleted?",
+      "expected_output": "No. They are not on the entrypoint by design; they are reached through `## Conditional-reference routing`, whose row `Selecting reviewers, briefing one for dispatch, or weighing the lens the default roster gives up` points at `references/reviewer-roster.md`. You are briefing a reviewer for dispatch, so that predicate fires and you load the reference now. It carries `security-reviewer`'s current lens (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25 + STRIDE + LINDDUN open pass, complementing rather than replacing SAST/SCA), the inline-its-depth rule that you detect the crossed trust boundaries and inline the matching modules into the subagent's brief because the subagent has no Skill tool, and the infra-flavored force-load set: non-skippable, run at spec stage and on diff, `config-misconfig` always, plus `access-control` / `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips each module's entry. It also carries `quality-engineer`'s `operational-safety` module inlining, the reliability-vs-security carve, and independent contract re-derivation. What stays on the entrypoint is each role's firing condition, the Module index routing sentence, and the loud blocker for a missing `security-reviewer` on infra work. An entrypoint without the depth means the depth is routed, not removed.",
+      "assertions": [
+        "Response says the rules still exist and are reached through the conditional-reference routing table",
+        "Response names `references/reviewer-roster.md` as the destination",
+        "Response says the briefing-a-reviewer predicate fires for this task",
+        "Response gives the infra force-load set with `config-misconfig` always and the four conditional modules",
+        "Response states that each role's firing condition and the infra loud blocker stay on the entrypoint",
+        "Response does NOT claim the lens or the force-load set was deleted or that guidance was lost",
+        "Response does NOT tell the reader to look for the depth in `work-loop` SKILL.md"
+      ]
     }
   ]
 }
