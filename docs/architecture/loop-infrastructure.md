@@ -13,17 +13,76 @@ specification and plan artifacts.
 
 - `loop-engine.py`: `init`, `transition`, `status`, and `reset`.
 - `loop-cohort.py`: `init`, `identity`, `status`, `approve-plan`,
-  `schedule`, `check`, wave, and review commands.
+  `schedule`, `check`, `reset`, wave, and review commands.
 - `check-spec-status.py`: validates a requested status in `spec.md` or
   `plan.md`.
+
+The parallel-execution verbs — `dispatch-decision`, `auto-parallel`, and
+`worktree {preflight, add, record, list, merge, cleanup}` — are present in
+`loop-cohort.py` but disabled: each exits non-zero with
+`<verb> is disabled in Phase 1` and touches no state. ADR-0061 D5 defers
+parallel-wave orchestration, so the verb surface is carved out and inert.
 
 ## 3. Owned state and write authority
 
 | State | Location | Write authority | Readers |
 | --- | --- | --- | --- |
 | FSM phase state | `docs/specs/**/engine-state.json` (gitignored) | `loop-engine.py` | Harness operators |
-| Cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py` | Harness operators and engine guards |
+| Cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py`, and `loop-engine.py` in-process on `contract-amendment` (see § 4) | Harness operators and engine guards |
 | Transition events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Harness operators and workspace MCP |
+
+### Concurrency control
+
+Each state file has exactly one writer and its own advisory lockfile, taken
+through `_statelock.py` (ADR-0074). The two locks are distinct files and know
+nothing of each other: holding one says nothing about the other.
+
+`loop-engine.py` holds `engine-state.json.lock` across a whole `transition` —
+the state-machine table lookup, the plan-hash pre-guard, the event guard, and
+the outbox finalisation — so the read-decide-write section is atomic against a
+second engine process. `loop-cohort.py` holds `state.json.lock` for the body of
+each mutation verb.
+
+The engine's guard layer reads cohort state **without** taking the cohort lock.
+That read is what the diagram marks as unserialised.
+
+```mermaid
+flowchart LR
+  subgraph EP["loop-engine.py"]
+    ET["transition"]
+    EG["guard layer (_loop_guards.py)"]
+  end
+  subgraph CP["loop-cohort.py"]
+    CV["mutation verbs: wave advance, dispatch-receipt"]
+  end
+
+  EL(["engine-state.json.lock"])
+  CL(["state.json.lock"])
+  ES[("engine-state.json")]
+  CS[("state.json")]
+
+  ET -- holds --> EL
+  EL -- serialises --> ES
+  ET -- "read + write" --> ES
+  ET -- calls --> EG
+
+  CV -- holds --> CL
+  CL -- serialises --> CS
+  CV -- "read + write" --> CS
+
+  EG -. "read, NOT serialised" .-> CS
+```
+
+The two domains **are** nested, on one path. Three acquisition sites exist in the
+skill's scripts: two in `loop-cohort.py` and one in `loop-engine.py`. On the
+`contract-amendment` transition the engine loads `loop-cohort.py` as a module and
+calls `apply_contract_amendment`, which takes the cohort lock at
+`loop-cohort.py:992` while the engine still holds its own — so the engine-then-cohort
+order is live in shipped code.
+
+The order is fixed and acyclic. `loop-cohort.py` never reads `engine-state.json`,
+so no site takes the pair the other way, and engine-then-cohort is the only
+ordered pair that exists.
 
 ## 4. Dependencies and allowed edges
 
@@ -33,6 +92,23 @@ imports the canonical status parser from `lint-spec-status.py`.
 
 The engine reads cohort state but does not write it. The cohort tool does not
 advance FSM phase state.
+
+This split is ADR-0061's **Option A**, the pure phase tracker: a transition
+*permits* a change and never *causes* one. The engine is a referee, so every
+state mutation is invoked explicitly by the skill rather than as a side effect of
+a transition.
+
+Both halves of that decision have drifted. ADR-0061 D3 says the engine never
+writes cohort state and "reads it only through the designated read-only verbs".
+The guard layer now reads `state.json` directly in-process through
+`_loop_guards.read_state`, having previously shelled out to `loop-cohort.py`; that
+direct read is the unserialised read in section 6. And the `contract-amendment`
+transition writes cohort state through `apply_contract_amendment`, so the engine
+is not read-only with respect to cohort state on every path.
+
+The rest of the split holds: the other fourteen events invoke no cohort mutation
+from the engine, and every cohort write they need is invoked explicitly by the
+skill.
 
 ## 5. Primary flows
 
@@ -117,6 +193,81 @@ Both state writers use `tempfile.mkstemp` and `os.replace` in the target
 directory. A crash leaves either the previous JSON or the replacement JSON.
 `reset` is the explicit recovery action.
 
+### Replay markers close two crash windows, and a protocol closes four more
+
+Two durable markers already make an interrupted transition recoverable.
+
+| Marker | Where | Window it closes |
+| --- | --- | --- |
+| `amendment_pending` | cohort `state.json` | the cohort write landed but engine-state did not |
+| `events.pending` | `.loop-run/` | engine-state was written but the `events.jsonl` append did not happen |
+
+`cmd_transition` mutates the cohort first and writes engine-state last, so an
+ordinary crash always leaves the cohort ahead and never behind. The reverse
+direction means the two untracked files diverged by some other means, and it
+takes a separate recovery branch that re-checks the schedule before completing
+the missing cohort write.
+
+`amendment_pending` outlives the transition that opens it. `begin_contract_amendment`
+sets it and `complete_contract_amendment_reapproval` clears it, at a fresh plan
+approval many transitions later, so the marker spans the amendment cycle rather
+than one critical section. `_recover_pending` replays the outbox entry only when
+`to`, `seq` and `run_id` all match the owning engine state, and
+`contract_amendment_replay_status` classifies the cohort side as `absent`,
+`applied` or `conflict` — where `applied` additionally re-reads `plan.md` and
+re-runs `validate_completed_task_sections`, because a marker match alone would
+launder an edit to an already-completed task section into the baseline.
+
+Four further events pair a transition with a cohort mutation that no marker
+covers: `wave-passed` with `wave advance`, `gates-failed` with `record-attempt`,
+and `findings-remain` and `reviewers-clean` with `review record`. Their crash
+windows are closed by a documented recovery protocol a person or agent executes
+by hand — see
+[`references/session-resumption.md`](../../packs/core/.apm/skills/work-loop/references/session-resumption.md).
+Three of the four key on `<run_id>:<transition_sequence>`; `wave-passed` keys on
+`last_event_context.completed_wave_index` instead. The `reviewers-clean` replay
+requires explicit human authorization, because without a matching
+`--operation-id` it can double-count a review round and overwrite one level of
+fingerprint audit history.
+
+### A wave-exit verdict is not serialised against the wave pointer
+
+The `wave-complete` guard decides whether every task in the **current** wave
+carries a dispatch receipt. It learns which wave is current by reading
+`current_wave_index` from cohort state, unlocked. `loop-cohort wave advance`
+moves that same field under the cohort lock. Nothing orders the two, so a
+verdict reached about wave `n` can be committed after the pointer has left
+wave `n`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant E as loop-engine transition
+  participant S as state.json
+  participant C as loop-cohort wave advance
+
+  E->>E: acquire engine-state.json.lock
+  E->>S: read current_wave_index (no cohort lock)
+  Note over E,S: index = 0 — wave 0 is fully accounted
+  Note over E: guard APPROVES — the verdict is about wave 0
+  C->>S: acquire state.json.lock
+  C->>S: current_wave_index 0 to 1
+  C->>S: release state.json.lock
+  E->>E: commit CODE-IMPLEMENTATION to CODE-VERIFICATION
+  Note over E: the verdict was about wave 0 — the run is now on wave 1
+```
+
+The consequence lands one transition later, not here. `gates-clean` asks only
+whether the current wave is the last one; wave 1 is, so it passes. Wave 1 is
+entered and exited with no guard ever reading its receipts, using sanctioned
+verbs alone and no direct state write.
+
+The interleaving needs two concurrent processes against one spec directory, so
+it is unreachable from the sequential single-controller flow that Phase 1
+supports. Any design that admits a second concurrent process against one spec
+directory has to address it — see [`loop-parallelism.md`](loop-parallelism.md)
+(planned, not implemented).
+
 ## 7. Observability and evidence
 
 Both tools expose `status --json`. `engine-state.json` and `state.json` record
@@ -142,6 +293,12 @@ a backend can do with it are a cross-cutting concern: see
 - `loop-engine.py` checks the current schedule before code transitions except
   `done`.
 - `loop-cohort.py` requires `--expect-run-id` for cohort mutations.
+- Each state file is written under its own advisory lock, so a read-modify-write
+  on one file is atomic against another process running the same tool.
+- No invariant spans the two lock domains. A guard verdict derived from cohort
+  state is not revalidated before the engine commits, so an invariant whose
+  terms live in both files — the wave-exit verdict and `current_wave_index`
+  above — has no mechanical protection.
 
 ## 9. Relevant ADRs
 
@@ -151,4 +308,4 @@ a backend can do with it are a cross-cutting concern: see
 
 ## 10. Last verified against commit
 
-`831f8e92f`
+`8d30c6f6c`
