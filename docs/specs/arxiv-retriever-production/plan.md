@@ -1,7 +1,7 @@
 # Plan: arXiv retriever, production grade
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, version
   bump rule, stream encoding, shipped-content citation rule, pack test module
   naming); `packs/desk-research/DESIGN.md` §5 and §8 (context discipline,

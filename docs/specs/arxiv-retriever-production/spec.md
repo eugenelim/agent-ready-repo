@@ -1,6 +1,6 @@
 # Spec: arXiv retriever, production grade
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** `packs/AGENTS.md`; `packs/desk-research/DESIGN.md`;
@@ -174,111 +174,111 @@ manual (VI-0013). Every criterion appears in exactly one group.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Given free text containing a colon, a bare boolean word, or
+- [x] **AC-0001.** Given free text containing a colon, a bare boolean word, or
   more than one term, the composed `search_query` contains no unquoted
   occurrence of that text.
-- [ ] **AC-0002.** Each tier after the first is strictly wider than the tier
+- [x] **AC-0002.** Each tier after the first is strictly wider than the tier
   before it, and the final tier returns its result whatever the match count, so
   no query returns an empty set for want of a wider tier.
-- [ ] **AC-0003.** Tier 1's phrase is the caller's text with no token removed,
+- [x] **AC-0003.** Tier 1's phrase is the caller's text with no token removed,
   so a query whose exact wording is a paper title matches that title.
-- [ ] **AC-0004.** Returned content names the tier that produced the results
+- [x] **AC-0004.** Returned content names the tier that produced the results
   and the total match count arXiv reported.
-- [ ] **AC-0005.** A tier is accepted when arXiv's reported total for it is at
+- [x] **AC-0005.** A tier is accepted when arXiv's reported total for it is at
   least 1 and at most 2,000; the first tier meeting that bound wins, and when
   no tier meets it the final tier's result is returned and reported as
   terminal.
-- [ ] **AC-0006.** A modern identifier, a legacy identifier carrying a category
+- [x] **AC-0006.** A modern identifier, a legacy identifier carrying a category
   prefix, either with a version suffix, and an `arxiv.org/abs/` or
   `arxiv.org/pdf/` URL each resolve through arXiv's identifier parameter and
   return exactly the named record.
-- [ ] **AC-0007.** Input resembling an identifier but not well-formed produces
+- [x] **AC-0007.** Input resembling an identifier but not well-formed produces
   a non-zero exit and a diagnostic, rather than falling back to a text search.
-- [ ] **AC-0008.** Each citation's `url` is the version-free abstract URL, and
+- [x] **AC-0008.** Each citation's `url` is the version-free abstract URL, and
   the retrieved version is a separate citation field.
-- [ ] **AC-0009.** Each citation carries the submission date and the revision
+- [x] **AC-0009.** Each citation carries the submission date and the revision
   date under separate labelled keys, and neither value is used as the other.
-- [ ] **AC-0010.** DOI and journal reference appear as citation fields when
+- [x] **AC-0010.** DOI and journal reference appear as citation fields when
   arXiv publishes them for that record, and are omitted keys when it does not.
-- [ ] **AC-0011.** Each citation includes the arXiv identifier, title, authors,
+- [x] **AC-0011.** Each citation includes the arXiv identifier, title, authors,
   submission date, revision date, categories, primary category, abstract URL,
   and PDF URL.
-- [ ] **AC-0012.** Every mode's returned mapping conforms to the return
+- [x] **AC-0012.** Every mode's returned mapping conforms to the return
   schema in `references/retriever-interface.md` with `shape` set to `raw`, and
   `citations` is non-empty whenever a record was found.
-- [ ] **AC-0013.** Calling `retrieve` with a single string argument performs a
+- [x] **AC-0013.** Calling `retrieve` with a single string argument performs a
   `search` and satisfies AC-0012.
-- [ ] **AC-0014.** Consecutive outbound requests are separated by at least 3.0
+- [x] **AC-0014.** Consecutive outbound requests are separated by at least 3.0
   seconds, measured from the completion of the previous request, enforced in
   the shared request path so every mode inherits it.
-- [ ] **AC-0015.** An HTTP 429 or 5xx response is retried up to 3 times with a
+- [x] **AC-0015.** An HTTP 429 or 5xx response is retried up to 3 times with a
   strictly increasing delay, and the delay before the first retry is at least
   the throttle interval.
-- [ ] **AC-0016.** A response parsing to zero entries while arXiv reports a
+- [x] **AC-0016.** A response parsing to zero entries while arXiv reports a
   non-zero total is retried under AC-0015 rather than returned as zero matches.
-- [ ] **AC-0017.** When retries are exhausted the script exits non-zero with a
+- [x] **AC-0017.** When retries are exhausted the script exits non-zero with a
   diagnostic naming the status and the attempt count, and writes no partial
   result to standard output.
-- [ ] **AC-0018.** Every outbound URL is built by encoding a parameter mapping,
+- [x] **AC-0018.** Every outbound URL is built by encoding a parameter mapping,
   so caller text containing `&` or `=` cannot introduce or overwrite a request
   parameter.
-- [ ] **AC-0019.** No mode fetches full text unless the caller requests it.
-- [ ] **AC-0020.** Requested full text returns only the named sections,
+- [x] **AC-0019.** No mode fetches full text unless the caller requests it.
+- [x] **AC-0020.** Requested full text returns only the named sections,
   defaulting to abstract, introduction, and conclusion, selected by section
   name rather than by position.
-- [ ] **AC-0021.** Returned full text is at most 12,000 characters, measured
+- [x] **AC-0021.** Returned full text is at most 12,000 characters, measured
   across the concatenated selected sections, and the output names the count of
   sections omitted and that the budget caused the truncation.
-- [ ] **AC-0022.** The number of sections the extractor finds equals the number
+- [x] **AC-0022.** The number of sections the extractor finds equals the number
   of section elements present in the fetched document.
-- [ ] **AC-0023.** Each link `enrich` emits is confirmed present for the
+- [x] **AC-0023.** Each link `enrich` emits is confirmed present for the
   requested identifier by a check that distinguishes a real identifier from an
   absent one; a host returning the same response for both is not used.
-- [ ] **AC-0024.** `enrich` output carries no synthesis, as the `raw` shape in
+- [x] **AC-0024.** `enrich` output carries no synthesis, as the `raw` shape in
   `references/retriever-interface.md` requires, and no confidence rating.
-- [ ] **AC-0025.** The script satisfies the stream-encoding rule in
+- [x] **AC-0025.** The script satisfies the stream-encoding rule in
   `packs/AGENTS.md` for standard output and for standard error, before its
   first write to either.
-- [ ] **AC-0026.** Standard output carries the result mapping alone;
+- [x] **AC-0026.** Standard output carries the result mapping alone;
   diagnostics, throttle notices, and retry notices go to standard error.
-- [ ] **AC-0027.** `pack.toml` and `.claude-plugin/plugin.json` both declare
+- [x] **AC-0027.** `pack.toml` and `.claude-plugin/plugin.json` both declare
   `1.1.9`, the patch increment `packs/AGENTS.md` requires for changed pack
   content.
-- [ ] **AC-0028.** The script, `retriever-interface.md`, and the SKILL.md
+- [x] **AC-0028.** The script, `retriever-interface.md`, and the SKILL.md
   Retrievers section each satisfy the shipped-content citation rule in
   `packs/AGENTS.md`.
-- [ ] **AC-0029.** `retriever-interface.md` documents the three modes and names
+- [x] **AC-0029.** `retriever-interface.md` documents the three modes and names
   `perplexity-retriever.py` as the minimal template.
-- [ ] **AC-0030.** `retriever-interface.md` states that added metadata belongs
+- [x] **AC-0030.** `retriever-interface.md` states that added metadata belongs
   inside a citation, because the three top-level keys are fixed.
-- [ ] **AC-0031.** The conformance test loads each retriever under a module
+- [x] **AC-0031.** The conformance test loads each retriever under a module
   name including the pack and skill, so two skills shipping the same filename
   cannot collide.
-- [ ] **AC-0032.** The conformance test patches the network boundary narrowly
+- [x] **AC-0032.** The conformance test patches the network boundary narrowly
   enough that a test can drive the throttle and retry paths.
-- [ ] **AC-0033.** Re-running the catalogue self-host produces no diff.
-- [ ] **AC-0034.** The desk-research eval harness asserts that a degraded or
+- [x] **AC-0033.** Re-running the catalogue self-host produces no diff.
+- [x] **AC-0034.** The desk-research eval harness asserts that a degraded or
   widened match is reported as such rather than presented as an exact match.
-- [ ] **AC-0036.** A query supplied through the raw passthrough reaches
+- [x] **AC-0036.** A query supplied through the raw passthrough reaches
   arXiv's `search_query` parameter byte-identical and bypasses the tier ladder.
-- [ ] **AC-0037.** Title, author, abstract, and category flags each compose
+- [x] **AC-0037.** Title, author, abstract, and category flags each compose
   into their arXiv field prefix, and supplying more than one joins them with a
   boolean conjunction.
-- [ ] **AC-0038.** Ordering is relevance when the caller selects none, is the
+- [x] **AC-0038.** Ordering is relevance when the caller selects none, is the
   caller's choice among arXiv's submission-date and last-updated orderings when
   they select one, and is named in the returned content either way.
-- [ ] **AC-0039.** A caller-supplied date window restricts results to
+- [x] **AC-0039.** A caller-supplied date window restricts results to
   submissions inside it, expressed as an arXiv submitted-date range.
-- [ ] **AC-0040.** Every retrieved field stays inert data, as `DESIGN.md`
+- [x] **AC-0040.** Every retrieved field stays inert data, as `DESIGN.md`
   safety invariant 2 requires: given a fixture whose title, abstract, section
   body, or enrichment payload carries instruction-like text, no mode follows
   it, acts on it, or promotes it out of the returned data.
-- [ ] **AC-0041.** Every request and every redirect it follows uses HTTPS on
+- [x] **AC-0041.** Every request and every redirect it follows uses HTTPS on
   port 443 and matches, after case and trailing-dot normalisation, one of
   exactly these hosts: `export.arxiv.org`, `arxiv.org`, `www.alphaxiv.org`,
   `huggingface.co`. Matching is whole-host equality, not a suffix or subdomain
   test, and a redirect failing it is refused before the response body is read.
-- [ ] **AC-0042.** Before the initial request and before every redirect, each
+- [x] **AC-0042.** Before the initial request and before every redirect, each
   address the target host resolves to is checked, and the request is refused
   when any is loopback, link-local, unique-local, private, unspecified, or
   reserved, or is the metadata address `169.254.169.254`. Metadata hostnames
@@ -290,14 +290,14 @@ manual (VI-0013). Every criterion appears in exactly one group.
   `urllib` with a hand-built HTTPS client, which this retriever does not carry,
   so the limit is accepted and the criterion claims only the preflight
   refusal.
-- [ ] **AC-0043.** The XML parser refuses a response carrying a doctype
+- [x] **AC-0043.** The XML parser refuses a response carrying a doctype
   declaration or an entity declaration, and resolves no external reference.
-- [ ] **AC-0050.** The HTML parser executes no script, style, or event-handler
+- [x] **AC-0050.** The HTML parser executes no script, style, or event-handler
   content and fetches no subresource. A doctype is ordinary in HTML and is not
   a refusal condition, so this criterion names execution and fetching instead.
-- [ ] **AC-0044.** A response outside the expected Atom feed or LaTeXML
+- [x] **AC-0044.** A response outside the expected Atom feed or LaTeXML
   section structure is refused rather than partially mapped.
-- [ ] **AC-0045.** Before entering the return mapping, an extracted identifier
+- [x] **AC-0045.** Before entering the return mapping, an extracted identifier
   matches the modern form `YYMM.NNNN` or `YYMM.NNNNN` — four digits for
   identifiers issued before 2015 and five from 2015 onward, both still valid —
   or the legacy form `archive/YYMMNNN` where `archive` is a lowercase name
@@ -306,34 +306,34 @@ manual (VI-0013). Every criterion appears in exactly one group.
   URL is HTTPS on port 443, carries no userinfo, has a whole-host match in
   AC-0041's set, and has a path beginning `/abs/`, `/pdf/`, or `/html/`. A
   value failing any part is refused rather than carried.
-- [ ] **AC-0046.** Each attempt is bounded by 30 seconds of total elapsed time
+- [x] **AC-0046.** Each attempt is bounded by 30 seconds of total elapsed time
   from the start of the attempt through its final read. The body is read in
   chunks and the socket is re-armed before each read to whatever of the 30
   seconds remains, so a response delivering some bytes inside every socket
   window is cut off at the deadline rather than merely detected after it. The
   origin is the 30-second timeout the retriever already applies, and the bound
   is enforced in the shared request path so every mode inherits it.
-- [ ] **AC-0047.** One response is read to at most 8 MiB plus one probe byte
+- [x] **AC-0047.** One response is read to at most 8 MiB plus one probe byte
   and retains at most 8 MiB, so a body at the limit is accepted while a body
   one byte over is detected without buffering the rest. 8 MiB is roughly seven
   times the largest body measured against arXiv.
-- [ ] **AC-0052.** The bytes retained across one `retrieve` invocation total at
+- [x] **AC-0052.** The bytes retained across one `retrieve` invocation total at
   most 32 MiB, counted over every request it makes — each candidate tier, each
   enrichment probe, each redirect, each full-text fetch, and every retry — not
   over one retried request. 32 MiB is AC-0047's limit across the 4 attempts
   AC-0015 permits.
-- [ ] **AC-0048.** A response yields at most 50 citations and each mode renders
+- [x] **AC-0048.** A response yields at most 50 citations and each mode renders
   at most 40,000 characters. For full text the 12,000-character budget in
   AC-0021 fires first, because it is measured over the selected sections before
   rendering; the 40,000-character limit fires first for a broad search, whose
   citation abstracts reach it before any single section budget applies.
-- [ ] **AC-0049.** When any limit in AC-0046, AC-0047, AC-0052, or AC-0048 is
+- [x] **AC-0049.** When any limit in AC-0046, AC-0047, AC-0052, or AC-0048 is
   exceeded,
   the script exits non-zero with a diagnostic naming the limit and writes no
   partial result to standard output.
-- [ ] **AC-0051.** Enrichment returns only link URLs it confirmed; no part of
+- [x] **AC-0051.** Enrichment returns only link URLs it confirmed; no part of
   an enrichment response body enters the returned mapping.
-- [ ] **AC-0035.** A recorded invocation of the shipped script against arXiv
+- [x] **AC-0035.** A recorded invocation of the shipped script against arXiv
   covers all three modes, and its observed output is captured.
 
 ## Follow-ons
