@@ -1,6 +1,7 @@
 ---
 type: content-brief
 surface-type: <acquisition | product-or-reference>
+communication_mode: <product-copy | technical-editorial | reference-documentation>
 persona: <short persona name or pointer to persona artifact>
 date: <YYYY-MM-DD>
 ---

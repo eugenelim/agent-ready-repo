@@ -433,9 +433,13 @@ script retrievers depend on the session.
    with the credentialed-skill contract (see `metadata.auth` in
    `references/retriever-interface.md`). Two examples ship in this
    skill:
-   - `scripts/arxiv-retriever.py` — unauthenticated arXiv API wrapper.
-   - `scripts/perplexity-retriever.py` — env-broker Perplexity wrapper
-     reading `PERPLEXITY_API_KEY`.
+   - `scripts/arxiv-retriever.py` — the production arXiv retriever, with
+     three modes: `search` finds candidate papers and names the query tier
+     that produced them, `get` fetches one exact record and optionally
+     bounded full text, and `enrich` resolves a paper's confirmed external
+     links. Unauthenticated.
+   - `scripts/perplexity-retriever.py` — the minimal template, and an
+     env-broker Perplexity wrapper reading `PERPLEXITY_API_KEY`.
 
 ### Interface contract (script retrievers)
 
