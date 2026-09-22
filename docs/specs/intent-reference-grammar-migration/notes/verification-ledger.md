@@ -1,0 +1,288 @@
+# Verification ledger — intent-reference-grammar-migration
+
+## 2026-09-22 — T1 (RFC authoring): a fourth `Brief:` consumer exists, and it refuses the canonical form
+
+**Status:** blocking. Surfaced to the owner; no spec or plan edit made.
+
+### What the contract says
+
+`plan.md` § Risks states: "**Three consumers read `Brief:` and only two should change.**
+`workspace_status_engine.py` never reads the spec header — confirmed, not assumed — so
+treating all three alike would break dispatch for nothing."
+
+`spec.md` AC-0009 scopes the three-way agreement to the guide, the `new-spec` template,
+and `lint-brief-coverage.py`.
+
+### What the code does
+
+`packages/agentbundle/agentbundle/_data/workspace_status_engine.py` **does** read the
+spec header's `Brief:` field, through a generic parser rather than a named one — which
+is why a search for the string `Brief` in that module does not find it:
+
+1. `_parse_preamble_fields` (`:1818-1824`) matches `^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$`
+   over any artifact and keys the result on the **lower-cased** field name. A spec's
+   `- **Brief:** …` line therefore lands under the key `brief`.
+2. `:2221-2223` reads it into the artifact's provenance parent:
+   `parent = _normalized_optional_artifact_value(fields.get("brief") or fields.get("source parent") or fields.get("parent"))`.
+3. `_dependency_metadata_safety_finding` (`:2653-2660`) validates that parent for a spec
+   with `require_local_brief=kind == "spec"`.
+4. `_provenance_path_is_invalid` (`:2629-2640`) returns invalid when the value is not a
+   repository-relative path, or is not a canonical local brief path per
+   `_is_canonical_local_brief_path` (`:723`), which requires exactly
+   `docs/product/briefs/<single-segment>.md`.
+
+### Measured
+
+Loading the module and driving the real functions with a spec preamble:
+
+| `Brief:` value | `_provenance_path_is_invalid(require_local_brief=True)` |
+| --- | --- |
+| `brief:intent-identity-and-registration` | **True** — emits `invalid_artifact_path` (`dependency parent`) |
+| `intent-identity-and-registration` (bare slug) | **True** — same |
+| `docs/product/briefs/intent-identity-and-registration.md` | False — accepted |
+
+### Consequence
+
+The guide's parenthetical at `guides/core/reference/product-brief-fields.md:100` — "a bare
+slug fails reconciliation and blocks dispatch" — is literally true of the spec header, not
+of a different surface. It is the accurate description of this code path.
+
+Adopting `brief:<slug>` without also changing this module would make all 34 swept specs
+emit a dispatch finding. The plan's Risks bullet, AC-0009's consumer list, and T6's
+`Touches:` are each incomplete against this evidence.
+
+### Provenance
+
+Found by the round-4 adversarial review of RFC-0103 (`.context/reviews/rfc0103-r4-adversarial.md`,
+finding 2). Rounds 2 and 3 of that review raised the same surface and were refuted on a
+string search for `Brief` in the module — a search that cannot see a generic preamble
+parser. The refutation was wrong; this entry supersedes it.
+
+### Owner decision — 2026-09-22
+
+Presented with three routes — withdraw D3 and keep the path form; widen the cohort to
+`workspace_status_engine.py`; or pause and re-measure every consumer first — the scope
+owner (eugenelim) chose **widen the cohort to the engine**.
+
+Consequences the decision accepts:
+
+- `brief:<slug>` stays the canonical `Brief:` form, so RFC-0103 D3 stands.
+- `workspace_status_engine.py` joins the change surface. It sits in
+  `packages/agentbundle/`, a different ownership boundary from `packs/core/`.
+- The loosened check is `_is_canonical_local_brief_path` (`:723`) or the
+  `require_local_brief` gate at `:2657`. Either is a validation control on the
+  dispatch path that gates every queued spec, so `security-reviewer` fires on the
+  amended contract and again on the diff.
+- AC-0009's consumer list becomes four, not three.
+- T6's `Touches:` gains the engine plus the two skills that stamp the old form
+  (`new-spec/SKILL.md:213-217`, `author-delivery-brief/SKILL.md:196`), the latter pair
+  found by round 1 of the same review.
+
+This entry is the owner-authority reference for the controlled contract amendment.
+
+## 2026-09-22 — the contract enumerates closed sets it never derived
+
+**Status:** blocking. Surfaced to the owner. Spec `Draft`, plan `Drafting`, engine at
+`SPEC-PLAN-REVIEW`.
+
+Six review rounds have each found new members of a set the contract states as closed.
+The individual findings were all repaired; the generator was not.
+
+| Set the contract closes | Stated | Actually | Found in |
+| --- | --- | --- | --- |
+| Surfaces writing the `Brief:` form | 3 | 5 | rounds 1 and 5 |
+| Scripts reading the spec `Brief:` header | 2 | 3 (dispatch) | round 4 |
+| Copies of `workspace_status_engine.py` | 1 | 4 (1 source, 3 projections) | round 5 |
+| Builder-visible `Parent intent:` values | 19 bare | 23 — 19 bare, 4 markdown-link | round 6 |
+| Surfaces writing the `Parent intent:` form | 0 (unscoped) | 15 | round 6 |
+| States `resolve_endpoint` returns | "a fourth" | a fifth; four exist today | round 6 |
+
+Two of these were in the spec and plan as **originally approved**, and survived the four
+pre-EXECUTE review rounds recorded in `.context/reviews/r1`–`r4`:
+
+- AC-0006 requires every unclaimed intent file to be a node keyed on its `Slug:` field;
+  AC-0015 requires an unclaimed intent file with no `Slug:` to contribute no node. For a
+  file with no `Slug:` the two criteria demand opposite outcomes.
+- `plan.md` § Interfaces calls the ambiguity state "a fourth state beside `local`,
+  `satisfied-by-reference`, and `unresolvable`", omitting `dangling`, which
+  `resolve_endpoint` also returns. It is the fifth.
+
+The 15 `Parent intent:` writer surfaces are the sharpest consequence. They include
+`packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md` and
+`packs/core/seeds/docs/product/briefs/_template.md`, both of which stamp the bare-slug
+form. T5 sweeps the 19 live values; nothing stops these templates from re-emitting bare
+slugs the day after, so the migration does not converge.
+
+**The class.** Every acceptance criterion that names a surface list was written by
+enumerating from memory or from a search for a field name. A name search cannot see a
+generic parser, a projection, or a template that writes the form without reading it.
+Repairing each list as it is found does not end, because the method that produced the
+lists is what is wrong.
+
+**What would end it.** A derivation task that produces the surface inventory
+mechanically — every writer, reader and copy of each migrated field — with the
+acceptance criteria citing that derivation rather than a list. That is a change to how
+the contract is specified, not another repair, and it is the owner's call.
+
+## 2026-09-22 — five amendment review rounds did not converge
+
+**Status:** stopped for direction. Spec `Draft`, plan `Drafting`, engine
+`SPEC-PLAN-DRAFTING`. No code written, nothing committed.
+
+| Round | Findings | Note |
+| --- | ---: | --- |
+| amend-r1 | 12 | 9 adversarial + 3 security |
+| amend-r2 | 10 | security clean |
+| amend-r3 | 6 | |
+| amend-r4 | 10 | included the 23→37 cohort discovery |
+| amend-r5 | 8 | included a regression introduced in r4 |
+
+Each round's findings were real and were repaired. The count did not fall.
+
+**Two things the rounds established that prose review could not have.**
+
+The migration cohort is 37 values, not 23. Recognizing the 117 intent files as
+nodes makes 14 of *their own* `Parent intent:` pointers builder-visible, of
+which 25 of the 37 resolve and are rewritten and 12 are link-shaped and stay
+report-only. The recognizer grows its own cohort; no revision of the contract
+modelled that until it was measured.
+
+Four distinct generic readers have now been found, none of which contains the
+name of the field it reads: `workspace_status_engine._parse_preamble_fields`
+(round 4), and `intent_shape.read_preamble` via `intent_corpus_lint` (round 5),
+plus the projection sets for two different scripts. Every one was missed by an
+enumeration, and each was found only by consuming the field through the code
+that reads it.
+
+**A regression the loop introduced and caught.** Round 4 replaced AC-0017's
+finite malformed-value list with a positive predicate, which was correct, but
+the predicate admitted exactly two forms and so would have refused a blank,
+`none`, comment-only or omitted `Brief:` header. `_normalized_optional_artifact_value`
+(`workspace_status_engine.py:2186-2192`) maps those to absence, and the field is
+optional, so the criterion as written would have blocked dispatch for every spec
+that legitimately has no brief — a wider blast radius than the migration. AC-0024
+now scopes both criteria to non-placeholder values.
+
+**Assessment.** The remaining findings are predominantly of one kind: the
+contract's prose still states or implies surface sets that T0's derivation is
+what exists to establish. Reviewing enumerations that T0 will replace does not
+converge, because the reviewer is comparing prose against a repository the prose
+cannot yet describe. The contract is now structurally sound in the places that
+matter — inventory-derived `Touches:`, a predicate-equivalence refusal test, a
+cohort derived after recognition, a single confinement boundary — and the
+cheapest next evidence is T0's output, not a sixth review round.
+
+### Owner approval — 2026-09-22
+
+The scope owner (eugenelim) approved the amended contract and directed that T0
+execute. The approval is recorded here because it is given with review findings
+open, which the normal pre-EXECUTE gate would not allow.
+
+Waived to execution, with the reasoning that each is a statement the derivation
+is what settles:
+
+- amend-r5 #1 (consumer inventory not closed) and #5 (conflicting fixed surface
+  lists across the three artifacts). Both say the prose still names sets T0
+  derives. AC-0019 now covers all four pointer fields, and `Touches:` is
+  inventory-derived, so T0's output is what closes them.
+
+Repaired before approval, not waived: amend-r5 #2 (the optional-`Brief:`
+regression, now AC-0024), #3 (briefs-directory confinement in T6's mechanism),
+#4 (D3 denying its own amendment), #6 (the 37-value cohort breakdown), #7 (the
+invalid `Proposed` status gate), and the security lane's single blocker, which
+was the same confinement gap as #3.
+
+One plan correction was made under `Drafting` authority immediately before
+approval: T0's `Depends on:` changed from `T1` to `none`. T0 reads the
+repository and writes only under this spec's `notes/`; it cannot contradict the
+convention T1 supersedes, and gating it on the governance round would withhold
+the measurement every later task cites.
+
+## 2026-09-22 — T0 executed: the surface inventory is derived
+
+**Result:** `notes/derive-surfaces.py` and `notes/surface-inventory.md` exist;
+659 entries across the four pointer fields; re-run produces a zero diff;
+`make lint-ruff lint-mypy` passes (~4s).
+
+### Mutation evidence — the self-check can fail
+
+The script refuses to write the inventory unless five differential probes are
+present. Each was proved to fail by mutating the mechanism it tests, with the
+mutation script asserting its own match so it cannot silently no-op:
+
+| Mutation | Result |
+| --- | --- |
+| generic-parser detection disabled | FAILS — Parent intent / Discovery readers, and the dynamic-import reader |
+| generated-copy detection disabled | FAILS — Brief / generated-copy |
+| templates reclassified as corpus | FAILS — Parent intent / writes |
+| baseline restored | green |
+
+**Two defects in the control itself, caught by mutation, not by review.**
+
+The first probe asserted `workspace_status_engine.py` under `Brief / reads`.
+That file contains the literal `Brief` six times (`BriefQueue`,
+`_is_canonical_local_brief_path`), so the probe was satisfied by the *name*
+path and survived disabling generic parsing entirely — a check that could not
+fail for the reason it named. It contains `Parent intent` and `Discovery` zero
+times and parses both generically, so those are the probes only the generic
+path can satisfy. The probes are now differential by construction.
+
+The first two mutation runs were silent no-ops: the mutation used `.replace()`
+without asserting the target matched, and the indentation did not. Their green
+was read as evidence before the miss was noticed. Every mutation now asserts.
+
+### What the derivation found that enumeration had not
+
+- **Five distinct generic preamble parsers**, not one: `workspace_status_engine`,
+  `intent_shape`, `lint-spec-status`, `lint-contract-item-alignment`,
+  `lint-adr-shape`. Each reads all four fields and none names any of them.
+- **`intent_corpus_lint.py`**, which reaches `Parent intent:` only through
+  `_load_sibling("intent_shape", …)` — invisible to both a name search and a
+  static import scan.
+- **11 `Parent intent:` writers** (7 sources + 4 projections), including the
+  `frame-intent` intent template and the brief seed template. These are what
+  AC-0020 must repoint or the sweep does not converge.
+- **19 `Brief:` writers and 59 stating surfaces**, against the three, then five,
+  that successive revisions of the contract asserted.
+
+### Calibration applied during the task
+
+Four predicates were tightened after their first output was measured rather
+than assumed correct: name-based reads matched the bare word (`Contract`
+appeared in unrelated prose, 118 readers → 47); one-hop propagation matched any
+reader stem (1362 entries) then any import of one (414 Discovery readers) before
+being scoped to the generic parsers alone; and the generic detector matched bold
+markdown generally, flagging 35 files including shape linters and tests, before
+being anchored on the `^- \*\*…:\*\*` shape both real parsers compile.
+
+### Against T0's `Done when`
+
+- inventory exists — yes, `notes/surface-inventory.md`
+- script re-runs with a zero diff — yes, verified twice
+- each named member appears under its correct label — yes, 12/12 probes, which
+  includes the three classes the task names plus the readers rounds 4 and 5
+  found by hand
+
+### T0 addendum — `reads` split from `parses`, and a receipt correction
+
+The first inventory labelled every generic parser a `reads` of all four fields.
+That conflates "parses a preamble containing this field" with "consumes this
+field's value": `lint-spec-status`, `lint-contract-item-alignment` and
+`lint-adr-shape` each parse the preamble and mention `brief` zero times.
+AC-0009 discharges against this label, so as written it would have obliged
+`lint-adr-shape` to accept `brief:<slug>` — an obligation with no meaning.
+
+`reads` now requires the file to name the field, as the header form
+`Contract:` or as the lower-cased key a generic parser returns
+(`fields.get("brief")`). A generic parser that names it nowhere is `parses`.
+Counts moved accordingly: `Parent intent` readers 71 → 15, `Discovery` 72 → 10.
+Mutation-checked: forcing `acts = True` collapses the split and fails the
+`parses` probes.
+
+**Receipt correction.** T0's dispatch receipt was first recorded as
+`no-implementer-installed`. That was false — the `implementer` subagent is
+available in this session. It has been re-recorded as `human-directed`, which
+is accurate in that the owner directed T0's execution, though the precise fact
+is that the controller implemented it rather than dispatching. The closed
+reason vocabulary has no value for that case. Later tasks dispatch the
+`implementer` subagent per the cohort's dispatch instruction.
