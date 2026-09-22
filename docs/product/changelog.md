@@ -64,6 +64,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.29] — 2026-09-22
+
+### Highlights
+
+- **An intent now states who owns it, what altitude it sits at, and where it
+  stands — and a check refuses one that does not.** Reading an intent's opening
+  lines used to leave the important questions open: two of the fields a reader
+  needs most were optional, and one was buried in the body. Anyone can now
+  learn who is accountable, how high the bet sits, whether it is still live,
+  and whether it has been tested and broken down, without reading further.
+- **A stopped bet can say so.** An intent that was withdrawn or cancelled now
+  records that as its own standing, rather than being indistinguishable from
+  one still waiting. A rollup that counted a cancelled bet as delivered is the
+  outcome this prevents.
+
+### Added
+
+- `work-intake` ships `intent_shape.py`, one home for the intent field rules,
+  and `intent_corpus_lint.py`, which walks a directory of intents and exits
+  non-zero for a non-conforming file. Both enforcement points read the
+  vocabularies from that one table rather than each carrying a copy.
+- The lint exits `2`, distinctly from `1`, for a corpus it could not fully
+  read. "No violations found" and "clean" are different claims about a
+  directory whose files would not open.
+- The cold shaping review gains a seventh intent-mode condition and the token
+  `MALFORMED(shape)`. Its text states no condition count, so a later condition
+  needs no prose rewrite.
+
+### Changed
+
+- `Owner` moves from a `## Owner` body section into an `Owner:` preamble field,
+  and `intake-intent` renders `Slug:` and `Level:`. An admission with no
+  altitude is refused rather than defaulted: a guessed altitude is a declared
+  fact the artifact did not carry.
+- The retired preamble names `Type`, `Raised`, `Stage`, `Parent`, `Source` and
+  `Authority` are refused. `Authority` stays valid below the first heading,
+  where it is an attribution or a provenance token rather than the governance
+  pointer.
+
+## [product-engineering][0.13.16] — 2026-09-22
+
+### Highlights
+
+- **The intent template now seeds every field an intent is required to carry,
+  and three that record how far its shaping got.** An author filling the
+  template in produces something the checks accept, instead of discovering the
+  gaps afterwards.
+
+### Added
+
+- `frame-intent`'s template seeds `Owner:` and `Status:`, and the three
+  shaping-progress fields `De-risked:`, `Shaping-reviewed:` and `Decomposed:`.
+  Each progress field is seeded as a comment with no value, which reads as
+  absent — so a stage you have not reached costs nothing and asserts nothing.
+- A how-to, *Fix a refused intent*, takes each refusal to its remedy, with the
+  real message for each.
+
+### Changed
+
+- The field reference restates every intent field in four tiers — required,
+  constrained when present, unconstrained, and retired — replacing the claim
+  that only Outcome and Opportunity were load-bearing and the rest were offered
+  but never required. Four fields are now required.
+
 ## [core][2.26.28] — 2026-09-21
 
 ### Highlights

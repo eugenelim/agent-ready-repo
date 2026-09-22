@@ -282,3 +282,47 @@ Also folded into this amendment: T9's `Touches` field still names
 `packs/core/CHANGELOG.md` and `packs/product-engineering/CHANGELOG.md`, which
 do not exist. The destination is `docs/product/changelog.md` per the owner's
 direction, already corrected in the spec's Durable Outputs.
+
+# T9 manual QA — every refusal resolved end to end, 2026-09-22
+
+The how-to's closeout condition is that the page resolves one real refusal of
+each kind. It was authored from real output rather than from expectation: ten
+fixtures were built, one per refusal kind, run through
+`intent_corpus_lint.py`, and the messages quoted in the page are the emitter's
+own. Applying the remedy the page gives for each then took the same corpus to
+`exit 0` and `clean — 10 file(s), 9 live, 1 tombstone`.
+
+The refusal kinds exercised: absent required field; value outside a closed
+vocabulary (`Status`, `Kind`); progress-field shape (`De-risked`, and
+`Decomposed` with two termini); retired field name; repeated field;
+`direct-light` with no checkbox item; a supersession naming no live slug; and a
+tombstone missing its third field, which reports twice — once for the absent
+edge and once for the field count.
+
+**Running the artifact found a defect in the page.** The first draft said an
+unreadable file leaves "the other files in the run still reported". That is true
+for a non-UTF-8 or oversize file, which produces a per-file line and still routes
+the rest (`10 file(s), 9 live, 1 tombstone`). It is false for a link, which
+fails the directory walk: the message names the *directory*, the counts are
+`0 file(s), 0 live, 0 tombstone`, and the run says nothing about any intent. A
+reader following the original sentence would have read that as a clean corpus
+with one bad file. The page now separates the two shapes and says so.
+
+# T9 parity is checked, and the check is two-way — 2026-09-22
+
+`tests/roster/test_intent_field_reference_parity.py` compares the reference
+page's field table with the validator's tables in both directions, keyed on the
+page's own tier column: every field the validator decides on must have a row,
+every non-`unconstrained` row must name a field the validator decides, and every
+row's tier must match. One direction alone is insufficient — covering only the
+first lets a deleted field leave a stale row, and only the second lets a new
+field ship undocumented.
+
+An `unconstrained` row is exempt from the second direction by design: the
+validator accepts an unrecognized name so an adopter's own field keeps working,
+so such a row asserts no rule for it to hold.
+
+Measured in scratch against the real page and validator: 19 rows parsed, nothing
+missing, no orphan rows, no tier mismatches, and the replaced sentence absent.
+The roster suite itself is **verified on CI, not locally**, per the standing
+instruction not to run `tests/roster/` on this machine.
