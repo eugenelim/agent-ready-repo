@@ -126,11 +126,20 @@ def _literal(text: str) -> str:
     The quote character is removed rather than escaped: arXiv documents no
     escape for a quote inside a quoted phrase, so leaving one in would close
     the phrase early and hand the remainder to the parser as boolean syntax.
-    The backslash goes with it. A trailing backslash was measured to make arXiv
-    answer HTTP 400 rather than to grant operator authority, so removing it
-    buys a usable query rather than closing a hole.
+    Nothing else is removed here: AC-0003 promises the caller's wording in
+    tier 1, and a query arXiv rejects advances to the next tier anyway.
     """
-    return text.replace('"', " ").replace("\\", " ").strip()
+    return text.replace('"', " ").strip()
+
+
+def _field_literal(text: str) -> str:
+    """A structured field's value.
+
+    Also drops the backslash. A trailing one was measured to make arXiv answer
+    HTTP 400 rather than to grant operator authority, so removing it buys a
+    usable query; a structured field has no verbatim promise to keep.
+    """
+    return _literal(text).replace("\\", " ").strip()
 
 
 def _terms(text: str) -> list[str]:
@@ -210,7 +219,7 @@ def build_request(
                     )
                 clauses.append(f"cat:{value.strip()}")
             else:
-                clauses.append(f'{prefix}:"{_literal(value)}"')
+                clauses.append(f'{prefix}:"{_field_literal(value)}"')
     if query:
         clauses.append(build_tiers(query)[0])
     if submitted_from or submitted_to:
@@ -555,8 +564,13 @@ class Sender:
                     request,
                     timeout=max(0.001, min(ATTEMPT_DEADLINE_S, budget.remaining())),
                 ) as response:
-                    body = self._read_bounded(response, budget)
-                self.note_completed(self.clock.monotonic())
+                    try:
+                        body = self._read_bounded(response, budget)
+                    finally:
+                        # The request went out, so the next one owes the
+                        # interval even when this read failed. A caller that
+                        # recovers from the failure would otherwise skip it.
+                        self.note_completed(self.clock.monotonic())
                 return body
             except urllib.error.HTTPError as exc:
                 self.note_completed(self.clock.monotonic())
@@ -1046,14 +1060,27 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
 
     tiers = build_tiers(query)
     chosen = None
+    refused: list[str] = []
     for index, candidate in enumerate(tiers, start=1):
         params = build_request(search_query=candidate, sort=sort,
                                max_results=options.get("max_results", DEFAULT_MAX_RESULTS))
-        root = parse_feed(sender.get(API_URL, params, retry_if=is_unexpectedly_empty))
+        try:
+            body = sender.get(API_URL, params, retry_if=is_unexpectedly_empty)
+        except ArxivUnavailable as exc:
+            # arXiv refused this candidate's syntax. The ladder's job is to
+            # widen, and a rejected tier is one to widen past rather than a
+            # reason to abandon the search.
+            refused.append(f"tier {index}: {exc}")
+            continue
+        root = parse_feed(body)
         total = reported_total(root)
         chosen = (index, root, total)
         if 1 <= total <= TIER_MATCH_CEILING:
             break
+    if chosen is None:
+        raise ArxivUnavailable(
+            "every query tier was refused — " + "; ".join(refused)
+        )
     index, root, total = chosen  # type: ignore[misc]
     terminal = not (1 <= total <= TIER_MATCH_CEILING)
     entries = root.findall(f"{ATOM}entry")

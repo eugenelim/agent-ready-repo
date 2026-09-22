@@ -778,8 +778,8 @@ class ArxivRetrieverConformance(unittest.TestCase):
         )
         self.assertGreater(raw_total, module.FULL_TEXT_CHAR_CAP)
 
-    def test_section_count_matches_the_oracle_on_real_renders(self) -> None:
-        """AC-0022, against two captured documents rather than a synthetic one."""
+    def test_section_count_matches_the_oracle_on_the_shaped_fixtures(self) -> None:
+        """AC-0022, against two synthetic documents shaped like arXiv's renders."""
         module = _load(ARXIV_SCRIPT)
         for fixture in (LATEXML_EIGHT, LATEXML_FIVE):
             document = fixture.read_text(encoding="utf-8")
@@ -788,7 +788,7 @@ class ArxivRetrieverConformance(unittest.TestCase):
                 len(module.extract_sections(document)), oracle, fixture.name
             )
 
-    def test_real_render_titles_are_names_not_numbers(self) -> None:
+    def test_fixture_titles_are_names_not_numbers(self) -> None:
         module = _load(ARXIV_SCRIPT)
         document = LATEXML_EIGHT.read_text(encoding="utf-8")
         titles = [tt for tt, _ in module.extract_sections(document)]
@@ -952,6 +952,12 @@ class ArxivRetrieverConformance(unittest.TestCase):
         self.assertNotIn("\\", params["search_query"])
         outside = re.sub(r'"[^"]*"', "", params["search_query"])
         self.assertRegex(outside, r"^(ti:|au:| AND )*$", params["search_query"])
+        # Tier 1 keeps it: AC-0003 promises the caller's wording there, and a
+        # candidate arXiv refuses advances to the next tier rather than
+        # failing the search, so nothing is lost by leaving it in.
+        verbatim = "a back" + chr(92) + "slash"
+        self.assertIn(chr(92), module.build_tiers(verbatim)[0])
+        self.assertNotIn(chr(92), module.build_request(title=verbatim)["search_query"])
 
     def test_full_text_comes_from_the_cited_revision(self) -> None:
         """v1 and v7 of one paper are different documents, and the
@@ -984,6 +990,38 @@ class ArxivRetrieverConformance(unittest.TestCase):
         roomy = module.Budget(clock, module.ATTEMPT_DEADLINE_S)
         sender._throttle(roomy)
         self.assertGreaterEqual(clock.monotonic(), 3.0)
+
+    def test_a_refused_tier_advances_instead_of_failing_the_search(self) -> None:
+        """The ladder widens; a candidate arXiv rejects is one to widen past."""
+        module = _load(ARXIV_SCRIPT)
+        bad = urllib.error.HTTPError(module.API_URL, 400, "Bad Request", None, None)
+        sender = _sender(module, bad, FakeResponse(ATOM_FEED))
+        result = module.retrieve("some multi word query here", sender=sender)
+        self.assertEqual(len(sender._opener.urls), 2)
+        self.assertGreater(len(result["citations"]), 0)
+
+        # But every tier refused is still a failure, not an empty answer.
+        allbad = _sender(module, *[urllib.error.HTTPError(
+            module.API_URL, 400, "Bad Request", None, None) for _ in range(12)])
+        with self.assertRaises(module.ArxivUnavailable) as caught:
+            module.retrieve("some multi word query here", sender=allbad)
+        self.assertIn("every query tier was refused", str(caught.exception))
+
+    def test_a_failed_read_still_owes_the_next_request_its_interval(self) -> None:
+        """AC-0014: the request went out, so the interval is owed regardless.
+
+        Enrichment recovers from a bounded failure and immediately probes
+        again, which is the path that skipped the interval.
+        """
+        module = _load(ARXIV_SCRIPT)
+        clock = module.Clock(now=0.0)
+        oversize = FakeResponse(b"x" * (module.RESPONSE_BYTE_CAP + 64))
+        sender = module.Sender(clock=clock, min_interval=3.0,
+                              opener=FakeOpener(oversize))
+        with self.assertRaises(module.LimitExceeded):
+            sender.get(module.API_URL, {"search_query": "all:x"})
+        self.assertIsNotNone(sender._last_completed)
+        self.assertGreater(sender.delay_before_next(), 0.0)
 
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""

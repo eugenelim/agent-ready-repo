@@ -7,28 +7,29 @@ The plan is frozen; this file is where its execution evidence lands.
 
 Ran 2026-09-22 against the live arXiv API from the repository root on the
 feature branch. Every invocation is the shipped script, not a test double. The
-interpreter and script path are omitted from the arguments column. The author
-case necessarily passes a surname at the command line; it is shown as a
-placeholder, because the repository forbids a real name in its prose and the
-observed result is the evidence rather than the name.
+interpreter and script path are omitted from the arguments column, which is
+otherwise verbatim and reproducible. The one exception is the author case: it
+necessarily passes a surname at the command line, shown as `<surname>` because
+the repository forbids a real name in its prose. The observed result is the
+evidence there, not the name.
 
 | Case | Arguments | Exit | Observed |
 | --- | --- | --- | --- |
 | search, free text through the tier ladder | `instruction adherence in agent config files` | 0 | 3 keys, shape=raw, 10 citation(s), 18049 content chars. First line: `Query: tier 3 of 4; arXiv reported 97 matches.` |
 | search, --title + --category | `--title attention is all you need --category cs.CL` | 0 | 3 keys, shape=raw, 10 citation(s), 13292 content chars. First line: `Query: fielded; arXiv reported 10 matches.` |
-| search, --search-query raw passthrough | `--search-query ti:"attention is all you need" ANDNOT` | 0 | 3 keys, shape=raw, 10 citation(s), 13964 content chars. First line: `Query: caller-composed; arXiv reported 28 matches.` |
+| search, --search-query raw passthrough | `--search-query ti:"attention is all you need" ANDNOT cat:cs.CV` | 0 | 3 keys, shape=raw, 10 citation(s), 13964 content chars. First line: `Query: caller-composed; arXiv reported 28 matches.` |
 | search, --author | `--author <surname> --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 3151 content chars. First line: `Query: fielded; arXiv reported 772 matches.` |
-| search, --abstract | `--abstract retrieval augmented generation --max-resu` | 0 | 3 keys, shape=raw, 3 citation(s), 4879 content chars. First line: `Query: fielded; arXiv reported 5834 matches.` |
+| search, --abstract | `--abstract retrieval augmented generation --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 4879 content chars. First line: `Query: fielded; arXiv reported 5834 matches.` |
 | search, --sort submitted | `--category cs.CL --sort submitted --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 5520 content chars. First line: `Query: fielded; arXiv reported 119681 matches.` |
-| search, --from/--to date window | `--category cs.LG --from 202401010000 --to 2024010200` | 0 | 3 keys, shape=raw, 3 citation(s), 5287 content chars. First line: `Query: fielded; arXiv reported 47 matches.` |
-| search, category refusing injected syntax | `--category cs.CL OR ti:attention` | 2 | refused: `arxiv-retriever: category 'cs.CL OR ti:attention' is not an arXiv catego`; stdout empty: True |
+| search, --from/--to date window | `--category cs.LG --from 202401010000 --to 202401020000 --max-results 3` | 0 | 3 keys, shape=raw, 3 citation(s), 5287 content chars. First line: `Query: fielded; arXiv reported 47 matches.` |
+| search, category refusing injected syntax | `--category cs.CL OR ti:attention` | 2 | refused: `arxiv-retriever: category 'cs.CL OR ti:attention' is not an arXiv `; stdout empty: True |
 | get, modern five-digit identifier | `--mode get 1706.03762` | 0 | 3 keys, shape=raw, 1 citation(s), 1427 content chars. First line: `# Attention Is All You Need` |
 | get, modern four-digit identifier carrying a DOI | `--mode get 0710.4003` | 0 | 3 keys, shape=raw, 1 citation(s), 852 content chars. First line: `# YREC: The Yale Rotating Stellar Evolution Code` |
-| get, legacy slashed identifier via an abs URL | `--mode get https://arxiv.org/abs/quant-ph/0201082` | 0 | 3 keys, shape=raw, 1 citation(s), 562 content chars. First line: `# Quantum Computers and Quantum Computer Languages: Quantum As` |
-| get, a versioned request | `--mode get 1706.03762v7` | 0 | 3 keys, shape=raw, 1 citation(s), 1427 content chars. First line: `# Attention Is All You Need` |
-| get, --full-text at the default budget | `--mode get 1706.03762 --full-text` | 0 | 3 keys, shape=raw, 1 citation(s), 5878 content chars. First line: `# Attention Is All You Need` |
-| get, --full-text --sections conclusion | `--mode get 1706.03762 --full-text --sections conclus` | 0 | 3 keys, shape=raw, 1 citation(s), 2765 content chars. First line: `# Attention Is All You Need` |
-| get, malformed identifier refuses | `--mode get 1706.0376x` | 2 | refused: `arxiv-retriever: '1706.0376x' is not a well-formed arXiv identifier`; stdout empty: True |
+| get, legacy slashed identifier via an abs URL | `--mode get https://arxiv.org/abs/quant-ph/0201082` | 0 | 3 keys, shape=raw, 1 citation(s), 562 content chars. First line: `# Quantum Computers and Quantum Computer Languages: Quantu` |
+| get, a versioned request | `--mode get 1706.03762v1 --full-text` | 0 | 3 keys, shape=raw, 1 citation(s), 5861 content chars. First line: `# Attention Is All You Need` |
+| get, --full-text at the default budget | `--mode get 1706.03762 --full-text` | 0 | 3 keys, shape=raw, 1 citation(s), 5894 content chars. First line: `# Attention Is All You Need` |
+| get, --full-text --sections conclusion | `--mode get 1706.03762 --full-text --sections conclusion` | 0 | 3 keys, shape=raw, 1 citation(s), 2781 content chars. First line: `# Attention Is All You Need` |
+| get, malformed identifier refuses | `--mode get 1706.0376x` | 2 | refused: `arxiv-retriever: '1706.0376x' is not a well-formed arXiv identifie`; stdout empty: True |
 | enrich | `--mode enrich 1706.03762` | 0 | 3 keys, shape=raw, 1 citation(s), 451 content chars. First line: `# Attention Is All You Need` |
 
 **What this establishes.** All three modes answer over the live API and every
@@ -41,10 +42,15 @@ category are each refused with a diagnostic on stderr and nothing on stdout, so
 a caller parsing stdout cannot read a refusal as a result. The default
 ten-result search emits 23,315 characters against the 40,000 cap.
 
-**Session boundary.** This session verifies the three modes and every documented
-search-control flag end to end, and stops there. It does not exercise the retry,
-throttle, byte, elapsed-budget, redirect, resolved-address or parser-refusal
-paths: those are driven by unit cases against injected seams in
+**Session boundary.** The approved plan set T9's floor at the three modes and
+left the field, ordering, date-window and passthrough controls to T2a's
+request-level tests. This session covered that floor and went past it, taking
+every documented search control live as well; exceeding the planned minimum
+needs no amendment, and the plan's statement remains true of what it required.
+
+What this session does **not** exercise is unchanged: the retry, throttle, byte,
+elapsed-budget, redirect, resolved-address and parser-refusal paths. Those are
+driven by unit cases against injected seams in
 `packs/desk-research/tests/skills/desk-research/test_research_retrievers_conformance.py`,
 because provoking them against the live service is neither reliable nor
 courteous.
@@ -52,8 +58,8 @@ courteous.
 ## Mutation evidence
 
 Every control added for a sustained review finding was checked by reverting the
-fix and confirming the suite fails. All twenty-six failed when reverted, so
-none is a control that cannot fail. Six tests that passed under their own
+fix and confirming the suite fails. All twenty-nine failed when reverted, so
+none is a control that cannot fail. Seven tests that passed under their own
 mutation were strengthened until they failed, and are counted below in their
 strengthened form.
 
@@ -85,6 +91,9 @@ strengthened form.
 | backslash removed from every query literal | suite fails |
 | full text fetched from the revision the citation names | suite fails |
 | courtesy interval refused when it would outlast the deadline | suite fails |
+| a tier arXiv refuses advances instead of failing the search | suite fails |
+| completion recorded even when the read of that response failed | suite fails |
+| tier 1 keeps a backslash the structured path removes | suite fails |
 
 ## Suites and gates
 
@@ -92,7 +101,7 @@ strengthened form.
 | --- | --- |
 | `make lint-ruff` | clean |
 | `make lint-mypy` | clean, 148 source files |
-| `tests/skills/desk-research/` (floor 9) | 82 passed |
+| `tests/skills/desk-research/` (floor 9) | 84 passed |
 | `tests/skills/desk-research-project-start/` (floor 7) | 8 passed |
 | `tests/pack/` + five project suites + devils-advocate, `--import-mode=importlib` | 17 passed |
 | `agentbundle catalogue lint --deep` | no errors |
