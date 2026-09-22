@@ -543,6 +543,29 @@ jobs:
           tests/roster/test_intent_field_reference_parity.py
           tests/roster/test_intent_template_shape_conformance.py
 
+      # design-output-addressing (T10): the first three experience-design
+      # contracts are repository-level. The guide-agreement classifier reads
+      # guides/ as well as packs/, and the write-declaration and
+      # artifact-folder-registry controls read packs/experience-design plus its
+      # sibling surfaces, so lint-pack-test-boundary forbids those three from
+      # the pack's test tree. The content-design mode contract reads only
+      # pack-internal paths and so is pack-local by that lint's rule; it is
+      # here because the pack ships no test tree, and a suite created for one
+      # file would be ungated until it was wired into this workflow anyway.
+      # This step sits ABOVE the carve-out step below, whose `pytest tests/ -q`
+      # also collects them. Placement above it still matters: the job no longer
+      # stops at the first failure, so a step after the carve-out runs — and
+      # reports the same failure a second time against a broad target instead
+      # of the named one.
+      - name: pytest experience-design output-addressing contracts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: >-
+          python -m pytest
+          tests/roster/test_experience_design_guide_agreement.py
+          tests/roster/test_experience_design_write_declaration_and_containment.py
+          tests/roster/test_experience_design_artifact_folder_registry.py
+          tests/roster/test_content_design_communication_mode_contract.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
@@ -836,23 +859,6 @@ jobs:
           tests/roster/test_curation_qa_contracts.py
           tests/roster/test_rfc_template_contract.py
 
-      # design-output-addressing (T10): the three experience-design contracts
-      # are repository-level. The guide-agreement classifier reads guides/ as
-      # well as packs/, and the write-declaration and artifact-folder-registry
-      # controls read packs/experience-design plus its sibling surfaces, so
-      # lint-pack-test-boundary forbids all three from the pack's test tree.
-      # CI does not auto-discover roster tests one by one, and this job's bulk
-      # `pytest tests/ -q` step above also collects them, so the declaration,
-      # containment and registry guarantees run either way. This step keeps
-      # them named in the workflow; in a fail-fast job whichever step runs
-      # first is what reports a failure.
-      - name: pytest experience-design output-addressing contracts (roster-owned)
-        if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: >-
-          python -m pytest
-          tests/roster/test_experience_design_guide_agreement.py
-          tests/roster/test_experience_design_write_declaration_and_containment.py
-          tests/roster/test_experience_design_artifact_folder_registry.py
       # checkable-adr-metadata AC-0011: test_index_records.py exercises the
       # confinement assertions that T1 refactored into the shared helper.  CI
       # does not auto-discover roster tests, so without this step the helper's

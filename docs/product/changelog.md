@@ -103,6 +103,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   where it is an attribution or a provenance token rather than the governance
   pointer.
 
+## [experience-design][2.0.8] — 2026-09-22
+
+`content-design` requires every content brief to declare a `communication_mode`
+— `product-copy`, `technical-editorial` or `reference-documentation` — and to be
+written under the adopter's configured `[design] output_dir`. Neither the
+template an author fills in nor the eval harness that judges the result carried
+those requirements, so a brief could ship without the field and still pass.
+
+### Highlights
+
+- **A brief produced from the shipped template now carries the mode the next
+  skill reads.** `copy-direction` takes `communication_mode` from the brief to
+  decide whether its anti-AI-smell scan applies to the copy goals it names. The
+  template had no slot for the field, so an author following it produced a
+  brief that skill could not route, and the eval harness did not catch it.
+
+### Fixed
+
+- The content-brief template's frontmatter gains `communication_mode`, offering
+  exactly the three modes the skill and its communication-modes reference own.
+  The existing `type`, `surface-type`, `persona` and `date` fields are unchanged.
+- The `content-design` layout reference restated the brief's whole frontmatter
+  under a "Frontmatter contract" heading, which is how it came to list four
+  fields while the template shipped five. Only one of those fields addresses
+  the artifact — `type: content-brief`, the marker a consumer scanning
+  `<output_dir>` reads — so that sentence moves to the marker section and the
+  restatement is gone. The template owns the rest. That sentence also dropped
+  the label "Tier 3 resolution", which this pack defines nowhere; it already
+  said in plain words what the marker does.
+- `content-design`'s hand-off step said `conversion-design` reads
+  `communication_mode: product-copy` before running its editorial quality gate.
+  That skill runs the gate unconditionally and branches on no mode, so the
+  sentence described a decision no skill makes. It now states why the gate
+  always runs there: `conversion-design` admits acquisition surfaces only.
+- The content-design eval harness expects `communication_mode: product-copy` on
+  the acquisition case and `communication_mode: reference-documentation` on the
+  API quickstart case, and expects both artifacts at
+  `<output_dir>/content/<slug>.md`. The acquisition case previously pinned one
+  repository's `docs/design` layout, which no adopter is obliged to use. Every
+  surface-type, hierarchy, metric and downstream-routing expectation is retained.
+
 ## [product-engineering][0.13.16] — 2026-09-22
 
 ### Highlights
