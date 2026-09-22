@@ -244,6 +244,11 @@ active  = [
   {path = "docs/specs/checkable-adr-metadata/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0102-mechanically-checkable-adrs.md"}, summary = "Make an ADR's metadata mechanically checkable and split acceptance's freeze so it binds prose rather than metadata", needs = []},
 ]
 shipped = [
+  # Shipped 2026-09-22. Restores the scoping promise AC14 of the Shipped
+  # `workspace-mcp` spec already made, on which its AC17 rests the six-tool
+  # `permissions.allow` pre-approval. Membership tracks Status: `queue` while
+  # Draft or Approved, `shipped` at closeout.
+  {path = "docs/specs/git-commit-scope-confinement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0078-workspace-mcp.md"}, summary = "Confine git_commit's staging scope to the built-in manifest's wildcard structure and refuse a configured output_dir carrying a reserved character", needs = []},
   {path = "docs/specs/aesthetic-style-direction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/research/aesthetic-style-blueprint.md"}, summary = "Give a creative direction fifteen named axes, seven structural, so two directions can be compared; gate it against the generic default with a named-comparator counterfactual check; ship Swiss, editorial and Bauhaus presets; and audit divergence by the closest pair rather than the mean", needs = []},
   # S1 of the agent-authoring-input-quality brief, authored 2026-09-17. It
   # routes a claim the author cannot settle by what its falsehood would cost,

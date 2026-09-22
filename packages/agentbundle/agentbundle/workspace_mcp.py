@@ -148,22 +148,43 @@ _LAYOUT_TYPE_BASES: dict[str, tuple[str, str]] = {
     "design": ("design", "docs/design"),
 }
 
+# Characters a configured `output_dir` may not carry, because a staging scope
+# built on one of them is not the directory the adopter named.
+#
+# They are reserved as one rule an adopter can hold, but they do not all reach
+# the same place. `*` reaches `git_commit`'s scope grammar, which splits a
+# pattern at the literal sequence `/*`: a base of `docs/*` moves that split
+# point into the base itself, collapsing the scope's static root to `docs/`
+# with an empty wildcard suffix, so every uncommitted file under it is staged.
+# `{` and `}` are consumed by the `{slug}` substitution that runs after the
+# base is spliced in, which relocates the staged tree or raises. `?` and `[`
+# reach neither, and a scope carrying one simply matches nothing.
+_RESERVED_BASE_CHARS: tuple[str, ...] = ("*", "?", "[", "{", "}")
 
-def _read_layout_bases(repo_root: Path) -> dict[str, str]:
-    """Read output_dir from agentbundle-layout.toml with type-specific precedence.
+
+def _select_layout_bases(repo_root: Path) -> dict[str, tuple[str, str]]:
+    """Select each key's output_dir, returning `(configured, resolved)` pairs.
+
+    One selection, read once. `configured` is the adopter's value exactly as
+    written; `resolved` is that same value expanded, anchored and resolved.
+
+    Both forms come from one decision because two readers cannot be kept in
+    agreement by hand. `_read_scope` wraps its whole per-key loop in one
+    `contextlib.suppress(Exception)`, so any raise from `Path(raw)`,
+    `is_absolute()` or `resolve()` abandons the rest of that scope and hands the
+    decision to the other one. A screen that reads a second, independently
+    computed answer about the configured value screens a value that may not be
+    the one in use — measured three times before this shape replaced it.
 
     research: user-scope wins (personal vault applies across repos).
     product, design: repo-scope wins (team convention takes priority).
-
-    Values come back absolute and resolved. A caller that publishes one is
-    responsible for re-expressing it — see `_publishable_output_pattern`.
     """
     import tomllib
 
-    def _read_scope(path: Path, *, scope: str) -> dict[str, str]:
+    def _read_scope(path: Path, *, scope: str) -> dict[str, tuple[str, str]]:
         if not path.exists() or path.is_symlink():
             return {}
-        out: dict[str, str] = {}
+        out: dict[str, tuple[str, str]] = {}
         with contextlib.suppress(Exception):
             with path.open("rb") as fh:
                 data = tomllib.load(fh)
@@ -195,20 +216,32 @@ def _read_layout_bases(repo_root: Path) -> dict[str, str]:
                         )
                         continue
                     candidate = repo_root / candidate
-                out[key] = str(candidate.resolve())
+                out[key] = (raw, str(candidate.resolve()))
         return out
 
     repo = _read_scope(repo_root / "agentbundle-layout.toml", scope="repo")
     user = _read_scope(
         Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
     )
-    result: dict[str, str] = {}
+    result: dict[str, tuple[str, str] | None] = {}
     # research: user-scope wins
-    result["research"] = user.get("research") or repo.get("research", "")
+    result["research"] = user.get("research") or repo.get("research")
     # product/design: repo-scope wins
-    result["product"] = repo.get("product") or user.get("product", "")
-    result["design"] = repo.get("design") or user.get("design", "")
+    result["product"] = repo.get("product") or user.get("product")
+    result["design"] = repo.get("design") or user.get("design")
     return {k: v for k, v in result.items() if v}
+
+
+def _read_layout_bases(repo_root: Path) -> dict[str, str]:
+    """The resolved half of `_select_layout_bases`, for callers that need only it.
+
+    A projection, never a second selection: it opens nothing and decides
+    nothing. Values come back absolute and resolved. A caller that publishes one
+    is responsible for re-expressing it — see `_publishable_output_pattern`.
+    """
+    return {
+        key: resolved for key, (_raw, resolved) in _select_layout_bases(repo_root).items()
+    }
 
 
 def _apply_layout_overrides(
@@ -239,36 +272,54 @@ def _publishable_output_pattern(
     path and unpublishable here, so the field is withheld. It is not filled with
     the convention base instead — reporting a base the adopter has overridden is
     the two-answer defect this function exists to close.
+
+    The configured base is the only adopter-controlled part of the result, so it
+    is screened by the same publication policy every other path in this payload
+    passes, and the field is withheld when it fails. The screen applies to the
+    base rather than the whole pattern because the manifest contributes the
+    `{slug}` and glob tokens, which that policy's character set excludes — a
+    screen over the whole pattern would reject a legitimate pattern.
+
+    The shared reader deliberately keeps returning unscreened absolute values:
+    the git tools resolve a user-scope base that is legitimately outside the
+    repository, and this policy refuses an absolute path. Publication is the
+    only surface the screen belongs to.
     """
     raw_patterns = _LIFECYCLE_MANIFEST.get(item_type, {}).get("output_pattern")
     if raw_patterns is None:
         return None
-    patterns = _apply_layout_overrides(
-        item_type,
-        list(raw_patterns) if isinstance(raw_patterns, list) else [raw_patterns],
-        bases,
-    )
-    anchor = repo_root.resolve()
-    relative: list[str] = []
-    for pattern in patterns:
-        candidate = Path(pattern)
-        if not candidate.is_absolute():
-            relative.append(pattern)
-            continue
-        try:
-            relative.append(candidate.relative_to(anchor).as_posix())
-        except ValueError:
-            toml_key = _LAYOUT_TYPE_BASES[item_type][0]
-            print(
-                f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
-                f"resolves outside the repository, so workspace_status reports no "
-                f"output pattern for {item_type!r} items. git_commit cannot stage "
-                "outside the repository either; move the value inside it to use "
-                "either surface.",
-                file=sys.stderr,
-            )
-            return None
-    return relative
+    patterns = list(raw_patterns) if isinstance(raw_patterns, list) else [raw_patterns]
+    mapping = _LAYOUT_TYPE_BASES.get(item_type)
+    if mapping is None:
+        return patterns
+    toml_key = mapping[0]
+    configured = bases.get(toml_key)
+    if configured is None:
+        return patterns
+
+    try:
+        relative_base = Path(configured).relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        print(
+            f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
+            f"resolves outside the repository, so workspace_status reports no "
+            f"output pattern for {item_type!r} items. git_commit cannot stage "
+            "outside the repository either; move the value inside it to use "
+            "either surface.",
+            file=sys.stderr,
+        )
+        return None
+    if _public_canonical_path(relative_base) != relative_base:
+        print(
+            f"workspace-mcp: warning: the configured [{toml_key}] output_dir "
+            f"cannot be published, so workspace_status reports no output pattern "
+            f"for {item_type!r} items. Give it a directory below the repository "
+            "root built only from letters, digits, and the characters . _ - / "
+            "with no . or .. path segment.",
+            file=sys.stderr,
+        )
+        return None
+    return _apply_layout_overrides(item_type, patterns, {toml_key: relative_base})
 
 
 # ── Session instruction (Component 3) ─────────────────────────────────────────
@@ -312,9 +363,24 @@ _GIT_OVERRIDE_VARS = frozenset({
 })
 
 
-def _git_env() -> dict[str, str]:
-    """Return os.environ with git repository-override variables stripped."""
-    return {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
+def _git_env(*, literal_pathspecs: bool = False) -> dict[str, str]:
+    """Return os.environ with git repository-override variables stripped.
+
+    `literal_pathspecs` disables git's pathspec magic, and belongs only to a call
+    that is passed a pathspec. `--` ends option parsing but leaves magic active,
+    so a directory literally named `:(glob)artifacts` is otherwise re-read as a
+    glob and `git add` stages a different tree than the tool reports committing.
+
+    It is off by default because the variable is inherited by adopter-owned
+    hooks: `git commit`, `git checkout` and `git push` all run them, and a hook
+    filtering with a glob pathspec would silently match nothing. Of this
+    module's git invocations only `git add` is passed a pathspec, so that is the
+    only call that opts in.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
+    if literal_pathspecs:
+        env["GIT_LITERAL_PATHSPECS"] = "1"
+    return env
 
 
 def _get_repo_root() -> Path:
@@ -1509,8 +1575,15 @@ class _GitTools:
                 )
                 spec_path = None
         # Validate dispatched: if it fails to parse into a known type, treat as absent.
-        self._output_pattern: list[str] | None = self._resolve_output_pattern(dispatched)
-        if dispatched and self._output_pattern is None:
+        # A configured base this session refuses is represented distinctly here:
+        # clearing `dispatched` would engage discovery mode and take `git_branch`
+        # and `git_push` down with it, when only `git_commit` has no usable scope.
+        self._refused_layout_key: str | None = None
+        self._output_spec: list[tuple] | None = self._resolve_output_spec(dispatched)
+        self._output_pattern: list[str] | None = (
+            None if self._output_spec is None else [spec[-1] for spec in self._output_spec]
+        )
+        if dispatched and self._output_pattern is None and self._refused_layout_key is None:
             _log.warning(
                 "WORKSPACE_MCP_DISPATCHED_ITEM %r is malformed or uses unknown type; "
                 "treating as absent — git writes are blocked",
@@ -1686,6 +1759,23 @@ class _GitTools:
             return None
 
     def _resolve_output_pattern(self, dispatched: str | None) -> list[str] | None:
+        """The displayable pattern strings, projected from the scope spec.
+
+        A projection, never a second computation: the spec below owns the
+        wildcard boundary and this rebuilds the string from it.
+        """
+        specs = self._resolve_output_spec(dispatched)
+        if specs is None:
+            return None
+        return [spec[-1] for spec in specs]
+
+    def _resolve_output_spec(self, dispatched: str | None) -> list[tuple] | None:
+        """Scope entries for `git_commit`, with the wildcard boundary already
+        decided by the built-in manifest rather than by scanning a joined path.
+
+        Each entry is `("file", abs_path, display)` or
+        `("wildcard_dir", abs_static_root, literal_suffix, display)`.
+        """
         if dispatched is None:
             return None
         # dispatched = "ini_slug/type:slug"
@@ -1714,13 +1804,71 @@ class _GitTools:
             patterns_list: list[str] = (
                 raw_patterns if isinstance(raw_patterns, list) else [raw_patterns]
             )
-            # Apply agentbundle-layout.toml overrides (user-scope > repo-scope >
-            # convention). Stage 1: resolve at bind-time; Stage 2 defers to the
-            # first git_branch() call.
-            patterns_list = _apply_layout_overrides(
-                item_type, patterns_list, _read_layout_bases(self._repo_root)
-            )
-            return [p.format(slug=slug) for p in patterns_list]
+            selected = _select_layout_bases(self._repo_root)
+            # Screen the adopter's own value, taken from the same selection that
+            # produced the base being spliced in. Two things the check must not
+            # read: the substituted pattern, because the manifest contributes `*`
+            # and `**` of its own and after substitution the two are textually
+            # indistinguishable; and the resolved base, because resolution both
+            # hides a configured `a*/../b` and invents a `*` the adopter never
+            # typed when the repository's own path carries one.
+            mapping = _LAYOUT_TYPE_BASES.get(item_type)
+            if mapping is not None:
+                toml_key = mapping[0]
+                pair = selected.get(toml_key)
+                if pair is not None and any(
+                    char in pair[0] for char in _RESERVED_BASE_CHARS
+                ):
+                    self._refused_layout_key = toml_key
+                    # stdout is the MCP protocol channel, so the adopter-facing
+                    # report goes to stderr.
+                    print(
+                        f"workspace-mcp: warning: the configured [{toml_key}] "
+                        "output_dir contains one of the characters "
+                        f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
+                        "staging scope, so git_commit is unavailable for "
+                        f"{item_type!r} items. Give it a directory name built "
+                        "without those characters.",
+                        file=sys.stderr,
+                    )
+                    return None
+            resolved_bases = {
+                key: resolved for key, (_raw, resolved) in selected.items()
+            }
+            # Split each manifest pattern at its own `/*` BEFORE any base is
+            # spliced in. The wildcard boundary belongs to the manifest, which is
+            # trusted source; rediscovering it by scanning the joined absolute
+            # path lets a `*` the base contributed become pattern syntax — a
+            # symlink resolving through a directory named `*` collapsed the scope
+            # root to the repository root and staged every changed file.
+            specs: list[tuple] = []
+            for pattern in patterns_list:
+                index = pattern.find("/*")
+                if index == -1:
+                    static_rel, remainder = pattern, None
+                else:
+                    static_rel, remainder = pattern[:index], pattern[index + 1:]
+                # Substitute `{slug}` into the manifest text BEFORE the base is
+                # spliced in. Running it afterwards lets the base's own
+                # characters be read as substitution syntax: a base resolving
+                # through a directory named `{slug}` was rewritten to a
+                # different directory entirely, and an unmatched brace raised
+                # into the handler below and cleared the dispatched item.
+                static_rel = _apply_layout_overrides(
+                    item_type, [static_rel.format(slug=slug)], resolved_bases
+                )[0]
+                static_abs = (self._repo_root / static_rel).resolve()
+                if remainder is None:
+                    specs.append(("file", static_abs, static_rel))
+                else:
+                    remainder = remainder.format(slug=slug)
+                    # The literal tail after the wildcard component's `*`, taken
+                    # from the manifest and never from the base.
+                    suffix = remainder.split("/")[0].lstrip("*")
+                    specs.append(
+                        ("wildcard_dir", static_abs, suffix, f"{static_rel}/{remainder}")
+                    )
+            return specs
         except Exception:
             return None
 
@@ -1810,30 +1958,33 @@ class _GitTools:
         if self._discovery_mode:
             return {"error": "git_commit is not available in discovery mode"}
         message = arguments.get("message", "workspace-mcp: commit artifacts")
+        if self._refused_layout_key is not None:
+            return {
+                "error": (
+                    f"git_commit unavailable: the configured "
+                    f"[{self._refused_layout_key}] output_dir in "
+                    f"agentbundle-layout.toml contains one of the characters "
+                    f"{' '.join(_RESERVED_BASE_CHARS)}, which cannot bound a "
+                    f"staging scope. Give it a directory name built without "
+                    f"those characters."
+                )
+            }
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
 
-        # Build scope entries for each pattern (design.md:524-526).
-        # Two cases:
-        #   file         — no "/*": match the exact resolved file path
-        #   wildcard_dir — contains "/*": check containment under static root AND
-        #                  first varying component ends with the literal suffix of the
-        #                  wildcard component (e.g. research/*-slug/** → suffix="-slug")
-        # Note: find("/*") always points at "/" followed by "*", so _remainder always
-        # starts with "*" — there is no reachable non-wildcard "dir" case.
-        _scope_entries: list[tuple] = []
-        for _pat in self._output_pattern:
-            _idx = _pat.find("/*")
-            if _idx == -1:
-                # Exact file
-                _scope_entries.append(("file", (self._repo_root / _pat).resolve()))
-            else:
-                _static = _pat[:_idx]
-                _remainder = _pat[_idx + 1:]           # strip leading / only; keep *
-                _next_comp = _remainder.split("/")[0]  # first wildcard component
-                _dir = (self._repo_root / _static).resolve()
-                _suffix = _next_comp.lstrip("*")       # literal suffix after *
-                _scope_entries.append(("wildcard_dir", _dir, _suffix))
+        # Scope entries come from `_resolve_output_spec`, which decided the
+        # wildcard boundary from the built-in manifest before any configured base
+        # was spliced in. Two cases:
+        #   file         — match the exact resolved file path
+        #   wildcard_dir — check containment under the static root AND that the
+        #                  first varying component ends with the manifest's
+        #                  literal suffix (research/*-slug/** → suffix="-slug")
+        # Deriving the split here by scanning the joined path is what let a `*`
+        # contributed by the base — or by a symlink resolving through a directory
+        # named `*` — become pattern syntax and collapse the scope root.
+        _scope_entries: list[tuple] = [
+            entry[:-1] for entry in (self._output_spec or [])
+        ]
 
         def _in_scope(rel_path: str) -> bool:
             try:
@@ -1905,6 +2056,7 @@ class _GitTools:
             r = self._run_git(
                 ["git", "add", "--", *matched],
                 cwd=str(self._repo_root), timeout=_GIT_TIMEOUT,
+                env=_git_env(literal_pathspecs=True),
             )
             if r.returncode != 0:
                 return {"error": f"git add failed: {r.stderr.strip()}"}

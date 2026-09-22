@@ -14,6 +14,23 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.47.3
+
+**Fixed:** `git_commit` no longer stages files outside the item it was
+dispatched for. If the `output_dir` you configure contains `*`, `?`, `[`, `{`
+or `}`, that value cannot describe a commit scope, so `git_commit` now refuses
+it with an error naming the section instead of committing from a wider
+directory. A base containing `*` was the one that widened the scope; the others
+matched nothing and now say so. `git_status`, `git_branch` and `git_push` keep
+working. Rename the directory to one without those characters to commit again.
+
+## What's new in 0.47.2
+
+**Fixed:** `workspace_status` now applies the same character rules to your
+configured `output_dir` that it applies to every other path it reports. A value
+using anything outside letters, digits and `. _ - /` is reported as no pattern,
+with a warning naming the section, instead of being passed through.
+
 ## What's new in 0.47.1
 
 **Fixed:** `workspace_status` now reports the output path your

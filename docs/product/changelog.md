@@ -150,6 +150,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source still requires its digest, and an omitted key is still refused —
   only an explicit `null` is admitted.
 
+## [agentbundle][0.47.3] — 2026-09-21
+
+### Highlights
+
+- **A commit made for you by a workspace session now stages only that item's
+  own files.** If the directory you configure for a pack's output contains
+  `*`, `?`, `[`, `{` or `}`, it cannot describe a commit scope — a `*` in
+  particular made the commit reach every uncommitted file under the directory
+  above it. Such a value is now refused with an error naming the section to
+  correct, and the rest of the session's git tools keep working. Rename the
+  directory to one without those characters to commit again.
+
+### Fixed
+
+- `git_commit` took the wildcard structure of its staging scope from the
+  configured `output_dir` as well as from the built-in lifecycle manifest,
+  so a base of `docs/*` collapsed the scope's static root to `docs/` and
+  staged every uncommitted file under it. A configured base carrying a
+  reserved character is refused before it reaches the pattern; the wildcard
+  structure now comes only from the manifest. The scope's containment test
+  and the shared layout reader are unchanged.
+
 ## [frontend-engineering][0.3.1] — 2026-09-21
 
 ### Highlights
@@ -258,6 +280,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/specs/work-item-mechanical-tier/spec.md`'s and has not landed), and
   the complete list of accepted, unmitigated residuals this delivery
   carries.
+
+## [agentbundle][0.47.2] — 2026-09-21
+
+### Highlights
+
+- **What the status surface reports about your output paths now follows the
+  same rules as everything else it reports.** If the directory you configure
+  for a pack's output uses anything beyond letters, digits and `. _ - /`, or
+  points at the repository root itself, the status surface reports no output
+  pattern and tells you which section to correct, rather than passing the value
+  through. Renaming the directory to a plain, repository-relative path restores
+  the reported path.
+
+### Fixed
+
+- `workspace_status` screens a configured `output_dir` with the same character
+  policy as every other path it publishes, withholding the output pattern and
+  warning when the value falls outside letters, digits and `. _ - /`. The
+  screen covers the configured base only; the built-in pattern supplies the
+  `{slug}` and glob tokens and is unaffected.
 
 ## [core][2.26.25] — 2026-09-21
 

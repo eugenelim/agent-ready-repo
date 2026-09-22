@@ -6,6 +6,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.47.3] — 2026-09-21
+
+### Fixed
+
+- `git_commit` staged files outside the dispatched item's own output when the
+  configured `output_dir` contained a glob metacharacter. The staging scope is
+  split at the literal sequence `/*`, so a base of `docs/*` moved that split
+  point into the base itself and collapsed the scope's static root to `docs/`,
+  staging every uncommitted file under it. A configured base carrying `*`, `?`,
+  `[`, `{` or `}` is now refused before it reaches the pattern, leaving
+  `git_commit` unavailable for that item with an error naming the configuration
+  section and a warning on stderr. `git_status`, `git_branch` and `git_push` are
+  unaffected by the refusal. The wildcard structure of a staging scope now comes
+  only from the built-in lifecycle manifest.
+
+## [0.47.2] — 2026-09-21
+
+### Fixed
+
+- `workspace_status` withheld nothing when a configured `output_dir` contained
+  characters this payload does not publish, so an adopter-controlled value
+  reached the payload verbatim. The configured base now passes the same
+  character policy every other path in the payload passes, and the field is
+  withheld with a warning naming the section when it fails. The permitted set
+  is letters, digits, and `. _ - /`.
+
 ## [0.47.1] — 2026-09-21
 
 ### Fixed
