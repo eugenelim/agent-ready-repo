@@ -135,13 +135,16 @@ forms. Two scope facts matter and neither is a defect:
   nothing mechanically ties the copy to the published original. If the
   published expression changes, the copy needs updating by hand. That is a real
   gap, recorded here rather than claimed away.
-- The guard is stricter than the rule, on purpose. The rule permits an
-  illustrative ordinal and says to judge what it points at, which no regex can
-  do; the guard instead forbids every ordinal on those surfaces, which they can
-  afford because none teaches with one. So it proves the absence of ordinals,
-  not the absence of internal citations. An author who later needs a genuine
-  illustrative ordinal there should exempt that surface with a reason rather
-  than reword around a guard that was never the rule.
+- The guard is stricter than the rule, on purpose, and proves something
+  narrower than the rule's property. It establishes that none of its surfaces
+  contains a zero-padded RFC or ADR ordinal, an AC-style identifier, or a
+  `docs/{specs,rfc,adr,contracts}` path — not that none carries an internal
+  citation, which is the rule's property and needs judgement the expression
+  cannot supply. The rule permits an illustrative reference and says to judge
+  what it points at; these surfaces can afford the stricter line because none
+  teaches with one. A permitted illustration would therefore fail the guard.
+  That is a deliberate false positive, and an author who needs one should
+  exempt that surface with a reason rather than reword around it.
 
 One pre-existing warning is unchanged: `CAT-S003` on the skill's `SKILL.md`,
 already past the 500-line recommendation before this change at 548 lines.

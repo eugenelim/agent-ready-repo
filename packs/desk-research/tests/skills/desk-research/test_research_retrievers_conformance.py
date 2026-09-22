@@ -1050,8 +1050,13 @@ class ArxivRetrieverConformance(unittest.TestCase):
         self.assertIsNotNone(sender._last_completed)
         self.assertGreater(sender.delay_before_next(), 0.0)
 
-    def test_shipped_content_cites_no_internal_record(self) -> None:
-        """Shipped pack content states its rules; it never cites ours.
+    def test_shipped_surfaces_carry_no_catalogue_shaped_reference(self) -> None:
+        """No catalogue-shaped reference appears on the surfaces this skill ships.
+
+        Not "no internal citation": that is the rule's property, and this
+        cannot decide it. What this decides is narrower and exact — none of
+        these surfaces contains a zero-padded RFC or ADR ordinal, an
+        AC-style identifier, or a `docs/{specs,rfc,adr,contracts}` path.
 
         The expression is copied from the one the repository publishes for
         this rule. It is a copy and not a reference: a pack test may not read
@@ -1064,20 +1069,19 @@ class ArxivRetrieverConformance(unittest.TestCase):
         to run, and two acceptance-criterion identifiers reached the script's
         comments in the gap after one was last run.
 
-        Deliberately stricter than the rule it serves, and the difference is
-        worth stating. The rule permits an illustrative ordinal that teaches a
-        reader about their own artifacts, and says to judge what an ordinal
-        points at rather than the number. No regex can judge that. So this
-        checks something narrower and decidable: these particular surfaces
-        carry NO ordinal of any kind. They can afford it — none teaches with
-        one, and each has portable phrasing available instead.
+        That is deliberately stricter than the rule. The rule permits an
+        illustrative reference that teaches a reader about their own
+        artifacts, and says to judge what a reference points at rather than
+        its shape. No regex judges that. These surfaces can afford the
+        stricter line because none teaches with such a reference and each has
+        portable phrasing available instead.
 
-        The consequence is a deliberate false positive. An author who later
-        needs a genuine illustrative ordinal on one of these surfaces should
-        exempt that surface here, with the reason, rather than reword around a
-        guard that was never the rule. What this test proves is the absence of
-        ordinals, not the absence of internal citations; the declared
-        three-surface check in the verification ledger is what covers the rule.
+        So a permitted illustration would fail here. That is a deliberate
+        false positive, not a verdict that the illustration is an internal
+        citation. An author who needs one should exempt that surface here,
+        with the reason, rather than reword around a guard that was never the
+        rule. The declared three-surface check in the verification ledger is
+        what covers the rule itself.
         """
         canonical = re.compile(
             r"\b(RFC|ADR)-0[0-9]{3}\b"
@@ -1092,7 +1096,12 @@ class ArxivRetrieverConformance(unittest.TestCase):
             PACK / "DESIGN.md",
         ):
             hits = canonical.findall(surface.read_text(encoding="utf-8"))
-            self.assertEqual(hits, [], f"{surface.name} cites an internal record")
+            self.assertEqual(
+                hits, [],
+                f"{surface.name} carries a catalogue-shaped reference. If it is a "
+                f"permitted illustration rather than an internal citation, exempt "
+                f"this surface here with the reason.",
+            )
 
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""
