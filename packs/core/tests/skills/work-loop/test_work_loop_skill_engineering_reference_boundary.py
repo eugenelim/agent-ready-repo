@@ -3,15 +3,20 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SKILL = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "SKILL.md"
+WORK_LOOP = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
+SKILL = WORK_LOOP / "SKILL.md"
+PROVIDER_REFERENCE = WORK_LOOP / "references" / "skill-engineering-provider.md"
 
 
 def _section() -> str:
-    """Return work-loop's bounded provider-consumer instructions."""
-    text = SKILL.read_text(encoding="utf-8")
-    return text.split("### Skill-engineering reference integration", 1)[1].split(
-        "For durable work", 1
-    )[0]
+    """Return work-loop's bounded provider-consumer instructions.
+
+    These instructions live in their own reference now, so the whole file is
+    the section. Windowing `SKILL.md` on the old heading would still find the
+    heading -- the entrypoint keeps it, carrying the predicate and the guard --
+    and would then assert containment against prose that no longer states it.
+    """
+    return PROVIDER_REFERENCE.read_text(encoding="utf-8")
 
 
 def _flat(text: str) -> str:

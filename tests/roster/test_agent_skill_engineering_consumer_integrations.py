@@ -59,6 +59,12 @@ CORE_PACK = ROOT / "packs" / "core"
 ARCHITECT_PACK = ROOT / "packs" / "architect"
 ASE_PACK = ROOT / "packs" / "agent-skill-engineering"
 CORE_BODY = CORE_PACK / ".apm" / "skills" / "work-loop" / "SKILL.md"
+# The provider handshake's rules moved into this reference; the consumer
+# DECLARATION -- contract version, task kinds, absent diagnostic -- stayed on
+# CORE_BODY, so AC2/AC3/AC4 still read the body and are unchanged below.
+CORE_PROVIDER_REFERENCE = (
+    CORE_PACK / ".apm" / "skills" / "work-loop" / "references" / "skill-engineering-provider.md"
+)
 ARCHITECT_BODY = (
     ARCHITECT_PACK / ".apm" / "skills" / "architect-design" / "SKILL.md"
 )
@@ -91,6 +97,12 @@ GUIDES_TWIN = (
 )
 CLAUDE_WORK_LOOP = ROOT / ".claude" / "skills" / "work-loop" / "SKILL.md"
 AGENTS_WORK_LOOP = ROOT / ".agents" / "skills" / "work-loop" / "SKILL.md"
+CLAUDE_PROVIDER_REFERENCE = (
+    ROOT / ".claude" / "skills" / "work-loop" / "references" / "skill-engineering-provider.md"
+)
+AGENTS_PROVIDER_REFERENCE = (
+    ROOT / ".agents" / "skills" / "work-loop" / "references" / "skill-engineering-provider.md"
+)
 WORKSPACE = ROOT / "workspace.toml"
 BRIEF = ROOT / "docs" / "product" / "briefs" / "agent-skill-engineering.md"
 CHANGELOG = ROOT / "docs" / "product" / "changelog.md"
@@ -106,6 +118,9 @@ CONSUMER_ASSIGNMENTS = (
 )
 BOUND_SURFACES = (
     CORE_BODY,
+    CORE_PROVIDER_REFERENCE,
+    CLAUDE_PROVIDER_REFERENCE,
+    AGENTS_PROVIDER_REFERENCE,
     ARCHITECT_BODY,
     CORE_MANIFEST,
     ARCHITECT_MANIFEST,
@@ -497,6 +512,13 @@ def test_ac5_consumers_do_not_depend_on_the_provider_pack_layout(consumer: Path)
     without_contract_version = body.replace(CONTRACT_VERSION, "")
     assert "agent-skill-engineering" not in without_contract_version  # external-comparison
     assert "ase-okf-reference" not in body  # external-comparison
+    # Extended, not moved: work-loop's handshake rules live in a reference now,
+    # and layout independence has to hold wherever they live. Repointing this
+    # arm at the reference instead would take the guarantee off the body.
+    if consumer is CORE_BODY:
+        reference = CORE_PROVIDER_REFERENCE.read_text(encoding="utf-8")
+        assert "agent-skill-engineering" not in reference.replace(CONTRACT_VERSION, "")  # external-comparison
+        assert "ase-okf-reference" not in reference  # external-comparison
     # No separate path assertion. Every path into that pack contains the bare
     # product name, and the contract version is the only string carrying it
     # legitimately, so a `packs/agent-skill-engineering/...` scan is dominated
@@ -607,10 +629,19 @@ def test_ac10_pack_versions_exceed_the_floor_and_match_the_changelog(
 
 
 def test_ac11_work_loop_projections_are_byte_identical_to_the_source() -> None:
-    """T1 turns AC11's base-green guard on; T6b restores it after T3."""
-    source = CORE_BODY.read_bytes()
-    assert CLAUDE_WORK_LOOP.read_bytes() == source  # same-slice
-    assert AGENTS_WORK_LOOP.read_bytes() == source  # same-slice
+    """T1 turns AC11's base-green guard on; T6b restores it after T3.
+
+    Both files, not just the entrypoint: the handshake rules moved into a
+    reference, and a projection arm that reads only `SKILL.md` would let a
+    stale projected reference ship green.
+    """
+    for source, claude, agents in (
+        (CORE_BODY, CLAUDE_WORK_LOOP, AGENTS_WORK_LOOP),
+        (CORE_PROVIDER_REFERENCE, CLAUDE_PROVIDER_REFERENCE, AGENTS_PROVIDER_REFERENCE),
+    ):
+        expected = source.read_bytes()
+        assert claude.read_bytes() == expected, claude  # same-slice
+        assert agents.read_bytes() == expected, agents  # same-slice
 
 
 def test_ac12_catalogue_guidance_twin_is_byte_identical() -> None:
