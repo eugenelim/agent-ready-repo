@@ -40,8 +40,8 @@ ARXIV_SCRIPT = RESEARCH_SKILL / "scripts" / "arxiv-retriever.py"
 PERPLEXITY_SCRIPT = RESEARCH_SKILL / "scripts" / "perplexity-retriever.py"
 SKILL_MD = RESEARCH_SKILL / "SKILL.md"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-LATEXML_ATTENTION = FIXTURES / "latexml-1706.03762v7.html"
-LATEXML_TINYLLAMA = FIXTURES / "latexml-2401.02385v1.html"
+LATEXML_EIGHT = FIXTURES / "latexml-eight-sections.html"
+LATEXML_FIVE = FIXTURES / "latexml-five-sections.html"
 
 VALID_SHAPES = {"raw", "synthesized", "meta"}
 REQUIRED_KEYS = {"content", "citations", "shape"}
@@ -653,27 +653,22 @@ class ArxivRetrieverConformance(unittest.TestCase):
                 sender.get(module.API_URL, {"search_query": "all:x"})
         self.assertIn("invocation", str(caught.exception))
 
-    def test_the_render_cap_spans_citation_fields_not_just_content(self) -> None:
-        """AC-0048: a bulky citation floods the caller while `content` stays short.
+    def test_a_citation_carries_metadata_not_the_abstract_text(self) -> None:
+        """The abstract is material for `content`; a citation points at it.
 
-        Enrich renders a title and its links only, so the rendered text is short
-        whatever the record carries. Bounding `content` alone would pass this.
+        Carrying it in both doubled the largest field the caller pays for, and
+        AC-0011 asks a citation for the abstract URL, never the abstract text.
+        The cap still spans citation fields — see
+        test_the_cap_measures_exactly_what_stdout_carries, which drives `_finish`
+        with bulky citations and short content.
         """
         module = _load(ARXIV_SCRIPT)
-        bulky = ATOM_FEED.replace(b"An abstract about a paper.", b"z" * 60000)
-        result_content_len = None
-        with self.assertRaises(module.LimitExceeded) as caught:
-            module.retrieve(
-                "1706.03762", mode="enrich",
-                sender=_sender(module, FakeResponse(bulky)),
-                check=lambda url: "9999.99999" not in url,
-            )
-        self.assertIn("characters", str(caught.exception))
-        self.assertIsNone(result_content_len)
-        # The rendered content for this mode is far below the cap, so only a
-        # bound measured over the whole result can have raised.
-        cite = module.map_entry(module.parse_feed(bulky).find(f"{{{module.ATOM[1:-1]}}}entry"))
-        self.assertGreater(len(str(cite["abstract"])), module.RENDER_CHAR_CAP)
+        result = module.retrieve("anything", sender=_sender(module))
+        cite = result["citations"][0]
+        self.assertNotIn("abstract", cite)
+        self.assertEqual(cite["url"], "https://arxiv.org/abs/1706.03762")
+        # The material itself is still returned, once, in the rendered content.
+        self.assertIn("An abstract about a paper.", result["content"])
 
     def test_a_declaration_past_any_prefix_window_is_refused(self) -> None:
         """AC-0043: padding walked past an earlier fixed 4 KiB scan."""
@@ -753,7 +748,7 @@ class ArxivRetrieverConformance(unittest.TestCase):
     def test_a_missing_named_section_does_not_return_the_whole_paper(self) -> None:
         """AC-0020: silently widening to every section is the context flood."""
         module = _load(ARXIV_SCRIPT)
-        document = LATEXML_ATTENTION.read_text(encoding="utf-8")
+        document = LATEXML_EIGHT.read_text(encoding="utf-8")
         kept, dropped, truncated = module.select_sections(document, ("nonexistent",))
         self.assertEqual(kept, [])
         self.assertGreater(dropped, 0)
@@ -761,7 +756,7 @@ class ArxivRetrieverConformance(unittest.TestCase):
     def test_the_caller_cannot_raise_the_full_text_ceiling(self) -> None:
         """AC-0021: the ceiling is the contract's, not the caller's."""
         module = _load(ARXIV_SCRIPT)
-        document = LATEXML_ATTENTION.read_text(encoding="utf-8")
+        document = LATEXML_EIGHT.read_text(encoding="utf-8")
         # These two sections together run past the ceiling in this document, so
         # an unclamped cap would return more than the contract permits. A single
         # short section would satisfy the assertion either way.
@@ -786,7 +781,7 @@ class ArxivRetrieverConformance(unittest.TestCase):
     def test_section_count_matches_the_oracle_on_real_renders(self) -> None:
         """AC-0022, against two captured documents rather than a synthetic one."""
         module = _load(ARXIV_SCRIPT)
-        for fixture in (LATEXML_ATTENTION, LATEXML_TINYLLAMA):
+        for fixture in (LATEXML_EIGHT, LATEXML_FIVE):
             document = fixture.read_text(encoding="utf-8")
             oracle = document.count('class="ltx_title ltx_title_section"')
             self.assertEqual(
@@ -795,7 +790,7 @@ class ArxivRetrieverConformance(unittest.TestCase):
 
     def test_real_render_titles_are_names_not_numbers(self) -> None:
         module = _load(ARXIV_SCRIPT)
-        document = LATEXML_ATTENTION.read_text(encoding="utf-8")
+        document = LATEXML_EIGHT.read_text(encoding="utf-8")
         titles = [tt for tt, _ in module.extract_sections(document)]
         self.assertIn("Introduction", titles)
         for title in titles:
@@ -873,6 +868,82 @@ class ArxivRetrieverConformance(unittest.TestCase):
             self.assertEqual(code, 2, argv)
             self.assertEqual(out.getvalue(), "", argv)
             self.assertIn("arxiv-retriever:", err.getvalue(), argv)
+
+    def test_a_redirect_hop_owes_the_courtesy_interval(self) -> None:
+        """AC-0014: a hop is another outbound request, not a free continuation."""
+        module = _load(ARXIV_SCRIPT)
+        hop = urllib.error.HTTPError(
+            module.API_URL, 302, "Found",
+            {"Location": "https://arxiv.org/abs/1706.03762"}, None,
+        )
+        clock = module.Clock(now=1000.0)
+        sender = module.Sender(clock=clock, min_interval=3.0,
+                              opener=FakeOpener(hop, FakeResponse(ATOM_FEED)))
+        started = clock.monotonic()
+        sender.get(module.API_URL, {"search_query": "all:x"})
+        # Two outbound requests, so at least one interval must have been spent.
+        self.assertGreaterEqual(clock.monotonic() - started, 3.0)
+
+    def test_a_versioned_request_is_answered_by_that_version(self) -> None:
+        """AC-0006: another revision is different text under the same citation."""
+        module = _load(ARXIV_SCRIPT)
+        with self.assertRaises(module.UnsafeDocument):
+            module.retrieve("1706.03762v1", mode="get", sender=_sender(module))
+        exact = module.retrieve("1706.03762v7", mode="get", sender=_sender(module))
+        self.assertEqual(exact["citations"][0]["version"], "v7")
+
+    def test_the_reported_budget_is_the_one_applied(self) -> None:
+        """AC-0021: reporting the override would claim a budget never used."""
+        module = _load(ARXIV_SCRIPT)
+        self.assertEqual(module.effective_full_text_cap(10**6),
+                         module.FULL_TEXT_CHAR_CAP)
+        self.assertEqual(module.effective_full_text_cap(500), 500)
+        document = LATEXML_EIGHT.read_text(encoding="utf-8")
+        sender = _sender(module, FakeResponse(ATOM_FEED),
+                         FakeResponse(document.encode("utf-8")))
+        result = module.retrieve("1706.03762", mode="get", sender=sender,
+                                 full_text=True, full_text_cap=10**6)
+        self.assertIn(f"{module.FULL_TEXT_CHAR_CAP} character budget",
+                      result["content"])
+        self.assertNotIn("1000000", result["content"])
+
+    def test_the_cap_measures_exactly_what_stdout_carries(self) -> None:
+        """AC-0048: one function produces the measured and the written form."""
+        import io
+        from contextlib import redirect_stdout
+
+        module = _load(ARXIV_SCRIPT)
+        stub = _sender(module)
+        out = io.StringIO()
+        with patch.object(module, "Sender", lambda *a, **k: stub), redirect_stdout(out):
+            code = module.main(["anything"])
+        self.assertEqual(code, 0)
+        written = out.getvalue()
+        # What was written is byte-identical to what the cap measures, so no
+        # formatting band can pass the check and still flood the caller.
+        self.assertEqual(written, module._emitted(json.loads(written)))
+        self.assertTrue(written.endswith("\n"))
+        self.assertLessEqual(len(written), module.RENDER_CHAR_CAP)
+        # Compact, deliberately: the payload is read by a program, and indenting
+        # it pushed a default ten-result search from 23,315 to 40,688 characters,
+        # past the cap. Pinned because it is a decision, not a formatting whim.
+        self.assertNotIn("\n  ", written)
+        self.assertNotIn(": ", written.split('"content"')[0])
+
+        # And the cap does fire on a payload over it whose rendered text is not.
+        cites = [
+            {"url": f"https://arxiv.org/abs/24{n:02d}.0{n:04d}", "title": "t",
+             "authors": ["A. Author"], "primacy": "primary",
+             "arxiv_id": f"24{n:02d}.0{n:04d}", "submitted": "2024-01-01T00:00:00Z",
+             "revised": "2024-01-01T00:00:00Z", "categories": ["cs.CL", "cs.LG"],
+             "primary_category": "cs.CL", "abstract": "a" * 900,
+             "pdf_url": f"https://arxiv.org/pdf/24{n:02d}.0{n:04d}"}
+            for n in range(1, module.MAX_CITATIONS + 1)
+        ]
+        short_content = "c" * 100
+        self.assertLess(len(short_content), module.RENDER_CHAR_CAP)
+        with self.assertRaises(module.LimitExceeded):
+            module._finish(short_content, cites)
 
     def test_streams_are_reconfigured_to_utf8(self) -> None:
         """AC-0025: both streams, before the first write."""

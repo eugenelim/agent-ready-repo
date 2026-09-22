@@ -43,6 +43,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from html.parser import HTMLParser
 
 ATOM = "{http://www.w3.org/2005/Atom}"
@@ -300,7 +301,11 @@ def check_redirect(from_url: str, to_url: str) -> None:
         raise HostNotAllowed(f"redirect from {from_url} refused: {exc}") from exc
 
 
-def check_addresses(host: str, resolver=socket.getaddrinfo, budget=None) -> None:
+def check_addresses(
+    host: str,
+    resolver: Callable[..., list] = socket.getaddrinfo,
+    budget: Budget | None = None,
+) -> None:
     """Refuse a host resolving to an address class this retriever will not reach.
 
     Known limit: this resolves and then connects, so it does not close DNS
@@ -330,7 +335,9 @@ def check_addresses(host: str, resolver=socket.getaddrinfo, budget=None) -> None
             raise HostNotAllowed(f"{host} resolves to a refused address {raw}")
 
 
-def _resolve_bounded(host: str, resolver, budget) -> list:
+def _resolve_bounded(
+    host: str, resolver: Callable[..., list], budget: Budget | None
+) -> list:
     """Resolve `host`, abandoning the wait when the budget runs out.
 
     `getaddrinfo` is synchronous and takes no timeout, so a stalled resolver
@@ -377,7 +384,14 @@ class _NoAutoRedirect(urllib.request.HTTPRedirectHandler):
     the same per-hop checks.
     """
 
-    def http_error_301(self, req, fp, code, msg, headers):
+    def http_error_301(  # noqa: PLR0913 - the handler signature is urllib's
+        self,
+        req: urllib.request.Request,
+        fp: object,
+        code: int,
+        msg: str,
+        headers: object,
+    ) -> None:
         return None
 
     http_error_302 = http_error_301
@@ -426,7 +440,7 @@ class Budget:
             raise LimitExceeded(f"attempt exceeded its {ATTEMPT_DEADLINE_S:g}s deadline")
 
 
-def _arm_socket(response, seconds: float) -> None:
+def _arm_socket(response: object, seconds: float) -> None:
     """Re-arm the underlying socket to `seconds`, or fail closed.
 
     The borrowed reader this follows continues when it cannot reach the socket.
@@ -507,6 +521,10 @@ class Sender:
         """One attempt: resolution, connection, redirects and reads, one budget."""
         target = url
         for hop in range(MAX_REDIRECTS + 1):
+            # A redirect hop is another outbound request, so it owes the same
+            # courtesy interval. Throttling once per attempt would let a chain
+            # of hops issue several requests back to back.
+            self._throttle()
             check_url(target)
             check_addresses(
                 _normalise_host(urllib.parse.urlsplit(target).hostname), budget=budget
@@ -522,8 +540,11 @@ class Sender:
                     request,
                     timeout=max(0.001, min(ATTEMPT_DEADLINE_S, budget.remaining())),
                 ) as response:
-                    return self._read_bounded(response, budget)
+                    body = self._read_bounded(response, budget)
+                self.note_completed(self.clock.monotonic())
+                return body
             except urllib.error.HTTPError as exc:
+                self.note_completed(self.clock.monotonic())
                 location = exc.headers.get("Location") if exc.headers else None
                 if exc.code in (301, 302, 303, 307, 308) and location:
                     if hop >= MAX_REDIRECTS:
@@ -541,7 +562,7 @@ class Sender:
         self,
         url: str,
         params: dict[str, str | int] | None = None,
-        retry_if=None,
+        retry_if: Callable[[bytes], bool] | None = None,
     ) -> bytes:
         """Send one request, retrying transient failures, and return the body.
 
@@ -552,7 +573,6 @@ class Sender:
         full = f"{url}?{urllib.parse.urlencode(params)}" if params else url
         last = "no attempt was made"
         for attempt in range(1, MAX_ATTEMPTS + 1):
-            self._throttle()
             budget = Budget(self.clock, ATTEMPT_DEADLINE_S)
             try:
                 body = self._one_attempt(full, budget)
@@ -645,8 +665,17 @@ def _validated_url(url: str) -> str:
     return url
 
 
+def entry_abstract(entry: ET.Element) -> str:
+    """The entry's abstract text, which belongs in `content`, not a citation."""
+    return " ".join((entry.findtext(f"{ATOM}summary") or "").split())
+
+
 def map_entry(entry: ET.Element) -> dict[str, object]:
     """Map one Atom entry to a citation.
+
+    A citation carries metadata and pointers, not the abstract text: the
+    abstract is material and belongs in `content`, and carrying it in both
+    doubled the largest field the caller pays for.
 
     Optional values are omitted keys, never empty strings, so a consumer
     cannot read absence as an empty value. The abstract URL is version-free and
@@ -666,7 +695,6 @@ def map_entry(entry: ET.Element) -> dict[str, object]:
         raise UnsafeDocument(f"entry carries a malformed identifier {ident!r}")
 
     title = " ".join((entry.findtext(f"{ATOM}title") or "").split())
-    summary = " ".join((entry.findtext(f"{ATOM}summary") or "").split())
     authors = [
         " ".join((a.findtext(f"{ATOM}name") or "").split())
         for a in entry.findall(f"{ATOM}author")
@@ -690,7 +718,6 @@ def map_entry(entry: ET.Element) -> dict[str, object]:
         "submitted": (entry.findtext(f"{ATOM}published") or "").strip(),
         "revised": (entry.findtext(f"{ATOM}updated") or "").strip(),
         "categories": categories,
-        "abstract": summary,
     }
     if version:
         cite["version"] = version
@@ -807,6 +834,11 @@ def extract_sections(document: str) -> list[tuple[str, str]]:
     return parser.sections
 
 
+def effective_full_text_cap(cap: int | None = None) -> int:
+    """The budget that will actually apply. The ceiling is the contract's."""
+    return min(int(cap) if cap else FULL_TEXT_CHAR_CAP, FULL_TEXT_CHAR_CAP)
+
+
 def select_sections(
     document: str, wanted: tuple[str, ...] = DEFAULT_SECTIONS, cap: int = FULL_TEXT_CHAR_CAP
 ) -> tuple[list[tuple[str, str]], int, bool]:
@@ -817,7 +849,7 @@ def select_sections(
     """
     # The ceiling is the contract's, not the caller's: a larger request is
     # clamped rather than honoured.
-    cap = min(cap, FULL_TEXT_CHAR_CAP)
+    cap = effective_full_text_cap(cap)
     available: list[tuple[str, str]] = []
     abstract = extract_abstract(document)
     if abstract:
@@ -874,7 +906,7 @@ def _enrichment_targets(ident: str) -> list[tuple[str, str, str]]:
     ]
 
 
-def _default_presence_check(sender: Sender):
+def _default_presence_check(sender: Sender) -> Callable[[str], bool]:
     def check(url: str) -> bool:
         try:
             sender.get(url)
@@ -885,7 +917,7 @@ def _default_presence_check(sender: Sender):
     return check
 
 
-def enrich(ident: str, check) -> list[dict[str, str]]:
+def enrich(ident: str, check: Callable[[str], bool]) -> list[dict[str, str]]:
     """Confirmed external links for `ident`.
 
     A link is emitted only when `check` separates this paper from an absent
@@ -899,10 +931,12 @@ def enrich(ident: str, check) -> list[dict[str, str]]:
     return links
 
 
-def _render_search(
+def _render_search(  # noqa: PLR0913 - one renderer, one call site
     citations: list[dict[str, object]], tier_index: int, tier_count: int,
     total: int, terminal: bool, query_kind: str, ordering: str,
+    abstracts: dict[str, str] | None = None,
 ) -> str:
+    abstracts = abstracts or {}
     lines = []
     if query_kind == "tiers":
         note = f"tier {tier_index} of {tier_count}"
@@ -923,7 +957,7 @@ def _render_search(
         )
         if cite.get("doi"):
             lines.append(f"DOI: {cite['doi']}")
-        lines.append(str(cite.get("abstract", "")))
+        lines.append(str(abstracts.get(str(cite["arxiv_id"]), "")))
         lines.append("")
     return "\n".join(lines).strip()
 
@@ -944,6 +978,17 @@ def retrieve(query: str, *, mode: str = "search", sender: Sender | None = None, 
     return _mode_search(query, sender, **options)
 
 
+def _emitted(result: dict[str, object]) -> str:
+    """Exactly what the CLI writes to stdout, so the cap measures that.
+
+    Compact, and deliberately: the payload is read by a program, indentation
+    costs the caller context for nothing, and measuring one representation
+    while writing another leaves a band that passes the check and still floods
+    the caller. One function produces both, so the two cannot diverge.
+    """
+    return json.dumps(result, separators=(",", ":")) + "\n"
+
+
 def _finish(content: str, citations: list[dict[str, object]]) -> dict[str, object]:
     if len(citations) > MAX_CITATIONS:
         raise LimitExceeded(f"response carried more than {MAX_CITATIONS} citations")
@@ -951,7 +996,7 @@ def _finish(content: str, citations: list[dict[str, object]]) -> dict[str, objec
     # Citation fields reach the caller too, so the cap is measured over the whole
     # serialized result. Bounding `content` alone lets a large abstract flood the
     # caller's context while the rendered text stays short.
-    serialized = len(json.dumps(result))
+    serialized = len(_emitted(result))
     if serialized > RENDER_CHAR_CAP:
         raise LimitExceeded(
             f"result exceeded {RENDER_CHAR_CAP} characters ({serialized})"
@@ -972,10 +1017,15 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
         )
         params = build_request(**{k: v for k, v in options.items() if k in accepted})
         root = parse_feed(sender.get(API_URL, params, retry_if=is_unexpectedly_empty))
-        citations = [map_entry(e) for e in root.findall(f"{ATOM}entry")]
+        entries = root.findall(f"{ATOM}entry")
+        citations = [map_entry(e) for e in entries]
+        abstracts = {
+            str(c["arxiv_id"]): entry_abstract(e) for c, e in zip(citations, entries, strict=True)
+        }
         kind = "caller-composed" if options.get("search_query") else "fielded"
         return _finish(
-            _render_search(citations, 0, 0, reported_total(root), False, kind, ordering),
+            _render_search(citations, 0, 0, reported_total(root), False, kind,
+                           ordering, abstracts),
             citations,
         )
 
@@ -991,14 +1041,19 @@ def _mode_search(query: str, sender: Sender, **options) -> dict[str, object]:
             break
     index, root, total = chosen  # type: ignore[misc]
     terminal = not (1 <= total <= TIER_MATCH_CEILING)
-    citations = [map_entry(e) for e in root.findall(f"{ATOM}entry")]
+    entries = root.findall(f"{ATOM}entry")
+    citations = [map_entry(e) for e in entries]
+    abstracts = {
+        str(c["arxiv_id"]): entry_abstract(e) for c, e in zip(citations, entries, strict=True)
+    }
     return _finish(
-        _render_search(citations, index, len(tiers), total, terminal, "tiers", ordering),
+        _render_search(citations, index, len(tiers), total, terminal, "tiers",
+                       ordering, abstracts),
         citations,
     )
 
 
-def _resolve_one(target: str, sender: Sender) -> dict[str, object]:
+def _resolve_one(target: str, sender: Sender) -> tuple[dict[str, object], str]:
     ident = parse_identifier(target)
     if ident is None:
         raise MalformedIdentifier(f"{target!r} is not a well-formed arXiv identifier")
@@ -1010,11 +1065,18 @@ def _resolve_one(target: str, sender: Sender) -> dict[str, object]:
     entries = root.findall(f"{ATOM}entry")
     if not entries:
         raise ArxivUnavailable(f"arXiv returned no record for {ident}")
+    matched = re.search(r"(v\d+)$", ident)
+    wanted_version = matched.group(1) if matched else None
     wanted = re.sub(r"v\d+$", "", ident)
     for entry in entries:
         cite = map_entry(entry)
-        if cite["arxiv_id"] == wanted:
-            return cite
+        if cite["arxiv_id"] != wanted:
+            continue
+        # A request naming a version is a request for that revision. Accepting
+        # another answers with different text under the caller's citation.
+        if wanted_version and cite.get("version") != wanted_version:
+            continue
+        return cite, entry_abstract(entry)
     # Returning the first entry regardless would answer a request for one paper
     # with a different paper, under the heading the caller asked for.
     raise UnsafeDocument(
@@ -1024,7 +1086,7 @@ def _resolve_one(target: str, sender: Sender) -> dict[str, object]:
 
 
 def _mode_get(target: str, sender: Sender, **options) -> dict[str, object]:
-    cite = _resolve_one(target, sender)
+    cite, abstract = _resolve_one(target, sender)
     lines = [f"# {cite['title']}"]
     if cite["authors"]:
         lines.append("Authors: " + ", ".join(cite["authors"]))  # type: ignore[arg-type]
@@ -1038,11 +1100,11 @@ def _mode_get(target: str, sender: Sender, **options) -> dict[str, object]:
         if cite.get(key):
             lines.append(f"{label}: {cite[key]}")
     lines.append("")
-    lines.append(str(cite.get("abstract", "")))
+    lines.append(abstract)
 
     if options.get("full_text"):
         wanted = tuple(options.get("sections") or DEFAULT_SECTIONS)
-        cap = int(options.get("full_text_cap", FULL_TEXT_CHAR_CAP))
+        cap = effective_full_text_cap(options.get("full_text_cap"))
         document = sender.get(f"https://arxiv.org/html/{cite['arxiv_id']}").decode(
             "utf-8", "replace"
         )
@@ -1061,7 +1123,7 @@ def _mode_get(target: str, sender: Sender, **options) -> dict[str, object]:
 
 
 def _mode_enrich(target: str, sender: Sender, **options) -> dict[str, object]:
-    cite = _resolve_one(target, sender)
+    cite, _abstract = _resolve_one(target, sender)
     check = options.get("check") or _default_presence_check(sender)
     links = enrich(str(cite["arxiv_id"]), check)
     lines = [
@@ -1156,8 +1218,7 @@ def main(argv: list[str] | None = None) -> int:
     except (ArxivUnavailable, HostNotAllowed, UnsafeDocument, LimitExceeded) as exc:
         print(f"arxiv-retriever: {exc}", file=sys.stderr)
         return 1
-    json.dump(result, sys.stdout, indent=2)
-    print()
+    sys.stdout.write(_emitted(result))
     return 0
 
 
