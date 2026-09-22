@@ -1,6 +1,6 @@
 # Spec: git_commit scope confinement
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0078](../../rfc/0078-workspace-mcp.md) (Accepted)
@@ -109,34 +109,34 @@ in exactly one group.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** **Unchanged staging for a usable base.** For an item type with
+- [x] **AC-0001.** **Unchanged staging for a usable base.** For an item type with
       no configured `output_dir` and for one configured with a base containing
       none of the characters AC-0002 names, `git_commit` stages exactly the
       uncommitted files matching the dispatched item's pattern and no other
       file.
-- [ ] **AC-0002.** **A base carrying a reserved character is refused.** When the
+- [x] **AC-0002.** **A base carrying a reserved character is refused.** When the
       configured `output_dir` for the dispatched item's type contains any of the
       five reserved characters `*`, `?`, `[`, `{`, or `}`, `git_commit` returns
       an error naming the configuration section. Those five are the whole
       reserved set.
-- [ ] **AC-0003.** **A refusal changes nothing.** When `git_commit` refuses under
+- [x] **AC-0003.** **A refusal changes nothing.** When `git_commit` refuses under
       AC-0002, no file is staged and the commit `HEAD` names is unchanged.
-- [ ] **AC-0004.** **No configured value widens the scope.** No configured
+- [x] **AC-0004.** **No configured value widens the scope.** No configured
       `output_dir` value that AC-0002 does not refuse causes `git_commit` to
       stage a file outside the directory that value names.
-- [ ] **AC-0005.** **Deep output keeps committing.** For the `shape`, `strategy`,
+- [x] **AC-0005.** **Deep output keeps committing.** For the `shape`, `strategy`,
       and `design` item types, whose pattern's static prefix already contains
       `{slug}`, `git_commit` stages a matching file at any depth beneath that
       prefix.
-- [ ] **AC-0006.** **A refusal is announced, and not on the protocol channel.** A
+- [x] **AC-0006.** **A refusal is announced, and not on the protocol channel.** A
       refusal under AC-0002 reaches the caller as a tool error and emits a
       warning naming the configuration section on stderr; stdout carries no
       diagnostic text.
-- [ ] **AC-0007.** **Released surfaces name 0.47.3.** `version.py`,
+- [x] **AC-0007.** **Released surfaces name 0.47.3.** `version.py`,
       `pyproject.toml`, the package changelog's topmost entry, the product
       changelog's first `agentbundle` entry, and `README-pypi.md`'s newest
       `What's new` section all name `0.47.3`.
-- [ ] **AC-0008.** **The sibling git tools keep working.** With a base that
+- [x] **AC-0008.** **The sibling git tools keep working.** With a base that
       AC-0002 refuses configured for the dispatched item's type, `git_branch`
       and `git_push` return the same successful results they return with no
       configured `output_dir`, under the same repository state and the same

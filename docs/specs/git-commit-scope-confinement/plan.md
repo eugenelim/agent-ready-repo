@@ -1,7 +1,7 @@
 # Plan: git_commit scope confinement
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/workspace-mcp/design.md` (Git
   tools validate output paths before subprocess use); analogous
   implementations `_publishable_output_pattern` and `_resolve_output_pattern`
