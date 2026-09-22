@@ -76,6 +76,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   finding required. The sentences that state the rule stay; only the argument
   for it is gone, and the work-frontier contract already settles the same point.
   No rule changed, and no behaviour changed.
+- The four worked examples of where a capture note goes moved from the skill
+  into its capture reference, next to the guidance on what a kept note should
+  say. The routing rule and its table stay in the skill; only the examples
+  moved, and the reference now says it owns them.
 
 ## [core][2.26.29] — 2026-09-22
 

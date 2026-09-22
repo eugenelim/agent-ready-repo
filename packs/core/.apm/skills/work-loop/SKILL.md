@@ -831,9 +831,9 @@ capturing a ready-now item is a loss.
 
 - **Review scratch notes** from this session's DECIDE passes. Anything
   generalisable that would have changed the approach goes to the
-  `project-knowledge` public seam, and the examples below are instances of
-  that; the seam is additive. A note that names a defect routes by what it
-  is:
+  `project-knowledge` public seam, and the examples in the capture reference
+  are instances of that; the seam is additive. A note that names a defect
+  routes by what it is:
 
   | What the note is | Where it goes |
   | --- | --- |
@@ -862,10 +862,6 @@ capturing a ready-now item is a loss.
   [The reasoning check](references/work-item-capture.md#the-reasoning-check).
   A note that names no defect is done once the seam has taken it, and
   discarded if it had nothing for the seam either.
-- "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
-- "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
-- "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
-- "This workflow is the third time I've done it" → propose it as a new skill.
 
 ## Context hygiene
 
