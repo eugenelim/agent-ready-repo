@@ -1,23 +1,23 @@
 {
   "docs/product/briefs/intent-identity-and-registration.md": {
-    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
-    "status": "failed",
-    "value": "[`intent-identity-and-registration`](../intents/FEAT-0001-intent-identity-and-registration.md)"
+    "reason": "resolved-unresolvable",
+    "status": "done",
+    "value": "intent:intent-identity-and-registration"
   },
   "docs/product/briefs/multi-adapter-eval-runner.md": {
-    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
-    "status": "failed",
-    "value": "[`cross-adapter-behavior-enforcement`](../intents/cross-adapter-behavior-enforcement.md)"
+    "reason": "resolved-unresolvable",
+    "status": "done",
+    "value": "intent:cross-adapter-behavior-enforcement"
   },
   "docs/product/briefs/spec-author-agent.md": {
-    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
-    "status": "failed",
-    "value": "[`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)"
+    "reason": "resolved-unresolvable",
+    "status": "done",
+    "value": "intent:cross-adapter-behavior-enforcement"
   },
   "docs/product/briefs/universal-implementer-dispatch.md": {
-    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
-    "status": "failed",
-    "value": "[`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)"
+    "reason": "resolved-unresolvable",
+    "status": "done",
+    "value": "intent:cross-adapter-behavior-enforcement"
   },
   "docs/product/intents/CAP-0001-repository-work-graph.md": {
     "reason": "already-typed",

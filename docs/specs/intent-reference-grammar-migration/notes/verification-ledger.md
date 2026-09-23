@@ -995,3 +995,78 @@ exist yet. The entry's comment carries the measured facts a later session needs,
 including that RFC-0103 D1's stated ground for excluding `Contract:` — that
 contract ids carry a version — is false of all 34 contract nodes in this corpus.
 The spec's Follow-ons section cites the slug.
+
+## 2026-09-22 — review findings 3, 4, 9 and 10 repaired
+
+All four were adjudicated SUSTAINED against current evidence before repair.
+
+### Finding 4 — AC-0007 was a control that could not fail
+
+The duplicate fixture spied on `Graph.add`, asserted the pre-insertion sequence
+carried the duplicate, then asserted the built set held one node. Both pass
+against an implementation that silently overwrites, which is what the shipped
+code did: AC-0007 ("no two nodes share an id") was observed, never enforced.
+
+Repaired at the generator rather than the instance. `Graph.add` now records a
+collision at insertion into `g.duplicate_ids`, and `check()` reports it as a
+hard violation in every mode. `recognize_briefs` was writing `g.nodes[bid]`
+directly, bypassing the guard entirely, and now goes through `add`. External
+stubs keep their `setdefault` and are deliberately outside the guard: a stub is
+keyed on a raw target string and legitimately repeats when consumers share a
+target.
+
+Measured before enforcing, because a legitimate double-registration would have
+broken the repository: **694 `add()` calls, 694 distinct ids, 0 duplicates.**
+Red proved by reverting the production file — `AttributeError` on
+`g.duplicate_ids` — then 63 tests green.
+
+### Finding 3 — the four markdown links are now typed
+
+The sweep attempted link resolution only for `dangling` values. `dangling` and
+`unresolvable` both mean the *value* did not resolve, not that the target does
+not exist: a markdown link tokenizes to a fragment, and whether that fragment
+contains a `/` decides which of the two states it lands in. The split is an
+artefact of tokenization, so link resolution now runs for both.
+
+| | Before | After |
+| --- | ---: | ---: |
+| Untyped resolvable `Parent intent:` | 4 | **0** |
+| Nodes | 747 | 744 |
+| External stubs | 36 | **33** |
+| Edges | 123 | **123** |
+
+Edges hold, which is what T5's "preserve every edge rather than repointing one"
+clause exists to protect. Its literal wording — each rewritten value resolving
+to the same id as before — is not met, because the id moves from an external
+stub to the real node. The clause's purpose is served and its letter is not;
+recorded rather than amended, since the same reasoning already covered the 8
+dangling values in the fourth amendment.
+
+### Finding 10 — governance citations removed from shipped sources
+
+`packs/AGENTS.md:51-52`: "Under `packs/`, write portable guidance only. Do not
+cite this catalogue's internal records, acceptance criteria, or repository-only
+paths; state the rule directly." The delivery added 12 such citations across 4
+shipped files, none present at the merge base.
+
+Removed from the three this session owns — `lint-traceability.py`,
+`lint-brief-coverage.py`, `new-spec/references/spec-and-plan-contract.md` — by
+restating each rationale in standalone terms rather than deleting it. The
+ordinal rule, for instance, now says why a series position is not a name
+instead of citing the record that decided it.
+
+**Four citations remain in `workspace_status_engine.py` (`:741`, `:1842`,
+`:2679`, `:2686`).** That file is being edited concurrently by another session
+fixing review findings 1 and 2, so it is theirs to clear; flagged to them rather
+than edited underneath them.
+
+### Finding 9 — the second version-bump rule
+
+`packages/AGENTS.md:7` requires a non-cosmetic package change to update both
+`version.py` and `pyproject.toml`. The bundled engine changed (+52/−3) and both
+still read `0.47.3`. Bumped to `0.47.4` with a changelog entry.
+
+That is **two** scoped version-bump rules this contract missed, in two different
+`AGENTS.md` files, both found by review rather than by the plan. The packs rule
+cost a contract amendment; this one was caught before the release surface
+closed.

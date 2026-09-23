@@ -581,13 +581,15 @@ def recognize_intents(base: Path, root: Path, g: Graph,
     the `outcome`/`opportunity`/`capability` files). Covering the whole
     directory would give each of those 33 files a second id, taking every live
     bare `Parent intent:` pointer to ambiguous against its own target
-    (RFC-0103 D2, measured); the exclusion is the whole design.
+    measured against a real corpus; the exclusion is the whole design.
 
     Id `intent:<slug>`, where `slug` is the **`Slug:` field value, never the
     filename stem** — 5 of the 117 filenames carry an ordinal prefix, and
-    AC-0005 refuses an ordinal-prefixed stem as a pointer value. A file
-    carrying no `Slug:` field is reported via `g.notes` and contributes no
-    node; it does not fall back to the stem (AC-0014, AC-0015).
+    an ordinal identifies a record's place in a series, and a series position
+    is not a name — two records can swap places without either changing what it
+    is about, so a pointer keyed on one can be silently wrong. A file carrying
+    no `Slug:` field is reported via `g.notes` and contributes no node; it does
+    not fall back to the stem, because the stem is the form just ruled out.
 
     Returns id→path for edge build, so an unclaimed intent file's own
     `Parent intent:` pointer joins the same producer-pointer wiring pass as
@@ -677,7 +679,7 @@ _CROSSREPO_RE = re.compile(r".+/.+|.+@.+|.+·.+")
 
 # An ordinal (`FEAT-0001`) or an ordinal-prefixed filename stem
 # (`FEAT-0001-intent-identity-and-registration`) — never accepted as a pointer
-# value (a series position is not a name; RFC-0103 D2). Checked ahead of the
+# value (a series position is not a name). Checked ahead of the
 # bare-slug suffix scan so an ordinal-shaped target refuses even where it would
 # otherwise suffix-match a local id derived — wrongly — from a filename stem.
 _ORDINAL_RE = re.compile(r"^[A-Z]+-\d{4}(-.+)?$")

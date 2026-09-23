@@ -132,7 +132,7 @@ mechanical rule.
   to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief. `brief:<slug>` is the canonical form
-  (RFC-0103 D3); the repository-relative path (`docs/product/briefs/<slug>.md`
+  ; the repository-relative path (`docs/product/briefs/<slug>.md`
   — the brief file's real path) is an accepted fallback that `workspace-status`
   reconciliation matches against the queue entry's `source.parent`. Both forms
   pass reconciliation; a bare slug fails that check and blocks dispatch, as it

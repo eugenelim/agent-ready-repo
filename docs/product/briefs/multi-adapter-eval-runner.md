@@ -5,7 +5,7 @@
 - **Owner:** eugenelim
 - **Status:** Draft
 - **Source / provenance:** Repository-origin capability 5 from [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md), accepted at the current checkout by owner decision.
-- **Parent intent:** [`cross-adapter-behavior-enforcement`](../intents/cross-adapter-behavior-enforcement.md)
+- **Parent intent:** intent:cross-adapter-behavior-enforcement
 
 ## Outcome
 

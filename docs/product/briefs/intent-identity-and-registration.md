@@ -4,7 +4,7 @@
 - **Received:** 2026-09-18
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Executing
-- **Parent intent:** [`intent-identity-and-registration`](../intents/FEAT-0001-intent-identity-and-registration.md)
+- **Parent intent:** intent:intent-identity-and-registration
 - **Ready confirmed:** 2026-09-20 by eugenelim, bound to revision `sha256:62c26b6c92f56952`, which returned `Clean` from an independent delivery-brief shaping review. Five slices confirmed; each is a `Draft` spec.
 - **Amended 2026-09-21 by eugenelim**, after the Ready confirmation above: the reuse bullet's "renumbered at admission" became "numbered at admission". Wording only — it changes no slice, no scope and no confirmation, and the parent intent's A1′ and validation hook took the same change. The older phrase said *when* an ordinal is assigned, but read as a requirement that admission rename files, which this brief's own forward-only non-goal forbids and which the delivery slice then found no admission surface can do. Renaming belongs to `intent-renumber-and-reissue`.
 - **Executing from 2026-09-21.** `typed-intent-ordinal-allocator` moved to `Implementing`, and `lint-brief-coverage` holds that a `Ready` brief cannot have a child carrying execution evidence — the brief's lifecycle and its children's have to agree. The Ready confirmation above stands as the record of that gate; this line records the transition off it.

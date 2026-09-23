@@ -223,7 +223,15 @@ def sweep(root: Path, state_path: Path) -> tuple[int, list[dict], list[dict]]:
 
         if result_state == "local":
             new_value = resolved
-        elif result_state == "dangling":
+        elif result_state in ("dangling", "unresolvable"):
+            # Both states mean the *value* did not resolve, not that the target
+            # does not exist. A markdown link tokenizes to a fragment: one with
+            # a `/` looks like a cross-repo shape and lands `unresolvable`, one
+            # without lands `dangling`. The split is an artefact of the token,
+            # so link resolution is attempted for both — AC-0008's remainder is
+            # "not `<kind>:<slug>`", and it names these markdown links
+            # explicitly. A target the link cannot resolve is still left alone
+            # and reported, which is the Agent Rule this does not weaken.
             link_id = _resolve_link_target(mod, raw, path, root, path_to_id)
             if link_id is not None and link_id in local_ids:
                 new_value = link_id
