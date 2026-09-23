@@ -8,7 +8,7 @@
 > `align-value-stream` skill keeps it current and never rejects a half-formed
 > rollup for non-conformance.
 
-- **Parent intent:** `<slug>` <!-- the capability/feature intent this fans out from (docs/product/intents/<slug>.md) -->
+- **Parent intent:** `<kind>:<slug>` <!-- the capability/feature intent this fans out from, e.g. `capability:<slug>` (docs/product/intents/<slug>.md) -->
 - **Last reviewed:** YYYY-MM-DD <!-- when the snapshot below was last reconciled against each component repo -->
 
 ## Why this is a snapshot, not a live feed
