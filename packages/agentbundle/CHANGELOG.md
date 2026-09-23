@@ -12,9 +12,11 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 - The bundled workspace-status engine accepts `brief:<slug>` as a spec's
   `Brief:` provenance value, alongside the repository-relative path it already
-  accepted. The typed value is reduced to its path form before the existing
-  checks run, so path validation and confinement are unchanged, and a value that
-  is neither form still blocks dispatch.
+  accepted. The typed value is reduced to its path form once, before every
+  check that reads it — both the path validation and the comparison against the
+  registered `source.parent`, so a spec whose header and registration use
+  different forms of the same brief no longer blocks dispatch. Confinement is
+  unchanged, and a value that is neither form still blocks dispatch.
 
 ## [0.48.0] — 2026-09-22
 

@@ -348,8 +348,18 @@ class Graph:
         self.dangling_out: set[str] = set()
         self.dangling_in: set[str] = set()
         self.notes: list[str] = []                # informational degradations
+        # Ids two artifacts both derived. Recorded at insertion because the
+        # built node set cannot show them: the second write replaces the first,
+        # so a check reading `nodes` afterwards is true of every corpus,
+        # including a colliding one.
+        self.duplicate_ids: list[str] = []
 
     def add(self, node_id: str, kind: str) -> None:
+        if node_id in self.nodes:
+            self.duplicate_ids.append(
+                f"{node_id}: derived by two artifacts "
+                f"(kinds {self.nodes[node_id]!r} and {kind!r})"
+            )
         self.nodes[node_id] = kind
         if kind in CHAIN:
             self.populated.add(kind)
@@ -486,7 +496,9 @@ def recognize_briefs(base: Path, root: Path, g: Graph) -> dict[str, Path]:
             continue
         slug = _first(text, _SLUG_RE) or p.stem
         bid = _slug_id("brief", slug)
-        g.nodes[bid] = "brief"
+        # Through `add`, not a direct assignment: a direct write bypasses the
+        # duplicate guard, and a brief can collide with any other kind.
+        g.add(bid, "brief")
         found[bid] = p
     return found
 
@@ -1359,6 +1371,8 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
 
     for d in dangling:
         hard.append(f"DANGLING — {d}")
+    for dup in sorted(set(g.duplicate_ids)):
+        hard.append(f"DUPLICATE ID — {dup}")
     for c in cycles:
         hard.append(f"CYCLE — {c}")
 

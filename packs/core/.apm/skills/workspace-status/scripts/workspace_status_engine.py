@@ -1837,17 +1837,25 @@ def _confined_artifact_path(root: Path, rel_path: str) -> Path | None:
 
 def _confined_briefs_path(root: Path, rel_path: str) -> bool:
     """Whether `rel_path`, once resolved with symlinks followed, stays
-    beneath the resolved `docs/product/briefs/` directory.
+    beneath the resolved `docs/product/briefs/` directory, which must itself
+    stay beneath the resolved repository root.
 
     AC-0022 is stricter than `_confined_artifact_path`'s repository-root
     confinement: a brief path whose symlink resolves to another directory
     inside the repository passes repo-root confinement and must still be
     refused here, because the boundary is the briefs directory, not the
     repository root.
+
+    Both halves are load-bearing, and neither replaces the other. Confining
+    the candidate alone leaves the boundary itself unanchored: make
+    `docs/product/briefs/` a symlink to an external directory and every
+    target under it is correctly beneath the resolved briefs root while the
+    root has escaped the repository.
     """
     try:
         root_resolved = root.resolve()
         briefs_root = (root_resolved / "docs" / "product" / "briefs").resolve()
+        briefs_root.relative_to(root_resolved)
         candidate = (root_resolved / rel_path).resolve()
         candidate.relative_to(briefs_root)
         return True
@@ -2230,6 +2238,36 @@ def _normalized_optional_artifact_value(value: str | None) -> str | None:
     if stripped.lower() in {"", "none"}:
         return None
     return stripped
+
+
+def _resolved_provenance_parent(
+    value: str | None, *, require_local_brief: bool
+) -> str | None:
+    """The one resolved form of a provenance parent value.
+
+    Every consumer of a provenance parent reads it through this function --
+    the path check, the source-vs-artifact equality comparison, and the brief
+    child-state attribution. Resolving inside the path check alone is what
+    caused the defect this replaces: the raw `brief:<slug>` value stayed in
+    scope, and the equality check a few lines below compared a typed header
+    against a path-form `source.parent`, reporting `provenance_mismatch` for
+    every migrated spec. Handing the caller a resolved value is what stops the
+    next consumer reaching for an unresolved one -- there is none left in scope
+    to reach for.
+
+    `require_local_brief` is the spec-provenance gate. Only there does
+    `brief:<slug>` denote a path. At the shared helper's other call sites --
+    `workspace.toml` entry, dependency, legacy-queue and receipt paths -- a
+    slug is meaningless, so the value is returned untouched and
+    `_is_canonical_local_brief_path` keeps refusing it (AC-0018).
+
+    A value that is neither admitted form is returned unchanged, so it still
+    mismatches and is still refused by the path check (AC-0017).
+    """
+    normalized = _normalized_optional_artifact_value(value)
+    if normalized is None or not require_local_brief:
+        return normalized
+    return _normalized_brief_pointer(normalized)
 
 
 def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata | None:
@@ -2677,6 +2715,11 @@ def _provenance_path_is_invalid(
     # provenance read, before any lexical check runs — never inside
     # `_is_canonical_local_brief_path`, which also guards `workspace.toml`
     # entry and dependency paths where a slug has no meaning (AC-0018).
+    #
+    # Callers inside this module pass a value already resolved by
+    # `_resolved_provenance_parent`, and resolving is idempotent — a path form
+    # has no `brief:` prefix to match. This line is kept so the helper stays
+    # correct for a direct caller that holds only the declared value.
     candidate = _normalized_brief_pointer(path) if require_local_brief else path
     if not _is_repository_relative_path(candidate):
         return True
@@ -3169,7 +3212,9 @@ def _brief_child_spec_states(
             # tell "this spec has no parent" from "nobody recorded whether it
             # has one".
             raw_parent = entry.source.parent
-            source_parent = _normalized_optional_artifact_value(raw_parent)
+            source_parent = _resolved_provenance_parent(
+                raw_parent, require_local_brief=True
+            )
             if source_parent is not None:
                 if source_parent in brief_membership_paths:
                     briefs_affected.add(source_parent)
@@ -3184,10 +3229,18 @@ def _brief_child_spec_states(
                 scope_unknown.add(entry.path)
             continue
         metadata = _artifact_metadata(workspace, entry, root)
+        # Both sides resolved through the same function the routing checks
+        # use. Read raw, a typed header would key `states` by `brief:<slug>`,
+        # which no brief path lookup matches.
         parent_paths = {
             path for path in (
-                _normalized_optional_artifact_value(entry.source.parent),
-                metadata.parent if metadata is not None else None,
+                _resolved_provenance_parent(
+                    entry.source.parent, require_local_brief=True
+                ),
+                _resolved_provenance_parent(
+                    metadata.parent if metadata is not None else None,
+                    require_local_brief=True,
+                ),
             )
             if path is not None
         }
@@ -3393,8 +3446,10 @@ def _structural_findings(
         findings.append(_finding("dependency_cycle", entry.path, "dependency cycle"))
     if membership.ini_slug and membership.initiative_status not in ("active",):
         findings.append(_finding("inactive_initiative", entry.path, "initiative is inactive"))
-    source_parent = _normalized_optional_artifact_value(entry.source.parent)
     require_local_brief_parent = entry.kind == "spec"
+    source_parent = _resolved_provenance_parent(
+        entry.source.parent, require_local_brief=require_local_brief_parent
+    )
     if _provenance_path_is_invalid(
         root,
         source_parent,
@@ -3428,15 +3483,18 @@ def _structural_findings(
         )
     if metadata.refresh_conflict:
         findings.append(_finding("refresh_conflict", entry.path, "unresolved refresh conflict"))
+    artifact_parent = _resolved_provenance_parent(
+        metadata.parent, require_local_brief=require_local_brief_parent
+    )
     if _provenance_path_is_invalid(
         root,
-        metadata.parent,
+        artifact_parent,
         require_local_brief=require_local_brief_parent,
     ):
         findings.append(
-            _finding("invalid_artifact_path", metadata.parent or "", "artifact parent")
+            _finding("invalid_artifact_path", artifact_parent or "", "artifact parent")
         )
-    if source_parent != metadata.parent:
+    if source_parent != artifact_parent:
         findings.append(_finding("provenance_mismatch", entry.path, "parent mismatch"))
     if (
         entry.source.mode == "tracker-origin"

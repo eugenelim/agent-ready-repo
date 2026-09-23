@@ -1282,6 +1282,16 @@ def test_duplicate_derived_intent_id_caught_over_pre_insertion_sequence() -> Non
                f"the built node set alone hides the collision (Graph.add "
                f"overwrites), which is exactly why the sequence is asserted "
                f"instead: {g.nodes!r}")
+        # The two assertions above observe the overwrite; neither refuses it,
+        # and both pass against an implementation that silently overwrites.
+        # AC-0007 is "no two nodes share an id", so the collision has to be
+        # *reported*, not merely visible to a spy the production path does not
+        # have.
+        expect(len(g.duplicate_ids) == 1,
+               f"the collision must be recorded at insertion, so it survives "
+               f"into the report without a test spy: {g.duplicate_ids!r}")
+        expect(derived[0] in g.duplicate_ids[0],
+               f"the record must name the colliding id: {g.duplicate_ids!r}")
 
 
 def test_unclaimed_intent_parent_pointer_wires_the_in_edge() -> None:

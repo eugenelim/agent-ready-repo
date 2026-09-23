@@ -3701,6 +3701,43 @@ def test_dispatch_confines_typed_brief_beneath_resolved_briefs_root(tmp_path: Pa
     assert not mod._provenance_path_is_invalid(tmp_path, "brief:real", require_local_brief=True)
 
 
+def test_dispatch_refuses_a_briefs_root_that_escapes_the_repository(tmp_path: Path) -> None:
+    """AC-0022. The briefs root must itself sit beneath the repository root.
+    When `docs/product/briefs/` is a symlink to an external directory, every
+    target under it is correctly beneath the *resolved* briefs root while the
+    root has escaped, so confining the candidate alone admits an arbitrary
+    external file. Both halves are required: the briefs root beneath the
+    repository root, and the candidate beneath the briefs root."""
+    mod = _load_engine()
+    escaped_repo = tmp_path / "escaped-repo"
+    (escaped_repo / "docs" / "product").mkdir(parents=True)
+    external = tmp_path / "external-briefs"
+    external.mkdir()
+    (external / "outside.md").write_text("# Brief\n")
+    try:
+        (escaped_repo / "docs" / "product" / "briefs").symlink_to(
+            external, target_is_directory=True
+        )
+    except OSError:
+        pytest.skip("symlink creation is unavailable in this environment")
+
+    assert mod._provenance_path_is_invalid(
+        escaped_repo, "brief:outside", require_local_brief=True
+    )
+    assert mod._provenance_path_is_invalid(
+        escaped_repo, "docs/product/briefs/outside.md", require_local_brief=True
+    )
+
+    # Same slug, a real briefs directory: still admitted, so the refusal above
+    # cannot be earned by refusing everything.
+    intact_repo = tmp_path / "intact-repo"
+    (intact_repo / "docs" / "product" / "briefs").mkdir(parents=True)
+    (intact_repo / "docs" / "product" / "briefs" / "outside.md").write_text("# Brief\n")
+    assert not mod._provenance_path_is_invalid(
+        intact_repo, "brief:outside", require_local_brief=True
+    )
+
+
 def test_dispatch_brief_optional_field_is_absence(tmp_path: Path) -> None:
     """AC-0024. Omitted, blank, comment-only, and `none` all mean absence and
     produce no provenance finding — distinct in sign from AC-0016/AC-0017,
@@ -3764,3 +3801,52 @@ def test_shared_brief_path_rule_unaffected_at_other_call_sites(tmp_path: Path) -
         )
         assert not satisfied, value
         assert receipt_finding is not None, value
+
+
+def test_dispatch_provenance_equality_reads_both_forms(tmp_path: Path) -> None:
+    """AC-0016. Admitting the typed form has to reach the source-vs-artifact
+    *equality* check, not only the path check. The migration left every
+    registered spec with a `brief:<slug>` header and a path-form
+    `source.parent`, and comparing those as raw strings reported a
+    `provenance_mismatch` for each one.
+
+    Asserted in both directions, because a fix that resolves only the artifact
+    side passes the first case and fails the second. The pre-existing
+    `test_dispatch_admits_typed_and_path_brief_forms` cannot catch either: it
+    passes the same value on both sides, so the two never differ."""
+    mod = _load_engine()
+    typed = "brief:parent"
+    path = "docs/product/briefs/parent.md"
+    for header_value, source_parent in ((typed, path), (path, typed)):
+        codes = _probe_findings(
+            tmp_path, mod, header_value=header_value, source_parent=source_parent
+        )
+        assert "provenance_mismatch" not in codes, (header_value, source_parent, codes)
+        assert "invalid_artifact_path" not in codes, (header_value, source_parent, codes)
+
+
+def test_dispatch_provenance_equality_still_refuses_a_different_brief(
+    tmp_path: Path,
+) -> None:
+    """AC-0016/AC-0017. The comparison stays a comparison. A header naming a
+    *different* brief than `source.parent` mismatches in either form pairing,
+    and a value that is neither admitted form mismatches too — so the repair
+    cannot be earned by making the check permissive.
+
+    Each case pairs values that resolve to different briefs, or one that
+    resolves to nothing; none of them is the same-brief case above."""
+    mod = _load_engine()
+    cases = (
+        ("brief:other", "docs/product/briefs/parent.md"),
+        ("docs/product/briefs/other.md", "brief:parent"),
+        ("brief:other", "brief:parent"),
+        ("docs/product/briefs/other.md", "docs/product/briefs/parent.md"),
+        # Neither admitted form: a malformed slug is returned unresolved, so it
+        # both mismatches and is refused by the path check.
+        ("brief:ok!", "docs/product/briefs/parent.md"),
+    )
+    for header_value, source_parent in cases:
+        codes = _probe_findings(
+            tmp_path, mod, header_value=header_value, source_parent=source_parent
+        )
+        assert "provenance_mismatch" in codes, (header_value, source_parent, codes)
