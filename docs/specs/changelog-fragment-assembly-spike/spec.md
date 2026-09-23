@@ -1,6 +1,6 @@
 # Spec: Changelog fragment assembly — measurement spike
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0123
@@ -97,22 +97,22 @@ Each criterion below states its own threshold. Where the threshold comes from
 `docs/architecture/changelog-fragment-source.md` § 7, the criterion cites the
 row that owns it; § 7 wins where the two ever disagree.
 
-- [ ] The report records, for 20 synthetic branches that each add one `docs/product/changelog.d/<uuid>.md` fragment and nothing else, how many of the 190 unordered branch pairs `git merge-tree` classifies as conflicting on a changelog path; the figure is zero, per § 7 Mergeability.
-- [ ] The report records that same figure for a control arm of 20 synthetic branches that each instead prepend one release section to `docs/product/changelog.md`; the figure is greater than zero, without which the fragment arm's zero is not a measurement.
-- [ ] The report records, for each arm, how many of the 190 pairs `git merge-tree` exited non-zero on for any reason other than a conflict; the figure is zero in both arms, and a non-zero figure is a harness failure rather than a clean pair.
-- [ ] The report records the number of distinct output digests produced by assembling the frozen baseline plus 20 fragments across 5 shuffled directory enumerations; the figure is 1, per § 7 Determinism.
-- [ ] The report records the number of distinct output digests across those same 5 shuffled enumerations with the assembler's canonical sort removed; the figure is at least 2.
-- [ ] The report records whether the model's `/now/` payload with zero fragments is byte-identical to the complete serialized payload `tools/build-site.py` emits at the named base, per § 7 Historical compatibility; group count, bullet count and the anchor list are recorded as diagnostics and are not the comparison.
-- [ ] The report records how many of the 20 authored fragment Highlights bullets appear in the payload exactly once and byte-for-byte; the figure is 20, per § 7 Content integrity.
-- [ ] The report records how many of the 20 fragments produce a group in the payload and how many of those groups carry an anchor matching `change-` followed by exactly 32 lowercase hexadecimal digits; both figures are 20.
-- [ ] The report records how many historical anchors present in the zero-fragment payload are absent or changed in the twenty-fragment payload; the figure is zero.
-- [ ] The report records the five-run median wall-clock duration of `make site-build` for a control arm and for a fragment arm, and the fragment median minus the control median divided by the control median, as a percentage; the figure is under 10%, per § 7 Build performance.
-- [ ] The report records the interleaved run order of the two build-cost arms, the discarded warm-up run for each arm, and the ten retained durations.
-- [ ] `python3 tools/measure-changelog-fragment-merges.py` prints both arms' conflicting-pair counts and both arms' error counts, and names the base commit it ran against.
-- [ ] That same run leaves `git status --porcelain` empty.
-- [ ] The report states a survive or kill verdict for each of the four measurements against the threshold its criterion names.
-- [ ] The report states an overall verdict that is kill when the merge-independence, determinism, or parity measurement is recorded as kill, and survive otherwise; the build-cost measurement does not enter the aggregation.
-- [ ] Every figure the criteria above require is recorded in the report beside the base commit and the corpus size it was taken at.
+- [x] The report records, for 20 synthetic branches that each add one `docs/product/changelog.d/<uuid>.md` fragment and nothing else, how many of the 190 unordered branch pairs `git merge-tree` classifies as conflicting on a changelog path; the figure is zero, per § 7 Mergeability.
+- [x] The report records that same figure for a control arm of 20 synthetic branches that each instead prepend one release section to `docs/product/changelog.md`; the figure is greater than zero, without which the fragment arm's zero is not a measurement.
+- [x] The report records, for each arm, how many of the 190 pairs `git merge-tree` exited non-zero on for any reason other than a conflict; the figure is zero in both arms, and a non-zero figure is a harness failure rather than a clean pair.
+- [x] The report records the number of distinct output digests produced by assembling the frozen baseline plus 20 fragments across 5 shuffled directory enumerations; the figure is 1, per § 7 Determinism.
+- [x] The report records the number of distinct output digests across those same 5 shuffled enumerations with the assembler's canonical sort removed; the figure is at least 2.
+- [x] The report records whether the model's `/now/` payload with zero fragments is byte-identical to the complete serialized payload `tools/build-site.py` emits at the named base, per § 7 Historical compatibility; group count, bullet count and the anchor list are recorded as diagnostics and are not the comparison.
+- [x] The report records how many of the 20 authored fragment Highlights bullets appear in the payload exactly once and byte-for-byte; the figure is 20, per § 7 Content integrity.
+- [x] The report records how many of the 20 fragments produce a group in the payload and how many of those groups carry an anchor matching `change-` followed by exactly 32 lowercase hexadecimal digits; both figures are 20.
+- [x] The report records how many historical anchors present in the zero-fragment payload are absent or changed in the twenty-fragment payload; the figure is zero.
+- [x] The report records the five-run median wall-clock duration of `make site-build` for a control arm and for a fragment arm, and the fragment median minus the control median divided by the control median, as a percentage; the figure is under 10%, per § 7 Build performance.
+- [x] The report records the interleaved run order of the two build-cost arms, the discarded warm-up run for each arm, and the ten retained durations.
+- [x] `python3 tools/measure-changelog-fragment-merges.py` prints both arms' conflicting-pair counts and both arms' error counts, and names the base commit it ran against.
+- [x] That same run leaves `git status --porcelain` empty.
+- [x] The report states a survive or kill verdict for each of the four measurements against the threshold its criterion names.
+- [x] The report states an overall verdict that is kill when the merge-independence, determinism, or parity measurement is recorded as kill, and survive otherwise; the build-cost measurement does not enter the aggregation.
+- [x] Every figure the criteria above require is recorded in the report beside the base commit and the corpus size it was taken at.
 
 ## Follow-ons
 

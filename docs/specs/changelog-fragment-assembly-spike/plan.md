@@ -1,7 +1,7 @@
 # Plan: Changelog fragment assembly — measurement spike
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/changelog-fragment-source.md` § 7 and
   ADR-0123 § Confirmation name the claims; `docs/product/research/changelog-fragmentation-spike.md`
   and `docs/product/research/changelog-generator-quality-spike.md` are the two
