@@ -1273,3 +1273,22 @@ being slipped past a guard that would otherwise catch it.
 This ledger entry is the audit record for the change. It is the same home the
 four prior amendments' `owner_authority_ref` and `reason_ref` fields already
 point at.
+
+### 2026-09-23 — the portability rule has a second home, and I checked only one
+
+CI failed on `Shipped guides contain no repo-only governance references`.
+`guides/core/reference/product-brief-fields.md:100` cited `RFC-0103 D3` while
+recording that `brief:<slug>` supersedes the path pin — the one line in
+`guides/` this delivery had to change, and the citation went in with the
+change.
+
+Adjudicated finding 10 was the same rule. Discharging it, I grepped `packs/`
+and reported zero, which was true and incomplete: `packs/AGENTS.md` states the
+rule for the `.apm/` export boundary, and `tools/lint-guides-no-repo-only-refs.py`
+enforces it independently over `guides/`. Two enforcement surfaces, one rule,
+and a finding that named only the first. A clean grep over the surface a
+finding cites is not evidence about the rule the finding is an instance of.
+
+Fixed by stating the supersession directly instead of naming the record, which
+is what the rule asks for. `tools/lint-guides-no-repo-only-refs.py` now reports
+`OK — no repo-only governance references in guides/`.
