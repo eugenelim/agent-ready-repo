@@ -1057,9 +1057,26 @@ open = [
   # per release (2 headings -> 162, 0 release ids -> 156), a 31-entry date
   # index, and a return link; and /now/feed.xml publishes all 156 releases as
   # Atom so the page is no longer the only machine-readable record.
-  # THE PAGE IS NOT SHORTER -- 120.3 viewport heights against 119.9, 235 KB
-  # against 224 KB. That is the honest outcome of making it navigable rather
-  # than bounding it, and pagination is the remaining step.
+  # CLOSED 2026-09-23. All three named absences are gone and the page is
+  # bounded: 20 releases per page, /now/ as page 1 and /now/page/2..8/.
+  # Entry page 235 KB -> 47 KB, 120.3 viewport heights -> 19.2 at 320 (55.2 ->
+  # 9.2 at 1100). All 156 releases appear exactly once across the eight pages.
+  # Permalinks landed FIRST and that ordering was load-bearing: the Atom feed
+  # identifies entries by a permanent IRI, and paginating while those were
+  # /now/#<anchor> would have silently broken every id for an older release.
+  # Each release now has /now/<anchor>/ and the feed names that instead.
+  # Two defects the build surfaced, both of the looks-fine-and-isn't kind: a
+  # `hidden` pager step still carried an href to /now/page/9/, which does not
+  # exist; and axe found 8 serious target-size violations, the page digits at
+  # 9x17 against WCAG 2.2 SC 2.5.8's 24x24 floor. Both fixed, the second with
+  # a new --ds-target-min token. Re-measured 0 axe violations on three pages at
+  # both widths -- checked directly, because the browser gate runs a fixed
+  # route list that does not include the new templates.
+  # STILL OPEN, and recorded on the survey rather than here: the date index is
+  # page-scoped and its heading says so, so archive-wide date navigation does
+  # not exist. That is the year -> month split, and it is wanted before the
+  # history reaches a year or the page count passes roughly a dozen, whichever
+  # comes first.
   # An age-based cutoff was considered and REJECTED on evidence: 0 of 12 public
   # changelog feeds truncate by age, and our own history is 156 releases in 37
   # days, so a rolling 30-day window would cut 9% and leave ~109 viewport

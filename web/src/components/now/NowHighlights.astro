@@ -39,13 +39,13 @@ const changelogHref = withBase('/docs/changelog/');
 // They were local consts until the permalink route made this the third caller.
 const releaseLabel = (group: NowGroup) => releaseLabelOf(group.packages);
 
-// One index entry per distinct release date, pointing at the FIRST release of
-// that day. Groups arrive in the contract's descending-date order, so first-seen
-// is the topmost release for that date and a `Map` preserves that order.
-// Deliberately not one entry per release: 156 links is a second long page, not
-// an index. Deliberately not one per month either — the whole history currently
-// spans two calendar months, so a month index would have two entries and
-// navigate nothing.
+// One index entry per distinct release date on THIS page, pointing at that
+// day's first release. Groups arrive in the contract's descending-date order,
+// so first-seen is the topmost release for that date and a `Map` preserves it.
+// Page-scoped since pagination arrived, and the heading says so — an index
+// that silently covered only part of the archive would be worse than none.
+// Archive-wide date navigation is the year-to-month split the survey names as
+// the next step; it is not this.
 const dateIndex = [...groups
   .reduce((acc, group) => (
     acc.has(group.date) ? acc : acc.set(group.date, group.changelogAnchor)
@@ -68,7 +68,7 @@ const releasesOn = groups.reduce((acc, group) => (
 ) : (
   <Fragment>
     <nav class="now-index" aria-labelledby="now-index-heading">
-      <h3 id="now-index-heading" class="now-index__heading">Jump to a date</h3>
+      <h3 id="now-index-heading" class="now-index__heading">Dates on this page</h3>
       <ol class="now-index__list" role="list">
         {dateIndex.map((entry) => (
           <li class="now-index__item">

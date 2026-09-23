@@ -918,13 +918,35 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
 
   it('now AC3–AC4: every release group names its package, version, date and changelog source', () => {
     const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
-    const d = doc(NOW_PAGE);
-    const groups = [...d.querySelectorAll('.now-release')];
+    // /now/ became page 1 of a paginated index when the release count made one
+    // page 120 viewport heights long. The criterion is unchanged — EVERY
+    // release group must still name its package, version, date and source —
+    // so the subject is now every index page rather than the single page this
+    // originally read. Narrowing it to page 1 would have quietly dropped 136
+    // of 156 releases out of the check.
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const indexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    const groups = indexPages.flatMap((page) => [...doc(page).querySelectorAll('.now-release')]);
     expect(groups.length).toBe(projection.groups.length);
 
-    // Descending by release date, which is the contract's order.
-    const dates = groups.map((g) => g.querySelector('time')?.getAttribute('datetime') ?? '');
-    expect([...dates]).toEqual([...dates].sort().reverse());
+    // Descending by release date within each page, which is the contract's
+    // order. Checked per page: concatenating the pages and sorting the whole
+    // run would also pass if two PAGES were emitted out of order, which the
+    // ordering guard in the pagination suite covers by slug set instead.
+    for (const page of indexPages) {
+      const dates = [...doc(page).querySelectorAll('.now-release')]
+        .map((g) => g.querySelector('time')?.getAttribute('datetime') ?? '');
+      expect([...dates], `${relative(BUILD_ROOT, page)} is not in descending date order`)
+        .toEqual([...dates].sort().reverse());
+    }
 
     // Parsed ONCE, outside the loop. The emitted changelog is ~1 MB, so
     // re-parsing it per release group is O(groups x page) and timed this test
@@ -1598,16 +1620,30 @@ describe('/now/ Atom feed', () => {
     // Two surfaces, one identity: what the feed calls a release and what /now/
     // links to must be the same URL, or a reader following either lands
     // somewhere the other does not know about.
-    const page = doc(NOW_PAGE);
     const d = feedDoc();
     const feedIds = new Set(
       [...d.getElementsByTagNameNS(ATOM, 'entry')].map(
         (e) => e.getElementsByTagNameNS(ATOM, 'id')[0]!.textContent!.replace(/\/$/, '').split('/now/')[1]
       )
     );
+    // Across EVERY index page, not just page 1 — the index is paginated, and
+    // reading only the first page would compare 156 feed entries against 20
+    // links and fail for the wrong reason.
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const allIndexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
     const linked = new Set(
-      [...page.querySelectorAll('.now-release__link')].map(
-        (a) => (a.getAttribute('href') ?? '').replace(/\/$/, '').split('/now/')[1]
+      allIndexPages.flatMap((p) =>
+        [...doc(p).querySelectorAll('.now-release__link')].map(
+          (a) => (a.getAttribute('href') ?? '').replace(/\/$/, '').split('/now/')[1]
+        )
       )
     );
     expect(linked.size).toBe(feedIds.size);
@@ -1729,6 +1765,88 @@ describe('/packs/<pack>/ structured data', () => {
       const offers = ldOf(page).offers;
       expect(offers?.['@type']).toBe('Offer');
       expect(offers?.price).toBe('0');
+    }
+  });
+});
+
+/**
+ * The paginated `/now/` index.
+ *
+ * Pagination is only safe here because every release also has a permalink and
+ * the feed points at those — see the feed suite above. These guard the
+ * properties that make the paging honest: nothing lost, nothing duplicated,
+ * one URL per page, and every page reachable without JavaScript.
+ */
+describe('/now/ pagination', () => {
+  const indexPages = () => {
+    const pages = [join(BUILD_ROOT, 'now', 'index.html')];
+    const dir = join(BUILD_ROOT, 'now', 'page');
+    if (existsSync(dir)) {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isDirectory() && existsSync(join(dir, e.name, 'index.html'))) {
+          pages.push(join(dir, e.name, 'index.html'));
+        }
+      }
+    }
+    return pages;
+  };
+
+  it('shows every release exactly once across the pages', () => {
+    // The failure this exists for is a slicing off-by-one, which loses or
+    // duplicates a release silently — every page still renders and looks fine.
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    const seen: string[] = [];
+    for (const page of indexPages()) {
+      for (const el of doc(page).querySelectorAll('.now-release')) {
+        const id = el.getAttribute('id');
+        if (id) seen.push(id);
+      }
+    }
+    expect(seen.length, 'a release is rendered twice or not at all').toBe(new Set(seen).size);
+    expect(new Set(seen)).toEqual(
+      new Set(projection.groups.map((g: { changelogAnchor: string }) => g.changelogAnchor))
+    );
+  });
+
+  it('gives the first page exactly one URL', () => {
+    // `/now/` and `/now/page/1/` would be the same page at two URLs, which is
+    // the inconsistency Google's pagination guidance warns about.
+    expect(existsSync(join(BUILD_ROOT, 'now', 'page', '1', 'index.html'))).toBe(false);
+  });
+
+  it('every page self-canonicalises to its own URL', () => {
+    // Google's current guidance is explicit: "Don't use the first page of a
+    // paginated sequence as the canonical page." The older canonicalise-to-page-1
+    // and canonicalise-to-View-All advice is from the retired rel=next/prev era.
+    for (const page of indexPages()) {
+      const href = doc(page)
+        .querySelector('link[rel="canonical"]')
+        ?.getAttribute('href') ?? '';
+      const slug = relative(BUILD_ROOT, page).replace(/[/\\]index\.html$/, '');
+      expect(href, `${slug} must canonicalise to itself`).toMatch(
+        new RegExp(`/${slug.split(/[/\\\\]/).join('/')}/?$`)
+      );
+    }
+  });
+
+  it('pages link to each other with crawlable anchors, not buttons', () => {
+    // Googlebot "doesn't 'click' buttons and generally doesn't trigger
+    // JavaScript functions that require user actions", so a load-more control
+    // would hide every older release from it. Every target must also exist.
+    const pages = indexPages();
+    if (pages.length < 2) return expect(pages.length).toBe(1);
+    for (const page of pages) {
+      const links = [...doc(page).querySelectorAll('.pager__page, .pager__step')];
+      expect(links.length, `${relative(BUILD_ROOT, page)} has no pager links`).toBeGreaterThan(0);
+      for (const a of links) {
+        expect(a.tagName).toBe('A');
+        const href = (a.getAttribute('href') ?? '').replace(/^\/agent-ready-repo/, '');
+        expect(href, 'a pager link must name a real path').not.toBe('');
+        expect(
+          existsSync(join(BUILD_ROOT, href, 'index.html')),
+          `${href} -> no emitted page`
+        ).toBe(true);
+      }
     }
   });
 });

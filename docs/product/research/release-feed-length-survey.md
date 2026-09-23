@@ -284,7 +284,26 @@ upgrade --skill <name>` is in there); `&` appears nowhere in it, so that branch
 is covered by a direct test of the escaper including the ordering case where a
 late ampersand replacement would turn `<` into `&amp;lt;`.
 
-**Step 3 — re-measure, then bound the page.** Length is not a compliance
+**Step 3 shipped 2026-09-23.** 20 releases per page, `/now/` as page 1 and
+`/now/page/2..8/`, chosen against page WEIGHT rather than a target page count.
+Measured: the entry page went 235 KB to 47 KB and 120.3 viewport heights to
+**19.2** at 320 (55.2 to 9.2 at 1100). All 156 releases appear exactly once
+across the eight pages, `/now/page/1/` is never emitted so the first page has
+one URL, and every page self-canonicalises — which SiteLayout already did from
+the pathname, so the current Google shape came free.
+
+Two defects were caught by building it, both of the look-fine-and-aren't kind.
+A disabled pager step rendered `hidden` still carried an `href`, and on the
+last page that was `/now/page/9/` — a link to a page that does not exist; the
+steps are now not rendered at all when they do not apply. And axe reported
+**8 serious `target-size` violations**: the page digits measured 9x17 against
+WCAG 2.2 SC 2.5.8's 24x24 floor, with the steps marginal at 37x23. Fixed with
+a new `--ds-target-min` token at 24px — three times `--ds-rule-pitch`, so the
+target keeps the vertical rhythm — and re-measured at 0 violations on three
+pages at both widths. The browser gate runs a fixed route list and did not
+cover the new templates, which is why they were checked directly.
+
+**Step 3 as originally written — re-measure, then bound the page.** Length is not a compliance
 failure (finding 5), so the bar is whether the page is still unusable after
 steps 1 and 2. When it is, adopt the evidenced trio — **index + numbered
 pagination + feed**, which is Sentry's exact stack:

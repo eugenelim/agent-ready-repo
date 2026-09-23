@@ -1,0 +1,114 @@
+---
+// Pagination for the `/now/` index.
+//
+// Ordinary `<a href>` links to real URLs, not a button that fetches. Google's
+// crawler "doesn't 'click' buttons and generally doesn't trigger JavaScript
+// functions that require user actions", so a load-more control would hide
+// every older release from it. This also means the control works with no
+// JavaScript at all, which is the same property for a reader.
+//
+// A step that does not apply is NOT RENDERED, rather than rendered `hidden`.
+// Hidden, it still carried an href — on the last page that was `/now/page/9/`,
+// a URL with no page behind it. It looked correct in the browser and was a
+// broken link in the markup, which is the class of defect this whole surface
+// keeps finding. `pagination-links-are-crawlable` is the guard that caught it.
+//
+// `rel="next"` / `rel="prev"` ARE emitted on the steps, but nothing rests on them. Google retired
+// them as an indexing signal in March 2019 and its current documentation still
+// says it does not use them; Bing reportedly still reads them as a hint, so
+// they are not harmful, just not load-bearing. What Google does ask for is
+// exactly what is here — crawlable links between pages, and each page carrying
+// its own self-referencing canonical, which SiteLayout already emits from the
+// pathname.
+import { withBase } from '../../lib/paths';
+import { pagePath } from '../../lib/now-pagination';
+
+interface Props {
+  current: number;
+  total: number;
+}
+
+const { current, total } = Astro.props;
+
+// Every page is listed. At 8 pages that is a complete, scannable set; a
+// truncated "1 … 5 6 7 … 32" window is what this needs when the count grows
+// past roughly a dozen, and that is a change to make WITH the year-to-month
+// index split rather than before it.
+const pages = Array.from({ length: total }, (_, i) => i + 1);
+---
+
+{total > 1 && (
+  <nav class="pager" aria-label="Release pages">
+    {current > 1 && (
+      <a class="pager__step" href={withBase(pagePath(current - 1))} rel="prev">Newer</a>
+    )}
+
+    <ol class="pager__list" role="list">
+      {pages.map((page) => (
+        <li>
+          <a
+            class="pager__page"
+            href={withBase(pagePath(page))}
+            aria-current={page === current ? 'page' : undefined}
+          >{page}</a>
+        </li>
+      ))}
+    </ol>
+
+    {current < total && (
+      <a class="pager__step" href={withBase(pagePath(current + 1))} rel="next">Older</a>
+    )}
+  </nav>
+)}
+
+<style>
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ds-space-4);
+    margin-top: var(--ds-space-7);
+    padding-top: var(--ds-space-6);
+    border-top: 1px solid var(--ds-rule-boundary);
+  }
+
+  .pager__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-3);
+  }
+
+  /* 24x24 minimum, which is WCAG 2.2 SC 2.5.8 Target Size (Minimum), AA.
+     Measured, not assumed: axe reported these at 9x17 (the digits) and 37x23
+     (the steps) before this rule, 8 serious violations on the page. 24px is
+     three times --ds-rule-pitch, so the target box keeps the vertical rhythm
+     rather than breaking it to satisfy the floor. The digits stay visually
+     small — the TARGET grows, not the type. */
+  .pager__step,
+  .pager__page {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--ds-target-min);
+    min-height: var(--ds-target-min);
+    font-size: var(--ds-type-sm);
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface-2);
+    text-underline-offset: 0.2em;
+  }
+
+  /* The current page is marked by weight and ink as well as by `aria-current`,
+     so it is not colour alone that distinguishes it. */
+  .pager__page[aria-current='page'] {
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    text-decoration: none;
+  }
+
+  .pager__step {
+    font-weight: var(--ds-weight-medium);
+  }
+</style>

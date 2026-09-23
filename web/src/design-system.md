@@ -328,6 +328,17 @@ keep every width on the pitch.
 | `--ds-annotation-col-min` | `20rem` (320px = 40 × pitch, padding included) | Narrowest the receipt column may be before it fights the text measure |
 | `--ds-annotation-gap`     | `var(--ds-space-7)` (48px = 6 × pitch) | Content-to-margin gutter |
 
+### Target size — the interactive floor
+
+WCAG 2.2 SC 2.5.8 Target Size (Minimum), AA. Three times `--ds-rule-pitch`, so a control
+that meets the floor also keeps the vertical rhythm rather than breaking it to satisfy the
+criterion. Grow the TARGET, not the type: `/now/`'s pagination digits stay at
+`--ds-type-sm` inside a 24px box.
+
+| Token | Value | Usage |
+| --- | --- | --- |
+| `--ds-target-min` | `24px` | Minimum width and height of any interactive target |
+
 ### Radius — one idea, two steps
 
 The pill is retired: a register has corners, not capsules. `--ds-radius-pill` is **deleted**
