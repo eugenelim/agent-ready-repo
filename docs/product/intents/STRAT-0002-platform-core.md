@@ -9,6 +9,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** outcome:ai-native-ecosystem
+- **Decomposed:** no
 
 > **Fulfilled — outcome achieved, verified independently on 2026-09-19.** A separate worker checked the outcome and guardrails against the repository rather than against this body's account of its own delivery, and returned `VERDICT: ACHIEVED`. Achievement was judged on whether the **capabilities exist**, not on whether delivery matched the stated plan — so the one coherent action since superseded in mechanism, the committed work queue, did not count against it.
 

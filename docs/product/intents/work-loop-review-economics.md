@@ -8,6 +8,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:work-loop-delivery-efficiency
+- **Decomposed:** 2026-09-11 children
 
 ## Outcome
 

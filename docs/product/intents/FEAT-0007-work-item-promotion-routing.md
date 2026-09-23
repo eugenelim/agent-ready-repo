@@ -9,6 +9,7 @@
 - **Maturity:** `brownfield`
 - **Parent intent:** capability:work-item-capture-and-disposition
 - **Depends on:** docs/product/intents/FEAT-0006-work-item-capture-contract.md <!-- stated for a reader; the enforceable edge is a typed `needs` entry on the workspace registration, which does not exist yet -->
+- **Decomposed:** 2026-09-19 spec
 
 ## Outcome
 

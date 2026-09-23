@@ -11,6 +11,9 @@
 - **Scale:** business-unit
 - **Maturity:** brownfield
 - **Parent intent:** none <!-- deliberate entry at product-vision altitude; an ABSENT field means legacy or unclassified -->
+- **De-risked:** 2026-09-18
+- **Shaping-reviewed:** 2026-09-19
+- **Decomposed:** 2026-09-19 children
 
 ## Outcome
 

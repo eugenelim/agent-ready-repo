@@ -2111,7 +2111,15 @@ milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires
 executing = [
   { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
 ]
+# Ready 2026-09-23, confirmed by the lifecycle owner on a `Findings` result
+# rather than a `Clean` one; the brief's `Ready confirmed:` line records that
+# basis and the three residual findings. Zero specs, which ADR-0098 D6 permits:
+# the slice cut is a separate post-Ready confirmation and has not been taken, so
+# this entry is non-dispatchable. `needs` is empty deliberately -- slice 1 takes
+# no blocking edge on the supersession work handed to
+# `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = [
+  { path = "docs/product/briefs/intent-lifecycle-and-closure.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md" }, summary = "Give an intent and a brief a terminal status set through a workflow on recorded evidence: the state table and legal transitions, a three-way refuse/not-eligible/eligible closure check, the evidence packet and closure record, the brief cut-closed declaration, and migration of the intents that reached Fulfilled without Accepted", needs = [] },
 ]
 draft = []
 
@@ -2137,7 +2145,15 @@ backlog = [
 ]
 
 ["ini-010".work]
-queue   = []
+# Slice 1 of `intent-lifecycle-and-closure`, Approved 2026-09-23 and not yet
+# started. `needs` is empty: it takes no blocking edge on the two handoffs sitting
+# in `intent-identity-and-registration`'s Post-Ready decisions -- the supersession
+# split and these records' value shape -- because it consumes whichever form each
+# has landed in when it is built. Sequencing them first is a preference, not a
+# dependency, and the spec says so.
+queue   = [
+  { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam that leaves the shaping reviewer's decided set untouched", needs = [] },
+]
 active  = [
 ]
 shipped = [

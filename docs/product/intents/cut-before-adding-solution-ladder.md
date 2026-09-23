@@ -6,6 +6,7 @@
 - **Owner:** eugenelim
 - **Scale:** business-unit
 - **Maturity:** brownfield
+- **Decomposed:** 2026-08-28 spec
 
 ## Outcome
 

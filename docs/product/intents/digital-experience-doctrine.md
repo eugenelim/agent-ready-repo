@@ -8,6 +8,7 @@
 - **Maturity:** brownfield
 - **Parent intent:** none — see Placement
 - **Governed by:** [RFC-0071 Digital Experience Doctrine](../../rfc/0071-digital-experience-doctrine.md) (Accepted)
+- **Decomposed:** 2026-09-20 children
 
 ## Outcome
 

@@ -5,6 +5,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
+- **Decomposed:** 2026-09-03 spec
 
 ## Outcome
 

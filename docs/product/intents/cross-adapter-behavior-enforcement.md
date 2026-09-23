@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** product-strategy
 - **Owner:** eugenelim
+- **Decomposed:** 2026-09-03 brief
 
 ## Outcome
 
