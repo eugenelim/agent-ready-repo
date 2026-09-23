@@ -1,7 +1,7 @@
 # Plan: Cohort-state identity across a transition commit
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/loop-parallelism.md` § 2 (the
   decision), `docs/architecture/loop-infrastructure.md` §§ 3, 4, 6 (current
   behaviour and the race), ADR-0061 **D3** with its 2026-09-22 erratum.
