@@ -25,6 +25,7 @@ import stat
 import sys
 import tomllib
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
@@ -47,8 +48,10 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _load_self_host_recipe,
     _migrate_managed_paths,
     _plan_stale_owned_paths,
+    _select_profiles,
     _write_ownership_state,
     replay_derivation,
+    select_packs,
 )
 from agentbundle.commands._common import check_spec_version_gate, confirm_or_refuse
 from agentbundle.config import PackState, State
@@ -821,43 +824,69 @@ class WriteSequenceResult:
     state_write_failed: bool = False
 
 
-def apply_write_sequence(
+class CompanionCollisionError(Exception):
+    """AC-0071 — a companion destination collides with a path the replay
+    itself plans. Raised by :func:`plan_write_set` rather than returned, so
+    the one precondition failure this function itself detects reads the
+    same as every other raised precondition in this module (``ReplayError``,
+    ``SnapshotBoundExceeded``) instead of a bespoke sentinel return.
+    """
+
+    def __init__(self, collisions: dict[str, str]) -> None:
+        super().__init__(
+            "a companion destination collides with a path the replay plans"
+        )
+        self.collisions = collisions
+
+
+@dataclass(frozen=True)
+class WritePlan:
+    """AC-0033 clauses 3-5 plus AC-0070/AC-0071's admission classification —
+    everything the write phase needs to know before it opens, computed
+    read-only (no write, no snapshot). Shared by ``_run_apply``'s
+    pre-consent refusal checks and printed plan, and by
+    :func:`apply_write_sequence`'s real write phase — one implementation of
+    "what will this run write", read twice rather than written twice.
+    """
+
+    admitted: set[str]
+    would_update_admitted: set[str]
+    companion_destination_to_original: dict[str, str]
+    occupied: dict[str, str]
+    residue: dict[str, str | None]
+    deferred_package: int
+    introduced_packs: set[str]
+    introduced_profiles: set[str]
+    recorded: dict[str, str | None]
+
+
+def plan_write_set(
     target: Path,
     *,
     old_state: dict[str, Any] | None,
     verdict_rows: list[tuple[str, str, str | None]],
-    file_bytes: dict[str, bytes],
     planned_paths: set[str],
     pack_names: list[str],
     profile_names: list[str],
     scope_packs: Iterable[str] = (),
     scope_profiles: Iterable[str] = (),
     guides_scope: bool = False,
-    guides_mode: str,
-    pin: dict[str, Any],
-    snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
-) -> WriteSequenceResult:
-    """AC-0032/AC-0033/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0070/
-    AC-0071/AC-0073/AC-0076/AC-0077 — apply the plan *verdict_rows* classified
-    (spec AC-0033 clauses 3-6), or restore the tree.
+) -> WritePlan:
+    """AC-0033 clauses 3-5 / AC-0066 / AC-0070 / AC-0071 — classify
+    *verdict_rows* into the admitted write set, read-only.
 
     *pack_names*/*profile_names* are AC-0033 clause 1's already-resolved
     effective selection (the recorded recipe unioned with any name a scoping
     flag introduces) — used for introduced-pack/profile detection and for
-    AC-0069's coverage selection axis. *scope_packs*/*scope_profiles*/
-    *guides_scope* are the raw scoping **flags** AC-0043 names — a narrower,
-    usually-empty list distinct from the resolved selection, forwarded to
-    T2's `select_write_set` unchanged; conflating the two would scope every
-    write to only the flag's own names even on an unscoped run, since the
-    resolved selection is never empty in practice.
+    AC-0069's coverage selection axis, computed by this run's caller.
+    *scope_packs*/*scope_profiles*/*guides_scope* are the raw scoping
+    **flags** AC-0043 names — a narrower, usually-empty list distinct from
+    the resolved selection, forwarded to T2's ``select_write_set`` unchanged;
+    conflating the two would scope every write to only the flag's own names
+    even on an unscoped run, since the resolved selection is never empty in
+    practice.
 
-    Removal after every write, and the state after removal, because a crash
-    between the two must leave a recorded state that under-claims rather
-    than over-claims what it owns (plan.md T4 § Approach): only a write-phase
-    failure is rolled back (AC-0038); a removal or state-write failure after
-    every write has landed leaves those writes and any completed removal in
-    place, reporting `4 — apply-failed` (spec AC-0039/AC-0041's own rows for
-    each).
+    Raises :class:`CompanionCollisionError` on an AC-0071 collision.
     """
     old_state = old_state or {}
     old_recipe = old_state.get("recipe")
@@ -895,7 +924,7 @@ def apply_write_sequence(
 
     collisions = detect_companion_collisions(companions, planned_paths)
     if collisions:
-        return WriteSequenceResult(ok=False, companion_collision=collisions)
+        raise CompanionCollisionError(collisions)
 
     admitted_companions, occupied, residue = classify_companion_destinations(
         target, companions
@@ -903,9 +932,8 @@ def apply_write_sequence(
 
     scope_packs = list(scope_packs)
     scope_profiles = list(scope_profiles)
-    scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope)
     raw_admitted = would_update | set(admitted_companions.values()) | admitted_new
-    admitted, _deferred = select_write_set(
+    admitted, deferred = select_write_set(
         raw_admitted, pack_names=scope_packs, profile_names=scope_profiles,
         guides=guides_scope,
     )
@@ -915,48 +943,80 @@ def apply_write_sequence(
         if companion in admitted
     }
 
-    try:
-        snapshot = snapshot_write_set(target, admitted, bound=snapshot_bound_bytes)
-    except SnapshotBoundExceeded as exc:
-        return WriteSequenceResult(
-            ok=False, snapshot_bound_exceeded=(exc.bound, exc.measured),
-            companion_occupied=occupied, companion_residue=residue,
-        )
-    except SnapshotUnreadableError as exc:
-        return WriteSequenceResult(
-            ok=False, snapshot_unreadable=exc.path,
-            companion_occupied=occupied, companion_residue=residue,
-        )
+    return WritePlan(
+        admitted=admitted,
+        would_update_admitted=would_update_admitted,
+        companion_destination_to_original=companion_destination_to_original,
+        occupied=occupied,
+        residue=residue,
+        deferred_package=deferred,
+        introduced_packs=introduced_packs,
+        introduced_profiles=introduced_profiles,
+        recorded=recorded,
+    )
 
+
+def execute_write_sequence(
+    target: Path,
+    plan: WritePlan,
+    snapshot: dict[str, WalkEntry],
+    *,
+    old_state: dict[str, Any] | None,
+    file_bytes: dict[str, bytes],
+    planned_paths: set[str],
+    pack_names: list[str],
+    profile_names: list[str],
+    guides_mode: str,
+    scope: tuple[frozenset[str], frozenset[str]] | None,
+    pin: dict[str, Any],
+) -> WriteSequenceResult:
+    """AC-0032/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0073/AC-0077 —
+    AC-0077's gate recheck onward: the actual write phase, given an
+    already-built *plan* (:func:`plan_write_set`) and rollback *snapshot*
+    (:func:`snapshot_write_set`), both taken before the consent prompt so the
+    gate recheck below is the only re-read of the target tree this sequence
+    performs after consent (plan.md's Design decisions, "Rollback holds the
+    prior walk tuple in memory"; spec AC-0039's trailing note on the
+    snapshot row).
+
+    Removal after every write, and the state after removal, because a crash
+    between the two must leave a recorded state that under-claims rather
+    than over-claims what it owns (plan.md T4 § Approach): only a write-phase
+    failure is rolled back (AC-0038); a removal or state-write failure after
+    every write has landed leaves those writes and any completed removal in
+    place, reporting `4 — apply-failed` (spec AC-0039/AC-0041's own rows for
+    each).
+    """
+    old_state = old_state or {}
     expected_would_update: dict[str, str | None] = {
         path: (
             hashlib.sha256(snapshot[path].content).hexdigest()
             if snapshot[path].kind == "file" else None
         )
-        for path in would_update_admitted
+        for path in plan.would_update_admitted
     }
     diverged = gate_recheck(target, expected_would_update)
     if diverged:
         return WriteSequenceResult(
             ok=False, gate_diverged=sorted(diverged),
-            companion_occupied=occupied, companion_residue=residue,
+            companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
-    ordered = write_order(admitted)
+    ordered = write_order(plan.admitted)
     written: dict[str, str] = {}
     acted: list[str] = []
     write_failed_path: str | None = None
     for path in ordered:
-        is_companion = path in companion_destination_to_original
+        is_companion = path in plan.companion_destination_to_original
         try:
             if is_companion:
-                original = companion_destination_to_original[path]
+                original = plan.companion_destination_to_original[path]
                 content = file_bytes[original]
                 # `write_companion` computes the `.upstream.<ext>` suffix
                 # itself from *original* — passing the already-suffixed
                 # destination here would suffix it a second time.
                 write_companion(target, original, content, publish=Publish.NEVER_REPLACE)
-            elif path in would_update_admitted:
+            elif path in plan.would_update_admitted:
                 content = file_bytes[path]
                 write_jailed(
                     target, path, content,
@@ -994,8 +1054,8 @@ def apply_write_sequence(
             write_failed_path=write_failed_path,
             restored=not unrestored,
             unrestored=unrestored,
-            companion_occupied=occupied,
-            companion_residue=residue,
+            companion_occupied=plan.occupied,
+            companion_residue=plan.residue,
         )
 
     removal_set, out_of_coverage = select_removal_set(
@@ -1015,11 +1075,11 @@ def apply_write_sequence(
         return WriteSequenceResult(
             ok=False, removal_failed=True,
             written=written, removed=removed, out_of_coverage=out_of_coverage,
-            companion_occupied=occupied, companion_residue=residue,
+            companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
     merged = merge_ownership_state(
-        old_state, recorded=recorded, written=written, removed=removed,
+        old_state, recorded=plan.recorded, written=written, removed=removed,
         pack_names=pack_names, profile_names=profile_names, pin=pin,
     )
     try:
@@ -1028,12 +1088,75 @@ def apply_write_sequence(
         return WriteSequenceResult(
             ok=False, state_write_failed=True,
             written=written, removed=removed, out_of_coverage=out_of_coverage,
-            companion_occupied=occupied, companion_residue=residue,
+            companion_occupied=plan.occupied, companion_residue=plan.residue,
         )
 
     return WriteSequenceResult(
         ok=True, written=written, removed=removed, out_of_coverage=out_of_coverage,
-        companion_occupied=occupied, companion_residue=residue,
+        companion_occupied=plan.occupied, companion_residue=plan.residue,
+    )
+
+
+def apply_write_sequence(
+    target: Path,
+    *,
+    old_state: dict[str, Any] | None,
+    verdict_rows: list[tuple[str, str, str | None]],
+    file_bytes: dict[str, bytes],
+    planned_paths: set[str],
+    pack_names: list[str],
+    profile_names: list[str],
+    scope_packs: Iterable[str] = (),
+    scope_profiles: Iterable[str] = (),
+    guides_scope: bool = False,
+    guides_mode: str,
+    pin: dict[str, Any],
+    snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
+) -> WriteSequenceResult:
+    """AC-0032/AC-0033/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0070/
+    AC-0071/AC-0073/AC-0076/AC-0077 — apply the plan *verdict_rows* classified
+    (spec AC-0033 clauses 3-6), or restore the tree, in one call.
+
+    A thin composition of :func:`plan_write_set`, :func:`snapshot_write_set`
+    and :func:`execute_write_sequence` — the three pieces ``_run_apply``
+    calls separately so it can insert the consent prompt between the
+    snapshot build and the gate recheck (spec AC-0039's trailing note: "AC-
+    0076 builds the snapshot before the prompt"). Called directly (as this
+    module's own tests do), it runs all three back to back with no prompt
+    in between, which is exactly the composed apply-run behaviour when
+    ``--yes`` is supplied.
+    """
+    scope_packs = list(scope_packs)
+    scope_profiles = list(scope_profiles)
+    try:
+        plan = plan_write_set(
+            target, old_state=old_state, verdict_rows=verdict_rows,
+            planned_paths=planned_paths, pack_names=pack_names,
+            profile_names=profile_names, scope_packs=scope_packs,
+            scope_profiles=scope_profiles, guides_scope=guides_scope,
+        )
+    except CompanionCollisionError as exc:
+        return WriteSequenceResult(ok=False, companion_collision=exc.collisions)
+
+    try:
+        snapshot = snapshot_write_set(target, plan.admitted, bound=snapshot_bound_bytes)
+    except SnapshotBoundExceeded as exc:
+        return WriteSequenceResult(
+            ok=False, snapshot_bound_exceeded=(exc.bound, exc.measured),
+            companion_occupied=plan.occupied, companion_residue=plan.residue,
+        )
+    except SnapshotUnreadableError as exc:
+        return WriteSequenceResult(
+            ok=False, snapshot_unreadable=exc.path,
+            companion_occupied=plan.occupied, companion_residue=plan.residue,
+        )
+
+    scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope)
+    return execute_write_sequence(
+        target, plan, snapshot,
+        old_state=old_state, file_bytes=file_bytes, planned_paths=planned_paths,
+        pack_names=pack_names, profile_names=profile_names,
+        guides_mode=guides_mode, scope=scope, pin=pin,
     )
 
 
@@ -1945,6 +2068,21 @@ def _consent_gate(
     )
 
 
+def _managed_paths_container_is_array(target: Path) -> bool:
+    """Spec AC-0039's shared row: ``True`` when the recorded ``managed_paths``
+    container is a JSON array (an absent field defaults to ``[]``, which is
+    an array). Shared by dry-run and apply so this exact read — distinct
+    from a malformed *entry* inside an otherwise-array container, which
+    AC-0016 routes to "uncompared" — is typed once.
+    """
+    diagnostics: list[str] = []
+    raw_state = _load_ownership_state(target, diagnostics)
+    managed_paths_container: object = (
+        raw_state.get("managed_paths", []) if isinstance(raw_state, dict) else []
+    )
+    return isinstance(managed_paths_container, list)
+
+
 def _run_dry_run(
     *,
     target: Path,
@@ -1985,16 +2123,10 @@ def _run_dry_run(
         )
 
     # Spec AC-0013/AC-0014: a recorded `managed_paths` that is not an array
-    # cannot be interpreted at all — distinct from a malformed *entry* inside
-    # an otherwise-array container, which AC-0016 routes to "uncompared".
-    # Checked here, before any plan can be printed, rather than left to
-    # `_classify_planned_paths`'s own defensive coercion to an empty list.
-    diagnostics: list[str] = []
-    raw_state = _load_ownership_state(target, diagnostics)
-    managed_paths_container: object = (
-        raw_state.get("managed_paths", []) if isinstance(raw_state, dict) else []
-    )
-    if not isinstance(managed_paths_container, list):
+    # cannot be interpreted at all. Checked here, before any plan can be
+    # printed, rather than left to `_classify_planned_paths`'s own
+    # defensive coercion to an empty list.
+    if not _managed_paths_container_is_array(target):
         return _refuse(
             "the recorded-path container is not an array",
             attributed=attributed,
@@ -2061,6 +2193,527 @@ def _run_dry_run(
     return _DIFFERENCE if replay.violations else _SUCCESS
 
 
+# ---------------------------------------------------------------------------
+# T6: `_run_apply` owns the apply exit rows.
+#
+# Composes T1-T5's independently-testable seams in the order AC-0039's table
+# fixes, first-match-wins. Everything above this banner (the scope predicate,
+# the state merge/pin builder, the write sequence, the consent gate) is
+# already exported and reused here rather than re-implemented.
+# ---------------------------------------------------------------------------
+
+def _resolve_effective_selection(
+    target: Path,
+    source: Path,
+    cli_pack_names: list[str],
+    cli_profile_names: list[str],
+) -> tuple[list[str], list[str], str | None, str | None]:
+    """AC-0033 clause 1 / AC-0046 / AC-0068 — resolve the effective packs and
+    profiles selection for an apply run.
+
+    Returns ``(pack_names, profile_names, malformed_field,
+    cannot_answer_reason)``. On success both error fields are ``None``, and
+    exactly one of *pack_names*/*profile_names* ever equals the recorded
+    recipe's own list union a name a scoping flag introduces — never a
+    resolution neither field's recorded value named (AC-0068).
+
+    Reuses ``_load_self_host_recipe`` — the same per-field selectability
+    check phase 2's own replay already applies to a recorded selection field
+    (a name either selector would silently drop, e.g. a tooling-pack name,
+    fails that check the same way a genuinely unshipped name does) — rather
+    than a second reading of the recorded recipe. That reader conflates two
+    outcomes this criterion must tell apart: an *absent* field (AC-0068's
+    narrowing-to-nothing outcome, never a refusal) and a *present but
+    invalid* one (this criterion's refusal) both come back as ``None``; this
+    function tells them apart by checking the raw recipe dict directly for
+    the field's presence, adding no second selectability check of its own.
+
+    A `--pack`/`--profile` CLI name is validated against the exact same
+    selectable set (AC-0046) — the set ``select_packs``/``_select_profiles``
+    themselves resolve a valid, non-empty explicit list down to — so a name
+    either selector would silently drop is refused at the same boundary for
+    both a recorded value and a flag-supplied one.
+    """
+    diagnostics: list[str] = []
+    raw_state = _load_ownership_state(target, diagnostics)
+    raw_recipe = raw_state.get("recipe") if isinstance(raw_state, dict) else None
+    if not isinstance(raw_recipe, dict):
+        raw_recipe = {}
+
+    recipe = _load_self_host_recipe(raw_state, source, diagnostics)
+
+    def _field(field_name: str) -> tuple[list[str], bool]:
+        if field_name not in raw_recipe:
+            return [], False
+        resolved = getattr(recipe, field_name, None) if recipe is not None else None
+        if resolved is None:
+            return [], True
+        return list(resolved), False
+
+    recorded_packs, packs_invalid = _field("packs")
+    recorded_profiles, profiles_invalid = _field("profiles")
+
+    selectable_packs = set(select_packs(source, None))
+    selectable_profiles = set(_select_profiles(source, None))
+
+    for name in cli_pack_names:
+        if name not in selectable_packs:
+            return (
+                [], [],
+                f"rejected packs: {name!r} is not shipped by the resolved source",
+                None,
+            )
+    for name in cli_profile_names:
+        if name not in selectable_profiles:
+            return (
+                [], [],
+                f"rejected profiles: {name!r} is not shipped by the resolved source",
+                None,
+            )
+
+    if packs_invalid:
+        return [], [], None, "the recorded packs selection is invalid"
+    if profiles_invalid:
+        return [], [], None, "the recorded profiles selection is invalid"
+
+    pack_names = sorted(set(recorded_packs) | set(cli_pack_names))
+    profile_names = sorted(set(recorded_profiles) | set(cli_profile_names))
+    return pack_names, profile_names, None, None
+
+
+def _narrow_replayed_paths(
+    file_bytes: dict[str, bytes], pack_names: list[str], profile_names: list[str]
+) -> set[str]:
+    """AC-0033 clause 1/2 / AC-0068 — narrow the replayed path set to the
+    resolved effective selection.
+
+    Plan.md's Design decisions: "An empty recorded selection must not reach
+    ``select_packs``" — that helper (and ``_select_profiles``) widen a falsy
+    *explicit* argument to every pack/profile the source ships, so a
+    genuinely empty effective selection for one category, passed straight
+    through, would replay the source's full contents for it. Rather than
+    fight that widening at the replay call, this function narrows the
+    *result* back down to exactly *pack_names*/*profile_names* — the
+    resolved, AC-0068-validated selection — independent of whatever
+    ``select_packs``/``_select_profiles`` internally produced. A path outside
+    ``packs/``/``profiles/`` (guides, the derivation-wide paths) always
+    passes through unfiltered.
+    """
+    allowed_packs = tuple(f"packs/{name}/" for name in pack_names)
+    allowed_profiles = frozenset(f"profiles/{name}.toml" for name in profile_names)
+    narrowed: set[str] = set()
+    for path in file_bytes:
+        if path.startswith("packs/"):
+            if path.startswith(allowed_packs):
+                narrowed.add(path)
+            continue
+        if path.startswith("profiles/"):
+            if path in allowed_profiles:
+                narrowed.add(path)
+            continue
+        narrowed.add(path)
+    return narrowed
+
+
+def _apply_refusal(
+    reason: str,
+    *,
+    attributed: bool,
+    source_raw: str,
+    fmt: str,
+    code: int,
+    details: dict[str, Any] | None = None,
+) -> int:
+    """Like ``_refuse``, extended with the structured detail an apply-only
+    refusal row also names — AC-0071's ``companion_collision`` pair list,
+    AC-0076's ``bound``/``measured`` pair, or the unreadable path.
+    """
+    rejections: list[str] = []
+    safe_source = _safe_scalar("source", source_raw, rejections) if attributed else None
+    if fmt == "json":
+        doc: dict[str, Any] = {"ok": False, "error": reason}
+        if details:
+            doc.update(details)
+        if attributed:
+            if safe_source is not None:
+                doc["source"] = safe_source
+            else:
+                doc["rejections"] = rejections
+        print(json.dumps(doc, indent=2))
+    else:
+        print(f"error: {reason}", file=sys.stderr)
+        if details:
+            for key, value in details.items():
+                print(f"  {key}: {value}", file=sys.stderr)
+        if attributed:
+            if safe_source is not None:
+                print(f"  source: {safe_source}", file=sys.stderr)
+            else:
+                for line in rejections:
+                    print(f"  {line}", file=sys.stderr)
+    return code
+
+
+def _apply_acted_rows(
+    verdict_rows: list[tuple[str, str, str | None]],
+    plan: WritePlan,
+    removal_set: set[str],
+) -> list[tuple[str, str, str | None]]:
+    """AC-0057's acted rows — every *verdict_rows* entry AC-0033 clauses 1-5
+    admit (``plan.admitted``, keyed by a would-companion row's *companion*
+    destination rather than its original path), plus a synthetic
+    ``would-remove`` row per *removal_set* entry. Never clause 6's ownership
+    state.
+    """
+    rows: list[tuple[str, str, str | None]] = []
+    for path, verdict, companion in verdict_rows:
+        if verdict == "would-companion":
+            if companion and companion in plan.admitted:
+                rows.append((path, verdict, companion))
+            continue
+        if path in plan.admitted:
+            rows.append((path, verdict, companion))
+    for path in sorted(removal_set):
+        rows.append((path, "would-remove", None))
+    return rows
+
+
+def _apply_plan_document(
+    *,
+    target: Path,
+    fidelity_token: str,
+    archive_sha256: str | None,
+    source_revision: str | None,
+    attribution: str,
+    tooling: str,
+    guides: str,
+    source_raw: str,
+    attributed: bool,
+    pack_names: list[str],
+    profile_names: list[str],
+    summary: dict[str, int],
+    deferred_package: int,
+    acted_rows: list[tuple[str, str, str | None]],
+    occupied: dict[str, str],
+    residue: dict[str, str | None],
+    out_of_coverage: set[str],
+    rejections: list[str],
+) -> dict[str, Any]:
+    """AC-0057/AC-0066 — the printed plan an apply run consents against.
+
+    Every unauthored value (spec AC-0012) is routed through the terminal-safe
+    check, same as :func:`_plan_document`; the acted/reported split is
+    AC-0057's own, distinct from dry-run's exhaustive ``verdicts`` list.
+    """
+    safe_archive_sha256 = _safe_scalar("archive_sha256", archive_sha256, rejections)
+    safe_source_revision = _safe_scalar("source_revision", source_revision, rejections)
+    safe_target = _safe_scalar("target", str(target), rejections)
+    safe_pack_names = [
+        name for name in pack_names
+        if _safe_scalar("packs", name, rejections) is not None
+    ]
+    safe_profile_names = [
+        name for name in profile_names
+        if _safe_scalar("profiles", name, rejections) is not None
+    ]
+
+    summary_with_deferred = dict(summary)
+    summary_with_deferred["deferred_package"] = deferred_package
+
+    doc: dict[str, Any] = {
+        "command": "catalogue sync",
+        "target": safe_target,
+        "apply": True,
+        "fidelity": fidelity_token,
+        "pin": {
+            "archive_sha256": safe_archive_sha256,
+            "source_revision": safe_source_revision,
+        },
+        "modes": {
+            "attribution": attribution,
+            "tooling": tooling,
+            "guides": guides,
+            "provenance": "flags-and-defaults",
+        },
+        "packs": safe_pack_names,
+        "profiles": safe_profile_names,
+        "summary": summary_with_deferred,
+        "acted": [
+            {
+                "path": path,
+                "verdict": verdict,
+                **({"companion": companion} if companion else {}),
+            }
+            for path, verdict, companion in acted_rows
+        ],
+        "reported": {
+            "companion_occupied": sorted(occupied.values()),
+            "companion_residue": sorted(residue),
+            "out_of_coverage": sorted(out_of_coverage),
+        },
+    }
+    if attributed:
+        safe_source = _safe_scalar("source", source_raw, rejections)
+        if safe_source is not None:
+            doc["source"] = safe_source
+    doc["rejections"] = list(rejections)
+    return doc
+
+
+def _render_apply_plan(doc: dict[str, Any], *, fmt: str) -> None:
+    if fmt == "json":
+        print(json.dumps(doc, indent=2))
+        return
+
+    modes = doc["modes"]
+    lines = [
+        f"fidelity: {doc['fidelity']}",
+        "modes: attribution={attribution} tooling={tooling} guides={guides} "
+        "(from {provenance})".format(**modes),
+        f"archive_sha256: {doc['pin']['archive_sha256'] or 'absent'}",
+        f"source_revision: {doc['pin']['source_revision'] or 'absent'}",
+    ]
+    if "source" in doc:
+        lines.append(f"source: {doc['source']}")
+    lines.append("packs: " + (", ".join(doc["packs"]) or "(none)"))
+    lines.append("profiles: " + (", ".join(doc["profiles"]) or "(none)"))
+    for line in doc.get("rejections", []):
+        lines.append(line)
+    for row in doc["acted"]:
+        line = f"{row['verdict']}: {row['path']}"
+        if "companion" in row:
+            line += f" -> companion {row['companion']}"
+        lines.append(line)
+    reported = doc["reported"]
+    for path in reported["companion_occupied"]:
+        lines.append(f"companion-occupied: {path}")
+    for path in reported["companion_residue"]:
+        lines.append(f"companion-residue: {path}")
+    for path in reported["out_of_coverage"]:
+        lines.append(f"out-of-coverage: {path}")
+    counts = doc["summary"]
+    lines.append(
+        "counts: would-update={would_update} would-companion={would_companion} "
+        "untouched={untouched} would-remove={would_remove} "
+        "schema-1-inert={schema_1_inert} compared={compared} "
+        "uncompared={uncompared} deferred-package={deferred_package}".format(**counts)
+    )
+    print("\n".join(lines))
+
+
+def _run_apply(
+    *,
+    target: Path,
+    source_path: Path,
+    fidelity_token: str,
+    archive_sha256: str | None,
+    source_revision: str | None,
+    attribution: str,
+    tooling: str,
+    guides: str,
+    attributed: bool,
+    source_raw: str,
+    fmt: str,
+    yes: bool,
+    cli_pack_names: list[str],
+    cli_profile_names: list[str],
+    guides_scope: bool,
+) -> int:
+    """AC-0039's apply rows — the write path `_run_dry_run` has none of.
+
+    The caller (`run()`) already resolved the source and refused the
+    `--package`/malformed-invocation rows AC-0039 places above source
+    resolution before this is ever called — this function owns everything
+    from the recorded-selection checks through the write phase's four
+    `4 — apply-failed` rows, in the table's own first-match-wins order.
+    Composes T2-T5's already-exported seams; it re-implements none of them.
+    """
+    # AC-0030's document clause: an apply run with `--format json` and no
+    # `--yes` would share stdout between the prompt and the document.
+    if fmt == "json" and not yes:
+        return _refuse(
+            "an apply run with --format json requires --yes",
+            attributed=attributed, source_raw=source_raw, fmt=fmt, code=_MALFORMED,
+        )
+
+    condition = _underivable_condition(target, source_path)
+    if condition is not None:
+        return _refuse(
+            f"no recorded selection is derivable: {condition}",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    pack_names, profile_names, malformed_field, cannot_answer_reason = (
+        _resolve_effective_selection(
+            target, source_path, cli_pack_names, cli_profile_names
+        )
+    )
+    if malformed_field is not None:
+        return _refuse(
+            malformed_field, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_MALFORMED,
+        )
+    if cannot_answer_reason is not None:
+        return _refuse(
+            cannot_answer_reason, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_CANNOT_ANSWER,
+        )
+
+    if not _managed_paths_container_is_array(target):
+        return _refuse(
+            "the recorded-path container is not an array",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    cfg = SelfHostedInitConfig(
+        target=target,
+        source=source_path,
+        tooling=tooling,
+        attribution=attribution,
+        guides=guides,
+        dry_run=False,
+        packs=pack_names,
+        profiles=profile_names,
+    )
+    try:
+        replay = replay_derivation(cfg, interactive=False)
+    except Exception:
+        # AC-0040: every replay precondition failure this module knows
+        # about is already `ReplayError`; anything else still reaches this
+        # row rather than an uncaught traceback deciding the exit status
+        # (mirrors `run()`'s own resolver-exception handling above).
+        return _refuse(
+            "source could not be verified",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
+    # AC-0051: a leak violation refuses before the adapter gate, before
+    # classification, and before the consent prompt — no plan is printed
+    # and the operator is never prompted (AC-0057's "refuses before it has
+    # classified anything").
+    if replay.violations:
+        return _DIFFERENCE
+
+    gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
+    if gate_code is not None:
+        return gate_code
+
+    planned_paths = _narrow_replayed_paths(replay.file_bytes, pack_names, profile_names)
+    rejections: list[str] = []
+    summary_counts, verdict_rows = _classify_planned_paths(
+        target, replay.old_state, planned_paths, rejections
+    )
+
+    try:
+        plan = plan_write_set(
+            target, old_state=replay.old_state, verdict_rows=verdict_rows,
+            planned_paths=planned_paths, pack_names=pack_names,
+            profile_names=profile_names, scope_packs=cli_pack_names,
+            scope_profiles=cli_profile_names, guides_scope=guides_scope,
+        )
+    except CompanionCollisionError as exc:
+        return _apply_refusal(
+            "a companion destination collides with a path the replay plans",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_CANNOT_ANSWER,
+            details={
+                "companion_collision": [
+                    {"path": original, "companion": companion}
+                    for original, companion in sorted(exc.collisions.items())
+                ],
+            },
+        )
+
+    try:
+        snapshot = snapshot_write_set(target, plan.admitted)
+    except SnapshotBoundExceeded as exc:
+        return _apply_refusal(
+            "the write set holds more on disk than the snapshot bound",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_CANNOT_ANSWER,
+            details={"bound": exc.bound, "measured": exc.measured},
+        )
+    except SnapshotUnreadableError as exc:
+        return _apply_refusal(
+            "could not read a write-set path's pre-run state while building "
+            "the rollback snapshot",
+            attributed=attributed, source_raw=source_raw, fmt=fmt,
+            code=_CANNOT_ANSWER,
+            details={"path": exc.path},
+        )
+
+    scope = _scope_subtrees(list(cli_pack_names), list(cli_profile_names), guides_scope)
+    removal_set, out_of_coverage = select_removal_set(
+        target, replay.old_state or {}, planned_paths,
+        pack_names=pack_names, profile_names=profile_names,
+        guides_mode=guides, scope=scope,
+    )
+
+    acted_rows = _apply_acted_rows(verdict_rows, plan, removal_set)
+    doc = _apply_plan_document(
+        target=target,
+        fidelity_token=fidelity_token,
+        archive_sha256=archive_sha256,
+        source_revision=source_revision,
+        attribution=attribution,
+        tooling=tooling,
+        guides=guides,
+        source_raw=source_raw,
+        attributed=attributed,
+        pack_names=pack_names,
+        profile_names=profile_names,
+        summary=summary_counts,
+        deferred_package=plan.deferred_package,
+        acted_rows=acted_rows,
+        occupied=plan.occupied,
+        residue=plan.residue,
+        out_of_coverage=out_of_coverage,
+        rejections=rejections,
+    )
+    _render_apply_plan(doc, fmt=fmt)
+
+    consented = _consent_gate(
+        yes=yes, attributed=attributed, source_raw=source_raw,
+        fidelity_token=fidelity_token,
+    )
+    if not consented:
+        return _DIFFERENCE
+
+    pin = build_pin(
+        source_raw,
+        archive_sha256=archive_sha256,
+        source_revision=source_revision,
+        attributed=attributed,
+        synced_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+    result = execute_write_sequence(
+        target, plan, snapshot,
+        old_state=replay.old_state, file_bytes=replay.file_bytes,
+        planned_paths=planned_paths, pack_names=pack_names,
+        profile_names=profile_names, guides_mode=guides, scope=scope, pin=pin,
+    )
+
+    if result.gate_diverged is not None:
+        return _CANNOT_ANSWER
+    if result.write_failed_path is not None:
+        if result.unrestored:
+            print(
+                f"error: write failed at {result.write_failed_path!r}; "
+                "could not restore: "
+                f"{', '.join(sorted(result.unrestored))}",
+                file=sys.stderr,
+            )
+        return _APPLY_FAILED
+    if result.removal_failed:
+        return _APPLY_FAILED
+    if result.state_write_failed:
+        return _APPLY_FAILED
+    return _DIFFERENCE if result.companion_occupied else _SUCCESS
+
+
 def run(args: argparse.Namespace) -> int:
     target_raw: str = args.target
     source_raw: str = args.source
@@ -2118,6 +2771,21 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
+    # Spec AC-0039/AC-0047 — `--package` sits above source resolution on
+    # every invocation, so a run that will refuse performs no fetch. Read
+    # defensively: the flag does not exist on the parser namespace until a
+    # later task wires it, so a namespace lacking it behaves exactly as
+    # though `--package` were never supplied.
+    package = getattr(args, "package", None)
+    if package is not None:
+        return _refuse(
+            f"--package {package!r} sync is not available yet",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_CANNOT_ANSWER,
+        )
+
     cleanup: Callable[[], None] | None = None
     try:
         source_path, fidelity_token, archive_sha256, source_revision, cleanup = (
@@ -2161,7 +2829,27 @@ def run(args: argparse.Namespace) -> int:
                 source_raw=source_raw,
                 fmt=fmt,
             )
-        return _run_dry_run(
+        if dry_run:
+            return _run_dry_run(
+                target=target,
+                source_path=source_path,
+                fidelity_token=fidelity_token,
+                archive_sha256=archive_sha256,
+                source_revision=source_revision,
+                attribution=attribution,
+                tooling=tooling,
+                guides=guides,
+                dry_run=dry_run,
+                attributed=attributed,
+                source_raw=source_raw,
+                fmt=fmt,
+            )
+        # Apply run. `--pack`/`--profile`/`--guides`/`--yes` do not exist on
+        # the parser namespace until a later task wires them; read
+        # defensively so this branch is unreachable today (the mutually
+        # exclusive `--dry-run`/`--check` group is still `required=True`)
+        # but already correct once it is.
+        return _run_apply(
             target=target,
             source_path=source_path,
             fidelity_token=fidelity_token,
@@ -2170,10 +2858,20 @@ def run(args: argparse.Namespace) -> int:
             attribution=attribution,
             tooling=tooling,
             guides=guides,
-            dry_run=dry_run,
             attributed=attributed,
             source_raw=source_raw,
             fmt=fmt,
+            yes=bool(getattr(args, "yes", False)),
+            cli_pack_names=list(getattr(args, "pack", None) or []),
+            # `--profile` is not documented repeatable (spec § What Changes
+            # marks only `--pack` "(repeatable)"), so a future single-value
+            # namespace attribute would be a bare string, not a list — which
+            # `list(...)` would iterate character by character.
+            cli_profile_names=(
+                [_raw_profile] if isinstance(_raw_profile := getattr(args, "profile", None), str)
+                else list(_raw_profile or [])
+            ),
+            guides_scope=bool(getattr(args, "guides", False)),
         )
     finally:
         if cleanup is not None:

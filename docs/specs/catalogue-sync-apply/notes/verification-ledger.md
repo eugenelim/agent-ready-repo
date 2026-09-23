@@ -142,3 +142,63 @@ one that fails.
 not the call downstream of it. When a criterion names an argument to a
 specific function, spy that function — not a wrapper that happens to take a
 similarly-shaped argument.
+
+## Execution — wave 3
+
+### T6 — `_run_apply` and the exit rows
+
+Every apply row of AC-0039's table is driven to its code by its own test; 33
+new tests. Gates: lint exit 0, full `packages/agentbundle/tests/unit` suite
+exit 0 over 3,246 tests.
+
+**Mutation proof.** Disabling `_narrow_replayed_paths` — so the replay's
+possibly-widened `file_bytes` passes through unnarrowed, which is the
+AC-0068 defect stated exactly — turns the suite red across several tests.
+§ Grounding's widening derivation is why this guard exists: 28 of 32 recorded
+selection values widen to the source's full contents with no refusal, across
+both `packs` and `profiles`, and only a valid non-empty list of shipped names
+narrows.
+
+### Three deviations, recorded because two are more than they look
+
+**1. `apply_write_sequence` was split.** T6 divided T4's landed function into
+`plan_write_set` (read-only classification) and `execute_write_sequence`
+(gate recheck onward), keeping `apply_write_sequence` as a thin composition of
+both. This was structurally necessary, not cosmetic: `_run_apply` must insert
+the consent prompt between the snapshot build and the gate recheck, which is
+the ordering AC-0039's trailing note fixes — AC-0076 builds the snapshot
+before the prompt, and the gate row sits below the consent rows. T4's single
+call shape did not expose that seam. Every T4 test passes unchanged, which is
+the behaviour-preserving evidence.
+
+**2. An unauthorised ride-along that qualifies on its merits.** T6 extracted
+`_managed_paths_container_is_array` out of `_run_dry_run`'s inline block so
+the apply path reuses it rather than carrying a second copy. Its report says
+"Bundled fixes: none", which is inaccurate — this is a ride-along edit to
+phase-2 shipped code.
+
+Judged against the carve-out's four clauses it passes all of them: it fires no
+risk trigger standalone, changes no behaviour and resolves no design call, is
+verifiable as a literal extraction with the suite green, and touches no file
+defining what an agent may do. The fault is mine, not the implementer's: the
+dispatch brief must explicitly authorise the carve-out in supervisor mode and
+mine did not. Kept, because reverting it would restore the duplication
+AGENTS.md's Cut-before-adding ladder exists to remove. **Remaining briefs
+should state whether the carve-out is authorised.**
+
+**3. One `except Exception` added**, on the apply path's `replay_derivation`
+call, mirroring `run()`'s existing resolver handling. AC-0040 requires every
+failure to reach a named row rather than an uncaught traceback setting the
+exit status, so a bare catch is the criterion's own demand here rather than a
+smell. `_run_dry_run`'s narrower catch is untouched.
+
+### Gap carried forward to T7
+
+`_run_dry_run` and `--check` do not yet apply AC-0068's per-field validation
+or accept the scoping flags, so AC-0039's "or `--dry-run`" half of rows 4 and
+5 is currently exercised only through the apply path. T7 owns the preview half
+of AC-0043 and AC-0030's `--check` clause. T7's `Touches:` names `cli.py`
+only, so if wiring those genuinely needs a `catalogue_sync.py` change, that is
+a plan error to surface rather than an edit to make quietly.
+`_resolve_effective_selection` and `_narrow_replayed_paths` were written to be
+reusable from the parser side without a second edit here.

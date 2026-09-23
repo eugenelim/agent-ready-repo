@@ -3862,3 +3862,772 @@ def test_sync_leaves_the_target_tree_unchanged(tmp_path, case):
 
     after = walk_target_tree(target)
     assert after == before
+
+
+# ---------------------------------------------------------------------------
+# T6: `_run_apply` owns the apply exit rows (spec AC-0039, AC-0040, AC-0046,
+# AC-0047, AC-0048, AC-0049, AC-0051, AC-0057, AC-0066, AC-0068, AC-0069).
+#
+# `_run_apply` is called directly, not through `run()`/the real parser: T7
+# (not yet landed) is what wires `--pack`/`--profile`/`--guides`/`--package`/
+# `--yes` onto the CLI namespace `run()` reads. This mirrors T5's own
+# established pattern of driving a composed seam directly rather than
+# building a parser-shaped test double.
+# ---------------------------------------------------------------------------
+
+
+def _write_apply_run_state(
+    target: Path, *, recipe: dict, managed_paths: object = None
+) -> None:
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "3",
+                "managed_paths": managed_paths if managed_paths is not None else [],
+                "recipe": recipe,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _apply_run_target(
+    tmp_path: Path,
+    tag: str,
+    *,
+    recipe: dict | None = None,
+    managed_paths: object = None,
+) -> tuple[Path, Path]:
+    """A minimal apply-ready ``(target, source)`` pair: *source* ships one
+    pack, ``alpha`` (:func:`_make_source`); *target* records *recipe*
+    (defaulting to ``{"packs": ["alpha"], "profiles": []}``) and
+    *managed_paths*.
+    """
+    source = _make_source(tmp_path / f"run-apply-source-{tag}")
+    target = tmp_path / f"run-apply-target-{tag}"
+    target.mkdir()
+    resolved_recipe = {"packs": ["alpha"], "profiles": []}
+    resolved_recipe.update(recipe or {})
+    _write_apply_run_state(target, recipe=resolved_recipe, managed_paths=managed_paths)
+    return target, source
+
+
+def _call_run_apply(target: Path, source: Path, **overrides) -> int:
+    kwargs: dict = {
+        "target": target,
+        "source_path": source,
+        "fidelity_token": "local-path",
+        "archive_sha256": None,
+        "source_revision": None,
+        "attribution": "white-label",
+        "tooling": "external",
+        "guides": "selected",
+        "attributed": False,
+        "source_raw": str(source),
+        "fmt": "table",
+        "yes": True,
+        "cli_pack_names": [],
+        "cli_profile_names": [],
+        "guides_scope": False,
+    }
+    kwargs.update(overrides)
+    return catalogue_sync._run_apply(**kwargs)
+
+
+def test_run_apply_success_row_writes_admitted_paths_and_returns_zero(tmp_path):
+    # AC-0039's `0 — success` row: every planned write lands, removal and the
+    # state write complete, and `companion_occupied` is zero. A recorded,
+    # unedited README (on-disk sha == recorded sha, source bytes differ) is
+    # what classifies `would-update` — with no recorded entry at all the
+    # path is untouched-but-not-introduced and never admitted.
+    target, source = _apply_run_target(
+        tmp_path,
+        "success",
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"old bytes\n").hexdigest(),
+            }
+        ],
+    )
+    readme = target / "packs" / "alpha" / "README.md"
+    readme.parent.mkdir(parents=True, exist_ok=True)
+    readme.write_bytes(b"old bytes\n")
+
+    code = _call_run_apply(target, source)
+
+    assert code == 0
+    assert readme.read_bytes() == (source / "packs" / "alpha" / "README.md").read_bytes()
+    state = json.loads(
+        (target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
+    )
+    written_paths = {entry["path"] for entry in state["managed_paths"]}
+    assert "packs/alpha/README.md" in written_paths
+
+
+def test_run_apply_companion_occupied_returns_difference_not_success(tmp_path):
+    # AC-0039's `1 — difference` row: every write lands but an occupied
+    # companion destination stops the run short of a clean `0`.
+    target, source = _apply_run_target(
+        tmp_path,
+        "companion-occupied",
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"pre-existing digest that never matches\n").hexdigest(),
+            }
+        ],
+    )
+    (target / "packs" / "alpha").mkdir(parents=True, exist_ok=True)
+    (target / "packs" / "alpha" / "README.md").write_bytes(b"adopter edit\n")
+    occupant = target / "packs" / "alpha" / "README.upstream.md"
+    occupant.write_bytes(b"already here\n")
+
+    code = _call_run_apply(target, source)
+
+    assert code == 1
+    assert occupant.read_bytes() == b"already here\n"
+
+
+def test_run_apply_unshipped_cli_pack_name_is_malformed_and_writes_nothing(tmp_path):
+    # AC-0046: a `--pack` name the resolved source does not ship.
+    target, source = _apply_run_target(tmp_path, "unshipped-cli-pack")
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source, cli_pack_names=["ghost"])
+
+    assert code == 2
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_unshipped_cli_profile_name_is_malformed_and_writes_nothing(tmp_path):
+    # AC-0046, profile axis.
+    target, source = _apply_run_target(tmp_path, "unshipped-cli-profile")
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source, cli_profile_names=["ghost"])
+
+    assert code == 2
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_recorded_packs_wrong_type_is_cannot_answer(tmp_path):
+    # AC-0068: a present-but-invalid recorded selection (wrong type) refuses.
+    target, source = _apply_run_target(
+        tmp_path, "packs-wrong-type", recipe={"packs": "alpha", "profiles": []}
+    )
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_recorded_profiles_list_of_non_strings_is_cannot_answer(tmp_path):
+    # AC-0068, profiles axis, a different invalid shape (list of non-strings)
+    # — driven independently per plan.md T6 § Tests.
+    target, source = _apply_run_target(
+        tmp_path, "profiles-non-strings", recipe={"packs": ["alpha"], "profiles": [1, 2]}
+    )
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_recorded_packs_names_a_tooling_pack_is_cannot_answer(tmp_path):
+    # AC-0068's own regression case: `select_packs` silently drops a tooling
+    # pack name (`catalogue-curation` — the one name `_TOOLING_PACKS`
+    # carries) from an explicit selection rather than refusing, so a
+    # recorded list naming only such a name must refuse *here* instead of
+    # resolving to "no narrowing requested". The source ships the pack
+    # directory (so this is not merely "unshipped") — only its tooling
+    # status excludes it.
+    source = tmp_path / "run-apply-source-packs-names-tooling-pack"
+    _make_source(source)
+    curation = source / "packs" / "catalogue-curation"
+    curation.mkdir(parents=True)
+    (curation / "pack.toml").write_text(
+        '[pack]\nname = "catalogue-curation"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    target = tmp_path / "run-apply-target-packs-names-tooling-pack"
+    target.mkdir()
+    _write_apply_run_state(
+        target, recipe={"packs": ["catalogue-curation"], "profiles": []}
+    )
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_absent_profiles_field_selects_nothing_not_a_refusal(tmp_path):
+    # AC-0068: an absent field is the narrowing outcome, never a refusal.
+    target, source = _apply_run_target(tmp_path, "absent-profiles", recipe={"packs": ["alpha"]})
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    del state["recipe"]["profiles"]
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    code = _call_run_apply(target, source)
+
+    assert code == 0
+
+
+def test_run_apply_empty_recorded_packs_selects_nothing_not_a_refusal(tmp_path):
+    # AC-0068: an empty list is the narrowing outcome, never a refusal.
+    target, source = _apply_run_target(
+        tmp_path, "empty-packs-no-refusal", recipe={"packs": [], "profiles": []}
+    )
+
+    code = _call_run_apply(target, source)
+
+    assert code == 0
+
+
+def test_run_apply_empty_recorded_packs_does_not_remove_recorded_pack_tree(tmp_path):
+    # AC-0069's selection axis — the regression this delivery is most at
+    # risk of reintroducing: an empty recorded `packs` category must put no
+    # path under `packs/` inside coverage, so a recorded pack tree the
+    # source still ships survives even though `packs` resolves to nothing.
+    # `select_packs(source, [])` would otherwise widen internally and (were
+    # coverage keyed off the pre-resolution selection) delete this tree.
+    target, source = _apply_run_target(
+        tmp_path,
+        "empty-packs-coverage",
+        recipe={"packs": [], "profiles": []},
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"adopter content\n").hexdigest(),
+            }
+        ],
+    )
+    alpha = target / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "README.md").write_bytes(b"adopter content\n")
+    before_readme = (alpha / "README.md").read_bytes()
+
+    code = _call_run_apply(target, source)
+
+    assert code == 0
+    # The pack tree survives untouched — only the ownership state (clause 6,
+    # written on every successful run) legitimately changes.
+    assert (alpha / "README.md").read_bytes() == before_readme
+    state = json.loads(
+        (target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
+    )
+    recorded_paths = {entry["path"] for entry in state["managed_paths"]}
+    assert "packs/alpha/README.md" in recorded_paths
+
+
+def test_run_apply_recorded_path_container_not_array_is_cannot_answer(tmp_path):
+    target, source = _apply_run_target(tmp_path, "container-not-array", managed_paths="not-a-list")
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_format_json_without_yes_is_malformed(tmp_path):
+    # AC-0030's document clause: an apply run with `--format json` and no
+    # `--yes` would share stdout between the prompt and the document.
+    target, source = _apply_run_target(tmp_path, "json-no-yes")
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source, fmt="json", yes=False)
+
+    assert code == 2
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_source_resolution_failure_is_cannot_answer_and_writes_nothing(
+    tmp_path,
+):
+    # AC-0039's row 3, driven for the apply invocation specifically through
+    # `run()`'s own dispatch — the `--dry-run`/`--check` rows are re-driven
+    # elsewhere in this file rather than inherited (plan.md T6 § Tests): the
+    # table is this spec's own, not phase 2's shorter one. Reached via a
+    # hand-built namespace, since the parser does not yet admit a bare apply
+    # invocation (T7).
+    target = tmp_path / "resolution-failure-target"
+    target.mkdir()
+    missing_source = tmp_path / "does-not-exist"
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(missing_source), "--dry-run"]
+    )
+    args.dry_run = False
+    before = walk_target_tree(target)
+
+    assert catalogue_sync.run(args) == 3
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_identity_leak_violation_returns_difference_and_never_prompts(
+    tmp_path, monkeypatch
+):
+    # AC-0039's leak row (`1 — difference`) and AC-0051: no write, and the
+    # operator is never prompted for consent.
+    source = tmp_path / "leaky-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'maintainers = [{name = "Upstream Maintainer", '
+        'email = "leaky@upstream.example.com"}]\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "README.md").write_text(
+        "contact leaky@upstream.example.com\n", encoding="utf-8"
+    )
+    target = tmp_path / "leaky-target"
+    target.mkdir()
+    _write_apply_run_state(target, recipe={"packs": ["alpha"], "profiles": []})
+    before = walk_target_tree(target)
+
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called on a leak violation")
+
+    monkeypatch.setattr("builtins.input", _boom)
+
+    code = _call_run_apply(target, source, yes=False)
+
+    assert code == 1
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_adapter_contract_mismatch_returns_difference(tmp_path):
+    pack_toml_text = (
+        FIXTURES / "adapter_contract_major_mismatch" / "pack.toml"
+    ).read_text(encoding="utf-8")
+    source = _make_source_with_pack_toml(
+        tmp_path / "run-apply-adapter-mismatch-source", pack_toml_text
+    )
+    target = tmp_path / "run-apply-adapter-mismatch-target"
+    target.mkdir()
+    _write_apply_run_state(target, recipe={"packs": ["alpha"], "profiles": []})
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 1
+    assert walk_target_tree(target) == before
+
+
+@pytest.mark.parametrize("mode_flag", [("--dry-run",), ("--check",)])
+def test_run_package_recognized_name_refuses_before_fetch_on_every_invocation(
+    tmp_path, monkeypatch, mode_flag
+):
+    # AC-0047: `--package` with a recognised name refuses on apply, on
+    # `--dry-run`, and on `--check` alike, and the row sits above source
+    # resolution — no fetch is ever performed.
+    target = tmp_path / "package-target"
+    target.mkdir()
+    source = tmp_path / "package-source"
+
+    def _boom(uri):
+        raise AssertionError("source resolution must not run for --package")
+
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
+    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), *mode_flag]
+    )
+    args.package = "agentbundle"
+
+    assert catalogue_sync.run(args) == 3
+
+
+def test_run_apply_package_recognized_name_refuses_before_fetch(tmp_path, monkeypatch):
+    # AC-0047's third invocation — a bare apply run supplying `--package`.
+    # Reachable only via a hand-built namespace: the mutually exclusive
+    # `--dry-run`/`--check` group is still `required=True` until T7 lands.
+    target = tmp_path / "package-apply-target"
+    target.mkdir()
+    source = tmp_path / "package-apply-source"
+
+    def _boom(uri):
+        raise AssertionError("source resolution must not run for --package")
+
+    monkeypatch.setattr(catalogue_sync, "resolve_catalogue", _boom)
+    monkeypatch.setattr(catalogue_sync, "fetch_catalogue_archive_with_provenance", _boom)
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
+    )
+    args.dry_run = False
+    args.package = "credbroker"
+
+    assert catalogue_sync.run(args) == 3
+
+
+def test_run_apply_two_runs_identical_flags_differing_recorded_modes_write_same_bytes(
+    tmp_path,
+):
+    # AC-0048: recorded `attribution`/`tooling`/`guides` never affect what an
+    # apply run writes — only the flags do. Neither call below overrides the
+    # `tooling`/`attribution` *flags* (both keep `_call_run_apply`'s
+    # defaults), only the *recorded* recipe values differ.
+    managed_paths = [
+        {"path": "packs/alpha/README.md", "sha256": hashlib.sha256(b"old bytes\n").hexdigest()}
+    ]
+    target_a, source_a = _apply_run_target(
+        tmp_path, "modes-a", recipe={"packs": ["alpha"], "profiles": [],
+                                      "attribution": "attributed", "tooling": "vendored",
+                                      "guides": "none"},
+        managed_paths=managed_paths,
+    )
+    target_b, source_b = _apply_run_target(
+        tmp_path, "modes-b", recipe={"packs": ["alpha"], "profiles": [],
+                                      "attribution": "white-label", "tooling": "external",
+                                      "guides": "selected"},
+        managed_paths=managed_paths,
+    )
+    for target in (target_a, target_b):
+        readme = target / "packs" / "alpha" / "README.md"
+        readme.parent.mkdir(parents=True, exist_ok=True)
+        readme.write_bytes(b"old bytes\n")
+
+    code_a = _call_run_apply(target_a, source_a)
+    code_b = _call_run_apply(target_b, source_b)
+
+    assert code_a == code_b == 0
+    assert (target_a / "packs" / "alpha" / "README.md").read_bytes() == (
+        target_b / "packs" / "alpha" / "README.md"
+    ).read_bytes()
+
+
+def test_run_apply_recorded_source_value_failing_terminal_safe_check_is_not_prompted(
+    tmp_path, monkeypatch
+):
+    # AC-0049: the consent prompt never receives a value that fails the
+    # bounded terminal-safe scalar check; the field is reported by name
+    # instead.
+    target, source = _apply_run_target(tmp_path, "unsafe-source")
+    captured: dict[str, str] = {}
+
+    def _capture(prompt=""):
+        captured["prompt"] = prompt
+        return "y"
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", _capture)
+    unsafe_source = "https://example.test/repo "
+    assert not ish._is_safe_recipe_text(unsafe_source)
+
+    code = _call_run_apply(
+        target, source, yes=False, attributed=True, source_raw=unsafe_source,
+    )
+
+    assert code == 0
+    assert unsafe_source not in captured["prompt"]
+    assert "rejected source" in captured["prompt"]
+
+
+def test_run_apply_companion_collision_refuses_cannot_answer_and_writes_nothing(
+    tmp_path,
+):
+    # AC-0071, driven at `_run_apply`'s own composition rather than only at
+    # `apply_write_sequence`'s level.
+    source = tmp_path / "collision-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\nname = "upstream"\ndisplay_name = "Upstream"\n'
+        'description = "d"\n',
+        encoding="utf-8",
+    )
+    pack = source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (pack / "x.md").write_text("source x\n", encoding="utf-8")
+    (pack / "x.upstream.md").write_text("source companion\n", encoding="utf-8")
+
+    target = tmp_path / "collision-target"
+    target.mkdir()
+    xmd = target / "packs" / "alpha" / "x.md"
+    xmd.parent.mkdir(parents=True, exist_ok=True)
+    xmd.write_bytes(b"adopter edit\n")
+    _write_apply_run_state(
+        target,
+        recipe={"packs": ["alpha"], "profiles": []},
+        managed_paths=[
+            {"path": "packs/alpha/x.md", "sha256": hashlib.sha256(b"original\n").hexdigest()}
+        ],
+    )
+    before = walk_target_tree(target)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_snapshot_bound_exceeded_refuses_before_prompt_and_before_write(
+    tmp_path, monkeypatch
+):
+    target, source = _apply_run_target(tmp_path, "snapshot-bound")
+
+    def _boom_prompt(prompt=""):
+        raise AssertionError("input() must not be called before the snapshot bound check")
+
+    def _boom_snapshot(target_arg, paths, *, bound=catalogue_sync._SNAPSHOT_BOUND_BYTES):
+        raise catalogue_sync.SnapshotBoundExceeded(bound=10, measured=20)
+
+    monkeypatch.setattr("builtins.input", _boom_prompt)
+    monkeypatch.setattr(catalogue_sync, "snapshot_write_set", _boom_snapshot)
+
+    code = _call_run_apply(target, source, yes=False)
+
+    assert code == 3
+
+
+def test_run_apply_snapshot_unreadable_refuses_cannot_answer(tmp_path, monkeypatch):
+    target, source = _apply_run_target(tmp_path, "snapshot-unreadable")
+
+    def _boom_snapshot(target_arg, paths, *, bound=catalogue_sync._SNAPSHOT_BOUND_BYTES):
+        raise catalogue_sync.SnapshotUnreadableError("packs/alpha/README.md")
+
+    def _boom_prompt(prompt=""):
+        raise AssertionError("input() must not be called on a snapshot-unreadable refusal")
+
+    monkeypatch.setattr(catalogue_sync, "snapshot_write_set", _boom_snapshot)
+    monkeypatch.setattr("builtins.input", _boom_prompt)
+
+    code = _call_run_apply(target, source, yes=False)
+
+    assert code == 3
+
+
+def test_run_apply_no_terminal_no_yes_refuses_difference_and_writes_nothing(tmp_path, monkeypatch):
+    target, source = _apply_run_target(tmp_path, "no-terminal")
+    before = walk_target_tree(target)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    code = _call_run_apply(target, source, yes=False)
+
+    assert code == 1
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_declined_consent_refuses_difference_and_writes_nothing(tmp_path, monkeypatch):
+    target, source = _apply_run_target(tmp_path, "declined")
+    before = walk_target_tree(target)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "n")
+
+    code = _call_run_apply(target, source, yes=False)
+
+    assert code == 1
+    assert walk_target_tree(target) == before
+
+
+def test_run_apply_gate_recheck_diverged_after_consent_refuses_cannot_answer(
+    tmp_path, monkeypatch
+):
+    # AC-0039's snapshot-scoped trailing note: the gate recheck row sits
+    # below the consent rows because the gate runs after consent by
+    # construction. Consent (`--yes`) is given here, and only the recheck —
+    # driven by monkeypatching `gate_recheck` itself, since the gate always
+    # runs after this function's own snapshot build — reports a divergence.
+    target, source = _apply_run_target(tmp_path, "gate-recheck")
+    monkeypatch.setattr(catalogue_sync, "gate_recheck", lambda target_arg, expected: ["packs/alpha/README.md"])
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+
+
+def test_run_apply_write_failure_restored_returns_apply_failed(tmp_path, monkeypatch):
+    target, source = _apply_run_target(
+        tmp_path,
+        "write-fails-restored",
+        managed_paths=[
+            {"path": "packs/alpha/README.md", "sha256": hashlib.sha256(b"old\n").hexdigest()}
+        ],
+    )
+    (target / "packs" / "alpha").mkdir(parents=True, exist_ok=True)
+    (target / "packs" / "alpha" / "README.md").write_bytes(b"old\n")
+
+    real_write_jailed = catalogue_sync.write_jailed
+
+    def _boom(root, relpath, content, **kwargs):
+        if relpath == "packs/alpha/README.md":
+            raise OSError("simulated write failure")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    monkeypatch.setattr(catalogue_sync, "write_jailed", _boom)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 4
+    # Restored: the adopter's pre-run bytes are back.
+    assert (target / "packs" / "alpha" / "README.md").read_bytes() == b"old\n"
+
+
+def test_run_apply_write_failure_restore_fails_names_unrestored_path(
+    tmp_path, monkeypatch, capsys
+):
+    target, source = _apply_run_target(
+        tmp_path,
+        "write-fails-unrestored",
+        managed_paths=[
+            {"path": "packs/alpha/README.md", "sha256": hashlib.sha256(b"old\n").hexdigest()}
+        ],
+    )
+    (target / "packs" / "alpha").mkdir(parents=True, exist_ok=True)
+    (target / "packs" / "alpha" / "README.md").write_bytes(b"old\n")
+
+    def _boom_write(root, relpath, content, **kwargs):
+        raise OSError("simulated write failure")
+
+    def _boom_restore(target_arg, snapshot, acted_paths):
+        return ["packs/alpha/README.md"]
+
+    monkeypatch.setattr(catalogue_sync, "write_jailed", _boom_write)
+    monkeypatch.setattr(catalogue_sync, "restore_from_snapshot", _boom_restore)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 4
+    assert "packs/alpha/README.md" in capsys.readouterr().err
+
+
+def test_run_apply_removal_failure_returns_apply_failed(tmp_path, monkeypatch):
+    target, source = _apply_run_target(
+        tmp_path,
+        "removal-fails",
+        managed_paths=[
+            {"path": "packs/alpha/gone.md", "sha256": hashlib.sha256(b"stale\n").hexdigest()}
+        ],
+    )
+    gone = target / "packs" / "alpha" / "gone.md"
+    gone.parent.mkdir(parents=True, exist_ok=True)
+    gone.write_bytes(b"stale\n")
+
+    monkeypatch.setattr(catalogue_sync, "_confined_unlink", lambda target_arg, path: False)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 4
+
+
+def test_run_apply_state_write_failure_returns_apply_failed(tmp_path, monkeypatch):
+    target, source = _apply_run_target(tmp_path, "state-write-fails")
+
+    def _boom(target_arg, merged_state):
+        raise OSError("simulated state write failure")
+
+    monkeypatch.setattr(catalogue_sync, "write_merged_state", _boom)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 4
+
+
+def test_run_apply_replay_boundary_fault_reaches_cannot_answer_not_a_crash(
+    tmp_path, monkeypatch
+):
+    # AC-0040: a fault injected at the replay boundary — anything other than
+    # the already-handled `ReplayError` — still reaches a named row.
+    target, source = _apply_run_target(tmp_path, "replay-boom")
+
+    def _boom(cfg, *, interactive=False):
+        raise RuntimeError("simulated unexpected replay failure")
+
+    monkeypatch.setattr(catalogue_sync, "replay_derivation", _boom)
+
+    code = _call_run_apply(target, source)
+
+    assert code == 3
+
+
+def test_run_apply_printed_acted_rows_equal_admitted_write_set(tmp_path, capsys):
+    # AC-0057: the row set the run prints equals the row set its write phase
+    # acts on (the "consented-plan-is-applied" half).
+    target, source = _apply_run_target(tmp_path, "printed-plan")
+
+    code = _call_run_apply(target, source, fmt="json")
+    doc = json.loads(capsys.readouterr().out)
+
+    acted_paths = {row["path"] for row in doc["acted"] if row["verdict"] != "would-remove"}
+    state = json.loads(
+        (target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
+    )
+    written_paths = {entry["path"] for entry in state["managed_paths"]}
+
+    assert code == 0
+    assert acted_paths <= written_paths
+
+
+def test_run_apply_deferred_package_count_equals_planned_package_paths(tmp_path, capsys):
+    # AC-0066: the reported `deferred_package` count equals the number of
+    # planned paths clause 5 excludes. Clause 5 only ever excludes a path
+    # clause 3 would otherwise admit (a `would-update`/`would-companion`
+    # verdict, or a path belonging to a newly introduced pack/profile) — a
+    # `packages/credbroker/**` path nobody has recorded yet is plain
+    # `untouched` and was never a write candidate in the first place, so
+    # this fixture records two such paths with a stale digest, and the
+    # source now ships different bytes for both (`would-update`), which is
+    # what makes clause 5's exclusion — and this count — observable.
+    source = tmp_path / "deferred-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\nname = "upstream"\ndisplay_name = "Upstream"\n'
+        'description = "d"\n',
+        encoding="utf-8",
+    )
+    creds_pack = source / "packs" / "credential-brokers"
+    creds_pack.mkdir(parents=True)
+    (creds_pack / "pack.toml").write_text(
+        '[pack]\nname = "credential-brokers"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    pkg = source / "packages" / "credbroker"
+    pkg.mkdir(parents=True)
+    (pkg / "one.txt").write_text("vendored v2\n", encoding="utf-8")
+    (pkg / "two.txt").write_text("vendored v2\n", encoding="utf-8")
+
+    target = tmp_path / "deferred-target"
+    target_pkg = target / "packages" / "credbroker"
+    target_pkg.mkdir(parents=True)
+    (target_pkg / "one.txt").write_bytes(b"vendored v1\n")
+    (target_pkg / "two.txt").write_bytes(b"vendored v1\n")
+    _write_apply_run_state(
+        target,
+        recipe={"packs": ["credential-brokers"], "profiles": []},
+        managed_paths=[
+            {
+                "path": "packages/credbroker/one.txt",
+                "sha256": hashlib.sha256(b"vendored v1\n").hexdigest(),
+            },
+            {
+                "path": "packages/credbroker/two.txt",
+                "sha256": hashlib.sha256(b"vendored v1\n").hexdigest(),
+            },
+        ],
+    )
+    before_one = (target_pkg / "one.txt").read_bytes()
+
+    code = _call_run_apply(target, source, fmt="json")
+    doc = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert doc["summary"]["deferred_package"] == 2
+    # Never written: clause 5 excludes it from the write set entirely.
+    assert (target_pkg / "one.txt").read_bytes() == before_one
