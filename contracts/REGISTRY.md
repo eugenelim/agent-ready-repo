@@ -22,7 +22,14 @@ and that spec's directory. Two things in a row are therefore load-bearing:
 
 Without the trailing slash, `docs/specs/foo` would be satisfied by a row naming
 `docs/specs/foo-bar/`; this repository has 12 such spec-directory prefix pairs.
-The table pipes, the backticks and the column order are readability, not contract.
+
+The lint itself is layout-tolerant: the table pipes, the backticks and the column
+order carry no meaning for it, and a bullet holding the same pair reads the same.
+**This repository's own copy is pinned tighter than the lint requires.**
+`tests/roster/test_contract_backward_registry.py` parses only the two-cell
+backticked table row above, so a row written in any other layout is invisible to
+it and the run reports the pair as missing. Adopters who copy this convention
+inherit the lint's tolerance; this file does not use it.
 
 One contract may appear on several rows, once per spec that names it. The finding
 is warn-only: a missing row reports, it does not fail the run.
