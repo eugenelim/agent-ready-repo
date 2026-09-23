@@ -114,7 +114,7 @@ jobs:
         run: python3 tools/lint-guides-no-repo-only-refs.py
 
   lint-intent-corpus:
-    name: Intents satisfy the metadata shape contract
+    name: Intents satisfy the metadata shape and ordinal-uniqueness contracts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
@@ -127,6 +127,17 @@ jobs:
         run: |
           python3 packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py \
             --dir docs/product/intents --root .
+      # The allocator's `--check` mode had no caller anywhere: allocation is
+      # invoked by prose in work-intake/SKILL.md, so a hand-made rename that
+      # reuses an ordinal left no trace. `--check` is local-only by design, and
+      # on a `pull_request` the checkout is the merge commit, so a branch record
+      # that collides with one already on the base branch has both names present
+      # here and is seen. It refuses rather than reporting clean on a directory
+      # it could not fully read, so exit 0 means "read it, no duplicates".
+      - name: Check the intent corpus for duplicate typed ordinals
+        run: |
+          python3 packs/core/.apm/skills/work-intake/scripts/intent_ordinal.py \
+            --check docs/product/intents
 
   lint-guide-titles:
     name: Guide frontmatter title matches body H1
