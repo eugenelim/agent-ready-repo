@@ -112,13 +112,22 @@ supersede phase 2's five-verdict criterion's closed set for a defect that does n
 
 **Rollback holds the prior walk tuple in memory.** Restoring a partially applied
 tree needs what was there, and a Tier-1 verdict gives only a digest. The apply
-path snapshots every write-set path that exists before the first write — bytes,
-entry kind, mode and symlink target, the same tuple AC-0041 compares — then
-restores from it on failure and unlinks what it created. Bytes alone would
-satisfy AC-0038's digest half and still fail AC-0041 on a changed mode. The cost is one extra copy of the write set alongside the
-replay's own `file_bytes`, and § Grounding's snapshot-bound derivation measures
-that worst-case peak at 34.5 MiB for the largest selection this repository can
-produce. The alternative — a per-path backup file — is a second write set inside
+path snapshots the pre-run entry set over every write-set path and its ancestor
+directories — bytes, entry kind, mode and symlink target, the same tuple
+AC-0041 compares — then restores from it on failure, unlinking files it created
+and removing directories the pre-run walk lacked. Bytes alone would satisfy
+AC-0038's digest half and still fail AC-0041 on a changed mode; files alone
+would fail it on a `--pack <new-name>` run, which creates `packs/<new-name>/`
+and leaves a `dir` entry the before-walk does not carry.
+
+The snapshot's bound is on the **adopter** axis, not the source axis.
+§ Grounding's snapshot-bound derivation measures the source tree at 34.5 MiB
+worst case, but what is held is the adopter's prior bytes at each write-set
+path, and an adopter file at a planned path is unbounded. AC-0076 therefore
+caps the snapshot and makes the run refuse before its first write when the cap
+is exceeded — refusing is a different contract from failing into rollback, and
+an out-of-memory landing mid-write hands the run to AC-0058's partial-restore
+row, which is the outcome § Never do calls absolute. The alternative — a per-path backup file — is a second write set inside
 the jail and a predictable staging path, which § Never do forbids.
 
 **Why the recorded path set excludes Tier-3 and companion paths.** AC-0059 owns
@@ -268,11 +277,26 @@ filesystem.
   file has the same digest after the run as before. Verifies AC-0034.
 - Stale removal runs after the last write and its keep-set argument is the full
   replayed set. Verifies AC-0035.
-- A `--pack` run over a fixture recording paths outside that pack, and paths
-  under a package subtree, leaves every one of them present — including a path
-  the guard would otherwise admit for removal, which is the case that proves the
-  removal-side scope filter exists rather than being implied by the keep-set.
-  Verifies AC-0064.
+- An UNSCOPED run over a tree whose recorded state came from a
+  `--tooling vendored` derivation leaves every `.agentbundle/tooling/**` path
+  present and reports them out-of-coverage. This case is the one that matters:
+  a `--pack` run excludes those paths by scope alone, so a scoped-only fixture
+  passes against an implementation with no coverage rule at all. Verifies
+  AC-0069.
+- A `--pack` run over a fixture recording paths outside that pack leaves every
+  one present — including a path the guard would otherwise admit for removal.
+  Verifies AC-0064's scope axis.
+- A recorded entry that becomes link-like between planning and acting is
+  refused at the unlink. Verifies AC-0073.
+- An occupied companion destination carrying adopter edits survives the run and
+  is named on the printed plan. Verifies AC-0070.
+- A source planning both `x.md` and `x.upstream.md` against a Tier-2 `x.md`
+  writes neither and reports the collision. Verifies AC-0071.
+- A `--pack <new-name>` run whose write is injected to fail leaves no
+  `packs/<new-name>/` directory behind. A file-only restore passes every other
+  rollback case and fails this one. Verifies AC-0038's entry-set half.
+- A fixture whose adopter-side write-set paths exceed the bound refuses before
+  the first write. Verifies AC-0076.
 - With a write injected to fail on the nth path, the tree's walk tuple — path,
   entry kind, mode, symlink target and bytes — equals its pre-run value.
   Comparing paths and digests alone passes a restore that changed a mode.
@@ -303,6 +327,8 @@ asserting the tree rather than the return value.
   end-of-input with no terminal — drive the gate, and the target tree is the
   oracle in all four. Verifies AC-0031.
 - The prompt names no source URI outside attributed mode. Verifies AC-0050.
+- Each of the four source forms produces its own fidelity token on the prompt.
+  Verifies AC-0072.
 - A recorded value failing the terminal-safe check does not reach the prompt;
   the observable is a length or whitespace bound, not a control character, which
   an escaping sink would neutralise either way. Verifies AC-0049.
@@ -332,6 +358,12 @@ asserting the tree rather than the return value.
 - The reported deferred count equals the number of planned package paths, and
   phase 2's seven counts over the same run match a phase-2 classification of the
   full replayed selection. Verifies AC-0066.
+- A recorded selection of each invalid type, and one carrying a single name the
+  source does not ship, each return the cannot-answer code naming the field.
+  The unshipped-name case is the one a presence-and-emptiness fixture misses.
+  Verifies AC-0068.
+- A run that cannot read a write-set path's pre-write state returns
+  cannot-answer with no write. Verifies AC-0039's pre-write row.
 - A fault injected at each boundary still reaches a named row; no uncaught
   exception sets the status. Verifies AC-0040.
 - An unshipped `--pack` or `--profile` name refuses as malformed and the tree
@@ -363,7 +395,11 @@ asserting the tree rather than the return value.
   the real parser, not a hand-built namespace, because the defaults a hand-built
   namespace supplies are what the parser decides. Verifies AC-0030.
 - `--guides` resolves to the scoping flag and an abbreviation of
-  `--guides-mode` is rejected. Verifies AC-0060. Asserting only that `--guides`
+  `--guides-mode` is rejected. Verifies AC-0060.
+- The registered subparser's help string, read from the parser, does not claim
+  the command is read-only. Verifies AC-0074.
+- An apply run with `--format json` and no `--yes` exits 2. Verifies AC-0030's
+  document clause. Asserting only that `--guides`
   works passes a parser that still abbreviates.
 - Scoping flags restrict a `--dry-run` plan and are malformed on `--check`.
   Verifies AC-0043's preview half and AC-0030's `--check` clause.
@@ -434,6 +470,8 @@ difference is an equality, not a containment.
   AC-0062.
 - § Granularity names both `--package` destinations and § Rollout item 4 no
   longer calls them both `packages/` subtrees. Verifies AC-0063.
+- § Rollout no longer assigns the pin's first real value to phase 2. Verifies
+  AC-0075.
 - The phase-2 spec's Status line carries a supersession pointer naming its
   exit-code criterion's first row and its no-write walk criterion as partly
   superseded. That pointer is the only edit a frozen spec takes. Verifies
@@ -483,6 +521,7 @@ passage that uses it, and this section holds the command that reproduces it.
 | Jailed-write admission | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-jailed-write-admits-planned-paths.py` | Every planned path is admitted as a direct write and as a companion write, in both tooling modes |
 | Snapshot bound | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-rollback-snapshot-bound.py` | The rollback snapshot's worst-case peak alongside the replay |
 | Release surfaces | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py` | The closed set of surfaces a version bump must move, each read by the form that surface states its version in, and whether they agree |
+| Mode asymmetry | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-mode-asymmetry.py` | How many recorded paths a run's own modes fail to plan, per mode, and which of them any named exclusion covers |
 | Selection widening | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-empty-recipe-widening.py` | Which of the nine recorded `packs`/`profiles` shapes resolve to the source's full contents, and whether the existing underivable check fires on each |
 
 A derivation's value and its oracle are pinned; a script's location and its

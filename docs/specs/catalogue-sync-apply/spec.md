@@ -109,12 +109,12 @@ what it left behind.
 
 ## Testing Strategy
 
-Three modes, over 39 criteria. Each entry names the comparison its oracle
+Three modes, over 47 criteria. Each entry names the comparison its oracle
 performs, not the property it hopes to establish.
 
 **TDD** covers AC-0030 through AC-0052, AC-0057 through AC-0060, AC-0064 and
-AC-0065, AC-0066, and AC-0068 — thirty-one criteria, each a compressible
-invariant over a pure function or a single `sync` call.
+AC-0065, AC-0066, and AC-0068 through AC-0076 — thirty-eight criteria, each a
+compressible invariant over a pure function or a single `sync` call.
 
 - **Invocation grammar (AC-0030)** — TDD. Oracle: the parser's exit status and
   the handler's returned code across the three modes and each malformed
@@ -125,6 +125,8 @@ invariant over a pure function or a single `sync` call.
   restrictor and an abbreviation of `--guides-mode` is rejected. Asserting only
   that `--guides` works passes a parser that still abbreviates, which is the
   state this criterion exists to end.
+- **The help text (AC-0074)** — TDD. Oracle: the registered subparser's help
+  string, read from the parser rather than from the source file.
 - **Consent (AC-0031)** — TDD. Oracle: the target tree's file set before and
   after on the walk tuple AC-0041 compares, under each of four inputs — an
   affirmative at the prompt, a refusal, `--yes`, and EOF with no TTY. Comparing
@@ -153,13 +155,26 @@ invariant over a pure function or a single `sync` call.
   replayed source bytes, and the adopter's file's sha256 is unchanged across the
   run. The second half catches a companion written correctly and the original
   clobbered.
+- **An occupied companion destination (AC-0070)** — TDD. Oracle: with an
+  adopter-edited `.upstream.<ext>` already present, its bytes after the run are
+  unchanged and its path is on the printed plan. Asserting only that the
+  original survives passes the clobber this criterion exists to stop.
+- **A companion collision (AC-0071)** — TDD. Oracle: a source planning both
+  `x.md` and `x.upstream.md` against a Tier-2 `x.md` writes neither and reports
+  the collision.
 - **Stale removal ordering and keep-set (AC-0035)** — TDD. Oracle: the recorded
   call order places removal after the last write, and the keep-set argument
   equals the full replayed planned set.
-- **Nothing outside scope is removed (AC-0064)** — TDD. Oracle: a scoped run
-  over a tree recording paths outside the scope, and paths under a `--package`
-  subtree, leaves every one of them present. The fixture must record paths
-  outside the scope or the check is vacuous.
+- **Removal stays inside coverage (AC-0064, AC-0069)** — TDD. Oracle: an
+  **unscoped** run over a tree whose recorded state was written by a
+  `--tooling vendored` derivation leaves every `.agentbundle/tooling/**` path
+  present, and reports them as out-of-coverage. The unscoped run is the oracle
+  that matters: a `--pack` run excludes those paths by scope alone, so a
+  scoped-only fixture passes against an implementation carrying no coverage
+  rule at all. A second case covers the scoped axis.
+- **Removals are confined at the unlink (AC-0073)** — TDD. Oracle: a recorded
+  entry that becomes link-like between planning and acting is refused at the
+  unlink, not only at the plan.
 - **The recorded path set (AC-0059)** — TDD. Oracle: the state's path set after
   the run equals `(recorded − removed) ∪ written`, with Tier-3 paths and
   companion paths absent, compared for equality.
@@ -174,6 +189,10 @@ invariant over a pure function or a single `sync` call.
   only paths and digests passes a restore that changed a mode.
 - **A failed restore is named (AC-0058)** — TDD. Oracle: with both the write and
   its restore injected to fail, the reported output names each unrestored path.
+- **The snapshot bound (AC-0076)** — TDD. Oracle: a fixture whose adopter-side
+  write-set paths exceed the bound refuses with no write, and the tree walk
+  proves it. A fixture sized from the source tree cannot reach the bound, which
+  is the measurement error the criterion exists to correct.
   This is the one outcome § Never do forbids absolutely, so the criterion exists
   to make it legible rather than to permit it.
 - **Exit codes and totality (AC-0039, AC-0040)** — TDD. Oracle: every row of the
@@ -212,6 +231,8 @@ invariant over a pure function or a single `sync` call.
   source URI does not appear on it outside attributed mode. The observable for
   the first is a bound the sink does not normalise, length or surrounding
   whitespace, because an escaping sink makes a control-character test vacuous.
+- **The prompt names the fidelity (AC-0072)** — TDD. Oracle: each of the four
+  source forms produces its own fidelity token on the prompt.
 - **A leak violation reaches no write (AC-0051)** — TDD. Oracle: the tree walk
   after a violating run. The pass direction cannot distinguish a working refusal
   from an absent one, so the fixture must violate.
@@ -227,8 +248,8 @@ invariant over a pure function or a single `sync` call.
   non-empty shapes cannot fail.
 
 **Goal-based checks** cover AC-0053, AC-0054, AC-0055, AC-0061 through AC-0063,
-and AC-0067 — seven delivery conditions, each a command whose output is the
-answer.
+AC-0067 and AC-0075 — eight delivery conditions, each a command whose output is
+the answer.
 
 - **Rollout phase count (AC-0053)** — goal-based. Oracle: the banner's claim and
   § Rollout's own list agree on how many phases remain.
@@ -245,6 +266,8 @@ answer.
 - **The package subtrees (AC-0063)** — goal-based. Oracle: § Rollout item 4 no
   longer calls both targets `packages/` subtrees, and § Granularity names each
   one's destination.
+- **The pin's phase (AC-0075)** — goal-based. Oracle: the sentence assigning
+  the pin's first real value to phase 2 is absent from § Rollout.
 - **Guide covers the apply run (AC-0054)** — goal-based. Oracle: the section
   exists in the authored source and in the projected copy, and both site gates
   pass.
@@ -253,7 +276,7 @@ answer.
   reading the same string, and that string is `0.49.0`. The derivation supplies
   the closed set; this criterion does not enumerate it by hand.
 
-**Visual / manual QA** covers AC-0056 — one criterion. That is 31 + 7 + 1 = 39.
+**Visual / manual QA** covers AC-0056 — one criterion. That is 38 + 8 + 1 = 47.
 
 - **The apply run an adopter performs (AC-0056)** — visual / manual QA. Oracle:
   the comparison the criterion names, performed against a real derived tree and
@@ -267,10 +290,14 @@ answer.
   criteria of [phase 2's spec](../catalogue-sync-dry-run/spec.md), which is
   frozen: its exit-code criterion's "neither or both" malformed row, and its
   no-write walk criterion's coverage of the bare invocation. Both assume no
-  apply path exists. Supplying both
+  apply path exists, and the phase-2 spec's Status line records that
+  supersession — the one edit a frozen spec takes. Supplying both
   flags is malformed, `--compare-tree` without `--check` is malformed, `--yes`
   outside an apply run is malformed, and any of `--pack`, `--profile` or
-  `--guides` supplied with `--check` is malformed.
+  `--guides` supplied with `--check` is malformed. An apply run with
+  `--format json` and without `--yes` is malformed, because the prompt and the
+  document would share stdout and phase 2 makes that document a parse
+  contract.
 - [ ] **AC-0031.** An apply run writes nothing until consent is given. Consent
   is an affirmative answer at the prompt or `--yes` on the command line; a
   negative answer, an end-of-input, or an absent terminal with no `--yes` all
@@ -330,10 +357,17 @@ answer.
   | `archive+https://…` | the URI, under `attributed` only | absent | the verified digest |
   | `catalogue+https://…` | the URI, under `attributed` only | the descriptor's `source_revision`, or absent | the verified digest |
 
-  `synced_at` is recorded on every row.
+  `synced_at` is recorded on every row. Under `--attribution white-label` a
+  recorded `source_revision` passes the bounded terminal-safe scalar check and
+  a ref-shaped constraint before it is written, and is omitted when it fails
+  either. The architecture's decision that a ref identifies nothing reasons over
+  a ref such as `v1.2.3`; the value reaching the pin is free text from an
+  operator-supplied URI, and the state file is the one artifact § Never do keeps
+  permanently outside the identity leak check.
 - [ ] **AC-0038.** When any planned write fails, the command restores the target
   tree before returning to the walk tuple AC-0041 compares — relative path,
-  entry kind, mode, symlink target and bytes. Whether that restore succeeds
+  entry kind, mode, symlink target and bytes — over the whole entry set, so a
+  directory the run created and the pre-run walk lacks is removed too. Whether that restore succeeds
   selects between two rows of AC-0039's table, which is the sole authority on
   the resulting code; AC-0058 governs what a restore that does not succeed must
   report.
@@ -342,15 +376,16 @@ answer.
 
   | Invocation | Condition | Code and name |
   | --- | --- | --- |
-  | any | the invocation is malformed, including an omitted `--source`, both of `--dry-run` and `--check`, `--compare-tree` without `--check`, `--yes` outside an apply run, a scoping flag with `--check`, or a `--package` name outside `agentbundle` and `credbroker` | 2 — `malformed` |
+  | any | the invocation is malformed, including an omitted `--source`, both of `--dry-run` and `--check`, `--compare-tree` without `--check`, `--yes` outside an apply run, a scoping flag with `--check`, an apply run with `--format json` and no `--yes`, or a `--package` name outside `agentbundle` and `credbroker` | 2 — `malformed` |
   | any | `--package` was supplied with a recognised name | 3 — `cannot-answer` |
   | any | the source could not be resolved or its integrity could not be verified | 3 — `cannot-answer` |
   | apply or `--dry-run` | a `--pack` or `--profile` name the resolved source does not ship | 2 — `malformed` |
-  | apply or `--dry-run` | no recorded selection is derivable | 3 — `cannot-answer` |
+  | apply or `--dry-run` | the recorded recipe carries no derivable selection, read before any name a scoping flag introduces is unioned in | 3 — `cannot-answer` |
   | apply, `--dry-run`, or `--check --compare-tree` | the recorded-path container is not an array | 3 — `cannot-answer` |
   | apply or `--dry-run` | the identity leak check reported a violation | 1 — `difference` |
   | apply or `--dry-run` | a selected pack's adapter-contract major differs from the CLI's | 1 — `difference` |
   | apply | consent was not given | 1 — `difference` |
+  | apply | the run could not read the pre-write state of a path it was about to write | 3 — `cannot-answer` |
   | apply | a planned write failed and the tree could not be fully restored | 4 — `apply-failed` |
   | apply | a planned write failed and the tree was restored | 4 — `apply-failed` |
   | apply | every planned write landed and stale removal failed | 4 — `apply-failed` |
@@ -444,7 +479,9 @@ answer.
   § Rollout both state that one phase remains.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
   carries a section covering the apply run, how consent is given, the scoping
-  flags, and what an `.upstream.<ext>` companion obliges the adopter to do —
+  flags, what an `.upstream.<ext>` companion obliges the adopter to do, and
+  that a file upstream added to an already-recorded pack is reported but not
+  written, because it is absent from the recorded state —
   present in the authored source and in the projected copy, with both site gates
   passing.
 - [ ] **AC-0055.** Every release surface the plan's § Grounding release-surface
@@ -480,13 +517,14 @@ answer.
   and `packages/credbroker/` as the two `--package` destinations in
   § Granularity, and § Rollout item 4 no longer describes both as `packages/`
   subtrees.
-- [ ] **AC-0064.** A run supplying a scoping flag removes no recorded path
-  outside that scope, and no invocation removes a recorded path under
-  `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`.
+- [ ] **AC-0064.** No invocation removes a recorded path outside the coverage
+  AC-0069 fixes. In particular a run supplying a scoping flag removes no
+  recorded path outside that scope, and no invocation — scoped or unscoped —
+  removes a recorded path under `packages/credbroker/` or
+  `.agentbundle/tooling/`.
 - [ ] **AC-0065.** Every read or hash of a target path the apply path performs
   goes through the confinement helpers phase 2's path-confinement criterion names, and is refused on
   the same hard-link, non-regular and reparse-point inputs that criterion fixes.
-
 - [ ] **AC-0066.** An apply run reports the number of paths AC-0033 clause 5
   excluded under the name `deferred_package`, in the printed table and in the
   `--format json` document's `summary` object. The seven counts phase 2 fixes stay computed over the
@@ -496,12 +534,73 @@ answer.
 - [ ] **AC-0067.** `docs/architecture/catalogue/upstream-sync.md` records phase
   3 as the delivered phase.
 - [ ] **AC-0068.** AC-0033 clause 1's effective selection never resolves to
-  contents the recorded recipe did not name. For each of the nine shapes a
-  recorded recipe's `packs` and `profiles` can take — each of them absent, an
-  empty list, or a non-empty list — the packs and profiles an apply run selects
-  are exactly those the recorded list names, plus those a scoping flag
-  introduces. An absent or empty recorded list selects nothing from that
-  category; it never selects every pack or profile the source ships.
+  contents the recorded recipe did not name. The domain this quantifies over is
+  the recorded value's **type and validity**, because that is what the
+  resolution branches on: a recorded selection is admitted only when it is a
+  list every one of whose entries is a name the source ships. Every other
+  value — absent, an empty list, a null, a string, a number, a boolean, an
+  object, a list of non-strings, or a list carrying one name the source does
+  not ship — makes the run return the cannot-answer code naming the field, and
+  never resolves to every pack or profile the source ships.
+
+  Quantifying over presence and emptiness instead is what hides the sharp case:
+  a recorded selection that fails its own read-time constraint reads as a
+  well-formed non-empty list, and the shipped resolution collapses it to "no
+  narrowing requested". § Grounding's widening derivation measures 14 of 16
+  shapes resolving to the source's full contents today.
+- [ ] **AC-0069.** A recorded path is a removal candidate only when it lies
+  inside the run's **coverage**: the set of path prefixes this run's own flags
+  could have planned. Coverage is derived from the flags and their defaults,
+  never from recorded state. It excludes `.agentbundle/tooling/` entirely under
+  `--tooling external`, `guides/` under `--guides-mode none`, and everything
+  outside the scope AC-0043 fixes. A recorded path outside coverage is reported
+  as an out-of-coverage count and left in place.
+
+  This criterion exists because the replayed set is mode-dependent while the
+  recorded set is not. A tree derived with `--tooling vendored` records every
+  path under `.agentbundle/tooling/`, and `sync` defaults `--tooling` to
+  `external`, so without this criterion a bare `catalogue sync --source <uri> .`
+  finds all of them absent from its replayed set and the sha guard admits each
+  unedited one. § Grounding's mode-asymmetry derivation measures that at 240
+  paths. Naming those subtrees as exclusions would repair the measured instance
+  and leave the class, which is any mode whose replay plans more paths than the
+  running mode's.
+- [ ] **AC-0070.** A companion destination that is already occupied is decided
+  before it is written, and the decision is visible on the plan the operator
+  consents against. An occupant whose sha256 matches what a previous run of this
+  command wrote there is replaced; any other occupant is left untouched and its
+  path is reported. Without this the companion destination is the one path in
+  the write set outside the Tier contract, and an adopter part-way through
+  resolving a companion loses that work silently.
+- [ ] **AC-0071.** When the replayed source itself plans a path equal to a
+  companion destination this run would compute, the run reports the collision
+  and writes neither, rather than letting AC-0033's set collapse the duplicate
+  and AC-0032's order decide which content wins.
+- [ ] **AC-0072.** The consent prompt names the source fidelity, including whose
+  word a digest rests on. Fidelity is what separates a `git+https://` sync —
+  TLS only, no content integrity, a force-pushable ref — from a digest-verified
+  one, and on this verb it is the basis on which an operator authorises writes
+  rather than reads.
+- [ ] **AC-0073.** Every removal the apply path performs resolves its path
+  through the same confinement the removal planner applies, at the moment of the
+  unlink rather than only when the path was planned. AC-0065 covers reads and
+  hashes and AC-0052 covers writes; without this the delete is the one action on
+  a target path bound by neither.
+
+- [ ] **AC-0074.** The `sync` subcommand's help text does not state that the
+  command is read-only or writes nothing.
+- [ ] **AC-0075.** `upstream-sync.md` § Rollout no longer states that a source
+  form affording a resolved ref or a digest first reaches the pin when `sync`
+  resolves it in phase 2. Phase 2 shipped with no write path and wrote no pin;
+  AC-0037 assigns that value to this phase.
+- [ ] **AC-0076.** The rollback snapshot is bounded, and the bound is measured
+  on the adopter tree the run reads rather than on the source it replays. An
+  apply run whose write-set paths hold more than 256 MiB on disk refuses before
+  its first write with the cannot-answer code, naming the bound. The figure is
+  an order of magnitude above the 34.5 MiB § Grounding measures for the largest
+  selection this repository produces, and the refusal is before the first write
+  because exhausting memory mid-write lands on AC-0058's partial-restore row,
+  which § Never do calls absolute.
 
 ## Follow-ons
 
@@ -511,7 +610,12 @@ answer.
   recorded three routes and left the choice to the owner; this phase does not
   take it (owner confirmation 2026-09-22). Owner: unassigned.
 - **A read-time constraint on the recorded mode fields and the pin** — carried
-  forward from phase 2 unchanged. Owner: unassigned.
+  forward from phase 2, and its consequence changed here. AC-0048 pins the
+  replay's modes to flags and defaults, so a bare apply over a tree recorded
+  `attribution = "attributed"` replays white-label bytes, which classify Tier-1
+  against the recorded digests and are written in place across every recorded
+  path. AC-0069's coverage rule bounds what such a run may remove but not what
+  it may rewrite. Owner: unassigned.
 - **A scanner rule for unbounded rendered values** — no rule detects a value
   reaching stdout without the terminal-safe check, so AC-0049's class is
   enforced by review. Owner: unassigned.
