@@ -109,13 +109,12 @@ what it left behind.
 
 ## Testing Strategy
 
-Three modes, over 38 criteria. Each entry names the comparison its oracle
+Three modes, over 39 criteria. Each entry names the comparison its oracle
 performs, not the property it hopes to establish.
 
 **TDD** covers AC-0030 through AC-0052, AC-0057 through AC-0060, AC-0064 and
-AC-0065, and AC-0066 — twenty-three plus four plus two plus one, so thirty
-criteria, each a compressible invariant over a pure function or a single `sync`
-call.
+AC-0065, AC-0066, and AC-0068 — thirty-one criteria, each a compressible
+invariant over a pure function or a single `sync` call.
 
 - **Invocation grammar (AC-0030)** — TDD. Oracle: the parser's exit status and
   the handler's returned code across the three modes and each malformed
@@ -145,9 +144,11 @@ call.
   calls, compared against the fixed order. An assertion that all paths exist
   after the run cannot observe order at all.
 - **The write set (AC-0033)** — TDD. Oracle: the set of paths written, compared
-  for equality in both directions against the filter-admitted rows of the run's
-  own plan, with companion rows contributing their computed companion path. A
-  subset check passes a run that wrote nothing.
+  for equality in both directions against the rows AC-0033 clauses 1 to 5 admit
+  — `would-update`, `would-companion` contributing its computed companion path,
+  and `untouched` for a pack or profile the run introduced — plus clause 6's
+  ownership state, which AC-0057 keeps off the printed plan. A subset check
+  passes a run that wrote nothing.
 - **Companion write (AC-0034)** — TDD. Oracle: the companion's bytes equal the
   replayed source bytes, and the adopter's file's sha256 is unchanged across the
   run. The second half catches a companion written correctly and the original
@@ -215,6 +216,11 @@ call.
 - **Every target read is confined (AC-0065)** — TDD. Oracle: the hard-link and
   reparse-point cases phase 2's path-confinement criterion fixes, re-driven through the apply
   path's own reads. The criterion is phase 2's; only the caller is new.
+- **The selection never widens (AC-0068)** — TDD. Oracle: the selected packs
+  and profiles, over all nine recorded shapes, compared against the recorded
+  lists. § Grounding's widening derivation establishes that five of the nine
+  resolve to the source's full contents today, so a fixture carrying only the
+  non-empty shapes cannot fail.
 
 **Goal-based checks** cover AC-0053, AC-0054, AC-0055, AC-0061 through AC-0063,
 and AC-0067 — seven delivery conditions, each a command whose output is the
@@ -243,7 +249,7 @@ answer.
   reading the same string, and that string is `0.49.0`. The derivation supplies
   the closed set; this criterion does not enumerate it by hand.
 
-**Visual / manual QA** covers AC-0056 — one criterion. That is 30 + 7 + 1 = 38.
+**Visual / manual QA** covers AC-0056 — one criterion. That is 31 + 7 + 1 = 39.
 
 - **The apply run an adopter performs (AC-0056)** — visual / manual QA. Oracle:
   the comparison the criterion names, performed against a real derived tree and
@@ -265,9 +271,10 @@ answer.
   is an affirmative answer at the prompt or `--yes` on the command line; a
   negative answer, an end-of-input, or an absent terminal with no `--yes` all
   leave the target tree identical on the walk tuple AC-0041 compares.
-- [ ] **AC-0032.** The paths AC-0033 clause 4 leaves admitted are written in
-  the order packs, profiles, guides, and AC-0033 clause 6's ownership state is
-  written after all three.
+- [ ] **AC-0032.** The paths AC-0033 clause 5 leaves admitted are written in
+  the order packs, profiles, guides, then the derivation-wide paths — which an
+  unscoped run still admits — and AC-0033 clause 6's ownership state after all
+  four.
 - [ ] **AC-0033.** **The write set is defined here and nowhere else.** Every
   other criterion that constrains what an apply run writes names a clause of
   this definition rather than restating a scope over it. The set of paths an
@@ -275,7 +282,8 @@ answer.
 
   1. **Effective selection.** The recorded recipe's packs and profiles, unioned
      with every name `--pack` or `--profile` supplies that the recipe does not
-     already carry.
+     already carry. AC-0068 fixes what an empty or absent recorded list
+     resolves to; it never resolves to the source's full contents.
   2. **Replay and classify.** Replay that selection and classify every planned
      path by the verdicts phase 2's five-verdict criterion fixes.
   3. **Admit** a path that is `would-update`; the path
@@ -283,13 +291,15 @@ answer.
      a path that is `untouched` only because it belongs to a pack or profile
      clause 1 introduced. A path `untouched` for any other reason is not
      admitted, which is what keeps an adopter's unrecorded file untouched.
-  4. **Exclude** every admitted path outside the scope AC-0043 fixes, and —
-     when any scoping flag is supplied — `catalogue.toml` and every path under
-     `tests/conformance/`.
+  4. **Exclude** every admitted path outside the scope AC-0043 fixes. That
+     scope contains no derivation-wide path, so a scoped run excludes
+     `catalogue.toml` and every path under `tests/conformance/` by this clause
+     alone and needs no second exclusion for them.
   5. **Exclude** every admitted path under `packages/credbroker/` or
      `.agentbundle/tooling/agentbundle/`.
-  6. **Add** the ownership state, on every apply run, whatever clause 4
-     excluded.
+  6. **Add** the ownership state whenever the run reaches its write phase with
+     consent given, whatever clause 4 excluded. A run that refuses or is
+     declined never reaches that phase, so its write set is empty.
 
   No other path under the target tree is created, modified, moved, or has its
   mode changed.
@@ -382,8 +392,8 @@ answer.
   | `4` writes landed and the state write failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths stale removal removed |
 
 - [ ] **AC-0042.** With none of `--pack`, `--profile`, `--guides`, or
-  `--package` supplied, an apply run covers the recorded recipe, less the paths
-  AC-0047 defers.
+  `--package` supplied, AC-0033 clause 1's effective selection is exactly the
+  recorded recipe and clause 4 excludes nothing.
 - [ ] **AC-0043.** The scope AC-0033 clause 4 excludes against is the union of
   the subtrees the supplied scoping flags name: `packs/<name>/` for each
   `--pack <name>`, `profiles/<name>.toml` for `--profile <name>`, and
@@ -406,8 +416,9 @@ answer.
   `credbroker`. Either one refuses the invocation it appears on — apply,
   `--dry-run` or `--check` alike — naming that package sync is not available.
   The code is AC-0039's first matching row, which is the cannot-answer row
-  unless the invocation is also malformed. No invocation writes any path under
-  `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`.
+  unless the invocation is also malformed. A `--dry-run` or `--check`
+  invocation writes no path under either subtree; on an apply run AC-0033
+  clause 5 is what excludes them.
 - [ ] **AC-0048.** Two apply runs with identical flags, over target trees whose
   recorded `attribution`, `tooling`, and `guides` differ, write the same bytes
   to the same paths.
@@ -479,6 +490,13 @@ answer.
   `compared + uncompared` identity is unchanged.
 - [ ] **AC-0067.** `docs/architecture/catalogue/upstream-sync.md` records phase
   3 as the delivered phase.
+- [ ] **AC-0068.** AC-0033 clause 1's effective selection never resolves to
+  contents the recorded recipe did not name. For each of the nine shapes a
+  recorded recipe's `packs` and `profiles` can take — each of them absent, an
+  empty list, or a non-empty list — the packs and profiles an apply run selects
+  are exactly those the recorded list names, plus those a scoping flag
+  introduces. An absent or empty recorded list selects nothing from that
+  category; it never selects every pack or profile the source ships.
 
 ## Follow-ons
 

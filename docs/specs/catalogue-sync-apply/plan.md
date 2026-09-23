@@ -75,6 +75,17 @@ covers the recorded recipe — plus any name `--pack` or `--profile` introduces 
 and the scope predicate filters only the write set. The removal keep-set is the
 full replayed set on every run.
 
+**An empty recorded selection must not reach `select_packs`.** That helper
+reads a falsy `explicit` argument as "no narrowing requested" and returns every
+pack the source ships, so an empty list and `None` are indistinguishable to it.
+§ Grounding's widening derivation walks all nine recorded shapes and finds five
+that resolve to the source's full contents, because the existing underivable
+check fires only when `packs` and `profiles` are both absent. On phase 2's
+read-only path that produced a wrong plan; here it would write every pack the
+source ships into the adopter's tree. The apply path therefore resolves each
+category separately and skips selection entirely for a category whose effective
+list is empty, rather than handing an empty list down.
+
 **The removal set needs its own filter, and it is not the keep-set.** The two
 constraints on removal are independent and compose rather than conflict:
 `_plan_stale_owned_paths`'s keep-set is the full replayed set on every run,
@@ -192,12 +203,13 @@ is reachable until T7 wires the parser.
 - The predicate admits `packs/<name>/**` for `--pack <name>`, the exact
   `profiles/<name>.toml` for `--profile <name>`, and `guides/_shared/**` for
   `--guides`; a repeated `--pack` admits the union. Verifies AC-0043.
-- With no scoping flag the predicate admits every planned path. Verifies AC-0042.
+- With no scoping flag the predicate excludes nothing, so the admitted set is
+  whatever AC-0033 clause 3 produced. Verifies AC-0042.
 - Under any scope, `catalogue.toml` and every `tests/conformance/**` path is
   excluded. Verifies AC-0033 clause 4's second exclusion.
 - Under every scope and under none, each `packages/credbroker/**` and
   `.agentbundle/tooling/agentbundle/**` path is excluded from the write set and
-  reported in the deferred count. Verifies AC-0057's second clause.
+  reported in the deferred count. Verifies AC-0033 clause 5 and AC-0066.
 - `--pack core` does not admit `packs/core-extras/pack.toml`. A prefix compared
   without its trailing separator admits the sibling, and no other case in this
   task distinguishes that.
@@ -214,6 +226,10 @@ replay, not a hand-written list.
 **Tests:**
 - The merged path set equals `(recorded − removed) ∪ written`, with Tier-3 and
   companion paths absent. Verifies AC-0059.
+- The effective selection over all nine recorded `packs`/`profiles` shapes
+  equals the recorded lists plus any introduced name, and an absent or empty
+  list selects nothing. A fixture carrying only non-empty shapes cannot fail,
+  since those are the four that already behave. Verifies AC-0068.
 - A written path carries the digest of the bytes written and an untouched
   recorded path carries its pre-run digest. Verifies AC-0036.
 - The pin builder's four source forms each produce the row AC-0037 states,
@@ -235,11 +251,19 @@ filesystem.
 **Depends on:** T2, T3
 
 **Tests:**
-- The recorded order of jailed-write calls is packs, profiles, guides, then the
-  state. There is no packages group: AC-0032 names three, and asserting over a
-  group that must always be empty is a check that cannot fail. Verifies AC-0032.
-- The written path set equals the plan's `would-update` plus `would-companion`
-  rows, compared for equality in both directions. Verifies AC-0033.
+- The recorded order of jailed-write calls is packs, profiles, guides, the
+  derivation-wide paths, then the state. The fourth group is non-empty only on
+  an unscoped run, which is the default one, so a fixture that always supplies a
+  scoping flag cannot observe it. There is no packages group: clause 5 excludes
+  those paths, and asserting over a group that must always be empty is a check
+  that cannot fail. Verifies AC-0032.
+- The written path set equals the printed plan's admitted rows — `would-update`,
+  `would-companion` contributing its companion path, and `untouched` rows for a
+  pack or profile the run introduced — plus the ownership state, compared for
+  equality in both directions. An oracle over `would-update` and
+  `would-companion` alone rejects exactly the implementation AC-0045 requires,
+  because an introduced pack's paths are all `untouched`. Verifies AC-0033
+  clauses 3 and 6.
 - A Tier-2 path's companion carries the replayed source bytes and the adopter's
   file has the same digest after the run as before. Verifies AC-0034.
 - Stale removal runs after the last write and its keep-set argument is the full
@@ -449,6 +473,7 @@ passage that uses it, and this section holds the command that reproduces it.
 | Jailed-write admission | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-jailed-write-admits-planned-paths.py` | Every planned path is admitted as a direct write and as a companion write, in both tooling modes |
 | Snapshot bound | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-rollback-snapshot-bound.py` | The rollback snapshot's worst-case peak alongside the replay |
 | Release surfaces | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py` | The closed set of surfaces a version bump must move, each read by the form that surface states its version in, and whether they agree |
+| Selection widening | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-empty-recipe-widening.py` | Which of the nine recorded `packs`/`profiles` shapes resolve to the source's full contents, and whether the existing underivable check fires on each |
 
 A derivation's value and its oracle are pinned; a script's location and its
 invocation arguments stay refinable without an amendment.
