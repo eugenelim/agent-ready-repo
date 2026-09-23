@@ -30,6 +30,7 @@ worktrees.
 | AC15 engine route | add a second cohort `exclusive` in a *new* engine function | `budget_counts` | red |
 | AC15 engine route | add a second cohort `exclusive` *inside the same* function | `budget_counts` | red |
 | AC15 attribution | acquire via a local variable the classifier cannot attribute | `budget_counts` | red |
+| AC15 site count | add a cohort `exclusive` in a new function *reachable from* `cmd_transition` | `budget_counts` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
@@ -122,6 +123,30 @@ licenses exactly the sentence that describes the mutation it ran.** Widening
 that sentence to the class the probe belongs to is the step that failed here
 each time: the loader's exception class, the "recovered rather than declared"
 claim, and now these two rows.
+
+## Post-gates review round 5
+
+Two Blockers, one Concern, one Nit — three of them the same class, a fourth
+instance. `concurrent` evaluated to 2 while the docstring and AC15 both said the
+arithmetic collapses mutually exclusive branches; it over-approximated and
+claimed otherwise.
+
+The repair stopped patching the expression. Rounds 4 and 5 wanted two different
+things from one number — red when a site is added, and collapse sites that
+cannot co-execute — and no single count does both. There are two numbers now:
+the site counts are pinned, so any new acquisition forces a human back to the
+derivation, and the bound is taken over distinct acquiring functions, which is
+the collapse AC15 names. The derived maximum is 50 s again, which is what the
+plan has recorded all along.
+
+Two probes in this batch came back green and only one was a weak check. Adding
+an acquisition in an *unreachable* function is correctly ignored; re-probed
+through a reachable one, it reds. Substituting the bare-name call form tested
+whether the matcher sees it, which it does. But ADDING an acquisition through an
+alias — `acquire = sl.exclusive` — is genuinely invisible, and no static matcher
+resolves that without dataflow. The docstring said "every `exclusive(...)` site";
+it now says which form it matches and why the pinned site counts are what covers
+the rest.
 
 ## Observations
 

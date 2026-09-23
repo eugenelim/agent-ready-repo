@@ -1418,7 +1418,7 @@ def _engine_reachable_functions() -> set[str]:
     return seen
 
 
-def _engine_cohort_acquisition_sites() -> tuple[int, list[str]]:
+def _engine_cohort_acquisition_sites() -> tuple[int, list[str], set[str]]:
     """Count COHORT acquisition SITES reachable from `cmd_transition`.
 
     Sites, not containing-function names. A set of names cannot rise when a
@@ -1426,33 +1426,44 @@ def _engine_cohort_acquisition_sites() -> tuple[int, list[str]]:
     consumes this as a count of acquisitions — so a name set silently
     under-derives by a whole timeout.
 
-    Every `exclusive(...)` site must land in a bucket. One whose argument names
-    neither the cohort path helper nor the engine-state path is returned as
-    unclassified and fails the caller, because dropping it is the fail-open
-    direction: an acquisition written through a local variable or a new wrapper
-    would leave the count unchanged.
+    A site is a call whose callee is *named* `exclusive`, in either attribute
+    or bare form. An acquisition reached through an alias bound to some other
+    name — `acquire = sl.exclusive` then `acquire(path)` — is invisible here,
+    and no static matcher resolves that without dataflow. That limit is why the
+    site counts are pinned by the caller rather than merely derived: any change
+    to them sends a human back to this derivation, which is the only thing that
+    catches what the matcher cannot see.
+
+    Every site the matcher DOES see must land in a bucket. One whose argument
+    names neither the cohort path helper nor the engine-state path is returned
+    as unclassified and fails the caller, because dropping it is the fail-open
+    direction — an acquisition through a local variable would otherwise leave
+    the count unchanged.
     """
     tree = _engine_tree()
     reachable = _engine_reachable_functions()
-    cohort, unclassified = 0, []
+    cohort, unclassified, fns = 0, [], set()
     for fn in _ast_mod.walk(tree):
         if not isinstance(fn, _ast_mod.FunctionDef) or fn.name not in reachable:
             continue
         for node in _ast_mod.walk(fn):
             if not (isinstance(node, _ast_mod.Call)
-                    and isinstance(node.func, _ast_mod.Attribute)
-                    and node.func.attr == "exclusive"):
+                    and "exclusive" in _called_names(node)):
                 continue
             arg = " ".join(_ast_mod.dump(a) for a in node.args)
-            names_cohort = "state_path_for" in arg or "state.json" in arg
+            # Engine wins, and is tested first: "engine-state.json" CONTAINS
+            # "state.json", so a cohort test applied first reads an
+            # engine-state literal as a cohort path.
             names_engine = "_engine_state_path" in arg or "engine-state.json" in arg
-            if names_engine and not names_cohort:
+            names_cohort = "state_path_for" in arg or "state.json" in arg
+            if names_engine:
                 continue
             if names_cohort:
                 cohort += 1
+                fns.add(fn.name)
             else:
                 unclassified.append(f"{fn.name}:{node.lineno}")
-    return cohort, unclassified
+    return cohort, unclassified, fns
 
 
 def _cohort_mutator_acquisition_sites() -> tuple[int, set[str]]:
@@ -1490,7 +1501,7 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     # containing function. `contract-amendment` is the only event that acquires
     # through its effect and the only event exempt from the identity check, so
     # at most one group is live on any single path.
-    engine_sites, unclassified = _engine_cohort_acquisition_sites()
+    engine_sites, unclassified, engine_fns = _engine_cohort_acquisition_sites()
     mutator_sites, acquiring = _cohort_mutator_acquisition_sites()
     assert not unclassified, (
         f"these `exclusive(...)` sites reachable from cmd_transition lock a path "
@@ -1506,7 +1517,17 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
         f"{sorted(acquiring)}. Re-derive the bound rather than widening this."
     )
 
-    concurrent = max(engine_sites, mutator_sites)
+    # TWO numbers, because two different mutations must red and one number
+    # cannot do both. The SITE counts are pinned above, so adding an
+    # acquisition anywhere — including a second inside a function already
+    # counted — forces a human back to this derivation. The BOUND is over
+    # distinct acquiring functions, which is the collapse AC15 names: a group's
+    # sites sit in mutually exclusive branches, as the amendment's two do (the
+    # recovery branch returns before the normal path's call), so summing them
+    # would charge the budget for a wait that cannot happen. The pinned site
+    # counts are what keep that proxy honest — it stops being valid silently
+    # only if a site is added, and then the assertion above has already fired.
+    concurrent = max(len(engine_fns), len(acquiring))
     max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
                 + sl.DEFAULT_TIMEOUT * concurrent)
     assert sl.DEFAULT_TIMEOUT < max_hold < sl.DEFAULT_STALE_AFTER, (
