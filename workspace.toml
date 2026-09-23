@@ -1120,8 +1120,18 @@ open = [
   # in markdown bodies, not in the frontmatter schema, so deriving steps means
   # parsing rendered content — the drift risk is real, and structured data that
   # misdescribes a page is worse than none.
-  # Unblocks when: someone decides whether HowTo is worth emitting with no
-  # Google rich result behind it.
+  # DECIDED 2026-09-22: do not emit HowTo. No Google rich result stands behind
+  # it, the stages are not in the frontmatter schema so deriving steps means
+  # parsing rendered prose, and structured data that misdescribes its page is
+  # worse than none. Reaching for a SUPPORTED type instead was considered and
+  # refused: nothing on Google's list fits a journey page, and the homepage's
+  # own note already states the rule -- a type that does not match the thing is
+  # worse than none.
+  # This entry is now CLOSED. Reopen only on a new reason, not a new attempt:
+  # the two that would qualify are agent or LLM consumers becoming a stated
+  # audience for machine-legible journeys, or journey stages moving into the
+  # frontmatter schema, which would remove the drift risk. Either would make
+  # the answer different; neither is true today.
   # The original entry, for the record:
   # OPEN. JSON-LD covers the homepage only (SoftwareApplication). /packs/* and
   # /journeys/* are 44 further pages wanting per-page types — SoftwareApplication
@@ -1259,11 +1269,23 @@ open = [
   #    Measured on one instrument at 320: 1 dangling separator before, 0 after,
   #    3 stat lines, no horizontal overflow. The spans stay aria-hidden rather
   #    than becoming CSS ::before content, which some screen readers announce.
-  # (a) STILL OPEN. /packs/* at >=1100 leaves ~375px of the 1140px container
-  #     unused down the right edge. This is the design decision of the three --
-  #     the homepage puts a figure in that column, and what belongs there on a
-  #     pack page is a content call, not a layout fix.
-  #     Unblocks when: someone decides what that column carries.
+  # (a) CLOSED 2026-09-22, NOT A DEFECT -- the finding's premise does not hold.
+  #     It was recorded from the 80-capture matrix as a /packs/* problem. It is
+  #     not: measured at 1440 on one instrument, the unused right edge is
+  #     /packs/ 523px, /journeys/ 523px, /catalogue/ 546px, /now/ 546px and the
+  #     home page 725px. Every content route leaves a comparable gap, because a
+  #     ~700px reading measure inside --ds-content-max (1140px) IS the site's
+  #     editorial pattern. The homepage only reads as filled because its hero
+  #     band puts a figure beside the column; its body copy leaves the largest
+  #     gap of the five.
+  #     So "fix /packs/" would make /packs/ the one route that does not follow
+  #     the site's own pattern, inverting the consistency the retrofit existed
+  #     for. Kept as a closed note rather than deleted, with the numbers that
+  #     refuted it, so the same observation is not re-raised route by route.
+  #     A real question survives underneath and is NOT this entry: whether a
+  #     1140px container should hold a 700px measure at all. That is a
+  #     direction-sheet question about the editorial grid, and it belongs with
+  #     the owner's other axis decisions, not in a route-level defect.
   # Unblocks when: ready now.
 
   # RESOLVED 2026-09-22. web/AGENTS.md is 77 lines against the 80-line cap in
