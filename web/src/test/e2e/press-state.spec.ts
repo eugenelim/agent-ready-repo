@@ -28,6 +28,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
   hoverControls,
+  pressRules,
   resolveColor,
   contrast,
   TEXT_FLOOR,
@@ -64,6 +65,31 @@ const ROUTES = [
 ] as const;
 
 const CONTROLS: Control[] = hoverControls();
+
+/**
+ * Which properties each control's press rule actually declares.
+ *
+ * The instantaneity check must look only at these. An earlier version counted
+ * distinct `background|color` pairs, which twice reported `.nav__logo` as
+ * animating: its press sets a background and nothing else, and the drift the
+ * sampler saw was the HOVER transition still moving the ink. Hover's timing is
+ * not what this assertion is about, and asserting on a property the press does
+ * not set makes the result depend on how quickly the previous state settled.
+ */
+const PRESS_PROPS = new Map<string, string[]>();
+for (const rule of pressRules()) {
+  const props = Object.keys(rule.declarations).filter(
+    (p) => p === 'background-color' || p === 'color'
+  );
+  // EVERY `:active` selector on the rule, not just the first. Keying on
+  // `selectors.find(...)` left the second selector of every grouped rule with no
+  // entry -- `.task-switcher__tab`, `.pack-record__link` and
+  // `.journey-card--loop` were looked up, missed, and silently checked for
+  // nothing, which is the same skip-shaped hole this suite keeps growing.
+  for (const sel of rule.selectors.filter((x) => x.includes(':active'))) {
+    PRESS_PROPS.set(`${rule.file}::${sel}`, props);
+  }
+}
 
 interface Styles {
   background: string;
@@ -266,13 +292,36 @@ test.describe('press state', () => {
         // commonly shorter than the ease, so the reader sees a fraction of the
         // press: one control measured 5.5% of the way to its ground on the
         // first frame.
-        const distinct = [...new Set(samples)];
-        if (distinct.length > 2) {
+        // Only the properties this press rule declares, each checked on its own
+        // axis. An earlier version counted distinct `background|color` pairs and
+        // twice reported `.nav__logo` as animating: its press sets a background
+        // and nothing else, and the drift the sampler saw was the HOVER
+        // transition still moving the ink. Asserting on a property the press
+        // does not set makes the result depend on how fast the previous state
+        // settled, which is why it failed only under load.
+        const declared = PRESS_PROPS.get(`${control.file}::${control.pressSelector}`);
+        if (!declared || !declared.length) {
+          // A control with a press rule always declares a ground. Reaching here
+          // means the lookup missed, and a missed lookup used to mean this
+          // control was checked for nothing.
           failures.push(
-            `${where}\n      press animates in: ${distinct.length} intermediate values over the ` +
-              `press\n      ${distinct.slice(0, 4).join('  ->  ')}${distinct.length > 4 ? '  -> ...' : ''}` +
-              `\n      a press lands at once; add \`transition: none\` to its rule`
+            `${where}\n      no press declarations found for ${control.pressSelector}; ` +
+              `the instantaneity check would silently cover nothing`
           );
+          continue;
+        }
+        const AXIS: Record<string, number> = { 'background-color': 0, color: 1 };
+        for (const prop of declared) {
+          const values = [...new Set(samples.map((x) => x.split('|')[AXIS[prop]]))];
+          // Two values is a press that lands: the hover value, then the pressed
+          // one. More than two is the control easing between them.
+          if (values.length > 2) {
+            failures.push(
+              `${where}\n      press animates ${prop}: ${values.length} values over the press\n` +
+                `      ${values.slice(0, 4).join('  ->  ')}${values.length > 4 ? '  -> ...' : ''}\n` +
+                `      a press lands at once; add \`transition: none\` to its rule`
+            );
+          }
         }
 
         if (press.background === hover.background) {
