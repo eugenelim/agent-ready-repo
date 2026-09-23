@@ -172,10 +172,25 @@ fix.
 | Retune `--ds-surface` | browser: paper-ground sanity gate |
 | Remove a route from the spec's list | browser: set reconciliation |
 | Remove the click suppression | browser: navigation guard |
+| Remove one `transition: none` from a press rule | browser: instant-press sampler |
+| Point a press at a descendant instead of the press target | coverage |
 
-The last is the defect the first implementation shipped with: pressing a link
-navigated, and every later control was read on a different page. It now fails
-naming the control that navigated.
+The navigation one is the defect the first implementation shipped with: pressing
+a link navigated, and every later control was read on a different page. It now
+fails naming the control that navigated.
+
+**Two instruments were wrong before they were right, both passing green.** The
+instant-press check first read "one frame after `mouse.down()`" through
+`locator.evaluate`, whose round trip costs more than the 200ms transition it was
+trying to catch -- so it always saw the settled value and a removed
+`transition: none` did not red it. Replacing it with a sampler that runs inside
+the page fixed that, and introduced the opposite error: the recording opened on
+the tail of the *hover* transition, so `rest -> hover -> press` counted as three
+values and an instant press scored as an easing one. That only appeared under a
+loaded full-gate run, where hover settles more slowly relative to when sampling
+starts; standalone runs were green both times. The sampler now waits for the
+element to stop moving before it records. Neither error was visible from the
+test's own result -- only from mutating the thing it claimed to measure.
 
 ## Risks
 

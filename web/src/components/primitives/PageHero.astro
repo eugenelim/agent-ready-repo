@@ -115,7 +115,13 @@ const { title, outcome, primaryAction, secondaryAction, badge, proof } = Astro.p
 
   .page-hero__action--primary:active {
     background-color: var(--ds-cta-primary-bg-active);
-  }
+      /* A press lands at once. These controls inherit a 120-200ms ease on the
+       property the press moves, and a click is commonly shorter than that, so
+       the ground never reached full value before release — measured at 5.5% of
+       the way there on the first frame. Release still eases, because leaving
+       :active uses the base rule. Snap in, ease out, and `[still]` motion. */
+    transition: none;
+}
 
   .page-hero__action--secondary {
     color: var(--ds-cta-ghost-light-fg);
@@ -128,7 +134,13 @@ const { title, outcome, primaryAction, secondaryAction, badge, proof } = Astro.p
 
   .page-hero__action--secondary:active {
     background-color: var(--ds-surface-pressed);
-  }
+      /* A press lands at once. These controls inherit a 120-200ms ease on the
+       property the press moves, and a click is commonly shorter than that, so
+       the ground never reached full value before release — measured at 5.5% of
+       the way there on the first frame. Release still eases, because leaving
+       :active uses the base rule. Snap in, ease out, and `[still]` motion. */
+    transition: none;
+}
 
   .page-hero__proof {
     font-size: var(--ds-type-sm);

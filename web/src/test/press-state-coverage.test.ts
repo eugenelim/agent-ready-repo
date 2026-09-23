@@ -117,7 +117,7 @@ describe('press state', () => {
       if (!control) continue;
 
       const extra = Object.keys(rule.declarations).filter(
-        (p) => p !== 'background-color' && p !== 'color'
+        (p) => p !== 'background-color' && p !== 'color' && p !== 'transition'
       );
       if (extra.length) {
         offenders.push(
@@ -217,6 +217,19 @@ describe('press state', () => {
       }
     }
     expect(offenders, `illegible when pressed without hover:\n\n${offenders.join('\n\n')}`).toEqual([]);
+  });
+
+  it('only ever uses `transition` to make a press instant', () => {
+    // `transition` is admitted in a press rule for one purpose. Seven controls
+    // inherit a 120-200ms ease on the property the press moves, and a click is
+    // commonly shorter than that, so the ground never reached full value before
+    // release. Anything other than `none` here would be a press that animates
+    // in, which the direction's `[still]` motion row does not want and which
+    // the browser measurement reds anyway.
+    const offenders = pressRules()
+      .filter((r) => 'transition' in r.declarations && r.declarations.transition.trim() !== 'none')
+      .map((r) => `  ${r.file} ${r.selectors.join(', ')}\n    transition: ${r.declarations.transition}`);
+    expect(offenders, `press rules that animate:\n\n${offenders.join('\n\n')}`).toEqual([]);
   });
 
   it('never reaches the clearance mark', () => {

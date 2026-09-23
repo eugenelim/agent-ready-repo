@@ -450,8 +450,15 @@ const roles = catalogueRoles.map((role) => {
     text-decoration-thickness: 2px;
   }
 
-  .role-record__link:active .role-record__name,
-  .pack-record__link:active .pack-record__name {
+  /* The press goes on the ROW, not on the name inside it. The hover rule above
+     deliberately reaches the name only, because underlining a whole two-part
+     row would read as one struck phrase -- but a press is not an underline, and
+     a ground painted on the name alone drew a rectangle tight to the words
+     while the thing the pointer was on was the whole row. The row carries
+     `padding-block`, so the fill reads as a band across a record rather than a
+     highlight over a phrase. */
+  .role-record__link:active,
+  .pack-record__link:active {
     background-color: var(--ds-surface-pressed);
   }
 

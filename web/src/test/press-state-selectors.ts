@@ -41,7 +41,18 @@ export interface Rule {
 export interface Control {
   /** The hover selector exactly as written, e.g. `.nav__link:hover`. */
   hoverSelector: string;
-  /** The press selector that must exist for it, e.g. `.nav__link:active`. */
+  /**
+   * The press selector that must exist: always `:active` on the element a
+   * pointer acts on, never on a descendant.
+   *
+   * A hover rule may reach inside its control -- `.role-record__link:hover
+   * .role-record__name` thickens the underline on the name rather than the
+   * whole two-part row, deliberately. Mirroring that shape for the press put
+   * the ground on the inner span, so the feedback drew something other than
+   * the thing the pointer was on, and painted a rectangle tight to the words
+   * instead of a band across the row that was pressed. The press goes on the
+   * press target.
+   */
   pressSelector: string;
   /** The element a pointer presses — the one carrying `:hover`. */
   pressTarget: string;
@@ -61,8 +72,9 @@ function targets(hoverSelector: string): { pressTarget: string; measureTarget: s
   const head = hoverSelector.slice(0, at);
   const tail = hoverSelector.slice(at + ':hover'.length);
   const pressTarget = head.trim();
-  const measureTarget = `${head}${tail}`.replace(/:hover\b/g, '').replace(/\s+/g, ' ').trim();
-  return { pressTarget, measureTarget };
+  // The press paints the press target, so that is also what gets measured.
+  // `tail` (a descendant the HOVER rule reaches) is deliberately dropped.
+  return { pressTarget, measureTarget: pressTarget };
 }
 
 /** `web/src`, resolved from this file rather than from the working directory:
@@ -231,10 +243,11 @@ export function hoverControls(rules: Rule[] = allRules()): Control[] {
       const key = `${rule.file}::${selector}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      const t = targets(selector);
       controls.push({
         hoverSelector: selector,
-        pressSelector: selector.replace(/:hover\b/g, ':active'),
-        ...targets(selector),
+        pressSelector: `${t.pressTarget}:active`,
+        ...t,
         file: rule.file,
       });
     }

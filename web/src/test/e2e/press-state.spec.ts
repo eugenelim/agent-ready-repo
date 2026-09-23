@@ -70,8 +70,8 @@ interface Styles {
   color: string;
 }
 
-async function stylesOf(page: Page, selector: string): Promise<Styles> {
-  return page.locator(selector).first().evaluate(async (el) => {
+async function stylesOf(page: Page, selector: string, settle = true): Promise<Styles> {
+  return page.locator(selector).first().evaluate(async (el, settle) => {
     // Settling. Several controls transition their ground or ink, so a read
     // taken straight after the press catches an interpolated value -- once,
     // `#666157`, partway between two inks and on the page for a few frames.
@@ -110,6 +110,13 @@ async function stylesOf(page: Page, selector: string): Promise<Styles> {
 
     const read = () => ({ background: ground(), color: getComputedStyle(el as Element).color });
 
+    if (!settle) {
+      // One frame in, before any transition has run: what the press looks like
+      // at the moment it is applied.
+      await frame();
+      return read();
+    }
+
     let previous = read();
     let agreed = 0;
     for (let i = 0; i < CAP; i += 1) {
@@ -122,7 +129,50 @@ async function stylesOf(page: Page, selector: string): Promise<Styles> {
     }
     // Failing open here is what the flake looked like, so say so instead.
     throw new Error(`style never settled within ${CAP} frames; last read ${JSON.stringify(previous)}`);
+  }, settle);
+}
+
+/**
+ * Start recording the control's own colours once per animation frame, in the
+ * page, so the recording cannot be outrun by the driver's round-trip latency.
+ * Records the declared background rather than the composited ground: what is
+ * under test here is whether the property transitions, not what it composites to.
+ */
+async function startSampling(page: Page, selector: string): Promise<void> {
+  await page.locator(selector).first().evaluate(async (el) => {
+    const w = window as unknown as { __press: string[] };
+    const read = () => {
+      const s = getComputedStyle(el as Element);
+      return `${s.backgroundColor}|${s.color}`;
+    };
+    const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    // Wait for the HOVER to finish before recording anything. Without this the
+    // recording opens on the tail of the hover transition, and rest -> hover ->
+    // press reads as three values, which scores an instant press as an easing
+    // one. It only showed up under a loaded full-gate run, where hover takes
+    // longer to settle relative to when sampling starts -- standalone runs were
+    // green. The recording must begin from a state that has stopped moving.
+    let previous = read();
+    let agreed = 0;
+    for (let i = 0; i < 120 && agreed < 3; i += 1) {
+      await frame();
+      const current = read();
+      agreed = current === previous ? agreed + 1 : 0;
+      previous = current;
+    }
+
+    w.__press = [];
+    const tick = () => {
+      w.__press.push(read());
+      if (w.__press.length < 40) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   });
+}
+
+async function readSamples(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __press: string[] }).__press ?? []);
 }
 
 function toRgb(value: string): [number, number, number, number] | null {
@@ -183,10 +233,18 @@ test.describe('press state', () => {
         const rest = await stylesOf(page, control.measureTarget);
         await target.hover();
         const hover = await stylesOf(page, control.measureTarget);
+        // Sampling starts BEFORE the press. Reading "one frame in" afterwards
+        // does not work: a `locator.evaluate` round trip costs more than the
+        // 200ms transition it is trying to catch, so the first value it sees is
+        // already the settled one and the assertion passes on a control that
+        // visibly eases. The sampler runs in the page and cannot be outrun.
+        await startSampling(page, control.measureTarget);
         await page.mouse.down();
         let press: Styles;
+        let samples: string[];
         try {
           press = await stylesOf(page, control.measureTarget);
+          samples = await readSamples(page);
         } finally {
           await page.mouse.up();
         }
@@ -201,6 +259,21 @@ test.describe('press state', () => {
 
         measured.add(control.pressTarget);
         const where = `${control.pressTarget} on ${route} (${control.file})`;
+
+        // Instant, not eased. A press that lands at once shows exactly two
+        // values across the sample window -- the hover value, then the pressed
+        // one. Anything in between is the control easing in, and a click is
+        // commonly shorter than the ease, so the reader sees a fraction of the
+        // press: one control measured 5.5% of the way to its ground on the
+        // first frame.
+        const distinct = [...new Set(samples)];
+        if (distinct.length > 2) {
+          failures.push(
+            `${where}\n      press animates in: ${distinct.length} intermediate values over the ` +
+              `press\n      ${distinct.slice(0, 4).join('  ->  ')}${distinct.length > 4 ? '  -> ...' : ''}` +
+              `\n      a press lands at once; add \`transition: none\` to its rule`
+          );
+        }
 
         if (press.background === hover.background) {
           failures.push(
