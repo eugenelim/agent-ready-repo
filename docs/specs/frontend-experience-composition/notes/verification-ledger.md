@@ -107,3 +107,42 @@ A test that decided whether absence of a state breaches WCAG would be a test
 nobody could make green. The map records the judgement and names its criterion;
 the assertion reads the recorded value. A wrong flag is a review finding, not a
 test failure, and that boundary is deliberate.
+
+## T2 — the map and the owner label in four copies
+
+`apply_contract.py` edited the frontend copy and wrote it to the other three, so
+byte equality is produced rather than hand-matched. All four are 8,628 bytes.
+The map sits under `States and Permissions`, after that heading's
+`<!-- Required: pilot+ -->` annotation, so the annotation stays the first
+non-blank line the drift checker's structural fingerprint reads.
+
+T2's three declared checks, run after the edit:
+
+| Check | Result |
+| --- | --- |
+| `python3 tools/repo/check_contract_drift.py --root .` | exit 0 |
+| `## Frontend Engineering [owner: frontend-engineering]` present | 1 match |
+| `python3 tools/lint-experience-agnostic.py` | exit 0 — clean |
+
+The portability grep from `packs/AGENTS.local.md` § *Shipped pack content
+carries no internal-governance citations* ran over all four changed files and
+returned no match. The map cites WCAG success criteria, which are external.
+
+### The red-before-work sweep needed a second direction
+
+Running the sweep after T2 reported `AC-0002 is VACUOUS`. That was the
+instrument working, not a defect: its CHANGE bucket asserts a criterion is red
+*before* its work exists, and T2 is what makes AC-0002 green. Left as written,
+every completed task would have reported as a failure and the sweep would have
+gone blind for the eight tasks still to come — the same shape as the round-8
+blind spot it was built to close.
+
+It now binds each of the 15 CHANGE criteria to the plan task that implements it
+and checks both directions: red while its task is pending, green once its task
+has landed. A criterion with no owning task fails the sweep, so the binding
+cannot be evaded by omission.
+
+Regression-proven in both directions against the current tree: declaring T8 done
+turns AC-0003, AC-0004, AC-0005 and AC-0047 red as `REGRESSED`; declaring T2
+pending turns AC-0002 back to `VACUOUS`. Real run: 48 of 48 classified, 1
+settled, 14 still owed, PASS.
