@@ -281,6 +281,10 @@ const rest = Object.keys(taglineMap)
     border-color: var(--ds-on-surface);
   }
 
+  .journey-card:active {
+    background-color: var(--ds-surface-pressed);
+  }
+
   .journey-card__link {
     display: block;
     text-decoration: none;
@@ -330,6 +334,11 @@ const rest = Object.keys(taglineMap)
   .journey-card--optional:hover,
   .journey-card--loop:hover {
     border-color: var(--ds-on-surface);
+  }
+
+  .journey-card--optional:active,
+  .journey-card--loop:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   /* ── Sequence step cards ────────────────────────────────────────────── */

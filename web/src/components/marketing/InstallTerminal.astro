@@ -185,6 +185,13 @@ const tabs = [
     color: var(--ds-on-surface-2);
   }
 
+  .tabs__label:active {
+    background-color: var(--ds-surface-pressed);
+      /* Muted rest ink measures 3.50:1 on the pressed ground, so the press
+       carries its own ink rather than relying on the hover rule's. 11.34:1. */
+    color: var(--ds-on-surface);
+}
+
   .tabs__panels {
     flex-basis: 100%;
     width: 100%;

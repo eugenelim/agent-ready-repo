@@ -1,0 +1,426 @@
+/**
+ * Derive the surface's interactive controls from its own stylesheets.
+ *
+ * WHY THIS IS DERIVED AND NOT LISTED.
+ *
+ * The finding this exists to close was recorded as "0 of 28 interactive
+ * classes distinguish :active from :hover". There were never 28 — the figure
+ * was stale when it was written, and a later re-count said 33, which was also
+ * wrong because it counted comments and test files. Two CI failures on this
+ * surface during the 2026-09-18 retrofit came from hardcoded lists that went
+ * stale the same way.
+ *
+ * So nothing here names a selector or a count. The set is computed from the
+ * `.astro` sources on every run: add a control with a hover style tomorrow and
+ * it is covered tomorrow, with no edit to this file or to its consumers.
+ *
+ * Both the static guard (`press-state-coverage.test.ts`) and the browser
+ * measurement (`e2e/press-state.spec.ts`) import this one derivation, so the
+ * two cannot disagree about what the set is.
+ */
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, relative, resolve } from 'node:path';
+
+/** The three tokens a press rule may reference. Nothing else is the idiom. */
+export const PRESS_TOKENS = [
+  '--ds-cta-primary-bg-active',
+  '--ds-surface-pressed',
+  '--ds-surface-pressed-dk',
+] as const;
+
+export interface Rule {
+  /** Every selector in the rule's selector list, whitespace-normalised. */
+  selectors: string[];
+  /** The rule's declarations, as `property` → `value`. */
+  declarations: Record<string, string>;
+  /** Repository-relative path of the file the rule was found in. */
+  file: string;
+}
+
+export interface Control {
+  /** The hover selector exactly as written, e.g. `.nav__link:hover`. */
+  hoverSelector: string;
+  /**
+   * The press selector that must exist: always `:active` on the element a
+   * pointer acts on, never on a descendant.
+   *
+   * A hover rule may reach inside its control -- `.role-record__link:hover
+   * .role-record__name` thickens the underline on the name rather than the
+   * whole two-part row, deliberately. Mirroring that shape for the press put
+   * the ground on the inner span, so the feedback drew something other than
+   * the thing the pointer was on, and painted a rectangle tight to the words
+   * instead of a band across the row that was pressed. The press goes on the
+   * press target.
+   */
+  pressSelector: string;
+  /** The element a pointer presses — the one carrying `:hover`. */
+  pressTarget: string;
+  /** The element whose computed style changes. Usually the same; for a rule
+   *  like `.role-record__link:hover .role-record__name` it is the descendant. */
+  measureTarget: string;
+  file: string;
+}
+
+/**
+ * Split a hover selector into the element a pointer acts on and the element
+ * that restyles. They differ whenever a rule reaches a descendant, which two
+ * catalogue record links do.
+ */
+function targets(hoverSelector: string): { pressTarget: string; measureTarget: string } {
+  const at = hoverSelector.indexOf(':hover');
+  const head = hoverSelector.slice(0, at);
+  const tail = hoverSelector.slice(at + ':hover'.length);
+  const pressTarget = head.trim();
+  // The press paints the press target, so that is also what gets measured.
+  // `tail` (a descendant the HOVER rule reaches) is deliberately dropped.
+  return { pressTarget, measureTarget: pressTarget };
+}
+
+/** `web/src`, resolved from this file rather than from the working directory:
+ *  vitest and playwright run from different roots. */
+const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+function astroFiles(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) {
+      // `test/` holds fixtures and specs that quote selectors as data; a
+      // quoted selector is not a rule on the surface.
+      if (name !== 'test' && name !== 'node_modules') astroFiles(full, out);
+    } else if (name.endsWith('.astro') || name.endsWith('.css')) {
+      // `.css` as well as `.astro`: a `:hover` added to `styles/base.css` was
+      // invisible to every assertion here, with no failure. There is none today,
+      // which is exactly what made the boundary safe to cross by accident.
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+/**
+ * Split a selector list on the commas that separate selectors, not the ones
+ * inside `:is()`, `:where()`, `:not()` or `:nth-child()`.
+ *
+ * A bare `split(',')` turns `.receipt :is(p, dt, dd, li)` into four fragments,
+ * two of them with unbalanced parentheses. That is harmless only while no
+ * `:hover` sits inside a functional selector; the first one that does would
+ * yield a derived press selector like `.b):active` and an unactionable demand
+ * for a rule nobody could write. The gap is latent in this tree, and latent is
+ * how the last two scope gaps in this file presented as well.
+ */
+function splitSelectors(list: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of list) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === ',' && depth === 0) {
+      out.push(current);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  out.push(current);
+  return out.map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+
+/**
+ * Parse flat rule blocks out of one file's `<style>` content.
+ *
+ * Comments are stripped first: a `:hover` inside an explanatory comment is
+ * prose, and several components in this repository explain their hover
+ * treatment at length directly above the rule.
+ */
+function parseRules(css: string, file: string): Rule[] {
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules: Rule[] = [];
+  // Flat `selector-list { declarations }` blocks. Nested at-rule bodies are
+  // reached because their inner rules match this shape too.
+  for (const m of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selectors = splitSelectors(m[1]);
+    if (!selectors.length) continue;
+    // An at-rule preamble (`@media (...)`) is not a selector list.
+    if (selectors.some((s) => s.startsWith('@'))) continue;
+    const declarations: Record<string, string> = {};
+    for (const decl of m[2].split(';')) {
+      const i = decl.indexOf(':');
+      if (i === -1) continue;
+      declarations[decl.slice(0, i).trim()] = decl.slice(i + 1).trim();
+    }
+    rules.push({ selectors, declarations, file });
+  }
+  return rules;
+}
+
+/**
+ * Components no page can reach, and why they are excluded.
+ *
+ * A component under `components/` that nothing imports renders on no route, so
+ * a press rule in it can never apply and no browser measurement can reach it.
+ * Counting it inflates the derived set and fails the coverage reconciliation
+ * for a control that does not exist on the site — which is what `PackCard.astro`
+ * did: it has no importer anywhere in `web/src`.
+ *
+ * Derived, not listed: a file re-enters the set the moment something imports it,
+ * and leaves when the last importer goes. `unreachableComponents()` is exported
+ * so the guard can PRINT the exclusions — an exclusion nobody can see is how a
+ * set quietly shrinks to nothing.
+ */
+export function unreachableComponents(): string[] {
+  const all = astroFiles(SRC);
+  const sources: string[] = [];
+  for (const path of all) sources.push(readFileSync(path, 'utf8'));
+  for (const dir of ['lib', 'layouts', 'content']) {
+    try {
+      for (const name of readdirSync(join(SRC, dir))) {
+        if (/\.(ts|js|mjs)$/.test(name)) sources.push(readFileSync(join(SRC, dir, name), 'utf8'));
+      }
+    } catch {
+      /* the directory need not exist */
+    }
+  }
+  const corpus = sources.join('\n');
+  return all
+    .map((p) => relative(SRC, p))
+    // A page is an entry point, and a stylesheet is not a component.
+    .filter((f) => !f.startsWith('pages/') && !f.endsWith('.css'))
+    .filter((f) => {
+      const base = f.split('/').pop()!;
+      // Its own file always contains its name in nothing but a comment, so match
+      // an import specifier ending in the basename.
+      return !new RegExp(`from\\s+['"\`][^'"\`]*${base.replace('.', '\\.')}['"\`]`).test(corpus);
+    });
+}
+
+/** Every rule in every reachable, non-test `.astro` or `.css` file under `web/src`. */
+export function allRules(): Rule[] {
+  const rules: Rule[] = [];
+  const unreachable = new Set(unreachableComponents());
+  for (const path of astroFiles(SRC)) {
+    const file = relative(SRC, path);
+    if (unreachable.has(file)) continue;
+    const text = readFileSync(path, 'utf8');
+    if (path.endsWith('.css')) {
+      rules.push(...parseRules(text, file));
+      continue;
+    }
+    for (const m of text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
+      rules.push(...parseRules(m[1], file));
+    }
+  }
+  return rules;
+}
+
+/**
+ * A hover selector whose rule also carries the same selector WITHOUT `:hover`
+ * is a state lock, not a hover affordance: the declarations apply whether or
+ * not a pointer is there, and `:hover` is present only to out-rank a competing
+ * rule. `.install-copy-btn--success` is the case on this surface — the button
+ * holds its confirmed look while the pointer is still on it.
+ *
+ * This is decided by the shape of the rule, never by matching a class name, so
+ * a second state lock added later is admitted without editing this file.
+ */
+function isStateLock(rule: Rule, hoverSelector: string): boolean {
+  const withoutHover = hoverSelector.replace(/:hover\b/g, '').replace(/\s+/g, ' ').trim();
+  return rule.selectors.some((s) => s !== hoverSelector && s === withoutHover);
+}
+
+/**
+ * Every control that styles a hover state, paired with the press selector that
+ * must exist for it. Derived, never listed.
+ */
+export function hoverControls(rules: Rule[] = allRules()): Control[] {
+  const controls: Control[] = [];
+  const seen = new Set<string>();
+  for (const rule of rules) {
+    for (const selector of rule.selectors) {
+      if (!/:hover\b/.test(selector)) continue;
+      if (isStateLock(rule, selector)) continue;
+      const key = `${rule.file}::${selector}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const t = targets(selector);
+      controls.push({
+        hoverSelector: selector,
+        pressSelector: `${t.pressTarget}:active`,
+        ...t,
+        file: rule.file,
+      });
+    }
+  }
+  return controls;
+}
+
+/** Every selector that appears on a rule, keyed by file. */
+export function selectorsByFile(rules: Rule[] = allRules()): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
+  for (const rule of rules) {
+    if (!map.has(rule.file)) map.set(rule.file, new Set());
+    const set = map.get(rule.file)!;
+    for (const s of rule.selectors) set.add(s);
+  }
+  return map;
+}
+
+/** Every rule whose selector list contains an `:active` selector. */
+export function pressRules(rules: Rule[] = allRules()): Rule[] {
+  return rules.filter((r) => r.selectors.some((s) => /:active\b/.test(s)));
+}
+
+/* ── Colour resolution ─────────────────────────────────────────────────────
+ * The guard has to answer "would this ground drop that text below 4.5:1?".
+ * That needs real colours, so the token graph is resolved here rather than
+ * restated as a table someone has to keep in step with `tokens.css`.
+ */
+
+const TOKENS_CSS = resolve(SRC, 'styles/tokens.css');
+
+/** `--token` → its declared value, first declaration wins (the `:root` base). */
+function tokenTable(): Map<string, string> {
+  const css = readFileSync(TOKENS_CSS, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const table = new Map<string, string>();
+  for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    if (!table.has(m[1])) table.set(m[1], m[2].trim());
+  }
+  return table;
+}
+const TOKENS = tokenTable();
+
+/**
+ * Follow a `var()` chain to a literal colour. Returns null for a value that is
+ * not a colour, or a chain that leaves the token graph — a null is "unknown",
+ * and every caller treats unknown as "do not claim this is safe".
+ */
+export function resolveColor(value: string | undefined, depth = 0): string | null {
+  if (!value || depth > 8) return null;
+  const v = value.trim();
+  const m = /^var\(\s*(--[\w-]+)\s*(?:,\s*([\s\S]+))?\)$/.exec(v);
+  if (m) {
+    const direct = TOKENS.has(m[1]) ? resolveColor(TOKENS.get(m[1]), depth + 1) : null;
+    // A fallback is what renders when the custom property is not set on the
+    // carrier, which is the normal case for a parameterised component.
+    return direct ?? (m[2] ? resolveColor(m[2], depth + 1) : null);
+  }
+  if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+  if (/^#[0-9a-f]{3}$/i.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`.toLowerCase();
+  return null;
+}
+
+function channel(c: number): number {
+  const s = c / 255;
+  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+/** WCAG relative luminance. */
+export function luminance(hex: string): number {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => channel(parseInt(h.slice(i, i + 2), 16)));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** WCAG contrast ratio. */
+export function contrast(a: string, b: string): number {
+  const [x, y] = [luminance(a), luminance(b)];
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+/** WCAG 1.4.3 Contrast (Minimum), normal text. */
+export const TEXT_FLOOR = 4.5;
+
+/** A ground this dark carries light text, so a press must continue into ink. */
+const INK_GROUND_MAX_LUMINANCE = 0.15;
+
+/**
+ * The value a selector ends up with for one property.
+ *
+ * Resolution is per PROPERTY, not per rule. Taking the last matching rule
+ * instead hides a declaration behind any later rule for the same selector that
+ * does not set it — and every responsive component here has one, because a
+ * `@media` block re-states the selector to change its layout. That read makes
+ * `.write-confirmation__confirm` look like it declares no colour, which would
+ * have skipped the contrast check on one of the two controls this guard exists
+ * to catch.
+ */
+function declaredValue(
+  rules: Rule[],
+  file: string,
+  selector: string,
+  property: string
+): string | undefined {
+  let value: string | undefined;
+  for (const rule of rules) {
+    if (rule.file !== file || !rule.selectors.includes(selector)) continue;
+    if (property in rule.declarations) value = rule.declarations[property];
+  }
+  return value;
+}
+
+/**
+ * The colour the control's text actually is while held. A press co-occurs with
+ * hover for pointer input, so the hover rule's colour is what a pressed label
+ * renders in — reading the rest colour instead would clear controls that hover
+ * has already darkened and fail ones it has not.
+ */
+export function textUnderPress(control: Control, rules: Rule[]): string | null {
+  const base = control.hoverSelector.replace(/:hover\b/g, '').trim();
+  return (
+    resolveColor(declaredValue(rules, control.file, control.hoverSelector, 'color')) ??
+    resolveColor(declaredValue(rules, control.file, base, 'color'))
+  );
+}
+
+/**
+ * The colour the control's text is when it is pressed WITHOUT being hovered.
+ *
+ * That path is real and it is the one that breaks: a touch tap, a keyboard
+ * activation, and a press that drags off the control all apply `:active` with
+ * no `:hover`. A press rule that moves the ground and leaves the ink to the
+ * hover rule is legible only on the pointer path. Reading the hover colour, as
+ * `textUnderPress` does, cannot see it -- that read scored `.decision-chip` at
+ * 10.03:1 using the inverted label it only has while hovered, when the label it
+ * actually has on this path measures 1.30:1 against the same ground.
+ */
+export function textWithoutHover(control: Control, rules: Rule[]): string | null {
+  const base = control.hoverSelector.replace(/:hover\b/g, '').trim();
+  return resolveColor(declaredValue(rules, control.file, base, 'color'));
+}
+
+/** The ground a control renders on while hovered, resolved. */
+export function hoverGround(control: Control, rules: Rule[]): string | null {
+  return resolveColor(
+    declaredValue(rules, control.file, control.hoverSelector, 'background-color')
+  );
+}
+
+/**
+ * The press token a control's own carrier implies — derived from the control,
+ * never from a list of class names. A list is what produced "0 of 28" in the
+ * backlog and what mis-classified `.decision-chip`, whose hover inverts it to
+ * an ink fill and whose light text would have landed on a light ground at
+ * 1.30:1.
+ */
+export function expectedGroundToken(control: Control, rules: Rule[]): (typeof PRESS_TOKENS)[number] {
+  const base = control.hoverSelector.replace(/:hover\b/g, '').trim();
+  const hoverGround = resolveColor(
+    declaredValue(rules, control.file, control.hoverSelector, 'background-color')
+  );
+  if (hoverGround && luminance(hoverGround) <= INK_GROUND_MAX_LUMINANCE) {
+    return '--ds-cta-primary-bg-active';
+  }
+  // No ink ground of its own: the carrier is read off the text instead. A
+  // control whose label is an on-dark ink is sitting on the one dark band.
+  const text = textUnderPress(control, rules) ?? resolveColor(
+    declaredValue(rules, control.file, base, 'color')
+  );
+  if (text && luminance(text) > 0.5) return '--ds-surface-pressed-dk';
+  return '--ds-surface-pressed';
+}
+
+/** The literal colour a press token resolves to. */
+export function pressGroundColor(token: string): string | null {
+  return resolveColor(`var(${token})`);
+}

@@ -305,12 +305,54 @@ Transitions were frozen with `reduce` so every sample is a settled value.
   `opacity` — so nothing is disclosed on hover that a keyboard or touch reader
   cannot reach. The affordance itself is carried at rest by the `:where(a)`
   underline baseline or by the button's fill and border.
-- **`:active` is never distinguished from `:hover`. 0 of 28** classes have an
-  active delta that differs from their hover delta, so a pointer user gets no
-  press feedback distinct from the pre-press state. Finding class: a missing
-  state, not a broken one. **Severity: Minor** — no WCAG criterion requires a
-  press state and every control still shows hover and focus. Recorded, not
-  fixed: adding one is a design decision.
+- **`:active` is distinguished from `:hover` on every control. Closed
+  2026-09-23.** As recorded in 2026-09-18 this read "0 of 28 classes have an
+  active delta", and the design decision it was waiting on was taken on
+  2026-09-23: a ground shift, one idiom across the surface. The count was
+  also wrong, which is why the remedy derives its set instead of listing it —
+  no figure is stated here at all: the set is computed from the sources by
+  `web/src/test/press-state-selectors.ts` and recomputed on every run, and a
+  number written down here would be the fourth copy to go stale.
+
+  Each control now moves its ground under a press, through one of three
+  tokens chosen by its own carrier: `--ds-cta-primary-bg-active` where the
+  hover ground is already ink, `--ds-surface-pressed-dk` on the dark close band, which has two carriers — the
+  footer links and the pack page's install copy button — `--ds-surface-pressed` everywhere else. The direction sheet
+  leaves no other idiom available — Containment is `[ruled]`, Material
+  `[flat]`, Ornament `[none]`, so transform, scale and shadow are all out.
+
+  Measured in Chromium at 1440 across six routes with the paper-ground sanity
+  assertion passing first, reading each control at rest, under `:hover` and
+  while held with `mouse.down()`:
+
+  | Carrier | Pressed ground | Text on it | Ground shift |
+  | --- | --- | --- | --- |
+  | ink-filled control | `#413c34` | 10.03:1 | from `#2e2a24` hover |
+  | paper | `#cfc9bc` | 8.65–11.34:1 | 1.51:1 from `--ds-surface`, 1.40:1 from `--ds-surface-alt` |
+  | dark close band | `#4a443c` | 6.76:1 | 1.94:1 from `#14120f` |
+
+  **The dark band is the weak case and it is deliberate.** 1.94:1 is the
+  strongest ground shift that ramp affords while keeping footer link text
+  above 4.5:1; `--prim-record-600` would give 3.24:1 against the ground but
+  drops the text to 4.06:1, under the floor.
+
+  **Two controls take a floor-driven ink raise.** The two buttons on
+  `--ds-state-warn-bg` have no contrast headroom: every candidate pressed
+  ground spends what is left (`record-200` 3.64:1, `orange-300` 3.07:1) and
+  the only ground that keeps the label legible is the panel's own colour,
+  which is no press at all. They take the paper ground with the ink raised,
+  to `--ds-on-surface` (13.16:1) and `--ds-state-warn-fg-pressed` (6.59:1).
+  Which controls those are is computed from the resolved token values, never
+  listed.
+
+  **Neither existing gate covers this.** axe scans the resting DOM and never
+  enters `:active`; the site quality gate asserts focus and hover. The proof
+  is `web/src/test/e2e/press-state.spec.ts`, and the static companion
+  `web/src/test/press-state-coverage.test.ts`. Both are mutation-checked:
+  deleting a press rule, pointing one at the wrong carrier's token, dropping a
+  required ink raise, adding an unnecessary one, reaching `--ds-clearance`,
+  and equalising the press and hover tokens each red, and each names the file
+  and the control.
 - **One expected non-match.** `label.tabs__label` reports
   `:focus-visible` false because a `<label>` is not focusable. It still shows
   an indicator, through `.tabs__radio:focus-visible + .tabs__label`, which is
@@ -319,7 +361,9 @@ Transitions were frozen with `reduce` so every sample is a settled value.
 Not exercised, with the reason: loading, error, disabled and pressed. This
 surface is static HTML with no client-side data fetching and no form controls,
 so none of the four has a rendered representation to exercise. That is the
-whole remainder of the 18-state matrix.
+whole remainder of the 18-state matrix. `pressed` here is a toggle control's
+persistent state, which `aria-pressed` carries; it is not the transient
+`:active` closed above, and no control on this surface toggles.
 
 ## screenshots
 
@@ -1245,7 +1289,7 @@ decisions this pass does not own.
 | **`/now/` route length** | **Open, Moderate.** Re-measured on the lower-bound matrix: **75,240 CSS px at 320** — 83.6 viewport heights at 900 — falling to 35,977 at 1100, for 122 releases in one unpaginated document whose emitted `index.html` is **160 KB**. These supersede the 61,638 px / 402 KB figures, which came from the superseded 390-wide run; the two were not reconciled and the earlier pair is not carried forward. Nothing in the build bounds the growth. Bounding it is a content decision, not a retrofit edit. |
 | Core Web Vitals | No field data and no synthetic history. See *perf result*. |
 | Print stylesheet | **Closed 2026-09-22.** The state was exercised and the remedy is now written — page-level rules in `web/src/styles/print.css`, component-owned rules in SiteNav, SiteFooter, CopyButton and InstallTerminal (Astro scopes component selectors with a `data-astro-cid-*` attribute, so a global override is outranked; measured, not assumed). Before/after under *states*. One part stays open and is named there: `break-inside: avoid` is declared, but a straddle count in a scrolling viewport cannot see pagination, so *no block is cut* is not established. |
-| A distinct `:active` state | **The state is now exercised** — see *states*. 0 of 28 interactive classes distinguish `:active` from `:hover`, so a pointer user gets no press feedback. Minor, and adding one is a design decision. |
+| A distinct `:active` state | **Closed 2026-09-23** — see *states*. Every hover-styled control now shifts its ground under a press; the derived set, the two measured exceptions and the mutation evidence are recorded there. |
 | `docs-site/` | Owner-scoped out. It was built to satisfy the documented build order — the `web/` build cleans repository `build/`, so `build/docs/` must be rebuilt after it or four `rendered-output` / `fixture-axe` tests fail on a missing docs build — and nothing more. |
 | **`/packs/<pack>/` install-note whitespace** | **Closed 2026-09-22 by `d2b313992` (#1395).** Recorded here as **Open, Minor, 7 of 22 pack pages**: the emitted HTML was `…Use the command above.<a …>Browse the catalogue →</a>` with no space, so the reader saw "above.Browse the catalogue →". Full finding under *inspection observations*, which stands as the dated record. The repair inserts an explicit `{' '}` before the anchor at `web/src/pages/packs/[pack].astro:96` — Astro strips the source whitespace before an element, so the space has to be written as an expression. The literal `above.<a` now returns no hits in `web/src`. |
 | **`/journeys/<journey>/` hero meta separator at 320** | **Open, Minor, channel 1 only.** The line wraps after a plain-text "·", leaving the separator dangling at a line end. Full finding under *inspection observations*. |

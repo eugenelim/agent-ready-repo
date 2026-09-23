@@ -96,9 +96,14 @@ WEB_PACKAGE_JSON = "web/package.json"
 # `guidebook-walk.spec.ts` is read-only -- it navigates built pages and measures
 # geometry -- so it joins the allowlist by the deliberate edit the pin exists to
 # require, rather than by a glob.
+# `press-state.spec.ts` joins on the same terms (2026-09-23): it navigates built
+# pages and reads computed styles under :hover and :active, writing nothing. It
+# is here because nothing else can see a press -- axe scans the resting DOM and
+# site-quality-gate asserts focus and hover -- so while it sat outside the gate
+# the only check for the press state never guarded a pull request.
 EXPECTED_GATE_SCRIPT = (
     "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts "
-    "guidebook-walk.spec.ts"
+    "guidebook-walk.spec.ts press-state.spec.ts"
 )
 
 

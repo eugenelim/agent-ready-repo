@@ -404,6 +404,19 @@ const structuredData = {
     color: var(--ds-hero-fg);
   }
 
+  .install-copy-btn:active {
+    background-color: var(--ds-surface-pressed-dk);
+      /* On the dark close band the rest ink is the MUTED on-dark ink, which measures
+       2.92:1 on the pressed ground. Raised to the primary on-dark ink: 6.76:1. */
+    color: var(--ds-hero-fg);
+    /* A press lands at once. These controls inherit a 120-200ms ease on the
+       property the press moves, and a click is commonly shorter than that, so
+       the ground never reached full value before release — measured at 5.5% of
+       the way there on the first frame. Release still eases, because leaving
+       :active uses the base rule. Snap in, ease out, and `[still]` motion. */
+    transition: none;
+}
+
   /* Confirmed copy. The button's own label swaps to "Copied!" in the click
      handler, so the state is announced in words; the visual channel here is a
      filled inversion — record ground behind machine ink — which hover never
@@ -446,6 +459,10 @@ const structuredData = {
   .journey-link:hover {
     border-color: var(--ds-on-surface);
     border-left-color: var(--ds-on-surface);
+  }
+
+  .journey-link:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   .journey-link__label {

@@ -184,6 +184,104 @@ Both ring blocks are **re-derived per carrier and measured**, not edited in
 place: ink on paper carriers, off-white on the dark close. A ring inherited from
 a block whose premise has changed is the defect this decision exists to prevent.
 
+### The press state is a ground shift — owner decision, 2026-09-23
+
+**Resolved: a press moves the control's ground, and that is the whole idiom.**
+One behaviour across every control, because a surface whose controls each press
+differently is worse than one that does not press at all.
+
+The direction made the usual answer illegal, and that is the reason this needed
+a decision rather than an implementation. Containment is `[ruled]`, Material is
+`[flat]`, Ornament is `[none]` — so transform, scale, shadow and every other
+elevation cue is out, and a press state normally uses one of those. What is left
+is a shift of ink, of rule weight, or of ground. Ground was taken because it is
+the only one available to all three carrier kinds without changing the box: ten
+of the controls carry no rule to thicken, and several already move their ink on
+hover, so an ink shift would have had nowhere left to go on them.
+
+Three tokens, chosen by the control's own carrier rather than by a list of class
+names:
+
+| Carrier | Token | Value | Measured |
+| --- | --- | --- | --- |
+| hover ground is already ink | `--ds-cta-primary-bg-active` | `--prim-record-700` | text 10.03:1 |
+| the dark close band (two carriers) | `--ds-surface-pressed-dk` | `--prim-ink-700` | text 6.76:1, ground shift 1.94:1 |
+| everything else | `--ds-surface-pressed` | `--prim-record-200` | text 10.03–13.16:1 |
+
+**The paper ramp gains `--prim-record-700` and `--prim-record-250`.** The ramp
+jumped 600 to 800, so an ink-filled control had no step beyond its hover fill;
+and the pressed ground could not be `record-200`, which is `--ds-border`'s value
+— two controls whose hover already set `--ds-border` rendered no press at all.
+Both are additions to what this document calls the measured set from the
+approved preview, and they are recorded here for that reason.
+
+**The rule is one direction, not two: every press moves its ground toward
+mid-tone.** Measured relative luminance, rest to pressed: paper 0.914 → 0.587,
+the alternate band 0.840 → 0.587, an ink-filled control 0.006 → 0.046, the dark
+close band 0.006 → 0.059. Each moves toward the middle and away from the extreme
+it sits at, which is the only direction available at the ends of the ramp. Read
+as lightness alone it looks like two rules — paper darkens, ink lightens — and an
+earlier draft of this section described only the ink case, which invited exactly
+that misreading.
+
+**The dark band is the weak case, deliberately.** 1.94:1 is the strongest ground
+shift that ramp affords while keeping footer link text above 4.5:1.
+`--prim-record-600` would give 3.24:1 against the ground and drop the text to
+4.06:1. The press is quieter at the close than on paper, measurably rather than
+accidentally.
+
+**Two controls raise their ink as well, and only because the floor demands it.**
+The two on `--ds-state-warn-bg` have no headroom: `record-200` leaves them at
+3.64:1, `orange-300` at 3.07:1, and the only ground that keeps them legible is
+the panel's own colour, which is no press at all. They take the paper ground with
+the ink raised. This document's own arbitration rule settles it — when any goal
+conflicts with the quality floor, the floor wins.
+
+**Under forced colors the press does not survive — and neither does hover.**
+Measured in Chromium's `forced-colors: active` emulation on 2026-09-23: on
+`.nav__link`, `.nav__cta`, `.hero__cta--primary` and `.footer__list a`, the
+hovered computed style is identical to the resting one. Every transient state on
+this surface is carried by colour, and forced colors reassigns
+`background-color`, `color` and `border-color` alike, so the whole layer is
+erased rather than the press specifically. No WCAG success criterion requires
+hover or press feedback to be perceivable under forced colors — 2.4.7 and 2.4.13
+govern focus only — and the practitioner literature on forced colors develops
+its survival pattern for focus indicators exclusively, without treating hover and
+press as separate cases. Giving the press a forced-colors channel while hover has
+none would make a press louder than a hover for one cohort and quieter for every
+other, so the boundary is recorded here rather than closed on one side of it.
+Focus is unaffected: its ring is re-derived per carrier and measured.
+
+**The mark is not reachable from here.** `--ds-clearance` means a refusal, a hold
+or a block. A press is none of those, and a third consumer would make the mark
+mean "state, and also this", which is how the amber accent failed.
+
+**The magnitude is deliberate, and it is above the category's.** A press state
+is not required by any accessibility standard: WCAG 2.2 mandates a visible
+indicator for focus (2.4.7, and 2.4.13 at AAA) and for nothing else, and of ten
+surveyed design systems none frames press feedback as a conformance requirement
+— every accessibility statement in their own documentation is about focus.
+1.4.11 Non-text Contrast names press as a state, but its test is the component
+against the colours adjacent to it, not one state against another; the
+state-to-state reading is refused explicitly for hover in the Understanding
+document and by a working-group editor for `:active`. That test passes here by
+construction, because no press rule changes a border: a ghost button's edge
+measures 3.53:1 against the page at rest and 3.53:1 while pressed, and a filled
+control's own fill moves 17.16:1 to 10.03:1, both far above the floor.
+
+For scale, the press layer four independent vendors converge on — Adobe
+Spectrum, Microsoft Fluent 2, IBM Carbon and Google Material 3 — is a further
+step along the same axis hover already moved, which is exactly the shape this
+direction takes. Material 3's pressed state layer is a 10% overlay, which
+computes to about **1.17:1** against a white ground. This surface's paper press
+measures **1.51:1**. The press here is quieter than a shadow and louder than the
+category's own answer.
+
+**Refused: closing this as "not wanted on a `[flat]` surface".** That was a real
+option. It was not taken because the surface's dominant goal is Precision
+authority, and a control that does not acknowledge being pressed is imprecise in
+the one moment the reader is acting rather than reading.
+
 ## Direction sheet
 
 | Axis | This direction commits to |

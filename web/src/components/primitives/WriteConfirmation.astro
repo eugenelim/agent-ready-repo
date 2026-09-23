@@ -198,6 +198,17 @@ const protectedFieldItems = fields.filter((f) => f.protected);
     background-color: var(--ds-surface-alt);
   }
 
+  .write-confirmation__cancel:active {
+    /* Ground plus ink: this control sits on --ds-state-warn-bg and has no
+       contrast headroom: its muted ink measures 4.89:1 on the panel. Every
+       candidate pressed ground spends what is left (record-200 4.06:1,
+       orange-300 3.42:1), and the only ground that keeps
+       the label legible is the panel's own colour, which is no press at all.
+       Raising the ink buys the press back. Measured, not assumed. */
+    background-color: var(--ds-surface-pressed);
+    color: var(--ds-on-surface);
+  }
+
   .write-confirmation__confirm {
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
@@ -214,6 +225,17 @@ const protectedFieldItems = fields.filter((f) => f.protected);
 
   .write-confirmation__confirm:hover {
     filter: brightness(0.95);
+  }
+
+  .write-confirmation__confirm:active {
+    /* Ground plus ink: this control sits on --ds-state-warn-bg and has no
+       contrast headroom: --ds-state-warn-fg is documented at 4.75:1 on paper.
+       Every candidate pressed ground spends what is left
+       (record-200 3.64:1, orange-300 3.07:1), and the only ground that keeps
+       the label legible is the panel's own colour, which is no press at all.
+       Raising the ink buys the press back. Measured, not assumed. */
+    background-color: var(--ds-surface-pressed);
+    color: var(--ds-state-warn-fg-pressed);
   }
 
   .write-confirmation__cancel:focus-visible,
