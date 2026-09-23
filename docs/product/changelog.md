@@ -122,7 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without ever refusing, when a selected pack's version has moved in the
   source.
 
-
 ## [core][2.26.33] — 2026-09-22
 
 ### Changed
