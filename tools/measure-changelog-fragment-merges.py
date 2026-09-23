@@ -45,6 +45,7 @@ from __future__ import annotations
 import itertools
 import os
 import random
+import re
 import subprocess
 import sys
 import tempfile
@@ -56,9 +57,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = "docs/product/changelog.md"
 FRAGMENT_DIR = "docs/product/changelog.d"
 BRANCH_COUNT = 20
-# The first real release heading. A new release section is prepended here, so
-# this is the line every concurrent monolith edit competes for.
-RELEASE_ANCHOR = "## [core]"
+# Any release heading, not one package's. A new release section is prepended
+# above the FIRST of these, so this is the line every concurrent monolith edit
+# competes for. Matching a fixed package name instead would pass today only
+# because the newest entry happens to be `core`: 24 distinct packages appear as
+# release headings, and a non-`core` entry on top would send the insertion
+# further down the file, silently measuring a shape no release takes.
+RELEASE_HEADING_RE = re.compile(r"^## \[[A-Za-z0-9][A-Za-z0-9._-]*\]\[[^\]]+\]")
 # Seeded so the run reproduces; the value itself carries no meaning.
 UUID_SEED = 0x5C_11_A9_00
 
@@ -186,9 +191,11 @@ def prepend_release(changelog: str, section: str) -> str:
     """
     lines = changelog.splitlines(keepends=True)
     for position, line in enumerate(lines):
-        if line.startswith(RELEASE_ANCHOR):
+        if RELEASE_HEADING_RE.match(line):
             return "".join(lines[:position]) + section + "".join(lines[position:])
-    raise RuntimeError(f"no release heading starting {RELEASE_ANCHOR!r} in {CHANGELOG}")
+    raise RuntimeError(
+        f"no release heading matching {RELEASE_HEADING_RE.pattern!r} in {CHANGELOG}"
+    )
 
 
 def identifiers(count: int) -> list[str]:

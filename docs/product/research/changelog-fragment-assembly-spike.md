@@ -45,9 +45,15 @@ exercised the path.
 The measurement script is tracked because its figure is the one a reader is most
 likely to want to re-derive. The assembler prototype is not: it is throwaway, it
 lives outside the repository, and it is reconstructed from this document rather
-than maintained. Both import `tools/build-site.py` by path, so the prototype and
-production agree about which `##` lines are real headings and about how a
-`/now/` payload is shaped — the same seam the fragmentation spike used.
+than maintained.
+
+The two use different seams, and only one touches production code. The
+**prototype** imports `tools/build-site.py` by path, so it and production agree
+about which `##` lines are real headings and about how a `/now/` payload is
+shaped — the same seam the fragmentation spike used. The **measurement script**
+imports nothing from this repository: it is standard library only and drives
+Git directly, which is what lets a reader re-derive its counts without the
+prototype existing.
 
 A fragment is TOML front matter delimited by `+++` carrying `schema`, `id`,
 `date`, `heading` and `packages`, then a Markdown body whose only required
@@ -62,8 +68,21 @@ duplicate counter, so `[core][2.27.1] — 2026-09-23` slugs to
 added. Assigning from fragment identity is the design property measurement 3
 tests.
 
-Every figure below comes from one of four retained runs, quoted verbatim in its
-own section. Figures appearing only in framing prose are not measurements.
+Every figure in this report comes from a retained run, quoted verbatim in the
+section that uses it. The base figures in the header come from this run, using
+the repository's own parser:
+
+```
+$ python3 -c '<import tools/build-site.py by path; parse docs/product/changelog.md>'
+base commit      : 93bf9cc9e
+total records    : 351
+unreleased       : 59
+free-standing rel: 292
+now groups       : 157
+now bullets      : 281
+schemaVersion    : 1
+changelog bytes  : 598239
+```
 
 ## Measurement 1 — fragment branches merge clean where monolith branches do not
 
@@ -84,7 +103,7 @@ exercise the classifier before either figure is taken.
 
 ```
 $ python3 tools/measure-changelog-fragment-merges.py
-base commit: 93bf9cc9ee821e4aed8ba677b52f064bbd5331d8
+base commit: 54df67143a51a5a28ad321c2d0921a7ea328791a
 branches per arm: 20   unordered pairs per arm: 190
 
 classifier self-check (runs before either arm's figure is taken):
@@ -107,6 +126,13 @@ The separation is total: every pair conflicts in the monolith arm and none does
 in the fragment arm. The error bucket is empty in both, so neither figure is a
 harness artefact. A clean-checkout run exits 0 and leaves `git status
 --porcelain` empty.
+
+The script names the commit it ran against, which is this spike's own head
+rather than the run base in the header. The counts are the same at both:
+`docs/product/changelog.md` is byte-identical at `93bf9cc9e` and
+`54df67143`, because every commit between them touches only
+`docs/specs/changelog-fragment-assembly-spike/`, `tools/measure-changelog-fragment-merges.py`
+and this report.
 
 **SURVIVE.** § 7 Mergeability requires no changelog-path conflict when fragment
 IDs differ: 0 of 190 conflicting pairs, against a control arm at 190 of 190.
@@ -189,13 +215,176 @@ The group, bullet and `schemaVersion` counts are diagnostics, not the
 comparison: a reworded, reordered or regrouped payload holds all three. The byte
 comparison is the criterion, and both sides hash to `72305605…`.
 
-The third diagnostic is the anchor list itself. The zero-fragment payload
-carries 157 anchors in payload order, from `core22636--2026-09-22` down to
-`governance-extras097--2026-08-16`; the newline-joined list hashes to
-`e08ff00753d505f624c31c73ffce52658f969eb3683125ba7d6d4f3d7ea34617`. Every one is
-slugger-derived from heading text, which is what makes the `change-<uuid>` form
-the fragment groups carry a visibly different scheme rather than a variation on
-the same one.
+The third diagnostic AC 6 names is the anchor list itself, recorded here in
+full and in payload order. Every one is slugger-derived from heading text,
+which is what makes the `change-<uuid>` form the fragment groups carry a
+visibly different scheme rather than a variation on the same one. The long
+entries are multi-package releases, whose heading names every artifact.
+
+```
+$ python3 assembler.py --repo . --base 93bf9cc9e parity --emit-anchor-list
+base commit: 93bf9cc9e
+zero-fragment payload anchor list: 157 anchors, in payload order
+sha256 of the newline-joined list: e08ff00753d505f624c31c73ffce52658f969eb3683125ba7d6d4f3d7ea34617
+
+core22636--2026-09-22
+agentbundle0480--2026-09-22
+core22629--2026-09-22
+experience-design208--2026-09-22
+product-engineering01316--2026-09-22
+desk-research119--2026-09-22
+core22628--2026-09-21
+agentbundle0473--2026-09-21
+frontend-engineering031--2026-09-21
+core22627--2026-09-21
+core22626--2026-09-21
+agentbundle0472--2026-09-21
+core22625--2026-09-21
+agentbundle0471--2026-09-21
+core22624--2026-09-21
+product-engineering01315--2026-09-21
+core22623--2026-09-20
+core22622--2026-09-20
+core22621--2026-09-20
+product-engineering01314--2026-09-20
+experience-design207--2026-09-20
+architect01514--2026-09-20
+architect01513--2026-09-20
+architect01512--2026-09-19
+core22620--2026-09-18
+core22619--2026-09-18
+core22618--2026-09-18
+core22617--2026-09-18
+core22616--2026-09-18
+architect01511--2026-09-18
+architect0159--2026-09-18
+core22615--2026-09-18
+frontend-engineering030--2026-09-18
+experience-design206--2026-09-18
+core22614--2026-09-17
+governance-extras0110--2026-09-17
+core22613--2026-09-17
+core22612--2026-09-17
+core22611--2026-09-17
+experience-design205--2026-09-17
+core22610--2026-09-17
+core2269--2026-09-17
+core2268--2026-09-16
+agentbundle0470--2026-09-16
+core2265--2026-09-15
+agentbundle0460--2026-09-15
+agentbundle0450--2026-09-14
+core2263--2026-09-14
+core2262--2026-09-14
+core2261--2026-09-14
+agentbundle0442--2026-09-14
+frontend-engineering025--2026-09-14
+core22527--2026-09-13
+core22526--2026-09-13
+frontend-engineering024--2026-09-13
+core22525--2026-09-13
+core22524--2026-09-13
+core22520--2026-09-13
+frontend-engineering023--2026-09-13
+core22519--2026-09-13
+core22518--2026-09-12
+product-engineering01312--2026-09-12
+core22516--2026-09-11
+agentbundle0440--2026-09-11
+core22514--2026-09-10
+core22513--2026-09-10
+core22512--2026-09-10
+core22511--2026-09-10
+core22510--2026-09-10
+core2259--2026-09-09
+agentbundle0431--2026-09-09
+agent-skill-engineering042--2026-09-09
+core2258--2026-09-08
+core2256--2026-09-08
+agentbundle0430--2026-09-08
+core2255--2026-09-08
+architect0157--2026-09-08
+core2254--2026-09-08
+core2253--2026-09-08
+core2252--2026-09-04
+core2251--2026-09-04
+architect0156--2026-09-04
+agent-skill-engineering041--2026-09-04
+core2250--2026-09-04
+core2243--2026-09-04
+product-engineering0139--2026-09-03
+product-strategy025--2026-09-03
+experience-design203--2026-09-03
+frontend-engineering022--2026-09-03
+core2242--2026-09-03
+core2240--2026-09-03
+core2232--2026-09-03
+core2231--2026-09-03
+core2230--2026-09-03
+core2220--2026-09-02
+core2210--2026-09-01
+core2201--2026-09-01
+core2200--2026-09-01
+core2190--2026-09-01
+core2182--2026-09-01
+core2180--2026-08-31
+catalogue-curation046--governance-extras0105--2026-08-31
+core2173--2026-08-31
+core2172--2026-08-31
+agent-skill-engineering040--2026-08-31
+agent-skill-engineering030--2026-08-31
+core2171--2026-08-31
+core2170--2026-08-31
+core2166--2026-08-31
+architect0155--2026-08-30
+core2165--governance-extras0103--2026-08-30
+core2163--2026-08-30
+core2162--2026-08-30
+agent-skill-engineering020--2026-08-30
+agentbundle0410--2026-08-30
+core2160--product-engineering0138--2026-08-29
+agentbundle0403--2026-08-29
+core2155--2026-08-29
+core2154--2026-08-29
+core2153--2026-08-29
+agentbundle0402--2026-08-28
+core2152--governance-extras0102--product-documentation011--user-guide-diataxis031--agent-skill-engineering011--2026-08-28
+catalogue-curation045--2026-08-28
+architect0154--experience-design202--figma033--product-engineering0137--product-strategy024--2026-08-28
+contracts036--converters096--frontend-engineering021--iac-terraform019--monorepo-extras019--release-engineering0110--2026-08-28
+atlassian093--credential-brokers033--desk-research116--github023--linear033--2026-08-28
+core2151--2026-08-28
+core2140--2026-08-28
+core2130--2026-08-27
+agent-skill-engineering010--2026-08-27
+catalogue-curation044--2026-08-27
+core2125--2026-08-27
+core2124--2026-08-27
+catalogue-curation043--2026-08-26
+architect0153--2026-08-26
+core2123--2026-08-26
+agentbundle0400--2026-08-25
+catalogue-curation042--2026-08-25
+core2122--2026-08-25
+core2121--architect0152--governance-extras0101--monorepo-extras018--iac-terraform018--2026-08-24
+agentbundle0394--2026-08-24
+core2110--2026-08-24
+core21010--product-engineering0135--2026-08-24
+core2120--2026-08-23
+core2109--2026-08-23
+core2108--2026-08-23
+agentbundle0393--2026-08-23
+core2107--2026-08-23
+agentbundle0392--2026-08-23
+core2106--2026-08-23
+architect0151--2026-08-23
+catalogue-curation041--2026-08-21
+architect0150--2026-08-21
+core2105--2026-08-21
+agentbundle0390--2026-08-21
+core2104--2026-08-20
+governance-extras097--2026-08-16
+```
 
 The anchor arm reports against a fixed denominator of 20, so an assembler
 emitting no fragment group would report 0 of 20 rather than 0 of 0.
@@ -225,9 +414,22 @@ outside this repository and deleted before this figure was recorded. The
 fragment arm has the prototype wired into that clone's `tools/build-site.py` and
 2,920 fragments staged, so the timed path genuinely enumerates, reads, parses,
 assembles and projects them — an unwired arm would time filesystem noise and
-report it as assembly cost. The wiring was proved before timing: the fragment
-arm's generated payload carries 3,077 groups and 3,201 bullets against the
-control's 157 and 281.
+report it as assembly cost. The wiring was proved before timing, by running the
+clone's site-sync alone and counting what reached the generated payload:
+
+```
+$ python3 tools/build-site.py   # in the fragment-armed clone
+  3201 released highlight(s) in 3077 release group(s)
+$ python3 -c '<count web/src/lib/now-highlights.generated.json>'
+groups in generated payload: 3077
+bullets: 3201
+fragment-sourced groups: 2920
+example anchor: change-fffdf77df4504567b382b6e520d1411d
+```
+
+The control arm's same payload carries 157 groups and 281 bullets, so the
+staged corpus is genuinely traversed rather than sitting inert beside a build
+that never opens it.
 
 The corpus is 2,920 fragments — ten times the 292 free-standing released entries
 at this base — so the model carries 3,212 entries, **11.0 times** the current
@@ -282,25 +484,54 @@ regression      : +66.08%  (threshold: under 10%)
 
 ### What the instrument can and cannot resolve
 
-The retained build logs decompose each run into its two Astro phases, and that
-decomposition bounds the figure's precision. The docs-site build receives
-**identical input in both arms** — 264 pages either way, because fragments never
-reach it — so any arm difference it shows is definitionally noise.
+The retained build logs decompose each run into its two Astro phases. The
+docs-site build receives **identical input in both arms** — 264 pages either
+way, because fragments never reach it — so any arm difference it shows is
+observed noise in a phase that cannot be affected by the treatment.
 
-| Phase | Control median | Fragment median | Delta | Input differs? |
-| --- | ---: | ---: | ---: | --- |
-| web build | 5.76s | 10.98s | +5.22s | yes — 216 vs 3,282 pages |
-| docs-site build | 8.43s | 11.92s | +3.49s | **no** — 264 vs 264 pages |
-| whole `make site-build` | 27.05s | 44.93s | +17.88s | partly |
+```
+$ python3 -c '<medians over the 10 retained t4 build logs>'
+phase                       ctrl med  frag med    delta  input differs?
+web build                      5.76s    10.98s   +5.22s  YES 216 vs 3282 pages
+docs-site build                8.43s    11.92s   +3.49s  NO  264 vs 264 pages
+whole make site-build         27.05s    44.93s  +17.88s  partly
 
-Across all ten retained runs the identical-input docs phase spans 6.86s to
-18.20s, a range of 11.34s. Only +5.22s of the +17.88s total falls in the phase
-whose input actually changed; the remaining +12.66s sits inside that noise band.
-**The whole-build wall clock cannot resolve a 10% threshold on this machine.**
+identical-input docs phase, all 10 runs: 6.86s to 18.20s (range 11.34s)
+attributable (web) share of the difference: +5.22s of +17.88s
+unattributed remainder: +12.66s
+page ratio: 3282/216 = 15.2x
+```
 
-The verdict direction survives that imprecision — every fragment run exceeded
-the control median, and the miss is 6.6 times the threshold — but the figure
-should be read as "well over 10%", not as "66.08%".
+Two things follow, and a third does not.
+
+**The effect is not cleanly attributable.** Only +5.22s of the +17.88s median
+difference falls in the phase whose input changed. The remaining +12.66s is
+unattributed, and a phase that cannot be affected at all still showed a +3.49s
+arm gap.
+
+**The instrument is noisy at the scale of the effect.** The identical-input
+phase alone varied from 6.86s to 18.20s across the ten runs. Dispersion of that
+size in an unaffected phase means the whole-build wall clock does not resolve a
+10% threshold on this machine.
+
+**What does not follow is a confidence claim in either direction.** Five runs
+per arm at this dispersion support no valid uncertainty bound on the whole-build
+difference, and the unaffected phase's spread is an observation about that
+phase, not a computed error bar for the total. So +66.08% is reported as the
+observed point estimate and nothing more. For the record, the two samples
+overlap:
+
+```
+$ python3 -c '<dispersion of the 10 retained t4 durations>'
+control runs sorted : [22.92, 26.35, 27.05, 31.1, 75.41]
+fragment runs sorted: [31.74, 39.05, 44.93, 58.67, 86.88]
+control-fragment run pairs where the fragment run is slower: 21 of 25
+overlap: max control 75.41s exceeds 4 of 5 fragment runs
+```
+
+A quiet-machine re-measurement is owed before any threshold is set from this
+number, and the delivery spec should treat the figure as a signal that the cost
+is large, not as a calibrated quantity.
 
 ### Where the cost actually comes from
 
@@ -315,8 +546,10 @@ component that scales with fragment count, and § 7's threshold was written
 against a build where release count did not drive page count.
 
 **KILL.** § 7 Build performance requires less than 10% site-build regression at
-ten times the current release-entry count: the measured regression is +66.08%,
-over the bar by 6.6 times, with the precision caveat above.
+ten times the current release-entry count. The observed point estimate is
++66.08%, which does not meet it. The measurement does not support a precision
+claim on that number — see above — so the kill rests on the recorded figure
+against the recorded threshold, and the figure itself is owed a re-measurement.
 
 Per this spec's Durable Outputs, a build-cost figure at or above the § 7 bar is
 neither a survive nor a kill for the architecture delta: it leaves
@@ -353,12 +586,23 @@ question about `/now/`, not an assembly question.
   same 20 updates into `changelog.md` moves historical anchors through
   `_Slugger`'s duplicate-suffix renumbering is the arm that could fail, and it was
   not run. It is the cheapest remaining check and belongs in the delivery spec.
-- **Per-fragment parse cost at realistic body sizes.** The corpus is 2,920
-  synthetic fragments of roughly 330 bytes carrying one Highlights bullet each.
-  It faithfully models how many groups and pages the build produces, and
-  understates per-fragment read and parse cost against real entries that run to
-  paragraphs and several bullets. The understatement lands on the phase the
-  decomposition showed was not the cost driver.
+- **Per-fragment parse cost at realistic body sizes.** The corpus models group
+  and page counts faithfully and understates byte volume badly:
+
+  ```
+  $ python3 -c '<regenerate the staged corpus from the same seeded generator>'
+  fragments        : 2920
+  bytes per fragment: min 273, median 279, max 279
+  total corpus bytes: 812466
+  Highlights bullets per fragment: 1
+  ```
+
+  Ten times the entry count is only 1.36 times the byte volume of the existing
+  598,239-byte changelog, because each synthetic body is one short bullet where
+  a real entry runs to paragraphs and several. So the run understates
+  per-fragment read and parse cost. That understatement lands on the phase the
+  decomposition showed was not the cost driver, which is why it does not change
+  the verdict — but it does mean this run cannot be cited for parse cost.
 - **ADR-0123's fifth Confirmation signal** — that regeneration leaves no tracked
   diff — and § 7's rows for Git cleanliness, Failure diagnosability, and
   Dependency and privacy posture. These are delivery verification obligations:

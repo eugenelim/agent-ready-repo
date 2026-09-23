@@ -95,3 +95,55 @@ execution observed lands here.
   understate per-fragment read and parse cost. The understatement falls on the
   phase the decomposition showed was not the cost driver. Settled by the owner;
   recorded as a stated limit in the report.
+
+## Review round 1 — adversarial-reviewer, adjudicated
+
+Six source findings; four sustained, two refuted on evidence.
+
+**Sustained and repaired:**
+
+- *Figures not traceable to quoted stdout.* The grounding counts, the wiring
+  proof, the phase decomposition and the corpus size were retained as run output
+  but never quoted in the report, so a reader could not verify them. All four are
+  now fenced blocks in the sections that use them.
+- *The anchor list was absent.* AC 6 names the anchor list as a diagnostic; the
+  report carried only the first anchor, the last, and a digest. All 157 anchors
+  are now recorded in payload order.
+- *The precision bound was arithmetically and methodologically unsound.* The
+  report claimed a +12.66s unattributed remainder sat "inside" an 11.34s range —
+  12.66 is larger than 11.34 — and treated one identical-input phase's spread as
+  an error bar for the whole build. Both are wrong. The section now reports
+  +66.08% as an observed point estimate, states that five runs per arm at this
+  dispersion support no valid uncertainty bound, records that the two samples
+  overlap (21 of 25 run pairs favour the fragment arm; the largest control run
+  exceeds four of five fragment runs), and makes no directional-certainty claim.
+- *The method misattributed an import.* The report said both artifacts import
+  `tools/build-site.py`. Only the prototype does; the tracked script is standard
+  library plus Git. Corrected.
+
+**Refuted, not repaired:**
+
+- *AC 10 ticked despite the threshold miss.* Refuted on the spec's own text, not
+  on owner authority: all sixteen criteria share the grammar "records X; the
+  figure is Y, per § 7 Z", and the spec separately requires a survive-or-kill
+  verdict per measurement, excludes build cost from the aggregation, and
+  prescribes the above-bar follow-on in Durable Outputs. A checked AC 10 records
+  completion of the measurement obligation, not attainment of the threshold. The
+  scope owner had independently reached the same reading during the run.
+- *`main()` exits 0 when the error bucket is non-empty.* Refuted on authority:
+  AC 3 requires per-arm error counts and classifies a non-zero count as harness
+  failure, but requires no non-zero process exit, and the script already reports
+  errors in a distinct bucket rather than folding them into the clean count.
+  Left unchanged; it would be a behaviour change outside the accepted intent.
+
+## Defect found by the controller, not by a reviewer
+
+`tools/measure-changelog-fragment-merges.py` hardcoded its monolith insertion
+anchor as the literal `## [core]`. Twenty-four distinct packages appear as
+release headings and only 139 of 292 are `core`, so a future base whose newest
+entry is another package would have sent the control arm's insertion further
+down the file — measuring a shape no release takes, and reporting it as a clean
+result. Replaced with a regular expression matching any `## [pkg][version]`
+heading, which resolves to 292 headings and correctly skips `## [Unreleased]`.
+The insertion point is unchanged at this base, and T1 was re-run after the fix:
+both arms reproduce 0 of 190 and 190 of 190 with empty error buckets.
