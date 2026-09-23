@@ -47,13 +47,16 @@ likely to want to re-derive. The assembler prototype is not: it is throwaway, it
 lives outside the repository, and it is reconstructed from this document rather
 than maintained.
 
-The two use different seams, and only one touches production code. The
-**prototype** imports `tools/build-site.py` by path, so it and production agree
-about which `##` lines are real headings and about how a `/now/` payload is
-shaped — the same seam the fragmentation spike used. The **measurement script**
-imports nothing from this repository: it is standard library only and drives
-Git directly, which is what lets a reader re-derive its counts without the
-prototype existing.
+Both load `tools/build-site.py` by path, for different reasons, and neither
+modifies it. The **prototype** reuses its parser and its `/now/` projector, so
+the prototype and production agree about which `##` lines are real headings and
+about how a payload is shaped — the same seam the fragmentation spike used. The
+**measurement script** uses only one thing from it: the position of the first
+free-standing release heading, which is where a monolith update inserts. It
+takes that from the parser rather than scanning lines, because which `##` lines
+are real is decided by a fence and comment state machine that a second scanner
+would drift from. Everything else the script does is standard library and Git,
+so a reader re-derives its counts without the prototype existing.
 
 A fragment is TOML front matter delimited by `+++` carrying `schema`, `id`,
 `date`, `heading` and `packages`, then a Markdown body whose only required
@@ -530,20 +533,31 @@ overlap: max control 75.41s exceeds 4 of 5 fragment runs
 ```
 
 A quiet-machine re-measurement is owed before any threshold is set from this
-number, and the delivery spec should treat the figure as a signal that the cost
-is large, not as a calibrated quantity.
+number. Until then the figure is one observation that missed the bar, not a
+quantity the delivery spec can calibrate against.
 
-### Where the cost actually comes from
+### A structural change this measurement does not price
 
-It is not the stimulus § 7 names. That row anticipates "many small files
-increase scan and parse cost". The measured cost is page generation: the web
-build emits **3,282 pages instead of 216**, because `/now/[release].astro`
-generates one page per release group and 2,920 fragments become 2,920 more
-groups. That route was added three commits before this base, in
-[#1415](../../../web/src/pages/now/%5Brelease%5D.astro). Rendering 15.2 times the
-pages cost only +5.22s, so Astro's per-page cost is low — but it is the
-component that scales with fragment count, and § 7's threshold was written
-against a build where release count did not drive page count.
+Two facts here come from code and from the retained build logs, with no timing
+inference. First, the fragment arm's web build emits **3,282 pages against the
+control's 216** — both counts are in the logs. Second, the reason is structural:
+`/now/[release].astro` calls `getStaticPaths` over every group in the generated
+payload, so each of the 2,920 fragments becomes one more page. That route was
+added two commits before this base, in
+[#1415](../../../web/src/pages/now/%5Brelease%5D.astro).
+
+What this run does **not** establish is how much of the measured difference
+that accounts for. Only +5.22s of the +17.88s median difference falls in the
+web phase at all, +12.66s is unattributed, and the samples overlap. So the
+page-count growth is a recorded structural fact, and "page generation is what
+makes the fragment build slower" remains an **untested hypothesis** — the most
+plausible one available, and the one the delivery spec should price first, but
+not something these ten runs demonstrate.
+
+The same caution applies to § 7's own framing. Its Build performance row
+anticipates the stimulus "many small files increase scan and parse cost", and
+this run neither confirms nor refutes that: it did not isolate the parse phase,
+and its corpus understates byte volume by design.
 
 **KILL.** § 7 Build performance requires less than 10% site-build regression at
 ten times the current release-entry count. The observed point estimate is
@@ -571,10 +585,12 @@ determinism or parity is kill, and survive otherwise; build cost does not enter
 it. All three aggregating measurements cleared their thresholds, two of them
 against an arm that failed when the invariant was removed.
 
-The design is not refuted. What the run changes is the delivery spec's shape:
-the performance question moved from "will many small files slow the scan" to
-"one page per release group does not scale", which is a routing and pagination
-question about `/now/`, not an assembly question.
+The design is not refuted. What the run changes is the delivery spec's shape.
+The build-cost figure misses its threshold, and the run also records that
+release count now drives page count through `/now/[release]`. Which of those
+two facts explains the other is not settled here, so the delivery spec inherits
+a measurement to redo rather than a cause to fix — and it should redo it on a
+quiet machine before setting any threshold.
 
 ## What this spike did not measure
 
@@ -610,8 +626,8 @@ question about `/now/`, not an assembly question.
 - **A quiet-machine re-measurement of build cost.** The whole-build metric was
   run once, at five retained runs per arm, on a machine whose identical-input
   phase varied by 11.34s.
-- **`[Unreleased]` aggregation.** How pending fragments merge into the four
-  `[Unreleased]` groups at release time is untouched, and is where the
+- **`[Unreleased]` aggregation.** How pending fragments merge into the
+  `[Unreleased]` region at release time is untouched, and is where the
   fragmentation spike said the real design work sits.
 
 ## Next decision, for the owner
@@ -619,6 +635,8 @@ question about `/now/`, not an assembly question.
 Author the delivery spec at `docs/specs/product-changelog-fragments/` from these
 figures. Three of its thresholds are now grounded — 0 conflicting pairs, 1
 digest from 5 shuffled enumerations, byte-identical payload — and can be lifted
-directly. The fourth cannot: § 7's build-performance row needs rewriting against
-the page-generation cost this run found rather than the scan-and-parse cost it
-currently names, and the delivery spec owes a named performance task either way.
+directly. The fourth cannot. The build-cost figure is a point estimate from an
+instrument that could not resolve its own threshold, so it grounds nothing yet;
+the delivery spec owes a named performance task and a re-measurement on a quiet
+machine. When that runs, it should isolate the phases, because this run recorded
+that release count now drives page count without establishing what that costs.

@@ -42,10 +42,10 @@ Usage:
 
 from __future__ import annotations
 
+import importlib.util
 import itertools
 import os
 import random
-import re
 import subprocess
 import sys
 import tempfile
@@ -57,13 +57,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = "docs/product/changelog.md"
 FRAGMENT_DIR = "docs/product/changelog.d"
 BRANCH_COUNT = 20
-# Any release heading, not one package's. A new release section is prepended
-# above the FIRST of these, so this is the line every concurrent monolith edit
-# competes for. Matching a fixed package name instead would pass today only
-# because the newest entry happens to be `core`: 24 distinct packages appear as
-# release headings, and a non-`core` entry on top would send the insertion
-# further down the file, silently measuring a shape no release takes.
-RELEASE_HEADING_RE = re.compile(r"^## \[[A-Za-z0-9][A-Za-z0-9._-]*\]\[[^\]]+\]")
+BUILD_SITE = REPO_ROOT / "tools" / "build-site.py"
 # Seeded so the run reproduces; the value itself carries no meaning.
 UUID_SEED = 0x5C_11_A9_00
 
@@ -182,20 +176,47 @@ def release_section(identifier: str, ordinal: int) -> str:
     )
 
 
-def prepend_release(changelog: str, section: str) -> str:
+def load_build_site() -> object:
+    """Import `tools/build-site.py` by path; the module name has a hyphen."""
+    spec = importlib.util.spec_from_file_location("build_site", BUILD_SITE)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {BUILD_SITE}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def first_release_line(build_site: object, changelog: str) -> int:
+    """Zero-based line index of the first free-standing release heading.
+
+    Delegates to `parse_changelog_releases` rather than scanning lines. Which
+    `##` lines are real headings is decided by that parser's fence and comment
+    state machine, and `ParsedChangelog.headings` is exported precisely so a
+    caller needing heading POSITION does not re-derive it. A raw-line regex
+    agrees on today's file and still diverges from the contract: it has no fence
+    or comment state, and it admits identities the parser rejects, such as
+    `[Unreleased][unreleased]` or an entry with no trailing date.
+    """
+    parsed = build_site.parse_changelog_releases(changelog)
+    free_standing = [r for r in parsed.releases if not r["unreleased"]]
+    if not free_standing:
+        raise RuntimeError(f"{CHANGELOG} has no free-standing released entry")
+    wanted = free_standing[0]["heading"]
+    for heading in parsed.headings:
+        if heading.level == 2 and heading.title == wanted:
+            return heading.lineno - 1
+    raise RuntimeError(f"parser reports release {wanted!r} with no level-2 heading")
+
+
+def prepend_release(changelog: str, section: str, position: int) -> str:
     """Insert `section` immediately above the first real release heading.
 
-    Every arm-two commit inserts at this one anchor because that is where a new
-    release actually goes; spreading them over the file would measure a shape no
-    release takes.
+    Every control-arm commit inserts at this one anchor because that is where a
+    new release actually goes; spreading them over the file would measure a
+    shape no release takes.
     """
     lines = changelog.splitlines(keepends=True)
-    for position, line in enumerate(lines):
-        if RELEASE_HEADING_RE.match(line):
-            return "".join(lines[:position]) + section + "".join(lines[position:])
-    raise RuntimeError(
-        f"no release heading matching {RELEASE_HEADING_RE.pattern!r} in {CHANGELOG}"
-    )
+    return "".join(lines[:position]) + section + "".join(lines[position:])
 
 
 def identifiers(count: int) -> list[str]:
@@ -204,7 +225,9 @@ def identifiers(count: int) -> list[str]:
     return [str(uuid.UUID(bytes=rng.randbytes(16), version=4)) for _ in range(count)]
 
 
-def build_arm(base: str, name: str, changelog_at_base: str, ids: list[str]) -> list[str]:
+def build_arm(
+    base: str, name: str, changelog_at_base: str, ids: list[str], anchor: int
+) -> list[str]:
     """Build one arm's synthetic commits and return their oids."""
     commits = []
     for ordinal, identifier in enumerate(ids, start=1):
@@ -212,7 +235,9 @@ def build_arm(base: str, name: str, changelog_at_base: str, ids: list[str]) -> l
             blob = write_blob(fragment_body(identifier, ordinal))
             paths = {f"{FRAGMENT_DIR}/{identifier}.md": blob}
         else:
-            updated = prepend_release(changelog_at_base, release_section(identifier, ordinal))
+            updated = prepend_release(
+                changelog_at_base, release_section(identifier, ordinal), anchor
+            )
             paths = {CHANGELOG: write_blob(updated)}
         commits.append(commit_with(base, paths, f"{name} arm branch {ordinal:02d}"))
     return commits
@@ -275,6 +300,7 @@ def report(base: str, checks: list[tuple[str, str, bool]], arms: list[ArmResult]
 def main() -> int:
     base = git("rev-parse", "HEAD").strip()
     changelog_at_base = git("show", f"{base}:{CHANGELOG}")
+    anchor = first_release_line(load_build_site(), changelog_at_base)
     ids = identifiers(BRANCH_COUNT)
 
     checks = classifier_self_check(base, changelog_at_base)
@@ -284,7 +310,7 @@ def main() -> int:
         return 1
 
     arms = [
-        replay(base, name, build_arm(base, name, changelog_at_base, ids))
+        replay(base, name, build_arm(base, name, changelog_at_base, ids, anchor))
         for name in ("fragment", "control")
     ]
     report(base, checks, arms)

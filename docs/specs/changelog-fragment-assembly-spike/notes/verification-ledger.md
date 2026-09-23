@@ -147,3 +147,42 @@ result. Replaced with a regular expression matching any `## [pkg][version]`
 heading, which resolves to 292 headings and correctly skips `## [Unreleased]`.
 The insertion point is unchanged at this base, and T1 was re-run after the fix:
 both arms reproduce 0 of 190 and 190 of 190 with empty error buckets.
+
+## Review round 2 — adversarial-reviewer, adjudicated
+
+Three source findings; all three sustained, none refuted.
+
+- *Two empirical counts were inaccurate or untraceable.* The report placed
+  #1415 three commits before the base when it is two (`93bf9cc9e~2` is
+  `74bcd2e64`), and cited "four `[Unreleased]` groups" with no quoted source.
+  The commit count is corrected. The `[Unreleased]` count is dropped rather than
+  cited: it happens to be true at this base, but it carried no weight in the
+  sentence and the spike never measured it.
+- *The build-cost conclusions still exceeded what the data attributes.* Having
+  conceded that five overlapping runs support no confidence claim, the report
+  then called the cost large, attributed it to page generation, and called
+  per-page cost low — while only +5.22s of the +17.88s difference sits in the
+  changed-input phase and +12.66s is unattributed. The section is rewritten to
+  separate two things that had been conflated: the page counts (3,282 against
+  216) and the `getStaticPaths` mechanism are structural facts from code and the
+  retained logs, whereas "page generation is what makes the fragment build
+  slower" is now labelled an untested hypothesis for the delivery spec to price.
+  The verdict prose and the closing recommendation were corrected the same way.
+- *The control arm re-derived the parser's release-heading contract.* The
+  regex introduced in round 1 had zero false positives on this file — 292 hits,
+  all real level-2 headings, identical heading text, and no fence markers before
+  the first at line 67 — but it implemented no fence or comment state machine
+  and admitted identities the parser rejects, such as `[Unreleased][unreleased]`
+  or an undated entry. `ParsedChangelog.headings` is exported precisely so a
+  caller needing heading position does not re-derive that machine. The script
+  now imports `tools/build-site.py` by path, takes the first free-standing
+  released entry from `parse_changelog_releases`, and resolves its level-2
+  heading position from the exported index, raising when the parser rejects the
+  candidate. The resolved position is unchanged at this base (line 67), and T1
+  re-run after the change reproduces 0 of 190 and 190 of 190 with empty error
+  buckets.
+
+That last repair reversed part of round 1's fix: the report had just been
+corrected to say the measurement script imports nothing from this repository,
+which the change made false. The method section now states what each artifact
+takes from `build-site.py` and why.
