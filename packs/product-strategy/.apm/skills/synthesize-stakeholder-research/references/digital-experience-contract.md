@@ -117,6 +117,13 @@ disciplines name the same states and owe the same ones at the same depth.
 - **Screen-brief line** names the line a per-screen brief already carries for
   that state, or `-` where the state is frontend-owned and no brief line names
   it. One brief line resolves to two states.
+This map's **Tier** column is read independently of the tier annotation on the
+section above it. That annotation says when you owe a written
+states-and-permissions *section* in your contract; this column says which
+states the surface itself must handle. A surface at `explore` owes the states
+banded `explore` here even though the section above is annotated `pilot+`, and
+the accessibility rule below is what makes that non-negotiable.
+
 - **Tier** is the lowest risk tier at which the state is owed, and is
   cumulative: a tier owes its own states and every lower tier's. `conditional`
   means the state is owed at every tier whenever its trigger fires, and at no

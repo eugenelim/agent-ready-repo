@@ -150,7 +150,11 @@ def test_the_map_is_the_size_the_floor_states(contract: str, skill: str) -> None
         f"the quality floor enumerates {len(floor)} states, not the eighteen "
         f"every artifact in this change names"
     )
-    assert len(map_rows(contract)) == 18
+    rows = map_rows(contract)
+    assert len(rows) == 18, (
+        f"{CONTRACT} carries {len(rows)} state-coverage rows, not eighteen; "
+        f"the four copies are byte-identical, so this one stands for all"
+    )
 
 
 # ── totality over the screen brief ──────────────────────────────────────────

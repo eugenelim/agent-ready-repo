@@ -19,7 +19,7 @@ The contract ships with `schema-version: "1.0"` in its frontmatter. When a break
 
 ## The three tiers
 
-Each field in the contract carries a `Required: <tier>+` annotation. The tier reflects when the field matters — not when you should fill it in. Those annotations are the authority on what each tier owes; read the template itself rather than a list here, which is how this page came to promise a different set than the contract asks for.
+Each field in the contract carries a `Required: <tier>+` annotation. The tier reflects when the field matters — not when you should fill it in. Those annotations are the authority on what each tier owes; read the template itself rather than a list here.
 
 | Tier | When | What's required |
 |---|---|---|

@@ -143,6 +143,7 @@ relatedJourneys:
 | `user-flow` | Build the screen inventory with per-screen state briefs | Required |
 | `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
 | `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |
+| `information-architecture` | Decide what goes where on each screen and how users stay oriented | Required |
 | `interaction-design` | Design states, feedback, and animation per screen | Required |
 | `experience-reviewer` | Independent cold review — forked context, read-only | Required |
 

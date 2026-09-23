@@ -106,9 +106,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - **A surface now declares how much contract it owes, and `explore` is the
-  default.** The journey opens with a depth selector: pick the risk tier, and
-  it tells you the contract fields, the states, the gates and the captures that
-  tier carries. A tooltip and a checkout flow walk the same stages at different
+  default.** The journey opens by asking you to pick the risk tier, then tells
+  you the contract fields, the states, the gates and the captures that tier
+  carries. A tooltip and a checkout flow walk the same stages at different
   depths, so the cheap path is a stated choice rather than a corner cut.
 - **The cheap tier never drops an accessible surface.** Every state whose
   absence fails WCAG 2.2 AA is either already in the `explore` set or binds
@@ -141,9 +141,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - **The say-this table now tells you which steps you can skip.** Every row
-  carries exactly one of `Required`, `Optional` or `Choose one`, resolved
-  against the how-to guide that owns that skill, so the two surfaces can no
-  longer disagree about whether a step is optional.
+  carries one optionality verdict, resolved against the how-to guide that owns
+  that skill, so the two surfaces can no longer disagree about whether a step
+  is optional.
 - **A named minimal viable thread replaces guessing at what to drop.** Four
   steps make the output coherent; the journey says so, and says what a skipped
   step actually costs rather than warning against shortcuts in the abstract.

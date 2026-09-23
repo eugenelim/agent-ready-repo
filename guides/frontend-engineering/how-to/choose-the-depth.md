@@ -65,8 +65,7 @@ route has; they never change the four each channel owes.
 
 ## What you can leave out
 
-Four allowances are genuine, and the journey states them so you are not reading
-a promise stricter than the skill behind it:
+Four allowances apply:
 
 - The contract is proportional to the surface's risk and scope. A new route or a
   feature-gating screen warrants the full field set; a single form field or a

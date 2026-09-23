@@ -249,7 +249,13 @@ def floor_states() -> set[str]:
         ROOT / "packs" / "frontend-engineering" / ".apm" / "skills"
         / "frontend-engineering" / "SKILL.md"
     ).read_text(encoding="utf-8")
-    after = skill.split("### 3. State matrix", 1)[1]
+    parts = skill.split("### 3. State matrix", 1)
+    assert len(parts) == 2, (
+        "'### 3. State matrix' is gone from frontend-engineering/SKILL.md; "
+        "this module reads four artifacts, so an unnamed failure here costs "
+        "the attribution the named CI step exists to buy"
+    )
+    after = parts[1]
     names = set()
     seen_header = False
     for line in after.splitlines():
@@ -311,9 +317,12 @@ def test_each_journey_names_the_three_crossing_artifacts(pack: str) -> None:
 def test_the_frontend_journey_carries_its_four_proportionality_allowances() -> None:
     """Verifies: the journey is no stricter than the skill it describes.
 
-    Each allowance is matched on the words that carry it rather than on a fixed
-    sentence, so rewording the prose does not fail the check and deleting the
-    allowance does. The cues for one allowance must co-occur on a single line:
+    Each allowance is matched on the words that carry it rather than on a whole
+    fixed sentence, so the surrounding prose may move. The cues themselves are
+    verbatim phrases — `risk and scope`, `narrows the state matrix`,
+    `absent or broken` — so rewording *those* does fail the check, and that cost
+    is the price of the check being able to fail at all. The cues for one
+    allowance must co-occur on a single line:
     matched across the whole file, two of the four sets were satisfied by prose
     that predates these allowances, and the check stayed green with the
     allowance deleted.
@@ -329,10 +338,48 @@ def test_the_frontend_journey_carries_its_four_proportionality_allowances() -> N
 
 
 def test_the_design_journey_names_its_minimal_viable_thread() -> None:
-    """Verifies: the cheapest coherent path through the pack is named."""
+    """Verifies: the cheapest coherent path through the pack is a named path.
+
+    The criterion asks for a path, not a title. A phrase-presence check passed
+    with all four numbered steps deleted, because the heading alone carried the
+    words — so this parses the ordered list under the heading and resolves each
+    step's backticked name.
+
+    The names resolve against the union of the journey's `skills:` frontmatter
+    and its say-this rows, because neither list alone covers the thread:
+    `experience-reviewer` is a say-this row and not a frontmatter skill.
+    """
     text = JOURNEYS["experience-design"].read_text(encoding="utf-8")
-    assert "minimal viable thread" in text.lower(), (
-        "the design journey does not name the minimal viable thread"
+    heading = "#### The minimal viable thread"
+    parts = text.split(heading, 1)
+    assert len(parts) == 2, f"the design journey has no {heading!r} section"
+
+    steps: list[tuple[int, str]] = []
+    for line in parts[1].splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            break
+        m = re.match(r"^(\d+)\. (.+)$", stripped)
+        if m:
+            steps.append((int(m.group(1)), m.group(2)))
+    assert len(steps) >= 4, (
+        f"the minimal viable thread names {len(steps)} numbered steps, not the "
+        f"path the criterion asks for"
+    )
+    assert [n for n, _ in steps] == list(range(1, len(steps) + 1)), (
+        f"the thread's steps are not consecutively numbered: {[n for n, _ in steps]}"
+    )
+
+    known = {_unbacktick(r[0]) for r in _say_this_rows()}
+    known |= set(re.findall(r"^  - name: (\S+)", text, re.M))
+    unresolved = []
+    for n, body in steps:
+        named = re.findall(r"`([a-z][a-z-]+)`", body)
+        assert named, f"step {n} of the thread names no skill: {body!r}"
+        unresolved += [s for s in named if s not in known]
+    assert not unresolved, (
+        f"the thread names {unresolved}, which the journey's skills list and "
+        f"say-this table do not carry between them"
     )
 
 
@@ -407,7 +454,26 @@ GUIDE_OWNED_SKILLS = ("design-system", "content-design")
 HOW_TO = ROOT / "guides" / "experience-design" / "how-to"
 
 
+def _unbacktick(cell: str) -> str:
+    """Normalise a table cell the way the coverage module does.
+
+    Both modules parse the same state-coverage map. The coverage module
+    strips, unwraps backticks, then strips again; a cell written with spaces
+    inside its backticks parses to two different names if this module stops
+    one step short, so the three steps are kept identical here on purpose.
+    """
+    return cell.strip().strip("`").strip()
+
+
 def _say_this_rows() -> list[list[str]]:
+    """The say-this table's body rows, proven to be that table.
+
+    Located positionally — it is the first table after the frontmatter and no
+    heading sits above it — so the header row is what identifies it. Without
+    that check, a table inserted above this one silently retargets the
+    optionality assertions, and the agreement check in particular then misses
+    every guide key and reports pass.
+    """
     text = (XD / "JOURNEY.md").read_text(encoding="utf-8")
     body = text.split("\n---\n", 1)[1]
     rows, seen_header = [], False
@@ -419,6 +485,11 @@ def _say_this_rows() -> list[list[str]]:
             continue
         cells = [c.strip() for c in stripped.strip("|").split("|")]
         if not seen_header:
+            header = [_unbacktick(c).lower() for c in cells]
+            assert header[:1] == ["say this"] and "needed?" in header, (
+                f"the first table after the frontmatter of {XD.name}/JOURNEY.md "
+                f"is not the say-this table; its header reads {cells}"
+            )
             seen_header = True
             continue
         if all(set(c) <= {"-", ":"} for c in cells):
@@ -430,7 +501,7 @@ def _say_this_rows() -> list[list[str]]:
 
 def _guide_optionality() -> dict[str, str]:
     """Every `Needed?` verdict the how-to tables record, keyed by skill."""
-    found: dict[str, str] = {}
+    found: dict[str, tuple[str, str]] = {}
     for guide in sorted(HOW_TO.glob("*.md")):
         for line in guide.read_text(encoding="utf-8").splitlines():
             stripped = line.strip()
@@ -439,9 +510,18 @@ def _guide_optionality() -> dict[str, str]:
             cells = [c.strip() for c in stripped.strip("|").split("|")]
             if len(cells) < 4 or cells[-1] not in OPTIONALITY:
                 continue
-            found[cells[0].strip().strip("`")] = cells[-1]
+            skill = _unbacktick(cells[0])
+            prior = found.get(skill)
+            # AC-0021 speaks of "the corresponding how-to table", singular. A
+            # flat last-write-wins dict would let a second table disagree and
+            # leave the comparison reading whichever file sorted last.
+            assert prior is None or prior[0] == cells[-1], (
+                f"{skill!r} is recorded twice with conflicting verdicts: "
+                f"{prior[0]} in {prior[1]}, {cells[-1]} in {guide.name}"
+            )
+            found[skill] = (cells[-1], guide.name)
     assert found, "no how-to table records an optionality verdict"
-    return found
+    return {k: v[0] for k, v in found.items()}
 
 
 def test_every_say_this_row_carries_exactly_one_optionality() -> None:
@@ -470,9 +550,19 @@ def test_the_say_this_optionality_agrees_with_the_how_to_guides() -> None:
     optionality in its guide fails this rather than silently diverging.
     """
     guides = _guide_optionality()
-    absent = [skill for skill in GUIDE_OWNED_SKILLS if skill not in guides]
-    assert not absent, (
-        f"no how-to table records an optionality verdict for {absent}; the "
+    rows = {_unbacktick(row[0]): row for row in _say_this_rows()}
+    # Both directions. The guide-side guard alone left the mirror hole: a skill
+    # renamed in the journey stops being a key here, the comparison skips it,
+    # and AC-0021 passes while the two surfaces disagree.
+    missing_guide = [s for s in GUIDE_OWNED_SKILLS if s not in guides]
+    missing_journey = [s for s in GUIDE_OWNED_SKILLS if s not in rows]
+    assert not missing_guide, (
+        f"no how-to table records an optionality verdict for {missing_guide}; "
+        f"the agreement below compares nothing for those skills, so their "
+        f"criterion would pass on absence"
+    )
+    assert not missing_journey, (
+        f"the say-this table carries no row for {missing_journey}; the "
         f"agreement below compares nothing for those skills, so their "
         f"criterion would pass on absence"
     )

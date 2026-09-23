@@ -423,6 +423,22 @@ artifact can decide.
 
 ## Follow-ons
 
+- Pack maintainer: five counts derived by hand from the state-coverage map
+  and the `Required:` annotations sit in eight homes and nothing reads them —
+  "Explore owns ten states, pilot adds four, production adds two" and
+  "drops six of the sixteen banded states and none of the eight marked `yes`"
+  in the four contract copies, and "drops 22 contract fields and 6 states" in
+  both journeys. Every one is derivable from data the two roster modules
+  already parse. A mechanical pin is not available here: AC-0031 assigns the
+  journey paragraph to Review-only by owner decision. Re-banding one state
+  leaves all five wrong with every gate green.
+- Pack maintainer: the committed `web/src/content/journeys/` copies have no
+  standing comparison against their source `JOURNEY.md`. AC-0037 checks
+  regeneration once at delivery; `lint-web-journey-parity.py` compares only
+  skill counts, `build-check.yml` has no regeneration step, and `pages.yml`
+  regenerates before building without diffing the committed copies. The only
+  thing keeping them honest is an `Always do` rule scoped to this spec, so the
+  next editor of either journey gets a green board with a stale copy.
 - Pack maintainer: `packs/experience-design/.apm/skills/*/evals/*.json` pin
   literal `docs/design/...` paths. Whether an eval fixture should track a
   configurable default is a design question neither spec settles.
