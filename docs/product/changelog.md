@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.33] — 2026-09-22
+## [core][2.26.34] — 2026-09-22
 
 ### Changed
 
@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   planning and effects, and `selected-membership` into `references/mutate.md`.
   The `workspace.toml` initialisation template is now
   `assets/workspace.toml.template`, written out unchanged rather than inlined.
-  The body falls from 685 lines to 465. No rule changed: every relocated
+  The body falls from 685 lines to 478. No rule changed: every relocated
   sentence moved byte-for-byte, and the canonical-findings table, the rendering
   contract and the cooling-exclusion statement stay on the entrypoint.
 - The consent requirement for the mutating subcommands stays on the entrypoint
@@ -88,6 +88,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `repair-rollback` each need a confirmation the authorized person writes out
   of band, and a guard that arrives only once the mutate reference has loaded
   would be guarding a decision already taken.
+
+## [core][2.26.33] — 2026-09-22
+
+### Changed
+
+- The `work-loop` entrypoint's § Capture keeps when capture runs and points at
+  the reference; the discriminator a captured item must carry and the table
+  routing a DECIDE scratch note to its destination now live in
+  `references/capture.md` § Capturing and routing a note, beside the guidance
+  on what a kept note should say. The five routing rows, their first-match
+  order, and the ready-now economics all read exactly as before. The two
+  pointers into `work-item-capture.md` lost their `references/` prefix,
+  because that prefix was written from `SKILL.md`'s directory and the file is
+  now a sibling — the links resolve again, and the destinations are unchanged.
+  No rule changed; what changed is where the rule is read from —
+  `SKILL.md` 908 lines to 866, against the 1,000-line cap that is the reason
+  it moved.
+
+### Fixed
+
+- Two further links in the `work-loop` references resolved to nothing and now
+  resolve: `scale-with-a-tool.md`'s pointer to the unattended-loop guidance,
+  which had outlived its `SKILL.md` section and now names
+  `unattended-loops.md`, and `self-coverage/resolve-vs-surface.md`'s pointer
+  to the self-coverage gate, which now names `SKILL.md` § Work-loop contract,
+  the section that states it.
 
 ## [core][2.26.32] — 2026-09-22
 

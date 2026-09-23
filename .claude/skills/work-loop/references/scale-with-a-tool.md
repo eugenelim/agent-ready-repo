@@ -111,7 +111,7 @@ This is the same separation the loop uses elsewhere: a mechanical harness govern
 one item at a time, with a fresh, small context each time. The tracking file
 still owns completion — the per-item agent call is just how a `pending` row
 becomes `done`. Some agents expose a native per-item or fresh-session facility for
-exactly this; the [Unattended loops](../SKILL.md#unattended-afk-loops) section
+exactly this; the [Unattended loops](unattended-loops.md#unattended-afk-loops) section
 covers when a fully unattended variant is appropriate (mechanical completion
 criterion, reliable verification, a prior in-session pass). The technique here is
 the *in-session* form: you're driving, the tool just keeps the list straight.

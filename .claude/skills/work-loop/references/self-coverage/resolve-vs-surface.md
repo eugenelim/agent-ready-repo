@@ -1,7 +1,7 @@
 # Resolve vs surface (`work-loop`)
 
 The calibration reference for the
-[self-coverage gate](../../SKILL.md#the-self-coverage-gate)'s disposition record. The
+[self-coverage gate](../../SKILL.md#work-loop-contract)'s disposition record. The
 loop reaches the right resolve-vs-surface call only about half the time without a
 scaffold; an explicit rubric plus calibrated examples climbs that rate. This is
 `work-loop`'s own per-loop copy of the calibration examples.

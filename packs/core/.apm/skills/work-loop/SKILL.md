@@ -804,51 +804,9 @@ produced nothing worth keeping.
 
 What a kept note should say, and how to write it, is in [`references/capture.md`](references/capture.md).
 
-A captured item carries its discriminator: the one fact the decision turns
-on, not just the location. "Four sites use a 13px literal" is a locator;
-"the third of them is the only sans one, so the shared token does not fit
-it" is an item. Supply the discriminator before capturing; an item you
-cannot give one to is not ready to capture, and it goes to the destination
-its actual state names. A locator nobody can action looks like tracked work
-and is not. Disposing an item now is cheaper than recording it: a recorded
-item pays a tracking cost, a context-refresh cost, and often a new session,
-and then still needs a discriminator that close-time reconstruction from
-the diff cannot recover. A slightly longer loop is the cheaper option, and
-capturing a ready-now item is a loss.
-
-- **Review scratch notes** from this session's DECIDE passes. Anything
-  generalisable that would have changed the approach goes to the
-  `project-knowledge` public seam, and the examples in the capture reference
-  are instances of that; the seam is additive. A note that names a defect
-  routes by what it is:
-
-  | What the note is | Where it goes |
-  | --- | --- |
-  | Generalisable practice | The existing `project-knowledge` route, unchanged |
-  | Specific, real, blocked | Captured as a `work-item` |
-  | Specific, real, ready now, ride-along eligible | Dispatched in-session, not captured |
-  | Specific, real, ready now, not ride-along eligible | The session's next independently reviewed unit |
-  | Specific, failing the razor | Refused, non-silently |
-
-  Take the first row that applies and stop: a defect blocked on a decision, an
-  instrument, elapsed time, or a dependency is captured as a `work-item`; a
-  ride-along-eligible defect is dispatched now, grouped with related fixes
-  sharing a file or a seam, over the human gate's `blocker-applied` return
-  edge; a ready-now defect that is not ride-along eligible becomes the next
-  independently reviewed unit in this session, over that same edge, where
-  ready-now means it can be finished this session without a decision nobody
-  present will make; and a defect the razor refuses — one an existing
-  artifact already covers, or one no capture criterion admits — is refused,
-  non-silently, rather than discarded. What a
-  `work-item` capture must carry, what the razor checks, and what a refusal
-  tells the author are in
-  [Close-time work-item branch](references/work-item-capture.md#what-a-work-item-capture-must-carry).
-  Before any `work-item` is written, one cold reasoning check runs per
-  declined item, over at most twelve per close; an unavailable, timed-out,
-  or unrecognized check refuses rather than admits — see
-  [The reasoning check](references/work-item-capture.md#the-reasoning-check).
-  A note that names no defect is done once the seam has taken it, and
-  discarded if it had nothing for the seam either.
+The discriminator a captured item must carry, and the table that routes a
+DECIDE scratch note to its destination, are in that reference under
+[Capturing and routing a note](references/capture.md#capturing-and-routing-a-note).
 
 ## Context hygiene
 
