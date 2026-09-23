@@ -825,3 +825,29 @@ settle" — the sibling of the note round 2 replaced, and the same defect: an
 instruction about the drafting episode rather than a standing condition. It now
 states what must hold, which is that the `Brief:` field and the Spec map move
 together or not at all.
+
+## Post-gates review, round 4 — clean
+
+`adversarial-reviewer` returned the clean sentinel. Recorded as a direct clean
+(byte-exact against the canonical sentinel), `review_round_count` 4, review
+retry 3 of 5.
+
+Four rounds: **25 findings raised, 17 sustained and repaired, 8 refuted.** The
+sustained count fell 7 → 8 → 2 → 0.
+
+### Reviewer roster for this change
+
+| Reviewer | Disposition |
+| --- | --- |
+| `adversarial-reviewer` | Clean at round 4, after three findings rounds |
+| `quality-engineer` | Warranted and run — the change modifies a published interface, the contract four packs carry, and adds a shared artifact two packs must agree about. Also the integrated pass at the close of a multi-task spec |
+| `experience-reviewer` | Warranted and run — the diff changes what a reader and adopter sees: two new how-tos, both journeys, a rewritten guide table, and four changelog entries whose Highlights project to the public `/now/` page |
+| `security-reviewer` | **not warranted** — no security boundary, data flow or guarding control is touched. The change is contract prose, journey prose, guides, two test modules, two CI step registrations, version bumps and changelog. No auth, secrets, untrusted input, deserialization, or file/network validation |
+| `frontend-reviewer` | **not warranted** — no HTML, CSS or JS is the primary output. The only generated web files are the two journey Markdown projections |
+| `design-reviewer` | **not warranted** — no architect-pack integration activated it, and this change carries no architecture artifact |
+
+The experience review runs without a grounded aesthetic reference, because none
+exists for a documentation change and inventing one would be worse than naming
+its absence. Its aesthetic-fit and platform-fit lenses are skipped on that
+ground; the marketing-clarity lens applies to the copy-bearing artifacts and is
+the reason the reviewer is warranted at all.
