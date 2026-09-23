@@ -398,3 +398,58 @@ Verification here first ran `pytest tools/... tests/roster/` — the whole roste
 directory, which is the 7–12 minute suite this delivery is explicitly not to run
 locally. It was stopped and re-run against the two named files. Naming a
 directory rather than the files is how that suite gets run by accident.
+
+## T7 — the tier-count test and the CI wiring
+
+The composition module now carries all three of its remaining groups; 18
+assertions green against the real artifacts, 28 across both roster files.
+
+### A control that could not fail, found by its own mutation
+
+The crossing-artifact assertion used plain substring containment
+(`path not in text`). Changing `tokens/<slug>.md` to `tokens/<slug>.mdx` in the
+design journey left the test **green**: the correct path is a prefix of the
+broken one, so containment cannot tell them apart. AC-0019 asks this assertion
+to decide that both journeys name the three artifacts by their paths, and for
+this class of defect it decided nothing.
+
+It now matches the backticked form both journeys actually write, `` `<path>` ``,
+which closes the token on the right. The mutation is red and the other six stay
+red. The two remaining containment checks in the module were walked and left
+alone: the allowance cues match the words that carry an allowance, and the
+minimal-thread check matches a phrase — neither has a prefix relation to guard.
+
+### Mutation proof — all three groups
+
+| Mutation | Result |
+| --- | --- |
+| frontend journey states `pilot` as 24 rather than 25 | red |
+| WCAG-bearing `high-zoom` dropped from a stated explore subset | red |
+| production state `offline` added to a stated explore subset | red |
+| the `relatedJourneys` entry removed | red |
+| a crossing-artifact path broken | red — green before the repair above |
+| the inapplicable-states allowance removed | red |
+| the minimal-thread heading removed | red |
+| baseline, unmutated | green |
+
+The counts are computed from the contract's own annotations rather than stored,
+so the assertion is that the two surfaces agree, not that either states 10 / 25
+/ 32 today.
+
+### CI wiring
+
+One named step per module, both registered on **both** roster axes — a
+`_LOCAL_STEP_DISPOSITION` entry of the `LOCAL("test-after-build-check")` shape
+and membership in `_GATE_MAIN_CHECKS`, which synthesizes the phase entry. A step
+on one axis only raises "has no phase-and-dependency axis entry". Neither step
+is in the provisioning matrix, so neither takes a `_CHECK_DEPENDENCIES` or
+`_CHECK_EVIDENCE` entry.
+
+| Check | Result |
+| --- | --- |
+| AC-0039 `tools/lint-ci-parity.py --root .` | exit 0 — 107 steps dispositioned, 121 roster keys |
+| AC-0038 YAML parse of `gate-main` step indices | 46 and 47, both below the bulk step at 48 |
+
+Placement was verified by index rather than by the parity lint, which cannot see
+order: the bulk `pytest tests/ -q` step already collects both modules, so
+placement buys failure attribution rather than reach.
