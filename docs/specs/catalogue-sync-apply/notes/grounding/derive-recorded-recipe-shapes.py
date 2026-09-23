@@ -50,11 +50,23 @@ def make_source(root: Path, packs: list[str], profiles: list[str] | None) -> Pat
     return src
 
 
+# The selector removes tooling packs from an explicit selection BEFORE its
+# missing-name check, so it returns an empty list rather than refusing. An
+# `_`-prefixed directory behaves differently: it is absent from `available`
+# but survives into `chosen`, so the missing-name check catches it and the run
+# refuses. The last two cases separate those, because a sweep that omits them
+# reports "an empty list means the source ships no such directory", which is
+# false.
 CASES = [
-    ("source ships packs and profiles, no selection flags", ["a", "b"], ["p", "q"], None, None),
+    ("source ships packs and profiles, no selection flags",
+     ["a", "b"], ["p", "q"], None, None),
     ("source ships both, --pack a", ["a", "b"], ["p", "q"], ["a"], None),
     ("source ships both, --profile p", ["a", "b"], ["p", "q"], None, ["p"]),
     ("source ships NO profiles/ directory", ["a", "b"], None, None, None),
+    ("--pack names a tooling pack only",
+     ["a", "b", "catalogue-curation"], ["p"], ["catalogue-curation"], None),
+    ("--pack names an underscore directory only",
+     ["a", "b", "_example"], ["p"], ["_example"], None),
 ]
 
 
@@ -78,20 +90,27 @@ def main() -> int:
                 packs=sel_packs,
                 profiles=sel_profiles,
             )
-            init_self_hosted(cfg)
-            recipe = json.loads(
-                (target / ".agentbundle" / "self-host-state.json").read_text(
-                    encoding="utf-8"
-                )
-            )["recipe"]
+            result = init_self_hosted(cfg)
+            state_path = target / ".agentbundle" / "self-host-state.json"
+            if not result.ok or not state_path.is_file():
+                print(f"{label:<52} | REFUSED ({'; '.join(result.diagnostics)[:38]})")
+                continue
+            recipe = json.loads(state_path.read_text(encoding="utf-8"))["recipe"]
             empties += [recipe["packs"], recipe["profiles"]].count([])
             print(f"{label:<52} | {recipe['packs']!r} / {recipe['profiles']!r}")
 
     print(f"\nempty recorded lists across these cases: {empties}")
     print(
-        "an empty list is written only when the source ships no such directory; "
-        "it never means 'the adopter selected none', because the selectors widen "
-        "a falsy argument to everything the source ships"
+        "two producers of an empty recorded list: a source shipping no such "
+        "directory, and a selection naming only tooling packs, which the "
+        "selector removes before its missing-name check so the run succeeds "
+        "recording []. An underscore directory is NOT a third producer -- it "
+        "reaches that check and refuses."
+    )
+    print(
+        "in neither case does an empty list mean 'the adopter selected none', "
+        "because the selectors widen a falsy argument to everything the source "
+        "ships"
     )
     return 0
 

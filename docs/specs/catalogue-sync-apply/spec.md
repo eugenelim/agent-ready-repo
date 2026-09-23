@@ -72,7 +72,8 @@ what it left behind.
 - The deltas this phase adds to that list:
   - Take consent before the first write, and apply the same plan the operator
     consented to.
-  - Write every file under the target tree through the jailed write primitive.
+  - Write every file under the target tree through the jailed write primitive,
+    using its exclusive-create mode for a companion destination.
   - Treat the consent prompt as an output surface: every obligation phase 2
     states about stdout, stderr and the `--format json` document reaches it too.
   - Leave the target tree as it was before the run whenever the run does not
@@ -458,9 +459,10 @@ the answer.
   **The target.** The walk is identical across those two moments on every row of
   AC-0039's table except the four below, each of which may differ only as
   stated. Every other apply row leaves the tree identical. Both `1 — difference`
-  consent rows and every `3` refusal do so by never reaching the write phase;
-  the `4` row where a planned write failed and the tree **was** restored does
-  so by restore, which AC-0038 is what obliges:
+  consent rows and every `3` refusal leave it identical by never reaching the
+  write phase. The `4` row where a planned write failed and the tree **was**
+  restored leaves it identical by restoring it, which is what AC-0038
+  obliges:
 
   | Row | Permitted difference in the target tree |
   | --- | --- |
@@ -513,7 +515,8 @@ the answer.
   changed, and the operator is not prompted for consent.
 - [ ] **AC-0052.** Every write the apply path performs under the target tree
   goes through the jailed write primitive, and a planned path resolving outside
-  the target root is refused at that write.
+  the target root is refused at that write. A companion write uses that
+  primitive's exclusive-create mode per AC-0070; there is no second write path.
 - [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
   § Rollout both state that one phase remains.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
@@ -543,12 +546,20 @@ the answer.
   Its **reported entries** name what the run declined to act on and why — an
   occupied companion destination per AC-0070, a colliding companion pair per
   AC-0071, an out-of-coverage recorded path per AC-0069, and the paths deferred
-  per AC-0066. They are not acted rows and are never counted as such. Every
-  entry another criterion requires on this plan is one of these kinds; a
-  criterion adding a fifth amends this one.
+  per AC-0066. They are not acted rows and are never counted as such.
 
-  On a run that refuses before its first write, the acted-rows part is empty
-  and the reported entries carry the refusal's own paths.
+  These two parts account for every **path** the plan names: a path another
+  criterion requires on this plan is either an acted row or one of the four
+  declined kinds, and a criterion adding a fifth kind amends this one. The
+  plan also carries content that names no path — the fidelity AC-0072
+  requires, the counts, the modes — which this criterion does not constrain.
+
+  A run that refuses before it has classified anything — the `--package` row,
+  source resolution, an invalid recorded selection — prints no plan at all, and
+  AC-0076's bound refusal names its bound and measured sum rather than paths.
+  On a run that does reach a printed plan and then refuses before its first
+  write, the acted-rows part is empty and the reported entries carry the
+  refusal's own paths.
 - [ ] **AC-0058.** When a restore cannot return the tree to its pre-run walk
   tuple, the command names every path it could not restore before returning.
 - [ ] **AC-0059.** The ownership state's recorded path set after an apply run
@@ -593,8 +604,14 @@ the answer.
   contents the recorded recipe did not name. The domain this quantifies over is
   the recorded value's **type and validity**, because that is what the
   resolution branches on: a recorded selection is admitted only when it is a
-  list every one of whose entries is a name the source ships. The rule is per
-  selection field — `packs` and `profiles` each decide separately:
+  list every one of whose entries is a name **the replay's own selector will
+  resolve**. That is narrower than "a name the source ships": the pack selector
+  removes a tooling-pack name from an explicit selection before it checks for a
+  missing name, so it returns an empty list rather than refusing. A name it
+  will silently drop must refuse here instead of being admitted. An
+  `_`-prefixed directory is not such a name — § Grounding's recorded-shape
+  derivation shows it reaches the missing-name check and refuses already. The rule is
+  per selection field — `packs` and `profiles` each decide separately:
 
   - A **valid** list narrows that category to the names it carries.
   - An **absent field or an empty list** selects nothing from that category.
@@ -605,9 +622,12 @@ the answer.
     The state writer records the **resolved** lists, not the flags: an `init`
     that omits `--profile` records every profile the source ships, because the
     selector widens a falsy argument. § Grounding's recorded-shape derivation
-    shows an empty list is what `init` writes when the source ships no such
-    directory at all — so it is producible, and refusing it would refuse a
-    real tree, but it does not mean "the adopter selected none".
+    enumerates every producer of an empty recorded list, and there are two:
+    a source shipping no such directory, and a selection naming only names the
+    selector drops — `agentbundle catalogue init --pack catalogue-curation`
+    succeeds and records `"packs": []` over a source shipping three packs. So
+    an empty list is producible in both cases, refusing it would refuse a real
+    tree, and in neither case does it mean "the adopter selected none".
   - A **present but invalid** value — a null, a string, a number, a boolean, an
     object, a list of non-strings, or a list carrying one name the source does
     not ship — refuses the run, naming that field. The code is AC-0039's first
@@ -628,13 +648,19 @@ the answer.
   below — it is not the exclusions themselves, because a coverage defined only
   by what it excludes re-admits every axis nobody enumerated.
 
-  On the selection axis, coverage holds `packs/<name>/` for each pack in the
-  effective selection and `profiles/<name>.toml` for each profile, and nothing
-  else under either prefix. An effective selection that is empty for a category
-  therefore puts no path in that category inside coverage, which is what stops
-  a recorded `packs` list of `[]` making the whole recorded pack tree a removal
-  candidate — the keep-set cannot protect those paths, because a run that
-  selected no packs replays none of them.
+  On the selection axis, coverage holds `packs/<name>/` for each pack **the
+  replay actually resolved** and `profiles/<name>.toml` for each profile it
+  resolved, and nothing else under either prefix. It is the resolved selection,
+  not AC-0033 clause 1's pre-resolution union: the two differ wherever the
+  selector drops a name, and taking the wider one would put a prefix inside
+  coverage that the replay plans nothing under — so the keep-set would protect
+  nothing there and every recorded path under it would become a removal
+  candidate. Coverage on this axis can never exceed the selection the keep-set
+  itself was built from.
+
+  An effective selection that is empty for a category therefore puts no path in
+  that category inside coverage, which is what stops a recorded `packs` list of
+  `[]` making the whole recorded pack tree a removal candidate.
 
   Coverage reads the recorded recipe's selection, which is what a recipe is
   for. It never reads a recorded **mode** — `attribution`, `tooling` or
@@ -685,13 +711,17 @@ the answer.
   part-way through resolving a companion losing that work.
 
   A companion write cannot replace an existing destination — there is no
-  interval in which an occupant can appear and be overwritten. Stating this as
-  a check performed at some moment would not close it: the repository's atomic
-  write finishes with a rename that clobbers unconditionally and reports
-  nothing, so a stat before that rename leaves exactly the window an adopter's
-  editor writes into. The obligation is on the write's outcome, not on a check
-  preceding it, and a write that finds its destination occupied fails, taking
-  AC-0039's write-failed row.
+  interval in which an occupant can appear and be overwritten. The obligation
+  is on the write's outcome, not on a check preceding it. A stat before the
+  write cannot deliver it: the jailed primitive finishes with a rename that
+  clobbers unconditionally and reports nothing, so a check leaves exactly the
+  window an adopter's editor writes into. The primitive therefore gains an
+  exclusive-create mode that opens the final path with `O_CREAT | O_EXCL` and
+  fails when it exists, and `safety.write_companion` uses it. A companion write
+  that finds its destination occupied fails, taking AC-0039's write-failed row.
+  That mode is not crash-atomic, which is the accepted trade: a companion is an
+  advisory artifact the adopter resolves by hand, and the alternative loses
+  that work.
 - [ ] **AC-0071.** When the replayed source itself plans a path equal to a
   companion destination this run would compute, the run refuses before its
   first write, naming both paths under `companion_collision` on the plan and in

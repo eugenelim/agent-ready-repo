@@ -26,10 +26,14 @@ an edit to `init`'s, and this delivery corrects the sentence.
 
 - Standard library only. The apply path imports nothing new beyond `os` and
   `hashlib` alongside phase 2's existing set.
-- No new module. The apply path extends `commands/catalogue_sync.py`; the only
-  edit outside it and `cli.py` is one exported helper in `catalogue.py`.
+- No new module. The apply path extends `commands/catalogue_sync.py`. Outside
+  it and `cli.py` there are exactly two edits: one exported helper in
+  `catalogue.py`, and an exclusive-create mode on `safety.write_jailed` that
+  `safety.write_companion` uses, per AC-0070. The second touches a blessed
+  security helper and is an owner decision of record, taken because the
+  primitive's unconditional rename makes AC-0070 otherwise unsatisfiable.
 - Every target-tree write goes through `safety.write_jailed` or
-  `safety.write_companion`; the ownership state keeps going through
+  `safety.write_companion`, the latter in exclusive-create mode; the ownership state keeps going through
   `_write_ownership_state`, so its symlink refusal and its random `O_EXCL`
   staging name stay one implementation.
 - Phase 2's `Never do` list carries forward in full except its no-write-path
@@ -304,7 +308,12 @@ filesystem.
   subtree and are not removed. Verifies AC-0069's spelling clause.
 - An occupied companion destination carrying adopter edits is byte-identical
   after the run, absent from the write set, and named on the plan and under
-  `companion_occupied` in the JSON summary. Verifies AC-0070.
+  `companion_occupied` in the JSON summary. Verifies AC-0070's admission half.
+- A destination that is absent at admission and created before the write is
+  byte-identical afterwards and the run takes the write-failed row. This is the
+  case the criterion exists for: a stat-at-admission implementation using the
+  clobbering rename passes the bullet above and fails only this one. Verifies
+  AC-0070's outcome half.
 - A source planning both `x.md` and `x.upstream.md` against a Tier-2 `x.md`
   refuses the whole run, reports both paths under `companion_collision`,
   returns the cannot-answer code, and leaves the tree identical on AC-0041's
@@ -313,8 +322,12 @@ filesystem.
 - A `--pack <new-name>` run whose write is injected to fail leaves no
   `packs/<new-name>/` directory behind. A file-only restore passes every other
   rollback case and fails this one. Verifies AC-0038's entry-set half.
-- A fixture whose adopter-side write-set paths exceed the bound refuses before
-  the first write. Verifies AC-0076.
+- A fixture whose adopter-side write-set paths exceed the bound by `st_size`
+  refuses before the prompt and before the first write. Verifies AC-0076's
+  pre-prompt sum.
+- A write-set path that grows past the bound during the prompt wait refuses
+  having read no more than the bound. A finished-total implementation passes
+  the bullet above and fails this one. Verifies AC-0076's as-built half.
 - With a write injected to fail on the nth path, the tree's walk tuple — path,
   entry kind, mode, symlink target and bytes — equals its pre-run value.
   Comparing paths and digests alone passes a restore that changed a mode.
