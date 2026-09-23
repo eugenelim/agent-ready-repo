@@ -737,11 +737,28 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `35c6b14d…` and `82b752ea…` still in place returns
 # an empty error list, so this supersedes live values rather than a pin that had
 # already gone stale.
+# Bumped 2026-09-22 for the CSS token gate, which wires `npm run lint:css` into
+# the define so the stylelint gate has a local half to match its new
+# pull-request half in build-check.yml's gate-css-tokens job.
+# (1) Sole cause: `git diff origin/main -- Makefile` is 7 added lines and 0
+# removed or reordered. Five are comment; the two executable ones are a
+# `test -d web/node_modules` precondition and the `npm run lint:css --prefix
+# web` invocation, both placed immediately after the docs-site npm block they
+# mirror. They land at plan[10] and plan[11] of the standalone plan and shift
+# everything after them by two, which is why the whole digest moves for two
+# added lines. The root/tool process counts hold at 15/14: neither new line is
+# a pytest group, so `_root_tool_pytest_groups` sees no change, and
+# EXPECTED_ROOT_TOOL_PATHS is untouched for the same reason.
+# (2) Prior pins were current: this function returns an empty error list over
+# `origin/main:Makefile` (8cf5b8b3561c) with `e92e1faa…` and `3b48585d…` still
+# in place — checked by restoring that Makefile into this worktree and running
+# the case — so this supersedes live values rather than a pin that had already
+# gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "e92e1faa7eaf51727f296c9a83f79976cee0166a8e75a58866308d3ee7b41147"
+    "2be8a48a2c68935fc47d22f13a46a6d64796e4080b988807738d7a12642b5fce"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "3b48585d517d436b029e24c17128142abcfa232ea06c7982bfc492c0d7f55414"
+    "7d59ec6d432e8c9d06efb9e9fe3832342df73287aa94d18a35f3cd653c913a09"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

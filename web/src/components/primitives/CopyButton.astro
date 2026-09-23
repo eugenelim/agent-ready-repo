@@ -124,4 +124,13 @@ const {
   @media (prefers-reduced-motion: reduce) {
     .copy-btn { transition: none; }
   }
+
+  /* Paper: a copy-to-clipboard control cannot be pressed on a sheet, and the
+     text it would copy is printed beside it already. Scoped here for the
+     specificity reason given in SiteNav.astro. */
+  @media print {
+    .copy-btn {
+      display: none;
+    }
+  }
 </style>

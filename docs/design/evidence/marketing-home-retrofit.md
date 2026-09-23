@@ -259,6 +259,35 @@ untouched consequence of never having written a print stylesheet, which the
 close-out recorded as unexercised rather than absent. It is now measured. The
 remedy is a design decision and is **not** made here.
 
+**REMEDIED 2026-09-22 — the print stylesheet now exists**, and every figure
+above is the *before* state, kept as the dated record of what it fixed. Re-read
+on the same instrument, with `@page` margins passed explicitly to
+`page.pdf()` on **both** sides so the two runs are comparable — without that the
+before run printed at zero margin and the comparison overstated the cost by a
+sheet:
+
+| What | Before | After |
+| --- | --- | --- |
+| A4 sheets | 9 | **11** |
+| Footer, as a fraction of a sheet | 0.82 | **0.32** |
+| Footer text contrast, backgrounds off | 1.42:1 | **13.09:1** |
+| Links printing a destination (of 64) | 0 | **63** — the 64th is an in-page anchor |
+| Install variants printed (of 4) | 1 | **4**, each under its own label |
+| Hamburger / copy button / footer columns rendered | yes | **no** |
+
+The **+2 sheets** are the cost of the two gains that add content: 63 exposed
+destinations and three more install panels. It is a real trade and it is stated
+rather than buried — if the sheet count matters more than the destinations, the
+lever is the `a[href]:not([href^="#"])::after` rule in `web/src/styles/print.css`.
+
+Page breaks are the one finding **not** closed by measurement. `break-inside:
+avoid` is declared on `li`, `tr`, `figure`, `.terminal` and `.tabs__panel`, but
+the geometric straddle count this pass used reads a scrolling viewport, where
+`break-inside` has no effect — it applies only during real pagination. So the
+declaration is present and the sheet count is measured; *that no block is cut*
+is **not** established here, and claiming it from a straddle count would be
+claiming what the instrument cannot see.
+
 **hover / active — every interactive element class, all six routes, 390 and
 1280.** Twenty-eight distinct classes were enumerated from `a[href]`, `button`,
 `input`, `select`, `textarea`, `summary`, `[tabindex]` and `label[for]`, and
@@ -1215,10 +1244,10 @@ decisions this pass does not own.
 | **`/catalogue/` card treatment** | **CLOSED 2026-09-18 — repaired in its own change.** The finding stood, with one name corrected: the route used `.outcome-card`, **`.role-grid`** (recorded below as `.role-card`, which never existed — see the note under *inspection observations*) and `.cat-card` — tinted, bordered, rounded panels — against a direction sheet whose Containment row forbids cards outright, and after the same contradiction was repaired on the homepage's outcome band and on `/now/`. It was not fixed in this pass because converting three card grids to ruled records is a layout change across four channels with its own review. That review happened: all three are now ruled record lists, and the evidence is in [`catalogue-records-retrofit.md`](catalogue-records-retrofit.md). The original finding under *inspection observations* is kept as the record of what was found, with its one wrong class name corrected in place and the correction explained there. |
 | **`/now/` route length** | **Open, Moderate.** Re-measured on the lower-bound matrix: **75,240 CSS px at 320** — 83.6 viewport heights at 900 — falling to 35,977 at 1100, for 122 releases in one unpaginated document whose emitted `index.html` is **160 KB**. These supersede the 61,638 px / 402 KB figures, which came from the superseded 390-wide run; the two were not reconciled and the earlier pair is not carried forward. Nothing in the build bounds the growth. Bounding it is a content decision, not a retrofit edit. |
 | Core Web Vitals | No field data and no synthetic history. See *perf result*. |
-| Print stylesheet | **The state is now exercised** — see *states* for nine measured sheets, the 0.82-sheet ink cost, the 1.42:1 footer with backgrounds off, 64 links with no printed targets, 3 of 4 install variants lost, and 7 of 8 page breaks cutting a block. What remains unverified is any remedy: there is still no `@media print` rule, and writing one is a design decision. |
+| Print stylesheet | **Closed 2026-09-22.** The state was exercised and the remedy is now written — page-level rules in `web/src/styles/print.css`, component-owned rules in SiteNav, SiteFooter, CopyButton and InstallTerminal (Astro scopes component selectors with a `data-astro-cid-*` attribute, so a global override is outranked; measured, not assumed). Before/after under *states*. One part stays open and is named there: `break-inside: avoid` is declared, but a straddle count in a scrolling viewport cannot see pagination, so *no block is cut* is not established. |
 | A distinct `:active` state | **The state is now exercised** — see *states*. 0 of 28 interactive classes distinguish `:active` from `:hover`, so a pointer user gets no press feedback. Minor, and adding one is a design decision. |
 | `docs-site/` | Owner-scoped out. It was built to satisfy the documented build order — the `web/` build cleans repository `build/`, so `build/docs/` must be rebuilt after it or four `rendered-output` / `fixture-axe` tests fail on a missing docs build — and nothing more. |
-| **`/packs/<pack>/` install-note whitespace** | **Open, Minor, 7 of 22 pack pages.** The emitted HTML is `…Use the command above.<a …>Browse the catalogue →</a>` with no space, so the reader sees "above.Browse the catalogue →". Full finding under *inspection observations*. Not fixed here: it is one character, but it is shipped copy, and this pass verifies rather than edits copy. |
+| **`/packs/<pack>/` install-note whitespace** | **Closed 2026-09-22 by `d2b313992` (#1395).** Recorded here as **Open, Minor, 7 of 22 pack pages**: the emitted HTML was `…Use the command above.<a …>Browse the catalogue →</a>` with no space, so the reader saw "above.Browse the catalogue →". Full finding under *inspection observations*, which stands as the dated record. The repair inserts an explicit `{' '}` before the anchor at `web/src/pages/packs/[pack].astro:96` — Astro strips the source whitespace before an element, so the space has to be written as an expression. The literal `above.<a` now returns no hits in `web/src`. |
 | **`/journeys/<journey>/` hero meta separator at 320** | **Open, Minor, channel 1 only.** The line wraps after a plain-text "·", leaving the separator dangling at a line end. Full finding under *inspection observations*. |
 | **`/packs/<pack>/` measure at ≥1100** | **Open, Minor.** About 375 CSS px of the 1140 px container is unused down the right edge, where the homepage puts its figure. Full finding under *inspection observations*. What belongs there is a design decision. |
 | Security and reliability review | Not performed. See the two fields below. |
@@ -1255,6 +1284,9 @@ strength of a run that only reached the edge of the question.
 ## security/privacy review status
 
 **Status: not reviewed. Handoff: open, routed to `security-reviewer`.**
+Re-confirmed open 2026-09-22: still not performed, and this field still reports
+that rather than implying coverage. Nothing since the close-out has changed the
+three uncovered areas named at the foot of this section.
 
 This field is recorded as outstanding, not as clear. A manifest that reports
 green gates while staying silent on security is the exact shape this field
@@ -1286,6 +1318,10 @@ was examined here.
 ## reliability/recovery status
 
 **Status: not reviewed. Handoff: open, routed to `quality-engineer`.**
+Re-confirmed open 2026-09-22: still not performed. One input has moved since the
+close-out — the web suite is now 199 tests in 23 files, not 198, and the print
+stylesheet added below is a new surface with no test of its own, which belongs
+in the third uncovered area named at the foot of this section.
 
 Again, observations rather than a verdict.
 
@@ -1304,9 +1340,13 @@ observations* for what its first real run found. Re-run after this change's
 edits, not carried over from before them.
 
 What that does **not** cover, and what is routed to `quality-engineer`:
-whether the `/now/` route degrades acceptably as the projection grows — it is
-already 402 KB of HTML for 122 releases in a single unpaginated document, and
-nothing in the build bounds that growth; deployment rollback and cache
+whether the `/now/` route degrades acceptably as the projection grows — it
+renders every released entry in a single unpaginated document, gains a group
+per release and drops none, and nothing in the build bounds that growth, so the
+question is the unbounded shape rather than any figure (the 402 KB / 122
+releases measured at close-out is dated evidence, not a current size, and the
+two length passes recorded under *known exceptions* disagree — re-measure
+before quoting either); deployment rollback and cache
 invalidation behaviour under the `/agent-ready-repo/` base path; and whether the
 two build-time throws are covered by a test that would catch their removal.
 None of the three was examined here.

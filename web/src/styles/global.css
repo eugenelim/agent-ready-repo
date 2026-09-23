@@ -10,3 +10,7 @@
 
 @import './tokens.css';
 @import './base.css';
+
+/* Paper. Last, so its `@media print` block overrides the screen rules above
+   on specificity ties rather than relying on `!important`. */
+@import './print.css';

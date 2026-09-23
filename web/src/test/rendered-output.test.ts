@@ -918,13 +918,35 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
 
   it('now AC3–AC4: every release group names its package, version, date and changelog source', () => {
     const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
-    const d = doc(NOW_PAGE);
-    const groups = [...d.querySelectorAll('.now-release')];
+    // /now/ became page 1 of a paginated index when the release count made one
+    // page 120 viewport heights long. The criterion is unchanged — EVERY
+    // release group must still name its package, version, date and source —
+    // so the subject is now every index page rather than the single page this
+    // originally read. Narrowing it to page 1 would have quietly dropped 136
+    // of 156 releases out of the check.
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const indexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    const groups = indexPages.flatMap((page) => [...doc(page).querySelectorAll('.now-release')]);
     expect(groups.length).toBe(projection.groups.length);
 
-    // Descending by release date, which is the contract's order.
-    const dates = groups.map((g) => g.querySelector('time')?.getAttribute('datetime') ?? '');
-    expect([...dates]).toEqual([...dates].sort().reverse());
+    // Descending by release date within each page, which is the contract's
+    // order. Checked per page: concatenating the pages and sorting the whole
+    // run would also pass if two PAGES were emitted out of order, which the
+    // ordering guard in the pagination suite covers by slug set instead.
+    for (const page of indexPages) {
+      const dates = [...doc(page).querySelectorAll('.now-release')]
+        .map((g) => g.querySelector('time')?.getAttribute('datetime') ?? '');
+      expect([...dates], `${relative(BUILD_ROOT, page)} is not in descending date order`)
+        .toEqual([...dates].sort().reverse());
+    }
 
     // Parsed ONCE, outside the loop. The emitted changelog is ~1 MB, so
     // re-parsing it per release group is O(groups x page) and timed this test
@@ -1523,5 +1545,428 @@ describe.skipIf(!docsBuilt)('desk-research build handover', () => {
       const target = join(BUILD_ROOT, rel, 'index.html');
       expect(existsSync(target), `${href} -> no emitted ${relative(BUILD_ROOT, target)}`).toBe(true);
     }
+  });
+});
+
+/**
+ * The Atom feed for `/now/`.
+ *
+ * The feed is the mechanism that lets `/now/` stop being the exhaustive
+ * machine-readable record of everything shipped — see
+ * docs/product/research/release-feed-length-survey.md. It is hand-built rather
+ * than produced by `@astrojs/rss`, so the escaping and the Atom shape are ours
+ * to get right and these assert them against a real XML parser rather than a
+ * regex over the text.
+ */
+describe('/now/ Atom feed', () => {
+  const FEED = join(BUILD_ROOT, 'now', 'feed.xml');
+  const ATOM = 'http://www.w3.org/2005/Atom';
+
+  const feedDoc = () => {
+    if (!existsSync(FEED)) {
+      throw new Error('build/now/feed.xml missing — run the web build before this suite');
+    }
+    // `text/xml`, not the default HTML parse: an HTML parser is forgiving and
+    // would accept the malformed output this guard exists to catch.
+    return new JSDOM(readFileSync(FEED, 'utf8'), { contentType: 'text/xml' }).window.document;
+  };
+
+  it('parses as XML and is an Atom feed', () => {
+    const d = feedDoc();
+    // jsdom reports a parse failure as a <parsererror> element rather than by
+    // throwing, so asserting on the root tag alone would pass on broken XML.
+    expect(d.querySelector('parsererror'), 'feed.xml is not well-formed XML').toBeNull();
+    expect(d.documentElement.namespaceURI).toBe(ATOM);
+    expect(d.documentElement.localName).toBe('feed');
+  });
+
+  it('carries one entry per released group, with unique permanent ids', () => {
+    const d = feedDoc();
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    const entries = [...d.getElementsByTagNameNS(ATOM, 'entry')];
+    expect(entries.length).toBe(projection.groups.length);
+
+    const ids = entries.map((e) => e.getElementsByTagNameNS(ATOM, 'id')[0]?.textContent);
+    expect(new Set(ids).size, 'entry ids must be unique').toBe(ids.length);
+    for (const id of ids) {
+      // A permalink, not an in-page anchor — see the resolvability guard below
+      // for why the identity moved.
+      expect(id).toMatch(/^https:\/\/[^\s#]+\/now\/[^/#]+\/$/);
+    }
+  });
+
+  it('every entry id resolves to an emitted permalink page', () => {
+    // An Atom `<id>` must be PERMANENT. These pointed at `/now/#<anchor>`
+    // until the permalink route existed, which is only permanent while /now/
+    // shows every release — paginating the index would have moved older
+    // releases off that URL and silently broken every id naming one. This is
+    // the guard that fails if the permalinks ever stop being emitted while the
+    // feed keeps publishing their URLs.
+    const d = feedDoc();
+    const entries = [...d.getElementsByTagNameNS(ATOM, 'entry')];
+    expect(entries.length).toBeGreaterThan(0);
+    for (const e of entries) {
+      const id = e.getElementsByTagNameNS(ATOM, 'id')[0]!.textContent!;
+      expect(id, 'a feed id must be a permalink, not an in-page anchor').not.toContain('#');
+      const slug = id.replace(/\/$/, '').split('/now/')[1];
+      expect(
+        existsSync(join(BUILD_ROOT, 'now', slug, 'index.html')),
+        `feed entry ${id} has no emitted page`
+      ).toBe(true);
+    }
+  });
+
+  it('the index links every release to its own page', () => {
+    // Two surfaces, one identity: what the feed calls a release and what /now/
+    // links to must be the same URL, or a reader following either lands
+    // somewhere the other does not know about.
+    const d = feedDoc();
+    const feedIds = new Set(
+      [...d.getElementsByTagNameNS(ATOM, 'entry')].map(
+        (e) => e.getElementsByTagNameNS(ATOM, 'id')[0]!.textContent!.replace(/\/$/, '').split('/now/')[1]
+      )
+    );
+    // Across EVERY index page, not just page 1 — the index is paginated, and
+    // reading only the first page would compare 156 feed entries against 20
+    // links and fail for the wrong reason.
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const allIndexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    const linked = new Set(
+      allIndexPages.flatMap((p) =>
+        [...doc(p).querySelectorAll('.now-release__link')].map(
+          (a) => (a.getAttribute('href') ?? '').replace(/\/$/, '').split('/now/')[1]
+        )
+      )
+    );
+    expect(linked.size).toBe(feedIds.size);
+    for (const slug of feedIds) {
+      expect(linked.has(slug), `${slug} is in the feed but not linked from /now/`).toBe(true);
+    }
+  });
+
+  it('dates are the RFC 3339 instants Atom requires, not bare dates', () => {
+    const d = feedDoc();
+    const stamps = [...d.getElementsByTagNameNS(ATOM, 'updated')].map((n) => n.textContent ?? '');
+    expect(stamps.length).toBeGreaterThan(0);
+    for (const stamp of stamps) {
+      expect(stamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    }
+  });
+
+  it('markup inside a highlight survives as escaped content, not as raw XML', () => {
+    // The real corpus contains `agentbundle upgrade --skill <name>`. Unescaped,
+    // that `<` opens a bogus element and the whole feed stops parsing — so this
+    // asserts the round trip on real data rather than on a fixture.
+    const d = feedDoc();
+    const contents = [...d.getElementsByTagNameNS(ATOM, 'content')].map((n) => n.textContent ?? '');
+    expect(contents.some((c) => c.includes('<code>')), 'no entry carried a code span').toBe(true);
+    expect(contents.some((c) => c.includes('<strong>')), 'no entry carried emphasis').toBe(true);
+  });
+
+  it('/now/ advertises the feed, and the advertised file exists', () => {
+    const link = doc(NOW_PAGE).querySelector('link[rel="alternate"][type="application/atom+xml"]');
+    expect(link, '/now/ must advertise its feed or no reader can discover it').not.toBeNull();
+    const href = link!.getAttribute('href') ?? '';
+    const rel = href.replace(/^\/agent-ready-repo/, '');
+    expect(existsSync(join(BUILD_ROOT, rel)), `${href} -> no emitted file`).toBe(true);
+  });
+});
+
+describe('the feed escaper', () => {
+  it('escapes every XML metacharacter, ampersand first', async () => {
+    // `&` is the branch the real corpus never reaches — no highlight contains
+    // one today — so it is only ever exercised here. Ampersand must be replaced
+    // BEFORE the others or `<` becomes `&amp;lt;`; the combined input below is
+    // what catches that ordering, which a per-character test would not.
+    const { xmlEscape } = await import('../pages/now/feed.xml');
+    expect(xmlEscape('&')).toBe('&amp;');
+    expect(xmlEscape('<name>')).toBe('&lt;name&gt;');
+    expect(xmlEscape(`"quoted" 'single'`)).toBe('&quot;quoted&quot; &apos;single&apos;');
+    expect(xmlEscape('a & <b> "c"')).toBe('a &amp; &lt;b&gt; &quot;c&quot;');
+    expect(xmlEscape('already &amp; escaped')).toBe('already &amp;amp; escaped');
+  });
+});
+
+/**
+ * Per-pack structured data.
+ *
+ * The homepage shipped `SoftwareApplication` and recorded that /packs/* and
+ * /journeys/* were a separate piece of work. This guards the /packs/* half.
+ * /journeys/* is deliberately NOT covered: Google's rich-results gallery no
+ * longer lists `HowTo`, so whether that markup is worth carrying is a decision
+ * and not an omission.
+ */
+describe('/packs/<pack>/ structured data', () => {
+  const packPages = existsSync(join(BUILD_ROOT, 'packs'))
+    ? readdirSync(join(BUILD_ROOT, 'packs'), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => join(BUILD_ROOT, 'packs', e.name, 'index.html'))
+        .filter((f) => existsSync(f))
+    : [];
+
+  const ldOf = (page: string) => {
+    const node = doc(page).querySelector('script[type="application/ld+json"]');
+    expect(node, `${relative(BUILD_ROOT, page)} carries no ld+json`).not.toBeNull();
+    return JSON.parse(node!.textContent ?? '{}');
+  };
+
+  it('every emitted pack page carries one', () => {
+    // Derived from what the build emitted, never a hardcoded count: two CI
+    // failures on the retrofit were stale hardcoded lists, and both were
+    // repaired by deriving instead.
+    expect(packPages.length).toBeGreaterThan(0);
+    for (const page of packPages) {
+      expect(ldOf(page)['@type']).toBe('SoftwareApplication');
+    }
+  });
+
+  it('its url is the page it sits on, absolute', () => {
+    for (const page of packPages) {
+      const slug = relative(BUILD_ROOT, page).replace(/[/\\]index\.html$/, '');
+      const url = ldOf(page).url as string;
+      expect(url).toMatch(/^https:\/\//);
+      expect(url, `${slug}: structured-data url must name its own page`)
+        .toContain(`/${slug.split(/[/\\]/).join('/')}/`);
+    }
+  });
+
+  it('featureList matches the skills the page actually renders', () => {
+    // The failure this catches is drift: a skill added to the pack that never
+    // reaches the structured data, or a featureList left behind after a rename.
+    // Compared against the RENDERED list rather than against the source
+    // frontmatter, so it also fails if the page stops showing what it claims.
+    for (const page of packPages) {
+      const d = doc(page);
+      const rendered = [...d.querySelectorAll('.skill-item')].length;
+      const featureList = ldOf(page).featureList as string[];
+      expect(Array.isArray(featureList)).toBe(true);
+      expect(featureList.length, `${relative(BUILD_ROOT, page)}: featureList vs rendered skills`)
+        .toBe(rendered);
+      const text = d.body.textContent ?? '';
+      for (const feature of featureList) {
+        expect(text, `${feature} is in featureList but not on the page`).toContain(feature);
+      }
+    }
+  });
+
+  it('declares the offer the software rich result requires', () => {
+    // Google's software rich result needs one of offers / aggregateRating /
+    // review. A free price is the only one of the three this repository can
+    // state as fact, so if it ever disappears the markup stops qualifying.
+    for (const page of packPages) {
+      const offers = ldOf(page).offers;
+      expect(offers?.['@type']).toBe('Offer');
+      expect(offers?.price).toBe('0');
+    }
+  });
+});
+
+/**
+ * The paginated `/now/` index.
+ *
+ * Pagination is only safe here because every release also has a permalink and
+ * the feed points at those — see the feed suite above. These guard the
+ * properties that make the paging honest: nothing lost, nothing duplicated,
+ * one URL per page, and every page reachable without JavaScript.
+ */
+describe('/now/ pagination', () => {
+  const indexPages = () => {
+    const pages = [join(BUILD_ROOT, 'now', 'index.html')];
+    const dir = join(BUILD_ROOT, 'now', 'page');
+    if (existsSync(dir)) {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isDirectory() && existsSync(join(dir, e.name, 'index.html'))) {
+          pages.push(join(dir, e.name, 'index.html'));
+        }
+      }
+    }
+    return pages;
+  };
+
+  it('shows every release exactly once across the pages', () => {
+    // The failure this exists for is a slicing off-by-one, which loses or
+    // duplicates a release silently — every page still renders and looks fine.
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    const seen: string[] = [];
+    for (const page of indexPages()) {
+      for (const el of doc(page).querySelectorAll('.now-release')) {
+        const id = el.getAttribute('id');
+        if (id) seen.push(id);
+      }
+    }
+    expect(seen.length, 'a release is rendered twice or not at all').toBe(new Set(seen).size);
+    expect(new Set(seen)).toEqual(
+      new Set(projection.groups.map((g: { changelogAnchor: string }) => g.changelogAnchor))
+    );
+  });
+
+  it('gives the first page exactly one URL', () => {
+    // `/now/` and `/now/page/1/` would be the same page at two URLs, which is
+    // the inconsistency Google's pagination guidance warns about.
+    expect(existsSync(join(BUILD_ROOT, 'now', 'page', '1', 'index.html'))).toBe(false);
+  });
+
+  it('every page self-canonicalises to its own URL', () => {
+    // Google's current guidance is explicit: "Don't use the first page of a
+    // paginated sequence as the canonical page." The older canonicalise-to-page-1
+    // and canonicalise-to-View-All advice is from the retired rel=next/prev era.
+    for (const page of indexPages()) {
+      const href = doc(page)
+        .querySelector('link[rel="canonical"]')
+        ?.getAttribute('href') ?? '';
+      const slug = relative(BUILD_ROOT, page).replace(/[/\\]index\.html$/, '');
+      expect(href, `${slug} must canonicalise to itself`).toMatch(
+        new RegExp(`/${slug.split(/[/\\\\]/).join('/')}/?$`)
+      );
+    }
+  });
+
+  it('pages link to each other with crawlable anchors, not buttons', () => {
+    // Googlebot "doesn't 'click' buttons and generally doesn't trigger
+    // JavaScript functions that require user actions", so a load-more control
+    // would hide every older release from it. Every target must also exist.
+    const pages = indexPages();
+    if (pages.length < 2) return expect(pages.length).toBe(1);
+    for (const page of pages) {
+      const links = [...doc(page).querySelectorAll('.pager__page, .pager__step')];
+      expect(links.length, `${relative(BUILD_ROOT, page)} has no pager links`).toBeGreaterThan(0);
+      for (const a of links) {
+        expect(a.tagName).toBe('A');
+        const href = (a.getAttribute('href') ?? '').replace(/^\/agent-ready-repo/, '');
+        expect(href, 'a pager link must name a real path').not.toBe('');
+        expect(
+          existsSync(join(BUILD_ROOT, href, 'index.html')),
+          `${href} -> no emitted page`
+        ).toBe(true);
+      }
+    }
+  });
+});
+
+/**
+ * The release archive.
+ *
+ * Pagination bounded `/now/` but cost archive-wide navigation: each index
+ * page's date index can only see its own 20 releases. This page is what can
+ * answer "what shipped in August", so the property that matters is
+ * completeness — it is the one surface that must never be a subset.
+ */
+describe('/now/archive/', () => {
+  const ARCHIVE = join(BUILD_ROOT, 'now', 'archive', 'index.html');
+
+  it('lists every release exactly once, and every link resolves', () => {
+    const projection = JSON.parse(readFileSync(ARCHIVE ? NOW_PROJECTION : NOW_PROJECTION, 'utf8'));
+    expect(existsSync(ARCHIVE), 'the archive must be emitted').toBe(true);
+    const links = [...doc(ARCHIVE).querySelectorAll('.archive-row__link')].map(
+      (a) => (a.getAttribute('href') ?? '').replace(/^\/agent-ready-repo\/now\//, '').replace(/\/$/, '')
+    );
+    expect(links.length).toBe(new Set(links).size);
+    expect(new Set(links)).toEqual(
+      new Set(projection.groups.map((g: { changelogAnchor: string }) => g.changelogAnchor))
+    );
+    for (const slug of links) {
+      expect(existsSync(join(BUILD_ROOT, 'now', slug, 'index.html')), `${slug} -> no page`).toBe(true);
+    }
+  });
+
+  it('groups newest first, by year then month', () => {
+    // The projection is descending by date and the buckets are built by
+    // first-seen rather than by sorting, so a reordering upstream would show
+    // up here rather than silently producing an archive in a different order
+    // from the index pages.
+    const d = doc(ARCHIVE);
+    const years = [...d.querySelectorAll('.archive-year__label')].map((h) => h.textContent?.trim() ?? '');
+    expect(years).toEqual([...years].sort().reverse());
+    const months = [...d.querySelectorAll('.archive-month')].map(
+      (s) => s.querySelector('.archive-month__label')?.id ?? ''
+    );
+    expect(months.length).toBeGreaterThan(0);
+  });
+
+  it('is reachable from every index page', () => {
+    // An archive nothing links to is a page that exists and is never found.
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const indexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    for (const page of indexPages) {
+      const link = doc(page).querySelector('a[href$="/now/archive/"]');
+      expect(link, `${relative(BUILD_ROOT, page)} does not link to the archive`).not.toBeNull();
+    }
+  });
+});
+
+/**
+ * The two growth bounds on `/now/`.
+ *
+ * Both were notes saying "revisit when…", which is the shape of trigger this
+ * surface keeps finding stale — the page reached 120 viewport heights because
+ * nobody re-checked one. They are assertions now, so the build reports the
+ * threshold instead of a reader remembering it.
+ */
+describe('/now/ growth bounds', () => {
+  it('the pager stays on one row at the supported minimum', () => {
+    // Derived, not chosen: measured at 320 the pager list track is 248px and
+    // each target is --ds-target-min (24px) with an 8px gap, so 8 slots fit
+    // one row — fewer on a middle page, where both step links take room from
+    // the same track. The window emits at most 5 numbers and 2 gaps.
+    //
+    // This fails if someone widens WINDOW. That is the point: WINDOW = 2
+    // reaches 9 slots and wraps the pager at 320, which is the defect the
+    // window exists to prevent, and it would look fine on a desktop review.
+    const MAX_SLOTS = 7;
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const indexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    for (const page of indexPages) {
+      const slots = doc(page).querySelectorAll('.pager__list > li').length;
+      expect(
+        slots,
+        `${relative(BUILD_ROOT, page)}: ${slots} pager slots exceeds the ${MAX_SLOTS} that fit ` +
+          'one row at 320. Narrow WINDOW in NowPagination.astro rather than letting it wrap.'
+      ).toBeLessThanOrEqual(MAX_SLOTS);
+    }
+  });
+
+  it('the archive stays under its weight budget', () => {
+    // 200 KB, with an origin rather than a guess: the unpaginated /now/ was
+    // 235 KB at 120 viewport heights, and that WAS the defect this whole
+    // thread repaired. The archive carries links rather than highlights, so
+    // it holds far more releases per byte — 59 KB at 156 releases, roughly
+    // 3x headroom.
+    //
+    // When this fails, the remedy is per-month routes (`/now/archive/2026-09/`),
+    // NOT a bigger budget. Raising the number would retire the only thing
+    // watching the growth this page exists to absorb.
+    const BUDGET_BYTES = 200 * 1024;
+    const archive = join(BUILD_ROOT, 'now', 'archive', 'index.html');
+    expect(existsSync(archive)).toBe(true);
+    const bytes = statSync(archive).size;
+    expect(
+      bytes,
+      `the release archive is ${Math.round(bytes / 1024)} KB, over its ${BUDGET_BYTES / 1024} KB ` +
+        'budget. Split it into per-month routes; do not raise the budget.'
+    ).toBeLessThanOrEqual(BUDGET_BYTES);
   });
 });

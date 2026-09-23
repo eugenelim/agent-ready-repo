@@ -1,0 +1,115 @@
+---
+// Pages 2..N of the `/now/` index. Page 1 is `/now/` and is NOT emitted here,
+// so the canonical first page has exactly one URL.
+//
+// A sibling of `/now/[release].astro` rather than a conflict with it: that
+// route matches one segment (`/now/<anchor>/`) and this one matches two
+// (`/now/page/<n>/`).
+import SiteLayout from '../../../components/layout/SiteLayout.astro';
+import Section from '../../../components/layout/Section.astro';
+import NowHighlights, { type NowGroup } from '../../../components/now/NowHighlights.astro';
+import NowPagination from '../../../components/now/NowPagination.astro';
+import { pageCount, sliceForPage } from '../../../lib/now-pagination';
+import { withBase } from '../../../lib/paths';
+import projection from '../../../lib/now-highlights.generated.json';
+
+export function getStaticPaths() {
+  // The same schemaVersion contract the other three consumers enforce. A
+  // fourth consumer needs its own: a guard living only in the others does not
+  // protect this one.
+  if (projection.schemaVersion !== 1) {
+    throw new Error(
+      `now-highlights.generated.json is schemaVersion ${projection.schemaVersion}, ` +
+        'but the paginated index renders version 1 — regenerate or update the route.'
+    );
+  }
+  const groups = projection.groups as readonly NowGroup[];
+  const total = pageCount(groups.length);
+  // From 2: page 1 lives at `/now/`. An empty range is correct and emits
+  // nothing when there is only one page of releases.
+  return Array.from({ length: Math.max(0, total - 1) }, (_, i) => {
+    const page = i + 2;
+    return { params: { page: String(page) }, props: { page, total } };
+  });
+}
+
+const { page, total } = Astro.props as { page: number; total: number };
+const allGroups = projection.groups as readonly NowGroup[];
+const groups = sliceForPage(allGroups, page);
+---
+
+<SiteLayout
+  title={`Now — page ${page} of ${total} — agent-ready-repo`}
+  description={`Outcomes that have shipped in a released version, page ${page} of ${total}. Each one links to the changelog entry that released it.`}
+>
+  <link
+    slot="head"
+    rel="alternate"
+    type="application/atom+xml"
+    title="agent-ready-repo — Now"
+    href={withBase('/now/feed.xml')}
+  />
+
+  <section class="now-hero" aria-labelledby="now-heading">
+    <div class="now-hero__inner">
+      <span class="now-hero__eyebrow">Shipped and released</span>
+      <h1 id="now-heading" class="now-hero__heading">Now</h1>
+      <p class="now-hero__body">
+        Page {page} of {total}. Every release ever published is still here —
+        across these pages, in the
+        <a href={withBase('/now/feed.xml')}>Atom feed</a>, and at its own
+        permanent link. Nothing is dropped as it ages.
+      </p>
+    </div>
+  </section>
+
+  <Section tone="surface" labelledby="now-releases-heading">
+    <h2 id="now-releases-heading" class="visually-hidden">Released highlights, page {page}</h2>
+    <NowHighlights groups={groups} />
+    <NowPagination current={page} total={total} />
+  </Section>
+</SiteLayout>
+
+<style>
+  /* Matches `/now/`'s hero exactly. PAPER: the dark ground appears exactly
+     once on the surface, at the close (docs/design/direction/marketing-site.md,
+     Owner decisions 2026-09-18), and this hero is not it — separation from the
+     band below comes from space and a rule, never from a change of ground. */
+  .now-hero {
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
+    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
+  }
+
+  .now-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+  }
+
+  .now-hero__eyebrow {
+    display: block;
+    margin-bottom: var(--ds-space-4);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-field-label);
+  }
+
+  .now-hero__heading {
+    margin: 0 0 var(--ds-space-5);
+    font-family: var(--ds-font-display);
+    font-size: var(--ds-type-display);
+    font-variation-settings: 'opsz' var(--ds-opsz-display), 'wght' 420;
+    letter-spacing: var(--ds-track-display);
+    color: var(--ds-on-surface);
+  }
+
+  .now-hero__body {
+    margin: 0;
+    max-width: 62ch;
+    font-size: var(--ds-type-body-lg);
+    line-height: var(--ds-lead-body);
+  }
+</style>

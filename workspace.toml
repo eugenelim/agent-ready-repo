@@ -1051,10 +1051,72 @@ open = [
   # closed note rather than deleted, so the third-instance count stays legible
   # if the same contradiction appears a fourth time.
 
-  # MODERATE. /now/ renders 122 unpaginated releases and is tens of viewport
-  # heights long. Information architecture, not styling: no pagination, no
-  # in-page contents, no return-to-top. The retrofit made the page lighter per
-  # release and therefore longer, so this got worse, not better.
+  # PARTIALLY ADDRESSED 2026-09-22, still open on the length itself.
+  # The finding named three absences: no pagination, no in-page contents, no
+  # return-to-top. Two are closed. /now/ now carries a heading and a stable id
+  # per release (2 headings -> 162, 0 release ids -> 156), a 31-entry date
+  # index, and a return link; and /now/feed.xml publishes all 156 releases as
+  # Atom so the page is no longer the only machine-readable record.
+  # CLOSED 2026-09-23. All three named absences are gone and the page is
+  # bounded: 20 releases per page, /now/ as page 1 and /now/page/2..8/.
+  # Entry page 235 KB -> 47 KB, 120.3 viewport heights -> 19.2 at 320 (55.2 ->
+  # 9.2 at 1100). All 156 releases appear exactly once across the eight pages.
+  # Permalinks landed FIRST and that ordering was load-bearing: the Atom feed
+  # identifies entries by a permanent IRI, and paginating while those were
+  # /now/#<anchor> would have silently broken every id for an older release.
+  # Each release now has /now/<anchor>/ and the feed names that instead.
+  # Two defects the build surfaced, both of the looks-fine-and-isn't kind: a
+  # `hidden` pager step still carried an href to /now/page/9/, which does not
+  # exist; and axe found 8 serious target-size violations, the page digits at
+  # 9x17 against WCAG 2.2 SC 2.5.8's 24x24 floor. Both fixed, the second with
+  # a new --ds-target-min token. Re-measured 0 axe violations on three pages at
+  # both widths -- checked directly, because the browser gate runs a fixed
+  # route list that does not include the new templates.
+  # The year -> month split shipped 2026-09-23 as /now/archive/: every release
+  # grouped year then month, linked from every index page, 156 links that all
+  # resolve. The whole history renders in 10.6 viewport heights at 320 and
+  # 59 KB, against 120 viewport heights for the same content on the old
+  # unpaginated index -- an archive carries links, not highlights. Caught while
+  # building it: two landmarks sharing one accessible name, which html-validate
+  # reported as `unique-landmark` and which would have given a screen-reader
+  # user two regions called "Release archive" that cannot be told apart.
+  # THREAD CLOSED 2026-09-23. The pager is windowed and both growth bounds are
+  # assertions rather than notes -- a "revisit when..." note is the shape of
+  # trigger this surface kept finding stale.
+  # The pager bound was MET, not approaching: measured at 320 the list track is
+  # 248px and each target is 24px with an 8px gap, so exactly 8 slots fit one
+  # row, and there were 8 pages. "Roughly a dozen" was a guess; 8 was the
+  # derived number and page 9 would have wrapped. The window shows first, last
+  # and the current page with one either side -- at most 5 numbers and 2 gaps,
+  # verified one row on all 8 pages at 320, 0 axe violations.
+  # The archive bound is not met: 59 KB against a 200 KB budget whose origin is
+  # this thread's own defect, the 235 KB unpaginated page. About 3x headroom,
+  # roughly 500 releases. When it fires the remedy is per-month routes, and the
+  # assertion message says so rather than inviting a bigger number.
+  # Both mutation-checked: WINDOW = 2 reds the first, a lowered budget reds the
+  # second, each naming the file and the remedy.
+  # An age-based cutoff was considered and REJECTED on evidence: 0 of 12 public
+  # changelog feeds truncate by age, and our own history is 156 releases in 37
+  # days, so a rolling 30-day window would cut 9% and leave ~109 viewport
+  # heights. Full reasoning, the seven mechanisms for keeping a growing archive
+  # navigable, and the remaining step:
+  # docs/product/research/release-feed-length-survey.md.
+  # Also settled there: page length violates no WCAG success criterion (1.4.10
+  # Reflow restricts two-dimensional scrolling), so this is information
+  # architecture, not compliance. And the date index needs a second level,
+  # year -> month, before the history reaches a year or it becomes the long
+  # page it exists to fix.
+  # Unblocks when: ready now -- the remaining decision is numbered pagination,
+  # for which the survey records the current SEO shape (each page
+  # self-canonicalises; rel=next/prev has been dead to Google since 2019).
+  # The original entry, for the record:
+  # MODERATE. /now/ renders every released entry on one unpaginated page and is
+  # tens of viewport heights long. The list grows monotonically -- the page
+  # gains a group for each release and drops none -- so no count stated here
+  # would stay true; the property is what the finding turns on. Information
+  # architecture, not styling: no pagination, no in-page contents, no
+  # return-to-top. The retrofit made the page lighter per release and therefore
+  # longer, so this got worse, not better.
   # THE LENGTH FIGURE IS CONTESTED AND NEITHER IS CARRIED FORWARD. Two passes
   # measured it and disagree: 61,638 CSS px / 402 KB at 390, and 75,240 CSS px /
   # 160 KB at 320. Different viewport widths explain part of the height gap but
@@ -1077,12 +1139,62 @@ open = [
   # payload and request counts instead and says LCP/INP/CLS are unmeasured.
   # Unblocks when: 28 days of field data after the retrofit deploys.
 
+  # HALF DONE 2026-09-22; the other half needs a decision, not effort.
+  # All 22 /packs/* pages now carry SoftwareApplication, verified on the built
+  # output: type, absolute self-URL, an Offer at price 0 (the software rich
+  # result needs one of offers / aggregateRating / review, and a free price is
+  # the only one this repository can state as fact), and featureList derived
+  # from the skills the page renders rather than restated.
+  # /journeys/* IS NOT DONE, and the reason is external: Google's rich-results
+  # gallery (checked 2026-09-22, doc updated 2026-06-15) lists "Software app"
+  # and NO LONGER LISTS HowTo. So the 20 journey pages would carry markup that
+  # produces no rich result. It may still be worth emitting for non-Google
+  # consumers, and the journey stages are derivable from the rendered numbered
+  # headings, but that is a judgement about who the markup is for.
+  # A second reason to decide rather than default to yes: journey stages live
+  # in markdown bodies, not in the frontmatter schema, so deriving steps means
+  # parsing rendered content — the drift risk is real, and structured data that
+  # misdescribes a page is worse than none.
+  # DECIDED 2026-09-22: do not emit HowTo. No Google rich result stands behind
+  # it, the stages are not in the frontmatter schema so deriving steps means
+  # parsing rendered prose, and structured data that misdescribes its page is
+  # worse than none. Reaching for a SUPPORTED type instead was considered and
+  # refused: nothing on Google's list fits a journey page, and the homepage's
+  # own note already states the rule -- a type that does not match the thing is
+  # worse than none.
+  # This entry is now CLOSED. Reopen only on a new reason, not a new attempt:
+  # the two that would qualify are agent or LLM consumers becoming a stated
+  # audience for machine-legible journeys, or journey stages moving into the
+  # frontmatter schema, which would remove the drift risk. Either would make
+  # the answer different; neither is true today.
+  # The original entry, for the record:
   # OPEN. JSON-LD covers the homepage only (SoftwareApplication). /packs/* and
   # /journeys/* are 44 further pages wanting per-page types — SoftwareApplication
   # and HowTo respectively. Template-level work with its own schema decisions;
   # scoped out of the retrofit deliberately rather than half-done.
-  # Unblocks when: ready now.
 
+  # MODERATE. /docs/changelog/ is 2.08 MB of HTML with 297 headings -- 9.3x
+  # /now/, the page the entry above worries about. Found 2026-09-22 while
+  # surveying /now/'s length, and registered separately rather than folded in
+  # because it is a different route with a different owner. It matters to that
+  # decision: /now/ carries 157 outbound links into this page, so any remedy
+  # phrased as "send readers to the full changelog for older entries" routes
+  # them somewhere heavier than where they started. Unlike /now/ this page is
+  # not a curated projection -- it is the whole changelog rendered -- so the
+  # fix is probably per-release or per-version routes rather than pagination.
+  # Not a WCAG failure: page length violates no success criterion (1.4.10
+  # Reflow restricts two-dimensional scrolling, not length). Evidence:
+  # docs/product/research/release-feed-length-survey.md.
+  # Unblocks when: ready now; decide alongside the /now/ length remedy.
+
+  # STILL OPEN 2026-09-22, re-confirmed rather than closed. Both fields in the
+  # manifest were re-read and still say "not reviewed, handoff open" rather
+  # than implying coverage, which is the property this entry protects. One
+  # input moved: the web suite is 199 tests in 23 files, not 198, and the print
+  # stylesheet is a new untested surface that belongs in quality-engineer's
+  # third uncovered area. The `/now/` clause carried a decaying figure -- 402 KB
+  # for 122 releases -- restated as the unbounded shape, since the count moves
+  # on every release. Nothing here performs either review; that is the handoff.
   # OPEN, OWNER-ROUTED. The evidence manifest's two production fields record a
   # handoff, not a review: security/privacy to security-reviewer and
   # reliability/recovery to quality-engineer. The surface takes no user input,
@@ -1109,6 +1221,30 @@ open = [
   # verification pass recorded them rather than resolving them.
   # ---------------------------------------------------------------------------
 
+  # RESOLVED 2026-09-22. The print stylesheet exists. Page-level rules (the
+  # sheet box, destinations, page breaks) are in web/src/styles/print.css;
+  # rules that override a component sit in that component's own <style> block,
+  # because Astro scopes component selectors with a `data-astro-cid-*`
+  # attribute and a global `.footer` is therefore outranked by
+  # `.footer[data-astro-cid-...]` -- the first attempt put everything in the
+  # global file, shipped it, and measured almost no change. Measured, not
+  # assumed. Re-read on one instrument with `@page` margins passed explicitly
+  # on BOTH sides (without that the before run printed at zero margin and
+  # overstated the cost by a sheet): footer 0.82 -> 0.32 of a sheet on paper
+  # ground at 13.09:1 instead of 1.42:1 with backgrounds off; 63 of 64 links
+  # print a destination, the 64th being an in-page anchor, with the origin
+  # printed once in the footer so a root-relative path resolves; all 4 install
+  # variants print, each under its own label, instead of 1; the hamburger, the
+  # copy button and the footer link columns no longer render. Cost: 9 -> 11
+  # sheets, which is the price of the destinations and the three extra panels.
+  # STILL OPEN, and deliberately not claimed: `break-inside: avoid` is
+  # declared on li, tr, figure, .terminal and .tabs__panel, but the straddle
+  # count used here reads a scrolling viewport, where break-inside has no
+  # effect -- it applies only during pagination. The declaration is present and
+  # the sheet count is measured; "no block is cut" is NOT established, and
+  # proving it needs a rasterised read of the PDF's page boundaries.
+  # Evidence: docs/design/evidence/marketing-home-retrofit.md, print state.
+  # The original entry, for the record:
   # MAJOR ON PAPER, INVISIBLE ON SCREEN. There is no print stylesheet anywhere
   # in web/ — zero `@media print`, zero `@page`. Printed at A4 the home page is
   # 9 sheets and: the dark footer is 0.82 of a sheet in solid ink, and with
@@ -1127,30 +1263,106 @@ open = [
   # on hover alone — so this is a polish gap, not an accessibility one.
   # Unblocks when: ready now.
 
+  # RESOLVED 2026-09-22. The type scale gained the two steps it was missing and
+  # all 11 literals are tokens. Grouped by role the 11 were three things:
+  # --ds-type-mono-xs (0.6875rem/11px, new) took the five mono micro-labels;
+  # --ds-type-read (1.0625rem/17px, new) took the reading column, the measure
+  # the editorial direction exists to demonstrate and the one whose 61ch
+  # verification comment was taken at that size; the three mono 13px sites took
+  # the existing --ds-type-mono-sm. The two remaining sans values were
+  # incidental rather than load-bearing and snapped to existing steps instead of
+  # earning tokens: .dp__navlinks 13 -> 14px and .dp__control 15 -> 16px. That
+  # settles the second open question as NO -- --ds-type-mono-sm stays mono-only
+  # and never carries a sans element. Scale 8 -> 10 steps, not 12. Measured in
+  # Chromium with the paper-ground sanity check passing: 9 of 11 sites
+  # computed-identical, the 2 intended shifts at exactly 14px and 16px. Kept as
+  # a closed note because the discriminator below is why this took a decision
+  # rather than a substitution.
+  # The original entry, for the record:
   # MINOR, NEEDS A SCALE DECISION. 11 off-scale font sizes survive the new
-  # stylelint gate, all in src/pages/direction-preview.astro: 11px x5 (no token
-  # exists), 13px x4 (--ds-type-mono-sm matches numerically, but one of the four
-  # sites is sans, so adopting it would make one token carry two meanings),
-  # 0.9375rem, and 1.0625rem. The gate is deliberately left RED on these rather
-  # than forced green; 6 sibling findings that were unambiguous token
-  # substitutions were fixed and verified computed-identical.
+  # stylelint gate, all in web/src/pages/direction-preview.astro: 11px x5 (no
+  # token exists), 13px x4, 0.9375rem, and 1.0625rem.
+  # THE DISCRIMINATOR IS THE 13px GROUP'S FONT FAMILY. --ds-type-mono-sm matches
+  # all four numerically, but three are mono (.dp__wordmark:303, the hero rule
+  # :496, .dp__rec:601) and ONE is sans: .dp__navlinks:313 sets
+  # font-family: var(--ds-font-sans). Adopting the mono token across all four
+  # would make one token carry two meanings, which is the decision this entry is
+  # waiting on -- not the numeric match. The gate is deliberately left RED on
+  # these rather than forced green; 6 sibling findings that were unambiguous
+  # token substitutions were fixed and verified computed-identical.
   # Unblocks when: someone decides whether the type scale gains an 11px step and
   # whether --ds-type-mono-sm may be used on a sans element.
 
-  # MINOR x3, route-level, found in the 80-capture matrix.
-  # (a) 7 of 22 /packs/* pages emit `...above.<a>Browse the catalogue</a>` with
-  #     no space, so readers see "above.Browse". It is in the markup, not a wrap
-  #     artefact, and it is a one-character fix in a template.
-  # (b) /packs/* at >=1100 leaves ~375px of the 1140px container unused down the
-  #     right edge.
-  # (c) /journeys/* at 320 wraps the hero meta line after a plain-text
-  #     separator, leaving it dangling. Channel 1 only.
+  # MINOR x1 remaining, route-level, found in the 80-capture matrix. Registered
+  # as x3. Two are closed:
+  # -- 7 of 22 /packs/* pages emitting `...above.<a>Browse the catalogue</a>`
+  #    with no space, fixed by #1395; the string returns no hits in web/src.
+  # -- /journeys/* wrapping its hero meta line after a plain-text separator,
+  #    fixed 2026-09-22 by grouping each separator with the stat it introduces
+  #    inside a `nowrap` run, so a break happens BEFORE the separator and a
+  #    wrapped line starts "· 2 human gates" instead of ending on a bare dot.
+  #    Measured on one instrument at 320: 1 dangling separator before, 0 after,
+  #    3 stat lines, no horizontal overflow. The spans stay aria-hidden rather
+  #    than becoming CSS ::before content, which some screen readers announce.
+  # (a) CLOSED 2026-09-22, NOT A DEFECT -- the finding's premise does not hold.
+  #     It was recorded from the 80-capture matrix as a /packs/* problem. It is
+  #     not: measured at 1440 on one instrument, the unused right edge is
+  #     /packs/ 523px, /journeys/ 523px, /catalogue/ 546px, /now/ 546px and the
+  #     home page 725px. Every content route leaves a comparable gap, because a
+  #     ~700px reading measure inside --ds-content-max (1140px) IS the site's
+  #     editorial pattern. The homepage only reads as filled because its hero
+  #     band puts a figure beside the column; its body copy leaves the largest
+  #     gap of the five.
+  #     So "fix /packs/" would make /packs/ the one route that does not follow
+  #     the site's own pattern, inverting the consistency the retrofit existed
+  #     for. Kept as a closed note rather than deleted, with the numbers that
+  #     refuted it, so the same observation is not re-raised route by route.
+  #     A real question survives underneath and is NOT this entry: whether a
+  #     1140px container should hold a 700px measure at all. That is a
+  #     direction-sheet question about the editorial grid, and it belongs with
+  #     the owner's other axis decisions, not in a route-level defect.
   # Unblocks when: ready now.
 
+  # RESOLVED 2026-09-22. web/AGENTS.md is 77 lines against the 80-line cap in
+  # tools/lint-agents-md.py (MAX_SCOPED_LINES), so there is headroom again. The
+  # three lines came from rewrapping the `astro preview` bullet, which had been
+  # wrapped short: pure reflow, not a single word changed or dropped. One wrap
+  # point was then adjusted by hand because the automatic wrap split
+  # `npm exec --prefix web -- astro preview stop --root web` across a line
+  # break, and a command in this file is meant to be pasted.
   # HAZARD, NOT A TASK. web/AGENTS.md now sits EXACTLY on its 80-line cap. The
   # next line added there fails tools/lint-agents-md.py. Anyone documenting the
   # next dependency or command in that file must remove a line to add one.
 
+  # RESOLVED 2026-09-22. The gate now fires on both sides, and it is green
+  # because the 11 findings were fixed rather than excluded -- stylelint.config.mjs
+  # is unchanged and no file is exempt.
+  # PULL-REQUEST HALF: a new `gate-css-tokens` job in build-check.yml, fanned
+  # into the aggregator's `needs:` and its `Require every gate` comparison. The
+  # aggregator is one of the four contexts branch protection requires
+  # (tools/test-build-check-workflow.py records this), so the gate blocks a
+  # merge with NO branch-protection change -- which a standalone job would have
+  # needed a human for.
+  # ITS OWN JOB, not a step in gate-main, for two measured reasons: gate-main is
+  # Python-only and its ordered provisioning partition is CI-run evidence
+  # (docs/specs/ci-gate-main-failure-reporting/notes/partition-evidence.md), so a
+  # Node toolchain there would need a matrix row only a real spike run can
+  # supply; and a separate job gets independent failure reporting from GitHub
+  # instead of from an `if:` guard. The job carries no `if:` anywhere, which is
+  # load-bearing -- lint-ci-parity admits a PR_GATED claim only from an
+  # unconditional source.
+  # LOCAL HALF: two lines in the Makefile's run-test-suite define, beside the
+  # docs-site npm block they mirror. NOT added to `make ci`'s prerequisites:
+  # ADR-0096 pins those to exactly four and three tests enforce it, so the local
+  # half reaches `make ci` through test-after-build-check instead. The
+  # SUITE_DISPOSITION the entry below anticipated is therefore PR_GATED, not
+  # NO_PR_GATE -- the honest answer changed once the gate got a real PR home.
+  # RESIDUAL: `npm run lint:css` yields no path operand, so extraction can
+  # attribute nothing to the CI step and the claim rests on a
+  # _SUITE_SOURCE_EXCEPTIONS declaration -- the one source in that linter that
+  # asserts coverage rather than reading it. It is digest-pinned on both the
+  # step body and the declared tuple, so any edit reddens and a human re-checks.
+  # The original entry, for the record:
   # A GATE THAT NEVER FIRES. `npm run lint:css --prefix web` (stylelint with
   # stylelint-declaration-strict-value, added 2026-09-18) is wired into NOTHING
   # — not the Makefile, not any workflow. It works, it is mutation-proven, and

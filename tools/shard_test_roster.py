@@ -29,8 +29,9 @@ PRECONDITION_MARKERS = (
     "tools/repo/editable_install_guard.py",
     # The npm runtime probe runs in every shard so each can fail before plugin work.
     "command -v npm ",
-    # The node_modules probe runs in every shard so missing deps always fail early.
+    # The node_modules probes run in every shard so missing deps always fail early.
     "test -d docs-site/node_modules ",
+    "test -d web/node_modules ",
     # The httpx import probe runs in every shard before any HTTP-backed suite.
     '-c "import httpx"',
 )

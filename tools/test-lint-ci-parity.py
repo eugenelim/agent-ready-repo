@@ -47,6 +47,11 @@ LINTER = REPO_ROOT / "tools" / "lint-ci-parity.py"
 # edit to either side must redden and send a human back to re-check it.
 # Subset agreement alone catches a removed path and never an added one.
 _EXCEPTION_PINS: dict[tuple[str, str], dict[str, str]] = {
+    ('build-check.yml',
+     'CSS token gate (stylelint)'): {
+        "step_body": 'ccd400d8dcfbac0251b47ec26fc657111ce31ac9bef47eef1b246dc110181ded',
+        "declared": '83f2a1f79abc6a035c6dd20f04bc8db7bed6cb56539a79d7ffe57374c3d19748',
+    },
     ('catalogue-tooling-ci-gates.yml',
      'Run repo/pack hook suites (Linux)'): {
         "step_body": '0e1de37f2c7545b96ad37338cb62e872ad6e9b4b379e9d1a02f94c817685e42b',

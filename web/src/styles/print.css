@@ -1,0 +1,81 @@
+/* Print — what this page becomes on paper.
+ *
+ * No screen gate sees any of this: html-validate reads markup, axe and the
+ * Playwright gate run in screen media, and stylelint reads declarations rather
+ * than rendered sheets. Everything below was measured by emulating print media
+ * at Chromium's A4 box (717x1045) and reading the result, not by reading CSS.
+ *
+ * Scope: the marketing site only. `docs-site/` is a separate token contract and
+ * already carries its own `print:hidden` footer rule from Starlight.
+ *
+ * THIS FILE HOLDS THE PAGE-LEVEL RULES ONLY -- the sheet box, destinations and
+ * page breaks. A rule that overrides a component's own styling cannot live
+ * here: Astro scopes component selectors with a `data-astro-cid-*` attribute,
+ * so `.footer` here loses to `.footer[data-astro-cid-...]` there and the
+ * override is present in the bundle but outranked -- measured, not assumed.
+ * Those rules sit in each component's own `<style>` block, which is also what
+ * web/AGENTS.md asks for and what docs-site already does. They are in
+ * SiteNav, SiteFooter, CopyButton and InstallTerminal.
+ *
+ * This does not reopen the 2026-09-18 owner decision that the dark ground
+ * appears exactly once, in the footer. That decision composes the SCREEN page.
+ * On paper the same rule produces 0.82 of a sheet in solid ink, and with
+ * background graphics off -- the print dialog's default -- it does not print at
+ * all while its foreground stays, leaving 1.42:1 text on white. Paper ground
+ * with ink text is the faithful translation of that decision to a medium that
+ * decides for itself whether to paint a background; carrying the rule across
+ * unchanged is what breaks it.
+ */
+
+@page {
+  size: A4;
+  /* The measured 717x1045 box these rules were verified against. */
+  margin: 16mm 14mm;
+}
+
+@media print {
+  /* ── 1. Destinations ─────────────────────────────────────────────────
+     Measured: 64 links, 0 of them printing a destination, so a printed sheet
+     lost every one. In-page anchors are excluded -- one resolves to somewhere
+     the reader is already holding. Everything else prints, including the
+     root-relative paths that are most of them; SiteFooter prints the origin
+     once, which is what makes a root-relative path followable. */
+  a[href]:not([href^="#"])::after {
+    content: " <" attr(href) ">";
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-xs);
+    font-weight: var(--ds-weight-regular);
+    /* A URL is one long token and must not force a line wider than the sheet. */
+    word-break: break-all;
+  }
+
+  /* Three exceptions, each because the destination is already in the reader's
+     hand: the wordmarks are the site's own name, and the skip link targets a
+     position on the sheet in front of them. */
+  .nav__logo::after,
+  .skip-nav::after,
+  .footer__brand::after {
+    content: none;
+  }
+
+  /* ── 2. Page breaks ───────────────────────────────────────────────────
+     Measured: 12 blocks straddled a sheet boundary, splitting the adapter
+     table mid-row and orphaning headings from their bodies. Only blocks that
+     fit within one sheet are held together; a section taller than a sheet
+     has to break somewhere, and forcing it would push a mostly-empty sheet
+     ahead of it. */
+  h1,
+  h2,
+  h3,
+  .footer__collabel {
+    break-after: avoid;
+  }
+
+  li,
+  tr,
+  figure,
+  .terminal,
+  .tabs__panel {
+    break-inside: avoid;
+  }
+}

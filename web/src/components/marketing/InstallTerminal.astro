@@ -52,7 +52,7 @@ const tabs = [
 
       <div class="tabs__panels">
         {tabs.map((t) => (
-          <div class={`tabs__panel tabs__panel--${t.id}`}>
+          <div class={`tabs__panel tabs__panel--${t.id}`} data-label={t.label}>
             {t.lines.map((line) => (
               <div class="terminal__line">
                 <span class="terminal__prompt" aria-hidden="true">❯ </span><code>{line}</code>
@@ -260,6 +260,37 @@ const tabs = [
   @media (prefers-reduced-motion: reduce) {
     .install-copy-btn {
       transition: none;
+    }
+  }
+
+  /* Paper: the variant is chosen by a radio the reader cannot click, so three
+     of the four panels printed as display:none and the sheet carried one of
+     four install routes with no sign the others existed. All four print, each
+     under its own label. `data-label` carries it because the tab strip is a
+     sibling <label> set that no selector can pair with a panel. Scoped here for
+     the specificity reason given in SiteNav.astro. */
+  @media print {
+    .tabs__radio,
+    .tabs__label {
+      display: none;
+    }
+
+    .tabs__panel {
+      display: block;
+      margin-bottom: var(--ds-rule-pitch);
+      break-inside: avoid;
+    }
+
+    .tabs__panel::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: var(--ds-rule-pitch);
+      font-family: var(--ds-font-mono);
+      font-size: var(--ds-type-mono-xs);
+      font-weight: var(--ds-weight-semibold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ds-on-surface-muted);
     }
   }
 </style>

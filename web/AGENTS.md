@@ -44,26 +44,23 @@ input.
   demand, and the lockfile already resolves 2.3.3, so the override changes nothing
   today. It is kept for the next re-resolution: `allowScripts` reviews the exact pair
   `fsevents@2.3.3`, and when 2.3.4 ships, `~2.3.3` takes it and fails that gate.
-- Under an agent, `astro dev` and `astro preview` fork a detached server and
-  return at once with JSON output. The corollary is the reason this gets closed
-  as "works for me": a human running the identical command in the identical
-  worktree will **not** reproduce it, because the fork is keyed on agent
-  detection rather than on anything about the command or the tree. Report it
-  with that stated, or the first reply is a screenshot of it working. The gate
-  is insulated (`playwright.config.ts`
-  sets `ASTRO_PREVIEW_BACKGROUND`); a hand-run `npm run preview` is not, and
-  leaves a *live* orphan recorded in `.astro/` that blocks the next start on
-  *any* port. `preview`'s foreground path ignores `--force` despite its own
-  error text recommending it, so stopping it is the only route, and deleting the
-  record frees nothing: `npm exec --prefix web -- astro preview stop --root web`.
-  `--root` is load-bearing — astro resolves the project from the working
-  directory, not from `--prefix`.
+- Under an agent, `astro dev` and `astro preview` fork a detached server and return at once with
+  JSON output. The corollary is the reason this gets closed as "works for me": a human running the
+  identical command in the identical worktree will **not** reproduce it, because the fork is keyed
+  on agent detection rather than on anything about the command or the tree. Report it with that
+  stated, or the first reply is a screenshot of it working. The gate is insulated
+  (`playwright.config.ts` sets `ASTRO_PREVIEW_BACKGROUND`); a hand-run `npm run preview` is not,
+  and leaves a *live* orphan recorded in `.astro/` that blocks the next start on *any* port.
+  `preview`'s foreground path ignores `--force` despite its own error text recommending it, so
+  stopping it is the only route, and deleting the record frees nothing:
+  `npm exec --prefix web -- astro preview stop --root web`. `--root` is load-bearing — astro
+  resolves the project from the working directory, not from `--prefix`.
 - This site sets no `markdown` config, so it renders through astro's default
   processor while `docs-site/` pins the legacy `unified()` one. The two
   co-deployed sites are deliberately on different engines; do not assume output
   parity when moving content between them.
 - Define the viewport meta tag once in `src/components/layout/SiteLayout.astro`; never duplicate it.
-- CSS token enforcement is `stylelint` + `stylelint-declaration-strict-value` + `postcss-html`, declared in `web/package.json`; `stylelint.config.mjs` owns which literals stay legal and why.
+- CSS token enforcement is `stylelint` + `stylelint-declaration-strict-value` + `postcss-html`, declared in `web/package.json`; `stylelint.config.mjs` owns which literals stay legal and why. It gates pull requests through build-check.yml's `gate-css-tokens` job and runs locally inside `make test`, so a newly hardcoded colour or font size reds a PR rather than only a local run.
 
 ## Essential commands
 

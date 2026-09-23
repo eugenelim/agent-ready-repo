@@ -252,10 +252,18 @@
   --ds-type-h2:       clamp(1.875rem, 3.5vw, 2.5rem);   /* ~30–40px */
   --ds-type-h3:       clamp(1.25rem, 2vw, 1.5rem);      /* ~20–24px */
   --ds-type-body-lg:  1.125rem;                          /* lead / intro */
+  --ds-type-read:     1.0625rem;                         /* editorial reading column */
   --ds-type-body:     1rem;                              /* body */
   --ds-type-sm:       0.875rem;                          /* captions, metadata */
   --ds-type-xs:       0.75rem;                           /* labels, badges */
   --ds-type-mono-sm:  0.8125rem;                         /* inline code, skill names */
+  --ds-type-mono-xs:  0.6875rem;                         /* mono micro-labels */
+
+  /* Minimum interactive target box — WCAG 2.2 SC 2.5.8 Target Size (Minimum),
+     AA. Three times --ds-rule-pitch, so a target that meets the floor also
+     keeps the vertical rhythm. A token rather than a literal because the next
+     control that needs it must not re-derive the number. */
+  --ds-target-min:    24px;
 
   /* Weight */
   --ds-weight-regular: 400;

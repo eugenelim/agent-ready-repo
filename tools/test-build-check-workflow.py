@@ -187,6 +187,9 @@ _PROVISIONING_NOT_AUDITED = frozenset({
     "Install credbroker (editable, with crypto extra) (gate-export-boundary)",
     "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)",
     "Install SAST/SCA tools",
+    "<unnamed step in gate-css-tokens>",
+    "Set up Node (gate-css-tokens)",
+    "Install web dependencies (gate-css-tokens)",
 })
 _ALL_PROVISIONING = frozenset(
     name for name, phase in STEP_PHASES.items() if phase[0] == "PROVISIONING"
@@ -244,12 +247,13 @@ AGGREGATOR_RUN_STEPS = (
 # spliced into the fixture by exact text, so this order must match the fixture's
 # guard-body comparison order or `_differential_failures` reports itself blind.
 REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary",
-                      "gate-credbroker")
+                      "gate-credbroker", "gate-css-tokens")
 EXPECTED_JOB_NAMES = {
     "gate-main": "gate-main",
     "gate-sast": "gate-sast",
     "gate-export-boundary": "gate-export-boundary",
     "gate-credbroker": "gate-credbroker",
+    "gate-css-tokens": "gate-css-tokens",
     "build-check": "make build-check",
 }
 GATE_MAIN_PHASE_HEADER = (
@@ -373,7 +377,7 @@ _ALLOWED_STEP_ENV = frozenset({
     "PYTHONDONTWRITEBYTECODE", "PYTHONUTF8", "PYTHONIOENCODING",
     "BASE_SHA", "HEAD_SHA",
     "GATE_MAIN_RESULT", "GATE_SAST_RESULT", "GATE_EXPORT_BOUNDARY_RESULT",
-    "GATE_CREDBROKER_RESULT",
+    "GATE_CREDBROKER_RESULT", "GATE_CSS_TOKENS_RESULT",
 })
 
 
@@ -481,6 +485,9 @@ _NO_CWD_STEPS = (
 PINNED_USES = (
     "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
     "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+    # gate-css-tokens is the only Node job here. Same SHA docs.yml's
+    # guidebook-walk job pins, so the two cannot drift to different actions.
+    "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
 )
 # An action's INPUTS decide what the pinned statements run against, and were the next
 # free dimension after its ref. Each of these is one line, audits clean with every pinned
@@ -505,9 +512,16 @@ PINNED_CHECKOUT_WITH = {
     # exemption is decided here rather than hardened later: re-adding fetch-depth to
     # either fails `checkout-with[<job>]`.
     "gate-credbroker": {"persist-credentials": "false"},
+    # A THIRD fetch-depth exemption, same reason: gate-css-tokens runs stylelint
+    # over the working tree and invokes git nowhere.
+    "gate-css-tokens": {"persist-credentials": "false"},
     AGGREGATOR_JOB_ID: {"persist-credentials": "false"},
 }
 PINNED_SETUP_PYTHON_WITH = {"python-version": EXPECTED_PYTHON}
+# Jobs that run no Python at all, named one by one. gate-css-tokens runs
+# stylelint through npm and nothing else; requiring a setup-python step there
+# would provision an interpreter no step uses, purely to satisfy a guard.
+_PYTHON_FREE_JOBS = frozenset({"gate-css-tokens"})
 # Steps sit at 6 spaces, so a step's own keys sit at 8. Derived from the grammar rather
 # than inferred from the file: computing it as `min()` over the chunk's lines let a flow
 # mapping with a shallower continuation line drag the base below 8, after which every real
@@ -1417,9 +1431,24 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
             _step_key_values(st, "uses") in [[u] for u in PINNED_USES]
             for _n, st in _steps(blk) if _step_key_values(st, "uses")))
         _setups = [st for _n, st in _steps(blk) if "setup-python" in st]
+        # TWO claims in one assertion, and they fail on different things. Every
+        # setup-python step's inputs are pinned by set equality -- that half
+        # holds for every job, including one with no such step. The other half,
+        # that the job HAS a Python toolchain, held trivially until a job
+        # arrived that legitimately needs none. It is enumerated rather than
+        # filtered, the same shape as _PROVISIONING_NOT_AUDITED above: a name
+        # that stops matching is reported by `python-free-job-is-python-free`
+        # below, where a shape filter would have gone silent.
         check(f"setup-python-with[{job_id}]",
-              bool(_setups) and all(_sub_mapping(st, "with") == PINNED_SETUP_PYTHON_WITH
-                                    for st in _setups))
+              (bool(_setups) or job_id in _PYTHON_FREE_JOBS)
+              and all(_sub_mapping(st, "with") == PINNED_SETUP_PYTHON_WITH
+                      for st in _setups))
+        # The exemption must stay earned. A job that gains a setup-python step
+        # while still named here would otherwise keep an exemption it no longer
+        # needs, and the pinning half above would be the only thing left holding
+        # it -- which is the weaker claim.
+        if job_id in _PYTHON_FREE_JOBS:
+            check(f"python-free-job-is-python-free[{job_id}]", not _setups)
         check(f"no-job-permissions[{job_id}]", _key_re("permissions").search(blk) is None)
         # Job-level env: only (4 spaces). Step-level env: at 8 is legitimate and used.
         check(f"no-job-env[{job_id}]", _key_re("env", "    ").search(blk) is None)
@@ -2112,6 +2141,17 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     # covering every work job present and future.
     ("rename-work-job", "job-name-is-id[gate-credbroker]",
      lambda t: t.replace("    name: gate-credbroker\n", "    name: credbroker gate\n")),
+    # The exemption must stay earned. A job named in _PYTHON_FREE_JOBS that
+    # gains a Python toolchain would otherwise keep an exemption it no longer
+    # needs, and `setup-python-with[*]` alone cannot see it -- its `or` arm is
+    # already satisfied by the name.
+    ("python-free-job-gains-python", "python-free-job-is-python-free[gate-css-tokens]",
+     lambda t: t.replace(
+         "      - name: Set up Node (gate-css-tokens)\n",
+         "      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065\n"
+         "        with:\n"
+         "          python-version: \"3.11\"\n"
+         "      - name: Set up Node (gate-css-tokens)\n", 1)),
     ("add-needs-to-work-job", "no-needs[gate-sast]",
      lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    needs: [gate-main]\n")),
     ("reindent-steps", "steps-parsed[gate-sast]",
@@ -2575,7 +2615,8 @@ def _differential_failures() -> list[str]:
     # chained-false-test) were being lost without a single failure to show for it.
     env.update({"GATE_MAIN_RESULT": "failure", "GATE_SAST_RESULT": "success",
                 "GATE_EXPORT_BOUNDARY_RESULT": "success",
-                "GATE_CREDBROKER_RESULT": "success"})
+                "GATE_CREDBROKER_RESULT": "success",
+                "GATE_CSS_TOKENS_RESULT": "success"})
     out: list[str] = []
     for name, transform in _DIFFERENTIAL_VARIANTS:
         body = transform(_GUARD_BASE)  # type: ignore[operator]

@@ -583,6 +583,13 @@ $(PYTHON) tools/check-docs-contrast.py
 @command -v npm >/dev/null 2>&1 || { echo "make test: npm not found — install Node.js (>=24, per docs-site/package.json engines)" >&2; exit 1; }
 @test -d docs-site/node_modules || { echo "make test: docs-site deps missing — run: npm ci --prefix docs-site" >&2; exit 1; }
 npm run test:plugins --prefix docs-site
+# The CSS token gate. It shipped configured, mutation-checked and reporting,
+# and wired into nothing — so its findings could not red a pull request and
+# neither could a new hardcoded colour or font size. This is the local half;
+# `gate-main`'s "CSS token gate (stylelint)" step is the pull-request half, and
+# the two run the identical command so neither can drift from the other.
+@test -d web/node_modules || { echo "make test: web deps missing — run: npm ci --prefix web" >&2; exit 1; }
+npm run lint:css --prefix web
 $(PYTHON) tools/test-pages-workflow.py
 $(PYTHON) tools/test-pages-concurrency.py
 $(PYTHON) -m pytest tests/ -q
