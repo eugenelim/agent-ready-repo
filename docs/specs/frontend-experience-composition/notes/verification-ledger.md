@@ -763,3 +763,65 @@ The general rule, and the reason this sits in the ledger rather than in a
 commit message: **a standing instrument that writes must only be run on a clean
 tree.** Running one over uncommitted work can destroy that work, and the
 failure it then reports names the symptom rather than itself.
+
+## Post-gates review, round 3
+
+**Zero blockers.** Four findings: 2 sustained, 2 refuted. The reviewer
+independently verified all eight round-2 repairs hold and killed 23 of 24
+mutations against the two new roster modules — the survivor is the finding
+below. Recorded as a findings round: `review_round_count` 3, review retry 3 of 5.
+
+### The fifth control that could not fail
+
+`test_the_say_this_optionality_agrees_with_the_how_to_guides` opened with
+`if skill not in guides: continue`. AC-0021 quantifies over `design-system` and
+`content-design` **by name** and requires the journey's mark to *equal* the
+guide's — and equality presupposes a guide mark exists. A skip means the
+criterion passes on absence.
+
+The path is reachable from the guide side alone: `_guide_optionality()` drops
+any row whose last cell stops being one of the three verdicts or whose column
+count falls below four, so an ordinary how-to table edit would retire AC-0021's
+entire verification with the gate reporting pass.
+
+Reproduced before repairing: removing both named skills from the guide map left
+the test green. The two names are now held in `GUIDE_OWNED_SKILLS` and their
+absence fails before any comparison. All three variants now die — dropping
+both, dropping `design-system`, dropping `content-design` — and the baseline is
+green.
+
+That is the fifth can't-fail control in this delivery, after the substring path
+check, the `false` placeholder, the allowance cue sets, and the inert cumulative
+derivation. Every one passed its own suite while deciding nothing.
+
+### What was refuted, and what it protected
+
+- **"The contract restates its map's counts in prose with no pin."** True on
+  fact — the five numbers are correct today and nothing reads them — and
+  refuted on authority. AC-0031 assigns the journey paragraph to Review-only by
+  owner decision, which a mechanical pin would contradict rather than enforce;
+  AC-0016's negated grep is path-scoped to the core guide page, and the plan's
+  "number with two homes" Constraint is scoped to the frontend journey's
+  assertion count. The proposed pin also ignores that the sentence has four
+  byte-identical homes held together by `check-contract-drift`. Refuted on
+  authority is not refuted on fact: the staleness risk is real and unpinned.
+- **"The minimal viable thread has three homes."** Refuted, and its remedy
+  would have broken the spec: AC-0022 requires the journey to state the thread,
+  and AC-0023 is written about `DESIGN.md`'s claim and "the minimal viable
+  thread it introduces" — so both pack copies are the *specified* state, and
+  moving either would fail a criterion. The suggested equality assertion would
+  also fail today, because the journey deliberately carries the `Required`-sense
+  disambiguation that `DESIGN.md` does not.
+
+That is the second round running in which a reviewer's proposed remedy would
+have broken an acceptance criterion had it been applied on sight — the first
+being round 1's blank line, which AC-0005 forbids. Adjudication is what caught
+both.
+
+### The advisory
+
+The brief's Ready-gaps bullet still said "Wait for the other session's edits to
+settle" — the sibling of the note round 2 replaced, and the same defect: an
+instruction about the drafting episode rather than a standing condition. It now
+states what must hold, which is that the `Brief:` field and the Spec map move
+together or not at all.

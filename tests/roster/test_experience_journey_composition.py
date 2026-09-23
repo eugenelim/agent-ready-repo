@@ -396,6 +396,11 @@ def test_no_illustrative_state_list_names_a_state_outside_the_floor() -> None:
 
 OPTIONALITY = ("Required", "Optional", "Choose one")
 
+# The two skills the optionality-agreement criterion names. Held here so the
+# agreement check can fail when a guide table stops recording one, rather than
+# skipping it: a skipped comparison reports pass on no evidence.
+GUIDE_OWNED_SKILLS = ("design-system", "content-design")
+
 # Each say-this row names a skill an adopter types. The guide table that owns
 # that skill's optionality is the how-to step it belongs to; a row with no
 # owning guide (the reviewer agent) is checked for shape only.
@@ -465,6 +470,12 @@ def test_the_say_this_optionality_agrees_with_the_how_to_guides() -> None:
     optionality in its guide fails this rather than silently diverging.
     """
     guides = _guide_optionality()
+    absent = [skill for skill in GUIDE_OWNED_SKILLS if skill not in guides]
+    assert not absent, (
+        f"no how-to table records an optionality verdict for {absent}; the "
+        f"agreement below compares nothing for those skills, so their "
+        f"criterion would pass on absence"
+    )
     disagree = {}
     for row in _say_this_rows():
         skill = row[0].strip().strip("`")

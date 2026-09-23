@@ -102,7 +102,7 @@ resolver. It is not a fourth adjacent item.
 ## Ready gaps (Draft only)
 
 - Confirm or reject the three seam candidates in the Completion inventory.
-- If `frontend-experience-composition` belongs here, update its `Brief:` field and this Spec map together. Wait for the other session's edits to settle.
+- If `frontend-experience-composition` belongs here, update its `Brief:` field and this Spec map together. Make both edits together or neither: a `Brief:` field pointing at a spec the Spec map does not list leaves the coverage rollup with no entry to read.
 - Admit, merge, or reject the three adjacent candidates. Do not carry raw S-labels for the long term.
 - Run a revision-bound shaping review after those decisions.
 
