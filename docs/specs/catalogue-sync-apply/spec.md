@@ -182,8 +182,12 @@ invariant over a pure function or a single `sync` call.
 - **The before-and-after walks (AC-0041)** — TDD. Oracle: a non-dereferencing
   walk of the target, and of the source subject the criterion names for that
   source form, compared before and after each row of the table.
-- **Recipe as filter (AC-0042)** — TDD. Oracle: with no scoping flag, the
-  written set covers the recorded recipe.
+- **Recipe as filter (AC-0042)** — TDD. Oracle: with none of the four flags,
+  AC-0033 clause 1's effective selection equals the recorded recipe's lists
+  exactly, and the scope predicate excludes no admitted path. Comparing the
+  written set instead fails a correct run over a tree already matching its
+  source, where clause 3 admits nothing and the write set is the ownership
+  state alone.
 - **The scoping flags (AC-0043)** — TDD. Oracle: the written set and the printed
   plan's row set both compared against the declared subtree, for each of
   `--pack`, `--profile` and `--guides`, for a repeated `--pack`, and on
@@ -404,8 +408,9 @@ answer.
   is a reserved selector, not a scoping flag, and AC-0047 governs it.
 - [ ] **AC-0044.** A run supplying a scoping flag leaves every recorded
   identity field at its pre-run value. The derivation-wide *paths* are AC-0033
-  clause 4's second exclusion; this criterion covers the recorded fields, which
-  no clause of that definition reaches.
+  clause 4's scope exclusion, which contains no derivation-wide path; this
+  criterion covers the recorded fields, which no clause of that definition
+  reaches.
 - [ ] **AC-0045.** A `--pack` or `--profile` name absent from the recorded
   recipe enters the effective selection at AC-0033 clause 1, so clause 3 admits
   its planned paths, and the ownership state records the name in the recipe's

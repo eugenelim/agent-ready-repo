@@ -206,7 +206,7 @@ is reachable until T7 wires the parser.
 - With no scoping flag the predicate excludes nothing, so the admitted set is
   whatever AC-0033 clause 3 produced. Verifies AC-0042.
 - Under any scope, `catalogue.toml` and every `tests/conformance/**` path is
-  excluded. Verifies AC-0033 clause 4's second exclusion.
+  excluded. Verifies AC-0033 clause 4.
 - Under every scope and under none, each `packages/credbroker/**` and
   `.agentbundle/tooling/agentbundle/**` path is excluded from the write set and
   reported in the deferred count. Verifies AC-0033 clause 5 and AC-0066.
@@ -381,11 +381,21 @@ outside an apply run each exit 2.
 **Depends on:** T7
 
 **Tests:**
-- The existing walk helper generalises to any root, and the registry covers
-  every row of AC-0039's table, not only the rows this phase adds. Each case
-  walks the subject AC-0041's table names for its source form; the two
-  digest-bearing forms have no source subject and are recorded as discharged by
-  phase 2's deletion obligation rather than skipped silently. The `git+https://`
+- `walk_target_tree` already takes any root and already returns AC-0041's exact
+  tuple, so no generalisation is owed — only new call sites. The sync-level
+  registry is `SYNC_TREE_WALK_CASES` in `test_catalogue_sync.py`, which imports
+  that helper; the registry in the init test file drives `replay_derivation`,
+  not `sync`, and is not the one this task extends.
+- `SYNC_TREE_WALK_CASES`'s existing test asserts `after == before`
+  unconditionally, so it cannot express a permitted difference. The apply rows
+  need a second parametrised test over a permitted-difference expectation; the
+  no-write rows extend the existing one. Folding the apply rows into the
+  unconditional test would force its assertion to weaken for every row it
+  already holds.
+- Between them the two tests cover every row of AC-0039's table. Each case walks
+  the subject AC-0041's table names for its source form; the two digest-bearing
+  forms have no source subject and are recorded as discharged by phase 2's
+  deletion obligation rather than skipped silently. The `git+https://`
   form is discharged separately and on its own ground: its clone root is created
   under a fresh temporary directory after the before-walk and lies outside the
   adopter's tree entirely, so no adopter-owned path is reachable at either
@@ -408,7 +418,7 @@ outside an apply run each exit 2.
 **Done when:** every case in the registry runs both walks and the applied case's
 difference is an equality, not a containment.
 
-**Touches:** packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py
+**Touches:** packages/agentbundle/tests/unit/test_catalogue_sync.py
 
 ### T9: the durable outputs are current
 
