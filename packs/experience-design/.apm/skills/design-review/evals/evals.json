@@ -4,15 +4,15 @@
     {
       "id": 1,
       "prompt": "Run a design critique on the screen or flow the user provided.",
-      "expected_output": "A prioritized, severity-rated findings list. It first frames the surface \u2014 the user, the primary task, and the steps under review \u2014 so every severity call is anchored. It runs the shared quality-floor pass (all states, the accessibility floor, the reduced-motion principle) AND a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding maps to the single best-fit usability principle (or floor commitment), with accessibility misses starting at major; each carries a 0\u20134 severity naming the frequency \u00d7 impact \u00d7 persistence factors behind it. Findings are sorted worst-first under a count-by-severity headline, and each has one concrete recommendation expressed as DESIGN INTENT \u2014 never a stack-specific implementation (no framework, property, or value).",
+      "expected_output": "A prioritized, severity-rated findings list. It first frames the surface — the user, the primary task, and the steps under review — so every severity call is anchored. It runs the shared quality-floor pass (all states, the accessibility floor, the reduced-motion principle) AND a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding maps to the single best-fit usability principle (or floor commitment), with accessibility misses starting at major; each carries a 0–4 severity naming the frequency × impact × persistence factors behind it. Findings are sorted worst-first under a count-by-severity headline, and each has one concrete recommendation expressed as DESIGN INTENT — never a stack-specific implementation (no framework, property, or value).",
       "assertions": [
         "Frames the user, primary task, and steps under review before judging",
         "Runs the quality-floor pass (states, accessibility floor, reduced-motion) in addition to the heuristics, with accessibility misses starting at major",
         "Maps every finding to a single named usability principle or floor commitment",
-        "Assigns a 0\u20134 severity to each finding and names the factors that set it",
+        "Assigns a 0–4 severity to each finding and names the factors that set it",
         "Reports VisAWI-S and the UEQ Novelty scale as individual rating items, never combining them into a single score",
         "Sorts findings worst-first and leads with a count-by-severity headline",
-        "Recommendations are design intent, not stack-specific \u2014 no framework, CSS property, or literal value is prescribed"
+        "Recommendations are design intent, not stack-specific — no framework, CSS property, or literal value is prescribed"
       ]
     },
     {
@@ -28,6 +28,18 @@
       ],
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
+      ]
+    },
+    {
+      "id": "depth-aware-state-coverage-findings",
+      "prompt": "Review this prototype screen. The team says they're at explore tier. The screen has no empty state and no disabled state for its submit button, and it animates a progress bar with no reduced-motion alternative.",
+      "expected_output": "The review rates each miss against what the explore tier actually owes, read from the shared state-coverage map rather than from the whole eighteen-state set. The missing empty and disabled states are explore-tier obligations and are findings. The missing reduced-motion alternative is rated at least major, because the map records that state as failing WCAG 2.2 AA when absent and cites the criterion behind it. The review does not excuse the reduced-motion gap on the grounds that the team is at explore tier.",
+      "assertions": [
+        "Rates each miss against the explore tier's obligations rather than the full state set",
+        "Reads the tier's state subset from the shared state-coverage map",
+        "Rates the reduced-motion gap at least major and cites the success criterion the map records",
+        "Refuses to waive an accessibility-bearing state because the tier is cheap",
+        "Maps each finding to the quality-floor commitment it breaches"
       ]
     }
   ]

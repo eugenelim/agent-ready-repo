@@ -137,6 +137,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   synchronized with this change. The CLI's own contract is unchanged, so it takes
   no release of its own.
 
+## [frontend-engineering][0.3.2] — 2026-09-23
+
+### Highlights
+
+- **A surface now declares how much contract it owes, and `explore` is the
+  default.** The journey opens with a depth selector: pick the risk tier, and
+  it tells you the contract fields, the states, the gates and the captures that
+  tier carries. A tooltip and a checkout flow walk the same stages at different
+  depths, so the cheap path is a stated choice rather than a corner cut.
+- **The cheap tier never drops an accessible surface.** Every state whose
+  absence fails WCAG 2.2 AA is either already in the `explore` set or binds
+  conditionally wherever its trigger fires. Depth buys evidence and
+  completeness; it does not buy a surface someone cannot use.
+
+### Added
+
+- A `#### Pick the depth first` sub-stage in stage 1 of the journey, stating the
+  tier ladder, the `explore` state subset, which gates run at `explore`, that
+  captures do not thin with the tier, and what `explore` drops.
+- A shared state-coverage map in the experience contract, mapping each of the
+  eighteen quality-floor states to a tier band or a named trigger, and recording
+  per state whether its absence fails WCAG 2.2 AA and the success criterion
+  behind that judgement.
+- `how-to/choose-the-depth.md` — choosing a tier and reading what it owes.
+
+### Changed
+
+- Stage 2 names the three artifacts a design pack hands over —
+  `direction/<slug>.md`, `screens/<slug>/<screen>.md` and `tokens/<slug>.md` —
+  instead of asking for "the surface brief" as if from nowhere.
+- The journey states the four proportionality allowances the skill already
+  carried, so it no longer reads stricter than the skill it describes.
+- The contract's frontend section is owned by `frontend-engineering` rather than
+  `core`, which has shipped no frontend skill since the pack promotion.
+
+## [experience-design][2.0.9] — 2026-09-23
+
+### Highlights
+
+- **The say-this table now tells you which steps you can skip.** Every row
+  carries exactly one of `Required`, `Optional` or `Choose one`, resolved
+  against the how-to guide that owns that skill, so the two surfaces can no
+  longer disagree about whether a step is optional.
+- **A named minimal viable thread replaces guessing at what to drop.** Four
+  steps make the output coherent; the journey says so, and says what a skipped
+  step actually costs rather than warning against shortcuts in the abstract.
+
+### Added
+
+- `#### The minimal viable thread` and `#### Pick the depth` sub-stages in the
+  journey, and a section naming the three artifacts that cross to frontend
+  engineering by their output-directory-relative paths.
+- A `Needed?` column on the say-this table.
+- `how-to/choose-the-depth.md` — picking a depth and seeing what it still owes.
+- `frontend-engineering` in `relatedJourneys`, making the link reciprocal.
+
+### Changed
+
+- The three illustrative state lists — twice in the journey, once in the pack
+  README — showed `default`, which is not a quality-floor state, and omitted
+  `partial` and `disabled`. All three now match the `explore` subset.
+- `DESIGN.md` argued against skipping steps two lines above the section that
+  names a shortened thread. It now states what a skipped step costs, which is
+  what the thread is chosen against.
+- `design-review` loads the experience contract at its quality-floor step, so a
+  state miss is rated against what the surface's tier actually owed.
+
+## [product-engineering][0.13.17] — 2026-09-23
+
+### Highlights
+
+- **Framing a bet can now state the experience depth it commits to.** The
+  experience contract its skills read carries the shared state-coverage map and
+  the tier ladder, so an intent can name a risk tier and have that mean a
+  defined set of obligations rather than a word.
+
+### Changed
+
+- The pack's copy of the experience contract carries the shared state-coverage
+  map, and its frontend section names `frontend-engineering` as owner.
+- `frame-intent` gains an eval case covering the tier decision at intake.
+
+## [product-strategy][0.2.7] — 2026-09-23
+
+### Highlights
+
+- **Strategy work can see what the cheap tier owes without reading the whole
+  contract.** The pack's contract copy carries the shared state-coverage map
+  and the tier annotations, so a synthesis can fill its own sections at the
+  right depth and leave the rest provisional rather than guessing.
+
+### Changed
+
+- The pack's copy of the experience contract carries the shared state-coverage
+  map, and its frontend section names `frontend-engineering` as owner.
+- `synthesize-stakeholder-research` gains an eval case covering what a tier owes.
+
 ## [core][2.26.35] — 2026-09-22
 
 ### Changed

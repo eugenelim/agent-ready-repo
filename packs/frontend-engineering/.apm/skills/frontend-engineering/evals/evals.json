@@ -59,6 +59,18 @@
         "Names the missing capability and records an unverified item instead of passing a gate it could not run",
         "Records the security/privacy and reliability review status as a handoff at production tier"
       ]
+    },
+    {
+      "id": "depth-selection-state-coverage",
+      "prompt": "I'm adding a tooltip to an existing internal admin page. It has no destructive action and sits behind our normal login. How much of the experience contract do I owe, and which states must the tooltip handle?",
+      "expected_output": "The answer picks the explore tier for a tooltip on an internal tool, and reports its obligations by reading the contract's own `Required: explore+` annotations and the shared state-coverage map rather than quoting a memorised field count. It names the ten explore states. It identifies `permission/denied` as conditional and binding here because the page is behind authorization, and rules out `destructive-confirmation` because no primary action is irreversible. It states that the explore tier drops no state the map records as failing WCAG 2.2 AA when absent, and that the accessibility audit and the four-captures-per-channel rule both still apply at explore.",
+      "assertions": [
+        "Selects the explore tier and justifies it from the surface's risk and reach",
+        "Reads the field obligation from the contract's Required annotations rather than stating a remembered count",
+        "Names the explore state subset from the shared state-coverage map",
+        "Treats permission/denied as conditional and binding because the surface is gated",
+        "States that no tier drops an accessibility-bearing state and that captures do not thin with the tier"
+      ]
     }
   ]
 }

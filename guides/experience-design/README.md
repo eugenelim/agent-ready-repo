@@ -52,6 +52,9 @@ Walk these in order:
 4. [Design each screen](how-to/design-each-screen.md)
 5. [Review independently](how-to/review-independently.md)
 
+Not every thread needs every step. To pick a depth and see what it still owes,
+read [Choose how much design a surface owes](how-to/choose-the-depth.md).
+
 ## Choose by job
 
 **Understand what happens.** Use `journey-mapping` for the customer's path,
