@@ -489,6 +489,15 @@ queue   = [
   # 2026-09-09 and registered after a clean shaping review and three adversarial
   # rounds. It remains Draft and requires human approval before dispatch.
   {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
+  # Delivery spec for ADR-0123's per-update changelog design, authored from the
+  # assembly spike's figures. Approved 2026-09-23 after four adversarial and
+  # three secure-design rounds, all adjudicated clean. Three of its thresholds
+  # are lifted from measured spike runs with their base commits; the build-cost
+  # threshold is not, and the spec carries a named three-arm measurement task
+  # instead. Three decisions are reserved to Platform Core maintainers before or
+  # during execution: the `[Unreleased]` release transition, the fragment
+  # reader's numeric bounds, and the build-cost instrument-validity predicate.
+  {path = "docs/specs/product-changelog-fragments/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md"}, summary = "Author new product changelog updates as independent reviewed fragments, freeze the historical file, and generate every complete view from one shared model", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
