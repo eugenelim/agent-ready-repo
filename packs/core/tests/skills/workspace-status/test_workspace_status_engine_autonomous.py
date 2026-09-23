@@ -3737,7 +3737,68 @@ def test_dispatch_refuses_a_briefs_root_that_escapes_the_repository(tmp_path: Pa
         escaped_repo, "docs/product/briefs/outside.md", require_local_brief=True
     )
 
-    # Same slug, a real briefs directory: still admitted, so the refusal above
+    # A briefs root symlinked to the repository root is the equality case:
+    # `relative_to` succeeds on equal paths, so without a strict comparison
+    # every file in the repository becomes addressable as a brief.
+    root_repo = tmp_path / "root-repo"
+    (root_repo / "docs" / "product").mkdir(parents=True)
+    (root_repo / "secrets.md").write_text("# not a brief\n")
+    (root_repo / "docs" / "product" / "briefs").symlink_to(
+        root_repo, target_is_directory=True
+    )
+    assert mod._provenance_path_is_invalid(
+        root_repo, "brief:secrets", require_local_brief=True
+    )
+
+    # The same equality gap at the other comparison: a target resolving to the
+    # briefs directory itself is not a file beneath it.
+    self_repo = tmp_path / "self-repo"
+    self_briefs = self_repo / "docs" / "product" / "briefs"
+    self_briefs.mkdir(parents=True)
+    (self_briefs / "self.md").symlink_to(self_briefs, target_is_directory=True)
+    assert mod._provenance_path_is_invalid(
+        self_repo, "brief:self", require_local_brief=True
+    )
+
+    # A briefs root symlinked above the repository is already refused, and must
+    # stay refused.
+    above_repo = tmp_path / "above-repo"
+    (above_repo / "docs" / "product").mkdir(parents=True)
+    (above_repo / "docs" / "product" / "briefs").symlink_to(
+        tmp_path, target_is_directory=True
+    )
+    (tmp_path / "above.md").write_text("# Brief\n")
+    assert mod._provenance_path_is_invalid(
+        above_repo, "brief:above", require_local_brief=True
+    )
+
+    # Symlinks are confined, not banned. A briefs root symlinked to another
+    # directory inside the repository resolves inside the repository root, and
+    # a brief symlinked to a sibling inside the briefs directory stays beneath
+    # it: both are admitted, so an implementation that simply refused every
+    # symlink would fail here.
+    internal_repo = tmp_path / "internal-repo"
+    (internal_repo / "docs" / "product").mkdir(parents=True)
+    real_briefs = internal_repo / "docs" / "product" / "real-briefs"
+    real_briefs.mkdir()
+    (real_briefs / "linked.md").write_text("# Brief\n")
+    (internal_repo / "docs" / "product" / "briefs").symlink_to(
+        real_briefs, target_is_directory=True
+    )
+    assert not mod._provenance_path_is_invalid(
+        internal_repo, "brief:linked", require_local_brief=True
+    )
+
+    sibling_repo = tmp_path / "sibling-repo"
+    sibling_briefs = sibling_repo / "docs" / "product" / "briefs"
+    sibling_briefs.mkdir(parents=True)
+    (sibling_briefs / "target.md").write_text("# Brief\n")
+    (sibling_briefs / "alias.md").symlink_to(sibling_briefs / "target.md")
+    assert not mod._provenance_path_is_invalid(
+        sibling_repo, "brief:alias", require_local_brief=True
+    )
+
+    # Same slug, a real briefs directory: still admitted, so the refusals above
     # cannot be earned by refusing everything.
     intact_repo = tmp_path / "intact-repo"
     (intact_repo / "docs" / "product" / "briefs").mkdir(parents=True)
