@@ -292,3 +292,46 @@ out of scope.
 
 T1 was re-run after every code change in this round and reproduces 0 of 190 and
 190 of 190 with empty error buckets; the anchor still resolves to line 67.
+
+## Review round 5 — quality lane clean, adversarial four sustained
+
+**Quality lane: `Clean — ready to commit.`** after one repair round. Recorded
+with `--structural-clean-file`, not `--direct-clean-file`: the persisted report
+differs from the sentinel by one trailing newline, which is exactly the
+difference the structural form exists for. Its four round-1 findings were the
+highest-value of the whole review, and the shared-object-store defect in
+particular survived five adversarial passes unnoticed.
+
+**Adversarial: four sustained, none refuted.** Three were the same over-claim
+class as every earlier round, and the fourth was a defect in the controller's
+own reasoning.
+
+- Measurement 1 named two bases: the method said the branches were built from
+  the header's base while the retained run and the qualifying note said
+  otherwise. Every statement in that section now names `443f141f2`, and the
+  header states plainly that the report has no single base — measurements 2, 3
+  and 4 at `93bf9cc9e`, measurement 1 at its own, each figure beside the base
+  its run names.
+- The parse-cost bullet still said the run "understates per-fragment read and
+  parse cost" one sentence before conceding the effect was unknown. The
+  byte-volume mismatch is what was measured; the read and parse effect is now
+  recorded as unknown in direction and size, full stop.
+- The interleaving rationale claimed protection against time-order effects "of
+  any shape". Every retained pair runs control before fragment, so an
+  alternating effect or one acting within a pair stays aligned with the
+  fragment arm. The claim is now bounded to the gradual trend this ordering
+  actually mitigates, and says what it does not catch.
+- **`first_release_line` tested heading level, which is not the parser's
+  free-standing test.** The controller had argued that a level-2 release
+  heading is free-standing by construction because `## [Unreleased]` is itself
+  level 2. That argument is unsound: the parser derives `unreleased` from the
+  whole stack of enclosing headings, independent of depth, so a level-1
+  Unreleased region can enclose a level-2 release. It held on this file only by
+  accident of layout. The function now zips release-bearing headings against
+  release records — 351 each, equal titles, verified in source order — and
+  returns the position of the first record whose `unreleased` flag is false,
+  raising if the two sequences ever diverge in count or identity.
+
+T1 re-run after the change: 0 of 190 and 190 of 190, empty error buckets,
+anchor still at line 67, and the shared object store measured 8,309 loose
+objects before and 8,309 after.

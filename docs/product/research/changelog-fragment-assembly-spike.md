@@ -10,7 +10,11 @@ unchanged, and what the design costs the site build at scale.
 - **Owner:** eugenelim, Platform Core maintainer
 - **Base:** `93bf9cc9e`, 351 parsed release records — 59 beneath `[Unreleased]`,
   292 free-standing released entries — projecting 157 `/now/` groups and 281
-  bullets at `schemaVersion` 1, from a 598,239-byte `docs/product/changelog.md`
+  bullets at `schemaVersion` 1, from a 598,239-byte `docs/product/changelog.md`.
+  Measurements 2, 3 and 4 were taken here. Measurement 1's retained run is at
+  `443f141f2`, because its script was corrected during review and re-run each
+  time; that section names its own base, and every figure below sits beside the
+  base its own run names.
 - **Verdict:** **survive.** Merge independence, determinism and `/now/` parity
   all clear their thresholds. Build cost misses its threshold and does not enter
   the aggregation — see [Verdict](#verdict)
@@ -89,9 +93,11 @@ changelog bytes  : 598239
 
 ## Measurement 1 — fragment branches merge clean where monolith branches do not
 
-Twenty synthetic branches per arm, built off `93bf9cc9e` as detached commit
-objects through a scratch `GIT_INDEX_FILE` so the run cannot disturb a worktree
-a coordination lease may be sharing. Each fragment-arm branch adds one
+Twenty synthetic branches per arm, built off `443f141f2` — this measurement's
+base, which is not the base in the header; see the note after the run — as
+detached commit objects through a scratch `GIT_INDEX_FILE` and a private object
+directory, so the run disturbs neither a worktree a coordination lease may be
+sharing nor the shared object store. Each fragment-arm branch adds one
 `docs/product/changelog.d/<uuid>.md` and nothing else; each control-arm branch
 instead prepends one release section to `docs/product/changelog.md` at the
 shared insertion anchor a new release actually takes. All 190 unordered pairs of
@@ -106,7 +112,7 @@ exercise the classifier before either figure is taken.
 
 ```
 $ python3 tools/measure-changelog-fragment-merges.py
-base commit: a10bd42656b003d2db92f65f8deaa3fd2f89ba7a
+base commit: 443f141f2ecb007dcc913ff1404ae9938228d3c4
 branches per arm: 20   unordered pairs per arm: 190
 
 classifier self-check (runs before either arm's figure is taken):
@@ -130,13 +136,13 @@ in the fragment arm. The error bucket is empty in both, so neither figure is a
 harness artefact. A clean-checkout run exits 0 and leaves `git status
 --porcelain` empty.
 
-**This measurement's base is `a10bd4265`, not the `93bf9cc9e` in the header.**
-The script names whichever commit it ran against, and it was re-run as the
-script itself was corrected during review. The counts above are recorded
-against `a10bd4265` and no equivalent run at `93bf9cc9e` is retained, so no
-claim is made here that they also hold there. The other three measurements were
-taken at `93bf9cc9e`; each figure in this report is recorded beside the base its
-own run names.
+**This measurement's base is `443f141f2`, not the `93bf9cc9e` in the header.**
+The script names whichever commit it ran against, and it was re-run after each
+of the five corrections review made to it. The counts above are recorded
+against `443f141f2`; no run at `93bf9cc9e` is retained, so nothing here claims
+they also hold at the header's base. The other three measurements were taken at
+`93bf9cc9e`. Each figure in this report is recorded beside the base its own run
+names, which is what the spec requires; the report has no single base.
 
 **SURVIVE.** § 7 Mergeability requires no changelog-path conflict when fragment
 IDs differ: 0 of 190 conflicting pairs, against a control arm at 190 of 190.
@@ -443,9 +449,11 @@ demanding of the two readings.
 
 Arms interleave and each discards one unmeasured warm-up. Nothing here measures
 page cache, tool warm-up or thermal state, so no claim is made about how they
-move; interleaving is protection against time-order effects of any shape, which
-a block design would fold straight into the median difference the 10% bar
-reads.
+move. Interleaving mitigates a gradual trend across the session, which a
+blocked design would fold straight into the median difference the 10% bar
+reads. It is not general protection: every retained pair runs control before
+fragment, so an alternating effect, or one acting within a pair, stays aligned
+with the fragment arm and this design would not separate it.
 
 ```
 $ python3 timeruns.py --clone <clone> --base 93bf9cc9e --runs 5 --corpus 2920
@@ -609,10 +617,10 @@ quiet machine before setting any threshold.
 
   Ten times the entry count is only 1.36 times the byte volume of the existing
   598,239-byte changelog, because each synthetic body is one short bullet where
-  a real entry runs to paragraphs and several. So the run understates
-  per-fragment read and parse cost. This run never isolated the parse phase, so
-  the understatement's effect on the figure is unknown; what it does mean is
-  that this run cannot be cited for parse cost at all.
+  a real entry runs to paragraphs and several. That byte-volume mismatch is
+  what was measured. Its effect on read and parse cost is unknown in both
+  direction and size, because the run never isolated the parse phase, so this
+  run cannot be cited for parse cost.
 - **ADR-0123's fifth Confirmation signal** — that regeneration leaves no tracked
   diff — and § 7's rows for Git cleanliness, Failure diagnosability, and
   Dependency and privacy posture. These are delivery verification obligations:

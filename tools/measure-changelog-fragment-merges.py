@@ -250,21 +250,29 @@ def load_build_site() -> object:
 def first_release_line(build_site: Any, changelog: str) -> int:
     """Zero-based line index of the first free-standing release heading.
 
-    Delegates to `parse_changelog_releases` rather than scanning lines. Which
-    `##` lines are real headings is decided by that parser's fence and comment
-    state machine, and `ParsedChangelog.headings` is exported precisely so a
-    caller needing heading POSITION does not re-derive it.
+    Delegates to `parse_changelog_releases` on three counts, because each one
+    is a rule this script would otherwise re-derive and drift from.
 
-    Selection is by POSITION and release identity, never by heading text.
+    *Which `##` lines are real* is decided by the parser's fence and comment
+    state machine; `ParsedChangelog.headings` is exported precisely so a caller
+    needing heading POSITION does not rewrite it.
+
+    *Which occurrence* is decided by source position, never by heading text.
     `changelog.md` repeats release headings -- the parser ships a slugger whose
-    only job is disambiguating them -- so matching the first heading whose title
-    equals some chosen release can land on an earlier duplicate and insert where
-    that release does not sit. Scanning headings in source order and asking the
-    parser's own identity predicate cannot pick a different occurrence.
+    only job is disambiguating them -- so matching the first heading whose
+    title equals a chosen release can land on an earlier duplicate.
 
-    A level-2 heading carrying a release identity is free-standing by
-    construction: `## [Unreleased]` is itself level 2, so entries beneath it are
-    level 3 or deeper and never satisfy both tests.
+    *Which releases are free-standing* is decided by the parser's `unreleased`
+    flag, which it derives from the whole stack of enclosing headings and not
+    from depth. Testing for level 2 instead would be wrong in general: a
+    level-1 `Unreleased` region can enclose a level-2 release, and that release
+    is not free-standing however shallow its heading. It holds on today's file
+    only by accident of layout.
+
+    Release-bearing headings and release records are the same sequence in
+    source order, so they zip. That is asserted rather than assumed: a
+    divergence means one of the two rules above has moved, and this fails
+    closed rather than inserting at a guessed position.
     """
     identity = getattr(build_site, "_parse_release_identity", None)
     if identity is None:
@@ -273,8 +281,21 @@ def first_release_line(build_site: Any, changelog: str) -> int:
             "guess which heading a release occupies"
         )
     parsed = build_site.parse_changelog_releases(changelog)
-    for heading in parsed.headings:
-        if heading.level == 2 and identity(heading.title) is not None:
+    bearing = [h for h in parsed.headings if identity(h.title) is not None]
+    if len(bearing) != len(parsed.releases):
+        raise RuntimeError(
+            f"{CHANGELOG}: {len(bearing)} release-bearing headings against "
+            f"{len(parsed.releases)} release records; the parser and this "
+            "script disagree about what a release heading is"
+        )
+    for heading, record in zip(bearing, parsed.releases, strict=True):
+        if heading.title != record["heading"]:
+            raise RuntimeError(
+                f"{CHANGELOG}: heading {heading.title!r} at line "
+                f"{heading.lineno} does not pair with release record "
+                f"{record['heading']!r}; source order diverged"
+            )
+        if not record["unreleased"]:
             return heading.lineno - 1
     raise RuntimeError(f"{CHANGELOG} has no free-standing released entry")
 
