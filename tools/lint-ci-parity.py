@@ -1416,6 +1416,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
         ),
+    'tools/test_intent_corpus_gate.py':
+        NO_PR_GATE(
+            "Asserts docs.yml's lint-intent-corpus job still invokes the intent "
+            "corpus lint and the typed-ordinal --check, and re-proves both "
+            "premises against seeded fixtures. The controls themselves ARE "
+            "pull-request gated, by that job; this suite only guards their "
+            "wiring, and gating it would cost the lean job a pip install for "
+            "pytest. `make test` runs it; CI reaches it through the "
+            "dispatch-only test-corpus.yml."
+        ),
     'tools/test_workspace_status.py':
         PR_GATED(
             "build-check.yml / gate-main / Run make build-check"
