@@ -973,7 +973,10 @@ separately.
 ### Release surface
 
 `packs/core/pack.toml` and `.claude-plugin/plugin.json` both bumped
-**2.26.29 → 2.26.30**, one patch, matching. Changelog entry added directly
+**2.26.29 → 2.26.30** at the time, one patch, matching. The rebase onto
+`origin/main` on 2026-09-22 found `2.26.30` already released by another change
+and `2.26.35` current, with a peer session holding `2.26.36`; both files were
+renumbered to **2.26.37** to clear all three. Changelog entry added directly
 beneath `[Unreleased]` as a free-standing release heading; it names the retained
 path and bare-slug fallbacks and says which reader accepts which, not only the
 new canonical form.
@@ -1064,7 +1067,9 @@ than edited underneath them.
 
 `packages/AGENTS.md:7` requires a non-cosmetic package change to update both
 `version.py` and `pyproject.toml`. The bundled engine changed (+52/−3) and both
-still read `0.47.3`. Bumped to `0.47.4` with a changelog entry.
+still read `0.47.3`. Bumped to `0.47.4` with a changelog entry, then
+renumbered to **0.48.1** in the same rebase, because `origin/main` had reached
+`0.48.0`.
 
 That is **two** scoped version-bump rules this contract missed, in two different
 `AGENTS.md` files, both found by review rather than by the plan. The packs rule

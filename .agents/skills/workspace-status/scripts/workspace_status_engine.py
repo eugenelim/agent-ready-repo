@@ -1855,12 +1855,24 @@ def _confined_briefs_path(root: Path, rel_path: str) -> bool:
     `docs/product/briefs/` a symlink to an external directory and every
     target under it is correctly beneath the resolved briefs root while the
     root has escaped the repository.
+
+    Both halves are strict. `relative_to` succeeds on equal paths, so each
+    comparison rejects its equal case separately: a briefs root symlinked to
+    the repository root would otherwise admit any file in the repository, and
+    a target symlinked to the briefs directory is not a file beneath it.
     """
     try:
         root_resolved = root.resolve()
         briefs_root = (root_resolved / "docs" / "product" / "briefs").resolve()
+        # The briefs root is confined before the candidate is resolved, so a
+        # briefs root that already escaped never sends resolution walking
+        # through an untrusted tree.
+        if briefs_root == root_resolved:
+            return False
         briefs_root.relative_to(root_resolved)
         candidate = (root_resolved / rel_path).resolve()
+        if candidate == briefs_root:
+            return False
         candidate.relative_to(briefs_root)
         return True
     except (OSError, RuntimeError, ValueError):
