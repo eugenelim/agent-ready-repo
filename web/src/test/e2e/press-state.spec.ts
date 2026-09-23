@@ -2,35 +2,65 @@
  * The press state, read from the browser rather than from the stylesheet.
  *
  * WHY THIS EXISTS SEPARATELY FROM THE STATIC GUARD. `press-state-coverage.test.ts`
- * proves every hover-styled control has an `:active` rule and that the rule is
- * on the idiom. It cannot prove the rule reaches the element: a selector that
- * never matches, a later rule that out-ranks it, or a token that resolves to
- * the colour already there all pass a source parse and produce no press. Only
- * a rendered page settles it.
+ * proves every hover-styled control has an `:active` rule on the idiom. It
+ * cannot prove the rule reaches the element, and it cannot resolve the text
+ * colour of a control that inherits one. Only a rendered page settles either.
  *
- * NEITHER GATE ALREADY COVERS THIS. axe does not test `:active` — it scans the
- * resting DOM. The site quality gate asserts focus and hover, not press.
+ * NEITHER EXISTING GATE COVERS THIS. axe scans the resting DOM and never enters
+ * `:active`; the site quality gate asserts focus and hover, not press.
+ *
+ * THREE THINGS THIS FILE GOT WRONG ONCE, ALL OF WHICH PASSED GREEN.
+ *
+ * 1. It pressed links, and a press on a link is a click. The first link press
+ *    navigated, and every control after it was measured on whatever page the
+ *    browser had landed on -- reported under the name of the route the test
+ *    thought it was on. Across six routes it reached four to six of the
+ *    the derived controls and reported them all as passing. Clicks are
+ *    suppressed below, and the URL is asserted unchanged after every press.
+ * 2. Its only coverage floor was `measured.length > 0`, which one matching
+ *    control satisfies. The derived set is now reconciled against what was
+ *    actually measured, and an unreached control fails by name.
+ * 3. It read computed styles mid-transition. See `stylesOf`.
  *
  * THE SANITY GATE IS NOT OPTIONAL. A 404ing stylesheet still renders readable
  * HTML, so every computed style taken against it is plausible and worthless.
- * The paper ground is asserted before any measurement is recorded.
  */
 import { test, expect, type Page } from '@playwright/test';
-import { hoverControls, contrast, TEXT_FLOOR, type Control } from '../press-state-selectors';
+import {
+  hoverControls,
+  resolveColor,
+  contrast,
+  TEXT_FLOOR,
+  type Control,
+} from '../press-state-selectors';
 import { withBase } from './site-base';
 import { gotoSettled, label } from './quality-assertions';
 
-/** The paper page ground, `--ds-surface`. Nothing is measured until this holds. */
-const PAPER_GROUND = 'rgb(247, 245, 240)';
+/** The paper page ground. Resolved from the token graph, never restated: a
+ *  hardcoded value turns a deliberate ground change into "the stylesheet did
+ *  not load", which points at the wrong file. */
+const PAPER_GROUND = (() => {
+  const hex = resolveColor('var(--ds-surface)');
+  if (!hex) throw new Error('--ds-surface does not resolve; the token graph moved');
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgb(${r}, ${g}, ${b})`;
+})();
 
-/** Routes that between them render the derived controls. */
+/**
+ * Routes that between them must render every derived control. Hand-listed, and
+ * that is safe only because the reconciliation below fails when this list stops
+ * covering the derived set -- the list cannot go stale silently.
+ */
 const ROUTES = [
   '/',
   '/catalogue/',
   '/packs/core/',
+  '/packs/figma/',
   '/journeys/',
   '/journeys/core/',
   '/now/',
+  '/404/',
+  '/primitives-fixture/',
 ] as const;
 
 const CONTROLS: Control[] = hoverControls();
@@ -40,28 +70,16 @@ interface Styles {
   color: string;
 }
 
-/**
- * Read a control's computed style, and the ground it actually renders against.
- *
- * TWO THINGS THIS GETS RIGHT THAT THE OBVIOUS READ DOES NOT.
- *
- * Settling. Several controls transition `background-color` or `color`, so a
- * read taken straight after the press catches an interpolated value. An
- * earlier version scored `#666157` — partway between the muted rest ink and
- * the raised hover ink — against the 4.5:1 floor, and a rerun went green,
- * which is how this kind of defect survives. Waiting for "two frames agree" is
- * not enough either: the two frames immediately after `mouse.down()` agree at
- * the OLD value, because the transition has not started yet. So the loop
- * requires a minimum number of frames AND a run of agreeing ones.
- *
- * Compositing. `rgba(0, 0, 0, 0)` is transparent, not black. Treating it as a
- * colour scored text against `#000000` and reported 1.47:1 for a control that
- * renders on paper. The real ground is the nearest ancestor that paints one.
- */
 async function stylesOf(page: Page, selector: string): Promise<Styles> {
   return page.locator(selector).first().evaluate(async (el) => {
+    // Settling. Several controls transition their ground or ink, so a read
+    // taken straight after the press catches an interpolated value -- once,
+    // `#666157`, partway between two inks and on the page for a few frames.
+    // "Two frames agree" is not enough either: the frames immediately after
+    // mousedown agree at the OLD value, because the transition has not started.
     const MIN_FRAMES = 6;
     const STABLE_FRAMES = 3;
+    const CAP = 180;
     const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     const parse = (c: string): [number, number, number, number] | null => {
@@ -69,7 +87,8 @@ async function stylesOf(page: Page, selector: string): Promise<Styles> {
       return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null;
     };
 
-    /** The painted ground: composite this element's background over its ancestors'. */
+    // `rgba(0, 0, 0, 0)` is transparent, not black. Treating it as a colour
+    // scored text against #000000 and reported 1.47:1 for a control on paper.
     const ground = (): string => {
       const layers: [number, number, number, number][] = [];
       for (let node: Element | null = el as Element; node; node = node.parentElement) {
@@ -78,8 +97,7 @@ async function stylesOf(page: Page, selector: string): Promise<Styles> {
         layers.push(c);
         if (c[3] === 1) break;
       }
-      if (!layers.length) return 'rgb(255, 255, 255)'; // the canvas default
-      // Bottom-most opaque layer first, then composite each layer above it.
+      if (!layers.length) return 'rgb(255, 255, 255)';
       let [r, g, b] = layers[layers.length - 1];
       for (let i = layers.length - 2; i >= 0; i -= 1) {
         const [nr, ng, nb, na] = layers[i];
@@ -94,7 +112,7 @@ async function stylesOf(page: Page, selector: string): Promise<Styles> {
 
     let previous = read();
     let agreed = 0;
-    for (let i = 0; i < 180; i += 1) {
+    for (let i = 0; i < CAP; i += 1) {
       await frame();
       const current = read();
       const same = current.background === previous.background && current.color === previous.color;
@@ -102,43 +120,61 @@ async function stylesOf(page: Page, selector: string): Promise<Styles> {
       previous = current;
       if (i >= MIN_FRAMES && agreed >= STABLE_FRAMES) return current;
     }
-    return previous;
+    // Failing open here is what the flake looked like, so say so instead.
+    throw new Error(`style never settled within ${CAP} frames; last read ${JSON.stringify(previous)}`);
   });
 }
 
-function toHex(rgb: string): string | null {
-  const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(rgb);
-  if (!m) return null;
-  return `#${[1, 2, 3].map((i) => Number(m[i]).toString(16).padStart(2, '0')).join('')}`;
+function toRgb(value: string): [number, number, number, number] | null {
+  const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(value);
+  return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null;
+}
+
+function hexOf(value: string): string | null {
+  const c = toRgb(value);
+  if (!c) return null;
+  return `#${c.slice(0, 3).map((n) => (n as number).toString(16).padStart(2, '0')).join('')}`;
 }
 
 test.describe('press state', () => {
   test('the control set is derived and non-empty', () => {
-    // A spec that derives an empty set passes every route below silently.
     expect(CONTROLS.length).toBeGreaterThan(0);
   });
 
-  for (const route of ROUTES) {
-    test(`${route} acknowledges a press on every control it renders`, async ({ page }) => {
+  // One test, not one per route: the reconciliation at the end needs the union
+  // of what every route measured, and Playwright gives parallel tests no shared
+  // state to accumulate it in.
+  test('every derived control acknowledges a press, everywhere it renders', async ({ page }) => {
+    // Every route by every derived control, each read three times with a
+    // frame-accurate settle. The work is the point; the default 30s is not a
+    // budget this can meet, and trimming reads to fit it is how coverage was
+    // lost the first time.
+    test.setTimeout(600_000);
+    // A press on a link is a click, and a click navigates. Suppressing it in
+    // the capture phase leaves :active behaviour untouched while keeping the
+    // test on the page it says it is on.
+    await page.addInitScript(() => {
+      document.addEventListener('click', (e) => e.preventDefault(), true);
+      document.addEventListener('submit', (e) => e.preventDefault(), true);
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+
+    const measured = new Set<string>();
+    const failures: string[] = [];
+
+    for (const route of ROUTES) {
       const ctx = { route, width: 1440 };
-      await page.setViewportSize({ width: 1440, height: 900 });
-      // The site's own reduced-motion rules set `transition: none` on the
-      // controls that animate. Using production's mechanism to stop the
-      // animation is steadier than injecting a stylesheet the site never ships,
-      // and the direction sheet commits to `[still]` motion anyway, so no press
-      // state depends on a transition to be visible.
-      await page.emulateMedia({ reducedMotion: 'reduce' });
       await gotoSettled(page, withBase(route), ctx);
 
       const ground = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
       expect(
         ground,
-        `${label(ctx)}: body ground is ${ground}, not the paper ground. The stylesheet ` +
-          `did not load, and every measurement taken against this page would be worthless.`
+        `${label(ctx)}: body ground is ${ground}, not ${PAPER_GROUND}. The stylesheet did ` +
+          `not load, and every measurement taken against this page would be worthless.`
       ).toBe(PAPER_GROUND);
 
-      const measured: string[] = [];
-      const failures: string[] = [];
+      const before = page.url();
 
       for (const control of CONTROLS) {
         const target = page.locator(control.pressTarget).first();
@@ -152,36 +188,54 @@ test.describe('press state', () => {
         try {
           press = await stylesOf(page, control.measureTarget);
         } finally {
-          // Releasing inside a finally matters: a held button leaks into the
-          // next control's hover reading and every later measurement on the page.
           await page.mouse.up();
         }
 
-        measured.push(control.pressTarget);
+        // Guard on the guard: if suppression ever stops working, every later
+        // reading on this route is against the wrong document.
+        expect(
+          page.url(),
+          `${label(ctx)}: pressing ${control.pressTarget} navigated. Every reading after ` +
+            `this one would be taken on a different page.`
+        ).toBe(before);
+
+        measured.add(control.pressTarget);
+        const where = `${control.pressTarget} on ${route} (${control.file})`;
 
         if (press.background === hover.background) {
           failures.push(
-            `${control.pressTarget} (${control.file})\n` +
-              `      rest ${rest.background} / hover ${hover.background} / press ${press.background}\n` +
+            `${where}\n      rest ${rest.background} / hover ${hover.background} / press ${press.background}\n` +
               `      press is indistinguishable from hover`
           );
         }
 
-        const bg = toHex(press.background);
-        const fg = toHex(press.color);
-        if (bg && fg) {
-          const ratio = contrast(fg, bg);
-          if (ratio < TEXT_FLOOR) {
-            failures.push(
-              `${control.pressTarget} (${control.file})\n` +
-                `      held: ${fg} on ${bg} is ${ratio.toFixed(2)}:1, under ${TEXT_FLOOR}:1`
-            );
-          }
+        const bg = hexOf(press.background);
+        const fg = hexOf(press.color);
+        if (!bg || !fg) {
+          failures.push(`${where}\n      unreadable colour: bg=${press.background} fg=${press.color}`);
+        } else if (contrast(fg, bg) < TEXT_FLOOR) {
+          failures.push(
+            `${where}\n      held: ${fg} on ${bg} is ${contrast(fg, bg).toFixed(2)}:1, under ${TEXT_FLOOR}:1`
+          );
         }
       }
+    }
 
-      expect(measured.length, `${label(ctx)}: no derived control was reachable`).toBeGreaterThan(0);
-      expect(failures, `${label(ctx)}: ${failures.length} control(s):\n\n  ${failures.join('\n\n  ')}`).toEqual([]);
-    });
-  }
+    // The coverage floor and the press results are reported together: an
+    // earlier version asserted coverage first, so a coverage gap hid every
+    // press failure behind it and each round of repair revealed the next one.
+    const unreached = [...new Set(CONTROLS.map((c) => c.pressTarget))].filter((s) => !measured.has(s));
+    const problems = [
+      ...unreached.map(
+        (s) => `${s}\n      renders on none of the ${ROUTES.length} routes, so no press was measured`
+      ),
+      ...failures,
+    ];
+
+    expect(
+      problems,
+      `${problems.length} problem(s) across ${measured.size} measured control(s):\n\n  ` +
+        problems.join('\n\n  ')
+    ).toEqual([]);
+  });
 });

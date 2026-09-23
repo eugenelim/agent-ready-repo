@@ -28,7 +28,7 @@ read in a browser rather than asserted from the stylesheet.
 
 ## What Changes
 
-- One new paper primitive, `--prim-record-700`, filling the ramp's 600→800 gap — `web/src/styles/tokens.css`
+- Two new paper primitives — `--prim-record-700`, filling the ramp's 600→800 gap, and `--prim-record-250`, a pressed ground no hover rule already occupies — `web/src/styles/tokens.css`
 - Four semantic press tokens, `--ds-cta-primary-bg-active`, `--ds-surface-pressed`, `--ds-surface-pressed-dk` and `--ds-state-warn-fg-pressed` — `web/src/styles/tokens.css`
 - An `:active` rule beside every `:hover` rule that styles an interactive control — 18 files under `web/src/components/` and `web/src/pages/`
 - A derived static guard that every hover-bearing control carries an `:active` sibling — `web/src/test/`
@@ -83,10 +83,11 @@ read in a browser rather than asserted from the stylesheet.
 ## Acceptance Criteria
 
 - [x] **AC1 — Every hover-bearing control has a press state.** The static derivation guard passes: for every rule in `web/src` whose selector carries `:hover` and whose subject is an interactive control, an `:active` rule exists for the same control. *Verified by:* the static derivation guard, run with one control's `:active` rule deleted to prove it reds.
-- [x] **AC2 — The press state is visible in a browser.** For every derived control the browser measurement reaches, the computed style while held differs from the computed style on hover. *Verified by:* the Playwright press measurement, on a page whose `document.body` background computes to `rgb(247, 245, 240)`.
-- [x] **AC3 — One idiom, applied uniformly.** Every `:active` rule sets one ground property, drawn from `--ds-cta-primary-bg-active`, `--ds-surface-pressed` or `--ds-surface-pressed-dk`. It may also set `color` — and only `color` — where the guard computes that the new ground would otherwise drop the control's text below 4.5:1; the raised value is a semantic token that clears the floor. Which controls those are is computed from the resolved token values, never listed. *Verified by:* a parse of the `:active` rules that resolves every token to a colour, computes the contrast, and reds both on a press rule off the idiom and on an ink raise the floor did not require.
+- [x] **AC2 — The press state is visible in a browser.** For every derived control, the computed style while held differs from the computed style on hover. The measured set is reconciled against the derived set, so a control no route renders fails by name rather than being skipped, and the URL is asserted unchanged after every press so a navigation cannot be recorded as a measurement. *Verified by:* the Playwright press measurement, on pages whose `document.body` background computes to the resolved value of `--ds-surface`.
+- [x] **AC3 — One idiom, applied uniformly.** Every `:active` rule sets one ground property, drawn from `--ds-cta-primary-bg-active`, `--ds-surface-pressed` or `--ds-surface-pressed-dk`. It may also set `color` — and only `color` — where the guard computes that the new ground would otherwise drop the control's text below 4.5:1 on **either** the hovered or the unhovered press path; the raised value is a semantic token that clears the floor. Which controls those are is computed from the resolved token values, never listed. *Verified by:* a parse of the `:active` rules that resolves every token to a colour, computes the contrast, and reds both on a press rule off the idiom and on an ink raise the floor did not require.
+- [x] **AC3b — No press ground duplicates its own hover ground.** For every control, the resolved `:active` ground differs from the resolved `:hover` ground. *Verified by:* the guard's equality check, run with a press token repointed at its hover token to prove it reds.
 - [x] **AC3a — The carrier class is derived, not listed.** Which of the three grounds a control takes follows from the control's own computed hover ground: an ink hover ground takes the ink press, a dark-band carrier takes the dark press, everything else takes the paper press. *Verified by:* the guard deriving the class and reding when a press rule takes a ground its carrier does not imply.
-- [x] **AC4 — No press state is illegible.** Text on each pressed ground measures at least 4.5:1 against the text colour that renders on it. *Verified by:* the numeric contrast assertion over each pressed-ground/text pair, and axe on the affected routes.
+- [x] **AC4 — No press state is illegible.** Text on each pressed ground measures at least 4.5:1 against the text colour that renders on it, on both the hovered press path and the unhovered one a touch tap, a keyboard activation or a press-and-drag-off takes. *Verified by:* the numeric contrast assertion over each pressed-ground/text pair, and axe on the affected routes.
 - [x] **AC5 — The token reference matches the tokens.** `design-system.md` §1 contains the four new tokens and matches the generator's output. *Verified by:* `design-system-projection.test.ts`.
 - [x] **AC6 — The gates that guard this surface stay green.** `npm test --prefix web`, `npm run lint:css --prefix web`, `npx html-validate 'build/**/*.html'`, `tools/check-rendered-site-links.py`, and the Playwright site-quality gate all pass. *Verified by:* running each and recording its result.
 
@@ -101,7 +102,15 @@ read in a browser rather than asserted from the stylesheet.
 
 - **2026-09-23 — AC3 amended, owner-approved in session.** As approved, AC3 required every press rule to move the ground "and nothing else". Execution measured that two controls on the warn panel cannot satisfy that and the 4.5:1 text floor at the same time, and that no ground value exists that does. AC3 now permits a `color` declaration alongside the ground, only where the guard computes the floor requires it, and AC3a was added so the carrier class stays derived rather than listed. One semantic token, `--ds-state-warn-fg-pressed`, was added to carry the raised warn foreground at 6.59:1.
 
+- **2026-09-23 — Second amendment, after review, owner-approved in session.** Four reviewers and a repaired measurement found the first implementation's evidence unsound and two of its grounds wrong.
+  - `--ds-surface-pressed` moved from `--prim-record-200` to a new `--prim-record-250`. `record-200` is `--ds-border`'s value, so two controls whose hover already set `--ds-border` rendered no press at all. The new primitive prevents the collision for every paper control rather than for the two that happened to collide, and improves the paper ground shift from 1.30:1 to 1.51:1.
+  - AC3's floor test now reads **both** press paths. It asked only whether the *hovered* ink cleared the pressed ground, which scored `.decision-chip` at 10.03:1 on a label it only has while hovered; unhovered it measures 1.30:1. Five controls gained a floor-driven ink raise as a result.
+  - AC3b was added, because nothing asserted the one property the change exists for.
+  - AC2 gained set reconciliation and a per-press URL assertion. The original measurement pressed links, navigated, and read every later control on a different page while reporting the route it believed it was on; it covered four to six controls and passed.
+  - The browser measurement joined `test:e2e:gate`. It had guarded nothing.
+
 ## Follow-ons
 
 - Whether hover itself should be retuned now that press sits beyond it on the same axis. Out of scope: this change adds a state and retunes nothing.
+- `PackCard.astro` has no importer anywhere in `web/src` and renders on no route, so its press rule is dead. The measurement reports it rather than hiding it. Deleting a component is not this change's to do.
 - `--prim-record-700` is currently consumed only by `--ds-cta-primary-bg-active`. Whether the paper ramp wants a general 700 role is a direction-sheet question, not this change's.

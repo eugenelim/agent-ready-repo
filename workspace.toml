@@ -1267,32 +1267,43 @@ open = [
   # from its body. Nothing here is caught by any screen gate.
   # Unblocks when: ready now.
 
-  # CLOSED 2026-09-23 by docs/specs/marketing-site-press-state, registered below.
+  # CLOSED 2026-09-23 by docs/specs/marketing-site-press-state.
+  # No canonical entry: this collection admits a non-defect entry at Status
+  # Draft only (see its header), and that spec is Shipped. The finding was
+  # never a dispatchable record and does not become one by being closed.
   # Every hover-styled control now shifts its ground under a press, through one
   # of three tokens picked from the control's own carrier. The owner decision,
   # the refused alternatives and the two measured exceptions are in
   # docs/design/direction/marketing-site.md, Owner decisions 2026-09-23.
   # THE COUNT IN THE ORIGINAL ENTRY WAS WRONG, which is the durable lesson here:
-  # "28 interactive classes" was stale when written and a later re-count said 33
-  # selectors, which also counted comments and test files. The real figure is 33
-  # hover-styled controls across 18 files, and nothing states it -- the guard
-  # derives the set from the sources on every run, so the next control added is
-  # covered without editing a list. Two earlier CI failures on this surface came
-  # from hardcoded lists going stale the same way.
+  # "28 interactive classes" was stale when written, a later re-count said 33 and
+  # also counted comments and test files, and a first pass at the remedy wrote a
+  # third figure into four files that promptly disagreed with each other. No
+  # count is stated anywhere now -- the guard derives the set from the sources on
+  # every run, so the next control added is covered without editing a list. Two
+  # earlier CI failures on this surface came from hardcoded lists going stale.
   # Two measured exceptions, both recorded rather than smoothed over: the dark
   # close band gets 1.94:1 of ground shift, the most that ramp affords while
   # keeping footer link text above 4.5:1; and the two controls on the warn panel
   # have no headroom for any ground shift, so they raise their ink as well.
-  # Neither axe nor the browser quality gate can see a press, so the proof is
-  # web/src/test/e2e/press-state.spec.ts plus the static companion
-  # web/src/test/press-state-coverage.test.ts. Both mutation-checked six ways.
+  # Neither axe nor the browser quality gate could see a press, so the proof is
+  # web/src/test/e2e/press-state.spec.ts -- now inside `npm run test:e2e:gate`,
+  # whose allowlist is byte-pinned in tools/test-pages-workflow.py -- plus the
+  # static companion web/src/test/press-state-coverage.test.ts. Both are
+  # mutation-checked; the harness and its results are in the spec's plan.
+  # A FIRST ATTEMPT AT THE BROWSER PROOF PASSED WHILE MEASURING ALMOST NOTHING:
+  # a press on a link is a click, so the first link press navigated and every
+  # later control was read on whatever page the browser had reached, under the
+  # name of the route the test believed it was on. It covered four to six
+  # controls of the derived set and reported them green. The spec now suppresses
+  # clicks, asserts the URL is unchanged after every press, and reconciles the
+  # measured set against the derived one so an unreached control fails by name.
   # The original entry, for the record:
   # MINOR. 0 of 28 interactive classes distinguish `:active` from `:hover`, so a
   # press produces no feedback distinct from a pointer resting. All 28 do have a
   # focus style, and all 12 hover changes are colour-only with nothing disclosed
   # on hover alone — so this is a polish gap, not an accessibility one.
   # Unblocks when: ready now.
-  { path = "docs/specs/marketing-site-press-state/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Give every hover-styled control on the marketing site a derived, uniform :active ground shift, with the control set computed from the sources rather than listed", needs = [] },
 
   # RESOLVED 2026-09-22. The type scale gained the two steps it was missing and
   # all 11 literals are tokens. Grouped by role the 11 were three things:

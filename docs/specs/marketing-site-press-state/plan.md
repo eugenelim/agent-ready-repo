@@ -22,9 +22,9 @@ workspace repair close it.
 
 The riskiest part is not the CSS. It is that the guard must derive its selector
 set from the sources rather than carry a list: the recorded finding for this
-work was itself stated as "0 of 28 interactive classes", the true figure is 31
-rules, and two earlier CI failures on this surface came from stale hardcoded
-lists. A guard that enumerates would be a fourth instance of the same defect.
+work was itself stated as "0 of 28 interactive classes", that figure was wrong
+when written, and two earlier CI failures on this surface came from stale
+hardcoded lists. A guard that enumerates would be a fourth instance of the same defect.
 
 The second risk is the dark close band. The chosen ground-shift idiom is strong
 on paper — the pressed ground sits about 10:1 from the page ground — and weak on
@@ -151,6 +151,31 @@ retired. Register the spec under an initiative.
 
 **Done when:** `python3 tools/lint-spec-status.py --root .` passes and
 `workspace-status` reports the entry as canonical.
+
+## Mutation evidence
+
+The single record of what was mutated and what it killed. Stated once, here,
+because an earlier pass wrote the count into three places and they disagreed.
+Each mutation was applied by copying the file to `/tmp` and copying it back --
+never `git checkout`, which restores to HEAD and silently deletes an uncommitted
+fix.
+
+| Mutation | Kills |
+| --- | --- |
+| Delete one control's `:active` rule | coverage |
+| Point a press rule at the wrong carrier's token | AC3a carrier derivation |
+| Repoint a press ground at its own hover ground | AC3b |
+| Drop a required ink raise | unhovered floor |
+| Add an ink raise the floor does not require | two-sided floor test |
+| Reach `--ds-clearance` from a press rule | mark fence |
+| Equalise the press and hover tokens in `tokens.css` | browser: indistinguishable |
+| Retune `--ds-surface` | browser: paper-ground sanity gate |
+| Remove a route from the spec's list | browser: set reconciliation |
+| Remove the click suppression | browser: navigation guard |
+
+The last is the defect the first implementation shipped with: pressing a link
+navigated, and every later control was read on a different page. It now fails
+naming the control that navigated.
 
 ## Risks
 

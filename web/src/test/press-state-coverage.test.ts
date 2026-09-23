@@ -7,8 +7,8 @@
  * produced. The direction sheet rules out the usual remedies — Containment is
  * `[ruled]`, Material `[flat]`, Ornament `[none]`, so no transform, no scale
  * and no shadow is available — which leaves a shift of the control's ground.
- * One idiom, applied to every control, because 31 controls with three press
- * behaviours would be worse than none.
+ * One idiom, applied to every control, because a surface whose controls each
+ * press differently is worse than one that does not press at all.
  *
  * WHAT IT DELIBERATELY DOES NOT DO. It names no selector and asserts no count.
  * The set comes from `press-state-selectors.ts`, which reads the `.astro`
@@ -22,9 +22,12 @@ import {
   hoverControls,
   pressRules,
   selectorsByFile,
+  unreachableComponents,
   expectedGroundToken,
   pressGroundColor,
   textUnderPress,
+  textWithoutHover,
+  hoverGround,
   resolveColor,
   contrast,
   TEXT_FLOOR,
@@ -32,6 +35,20 @@ import {
 } from './press-state-selectors';
 
 describe('press state', () => {
+  it('reports the components it excluded as unreachable', () => {
+    // Not an assertion that the set is empty — it is not, and a component with
+    // no importer is a real thing this repository contains. It is an assertion
+    // that the exclusion is VISIBLE: a silent exclusion is how a derived set
+    // shrinks without anyone noticing, which is the failure this whole guard
+    // exists to prevent one level up.
+    const excluded = unreachableComponents();
+    // eslint-disable-next-line no-console
+    if (excluded.length) console.info(`press-state: excluded as unreachable — ${excluded.join(', ')}`);
+    // A component becomes reachable by being imported; if every component were
+    // excluded the guard would be checking nothing, so bound it well below that.
+    expect(excluded.length).toBeLessThan(5);
+  });
+
   it('derives a non-empty control set from the sources', () => {
     // Without this, every assertion below passes vacuously the day the parser
     // stops matching — a guard that covers nothing reports the same green as
@@ -109,12 +126,20 @@ describe('press state', () => {
       }
 
       const ground = pressGroundColor(expectedGroundToken(control, rules));
-      const restText = textUnderPress(control, rules);
-      // Unknown text is inherited from a carrier the stylesheet does not name.
+      // BOTH paths, not just the hovered one. A press co-occurs with hover for a
+      // pointer, but a touch tap, a keyboard activation and a press-and-drag-off
+      // all apply :active with no :hover, and the ink differs between them.
+      // Asking only about the hover path scored `.decision-chip` at 10.03:1 on a
+      // label it only has while hovered; unhovered it measures 1.30:1.
+      const inks = [textUnderPress(control, rules), textWithoutHover(control, rules)]
+        .filter((c): c is string => c !== null);
+      // Unknown ink is inherited from a carrier the stylesheet does not name.
       // The browser measurement reads those for real; this guard does not guess.
-      if (!ground || !restText) continue;
+      if (!ground || !inks.length) continue;
 
-      const needsRaise = contrast(restText, ground) < TEXT_FLOOR;
+      const worst = Math.min(...inks.map((ink) => contrast(ink, ground)));
+      const restText = inks.find((ink) => contrast(ink, ground) === worst)!;
+      const needsRaise = worst < TEXT_FLOOR;
       const raised = resolveColor(rule.declarations.color);
 
       if (needsRaise && !raised) {
@@ -126,7 +151,7 @@ describe('press state', () => {
       if (!needsRaise && rule.declarations.color) {
         offenders.push(
           `  ${rule.file} ${selector}\n    raises ink the floor does not require ` +
-            `(${restText} on ${ground} is already ${contrast(restText, ground).toFixed(2)}:1)`
+            `(worst path is ${restText} on ${ground}, already ${worst.toFixed(2)}:1)`
         );
       }
       if (raised && contrast(raised, ground) < TEXT_FLOOR) {
@@ -137,6 +162,61 @@ describe('press state', () => {
       }
     }
     expect(offenders, `press contrast:\n\n${offenders.join('\n\n')}`).toEqual([]);
+  });
+
+  it('moves the ground somewhere the hover has not already been', () => {
+    // The whole point of the change, and the one property nothing asserted:
+    // `--ds-border` and `--ds-surface-pressed` both resolve to record-200, so
+    // two controls whose hover already set --ds-border rendered no press at
+    // all. Both layers passed them -- this one because it only checked that a
+    // press rule existed and used the right token, and the browser one because
+    // it had navigated off the page before reaching them.
+    const rules = allRules();
+    const byPressSelector = new Map(hoverControls(rules).map((c) => [`${c.file}::${c.pressSelector}`, c]));
+    const offenders: string[] = [];
+
+    for (const rule of pressRules(rules)) {
+      const selector = rule.selectors.find((s) => s.includes(':active')) ?? rule.selectors[0];
+      const control = byPressSelector.get(`${rule.file}::${selector}`);
+      if (!control) continue;
+      const hover = hoverGround(control, rules);
+      const press = resolveColor(rule.declarations['background-color']);
+      if (hover && press && hover === press) {
+        offenders.push(
+          `  ${rule.file} ${selector}\n    press ground ${press} is the colour its hover already set; ` +
+            `the control does not change when pressed`
+        );
+      }
+    }
+    expect(offenders, `press grounds that duplicate their hover:\n\n${offenders.join('\n\n')}`).toEqual([]);
+  });
+
+  it('keeps its label legible when pressed without being hovered', () => {
+    // Touch, keyboard activation and press-and-drag-off all apply :active with
+    // no :hover. A press rule that moves the ground and borrows its ink from
+    // the hover rule is legible on the pointer path only.
+    const rules = allRules();
+    const byPressSelector = new Map(hoverControls(rules).map((c) => [`${c.file}::${c.pressSelector}`, c]));
+    const offenders: string[] = [];
+
+    for (const rule of pressRules(rules)) {
+      const selector = rule.selectors.find((s) => s.includes(':active')) ?? rule.selectors[0];
+      const control = byPressSelector.get(`${rule.file}::${selector}`);
+      if (!control) continue;
+      const ground = resolveColor(rule.declarations['background-color']);
+      // The press rule's own colour wins on both paths; otherwise the rest colour.
+      const text = resolveColor(rule.declarations.color) ?? textWithoutHover(control, rules);
+      if (!ground || !text) continue;
+      const ratio = contrast(text, ground);
+      if (ratio < TEXT_FLOOR) {
+        offenders.push(
+          `  ${rule.file} ${selector}\n    unhovered press: ${text} on ${ground} is ` +
+            `${ratio.toFixed(2)}:1, under ${TEXT_FLOOR}:1. The press rule must carry the ink it needs ` +
+            `rather than borrow it from :hover.`
+        );
+      }
+    }
+    expect(offenders, `illegible when pressed without hover:\n\n${offenders.join('\n\n')}`).toEqual([]);
   });
 
   it('never reaches the clearance mark', () => {

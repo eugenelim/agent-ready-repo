@@ -187,8 +187,8 @@ a block whose premise has changed is the defect this decision exists to prevent.
 ### The press state is a ground shift — owner decision, 2026-09-23
 
 **Resolved: a press moves the control's ground, and that is the whole idiom.**
-One behaviour across every control, because thirty-three controls with three
-press behaviours would be worse than none.
+One behaviour across every control, because a surface whose controls each press
+differently is worse than one that does not press at all.
 
 The direction made the usual answer illegal, and that is the reason this needed
 a decision rather than an implementation. Containment is `[ruled]`, Material is
@@ -205,7 +205,7 @@ names:
 | Carrier | Token | Value | Measured |
 | --- | --- | --- | --- |
 | hover ground is already ink | `--ds-cta-primary-bg-active` | `--prim-record-700` | text 10.03:1 |
-| the single dark close band | `--ds-surface-pressed-dk` | `--prim-ink-700` | text 6.76:1, ground shift 1.94:1 |
+| the dark close band (two carriers) | `--ds-surface-pressed-dk` | `--prim-ink-700` | text 6.76:1, ground shift 1.94:1 |
 | everything else | `--ds-surface-pressed` | `--prim-record-200` | text 10.03–13.16:1 |
 
 **The paper ramp gains `--prim-record-700`.** The ramp jumped 600 to 800, so an

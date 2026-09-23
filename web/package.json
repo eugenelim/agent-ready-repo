@@ -14,7 +14,7 @@
     "social": "node scripts/generate-social.mjs",
     "test": "vitest run",
     "lint:css": "stylelint \"src/**/*.{css,astro}\"",
-    "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts guidebook-walk.spec.ts",
+    "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts guidebook-walk.spec.ts press-state.spec.ts",
     "predev": "python3 ../tools/build-site.py --renderer-inputs",
     "pretest": "python3 ../tools/build-site.py --renderer-inputs",
     "preastro": "python3 ../tools/build-site.py --renderer-inputs",

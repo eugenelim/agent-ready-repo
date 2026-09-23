@@ -114,11 +114,53 @@ function parseRules(css: string, file: string): Rule[] {
   return rules;
 }
 
-/** Every rule in every non-test `.astro` file under `web/src`. */
+/**
+ * Components no page can reach, and why they are excluded.
+ *
+ * A component under `components/` that nothing imports renders on no route, so
+ * a press rule in it can never apply and no browser measurement can reach it.
+ * Counting it inflates the derived set and fails the coverage reconciliation
+ * for a control that does not exist on the site — which is what `PackCard.astro`
+ * did: it has no importer anywhere in `web/src`.
+ *
+ * Derived, not listed: a file re-enters the set the moment something imports it,
+ * and leaves when the last importer goes. `unreachableComponents()` is exported
+ * so the guard can PRINT the exclusions — an exclusion nobody can see is how a
+ * set quietly shrinks to nothing.
+ */
+export function unreachableComponents(): string[] {
+  const all = astroFiles(SRC);
+  const sources: string[] = [];
+  for (const path of all) sources.push(readFileSync(path, 'utf8'));
+  for (const dir of ['lib', 'layouts', 'content']) {
+    try {
+      for (const name of readdirSync(join(SRC, dir))) {
+        if (/\.(ts|js|mjs)$/.test(name)) sources.push(readFileSync(join(SRC, dir, name), 'utf8'));
+      }
+    } catch {
+      /* the directory need not exist */
+    }
+  }
+  const corpus = sources.join('\n');
+  return all
+    .map((p) => relative(SRC, p))
+    // A page is an entry point; it needs no importer.
+    .filter((f) => !f.startsWith('pages/'))
+    .filter((f) => {
+      const base = f.split('/').pop()!;
+      // Its own file always contains its name in nothing but a comment, so match
+      // an import specifier ending in the basename.
+      return !new RegExp(`from\\s+['"\`][^'"\`]*${base.replace('.', '\\.')}['"\`]`).test(corpus);
+    });
+}
+
+/** Every rule in every reachable, non-test `.astro` file under `web/src`. */
 export function allRules(): Rule[] {
   const rules: Rule[] = [];
+  const unreachable = new Set(unreachableComponents());
   for (const path of astroFiles(SRC)) {
     const file = relative(SRC, path);
+    if (unreachable.has(file)) continue;
     for (const m of readFileSync(path, 'utf8').matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
       rules.push(...parseRules(m[1], file));
     }
@@ -281,6 +323,29 @@ export function textUnderPress(control: Control, rules: Rule[]): string | null {
   return (
     resolveColor(declaredValue(rules, control.file, control.hoverSelector, 'color')) ??
     resolveColor(declaredValue(rules, control.file, base, 'color'))
+  );
+}
+
+/**
+ * The colour the control's text is when it is pressed WITHOUT being hovered.
+ *
+ * That path is real and it is the one that breaks: a touch tap, a keyboard
+ * activation, and a press that drags off the control all apply `:active` with
+ * no `:hover`. A press rule that moves the ground and leaves the ink to the
+ * hover rule is legible only on the pointer path. Reading the hover colour, as
+ * `textUnderPress` does, cannot see it -- that read scored `.decision-chip` at
+ * 10.03:1 using the inverted label it only has while hovered, when the label it
+ * actually has on this path measures 1.30:1 against the same ground.
+ */
+export function textWithoutHover(control: Control, rules: Rule[]): string | null {
+  const base = control.hoverSelector.replace(/:hover\b/g, '').trim();
+  return resolveColor(declaredValue(rules, control.file, base, 'color'));
+}
+
+/** The ground a control renders on while hovered, resolved. */
+export function hoverGround(control: Control, rules: Rule[]): string | null {
+  return resolveColor(
+    declaredValue(rules, control.file, control.hoverSelector, 'background-color')
   );
 }
 

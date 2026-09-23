@@ -138,7 +138,10 @@ const switcherId = id ?? `ts-${items.map((i) => i.id ?? i.label).join('-').repla
   .task-switcher__item:active,
   .task-switcher__tab:active {
     background-color: var(--ds-surface-pressed);
-  }
+      /* Muted rest ink measures 3.50:1 on the pressed ground, so the press carries
+       its own ink rather than relying on the hover rule's. Raised: 11.34:1. */
+    color: var(--ds-on-surface);
+}
 
   /* Active tab. The accent is withdrawn, so the state is carried by three
      non-chromatic channels at once: a 2px SOLID bottom rule where every

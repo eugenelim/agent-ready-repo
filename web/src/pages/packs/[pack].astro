@@ -406,7 +406,10 @@ const structuredData = {
 
   .install-copy-btn:active {
     background-color: var(--ds-surface-pressed-dk);
-  }
+      /* On the dark close band the rest ink is the MUTED on-dark ink, which measures
+       2.92:1 on the pressed ground. Raised to the primary on-dark ink: 6.76:1. */
+    color: var(--ds-hero-fg);
+}
 
   /* Confirmed copy. The button's own label swaps to "Copied!" in the click
      handler, so the state is announced in words; the visual channel here is a

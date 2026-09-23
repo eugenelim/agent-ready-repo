@@ -103,7 +103,10 @@ const {
 
   .copy-btn:active {
     background-color: var(--ds-surface-pressed);
-  }
+      /* Muted rest ink measures 3.50:1 on the pressed ground. Raised, keeping the
+       host override this component exposes for every other colour. */
+    color: var(--copy-btn-fg-active, var(--ds-on-surface));
+}
 
   .copy-btn:focus-visible {
     outline: 2px solid var(--ds-focus-ring);

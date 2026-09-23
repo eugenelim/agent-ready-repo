@@ -310,14 +310,14 @@ Transitions were frozen with `reduce` so every sample is a settled value.
   active delta", and the design decision it was waiting on was taken on
   2026-09-23: a ground shift, one idiom across the surface. The count was
   also wrong, which is why the remedy derives its set instead of listing it —
-  the real figure is **33 hover-styled controls in 18 files**, computed from
-  the sources by `web/src/test/press-state-selectors.ts` and recomputed on
-  every run.
+  no figure is stated here at all: the set is computed from the sources by
+  `web/src/test/press-state-selectors.ts` and recomputed on every run, and a
+  number written down here would be the fourth copy to go stale.
 
   Each control now moves its ground under a press, through one of three
   tokens chosen by its own carrier: `--ds-cta-primary-bg-active` where the
-  hover ground is already ink, `--ds-surface-pressed-dk` on the single dark
-  close band, `--ds-surface-pressed` everywhere else. The direction sheet
+  hover ground is already ink, `--ds-surface-pressed-dk` on the dark close band, which has two carriers — the
+  footer links and the pack page's install copy button — `--ds-surface-pressed` everywhere else. The direction sheet
   leaves no other idiom available — Containment is `[ruled]`, Material
   `[flat]`, Ornament `[none]`, so transform, scale and shadow are all out.
 
@@ -328,7 +328,7 @@ Transitions were frozen with `reduce` so every sample is a settled value.
   | Carrier | Pressed ground | Text on it | Ground shift |
   | --- | --- | --- | --- |
   | ink-filled control | `#413c34` | 10.03:1 | from `#2e2a24` hover |
-  | paper | `#ddd8cd` | 10.03–13.16:1 | 1.24:1 from `--ds-surface` |
+  | paper | `#cfc9bc` | 8.65–11.34:1 | 1.51:1 from `--ds-surface`, 1.40:1 from `--ds-surface-alt` |
   | dark close band | `#4a443c` | 6.76:1 | 1.94:1 from `#14120f` |
 
   **The dark band is the weak case and it is deliberate.** 1.94:1 is the
@@ -1289,7 +1289,7 @@ decisions this pass does not own.
 | **`/now/` route length** | **Open, Moderate.** Re-measured on the lower-bound matrix: **75,240 CSS px at 320** — 83.6 viewport heights at 900 — falling to 35,977 at 1100, for 122 releases in one unpaginated document whose emitted `index.html` is **160 KB**. These supersede the 61,638 px / 402 KB figures, which came from the superseded 390-wide run; the two were not reconciled and the earlier pair is not carried forward. Nothing in the build bounds the growth. Bounding it is a content decision, not a retrofit edit. |
 | Core Web Vitals | No field data and no synthetic history. See *perf result*. |
 | Print stylesheet | **Closed 2026-09-22.** The state was exercised and the remedy is now written — page-level rules in `web/src/styles/print.css`, component-owned rules in SiteNav, SiteFooter, CopyButton and InstallTerminal (Astro scopes component selectors with a `data-astro-cid-*` attribute, so a global override is outranked; measured, not assumed). Before/after under *states*. One part stays open and is named there: `break-inside: avoid` is declared, but a straddle count in a scrolling viewport cannot see pagination, so *no block is cut* is not established. |
-| A distinct `:active` state | **The state is now exercised** — see *states*. 0 of 28 interactive classes distinguish `:active` from `:hover`, so a pointer user gets no press feedback. Minor, and adding one is a design decision. |
+| A distinct `:active` state | **Closed 2026-09-23** — see *states*. Every hover-styled control now shifts its ground under a press; the derived set, the two measured exceptions and the mutation evidence are recorded there. |
 | `docs-site/` | Owner-scoped out. It was built to satisfy the documented build order — the `web/` build cleans repository `build/`, so `build/docs/` must be rebuilt after it or four `rendered-output` / `fixture-axe` tests fail on a missing docs build — and nothing more. |
 | **`/packs/<pack>/` install-note whitespace** | **Closed 2026-09-22 by `d2b313992` (#1395).** Recorded here as **Open, Minor, 7 of 22 pack pages**: the emitted HTML was `…Use the command above.<a …>Browse the catalogue →</a>` with no space, so the reader saw "above.Browse the catalogue →". Full finding under *inspection observations*, which stands as the dated record. The repair inserts an explicit `{' '}` before the anchor at `web/src/pages/packs/[pack].astro:96` — Astro strips the source whitespace before an element, so the space has to be written as an expression. The literal `above.<a` now returns no hits in `web/src`. |
 | **`/journeys/<journey>/` hero meta separator at 320** | **Open, Minor, channel 1 only.** The line wraps after a plain-text "·", leaving the separator dangling at a line end. Full finding under *inspection observations*. |

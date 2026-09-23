@@ -46,7 +46,7 @@ Three-tier architecture: **Tier 1 primitives** (`--prim-*`) define raw scale val
 **Tier 2 semantics** (`--ds-*`) map primitives to roles. **Component CSS** references
 semantic tokens only — never primitives directly.
 
-This section lists the 104 colour-valued tokens in `tokens.css`.
+This section lists the 105 colour-valued tokens in `tokens.css`.
 Non-colour tokens are in §2 and §3.
 
 ### Tier 1 — Primitive color scale
@@ -63,6 +63,7 @@ Non-colour tokens are in §2 and §3.
 | `--prim-record-50` | `#f7f5f0` | page ground |
 | `--prim-record-100` | `#efece5` | alt band ground |
 | `--prim-record-200` | `#ddd8cd` | card / section border — 1.30:1 on record-50, decorative only |
+| `--prim-record-250` | `#cfc9bc` | — |
 | `--prim-record-300` | `#c8c1b2` | neutral-state border — 1.64:1 on record-50, decorative only |
 | `--prim-record-350` | `#b5ad9c` | decorative hairline — 2.05:1 on record-50, 1.89:1 on record-100 |
 | `--prim-record-400` | `#9c9384` | placeholder, disabled — 2.79:1 on record-50 |
@@ -176,7 +177,7 @@ retyping a hex.
 
 | Token | Maps to | Resolves to | Note (from `tokens.css`) |
 | --- | --- | --- | --- |
-| `--ds-surface-pressed` | `--prim-record-200` | `#ddd8cd` | — |
+| `--ds-surface-pressed` | `--prim-record-250` | `#cfc9bc` | — |
 | `--ds-surface-pressed-dk` | `--prim-ink-700` | `#4a443c` | — |
 
 **State roles — functional only; not identity colors**

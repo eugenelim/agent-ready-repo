@@ -27,6 +27,13 @@
   --prim-record-50:  #f7f5f0;  /* page ground */
   --prim-record-100: #efece5;  /* alt band ground */
   --prim-record-200: #ddd8cd;  /* card / section border — 1.30:1 on record-50, decorative only */
+  --prim-record-250: #cfc9bc;  /* pressed ground on paper — 1.51:1 against record-50,
+                                  1.40:1 against record-100. Added 2026-09-23, and NOT
+                                  record-200: that is --ds-border's value, and two
+                                  controls whose hover already set --ds-border rendered
+                                  no press at all because their hover and press grounds
+                                  were the same colour. A pressed ground must be a value
+                                  no hover rule can already be sitting on. */
   --prim-record-300: #c8c1b2;  /* neutral-state border — 1.64:1 on record-50, decorative only */
   --prim-record-350: #b5ad9c;  /* decorative hairline — 2.05:1 on record-50, 1.89:1 on record-100 */
   --prim-record-400: #9c9384;  /* placeholder, disabled — 2.79:1 on record-50 */
@@ -245,9 +252,9 @@
      means a refusal, a hold or a block, and a press is none of those.
 
      Two tokens, because the single dark band cannot take the paper one:
-       text #2e2a24 on pressed #ddd8cd ............... 10.03:1 (paper)
-       text #14120f on pressed #ddd8cd ............... 13.16:1 (paper)
-       text #dcd8ce on pressed #ddd8cd ............... 1.00:1  (dark band —
+       text #2e2a24 on pressed #cfc9bc ............... 8.65:1  (paper)
+       text #14120f on pressed #cfc9bc ............... 11.34:1 (paper)
+       text #dcd8ce on pressed #cfc9bc ............... 1.14:1  (dark band —
          which is why --ds-surface-pressed must never reach the footer)
        text #dcd8ce on pressed-dk #4a443c ............ 6.76:1
        pressed-dk #4a443c vs --ds-hero-bg #14120f .... 1.94:1
@@ -256,7 +263,7 @@
      the ground but drops the text to 4.06:1, under the floor. The press
      is therefore quieter on the close band than on paper, deliberately
      and measurably, rather than illegible. */
-  --ds-surface-pressed:    var(--prim-record-200);
+  --ds-surface-pressed:    var(--prim-record-250);
   --ds-surface-pressed-dk: var(--prim-ink-700);
 
   /* ── Type family ────────────────────────────────────────────────── */
