@@ -103,9 +103,8 @@ what it left behind.
     reported a violation.
   - Never introduce a predictable staging path.
   - Never narrow the stale-removal keep-set to a scoped subset.
-  - Never write under `packages/credbroker/` or
-    `.agentbundle/tooling/agentbundle/`, whether or not `--package` was
-    supplied.
+  - Never write under `packages/credbroker/` or `.agentbundle/tooling/`,
+    whether or not `--package` was supplied.
 
 ## Testing Strategy
 
@@ -139,10 +138,11 @@ call. AC-0075 is goal-based and is counted there, not here.
   on something the run does not itself define. A second assertion compares the
   printed rows against the rows the write phase acts on, which is the
   consented-plan-is-applied half.
-- **The deferred count (AC-0066)** — TDD. Oracle: the reported count equals the
-  number of planned package paths, and phase 2's seven counts over the same run
-  are byte-identical to what a phase-2 classification of the full replayed
-  selection produces. The second half is what proves the identity survived.
+- **The deferred count (AC-0066)** — TDD. Oracle: the `deferred_package` count,
+  on the printed table and in the `--format json` `summary` object, equals the
+  number of planned paths under the two subtrees, and phase 2's seven counts
+  over the same run are byte-identical to what a phase-2 classification of the
+  full replayed selection produces. The second half is what proves the identity survived.
 - **Apply order (AC-0032)** — TDD. Oracle: the recorded sequence of jailed-write
   calls, compared against the fixed order. An assertion that all paths exist
   after the run cannot observe order at all.
@@ -158,18 +158,25 @@ call. AC-0075 is goal-based and is counted there, not here.
   clobbered.
 - **An occupied companion destination (AC-0070)** — TDD. Oracle: with an
   adopter-edited `.upstream.<ext>` already present, its bytes after the run are
-  unchanged and its path is on the printed plan. Asserting only that the
-  original survives passes the clobber this criterion exists to stop.
+  unchanged, its path is a reported entry rather than an acted row, the
+  `summary` object carries it under `companion_occupied`, and the run's code is
+  the difference row rather than success. A second case creates the destination
+  between admission and the write and asserts the write fails rather than
+  replaces. Asserting only that the original survives passes the clobber this
+  criterion exists to stop.
 - **A companion collision (AC-0071)** — TDD. Oracle: a source planning both
-  `x.md` and `x.upstream.md` against a Tier-2 `x.md` writes neither and reports
-  the collision.
+  `x.md` and `x.upstream.md` against a Tier-2 `x.md` refuses the whole run with
+  the cannot-answer code, names both paths under `companion_collision`, and
+  leaves the tree identical on AC-0041's walk tuple. Asserting only that
+  neither path was written passes a run that wrote the rest of the set.
 - **Stale removal ordering and keep-set (AC-0035)** — TDD. Oracle: the recorded
   call order places removal after the last write, and the keep-set argument
   equals the full replayed planned set.
 - **Removal stays inside coverage (AC-0064, AC-0069)** — TDD. Oracle: an
   **unscoped** run over a tree whose recorded state was written by a
   `--tooling vendored` derivation leaves every `.agentbundle/tooling/**` path
-  present, and reports them as out-of-coverage. The unscoped run is the oracle
+  present, and the `summary` object carries them under `out_of_coverage` on
+  both the printed plan and the `--format json` document. The unscoped run is the oracle
   that matters: a `--pack` run excludes those paths by scope alone, so a
   scoped-only fixture passes against an implementation carrying no coverage
   rule at all. A second case covers the scoped axis.
@@ -233,8 +240,11 @@ call. AC-0075 is goal-based and is counted there, not here.
   source URI does not appear on it outside attributed mode. The observable for
   the first is a bound the sink does not normalise, length or surrounding
   whitespace, because an escaping sink makes a control-character test vacuous.
-- **The prompt names the fidelity (AC-0072)** — TDD. Oracle: each of the four
-  source forms produces its own fidelity token on the prompt.
+- **Fidelity on every apply surface (AC-0072)** — TDD. Oracle: each of the
+  four source forms produces its own fidelity token on the prompt, and on a
+  `--yes` run — which never prompts — in the printed plan and in the
+  `--format json` document. The `--yes` half is the one the widening exists
+  for, so a prompt-only fixture leaves it unverified.
 - **A leak violation reaches no write (AC-0051)** — TDD. Oracle: the tree walk
   after a violating run. The pass direction cannot distinguish a working refusal
   from an absent one, so the fixture must violate.
@@ -324,9 +334,8 @@ the answer.
      path by the verdicts phase 2's five-verdict criterion fixes.
   3. **Admit** a path that is `would-update`; the path
      `safety.companion_path` computes for a path that is `would-companion`,
-     unless AC-0070 finds that destination already occupied or AC-0071 finds it
-     equal to a path the replay itself plans, in which case neither that
-     companion nor the colliding planned path is admitted; and a path that is
+     unless AC-0070 finds that destination already occupied, in which case that
+     companion is not admitted; and a path that is
      `untouched` only because it belongs to a pack or profile clause 1
      introduced. A path `untouched` for any other reason is not admitted, which
      is what keeps an adopter's unrecorded file untouched.
@@ -335,7 +344,10 @@ the answer.
      `catalogue.toml` and every path under `tests/conformance/` by this clause
      alone and needs no second exclusion for them.
   5. **Exclude** every admitted path under `packages/credbroker/` or
-     `.agentbundle/tooling/agentbundle/`.
+     `.agentbundle/tooling/`. The architecture defers the whole vendored
+     tooling root to phase 4, not only its `agentbundle/` subdirectory, so the
+     write set and AC-0069's coverage name the same extent and "a run that may
+     not write a subtree may not delete from it" is true of every path in it.
   6. **Add** the ownership state whenever the run reaches its write phase with
      consent given, whatever clause 4 excluded. A run that refuses or is
      declined never reaches that phase, so its write set is empty.
@@ -396,12 +408,14 @@ the answer.
   | apply | the write set's paths hold more on disk than AC-0076's bound | 3 — `cannot-answer` |
   | apply | the run could not read the pre-write state of a path it was about to write | 3 — `cannot-answer` |
   | apply | a companion destination collides with a path the replay plans | 3 — `cannot-answer` |
+  | apply | there is no terminal to prompt on and no `--yes` was supplied, so consent cannot be taken | 1 — `difference` |
   | apply | the operator reached the consent prompt and did not give consent | 1 — `difference` |
   | apply | a planned write failed and the tree could not be fully restored | 4 — `apply-failed` |
   | apply | a planned write failed and the tree was restored | 4 — `apply-failed` |
   | apply | every planned write landed and stale removal failed | 4 — `apply-failed` |
   | apply | every planned write landed and the ownership state could not be written | 4 — `apply-failed` |
-  | apply | every planned write landed, stale removal completed, and the state was written | 0 — `success` |
+  | apply | every planned write landed, stale removal completed, the state was written, and `companion_occupied` is non-zero | 1 — `difference` |
+  | apply | every planned write landed, stale removal completed, the state was written, and `companion_occupied` is zero | 0 — `success` |
   | `--dry-run` | a plan was printed, whatever its counts | 0 — `success` |
   | `--check`, no `--compare-tree` | the resolved source affords no verified digest | 3 — `cannot-answer` |
   | `--check`, no `--compare-tree` | the recorded `archive_sha256` is absent, or is not a 64-character lowercase hex string | 3 — `cannot-answer` |
@@ -435,11 +449,13 @@ the answer.
 
   **The target.** The walk is identical across those two moments on every row of
   AC-0039's table except the four below, each of which may differ only as
-  stated:
+  stated. Every other apply row leaves the tree identical, because none of them
+  reaches the write phase: both `1 — difference` consent rows, and every `3`
+  refusal including the bound, the collision and the pre-write read failure:
 
   | Row | Permitted difference in the target tree |
   | --- | --- |
-  | `0 — success` apply | the paths AC-0033 defines, and the paths stale removal removed |
+  | an apply run whose planned writes all landed — the `0 — success` row, and the `1 — difference` row where `companion_occupied` is non-zero | the paths AC-0033 defines, and the paths stale removal removed |
   | `4` a planned write failed and the tree could not be fully restored | the paths AC-0058 names, and no others |
   | `4` writes landed and stale removal failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths removal had removed before it failed |
   | `4` writes landed and the state write failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths stale removal removed |
@@ -506,11 +522,19 @@ the answer.
   carrying the source bytes; the adopter's file's digest is unchanged; and no
   path outside the printed plan is altered. The verification ledger records that
   comparison, not only the observed output.
-- [ ] **AC-0057.** The plan an apply run prints names every path AC-0033
-  clauses 1 to 5 admit, each under the verdict clause 2 gave it, together with
-  every path stale removal will remove. It does not name AC-0033 clause 6's
-  ownership state. That printed plan is the one the run consents against and
-  the one it acts on.
+- [ ] **AC-0057.** The plan an apply run prints has two parts, and they are
+  distinguished on the page.
+
+  Its **acted rows** name every path AC-0033 clauses 1 to 5 admit, each under
+  the verdict clause 2 gave it, together with every path stale removal will
+  remove. They do not name AC-0033 clause 6's ownership state. These are the
+  rows the run consents against and acts on, and the set AC-0033 compares
+  against.
+
+  Its **reported entries** name what the run declined to act on and why — an
+  occupied companion destination per AC-0070, an out-of-coverage recorded path
+  per AC-0069, and the paths deferred per AC-0066. They are not acted rows and
+  are never counted as such.
 - [ ] **AC-0058.** When a restore cannot return the tree to its pre-run walk
   tuple, the command names every path it could not restore before returning.
 - [ ] **AC-0059.** The ownership state's recorded path set after an apply run
@@ -554,14 +578,16 @@ the answer.
   selection field — `packs` and `profiles` each decide separately:
 
   - A **valid** list narrows that category to the names it carries.
-  - An **absent** field selects nothing from that category. It is not a
-    refusal, because a recipe naming packs and no profiles is an ordinary
-    derived tree.
-  - A **present but invalid** value — an empty list, a null, a string, a
-    number, a boolean, an object, a list of non-strings, or a list carrying one
-    name the source does not ship — refuses the run, naming that field. The
-    code is AC-0039's first matching row, which owns every code this command
-    returns.
+  - An **absent field or an empty list** selects nothing from that category.
+    Both are the narrowing outcome, not the widening one. `SelfHostRecipe`'s
+    writer emits both keys unconditionally and defaults each to `[]`, so a tree
+    derived with packs and no profiles records `"profiles": []`; refusing that
+    would refuse a tree `init` routinely produces, and the absent branch would
+    be reachable only from a hand-edited state file.
+  - A **present but invalid** value — a null, a string, a number, a boolean, an
+    object, a list of non-strings, or a list carrying one name the source does
+    not ship — refuses the run, naming that field. The code is AC-0039's first
+    matching row, which owns every code this command returns.
 
   No value resolves to every pack or profile the source ships.
 
@@ -572,17 +598,27 @@ the answer.
   over both selection fields, since `profiles` carries the identical widening
   and a packs-only sweep prices it as covered.
 - [ ] **AC-0069.** A recorded path is a removal candidate only when it lies
-  inside the run's **coverage**. Coverage is derived from the run's own flags
-  and their defaults, never from recorded state, and excludes:
+  inside the run's **coverage**: the set of path prefixes this run's own flags
+  and their defaults could have planned. Coverage is that positive set, narrowed
+  by the exclusions below — it is not the exclusions themselves, because a
+  coverage defined only by what it excludes re-admits every axis nobody
+  enumerated. It is never derived from recorded state. The exclusions:
 
   1. `packages/credbroker/` and `.agentbundle/tooling/`, on every invocation and
      in every mode. These are the subtrees AC-0033 clause 5 keeps out of the
      write set, and a run that may not write a subtree may not delete from it
      either.
-  2. `.agentbundle/tooling/` under `--tooling external` and `guides/` under
-     `--guides-mode none` — the mode-narrowing axis, already covered for the
-     first by clause 1 above and load-bearing for the second.
+  2. `guides/` under `--guides-mode none` — the mode-narrowing axis. The
+     tooling half of that axis is already absolute under clause 1, so this
+     clause carries the guides case, which no subtree list reaches: § Grounding
+     measures 47 recorded `guides/` paths orphaned by a `--guides-mode none`
+     run over a default-derived tree.
   3. Everything outside the scope AC-0043 fixes.
+
+  Coverage membership is decided against the confined, normalised path the
+  removal would act on, not against the recorded string: a recorded entry such
+  as `.agentbundle/tooling/../tooling/agentbundle/x` does not match the prefix
+  textually and resolves inside the protected subtree.
 
   A recorded path outside coverage is left in place and reported as an
   `out_of_coverage` count, on the printed plan and in the `--format json`
@@ -607,12 +643,21 @@ the answer.
   an occupant is the command's own output is decidable from what the run holds.
   Never overwriting is the fail-safe reading, and it is what stops an adopter
   part-way through resolving a companion losing that work.
+
+  The check runs at the instant of the write as well as at admission. A
+  destination that comes into existence between the two was admitted, and a
+  jailed write truncates it; AC-0073 gives removals the same at-action check for
+  the same reason. A companion write that finds its destination occupied fails
+  rather than replaces, and the run takes AC-0039's write-failed row.
 - [ ] **AC-0071.** When the replayed source itself plans a path equal to a
-  companion destination this run would compute, AC-0033 clause 3 admits
-  neither, and the run names both paths on the plan and in the `--format json`
-  document's `summary` object under `companion_collision`. Letting the set
-  collapse the duplicate would leave AC-0032's order deciding which content
-  wins.
+  companion destination this run would compute, the run refuses before its
+  first write, naming both paths under `companion_collision` on the plan and in
+  the `--format json` document's `summary` object. The code is AC-0039's first
+  matching row, which owns every code this command returns. The refusal is whole-run
+  rather than a per-path carve-out: a partial admission would return the
+  cannot-answer code over a tree AC-0041 requires to be unchanged. Letting the
+  set collapse the duplicate instead would leave AC-0032's order deciding which
+  content wins.
 - [ ] **AC-0072.** Every apply run names the source fidelity, including whose
   word a digest rests on, on the consent prompt when it prompts and in the
   printed plan and the `--format json` document on every apply run including
@@ -637,6 +682,9 @@ the answer.
   reads, not on the source it replays. Before the consent prompt and before the
   first write, the run sums `st_size` over every write-set path that exists; if
   that sum exceeds 256 MiB it refuses, naming the bound and the measured sum.
+  The bound also holds over the bytes the snapshot actually holds, enforced as
+  it is built: the pre-prompt sum is taken before an unbounded wait at the
+  prompt, during which another writer in the adopter's tree can grow them.
 
   The figure is a **chosen ceiling, not a measurement**. No adopter-axis
   measurement exists: § Grounding measures the source tree, and an adopter file

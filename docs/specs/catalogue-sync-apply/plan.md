@@ -75,16 +75,18 @@ covers the recorded recipe — plus any name `--pack` or `--profile` introduces 
 and the scope predicate filters only the write set. The removal keep-set is the
 full replayed set on every run.
 
-**An empty recorded selection must not reach `select_packs`.** That helper
-reads a falsy `explicit` argument as "no narrowing requested" and returns every
-pack the source ships, so an empty list and `None` are indistinguishable to it.
-§ Grounding's widening derivation walks all nine recorded shapes and finds five
-that resolve to the source's full contents, because the existing underivable
-check fires only when `packs` and `profiles` are both absent. On phase 2's
-read-only path that produced a wrong plan; here it would write every pack the
-source ships into the adopter's tree. The apply path therefore resolves each
-category separately and skips selection entirely for a category whose effective
-list is empty, rather than handing an empty list down.
+**An empty recorded selection must not reach `select_packs`.** That helper and
+`_select_profiles` both read a falsy `explicit` argument as "no narrowing
+requested" and return everything the source ships, so an empty list and `None`
+are indistinguishable to them. § Grounding's widening derivation walks the
+type-and-validity domain across both selection fields and reports how many
+resolve to the source's full contents; the existing underivable check fires
+only when `packs` and `profiles` are both absent. On phase 2's read-only path
+that produced a wrong plan; here it would write everything the source ships
+into the adopter's tree. The apply path resolves each category separately and
+skips selection entirely for a category whose effective list is empty — which
+is AC-0068's narrowing outcome for both an absent field and an empty list —
+rather than handing an empty list down.
 
 **The removal set needs its own filter, and it is not the keep-set.** The two
 constraints on removal are independent and compose rather than conflict:
@@ -103,7 +105,7 @@ violation, because it would make every out-of-scope recipe path look stale.
 The write-set filter has a second clause, and it is the one that makes phase 3
 shippable at all: `credential-brokers` is default-selected, so
 `packages/credbroker/**` is in essentially every derived tree's planned set, and
-a vendored tree also plans `.agentbundle/tooling/agentbundle/**`. Refusing an
+a vendored tree also plans `.agentbundle/tooling/**`. Refusing an
 apply on such a tree would refuse almost every real tree, so the filter excludes
 those paths from the write set and AC-0057 makes the printed plan show what the
 filter admits. Phase 2's plan vocabulary is untouched: the deferred paths are
@@ -215,8 +217,11 @@ is reachable until T7 wires the parser.
 - Under any scope, `catalogue.toml` and every `tests/conformance/**` path is
   excluded. Verifies AC-0033 clause 4.
 - Under every scope and under none, each `packages/credbroker/**` and
-  `.agentbundle/tooling/agentbundle/**` path is excluded from the write set and
-  reported in the deferred count. Verifies AC-0033 clause 5 and AC-0066.
+  `.agentbundle/tooling/**` path is excluded from the write set and reported in
+  the deferred count under `deferred_package`. The whole vendored tooling root
+  is the extent, not its `agentbundle/` subdirectory: the 43 paths under
+  `.agentbundle/tooling/packs/catalogue-curation/` are the ones a narrower
+  reading admits. Verifies AC-0033 clause 5 and AC-0066.
 - `--pack core` does not admit `packs/core-extras/pack.toml`. A prefix compared
   without its trailing separator admits the sibling, and no other case in this
   task distinguishes that.
@@ -233,10 +238,9 @@ replay, not a hand-written list.
 **Tests:**
 - The merged path set equals `(recorded − removed) ∪ written`, with Tier-3 and
   companion paths absent. Verifies AC-0059.
-- The effective selection over all nine recorded `packs`/`profiles` shapes
-  equals the recorded lists plus any introduced name, and an absent or empty
-  list selects nothing. A fixture carrying only non-empty shapes cannot fail,
-  since those are the four that already behave. Verifies AC-0068.
+- The state merge carries the effective selection AC-0033 clause 1 produced.
+  AC-0068's own domain is driven in T6, which owns that criterion; this task
+  asserts only that the merge records what clause 1 resolved.
 - A written path carries the digest of the bytes written and an untouched
   recorded path carries its pre-run digest. Verifies AC-0036.
 - The pin builder's four source forms each produce the row AC-0037 states,
@@ -299,8 +303,10 @@ filesystem.
   after the run, absent from the write set, and named on the plan and under
   `companion_occupied` in the JSON summary. Verifies AC-0070.
 - A source planning both `x.md` and `x.upstream.md` against a Tier-2 `x.md`
-  writes neither, reports both paths under `companion_collision`, and returns
-  the cannot-answer code. Verifies AC-0071.
+  refuses the whole run, reports both paths under `companion_collision`,
+  returns the cannot-answer code, and leaves the tree identical on AC-0041's
+  walk tuple. Asserting only that neither path was written passes a run that
+  wrote the rest of the set. Verifies AC-0071.
 - A `--pack <new-name>` run whose write is injected to fail leaves no
   `packs/<new-name>/` directory behind. A file-only restore passes every other
   rollback case and fails this one. Verifies AC-0038's entry-set half.
@@ -336,8 +342,10 @@ asserting the tree rather than the return value.
   end-of-input with no terminal — drive the gate, and the target tree is the
   oracle in all four. Verifies AC-0031.
 - The prompt names no source URI outside attributed mode. Verifies AC-0050.
-- Each of the four source forms produces its own fidelity token on the prompt.
-  Verifies AC-0072.
+- Each of the four source forms produces its own fidelity token on the prompt,
+  and a `--yes` run carries it in the printed plan and the `--format json`
+  document. The `--yes` half never prompts, so a prompt-only case leaves the
+  surfaces the widening exists for unverified. Verifies AC-0072.
 - A recorded value failing the terminal-safe check does not reach the prompt;
   the observable is a length or whitespace bound, not a control character, which
   an escaping sink would neutralise either way. Verifies AC-0049.
@@ -534,7 +542,7 @@ passage that uses it, and this section holds the command that reproduces it.
 | Snapshot bound | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-rollback-snapshot-bound.py` | The rollback snapshot's worst-case peak alongside the replay |
 | Release surfaces | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py` | The closed set of surfaces a version bump must move, each read by the form that surface states its version in, and whether they agree |
 | Mode asymmetry | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-mode-asymmetry.py` | How many recorded paths a run's own modes fail to plan, per mode, and which of them any named exclusion covers |
-| Selection widening | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-empty-recipe-widening.py` | Which of the nine recorded `packs`/`profiles` shapes resolve to the source's full contents, and whether the existing underivable check fires on each |
+| Selection widening | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-empty-recipe-widening.py` | Which recorded selection values, over the type-and-validity domain and across both `packs` and `profiles`, resolve to the source's full contents, and whether the existing underivable check fires on each |
 
 A derivation's value and its oracle are pinned; a script's location and its
 invocation arguments stay refinable without an amendment.
