@@ -1037,7 +1037,7 @@ def test_agreement_property_holds_when_ids_are_unique():
 
 # ── the record lifecycle across `schedule` ─────────────────────────────────
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+# Contract: § The record
 # lifecycle. `schedule` owns two of the three removal paths: a partition-
 # changing re-schedule drops stale records, a partition-preserving one keeps
 # them.

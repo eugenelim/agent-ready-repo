@@ -618,6 +618,91 @@ def test_v_extensionless_registry_and_dangling() -> None:
                f"dangling Contract: ref should warn (v), warn-only: {err2}")
 
 
+# CONTRACT CONTROL: AC-0002 — a registry back-reference counts only when ONE row
+# names the contract token exactly and names the spec directory as a whole path.
+# The shipped check tested the whole file for each half independently, so any
+# token and any spec directory anywhere in the registry satisfied each other.
+def test_v_registry_pairing_is_per_row() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_contract(root, "contracts/b.toml", '[contract]\nversion = "1"\n')
+        # `contracts/b.toml` is paired with `gamma`; `beta` appears only on a
+        # different line. Whole-file matching reports this clean.
+        write_contract(
+            root, "contracts/REGISTRY.md",
+            "# Registry\n\n"
+            "| Contract | Spec |\n| --- | --- |\n"
+            "| `contracts/b.toml` | `docs/specs/gamma/` |\n"
+            "\n<!-- background: docs/specs/beta/ -->\n")
+        write_spec_with_contract(root, "beta", "`contracts/b.toml`")
+
+        rc, _, err = run_lint(root, verbose=True)
+
+        expect(rc == 0, f"registry finding remains warn-only, got {rc}: {err}")
+        expect("invariant (v)" in err and "docs/specs/beta" in err,
+               f"a cross-row coincidence must not satisfy (v): {err}")
+
+
+# CONTRACT CONTROL: AC-0002 — the spec-directory half is matched as a whole path.
+# `docs/specs/foo` is a substring of `docs/specs/foo-bar/`, and this repository
+# has 12 such spec-directory prefix pairs, so a containment test pairs the wrong
+# spec. Separate from the token half below: different cause, same criterion.
+def test_v_registry_rejects_spec_dir_prefix_match() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_contract(root, "contracts/a.toml", '[contract]\nversion = "1"\n')
+        write_contract(
+            root, "contracts/REGISTRY.md",
+            "| Contract | Spec |\n| --- | --- |\n"
+            "| `contracts/a.toml` | `docs/specs/credbroker-user-scope/` |\n")
+        write_spec_with_contract(root, "credbroker", "`contracts/a.toml`")
+
+        rc, _, err = run_lint(root, verbose=True)
+
+        expect(rc == 0, f"registry finding remains warn-only, got {rc}: {err}")
+        expect("invariant (v)" in err and "docs/specs/credbroker" in err,
+               f"a longer spec directory must not satisfy a shorter one: {err}")
+
+
+# CONTRACT CONTROL: AC-0002 — the contract-token half is matched exactly.
+def test_v_registry_rejects_contract_token_prefix_match() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_contract(root, "contracts/a.toml", '[contract]\nversion = "1"\n')
+        write_contract(root, "contracts/a.toml.bak", '[contract]\nversion = "1"\n')
+        write_contract(
+            root, "contracts/REGISTRY.md",
+            "| Contract | Spec |\n| --- | --- |\n"
+            "| `contracts/a.toml.bak` | `docs/specs/alpha/` |\n")
+        write_spec_with_contract(root, "alpha", "`contracts/a.toml`")
+
+        rc, _, err = run_lint(root, verbose=True)
+
+        expect(rc == 0, f"registry finding remains warn-only, got {rc}: {err}")
+        expect("invariant (v)" in err and "contracts/a.toml'" in err,
+               f"a longer contract token must not satisfy a shorter one: {err}")
+
+
+# CONTRACT CONTROL: AC-0002 — the three rejections above are not produced by a
+# check that rejects everything. Without this, tightening to `backward = False`
+# would pass all of them.
+def test_v_registry_table_row_satisfies_backref() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_contract(root, "contracts/a.toml", '[contract]\nversion = "1"\n')
+        write_contract(
+            root, "contracts/REGISTRY.md",
+            "| Contract | Spec |\n| --- | --- |\n"
+            "| `contracts/a.toml` | `docs/specs/alpha/` |\n")
+        write_spec_with_contract(root, "alpha", "`contracts/a.toml`")
+
+        rc, _, err = run_lint(root, verbose=True)
+
+        expect(rc == 0, f"expected exit 0, got {rc}: {err}")
+        expect("invariant (v)" not in err,
+               f"a correct table row must satisfy (v): {err}")
+
+
 # STUB: AC1 — the contract registry must not be read through an outside symlink.
 def test_contract_registry_symlink_outside_root_does_not_supply_backref() -> None:
     with best_effort_tempdir() as tmp:
@@ -1193,7 +1278,7 @@ def test_a_commented_draft_beside_a_live_section_is_rejected() -> None:
 def test_backticked_comment_syntax_does_not_trigger_the_rule() -> None:
     """The false-positive that makes a code-span-blind rule unusable.
 
-    `docs/specs/digital-experience-contract/spec.md` documents a template whose
+    A real spec in this repository documents a template whose
     fields carry comment-syntax annotations, writing an opener and a closer in
     backticks 23 lines apart. A reader with no notion of code spans pairs those
     two *mentions* into a span covering that spec's real heading and all 17 of

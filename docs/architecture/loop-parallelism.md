@@ -1,6 +1,6 @@
 # Durable transitions and within-wave parallelism
 
-**STATUS: PLANNED.** Nothing here is implemented.
+**STATUS: § 2 implemented; §§ 1 and 3 planned.**
 
 This document states decisions and their costs. Shipped behaviour the baseline
 records is cited from [`loop-infrastructure.md`](loop-infrastructure.md);
@@ -109,37 +109,106 @@ design must also say whether it replaces `amendment_history` or sits beside it,
 since `contract_amendment_replay_status` and `cmd_status` both read the existing
 one.
 
-## 2. Serialising the wave-exit verdict
+## 2. Serialising a transition against cohort state
 
-**Decision.** The `wave-complete` guard returns the `current_wave_index` it
-judged; the commit step re-reads that field under the cohort lock and refuses
-when it has moved ([§ 6](loop-infrastructure.md#6-failure-and-recovery-behavior)
-describes the race).
+**Decision.** `cmd_transition` fingerprints cohort `state.json` before its first
+cohort read, re-reads it under the cohort lock before committing, and refuses
+when it moved. The fingerprint is a sha256 over the canonical parsed form, read
+through the guard layer's exported bounded reader. Every event takes the check
+except `contract-amendment` ([§ 6](loop-infrastructure.md#6-failure-and-recovery-behavior)
+describes the race this closes).
 
-**Unconditional, not gated on the parallelism flag.** `wave-complete` has no
-cohort effect, so this adds an acquisition to a path that takes none. Gating it
-on `auto_parallel` was considered and rejected on measurement.
+**Whole state, not a field subset.** Two earlier designs asked which cohort
+facts a verdict depended on and answered per guard — first as pinned fields,
+then as a guard re-evaluation over a derived set. Both shipped an answer that
+looked complete. The pinned set missed the unsupported-schema and
+absent-container rows of the wave-exit verdict, which approve without reading
+the wave pointer at all. The derived set missed the `run_id` preflight and the
+budget snapshot, neither of which is a `_GUARDS` entry. The set of cohort reads
+a commit consumes is not something a rule over guard names can enumerate, so the
+engine stops enumerating.
 
-One extra acquisition costs **0.7% to 2.4% of one transition**: a `wave-complete`
-runs 738.6 ms at the median over 21 runs, and an acquire-release pair costs
-17.84 ms at the median when calls are spaced as they are in a real run. That is
-an order of magnitude below the transition's own run-to-run spread — 202 ms of
-standard deviation, 27% of the median — and two orders below the 276 ms the
-engine already spends on three `git rev-parse --show-toplevel` calls per
-transition.
+**Read through the bounded reader, never a raw open.** A raw read of a
+non-regular `state.json` inside the hold blocks until both locks are judged
+stale and a second writer is admitted — strictly worse than holding no lock at
+all. `_loop_guards._read_managed_bytes` documents that hazard at exactly this
+step, and the engine reaches it through the exported `read_state`. ADR-0061
+**D3**'s read-channel clause already carries the
+[2026-09-22 erratum](../adr/0061-loop-infrastructure-phase-1.md) recording that
+the guard layer reads `state.json` directly rather than through the five
+designated verbs; this read is a further instance of that recorded drift, not a
+new class, so it opens no decision the erratum has not already parked.
 
-Gating would buy nothing measurable and cost two things. The race is reachable
-today only by two hand-driven processes on one spec directory, and a flag that is
-always false in Phase 1 would leave exactly that case unprotected — closing no
-reachable instance. And a conditional guard fails silently when the condition is
-misread, which is the asymmetry this design refuses everywhere else: a false
-"no protection needed" ships a break, a false "take the lock" costs 18 ms.
+**Unconditional, not gated on the parallelism flag.** Gating on `auto_parallel`
+was considered and rejected on measurement. The race is reachable today only by
+two hand-driven processes on one spec directory, and a flag that is always false
+in Phase 1 would leave exactly that case unprotected. A conditional guard also
+fails silently when the condition is misread.
 
-`auto_parallel` stays what it is — the switch on whether tasks dispatch in
-parallel — rather than a switch on a correctness guard.
+**Cost, uncontended.** One acquire–release plus one bounded cohort read per
+checked transition. The acquire–release measures 17.84 ms median with calls
+spaced as in a real run. No ratio against a transition median is quoted here:
+the published 738.6 ms figure rests on three `git rev-parse --show-toplevel`
+calls per transition, and `_get_repo_root` memoises per working directory, so
+re-derive the baseline on the tree in hand before quoting one.
+
+**Cost, contended — the dominant case, and it is not the fingerprint.**
+`_statelock`'s acquisition timeout is 10 s while a healthy cohort verb may hold
+for `GIT_TIMEOUT_S` = 20 s per spawn edge. A non-exempt transition that overlaps
+an ordinary cohort verb therefore waits the full 10 s and refuses on
+*acquisition*, not on a fingerprint mismatch — and it waits inside the engine
+lock, so every other engine verb for that spec stalls with it. Two orders of
+magnitude above the uncontended figure, fail-closed and retryable, but the
+figure to plan against.
 
 The ordering is safe: the engine-then-cohort nested hold is already live
 ([§ 3](loop-infrastructure.md#3-owned-state-and-write-authority)).
+
+### What this does not close
+
+Eight residuals, each disclosed rather than fixed.
+
+1. **Any concurrent cohort write refuses**, including a benign `dispatch-receipt`
+   that would only have made a verdict more true. Fail-closed, retryable, and
+   unreachable in a sequential single-controller run.
+2. **`contract-amendment` is exempt**, because its own effect writes cohort
+   state and its fingerprint therefore always differs. That exemption also keeps
+   the hold from enclosing `apply_contract_amendment`, which takes the cohort
+   lock itself on a lock that is not reentrant — but it means the transition
+   that rewrites the approved baseline is the one this check does not cover.
+3. **The hold serialises cohort `state.json` only.** Every other guard input in
+   and under the spec directory — `spec.md` and `plan.md` status and hashes, any
+   artifact `check_artifact_status` stats, the bundled retry-cap defaults —
+   stays exactly as unserialised as before.
+4. **The check is endpoint identity, not interval quiescence.** It compares two
+   samples, so a write-and-revert inside the window would leave a guard having
+   judged an intermediate state while the commit proceeds. No shipped cohort
+   verb *appears able* to produce that reversion, which is why it is disclosed
+   rather than closed.
+5. **Two cohort-lock failure classes are not retryable.** A non-regular
+   `state.json.lock` raises immediately, and a lock record this tool did not
+   write is never reclaimed however old it is. Both need the file removed by
+   hand, and they now block every non-exempt engine transition rather than only
+   cohort verbs. The realistic trigger is a foreign or other-uid lock file.
+6. **Any failure sentinel observed at both samples compares equal** and admits
+   the commit. The four sentinels prevent a cross-class collision and do nothing
+   about a same-class one: absent twice compares equal, as does non-regular
+   twice. Reaching it needs a foreign writer to break, heal and re-break
+   `state.json` inside one transition, because at least one intermediate guard
+   read must succeed — and that load rests entirely on the `run_id` preflight's
+   `check_identity`, since the budget snapshot swallows every exception.
+7. **Acquisition timeout is the dominant contended refusal**, not the
+   fingerprint mismatch, because the 10 s acquisition timeout is shorter than a
+   cohort verb's own possible hold. The wait extends the engine-lock hold, so
+   the whole spec's engine surface stalls for it. See the contended cost above.
+8. **A cohort-lock reclaim mid-hold** is reported, and what it means depends on
+   which exit the body took. If the engine-state write had landed, the
+   transition is durable behind a non-zero exit and the skipped outbox
+   finalisation leaves an `events.pending` that `_recover_pending` completes on
+   the next run — do not re-run it. If the body had already refused before
+   writing, nothing was committed and it should be re-run. The engine
+   distinguishes the two in its refusal; bounding either absolutely needs a
+   two-phase commit, which this phase forbids.
 
 ## 3. Plan width and mode selection
 

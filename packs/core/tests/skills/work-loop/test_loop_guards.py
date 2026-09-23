@@ -2430,7 +2430,7 @@ def test_every_loader_derives_completeness_from_all_not_an_enumeration() -> None
 
 # ══ check --phase wave-exit: the verdict table ═════════════════════════════
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# Contract: § The
 # `check --phase wave-exit` verdict. The contract is that exactly one row
 # applies to any cohort state and the rows jointly cover every cohort state, so
 # branch order in the implementation is an optimisation rather than the thing

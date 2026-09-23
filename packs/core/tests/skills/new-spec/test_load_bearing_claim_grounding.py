@@ -1,6 +1,6 @@
 """Construction tests for the load-bearing-claim routing rule.
 
-Spec: docs/specs/load-bearing-claim-grounding/spec.md
+Contract: load-bearing claim grounding
 
 Every assertion here reads the shipped pack source, and every one is written
 against **whitespace-flattened** text. The file hard-wraps its prose, so a

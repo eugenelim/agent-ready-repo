@@ -638,6 +638,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest workspace-status progressive disclosure (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest contract backward-traceability registry (roster-owned)":
+        LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
     # build-check") is correct: that target's run-test-suite includes pytest
@@ -922,6 +924,7 @@ _GATE_MAIN_CHECKS = (
     "pytest curation QA + RFC template contracts (roster-owned)",
     "pytest experience-design output-addressing contracts (roster-owned)",
     "pytest workspace-status progressive disclosure (roster-owned)",
+    "pytest contract backward-traceability registry (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -1415,6 +1418,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED(
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
+        ),
+    'tools/test_intent_corpus_gate.py':
+        NO_PR_GATE(
+            "Asserts docs.yml's lint-intent-corpus job still invokes the intent "
+            "corpus lint and the typed-ordinal --check, and re-proves both "
+            "premises against seeded fixtures. The controls themselves ARE "
+            "pull-request gated, by that job; this suite only guards their "
+            "wiring, and gating it would cost the lean job a pip install for "
+            "pytest. `make test` runs it; CI reaches it through the "
+            "dispatch-only test-corpus.yml."
         ),
     'tools/test_workspace_status.py':
         PR_GATED(

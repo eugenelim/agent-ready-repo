@@ -9,6 +9,19 @@ directory. `loop-engine.py` advances the finite-state machine.
 The harness does not create requirements or implement work. It consumes approved
 specification and plan artifacts.
 
+The boundary runs the other way too, and it splits by **policy versus
+mechanism** rather than by topic. `work-loop` decides *which* reviewers a change
+warrants, when light or full mode applies, whether a simplify pass runs, and how
+a session manages its context. The harness owns the machinery those decisions
+feed: `loop-cohort.py` parses and classifies reviewer reports
+(`review raw-classify`, `review inspect --adjudication`) and records the
+resulting state.
+
+So a reviewer-selection rule belongs in the `work-loop` skill and this page does
+not restate it, while the classification contract that consumes the report
+belongs here. A second copy of the selection rules would be falsified by the
+next edit to the skill with nothing comparing the two.
+
 ## 2. Entrypoints
 
 - `loop-engine.py`: `init`, `transition`, `status`, and `reset`.
@@ -22,6 +35,27 @@ The parallel-execution verbs — `dispatch-decision`, `auto-parallel`, and
 `loop-cohort.py` but disabled: each exits non-zero with
 `<verb> is disabled in Phase 1` and touches no state. ADR-0061 D5 defers
 parallel-wave orchestration, so the verb surface is carved out and inert.
+
+### How these scripts are invoked
+
+`<skill-dir>` is the installer- or harness-supplied directory holding the active
+`SKILL.md`. It is not a fixed repository path — an adopter's install location
+differs from this repository's, and a harness may supply its own. So every
+invocation resolves it and passes the script as one quoted argument from the
+repository root:
+
+```
+python '<skill-dir>/scripts/loop-engine.py' …
+python '<skill-dir>/scripts/lint-spec-status.py' --root .
+```
+
+A bare-relative `python scripts/loop-engine.py` is rejected by the work-loop
+evaluation contract, because it silently resolves against the caller's working
+directory rather than the installed skill.
+
+These instructions are byte-identical across the generated Codex and Claude
+projections; they are one source projected twice, not two copies to keep in
+step.
 
 ## 3. Owned state and write authority
 
@@ -43,8 +77,12 @@ the outbox finalisation — so the read-decide-write section is atomic against a
 second engine process. `loop-cohort.py` holds `state.json.lock` for the body of
 each mutation verb.
 
-The engine's guard layer reads cohort state **without** taking the cohort lock.
-That read is what the diagram marks as unserialised.
+The engine's guard layer reads cohort state without taking the cohort lock, and
+the diagram marks those reads as unserialised. Since the cohort-state identity
+check, the engine does take the cohort lock once per non-exempt transition — not
+for the guard reads, but around the commit, where it re-reads cohort state and
+refuses if it moved since the transition's first read. The diagram below shows
+the guard reads only.
 
 ```mermaid
 flowchart LR
@@ -73,8 +111,9 @@ flowchart LR
   EG -. "read, NOT serialised" .-> CS
 ```
 
-The two domains **are** nested, on one path. Three acquisition sites exist in the
-skill's scripts: two in `loop-cohort.py` and one in `loop-engine.py`. On the
+The two domains **are** nested, on two paths now. Four acquisition sites exist
+in the skill's scripts: two in `loop-cohort.py` (`:270` and `:992`) and two in
+`loop-engine.py` (the engine-state lock, and the cohort lock the commit takes). On the
 `contract-amendment` transition the engine loads `loop-cohort.py` as a module and
 calls `apply_contract_amendment`, which takes the cohort lock at
 `loop-cohort.py:992` while the engine still holds its own — so the engine-then-cohort
@@ -90,8 +129,11 @@ ordered pair that exists.
 identity and schedule checks before guarded transitions. `check-spec-status.py`
 imports the canonical status parser from `lint-spec-status.py`.
 
-The engine reads cohort state but does not write it. The cohort tool does not
-advance FSM phase state.
+The engine reads cohort state but does not write it — with one qualification
+the identity check introduced: `exclusive()` creates and unlinks the
+`state.json.lock` sibling, so the engine is now a writer in the cohort
+*directory* for the first time. ADR-0061 **D3** governs state content, not the
+directory. The cohort tool does not advance FSM phase state.
 
 This split is ADR-0061's **Option A**, the pure phase tracker: a transition
 *permits* a change and never *causes* one. The engine is a referee, so every
@@ -264,9 +306,25 @@ verbs alone and no direct state write.
 
 The interleaving needs two concurrent processes against one spec directory, so
 it is unreachable from the sequential single-controller flow that Phase 1
-supports. Any design that admits a second concurrent process against one spec
-directory has to address it — see [`loop-parallelism.md`](loop-parallelism.md)
-(planned, not implemented).
+supports.
+
+**This is now serialised, and the diagram above shows the pre-serialisation
+behaviour.** `cmd_transition` fingerprints cohort `state.json` before its first
+cohort read and re-reads it under the cohort lock before committing, refusing
+when it moved; the mutator above can no longer land in that window undetected.
+The check covers every event except `contract-amendment`, whose own effect
+writes cohort state. See
+[`loop-parallelism.md` § 2](loop-parallelism.md#2-serialising-a-transition-against-cohort-state)
+for the mechanism and, importantly, for the residuals it does not close.
+
+Two of those residuals bear on this section directly. `contract-amendment` is
+exempt, so the transition that rewrites the approved baseline keeps the window
+described above. And the consequence this section names — `gates-clean` asking
+only whether the current wave is the last, so a wave is entered and exited with
+no guard reading its receipts — is **not** closed by serialisation: it needs no
+interleaving at all. An advance that lands before the `gates-clean` guard runs
+produces it with every read consistent. That is a missing check rather than a
+lost race, and it remains open.
 
 ## 7. Observability and evidence
 
@@ -308,4 +366,7 @@ a backend can do with it are a cross-cutting concern: see
 
 ## 10. Last verified against commit
 
-`8d30c6f6c`
+`8d30c6f6c` for the whole page. §§ 3, 4 and 6 were re-verified against the
+change that added the cohort-state identity check they now describe; the rest
+of the page has not been re-audited since `8d30c6f6c`, so that is what this
+marker records.

@@ -17,7 +17,7 @@ Regenerate with, from the repository root::
 Every row is `spike-argv-boundary.py`'s own ``(argv, reason_code, why)`` —
 computed by running that derivation's ``validate`` function over its own
 ``CASES``, never hand-transcribed from
-``docs/specs/work-item-capture/spec.md`` § D6's rendered table. A row whose
+the capture contract's § D6 rendered table. A row whose
 verdict changes here is a contract change to that spec's § D6, not a
 fixture edit — regenerating this file from the spike must reproduce it
 byte-for-byte.

@@ -98,9 +98,20 @@ CORE_COLLECTIONS = {
     # the test-name set against origin/main shows two additions, no removal and
     # no rename, and the `lint-brief-coverage` entry below still reproduces,
     # which confirms the recomputation method rather than assuming it.
+    # Re-pinned 2026-09-23 for the contract backward-traceability registry:
+    # 87 -> 91. Dispositioned against `origin/main` before re-pinning: 4
+    # additions, 0 removals, 0 renames. The four are the AC-0002 cases —
+    # `test_v_registry_pairing_is_per_row`,
+    # `test_v_registry_rejects_spec_dir_prefix_match`,
+    # `test_v_registry_rejects_contract_token_prefix_match` and
+    # `test_v_registry_table_row_satisfies_backref` — which pin that a registry
+    # back-reference counts only when one row names the contract token exactly
+    # and the spec directory as a whole path. The last of the four is the
+    # positive control: without it, tightening the check to reject everything
+    # would satisfy the other three.
     SHARED_TESTS[0]: (
-        87,
-        "ba7a01f5b92da41e2f6ba0b2a51c2d57d7edef9b3630f9e88d4418969b3546e1",
+        91,
+        "0d8bd4b911c50348a4173bee57c35d7f10d9633f3909bade5ef94a5ff1030dc4",
     ),
     # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
     # from cancellation") added the six-state lifecycle coverage without
@@ -227,6 +238,19 @@ FIRST_TOOL_BATCH = (
     # them.
     "tools/test_pull_request_template_adoption.py",
     "tools/test_check_core_release.py",
+    # Added 2026-09-23 with the intent corpus gate's `--check` wiring. The
+    # suite had NO runner before: the Makefile enumerates `tools/` suites
+    # rather than sweeping, and this file was on no line and in no workflow,
+    # so its assertions could not fail. Membership only — it appends a path to
+    # a group that already exists, so the standalone/composed group counts do
+    # not move and neither literal moved. Verified before the bump by running
+    # `_root_tool_topology_errors` over the edited Makefile: membership drift
+    # on both expansions and no count drift, which is the signature of an
+    # appended path rather than a new process. `lint-ci-parity` disposes it
+    # NO_PR_GATE, which stays true — build-check.yml's mirror of this batch
+    # (`:385`) is deliberately not extended, because the controls it guards
+    # are themselves gated by docs.yml's lint-intent-corpus job.
+    "tools/test_intent_corpus_gate.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -754,11 +778,31 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # in place — checked by restoring that Makefile into this worktree and running
 # the case — so this supersedes live values rather than a pin that had already
 # gone stale.
+# Bumped 2026-09-23 for the intent corpus gate, which appends one module token
+# to the first tools batch line so `tools/test_intent_corpus_gate.py` runs at
+# all. It previously had NO runner: the Makefile enumerates `tools/` suites
+# rather than sweeping, and the file was on no line and in no workflow, so its
+# gate assertions could not fail.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one line removed and
+# one line added, the same batch line, differing only by the appended token.
+# No line was added, removed or reordered — a lengthened line rather than a new
+# process — so the root/tool process counts hold at 15/14 and the plans hold at
+# the 66/65 lines the CSS token gate above left them at. This change moves no
+# plan index at all; only the two digests and `EXPECTED_ROOT_TOOL_PATHS`, which
+# gains the same one path.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` (74bcd2e64) with the CSS token gate's `2be8a48a…` and
+# `7d59ec6d…` still in place returns an empty error list — checked after
+# rebasing onto that commit — so this supersedes live values rather than a pin
+# that had already gone stale. Re-derived on that rebase rather than carried
+# over: the pre-rebase values (`8e084d8d…`/`c79d92dc…`) were computed over a
+# Makefile without the two `lint:css` lines, so keeping either side of the
+# conflict would have pinned a plan no invocation produces.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "2be8a48a2c68935fc47d22f13a46a6d64796e4080b988807738d7a12642b5fce"
+    "19f809d1d16c1932ef48f942314756ca53bfe5adadb887161a4809da279fbf18"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "7d59ec6d432e8c9d06efb9e9fe3832342df73287aa94d18a35f3cd653c913a09"
+    "b2a286f2776b34313a35b91aefa2ec4668471cfe4c779cd4f661b9a685449078"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

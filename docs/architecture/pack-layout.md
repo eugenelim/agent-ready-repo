@@ -171,6 +171,21 @@ The pack-authored primitives declared in the adapter contract
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | Declarative binding of a body to an editor event. |
 | `command` | `.apm/commands/<name>.md` | Slash-command primitive (Claude Code today; other harnesses degrade per the contract). |
 
+Two shipped cases are worth naming because their ownership is easy to guess
+wrong.
+
+The **work-loop activation reminder** is a matched pair: portable
+`UserPromptSubmit` hook wiring plus an input-free hook body. The body prints a
+fixed reminder and reads no prompt, environment, file or network input —
+classifying whether a change is trivial is `work-loop`'s job, not the hook's.
+Keeping the hook inputless is what makes it portable across every harness that
+takes the wiring.
+
+The **`digital-experience-contract` reference** belongs to the
+`frontend-engineering` pack, not core. Core delegates the whole
+frontend-engineering skill to that pack, which is its sole canonical owner, and
+the reference travels with it.
+
 One pack-authored primitive, `kiro-ide-hook`, provides native Kiro IDE-event
 hooks. Its source path is `.apm/kiro-ide-hooks/<name>.kiro.hook`; the
 `kiro-ide` adapter projects it; every other adapter either declares it
@@ -347,7 +362,19 @@ dimension; adopters can override within the publisher's declared set
 via `--scope`. The default landing for every pack we ship today is
 `repo`; user-scope eligibility requires content portability — no hooks
 wired into a specific repo's surface, no seeds that name a particular
-project. The schema enforces `default-scope ∈ allowed-scopes` so the
+project.
+
+Portability also governs what shipped pack prose may cite. Pack material states
+its rules **directly** rather than pointing at this catalogue's internal RFCs,
+ADRs, or acceptance criteria, which mean nothing in an adopter's repository.
+Two carve-outs stay valid: IETF RFC references, and illustrative examples drawn
+from an adopter's own situation.
+
+Only part of this is mechanically caught. The
+[catalogue-leak guard](security.md#repository-local-catalogue-leak-guard)
+matches three patterns in core skill Markdown — the catalogue name, and
+`RFC-00NN` / `K-00NN` numbers. A citation of an internal ADR, or of a spec's
+acceptance criteria, passes it. The rest of the rule is an authoring obligation. The schema enforces `default-scope ∈ allowed-scopes` so the
 rule holds outside the CLI. `agentbundle install` re-runs the
 contract-level user-scope rails (seeds / hooks / marker) against the
 resolved pack content at install time, closing the

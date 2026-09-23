@@ -38,7 +38,9 @@ rules live with that split.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
-- **STATUS: PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
+- **STATUS: § 2 IMPLEMENTED; §§ 1 AND 3 PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
+  ships the cohort-state identity check that serialises a transition commit
+  against a concurrent cohort mutation (§ 2), and
   proposes a `pending_transition` replay marker generalising the shipped
   `amendment_pending` marker to every event that needs one,
   and treats serialising the wave-exit verdict and raising plan width as the two

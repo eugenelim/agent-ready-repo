@@ -1,5 +1,5 @@
 """Pins clauses C1-C7 of the ride-along admission test across their shipped
-sites (`docs/specs/ride-along-admission-test/`). Every site carries them;
+sites. Every site carries them;
 these assertions hold on the current tree and red when one drifts.
 
 Every clause is pasted verbatim, so identity is decided by equality once each
@@ -22,7 +22,7 @@ before comparing).
 
 C1 and C2 are the contract; C3-C7 are working material. All seven are pinned
 here and nowhere else. The roster test that compared these constants against
-`docs/specs/ride-along-admission-test/spec.md` was removed: that spec is a
+the originating spec was removed: that spec is a
 frozen historical record, so pinning live constants to it also froze the
 shipped clauses, leaving a correct repair no landing place. The cost is named
 rather than implied — an identical reword applied to every site *and* to the

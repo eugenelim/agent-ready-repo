@@ -97,6 +97,11 @@ requirements store. Target entries contain exactly `path`, `kind`, `source`,
 `summary`, and `needs`; comments, summaries, order, labels, and hints cannot
 select a route, satisfy a dependency, or authorize dispatch.
 
+Repository-level open work is indexed in `workspace.toml` `[backlog].open`, and
+`workspace-status` projects that collection. What that register means for a
+spec's deferral marker is the loop contract's
+[§ 7](loop-contract.md#7-mechanical-invariants).
+
 ### Delivery-brief lifecycle
 
 The brief artifact and its `brief_queue` membership carry the same state. Child
@@ -296,6 +301,25 @@ A locator-only workspace entry is contract-valid and visible, but it stops at
 local candidate, symlink escape, symlink loop, or mandatory-policy conflict
 returns a stable refusal without raw exception text.
 
+### Queue repair
+
+`repair-plan` is read-only with respect to `workspace.toml`. `repair-apply`
+requires explicit confirmation and re-verifies each operation against the
+workspace before performing it. Re-verification is **per operation, not per
+plan**: an entry whose spec status or eligibility moved since planning is
+recorded unapplied with its reason — `spec_status_changed`,
+`canonical_repair_ineligible` — while the rest of the plan proceeds.
+
+Only a canonically eligible Type 2 queue finding whose artifact is `Shipped` or
+`Archived` can become an automatic operation. Everything else stays manual:
+Type 1 and Type 3 findings, active-source entries, and duplicates are emitted as
+`manual_findings`, each carrying its finding type, initiative, list and
+`finding_id`, for a human to act on rather than applied.
+
+A `Shipped` repair moves the structured entry into `work.shipped`; an
+`Archived` repair removes it. Neither mutates `work.active` — repair never
+promotes or retires work that is still running.
+
 Handoff admission also stops on incomplete bounded content, confidentiality or
 mandatory-policy conflict, source or revision mismatch, forged/non-resolved
 resolver data, and unacquired external content. No handoff result changes
@@ -359,6 +383,12 @@ artifacts and migration evidence.
   resolution shapes.
 - Reconciliation owns stable finding codes and never makes legacy entries
   dispatchable by inference.
+- The `workspace-status` verbs differ by analysis depth. `status` and `explain`
+  run the workspace-wide bounded Type 2 and Type 3 analysis; `reconcile` runs
+  the exhaustive Type 1, Type 2, and Type 3 scan.
+- Orientation presents shaping and building as distinct lifecycle rooms
+  surfaced through one session-start view, with `[build]`, `[shape]`, and
+  `[brief]` room prefixes.
 - The integrated routing matrix runs acquisition, normalization, routing,
   authority/refresh, and read-only migration planning across Jira, Jira Align,
   GitHub, and Linear in two clean roots; canonical results and next actions must

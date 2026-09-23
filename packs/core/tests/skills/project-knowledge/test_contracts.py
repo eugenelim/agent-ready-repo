@@ -298,7 +298,7 @@ def test_ac48_a_non_writable_version_is_refused_rather_than_re_stamped() -> None
     # validate_capture_request stays version-agnostic on purpose: knowledge_store
     # calls it from the read path too, so requiring writability here refuses every
     # stored legacy record. Binding the selector to the write path is T4's, per
-    # docs/specs/work-item-capture/notes/amendment-002.md.
+    # amendment 002 to the capture contract.
     assert module.validate_capture_request(dict(v1_request))
 
 
@@ -366,7 +366,7 @@ def test_every_d6_case_row_reproduces_its_recorded_verdict(
     """Drives every row of `argv_cases.py` — generated from the spike, not
     retyped from the spec table — through the same seam § D6 binds
     (AC-0049 - AC-0060). A row whose verdict changes here is a contract
-    change to docs/specs/work-item-capture/spec.md § D6, not a fixture
+    change to the capture contract § D6, not a fixture
     edit.
     """
 
@@ -1050,7 +1050,7 @@ def test_ac0037_every_d4_added_code_is_returned_by_its_refusal_and_is_a_catalog_
     fixture, not a second hand list — so a row added there with a new code
     becomes a case here automatically. `work_item_unnecessary` has no
     validator-level trigger: it is the necessity razor's own verdict, a
-    reasoning-tier judgement `docs/specs/work-item-capture/plan.md`'s T7
+    reasoning-tier judgement the capture plan's T7
     wires the dispatch for; it is asserted as a catalog member only."""
 
     module = load_project_knowledge_module()
@@ -1216,7 +1216,7 @@ def test_capture_observation_refuses_a_non_writable_version_and_writes_nothing(
     write path is refused with a catalog code and nothing is written
     (AC-0048). `_validate_event`, the read-path sibling, stays
     version-agnostic — proved by the corpus replay below, per
-    docs/specs/work-item-capture/notes/amendment-002.md."""
+    amendment 002 to the capture contract."""
 
     store = load_knowledge_store_module()
     repo = initialize_empty_v1_repo(tmp_path, store)
@@ -1375,9 +1375,8 @@ def test_a_v1_record_carrying_the_v2_only_work_item_kind_is_refused() -> None:
 
 
 # --- T7: the close's per-item reasoning dispatch ----------------------------
-# docs/specs/work-item-capture/spec.md § D3, § D4, § D9;
-# docs/specs/work-item-capture/plan.md T7. Three criteria moved here from T5
-# by amendment 005 (docs/specs/work-item-capture/notes/amendment-005.md):
+# The capture contract § D3, § D4, § D9; capture plan T7.
+# Three criteria moved here from T5 by amendment 005:
 # the instruction-shape refusal (AC-0035), the necessity razor's refusal
 # (AC-0044) and the shape-threshold judgement (AC-0045) all assert against
 # the dispatch this task builds.

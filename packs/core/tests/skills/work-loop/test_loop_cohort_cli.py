@@ -1059,7 +1059,7 @@ class LoopCohortCliTest(unittest.TestCase):
     def test_51_init_and_schedule_leave_the_receipts_container_present(self) -> None:
         """Present from `init` onwards, so an absent container means one thing.
 
-        Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+        Contract: § The record
         lifecycle. An absent container is cohort state written before receipts
         existed, which the wave exit exempts — so a fresh run must never show it.
         """

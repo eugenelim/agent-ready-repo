@@ -3,7 +3,7 @@
 
 Run with pytest.
 
-These are the acceptance bar for docs/specs/loop-cohort-state-lock. Both cases
+These are the acceptance bar for the cohort state-lock contract. Both cases
 were observed failing against the pre-fix tree — see notes/reproduction.md.
 
 THE HARNESS IS THE POINT. The synchronising barrier sits AFTER interpreter and
@@ -24,12 +24,14 @@ to the live checkout as test failures.
 
 from __future__ import annotations
 
+import ast as _ast_mod
 import contextlib
 import json
 import os
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import pytest
@@ -982,3 +984,1034 @@ def test_harness_is_hermetic(tmp: Path) -> None:
         )
         return
     ok("harness-is-hermetic")
+
+
+# ══ cohort-state identity: structure asserted from source ══════════════════
+#
+# Spec: docs/specs/wave-exit-verdict-serialisation/spec.md AC1, AC3, AC5, AC6,
+# AC7, AC15, AC16, AC22.
+#
+# These are static because what they pin is where code sits, and no runtime
+# observation can see that: `_release` unlinks the lockfile on every normal
+# exit, so a post-run probe reports the same absence whether the lock was taken
+# or never taken at all.
+
+def _engine_tree():
+    return _ast_mod.parse(ENGINE.read_text(encoding="utf-8"))
+
+
+def _fn(tree, name: str):
+    return next(n for n in _ast_mod.walk(tree)
+                if isinstance(n, _ast_mod.FunctionDef) and n.name == name)
+
+
+def _called_names(node) -> list[str]:
+    """Every called name in source order: bare names and attribute tails."""
+    out = []
+    for n in _ast_mod.walk(node):
+        if isinstance(n, _ast_mod.Call):
+            f = n.func
+            if isinstance(f, _ast_mod.Name):
+                out.append(f.id)
+            elif isinstance(f, _ast_mod.Attribute):
+                out.append(f.attr)
+    return out
+
+
+def _stmt_index_of_call(fn, callee: str) -> int:
+    """Index of the top-level statement in `fn` containing a call to `callee`."""
+    for i, stmt in enumerate(fn.body):
+        if callee in _called_names(stmt):
+            return i
+    raise AssertionError(f"{callee} is not called in {fn.name}")
+
+
+def test_cohort_fingerprint_capture_precedes_every_other_call() -> None:
+    """AC1: nothing in cmd_transition can read cohort state before the capture.
+
+    Positional, not a call-graph walk. The guard dispatch is
+    `_GUARDS.get(...)` then `guard_fn(...)`, and the `_guards()` calls are
+    attribute calls on a module loaded at runtime, so the read set is not
+    statically decidable — this file already records that verdict elsewhere.
+    What IS decidable is that the capture comes first, which dominates any read
+    a later edit adds wherever it adds it.
+    """
+    fn = _fn(_engine_tree(), "cmd_transition")
+    capture_at = _stmt_index_of_call(fn, "_cohort_fingerprint")
+    # Named individually, not "any builtin": `getattr` and friends can reach
+    # anything, and the point of this check is that nothing before the capture
+    # can touch cohort state. `str` is the exception-message conversion in the
+    # spec-dir resolution's own handler.
+    allowed_before = {"_resolve_spec_dir", "stop", "str"}
+    earlier = set()
+    for stmt in fn.body[:capture_at]:
+        earlier.update(_called_names(stmt))
+    assert earlier <= allowed_before, (
+        f"calls precede the cohort-state capture in cmd_transition: "
+        f"{sorted(earlier - allowed_before)}. Any of them could read cohort "
+        f"state, which would leave the capture describing a state the "
+        f"transition had already acted on."
+    )
+
+
+def test_commit_writes_appear_exactly_once_in_cmd_transition() -> None:
+    """AC5: one commit path, so a checked and an unchecked copy cannot drift."""
+    fn = _fn(_engine_tree(), "cmd_transition")
+    names = _called_names(fn)
+    for callee in ("_write_events_pending", "_write_engine_state_atomic"):
+        assert names.count(callee) == 1, (
+            f"{callee} appears {names.count(callee)} times in cmd_transition; "
+            "a second commit path would not be covered by the identity check"
+        )
+
+
+def _commit_hold_node(fn):
+    """The `with _cohort_commit_hold(...)` statement inside cmd_transition."""
+    for n in _ast_mod.walk(fn):
+        if isinstance(n, (_ast_mod.With, _ast_mod.AsyncWith)):
+            for item in n.items:
+                if "_cohort_commit_hold" in _called_names(item.context_expr):
+                    return n
+    raise AssertionError("cmd_transition has no `with _cohort_commit_hold(...)`")
+
+
+def test_cohort_hold_contains_the_commit_and_nothing_that_decides_it() -> None:
+    """AC6: the hold spans the re-read and both writes, and nothing else that matters.
+
+    The exclusions are not stylistic. `apply_contract_amendment` takes the
+    cohort lock itself on a lock that is not reentrant, so enclosing it would
+    self-deadlock; the guard evaluations and the pre-guard must stay outside or
+    the hold grows without bound.
+    """
+    fn = _fn(_engine_tree(), "cmd_transition")
+    inside = set(_called_names(_commit_hold_node(fn)))
+
+    for required in ("_revalidate_cohort_state", "_write_events_pending",
+                     "_write_engine_state_atomic"):
+        assert required in inside, f"{required} must be inside the cohort hold"
+
+    # All six AC6 names, not the four that were easy: the FSM table lookup and
+    # the outbox unlink were missing, and a check that omits an exclusion the
+    # criterion states cannot fail on the case the criterion was written for.
+    # Each name identifies one excluded operation. `get` and a bare `unlink`
+    # were here for the FSM lookup and the outbox unlink; both are common enough
+    # that an unrelated edit reds with a message that misdescribes it.
+    for excluded in ("_schedule_check_current", "guard_fn", "_append_events_jsonl",
+                     "apply_contract_amendment", "_run_id_preflight",
+                     "_TRANSITIONS_BY_MODE", "_events_pending_path"):
+        assert excluded not in inside, (
+            f"{excluded} is inside the cohort hold; the hold must cover the "
+            "commit only"
+        )
+
+
+def test_cohort_acquisition_is_not_swallowed_by_a_continuing_handler() -> None:
+    """AC7: outside the body AND the handler of any try whose handler continues.
+
+    The pending write sits in a `try` whose `except Exception` warns and falls
+    through to the unconditional state write. An acquisition placed in that
+    BODY — not just in the handler — is swallowed and becomes an unlocked
+    commit on a lock failure, which is why this checks both.
+    """
+    fn = _fn(_engine_tree(), "cmd_transition")
+    hold = _commit_hold_node(fn)
+
+    def handler_continues(handler) -> bool:
+        last = handler.body[-1] if handler.body else None
+        return not isinstance(last, (_ast_mod.Return, _ast_mod.Raise,
+                                     _ast_mod.Continue, _ast_mod.Break))
+
+    for node in _ast_mod.walk(fn):
+        if not isinstance(node, _ast_mod.Try):
+            continue
+        if not any(handler_continues(h) for h in node.handlers):
+            continue
+        for region in (node.body, *[h.body for h in node.handlers]):
+            for stmt in region:
+                assert hold not in list(_ast_mod.walk(stmt)), (
+                    "the cohort-lock acquisition sits inside a try whose "
+                    "handler continues after catching; a lock failure there is "
+                    "swallowed and falls through to the unlocked state write"
+                )
+
+
+def test_the_exemption_is_read_from_the_declared_set() -> None:
+    """AC3: the branch consults the set, so a hard-coded literal cannot pass.
+
+    A module constant equal to {"contract-amendment"} is true whether or not
+    anything reads it; what must hold is that the decision points consult it.
+    """
+    tree = _engine_tree()
+    for fname in ("_cohort_commit_hold", "_revalidate_cohort_state"):
+        src = _ast_mod.dump(_fn(tree, fname))
+        assert "_FINGERPRINT_EXEMPT_EVENTS" in src, (
+            f"{fname} must decide the exemption from the declared set"
+        )
+        assert "'contract-amendment'" not in src, (
+            f"{fname} compares against a hard-coded event literal; a second "
+            "hard-coded exemption would then pass the set assertion untouched"
+        )
+
+
+def _cohort_tree():
+    return _ast_mod.parse(COHORT.read_text(encoding="utf-8"))
+
+
+def _decorator_names(fn) -> set[str]:
+    out = set()
+    for d in fn.decorator_list:
+        node = d.func if isinstance(d, _ast_mod.Call) else d
+        if isinstance(node, _ast_mod.Name):
+            out.add(node.id)
+        elif isinstance(node, _ast_mod.Attribute):
+            out.add(node.attr)
+    return out
+
+
+_WITH_STATE_LOCK = "<with_state_lock>"
+
+
+def _with_state_lock_targets(tree) -> dict[str, set[str]]:
+    """Body callables handed to `with_state_lock(...)`, and the Call nodes doing it."""
+    targets: set[str] = set()
+    sites: set[int] = set()
+    for n in _ast_mod.walk(tree):
+        if not (isinstance(n, _ast_mod.Call) and "with_state_lock" in _called_names(n)):
+            continue
+        sites.add(id(n))
+        # The body callable is the third positional, or the `body` keyword —
+        # not every `Name` in the call. `with_state_lock(spec_dir, verb, body)`
+        # would otherwise yield `spec_dir` and `verb` as targets, and a module
+        # function that ever shared one of those names would be granted
+        # heldness it never earned.
+        candidates = list(n.args[2:3])
+        candidates += [kw.value for kw in n.keywords if kw.arg == "body"]
+        for arg in candidates:
+            if isinstance(arg, _ast_mod.Lambda):
+                targets |= set(_called_names(arg.body))
+            elif isinstance(arg, _ast_mod.Name):
+                targets.add(arg.id)
+    return {"targets": targets, "sites": sites}
+
+
+def _cohort_lock_held_functions() -> set[str]:
+    """Every `loop-cohort.py` function whose body runs under the cohort lock.
+
+    Three shapes, and a check that knows only the first two reds on the third:
+      1. the `@_locked` decorator, which seven verbs use;
+      2. the inline `with sl.exclusive(...)` in `apply_contract_amendment`;
+      3. a body callable handed to `with_state_lock(...)` — the ONLY route
+         holding `_schedule_run_impl`'s write.
+    Shape 3 is why `loop-cohort.py` has just two literal `exclusive(` sites
+    while far more code runs held: keying on the literal alone would miss the
+    majority.
+
+    Heldness is per PATH. A shape-3 target is NOT seeded as a root: its
+    heldness is a property of the `with_state_lock` call site, not of its own
+    body, so seeding it would exempt it from the every-caller rule and let an
+    unlocked second route to the same write pass unchallenged. The call site is
+    instead recorded as one held caller, and the target must earn heldness like
+    anything else — every caller held, at least one caller.
+    """
+    tree = _cohort_tree()
+    funcs = {n.name: n for n in _ast_mod.walk(tree)
+             if isinstance(n, _ast_mod.FunctionDef)}
+    ws = _with_state_lock_targets(tree)
+
+    held = {name for name, fn in funcs.items() if "_locked" in _decorator_names(fn)}
+    held |= {name for name, fn in funcs.items()
+             if any("exclusive" in _called_names(item.context_expr)
+                    for w in _ast_mod.walk(fn)
+                    if isinstance(w, _ast_mod.With) for item in w.items)}
+    held.add(_WITH_STATE_LOCK)
+
+    callers: dict[str, set[str]] = {name: set() for name in funcs}
+    for name, fn in funcs.items():
+        for node in _ast_mod.walk(fn):
+            if not isinstance(node, _ast_mod.Call):
+                continue
+            f = node.func
+            callee = f.id if isinstance(f, _ast_mod.Name) else (
+                f.attr if isinstance(f, _ast_mod.Attribute) else None)
+            if callee in callers:
+                callers[callee].add(name)
+    # Attribute a shape-3 target's invocation to the lock site, not to the
+    # function that merely passes the callable in — the passer is unheld.
+    for target in ws["targets"]:
+        if target in callers:
+            # Keep only callers that reach the target OUTSIDE the lock site —
+            # those are the genuinely unheld routes. The function that merely
+            # hands the callable to `with_state_lock` is not one of them.
+            callers[target] = {c for c in callers[target]
+                               if target in _called_names_outside_ws(funcs.get(c), ws)}
+            callers[target].add(_WITH_STATE_LOCK)
+
+    changed = True
+    while changed:
+        changed = False
+        for name in funcs:
+            if name in held:
+                continue
+            who = callers[name]
+            if who and who <= held:
+                held.add(name)
+                changed = True
+    return held
+
+
+def _called_names_outside_ws(fn, ws) -> list[str]:
+    """Calls in `fn` excluding those inside a `with_state_lock(...)` argument."""
+    if fn is None:
+        return []
+    inside: set[int] = set()
+    for n in _ast_mod.walk(fn):
+        if isinstance(n, _ast_mod.Call) and id(n) in ws["sites"]:
+            for sub in _ast_mod.walk(n):
+                inside.add(id(sub))
+    return [c for node in _ast_mod.walk(fn)
+            if isinstance(node, _ast_mod.Call) and id(node) not in inside
+            for c in _called_names(node)]
+
+
+def test_every_cohort_state_write_runs_inside_a_cohort_hold() -> None:
+    """AC17: the premise the whole identity check rests on.
+
+    If a cohort writer ever ran unlocked, the engine's re-read could observe
+    state no lock protected and commit against it with every other criterion
+    still green. AC18 pins only the converse direction, so without this the
+    foundational assumption is asserted by prose alone.
+    """
+    tree = _cohort_tree()
+    held = _cohort_lock_held_functions()
+    offenders = []
+    for fn in _ast_mod.walk(tree):
+        if not isinstance(fn, _ast_mod.FunctionDef):
+            continue
+        names = _called_names(fn)
+        writes = "write_state_atomic" in names
+        unlinks = "unlink" in names and "state_path_for" in names
+        if (writes or unlinks) and fn.name not in held:
+            offenders.append(fn.name)
+    assert not offenders, (
+        f"these write or unlink cohort state.json outside any cohort-lock "
+        f"hold: {sorted(offenders)}. Exempting one here would blind the check "
+        f"to the exact path it exists for — fix the hold, not the list."
+    )
+
+
+def test_loop_cohort_never_reaches_the_engine_lock_or_engine_state() -> None:
+    """AC18: the one-way acquisition order, checked rather than observed.
+
+    The nested hold's deadlock argument depends on this and nothing states it:
+    `loop-cohort.py:2427` says the module never reads `engine-state.json`,
+    which is this property, not the ordering. The ordering rests on the call
+    sites alone, so it needs a check that reds when one moves.
+    """
+    tree = _cohort_tree()
+    for n in _ast_mod.walk(tree):
+        if isinstance(n, _ast_mod.Call) and "exclusive" in _called_names(n):
+            locked = _ast_mod.dump(n)
+            assert "engine" not in locked.lower(), (
+                f"loop-cohort acquires a lock on an engine path: {locked[:200]}"
+            )
+    # AST, not a grep. The property is that no CODE names the engine-state
+    # file; a docstring or a variable name mentioning it breaks no invariant,
+    # and a text scan that reds on those reports a violation that is not one.
+    literals = [
+        node.value for node in _ast_mod.walk(tree)
+        if isinstance(node, _ast_mod.Constant) and isinstance(node.value, str)
+        and "engine-state" in node.value
+    ]
+    docstrings = {
+        n.body[0].value.value for n in _ast_mod.walk(tree)
+        if isinstance(n, (_ast_mod.FunctionDef, _ast_mod.ClassDef, _ast_mod.Module))
+        and n.body and isinstance(n.body[0], _ast_mod.Expr)
+        and isinstance(n.body[0].value, _ast_mod.Constant)
+        and isinstance(n.body[0].value.value, str)
+    }
+    offenders = [lit for lit in literals if lit not in docstrings]
+    assert not offenders, (
+        f"loop-cohort names an engine-state path in code: {offenders}"
+    )
+
+
+def test_cohort_commit_hold_reaches_no_spawn_and_stays_under_the_timeout() -> None:
+    """AC22: the only hold this delivery creates, bounded by a number with an origin.
+
+    AC6's exclusion list cannot bound it — an exhaustive negative list passes
+    any operation nobody thought to enumerate. This asserts the positive
+    property instead: nothing inside can spawn, so the hold is local I/O, and
+    the declared ceiling sits below the acquisition timeout. Above that timeout
+    a contending cohort verb abandons a holder that was about to release.
+    """
+    engine = _load_module(ENGINE, "_engine_hold_budget")
+    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_hold_budget")
+    tree = _engine_tree()
+    # Rooted at the `with` block's own statements, not at three helpers. The
+    # two operations this delivery MOVED INTO the hold — the pending write and
+    # the state write — are called from cmd_transition's with-body, so a set
+    # built from the helpers alone leaves the ceiling unverified for exactly
+    # the code it is meant to bound.
+    hold_body = _commit_hold_node(_fn(tree, "cmd_transition"))
+    reachable = set(_called_names(hold_body))
+    funcs_e = {n.name: n for n in _ast_mod.walk(tree)
+               if isinstance(n, _ast_mod.FunctionDef)}
+    frontier, seen = list(reachable), set(reachable)
+    while frontier:
+        fn = funcs_e.get(frontier.pop())
+        if fn is None:
+            continue
+        for callee in _called_names(fn):
+            if callee not in seen:
+                seen.add(callee)
+                frontier.append(callee)
+    reachable = seen
+    assert not (reachable & set(SPAWN_ATTRS)), (
+        f"the cohort hold reaches a spawning capability: "
+        f"{sorted(reachable & set(SPAWN_ATTRS))}"
+    )
+    assert 0 < engine.COHORT_COMMIT_HOLD_MAX_S < sl.DEFAULT_TIMEOUT, (
+        f"the inner hold's ceiling ({engine.COHORT_COMMIT_HOLD_MAX_S}s) must sit "
+        f"below the acquisition timeout ({sl.DEFAULT_TIMEOUT}s), or a contending "
+        f"cohort verb times out against a live holder"
+    )
+
+
+def _reaches_a_cohort_acquisition(name: str) -> bool:
+    """Does this `loop-cohort` function, or anything it calls, take the lock?
+
+    DOWNWARD reachability. Not `held`, which after the per-path repair means
+    "always called from inside a hold" — the inverse relation. Using `held`
+    here counted a pure argv parser as acquiring, and would have kept passing
+    if the one genuinely acquiring mutator stopped acquiring.
+    """
+    tree = _cohort_tree()
+    funcs = {n.name: n for n in _ast_mod.walk(tree)
+             if isinstance(n, _ast_mod.FunctionDef)}
+
+    def acquires_directly(fn) -> bool:
+        if "_locked" in _decorator_names(fn):
+            return True
+        names = _called_names(fn)
+        return "exclusive" in names or "with_state_lock" in names
+
+    seen, frontier = set(), [name]
+    while frontier:
+        current = frontier.pop()
+        fn = funcs.get(current)
+        if fn is None or current in seen:
+            continue
+        seen.add(current)
+        if acquires_directly(fn):
+            return True
+        frontier.extend(c for c in _called_names(fn) if c in funcs)
+    return False
+
+
+def _engine_reachable_functions() -> set[str]:
+    """Functions in `loop-engine.py` reachable from `cmd_transition` by name.
+
+    Bare-name callees only. That is the limit of what a static walk can do here
+    and it is stated rather than papered over: a call through an attribute on a
+    runtime-loaded module is invisible to it.
+    """
+    tree = _engine_tree()
+    funcs = {n.name: n for n in _ast_mod.walk(tree)
+             if isinstance(n, _ast_mod.FunctionDef)}
+    seen, frontier = {"cmd_transition"}, ["cmd_transition"]
+    while frontier:
+        fn = funcs.get(frontier.pop())
+        if fn is None:
+            continue
+        for node in _ast_mod.walk(fn):
+            if isinstance(node, _ast_mod.Call) and isinstance(node.func, _ast_mod.Name):
+                name = node.func.id
+                if name in funcs and name not in seen:
+                    seen.add(name)
+                    frontier.append(name)
+    return seen
+
+
+def _engine_cohort_acquisition_sites() -> tuple[int, list[str], set[str]]:
+    """Count COHORT acquisition SITES reachable from `cmd_transition`.
+
+    Sites, not containing-function names. A set of names cannot rise when a
+    second acquisition is added inside a function already in it, and the bound
+    consumes this as a count of acquisitions — so a name set silently
+    under-derives by a whole timeout.
+
+    A site is a call whose callee is *named* `exclusive`, in either attribute
+    or bare form. An acquisition reached through an alias bound to some other
+    name — `acquire = sl.exclusive` then `acquire(path)` — is invisible here,
+    and no static matcher resolves that without dataflow. That limit is why the
+    site counts are pinned by the caller rather than merely derived: any change
+    to them sends a human back to this derivation, which is the only thing that
+    catches what the matcher cannot see.
+
+    Every site the matcher DOES see must land in a bucket. One whose argument
+    names neither the cohort path helper nor the engine-state path is returned
+    as unclassified and fails the caller, because dropping it is the fail-open
+    direction — an acquisition through a local variable would otherwise leave
+    the count unchanged.
+    """
+    tree = _engine_tree()
+    reachable = _engine_reachable_functions()
+    cohort, unclassified, fns = 0, [], set()
+    for fn in _ast_mod.walk(tree):
+        if not isinstance(fn, _ast_mod.FunctionDef) or fn.name not in reachable:
+            continue
+        for node in _ast_mod.walk(fn):
+            if not (isinstance(node, _ast_mod.Call)
+                    and "exclusive" in _called_names(node)):
+                continue
+            arg = " ".join(_ast_mod.dump(a) for a in node.args)
+            # Engine wins, and is tested first: "engine-state.json" CONTAINS
+            # "state.json", so a cohort test applied first reads an
+            # engine-state literal as a cohort path.
+            names_engine = "_engine_state_path" in arg or "engine-state.json" in arg
+            names_cohort = "state_path_for" in arg or "state.json" in arg
+            if names_engine:
+                continue
+            if names_cohort:
+                cohort += 1
+                fns.add(fn.name)
+            else:
+                unclassified.append(f"{fn.name}:{node.lineno}")
+    return cohort, unclassified, fns
+
+
+def _cohort_mutator_acquisition_sites() -> tuple[int, set[str]]:
+    """Count `_cohort_mutator().<fn>(` SITES whose target reaches an acquisition."""
+    acquiring, sites = set(), 0
+    for n in _ast_mod.walk(_engine_tree()):
+        if not isinstance(n, _ast_mod.Call):
+            continue
+        f = n.func
+        if (isinstance(f, _ast_mod.Attribute) and isinstance(f.value, _ast_mod.Call)
+                and "_cohort_mutator" in _called_names(f.value)
+                and _reaches_a_cohort_acquisition(f.attr)):
+            acquiring.add(f.attr)
+            sites += 1
+    return sites, acquiring
+
+
+def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
+    """AC15: the derived bound describes the code, including nested acquisitions.
+
+    `test_lock_hold_budget` above counts subprocess edges only, so it sees no
+    lock acquisition at all — not this delivery's, and not the two that already
+    ship. A bound that cannot see a ten-second wait is the silent staleness that
+    test's own message warns about.
+
+    The count is the MAXIMUM over mutually exclusive branches, not their sum:
+    `contract-amendment` is the only event that acquires through its effect and
+    the only event exempt from the identity check, so at most one cohort
+    acquisition is live on any single path.
+    """
+    engine = _load_module(ENGINE, "_engine_acq_budget")
+    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_acq_budget")
+
+    # Two mutually exclusive groups, both counted by SITE rather than by
+    # containing function. `contract-amendment` is the only event that acquires
+    # through its effect and the only event exempt from the identity check, so
+    # at most one group is live on any single path.
+    engine_sites, unclassified, engine_fns = _engine_cohort_acquisition_sites()
+    mutator_sites, acquiring = _cohort_mutator_acquisition_sites()
+    assert not unclassified, (
+        f"these `exclusive(...)` sites reachable from cmd_transition lock a path "
+        f"the classifier cannot attribute: {unclassified}. Dropping one is the "
+        f"fail-open direction — it would leave the derived bound unchanged."
+    )
+    assert engine_sites == 1, (
+        f"engine-side cohort acquisition sites: {engine_sites}, expected 1. "
+        "Re-derive the bound rather than widening this assertion."
+    )
+    assert (mutator_sites, acquiring) == (2, {"apply_contract_amendment"}), (
+        f"acquiring cohort-mutator sites changed: {mutator_sites} site(s) across "
+        f"{sorted(acquiring)}. Re-derive the bound rather than widening this."
+    )
+
+    # TWO numbers, because two different mutations must red and one number
+    # cannot do both. The SITE counts are pinned above, so adding an
+    # acquisition anywhere — including a second inside a function already
+    # counted — forces a human back to this derivation. The BOUND is over
+    # distinct acquiring functions, which is the collapse AC15 names: a group's
+    # sites sit in mutually exclusive branches, as the amendment's two do (the
+    # recovery branch returns before the normal path's call), so summing them
+    # would charge the budget for a wait that cannot happen. The pinned site
+    # counts are what keep that proxy honest — it stops being valid silently
+    # only if a site is added, and then the assertion above has already fired.
+    concurrent = max(len(engine_fns), len(acquiring))
+    max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
+                + sl.DEFAULT_TIMEOUT * concurrent)
+    # The inequality is slack by design and is NOT this case's discriminator:
+    # 10 < 40 + 10 x concurrent < 300 holds for any `concurrent` from 1 to 25,
+    # so it cannot red on a realistic change. What reds are the pinned site
+    # counts above. The inequality is kept because it is the property
+    # `_statelock` actually requires, and a change that broke it — a much larger
+    # subprocess timeout, a smaller `stale_after` — would not be caught by the
+    # pins.
+    assert sl.DEFAULT_TIMEOUT < max_hold < sl.DEFAULT_STALE_AFTER, (
+        f"engine-lock budget broken: timeout={sl.DEFAULT_TIMEOUT}s "
+        f"max_hold={max_hold}s stale_after={sl.DEFAULT_STALE_AFTER}s"
+    )
+
+
+def test_cohort_lock_holders_are_bounded_below_stale_after() -> None:
+    """AC16: the lock this design newly depends on, which no budget check reached.
+
+    The engine's correctness now rests on the cohort lock excluding cohort
+    writers for the duration of its hold. An unbounded spawn added under
+    `@_locked("schedule")` would push a cohort hold past `stale_after`, get the
+    lock reclaimed while a live writer is inside it, and make the engine's
+    re-read observe state no lock protected — with every other gate green.
+    """
+    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_cohort_budget")
+    tree = _cohort_tree()
+    held = _cohort_lock_held_functions()
+
+    # Boundedness, not absence. `_get_repo_root` IS reachable under the hold —
+    # every `@_locked` verb re-calls `_resolve_spec_dir` in its own body,
+    # redundantly with the decorator — and it is harmless only because that
+    # resolver memoises per working directory, so the in-hold call is a cache
+    # hit. Asserting "no spawn" would therefore be false about the code; what
+    # must hold is that every reachable spawn is bounded, which is how the
+    # engine-side budget above reasons too.
+    cohort = _load_module(COHORT, "_loop_cohort_budget")
+    funcs_all = {n.name: n for n in _ast_mod.walk(tree)
+                 if isinstance(n, _ast_mod.FunctionDef)}
+    unbounded = []
+    worst_verb_spawns = 0
+    for name in sorted(held):
+        fn = funcs_all.get(name)
+        if fn is None:
+            continue
+        this_verb = 0
+        for node in _ast_mod.walk(fn):
+            if not (isinstance(node, _ast_mod.Call)
+                    and isinstance(node.func, _ast_mod.Attribute)
+                    and isinstance(node.func.value, _ast_mod.Name)
+                    and node.func.value.id == "subprocess"
+                    and node.func.attr in SPAWN_ATTRS):
+                continue
+            this_verb += 1
+            if not any(kw.arg == "timeout" for kw in node.keywords):
+                unbounded.append(f"{name}: subprocess.{node.func.attr}")
+        worst_verb_spawns = max(worst_verb_spawns, this_verb)
+    assert not unbounded, (
+        f"unbounded spawn under the cohort lock: {unbounded}. An unbounded "
+        f"call here makes the maximum hold unprovable, and a hold past "
+        f"`stale_after` gets the lock reclaimed while a live writer is inside."
+    )
+
+    # Cohort-side only, and the MAXIMUM over verbs rather than their sum. The
+    # engine's own inner-hold ceiling belongs to a different process taking the
+    # same lock exclusively, so adding it here measures nothing; and the held
+    # verbs are mutually exclusive, so summing their spawn edges is the
+    # branch-collapse failure in the over-count direction.
+    cohort_max_hold = cohort.GIT_TIMEOUT_S * worst_verb_spawns
+    assert cohort_max_hold < sl.DEFAULT_STALE_AFTER, (
+        f"a cohort holder can run {cohort_max_hold}s against a "
+        f"{sl.DEFAULT_STALE_AFTER}s staleness budget"
+    )
+
+
+# ══ the race itself, across two real processes ═════════════════════════════
+#
+# Spec: docs/specs/wave-exit-verdict-serialisation/spec.md AC4, AC11, AC12.
+#
+# The rendezvous is forced, not hoped for. Child A runs a real engine
+# transition and blocks immediately after its cohort-state capture; child B
+# runs a real cohort mutator and signals when it has committed; only then does
+# A proceed to its commit. Scheduler luck decides nothing, so a pass means the
+# interleaving genuinely occurred rather than that the two happened to overlap.
+
+_CAPTURE_CHILD_SRC = '''
+import importlib.util, sys, time
+from pathlib import Path
+probe = Path(sys.argv[1]); target = sys.argv[2]; argv = sys.argv[3:]
+
+spec = importlib.util.spec_from_file_location("_subject", target)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+
+# Rendezvous at the ACQUISITION, not at the capture. Once the engine holds the
+# cohort lock the mutator cannot commit at all, so the only window the real
+# defect has is between the guard's verdict and the acquisition. Pausing at the
+# capture instead would let the mutator land BEFORE the guard ran, which is a
+# different and much less interesting interleaving.
+real_hold = mod._cohort_commit_hold
+
+def probed(spec_dir, event):
+    (probe / "guarded").write_text(event, encoding="utf-8")
+    deadline = time.monotonic() + 60.0
+    while not (probe / "mutated").exists():
+        if time.monotonic() >= deadline:
+            raise RuntimeError("timed out waiting for the mutator to commit")
+        time.sleep(0.005)
+    return real_hold(spec_dir, event)
+
+mod._cohort_commit_hold = probed
+sys.exit(mod.main(argv))
+'''
+
+_MUTATOR_CHILD_SRC = '''
+import importlib.util, sys, time
+from pathlib import Path
+probe = Path(sys.argv[1]); target = sys.argv[2]
+# One argv string carrying every step: steps split on \\x1f, args within a step
+# on \\x1e. The driver lives HERE rather than being patched into this source by
+# the launcher, so what runs is what you read.
+steps = [step.split("\\x1e") for step in sys.argv[3].split("\\x1f")]
+
+spec = importlib.util.spec_from_file_location("_subject", target)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+
+deadline = time.monotonic() + 60.0
+while not (probe / "guarded").exists():
+    if time.monotonic() >= deadline:
+        raise RuntimeError("timed out waiting for the engine to reach its commit")
+    time.sleep(0.005)
+
+rc = 0
+for step in steps:
+    # Not a cohort verb: repartition the plan so a following `schedule` changes
+    # cohort state for real. A re-run schedule over an unchanged plan rewrites
+    # byte-identical content and the case would prove nothing.
+    if step[0] == "__write_plan__":
+        Path(step[1]).write_text(step[2], encoding="utf-8")
+        continue
+    rc = mod.main(step)
+    if rc != 0:
+        break
+(probe / "mutated").write_text(str(rc), encoding="utf-8")
+sys.exit(rc)
+'''
+
+
+def _run_interleaved(repo: Path, engine_argv: list[str], mutator_argvs: list[list[str]]):
+    """Engine transition and cohort mutator(s), rendezvoused at the capture.
+
+    Deliberately a sibling of `_run_barriered` rather than a change to it:
+    that helper hands ONE target module to every child and hardwires its child
+    source, and its four existing callers depend on both.
+    """
+    probe = repo / "_pair"
+    if probe.exists():
+        for stale in probe.iterdir():
+            stale.unlink()
+    else:
+        probe.mkdir()
+
+    cap = repo / "_capture_child.py"
+    cap.write_text(_CAPTURE_CHILD_SRC, encoding="utf-8")
+    mut = repo / "_mutator_child.py"
+
+    engine_proc = subprocess.Popen(
+        [sys.executable, str(cap), str(probe), str(ENGINE), *engine_argv],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        encoding="utf-8", cwd=str(repo),
+    )
+    # Every mutation runs in ONE child, in order, so a multi-step mutation
+    # (reset, init, schedule) lands entirely inside the window rather than
+    # racing itself.
+    mut.write_text(_MUTATOR_CHILD_SRC, encoding="utf-8")
+    script = mut
+    mutator_args = ["\x1f".join("\x1e".join(a) for a in mutator_argvs)]
+
+    mutator_proc = subprocess.Popen(
+        [sys.executable, str(script), str(probe), str(COHORT), *mutator_args],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        encoding="utf-8", cwd=str(repo),
+    )
+    e_out, e_err = engine_proc.communicate(timeout=HARNESS_PROCESS_TIMEOUT)
+    m_out, m_err = mutator_proc.communicate(timeout=HARNESS_PROCESS_TIMEOUT)
+    return (engine_proc.returncode, e_out, e_err), (mutator_proc.returncode, m_out, m_err), probe
+
+
+def _code_implementation_run(repo: Path, name: str, tasks: str = "T1\nT2"):
+    """Drive a real run to CODE-IMPLEMENTATION with a two-wave schedule."""
+    spec_dir = repo / "docs" / "specs" / name
+    spec_dir.mkdir(parents=True, exist_ok=True)
+    (spec_dir / "spec.md").write_text("- **Status:** Approved\n", encoding="utf-8")
+    plan = "# Plan\n\n- **Status:** Approved\n\n"
+    plan += "\n".join(
+        f"### {t}\n\n**Depends on:** " + ("none" if i == 0 else f"T{i}") + "\n"
+        for i, t in enumerate(tasks.split("\n"))
+    )
+    (spec_dir / "plan.md").write_text(plan, encoding="utf-8")
+
+    r = _run(ENGINE, "init", str(spec_dir), "--mode", "code", "--json", cwd=repo)
+    assert r.returncode == 0, r.stderr
+    run_id = json.loads(r.stdout)["run_id"]
+    assert _run(COHORT, "init", str(spec_dir), "--run-id", run_id, cwd=repo).returncode == 0
+    for event in ("spec-ready", "reviewers-clean", "spec-approved", "plan-approved"):
+        r = _run(ENGINE, "transition", str(spec_dir), event, cwd=repo)
+        assert r.returncode == 0, f"{event}: {r.stderr}"
+    for verb in (("approve-plan",), ("schedule",)):
+        r = _run(COHORT, *verb, str(spec_dir), "--expect-run-id", run_id, cwd=repo)
+        assert r.returncode == 0, f"{verb}: {r.stderr}"
+    r = _run(ENGINE, "transition", str(spec_dir), "plan-locked", cwd=repo)
+    assert r.returncode == 0, r.stderr
+    return spec_dir, run_id
+
+
+def _receipt(repo: Path, spec_dir: Path, run_id: str, task: str, wave: int) -> None:
+    r = _run(COHORT, "dispatch-receipt", str(spec_dir), "--task", task,
+             "--wave-index", str(wave), "--receipt", "--expect-run-id", run_id, cwd=repo)
+    assert r.returncode == 0, r.stderr
+
+
+def _assert_refused_without_writing(engine_res, mutator_res, probe, spec_dir,
+                                    before, before_cohort):
+    rc, out, err = engine_res
+    m_rc, _, m_err = mutator_res
+    assert (probe / "guarded").exists(), "the engine never reached its commit"
+    assert (probe / "mutated").exists(), "the mutator never ran"
+    assert m_rc == 0, f"the mutator must succeed for the race to exist: {m_err}"
+    # Prove the race was real before asserting the refusal. A mutator that
+    # rewrote identical content moves nothing, and a test that skipped this
+    # would pass against a no-op and report a closed race that never opened.
+    after_state = (spec_dir / "state.json").read_text(encoding="utf-8")
+    assert json.loads(after_state) != json.loads(before_cohort), (
+        "the mutator left cohort state unchanged, so this case exercises no race"
+    )
+    assert rc != 0, f"the transition committed against moved cohort state: {out}{err}"
+    # Name the mechanism, not just the exit code. A cohort-lock timeout, a guard
+    # refusal or a child crash all exit non-zero and would otherwise stand in
+    # for the fingerprint mismatch this case exists to prove.
+    assert "cohort state changed" in err, (
+        f"refused, but not by the fingerprint check: {err.strip()[:300]}"
+    )
+    assert (spec_dir / "engine-state.json").read_bytes() == before, (
+        "engine-state.json changed on a refused transition"
+    )
+    pending = list((spec_dir.parents[2] / ".loop-run").glob("events.pending"))
+    assert not pending, f"a pending record survived a refused transition: {pending}"
+
+
+@pytest.mark.parametrize(
+    "case,mutators",
+    [
+        ("wave-advance", [["wave", "advance", "--from-index", "0"]]),
+        ("schedule", [["schedule"]]),
+        ("reset-init-schedule", [["reset"], ["init"], ["schedule"]]),
+    ],
+)
+def test_wave_complete_refuses_a_mutation_in_its_commit_window(
+    tmp: Path, case: str, mutators: list[list[str]]
+) -> None:
+    """AC11/AC12: a real cohort mutator commits between the guard and the commit.
+
+    Three mutators, one predicate. `wave advance` moves the pointer;
+    `schedule` repartitions and can leave the pointer where the guard read it,
+    which is the case a pointer-only check would miss; `reset`+`init`+
+    `schedule` changes the cohort `run_id` while every guard verdict still
+    approves, which is the case a guard-derived check would miss because the
+    run-id preflight is not a guard at all.
+    """
+    repo = _init_git_repo(tmp / f"wc-{case}")
+    spec_dir, run_id = _code_implementation_run(repo, "demo")
+    _receipt(repo, spec_dir, run_id, "T1", 0)
+    before = (spec_dir / "engine-state.json").read_bytes()
+    before_cohort = (spec_dir / "state.json").read_text(encoding="utf-8")
+
+    wider_plan = (
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n"
+        "### T2\n\n**Depends on:** T1\n\n"
+        "### T3\n\n**Depends on:** T2\n"
+    )
+    new_run_id = str(uuid.uuid4())
+    argvs = []
+    for m in mutators:
+        if m[0] == "reset":
+            argvs.append(["reset", str(spec_dir)])
+        elif m[0] == "init":
+            argvs.append(["init", str(spec_dir), "--run-id", new_run_id])
+        elif m[0] == "schedule":
+            # Repartition for real. A re-run schedule over an unchanged plan
+            # rewrites byte-identical content, which moves nothing and would
+            # make this case vacuous.
+            argvs.append(["__write_plan__", str(spec_dir / "plan.md"), wider_plan])
+            expect = new_run_id if any(x[0] == "init" for x in mutators) else run_id
+            argvs.append(["schedule", str(spec_dir), "--expect-run-id", expect])
+        else:
+            argvs.append([*m, str(spec_dir), "--expect-run-id", run_id])
+
+    engine_res, mutator_res, probe = _run_interleaved(
+        repo, ["transition", str(spec_dir), "wave-complete"], argvs
+    )
+    _assert_refused_without_writing(engine_res, mutator_res, probe, spec_dir,
+                                    before, before_cohort)
+
+
+def test_wave_complete_refuses_a_schedule_that_creates_the_receipts_container(
+    tmp: Path,
+) -> None:
+    """AC11: the guard passed BECAUSE receipts were unenforced, then they were not.
+
+    This is the case that killed the pinned-fields design: the absent-container
+    row approves without reading the wave pointer or the partition at all, so a
+    check over those two facts sees nothing move while `schedule` creates the
+    container and leaves the current wave unaccounted.
+    """
+    repo = _init_git_repo(tmp / "wc-container")
+    spec_dir, run_id = _code_implementation_run(repo, "demo")
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    receipts_key = next(k for k in state if "receipt" in k.lower())
+    del state[receipts_key]
+    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    before = (spec_dir / "engine-state.json").read_bytes()
+    before_cohort = (spec_dir / "state.json").read_text(encoding="utf-8")
+
+    engine_res, mutator_res, probe = _run_interleaved(
+        repo,
+        ["transition", str(spec_dir), "wave-complete"],
+        [["schedule", str(spec_dir), "--expect-run-id", run_id]],
+    )
+    _assert_refused_without_writing(engine_res, mutator_res, probe, spec_dir,
+                                    before, before_cohort)
+
+
+def test_gates_clean_refuses_a_schedule_in_its_commit_window(tmp: Path) -> None:
+    """AC11: the second serialised edge.
+
+    Paired with `schedule`, not `wave advance`: `gates-clean` passes only on the
+    final wave and `wave advance` refuses FROM the final wave, so no advance can
+    ever commit in this window. A test written against `wave advance` here would
+    be unsatisfiable by anything it claims to exercise.
+    """
+    repo = _init_git_repo(tmp / "gc-schedule")
+    spec_dir, run_id = _code_implementation_run(repo, "demo", tasks="T1")
+    _receipt(repo, spec_dir, run_id, "T1", 0)
+    r = _run(ENGINE, "transition", str(spec_dir), "wave-complete", cwd=repo)
+    assert r.returncode == 0, r.stderr
+    before = (spec_dir / "engine-state.json").read_bytes()
+    before_cohort = (spec_dir / "state.json").read_text(encoding="utf-8")
+    wider_plan = (
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n"
+        "### T2\n\n**Depends on:** T1\n"
+    )
+
+    engine_res, mutator_res, probe = _run_interleaved(
+        repo,
+        ["transition", str(spec_dir), "gates-clean"],
+        [
+            ["__write_plan__", str(spec_dir / "plan.md"), wider_plan],
+            ["schedule", str(spec_dir), "--expect-run-id", run_id],
+        ],
+    )
+    _assert_refused_without_writing(engine_res, mutator_res, probe, spec_dir,
+                                    before, before_cohort)
+
+
+_REACHED_CHILD_SRC = '''
+import importlib.util, sys
+from pathlib import Path
+probe = Path(sys.argv[1]); target = sys.argv[2]; argv = sys.argv[3:]
+
+spec = importlib.util.spec_from_file_location("_subject", target)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+
+sl = mod._statelock()
+real_exclusive = sl.exclusive
+real_hold = mod._cohort_commit_hold
+
+def recording_exclusive(path, **kwargs):
+    """Record every path the ENGINE locks.
+
+    Two artifacts are needed and one does not carry the claim. This one records
+    what the engine itself locked, so a deleted hold or a hold on another path
+    is visible directly. The `contended` marker below records a StateLockTimeout
+    against the PEER's hold, which proves the peer's lock is real and says
+    nothing about the engine's — an earlier version of this case rested on that
+    marker alone and passed with the engine's hold deleted.
+    """
+    (probe / ("acquired-" + Path(path).name)).write_text("1", encoding="ascii")
+    return real_exclusive(path, **kwargs)
+
+def probed(spec_dir, event):
+    path = mod._guards().state_path_for(spec_dir)
+    try:
+        with real_exclusive(path, timeout=0.1, poll=0.005):
+            (probe / "uncontended").write_text(event, encoding="utf-8")
+    except sl.StateLockTimeout:
+        (probe / "contended").write_text(event, encoding="utf-8")
+    sl.exclusive = recording_exclusive
+    return real_hold(spec_dir, event)
+
+mod._cohort_commit_hold = probed
+sys.exit(mod.main(argv))
+'''
+
+
+def test_a_peer_holding_the_cohort_lock_blocks_the_commit(tmp: Path) -> None:
+    """AC4: the lock's actual job, observed rather than inferred.
+
+    Every interleaving case forces the mutation to commit BEFORE the engine
+    commits, so each would still pass with the cohort lock deleted or taken on
+    a different path — the refusal there comes from the fingerprint alone. What
+    the lock adds is excluding a mutation that would land BETWEEN the re-read
+    and the state write, and only holding it from a peer can show that.
+
+    The child records a `StateLockTimeout` against this process's hold, which
+    is positive evidence of the exclusion. Two earlier versions were weaker and
+    both passed with the hold deleted: one waited a fixed 2 s and asserted the
+    child had not finished, which a child that never got near the lock
+    satisfies; the next asserted only that the child had REACHED the
+    acquisition, which says nothing about whether it blocked there.
+    """
+    repo = _init_git_repo(tmp / "mutual-exclusion")
+    spec_dir, run_id = _code_implementation_run(repo, "demo")
+    _receipt(repo, spec_dir, run_id, "T1", 0)
+    before = (spec_dir / "engine-state.json").read_bytes()
+
+    probe = repo / "_excl"
+    probe.mkdir(exist_ok=True)
+    for stale in probe.iterdir():
+        stale.unlink()
+    child_path = repo / "_reached_child.py"
+    child_path.write_text(_REACHED_CHILD_SRC, encoding="utf-8")
+
+    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_mutual")
+
+    with sl.exclusive(spec_dir / "state.json"):
+        child = subprocess.Popen(
+            [sys.executable, str(child_path), str(probe), str(ENGINE),
+             "transition", str(spec_dir), "wave-complete"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            encoding="utf-8", cwd=str(repo),
+        )
+        deadline = time.monotonic() + READY_TIMEOUT
+        while not ((probe / "contended").exists() or (probe / "uncontended").exists()):
+            assert child.poll() is None, (
+                f"the child exited before reaching the cohort acquisition: "
+                f"{child.communicate()[1][:300]}"
+            )
+            assert time.monotonic() < deadline, "the child never reached the acquisition"
+            time.sleep(0.005)
+
+        # The child timed out against a lock this process holds. That is the
+        # peer exclusion itself, observed rather than inferred from a clock.
+        assert (probe / "contended").exists(), (
+            "the child acquired the cohort lock while this process held it"
+        )
+        assert (spec_dir / "engine-state.json").read_bytes() == before
+
+    out, err = child.communicate(timeout=HARNESS_PROCESS_TIMEOUT)
+    assert child.returncode == 0, f"it should proceed once released: {out}{err}"
+    assert (spec_dir / "engine-state.json").read_bytes() != before
+
+    # And the engine locked the COHORT path to do it. Without this the case
+    # passes with the hold deleted: the contention artifact above is produced by
+    # the child's own probe against the peer, so it says nothing about whether
+    # the engine acquires anything at all.
+    acquired = {f.name[len("acquired-"):] for f in probe.glob("acquired-*")}
+    assert "state.json" in acquired, (
+        f"the engine committed without locking the cohort path; it locked "
+        f"{sorted(acquired) or 'nothing'}"
+    )

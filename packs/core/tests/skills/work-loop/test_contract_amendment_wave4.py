@@ -921,7 +921,7 @@ def test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle() -> None:
 
 # ── dispatch receipts across an amendment ─────────────────────────────────
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+# Contract: § The record
 # lifecycle. An amendment reopens the contract, so no record written before it
 # may account for a task after it.
 
@@ -992,3 +992,66 @@ def test_amendment_leaves_the_receipts_container_empty(tmp_path: Path) -> None:
     replayed = dict(persisted, schedule_waves=before["schedule_waves"])
     assert cohort.partition_digest(replayed["schedule_waves"]) == unchanged_digest
     assert replayed[cohort.RECEIPTS_KEY] == {}
+
+
+def test_contract_amendment_commits_without_an_engine_side_cohort_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC14: the exempt event completes, and the engine takes no cohort lock for it.
+
+    Spec: docs/specs/wave-exit-verdict-serialisation/spec.md AC14.
+
+    The exemption is mechanically forced — `apply_contract_amendment` writes
+    cohort state, so this event's fingerprint always differs and including it
+    would refuse every amendment. It is also what keeps the commit hold from
+    enclosing that call, which takes the cohort lock itself on a lock that is
+    not reentrant. Asserting only that the amendment still succeeds would pass
+    against a hold that acquired and released around it, so this counts the
+    acquisitions the engine's own hold makes.
+    """
+    engine, _cohort, spec_dir, _args, _evidence_map = _integration_fixture(
+        tmp_path, monkeypatch
+    )
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    state["current_wave_index"] = 0
+    _write_json(spec_dir / "state.json", state)
+
+    held: list[str] = []
+    real_hold = engine._cohort_commit_hold
+
+    def counting_hold(sd: Path, event: str):
+        held.append(event)
+        return real_hold(sd, event)
+
+    monkeypatch.setattr(engine, "_cohort_commit_hold", counting_hold)
+
+    args = engine.build_parser().parse_args(
+        [
+            "transition",
+            str(spec_dir),
+            "contract-amendment",
+            "--owner-authority-ref",
+            "approval:scope-owner",
+            "--reason-ref",
+            "follow-on:owned-record",
+        ]
+    )
+    assert engine.cmd_transition(args) == 0
+    assert held == ["contract-amendment"], held
+
+    # The hold for this event yields without acquiring; a checked event does not.
+    acquired: list[str] = []
+    sl = engine._statelock()
+    real_exclusive = sl.exclusive
+
+    def recording(path, **kwargs):
+        acquired.append(Path(path).name)
+        return real_exclusive(path, **kwargs)
+
+    monkeypatch.setattr(sl, "exclusive", recording)
+    with engine._cohort_commit_hold(spec_dir, "contract-amendment"):
+        pass
+    assert acquired == [], f"the exempt event must acquire nothing, got {acquired}"
+    with engine._cohort_commit_hold(spec_dir, "spec-ready"):
+        pass
+    assert acquired == ["state.json"], acquired

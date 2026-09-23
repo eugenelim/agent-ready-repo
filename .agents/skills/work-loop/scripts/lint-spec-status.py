@@ -262,10 +262,10 @@ def commented_out_ac_heading(spec_text: str) -> tuple[int, str] | None:
     to do.
 
     An opener inside an inline code span does not open a comment. That is not
-    hypothetical: `docs/specs/digital-experience-contract/spec.md` writes
-    ``<!-- Required:`` and a matching closer in backticks 23 lines apart, and a
-    code-span-blind reader pairs those two *mentions* into a false span over
-    that spec's real heading and all 17 of its criteria.
+    hypothetical: a real spec in this corpus writes ``<!-- Required:`` and a
+    matching closer in backticks 23 lines apart, and a code-span-blind reader
+    pairs those two *mentions* into a false span over that spec's real heading
+    and all 17 of its criteria.
     """
     lines = spec_text.splitlines()
     headings = {n for n, line in _unfenced_lines(spec_text)
@@ -1246,7 +1246,18 @@ def check(
                     ctext = _read(contract_file) or ""
                     backward = "x-spec" in ctext and feature_dir in ctext
                 if not backward:
-                    backward = token in registry_text and feature_dir in registry_text
+                    # Per row, and neither half by containment. Testing the whole
+                    # file let any token satisfy any spec directory, and testing a
+                    # row by substring still pairs `docs/specs/foo` with a row
+                    # naming `docs/specs/foo-bar/`. `feature_dir` carries no
+                    # trailing delimiter, so the trailing `/` supplies the
+                    # boundary; the token is compared against the row's own
+                    # extracted tokens so `a.toml` cannot match `a.toml.bak`.
+                    backward = any(
+                        token in _CONTRACT_TOKEN_RE.findall(row)
+                        and f"{feature_dir}/" in row
+                        for row in registry_text.splitlines()
+                    )
                 if not backward:
                     warn.append(
                         f"{rel}:{lineno}: invariant (v) — contract '{token}' lacks a "
