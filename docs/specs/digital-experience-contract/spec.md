@@ -1,6 +1,6 @@
 # Spec: digital-experience-contract
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by ADR-0123 — the contract's frontend section is owned by `frontend-engineering` rather than `core`; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0071](../../rfc/0071-digital-experience-doctrine.md) (Area A, D1, D6), [RFC-0062](../../rfc/0062-content-design-and-copy-direction-skills.md) (Accepted — referenced by contract; implementation in spec/xd-copy-direction)

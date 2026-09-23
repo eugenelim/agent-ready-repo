@@ -177,3 +177,43 @@ That is what stops the accessibility criterion passing by omission.
 
 This module is not yet wired to CI. T7 adds its `build-check.yml` step above the
 job's bulk `pytest tests/ -q` step; until then it runs but attributes no failure.
+
+## T8 — the ADR and the supersession pointer
+
+Ordinal allocated from current repository state, not from the staged draft's
+assumption: `0122` is the highest record in the tree, so this one is `0123` —
+`docs/adr/0123-experience-contract-frontend-section-owned-by-frontend-engineering.md`.
+
+Shipped `Status: Accepted` rather than the `new-adr` procedure's default
+`Proposed`. The owner has settled the decision, and the shape lint's
+`_STATUS_TOKENS` admits either, so the lint alone would tick an "accepted" claim
+on an unsigned record. AC-0003 reads the status for exactly that reason.
+
+### A defect in the staged draft, corrected before shipping
+
+The draft's `Related:` field linked two `docs/specs/` paths. The spec-and-plan
+contract's *Cite upward, never downward* rule says an ADR does not link to a
+spec, and the tree agrees: 1 of 123 existing records does it, 122 do not. The
+field now cites ADR-0057 alone. The Context prose still names the frozen spec,
+which is how the 44 records that mention a spec handle it — naming an artifact
+in prose is not citing it.
+
+### The two frozen records
+
+| Record | Edit | Diff |
+| --- | --- | --- |
+| `digital-experience-contract/spec.md` | `Shipped` token annotated in place | 1 line changed |
+| `digital-experience-contract/plan.md` | `Status` line added — the field was absent | 1 line added, 0 removed |
+
+The plan's added line is the single metadata line the owner authorized (spec's
+`Never do`, owner decision 2026-09-22); convention rule 4 otherwise reads an
+append as a body edit. Nothing else in either file moved.
+
+T8's declared checks, run verbatim from the criteria:
+
+| Check | Result |
+| --- | --- |
+| AC-0003 — record exists, `Status: Accepted`, shape lint | exit 0 (123 read, 0 refused) |
+| AC-0047 — `## Decision` section names `owner: frontend-engineering` | exit 0 |
+| AC-0004 — spec `Status` form, diff touches only that line | both hold |
+| AC-0005 — plan `Status` form, diff adds exactly that one line | both hold |

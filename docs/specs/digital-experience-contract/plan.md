@@ -1,5 +1,6 @@
 # Plan: digital-experience-contract
 
+- **Status:** Done (superseded in part by ADR-0123 — the contract's frontend section is owned by `frontend-engineering` rather than `core`; everything else stands)
 ## Mode
 Full (structural change + multi-feature risk triggers)
 
