@@ -184,6 +184,13 @@ is a real choice, not a corner cut: what a skipped step costs is that its input
 travels forward as an assumption nobody decided, which is why the four above
 are the ones that stay.
 
+`Required` in the say-this table above is not the same claim as membership
+here. There it means the step is required for a complete thread — skipping it
+leaves a named gap in the output. Here it means nothing downstream can
+reconstruct the step's input, so dropping it breaks the thread rather than
+thinning it. `content-design` and `creative-direction` are `Required` in that
+first sense and absent from this list in the second.
+
 
 #### Pick the depth — `explore` is the default
 
