@@ -245,16 +245,30 @@ call. AC-0075 is goal-based and is counted there, not here.
   after a violating run. The pass direction cannot distinguish a working refusal
   from an absent one, so the fixture must violate.
 - **A replacing write rechecks its destination (AC-0077)** — TDD. Oracle: a
-  write-set path classified `would-update` diverges after classification and
-  before the write lands; the run refuses and what the adopter put there
-  survives. Three fixtures, one per divergence the criterion names. Changed
-  digest and a destination found present where classification found none refuse
-  on a `4` write-failed row with the adopter's bytes byte-identical afterwards.
-  A changed entry kind refuses on AC-0039's earlier `3 — cannot-answer`
-  pre-write-read row, and its oracle is AC-0041's walk tuple rather than bytes,
-  because bytes cannot express a regular file replaced by a symlink. Asserting
-  only the exit code passes an implementation that refuses after clobbering, so
-  what the adopter left is the first assertion and the code is the second.
+  write-set destination diverges after classification, and the run refuses with
+  what the other writer put there still in place. Six fixtures, because the
+  criterion names three divergences and two rechecks, and the recheck decides
+  the row.
+
+  The three divergences are a changed digest against a path classified
+  `would-update`, a changed entry kind against the same, and a destination
+  found present at a path classification found **absent** — the third is a
+  `would-create` path, not a `would-update` one, because a `would-update`
+  verdict presupposes the destination classification found.
+
+  Driven at the gate, before the write phase opens, each refuses on AC-0039's
+  `3 — cannot-answer` pre-write-read row with the whole tree identical on
+  AC-0041's walk tuple. Driven at the rename, after an earlier write has
+  landed, each refuses on a `4` write-failed row and AC-0038's restore covers
+  the landed writes. A fixture set that drives only the gate leaves the rename
+  recheck unverified and passes an implementation that has only one of them,
+  which is the shape this criterion was split to prevent.
+
+  The oracle is AC-0041's walk tuple rather than bytes throughout, because a
+  regular file replaced by a symlink is a difference bytes cannot express.
+  Asserting only the exit code passes an implementation that refuses after
+  clobbering, so what the other writer left is the first assertion and the code
+  is the second.
 - **Every write is jailed (AC-0052)** — TDD. Oracle: a planned path resolving
   outside the target root is refused at the write; and, in the helper's own
   suite, a call to each of `write_jailed` and `write_companion` that does not
@@ -878,24 +892,37 @@ the answer.
   because the alternative, allocated blocks, makes the bound unreachable for a
   sparse fixture and forces a quarter-gigabyte write into a unit suite.
 
-- [ ] **AC-0077.** A write that replaces an existing destination re-reads that
-  destination at the moment of the write and refuses when what it finds no
-  longer matches the state its row was classified against — a changed digest, a
-  changed entry kind, or an entry where classification found none.
+- [ ] **AC-0077.** A run that will replace existing destinations rechecks them
+  twice, and the two rechecks are different acts with different outcomes. A
+  destination diverges when what is found no longer matches the state its row
+  was classified against: a changed digest, a changed entry kind, or an entry
+  where classification found none.
 
-  The code is AC-0039's first matching row, and the three divergences do not
-  all reach the same one. A changed entry kind makes the destination a
-  non-regular, hard-link or reparse-point input, which AC-0065 obliges the
-  confined re-read to refuse, so that shape matches the earlier `the run could
-  not read the pre-write state of a path it was about to write` row at
-  `3 — cannot-answer`. A changed digest and a destination found present where
-  classification found none are read successfully and refuse as a planned write
-  failing, reaching a `4` write-failed row. This criterion adds no row to that
-  table.
+  **The gate recheck** covers every write-set destination and runs once, after
+  consent and before the write phase opens. Any divergence there refuses the
+  run before the first write, so the code is AC-0039's `the run could not read
+  the pre-write state of a path it was about to write` row at
+  `3 — cannot-answer` and the tree is identical, which is what AC-0041 already
+  states of every `3` refusal. This is the recheck that carries the security
+  property: the threat is an adopter edit during the consent prompt, and the
+  prompt closes before this gate runs.
 
-  The recheck narrows the window and does not close it: it and the rename are
-  two operations. What it buys is that the destination is verified immediately
-  before the rename rather than before an unbounded consent wait.
+  **The rename recheck** covers one destination and runs immediately before
+  that path's rename. A divergence there is a planned write failing, so it
+  reaches a `4` write-failed row, where AC-0038's restore obligation, AC-0041's
+  per-row permitted differences and AC-0058's naming obligation already apply.
+  It catches only what changed after the gate, which is why it may fire once
+  writes have landed and must not take the `3` row.
+
+  This criterion adds no row to AC-0039's table and changes none. Each recheck
+  is a read of a target path, so AC-0065 binds both and a non-regular,
+  hard-link or reparse-point destination is refused at whichever one reaches it
+  first.
+
+  Neither recheck closes its window; each narrows one. The gate removes the
+  consent wait from the exposure, and the rename recheck reduces what remains
+  to the interval between the recheck and the rename, which are two operations
+  and not one.
 
   AC-0073 binds removals at the unlink and AC-0065 binds reads; without this a
   replacing write is the one act on a target path still trusting a verdict
@@ -931,8 +958,9 @@ the answer.
   several network and FUSE mounts every companion write fails and takes the
   write-failed row. That is safe — it never clobbers, and AC-0070's first
   outcome stops it being misreported as occupancy — but the residual is larger
-  than a missing companion: AC-0038 restores the whole target tree whenever any
-  planned write fails, so one `would-companion` path rolls the entire run back
+  than a missing companion: AC-0038 restores every path the run wrote, created
+  or removed whenever any planned write fails, so one `would-companion` path
+  rolls the entire run back
   and exits 4. On those filesystems the verb does not degrade, it stops
   working, and this phase ships no fallback. Owner: unassigned.
 - **A discriminator for the conditions sharing exit 1** — phase 2 left the

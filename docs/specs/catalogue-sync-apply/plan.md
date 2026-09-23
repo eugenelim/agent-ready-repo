@@ -36,19 +36,22 @@ an edit to `init`'s, and this delivery corrects the sentence.
   is an owner decision of record, taken because the primitive's unconditional
   rename makes AC-0070 otherwise unsatisfiable.
 
-  AC-0077 is satisfied by a third value on that same selector — publish only
-  when the destination still matches the state the caller classified against —
-  not by a third edit site. The check has to sit where the rename does: a
-  re-read performed in `catalogue_sync.py` before calling the helper leaves the
-  whole staging sequence inside the window, which is the width AC-0077 exists
-  to remove. It narrows that window rather than closing it — recheck and
-  `os.replace` are two operations, so a read-to-rename gap survives, and no
-  portable compare-and-replace primitive is available to close it. What the
-  criterion buys is that the destination is verified microseconds before the
-  rename instead of before an unbounded consent wait; the residual gap is
-  recorded, not eliminated. The default stays today's behaviour across all
-  three values, so the caller-set argument in the paragraph above is unchanged
-  and so is its audit.
+  AC-0077's two rechecks land in two places, and only one of them is a helper
+  edit. The gate recheck is an ordinary confined read over the write set,
+  performed in `catalogue_sync.py` after consent and before the write phase; it
+  needs no helper change. The rename recheck is a third value on the publish
+  selector above — publish only when the destination still matches the state
+  the caller classified against — and not a third edit site, because it has to
+  sit where the rename does: performed in `catalogue_sync.py` it would leave
+  the whole staging sequence inside the window it is meant to narrow.
+
+  Neither closes its window. The gate removes the consent wait from the
+  exposure, which is where the threat actually is; the rename recheck reduces
+  what remains to the interval between the recheck and `os.replace`, which are
+  two operations, and no portable compare-and-replace primitive is available to
+  close it. The residual is recorded, not eliminated. The default stays today's
+  behaviour across all three selector values, so the caller-set argument in the
+  paragraph above is unchanged and so is its audit.
 
   The default is what makes it safe, not the caller list. § Grounding's
   write-helper derivation counts the two sets by resolution: `write_companion`
@@ -422,18 +425,22 @@ filesystem.
   the output. Verifies AC-0058.
 - A planned path resolving outside the target root is refused at the write.
   Verifies AC-0052.
-- A `would-update` path diverges between classification and the write, in
-  three shapes, and the three do not share an exit row. Changed digest, and a
-  destination classification found absent, each refuse on a `4` write-failed
-  row with the adopter's bytes byte-identical afterwards. A changed entry kind
-  is refused by AC-0065's confined re-read and so matches AC-0039's earlier
-  `3 — cannot-answer` pre-write-read row; its oracle is AC-0041's walk tuple,
-  because a regular file replaced by a symlink is a difference bytes cannot
-  express. Driving all three to one expected row is the error a first-match
-  reading of AC-0039's table catches. What the adopter left is the first
-  assertion and the code is the second, because a stat-at-classification
-  implementation that refuses only after clobbering passes an exit-code-only
-  check. Verifies AC-0077.
+- A write-set destination diverges after classification, in three shapes —
+  a changed digest and a changed entry kind against a `would-update` path, and
+  a destination found present at a path classification found absent, which is
+  a `would-create` path because `would-update` presupposes the destination.
+  Each shape is driven twice, once at each recheck, for six cases.
+  - At the gate, before the write phase opens: refuses on AC-0039's
+    `3 — cannot-answer` pre-write-read row with the whole tree identical.
+  - At the rename, after an earlier write has landed: refuses on a `4`
+    write-failed row, and AC-0038's restore covers the landed writes.
+  Driving only the gate passes an implementation carrying one recheck, and
+  driving all six to one expected row is the error a first-match reading of
+  AC-0039's table catches. The oracle is AC-0041's walk tuple rather than
+  bytes, because a regular file replaced by a symlink is a difference bytes
+  cannot express; what the other writer left is the first assertion and the
+  code is the second, because an implementation that refuses only after
+  clobbering passes an exit-code-only check. Verifies AC-0077.
 - The apply path's target reads are refused on the hard-link and reparse-point
   inputs phase 2's path-confinement criterion fixes. Verifies AC-0065.
 
@@ -777,3 +784,29 @@ sequencing: the change ships in one package release.
     difference for a path another writer changed and the command did not act
     on. The hole was general, not AC-0077's: every write-failure path carried
     it. No row of AC-0039's table changed.
+- 2026-09-23 — Pre-EXECUTE review round 3, same run. Six raw findings; the
+  adversarial adjudication returned `invalid (indeterminate-present)` and
+  stopped the loop, because its one sustained blocker named an owner choice
+  rather than a machine-checkable fact. Security sustained two advisories and
+  refuted two. Resolved on eugenelim's decision taken in session:
+  - **AC-0077 split into two rechecks.** Round 2 routed its changed-entry-kind
+    divergence to AC-0039's `3 — cannot-answer` pre-write-read row, but the
+    recheck fires at each write, so that row became reachable after writes had
+    landed. AC-0041 says every `3` refusal leaves the tree identical, AC-0038's
+    restored/not-restored `4` pair became unreachable under first match, and
+    AC-0058's naming obligation had no row: no exit code and tree state
+    satisfied all three. AC-0077 now runs a gate recheck over the whole write
+    set after consent and before the write phase, whose divergence takes the
+    `3` row with the tree identical, and a per-path rename recheck whose
+    divergence is a planned write failing and takes a `4` row. Both rows
+    already existed and neither changed, so § Ask first was not reached. The
+    gate is where the consent-wait threat lands; the rename recheck catches
+    only what changed after it.
+  - AC-0077's third divergence is a `would-create` path, not a `would-update`
+    one: a `would-update` verdict presupposes the destination classification
+    found, so the old framing described a fixture that cannot be built.
+  - § Follow-ons' FAT/exFAT entry no longer says AC-0038 restores the whole
+    target tree; round 2's amendment had made that false.
+  - The AC-0077 fixture set went from three cases to six — three divergences
+    driven at each recheck. A set driving only the gate passes an
+    implementation carrying one recheck.
