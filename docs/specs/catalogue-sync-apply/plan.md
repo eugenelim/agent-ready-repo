@@ -862,3 +862,11 @@ sequencing: the change ships in one package release.
     own bookkeeping, not adopter work.
   - The Testing Strategy oracle and T4's gate bullet now name the gate row
     instead of the superseded pre-write-read row.
+- 2026-09-23 — Pre-EXECUTE review round 6: both reviewers returned the
+  byte-exact clean sentinel, so neither was adjudicated. Six rounds, 36 raw
+  findings, 17 sustained, 12 refuted, 2 adjudicator stops on owner choices.
+  Scope and build strategy re-approved by eugenelim at SPEC-HUMAN-GATE against
+  the amended contract — 48 criteria, AC-0038/AC-0039/AC-0041/AC-0052 amended,
+  AC-0039's apply table at 17 rows — superseding the 47-criterion approval
+  recorded above. `plan-locked` taken here; this plan is frozen from this
+  entry onward and a correction now costs a controlled amendment.
