@@ -453,3 +453,74 @@ is in the provisioning matrix, so neither takes a `_CHECK_DEPENDENCIES` or
 Placement was verified by index rather than by the parity lint, which cannot see
 order: the bulk `pytest tests/ -q` step already collects both modules, so
 placement buys failure attribution rather than reach.
+
+## T10 — guides and the release surface
+
+### Guides
+
+One depth-selection how-to per journey — `guides/frontend-engineering/how-to/`
+and `guides/experience-design/how-to/choose-the-depth.md` — each with its index
+row. Neither carries `order:` frontmatter, so neither is a guidebook *step* and
+neither owes the seventeen step-contract obligations; both trees already carry
+non-step how-tos, so this follows the existing shape rather than inventing one.
+`lint-guidebook-steps.py` exits 0 on both books, and `check-guide-index.py`
+reports all 21 active packs present.
+
+### Evals
+
+One case per contract-carrying pack, placed in the skill that reads the contract
+copy: `frontend-engineering`, `design-review`, `frame-intent`, and
+`synthesize-stakeholder-research`. All four diffs are append-only. The
+obligation is per pack for any non-cosmetic update, and bumping all four is this
+delivery's own declaration that all four are non-cosmetic.
+
+### Release surface
+
+| Pack | `pack.toml` and `plugin.json` |
+| --- | --- |
+| `product-strategy` | 0.2.6 → 0.2.7 |
+| `product-engineering` | 0.13.16 → 0.13.17 |
+| `experience-design` | 2.0.8 → 2.0.9 |
+| `frontend-engineering` | 0.3.1 → 0.3.2 |
+
+Four changelog entries, one per pack, each with a `### Highlights` subsection
+carrying bullets rather than a recorded `none`: four packs gaining a shared
+state-coverage map and a selectable depth ladder changes what a pack consumer
+can do. `core`'s newest entry stays adjacent to `[Unreleased]` and the four
+follow it contiguously.
+
+`make build-self` was run **unforced, on a clean tree, after committing** —
+never with `FORCE=1`. `packs/AGENTS.local.md` § Marketplace and release pipeline
+step 2 says to pass it; the root overlay and the owner say not to, and the root
+overlay governs.
+
+The regeneration's only delta was the four bumped versions in
+`marketplace.json`. No `.claude/` or `.agents/` projection moved, which is the
+third falsified claim confirmed once more at the point it would have mattered.
+
+| Check | Result |
+| --- | --- |
+| AC-0042 version bump, `pack.toml` ↔ `plugin.json` | exit 0 for all four |
+| AC-0045 topmost heading names the new version | all four, and all four changed |
+| AC-0046 heading order against `origin/main` | exit 0 |
+| AC-0048 `### Highlights` bullet on each topmost entry | exit 0 |
+| AC-0041 fresh unforced `build-self`, then diff | byte-identical |
+| AC-0043 `catalogue verify` | exit 0 |
+| `catalogue self-host --check` | exit 0 |
+| `catalogue lint --deep` | `ok: 71` — unchanged from the base |
+
+### A placeholder in the sweep that could never pass
+
+`redcheck.py` carried `"0041": "false"` with the comment *marketplace
+regenerates only after the bumps*. A command that is unconditionally red proves
+nothing while the work is pending and reports a regression once it lands — which
+is what it did.
+
+AC-0041 now runs `catalogue self-host --check`, the non-writing form of the
+unforced `build-self` the criterion names. Proven to discriminate: reverting one
+version inside `marketplace.json` gives exit 1 naming the drift, and the
+restored tree gives exit 0.
+
+Its first reading was taken through `| tail -3`, which reported `tail`'s exit
+status rather than the command's and so read a `FAIL` line as exit 0. The exit
+codes above were re-taken unfiltered.
