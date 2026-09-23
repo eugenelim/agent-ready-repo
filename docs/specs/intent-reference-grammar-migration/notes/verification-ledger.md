@@ -1127,3 +1127,49 @@ expected role, zero-diff re-run holds. The regeneration had to follow
 `make build-self`, because the tightened derivation refuses to report a
 projection whose copies have drifted — it now fails while the tree is
 mid-reprojection rather than recording a relationship that does not hold.
+
+## 2026-09-22 — the anchor defect was a class, and I repaired only the instance
+
+A peer session found a second member of the defect class I had just fixed, in
+code I had not swept. `workspace_status_engine.py:4124`:
+
+    _CROSS_INI_RE = re.compile(r'^(ini-[^:]+):work:(.+)$')
+
+Consumed with `.match()`, and group 2 compared straight against a workspace
+entry's path. Verified independently rather than taken on trust:
+
+| token | `$` (before) | `\Z` (after) |
+| --- | --- | --- |
+| `ini-002:work:spec/foo` | `spec/foo` | `spec/foo` |
+| `…spec/foo` + newline | **`spec/foo`** | refused |
+| `…spec/foo` + tab | `spec/foo\t` | `spec/foo\t` |
+
+So a need token carrying a trailing newline yielded the *clean* path and its
+dependency reported satisfied — a gate opening on a malformed token. The tab
+case was already fail-closed; only the newline leaked, and only because of the
+anchor. Fixed to `\Z`, with a generated test over the whole excluded domain that
+fails against the old anchor.
+
+**The lesson is mine.** I fixed the `_BRIEF_POINTER_RE` instance and did not
+sweep for the class, in a session whose own repair doctrine says repair the
+generator, not the instance. A peer had to find the second one.
+
+### The sweep I should have run first
+
+Patterns ending in `$`, bound to a name, consumed by `.match`/`.search` and
+never by `fullmatch`, across `packs/core/.apm/`, `tools/` and
+`packages/agentbundle/`: **67**.
+
+Most are not defects. The anchor only leaks where the input can carry a trailing
+newline, and the large majority of those 67 parse lines from `splitlines()`,
+which cannot. The defect class is the subset that validates a whole *value* —
+a token or an identifier — sourced from TOML, JSON or a field capture.
+
+Two such cases existed in this delivery's own surface and both are now fixed.
+The remainder of the 67 sit in packages and tools this delivery does not touch,
+and around fifteen of them are value validators of the same shape
+(`_SAFE_SLUG_RE`, `_SHA_RE`, `KEBAB`, `_OWNER_RE`, `_REPO_RE`, `_REF_RE`,
+`ID_PATTERN`, `_RE_FINGERPRINT` and others). **They are recorded here and not
+fixed**: changing sixty validators across three packages is not this change's
+scope, and doing it unilaterally is the widening this delivery has refused
+elsewhere. It is a follow-on the owner should place.

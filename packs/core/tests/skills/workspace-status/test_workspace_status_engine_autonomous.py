@@ -3859,3 +3859,39 @@ def test_dispatch_provenance_equality_still_refuses_a_different_brief(
             tmp_path, mod, header_value=header_value, source_parent=source_parent
         )
         assert "provenance_mismatch" in codes, (header_value, source_parent, codes)
+
+
+def test_cross_initiative_need_token_rejects_trailing_whitespace() -> None:
+    """A dependency token is a whole value, so no trailing byte may be ignored.
+
+    `_CROSS_INI_RE` validates `ini-NNN:work:<path>` and its capture is compared
+    straight against a workspace entry's path. With `$` as the anchor, Python
+    also matched just before a trailing newline, so `...spec/foo\n` yielded the
+    clean `spec/foo` and a malformed token reported its dependency satisfied.
+    A trailing tab was already fail-closed; only the newline leaked.
+
+    Generated over the whole excluded domain rather than a sampled set: the
+    sibling brief-pointer defect survived a nine-character sample because the
+    one character that mattered was not among the nine.
+    """
+    mod = _load_engine()
+    base = "ini-002:work:spec/some-feature"
+
+    assert mod._CROSS_INI_RE.match(base) is not None, "the well-formed token must match"
+    assert mod._CROSS_INI_RE.match(base).group(2) == "spec/some-feature"
+
+    trailing = [chr(c) for c in range(0x20, 0x7F)]
+    trailing += ["\x00", "\x01", "\x1f", "\x7f", "\t", "\n", "\r", "\r\n", "é", "中", "\u200d"]
+    leaked = []
+    for ch in trailing:
+        match = mod._CROSS_INI_RE.match(base + ch)
+        if match is None:
+            continue  # refused outright, which is fail-closed
+        # Matching is fine only while the captured path still carries the byte:
+        # a capture equal to the clean path means the character was swallowed.
+        if match.group(2) == "spec/some-feature":
+            leaked.append(ch)
+    assert leaked == [], (
+        "a trailing character was dropped from the captured path, so a malformed "
+        f"token would compare equal to a clean entry: {leaked!r}"
+    )
