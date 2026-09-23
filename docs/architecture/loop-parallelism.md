@@ -1,9 +1,6 @@
 # Durable transitions and within-wave parallelism
 
-**STATUS: § 2 implemented; §§ 1 and 3 planned.** The document-level line
-this replaced said nothing here was implemented, which stopped being true
-when § 2 shipped and could not be scoped to one of three sections as
-written.
+**STATUS: § 2 implemented; §§ 1 and 3 planned.**
 
 This document states decisions and their costs. Shipped behaviour the baseline
 records is cited from [`loop-infrastructure.md`](loop-infrastructure.md);
@@ -148,21 +145,28 @@ two hand-driven processes on one spec directory, and a flag that is always false
 in Phase 1 would leave exactly that case unprotected. A conditional guard also
 fails silently when the condition is misread.
 
-**Cost.** One acquire–release plus one bounded cohort read per checked
-transition. § 2 previously divided an acquire–release into a 738.6 ms
-transition median whose stated basis was three `git rev-parse --show-toplevel`
-calls per transition; `_get_repo_root` now memoises per working directory, so
-that basis no longer describes the code and the ratio is not restated here. The
-acquire–release itself measured 17.84 ms median with calls spaced as in a real
-run. Re-derive the transition baseline on the tree in hand before quoting a
-ratio again.
+**Cost, uncontended.** One acquire–release plus one bounded cohort read per
+checked transition. The acquire–release measures 17.84 ms median with calls
+spaced as in a real run. No ratio against a transition median is quoted here:
+the published 738.6 ms figure rests on three `git rev-parse --show-toplevel`
+calls per transition, and `_get_repo_root` memoises per working directory, so
+re-derive the baseline on the tree in hand before quoting one.
+
+**Cost, contended — the dominant case, and it is not the fingerprint.**
+`_statelock`'s acquisition timeout is 10 s while a healthy cohort verb may hold
+for `GIT_TIMEOUT_S` = 20 s per spawn edge. A non-exempt transition that overlaps
+an ordinary cohort verb therefore waits the full 10 s and refuses on
+*acquisition*, not on a fingerprint mismatch — and it waits inside the engine
+lock, so every other engine verb for that spec stalls with it. Two orders of
+magnitude above the uncontended figure, fail-closed and retryable, but the
+figure to plan against.
 
 The ordering is safe: the engine-then-cohort nested hold is already live
 ([§ 3](loop-infrastructure.md#3-owned-state-and-write-authority)).
 
 ### What this does not close
 
-Seven residuals, each disclosed rather than fixed.
+Eight residuals, each disclosed rather than fixed.
 
 1. **Any concurrent cohort write refuses**, including a benign `dispatch-receipt`
    that would only have made a verdict more true. Fail-closed, retryable, and
@@ -179,7 +183,8 @@ Seven residuals, each disclosed rather than fixed.
 4. **The check is endpoint identity, not interval quiescence.** It compares two
    samples, so a write-and-revert inside the window would leave a guard having
    judged an intermediate state while the commit proceeds. No shipped cohort
-   verb can produce that reversion.
+   verb *appears able* to produce that reversion, which is why it is disclosed
+   rather than closed.
 5. **Two cohort-lock failure classes are not retryable.** A non-regular
    `state.json.lock` raises immediately, and a lock record this tool did not
    write is never reclaimed however old it is. Both need the file removed by
@@ -192,7 +197,11 @@ Seven residuals, each disclosed rather than fixed.
    `state.json` inside one transition, because at least one intermediate guard
    read must succeed — and that load rests entirely on the `run_id` preflight's
    `check_identity`, since the budget snapshot swallows every exception.
-7. **A cohort-lock reclaim mid-hold** leaves a committed transition behind a
+7. **Acquisition timeout is the dominant contended refusal**, not the
+   fingerprint mismatch, because the 10 s acquisition timeout is shorter than a
+   cohort verb's own possible hold. The wait extends the engine-lock hold, so
+   the whole spec's engine surface stalls for it. See the contended cost above.
+8. **A cohort-lock reclaim mid-hold** leaves a committed transition behind a
    non-zero exit: `exclusive` can only detect lost ownership after the block,
    and the skipped outbox finalisation leaves an `events.pending` that
    `_recover_pending` completes on the next run. Bounding it absolutely needs a

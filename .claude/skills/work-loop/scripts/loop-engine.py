@@ -346,7 +346,21 @@ def _cohort_fingerprint(spec_dir: Path) -> str:
     bytes; an ASCII-only dump cannot. Do not "align" this flag with the
     amendment id.
     """
-    path = spec_dir / "state.json"
+    # Resolve the guard module and the state path FIRST, and keep the resolved
+    # exception class. Two reasons, both fail-open if skipped. `_guards()` is a
+    # lazy by-path loader that raises `FileNotFoundError` when `_loop_guards.py`
+    # is missing — inside the try below that lands on the ABSENT arm, a wrong
+    # sentinel that compares equal at both samples and admits the commit. And an
+    # `except _guards().ManagedContentError:` clause re-invokes the loader while
+    # handling an exception, where a failure escapes the try entirely because a
+    # later `except Exception` does not catch a raise from clause evaluation.
+    try:
+        guards = _guards()
+        path = guards.state_path_for(spec_dir)
+        content_unusable = guards.ManagedContentError
+    except Exception:  # noqa: BLE001 - totality is the contract
+        return _FP_OTHER_UNUSABLE
+
     try:
         info = os.lstat(path)
     except FileNotFoundError:
@@ -360,10 +374,10 @@ def _cohort_fingerprint(spec_dir: Path) -> str:
         return _FP_NONREGULAR
 
     try:
-        state = _guards().read_state(spec_dir)
+        state = guards.read_state(spec_dir)
     except FileNotFoundError:
         return _FP_ABSENT
-    except _guards().ManagedContentError:
+    except content_unusable:
         return _FP_CONTENT_UNUSABLE
     except Exception:  # noqa: BLE001 - totality is the contract
         return _FP_OTHER_UNUSABLE

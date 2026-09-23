@@ -21,11 +21,36 @@ worktrees.
 | AC18 one-way lock order | add an `engine-state.json` read to `loop-cohort.py` | `never_reaches_the_engine` | red |
 | AC12 the race itself | remove the fingerprint comparison | all 5 interleaving cases | red (5 failed) |
 | AC4 mutual exclusion | acquire on `engine-state.json` instead of the cohort path | `peer_holding` | red |
+| AC20 content class | delete the `ManagedContentError` arm | `discriminates_its_four` | red |
+| AC13 reclaim reported | make the lock handler exit zero | `reclaim_at_the_end` | red |
+| loader fail-open | drop the try around `_guards()` | `guards_loader_failure` | red |
+| AC6 unlink exclusion | move the outbox unlink inside the hold | `hold_contains` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
 the lock taken on the wrong path — their refusal comes from the fingerprint
 alone. Only AC4 observes the exclusion itself, and only it reds under that edit.
+
+## Post-gates review round 1
+
+Adversarial returned 3 Blockers, 8 Concerns and 3 Nits; security returned 3
+Concerns and 1 Nit. The repairs that changed behaviour rather than wording:
+
+| Finding | What was wrong | Repair |
+| --- | --- | --- |
+| sec C2, adv N12 | `_guards()` was called inside the state-read try and in an `except` clause. A missing `_loop_guards.py` raises `FileNotFoundError`, which landed on the ABSENT arm — a fail-open, since absent compares equal at both samples. Evaluating `except _guards().ManagedContentError:` could also raise while handling, escaping the try entirely. | Resolve the module, the path and the exception class before the try; use the resolved class in the handler. New test pins that a loader failure is not reported as an absent state file. |
+| sec C1, adv C4 | AC20's four-way distinctness never produced `content-unusable`: the 4300+ digit input lands on the catch-all, not the `ManagedContentError` arm. Deleting that arm left the test green. | Five observations, with genuinely malformed JSON as a separate case. Probe confirms the arm's removal now reds. |
+| adv B1 | AC13 had no artifact at all — the suite covered the three acquisition failures but nothing raised `StateLockLost` on hold exit. | A case that makes the hold's exit raise it and asserts non-zero. |
+| adv C7 | AC17's closure marked a helper held as soon as ONE held caller reached it, so a state write reachable from both a held and an unheld verb passed. | Heldness per path: a function counts as held only when it has callers and every one of them is held. |
+| sec N4 | AC22's no-spawn set was rooted at three helpers, omitting the two operations the delivery moved INTO the hold. | Rooted at the `with` block's own statements. |
+| adv C5 | AC15 recovered the acquisition sets, asserted them non-empty, then used a literal `1`. | The count is derived from the recovered routes. |
+| adv C6 | AC6 checked four of the six exclusions its criterion names. | All six, including the FSM lookup and the outbox unlink. |
+
+Two probes in the first round of this batch reported STILL GREEN. One was a
+missing test (the loader guard had none) and one was a bad probe — the injected
+call sat before the hold rather than inside it. Both were corrected and both
+now red. A probe that fails to red is not automatically a weak check; it can be
+a weak probe, and the two need telling apart.
 
 ## Observations
 

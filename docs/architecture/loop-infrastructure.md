@@ -43,8 +43,12 @@ the outbox finalisation — so the read-decide-write section is atomic against a
 second engine process. `loop-cohort.py` holds `state.json.lock` for the body of
 each mutation verb.
 
-The engine's guard layer reads cohort state **without** taking the cohort lock.
-That read is what the diagram marks as unserialised.
+The engine's guard layer reads cohort state without taking the cohort lock, and
+the diagram marks those reads as unserialised. Since the cohort-state identity
+check, the engine does take the cohort lock once per non-exempt transition — not
+for the guard reads, but around the commit, where it re-reads cohort state and
+refuses if it moved since the transition's first read. The diagram below shows
+the guard reads only.
 
 ```mermaid
 flowchart LR
@@ -73,8 +77,9 @@ flowchart LR
   EG -. "read, NOT serialised" .-> CS
 ```
 
-The two domains **are** nested, on one path. Three acquisition sites exist in the
-skill's scripts: two in `loop-cohort.py` and one in `loop-engine.py`. On the
+The two domains **are** nested, on two paths now. Four acquisition sites exist
+in the skill's scripts: two in `loop-cohort.py` (`:270` and `:992`) and two in
+`loop-engine.py` (the engine-state lock, and the cohort lock the commit takes). On the
 `contract-amendment` transition the engine loads `loop-cohort.py` as a module and
 calls `apply_contract_amendment`, which takes the cohort lock at
 `loop-cohort.py:992` while the engine still holds its own — so the engine-then-cohort
@@ -90,8 +95,11 @@ ordered pair that exists.
 identity and schedule checks before guarded transitions. `check-spec-status.py`
 imports the canonical status parser from `lint-spec-status.py`.
 
-The engine reads cohort state but does not write it. The cohort tool does not
-advance FSM phase state.
+The engine reads cohort state but does not write it — with one qualification
+the identity check introduced: `exclusive()` creates and unlinks the
+`state.json.lock` sibling, so the engine is now a writer in the cohort
+*directory* for the first time. ADR-0061 **D3** governs state content, not the
+directory. The cohort tool does not advance FSM phase state.
 
 This split is ADR-0061's **Option A**, the pure phase tracker: a transition
 *permits* a change and never *causes* one. The engine is a referee, so every
@@ -324,5 +332,6 @@ a backend can do with it are a cross-cutting concern: see
 
 ## 10. Last verified against commit
 
-`0b81ead34`, plus the cohort-state identity check this
-document's § 6 describes, which is unmerged at the time of writing.
+The merge commit of the change that added the cohort-state identity check
+described in § 6. Verified against the tree at that commit, not against any
+earlier one: `0b81ead34` predates it.

@@ -1090,8 +1090,12 @@ def test_cohort_hold_contains_the_commit_and_nothing_that_decides_it() -> None:
                      "_write_engine_state_atomic"):
         assert required in inside, f"{required} must be inside the cohort hold"
 
+    # All six AC6 names, not the four that were easy: the FSM table lookup and
+    # the outbox unlink were missing, and a check that omits an exclusion the
+    # criterion states cannot fail on the case the criterion was written for.
     for excluded in ("_schedule_check_current", "guard_fn", "_append_events_jsonl",
-                     "apply_contract_amendment", "_run_id_preflight"):
+                     "apply_contract_amendment", "_run_id_preflight",
+                     "unlink", "_events_pending_path", "get"):
         assert excluded not in inside, (
             f"{excluded} is inside the cohort hold; the hold must cover the "
             "commit only"
@@ -1190,17 +1194,30 @@ def _cohort_lock_held_functions() -> set[str]:
                 held |= {c for c in _called_names(arg.body) if c in funcs}
             elif isinstance(arg, _ast_mod.Name) and arg.id in funcs:
                 held.add(arg.id)
-    # Anything a held body calls is also held.
-    frontier, seen = list(held), set(held)
-    while frontier:
-        fn = funcs.get(frontier.pop())
-        if fn is None:
-            continue
+    # Heldness is per PATH, not per reachability. A helper called from one
+    # held verb and one unheld one is not held: "anything a held body calls is
+    # also held" would mark it so and let an unlocked route to a state write
+    # pass. A function therefore counts as held only when it has at least one
+    # caller and EVERY caller is held.
+    callers: dict[str, set[str]] = {name: set() for name in funcs}
+    for name, fn in funcs.items():
         for callee in _called_names(fn):
-            if callee in funcs and callee not in seen:
-                seen.add(callee)
-                frontier.append(callee)
-    return seen
+            if callee in callers:
+                callers[callee].add(name)
+
+    roots = set(held)
+    changed = True
+    while changed:
+        changed = False
+        for name in funcs:
+            if name in held:
+                continue
+            who = callers[name]
+            if who and who <= held:
+                held.add(name)
+                changed = True
+    held |= roots
+    return held
 
 
 def test_every_cohort_state_write_runs_inside_a_cohort_hold() -> None:
@@ -1266,10 +1283,25 @@ def test_cohort_commit_hold_reaches_no_spawn_and_stays_under_the_timeout() -> No
     engine = _load_module(ENGINE, "_engine_hold_budget")
     sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_hold_budget")
     tree = _engine_tree()
-    hold_fn = _fn(tree, "_cohort_commit_hold")
-    reachable = set(_called_names(hold_fn)) | set(
-        _called_names(_fn(tree, "_revalidate_cohort_state"))
-    ) | set(_called_names(_fn(tree, "_cohort_fingerprint")))
+    # Rooted at the `with` block's own statements, not at three helpers. The
+    # two operations this delivery MOVED INTO the hold — the pending write and
+    # the state write — are called from cmd_transition's with-body, so a set
+    # built from the helpers alone leaves the ceiling unverified for exactly
+    # the code it is meant to bound.
+    hold_body = _commit_hold_node(_fn(tree, "cmd_transition"))
+    reachable = set(_called_names(hold_body))
+    funcs_e = {n.name: n for n in _ast_mod.walk(tree)
+               if isinstance(n, _ast_mod.FunctionDef)}
+    frontier, seen = list(reachable), set(reachable)
+    while frontier:
+        fn = funcs_e.get(frontier.pop())
+        if fn is None:
+            continue
+        for callee in _called_names(fn):
+            if callee not in seen:
+                seen.add(callee)
+                frontier.append(callee)
+    reachable = seen
     assert not (reachable & set(SPAWN_ATTRS)), (
         f"the cohort hold reaches a spawning capability: "
         f"{sorted(reachable & set(SPAWN_ATTRS))}"
@@ -1326,7 +1358,14 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     engine_side = "_cohort_commit_hold" in _called_names(_fn(_engine_tree(), "cmd_transition"))
     assert engine_side, "cmd_transition no longer takes the cohort lock"
 
-    concurrent = 1  # exempt-vs-checked are mutually exclusive; see the docstring
+    # Derived, not a literal. The engine-side hold and the amendment effect are
+    # the two acquisition routes, and they are mutually exclusive — the one
+    # exempt event is the only one that acquires through its effect — so the
+    # bound takes the maximum of the two rather than their sum. A third route
+    # would raise this without any declaration being edited.
+    routes = [1 if engine_side else 0, 1 if acquiring_mutators else 0]
+    concurrent = max(routes)
+    assert concurrent == 1, f"acquisition routes changed: {routes}"
     max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
                 + sl.DEFAULT_TIMEOUT * concurrent)
     assert sl.DEFAULT_TIMEOUT < max_hold < sl.DEFAULT_STALE_AFTER, (
@@ -1465,7 +1504,6 @@ def _run_interleaved(repo: Path, engine_argv: list[str], mutator_argvs: list[lis
     cap = repo / "_capture_child.py"
     cap.write_text(_CAPTURE_CHILD_SRC, encoding="utf-8")
     mut = repo / "_mutator_child.py"
-    mut.write_text(_MUTATOR_CHILD_SRC, encoding="utf-8")
 
     engine_proc = subprocess.Popen(
         [sys.executable, str(cap), str(probe), str(ENGINE), *engine_argv],

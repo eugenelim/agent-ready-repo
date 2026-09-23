@@ -4341,18 +4341,32 @@ def test_cohort_fingerprint_discriminates_its_four_failure_classes(tmp: Path) ->
     state.write_text('{"a": 1, "b": 2}', encoding="utf-8")
     present = _fp(d)
 
+    # Two DIFFERENT unusable inputs, because they take different arms and the
+    # first draft of this case used only the second and never produced
+    # `content-unusable` at all — deleting the `ManagedContentError` arm left
+    # it green. Truly malformed JSON becomes a JSONDecodeError the reader
+    # converts; a 4300+ digit integer literal raises a bare `ValueError` that
+    # it does not convert, so that one lands on the catch-all instead.
+    state.write_text("not json at all", encoding="utf-8")
+    content_unusable = _fp(d)
+
     state.write_text("{" + '"n": ' + "9" * 5000 + "}", encoding="utf-8")
-    content_or_other = _fp(d)
+    other_unusable = _fp(d)
 
     state.unlink()
     os.mkfifo(state)
     nonregular = _fp(d)
     state.unlink()
 
-    values = [absent, present, content_or_other, nonregular]
-    assert len(set(values)) == 4, f"classes collapsed: {values}"
+    values = [absent, present, content_unusable, other_unusable, nonregular]
+    assert len(set(values)) == 5, f"classes collapsed: {values}"
+    assert content_unusable != other_unusable, (
+        "malformed content and an unconvertible parse failure must not share a "
+        "sentinel; both reach the reader as ValueError and only the arm order "
+        "separates them"
+    )
     assert _HEX64.match(present), present
-    for sentinel in (absent, content_or_other, nonregular):
+    for sentinel in (absent, content_unusable, other_unusable, nonregular):
         assert not _HEX64.match(sentinel), f"sentinel collides with the digest space: {sentinel}"
 
 
@@ -4559,3 +4573,62 @@ def test_cohort_contention_refusal_names_the_cohort_lock(
 def test_contract_amendment_is_the_only_exempt_event() -> None:
     """AC3: one exemption, and it is the event whose own effect writes cohort state."""
     assert frozenset({"contract-amendment"}) == _engine._FINGERPRINT_EXEMPT_EVENTS
+
+
+def test_a_reclaim_at_the_end_of_the_hold_exits_non_zero(tmp: Path, capsys, monkeypatch) -> None:
+    """AC13: the reclaim window is reported, not silently exited zero.
+
+    `exclusive` can only detect lost ownership AFTER its body, so by the time
+    this fires the engine-state write has already landed. The transition is
+    durable and the verb still exits non-zero — that asymmetry is a disclosed
+    residual, and what this pins is the half that is not: it must never report
+    success. Bounding it absolutely needs a two-phase commit, which this
+    delivery forbids.
+    """
+    spec_dir, _ = _drafting_run(tmp, "fp-reclaim")
+    sl = _engine._statelock()
+    real_exclusive = sl.exclusive
+
+    @contextlib.contextmanager
+    def losing(path, **kwargs):
+        if path.name.startswith("state.json"):
+            with real_exclusive(path, **kwargs) as handle:
+                yield handle
+            raise sl.StateLockLost("the lock was not ours at release")
+        else:
+            with real_exclusive(path, **kwargs) as handle:
+                yield handle
+
+    monkeypatch.setattr(sl, "exclusive", losing)
+    rc = _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+    assert rc != 0, "a reclaim mid-hold must not report success"
+    assert "\n" not in err, err
+
+
+def test_a_guards_loader_failure_reaches_a_sentinel_not_absent(tmp: Path, monkeypatch) -> None:
+    """AC21: the loader is not a state-file class, and must not raise.
+
+    `_guards()` loads `_loop_guards.py` by path and raises `FileNotFoundError`
+    when it is missing. Called inside the state-read try, that lands on the
+    ABSENT arm — the wrong sentinel, and a fail-open one, because absent
+    compares equal at both samples and admits the commit. Resolving the module
+    before the try is what keeps a loader failure distinguishable from a
+    missing `state.json`.
+    """
+    d = make_spec_dir(tmp, "fp-loader")
+    (d / "state.json").write_text('{"a": 1}', encoding="utf-8")
+    healthy = _engine._cohort_fingerprint(d)
+
+    def unavailable():
+        raise FileNotFoundError("cannot load _loop_guards.py")
+
+    monkeypatch.setattr(_engine, "_guards", unavailable)
+    value = _engine._cohort_fingerprint(d)
+
+    assert value != healthy
+    assert value != _engine._FP_ABSENT, (
+        "a missing guard module was reported as an absent state.json; that "
+        "sentinel compares equal at both samples and admits the commit"
+    )
+    assert value == _engine._FP_OTHER_UNUSABLE
