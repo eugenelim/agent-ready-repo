@@ -250,11 +250,12 @@ call. AC-0075 is goal-based and is counted there, not here.
   criterion names three divergences and two rechecks, and the recheck decides
   the row.
 
-  The three divergences are a changed digest against a path classified
-  `would-update`, a changed entry kind against the same, and a destination
-  found present at a path classification found **absent** — the third is a
-  `would-create` path, not a `would-update` one, because a `would-update`
-  verdict presupposes the destination classification found.
+  The three divergences are, against a path classified `would-update` in every
+  case: a changed digest, a changed entry kind, and a destination found present
+  where classification found none. A recorded path absent on disk classifies
+  `would-update` — the shipped classifier emits no separate create verdict —
+  so the third case is a `would-update` row whose destination appeared during
+  the run.
 
   Driven at the gate, before the write phase opens, each refuses on AC-0039's
   `3 — cannot-answer` pre-write-read row with the whole tree identical on
@@ -472,10 +473,11 @@ the answer.
   | apply or `--dry-run` | the identity leak check reported a violation | 1 — `difference` |
   | apply or `--dry-run` | a selected pack's adapter-contract major differs from the CLI's | 1 — `difference` |
   | apply | the write set's paths hold more on disk than AC-0076's bound | 3 — `cannot-answer` |
-  | apply | the run could not read the pre-write state of a path it was about to write | 3 — `cannot-answer` |
+  | apply | the run could not read the pre-write state of a path it was about to write, before the write phase opened | 3 — `cannot-answer` |
   | apply | a companion destination collides with a path the replay plans | 3 — `cannot-answer` |
   | apply | there is no terminal to prompt on and no `--yes` was supplied, so consent cannot be taken | 1 — `difference` |
   | apply | the operator reached the consent prompt and did not give consent | 1 — `difference` |
+  | apply | consent was taken and AC-0077's gate recheck found a write-set destination diverged from the state its row was classified against, before any write | 3 — `cannot-answer` |
   | apply | a planned write failed and the tree could not be fully restored | 4 — `apply-failed` |
   | apply | a planned write failed and the tree was restored | 4 — `apply-failed` |
   | apply | every planned write landed and stale removal failed | 4 — `apply-failed` |
@@ -496,7 +498,13 @@ the answer.
   source ships a name is not decidable until the source resolves. Every apply
   refusal that lands before the prompt sits above the consent row, because
   "consent was not given" is otherwise true of a run that never reached the
-  prompt and would shadow the row its own criterion names.
+  prompt and would shadow the row its own criterion names. AC-0077's gate row
+  is the one apply refusal that sits **below** the consent rows, because the
+  gate runs after consent by construction; placing it above them would make it
+  shadow a decline. The pre-write-read row carries "before the write phase
+  opened" for the mirror reason: unscoped it is true of AC-0077's rename
+  recheck as well, and would put a `3` refusal above the `4` rows after a
+  write had already landed.
 - [ ] **AC-0040.** Every invocation and every failure reaches a named row of
   AC-0039's table at the command boundary. No uncaught exception sets the
   process exit status.
@@ -900,10 +908,10 @@ the answer.
 
   **The gate recheck** covers every write-set destination and runs once, after
   consent and before the write phase opens. Any divergence there refuses the
-  run before the first write, so the code is AC-0039's `the run could not read
-  the pre-write state of a path it was about to write` row at
-  `3 — cannot-answer` and the tree is identical, which is what AC-0041 already
-  states of every `3` refusal. This is the recheck that carries the security
+  run before the first write, and AC-0039 carries its own row for that
+  condition at `3 — cannot-answer`, placed below the consent rows because the
+  gate runs after consent. The tree is identical, which is what AC-0041 states
+  of every `3` refusal. This is the recheck that carries the security
   property: the threat is an adopter edit during the consent prompt, and the
   prompt closes before this gate runs.
 
@@ -912,12 +920,15 @@ the answer.
   reaches a `4` write-failed row, where AC-0038's restore obligation, AC-0041's
   per-row permitted differences and AC-0058's naming obligation already apply.
   It catches only what changed after the gate, which is why it may fire once
-  writes have landed and must not take the `3` row.
+  writes have landed.
 
-  This criterion adds no row to AC-0039's table and changes none. Each recheck
-  is a read of a target path, so AC-0065 binds both and a non-regular,
-  hard-link or reparse-point destination is refused at whichever one reaches it
-  first.
+  Each recheck is a read of a target path, so AC-0065 binds both and a
+  non-regular, hard-link or reparse-point destination is refused at whichever
+  reaches it first. That refusal is a divergence like any other and takes the
+  row its own recheck takes — the gate row before the write phase, a `4` row
+  at the rename. AC-0039's pre-write-read row is scoped to the snapshot read
+  that happens before the write phase opens, so it cannot capture a rename
+  recheck and cannot place a `3` refusal after a write has landed.
 
   Neither recheck closes its window; each narrows one. The gate removes the
   consent wait from the exposure, and the rename recheck reduces what remains

@@ -425,10 +425,11 @@ filesystem.
   the output. Verifies AC-0058.
 - A planned path resolving outside the target root is refused at the write.
   Verifies AC-0052.
-- A write-set destination diverges after classification, in three shapes —
-  a changed digest and a changed entry kind against a `would-update` path, and
-  a destination found present at a path classification found absent, which is
-  a `would-create` path because `would-update` presupposes the destination.
+- A write-set destination diverges after classification, in three shapes, each
+  against a path classified `would-update`: a changed digest, a changed entry
+  kind, and a destination found present where classification found none. The
+  third is still `would-update`, because a recorded path absent on disk
+  classifies that way and the shipped classifier emits no create verdict.
   Each shape is driven twice, once at each recheck, for six cases.
   - At the gate, before the write phase opens: refuses on AC-0039's
     `3 — cannot-answer` pre-write-read row with the whole tree identical.
@@ -802,11 +803,38 @@ sequencing: the change ships in one package release.
     already existed and neither changed, so § Ask first was not reached. The
     gate is where the consent-wait threat lands; the rename recheck catches
     only what changed after it.
-  - AC-0077's third divergence is a `would-create` path, not a `would-update`
-    one: a `would-update` verdict presupposes the destination classification
-    found, so the old framing described a fixture that cannot be built.
+  - AC-0077's third divergence was renamed a `would-create` path. Round 4
+    reversed this: the shipped classifier emits no such verdict and a recorded
+    path absent on disk classifies `would-update`, so the rename named a
+    fixture no implementation can produce.
   - § Follow-ons' FAT/exFAT entry no longer says AC-0038 restores the whole
     target tree; round 2's amendment had made that false.
   - The AC-0077 fixture set went from three cases to six — three divergences
     driven at each recheck. A set driving only the gate passes an
     implementation carrying one recheck.
+- 2026-09-23 — Pre-EXECUTE review round 4, same run. Six raw findings; both
+  adjudications returned `invalid (indeterminate-present)` and stopped the
+  loop, independently naming the same § Ask first decision. Resolved on
+  eugenelim's decision taken in session, granting the row amendment:
+  - **The class, named.** AC-0077 adds refusal conditions AC-0039's table was
+    written before. Three rounds tried to route them onto existing rows and
+    each failed in a different direction: round 2 sent all three divergences
+    to the `4` rows and contradicted AC-0065; round 3 sent the entry-kind
+    shape to the `3` pre-write-read row and made it reachable after writes had
+    landed; round 4's gate/rename split left the gate's readable divergences
+    matching no row at all, failing AC-0040's totality, while the entry-kind
+    shape still matched `3` first. No reuse of existing rows can express "read
+    successfully, and it diverged", so the rows are the fix.
+  - **AC-0039 gains one row and one row is narrowed.** New, below the consent
+    rows and above the `4` rows: consent was taken and AC-0077's gate recheck
+    found a write-set destination diverged before any write → `3 —
+    cannot-answer`. Narrowed: the pre-write-read row now reads "before the
+    write phase opened", so it cannot capture a rename recheck. No sixth exit
+    code; both codes already existed. A rename-recheck divergence is a planned
+    write failing and the two existing `4` rows carry it.
+  - The table's trailing note now states why the gate row sits below the
+    consent rows and why the pre-write-read row is scoped.
+  - AC-0077's third divergence is a `would-update` path after all — round 3's
+    `would-create` was an invented verdict. The classifier emits `would-update`
+    for a recorded path absent on disk, which `test_catalogue_sync.py:405-408`
+    already pins.
