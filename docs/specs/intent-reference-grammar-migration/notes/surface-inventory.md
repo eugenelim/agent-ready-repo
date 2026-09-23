@@ -21,7 +21,7 @@ pack source that reads or writes it.
 - `packs/core/tests/skills/work-intake/test_intent_shape.py`
 - `packs/core/tests/skills/work-loop/test_lint_traceability.py`
 
-### parses (43)
+### parses (44)
 
 - `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
@@ -61,6 +61,7 @@ pack source that reads or writes it.
 - `tests/roster/test_reclassified_lifecycle_result.py`
 - `tests/roster/test_selection_scoped_membership_absence.py`
 - `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_progressive_disclosure.py`
 - `tests/roster/test_workspace_status_projection.py`
 - `tools/bench-workspace-status.py`
 - `tools/test_pack_test_compatibility.py`
@@ -121,7 +122,7 @@ pack source that reads or writes it.
 - `tools/test_workspace_status.py`
 - `tools/test_workspace_status_cli.py`
 
-### parses (37)
+### parses (38)
 
 - `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
@@ -157,6 +158,7 @@ pack source that reads or writes it.
 - `tests/roster/test_reclassified_lifecycle_result.py`
 - `tests/roster/test_selection_scoped_membership_absence.py`
 - `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_progressive_disclosure.py`
 - `tests/roster/test_workspace_status_projection.py`
 - `tools/bench-workspace-status.py`
 - `tools/test_pack_test_compatibility.py`
@@ -243,7 +245,7 @@ pack source that reads or writes it.
 - `packs/linear/tests/skills/linear/test_linear_primitive.py`
 - `tools/lint-guidebook-steps.py`
 
-### parses (44)
+### parses (45)
 
 - `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
@@ -284,6 +286,7 @@ pack source that reads or writes it.
 - `tests/roster/test_reclassified_lifecycle_result.py`
 - `tests/roster/test_selection_scoped_membership_absence.py`
 - `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_progressive_disclosure.py`
 - `tests/roster/test_workspace_status_projection.py`
 - `tools/bench-workspace-status.py`
 - `tools/test_pack_test_compatibility.py`
@@ -355,7 +358,7 @@ pack source that reads or writes it.
 - `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
 - `packs/core/tests/skills/work-loop/test_lint_traceability.py`
 
-### parses (44)
+### parses (45)
 
 - `.agents/skills/work-intake/scripts/intent_corpus_lint.py`
 - `.agents/skills/work-intake/scripts/intent_shape.py`
@@ -396,6 +399,7 @@ pack source that reads or writes it.
 - `tests/roster/test_reclassified_lifecycle_result.py`
 - `tests/roster/test_selection_scoped_membership_absence.py`
 - `tests/roster/test_status_projection_and_context_exclusion.py`
+- `tests/roster/test_workspace_status_progressive_disclosure.py`
 - `tests/roster/test_workspace_status_projection.py`
 - `tools/bench-workspace-status.py`
 - `tools/test_pack_test_compatibility.py`

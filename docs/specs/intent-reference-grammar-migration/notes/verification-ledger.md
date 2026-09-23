@@ -1178,3 +1178,63 @@ and around fifteen of them are value validators of the same shape
 fixed**: changing sixty validators across three packages is not this change's
 scope, and doing it unilaterally is the widening this delivery has refused
 elsewhere. It is a follow-on the owner should place.
+
+## 2026-09-23 — closeout measurement over the post-rebase corpus
+
+Every criterion was re-measured after the rebase onto `origin/main`, because
+the rebase added 12 commits of new artifacts and three of the recorded figures
+were taken before it.
+
+**Suites.** `packs/core/tests/skills/work-loop/test_lint_traceability.py`,
+`.../workspace-status/test_workspace_status_engine_autonomous.py` and
+`.../author-delivery-brief/test_lint_brief_coverage.py`: 165 passed, 1 skipped,
+25s. The skip is a pre-existing `STUB` at
+`test_workspace_status_engine_autonomous.py:3473`, unrelated to this delivery.
+`tools/test_brief_slug_matches_filename.py`: 2 passed.
+
+**Mechanical.** `lint-traceability.py` is byte-identical across its three
+copies at md5 `a687f07f`. `--root .` exits 0. Both sweeps re-run to
+`0 rewritten, 0 left, 0 remainder`, so the cohort is converged and idempotent
+over the enlarged corpus.
+
+**AC-0019 drift, and why it was benign.** The committed inventory was derived
+before the rebase, so the re-run was not zero-diff: 8 insertions, 4 deletions.
+The whole delta is one file — `tests/roster/test_workspace_status_progressive_disclosure.py`,
+added by main's PR #1412 — appearing under `parses` for each of the four fields
+and incrementing those four counts. No entry changed role and none was removed.
+The derivation is deterministic; the artifact was stale. Regenerated and
+committed, after which the re-run is zero-diff.
+
+### AC-0025's baseline is stale — the delivery causes none of the increase
+
+`--strict` now reports **492** structural orphans against the ceiling of 488
+that AC-0025 pins to T4's pre-sweep record. The criterion is falsified on its
+literal number.
+
+The property it names is not. Comparing the two orphan *sets* rather than their
+counts, five ids are new and none has disappeared:
+
+| New orphan | Added by | In main's 12? |
+| --- | --- | --- |
+| `spec:arxiv-retriever-production` | `98d42468a` (#1407) | yes |
+| `spec:catalogue-sync-dry-run` | `8cf5b8b35` (#1363) | yes |
+| `spec:loop-engine-repo-root-memo` | `0b81ead34` (#1411) | yes |
+| `spec:work-loop-provider-handoff-reference` | `8ef829ab7` (#1409) | yes |
+| `spec:workspace-status-progressive-disclosure` | `a0100bb7c` (#1412) | yes |
+
+Each was confirmed to sit inside `6535da5a5..8cf5b8b35` — the range main gained
+during the rebase — with `git merge-base --is-ancestor` in both directions. This
+delivery contributed **0 of the 5**.
+
+**The comparison instrument was verified before its verdict.** A first pass
+reported 12 new orphans. Three of those (`contract:LICENSE`, `contract:PROVENANCE`,
+`contract:README`) are on lines 59-61 of `corpus-probe.md` and four
+(`spec-A`…`spec-D`, added 2026-07-20 by `84ffa13c9`, which predates the old
+base) were present all along; the token extraction was lossy. The corrected
+parser reproduces T4's stated 487 exactly from its own record, which is the
+check that makes the 5 trustworthy.
+
+This needs an owner decision, not a reinterpretation: re-baselining a frozen
+criterion is a contract amendment, and ticking 492 against a ceiling of 488
+because the property behind it still holds is the failure this ledger exists to
+catch.

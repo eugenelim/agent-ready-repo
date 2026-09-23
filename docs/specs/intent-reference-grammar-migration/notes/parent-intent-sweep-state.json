@@ -1,21 +1,21 @@
 {
   "docs/product/briefs/intent-identity-and-registration.md": {
-    "reason": "resolved-unresolvable",
+    "reason": "already-typed",
     "status": "done",
     "value": "intent:intent-identity-and-registration"
   },
   "docs/product/briefs/multi-adapter-eval-runner.md": {
-    "reason": "resolved-unresolvable",
+    "reason": "already-typed",
     "status": "done",
     "value": "intent:cross-adapter-behavior-enforcement"
   },
   "docs/product/briefs/spec-author-agent.md": {
-    "reason": "resolved-unresolvable",
+    "reason": "already-typed",
     "status": "done",
     "value": "intent:cross-adapter-behavior-enforcement"
   },
   "docs/product/briefs/universal-implementer-dispatch.md": {
-    "reason": "resolved-unresolvable",
+    "reason": "already-typed",
     "status": "done",
     "value": "intent:cross-adapter-behavior-enforcement"
   },

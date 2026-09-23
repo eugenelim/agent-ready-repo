@@ -197,31 +197,31 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** A pointer value equal to a node id resolves to that node and
+- [x] **AC-0001.** A pointer value equal to a node id resolves to that node and
       no other.
-- [ ] **AC-0002.** A bare slug matching exactly one node id resolves to that
+- [x] **AC-0002.** A bare slug matching exactly one node id resolves to that
       node.
-- [ ] **AC-0003.** A bare slug matching more than one node id refuses, and the
+- [x] **AC-0003.** A bare slug matching more than one node id refuses, and the
       report names the value together with every matching candidate.
-- [ ] **AC-0004.** A refused ambiguous pointer makes `lint-traceability` exit
+- [x] **AC-0004.** A refused ambiguous pointer makes `lint-traceability` exit
       non-zero in both members of the closed set of its exit-affecting
       invocation modes: default and `--strict`.
-- [ ] **AC-0005.** A pointer value that is an ordinal, or a filename stem
+- [x] **AC-0005.** A pointer value that is an ordinal, or a filename stem
       carrying an ordinal prefix, refuses.
-- [ ] **AC-0006.** Every file under `docs/product/intents/` that no ladder rung
+- [x] **AC-0006.** Every file under `docs/product/intents/` that no ladder rung
       already recognizes **and that carries a `Slug:` field** is a node whose id
       is `intent:` joined to that field's value. The `Slug:`-bearing condition is
       what keeps this from contradicting the absent-field criteria below, which
       require such a file to contribute no node.
-- [ ] **AC-0007.** No two nodes share an id.
-- [ ] **AC-0008.** Re-deriving the cohort over the repository reports that every
+- [x] **AC-0007.** No two nodes share an id.
+- [x] **AC-0008.** Re-deriving the cohort over the repository reports that every
       resolvable value in both migrated fields is `<kind>:<slug>` — not merely
       that the shape each field started from is gone. The corpus holds 23
       builder-visible `Parent intent:` values, of which 19 are bare slugs and 4
       are markdown links; a criterion naming only the bare-slug shape would
       leave those 4 in place and still pass. A value the corpus cannot resolve
       is reported and left, per the Agent Rules.
-- [ ] **AC-0019.** A committed derivation produces, for **each of the four
+- [x] **AC-0019.** A committed derivation produces, for **each of the four
       pointer fields** — not only the two this spec migrates — the closed
       inventory of surfaces that touch it, each labelled by role — writes
       the form, states the form as guidance, reads the value, or is a generated
@@ -230,50 +230,50 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       projection, and a template that emits the form without reading it are all
       invisible to a name search and all three were missed that way. The
       derivation re-runs with a zero diff.
-- [ ] **AC-0009.** Every surface the AC-0019 inventory labels as writing or
+- [x] **AC-0009.** Every surface the AC-0019 inventory labels as writing or
       stating the `Brief:` form names `brief:<slug>` as canonical, and every
       surface it labels as reading the value accepts it. The criterion is
       discharged against the derived inventory and names no count or file list
       of its own — an inline list is what three earlier revisions got wrong,
       each stating a total that the next round falsified.
-- [ ] **AC-0023.** The migration cohort is derived *after* the intent files are
+- [x] **AC-0023.** The migration cohort is derived *after* the intent files are
       recognized as nodes, because recognizing them makes their own
       `Parent intent:` pointers builder-visible. 14 of the 117 carry one, taking
       the cohort from 23 values to 37; a sweep sized against the pre-recognition
       figure leaves 14 values untyped and still passes a check that counts only
       what was visible before.
-- [ ] **AC-0020.** Every surface the AC-0019 inventory labels as writing or
+- [x] **AC-0020.** Every surface the AC-0019 inventory labels as writing or
       stating the `Parent intent:` form emits `<kind>:<slug>`. Without this the
       sweep does not converge: the inventory finds templates and guides that
       stamp a bare slug, so swept values would be re-emitted in the old form by
       the next author who used one.
-- [ ] **AC-0021.** Each brief's identity, as the brief recognizer derives it,
+- [x] **AC-0021.** Each brief's identity, as the brief recognizer derives it,
       equals its filename stem — the condition that makes `brief:<slug>`
       resolvable to `docs/product/briefs/<slug>.md`. It holds for all 17 briefs
       today; it is asserted because nothing enforces it and the typed form
       silently misresolves where it fails.
-- [ ] **AC-0010.** `lint-brief-coverage.py` rolls a brief's Spec map up from
+- [x] **AC-0010.** `lint-brief-coverage.py` rolls a brief's Spec map up from
       specs whose `Brief:` value is `brief:<slug>`.
-- [ ] **AC-0011.** `lint-traceability.py` is byte-identical across its
+- [x] **AC-0011.** `lint-traceability.py` is byte-identical across its
       `packs/core/.apm/`, `.agents/`, and `.claude/` copies.
-- [ ] **AC-0012.** `lint-traceability.py --root .` exits 0 over the repository.
+- [x] **AC-0012.** `lint-traceability.py --root .` exits 0 over the repository.
 - [ ] **AC-0025.** `lint-traceability.py --root . --strict` reports no more
       structural orphans after the change than T4 recorded before the sweeps.
       It exits 1 either way, on pre-existing orphans this delivery did not
       cause; non-increase is the property this change can own.
-- [ ] **AC-0013.** A producer pointer resolving to a local node takes the
+- [x] **AC-0013.** A producer pointer resolving to a local node takes the
       consumer's in-edge in preference to an earlier producer pointer that
       resolves only to an external reference.
-- [ ] **AC-0014.** An intent file carrying no `Slug:` field is reported.
-- [ ] **AC-0015.** An intent file carrying no `Slug:` field contributes no
+- [x] **AC-0014.** An intent file carrying no `Slug:` field is reported.
+- [x] **AC-0015.** An intent file carrying no `Slug:` field contributes no
       node.
-- [ ] **AC-0024.** `Brief:` remains optional. An omitted header, a blank value,
+- [x] **AC-0024.** `Brief:` remains optional. An omitted header, a blank value,
       the template's HTML comment, and `none` all mean "no brief", produce no
       provenance finding, and are outside AC-0016's and AC-0017's scope, which
       govern only a non-placeholder value. Without this the two-form predicate
       would refuse every spec that legitimately has no brief — a far larger
       blast radius than the migration itself.
-- [ ] **AC-0016.** A spec's **non-placeholder** `Brief:` value is admitted by
+- [x] **AC-0016.** A spec's **non-placeholder** `Brief:` value is admitted by
       `workspace_status_engine.py` in exactly two forms: `brief:<slug>` where
       `<slug>` matches the repository's existing single-segment identifier rule
       — one to two hundred characters, ASCII alphanumeric, hyphen or underscore,
@@ -282,7 +282,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       Both admitted forms also satisfy AC-0022. The set is defined positively
       and self-containedly; "the form it accepts today" would be a predicate
       that moves with the implementation being judged.
-- [ ] **AC-0017.** Every **non-placeholder** `Brief:` value outside the two
+- [x] **AC-0017.** Every **non-placeholder** `Brief:` value outside the two
       admitted forms produces
       a provenance finding and blocks dispatch. This is asserted as the
       complement of AC-0016's predicate, not as a list of bad examples: an
@@ -290,14 +290,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       omits something — a space, `!`, `%`, a second colon — and an
       implementation admitting every `brief:`-prefixed string would still pass
       it. Representative cases are exercised as evidence, not as the criterion.
-- [ ] **AC-0022.** Acceptance of a `Brief:` value requires its target, once
+- [x] **AC-0022.** Acceptance of a `Brief:` value requires its target, once
       canonicalized with symlinks resolved, to remain beneath the resolved
       `docs/product/briefs/` directory. That is the single boundary, and it sits
       strictly inside the repository root, so a target escaping the briefs
       directory is refused whether it lands elsewhere in the repository or
       outside it. A lexical check on the slug does not satisfy this: a slug
       naming a symlink is lexically valid.
-- [ ] **AC-0018.** Admitting the typed form at spec provenance changes no other
+- [x] **AC-0018.** Admitting the typed form at spec provenance changes no other
       consumer of the shared brief-path rule: at each of its other call sites —
       `workspace.toml` entry, dependency, legacy-queue and receipt paths — a
       typed value and a malformed `brief:` value both remain invalid.
