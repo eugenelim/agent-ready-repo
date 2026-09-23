@@ -86,30 +86,32 @@ before the command started.
 
 ### Never do
 
-- Never write, move, delete, or change the mode of a path the printed plan did
-  not name.
-- Never leave a half-applied tree: a failed write restores the pre-run tree
-  before the command returns.
-- Never write anything under the target tree when the identity leak check
-  reported a violation.
-- Never add a module, package, or top-level directory: the apply path extends
-  the existing command module.
-- Never add a third-party dependency.
-- Never bring the state file inside the identity leak check.
-- Never let a recorded value select a mode, widen a selection, or resolve as a
-  path.
-- Never introduce a predictable staging path.
-- Never narrow the stale-removal keep-set to a scoped subset.
-- Never write under `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`, whether or not `--package` was supplied.
+- Phase 2's § Boundaries § Never do carries forward in full, with one
+  replacement: its no-write-path rule is replaced by the first two deltas below,
+  because this phase has a write path. Every other rule it states still binds,
+  including that URI dispatch, the Tier contract and the removal guard are never
+  re-implemented.
+- The deltas this phase adds to that list:
+  - Never write, move, delete, or change the mode of a path the printed plan did
+    not name.
+  - Never leave a half-applied tree without naming what is unrestored.
+  - Never write anything under the target tree when the identity leak check
+    reported a violation.
+  - Never introduce a predictable staging path.
+  - Never narrow the stale-removal keep-set to a scoped subset.
+  - Never write under `packages/credbroker/` or
+    `.agentbundle/tooling/agentbundle/`, whether or not `--package` was
+    supplied.
 
 ## Testing Strategy
 
-Three modes, over 36 criteria. Each entry names the comparison its oracle
+Three modes, over 38 criteria. Each entry names the comparison its oracle
 performs, not the property it hopes to establish.
 
 **TDD** covers AC-0030 through AC-0052, AC-0057 through AC-0060, AC-0064 and
-AC-0065 — twenty-three plus four plus two, so twenty-nine criteria, each a
-compressible invariant over a pure function or a single `sync` call.
+AC-0065, and AC-0066 — twenty-three plus four plus two plus one, so thirty
+criteria, each a compressible invariant over a pure function or a single `sync`
+call.
 
 - **Invocation grammar (AC-0030)** — TDD. Oracle: the parser's exit status and
   the handler's returned code across the three modes and each malformed
@@ -124,11 +126,16 @@ compressible invariant over a pure function or a single `sync` call.
   after, under each of four inputs — an affirmative at the prompt, a refusal,
   `--yes`, and EOF with no TTY. A test asserting only the declined message
   passes while the write happens anyway.
-- **The consented plan is the applied plan (AC-0057)** — TDD. Oracle: the row
-  set of the plan an apply run prints equals the row set its write phase acts
-  on, compared for equality. This is the criterion that makes AC-0033's
-  equality well-founded, so a test that reads the plan from anywhere but the
-  run's own output does not discharge it.
+- **The printed plan (AC-0057)** — TDD. Oracle: the row set the run prints,
+  compared against phase 2's classification of the replayed selection with the
+  two filters applied — an anchor outside the run, so AC-0033's equality rests
+  on something the run does not itself define. A second assertion compares the
+  printed rows against the rows the write phase acts on, which is the
+  consented-plan-is-applied half.
+- **The deferred count (AC-0066)** — TDD. Oracle: the reported count equals the
+  number of planned package paths, and phase 2's seven counts over the same run
+  are byte-identical to what a phase-2 classification of the full replayed
+  selection produces. The second half is what proves the identity survived.
 - **Apply order (AC-0032)** — TDD. Oracle: the recorded sequence of jailed-write
   calls, compared against the fixed order. An assertion that all paths exist
   after the run cannot observe order at all.
@@ -204,11 +211,15 @@ compressible invariant over a pure function or a single `sync` call.
   reparse-point cases phase 2's path-confinement criterion fixes, re-driven through the apply
   path's own reads. The criterion is phase 2's; only the caller is new.
 
-**Goal-based checks** cover AC-0053, AC-0054, AC-0055 and AC-0061 through
-AC-0063 — six delivery conditions, each a command whose output is the answer.
+**Goal-based checks** cover AC-0053, AC-0054, AC-0055, AC-0061 through AC-0063,
+and AC-0067 — seven delivery conditions, each a command whose output is the
+answer.
 
 - **Rollout phase count (AC-0053)** — goal-based. Oracle: the banner's claim and
   § Rollout's own list agree on how many phases remain.
+- **The delivered phase (AC-0067)** — goal-based. Oracle: the phase § Rollout
+  marks struck through is phase 3. A file whose banner and list agree on a count
+  while still naming phase 2 as delivered passes AC-0053 and fails this.
 - **Citations resolve (AC-0061)** — goal-based. Oracle: every code citation in
   the edited architecture file resolves to the construct it names. An absence
   check passes a wrong re-pin, which is why resolution is the oracle and not a
@@ -227,7 +238,7 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
   reading the same string, and that string is `0.49.0`. The derivation supplies
   the closed set; this criterion does not enumerate it by hand.
 
-**Visual / manual QA** covers AC-0056 — one criterion. That is 29 + 6 + 1 = 36.
+**Visual / manual QA** covers AC-0056 — one criterion. That is 30 + 7 + 1 = 38.
 
 - **The apply run an adopter performs (AC-0056)** — visual / manual QA. Oracle:
   the comparison the criterion names, performed against a real derived tree and
@@ -252,11 +263,11 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
 - [ ] **AC-0032.** Writes land in the order packs, profiles, guides — and the
   ownership state after all three. No group writes a path under
   `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`.
-- [ ] **AC-0033.** The set of paths an apply run writes equals, exactly: the
-  `would-update` paths of the plan AC-0057 fixes, together with
-  `safety.companion_path`'s computed path for each of that plan's
-  `would-companion` rows. No other path under the target tree is created,
-  modified, moved, or has its mode changed.
+- [ ] **AC-0033.** The set of paths an apply run writes equals, exactly, three
+  members: the `would-update` paths of the plan AC-0057 fixes; the path
+  `safety.companion_path` computes for each of that plan's `would-companion`
+  rows; and the ownership state. No other path under the target tree is
+  created, modified, moved, or has its mode changed.
 - [ ] **AC-0034.** A `would-companion` path receives `safety.companion_path`'s
   computed path carrying the replayed source bytes, and the adopter's own file
   at that path has the same sha256 after the run as before it.
@@ -266,7 +277,7 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
 - [ ] **AC-0036.** For every path in the recorded path set AC-0059 fixes, the
   recorded sha256 equals the digest of the bytes the run wrote to it when the
   run wrote it, and the value recorded before the run when it did not.
-- [ ] **AC-0037.** The pin each source form records is the first matching row.
+- [ ] **AC-0037.** The pin each source form records is the row for that form.
   The `source_revision` and `archive_sha256` values are the ones phase 2's source-fidelity criterion
   already fixes for that form; this criterion adds only that they are now
   written to the state rather than printed:
@@ -279,9 +290,12 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
   | `catalogue+https://…` | the URI, under `attributed` only | the descriptor's `source_revision`, or absent | the verified digest |
 
   `synced_at` is recorded on every row.
-- [ ] **AC-0038.** When any planned write fails, the target tree is restored
-  before the command returns to the walk tuple AC-0041 compares — relative path,
-  entry kind, mode, symlink target and bytes — and the exit code is 4.
+- [ ] **AC-0038.** When any planned write fails, the command restores the target
+  tree before returning to the walk tuple AC-0041 compares — relative path,
+  entry kind, mode, symlink target and bytes. Whether that restore succeeds
+  selects between two rows of AC-0039's table, which is the sole authority on
+  the resulting code; AC-0058 governs what a restore that does not succeed must
+  report.
 - [ ] **AC-0039.** The command's exit code is the first matching row of this
   table, read top to bottom, and no input produces a code outside it:
 
@@ -320,14 +334,22 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
   mode, symlink target and bytes is identical before and after every invocation,
   on every row of AC-0039's table, for both subjects below:
 
-  | Subject | Local-path `--source` | `git+https://` | `archive+https://` or `catalogue+https://` |
-  | --- | --- | --- | --- |
-  | the source | the adopter's directory at that path | the extracted clone, for as long as the run holds it | not applicable: phase-2's § Always do requires the extracted directory be deleted, so no tree exists on either side and that deletion obligation discharges the rail |
-  | the target | the target tree | the target tree | the target tree |
+  | Source form | The source subject, and the two moments compared |
+  | --- | --- |
+  | local clone path | the adopter's directory at that path, walked immediately before the command runs and immediately after it returns |
+  | `git+https://` | none: the clone is created during the run and removed by the `atexit` handler `resolve_catalogue` registers, so no tree exists at either moment and that cleanup discharges the rail |
+  | `archive+https://` or `catalogue+https://` | none: phase 2's § Always do requires the extracted directory be deleted, so no tree exists at either moment and that deletion obligation discharges the rail |
 
-  The target walk is identical on every row except the `0 — success` apply row,
-  where it differs exactly by the paths AC-0033 names, the paths stale removal
-  removed, and the ownership state.
+  The target walk is identical before and after every row of AC-0039's table
+  except the five below, each of which may differ only as stated:
+
+  | Row | Permitted difference in the target tree |
+  | --- | --- |
+  | `0 — success` apply | the paths AC-0033 names, the paths stale removal removed, and the ownership state |
+  | `4` a planned write failed and the tree was restored | none |
+  | `4` a planned write failed and the tree could not be fully restored | the paths AC-0058 names, and no others |
+  | `4` writes landed and stale removal failed | the paths AC-0033 names, and the paths removal had removed before it failed |
+  | `4` writes landed and the state write failed | the paths AC-0033 names less the ownership state, and the paths stale removal removed |
 - [ ] **AC-0042.** With none of `--pack`, `--profile`, `--guides`, or
   `--package` supplied, an apply run covers the recorded recipe, less the paths
   AC-0047 defers.
@@ -348,8 +370,9 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
   ship refuses as malformed, naming the field, and writes nothing.
 - [ ] **AC-0047.** `--package` accepts exactly the names `agentbundle` and
   `credbroker`. Either one refuses the invocation it appears on — apply,
-  `--dry-run` or `--check` alike — with the cannot-answer code, naming that
-  package sync is not available. No invocation writes any path under
+  `--dry-run` or `--check` alike — naming that package sync is not available.
+  The code is AC-0039's first matching row, which is the cannot-answer row
+  unless the invocation is also malformed. No invocation writes any path under
   `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`.
 - [ ] **AC-0048.** Two apply runs with identical flags, over target trees whose
   recorded `attribution`, `tooling`, and `guides` differ, write the same bytes
@@ -367,8 +390,8 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
 - [ ] **AC-0052.** Every write the apply path performs under the target tree
   goes through the jailed write primitive, and a planned path resolving outside
   the target root is refused at that write.
-- [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` records phase
-  3 as delivered, and its banner and § Rollout agree on how many phases remain.
+- [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
+  § Rollout agree on how many phases remain.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
   carries a section covering the apply run, how consent is given, the scoping
   flags, and what an `.upstream.<ext>` companion obliges the adopter to do —
@@ -382,12 +405,12 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
   carrying the source bytes; the adopter's file's digest is unchanged; and no
   path outside the printed plan is altered. The verification ledger records that
   comparison, not only the observed output.
-- [ ] **AC-0057.** The plan an apply run prints, and consents against, contains
-  exactly the rows that run will act on: scope-filtered per AC-0043, and with
-  every path under `packages/credbroker/` and `.agentbundle/tooling/agentbundle/`
-  excluded. The run reports the number of planned paths it excluded for that
-  second reason as a named count, without adding a verdict to the five that
-  phase 2's five-verdict criterion fixes.
+- [ ] **AC-0057.** The row set of the plan an apply run prints equals phase 2's
+  classification of the replayed selection, less every row whose path falls
+  outside the scope AC-0043 fixes, and less every row whose path lies under
+  `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`. That printed
+  plan is the one the run consents against and the one it acts on, so the rows
+  AC-0033 compares against are the rows the operator saw.
 - [ ] **AC-0058.** When a restore cannot return the tree to its pre-run walk
   tuple, the command names every path it could not restore before returning.
 - [ ] **AC-0059.** The ownership state's recorded path set after an apply run
@@ -411,6 +434,15 @@ AC-0063 — six delivery conditions, each a command whose output is the answer.
 - [ ] **AC-0065.** Every read or hash of a target path the apply path performs
   goes through the confinement helpers phase 2's path-confinement criterion names, and is refused on
   the same hard-link, non-regular and reparse-point inputs that criterion fixes.
+
+- [ ] **AC-0066.** An apply run reports the number of planned paths it excluded
+  for lying under `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`
+  as its own named count. The seven counts phase 2 fixes stay computed over the
+  full replayed selection and keep their meanings, so an excluded path is
+  counted there exactly as phase 2 counts it and phase 2's
+  `compared + uncompared` identity is unchanged.
+- [ ] **AC-0067.** `docs/architecture/catalogue/upstream-sync.md` records phase
+  3 as the delivered phase.
 
 ## Follow-ons
 

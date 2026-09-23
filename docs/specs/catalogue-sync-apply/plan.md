@@ -75,6 +75,20 @@ covers the recorded recipe — plus any name `--pack` or `--profile` introduces 
 and the scope predicate filters only the write set. The removal keep-set is the
 full replayed set on every run.
 
+**The removal set needs its own filter, and it is not the keep-set.** The two
+constraints on removal are independent and compose rather than conflict:
+`_plan_stale_owned_paths`'s keep-set is the full replayed set on every run,
+which is what stops a scoped run treating the rest of the recipe as stale; and
+a scoped run additionally confines removal to its own scope, so a genuinely
+stale path outside the scope survives until a full sync. Composed:
+
+    removal set = (recorded − full replayed set) ∩ scope
+
+The shipped guard takes only the keep-set argument, so the scope half has no
+seam in it and the apply path filters the returned removable list before acting
+on it. Passing a scope-narrowed keep-set instead would be the § Never do
+violation, because it would make every out-of-scope recipe path look stale.
+
 The write-set filter has a second clause, and it is the one that makes phase 3
 shippable at all: `credential-brokers` is default-selected, so
 `packages/credbroker/**` is in essentially every derived tree's planned set, and
@@ -217,8 +231,9 @@ filesystem.
 **Depends on:** T2, T3
 
 **Tests:**
-- The recorded order of jailed-write calls is packs, profiles, guides, packages,
-  then the state. Verifies AC-0032.
+- The recorded order of jailed-write calls is packs, profiles, guides, then the
+  state. There is no packages group: AC-0032 names three, and asserting over a
+  group that must always be empty is a check that cannot fail. Verifies AC-0032.
 - The written path set equals the plan's `would-update` plus `would-companion`
   rows, compared for equality in both directions. Verifies AC-0033.
 - A Tier-2 path's companion carries the replayed source bytes and the adopter's
@@ -226,7 +241,10 @@ filesystem.
 - Stale removal runs after the last write and its keep-set argument is the full
   replayed set. Verifies AC-0035.
 - A `--pack` run over a fixture recording paths outside that pack, and paths
-  under a package subtree, leaves every one of them present. Verifies AC-0064.
+  under a package subtree, leaves every one of them present — including a path
+  the guard would otherwise admit for removal, which is the case that proves the
+  removal-side scope filter exists rather than being implied by the keep-set.
+  Verifies AC-0064.
 - With a write injected to fail on the nth path, the tree's walk tuple — path,
   entry kind, mode, symlink target and bytes — equals its pre-run value.
   Comparing paths and digests alone passes a restore that changed a mode.
@@ -280,9 +298,12 @@ asserting the tree rather than the return value.
   rows are re-driven rather than inherited, because the table is this spec's and
   a row phase 2 discharged for a shorter table is not evidence for this one. The
   `--package` row additionally proves no fetch was performed. Verifies AC-0039.
-- The row set of the plan the run prints equals the row set its write phase acts
-  on, and the deferred count equals the number of planned package paths.
-  Verifies AC-0057.
+- The row set the run prints equals phase 2's classification of the replayed
+  selection with both filters applied, and separately equals the row set its
+  write phase acts on. Verifies AC-0057.
+- The reported deferred count equals the number of planned package paths, and
+  phase 2's seven counts over the same run match a phase-2 classification of the
+  full replayed selection. Verifies AC-0066.
 - A fault injected at each boundary still reaches a named row; no uncaught
   exception sets the status. Verifies AC-0040.
 - An unshipped `--pack` or `--profile` name refuses as malformed and the tree
@@ -357,6 +378,7 @@ difference is an equality, not a containment.
 
 **Tests:**
 - The banner and § Rollout agree on how many phases remain. Verifies AC-0053.
+- The phase § Rollout marks struck through is phase 3. Verifies AC-0067.
 - Every code citation in each edited architecture file resolves to the construct
   it names. Resolution is the oracle; an absence check passes a wrong re-pin.
   Verifies AC-0061.
