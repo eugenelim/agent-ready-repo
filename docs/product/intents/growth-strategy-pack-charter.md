@@ -19,6 +19,15 @@ Growth strategy was intentionally excluded from the product-strategy v1 pack, an
 
 Resolve RFC-0063 OQ1 and ADR-0053 D4: growth strategy—AARRR, PLG loops, PMF testing, conversion architecture, SEO keyword-intent—was explicitly outside the product-strategy v1 pack. `docs/adr/0053-product-strategy-pack-scope-and-discipline-boundaries.md:29` says growth strategy warrants a separate `growth` pack and v1 excludes it. The future pack also collects `content-strategy-and-marketing-copy-lens` item 2, Conversion + SEO. Confirm whether growth and marketing belong within the company OS charter, then open an RFC for the growth pack. Unblocks when the charter-scoping decision is made.
 
+It also absorbs the post-launch marketing decision routed from the Digital
+Experience Doctrine completion review on 2026-09-22: `conversion-design` names a
+target action but no measurement method or pricing-specific pattern set, while
+`content-design` deliberately excludes analytics instrumentation,
+experimentation design, and SEO planning. The charter decision must say whether
+measurement operations, pricing doctrine, conversion experimentation, and SEO
+belong together in the proposed growth pack before any of them becomes a
+delivery slice.
+
 ## Assumptions
 
 - A charter-scoping decision is required before an RFC can define the growth pack.
