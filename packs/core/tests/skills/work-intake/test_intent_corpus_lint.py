@@ -1,6 +1,6 @@
 """Construction tests for the intent corpus lint.
 
-Covers T4 of `docs/specs/intent-metadata-shape-contract/plan.md`: reporting,
+Covers T4 of the intent metadata shape contract's plan: reporting,
 exit behaviour, and the two-contract partition. These need a real directory
 rather than a text fixture, so they live apart from the packet-decidable suite
 in `test_intent_shape.py` while reusing its notion of a conforming preamble.

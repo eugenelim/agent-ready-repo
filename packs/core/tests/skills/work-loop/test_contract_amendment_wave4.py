@@ -921,7 +921,7 @@ def test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle() -> None:
 
 # ── dispatch receipts across an amendment ─────────────────────────────────
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The record
+# Contract: § The record
 # lifecycle. An amendment reopens the contract, so no record written before it
 # may account for a task after it.
 

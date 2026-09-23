@@ -3983,7 +3983,7 @@ def test_engine_names_only_in_process_python_siblings_and_never_spawns_python() 
 
 # ── the wave exit reaches the real transition ─────────────────────────────
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# Contract: § The
 # `check --phase wave-exit` verdict. A guard that refuses only when called
 # directly would leave the real exit open, so the refusal is asserted through
 # `loop-engine transition` rather than against the guard.
@@ -4162,7 +4162,7 @@ def _init_repo(path: Path) -> Path:
 
 # STUB: AC1
 def test_get_repo_root_resolves_once_per_working_directory(tmp_path, monkeypatch):
-    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC1"""
+    """Contract: engine repo-root memoization, AC1"""
     repo = _init_repo(tmp_path / "a")
     mod = _fresh_engine("_engine_ac1")
     calls, restore = _counting_spawns(mod)
@@ -4182,7 +4182,7 @@ def test_get_repo_root_resolves_once_per_working_directory(tmp_path, monkeypatch
 
 # STUB: AC2
 def test_get_repo_root_follows_the_working_directory(tmp_path, monkeypatch):
-    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC2"""
+    """Contract: engine repo-root memoization, AC2"""
     repo_a = _init_repo(tmp_path / "a")
     repo_b = _init_repo(tmp_path / "b")
     mod = _fresh_engine("_engine_ac2")
@@ -4204,7 +4204,7 @@ def test_get_repo_root_follows_the_working_directory(tmp_path, monkeypatch):
 
 # STUB: AC3
 def test_get_repo_root_does_not_cache_a_failure(tmp_path, monkeypatch):
-    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC3"""
+    """Contract: engine repo-root memoization, AC3"""
     outside = tmp_path / "not-a-repo"
     outside.mkdir()
     mod = _fresh_engine("_engine_ac3")
@@ -4227,7 +4227,7 @@ def test_get_repo_root_does_not_cache_a_failure(tmp_path, monkeypatch):
 
 # STUB: AC4
 def test_get_repo_root_raises_value_error_on_an_unreadable_cwd(tmp_path, monkeypatch):
-    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC4"""
+    """Contract: engine repo-root memoization, AC4"""
     gone = tmp_path / "deleted"
     _init_repo(gone)
     mod = _fresh_engine("_engine_ac4")
@@ -4249,7 +4249,7 @@ def test_get_repo_root_raises_value_error_on_an_unreadable_cwd(tmp_path, monkeyp
 
 # STUB: AC5
 def test_confinement_rejects_an_out_of_tree_spec_dir_on_a_cache_hit(tmp_path, monkeypatch):
-    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC5"""
+    """Contract: engine repo-root memoization, AC5"""
     repo = _init_repo(tmp_path / "repo")
     inside = repo / "docs" / "specs" / "demo"
     inside.mkdir(parents=True)
@@ -4273,7 +4273,7 @@ def test_confinement_rejects_an_out_of_tree_spec_dir_on_a_cache_hit(tmp_path, mo
 
 # STUB: AC6
 def test_one_transition_spawns_one_rev_parse(tmp):
-    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC6"""
+    """Contract: engine repo-root memoization, AC6"""
     spec_dir = _drive_to_code_implementation(tmp, "memo-transition")
     mod = _fresh_engine("_engine_ac6")
     calls, restore = _counting_spawns(mod)

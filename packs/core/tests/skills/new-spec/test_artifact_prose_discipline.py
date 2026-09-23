@@ -16,7 +16,7 @@ reading above `packs/<pack>/`, so the arm covering
 `guides/core/how-to/plan-and-execute-non-trivial-work.md` lives in
 `tests/roster/test_spec_prose_discipline_guide.py` instead.
 
-Spec: docs/specs/spec-plan-prose-discipline/spec.md
+Contract: spec and plan prose discipline
 """
 
 from __future__ import annotations

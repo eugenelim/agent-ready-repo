@@ -1,4 +1,4 @@
-"""Shared support for the pre-change golden fixtures (spec/work-loop-in-process-guards T0).
+"""Shared support for the pre-change golden fixtures (T0).
 
 Two tests compared moved code against itself in an earlier draft of this spec —
 the digest check and the message-preservation check — which is the antipattern

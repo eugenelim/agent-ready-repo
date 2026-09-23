@@ -3,7 +3,7 @@
 
 Run with pytest.
 
-These are the acceptance bar for docs/specs/loop-cohort-state-lock. Both cases
+These are the acceptance bar for the cohort state-lock contract. Both cases
 were observed failing against the pre-fix tree — see notes/reproduction.md.
 
 THE HARNESS IS THE POINT. The synchronising barrier sits AFTER interpreter and
