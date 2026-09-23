@@ -50,13 +50,18 @@ def make_source(root: Path, packs: list[str], profiles: list[str] | None) -> Pat
     return src
 
 
-# The selector removes tooling packs from an explicit selection BEFORE its
-# missing-name check, so it returns an empty list rather than refusing. An
-# `_`-prefixed directory behaves differently: it is absent from `available`
-# but survives into `chosen`, so the missing-name check catches it and the run
-# refuses. The last two cases separate those, because a sweep that omits them
-# reports "an empty list means the source ships no such directory", which is
-# false.
+# Three behaviours the obvious four-case sweep misses.
+#
+# * A tooling-pack name in an EXPLICIT selection is removed before the
+#   missing-name check, so the run succeeds recording [].
+# * An `_`-prefixed name in an explicit selection is absent from `available`
+#   but survives into `chosen`, so that check catches it and the run REFUSES.
+#   The two are not interchangeable.
+# * With NO selection flag, both kinds are filtered out of `available`, so a
+#   `packs/` directory holding only such entries yields [] with nothing named.
+#
+# The last three cases separate them. A sweep that omits them concludes "an
+# empty list means the source ships no such directory", which is false.
 CASES = [
     ("source ships packs and profiles, no selection flags",
      ["a", "b"], ["p", "q"], None, None),
@@ -67,6 +72,8 @@ CASES = [
      ["a", "b", "catalogue-curation"], ["p"], ["catalogue-curation"], None),
     ("--pack names an underscore directory only",
      ["a", "b", "_example"], ["p"], ["_example"], None),
+    ("packs/ present but holding no eligible entry",
+     ["_example", "_other"], ["p"], None, None),
 ]
 
 
@@ -101,14 +108,15 @@ def main() -> int:
 
     print(f"\nempty recorded lists across these cases: {empties}")
     print(
-        "two producers of an empty recorded list: a source shipping no such "
-        "directory, and a selection naming only tooling packs, which the "
-        "selector removes before its missing-name check so the run succeeds "
-        "recording []. An underscore directory is NOT a third producer -- it "
-        "reaches that check and refuses."
+        "an empty recorded list has several producers, and this list is not "
+        "claimed exhaustive: a source shipping no such directory; a directory "
+        "present but holding no entry the selector admits; and an explicit "
+        "selection naming only tooling packs, which the selector removes "
+        "before its missing-name check so the run succeeds recording []."
     )
     print(
-        "in neither case does an empty list mean 'the adopter selected none', "
+        "in none of these cases does an empty list mean 'the adopter selected "
+        "none', "
         "because the selectors widen a falsy argument to everything the source "
         "ships"
     )

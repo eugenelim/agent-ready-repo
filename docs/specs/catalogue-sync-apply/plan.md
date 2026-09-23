@@ -28,12 +28,17 @@ an edit to `init`'s, and this delivery corrects the sentence.
   `hashlib` alongside phase 2's existing set.
 - No new module. The apply path extends `commands/catalogue_sync.py`. Outside
   it and `cli.py` there are exactly two edits: one exported helper in
-  `catalogue.py`, and an exclusive-create mode on `safety.write_jailed` that
-  `safety.write_companion` uses, per AC-0070. The second touches a blessed
-  security helper and is an owner decision of record, taken because the
-  primitive's unconditional rename makes AC-0070 otherwise unsatisfiable.
+  `catalogue.py`, and an **opt-in** non-replacing mode on `safety.write_jailed`
+  and `safety.write_companion` that only this command passes, per AC-0070. The
+  second touches a blessed security helper and is an owner decision of record,
+  taken because the primitive's unconditional rename makes AC-0070 otherwise
+  unsatisfiable. It is opt-in because `write_companion` has four production
+  callers outside this feature — `upgrade.py`, `install.py`, `render.py` and
+  the shared seed writer in `_common.py` — each of which rewrites an existing
+  companion on every run and would begin failing; `upgrade` catches only the
+  jail error, so the new failure would escape uncaught mid-write.
 - Every target-tree write goes through `safety.write_jailed` or
-  `safety.write_companion`, the latter in exclusive-create mode; the ownership state keeps going through
+  `safety.write_companion`, the latter passing the non-replacing mode; the ownership state keeps going through
   `_write_ownership_state`, so its symlink refusal and its random `O_EXCL`
   staging name stay one implementation.
 - Phase 2's `Never do` list carries forward in full except its no-write-path
@@ -91,6 +96,20 @@ into the adopter's tree. The apply path resolves each category separately and
 skips selection entirely for a category whose effective list is empty — which
 is AC-0068's narrowing outcome for both an absent field and an empty list —
 rather than handing an empty list down.
+
+**A non-replacing publish, without giving up atomicity.** The obvious
+mechanism for "never replace" is to open the destination `O_CREAT | O_EXCL`
+and write into it, but that trades away what the staged write buys: a crash
+mid-write leaves a partial file, and AC-0070 makes any existing destination
+permanently un-writable, so the tool's own truncated output would block
+delivery forever while reporting only an occupancy count. It also lands the
+destination at a umask-dependent mode where the staged path yields 0600.
+
+Staging as today and publishing with a link avoids both. A link fails when
+anything is already at the destination — including a symlink — and is atomic,
+so no partial artifact is ever observable and the destination inherits the
+staged file's permission bits. The two modes then differ only in how they
+publish, not in what they leave behind.
 
 **The removal set needs its own filter, and it is not the keep-set.** The two
 constraints on removal are independent and compose rather than conflict:
@@ -395,6 +414,10 @@ asserting the tree rather than the return value.
   source does not ship, each return the cannot-answer code naming the field —
   driven independently for `packs` and for `profiles`, since both carry the
   same falsy widening and a packs-only fixture prices only half the criterion.
+  The admitted/refused split is computed by asking the selector what it
+  resolves, not from an enumerated name: a fixture naming `catalogue-curation`
+  is satisfiable by special-casing that string, while the drop rule is a
+  selector behaviour.
   An absent field, and separately an empty list, each select nothing from that
   category and do not refuse — the empty list is named because it moved out of
   the refusing bucket and no oracle followed it. The unshipped-name case is the
@@ -571,7 +594,9 @@ invocation arguments stay refinable without an amendment.
 
 ## Rollout
 
-Additive with one recorded compatibility break. `init`, `install`, `upgrade`,
+Additive with one recorded compatibility break, and one shared helper gaining
+an opt-in mode no existing caller passes, so no command outside this feature
+changes behaviour. `init`, `install`, `upgrade`,
 and `adapt` keep their contracts, and every `sync` flag phase 2 shipped keeps
 its meaning when spelled in full. The break is abbreviation: `cli.py` sets no
 `allow_abbrev=False`, so `catalogue sync --guides selected` resolves to

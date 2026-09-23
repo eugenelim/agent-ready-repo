@@ -73,7 +73,8 @@ what it left behind.
   - Take consent before the first write, and apply the same plan the operator
     consented to.
   - Write every file under the target tree through the jailed write primitive,
-    using its exclusive-create mode for a companion destination.
+    passing its non-replacing mode for a companion destination and leaving
+    every caller outside this command on the mode it uses today.
   - Treat the consent prompt as an output surface: every obligation phase 2
     states about stdout, stderr and the `--format json` document reaches it too.
   - Leave the target tree as it was before the run whenever the run does not
@@ -515,8 +516,9 @@ the answer.
   changed, and the operator is not prompted for consent.
 - [ ] **AC-0052.** Every write the apply path performs under the target tree
   goes through the jailed write primitive, and a planned path resolving outside
-  the target root is refused at that write. A companion write uses that
-  primitive's exclusive-create mode per AC-0070; there is no second write path.
+  the target root is refused at that write. This command's companion writes
+  pass that primitive's non-replacing mode per AC-0070; there is no second
+  write path, and no caller outside this command changes mode.
 - [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
   § Rollout both state that one phase remains.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
@@ -622,12 +624,14 @@ the answer.
     The state writer records the **resolved** lists, not the flags: an `init`
     that omits `--profile` records every profile the source ships, because the
     selector widens a falsy argument. § Grounding's recorded-shape derivation
-    enumerates every producer of an empty recorded list, and there are two:
-    a source shipping no such directory, and a selection naming only names the
-    selector drops — `agentbundle catalogue init --pack catalogue-curation`
-    succeeds and records `"packs": []` over a source shipping three packs. So
-    an empty list is producible in both cases, refusing it would refuse a real
-    tree, and in neither case does it mean "the adopter selected none".
+    shows an empty recorded list has more than one producer — a source
+    shipping no such directory, a directory present but holding no entry the
+    selector admits, and a selection naming only names it drops, as
+    `agentbundle catalogue init --pack catalogue-curation` does over a source
+    shipping three packs. The derivation does not claim that list is
+    exhaustive. What matters is what they share: an empty list is producible
+    by an ordinary `init`, so refusing it would refuse a real tree, and in
+    none of these cases does it mean "the adopter selected none".
   - A **present but invalid** value — a null, a string, a number, a boolean, an
     object, a list of non-strings, or a list carrying one name the source does
     not ship — refuses the run, naming that field. The code is AC-0039's first
@@ -715,13 +719,25 @@ the answer.
   is on the write's outcome, not on a check preceding it. A stat before the
   write cannot deliver it: the jailed primitive finishes with a rename that
   clobbers unconditionally and reports nothing, so a check leaves exactly the
-  window an adopter's editor writes into. The primitive therefore gains an
-  exclusive-create mode that opens the final path with `O_CREAT | O_EXCL` and
-  fails when it exists, and `safety.write_companion` uses it. A companion write
-  that finds its destination occupied fails, taking AC-0039's write-failed row.
-  That mode is not crash-atomic, which is the accepted trade: a companion is an
-  advisory artifact the adopter resolves by hand, and the alternative loses
-  that work.
+  window an adopter's editor writes into.
+
+  The primitive therefore gains a **non-replacing publish mode**, and it is
+  **opt-in**. Every existing caller of `safety.write_jailed` and
+  `safety.write_companion` — in `upgrade`, `install`, `render` and the shared
+  seed writer — keeps the behaviour and the outcome it has today; only this
+  command's companion writes pass the new mode. Changing the shared helper
+  unconditionally would change four commands outside this feature, each of
+  which rewrites an existing companion on every run, and `upgrade` catches
+  only the jail error, so the new failure would escape uncaught mid-write.
+
+  The mode stages as the replacing mode does and publishes by creating a link
+  at the destination, which fails when anything is already there. That keeps
+  both properties rather than trading one away: the publish stays atomic, so a
+  crash mid-write cannot leave a partial artifact that a later run would
+  mistake for an occupant and refuse to replace forever, and the destination
+  inherits the staged file's permission bits, so the two modes agree. A
+  companion write that finds its destination occupied fails, taking AC-0039's
+  write-failed row.
 - [ ] **AC-0071.** When the replayed source itself plans a path equal to a
   companion destination this run would compute, the run refuses before its
   first write, naming both paths under `companion_collision` on the plan and in
