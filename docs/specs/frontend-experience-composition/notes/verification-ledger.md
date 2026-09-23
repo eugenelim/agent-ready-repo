@@ -217,3 +217,32 @@ T8's declared checks, run verbatim from the criteria:
 | AC-0047 — `## Decision` section names `owner: frontend-engineering` | exit 0 |
 | AC-0004 — spec `Status` form, diff touches only that line | both hold |
 | AC-0005 — plan `Status` form, diff adds exactly that one line | both hold |
+
+## T9 — the fifth tier table
+
+The page carried a fifth statement of the tier ladder. It said seven fields are
+required at explore tier while the contract annotates ten — and its own Explore
+row then listed ten, so the page disagreed with itself as well as with the
+contract.
+
+Rewritten to reference the annotations rather than restate them, which removes
+the home instead of correcting a count that would go stale again:
+
+| Row | Before | After |
+| --- | --- | --- |
+| Explore | ten named fields | the fields the contract annotates `Required: explore+` |
+| Pilot | fourteen named fields | everything in Explore, plus `Required: pilot+` |
+| Production | eight named fields | everything in Pilot, plus `Required: production+` |
+
+The two prose counts went the same way, and the section now says the annotations
+are the authority, so a reader is sent to the template rather than to a list.
+
+Both citations of the deprecated `tools/check-contract-drift.py` shim — which
+forwards to the real checker and is kept only until the next minor release — now
+name `tools/repo/check_contract_drift.py`.
+
+| Check | Result |
+| --- | --- |
+| AC-0016 negated grep, run verbatim | exit 0 — no per-tier field count remains |
+| `tools/check-guide-index.py` | exit 0 — 21 active packs present |
+| AC-0017 | Review-only; the column references and no longer enumerates |

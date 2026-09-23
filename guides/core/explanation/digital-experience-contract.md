@@ -11,23 +11,23 @@ The Digital Experience Contract is a shared markdown template that connects four
 
 ## The contract
 
-The contract is a blank form. Adopters create one per product in their project's `docs/` directory and fill each section as the relevant discipline does its work. The form is not a ceremony: at explore tier, only seven fields are required. At production tier, the full set is required. The tier is declared in the frontmatter and can be raised as the product matures.
+The contract is a blank form. Adopters create one per product in their project's `docs/` directory and fill each section as the relevant discipline does its work. The form is not a ceremony: at explore tier, only the fields the contract annotates `Required: explore+` are required. At production tier, the full set is required. The tier is declared in the frontmatter and can be raised as the product matures.
 
-The form travels across the four packs because each pack carries an identical copy of the blank template in its skill references. The four copies must stay identical — `tools/check-contract-drift.py` enforces this. If they drift, the tool names which copy diverged and why.
+The form travels across the four packs because each pack carries an identical copy of the blank template in its skill references. The four copies must stay identical — `tools/repo/check_contract_drift.py` enforces this. If they drift, the tool names which copy diverged and why.
 
 The contract ships with `schema-version: "1.0"` in its frontmatter. When a breaking field change is needed in a future release, the schema version bumps, the drift check detects mismatched versions, and the change is forced to be deliberate.
 
 ## The three tiers
 
-Each field in the contract carries a `Required: <tier>+` annotation. The tier reflects when the field matters — not when you should fill it in.
+Each field in the contract carries a `Required: <tier>+` annotation. The tier reflects when the field matters — not when you should fill it in. Those annotations are the authority on what each tier owes; read the template itself rather than a list here, which is how this page came to promise a different set than the contract asks for.
 
 | Tier | When | What's required |
 |---|---|---|
-| **Explore** | Early discovery; prototypes | Target user and context, diagnosis and strategic choices, adoption hypothesis, value loop, assumptions and kill criteria; opportunity and bet, evidence ladder, first-success operationalization; primary journey; prototype or representation |
-| **Pilot** | Pre-release; limited users | Everything in Explore, plus: metric tree, differentiation; thin slice, capabilities, rollout and recovery plan, learning plan; surface map, information architecture, content hierarchy, product objects, states and permissions, design system reference; accessibility evidence, instrumentation, rendered evidence |
-| **Production** | Public; all users | Everything in Pilot, plus: interaction and attention model, responsive behavior; implemented behavior, browser behavior, performance, security and privacy, reliability — and the accessibility evidence and instrumentation fields complete their production-level requirements |
+| **Explore** | Early discovery; prototypes | The fields the contract annotates `Required: explore+` |
+| **Pilot** | Pre-release; limited users | Everything in Explore, plus the fields the contract annotates `Required: pilot+` |
+| **Production** | Public; all users | Everything in Pilot, plus the fields the contract annotates `Required: production+` |
 
-Explore-mode work is intentionally lightweight. An early prototype that fills seven fields and moves fast is the right use of the contract at that stage. Do not treat the full field set as a checklist for exploratory work.
+Explore-mode work is intentionally lightweight. An early prototype that fills only its explore-tier fields and moves fast is the right use of the contract at that stage. Do not treat the full field set as a checklist for exploratory work.
 
 ## The ownership map
 
@@ -56,4 +56,4 @@ This rule is what makes the contract safe across partial installations. An adopt
 
 ---
 
-*The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](../../product-strategy/), [experience-design](../../experience-design/), [core](../).*
+*The four pack copies of the template must be byte-identical; use `tools/repo/check_contract_drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](../../product-strategy/), [experience-design](../../experience-design/), [core](../).*
