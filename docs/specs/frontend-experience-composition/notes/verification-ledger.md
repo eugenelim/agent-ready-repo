@@ -736,3 +736,30 @@ did not do what its ledger row claimed** — the eval rewording, and the fixture
 derivation. Both were recorded as done before being measured. The rule this
 delivery keeps relearning: write the claim from the result, and measure the
 result before writing the claim.
+
+### An instrument that mutates the tree it measures
+
+The round-2 repairs were committed with a stale generated file, and the cause is
+worth naming because nothing reported it.
+
+`redcheck.py`'s AC-0037 probe is:
+
+```
+python3 tools/build-site.py --journeys-only && git diff --quiet web/src/content/journeys/
+rc=$?; git checkout -- web/; exit $rc
+```
+
+The `git checkout -- web/` restores the tree so the probe leaves no residue.
+Run on a **clean** tree that is what it does. Run while a regenerated web copy
+is uncommitted, it **discards that regeneration**. The sequence that bit: edit
+`JOURNEY.md`, regenerate, run the instruments, commit — and the commit captures
+the pre-regeneration copy, because the instrument reverted it in between.
+
+The probe then reported `AC-0037 REGRESSED`, which was true of the tree and
+true because the probe had made it so. Repaired by regenerating and committing;
+a fresh regeneration against the committed copy is now an empty diff.
+
+The general rule, and the reason this sits in the ledger rather than in a
+commit message: **a standing instrument that writes must only be run on a clean
+tree.** Running one over uncommitted work can destroy that work, and the
+failure it then reports names the symptom rather than itself.
