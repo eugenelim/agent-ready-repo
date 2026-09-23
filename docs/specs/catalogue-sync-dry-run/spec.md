@@ -1,6 +1,6 @@
 # Spec: catalogue sync — dry-run and check
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [catalogue-sync-apply's spec](../catalogue-sync-apply/spec.md) — AC-0013's exit-code table's "neither or both" malformed row, for the "neither" case, and AC-0015's no-write walk criterion's coverage of the bare invocation; both assumed no apply path existed, and everything else in this spec stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0059 (the catalogue-curation pack, which owns the white-label export boundary)

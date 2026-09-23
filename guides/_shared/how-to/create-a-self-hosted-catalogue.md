@@ -145,8 +145,8 @@ the recreated catalogue.
 ## Check a derived catalogue against its source
 
 `agentbundle catalogue sync` compares a derived catalogue against its source
-catalogue. Both of its modes are read-only — neither writes a file to the
-target:
+catalogue, and can bring it up to date. `--dry-run` and `--check` are both
+read-only — neither writes a file to the target:
 
 ```bash
 # Preview the plan sync would apply: which files would update, which would
@@ -162,6 +162,67 @@ The plan names the source catalogue only when the target's recorded
 `--attribution` is `attributed`. Under the default `white-label`, the plan
 and its output never disclose the source's identity — the same rule `init`
 follows for the files it writes.
+
+Supplying neither `--dry-run` nor `--check` runs the plan for real — see
+§ Apply upstream changes below.
+
+---
+
+## Apply upstream changes to a derived catalogue
+
+Running `agentbundle catalogue sync` with neither `--dry-run` nor `--check`
+writes the plan it would otherwise only print. It asks for confirmation
+first and writes nothing until you give it:
+
+```bash
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue
+```
+
+```text
+<the printed plan, same shape as --dry-run>
+Apply this plan? [y/N]:
+```
+
+Answer `y` at the prompt, or pass `--yes` to skip it — useful in a script or
+CI job where nothing is watching the terminal:
+
+```bash
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --yes
+```
+
+Anything else — `n`, an empty answer, or piping the command with no terminal
+attached and no `--yes` — leaves the target directory exactly as it was; the
+run writes nothing until consent is given.
+
+**What a run writes.** A file you never edited updates to the source's bytes.
+A file you edited keeps your bytes; the source's version lands beside it as
+`<name>.upstream.<ext>` instead. Resolve that companion yourself — merge
+whatever changed into your file, then delete the companion — before your next
+`agentbundle adapt --ci` run, which refuses while an unresolved companion
+remains. A file the source stopped shipping is removed only if this
+catalogue's recorded state carries it; the run never removes a file it never
+knew about. And a file the source added to a pack this catalogue already has
+selected is reported on the plan but not written — sync refreshes what you
+already selected, it never widens the selection with a new upstream file.
+
+**Scope the run to part of the catalogue** with one or more of these flags
+instead of syncing everything:
+
+```bash
+# Only these packs (repeatable)
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --pack core --pack governance-extras
+
+# Only this profile
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --profile engineering
+
+# Only guides/_shared/
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --guides
+```
+
+Naming a pack or profile you have not selected before adds it to this
+catalogue's recorded selection for good — a later, unscoped sync keeps
+syncing it too. `catalogue.toml`, `tests/conformance/`, and identity fields
+move only on a full, unscoped sync.
 
 ---
 

@@ -264,3 +264,75 @@ ordering discrepancy is now unobserved by any test. **Recorded here for the
 post-GATES adversarial reviewer to judge** rather than repaired against a
 frozen plan, since the remedy is a row-order question and AC-0039 is § Ask
 first territory.
+
+## Execution — wave 5
+
+### T8 — the walk covers both trees
+
+Test-only, as the task predicted: `SYNC_TREE_WALK_CASES` is untouched and a
+second registry `SYNC_TREE_WALK_PERMITTED_DIFFERENCE_CASES` carries the four
+apply rows with their own parametrised test. Folding them into the existing
+unconditional `after == before` test would have forced that assertion to
+weaken for every row it already holds. Declined and refused stay on the
+unchanged-tree rail — four rows, not five; matching arity is not
+correspondence. Gates: lint exit 0, full suite exit 0 over 3,261 tests.
+
+**Mutation proof — because the agent's own non-vacuity check was removed.**
+T8 verified its four cases produce non-empty diffs with a scratch assertion
+and then deleted it, so that proof no longer lived in the tree. Re-established
+independently:
+
+| Mutation | Result |
+| --- | --- |
+| `write_merged_state` becomes a no-op | red, and the failing case is `sync-apply-0-success` — the row whose expected diff names the state file |
+| `_confined_unlink` reports success and unlinks nothing | red |
+
+A walk-comparison test over a fixture where nothing changed passes against any
+implementation, so this was the task most exposed to a vacuous pass in the
+whole delivery. It is not vacuous.
+
+### T9 — the durable outputs
+
+Eight files: the architecture doc, phase 2's frozen spec, the guide and its
+projection, and the five release surfaces. Gates: lint exit 0, full unit suite
+exit 0 over 3,261 tests, `lint-spec-status` clean,
+`lint-contract-item-alignment` 0 findings, the entry-link gate exit 0, and
+`make site-link-check` clean at 94,865 links across 481 pages.
+
+**The release surface is derived, and I re-derived it.** All five read
+`0.49.0` and the derivation reports agreement. Before the change all five read
+`0.48.0` and agreed, so the bump moved the whole closed set rather than a
+hand-listed subset. The derivation supplies that set from the version-bump
+rule plus the package's declared readme, so a surface added upstream would
+appear rather than be silently omitted.
+
+**The frozen spec took exactly one line.** `catalogue-sync-dry-run/spec.md` is
+`Status: Shipped`, and the diff is its Status line alone, carrying a
+supersession pointer that names AC-0013's "neither or both" malformed row for
+the "neither" case and AC-0015's no-write walk coverage of the bare
+invocation. Body, criteria and everything below the preamble untouched —
+which is the only edit shape a frozen spec accepts.
+
+**AC-0061's oracle is resolution, so each citation was opened.** All four in
+the edited architecture file resolve to the construct the prose names:
+`initialise_self_hosted.py:1611` is the `CONFLICT`-abort `return _fail(...)`;
+`:1623` is `atomic_write(dest, content)`; `commands/_common.py:225` is
+`pack_major = _major(declared)`, inside `check_spec_version_gate` which is
+defined at line 203, exactly as the prose claims; `catalogue_init.py:202` is
+`source=Path(source_raw).resolve()`. An absence check would have passed a
+wrong re-pin just as readily.
+
+**The projection is a gitignored build artifact.** T9 reported regenerating
+the guide's projected copy and `git status` shows no such file, which looks
+like a discrepancy and is not: `docs-site/src/content/docs/guides/...` is
+ignored and rebuilt by `tools/build-site.py`. Both copies carry the new
+section, and the rendered-link gate ran against the regenerated tree.
+
+`npm ci` was run for `docs-site/` and `web/` to make the site gate runnable.
+Both `node_modules/` trees are gitignored, and no untracked file reached the
+working tree.
+
+**Changelog placement follows the repo's ordering.** `0.49.0` is topmost in
+`packages/agentbundle/CHANGELOG.md`. In `docs/product/changelog.md` the order
+is `[Unreleased]`, then the `core` entry adjacent to it, then
+`[agentbundle][0.49.0]` below — the pack entry sits under core, not above it.

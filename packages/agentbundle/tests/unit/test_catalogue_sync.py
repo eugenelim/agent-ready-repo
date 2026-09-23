@@ -3875,6 +3875,230 @@ def test_sync_leaves_the_target_tree_unchanged(tmp_path, case):
 
 
 # ---------------------------------------------------------------------------
+# T8: AC-0041's permitted-difference table. `SYNC_TREE_WALK_CASES` above
+# asserts `after == before` unconditionally, so it cannot express a run that
+# is *permitted* to change the target tree — folding these rows into it would
+# force that assertion to weaken for every no-write row it already holds.
+# This is a second, separate registry and a second parametrised test: each
+# case names the exact set of relative paths AC-0041's table permits to
+# differ for that row, asserted as an equality against the real before/after
+# diff, not a containment (a containment would pass an implementation that
+# changed more than the row permits).
+#
+# Declined and refused rows are deliberately absent here — they stay on the
+# unchanged-tree rail above; matching arity (four rows here, four rows
+# there) is not correspondence.
+#
+# Every case drives `catalogue_sync.run(args)` through the real parser, the
+# same seam every case in `SYNC_TREE_WALK_CASES` uses, because AC-0041's walk
+# is taken "immediately before the command runs and immediately after it
+# returns" — the command boundary, not an inner seam.
+# ---------------------------------------------------------------------------
+
+
+def _setup_apply_permitted_difference_success_target(target: Path) -> None:
+    # Reuses T6's own richer fixture: a recorded, unedited `README.md`
+    # (would-update), a recorded-but-adopter-edited `unchanged.md`
+    # (would-companion, destination not yet occupied), and a recorded
+    # `gone.md` the source no longer ships (stale, in coverage since
+    # `alpha` is the sole recorded pack). All three differences are real:
+    # nothing here is a no-op classification.
+    _write_apply_old_state(target)
+
+
+def _invoke_sync_apply_success_row(target: Path) -> None:
+    source = _make_apply_source(target.parent / "sync-tree-walk-apply-success-source")
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--yes"]
+    )
+    assert catalogue_sync.run(args) == 0
+
+
+def _make_apply_two_file_source(root: Path) -> Path:
+    """A source shipping two ``alpha`` pack files that both differ from the
+    target's recorded/on-disk bytes, so both classify ``would-update``. The
+    partial-restore case needs two ordered writes, the first landing for
+    real before the second fails -- a single-file source cannot stage that.
+    """
+    _make_source_with_pack_toml(root, '[pack]\nname = "alpha"\nversion = "1.0.0"\n')
+    pack = root / "packs" / "alpha"
+    (pack / "AAA.md").write_text("new aaa\n", encoding="utf-8")
+    (pack / "BBB.md").write_text("new bbb\n", encoding="utf-8")
+    return root
+
+
+def _setup_apply_permitted_difference_partial_restore_target(target: Path) -> None:
+    alpha = target / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "AAA.md").write_bytes(b"old aaa\n")
+    (alpha / "BBB.md").write_bytes(b"old bbb\n")
+    _write_apply_run_state(
+        target,
+        recipe={"packs": ["alpha"], "profiles": []},
+        managed_paths=[
+            {"path": "packs/alpha/AAA.md", "sha256": hashlib.sha256(b"old aaa\n").hexdigest()},
+            {"path": "packs/alpha/BBB.md", "sha256": hashlib.sha256(b"old bbb\n").hexdigest()},
+        ],
+    )
+
+
+def _invoke_sync_apply_partial_restore_row(target: Path) -> None:
+    # AC-0058/AC-0041's partial-restore `4` row: the first of two ordered
+    # writes (`AAA.md`, alphabetically first in write order) lands for
+    # real, the second (`BBB.md`) fails, and the restore itself is injected
+    # to fail on the one path it did act on -- so `AAA.md`'s changed bytes
+    # are what would make this case fail if the run actually restored them
+    # (a correct restore leaves the diff set empty, not `{"packs/alpha/AAA.md"}`).
+    source = _make_apply_two_file_source(
+        target.parent / "sync-tree-walk-apply-partial-restore-source"
+    )
+    real_write_jailed = catalogue_sync.write_jailed
+
+    def _fail_second_write(root, relpath, content, **kwargs):
+        if relpath == "packs/alpha/BBB.md":
+            raise OSError("disk gremlin")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    def _partial_restore(target_arg, snapshot, acted_paths):
+        # The real `restore_from_snapshot` is best-effort and would revert
+        # `AAA.md` for real; this stands in for a restore that could not,
+        # naming it unrestored (AC-0058) without touching the filesystem.
+        return ["packs/alpha/AAA.md"]
+
+    with (
+        patch.object(catalogue_sync, "write_jailed", side_effect=_fail_second_write),
+        patch.object(catalogue_sync, "restore_from_snapshot", side_effect=_partial_restore),
+    ):
+        args = _build_parser().parse_args(
+            ["catalogue", "sync", str(target), "--source", str(source), "--yes"]
+        )
+        assert catalogue_sync.run(args) == 4
+
+
+def _setup_apply_permitted_difference_removal_failed_target(target: Path) -> None:
+    alpha = target / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "README.md").write_bytes(b"old bytes\n")
+    (alpha / "gone-a.md").write_bytes(b"stale a\n")
+    (alpha / "gone-b.md").write_bytes(b"stale b\n")
+    _write_apply_run_state(
+        target,
+        recipe={"packs": ["alpha"], "profiles": []},
+        managed_paths=[
+            {"path": "packs/alpha/README.md", "sha256": hashlib.sha256(b"old bytes\n").hexdigest()},
+            {"path": "packs/alpha/gone-a.md", "sha256": hashlib.sha256(b"stale a\n").hexdigest()},
+            {"path": "packs/alpha/gone-b.md", "sha256": hashlib.sha256(b"stale b\n").hexdigest()},
+        ],
+    )
+
+
+def _invoke_sync_apply_removal_failed_row(target: Path) -> None:
+    # AC-0041's removal-failed `4` row: the write set's one path (`README.md`)
+    # lands for real, `gone-a.md` is really unlinked before the guard fails
+    # on `gone-b.md` -- would fail if either the write never happened or
+    # `gone-a.md` were left in place (removal not actually attempted).
+    source = _make_source(target.parent / "sync-tree-walk-apply-removal-failed-source")
+    real_confined_unlink = catalogue_sync._confined_unlink
+
+    def _fail_second_removal(target_arg, path):
+        if path == "packs/alpha/gone-b.md":
+            return False
+        return real_confined_unlink(target_arg, path)
+
+    with patch.object(catalogue_sync, "_confined_unlink", side_effect=_fail_second_removal):
+        args = _build_parser().parse_args(
+            ["catalogue", "sync", str(target), "--source", str(source), "--yes"]
+        )
+        assert catalogue_sync.run(args) == 4
+
+
+def _setup_apply_permitted_difference_state_write_failed_target(target: Path) -> None:
+    alpha = target / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "README.md").write_bytes(b"old bytes\n")
+    (alpha / "gone.md").write_bytes(b"stale\n")
+    _write_apply_run_state(
+        target,
+        recipe={"packs": ["alpha"], "profiles": []},
+        managed_paths=[
+            {"path": "packs/alpha/README.md", "sha256": hashlib.sha256(b"old bytes\n").hexdigest()},
+            {"path": "packs/alpha/gone.md", "sha256": hashlib.sha256(b"stale\n").hexdigest()},
+        ],
+    )
+
+
+def _invoke_sync_apply_state_write_failed_row(target: Path) -> None:
+    # AC-0041's state-write-failed `4` row: both the write and the full
+    # stale removal complete for real (`README.md` written, `gone.md`
+    # unlinked) before the state persist is injected to fail -- would fail
+    # if either never actually happened, or if the state file itself
+    # changed despite the injected failure.
+    source = _make_source(target.parent / "sync-tree-walk-apply-state-write-failed-source")
+
+    def _boom_state(target_arg, merged_state):
+        raise OSError("simulated state write failure")
+
+    with patch.object(catalogue_sync, "write_merged_state", side_effect=_boom_state):
+        args = _build_parser().parse_args(
+            ["catalogue", "sync", str(target), "--source", str(source), "--yes"]
+        )
+        assert catalogue_sync.run(args) == 4
+
+
+# Each value is a (setup, invoke, expected_diff) triple. `expected_diff` is
+# the exact set of relative paths AC-0041's permitted-difference table names
+# for that row -- the oracle the second test below asserts as an equality.
+SYNC_TREE_WALK_PERMITTED_DIFFERENCE_CASES = {
+    "sync-apply-0-success": (
+        _setup_apply_permitted_difference_success_target,
+        _invoke_sync_apply_success_row,
+        frozenset(
+            {
+                "packs/alpha/README.md",
+                "packs/alpha/unchanged.upstream.md",
+                "packs/alpha/gone.md",
+                ".agentbundle/self-host-state.json",
+            }
+        ),
+    ),
+    "sync-apply-4-partial-restore": (
+        _setup_apply_permitted_difference_partial_restore_target,
+        _invoke_sync_apply_partial_restore_row,
+        frozenset({"packs/alpha/AAA.md"}),
+    ),
+    "sync-apply-4-removal-failed": (
+        _setup_apply_permitted_difference_removal_failed_target,
+        _invoke_sync_apply_removal_failed_row,
+        frozenset({"packs/alpha/README.md", "packs/alpha/gone-a.md"}),
+    ),
+    "sync-apply-4-state-write-failed": (
+        _setup_apply_permitted_difference_state_write_failed_target,
+        _invoke_sync_apply_state_write_failed_row,
+        frozenset({"packs/alpha/README.md", "packs/alpha/gone.md"}),
+    ),
+}
+
+
+@pytest.mark.parametrize("case", sorted(SYNC_TREE_WALK_PERMITTED_DIFFERENCE_CASES))
+def test_sync_apply_permitted_difference_matches_ac_0041_row_exactly(tmp_path, case):
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "adopter-owned.txt").write_text("keep me\n", encoding="utf-8")
+    setup, invoke, expected_diff = SYNC_TREE_WALK_PERMITTED_DIFFERENCE_CASES[case]
+    setup(target)
+    before = walk_target_tree(target)
+
+    invoke(target)
+
+    after = walk_target_tree(target)
+    changed = {p for p in set(before) | set(after) if before.get(p) != after.get(p)}
+    # Equality, not containment: a `changed <= expected_diff` or
+    # `expected_diff <= changed` check would pass an implementation that
+    # changed more (or less) than the row permits.
+    assert changed == expected_diff
+
+
+# ---------------------------------------------------------------------------
 # T6: `_run_apply` owns the apply exit rows (spec AC-0039, AC-0040, AC-0046,
 # AC-0047, AC-0048, AC-0049, AC-0051, AC-0057, AC-0066, AC-0068, AC-0069).
 #
