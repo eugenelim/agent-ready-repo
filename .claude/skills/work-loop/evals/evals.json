@@ -988,8 +988,8 @@
     },
     {
       "id": "fidelity-ladder-is-conditionally-routed",
-      "prompt": "My plan task needs local-infra-equivalents and I want the fidelity ladder \u2014 the levels, and how high to push before the local budget runs out. I read the whole `work-loop` SKILL.md and there is no ladder section in it. Is the ladder gone?",
-      "expected_output": "No. The ladder is not in the `work-loop` entrypoint by design; it is reached through `## Conditional-reference routing`, whose row `A task needs local-infra-equivalents` points at the `operational-safety` skill's `fidelity-ladder` reference module. Your task fires that predicate, so load the module now: it carries the seven-level ladder and per-level descriptors, the budget heuristic \"Push up the ladder as high as a sub-5-minute local budget tolerates\", the outer-loop three-dimension qualification test, the isolation provability classification, and the build-pack handoff with its precedence rule \u2014 check an installed build pack first, and fall back to the module's technology examples when none is installed. The routing table is load-on-predicate, so an entrypoint with no ladder section means the ladder is routed, not removed.",
+      "prompt": "My plan task needs local-infra-equivalents and I want the fidelity ladder — the levels, and how high to push before the local budget runs out. I read the whole `work-loop` SKILL.md and there is no ladder section in it. Is the ladder gone?",
+      "expected_output": "No. The ladder is not in the `work-loop` entrypoint by design; it is reached through `## Conditional-reference routing`, whose row `A task needs local-infra-equivalents` points at the `operational-safety` skill's `fidelity-ladder` reference module. Your task fires that predicate, so load the module now: it carries the seven-level ladder and per-level descriptors, the budget heuristic \"Push up the ladder as high as a sub-5-minute local budget tolerates\", the outer-loop three-dimension qualification test, the isolation provability classification, and the build-pack handoff with its precedence rule — check an installed build pack first, and fall back to the module's technology examples when none is installed. The routing table is load-on-predicate, so an entrypoint with no ladder section means the ladder is routed, not removed.",
       "assertions": [
         "Response says the ladder still exists and is reached through the conditional-reference routing table",
         "Response names the `operational-safety` `fidelity-ladder` reference module as the destination",
@@ -1022,6 +1022,18 @@
         "Response says the resolved root is cached per process working directory",
         "Response says a failed resolution is not cached and re-runs `git`",
         "Response does not claim the cache is shared across different working directories"
+      ]
+    },
+    {
+      "id": "transition-commits-against-the-state-it-read",
+      "prompt": "Can a `loop-engine transition` commit against cohort state that changed after its guards ran?",
+      "expected_output": "No. `cmd_transition` fingerprints cohort `state.json` before its first cohort read and re-reads it under the cohort lock before committing, refusing when it moved. Every event takes the check except `contract-amendment`, which is exempt because its own effect writes cohort state, so its fingerprint always differs. The fingerprint is over the whole parsed state rather than selected fields, and it is read through the guard layer's exported bounded reader rather than a raw open.",
+      "assertions": [
+        "Response says the fingerprint is captured before the transition's first cohort read",
+        "Response says the re-read happens while the cohort lock is held",
+        "Response names `contract-amendment` as the only exempt event and says its own effect writes cohort state",
+        "Response does not claim the check covers a selected subset of cohort fields",
+        "Response does not claim `gates-clean` reads dispatch receipts"
       ]
     }
   ]

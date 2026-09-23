@@ -87,8 +87,10 @@ jobs:
 
       # Node is a hard precondition of the target, not an optional extra:
       # `make test` exits non-zero without `npm` and without an installed
-      # docs-site tree, then runs a plugin suite through npm. Pinned to the
-      # version both npm projects declare in their `engines`.
+      # docs-site tree, then runs a plugin suite through npm. It also exits
+      # non-zero without an installed `web` tree, since the CSS token gate runs
+      # from the same target. Pinned to the version both npm projects declare
+      # in their `engines`.
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
@@ -96,6 +98,14 @@ jobs:
 
       - name: Install docs-site dependencies
         run: npm ci --prefix docs-site
+
+      # The CSS token gate's half of `make test`. `build-check.yml` installs
+      # this tree before running the same gate; this target invokes the gate
+      # too and had no matching install, so every shard exited in under a
+      # second on `web deps missing` without running a single test.
+      # `npm ci`, not `npm install`: the lockfile is the pinned set.
+      - name: Install web dependencies
+        run: npm ci --prefix web
 
       # Provisioning is derived from the target and its invoked suites, not from
       # another job — no existing job invokes this target, so none models it.

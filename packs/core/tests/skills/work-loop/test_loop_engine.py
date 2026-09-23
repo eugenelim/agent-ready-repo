@@ -12,11 +12,13 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import stat
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import Path
 
@@ -4303,4 +4305,409 @@ def test_one_transition_spawns_one_rev_parse(tmp):
     )
     assert calls == rev, (
         f"a non-`git rev-parse` child was spawned during the transition: {calls}"
+    )
+
+
+# ══ _cohort_fingerprint: total, discriminating, and safely read ════════════
+#
+# Spec: docs/specs/wave-exit-verdict-serialisation/spec.md AC19, AC20, AC21.
+# The fingerprint is compared inside the cohort-lock hold, so anything it can
+# raise escapes `_locked`'s `except sl.StateLockError` as a traceback, and
+# anything it reads unboundedly stalls a lock-holding process until both locks
+# are judged stale. Every case below exists because one of those two outcomes
+# is reachable without it.
+
+_HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
+
+
+def _fp(spec_dir: Path) -> str:
+    return _engine._cohort_fingerprint(spec_dir)
+
+
+def test_cohort_fingerprint_discriminates_its_four_failure_classes(tmp: Path) -> None:
+    """AC20: four mutually distinct sentinels, none of them a digest.
+
+    Absent and non-regular are separated only by the `lstat` pre-check:
+    `ManagedContentError` subclasses `ValueError` and the guard layer reports a
+    non-regular file as a BARE `ValueError` — the same type `json.loads` raises
+    for an integer literal over 4300 digits. An `except ValueError` arm alone
+    collapses two of these four values into one.
+    """
+    d = make_spec_dir(tmp, "fp-classes")
+    state = d / "state.json"
+
+    absent = _fp(d)
+
+    state.write_text('{"a": 1, "b": 2}', encoding="utf-8")
+    present = _fp(d)
+
+    # Two DIFFERENT unusable inputs, because they take different arms and the
+    # first draft of this case used only the second and never produced
+    # `content-unusable` at all — deleting the `ManagedContentError` arm left
+    # it green. Truly malformed JSON becomes a JSONDecodeError the reader
+    # converts; a 4300+ digit integer literal raises a bare `ValueError` that
+    # it does not convert, so that one lands on the catch-all instead.
+    state.write_text("not json at all", encoding="utf-8")
+    content_unusable = _fp(d)
+
+    state.write_text("{" + '"n": ' + "9" * 5000 + "}", encoding="utf-8")
+    other_unusable = _fp(d)
+
+    state.unlink()
+    os.mkfifo(state)
+    nonregular = _fp(d)
+    state.unlink()
+
+    values = [absent, present, content_unusable, other_unusable, nonregular]
+    assert len(set(values)) == 5, f"classes collapsed: {values}"
+    assert content_unusable != other_unusable, (
+        "malformed content and an unconvertible parse failure must not share a "
+        "sentinel; both reach the reader as ValueError and only the arm order "
+        "separates them"
+    )
+    assert _HEX64.match(present), present
+    for sentinel in (absent, content_unusable, other_unusable, nonregular):
+        assert not _HEX64.match(sentinel), f"sentinel collides with the digest space: {sentinel}"
+
+
+def test_cohort_fingerprint_is_total_over_the_lstat_pre_check(tmp: Path) -> None:
+    """AC21: the pre-check's own failures reach a sentinel, not a traceback.
+
+    `_read_managed_bytes` converts every non-`FileNotFoundError` `OSError` from
+    its own `lstat` into a `ValueError`. Hoisting an `lstat` in front of it
+    removes that conversion, so this arm is coverage the design would otherwise
+    have lost rather than coverage it never had.
+    """
+    d = make_spec_dir(tmp, "fp-lstat")
+    (d / "state.json").write_text("{}", encoding="utf-8")
+    healthy = _fp(d)
+
+    # A parent component that is a regular file: lstat raises NotADirectoryError,
+    # an OSError that is not FileNotFoundError. None of the other cases reach it.
+    wedged = make_spec_dir(tmp, "fp-enotdir") / "state.json"
+    wedged.write_text("x", encoding="utf-8")
+    value = _fp(wedged)
+    assert not _HEX64.match(value), value
+    assert value != healthy
+
+
+def test_cohort_fingerprint_is_total_over_canonicalisation(tmp: Path) -> None:
+    """AC21: content the bounded reader accepts must not raise on the way out.
+
+    A lone surrogate survives the reader's strict UTF-8 decode and dumps fine,
+    then raises `UnicodeEncodeError` at `.encode("utf-8")` unless the dump is
+    `ensure_ascii=True` — that is the property this case pins.
+
+    It does NOT cover the canonicalise catch-all. Deep nesting raises inside
+    `read_state` and is caught by the read arm before canonicalisation is
+    reached, so both inputs here return through arms above it. That catch-all
+    is unfalsifiable against the current reader and is kept as a contract
+    guard; the verification ledger records why.
+    """
+    d = make_spec_dir(tmp, "fp-canon")
+    state = d / "state.json"
+
+    state.write_text('{"a": "\\ud800"}', encoding="utf-8")
+    surrogate = _fp(d)
+    assert isinstance(surrogate, str) and surrogate
+
+    state.write_text("[" * 20000 + "]" * 20000, encoding="utf-8")
+    nested = _fp(d)
+    assert isinstance(nested, str) and nested
+
+
+def test_cohort_fingerprint_is_stable_and_content_addressed(tmp: Path) -> None:
+    """AC19/AC20: same content same value, changed content changed value.
+
+    Byte-different but content-identical state yields the SAME value: the
+    fingerprint is over the canonical parsed form, so a reformatting rewrite is
+    not a spurious refusal, and identical content implies identical verdicts
+    because every verdict is computed from the parsed form.
+    """
+    d = make_spec_dir(tmp, "fp-stable")
+    state = d / "state.json"
+
+    state.write_text('{"a": 1, "b": 2}', encoding="utf-8")
+    first = _fp(d)
+    assert _fp(d) == first
+
+    state.write_text('{"b":2,"a":1}', encoding="utf-8")
+    assert _fp(d) == first, "canonical form must ignore key order and whitespace"
+
+    state.write_text('{"a": 1, "b": 3}', encoding="utf-8")
+    assert _fp(d) != first
+
+
+def test_cohort_fingerprint_reads_through_the_bounded_reader(tmp: Path) -> None:
+    """AC19: a non-regular state.json refuses rather than blocking.
+
+    A raw read here blocks forever on a FIFO inside the lock-holding process —
+    the hazard `_loop_guards.py` documents at its own reader. The assertion is
+    the promptness as much as the value: a hang fails by timeout, not by value.
+    """
+    d = make_spec_dir(tmp, "fp-fifo")
+    os.mkfifo(d / "state.json")
+    started = time.monotonic()
+    value = _fp(d)
+    elapsed = time.monotonic() - started
+    assert not _HEX64.match(value), value
+    assert elapsed < 5.0, f"read was not prompt ({elapsed:.1f}s) — is it a raw open?"
+
+
+# ══ the commit refuses when cohort state moved under the transition ════════
+#
+# Spec: docs/specs/wave-exit-verdict-serialisation/spec.md AC2, AC8, AC9, AC10.
+
+def _drafting_run(tmp: Path, feature: str) -> tuple[Path, str]:
+    """A fresh engine+cohort pair at SPEC-PLAN-DRAFTING. `spec-ready` is checked."""
+    spec_dir = make_spec_dir(tmp, feature)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    rc, out, err = run_engine("init", str(spec_dir), "--mode", "code", "--json")
+    assert rc == 0, err
+    run_id = json.loads(out)["run_id"]
+    rc, _, err = run_cohort("init", str(spec_dir), "--run-id", run_id)
+    assert rc == 0, err
+    return spec_dir, run_id
+
+
+def _transition_args(spec_dir: Path, event: str):
+    """Build the Namespace from the REAL parser, never by hand.
+
+    A hand-rolled Namespace silently diverges from the parser's defaults, and
+    every `getattr(args, ..., default)` in the verb then reads the test's
+    assumption instead of the CLI's behaviour.
+    """
+    return _engine.build_parser().parse_args(["transition", str(spec_dir), event])
+
+
+def test_transition_refuses_when_cohort_state_moved(tmp: Path, capsys, monkeypatch) -> None:
+    """AC2/AC9: a moved fingerprint refuses, names both values, writes nothing.
+
+    Driven through the real `cmd_transition` with the fingerprint function
+    returning a different value on its second call — which is what a concurrent
+    cohort verb produces. The two-process form is the concurrency suite's job;
+    this one owns the branch and the message.
+    """
+    spec_dir, _ = _drafting_run(tmp, "fp-moved")
+    before = (spec_dir / "engine-state.json").read_bytes()
+
+    values = iter(["cohort-state:CAPTURED", "cohort-state:MOVED"])
+    monkeypatch.setattr(_engine, "_cohort_fingerprint", lambda _d: next(values))
+
+    rc = _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+
+    assert rc != 0
+    assert err.startswith("loop-engine: stop — "), err
+    assert "\n" not in err, f"refusal must be one line: {err!r}"
+    assert "cohort-state:CAPTURED" in err and "cohort-state:MOVED" in err, err
+    assert (spec_dir / "engine-state.json").read_bytes() == before
+    assert not list((tmp / ".loop-run").glob("events.pending"))
+
+
+def test_transition_commits_when_cohort_state_is_unchanged(tmp: Path) -> None:
+    """AC2: the check is not a blanket refusal — an untouched run still commits."""
+    spec_dir, _ = _drafting_run(tmp, "fp-steady")
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-ready")
+    assert rc == 0, err
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    assert state["state"] == "SPEC-PLAN-REVIEW"
+
+
+@pytest.mark.parametrize("failure", ["unusable", "timeout", "base"])
+def test_transition_refuses_every_cohort_lock_failure_class(
+    tmp: Path, capsys, monkeypatch, failure: str
+) -> None:
+    """AC8: each class exits non-zero, writes nothing, leaves no pending record.
+
+    `_statelock`'s own delivery owns when each class is raised; what this spec
+    owns is that each one reaches a refusal here rather than falling through to
+    an unlocked commit.
+    """
+    spec_dir, _ = _drafting_run(tmp, f"fp-lock-{failure}")
+    before = (spec_dir / "engine-state.json").read_bytes()
+    sl = _engine._statelock()
+    exc = {
+        "unusable": sl.StateLockUnusable("lock path is not a regular file"),
+        "timeout": sl.StateLockTimeout("could not acquire within 10.0s"),
+        "base": sl.StateLockError("could not examine lock"),
+    }[failure]
+
+    real_exclusive = sl.exclusive
+
+    def refusing(path, **kwargs):
+        if path.name == "state.json.lock" or path.name == "state.json":
+            raise exc
+        return real_exclusive(path, **kwargs)
+
+    monkeypatch.setattr(sl, "exclusive", refusing)
+
+    rc = _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+
+    assert rc != 0
+    assert (spec_dir / "engine-state.json").read_bytes() == before
+    assert not list((tmp / ".loop-run").glob("events.pending"))
+    assert "\n" not in err, err
+
+
+def test_cohort_contention_refusal_names_the_cohort_lock(
+    tmp: Path, capsys, monkeypatch
+) -> None:
+    """AC10: distinguishable from an engine-lock failure the same handler renders.
+
+    Both are rendered by `stop()`; without this the operator cannot tell which
+    lock is contended, and the two have different remedies.
+    """
+    spec_dir, _ = _drafting_run(tmp, "fp-contended")
+    sl = _engine._statelock()
+    real_exclusive = sl.exclusive
+
+    def refusing(path, **kwargs):
+        if path.name.startswith("state.json"):
+            raise sl.StateLockTimeout("could not acquire within 10.0s")
+        return real_exclusive(path, **kwargs)
+
+    monkeypatch.setattr(sl, "exclusive", refusing)
+    _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+    assert "cohort" in err.lower(), f"refusal must name the cohort lock: {err!r}"
+
+
+def test_contract_amendment_is_the_only_exempt_event() -> None:
+    """AC3: one exemption, and it is the event whose own effect writes cohort state."""
+    assert frozenset({"contract-amendment"}) == _engine._FINGERPRINT_EXEMPT_EVENTS
+
+
+def test_a_reclaim_at_the_end_of_the_hold_exits_non_zero(tmp: Path, capsys, monkeypatch) -> None:
+    """AC13: the reclaim window is reported, not silently exited zero.
+
+    This case drives the COMMITTED exit: its fixture writes engine-state and
+    the reclaim is detected afterwards. That is a property of this fixture,
+    not of `exclusive`'s detection timing — the hold's body has a second
+    exit, a refusal that returns before writing, and the sibling case below
+    drives it. On this path the transition is durable and the verb still
+    exits non-zero; that asymmetry is a disclosed residual, and what this
+    pins is the half that is not: it must never report success. Bounding it
+    absolutely needs a two-phase commit, which this delivery forbids.
+    """
+    spec_dir, _ = _drafting_run(tmp, "fp-reclaim")
+    sl = _engine._statelock()
+    real_exclusive = sl.exclusive
+
+    @contextlib.contextmanager
+    def losing(path, **kwargs):
+        if path.name.startswith("state.json"):
+            with real_exclusive(path, **kwargs) as handle:
+                yield handle
+            raise sl.StateLockLost("the lock was not ours at release")
+        else:
+            with real_exclusive(path, **kwargs) as handle:
+                yield handle
+
+    monkeypatch.setattr(sl, "exclusive", losing)
+    rc = _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+    assert rc != 0, "a reclaim mid-hold must not report success"
+    assert "\n" not in err, err
+    # And it must not read like an acquisition failure. The two carry
+    # OPPOSITE remedies: a failed acquisition wrote nothing and should be
+    # retried, while this one already committed and must not be. One shared
+    # message is how an operator does the wrong thing confidently.
+    assert "DID commit" in err, err
+    assert "Do NOT re-run" in err, err
+    assert "nothing was written" not in err, err
+
+
+def test_a_guards_loader_failure_reaches_a_sentinel(tmp: Path, monkeypatch) -> None:
+    """AC21: the real loader failure class reaches a sentinel, never a raise.
+
+    Driven with `GuardsUnavailable`, which is what `_guards()` actually raises
+    — it wraps every load failure, including `OSError`, in that `RuntimeError`
+    subclass. An earlier version of this case used `FileNotFoundError`, a class
+    the loader cannot emit, so it exercised a failure mode that does not exist.
+    """
+    d = make_spec_dir(tmp, "fp-loader")
+    (d / "state.json").write_text('{"a": 1}', encoding="utf-8")
+    healthy = _engine._cohort_fingerprint(d)
+
+    def unavailable():
+        raise _engine.GuardsUnavailable("cannot load _loop_guards.py")
+
+    monkeypatch.setattr(_engine, "_guards", unavailable)
+    value = _engine._cohort_fingerprint(d)
+    assert value == _engine._FP_OTHER_UNUSABLE
+    assert value != healthy
+
+
+def test_a_loader_failure_while_handling_does_not_escape(tmp: Path, monkeypatch) -> None:
+    """AC21: the hazard the restructure actually closes.
+
+    A handler written `except _guards().ManagedContentError:` re-invokes the
+    loader while an exception is in flight. If that call raises, the new
+    exception escapes the whole `try` — a later `except Exception` does not
+    catch a raise from clause evaluation. Here the loader works for the first
+    call and fails for any later one, which is the shape a lazy loader that
+    fails after first use produces; the fingerprint must still return a value.
+    """
+    d = make_spec_dir(tmp, "fp-loader-handling")
+    (d / "state.json").write_text("not json at all", encoding="utf-8")
+    real = _engine._guards
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return real()
+        raise _engine.GuardsUnavailable("loader lost after first use")
+
+    monkeypatch.setattr(_engine, "_guards", flaky)
+    value = _engine._cohort_fingerprint(d)
+    assert isinstance(value, str) and value
+
+
+def test_a_reclaim_after_a_refusal_does_not_claim_a_commit(tmp: Path, capsys, monkeypatch) -> None:
+    """AC13: the refused-then-reclaimed path, which the committed case cannot cover.
+
+    A plain `return` inside the `with` still runs the context manager's exit,
+    so a staleness refusal that wrote nothing can be followed by a reclaim —
+    and the reclaim handler would otherwise re-render the run as a committed
+    transition, discarding the refusal's own return value on the way. The
+    operator would then be told not to re-run something that never landed,
+    which is the opposite of the remedy that path needs.
+    """
+    spec_dir, _ = _drafting_run(tmp, "fp-refuse-reclaim")
+    before = (spec_dir / "engine-state.json").read_bytes()
+    sl = _engine._statelock()
+    real_exclusive = sl.exclusive
+
+    values = iter(["cohort-state:CAPTURED", "cohort-state:MOVED"])
+    monkeypatch.setattr(_engine, "_cohort_fingerprint", lambda _d: next(values))
+
+    @contextlib.contextmanager
+    def losing(path, **kwargs):
+        with real_exclusive(path, **kwargs) as handle:
+            yield handle
+        if path.name.startswith("state.json"):
+            raise sl.StateLockLost("the lock was not ours at release")
+
+    monkeypatch.setattr(sl, "exclusive", losing)
+    rc = _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+
+    assert rc != 0
+    assert (spec_dir / "engine-state.json").read_bytes() == before, (
+        "nothing should have been written on the refused path"
+    )
+    assert "DID commit" not in err, (
+        f"a refusal that wrote nothing was reported as a commit: {err}"
+    )
+    assert "Do NOT re-run" not in err, err
+    # Pinned to the reclaim handler's OWN wording. `re-run` alone cannot fail
+    # here: the staleness refusal prints to the same stderr and already says
+    # "re-run the transition", so the assertion would pass with the reclaim
+    # handler emitting no remedy at all.
+    assert "nothing was committed" in err, (
+        f"the reclaim handler must state that nothing landed: {err}"
     )

@@ -100,6 +100,20 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # breaks. Adding a guard cannot quietly break the arithmetic.
 SUBPROCESS_TIMEOUT_S = 20.0
 MAX_SUBPROCESS_CALLS_UNDER_LOCK = 2
+
+# The engine-side cohort-lock hold's own ceiling — the only hold this module
+# creates inside another. Its origin, because a bound without one is a guess:
+# the hold reaches no subprocess (the budget case asserts that from source), so
+# it is three local file operations — one read bounded by the guard layer's
+# 8 MiB cap, one small `events.pending` write, and one mkstemp+replace. A
+# second below is two orders above measured local I/O for that work.
+#
+# The inequality that matters here runs the OTHER way from the engine lock's.
+# `timeout < maximum hold` exists so a contender does not abandon a live holder
+# of a long outer hold; this inner hold must instead finish BELOW
+# `_statelock.DEFAULT_TIMEOUT`, or a contending cohort verb times out against a
+# holder that was about to release.
+COHORT_COMMIT_HOLD_MAX_S = 1.0
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
 
@@ -281,6 +295,164 @@ def _budget_snapshot(spec_dir: Path) -> dict:
         if isinstance(value, int) and not isinstance(value, bool):
             snapshot[field] = value
     return snapshot
+
+
+# Cohort-state identity across a transition commit.
+#
+# Spec: docs/specs/wave-exit-verdict-serialisation/spec.md.
+#
+# Four sentinels, not three. `ManagedContentError` subclasses `ValueError`
+# (`_loop_guards.py`), and the guard layer reports a non-regular file, an
+# unopenable one and one replaced mid-read as a BARE `ValueError` — the same
+# type `json.loads` raises for an integer literal over 4300 digits. Exception
+# type alone therefore cannot separate "could not read it" from "read it, it
+# was rubbish", so the `lstat` below supplies that discriminator. Collapsing
+# the two lets a `state.json` broken one way at the capture and the other way
+# at the re-read compare EQUAL, which admits the commit this guard exists to
+# refuse.
+#
+# Each value is prefixed so disjointness from the sha256 hex space is a
+# property of the value rather than an authoring intention.
+_FP_ABSENT = "cohort-state:absent"
+_FP_NONREGULAR = "cohort-state:not-a-regular-file"
+_FP_CONTENT_UNUSABLE = "cohort-state:content-unusable"
+_FP_OTHER_UNUSABLE = "cohort-state:unusable"
+
+
+def _cohort_fingerprint(spec_dir: Path) -> str:
+    """Identify cohort state well enough to detect any change. Never raises.
+
+    Total by contract, and the totality is load-bearing rather than defensive:
+    the second call runs inside the cohort-lock hold, where `_locked` catches
+    only `StateLockError`, so anything escaping here leaves by traceback from a
+    verb whose own docstring promises "no traceback".
+
+    Reads through the guard layer's bounded reader, never a raw open. That
+    reader is non-following, non-blocking, size-capped and regular-file-only;
+    a raw read of a FIFO here blocks until both locks are judged stale and a
+    second writer is admitted, which is strictly worse than not holding a lock
+    at all. See `_loop_guards._read_managed_bytes`, whose docstring names that
+    hazard at exactly this step.
+
+    The digest is over the CANONICAL PARSED form, not the bytes. Content
+    identity is the property the verdicts actually depend on — every guard
+    reads the parsed mapping — so a rewrite that reorders keys or reflows
+    whitespace is not a spurious refusal, while any change a verdict could see
+    moves the value.
+
+    `ensure_ascii=True`, deliberately unlike `_contract_amendment_id` below. A
+    `state.json` holding a lone surrogate passes the reader's strict UTF-8
+    decode and dumps fine, then raises `UnicodeEncodeError` on the way to
+    bytes; an ASCII-only dump cannot. Do not "align" this flag with the
+    amendment id.
+    """
+    # Resolve the guard module, the state path and the exception class FIRST.
+    # The hazard is clause evaluation, not the loader's own failure mode: an
+    # `except _guards().ManagedContentError:` handler re-invokes the loader
+    # WHILE handling an exception, and a raise there escapes the whole `try`,
+    # because a later `except Exception` does not catch an exception raised
+    # while evaluating a preceding clause. `_guards()` is a lazy by-path loader
+    # that wraps every load failure in `GuardsUnavailable` (a `RuntimeError`),
+    # so a plain loader failure was always caught by the catch-all below and is
+    # not what this restructure fixes — but it can raise during handling, and
+    # that path had no arm at all.
+    try:
+        guards = _guards()
+        path = guards.state_path_for(spec_dir)
+        content_unusable = guards.ManagedContentError
+    except Exception:  # noqa: BLE001 - totality is the contract
+        return _FP_OTHER_UNUSABLE
+
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return _FP_ABSENT
+    except OSError:
+        # EACCES, ELOOP, ENOTDIR, ENAMETOOLONG. `_read_managed_bytes` converts
+        # exactly these from its own lstat, so hoisting the call out in front of
+        # it would drop coverage that already existed unless this arm restores it.
+        return _FP_OTHER_UNUSABLE
+    if not stat.S_ISREG(info.st_mode):
+        return _FP_NONREGULAR
+
+    try:
+        state = guards.read_state(spec_dir)
+    except FileNotFoundError:
+        return _FP_ABSENT
+    except content_unusable:
+        return _FP_CONTENT_UNUSABLE
+    except Exception:  # noqa: BLE001 - totality is the contract
+        return _FP_OTHER_UNUSABLE
+
+    try:
+        canonical = json.dumps(
+            state, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    except Exception:  # noqa: BLE001 - totality is the contract
+        # Unfalsifiable against the current reader, and deliberately kept.
+        # `RecursionError` from deep nesting is raised by `json.loads` inside
+        # `read_state` and caught by the arm above; a lone surrogate cannot fail
+        # `encode` under `ensure_ascii=True`. So no input reaches this arm today
+        # and no test can red it. It stays because it guards the contract rather
+        # than a known input: this runs inside the cohort-lock hold, where the
+        # cost of an escape is a traceback from a doubly-held lock, and a future
+        # change to the reader or to the canonical form reopens the path with no
+        # other net beneath it.
+        return _FP_OTHER_UNUSABLE
+
+
+# The one event exempt from the identity check, and why it must be.
+# `contract-amendment` writes cohort state as its own effect, so its
+# fingerprint always differs and including it would refuse every amendment.
+# The exemption is mechanically forced, not a judgement about risk — and it is
+# also what keeps the hold from ever enclosing `apply_contract_amendment`,
+# which takes the cohort lock itself and would self-deadlock on a lock that is
+# not reentrant. The cost is disclosed: the transition that rewrites the
+# approved baseline is the one transition this check does not cover.
+_FINGERPRINT_EXEMPT_EVENTS = frozenset({"contract-amendment"})
+
+
+@contextlib.contextmanager
+def _cohort_commit_hold(spec_dir: Path, event: str):
+    """Hold the cohort lock across the commit, or nothing for an exempt event.
+
+    A context manager rather than two branches so `_write_events_pending` and
+    `_write_engine_state_atomic` appear exactly once: a checked and an unchecked
+    copy of the commit would drift apart with nothing reddening.
+
+    Deliberately NOT wrapped in a handler that continues. The pending write
+    below sits in a `try` whose `except Exception` warns and falls through to
+    the unconditional state write, and an acquisition swallowed there would
+    become an unlocked commit on a lock failure.
+    """
+    if event in _FINGERPRINT_EXEMPT_EVENTS:
+        yield
+        return
+    sl = _statelock()
+    with sl.exclusive(_guards().state_path_for(spec_dir)):
+        yield
+
+
+def _revalidate_cohort_state(spec_dir: Path, event: str, captured: str) -> str | None:
+    """None when cohort state is unchanged since the capture, else the refusal.
+
+    Called by the caller that already holds the cohort lock; it does not
+    acquire. The refusal interpolates the two fingerprints and nothing else, so
+    it is bounded by construction — each is either a 64-character hex digest or
+    a fixed sentinel literal, and no attacker-influenceable cohort value reaches
+    stderr through it.
+    """
+    if event in _FINGERPRINT_EXEMPT_EVENTS:
+        return None
+    current = _cohort_fingerprint(spec_dir)
+    if current == captured:
+        return None
+    return (
+        "transition refused: cohort state changed between this transition's "
+        f"first read and its commit (captured {captured}, now {current}); "
+        "nothing was written — re-run the transition"
+    )
 
 
 def _lifecycle_fields(
@@ -1394,6 +1566,13 @@ def cmd_transition(args: argparse.Namespace) -> int:
     except ValueError as exc:
         return stop(str(exc))
 
+    # Capture cohort identity FIRST, before anything in this verb can read
+    # cohort state. Four reads follow it — the run-id preflight, the plan-hash
+    # pre-guard, the event guard, and the budget snapshot that lands in the
+    # durable event record — and only two of those are `_GUARDS` entries, which
+    # is why no guard-derived set can stand in for capturing this early.
+    _cohort_fp_at_capture = _cohort_fingerprint(spec_dir)
+
     event = args.event
     wave_index = args.wave_index
     intent_incomplete = args.intent_incomplete
@@ -1671,17 +1850,70 @@ def cmd_transition(args: argparse.Namespace) -> int:
     # Outbox pre-flight: reuse repo root resolved at command start.
     _repo_root: Path | None = _cmd_transition_repo_root
 
-    # Outbox step 1b: write new pending event (graceful).
+    # Step 3: commit, under the cohort lock unless this event is exempt.
+    # The re-read, the pending write and the state write are one sequence
+    # inside one hold; the outbox append and unlink stay outside it, because by
+    # then the transition is already durable and a reclaim there costs a
+    # recoverable remnant rather than a phantom transition.
     _pending_written = False
-    if _repo_root is not None:
-        try:
-            _write_events_pending(_repo_root, pending_data)
-            _pending_written = True
-        except Exception as exc:
-            print(f"loop-engine: warning — could not write events.pending: {exc}", file=sys.stderr)
+    # Whether the engine-state write actually landed. The reclaim handler below
+    # cannot infer it: a plain `return` inside the `with` still runs the
+    # context manager's exit, so a staleness refusal that wrote NOTHING can be
+    # re-rendered by that handler with the opposite instruction, and the
+    # refusal's own return value is discarded on the way.
+    _committed = False
+    try:
+        with _cohort_commit_hold(spec_dir, event):
+            _stale = _revalidate_cohort_state(spec_dir, event, _cohort_fp_at_capture)
+            if _stale:
+                return stop(_stale)
 
-    # Step 3: write engine-state.json atomically (critical — not wrapped).
-    _write_engine_state_atomic(spec_dir, new_state)
+            # Outbox step 1b: write new pending event (graceful).
+            if _repo_root is not None:
+                try:
+                    _write_events_pending(_repo_root, pending_data)
+                    _pending_written = True
+                except Exception as exc:
+                    print(
+                        f"loop-engine: warning — could not write events.pending: {exc}",
+                        file=sys.stderr,
+                    )
+
+            # Write engine-state.json atomically (critical — not wrapped).
+            _write_engine_state_atomic(spec_dir, new_state)
+            _committed = True
+    except _statelock().StateLockLost as exc:
+        # A reclaim detected at RELEASE. `exclusive` only notices lost
+        # ownership after its body, and the body has TWO exits: it may have
+        # written engine-state, or it may have returned a refusal before
+        # writing — a plain `return` inside a `with` still runs the exit. So
+        # this handler cannot assume a commit, and the branch below is not
+        # dead. Assuming one is what told an operator not to re-run a
+        # transition that had written nothing.
+        if not _committed:
+            # The body refused before writing, and the reclaim then swallowed
+            # that refusal. Nothing landed, so the remedy is the refusal's, not
+            # the reclaim's.
+            return stop(
+                f"transition: cohort state lock lost at release: {exc}; the "
+                "transition had already refused before writing, so nothing was "
+                "committed — re-run it"
+            )
+        return stop(
+            f"transition: cohort state lock lost at release: {exc}. The "
+            "transition DID commit and engine-state.json is updated; the "
+            "events.pending record is finished by the next run. Do NOT re-run "
+            "this transition — check the current state first."
+        )
+    except _statelock().StateLockError as exc:
+        # An acquisition failure: nothing was written, so retrying is correct.
+        # Named as the COHORT lock because `_locked`'s own handler renders an
+        # engine-lock failure through the same `stop()`, and an operator who
+        # cannot tell the two apart cannot tell which verb to wait for.
+        return stop(
+            f"transition: cohort state lock: {exc}; nothing was written — "
+            "retry once the competing cohort verb finishes"
+        )
 
     # Outbox steps 3–4: append events.jsonl + delete pending (graceful).
     if _pending_written and _repo_root is not None:
