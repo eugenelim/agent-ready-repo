@@ -18,6 +18,13 @@ Higher-priority instructions, security and privacy rules, active-skill safety co
 - Before you add text, merge rules, notes, history, and links that say the same thing. Keep one source in charge.
 - Use a table, tree, flow, or other view only when it makes a link much more clear.
 
+## Diagrams
+
+- Write Mermaid with no raw HTML. The editor that renders these docs strips `<br/>`, and the diagram then fails to parse.
+- Keep `;` out of Mermaid label and note text. Mermaid reads it as the end of the statement.
+- Split a long note into two `Note` lines rather than forcing one line to break.
+- Check a new diagram in the renderer that will show it. A local `mmdc` run proves syntax only, and it accepts markup that renderer rejects.
+
 ## Backlog and governance
 
 - Shape each backlog item for a choice: outcome, proof, blocked work, and next step.

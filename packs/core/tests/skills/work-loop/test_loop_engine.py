@@ -4080,3 +4080,227 @@ def test_the_wave_exit_verdict_is_about_the_wave_the_run_is_leaving(tmp: Path) -
         fail(name, "the transition accepted the same state")
     else:
         ok(name)
+
+
+# ── repo-root memoisation ──────────────────────────────────────────────────
+
+
+def _drive_to_code_implementation(tmp: Path, feature: str) -> Path:
+    """A fresh 2-wave run parked at CODE-IMPLEMENTATION with its wave accounted for.
+
+    Deliberately not `make_crash_window_run`: that helper drives the
+    `wave-complete` transition itself, and this case has to execute that
+    transition in-process to count what it spawns.
+    """
+    spec_dir = make_spec_dir(tmp, feature)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    rc, out, err = run_engine("init", str(spec_dir), "--mode", "code", "--json")
+    assert rc == 0, f"engine init failed: {err}"
+    run_id = json.loads(out)["run_id"]
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    run_engine("transition", str(spec_dir), "spec-ready")
+    run_engine("transition", str(spec_dir), "reviewers-clean")
+    write_spec(spec_dir, status="Approved")
+    run_engine("transition", str(spec_dir), "spec-approved")
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n### T2\n\n**Depends on:** T1\n"
+    )
+    run_engine("transition", str(spec_dir), "plan-approved")
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    rc_pl, _, err_pl = run_engine("transition", str(spec_dir), "plan-locked")
+    assert rc_pl == 0, f"plan-locked failed: {err_pl}"
+    record_dispatch_receipts_for_the_current_wave(spec_dir, run_id)
+    return spec_dir
+
+
+def _fresh_engine(name: str):
+    """A private engine module instance, so one case's cache cannot reach another.
+
+    The module-level `_engine` is loaded once at import in the repository working
+    directory. These cases chdir between throwaway repositories, so sharing that
+    instance would make a green result depend on which case ran first.
+    """
+    spec = importlib.util.spec_from_file_location(name, str(ENGINE))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _rev_parse(calls):
+    """Only the `git rev-parse` spawns.
+
+    `mod.subprocess` is the same module object the test itself imports, so a
+    patch on it counts every spawn in the process — including a fixture's own
+    `git init`. Filtering here is what keeps these counts about the memo.
+    """
+    return [c for c in calls if "rev-parse" in " ".join(c)]
+
+
+def _counting_spawns(mod):
+    """Count subprocess spawns while patched; return (calls, restore)."""
+    calls = []
+    real = mod.subprocess.run
+
+    def counting(cmd, *a, **kw):
+        calls.append(tuple(cmd) if isinstance(cmd, (list, tuple)) else (cmd,))
+        return real(cmd, *a, **kw)
+
+    mod.subprocess.run = counting
+    return calls, (lambda: setattr(mod.subprocess, "run", real))
+
+
+def _init_repo(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q", str(path)], check=True, capture_output=True)
+    return path
+
+
+# STUB: AC1
+def test_get_repo_root_resolves_once_per_working_directory(tmp_path, monkeypatch):
+    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC1"""
+    repo = _init_repo(tmp_path / "a")
+    mod = _fresh_engine("_engine_ac1")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(repo)
+        first = mod._get_repo_root()
+        second = mod._get_repo_root()
+        assert second == first, f"second call returned {second}, first {first}"
+        seen = _rev_parse(calls)
+        assert len(seen) == 1, (
+            f"two calls from one unchanged working directory spawned {len(seen)} "
+            f"`git rev-parse` processes, want 1: {seen}"
+        )
+    finally:
+        restore()
+
+
+# STUB: AC2
+def test_get_repo_root_follows_the_working_directory(tmp_path, monkeypatch):
+    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC2"""
+    repo_a = _init_repo(tmp_path / "a")
+    repo_b = _init_repo(tmp_path / "b")
+    mod = _fresh_engine("_engine_ac2")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(repo_a)
+        mod._get_repo_root()
+        monkeypatch.chdir(repo_b)
+        assert mod._get_repo_root() == repo_b.resolve(), (
+            "after chdir the cache handed back the previous repository's root — "
+            "a silent wrong answer feeding _resolve_spec_dir's confinement check"
+        )
+        assert len(_rev_parse(calls)) == 2, (
+            f"a new working directory must re-resolve: {_rev_parse(calls)}"
+        )
+    finally:
+        restore()
+
+
+# STUB: AC3
+def test_get_repo_root_does_not_cache_a_failure(tmp_path, monkeypatch):
+    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC3"""
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+    mod = _fresh_engine("_engine_ac3")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(outside)
+        with pytest.raises(ValueError):
+            mod._get_repo_root()
+        _init_repo(outside)
+        assert mod._get_repo_root() == outside.resolve(), (
+            "a remembered failure made a now-resolvable directory permanently "
+            "unresolvable for the life of the process"
+        )
+        assert len(_rev_parse(calls)) == 2, (
+            f"the retry must re-spawn: {_rev_parse(calls)}"
+        )
+    finally:
+        restore()
+
+
+# STUB: AC4
+def test_get_repo_root_raises_value_error_on_an_unreadable_cwd(tmp_path, monkeypatch):
+    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC4"""
+    gone = tmp_path / "deleted"
+    _init_repo(gone)
+    mod = _fresh_engine("_engine_ac4")
+    monkeypatch.chdir(gone)
+    shutil.rmtree(gone)
+    try:
+        mod._get_repo_root()
+    except ValueError:
+        pass
+    except OSError as exc:
+        pytest.fail(
+            f"_get_repo_root raised {type(exc).__name__}, not ValueError. Every "
+            "caller reaches it through a handler that catches only ValueError and "
+            "main() catches neither, so this exits as a path-disclosing traceback."
+        )
+    else:
+        pytest.fail("an unreadable working directory must not resolve")
+
+
+# STUB: AC5
+def test_confinement_rejects_an_out_of_tree_spec_dir_on_a_cache_hit(tmp_path, monkeypatch):
+    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC5"""
+    repo = _init_repo(tmp_path / "repo")
+    inside = repo / "docs" / "specs" / "demo"
+    inside.mkdir(parents=True)
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    mod = _fresh_engine("_engine_ac5")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(repo)
+        assert mod._resolve_spec_dir(str(inside)) == inside.resolve()
+        populated = len(_rev_parse(calls))
+        with pytest.raises(ValueError, match="inside the repository"):
+            mod._resolve_spec_dir(str(outside))
+        assert len(_rev_parse(calls)) == populated, (
+            "the second resolution re-spawned, so it was a cache miss and this "
+            "case proves nothing about confinement under a cache hit"
+        )
+    finally:
+        restore()
+
+
+# STUB: AC6
+def test_one_transition_spawns_one_rev_parse(tmp):
+    """Spec: docs/specs/loop-engine-repo-root-memo/spec.md AC6"""
+    spec_dir = _drive_to_code_implementation(tmp, "memo-transition")
+    mod = _fresh_engine("_engine_ac6")
+    calls, restore = _counting_spawns(mod)
+    argv = sys.argv
+    try:
+        sys.argv = ["loop-engine.py", "transition", str(spec_dir), "wave-complete"]
+        with contextlib.redirect_stdout(io.StringIO()):
+            try:
+                # `main()` RETURNS its status; it raises SystemExit only from
+                # argparse. Binding the return value is load-bearing: a refused
+                # transition still spawns one `git rev-parse`, because
+                # `_resolve_spec_dir` runs in the `_locked` decorator before any
+                # validation returns — so a test that ignores the status counts
+                # the right number for a transition that never happened.
+                rc = mod.main()
+            except SystemExit as exc:
+                rc = exc.code if exc.code is not None else 0
+    finally:
+        sys.argv = argv
+        restore()
+    assert rc == 0, (
+        f"wave-complete did not succeed (rc={rc}); the spawn count below would "
+        "describe a refused transition"
+    )
+    rev = _rev_parse(calls)
+    assert len(rev) == 1, (
+        f"one wave-complete transition spawned {len(rev)} `git rev-parse` "
+        f"processes, want 1: {rev}"
+    )
+    assert calls == rev, (
+        f"a non-`git rev-parse` child was spawned during the transition: {calls}"
+    )
