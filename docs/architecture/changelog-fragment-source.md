@@ -5,7 +5,7 @@ the authoritative source for new changelog content, retain the current file as
 frozen history, and render the complete changelog as a deterministic build
 projection.
 **Author(s):** Platform Core maintainers
-**Status:** Draft
+**Status:** Accepted
 **Last updated:** 2026-09-23
 **Reviewers:** Platform Core maintainers
 
