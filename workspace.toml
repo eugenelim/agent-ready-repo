@@ -355,8 +355,8 @@ shipped = [
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
   {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
-  {path = "docs/specs/project-knowledge-review-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate bounded project knowledge enquiry with review workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-authoring-integrations/spec.md"}]},
-  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-review-integrations/spec.md"}]},
+  
+  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = []},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   {path = "docs/specs/guide-typed-asides-conversion/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Convert load-bearing guide blockquotes to typed Starlight asides while preserving genuine quotations", needs = []},
@@ -364,21 +364,21 @@ shipped = [
   {path = "docs/specs/agentbundle-first-value-handoff/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "agentbundle-first-value-handoff", needs = []},
   {path = "docs/specs/catalogue-curation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-curation pack", needs = []},
   {path = "docs/specs/m2-frame-situation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-situation", needs = []},
-  {path = "docs/specs/m1-work-queue/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-work-queue", needs = []},
-  {path = "docs/specs/m1-brief-queue/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-brief-queue", needs = []},
+  
+  
   {path = "docs/specs/m1-governance-integration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-governance-integration", needs = []},
   {path = "docs/specs/spec-A-workspace-status-rename/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-A-workspace-status-rename", needs = []},
   {path = "docs/specs/new-rfc-followon-queue-write/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "new-rfc follow-on queue-write guard", needs = []},
   {path = "docs/specs/queue-add/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "queue-add — bridge session-surfaced items into the work queue", needs = []},
-  {path = "docs/specs/work-loop-queue-shipped-fix/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "work-loop queue-to-shipped fix", needs = []},
+  
   {path = "docs/specs/spec-D-pack-workflow-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-D-pack-workflow-guide", needs = []},
   {path = "docs/specs/spec-B-pack-status-skills/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-B-pack-status-skills", needs = []},
   {path = "docs/specs/workspace-status-next-actions/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status-next-actions", needs = []},
   {path = "docs/specs/workspace-status-queue-reconciliation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status queue reconciliation", needs = []},
-  {path = "docs/specs/m3-backlog-absorption/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m3-backlog-absorption", needs = []},
+  
   {path = "docs/specs/capture-work/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "capture-work — universal capture-then-triage front-door", needs = []},
   {path = "docs/specs/spec-C-workloop-argless-resume/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-C-workloop-argless-resume", needs = []},
-  {path = "docs/specs/workspace-journey-guides-and-planning-doctrine/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-journey-guides-and-planning-doctrine", needs = []},
+  
   {path = "docs/specs/author-brief-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "author-brief-docs", needs = []},
   {path = "docs/specs/m2-diverge-solutions/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-diverge-solutions", needs = []},
   {path = "docs/specs/m2-lean-canvas-and-initiative-brief/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-lean-canvas-and-initiative-brief", needs = []},
@@ -386,8 +386,8 @@ shipped = [
   {path = "docs/specs/m2-identify-opportunities/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-identify-opportunities", needs = []},
   {path = "docs/specs/m2-map-capabilities/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-map-capabilities", needs = []},
   {path = "docs/specs/m2-frame-intent-jtbd/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-intent-jtbd", needs = []},
-  {path = "docs/specs/m5-jira-align-brief-intake/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-jira-align-brief-intake", needs = []},
-  {path = "docs/specs/m5-github-brief-intake/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-github-brief-intake", needs = []},
+  
+  
   {path = "docs/specs/portfolio-pack-first-value-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-pack-first-value-contract", needs = []},
   {path = "docs/specs/m6-role-journey-guides/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m6-role-journey-guides", needs = []},
   {path = "docs/specs/m5-linear-brief-intake-and-sync/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-linear-brief-intake-and-sync", needs = []},
@@ -403,7 +403,7 @@ shipped = [
   {path = "docs/specs/jira-check-sso-auto-login/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "jira-check-sso-auto-login", needs = []},
   {path = "docs/specs/confluence-crawler-check-auto-login/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Confluence crawler check auto-login", needs = []},
   {path = "docs/specs/catalogue-test-carve-out/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue test carve-out", needs = []},
-  {path = "docs/specs/workspace-status-simplification-order-2b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status simplification — Order 2B", needs = []},
+  
   {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
   {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
@@ -565,7 +565,7 @@ backlog = [
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.
-# Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
+# Populated by the m3 backlog-absorption migration; that spec has since been retired.
 # New entries take the canonical shape documented at the top of this file:
 # {path, kind, source, summary, needs}. `path` must name an artifact that exists —
 # for a deferral with no artifact of its own, the document recording it.
