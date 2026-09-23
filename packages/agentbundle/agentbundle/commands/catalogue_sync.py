@@ -2097,21 +2097,26 @@ def _run_dry_run(
     attributed: bool,
     source_raw: str,
     fmt: str,
+    cli_pack_names: list[str],
+    cli_profile_names: list[str],
+    guides_scope: bool,
 ) -> int:
-    """Spec AC-0013's `--dry-run` rows: no recorded selection derivable, the
-    recorded-path container not an array, source verification failure, the
-    identity leak check, the adapter-contract gate, and — reaching none of
-    those — a printed plan and the success or difference code.
-    """
-    cfg = SelfHostedInitConfig(
-        target=target,
-        source=source_path,
-        tooling=tooling,
-        attribution=attribution,
-        guides=guides,
-        dry_run=dry_run,
-    )
+    """Spec AC-0013's `--dry-run` rows: no recorded selection derivable, an
+    unshipped `--pack`/`--profile` name or an invalid recorded selection
+    (AC-0046/AC-0068), the recorded-path container not an array, source
+    verification failure, the identity leak check, the adapter-contract
+    gate, and — reaching none of those — a printed plan and the success or
+    difference code.
 
+    *cli_pack_names*/*cli_profile_names*/*guides_scope* are AC-0043's raw
+    scoping flags. Resolved into the effective selection and narrowed the
+    same way `_run_apply` does — via `_resolve_effective_selection` and
+    `_narrow_replayed_paths`, reused rather than re-derived — so a preview
+    introduces a new `--pack`/`--profile` name exactly as the apply run it
+    previews would, and the printed plan is restricted to the declared
+    scope's subtree(s) (`_scope_subtrees`/`_in_scope`), the same primitives
+    `plan_write_set` calls for the apply run's own write set.
+    """
     condition = _underivable_condition(target, source_path)
     if condition is not None:
         return _refuse(
@@ -2120,6 +2125,22 @@ def _run_dry_run(
             source_raw=source_raw,
             fmt=fmt,
             code=_CANNOT_ANSWER,
+        )
+
+    pack_names, profile_names, malformed_field, cannot_answer_reason = (
+        _resolve_effective_selection(
+            target, source_path, cli_pack_names, cli_profile_names
+        )
+    )
+    if malformed_field is not None:
+        return _refuse(
+            malformed_field, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_MALFORMED,
+        )
+    if cannot_answer_reason is not None:
+        return _refuse(
+            cannot_answer_reason, attributed=attributed, source_raw=source_raw,
+            fmt=fmt, code=_CANNOT_ANSWER,
         )
 
     # Spec AC-0013/AC-0014: a recorded `managed_paths` that is not an array
@@ -2134,6 +2155,17 @@ def _run_dry_run(
             fmt=fmt,
             code=_CANNOT_ANSWER,
         )
+
+    cfg = SelfHostedInitConfig(
+        target=target,
+        source=source_path,
+        tooling=tooling,
+        attribution=attribution,
+        guides=guides,
+        dry_run=dry_run,
+        packs=pack_names,
+        profiles=profile_names,
+    )
 
     try:
         replay = replay_derivation(cfg, interactive=False)
@@ -2155,7 +2187,7 @@ def _run_dry_run(
         return gate_code
 
     resolved_cfg = replay.config
-    planned_paths = set(replay.file_bytes.keys())
+    planned_paths = _narrow_replayed_paths(replay.file_bytes, pack_names, profile_names)
     # One shared rejections list: every value this command did not itself
     # author — a recorded path, a source-tree entry name, a manifest's own
     # version string, the resolved digest/revision, and the source URI
@@ -2163,9 +2195,25 @@ def _run_dry_run(
     # reach any output surface (spec AC-0012), and every rejection lands
     # here regardless of which stage produced it.
     rejections: list[str] = []
+    # `planned_paths` here stays the full (unscoped) effective selection —
+    # T2's Risks note "the full replayed set [is] the keep-set on every
+    # path": narrowing it before classification would make every recorded,
+    # out-of-scope path (still shipped by the source, just outside the
+    # declared subtree) misclassify as stale and print a spurious
+    # `would-remove` row, exactly the removal-widening a scoped run must
+    # never risk.
     summary_counts, verdict_rows = _classify_planned_paths(
         target, replay.old_state, planned_paths, rejections
     )
+    # AC-0043: the same scope that would restrict an apply run's write set
+    # restricts the plan a `--dry-run` preview prints — filtered here, after
+    # classification, the same way `_apply_acted_rows` filters `verdict_rows`
+    # down to `plan.admitted` for the apply run's own printed rows. `scope is
+    # None` (no scoping flag supplied) admits every path, matching AC-0042.
+    # `summary_counts` is left over the full selection, matching AC-0066's
+    # apply-side counts convention.
+    scope = _scope_subtrees(list(cli_pack_names), list(cli_profile_names), guides_scope)
+    verdict_rows = [row for row in verdict_rows if _in_scope(row[0], scope)]
     compatibility = compatibility_warnings(
         target, replay.pack_names, replay.file_bytes, rejections
     )
@@ -2771,6 +2819,32 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
+    # AC-0043's scoping flags, read once here so both the `--check` malformed
+    # row directly below and the `--dry-run`/apply dispatch further down
+    # share one resolution. `--profile` is not documented repeatable (spec
+    # § What Changes marks only `--pack` "(repeatable)"), so a future
+    # single-value namespace attribute would be a bare string, not a list —
+    # which `list(...)` would iterate character by character.
+    cli_pack_names = list(getattr(args, "pack", None) or [])
+    _raw_profile = getattr(args, "profile", None)
+    cli_profile_names = (
+        [_raw_profile] if isinstance(_raw_profile, str) else list(_raw_profile or [])
+    )
+    guides_scope = bool(getattr(args, "guides", False))
+
+    # Spec AC-0039/AC-0043: any of `--pack`, `--profile` or `--guides`
+    # supplied with `--check` is malformed — `--check` answers whether the
+    # tree is current against the recorded recipe as a whole, and has no
+    # scoped variant.
+    if check and (cli_pack_names or cli_profile_names or guides_scope):
+        return _refuse(
+            "a scoping flag (--pack, --profile, --guides) is malformed with --check",
+            attributed=attributed,
+            source_raw=source_raw,
+            fmt=fmt,
+            code=_MALFORMED,
+        )
+
     # Spec AC-0039/AC-0047 — `--package` sits above source resolution on
     # every invocation, so a run that will refuse performs no fetch. Read
     # defensively: the flag does not exist on the parser namespace until a
@@ -2843,12 +2917,11 @@ def run(args: argparse.Namespace) -> int:
                 attributed=attributed,
                 source_raw=source_raw,
                 fmt=fmt,
+                cli_pack_names=cli_pack_names,
+                cli_profile_names=cli_profile_names,
+                guides_scope=guides_scope,
             )
-        # Apply run. `--pack`/`--profile`/`--guides`/`--yes` do not exist on
-        # the parser namespace until a later task wires them; read
-        # defensively so this branch is unreachable today (the mutually
-        # exclusive `--dry-run`/`--check` group is still `required=True`)
-        # but already correct once it is.
+        # Apply run.
         return _run_apply(
             target=target,
             source_path=source_path,
@@ -2862,16 +2935,9 @@ def run(args: argparse.Namespace) -> int:
             source_raw=source_raw,
             fmt=fmt,
             yes=bool(getattr(args, "yes", False)),
-            cli_pack_names=list(getattr(args, "pack", None) or []),
-            # `--profile` is not documented repeatable (spec § What Changes
-            # marks only `--pack` "(repeatable)"), so a future single-value
-            # namespace attribute would be a bare string, not a list — which
-            # `list(...)` would iterate character by character.
-            cli_profile_names=(
-                [_raw_profile] if isinstance(_raw_profile := getattr(args, "profile", None), str)
-                else list(_raw_profile or [])
-            ),
-            guides_scope=bool(getattr(args, "guides", False)),
+            cli_pack_names=cli_pack_names,
+            cli_profile_names=cli_profile_names,
+            guides_scope=guides_scope,
         )
     finally:
         if cleanup is not None:

@@ -202,3 +202,65 @@ only, so if wiring those genuinely needs a `catalogue_sync.py` change, that is
 a plan error to surface rather than an edit to make quietly.
 `_resolve_effective_selection` and `_narrow_replayed_paths` were written to be
 reusable from the parser side without a second edit here.
+
+## Execution — wave 4
+
+### T7 — the parser admits an apply run
+
+`cli.py` relaxes the `--dry-run`/`--check` group so a bare invocation reaches
+`_run_apply`, adds `--yes` to that group, registers the three scoping flags,
+sets `allow_abbrev=False` on the `sync` subparser, and drops the
+read-only claim from the help text. `catalogue_sync.py` narrows `_run_dry_run`
+by the CLI scope and refuses a scoping flag alongside `--check`. Gates: lint
+exit 0, full suite exit 0 over 3,257 tests.
+
+**Mutation proof.** Neutering the `--check`-with-a-scoping-flag refusal turns
+the suite red, so AC-0030's `--check` clause has a check that fails when
+broken.
+
+### `Touches:` is not an authorization boundary — resolved, no amendment
+
+T7 stopped rather than edit `commands/catalogue_sync.py`, which its `Touches:`
+omits, and asked. That was the right instinct and the answer is that the field
+does not gate edits. `Touches:` is read in exactly one place —
+`loop-cohort.py:1546`, the wave disjointness screen, labelled in the tool's own
+output "serialize-only, never a greenlight". What governs the edit budget is
+plan.md § Constraints: "The apply path extends `commands/catalogue_sync.py`.
+Outside it and `cli.py` there are exactly two edits" — so both of those files
+are freely editable and the budget binds only outside them. T7's `Touches:`
+under-named its file set. Metadata inaccuracy, not a plan error; no controlled
+amendment owed.
+
+### A defect T7 found in its own first attempt
+
+Filtering `planned_paths` BEFORE classification, rather than filtering the
+classified `verdict_rows` after, corrupts stale-removal detection: every
+recorded path outside the scope is then miscounted as `would-remove`. This is
+the same class as the delivery's first feared defect — narrowing an input that
+the removal logic reads as its keep-set — arriving on the preview path instead
+of the apply path. Caught by a real failing test, then fixed by mirroring
+`_apply_acted_rows`'s post-classification filter.
+
+### Observation carried to post-GATES review: AC-0039 row order vs evaluation order
+
+AC-0039 lists, in order: `source could not be resolved or its integrity could
+not be verified` (3), then `a --pack or --profile name the resolved source
+does not ship` (2), then `a recorded selection field is present and invalid`
+(3). `_run_apply` and now `_run_dry_run` evaluate `_underivable_condition` and
+`_resolve_effective_selection` BEFORE `replay_derivation`, so for an input
+matching both the source row and the invalid-selection row the code reports the
+selection row, where the table's first match is the source row.
+
+No exit-code contract is violated: both rows carry `3 — cannot-answer`, and
+AC-0039 governs the code. The unshipped-name row at code 2 cannot be reached
+out of order, because the table's own note fixes that whether a source ships a
+name "is not decidable until the source resolves".
+
+What made it visible was a phase-2 test asserting the refusal MESSAGE: it
+expected `source could not be verified` and got `the recorded packs selection
+is invalid`. T7 adjusted that fixture so the test still exercises the row its
+comment names. That is a legitimate fixture repair, but it does mean the
+ordering discrepancy is now unobserved by any test. **Recorded here for the
+post-GATES adversarial reviewer to judge** rather than repaired against a
+frozen plan, since the remedy is a row-order question and AC-0039 is § Ask
+first territory.

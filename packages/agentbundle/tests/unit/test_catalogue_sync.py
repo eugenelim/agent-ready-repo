@@ -1199,8 +1199,17 @@ def test_sync_json_document_shape_on_cannot_answer_resolution_refusal(
 def test_sync_json_document_shape_on_cannot_answer_verification_refusal(
     derived_tree, tmp_path, capsys
 ):
+    # `packs/alpha/` exists so T7's `_resolve_effective_selection` call (which
+    # `derived_tree`'s recorded `packs: ["alpha"]` would otherwise fail before
+    # this row is ever reached, since `alpha` would resolve from no source at
+    # all) resolves cleanly — no catalogue.toml is what still reaches
+    # `replay_derivation`'s own read and raises `ReplayError`.
     unverifiable_source = tmp_path / "unverifiable-source"
-    unverifiable_source.mkdir()  # no catalogue.toml -> ReplayError
+    pack = unverifiable_source / "packs" / "alpha"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
 
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(derived_tree), "--source", str(unverifiable_source),
@@ -4748,3 +4757,80 @@ def test_sync_apply_format_json_without_yes_exits_2_via_the_real_parser(tmp_path
     )
 
     assert catalogue_sync.run(args) == 2
+
+
+@pytest.mark.parametrize(
+    "scope_args",
+    [("--pack", "alpha"), ("--profile", "alpha"), ("--guides",)],
+    ids=["pack", "profile", "guides"],
+)
+def test_sync_check_with_a_scoping_flag_is_malformed(tmp_path, scope_args):
+    # AC-0030's --check clause / AC-0039's malformed row: any of --pack,
+    # --profile or --guides supplied with --check is malformed — `--check`
+    # answers whether the whole recorded recipe is current and has no
+    # scoped variant. Reached before source resolution, so a nonexistent
+    # source/target need no real fixture.
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(tmp_path), "--source", str(tmp_path),
+         "--check", *scope_args]
+    )
+
+    assert catalogue_sync.run(args) == 2
+
+
+def test_sync_dry_run_pack_scope_excludes_the_out_of_scope_pack_from_the_printed_plan(
+    tmp_path, capsys
+):
+    # AC-0043's preview half: the same scope that would restrict an apply
+    # run's write set restricts the plan a --dry-run preview prints. Both
+    # packs carry a real, would-update change here — asserting only that
+    # the in-scope pack's path is present would pass a preview that never
+    # narrows at all; the out-of-scope pack's path must actually be absent.
+    source = tmp_path / "scope-preview-source"
+    source.mkdir()
+    (source / "catalogue.toml").write_text(
+        '[catalogue]\nname = "upstream"\ndisplay_name = "Upstream"\n'
+        'description = "d"\n',
+        encoding="utf-8",
+    )
+    for name in ("alpha", "beta"):
+        pack = source / "packs" / name
+        pack.mkdir(parents=True)
+        (pack / "pack.toml").write_text(
+            f'[pack]\nname = "{name}"\nversion = "1.0.0"\n', encoding="utf-8"
+        )
+        (pack / "README.md").write_text(f"new {name} bytes\n", encoding="utf-8")
+
+    target = tmp_path / "scope-preview-target"
+    target.mkdir()
+    _write_apply_run_state(
+        target,
+        recipe={"packs": ["alpha", "beta"], "profiles": []},
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"old alpha bytes\n").hexdigest(),
+            },
+            {
+                "path": "packs/beta/README.md",
+                "sha256": hashlib.sha256(b"old beta bytes\n").hexdigest(),
+            },
+        ],
+    )
+    for name in ("alpha", "beta"):
+        readme = target / "packs" / name / "README.md"
+        readme.parent.mkdir(parents=True, exist_ok=True)
+        readme.write_bytes(f"old {name} bytes\n".encode())
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source),
+         "--dry-run", "--pack", "alpha", "--format", "json"]
+    )
+
+    code = catalogue_sync.run(args)
+    doc = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    paths = {row["path"] for row in doc["verdicts"]}
+    assert "packs/alpha/README.md" in paths
+    assert "packs/beta/README.md" not in paths
