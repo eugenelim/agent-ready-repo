@@ -4121,7 +4121,12 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
 
 # ── DAG / needs resolution ────────────────────────────────────────────────────
 
-_CROSS_INI_RE = re.compile(r'^(ini-[^:]+):work:(.+)$')
+# `\Z`, not `$`: this validates a whole dependency token, not a line, and `$`
+# also matches just before a trailing newline. `ini-002:work:spec/foo\n` matched
+# and yielded the clean `spec/foo`, so a malformed token compared equal to a
+# shipped entry's path and the dependency reported satisfied. A trailing tab was
+# already fail-closed; only the newline leaked, and only because of the anchor.
+_CROSS_INI_RE = re.compile(r'^(ini-[^:]+):work:(.+)\Z')
 
 
 def is_need_satisfied(
