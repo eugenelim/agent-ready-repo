@@ -37,6 +37,7 @@ disagree, `contracts/` is authoritative.
 | `skill.schema.json` | JSON Schema for skill frontmatter and body | yes |
 | `skill-manifest.schema.json` | JSON Schema for skill manifest files | yes |
 | `target-vocab.toml` | Vocabulary constraint for adapter target names | yes |
+| `REGISTRY.md` | Backward spec pointers for contracts whose format carries no `x-spec` key | no |
 | `jsonschema/knowledge-captured-observation.schema.json` | Captured project-knowledge observation envelope | yes |
 | `jsonschema/loop-run-event.schema.json` | One `.loop-run/events.jsonl` line the work-loop engine writes per FSM transition | no |
 | `jsonschema/delivery-lifecycle-record.schema.json` | Git-tracked delivery lifecycle record | no |
