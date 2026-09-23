@@ -8,6 +8,7 @@
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** capability:work-item-capture-and-disposition
+- **Decomposed:** 2026-09-19 spec
 
 ## Outcome
 

@@ -6,6 +6,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
+- **Decomposed:** 2026-09-10 children
 
 
 ## Outcome

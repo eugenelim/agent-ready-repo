@@ -10,6 +10,9 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:graph-powered-sdlc
+- **De-risked:** 2026-09-18
+- **Shaping-reviewed:** 2026-09-19
+- **Decomposed:** 2026-09-19 children
 
 ## Outcome
 

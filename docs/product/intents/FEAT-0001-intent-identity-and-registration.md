@@ -10,6 +10,9 @@
 - **Accepted:** 2026-09-19 by eugenelim — see [Acceptance record](#acceptance-record)
 
 - **Nonmaterial correction 2026-09-21 by eugenelim, lifecycle owner.** The preamble now carries the field set and order that `guides/product-engineering/reference/intent-fields-and-modes.md` defines — `Slug`, `Level`, `Scale`, `Maturity`, `Parent intent` — with the two lifecycle fields after them. `Accepted:` was 154 words of shaping-review narrative in a field position, which no reader can parse as a value; the narrative moved unchanged to `## Acceptance record` and the field now holds the date and the owner. Two links to this intent's delivery brief carried the brief's former title and now carry its current one. Nothing decided here changed, so the acceptance stands.
+- **De-risked:** 2026-09-18
+- **Shaping-reviewed:** 2026-09-19
+- **Decomposed:** 2026-09-19 brief
 
 ## Outcome
 

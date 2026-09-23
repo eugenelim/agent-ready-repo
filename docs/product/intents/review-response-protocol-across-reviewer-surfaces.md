@@ -8,6 +8,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** outcome:work-loop-review-economics
+- **Decomposed:** 2026-09-13 spec
 
 ## Outcome
 

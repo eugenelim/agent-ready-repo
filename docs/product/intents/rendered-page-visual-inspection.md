@@ -7,6 +7,7 @@
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** none
+- **Decomposed:** 2026-09-13 spec
 
 ## Who this is for
 

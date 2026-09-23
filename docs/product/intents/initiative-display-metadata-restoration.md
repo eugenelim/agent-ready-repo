@@ -4,6 +4,7 @@
 - **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
+- **Decomposed:** 2026-09-14 spec
 
 ## Outcome
 

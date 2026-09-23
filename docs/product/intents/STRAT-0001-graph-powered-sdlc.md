@@ -11,6 +11,8 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** outcome:ai-native-ecosystem
+- **Shaping-reviewed:** 2026-09-19
+- **Decomposed:** 2026-09-19 children
 
 ## Outcome
 
