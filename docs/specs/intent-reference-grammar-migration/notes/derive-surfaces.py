@@ -28,6 +28,21 @@ CORPUS_PREFIXES = ("docs/product/intents/", "docs/product/briefs/", "docs/specs/
 # its records are titled — this RFC's own title put `docs/rfc/README.md` into
 # two `states` groups, which is noise AC-0009 would then quantify over.
 DISCUSSES_ONLY_PREFIXES = ("docs/rfc/", "docs/adr/")
+# A surface is something an author is guided by or that code consumes. A test
+# fixture, an eval case and a saved review transcript contain the same header
+# text and guide nobody: counting them put 198 of 455 entries in the inventory
+# that no migration would ever need to touch. `examples/` is deliberately NOT
+# here — a shipped example is author-facing, and the brief sweep repointed one.
+NON_SURFACE_SEGMENTS = ("/tests/", "/test/", "/fixtures/", "/fixture/", "/evals/", "/eval/")
+NON_SURFACE_PREFIXES = (".context/",)
+
+
+def is_non_surface(relpath: str) -> bool:
+    return relpath.startswith(NON_SURFACE_PREFIXES) or any(
+        seg in f"/{relpath}" for seg in NON_SURFACE_SEGMENTS
+    )
+
+
 SKIP_DIRS = {".git", "node_modules", "build", "dist", ".venv", "__pycache__", ".pytest_cache"}
 
 # A *generic* preamble parser opens with a line-anchored `- **`, captures the
@@ -156,7 +171,7 @@ def derive(root: Path) -> dict[str, dict[str, list[str]]]:
 
         if path.suffix != ".md" or is_corpus(relpath):
             continue
-        if relpath.startswith(DISCUSSES_ONLY_PREFIXES):
+        if relpath.startswith(DISCUSSES_ONLY_PREFIXES) or is_non_surface(relpath):
             continue
 
         for field in FIELDS:
@@ -196,19 +211,26 @@ def derive(root: Path) -> dict[str, dict[str, list[str]]]:
                 # names none of the four.
                 inventory[field]["parses"].append(relpath)
 
-    # Generated copies: byte-identical duplicates. The pack source is the one
-    # under packs/*/.apm/; the rest are projections of it.
-    copies: list[str] = []
+    # Generated copies: byte-identical duplicates whose pack source is itself a
+    # surface for this field. Matching on basename instead put every same-named
+    # file in the tree under this role; the group is the evidence, so the group
+    # is what decides. `states` counts alongside `reads` and `writes` — a
+    # stating surface has projections like any other shipped file.
+    groups: list[tuple[str, list[str]]] = []
     for members in by_digest.values():
         if len(members) < 2:
             continue
-        if any("/.apm/" in m for m in members):
-            copies.extend(m for m in members if "/.apm/" not in m)
+        sources = [m for m in members if "/.apm/" in m]
+        if len(sources) == 1:
+            groups.append((sources[0], [m for m in members if m != sources[0]]))
     for field in FIELDS:
-        touched = set(inventory[field]["reads"]) | set(inventory[field]["writes"])
-        stems = {Path(m).name for m in touched}
+        touched = (
+            set(inventory[field]["reads"])
+            | set(inventory[field]["writes"])
+            | set(inventory[field]["states"])
+        )
         inventory[field]["generated-copy"] = sorted(
-            c for c in copies if Path(c).name in stems
+            c for src, projections in groups if src in touched for c in projections
         )
     return inventory
 
