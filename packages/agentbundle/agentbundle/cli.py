@@ -1099,11 +1099,19 @@ def _build_parser() -> argparse.ArgumentParser:
     _init_p.set_defaults(func=_lazy("catalogue_init"))
 
     # catalogue sync
+    #
+    # AC-0060 withdraws abbreviation on this subparser only: `--guides`
+    # is now its own registered scoping flag (below), so a prefix like
+    # `--guides-mo` can no longer silently resolve to `--guides-mode`
+    # (spec plan.md § Rollout records the one compatibility break this
+    # takes: every other abbreviation of a `sync` flag stops resolving
+    # too).
     _sync_p = cat_subs.add_parser(
         "sync",
+        allow_abbrev=False,
         help=(
-            "Preview what taking later upstream changes would do to a "
-            "derived catalogue. Read-only: writes nothing."
+            "Preview, check, or apply what taking later upstream changes "
+            "would do to a derived catalogue."
         ),
     )
     _sync_p.add_argument(
@@ -1153,7 +1161,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default="table",
         help="Output format: table (default, human-readable) or json (machine-readable).",
     )
-    _sync_mode = _sync_p.add_mutually_exclusive_group(required=True)
+    # AC-0030: `--dry-run`, `--check`, and neither (an apply run) are three
+    # mutually exclusive invocation modes, so the group is no longer
+    # `required=True` — a bare invocation is now valid and reaches the apply
+    # path. `--yes` only means anything on an apply run, so it joins the same
+    # group: supplying it alongside `--dry-run` or `--check` is malformed by
+    # the same structural mechanism that already refuses both flags together.
+    _sync_mode = _sync_p.add_mutually_exclusive_group()
     _sync_mode.add_argument(
         "--dry-run",
         action="store_true",
@@ -1166,11 +1180,51 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="check",
         help="Answer whether the tree is current. Writes nothing.",
     )
+    _sync_mode.add_argument(
+        "--yes",
+        action="store_true",
+        dest="yes",
+        help=(
+            "Apply run only: skip the consent prompt. Malformed with "
+            "--dry-run or --check."
+        ),
+    )
     _sync_p.add_argument(
         "--compare-tree",
         action="store_true",
         dest="compare_tree",
         help="With --check, compare every recorded path against the tree.",
+    )
+    # AC-0043's scoping flags. `run()` already reads these defensively for
+    # an apply run (each restricts the write set to its declared subtree).
+    # The same declared subtree is meant to restrict the plan a `--dry-run`
+    # preview prints and to be refused alongside `--check` — that wiring is
+    # `commands/catalogue_sync.py`'s, not this parser's; see plan.md T7's
+    # cross-task note. `--package` is a reserved selector, not a scoping
+    # flag, and is wired separately.
+    _sync_p.add_argument(
+        "--pack",
+        action="append",
+        dest="pack",
+        default=None,
+        metavar="NAME",
+        help="Restrict scope to packs/<NAME>/ (repeatable).",
+    )
+    _sync_p.add_argument(
+        "--profile",
+        dest="profile",
+        default=None,
+        metavar="NAME",
+        help="Restrict scope to profiles/<NAME>.toml.",
+    )
+    _sync_p.add_argument(
+        "--guides",
+        action="store_true",
+        dest="guides",
+        help=(
+            "Restrict scope to guides/_shared/. Distinct from --guides-mode, "
+            "which sets the replayed guides mode."
+        ),
     )
     _sync_p.set_defaults(func=_lazy("catalogue_sync"))
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -4631,3 +4632,119 @@ def test_run_apply_deferred_package_count_equals_planned_package_paths(tmp_path,
     assert doc["summary"]["deferred_package"] == 2
     # Never written: clause 5 excludes it from the write set entirely.
     assert (target_pkg / "one.txt").read_bytes() == before_one
+
+
+# T7: the parser admits an apply run (spec AC-0030, AC-0060, AC-0074).
+#
+# Every test below drives `_build_parser()` itself — never a hand-built
+# `argparse.Namespace` — because the parser's own defaults (and its own
+# refusals) are what these criteria constrain. AC-0043's `--dry-run`-side
+# scoping restriction and its `--check`-side malformed row are T6/T7's own
+# recorded gap (plan.md's live cross-task note): neither `run()` nor
+# `_run_dry_run` reads `--pack`/`--profile`/`--guides` yet, and that wiring
+# sits in `commands/catalogue_sync.py`, outside this task's `Touches:`.
+
+
+def _find_subparsers_action(parser: argparse.ArgumentParser) -> argparse._SubParsersAction:
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return action
+    raise AssertionError("no _SubParsersAction found on parser")
+
+
+def test_sync_bare_invocation_reaches_run_apply_via_the_real_parser(tmp_path):
+    # AC-0030: neither --dry-run nor --check present means apply. Reached
+    # through the real parser's own default for the now-optional mutually
+    # exclusive group — a hand-built namespace would supply that default
+    # itself and could not prove the parser decides it.
+    target, source = _apply_run_target(
+        tmp_path,
+        "bare-invocation",
+        managed_paths=[
+            {
+                "path": "packs/alpha/README.md",
+                "sha256": hashlib.sha256(b"old bytes\n").hexdigest(),
+            }
+        ],
+    )
+    readme = target / "packs" / "alpha" / "README.md"
+    readme.parent.mkdir(parents=True, exist_ok=True)
+    readme.write_bytes(b"old bytes\n")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--yes"]
+    )
+
+    assert catalogue_sync.run(args) == 0
+    assert readme.read_bytes() == (source / "packs" / "alpha" / "README.md").read_bytes()
+
+
+def test_sync_both_dry_run_and_check_exits_2_via_the_real_parser(tmp_path):
+    # AC-0030: supplying both flags is malformed.
+    with pytest.raises(SystemExit) as exc:
+        _build_parser().parse_args(
+            ["catalogue", "sync", str(tmp_path), "--source", str(tmp_path),
+             "--dry-run", "--check"]
+        )
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize("mode_flag", ["--dry-run", "--check"])
+def test_sync_yes_outside_apply_run_exits_2_via_the_real_parser(tmp_path, mode_flag):
+    # AC-0030: `--yes` outside an apply run is malformed. Asserting only
+    # that a bare apply run accepts `--yes` (the prior test) would pass a
+    # parser that also lets `--yes` ride along with `--dry-run`/`--check`.
+    with pytest.raises(SystemExit) as exc:
+        _build_parser().parse_args(
+            ["catalogue", "sync", str(tmp_path), "--source", str(tmp_path),
+             mode_flag, "--yes"]
+        )
+    assert exc.value.code == 2
+
+
+def test_sync_guides_resolves_to_scoping_flag_and_guides_mode_abbreviation_is_rejected():
+    # AC-0060: `--guides` is its own scoping flag (distinct from
+    # `--guides-mode`), and the subparser resolves no abbreviated option
+    # name — an abbreviation of `--guides-mode` is rejected rather than
+    # silently resolving to it. Asserting only that `--guides` works would
+    # pass a parser that still abbreviates `--guides-mode`.
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", "target", "--source", "source", "--guides", "--dry-run"]
+    )
+    assert args.guides is True
+    assert args.guides_mode is None
+
+    with pytest.raises(SystemExit) as exc:
+        _build_parser().parse_args(
+            ["catalogue", "sync", "target", "--source", "source",
+             "--guides-mo", "none", "--dry-run"]
+        )
+    assert exc.value.code == 2
+
+
+def test_sync_subparser_help_does_not_claim_the_command_is_read_only():
+    # AC-0074: the registered subparser's help string, read from the
+    # parser rather than from the source file, no longer claims the
+    # command is read-only or writes nothing.
+    parser = _build_parser()
+    catalogue_sp = _find_subparsers_action(parser).choices["catalogue"]
+    cat_sub_action = _find_subparsers_action(catalogue_sp)
+    sync_help = next(
+        pseudo.help
+        for pseudo in cat_sub_action._choices_actions
+        if pseudo.dest == "sync"
+    )
+    assert "read-only" not in sync_help.lower()
+    assert "writes nothing" not in sync_help.lower()
+
+
+def test_sync_apply_format_json_without_yes_exits_2_via_the_real_parser(tmp_path):
+    # AC-0030's document clause, driven through the real parser rather than
+    # `_call_run_apply`'s hand-built kwargs.
+    target, source = _apply_run_target(tmp_path, "json-no-yes-parser")
+
+    args = _build_parser().parse_args(
+        ["catalogue", "sync", str(target), "--source", str(source), "--format", "json"]
+    )
+
+    assert catalogue_sync.run(args) == 2
