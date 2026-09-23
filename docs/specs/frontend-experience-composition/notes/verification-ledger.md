@@ -146,3 +146,34 @@ Regression-proven in both directions against the current tree: declaring T8 done
 turns AC-0003, AC-0004, AC-0005 and AC-0047 red as `REGRESSED`; declaring T2
 pending turns AC-0002 back to `VACUOUS`. Real run: 48 of 48 classified, 1
 settled, 14 still owed, PASS.
+
+## T3 — the state-coverage map's assertions
+
+`tests/roster/test_experience_state_coverage_map.py`, ten assertions over three
+artifacts none of which can see the others: the contract's map, the eighteen
+states in `frontend-engineering/SKILL.md` § *3. State matrix*, and the state
+lines in `user-flow/assets/screen-brief-template.md`.
+
+Green against the real artifacts: 10 passed in 0.25s.
+
+**Mutation proof.** The assertions take the artifact text as fixtures, so each
+mutation is an injected copy and the tree is never edited. Every mutation is red,
+and the baseline is green:
+
+| Mutation | Caught by |
+| --- | --- |
+| a state removed | covers-every-floor-state, map-is-the-size, brief-line-resolves |
+| a state duplicated | covers-every-floor-state, map-is-the-size |
+| a brief line unmapped | every-brief-state-line-resolves |
+| a tier band emptied | every-band-carries-at-least-one-unconditional |
+| a conditional trigger stripped | a-conditional-state-names-its-trigger |
+| a WCAG-flagged state moved out of `explore` | no-tier-drops-an-accessibility-bearing-state |
+| a flag blanked | every-state-records-a-wcag-flag |
+| a success criterion dropped | names-its-success-criterion |
+
+The flag-blanking mutation is the one worth naming: the assertion refuses any
+value but `yes` or `no`, so a missing flag fails rather than reading as `no`.
+That is what stops the accessibility criterion passing by omission.
+
+This module is not yet wired to CI. T7 adds its `build-check.yml` step above the
+job's bulk `pytest tests/ -q` step; until then it runs but attributes no failure.
