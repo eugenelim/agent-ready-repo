@@ -3,7 +3,7 @@
 - **Slug:** `guidance-activation-measurement`
 - **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Draft
+- **Status:** Shipped
 
 ## Outcome
 
@@ -401,12 +401,12 @@ risk below forbids. Also rejected as a precedent claim: the
 `architecture-assessment-*` trio does not hold "a methodology, its corpus and
 the report over it" — its survey is desk research and its corpus is source
 packets. The per-item-verdict precedent is
-`docs/specs/bug-fix-systematic-debugging/notes/manual-invocation.md`.
+[`bug-fix-manual-invocation-evidence.md`](../research/bug-fix-manual-invocation-evidence.md).
 `architecture-assessment-intents-survey.md` is a desk-research synthesis
 answering a research question, and `architecture-assessment-corpus/` is living
 maintenance evidence of source packets — not results produced by running the
 methodology over the corpus. The real per-item-verdict precedent is
-`docs/specs/bug-fix-systematic-debugging/notes/manual-invocation.md`, one row
+[`bug-fix-manual-invocation-evidence.md`](../research/bug-fix-manual-invocation-evidence.md), one row
 per criterion with observed evidence and a verdict. A `docs/specs/<feature>/`
 home would put M1's decision rule inside the spec that implements M2, which is
 the co-location the top-ranked risk below forbids.
@@ -480,7 +480,7 @@ The ceiling and stall-threshold semantics come from that same sizing section.
   `docs/product/research/guidance-activation-methodology.md`, M2a's corpus is
   `docs/product/research/guidance-activation-corpus/`, and M3 is
   `docs/product/research/guidance-activation-report.md`. The per-item-verdict
-  precedent is `docs/specs/bug-fix-systematic-debugging/notes/manual-invocation.md`.
+  precedent is [`bug-fix-manual-invocation-evidence.md`](../research/bug-fix-manual-invocation-evidence.md).
   M1's
   verification is the git-observable ordering recorded in § "Proposed slices",
   not a read of its own text.

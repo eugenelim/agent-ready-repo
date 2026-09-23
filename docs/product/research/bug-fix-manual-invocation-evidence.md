@@ -1,4 +1,9 @@
-# Manual invocation evidence
+# Manual invocation evidence — bug-fix skill activation
+
+> Recorded during the `bug-fix-systematic-debugging` delivery (shipped
+> 2026-08-09, `48ef23511`) and rehomed here when that spec was retired. Cited
+> by [`guidance-activation-measurement`](../briefs/guidance-activation-measurement.md)
+> as the per-item-verdict precedent.
 
 - **Date:** 2026-08-09
 - **Command:** `codex exec --ephemeral --sandbox read-only --color never <prompt>`

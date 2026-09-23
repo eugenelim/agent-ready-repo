@@ -3,7 +3,7 @@
 - **Slug:** `stage-input-readiness`
 - **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Draft
+- **Status:** Shipped
 
 ## Outcome
 
@@ -186,10 +186,10 @@ the alternatives do not satisfy its firing-point constraints:
   is the sufficient trigger this brief already identifies as dominant. An ask
   placed there would never fire for the case it exists to catch.
 - **Amending that precedence is an RFC amendment, not a lint.**
-  `docs/specs/core-guidance-artifact-routing/spec.md:105` AC2 is a **ticked
-  `Shipped`** criterion pinning `work-intake` to "the RFC-0099 precedence
-  exactly", and it separately ticks that direct `new-spec` requests acquire no
-  second public answer. Inserting a pressure test on that route contradicts
+  The shipped `work-intake` skill is pinned to "the RFC-0099 precedence
+  exactly", and direct `new-spec` requests acquire no second public answer
+  (shipped 2026-08-28, `20c0ba50e`). Inserting a pressure test on that route
+  contradicts
   both ticks, so it needs an RFC-0099 amendment before B2 could be specced.
 - **Inside `new-spec` contradicts the firing point above**, which places the ask
   before `new-spec` is entered, and it collides with B3's owning surface.
@@ -385,8 +385,9 @@ checks only the pre-existing `Brief:` field and needs neither half.
   rather than merely confirming prose is present.
 - **B1 is a hard check because its reference class is clean.**
   `lint-spec-status.py` invariant (iii) is warn-only and its
-  promotion "stays deferred pending the observed warn rate"
-  (`docs/specs/spec-code-ref-lint/spec.md:51`); measured 2026-09-02 it emits
+  promotion stays deferred pending the observed warn rate
+  (`packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`, shipped
+  2026-05-30, `460a8945b`); measured 2026-09-02 it emits
   **183 warnings across 425 specs**, which is why that deferral holds for the
   broad dangling-reference class. B1's class is narrower by construction —
   non-`none` `Brief:` values only — and **all 15 of them resolve today**, so a
