@@ -162,7 +162,6 @@ draft     = [
   #
   {path = "docs/product/briefs/multi-adapter-eval-runner.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Add a Codex detector so activation can be measured on a non-Claude model, keeping the default adapter and the scheduled workflow unchanged", needs = []},
   #
-  {path = "docs/product/briefs/guidance-activation-measurement.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Measure whether the written-guidance mechanism binds -- graded on what an author produced while a rule was in context rather than on whether it was loaded -- across a mandatory local stratum of six named rules and a portability stratum of pinned adopter repositories, reported separately and never blended", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/policy-arrival-validator.md"}]},
   #
   # A -- keeps the predecessor's slug and file. Two artifacts outside this
   # split's scope link to it by path (work-loop-next-action.md and the
@@ -206,7 +205,6 @@ draft     = [
   # The non-goal on reviewers is narrowed by owner amendment: sequencing a
   # readiness gate before review is in scope; the review lens and the
   # adjudicator's contract stay out.
-  {path = "docs/product/briefs/stage-input-readiness.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make each authoring handoff ask whether the next stage can work from its input and record the answer: a pre-creation pressure test with a redirect to brief authoring, a bounded-spike disposition for an open unknown, readiness checks at new-spec's input and at the spec-and-plan handoff, and a readiness gate sequenced ahead of review", needs = []},
   # Authored 2026-09-01 by `author-delivery-brief create` after the
   # work-loop-next-projection spec was abandoned at e1bdde746, ten pre-EXECUTE
   # review rounds in, on a model error no clause repair could reach. Draft only:
@@ -222,6 +220,11 @@ draft     = [
 # `ref` and `parent`, and dropping it would orphan those references.
 shipped   = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
+  # Both moved from `draft` 2026-09-22: their Spec maps are fully Shipped and
+  # their `- **Status:**` lines now read Shipped, so `draft` was an impossible
+  # transition. Same remedy as tech-site-completion above.
+  {path = "docs/product/briefs/guidance-activation-measurement.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Measure whether the written-guidance mechanism binds -- graded on what an author produced while a rule was in context rather than on whether it was loaded -- across a mandatory local stratum of six named rules and a portability stratum of pinned adopter repositories, reported separately and never blended", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/policy-arrival-validator.md"}]},
+  {path = "docs/product/briefs/stage-input-readiness.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make each authoring handoff ask whether the next stage can work from its input and record the answer: a pre-creation pressure test with a redirect to brief authoring, a bounded-spike disposition for an open unknown, readiness checks at new-spec's input and at the spec-and-plan handoff, and a readiness gate sequenced ahead of review", needs = []},
 ]
 
 ["ini-002".work]
