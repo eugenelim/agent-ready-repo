@@ -172,31 +172,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- **Framing a bet can now state the experience depth it commits to.** The
-  experience contract its skills read carries the shared state-coverage map and
-  the tier ladder, so an intent can name a risk tier and have that mean a
-  defined set of obligations rather than a word.
+- **The contract this pack carries now defines what each depth owes.** Its copy
+  of the experience contract gained the shared state-coverage map and the
+  `frontend-engineering` owner label, so a team reading the contract alongside
+  an intent finds one definition of a risk tier rather than a bare word. The
+  pack's skills are unchanged and still do not read the contract themselves.
 
 ### Changed
 
 - The pack's copy of the experience contract carries the shared state-coverage
   map, and its frontend section names `frontend-engineering` as owner.
-- `frame-intent` gains an eval case covering the tier decision at intake.
+- `frame-intent` gains an eval case covering an intent that stays at its own
+  altitude for a public surface.
 
 ## [product-strategy][0.2.7] — 2026-09-23
 
 ### Highlights
 
-- **Strategy work can see what the cheap tier owes without reading the whole
-  contract.** The pack's contract copy carries the shared state-coverage map
-  and the tier annotations, so a synthesis can fill its own sections at the
-  right depth and leave the rest provisional rather than guessing.
+- **The contract this pack carries now defines what each depth owes.** Its copy
+  of the experience contract gained the shared state-coverage map and the
+  `frontend-engineering` owner label, so the tier annotations a strategist
+  reads there mean one thing across all four packs. The pack's skills are
+  unchanged and still do not read the contract themselves.
 
 ### Changed
 
 - The pack's copy of the experience contract carries the shared state-coverage
   map, and its frontend section names `frontend-engineering` as owner.
-- `synthesize-stakeholder-research` gains an eval case covering what a tier owes.
+- `synthesize-stakeholder-research` gains an eval case covering a synthesis
+  organized by theme that names its coverage gaps.
 
 ## [core][2.26.36] — 2026-09-22
 

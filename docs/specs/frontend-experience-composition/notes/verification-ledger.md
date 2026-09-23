@@ -595,7 +595,7 @@ T4's work rather than the file's background vocabulary.
 
 | Finding | Repair |
 | --- | --- |
-| Eval cases asserted contract-reading two skills never instruct | Narrowed both cases to what each skill's body does instruct. Widening `frame-intent` and `synthesize-stakeholder-research` to load the contract was the other option and was declined: AC-0006 and AC-0007 deliberately oblige only the other two skills, so it would expand scope past the accepted intent |
+| Eval cases asserted contract-reading two skills never instruct | Reworded both cases. **This repair did not land** — round 2 showed the reworded assertions still rested on the contract reference, which neither skill body names. Superseded by the round-2 repair below |
 | Illustrative-state assertions pinned two literal files while AC-0024/AC-0025 quantify over the tree | The file set is now derived from `packs/experience-design/`. Proven: a probe file added under that tree with `default · loading · offline` turns both assertions red, and was silent under the pinned pair |
 | Two how-to tables restated state counts, and "the four data-shape states" mislabelled `first-run` and `blocked` | Both tables now express state obligations by reference to the map, as they already did for fields. No state count remains in either file |
 | Ledger claimed all four eval diffs append-only | Made true rather than annotated: both files re-dumped under their own escaping convention, all four now `removed=0` |
@@ -643,3 +643,96 @@ following the second-newest core entry. They were moved to follow the newest.
 Base-sensitive readings re-taken on the rebased tree — AC-0046, AC-0048,
 AC-0042, AC-0039 and AC-0001 all exit 0. A recovery branch
 `recovery/pre-rebase-fec` marks the pre-rebase head.
+
+## Post-gates review, round 2
+
+A second `adversarial-reviewer` pass over the rebased diff, adjudicated
+independently. **Eleven findings raised: 8 sustained, 3 refuted.** Recorded as
+a findings round — `review_round_count` 2, eight fingerprints.
+
+### The round-1 eval repair did not land
+
+Round 1 sustained that the `frame-intent` and `synthesize-stakeholder-research`
+eval cases asserted contract-reading behaviour neither skill instructs. The
+repair reworded both cases and the ledger recorded them as "narrowed to what
+each skill's body does instruct". Round 2 measured that claim and it was false:
+
+```
+grep -rln "digital-experience-contract" packs/*/.apm/skills/*/SKILL.md
+  packs/experience-design/.apm/skills/design-review/SKILL.md
+  packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md
+```
+
+Two files, both edited by T6. In the other two packs the contract reference
+ships **unloaded**, so no case about the contract is reachable there, however it
+is worded. Rewording could never have fixed it.
+
+**Why the obvious repair was refused.** Adding the contract to those two
+`SKILL.md` bodies would have made the cases apt — and was adjudicated *not
+permitted*: no task's `Touches:` names `frame-intent/SKILL.md` or
+`synthesize-stakeholder-research/SKILL.md`, `Touches` is pinned contract, and it
+would create skill-load obligations beyond AC-0006 and AC-0007. It needs a
+controlled plan amendment, which this delivery did not open.
+
+Both cases were therefore rewritten to behaviour each skill's own procedure
+directs — intent altitude and Scale resolution for `frame-intent`, theme
+organisation and coverage gaps for `synthesize-stakeholder-research`. What the
+change actually gives those two packs is recorded rather than asserted: **an
+updated contract copy carrying the shared state-coverage map and the owner
+label, and a refreshed eval case — not a reading capability.** Their skills do
+not read the contract and this delivery does not make them.
+
+### The changelog promised the capability the packs did not get
+
+The `product-engineering` and `product-strategy` Highlights said the contract
+"its skills read" and that "strategy work can see what the cheap tier owes".
+Highlights project to the public `/now/` page, so that would have shipped an
+adopter-visible promise these versions do not deliver. Both now state what
+shipped — the contract copy and the eval case — and say plainly that the packs'
+skills are unchanged and still do not read the contract.
+
+### The derivation repaired in round 1 was still inert
+
+Round 1 made the ladder test's `contract` fixture load-bearing by deriving the
+expected tier set from `cumulative_obligations`. Round 2 showed the arithmetic
+cannot carry the claim: cumulative sums are running, so once `explore` has one
+annotation `pilot` and `production` are non-zero by construction and no tier can
+ever drop out. Measured: cumulative 10 / 25 / 32, per-tier 10 / 15 / 7. The
+derivation now reads per-tier annotations, where a tier the contract stops
+annotating genuinely disappears. The count assertion keeps its cumulative sums,
+which is what the plan's Constraints pin.
+
+### The rest
+
+| Finding | Repair |
+| --- | --- |
+| Three accessibility assertions could go vacuous together on an all-`no` WCAG column | A non-emptiness guard now lives in the module that owns the property. The sibling journey module already had one, so the regression was detectable — but a guard the next reader of this file will not find is a guard in the wrong place |
+| The derived illustrative-file scan is case-sensitive and assumed a colon | The docstring now states the shape it actually enforces — capitalised `States` plus a middle dot — rather than claiming every list under the tree. A matching line with no separator now fails naming its file and line instead of raising `IndexError` |
+| The say-this table marks `content-design` and `creative-direction` `Required` while the four-step thread omits both | `content-design` is pinned to `Required` by AC-0021 and T5's `Tests:`, so the reconciliation is on the thread side: the journey now says what `Required` means relative to the shorter thread — required for a complete thread, versus an input nothing downstream can reconstruct |
+| A draft-time note about a concurrent session shipped in the doctrine brief | Replaced with the standing relationship. `docs/product/AGENTS.md` § *Status has one home* is why it went stale unnoticed: a restated status is never re-checked |
+
+### What was refuted, and what that protected
+
+- **"The journey states 12 and 32 fields for the same contract."** Refuted on
+  observation: each count is attributed in its own sentence — the depth
+  sub-stage names "the shared experience contract", the allowance names "the
+  page/screen contract", matching the skill's own 12-field template.
+- **"The frontend tutorial's four-state teaching contradicts the explore
+  promise."** Refuted on authority. The promise's subject is tier-band
+  membership; the tutorial names the critical states of one worked
+  notification-card example and claims nothing about a band. AC-0024 and
+  AC-0025 quantify over `packs/experience-design/` by their own text, so
+  reaching into `guides/frontend-engineering/` would widen the criterion rather
+  than apply it — and the journey's own allowances expressly cover omitting
+  inapplicable states for a minor component variant.
+- **"A stale six-state count in `core-pack.md` now reads as a contradiction."**
+  True as a fact, refuted as an obligation: no criterion reaches it, and the
+  root `AGENTS.md` says to keep unrelated discoveries out of the current change.
+
+### The pattern across both rounds
+
+Every sustained finding in round 2 that was not new was a **round-1 repair that
+did not do what its ledger row claimed** — the eval rewording, and the fixture
+derivation. Both were recorded as done before being measured. The rule this
+delivery keeps relearning: write the claim from the result, and measure the
+result before writing the claim.

@@ -257,6 +257,23 @@ def test_every_state_records_a_wcag_flag(contract: str) -> None:
     )
 
 
+def test_the_map_flags_at_least_one_accessibility_bearing_state(contract: str) -> None:
+    """Verifies: the three accessibility assertions cannot go vacuous together.
+
+    `test_every_state_records_a_wcag_flag` admits a column of all `no`, and the
+    two assertions below it then filter on `yes` and iterate an empty set — so a
+    map recording no accessibility-bearing state at all would satisfy every one
+    of them. The sibling journey module has a non-emptiness guard, but the
+    property belongs to this module, and a guard that lives somewhere else is a
+    guard the next reader of this file will not find.
+    """
+    flagged = [r[0] for r in map_rows(contract) if r[3].strip().lower() == "yes"]
+    assert flagged, (
+        "no state in the map is flagged as failing WCAG 2.2 AA when absent; "
+        "the accessibility assertions below would all pass over an empty set"
+    )
+
+
 def test_no_tier_drops_an_accessibility_bearing_state(contract: str) -> None:
     """Verifies: a state whose absence fails WCAG 2.2 AA is owed at every tier.
 

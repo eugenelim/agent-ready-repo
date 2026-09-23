@@ -94,7 +94,7 @@ resolver. It is not a fourth adjacent item.
 
 ## Assumptions / Risks
 
-- Another session is editing the `frontend-experience-composition` spec, plan, and workspace entry. This brief does not touch them or treat the edits as approved.
+- `frontend-experience-composition` is the delivery that composes the two packs' depth ladders. This brief scopes the doctrine work around it and does not restate its status; read that spec for where it stands.
 - The motion, anti-sameness, modern-CSS, and harness rows are gaps, not accepted product intents. Their user outcome and bounds still need framing.
 - Reference reconciliation needs judgment. Equal names do not prove equal contracts. Unequal hashes do not prove useful differences.
 - The journey-page mismatch is a contract defect, not a new doctrine outcome. Its repair should stay inside the owning projection path.

@@ -51,14 +51,15 @@
       ]
     },
     {
-      "id": "contract-tier-at-intake",
-      "prompt": "We're framing a new checkout redesign that will go straight to public release. How should the intent record the experience depth this commits us to?",
-      "expected_output": "The intent names the outcome and the opportunity behind it and stays at the intent altitude. Where it records experience depth, it states the risk tier the surface warrants \u2014 production, for a public checkout \u2014 as a declared value the downstream experience contract carries in its frontmatter, and does not enumerate which fields or states that tier owes. It marks the design and frontend obligations as belonging to those disciplines rather than filling them in.",
+      "id": "outcome-stays-at-intent-altitude-for-a-public-surface",
+      "prompt": "We're framing a new checkout redesign that will go straight to public release. Shape this into an intent.",
+      "expected_output": "A level-tagged intent carrying a steerable outcome and a solution-independent opportunity, with Scale resolved at intake and the altitude picked from the recognized set. It stops at the intent: it does not specify the surface's states, its field-level obligations, or any design or frontend detail, and it seeds the assumptions that must hold for the bet to pay off. The artifact path is resolved through the config-driven procedure and surfaced before writing.",
       "assertions": [
-        "States an outcome and the opportunity, not a solution or a spec",
-        "Names the risk tier the surface warrants and leaves the tier's obligations to the contract",
-        "Does not enumerate contract fields or surface states in the intent",
-        "Leaves design and frontend obligations to those disciplines"
+        "Resolves Scale at intake and picks the altitude from the recognized set",
+        "States a steerable outcome and a solution-independent opportunity",
+        "Stops at the intent \u2014 no states, no field-level obligations, no design or frontend detail",
+        "Seeds the assumptions that must be true for the bet to pay off",
+        "Resolves and surfaces the output path before writing"
       ]
     }
   ]

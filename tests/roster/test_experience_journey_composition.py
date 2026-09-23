@@ -120,10 +120,13 @@ def test_the_journey_states_the_whole_ladder(contract: str, pack: str) -> None:
     Asserted before the counts: a journey that simply omitted a tier would
     otherwise pass the comparison below over the tiers it happened to mention.
     """
-    # The expected tier set comes from the contract's own annotations, not from
-    # the module's TIERS constant: a tier the contract stops annotating should
-    # stop being owed here, and a tier it starts annotating should start.
-    expected = [tier for tier in TIERS if cumulative_obligations(contract)[tier]]
+    # Per-tier annotation counts, not the cumulative sums: cumulative totals are
+    # running, so once `explore` carries one annotation every higher tier is
+    # non-zero by construction and no tier could ever drop out. Counting each
+    # tier's own annotations is what makes a tier the contract stops annotating
+    # stop being owed here.
+    annotated = set(_ANNOTATION.findall(contract))
+    expected = [tier for tier in TIERS if tier in annotated]
     ladder = stated_ladder(JOURNEYS[pack].read_text(encoding="utf-8"))
     missing = [tier for tier in expected if tier not in ladder]
     assert not missing, f"{pack}: the journey states no field count for {missing}"
@@ -334,14 +337,18 @@ def test_the_design_journey_names_its_minimal_viable_thread() -> None:
 
 
 def illustrative_state_files() -> list[Path]:
-    """Every Markdown file under `packs/experience-design/` that carries an
-    illustrative state list.
+    """Every Markdown file under `packs/experience-design/` whose text carries a
+    transcript-shaped state list.
 
-    Derived from the tree rather than a pinned pair, because AC-0024 and AC-0025
+    Derived from the tree rather than a pinned pair, because the criteria
     quantify over `packs/experience-design/` and a transcript added to a third
-    file would otherwise be untested with nothing reporting the gap. The
-    middle-dot shape is still the scoping device: it is what the transcripts
-    use, and it keeps ordinary prose out.
+    file would otherwise be untested with nothing reporting the gap.
+
+    The shape this enforces, stated rather than implied: a line containing the
+    capitalised word `States` and a middle dot. A list written `states:` is out
+    of scope, and so is one separated any other way. That is narrower than the
+    criteria's own wording, and it is the scoping device that keeps ordinary
+    prose out; widening it means widening this docstring with it.
     """
     found = [
         path for path in sorted(XD.rglob("*.md"))
@@ -368,6 +375,10 @@ def test_no_illustrative_state_list_names_a_state_outside_the_floor() -> None:
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "States" not in line or "·" not in line:
                 continue
+            assert ":" in line, (
+                f"{path.name}:{n} looks like a state list but carries no "
+                f"'States:' separator, so it cannot be parsed: {line.strip()!r}"
+            )
             listed = [
                 s.strip().rstrip("✓").strip()
                 for s in line.split(":", 1)[1].split("·")
@@ -480,6 +491,10 @@ def test_every_illustrative_state_list_is_within_the_explore_subset() -> None:
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "States" not in line or "\u00b7" not in line:
                 continue
+            assert ":" in line, (
+                f"{path.name}:{n} looks like a state list but carries no "
+                f"'States:' separator, so it cannot be parsed: {line.strip()!r}"
+            )
             listed = [
                 s.strip().rstrip("\u2713").strip()
                 for s in line.split(":", 1)[1].split("\u00b7")
