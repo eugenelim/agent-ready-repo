@@ -128,6 +128,22 @@ preserve protected target content during install, upgrade, and uninstall.
 configuration without applying changes. `adapt` reports upstream companions
 instead of silently overwriting them.
 
+### 6.1 Hook-wiring drop behaviour is per adapter
+
+There is no single rule here, and this page deliberately does not state one.
+Whether an incompatible hook-wiring file is dropped individually, passed through
+whole, or fails the render differs by adapter — as does what happens to
+malformed TOML, at which stage it is detected, and whether projection files were
+already written when it fails.
+
+Three attempts to summarise that behaviour were each refuted by an adapter that
+did it differently, so read the adapter's own projection path rather than
+generalising from another one. The authorities are
+[`contracts/adapter.toml`](../../contracts/adapter.toml) for declared modes and
+event mappings, `commands/_drop_warning.py` for per-file drop classification and
+formatting, `commands/install.py`, `build/adapters/<adapter>.py`, and the
+`build/projections/` mergers.
+
 ## 7. Observability and evidence
 
 `list-installed`, `show`, `diff`, `reconcile`, and `validate` expose
@@ -135,6 +151,15 @@ installed state, source content, drift, orphaned configuration, and conformance.
 
 Build output, self-host projections, manifests, and install-state files provide
 the durable evidence record.
+
+Install emits **one composed warning per root, pack, adapter, and scope**,
+combining primitive-type drops with per-file drops rather than one line per
+dropped file.
+
+Pack-source lint findings sort by trailing relative path. Both human and JSON
+modes exit non-zero only when an **ERROR**-severity finding exists — a run
+carrying only WARN or INFO findings still exits zero, so exit status answers
+"were there errors", not "was it clean".
 
 ### 7.1 The install-time layout default
 
@@ -230,6 +255,17 @@ does not govern, and what it supersedes in ADR-0030.
 
 - `agentbundle catalogue verify` verifies projected agent artifacts and
   adapter conformance.
+- Target metadata constraints live in `contracts/target-vocab.toml`, a separate
+  contract from `adapter.toml`; where targets declare differing numeric limits
+  the strictest applies, and every declared target must share one name pattern.
+  **The gate enforcing this is currently unreachable from either documented
+  entrypoint.** `make lint-packs` and `agentbundle lint packs` both route to
+  `agentbundle catalogue lint`, which calls `lint_pack(pack_dir)` with no
+  `constraints` argument — and that function's own contract is that omitting it
+  "matches the pre-vocab gate exactly". Only `build/lint_packs.py`'s
+  `cmd_lint_packs` loads the vocabulary, and nothing in the documented lint path
+  reaches it. Treat the constraint as declared-but-unenforced until that is
+  wired.
 - The self-host drift gate raises `CAT-V-015` for source/projection drift and
   `CAT-V-014` for generated `dist/` drift.
 - `tools/catalogue/check_contract_parity.py` requires portable contract schemas
