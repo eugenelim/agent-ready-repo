@@ -733,6 +733,9 @@ jobs:
       - name: pytest catalogue Wave 4 live contracts (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_catalogue_wave4_live_contracts.py
+      - name: pytest catalogue-sync decline branch alignment (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_catalogue_sync_decline_branch_alignment.py
 
       # consolidated-pack-layout (RFC-0040): the installer _append_layout_section
       # construction tests (never-create / never-overwrite / injection-safe emit

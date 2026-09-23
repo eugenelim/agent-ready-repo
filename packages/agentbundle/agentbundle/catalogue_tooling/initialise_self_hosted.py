@@ -28,13 +28,15 @@ import unicodedata
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from agentbundle.build.user_libs import PACK_NAME as _USER_LIBS_PACK
 from agentbundle.build.user_libs import PACKAGE_SUBPATH as _USER_LIBS_PACKAGE_SUBPATH
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
+    sha256_confined_regular_file,
+    validate_confined_directory,
 )
 from agentbundle.catalogue_tooling.identity import (
     BINARY_EXT,
@@ -402,6 +404,18 @@ def _prompt(prompt_text: str) -> str:
         return ""
 
 
+def _resolve_field(prompt_text: str, default: str, *, interactive: bool) -> str:
+    """Return default without prompting when not interactive.
+
+    A replay caller (``interactive=False``) never reaches ``_prompt``: the
+    resolved value must come from a flag or that flag's safe default, never
+    from a recorded recipe read back through a prompt seed.
+    """
+    if not interactive:
+        return default
+    return _prompt(prompt_text) or default
+
+
 def _recipe_diagnostic(field_name: str, reason: str) -> str:
     """Describe a discarded state value without echoing attacker-controlled text."""
     return (
@@ -516,11 +530,15 @@ def collect_fields(
     cfg: SelfHostedInitConfig,
     source_meta: dict[str, Any],
     recipe: _SelfHostRecipeInput | None = None,
+    *,
+    interactive: bool = True,
 ) -> SelfHostedInitConfig:
     """Return a resolved copy of cfg with defaults filled in.
 
-    TTY-gated: prompts for missing required fields when stdin is a TTY;
-    falls back to derived defaults when not a TTY.
+    TTY-gated: prompts for missing required fields when stdin is a TTY and
+    ``interactive`` is True; falls back to derived defaults otherwise. A
+    replay caller passes ``interactive=False`` so a recorded recipe value
+    never reaches the prompt seed on a TTY.
     """
     cat = source_meta.get("catalogue", {})
 
@@ -528,16 +546,19 @@ def collect_fields(
     name = cfg.name
     if not name:
         default_name = recipe.name or _derive_name(cfg.target)
-        name = _prompt(f"Catalogue name [{default_name}]: ") or default_name
+        name = _resolve_field(
+            f"Catalogue name [{default_name}]: ", default_name, interactive=interactive
+        )
 
     display_name = cfg.display_name
     if not display_name:
         default_display_name = recipe.display_name or (
             name.replace("-", " ").replace("_", " ").title()
         )
-        display_name = (
-            _prompt(f"Display name [{default_display_name}]: ")
-            or default_display_name
+        display_name = _resolve_field(
+            f"Display name [{default_display_name}]: ",
+            default_display_name,
+            interactive=interactive,
         )
 
     description = cfg.description
@@ -547,8 +568,10 @@ def collect_fields(
             recipe.description
             or f"A self-hosted catalogue derived from {src_name}."
         )
-        description = (
-            _prompt(f"Description [{default_description}]: ") or default_description
+        description = _resolve_field(
+            f"Description [{default_description}]: ",
+            default_description,
+            interactive=interactive,
         )
 
     owner_name = cfg.owner_name
@@ -559,7 +582,9 @@ def collect_fields(
             if recipe.owner_name is not None
             else "Owner name: "
         )
-        owner_name = _prompt(owner_prompt) or default_owner_name
+        owner_name = _resolve_field(
+            owner_prompt, default_owner_name, interactive=interactive
+        )
 
     owner_email = cfg.owner_email
     if not owner_email:
@@ -569,7 +594,9 @@ def collect_fields(
             if recipe.owner_email is not None
             else "Owner email: "
         )
-        owner_email = _prompt(email_prompt) or default_owner_email
+        owner_email = _resolve_field(
+            email_prompt, default_owner_email, interactive=interactive
+        )
 
     preferred_adapter = (
         cfg.preferred_adapter
@@ -1040,68 +1067,91 @@ def _migrate_managed_paths(old_state: dict) -> list[dict]:
     return result
 
 
-def _remove_stale_owned_paths(
+def _plan_stale_owned_paths(
     target: Path,
     old_state: dict,
     current_paths: set[str],
 ) -> tuple[list[str], list[str]]:
-    """Remove stale owned paths (in old state, not in new plan) with guards.
+    """Plan safe removal of stale owned paths and report every decline.
 
-    Path confinement: rejects entries whose resolved path escapes target.
-    SHA guard: skips entries whose on-disk sha256 differs from recorded
-    (user-modified), or whose recorded sha256 is None (schema-1 migration).
+    The confined hash helper rejects escaping, link-like, non-regular, and
+    unreadable entries before comparison.  A reason is emitted for each entry
+    that cannot leave this guard as removable.
 
-    Returns (removed_paths, warning_messages).
+    Returns ``(removable_paths, decline_reasons)`` in recorded-path order.
     """
-    removed: list[str] = []
-    warnings: list[str] = []
+    removable: list[str] = []
+    reasons: list[str] = []
 
     paths_with_sha = _migrate_managed_paths(old_state)
-    target_resolved = target.resolve()
 
     for entry in paths_with_sha:
         rel_path = entry.get("path", "")
         recorded_sha = entry.get("sha256")
 
-        if not rel_path or rel_path in current_paths:
+        if not rel_path:
+            reasons.append(
+                "skipped removal of '': malformed-recorded-path"
+            )
             continue
-
-        # Path confinement guard.
-        try:
-            candidate = (target / rel_path).resolve()
-            candidate.relative_to(target_resolved)
-        except (ValueError, OSError):
-            warnings.append(
-                f"skipped removal of {rel_path!r}: path resolves outside target directory"
+        if rel_path in current_paths:
+            reasons.append(
+                f"skipped removal of {rel_path!r}: path-remains-current"
             )
             continue
 
         target_file = target / rel_path
+        try:
+            validate_confined_directory(target, target_file.parent)
+        except UnsafeContentError:
+            reasons.append(
+                f"skipped removal of {rel_path!r}: path-confinement-refused"
+            )
+            continue
         if not target_file.exists():
+            reasons.append(
+                f"skipped removal of {rel_path!r}: recorded-path-absent"
+            )
             continue
 
         # SHA guard: skip if no recorded sha256 (migrated from schema 1).
         if recorded_sha is None:
-            warnings.append(
-                f"skipped removal of {rel_path!r}: "
-                "no recorded sha256 (migrated from schema 1 — cannot verify ownership)"
+            reasons.append(
+                f"skipped removal of {rel_path!r}: missing-recorded-sha256"
             )
             continue
 
         # SHA guard: skip if on-disk content differs (user edited the file).
         try:
-            on_disk_sha = hashlib.sha256(target_file.read_bytes()).hexdigest()
-        except OSError:
+            on_disk_sha = sha256_confined_regular_file(target, target_file)
+        except UnsafeContentError:
+            reasons.append(
+                f"skipped removal of {rel_path!r}: recorded-entry-unreadable"
+            )
             continue
         if on_disk_sha != recorded_sha:
-            warnings.append(
-                f"skipped removal of {rel_path!r}: "
-                "on-disk sha256 differs from recorded value (file may have been modified)"
+            reasons.append(
+                f"skipped removal of {rel_path!r}: recorded-sha256-mismatch"
             )
             continue
 
+        removable.append(rel_path)
+
+    return removable, reasons
+
+
+def _remove_stale_owned_paths(
+    target: Path,
+    old_state: dict,
+    current_paths: set[str],
+) -> tuple[list[str], list[str]]:
+    """Remove only the stale paths admitted by :func:`_plan_stale_owned_paths`."""
+    removable, warnings = _plan_stale_owned_paths(target, old_state, current_paths)
+    removed: list[str] = []
+
+    for rel_path in removable:
         try:
-            target_file.unlink()
+            (target / rel_path).unlink()
             removed.append(rel_path)
         except OSError as exc:
             warnings.append(f"failed to remove {rel_path!r}: {exc}")
@@ -1186,28 +1236,71 @@ def _build_next_steps(cfg: SelfHostedInitConfig, pack_names: list[str]) -> list[
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
-    """Initialize a self-hosted catalogue at cfg.target from cfg.source.
+class ReplayError(Exception):
+    """A step 1-6 source or field precondition failed inside :func:`replay_derivation`.
 
-    Returns a SelfHostedInitResult with ok=True on success.
-    Exit semantics: result.ok=False → exit 1; violations present → exit 1.
-    Usage errors (bad config) are raised as ValueError before this is called.
+    Carries the exact diagnostic messages ``init_self_hosted``'s inline
+    ``_fail()`` closure previously returned directly, plus ``cfg`` as of the
+    failure — after ``collect_fields`` when the failure happens downstream of
+    it — so a caller reproduces the same ``SelfHostedInitResult`` unchanged.
+    """
+
+    def __init__(self, cfg: SelfHostedInitConfig, messages: list[str]) -> None:
+        super().__init__("; ".join(messages) or "replay failed")
+        self.cfg = cfg
+        self.messages = messages
+
+
+@dataclass
+class DerivationReplay:
+    """The in-memory result of replaying steps 1-9 of a self-hosted derivation.
+
+    Never touches ``cfg.target``. Carries everything ``init_self_hosted``'s
+    write phase (steps 10-14) needs to finish the run, and everything a
+    read-only caller such as ``sync`` needs to report a plan without writing.
+    """
+
+    config: SelfHostedInitConfig
+    source_meta: dict[str, Any]
+    source: SelfHostedSource
+    old_state: dict[str, Any] | None
+    field_collection_mode: str
+    recorded_recipe: SelfHostRecipe
+    pack_names: list[str]
+    profile_names: list[str]
+    file_bytes: dict[str, bytes]
+    file_kinds: dict[str, str]
+    anchors: dict[str, str]
+    identity_replacements: list[dict]
+    violations: list[Violation]
+    diagnostics: list[str]
+
+
+def replay_derivation(
+    cfg: SelfHostedInitConfig, *, interactive: bool = True
+) -> DerivationReplay:
+    """Replay steps 1-9 of a self-hosted derivation without writing.
+
+    Validates the source, resolves fields, selects packs and profiles, builds
+    the in-memory file plan, applies the identity transform, and runs the
+    identity leak check — the same one ``init`` applies, against the same
+    anchor set built from the same source metadata. Raises
+    :class:`ReplayError` on any step 1-6 precondition failure. ``cfg.target``
+    is read (old ownership state) but never written.
+
+    ``interactive`` threads through to :func:`collect_fields`: ``init`` calls
+    this with the default ``True`` so a TTY still prompts; a read-only replay
+    caller such as ``sync`` passes ``False``.
     """
     diagnostics: list[str] = []
 
-    def _fail(*msgs: str, violations: list[Violation] | None = None) -> SelfHostedInitResult:
-        return SelfHostedInitResult(
-            ok=False,
-            dry_run=cfg.dry_run,
-            name=cfg.name or "",
-            diagnostics=[*diagnostics, *msgs],
-            violations=violations or [],
-        )
+    def _fail(*msgs: str) -> NoReturn:
+        raise ReplayError(cfg, [*diagnostics, *msgs])
 
     # 1. Validate source (read catalogue.toml).
     source_meta, err = _read_source_catalogue(cfg.source)
     if err:
-        return _fail(err)
+        _fail(err)
 
     # 2. Check for outdated export-catalogue skill.
     export_cat_path = (
@@ -1215,7 +1308,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         / ".apm" / "skills" / "export-catalogue"
     )
     if export_cat_path.is_dir():
-        return _fail(
+        _fail(
             "source contains outdated catalogue-curation with export-catalogue — "
             "update source to 0.2.0 or later"
         )
@@ -1224,7 +1317,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     if cfg.tooling == "vendored":
         agentbundle_src = cfg.source / "packages" / "agentbundle"
         if not agentbundle_src.is_dir() or agentbundle_src.is_symlink():
-            return _fail(
+            _fail(
                 "source is missing packages/agentbundle/ — "
                 "vendored mode requires a self-hosted source catalogue, not a runtime archive"
             )
@@ -1245,7 +1338,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     field_collection_mode = "explicit" if any(
         [cfg.name, cfg.display_name, cfg.description, cfg.owner_name, cfg.owner_email]
     ) else "default"
-    cfg = collect_fields(cfg, source_meta, recipe)
+    cfg = collect_fields(cfg, source_meta, recipe, interactive=interactive)
 
     # 5. Transform the replay values, then validate the exact values that the
     # ownership state will record.
@@ -1266,14 +1359,14 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     )
     errors = validate_fields(cfg, recorded_recipe=recorded_recipe)
     if errors:
-        return _fail(*errors)
+        _fail(*errors)
 
     # 6. Select packs and profiles.
     try:
         pack_names = select_packs(cfg.source, cfg.packs)
         profile_names = _select_profiles(cfg.source, cfg.profiles)
     except ValueError as exc:
-        return _fail(str(exc))
+        _fail(str(exc))
 
     # 7. Build in-memory file content plan.
     file_bytes: dict[str, bytes] = {}
@@ -1306,7 +1399,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             src_pack, f"packs/{pack_name}", kind="pack"
         )
         if collect_error:
-            return _fail(collect_error)
+            _fail(collect_error)
 
     # Copy profiles.
     for profile_name in profile_names:
@@ -1318,7 +1411,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                     cfg.source / "profiles", src_profile
                 )
             except UnsafeContentError as exc:
-                return _fail(f"unsafe source content: {exc}")
+                _fail(f"unsafe source content: {exc}")
             file_kinds[rel] = "profile"
 
     # Copy guides/_shared/ if requested.
@@ -1329,7 +1422,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 src_guides, "guides/_shared", kind="guide"
             )
             if collect_error:
-                return _fail(collect_error)
+                _fail(collect_error)
         else:
             diagnostics.append("guides/_shared/ not found in source; skipping guide copy")
 
@@ -1343,7 +1436,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             kind="conformance",
         )
         if collect_error:
-            return _fail(collect_error)
+            _fail(collect_error)
 
     # The credbroker package source travels with the pack that vendors it, in
     # BOTH tooling modes — it is a build input the user-libs projection resolves
@@ -1358,7 +1451,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 exclude=_USER_LIBS_PACKAGE_EXCLUDE,
             )
             if collect_error:
-                return _fail(collect_error)
+                _fail(collect_error)
         else:
             diagnostics.append(
                 f"{_USER_LIBS_PACKAGE_DIR}/ not found in source; the "
@@ -1376,7 +1469,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             exclude=_VENDORED_ENGINE_EXCLUDE,
         )
         if collect_error:
-            return _fail(collect_error)
+            _fail(collect_error)
         src_curation = cfg.source / "packs" / "catalogue-curation"
         if src_curation.is_dir() and not src_curation.is_symlink():
             collect_error = _collect_source_dir(
@@ -1386,7 +1479,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 exclude=_VENDORED_PACK_EXCLUDE,
             )
             if collect_error:
-                return _fail(collect_error)
+                _fail(collect_error)
         else:
             diagnostics.append(
                 "packs/catalogue-curation/ not found in source; skipping vendored curation copy"
@@ -1404,6 +1497,59 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     # so --dry-run correctly surfaces violations without any target writes).
     id_violations, ci_violations = _verify_bytes_in_tmpdir(file_bytes, anchors, cfg)
     all_violations = id_violations + ci_violations
+
+    return DerivationReplay(
+        config=cfg,
+        source_meta=source_meta,
+        source=source_provenance,
+        old_state=old_state,
+        field_collection_mode=field_collection_mode,
+        recorded_recipe=recorded_recipe,
+        pack_names=pack_names,
+        profile_names=profile_names,
+        file_bytes=file_bytes,
+        file_kinds=file_kinds,
+        anchors=anchors,
+        identity_replacements=identity_replacements,
+        violations=all_violations,
+        diagnostics=diagnostics,
+    )
+
+
+def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
+    """Initialize a self-hosted catalogue at cfg.target from cfg.source.
+
+    Returns a SelfHostedInitResult with ok=True on success.
+    Exit semantics: result.ok=False → exit 1; violations present → exit 1.
+    Usage errors (bad config) are raised as ValueError before this is called.
+    """
+    try:
+        replay = replay_derivation(cfg)
+    except ReplayError as exc:
+        return SelfHostedInitResult(
+            ok=False,
+            dry_run=exc.cfg.dry_run,
+            name=exc.cfg.name or "",
+            diagnostics=exc.messages,
+            violations=[],
+        )
+
+    cfg = replay.config
+    diagnostics: list[str] = list(replay.diagnostics)
+    pack_names = replay.pack_names
+    profile_names = replay.profile_names
+    file_bytes = replay.file_bytes
+    all_violations = replay.violations
+
+    def _fail(*msgs: str, violations: list[Violation] | None = None) -> SelfHostedInitResult:
+        return SelfHostedInitResult(
+            ok=False,
+            dry_run=cfg.dry_run,
+            name=cfg.name or "",
+            diagnostics=[*diagnostics, *msgs],
+            violations=violations or [],
+        )
+
     if all_violations:
         return SelfHostedInitResult(
             ok=False,
@@ -1418,21 +1564,21 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             selected_packs=pack_names,
             selected_profiles=profile_names,
             selected_adapters=cfg.adapters or [cfg.preferred_adapter or "claude-code"],
-            field_collection_mode=field_collection_mode,
-            identity_replacements=identity_replacements,
+            field_collection_mode=replay.field_collection_mode,
+            identity_replacements=replay.identity_replacements,
             leak_scan_result={
                 "ok": False,
                 "violation_count": len(all_violations),
             },
-            source=source_provenance,
+            source=replay.source,
             summary="self-hosted init failed: identity leak check found violations",
         )
     leak_scan_result: dict = {"ok": True, "violation_count": 0}
 
     # 10. Load old ownership state; split planned files into owned vs new.
     old_owned_paths: set[str] = set()
-    if old_state:
-        for entry in _migrate_managed_paths(old_state):
+    if replay.old_state:
+        for entry in _migrate_managed_paths(replay.old_state):
             if isinstance(entry, dict) and "path" in entry:
                 old_owned_paths.add(entry["path"])
 
@@ -1440,7 +1586,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         (rp, file_bytes[rp]) for rp in sorted(file_bytes) if rp in old_owned_paths
     ]
     new_planned_files: list[PlannedFile] = [
-        PlannedFile(rel_path=rp, kind=file_kinds.get(rp, "file"), content=file_bytes[rp])
+        PlannedFile(rel_path=rp, kind=replay.file_kinds.get(rp, "file"), content=file_bytes[rp])
         for rp in sorted(file_bytes) if rp not in old_owned_paths
     ]
 
@@ -1492,9 +1638,9 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             return _fail(f"write failed: {exc}")
 
         # 12. Remove stale owned paths (only after new files are safely written).
-        if old_state:
+        if replay.old_state:
             _removed, skip_warnings = _remove_stale_owned_paths(
-                cfg.target, old_state, set(file_bytes.keys())
+                cfg.target, replay.old_state, set(file_bytes.keys())
             )
             diagnostics.extend(skip_warnings)
 
@@ -1511,7 +1657,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             ],
             adapters=adapters,
             managed_target_path=str(cfg.target),
-            source_pack_identity=_source_pack_identity(source_meta, cfg),
+            source_pack_identity=_source_pack_identity(replay.source_meta, cfg),
             source_root_kind="self-hosted-source",
             recipe=SelfHostRecipe(
                 packs=pack_names,
@@ -1519,13 +1665,13 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 guides=cfg.guides,
                 attribution=cfg.attribution,
                 tooling=cfg.tooling,
-                name=recorded_recipe.name,
-                display_name=recorded_recipe.display_name,
-                description=recorded_recipe.description,
-                owner_name=recorded_recipe.owner_name,
-                owner_email=recorded_recipe.owner_email,
-                preferred_adapter=recorded_recipe.preferred_adapter,
-                repository_url=recorded_recipe.repository_url,
+                name=replay.recorded_recipe.name,
+                display_name=replay.recorded_recipe.display_name,
+                description=replay.recorded_recipe.description,
+                owner_name=replay.recorded_recipe.owner_name,
+                owner_email=replay.recorded_recipe.owner_email,
+                preferred_adapter=replay.recorded_recipe.preferred_adapter,
+                repository_url=replay.recorded_recipe.repository_url,
             ),
             pin=SelfHostPin(
                 source_uri=str(cfg.source.resolve()) if _is_attributed(cfg) else None,
@@ -1558,10 +1704,10 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         selected_packs=pack_names,
         selected_profiles=profile_names,
         selected_adapters=cfg.adapters or [cfg.preferred_adapter or "claude-code"],
-        field_collection_mode=field_collection_mode,
-        identity_replacements=identity_replacements,
+        field_collection_mode=replay.field_collection_mode,
+        identity_replacements=replay.identity_replacements,
         leak_scan_result=leak_scan_result,
-        source=source_provenance,
+        source=replay.source,
         summary=(
             f"self-hosted init {'(dry run) ' if cfg.dry_run else ''}complete: "
             f"{n_written} file(s) written to {cfg.name}"

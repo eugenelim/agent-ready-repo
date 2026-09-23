@@ -417,7 +417,7 @@ that do need a race.
   another tree, and every criterion in the spec still passes. `validate_target`
   (`initialise.py:255-280`) resolves and rejects a symlinked *target root*, so
   the plain `catalogue init` path has partial cover; the owned-file overwrite at
-  `initialise_self_hosted.py:1477` has none. Closing it needs every operation to
+  `initialise_self_hosted.py:1623` has none. Closing it needs every operation to
   go through a directory file descriptor opened once with `O_NOFOLLOW`, which is
   a rewrite of the commit path rather than a repair of this helper, and a
   different missing primitive from the one the next bullet needs.

@@ -21,8 +21,8 @@ The CLI verbs are `adapt`, `catalogue`, `config`, `diff`, `docs`,
 `package-catalogue`, `reconcile`, `render`, `scaffold`, `show`,
 `uninstall`, `upgrade`, and `validate`.
 
-`catalogue` provides `lint`, `verify`, `build`, `self-host`,
-`package`, `sync-defaults`, `init`, and `contracts`.
+`catalogue` provides `lint`, `verify`, `build`, `self-host`, `package`,
+`sync-defaults`, `init`, `sync`, `index`, and `contracts`.
 
 ## 3. Owned state and write authority
 
