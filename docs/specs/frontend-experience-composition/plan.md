@@ -1,7 +1,7 @@
 # Plan: frontend-experience-composition
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (export boundary, version bump rule,
   eval-harness rule); `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`
   § *Superseding a frozen document* (the four rules the frozen-record edit obeys);

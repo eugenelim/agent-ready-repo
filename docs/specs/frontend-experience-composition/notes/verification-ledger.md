@@ -1050,3 +1050,63 @@ Review retry stood at 5 of 5 when these blockers arrived. Both were external
 drift rather than repair churn, and the owner authorized continuing past the cap
 on that basis. The distinction is the point: the cap exists to stop a loop
 re-repairing its own defects, and neither of these was one.
+
+## Post-gates review, round 8 — clean, and closeout
+
+All three reviewers returned the clean sentinel against the rebased tree.
+Recorded as a direct clean; `review_round_count` 7, fingerprints cleared.
+
+### Review totals for the delivery
+
+| Round | Reviewers | Raised | Sustained | Refuted |
+| --- | --- | ---: | ---: | ---: |
+| 1-3 | adversarial | 25 | 17 | 8 |
+| 4 | adversarial | 0 — clean | — | — |
+| 5 | quality + experience | 25 | 18 | 7 |
+| 6 | all three | 10 | 9 | 1 |
+| 7 | all three | 4 | 3 | 1 |
+| 8 | all three | 0 — clean | — | — |
+| **Total** | | **64** | **47** | **17** |
+
+Nine controls were found unable to fail across those rounds, every one of them
+green in its own suite while deciding nothing:
+
+1. a crossing-artifact path matched by substring, so `.md` matched inside `.mdx`;
+2. a `false` placeholder standing in for AC-0041's real command;
+3. and 4. two allowance cue sets satisfied by prose that predated the change;
+5. a cumulative-sum derivation that could never drop a tier;
+6. a named-subject comparison that skipped a missing subject;
+7. the same comparison, unfixed on its mirror side;
+8. a normaliser applied at two of six read sites;
+9. a wrapped list parsed one physical line deep.
+
+Numbers 6-9 were introduced by repairs to 1-5. That is the delivery's real
+finding: **a repair is a change, and it needs the same adversarial reading as
+the code it repairs.** What finally closed it was not a better repair but a
+different instrument — a 35-case mutation sweep enumerating every defect class
+the controls exist to catch, which is what should have existed after round 3.
+
+### Closeout
+
+- `spec.md` Status → `Shipped`; all 48 acceptance criteria ticked.
+- `plan.md` Status → `Done`.
+- `workspace.toml`: the `ini-003` entry moved from `[work].active` to
+  `[work].shipped`, carrying its comment block and dated `Shipped 2026-09-23`.
+  `active` is now empty.
+- `lint-spec-status.py --root .` exits 0 against the shipped pair.
+
+Two residuals are recorded in the spec's `Follow-ons` and owned by the pack
+maintainer: the five hand-derived counts that live in eight homes with no gate
+reading them, and the absence of any standing comparison between the committed
+web journey copies and their sources once this spec's `Always do` rule stops
+applying.
+
+### One last instrument repair
+
+Ticking the criteria broke two of the standing instruments: both enumerated
+criteria by splitting on the unticked `- [ ]` marker, so a shipped spec read as
+one criterion and 47 dangling citations. A criterion exists whether or not it is
+ticked; both now match either state. The instruments were written for
+implementation time and had never been run against a shipped spec — the same
+snapshot assumption that produced the ADR ordinal collision, in a different
+place.

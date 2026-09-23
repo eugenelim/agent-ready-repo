@@ -1,6 +1,6 @@
 # Spec: frontend-experience-composition
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -169,13 +169,13 @@ without one. Three modes are in use, defined in Testing Strategy above:
 and **Review-only** names a reading at the human gate for a proposition no
 artifact can decide.
 
-- [ ] **AC-0001.** The `check-contract-drift` step passes: all four `digital-experience-
+- [x] **AC-0001.** The `check-contract-drift` step passes: all four `digital-experience-
       contract.md` copies are byte-identical. *Verified by:* Goal-based: `python3
       tools/repo/check_contract_drift.py --root .` exits 0.
-- [ ] **AC-0002.** The contract's frontend section heading reads `## Frontend
+- [x] **AC-0002.** The contract's frontend section heading reads `## Frontend
       Engineering [owner: frontend-engineering]`. *Verified by:* Goal-based: the literal
       appears in the frontend copy, which the drift gate makes true of all four.
-- [ ] **AC-0003.** `docs/adr/` carries a new record for this decision, at the
+- [x] **AC-0003.** `docs/adr/` carries a new record for this decision, at the
       ordinal allocated from current repository state, and its `Status` reads
       `Accepted`. *Verified by:* Goal-based:
       `test -f <the ADR> && grep -qE '^- \*\*Status:\*\* Accepted' <the ADR> && python3 .claude/skills/new-adr/scripts/lint-adr-shape.py docs/adr`
@@ -185,7 +185,7 @@ artifact can decide.
       The record is named in the command rather than left to the lint's
       whole-directory scan, which exits 0 on the unchanged tree. What that record
       *says* is AC-0047.
-- [ ] **AC-0004.** `docs/specs/digital-experience-contract/spec.md`'s `Status` field
+- [x] **AC-0004.** `docs/specs/digital-experience-contract/spec.md`'s `Status` field
       reads the convention's supersession form, naming the new ADR, with no other
       change to the file. *Verified by:* Goal-based, two commands because the two
       predicates fail separately:
@@ -194,7 +194,7 @@ artifact can decide.
       convention states, which is what T8's approach writes, and `git diff` over that file touches only its
       `Status` line for the scope. A diff-only check passes with that line reading
       anything at all.
-- [ ] **AC-0005.** `docs/specs/digital-experience-contract/plan.md` gains one `Status`
+- [x] **AC-0005.** `docs/specs/digital-experience-contract/plan.md` gains one `Status`
       metadata line — the field is absent today — carrying the same pointer in the
       `Done (superseded in part by …)` form, with no other change to the file.
       *Verified by:* Goal-based, two commands because the two predicates fail
@@ -203,120 +203,120 @@ artifact can decide.
       exits 0 for the form — the bare `ADR-NNNN` spelling the anchored
       convention states, which is what T8's approach writes, and `git diff` over that file adds exactly one line,
       which is that `Status` line, for the scope.
-- [ ] **AC-0006.** `packs/frontend-engineering/.apm/skills/frontend-
+- [x] **AC-0006.** `packs/frontend-engineering/.apm/skills/frontend-
       engineering/SKILL.md` names its pack-local `references/digital-experience-
       contract.md` as a file it loads. *Verified by:* Goal-based: the path appears in
       that `SKILL.md` and resolves on disk.
-- [ ] **AC-0007.** `packs/experience-design/.apm/skills/design-review/SKILL.md` names
+- [x] **AC-0007.** `packs/experience-design/.apm/skills/design-review/SKILL.md` names
       its pack-local `references/digital-experience-contract.md` as a file it loads.
       *Verified by:* Goal-based: the path appears in that `SKILL.md` and resolves on
       disk.
-- [ ] **AC-0008.** The contract carries a state-coverage map in which each of the 18
+- [x] **AC-0008.** The contract carries a state-coverage map in which each of the 18
       frontend states appears exactly once. *Verified by:* TDD:
       `test_the_map_covers_every_floor_state_exactly_once` and
       `test_the_map_is_the_size_the_floor_states`.
-- [ ] **AC-0009.** Every state line the screen-brief template carries resolves in the
+- [x] **AC-0009.** Every state line the screen-brief template carries resolves in the
       map to at least one named member of the 18-state set, including the line that
       names two. *Verified by:* TDD: `test_every_brief_state_line_resolves_in_the_map`
       and `test_the_compound_brief_line_resolves_to_two_states`.
-- [ ] **AC-0010.** Each of the 18 states is assigned in the map to exactly one risk-tier
+- [x] **AC-0010.** Each of the 18 states is assigned in the map to exactly one risk-tier
       band or is marked conditional on a named trigger. *Verified by:* TDD:
       `test_every_state_is_assigned_to_one_band_or_marked_conditional` and
       `test_a_conditional_state_names_its_trigger`.
-- [ ] **AC-0011.** Each of `explore`, `pilot`, and `production` carries at least one
+- [x] **AC-0011.** Each of `explore`, `pilot`, and `production` carries at least one
       unconditional state. *Verified by:* TDD:
       `test_every_band_carries_at_least_one_unconditional_state`.
-- [ ] **AC-0012.** The map records, for each of the 18 states, whether its absence fails
+- [x] **AC-0012.** The map records, for each of the 18 states, whether its absence fails
       WCAG 2.2 AA. *Verified by:* TDD: `test_every_state_records_a_wcag_flag`, which
       refuses any value but `yes` or `no` so a missing flag cannot read as `no`.
-- [ ] **AC-0013.** Every state the map records as failing WCAG 2.2 AA when absent cites
+- [x] **AC-0013.** Every state the map records as failing WCAG 2.2 AA when absent cites
       the success criterion that judgement rests on. *Verified by:* TDD:
       `test_an_accessibility_bearing_state_names_its_success_criterion`.
-- [ ] **AC-0014.** No tier band omits a state the map records as failing WCAG 2.2 AA
+- [x] **AC-0014.** No tier band omits a state the map records as failing WCAG 2.2 AA
       when absent: every such state is assigned to `explore` or to a named conditional
       trigger that binds at every tier. *Verified by:* TDD:
       `test_no_tier_drops_an_accessibility_bearing_state`.
-- [ ] **AC-0015.** For each of `explore`, `pilot`, and `production`, the contract-field
+- [x] **AC-0015.** For each of `explore`, `pilot`, and `production`, the contract-field
       count stated in each journey equals the number of `<!-- Required: -->` annotations
       in the contract at that tier or any lower tier. *Verified by:* TDD:
       `test_the_stated_counts_equal_the_contracts_cumulative_obligation`, with
       `test_the_journey_states_the_whole_ladder` first so an omitted tier cannot pass by
       not being compared.
-- [ ] **AC-0016.** `guides/core/explanation/digital-experience-contract.md` states no
+- [x] **AC-0016.** `guides/core/explanation/digital-experience-contract.md` states no
       per-tier field count. *Verified by:* Goal-based:
       `! grep -qiE '\b([0-9]+|one|two|three|four|five|six|seven|eight|nine|ten|twenty-five|thirty-two)[ -]fields?\b' guides/core/explanation/digital-experience-contract.md`
       exits 0. Spelled forms are covered as well as digits, because the page's real
       obligations are 10 / 25 / 32 and a rewrite spelling one of them would pass a
       digits-only pattern.
-- [ ] **AC-0017.** `guides/core/explanation/digital-experience-contract.md` states no
+- [x] **AC-0017.** `guides/core/explanation/digital-experience-contract.md` states no
       per-tier field list, referencing the contract's own annotations instead. *Verified
       by:* Review-only: a reading of that page's three-tier table at the human gate. No
       artifact can decide whether prose references rather than restates.
-- [ ] **AC-0018.** `packs/experience-design/JOURNEY.md` lists `frontend-engineering` in
+- [x] **AC-0018.** `packs/experience-design/JOURNEY.md` lists `frontend-engineering` in
       `relatedJourneys`. *Verified by:* TDD:
       `test_each_journey_names_the_other_pack_in_related_journeys`, which checks both
       directions.
-- [ ] **AC-0019.** Both `JOURNEY.md` files name the three crossing artifacts by their
+- [x] **AC-0019.** Both `JOURNEY.md` files name the three crossing artifacts by their
       `<output_dir>`-relative paths `direction/<slug>.md`, `screens/<slug>/<screen>.md`,
       and `tokens/<slug>.md`. *Verified by:* TDD:
       `test_each_journey_names_the_three_crossing_artifacts`.
-- [ ] **AC-0020.** Every row of the say-this table in `packs/experience-
+- [x] **AC-0020.** Every row of the say-this table in `packs/experience-
       design/JOURNEY.md` carries exactly one of `Required`, `Optional`, or `Choose one`.
       *Verified by:* TDD: `test_every_say_this_row_carries_exactly_one_optionality`,
       which walks every row rather than sampling.
-- [ ] **AC-0021.** For `design-system` and `content-design`, the optionality marked in
+- [x] **AC-0021.** For `design-system` and `content-design`, the optionality marked in
       `packs/experience-design/JOURNEY.md` equals the one marked in the corresponding
       `guides/experience-design/how-to/` table. *Verified by:* TDD:
       `test_the_say_this_optionality_agrees_with_the_how_to_guides`, which reads both
       tables rather than pinning the values.
-- [ ] **AC-0022.** `packs/experience-design/JOURNEY.md` states the minimal viable thread
+- [x] **AC-0022.** `packs/experience-design/JOURNEY.md` states the minimal viable thread
       as a named path through the pack. *Verified by:* TDD:
       `test_the_design_journey_names_its_minimal_viable_thread`.
-- [ ] **AC-0023.** `packs/experience-design/DESIGN.md`'s claim about skipping a step and
+- [x] **AC-0023.** `packs/experience-design/DESIGN.md`'s claim about skipping a step and
       the minimal viable thread it introduces do not contradict each other. *Verified
       by:* Review-only: a reading of those two adjacent passages at the human gate.
       Whether two sentences contradict is not decidable by a parser.
-- [ ] **AC-0024.** No illustrative state list under `packs/experience-design/` names a
+- [x] **AC-0024.** No illustrative state list under `packs/experience-design/` names a
       state outside the 18-state set. *Verified by:* TDD:
       `test_no_illustrative_state_list_names_a_state_outside_the_floor`.
-- [ ] **AC-0025.** Every illustrative state list under `packs/experience-design/` is a
+- [x] **AC-0025.** Every illustrative state list under `packs/experience-design/` is a
       subset of the `explore` state subset the journey states. *Verified by:* TDD:
       `test_every_illustrative_state_list_is_within_the_explore_subset`.
-- [ ] **AC-0026.** `packs/frontend-engineering/JOURNEY.md` states each of the four
+- [x] **AC-0026.** `packs/frontend-engineering/JOURNEY.md` states each of the four
       proportionality allowances its skill already carries: a contract proportional to
       risk, omitting inapplicable states, a narrowed retrofit state matrix, and the
       optional CSS token gate. *Verified by:* TDD:
       `test_the_frontend_journey_carries_its_four_proportionality_allowances`, matching
       the words that carry each allowance rather than a fixed sentence.
-- [ ] **AC-0027.** Each journey states the `explore` tier's contract-field count.
+- [x] **AC-0027.** Each journey states the `explore` tier's contract-field count.
       *Verified by:* TDD: `test_the_journey_states_the_whole_ladder`, which fails
       when a tier is unstated.
-- [ ] **AC-0028.** Each journey states the `explore` tier's state subset. *Verified by:*
+- [x] **AC-0028.** Each journey states the `explore` tier's state subset. *Verified by:*
       TDD: `test_the_explore_subset_is_the_maps_explore_band`, which cannot run without
       the stated subset.
-- [ ] **AC-0029.** The frontend journey states the rendered-page capture count a route
+- [x] **AC-0029.** The frontend journey states the rendered-page capture count a route
       owes, and that the count does not change with the tier. *Verified by:* Review-
       only: a reading of the depth sub-stage at the human gate. The capture contract is
       channel-derived, so no artifact relates a tier to a count.
-- [ ] **AC-0030.** The frontend journey states which of the five gates run at the
+- [x] **AC-0030.** The frontend journey states which of the five gates run at the
       `explore` tier. *Verified by:* Review-only: a reading of the depth sub-stage at
       the human gate, against the GATES section of the frontend skill.
-- [ ] **AC-0031.** Each journey states what the `explore` tier drops relative to
+- [x] **AC-0031.** Each journey states what the `explore` tier drops relative to
       `production`. *Verified by:* Review-only: a reading of the depth sub-stage at the
       human gate. The sub-stage sits where both journey lints stop scanning.
-- [ ] **AC-0032.** Each journey's stated `explore` state subset contains every state the
+- [x] **AC-0032.** Each journey's stated `explore` state subset contains every state the
       map records as failing WCAG 2.2 AA when absent and assigns to a tier band.
       *Verified by:* TDD:
       `test_the_explore_subset_keeps_every_accessibility_bearing_state`.
-- [ ] **AC-0033.** Each journey's stated `explore` state subset equals the map's
+- [x] **AC-0033.** Each journey's stated `explore` state subset equals the map's
       `explore` band exactly. *Verified by:* TDD:
       `test_the_explore_subset_is_the_maps_explore_band`. Asserted beyond containment
       because a superset makes the cheap path more expensive than the contract asks.
-- [ ] **AC-0034.** Each journey carries a sentence telling a reader that `explore` drops
+- [x] **AC-0034.** Each journey carries a sentence telling a reader that `explore` drops
       no accessibility-bearing state. *Verified by:* Review-only: a reading at the human
       gate. The property itself is covered above; this criterion is about the reader
       being told.
-- [ ] **AC-0035.** Every existing test assertion over
+- [x] **AC-0035.** Every existing test assertion over
       `packs/frontend-engineering/JOURNEY.md` still passes, including the
       byte-exact `PINNED_SKIP_COST` block and the assertion that `whatChanges`
       does not contain `independent diff read`.
@@ -331,31 +331,31 @@ artifact can decide.
       `packs/core/JOURNEY.md`, a fixture journey, or pack names only. One
       invocation of the fourth decides both journeys' pins, so the design
       journey needs no separate criterion.
-- [ ] **AC-0036.** `tools/lint-pack-journeys.py`, `tools/lint-journey-contract.py`, and
+- [x] **AC-0036.** `tools/lint-pack-journeys.py`, `tools/lint-journey-contract.py`, and
       `tools/lint-web-journey-parity.py` each exit 0. *Verified by:* Goal-based: run
       each.
-- [ ] **AC-0037.** The committed `web/src/content/journeys/` copies for both packs are
+- [x] **AC-0037.** The committed `web/src/content/journeys/` copies for both packs are
       byte-equal to the output of `python3 tools/build-site.py --journeys-only`.
       *Verified by:* Goal-based: regenerate, then `git diff --exit-code
       web/src/content/journeys/`.
-- [ ] **AC-0038.** `.github/workflows/build-check.yml` names a step for each of the two
+- [x] **AC-0038.** `.github/workflows/build-check.yml` names a step for each of the two
       new tests, each at a lower step index than the job's bulk `pytest tests/ -q` step.
       *Verified by:* Goal-based: a YAML parse of the `gate-main` job comparing step
       indices. The parity lint cannot see placement.
-- [ ] **AC-0039.** `tools/lint-ci-parity.py` exits 0 with both new step names carrying a
+- [x] **AC-0039.** `tools/lint-ci-parity.py` exits 0 with both new step names carrying a
       disposition. *Verified by:* Goal-based: run it. It reads both roster axes, so a
       step registered on only one fails here.
-- [ ] **AC-0040.** `tools/lint-experience-agnostic.py` exits 0 over
+- [x] **AC-0040.** `tools/lint-experience-agnostic.py` exits 0 over
       `packs/experience-design/` after this change, so no edit introduces a value
       literal or platform token into that tree. *Verified by:* Goal-based: run it.
       A preservation criterion: it is green today and must stay green. That the
       state-coverage map is present is AC-0008, and that all four copies carry it
       is AC-0001; the lint decides neither.
-- [ ] **AC-0041.** `.claude-plugin/marketplace.json` is byte-identical to the output of
+- [x] **AC-0041.** `.claude-plugin/marketplace.json` is byte-identical to the output of
       a fresh unforced self-host run. *Verified by:* Goal-based: run unforced `make
       build-self` on a clean tree, then `git diff --exit-code .claude-
       plugin/marketplace.json`.
-- [ ] **AC-0042.** Each of the four packs carrying a contract copy —
+- [x] **AC-0042.** Each of the four packs carrying a contract copy —
       `product-strategy`, `product-engineering`, `experience-design`,
       `frontend-engineering` — states a `pack.toml` version differing from its
       pre-change value, and its `.claude-plugin/plugin.json` states the same
@@ -363,7 +363,7 @@ artifact can decide.
       `pack.toml` against `git show origin/main:packs/<pack>/pack.toml` and
       against its `plugin.json`. Quantified over the four by name rather than
       over "each bumped pack", which is satisfied by bumping none.
-- [ ] **AC-0043.** `agentbundle catalogue verify --root .` exits 0. *Verified by:* Goal-
+- [x] **AC-0043.** `agentbundle catalogue verify --root .` exits 0. *Verified by:* Goal-
       based: run it. It reports a stale `.claude/` or `.agents/` projection as
       `CAT-V-015`. Measured: `catalogue self-host --check` also catches a stale
       projection, while `catalogue lint --deep`, `lint-ruff`, `lint-mypy` and the
@@ -371,7 +371,7 @@ artifact can decide.
       so this delivery's non-core `.apm/` edits produce no `.claude/` or
       `.agents/` delta — the criterion is preservation, not a change this
       delivery makes.
-- [ ] **AC-0044.** Each of the four contract-carrying packs this change updates
+- [x] **AC-0044.** Each of the four contract-carrying packs this change updates
       has an `evals/evals.json` case covering the behaviour the change gives it.
       *Verified by:* Review-only: a reading at the human gate. `catalogue verify`
       validates that manifest's shape, never whether a case is apt. Quantified
@@ -379,7 +379,7 @@ artifact can decide.
       states the eval obligation per pack for any non-cosmetic update — and this
       change bumps all four, which is its own declaration that all four are
       non-cosmetic.
-- [ ] **AC-0045.** For each of those same four packs, the topmost
+- [x] **AC-0045.** For each of those same four packs, the topmost
       `## [<pack>][<version>] — YYYY-MM-DD` heading in `docs/product/changelog.md`
       names the version its `pack.toml` now states, and that version differs from
       the one the topmost heading named before this change.
@@ -388,7 +388,7 @@ artifact can decide.
       `git show origin/main:docs/product/changelog.md`. The second half is what
       stops the criterion passing before any bump: all four headings already
       name their pack's current version today.
-- [ ] **AC-0046.** The changelog headings this change adds are exactly one per
+- [x] **AC-0046.** The changelog headings this change adds are exactly one per
       contract-carrying pack, each sits at `##`, `core`'s own newest
       `## [core][` entry stays first after `[Unreleased]`, and the four follow it
       contiguously and above every older entry.
@@ -397,14 +397,14 @@ artifact can decide.
       added set, then read the order. A baseline is required: the current file
       alone cannot say which headings this change added, and without it the only
       decidable conjunct — `core` first — is already true today.
-- [ ] **AC-0047.** That ADR's `## Decision` section names the
+- [x] **AC-0047.** That ADR's `## Decision` section names the
       `frontend-engineering` pack as the owner of the contract's frontend section.
       *Verified by:* Goal-based:
       `awk '/^## Decision$/{f=1;next} /^## /{f=0} f' <the ADR> | grep -q 'owner: frontend-engineering'`
       exits 0. Section-scoped rather than file-scoped, because an ADR that named the
       pack only in its Context would pass a whole-file match; the shape lint reads
       structure and no part of it reads Decision prose.
-- [ ] **AC-0048.** Each of the four new changelog entries carries a recorded
+- [x] **AC-0048.** Each of the four new changelog entries carries a recorded
       `Highlights` disposition: a `### Highlights` subsection holding at least
       one bullet. Whether a bullet is outcome-led is `docs/product/changelog.md`'s
       own standard and no command decides it, so this criterion does not restate
