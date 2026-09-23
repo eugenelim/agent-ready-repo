@@ -195,6 +195,60 @@ hooks. Its source path is `.apm/kiro-ide-hooks/<name>.kiro.hook`; the
 targets are the scope-fenced `<scope-root>/.agentbundle/` roots rather
 than a per-adapter path.
 
+#### What the flat `agent` file costs
+
+An `agent` is a single file, not a directory. The contract gives it no
+`references/`, `scripts/` or `assets/` of its own, and no adapter projects a
+subdirectory under `.apm/agents/` — each one walks that directory's
+top-level files and emits one flat output per agent. The form is the target's:
+Markdown for most, a Codex `.toml`, a Kiro CLI `.json` — and even the Markdown
+routes rewrite the frontmatter rather than copying the file through. An agent that reuses a skill's rubric
+therefore **inlines a copy**, so that it works standalone. Inlining is the self-contained baseline,
+not the only loading path at runtime: architect's `design-reviewer` also tells
+itself to read `architect-review`'s `references/rubric-*.md` where that skill is
+co-installed, and both Kiro adapters inject skill-resource paths into the
+projected agent, because a Kiro custom agent does not inherit `.kiro/skills`
+auto-discovery.
+
+The inlined copy is then kept in step by hand.
+[`packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`](../../packs/architect/tests/pack/test_design_reviewer_rubric_parity.py)
+is the guard. It checks four things: that a fixed list of verdict labels,
+severity glyphs and 🔧/🧭 tokens appears in each of three carriers; that the `DA1`–`DA10` table in
+each of three carriers — a second set, overlapping the first only at the
+agent — matches a severity and taxonomy glyph map held as a literal in the
+test, so no carrier defines its own passing grade (the parser keys rows by
+identifier, so a wrong duplicate ahead of a correct row is overwritten and
+passes); that the agent's own frontmatter and body clauses hold
+(read-only tool list, gate roll-call, artifact-is-data); and that
+`architect-design`'s loop dispatches the subagent when reachable and names a
+fallback rung when it does not.
+
+Two structural limits are worth naming, both of which the test documents
+itself. The token list is an allowlist maintained by hand, so a newly added
+verdict or glyph is covered only once someone adds it; and a reword that keeps
+a token as a substring (`MAJOR REWRITE` → `MAJOR REWRITE REQUIRED`) passes.
+Two files that carry the same vocabulary are outside the
+carrier set — `architect-review`'s `assets/risk-register.md`, which holds all
+of it, and `assets/critique.md`, which holds the verdicts and severities but
+neither taxonomy glyph — so vocabulary drift in either fails no parity check.
+
+Projection is covered separately, by
+[`tests/roster/test_architect_design_reviewer_projection.py`](../../tests/roster/test_architect_design_reviewer_projection.py):
+some path matching `design-reviewer*` must appear under an `agents/` route for
+each of architect's seven `allowed-adapters`. For six of the seven it does not assert the
+match is a file, and for none of them does it compare projected content
+against the source; only the Cursor leg reads the match, and so requires
+one. It sits in `tests/roster/` rather than architect's own tree
+because it builds every adapter out of `packages/agentbundle`, and a pack test
+may not climb above its own pack.
+
+The read-only contract has no one shape across the projection. `tools: Read,
+Grep, Glob` is the source declaration; Cursor subagents have no per-agent tool
+allowlist, so `cursor.py:_project_agent_as_md` drops `tools` and derives
+`readonly: true` for a non-mutating agent instead. The projection test searches
+Cursor's output for the substring `readonly`, which `readonly: false` would
+also satisfy.
+
 ### Generated: `.eval-workspace/` (run artifacts, not pack source)
 
 When `agentbundle pack evals run` runs a pack's
@@ -359,24 +413,44 @@ Each pack declares its install **scope** — `repo` (project-local), `user`
 (shared across every repo the adopter opens), or both — in
 `pack.toml`'s `[pack.install]` table. The pack author picks the
 dimension; adopters can override within the publisher's declared set
-via `--scope`. The default landing for every pack we ship today is
-`repo`; user-scope eligibility requires content portability — no hooks
+via `--scope`. Of the twenty-two packs shipped today — the
+underscore-prefixed directories are authoring assets, not payload — fourteen
+default to `user` and eight to `repo`; user-scope eligibility requires content
+portability — no hooks
 wired into a specific repo's surface, no seeds that name a particular
-project.
-
-Portability also governs what shipped pack prose may cite. Pack material states
-its rules **directly** rather than pointing at this catalogue's internal RFCs,
-ADRs, or acceptance criteria, which mean nothing in an adopter's repository.
-Two carve-outs stay valid: IETF RFC references, and illustrative examples drawn
-from an adopter's own situation.
-
-Only part of this is mechanically caught. The
-[catalogue-leak guard](security.md#repository-local-catalogue-leak-guard)
-matches three patterns in core skill Markdown — the catalogue name, and
-`RFC-00NN` / `K-00NN` numbers. A citation of an internal ADR, or of a spec's
-acceptance criteria, passes it. The rest of the rule is an authoring obligation. The schema enforces `default-scope ∈ allowed-scopes` so the
-rule holds outside the CLI. `agentbundle install` re-runs the
+project. The schema holds `default-scope ∈ allowed-scopes` outside the CLI —
+but only where `allowed-scopes` is declared, since it is optional and a
+`contains` constraint on an absent array is vacuous. `agentbundle install` re-runs the
 contract-level user-scope rails (seeds / hooks / marker) against the
 resolved pack content at install time, closing the
 widen-after-publish gap.
+
+Portability also governs what shipped pack material may name. It states its
+rules **directly** rather than pointing at this catalogue's internal RFCs,
+ADRs, or acceptance criteria, and it does not send a reader to a path only this
+repository has — a `tools/lint-*` script exists in this catalogue and nowhere
+an adopter can reach. (`tools/` as a whole is not catalogue-local: hook bodies
+project into an adopter's own `tools/hooks/`.) Two
+carve-outs stay valid: IETF RFC references, and illustrative examples drawn
+from an adopter's own situation.
+
+Only part of this is mechanically caught, and the two halves of the
+[catalogue-leak guard](security.md#repository-local-catalogue-leak-guard)
+differ in both reach and pattern set. The `seeds/` scan covers every pack
+declaring `lint-seeds = true`, at any file type, and matches the catalogue
+name, `RFC-00NN` / `K-00NN` numbers, and a hand-listed set of catalogue spec
+slugs. The `.apm/` scan covers **core's `skills/` only, Markdown only**, and
+matches the first three patterns without the slug list. Neither has a pattern
+for a `tools/` path, an internal ADR number, or an acceptance criterion. The
+seeds half reads each pack's `pack.toml` to find `lint-seeds`, but scans only
+`seeds/`; no leak pattern is ever applied to a manifest.
+
+Those gaps compose. [`packs/AGENTS.md`](../../packs/AGENTS.md) § *Shipped pack
+content carries no internal-governance citations* forbids a repository-only
+path anywhere under `packs/`, and eight files under `packs/`, outside its test
+trees, currently name a `tools/lint-*` script. Every one is outside both
+scans: six under a non-core pack's `.apm/`, one under core's `.apm/` but in
+`hook-wiring/` rather than `skills/`, and one in a `pack.toml`, which neither
+scan reads at all. They are violations of a
+stated rule rather than a recorded exception, and nothing reports them.
 
