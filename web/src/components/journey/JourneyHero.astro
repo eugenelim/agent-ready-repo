@@ -34,10 +34,16 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
         unit, named once. */}
     <div class="journey-hero__stats" role="group" aria-label="Session statistics">
       <span class="stat"><strong>{skillCount}</strong> skills</span>
-      <span class="stat-sep" aria-hidden="true">·</span>
-      <span class="stat"><strong>{humanTouches}</strong> {humanTouches === 1 ? 'human gate' : 'human gates'}</span>
-      <span class="stat-sep" aria-hidden="true">·</span>
-      <span class="stat"><strong>{wallClockMinutes}</strong> min/session</span>
+      {/* The separator is grouped WITH the stat that follows it, not left
+          loose between two. Loose, the line could break after it and leave a
+          bare "·" dangling at the end of a line — measured at the supported
+          320 minimum, where this row wraps. Grouped, the break happens before
+          the separator instead, so a wrapped line starts with "· 2 human
+          gates" and reads as a continuation. The spans stay `aria-hidden`
+          rather than becoming CSS `::before` content, which some screen
+          readers announce. */}
+      <span class="stat-run"><span class="stat-sep" aria-hidden="true">·</span> <span class="stat"><strong>{humanTouches}</strong> {humanTouches === 1 ? 'human gate' : 'human gates'}</span></span>
+      <span class="stat-run"><span class="stat-sep" aria-hidden="true">·</span> <span class="stat"><strong>{wallClockMinutes}</strong> min/session</span></span>
     </div>
     <div class="journey-hero__actions">
       <a class="btn-primary" href={withBase(packUrl)}>Install this pack <span aria-hidden="true">→</span></a>
@@ -97,6 +103,13 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
 
   .stat-sep {
     color: var(--ds-on-surface-muted);
+  }
+
+  /* Binds a separator to the stat it introduces. `nowrap` is safe here because
+     the longest run is "· 12 min/session" — measured at 320, it fits the band
+     with room to spare, and the row still wraps between runs. */
+  .stat-run {
+    white-space: nowrap;
   }
 
   .journey-hero__actions {

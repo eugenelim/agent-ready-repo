@@ -1248,14 +1248,22 @@ open = [
   # Unblocks when: someone decides whether the type scale gains an 11px step and
   # whether --ds-type-mono-sm may be used on a sans element.
 
-  # MINOR x2, route-level, found in the 80-capture matrix. Registered as x3; the
-  # third -- 7 of 22 /packs/* pages emitting `...above.<a>Browse the
-  # catalogue</a>` with no space -- was fixed by #1395 and the string returns no
-  # hits in web/src today.
-  # (a) /packs/* at >=1100 leaves ~375px of the 1140px container unused down the
-  #     right edge.
-  # (b) /journeys/* at 320 wraps the hero meta line after a plain-text
-  #     separator, leaving it dangling. Channel 1 only.
+  # MINOR x1 remaining, route-level, found in the 80-capture matrix. Registered
+  # as x3. Two are closed:
+  # -- 7 of 22 /packs/* pages emitting `...above.<a>Browse the catalogue</a>`
+  #    with no space, fixed by #1395; the string returns no hits in web/src.
+  # -- /journeys/* wrapping its hero meta line after a plain-text separator,
+  #    fixed 2026-09-22 by grouping each separator with the stat it introduces
+  #    inside a `nowrap` run, so a break happens BEFORE the separator and a
+  #    wrapped line starts "· 2 human gates" instead of ending on a bare dot.
+  #    Measured on one instrument at 320: 1 dangling separator before, 0 after,
+  #    3 stat lines, no horizontal overflow. The spans stay aria-hidden rather
+  #    than becoming CSS ::before content, which some screen readers announce.
+  # (a) STILL OPEN. /packs/* at >=1100 leaves ~375px of the 1140px container
+  #     unused down the right edge. This is the design decision of the three --
+  #     the homepage puts a figure in that column, and what belongs there on a
+  #     pack page is a content call, not a layout fix.
+  #     Unblocks when: someone decides what that column carries.
   # Unblocks when: ready now.
 
   # RESOLVED 2026-09-22. web/AGENTS.md is 77 lines against the 80-line cap in
