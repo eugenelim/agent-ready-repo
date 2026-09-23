@@ -64,6 +64,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.38] — 2026-09-23
+
+### Changed
+
+- `loop-cohort` now remembers a resolved repository root for the current
+  working directory. Repeated checks in one process no longer re-run
+  `git rev-parse`, while a process that changes directories still resolves the
+  new repository and a failed lookup is retried rather than remembered.
+
 ## [core][2.26.37] — 2026-09-23
 
 ### Fixed

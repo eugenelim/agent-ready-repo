@@ -21,6 +21,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -4131,6 +4132,14 @@ def _fresh_engine(name: str):
     return mod
 
 
+def _fresh_cohort(name: str) -> ModuleType:
+    """Load an isolated cohort module so its cache cannot reach another case."""
+    spec = importlib.util.spec_from_file_location(name, str(COHORT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _rev_parse(calls):
     """Only the `git rev-parse` spawns.
 
@@ -4208,6 +4217,68 @@ def test_get_repo_root_does_not_cache_a_failure(tmp_path, monkeypatch):
     outside = tmp_path / "not-a-repo"
     outside.mkdir()
     mod = _fresh_engine("_engine_ac3")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(outside)
+        with pytest.raises(ValueError):
+            mod._get_repo_root()
+        _init_repo(outside)
+        assert mod._get_repo_root() == outside.resolve(), (
+            "a remembered failure made a now-resolvable directory permanently "
+            "unresolvable for the life of the process"
+        )
+        assert len(_rev_parse(calls)) == 2, (
+            f"the retry must re-spawn: {_rev_parse(calls)}"
+        )
+    finally:
+        restore()
+
+
+def test_cohort_get_repo_root_resolves_once_per_working_directory(tmp_path, monkeypatch):
+    """Cohort resolves the repository root once in an unchanged directory."""
+    repo = _init_repo(tmp_path / "a")
+    mod = _fresh_cohort("_cohort_success_cache")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(repo)
+        first = mod._get_repo_root()
+        second = mod._get_repo_root()
+        assert second == first, f"second call returned {second}, first {first}"
+        seen = _rev_parse(calls)
+        assert len(seen) == 1, (
+            f"two calls from one unchanged working directory spawned {len(seen)} "
+            f"`git rev-parse` processes, want 1: {seen}"
+        )
+    finally:
+        restore()
+
+
+def test_cohort_get_repo_root_follows_the_working_directory(tmp_path, monkeypatch):
+    """Cohort's repository-root memo is keyed by the current working directory."""
+    repo_a = _init_repo(tmp_path / "a")
+    repo_b = _init_repo(tmp_path / "b")
+    mod = _fresh_cohort("_cohort_cwd_key")
+    calls, restore = _counting_spawns(mod)
+    try:
+        monkeypatch.chdir(repo_a)
+        mod._get_repo_root()
+        monkeypatch.chdir(repo_b)
+        assert mod._get_repo_root() == repo_b.resolve(), (
+            "after chdir the cache handed back the previous repository's root — "
+            "a silent wrong answer feeding _resolve_spec_dir's confinement check"
+        )
+        assert len(_rev_parse(calls)) == 2, (
+            f"a new working directory must re-resolve: {_rev_parse(calls)}"
+        )
+    finally:
+        restore()
+
+
+def test_cohort_get_repo_root_does_not_cache_a_failure(tmp_path, monkeypatch):
+    """Cohort retries a failed repository-root lookup in the same directory."""
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+    mod = _fresh_cohort("_cohort_success_only")
     calls, restore = _counting_spawns(mod)
     try:
         monkeypatch.chdir(outside)
