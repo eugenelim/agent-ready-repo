@@ -109,5 +109,8 @@ The guide page named in § Scope is not a fourth slice.
 
 ## Spec map
 
+One of three slices materialized. The Status column is auto-derived from each spec; it is not hand-edited.
+
 | Spec | Status |
 | --- | --- |
+| `lifecycle-transition-contract` | <auto> |
