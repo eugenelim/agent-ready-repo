@@ -732,7 +732,11 @@ def _is_canonical_local_brief_path(path: object) -> bool:
     )
 
 
-_BRIEF_POINTER_RE = re.compile(r"^brief:(?P<slug>.*)$")
+# `\Z`, not `$`: in Python `$` also matches just before a trailing newline,
+# so `brief:slug\n` matched and normalised through with the newline silently
+# dropped, while a trailing tab, space or carriage return was refused. One
+# character of the excluded set leaked because of the anchor.
+_BRIEF_POINTER_RE = re.compile(r"^brief:(?P<slug>.*)\Z", re.S)
 
 
 def _normalized_brief_pointer(value: str) -> str:
