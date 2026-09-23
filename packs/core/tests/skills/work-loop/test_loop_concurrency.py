@@ -1908,48 +1908,114 @@ def test_gates_clean_refuses_a_schedule_in_its_commit_window(tmp: Path) -> None:
                                     before, before_cohort)
 
 
+_REACHED_CHILD_SRC = '''
+import importlib.util, sys
+from pathlib import Path
+probe = Path(sys.argv[1]); target = sys.argv[2]; argv = sys.argv[3:]
+
+spec = importlib.util.spec_from_file_location("_subject", target)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+
+sl = mod._statelock()
+real_exclusive = sl.exclusive
+real_hold = mod._cohort_commit_hold
+
+class Recording:
+    """Records every path the ENGINE locks, and proves the peer's lock excludes.
+
+    Two artifacts, because one does not carry the claim. `acquired-*` records
+    what the engine itself locked, so deleting the hold or pointing it at
+    another path is visible directly rather than inferred. `contended` records a
+    StateLockTimeout against the peer's hold, which is what makes the lock the
+    exclusion it is claimed to be.
+    """
+    def __getattr__(self, name):
+        return getattr(real_exclusive.__self__, name) if hasattr(
+            real_exclusive, "__self__") else getattr(sl, name)
+
+def recording_exclusive(path, **kwargs):
+    (probe / ("acquired-" + Path(path).name)).write_text("1", encoding="ascii")
+    return real_exclusive(path, **kwargs)
+
+def probed(spec_dir, event):
+    path = mod._guards().state_path_for(spec_dir)
+    try:
+        with real_exclusive(path, timeout=0.1, poll=0.005):
+            (probe / "uncontended").write_text(event, encoding="utf-8")
+    except sl.StateLockTimeout:
+        (probe / "contended").write_text(event, encoding="utf-8")
+    sl.exclusive = recording_exclusive
+    return real_hold(spec_dir, event)
+
+mod._cohort_commit_hold = probed
+sys.exit(mod.main(argv))
+'''
+
+
 def test_a_peer_holding_the_cohort_lock_blocks_the_commit(tmp: Path) -> None:
     """AC4: the lock's actual job, observed rather than inferred.
 
-    Every interleaving case above forces the mutation to commit BEFORE the
-    engine commits, so each would still pass with the cohort lock deleted or
-    taken on a different path — the refusal there comes from the fingerprint
-    alone. What the lock adds is excluding a mutation that would land BETWEEN
-    the re-read and the state write, and only holding it from a peer can show
-    that.
+    Every interleaving case forces the mutation to commit BEFORE the engine
+    commits, so each would still pass with the cohort lock deleted or taken on
+    a different path — the refusal there comes from the fingerprint alone. What
+    the lock adds is excluding a mutation that would land BETWEEN the re-read
+    and the state write, and only holding it from a peer can show that.
 
-    Observed while the peer still holds it, not after: `_release` unlinks the
-    lockfile on every normal exit, so a post-run probe reports the same absence
-    whether the lock was taken or never taken at all.
+    The child records a `StateLockTimeout` against this process's hold, which
+    is positive evidence of the exclusion. Two earlier versions were weaker and
+    both passed with the hold deleted: one waited a fixed 2 s and asserted the
+    child had not finished, which a child that never got near the lock
+    satisfies; the next asserted only that the child had REACHED the
+    acquisition, which says nothing about whether it blocked there.
     """
     repo = _init_git_repo(tmp / "mutual-exclusion")
     spec_dir, run_id = _code_implementation_run(repo, "demo")
     _receipt(repo, spec_dir, run_id, "T1", 0)
     before = (spec_dir / "engine-state.json").read_bytes()
 
-    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_mutual")
-    state_path = spec_dir / "state.json"
+    probe = repo / "_excl"
+    probe.mkdir(exist_ok=True)
+    for stale in probe.iterdir():
+        stale.unlink()
+    child_path = repo / "_reached_child.py"
+    child_path.write_text(_REACHED_CHILD_SRC, encoding="utf-8")
 
-    with sl.exclusive(state_path):
+    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_mutual")
+
+    with sl.exclusive(spec_dir / "state.json"):
         child = subprocess.Popen(
-            [sys.executable, str(ENGINE), "transition", str(spec_dir), "wave-complete"],
+            [sys.executable, str(child_path), str(probe), str(ENGINE),
+             "transition", str(spec_dir), "wave-complete"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             encoding="utf-8", cwd=str(repo),
         )
-        # Hold well past the point a lock-free implementation would have
-        # committed, and keep checking rather than checking once at the end.
-        deadline = time.monotonic() + 2.0
-        while time.monotonic() < deadline:
-            assert (spec_dir / "engine-state.json").read_bytes() == before, (
-                "the transition committed while a peer held the cohort lock — "
-                "the hold is absent, or taken on a path the cohort does not use"
+        deadline = time.monotonic() + READY_TIMEOUT
+        while not ((probe / "contended").exists() or (probe / "uncontended").exists()):
+            assert child.poll() is None, (
+                f"the child exited before reaching the cohort acquisition: "
+                f"{child.communicate()[1][:300]}"
             )
-            time.sleep(0.05)
-        assert child.poll() is None, (
-            "the transition finished while the cohort lock was held; it never "
-            "waited on the lock"
+            assert time.monotonic() < deadline, "the child never reached the acquisition"
+            time.sleep(0.005)
+
+        # The child timed out against a lock this process holds. That is the
+        # peer exclusion itself, observed rather than inferred from a clock.
+        assert (probe / "contended").exists(), (
+            "the child acquired the cohort lock while this process held it"
         )
+        assert (spec_dir / "engine-state.json").read_bytes() == before
 
     out, err = child.communicate(timeout=HARNESS_PROCESS_TIMEOUT)
     assert child.returncode == 0, f"it should proceed once released: {out}{err}"
     assert (spec_dir / "engine-state.json").read_bytes() != before
+
+    # And the engine locked the COHORT path to do it. Without this the case
+    # passes with the hold deleted: the contention artifact above is produced by
+    # the child's own probe against the peer, so it says nothing about whether
+    # the engine acquires anything at all.
+    acquired = {f.name[len("acquired-"):] for f in probe.glob("acquired-*")}
+    assert "state.json" in acquired, (
+        f"the engine committed without locking the cohort path; it locked "
+        f"{sorted(acquired) or 'nothing'}"
+    )

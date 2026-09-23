@@ -33,6 +33,11 @@ worktrees.
 | AC15 site count | add a cohort `exclusive` in a new function *reachable from* `cmd_transition` | `budget_counts` | red |
 | AC13 reclaim wording | render the reclaim through the acquisition handler | `reclaim_at_the_end` | red |
 | AC11 mechanism | refuse from a lock timeout instead of the fingerprint | `commit_window` | red |
+| AC13 refused-then-reclaimed | remove the `_committed` branch from the reclaim handler | `reclaim` | red |
+| AC13 commit flag | never set `_committed` after the state write | `reclaim` | red |
+| AC4 exclusion | delete the cohort hold | `peer_holding` | red |
+| AC4 lock target | acquire on `engine-state.json` instead | `peer_holding` | red |
+| AC4 exemption | widen the exemption to every event | `peer_holding` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
@@ -174,13 +179,48 @@ maximum over verbs and drops the engine term.
 Two findings are recorded rather than repaired, because repairing them would
 mean claiming something untrue:
 
-- The canonicalise catch-all in `_cohort_fingerprint` is **unfalsifiable against
-  the current reader**. Deep nesting raises inside `read_state` and is caught
-  earlier; a lone surrogate cannot fail `encode` under `ensure_ascii=True`. It
-  is kept as a contract guard, not an input guard, and the code says so.
+- The canonicalise catch-all in `_cohort_fingerprint` is unreachable **by any
+  input the bounded reader accepts**. Deep nesting raises inside `read_state`
+  and is caught earlier; a lone surrogate cannot fail `encode` under
+  `ensure_ascii=True`. A fault injected at the canonicalise step would still
+  red on the arm's deletion, so "no test can red it" was broader than the
+  evidence — AC21 is worded over inputs, and over inputs the arm is unreachable.
+  It is kept as a contract guard, not an input guard, and the code says so.
 - AC15's inequality is **slack by 25x** and is not its own discriminator; the
   pinned site counts are. The test says so rather than implying the arithmetic
   is load-bearing.
+
+## Post-gates quality review, round 2
+
+Two Concerns and two Nits. The first Concern was a bug introduced by round 1's
+own repair, and the second exposed that AC4 had never worked.
+
+**The reclaim handler claimed a commit on a path that wrote nothing.** A plain
+`return` inside a `with` still runs the context manager's exit, so a staleness
+refusal — which returns before writing — could be followed by a
+`StateLockLost`, and that handler re-rendered the run as a committed
+transition, discarding the refusal's return value. The operator would be told
+not to re-run something that never landed. The handler branches on a
+`_committed` flag now, and a second AC13 case covers the refused-then-reclaimed
+path; the committed-path case alone could not see it.
+
+**AC4 took three attempts and the first two passed with the lock deleted.**
+Version one waited a fixed 2 s and asserted the child had not finished, which a
+child that never approached the lock satisfies. Version two had the child signal
+when it *reached* the acquisition — which says nothing about whether it blocked
+there, and the parent's assertion simply won the race. Version three records
+the paths the engine itself locks, so a deleted hold, a hold on the wrong path
+and a widened exemption each red. The contention artifact is kept alongside it,
+but it is now understood for what it is: the child's own probe against the
+peer's lock, which proves the peer's lock is real and says nothing about the
+engine's.
+
+That is the general shape of this delivery's hardest bugs. **An observation
+about a concurrent process is easy to write so that it measures the observer.**
+
+Nit 4 was the fifth instance of the claim-outruns-evidence class, and it was in
+the sentence written *about* that class: "no test can red it" should have been
+"no input the bounded reader accepts reaches it".
 
 ## Observations
 

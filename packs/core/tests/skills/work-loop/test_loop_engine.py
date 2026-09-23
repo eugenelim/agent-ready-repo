@@ -4396,8 +4396,13 @@ def test_cohort_fingerprint_is_total_over_canonicalisation(tmp: Path) -> None:
 
     A lone surrogate survives the reader's strict UTF-8 decode and dumps fine,
     then raises `UnicodeEncodeError` at `.encode("utf-8")` unless the dump is
-    `ensure_ascii=True`. Deep nesting raises `RecursionError`, which is neither
-    `ValueError` nor `OSError`, so only a broad catch-all reaches it.
+    `ensure_ascii=True` — that is the property this case pins.
+
+    It does NOT cover the canonicalise catch-all. Deep nesting raises inside
+    `read_state` and is caught by the read arm before canonicalisation is
+    reached, so both inputs here return through arms above it. That catch-all
+    is unfalsifiable against the current reader and is kept as a contract
+    guard; the verification ledger records why.
     """
     d = make_spec_dir(tmp, "fp-canon")
     state = d / "state.json"
@@ -4658,3 +4663,43 @@ def test_a_loader_failure_while_handling_does_not_escape(tmp: Path, monkeypatch)
     monkeypatch.setattr(_engine, "_guards", flaky)
     value = _engine._cohort_fingerprint(d)
     assert isinstance(value, str) and value
+
+
+def test_a_reclaim_after_a_refusal_does_not_claim_a_commit(tmp: Path, capsys, monkeypatch) -> None:
+    """AC13: the refused-then-reclaimed path, which the committed case cannot cover.
+
+    A plain `return` inside the `with` still runs the context manager's exit,
+    so a staleness refusal that wrote nothing can be followed by a reclaim —
+    and the reclaim handler would otherwise re-render the run as a committed
+    transition, discarding the refusal's own return value on the way. The
+    operator would then be told not to re-run something that never landed,
+    which is the opposite of the remedy that path needs.
+    """
+    spec_dir, _ = _drafting_run(tmp, "fp-refuse-reclaim")
+    before = (spec_dir / "engine-state.json").read_bytes()
+    sl = _engine._statelock()
+    real_exclusive = sl.exclusive
+
+    values = iter(["cohort-state:CAPTURED", "cohort-state:MOVED"])
+    monkeypatch.setattr(_engine, "_cohort_fingerprint", lambda _d: next(values))
+
+    @contextlib.contextmanager
+    def losing(path, **kwargs):
+        with real_exclusive(path, **kwargs) as handle:
+            yield handle
+        if path.name.startswith("state.json"):
+            raise sl.StateLockLost("the lock was not ours at release")
+
+    monkeypatch.setattr(sl, "exclusive", losing)
+    rc = _engine.cmd_transition(_transition_args(spec_dir, "spec-ready"))
+    err = capsys.readouterr().err.strip()
+
+    assert rc != 0
+    assert (spec_dir / "engine-state.json").read_bytes() == before, (
+        "nothing should have been written on the refused path"
+    )
+    assert "DID commit" not in err, (
+        f"a refusal that wrote nothing was reported as a commit: {err}"
+    )
+    assert "Do NOT re-run" not in err, err
+    assert "re-run" in err, f"the operator must be told to re-run: {err}"

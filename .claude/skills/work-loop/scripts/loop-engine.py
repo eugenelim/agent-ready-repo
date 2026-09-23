@@ -1856,6 +1856,12 @@ def cmd_transition(args: argparse.Namespace) -> int:
     # then the transition is already durable and a reclaim there costs a
     # recoverable remnant rather than a phantom transition.
     _pending_written = False
+    # Whether the engine-state write actually landed. The reclaim handler below
+    # cannot infer it: a plain `return` inside the `with` still runs the
+    # context manager's exit, so a staleness refusal that wrote NOTHING can be
+    # re-rendered by that handler with the opposite instruction, and the
+    # refusal's own return value is discarded on the way.
+    _committed = False
     try:
         with _cohort_commit_hold(spec_dir, event):
             _stale = _revalidate_cohort_state(spec_dir, event, _cohort_fp_at_capture)
@@ -1875,6 +1881,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
 
             # Write engine-state.json atomically (critical — not wrapped).
             _write_engine_state_atomic(spec_dir, new_state)
+            _committed = True
     except _statelock().StateLockLost as exc:
         # A reclaim detected at RELEASE, which is the opposite situation from a
         # failed acquisition and needs the opposite response. `exclusive` can
@@ -1882,6 +1889,15 @@ def cmd_transition(args: argparse.Namespace) -> int:
         # has already landed: the transition committed. Re-running it — the
         # right move after an acquisition failure — is wrong here. Rendering
         # both through one message is how an operator gets that backwards.
+        if not _committed:
+            # The body refused before writing, and the reclaim then swallowed
+            # that refusal. Nothing landed, so the remedy is the refusal's, not
+            # the reclaim's.
+            return stop(
+                f"transition: cohort state lock lost at release: {exc}; the "
+                "transition had already refused before writing, so nothing was "
+                "committed — re-run it"
+            )
         return stop(
             f"transition: cohort state lock lost at release: {exc}. The "
             "transition DID commit and engine-state.json is updated; the "
