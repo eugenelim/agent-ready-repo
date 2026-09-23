@@ -128,7 +128,29 @@ preserve protected target content during install, upgrade, and uninstall.
 configuration without applying changes. `adapt` reports upstream companions
 instead of silently overwriting them.
 
-### 6.1 Hook-wiring drop behaviour is per adapter
+### Which adapter an install targets
+
+A pack declares `allowed-adapters` in `pack.toml`, and where the pack's
+contract version admits it the set constrains `_resolve_target_adapter` rather
+than merely annotating it. Two properties of that resolution are load-bearing;
+read the function for the rest, and read the code rather than its docstring,
+which has drifted.
+
+**The drift refusal runs before anything else.** Where `allowed-adapters` is
+declared, it is checked against the bundled contract's shipped set first —
+ahead of an explicit `--adapter` and ahead of the recorded state hint — so
+neither can carry a no-longer-shipped adapter through. It refuses on the first
+declaration the contract does not ship; it does not filter the list down to
+the ones that survive.
+
+**Probing is deliberately asymmetric between scopes.** User scope walks a
+per-adapter probe table and the first declared match wins. Repo scope does not
+probe at all — symmetric probing was considered and rejected. It takes the
+default adapter when the pack admits it, and otherwise the first entry in
+`allowed-adapters`, which means a repo-scope install can land on whatever the
+publisher happened to list first.
+
+### 6.1 Hook-wiring drop behaviour is per adapter### 6.1 Hook-wiring drop behaviour is per adapter
 
 There is no single rule here, and this page deliberately does not state one.
 Whether an incompatible hook-wiring file is dropped individually, passed through
