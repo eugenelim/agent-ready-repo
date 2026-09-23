@@ -49,6 +49,26 @@ const readableDate = (iso: string) => {
   const [year, month, day] = iso.split('-').map(Number);
   return `${day} ${MONTHS[month - 1]} ${year}`;
 };
+
+// One index entry per distinct release date, pointing at the FIRST release of
+// that day. Groups arrive in the contract's descending-date order, so first-seen
+// is the topmost release for that date and a `Map` preserves that order.
+// Deliberately not one entry per release: 156 links is a second long page, not
+// an index. Deliberately not one per month either — the whole history currently
+// spans two calendar months, so a month index would have two entries and
+// navigate nothing.
+const dateIndex = [...groups
+  .reduce((acc, group) => (
+    acc.has(group.date) ? acc : acc.set(group.date, group.changelogAnchor)
+  ), new Map<string, string>())
+  .entries()]
+  .map(([date, anchor]) => ({ date, anchor, label: readableDate(date) }));
+
+// A release count per date, so the index says how much sits under each entry
+// rather than making the reader jump to find out.
+const releasesOn = groups.reduce((acc, group) => (
+  acc.set(group.date, (acc.get(group.date) ?? 0) + 1)
+), new Map<string, number>());
 ---
 
 {groups.length === 0 ? (
@@ -57,11 +77,26 @@ const readableDate = (iso: string) => {
     <a class="now-empty__link" href={changelogHref}>Read the changelog</a>
   </div>
 ) : (
-  <ol class="now-list" role="list">
+  <Fragment>
+    <nav class="now-index" aria-labelledby="now-index-heading">
+      <h3 id="now-index-heading" class="now-index__heading">Jump to a date</h3>
+      <ol class="now-index__list" role="list">
+        {dateIndex.map((entry) => (
+          <li class="now-index__item">
+            <a class="now-index__link" href={`#${entry.anchor}`}>
+              <span class="now-index__date">{entry.label}</span>
+              <span class="now-index__count">{releasesOn.get(entry.date)}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+
+    <ol class="now-list" role="list">
     {groups.map((group) => (
-      <li class="now-release">
+      <li class="now-release" id={group.changelogAnchor}>
         <div class="now-release__meta">
-          <span class="now-release__name">{releaseLabel(group)}</span>
+          <h3 class="now-release__name">{releaseLabel(group)}</h3>
           <time class="now-release__date" datetime={group.date}>{readableDate(group.date)}</time>
         </div>
         <ul class="now-release__highlights" role="list">
@@ -81,7 +116,10 @@ const readableDate = (iso: string) => {
         >Release notes for {releaseLabel(group)}</a>
       </li>
     ))}
-  </ol>
+    </ol>
+
+    <a class="now-totop" href="#now-heading">Back to the top</a>
+  </Fragment>
 )}
 
 <style>
@@ -139,7 +177,12 @@ const readableDate = (iso: string) => {
     margin-bottom: var(--ds-space-4);
   }
 
+  /* A <h3>, not a <span>, since 2026-09-22: 156 releases shared ONE heading on
+     this page, so a screen-reader user could not skim it by heading and nothing
+     could be linked to. The element changed; the rendering did not — `margin: 0`
+     clears the UA heading default and the size below was already explicit. */
   .now-release__name {
+    margin: 0;
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-sm);
     font-variant-numeric: tabular-nums lining-nums;
@@ -153,6 +196,76 @@ const readableDate = (iso: string) => {
     letter-spacing: var(--ds-track-label);
     color: var(--ds-on-surface-2);
     font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* ── The date index ────────────────────────────────────────────────────
+     The finding this closes named three absences: no pagination, no in-page
+     contents, no return-to-top. This is the contents and the return. Bounding
+     the page is a separate decision, recorded in
+     docs/product/research/release-feed-length-survey.md.
+     Ruled, not boxed — the same containment rule the release list follows. */
+  .now-index {
+    margin-bottom: var(--ds-space-7);
+    padding-bottom: var(--ds-space-6);
+    border-bottom: 1px solid var(--ds-rule-boundary);
+  }
+
+  .now-index__heading {
+    margin: 0 0 var(--ds-space-4);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-field-label);
+  }
+
+  /* `auto-fill` with a floor, not a fixed column count: the index grows with
+     the release history, and at the supported 320 minimum it has to collapse
+     to one column without a media query. */
+  .now-index__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: var(--ds-space-2) var(--ds-space-5);
+  }
+
+  .now-index__link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    padding-block: var(--ds-space-1);
+    font-size: var(--ds-type-sm);
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface-2);
+    text-underline-offset: 0.2em;
+  }
+
+  .now-index__link:hover {
+    color: var(--ds-on-surface);
+  }
+
+  /* The count is metadata about the row, so it recedes; it still clears the
+     4.5:1 text floor — --ds-on-surface-muted measures 5.30:1 on --ds-surface,
+     which is this band's ground. */
+  .now-index__count {
+    font-size: var(--ds-type-xs);
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface-muted);
+  }
+
+  /* A link, not a fixed overlay. A sticky control would be ornament on a
+     surface whose direction sheet reads [flat] material and [none] ornament,
+     and it would cover content at the 320 minimum. One link at the foot is
+     weak on a page this long, which is an argument for bounding the page
+     rather than for a floating button. */
+  .now-totop {
+    display: inline-block;
+    margin-top: var(--ds-space-6);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
   }
 
   .now-release__highlights {
