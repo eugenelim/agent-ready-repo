@@ -144,11 +144,35 @@ _GIT_OVERRIDE_VARS = frozenset({
     "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
 })
 
+# Resolved repository roots, keyed on the process working directory.
+#
+# `git rev-parse --show-toplevel` below takes no `cwd=`, so the working directory
+# is what decides its answer for any caller here. Keying on it, rather than
+# caching unconditionally, is what makes this safe in the pack's own harnesses:
+# they load this module by path, in-process, and chdir between throwaway
+# repositories. An unkeyed cache would hand the second repository the first one's
+# root, and that reaches `_resolve_spec_dir`'s confinement check as a silent wrong
+# answer rather than a crash.
+#
+# Successes only. A remembered failure would turn one transient timeout into a
+# permanent refusal for the life of the process, and would buy nothing — the
+# failure path already ends the run.
+_REPO_ROOT_CACHE: dict[str, Path] = {}
+
 
 def _get_repo_root() -> Path:
     """Return the repository root without caller-controlled Git overrides."""
-    safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
     try:
+        # Inside the `try` deliberately: `Path.cwd()` raises FileNotFoundError
+        # when the working directory has been unlinked, and the contract below is
+        # that this function leaves only by ValueError.
+        cwd = str(Path.cwd())
+        cached = _REPO_ROOT_CACHE.get(cwd)
+        if cached is not None:
+            return cached
+        # Built after the cache check, so a hit does not pay for a filtered copy
+        # of the whole environment it never uses.
+        safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True, text=True, encoding="utf-8", check=False,
@@ -163,7 +187,9 @@ def _get_repo_root() -> Path:
         raise ValueError(f"could not determine repo root: {exc}") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
-    return Path(result.stdout.strip()).resolve()
+    root = Path(result.stdout.strip()).resolve()
+    _REPO_ROOT_CACHE[cwd] = root
+    return root
 
 
 def _resolve_spec_dir(raw: str) -> Path:
