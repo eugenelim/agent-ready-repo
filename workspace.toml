@@ -516,6 +516,12 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 
 ["ini-003".work]
 active  = [
+  # The composition and depth half of a two-spec split with
+  # docs/specs/design-output-addressing (Shipped), which gives the three
+  # crossing artifacts their addresses. Owner decision at intake: risk-tier
+  # stays in journey body prose and `####` sub-stages; no journey `contract:`
+  # key, so the five-declaration schema cost is not paid.
+  {path = "docs/specs/frontend-experience-composition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give experience-design and frontend-engineering one shared state-coverage map and one selectable, cheap-by-default depth ladder, with accessibility non-waivable at every tier", needs = [{type = "local", kind = "spec", path = "docs/specs/design-output-addressing/spec.md"}]},
 ]
 queue   = [
 ]
