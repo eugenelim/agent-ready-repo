@@ -263,7 +263,26 @@ the page navigable, it does not make it short. Bounding it is steps 2 and 3.
 **Step 2 — publish a feed. Cheap, and it changes what the page must carry.**
 An Atom or RSS feed covering the complete history is the one mechanism with no
 identified downside, and it is what lets the HTML page be a navigation layer
-rather than the exhaustive record. We have none today.
+rather than the exhaustive record.
+
+**Step 2 shipped 2026-09-22.** `/now/feed.xml`, Atom 1.0, 186 KB, all 156
+releases, advertised from `/now/` through a `rel="alternate"` link. Atom rather
+than RSS because it specifies its date format and requires `<id>` to be a
+permanent unique IRI, and a feed of release records wants stable identity above
+all — a reader that re-shows every entry on each fetch is worse than no feed.
+Entry ids are the release anchors step 1 put on the page, so the feed and the
+page name a release the same way.
+
+No new dependency: `@astrojs/rss` would do it, but a static endpoint returning
+a string does it with nothing but the standard library. The cost is that the
+XML escaping is ours, so it is one function used at every interpolation, and
+seven guards assert the result against a real XML parser rather than a regex —
+entry count against the projection, id uniqueness and resolvability against the
+page's anchors, RFC 3339 on every timestamp, and markup surviving the round
+trip. The corpus exercises `<`, `>`, `"` and `'` on its own (`agentbundle
+upgrade --skill <name>` is in there); `&` appears nowhere in it, so that branch
+is covered by a direct test of the escaper including the ordering case where a
+late ampersand replacement would turn `<` into `&amp;lt;`.
 
 **Step 3 — re-measure, then bound the page.** Length is not a compliance
 failure (finding 5), so the bar is whether the page is still unusable after

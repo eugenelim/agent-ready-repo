@@ -1051,6 +1051,30 @@ open = [
   # closed note rather than deleted, so the third-instance count stays legible
   # if the same contradiction appears a fourth time.
 
+  # PARTIALLY ADDRESSED 2026-09-22, still open on the length itself.
+  # The finding named three absences: no pagination, no in-page contents, no
+  # return-to-top. Two are closed. /now/ now carries a heading and a stable id
+  # per release (2 headings -> 162, 0 release ids -> 156), a 31-entry date
+  # index, and a return link; and /now/feed.xml publishes all 156 releases as
+  # Atom so the page is no longer the only machine-readable record.
+  # THE PAGE IS NOT SHORTER -- 120.3 viewport heights against 119.9, 235 KB
+  # against 224 KB. That is the honest outcome of making it navigable rather
+  # than bounding it, and pagination is the remaining step.
+  # An age-based cutoff was considered and REJECTED on evidence: 0 of 12 public
+  # changelog feeds truncate by age, and our own history is 156 releases in 37
+  # days, so a rolling 30-day window would cut 9% and leave ~109 viewport
+  # heights. Full reasoning, the seven mechanisms for keeping a growing archive
+  # navigable, and the remaining step:
+  # docs/product/research/release-feed-length-survey.md.
+  # Also settled there: page length violates no WCAG success criterion (1.4.10
+  # Reflow restricts two-dimensional scrolling), so this is information
+  # architecture, not compliance. And the date index needs a second level,
+  # year -> month, before the history reaches a year or it becomes the long
+  # page it exists to fix.
+  # Unblocks when: ready now -- the remaining decision is numbered pagination,
+  # for which the survey records the current SEO shape (each page
+  # self-canonicalises; rel=next/prev has been dead to Google since 2019).
+  # The original entry, for the record:
   # MODERATE. /now/ renders every released entry on one unpaginated page and is
   # tens of viewport heights long. The list grows monotonically -- the page
   # gains a group for each release and drops none -- so no count stated here

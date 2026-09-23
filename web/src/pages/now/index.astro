@@ -16,6 +16,7 @@ import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import NowHighlights, { type NowGroup } from '../../components/now/NowHighlights.astro';
 import projection from '../../lib/now-highlights.generated.json';
+import { withBase } from '../../lib/paths';
 
 // The generated payload is the build's contract with the generator. A renamed or
 // restructured field would otherwise render an empty or half-blank public page;
@@ -35,6 +36,17 @@ const groups = projection.groups as readonly NowGroup[];
   title="Now — agent-ready-repo"
   description="What has actually shipped, taken from released changelog entries. Every outcome links to the release it came from."
 >
+  <!-- The complete history as Atom, so a reader can follow releases without
+       re-reading a page that grows with every one. SiteLayout exposes this
+       named slot, so the link ships on this route only rather than on all 51. -->
+  <link
+    slot="head"
+    rel="alternate"
+    type="application/atom+xml"
+    title="agent-ready-repo — Now"
+    href={withBase('/now/feed.xml')}
+  />
+
   <!-- ── Hero ──────────────────────────────────────────────────────────── -->
   <section class="now-hero" aria-labelledby="now-heading">
     <div class="now-hero__inner">

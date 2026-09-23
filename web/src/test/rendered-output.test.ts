@@ -1525,3 +1525,105 @@ describe.skipIf(!docsBuilt)('desk-research build handover', () => {
     }
   });
 });
+
+/**
+ * The Atom feed for `/now/`.
+ *
+ * The feed is the mechanism that lets `/now/` stop being the exhaustive
+ * machine-readable record of everything shipped — see
+ * docs/product/research/release-feed-length-survey.md. It is hand-built rather
+ * than produced by `@astrojs/rss`, so the escaping and the Atom shape are ours
+ * to get right and these assert them against a real XML parser rather than a
+ * regex over the text.
+ */
+describe('/now/ Atom feed', () => {
+  const FEED = join(BUILD_ROOT, 'now', 'feed.xml');
+  const ATOM = 'http://www.w3.org/2005/Atom';
+
+  const feedDoc = () => {
+    if (!existsSync(FEED)) {
+      throw new Error('build/now/feed.xml missing — run the web build before this suite');
+    }
+    // `text/xml`, not the default HTML parse: an HTML parser is forgiving and
+    // would accept the malformed output this guard exists to catch.
+    return new JSDOM(readFileSync(FEED, 'utf8'), { contentType: 'text/xml' }).window.document;
+  };
+
+  it('parses as XML and is an Atom feed', () => {
+    const d = feedDoc();
+    // jsdom reports a parse failure as a <parsererror> element rather than by
+    // throwing, so asserting on the root tag alone would pass on broken XML.
+    expect(d.querySelector('parsererror'), 'feed.xml is not well-formed XML').toBeNull();
+    expect(d.documentElement.namespaceURI).toBe(ATOM);
+    expect(d.documentElement.localName).toBe('feed');
+  });
+
+  it('carries one entry per released group, with unique permanent ids', () => {
+    const d = feedDoc();
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    const entries = [...d.getElementsByTagNameNS(ATOM, 'entry')];
+    expect(entries.length).toBe(projection.groups.length);
+
+    const ids = entries.map((e) => e.getElementsByTagNameNS(ATOM, 'id')[0]?.textContent);
+    expect(new Set(ids).size, 'entry ids must be unique').toBe(ids.length);
+    for (const id of ids) {
+      expect(id).toMatch(/^https:\/\/[^\s]+\/now\/#.+$/);
+    }
+  });
+
+  it('every entry id resolves to a real anchor on the rendered page', () => {
+    // The feed's whole identity scheme rests on /now/ carrying each release's
+    // `changelogAnchor` as an `id`. If the page ever stops emitting those, the
+    // feed keeps publishing links that scroll nowhere and nothing else notices.
+    const d = feedDoc();
+    const page = doc(NOW_PAGE);
+    const entries = [...d.getElementsByTagNameNS(ATOM, 'entry')];
+    for (const e of entries) {
+      const id = e.getElementsByTagNameNS(ATOM, 'id')[0]!.textContent!;
+      const fragment = id.slice(id.indexOf('#') + 1);
+      expect(page.getElementById(fragment), `feed entry ${id} has no target on /now/`).not.toBeNull();
+    }
+  });
+
+  it('dates are the RFC 3339 instants Atom requires, not bare dates', () => {
+    const d = feedDoc();
+    const stamps = [...d.getElementsByTagNameNS(ATOM, 'updated')].map((n) => n.textContent ?? '');
+    expect(stamps.length).toBeGreaterThan(0);
+    for (const stamp of stamps) {
+      expect(stamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    }
+  });
+
+  it('markup inside a highlight survives as escaped content, not as raw XML', () => {
+    // The real corpus contains `agentbundle upgrade --skill <name>`. Unescaped,
+    // that `<` opens a bogus element and the whole feed stops parsing — so this
+    // asserts the round trip on real data rather than on a fixture.
+    const d = feedDoc();
+    const contents = [...d.getElementsByTagNameNS(ATOM, 'content')].map((n) => n.textContent ?? '');
+    expect(contents.some((c) => c.includes('<code>')), 'no entry carried a code span').toBe(true);
+    expect(contents.some((c) => c.includes('<strong>')), 'no entry carried emphasis').toBe(true);
+  });
+
+  it('/now/ advertises the feed, and the advertised file exists', () => {
+    const link = doc(NOW_PAGE).querySelector('link[rel="alternate"][type="application/atom+xml"]');
+    expect(link, '/now/ must advertise its feed or no reader can discover it').not.toBeNull();
+    const href = link!.getAttribute('href') ?? '';
+    const rel = href.replace(/^\/agent-ready-repo/, '');
+    expect(existsSync(join(BUILD_ROOT, rel)), `${href} -> no emitted file`).toBe(true);
+  });
+});
+
+describe('the feed escaper', () => {
+  it('escapes every XML metacharacter, ampersand first', async () => {
+    // `&` is the branch the real corpus never reaches — no highlight contains
+    // one today — so it is only ever exercised here. Ampersand must be replaced
+    // BEFORE the others or `<` becomes `&amp;lt;`; the combined input below is
+    // what catches that ordering, which a per-character test would not.
+    const { xmlEscape } = await import('../pages/now/feed.xml');
+    expect(xmlEscape('&')).toBe('&amp;');
+    expect(xmlEscape('<name>')).toBe('&lt;name&gt;');
+    expect(xmlEscape(`"quoted" 'single'`)).toBe('&quot;quoted&quot; &apos;single&apos;');
+    expect(xmlEscape('a & <b> "c"')).toBe('a &amp; &lt;b&gt; &quot;c&quot;');
+    expect(xmlEscape('already &amp; escaped')).toBe('already &amp;amp; escaped');
+  });
+});
