@@ -367,8 +367,10 @@ was not measured, and claims no direction in either place.
 
 ## The one defect class this review found
 
-Across six adversarial rounds and two quality rounds, twenty-one findings were
-sustained and five refuted. Every sustained adversarial finding was one class: a
+Across seven adversarial rounds and two quality rounds, twenty findings were
+sustained by adjudication and five refuted, plus one more repaired under owner
+direction when round 6's adjudication returned the indeterminate stop signal
+and so produced no sustained entry — twenty-one repairs in all. Every sustained adversarial finding was one class: a
 claim reaching past its evidence. Sustained counts per adversarial round ran
 4, 3, 2, 4, 4, 1. The measurements never moved — T1 held at 0 of 190 and 190 of
 190 through five re-runs and four rewrites of its insertion-anchor code, T2 at
