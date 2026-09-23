@@ -294,3 +294,41 @@ ten states are exactly the map's `explore` band.
 
 The web copy was regenerated in this task rather than at the end, per the
 `Always do` rule: no lint compares the source and the committed copy.
+
+## T6 — the contract is loaded by a skill in each pack
+
+`frontend-engineering/SKILL.md` names it at the state-matrix step and
+`design-review/SKILL.md` at the quality-floor step, which are the steps the
+state-coverage map serves. Both references sit before the state table, so T3's
+parse of `### 3. State matrix` is untouched — re-run after the edit: 10 passed.
+
+### A ceiling this edit crossed, found by a lint the plan did not name
+
+The first version added a five-line paragraph. `catalogue lint --deep` then
+turned a `CAT-S003` warning into an **ERROR**: the frontend `SKILL.md` body sits
+at exactly 1,000 lines, and the error threshold is *exceeds* 1,000. The whole
+tree went from `ok: 71 finding(s)` to `FAIL: 71 finding(s)` on six added lines.
+
+Proven mine rather than inherited: stashing the edit returns the tree to
+`ok: 71`, and restoring it returns `FAIL: 71`. The reference is now folded into
+the existing sentence, so the file is 1,004 lines before and after — byte-level
+delta on one line only — and the lint reads `ok: 71` again.
+
+The lesson generalises past this file: a pack `SKILL.md` can sit exactly on the
+`CAT-S003` ceiling, where any added line is a gate failure and no local lint in
+`make lint-ruff lint-mypy` reports it.
+
+| Check | Result |
+| --- | --- |
+| AC-0006 / AC-0007 — path named and resolves on disk | both OK |
+| T3's state-coverage assertions, after this task's edit | 10 passed |
+| `catalogue lint --deep` | `ok: 71` — unchanged from HEAD |
+| AC-0043 `catalogue verify` | exit 0 |
+| `catalogue self-host --check` | exit 0 |
+| `tools/lint-experience-agnostic.py` | exit 0 |
+| Frontend pack suites | 355 passed |
+
+`catalogue verify` and `self-host --check` both exiting 0 on an unregenerated
+tree re-confirms the ledger's third falsified claim: only `core` has declared
+host projections, so these non-core `.apm/` edits owe no `.claude/` or
+`.agents/` delta.
