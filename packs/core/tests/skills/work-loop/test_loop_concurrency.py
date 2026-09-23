@@ -1394,48 +1394,80 @@ def _reaches_a_cohort_acquisition(name: str) -> bool:
     return False
 
 
-def _cohort_acquiring_mutators() -> set[str]:
-    """`loop-cohort` functions the engine calls that reach a cohort acquisition.
+def _engine_reachable_functions() -> set[str]:
+    """Functions in `loop-engine.py` reachable from `cmd_transition` by name.
 
-    Decided without naming one: every `_cohort_mutator().<fn>(` site in the
-    engine is recovered syntactically, and `<fn>` counts when its definition
-    over in `loop-cohort.py` reaches a hold by any of AC17's three shapes. A
-    mutator that starts acquiring joins the count with no declaration edited,
-    and one that stops acquiring leaves it.
+    Bare-name callees only. That is the limit of what a static walk can do here
+    and it is stated rather than papered over: a call through an attribute on a
+    runtime-loaded module is invisible to it.
     """
-    called = set()
+    tree = _engine_tree()
+    funcs = {n.name: n for n in _ast_mod.walk(tree)
+             if isinstance(n, _ast_mod.FunctionDef)}
+    seen, frontier = {"cmd_transition"}, ["cmd_transition"]
+    while frontier:
+        fn = funcs.get(frontier.pop())
+        if fn is None:
+            continue
+        for node in _ast_mod.walk(fn):
+            if isinstance(node, _ast_mod.Call) and isinstance(node.func, _ast_mod.Name):
+                name = node.func.id
+                if name in funcs and name not in seen:
+                    seen.add(name)
+                    frontier.append(name)
+    return seen
+
+
+def _engine_cohort_acquisition_sites() -> tuple[int, list[str]]:
+    """Count COHORT acquisition SITES reachable from `cmd_transition`.
+
+    Sites, not containing-function names. A set of names cannot rise when a
+    second acquisition is added inside a function already in it, and the bound
+    consumes this as a count of acquisitions — so a name set silently
+    under-derives by a whole timeout.
+
+    Every `exclusive(...)` site must land in a bucket. One whose argument names
+    neither the cohort path helper nor the engine-state path is returned as
+    unclassified and fails the caller, because dropping it is the fail-open
+    direction: an acquisition written through a local variable or a new wrapper
+    would leave the count unchanged.
+    """
+    tree = _engine_tree()
+    reachable = _engine_reachable_functions()
+    cohort, unclassified = 0, []
+    for fn in _ast_mod.walk(tree):
+        if not isinstance(fn, _ast_mod.FunctionDef) or fn.name not in reachable:
+            continue
+        for node in _ast_mod.walk(fn):
+            if not (isinstance(node, _ast_mod.Call)
+                    and isinstance(node.func, _ast_mod.Attribute)
+                    and node.func.attr == "exclusive"):
+                continue
+            arg = " ".join(_ast_mod.dump(a) for a in node.args)
+            names_cohort = "state_path_for" in arg or "state.json" in arg
+            names_engine = "_engine_state_path" in arg or "engine-state.json" in arg
+            if names_engine and not names_cohort:
+                continue
+            if names_cohort:
+                cohort += 1
+            else:
+                unclassified.append(f"{fn.name}:{node.lineno}")
+    return cohort, unclassified
+
+
+def _cohort_mutator_acquisition_sites() -> tuple[int, set[str]]:
+    """Count `_cohort_mutator().<fn>(` SITES whose target reaches an acquisition."""
+    acquiring, sites = set(), 0
     for n in _ast_mod.walk(_engine_tree()):
         if not isinstance(n, _ast_mod.Call):
             continue
         f = n.func
         if (isinstance(f, _ast_mod.Attribute) and isinstance(f.value, _ast_mod.Call)
-                and "_cohort_mutator" in _called_names(f.value)):
-            called.add(f.attr)
-    return {name for name in called if _reaches_a_cohort_acquisition(name)}
-
-
-def _engine_cohort_acquisitions() -> set[str]:
-    """Functions in `loop-engine.py` that acquire on a COHORT path.
-
-    Recovered, not named. Every `exclusive(...)` call in the module is found
-    and classified by what its argument locks: an argument mentioning the guard
-    layer's `state_path_for` locks cohort state, one mentioning
-    `_engine_state_path` locks the engine's own. Naming the one wrapper we
-    expect would bound the count at 1 by construction, and a second engine-side
-    acquisition would then under-derive the bound by a whole timeout.
-    """
-    tree = _engine_tree()
-    found = set()
-    for fn in _ast_mod.walk(tree):
-        if not isinstance(fn, _ast_mod.FunctionDef):
-            continue
-        for node in _ast_mod.walk(fn):
-            if not (isinstance(node, _ast_mod.Call) and "exclusive" in _called_names(node)):
-                continue
-            arg_src = _ast_mod.dump(node)
-            if "state_path_for" in arg_src and "_engine_state_path" not in arg_src:
-                found.add(fn.name)
-    return found
+                and "_cohort_mutator" in _called_names(f.value)
+                and _reaches_a_cohort_acquisition(f.attr)):
+            acquiring.add(f.attr)
+            sites += 1
+    return sites, acquiring
 
 
 def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
@@ -1454,23 +1486,27 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     engine = _load_module(ENGINE, "_engine_acq_budget")
     sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_acq_budget")
 
-    # Two mutually exclusive groups of acquisition route out of cmd_transition,
-    # both recovered structurally. `contract-amendment` is the only event that
-    # acquires through its effect and the only event exempt from the identity
-    # check, so at most one group is live on any single path.
-    engine_routes = _engine_cohort_acquisitions()
-    mutator_routes = _cohort_acquiring_mutators()
-    assert engine_routes, "the engine no longer acquires on a cohort path"
-    assert engine_routes == {"_cohort_commit_hold"}, (
-        f"engine-side cohort acquisitions changed: {sorted(engine_routes)}. "
+    # Two mutually exclusive groups, both counted by SITE rather than by
+    # containing function. `contract-amendment` is the only event that acquires
+    # through its effect and the only event exempt from the identity check, so
+    # at most one group is live on any single path.
+    engine_sites, unclassified = _engine_cohort_acquisition_sites()
+    mutator_sites, acquiring = _cohort_mutator_acquisition_sites()
+    assert not unclassified, (
+        f"these `exclusive(...)` sites reachable from cmd_transition lock a path "
+        f"the classifier cannot attribute: {unclassified}. Dropping one is the "
+        f"fail-open direction — it would leave the derived bound unchanged."
+    )
+    assert engine_sites == 1, (
+        f"engine-side cohort acquisition sites: {engine_sites}, expected 1. "
         "Re-derive the bound rather than widening this assertion."
     )
-    assert mutator_routes == {"apply_contract_amendment"}, (
-        f"the set of engine-called acquiring mutators changed: {sorted(mutator_routes)}. "
-        "Re-derive the bound rather than widening this assertion."
+    assert (mutator_sites, acquiring) == (2, {"apply_contract_amendment"}), (
+        f"acquiring cohort-mutator sites changed: {mutator_sites} site(s) across "
+        f"{sorted(acquiring)}. Re-derive the bound rather than widening this."
     )
 
-    concurrent = max(len(engine_routes), len(mutator_routes))
+    concurrent = max(engine_sites, mutator_sites)
     max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
                 + sl.DEFAULT_TIMEOUT * concurrent)
     assert sl.DEFAULT_TIMEOUT < max_hold < sl.DEFAULT_STALE_AFTER, (

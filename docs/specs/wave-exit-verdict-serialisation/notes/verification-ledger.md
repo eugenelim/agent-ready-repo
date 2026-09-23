@@ -26,8 +26,10 @@ worktrees.
 | loader raises during clause evaluation | drop the try around `_guards()` | `loader_failure`, `while_handling` | red |
 | AC6 unlink exclusion | move the outbox unlink inside the hold | `hold_contains` | red |
 | AC17 shape-3 route | add an unlocked caller of `_schedule_run_impl` | `inside_a_cohort_hold` | red |
-| AC15 cohort route | add a second acquiring `_cohort_mutator()` call | `budget_counts` | red |
-| AC15 engine route | add a second engine-side `exclusive` on a cohort path | `budget_counts` | red |
+| AC15 cohort route | add a call to a *different* acquiring cohort mutator | `budget_counts` | red |
+| AC15 engine route | add a second cohort `exclusive` in a *new* engine function | `budget_counts` | red |
+| AC15 engine route | add a second cohort `exclusive` *inside the same* function | `budget_counts` | red |
+| AC15 attribution | acquire via a local variable the classifier cannot attribute | `budget_counts` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
@@ -96,10 +98,30 @@ is instructive: the probe added a second *cohort-side* route, which the check
 did handle, and the passing result was read as covering both halves. A probe
 exercises the path it picks, not the claim it is quoted against.
 
-Both halves are now recovered structurally — engine-side by finding every
+Both halves are recovered structurally — engine-side by finding every
 `exclusive(...)` call whose argument locks a cohort path, cohort-side by
-downward reachability — and the mutation table above carries a falsifying probe
-for each.
+downward reachability.
+
+## Post-gates review round 4
+
+One Blocker, and it is the same class a third time — this time inside the two
+ledger rows written *about* the class.
+
+Both route sets held function **names** while the bound consumed them as a count
+of **acquisitions**. A second `exclusive` added inside a function already in the
+set left the count unchanged, so the row "add a second engine-side `exclusive`
+on a cohort path" was falsified only for the new-distinct-name instance, not for
+the class it names. Counting is per site now, the rows say exactly which
+mutation each one falsifies, and a site the classifier cannot attribute fails
+the check instead of dropping out — that silent drop was the fail-open
+direction, since an acquisition written through a local variable would have left
+the bound unchanged.
+
+Three instances is enough to state the rule rather than the cases. **A probe
+licenses exactly the sentence that describes the mutation it ran.** Widening
+that sentence to the class the probe belongs to is the step that failed here
+each time: the loader's exception class, the "recovered rather than declared"
+claim, and now these two rows.
 
 ## Observations
 
