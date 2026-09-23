@@ -194,7 +194,7 @@ is reachable until T7 wires the parser.
   `--guides`; a repeated `--pack` admits the union. Verifies AC-0043.
 - With no scoping flag the predicate admits every planned path. Verifies AC-0042.
 - Under any scope, `catalogue.toml` and every `tests/conformance/**` path is
-  excluded. Verifies AC-0044.
+  excluded. Verifies AC-0033 clause 4's second exclusion.
 - Under every scope and under none, each `packages/credbroker/**` and
   `.agentbundle/tooling/agentbundle/**` path is excluded from the write set and
   reported in the deferred count. Verifies AC-0057's second clause.
@@ -220,6 +220,10 @@ replay, not a hand-written list.
   including `source_uri` absent under white-label on every row.
 - The recipe's pack list after a `--pack <new>` run equals the pre-run list plus
   that name, order-insensitively, with no entry dropped. Verifies AC-0045.
+- A scoped run's merged state carries every recorded identity field at its
+  pre-run value. T2's scope predicate is a pure function over planned paths and
+  cannot observe the recorded state, so this half belongs here. Verifies
+  AC-0044.
 
 **Done when:** the merge and pin tests pass and neither function touches the
 filesystem.
@@ -357,11 +361,21 @@ outside an apply run each exit 2.
   every row of AC-0039's table, not only the rows this phase adds. Each case
   walks the subject AC-0041's table names for its source form; the two
   digest-bearing forms have no source subject and are recorded as discharged by
-  phase 2's deletion obligation rather than skipped silently. Verifies AC-0041.
-- The registry gains one case per apply outcome: declined, refused, rolled back,
-  restore-failed, and applied. The applied case asserts the target differs by
-  exactly the written set, the removed set, and the state — an equality, not a
-  containment.
+  phase 2's deletion obligation rather than skipped silently. The `git+https://`
+  form is discharged separately and on its own ground: its clone root is created
+  under a fresh temporary directory after the before-walk and lies outside the
+  adopter's tree entirely, so no adopter-owned path is reachable at either
+  moment. The `atexit` handler is not that ground — it runs at interpreter exit,
+  after the command returns, so it says nothing about the after-walk. Verifies
+  AC-0041.
+- The registry gains one case per row of AC-0041's permitted-difference table,
+  named by that table's own row labels: `0 — success` apply, the partial-restore
+  `4`, the removal-failed `4`, and the state-write-failed `4`. Declined and
+  refused stay cases of the unchanged-tree rail, not permitted-difference cases
+  — matching arity is not correspondence, and pairing them by count is how a
+  registry comes to cover four rows while reading as though it covers five.
+- Each permitted-difference case asserts the stated difference as an equality,
+  not a containment.
 
 **Approach:**
 - Generalise the shipped helper rather than adding a second walk. Two walks that

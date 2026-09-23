@@ -24,9 +24,10 @@ An adopter who derived a catalogue and then edited it takes later upstream
 changes by running `agentbundle catalogue sync`, and gets exactly the plan
 `--dry-run` printed: their edited files survive behind `.upstream.<ext>`
 companions, everything else moves to the source's bytes, and the tree records
-which upstream it now matches. Success is that no run ever leaves a half-applied
-tree — every path the plan named is written, or the tree is the one that existed
-before the command started.
+which upstream it now matches. Success is that a run never leaves a
+half-applied tree silently — every path the plan named is written, or the tree
+is the one that existed before the command started, or the run names exactly
+what it left behind.
 
 ## What Changes
 
@@ -90,7 +91,10 @@ before the command started.
   replacement: its no-write-path rule is replaced by the first two deltas below,
   because this phase has a write path. Every other rule it states still binds,
   including that URI dispatch, the Tier contract and the removal guard are never
-  re-implemented.
+  re-implemented. Its recorded-value rule binds here with one narrowing: a
+  recorded `managed_paths` entry does resolve as a path, because the removal
+  guard AC-0035 requires must resolve one to act, and the confinement helpers
+  AC-0065 names are what bound that resolution.
 - The deltas this phase adds to that list:
   - Never write, move, delete, or change the mode of a path the printed plan did
     not name.
@@ -123,9 +127,10 @@ call.
   that `--guides` works passes a parser that still abbreviates, which is the
   state this criterion exists to end.
 - **Consent (AC-0031)** — TDD. Oracle: the target tree's file set before and
-  after, under each of four inputs — an affirmative at the prompt, a refusal,
-  `--yes`, and EOF with no TTY. A test asserting only the declined message
-  passes while the write happens anyway.
+  after on the walk tuple AC-0041 compares, under each of four inputs — an
+  affirmative at the prompt, a refusal, `--yes`, and EOF with no TTY. Comparing
+  only the file set passes a decline that rewrote every file's bytes, and
+  asserting only the declined message passes one that wrote anyway.
 - **The printed plan (AC-0057)** — TDD. Oracle: the row set the run prints,
   compared against phase 2's classification of the replayed selection with the
   two filters applied — an anchor outside the run, so AC-0033's equality rests
@@ -259,15 +264,35 @@ answer.
 - [ ] **AC-0031.** An apply run writes nothing until consent is given. Consent
   is an affirmative answer at the prompt or `--yes` on the command line; a
   negative answer, an end-of-input, or an absent terminal with no `--yes` all
-  leave the target tree byte-identical to its pre-run state.
-- [ ] **AC-0032.** Writes land in the order packs, profiles, guides — and the
-  ownership state after all three. No group writes a path under
-  `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`.
-- [ ] **AC-0033.** The set of paths an apply run writes equals, exactly, three
-  members: the `would-update` paths of the plan AC-0057 fixes; the path
-  `safety.companion_path` computes for each of that plan's `would-companion`
-  rows; and the ownership state. No other path under the target tree is
-  created, modified, moved, or has its mode changed.
+  leave the target tree identical on the walk tuple AC-0041 compares.
+- [ ] **AC-0032.** The paths AC-0033 clause 4 leaves admitted are written in
+  the order packs, profiles, guides, and AC-0033 clause 6's ownership state is
+  written after all three.
+- [ ] **AC-0033.** **The write set is defined here and nowhere else.** Every
+  other criterion that constrains what an apply run writes names a clause of
+  this definition rather than restating a scope over it. The set of paths an
+  apply run writes is constructed in this order, and equals the result exactly:
+
+  1. **Effective selection.** The recorded recipe's packs and profiles, unioned
+     with every name `--pack` or `--profile` supplies that the recipe does not
+     already carry.
+  2. **Replay and classify.** Replay that selection and classify every planned
+     path by the verdicts phase 2's five-verdict criterion fixes.
+  3. **Admit** a path that is `would-update`; the path
+     `safety.companion_path` computes for a path that is `would-companion`; and
+     a path that is `untouched` only because it belongs to a pack or profile
+     clause 1 introduced. A path `untouched` for any other reason is not
+     admitted, which is what keeps an adopter's unrecorded file untouched.
+  4. **Exclude** every admitted path outside the scope AC-0043 fixes, and —
+     when any scoping flag is supplied — `catalogue.toml` and every path under
+     `tests/conformance/`.
+  5. **Exclude** every admitted path under `packages/credbroker/` or
+     `.agentbundle/tooling/agentbundle/`.
+  6. **Add** the ownership state, on every apply run, whatever clause 4
+     excluded.
+
+  No other path under the target tree is created, modified, moved, or has its
+  mode changed.
 - [ ] **AC-0034.** A `would-companion` path receives `safety.companion_path`'s
   computed path carrying the replayed source bytes, and the adopter's own file
   at that path has the same sha256 after the run as before it.
@@ -278,9 +303,11 @@ answer.
   recorded sha256 equals the digest of the bytes the run wrote to it when the
   run wrote it, and the value recorded before the run when it did not.
 - [ ] **AC-0037.** The pin each source form records is the row for that form.
-  The `source_revision` and `archive_sha256` values are the ones phase 2's source-fidelity criterion
-  already fixes for that form; this criterion adds only that they are now
-  written to the state rather than printed:
+  Three rows relocate the values phase 2's source-fidelity criterion already
+  fixes. The `git+https://` row does not: phase 2 reports `source_revision`
+  absent for that form because the resolver computes the ref and discards it,
+  and recording it is the change phase 2's own follow-on assigned to this
+  phase. § Grounding's pin-ref derivation establishes that value:
 
   | Source form | `source_uri` | `source_revision` | `archive_sha256` |
   | --- | --- | --- | --- |
@@ -330,42 +357,49 @@ answer.
 - [ ] **AC-0040.** Every invocation and every failure reaches a named row of
   AC-0039's table at the command boundary. No uncaught exception sets the
   process exit status.
-- [ ] **AC-0041.** A non-dereferencing walk comparing relative path, entry kind,
-  mode, symlink target and bytes is identical before and after every invocation,
-  on every row of AC-0039's table, for both subjects below:
+- [ ] **AC-0041.** The walk this criterion compares is non-dereferencing and
+  covers relative path, entry kind, mode, symlink target and bytes. It is taken
+  immediately before the command runs and immediately after it returns.
 
-  | Source form | The source subject, and the two moments compared |
+  **The source.** The walk is identical across those two moments on every row of
+  AC-0039's table, for the one source form that has a tree at both of them:
+
+  | Source form | Source subject |
   | --- | --- |
-  | local clone path | the adopter's directory at that path, walked immediately before the command runs and immediately after it returns |
-  | `git+https://` | none: the clone is created during the run and removed by the `atexit` handler `resolve_catalogue` registers, so no tree exists at either moment and that cleanup discharges the rail |
-  | `archive+https://` or `catalogue+https://` | none: phase 2's § Always do requires the extracted directory be deleted, so no tree exists at either moment and that deletion obligation discharges the rail |
+  | local clone path | the adopter's directory at that path |
+  | `git+https://` | none — the clone is created under a fresh temporary directory after the before-walk and lies wholly outside the adopter's tree, so no adopter-owned path is reachable at either moment |
+  | `archive+https://` or `catalogue+https://` | none — phase 2's § Always do requires the extracted directory be deleted, and it too lies outside the adopter's tree |
 
-  The target walk is identical before and after every row of AC-0039's table
-  except the five below, each of which may differ only as stated:
+  **The target.** The walk is identical across those two moments on every row of
+  AC-0039's table except the four below, each of which may differ only as
+  stated:
 
   | Row | Permitted difference in the target tree |
   | --- | --- |
-  | `0 — success` apply | the paths AC-0033 names, the paths stale removal removed, and the ownership state |
-  | `4` a planned write failed and the tree was restored | none |
+  | `0 — success` apply | the paths AC-0033 defines, and the paths stale removal removed |
   | `4` a planned write failed and the tree could not be fully restored | the paths AC-0058 names, and no others |
-  | `4` writes landed and stale removal failed | the paths AC-0033 names, and the paths removal had removed before it failed |
-  | `4` writes landed and the state write failed | the paths AC-0033 names less the ownership state, and the paths stale removal removed |
+  | `4` writes landed and stale removal failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths removal had removed before it failed |
+  | `4` writes landed and the state write failed | the paths AC-0033 defines less its clause 6 ownership state, and the paths stale removal removed |
+
 - [ ] **AC-0042.** With none of `--pack`, `--profile`, `--guides`, or
   `--package` supplied, an apply run covers the recorded recipe, less the paths
   AC-0047 defers.
-- [ ] **AC-0043.** Each applying scoping flag restricts both the written set and
-  the plan the run prints to its subtree: `--pack <name>` to `packs/<name>/`,
-  `--profile <name>` to `profiles/<name>.toml`, and `--guides` to
-  `guides/_shared/`. A repeated `--pack` covers the union of the named packs.
-  The restriction applies identically on `--dry-run`, so a preview and the apply
-  it previews name the same paths.
-- [ ] **AC-0044.** A run supplying `--pack`, `--profile`, or `--guides` writes
-  neither `catalogue.toml` nor any path under `tests/conformance/`, and leaves
-  every recorded identity field at its pre-run value.
-- [ ] **AC-0045.** `--pack <name>` naming a pack absent from the recorded recipe
-  writes that pack's subtree and records the name in the recipe's pack list,
-  leaving the list's existing entries in place. `--profile <name>` does the same
-  for the profile list.
+- [ ] **AC-0043.** The scope AC-0033 clause 4 excludes against is the union of
+  the subtrees the supplied scoping flags name: `packs/<name>/` for each
+  `--pack <name>`, `profiles/<name>.toml` for `--profile <name>`, and
+  `guides/_shared/` for `--guides`. With no scoping flag supplied the scope is
+  every path, so clause 4 excludes nothing. The same scope restricts the plan a
+  `--dry-run` prints, so a preview and the apply it previews name the same
+  paths. *Scoping flag* means `--pack`, `--profile` or `--guides`; `--package`
+  is a reserved selector, not a scoping flag, and AC-0047 governs it.
+- [ ] **AC-0044.** A run supplying a scoping flag leaves every recorded
+  identity field at its pre-run value. The derivation-wide *paths* are AC-0033
+  clause 4's second exclusion; this criterion covers the recorded fields, which
+  no clause of that definition reaches.
+- [ ] **AC-0045.** A `--pack` or `--profile` name absent from the recorded
+  recipe enters the effective selection at AC-0033 clause 1, so clause 3 admits
+  its planned paths, and the ownership state records the name in the recipe's
+  matching list with that list's existing entries left in place.
 - [ ] **AC-0046.** A `--pack` or `--profile` name the resolved source does not
   ship refuses as malformed, naming the field, and writes nothing.
 - [ ] **AC-0047.** `--package` accepts exactly the names `agentbundle` and
@@ -391,7 +425,7 @@ answer.
   goes through the jailed write primitive, and a planned path resolving outside
   the target root is refused at that write.
 - [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
-  § Rollout agree on how many phases remain.
+  § Rollout both state that one phase remains.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
   carries a section covering the apply run, how consent is given, the scoping
   flags, and what an `.upstream.<ext>` companion obliges the adopter to do —
@@ -405,12 +439,11 @@ answer.
   carrying the source bytes; the adopter's file's digest is unchanged; and no
   path outside the printed plan is altered. The verification ledger records that
   comparison, not only the observed output.
-- [ ] **AC-0057.** The row set of the plan an apply run prints equals phase 2's
-  classification of the replayed selection, less every row whose path falls
-  outside the scope AC-0043 fixes, and less every row whose path lies under
-  `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`. That printed
-  plan is the one the run consents against and the one it acts on, so the rows
-  AC-0033 compares against are the rows the operator saw.
+- [ ] **AC-0057.** The plan an apply run prints names every path AC-0033
+  clauses 1 to 5 admit, each under the verdict clause 2 gave it, together with
+  every path stale removal will remove. It does not name AC-0033 clause 6's
+  ownership state. That printed plan is the one the run consents against and
+  the one it acts on.
 - [ ] **AC-0058.** When a restore cannot return the tree to its pre-run walk
   tuple, the command names every path it could not restore before returning.
 - [ ] **AC-0059.** The ownership state's recorded path set after an apply run
@@ -422,8 +455,11 @@ answer.
 - [ ] **AC-0061.** Every code citation in each architecture file this delivery
   edits resolves to the construct it names.
 - [ ] **AC-0062.** `upstream-sync.md` § Stage 3 states that `sync` classifies
-  where `init` overwrites, and does not state that `init`'s overwrite is
-  replaced.
+  where `init` overwrites, does not state that `init`'s overwrite is replaced,
+  and records the one exception to its Tier-3 row: a path is written despite
+  being absent from the recorded state when it belongs to a pack or profile the
+  run introduces, which is what § Granularity's "`--pack <new-name>` both syncs
+  that pack and amends the recipe" requires.
 - [ ] **AC-0063.** `upstream-sync.md` names `.agentbundle/tooling/agentbundle/`
   and `packages/credbroker/` as the two `--package` destinations in
   § Granularity, and § Rollout item 4 no longer describes both as `packages/`
@@ -435,9 +471,9 @@ answer.
   goes through the confinement helpers phase 2's path-confinement criterion names, and is refused on
   the same hard-link, non-regular and reparse-point inputs that criterion fixes.
 
-- [ ] **AC-0066.** An apply run reports the number of planned paths it excluded
-  for lying under `packages/credbroker/` or `.agentbundle/tooling/agentbundle/`
-  as its own named count. The seven counts phase 2 fixes stay computed over the
+- [ ] **AC-0066.** An apply run reports the number of paths AC-0033 clause 5
+  excluded under the name `deferred_package`, in the printed table and in the
+  `--format json` document's `summary` object. The seven counts phase 2 fixes stay computed over the
   full replayed selection and keep their meanings, so an excluded path is
   counted there exactly as phase 2 counts it and phase 2's
   `compared + uncompared` identity is unchanged.
