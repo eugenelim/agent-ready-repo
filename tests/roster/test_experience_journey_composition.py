@@ -488,12 +488,23 @@ HOW_TO = ROOT / "guides" / "experience-design" / "how-to"
 def _unbacktick(cell: str) -> str:
     """Normalise a say-this table cell the way the coverage module does.
 
-    Used for the say-this lane only. The map-side reads below deliberately keep
-    the two-step `strip().strip("`")` form: this normaliser strips again after
-    unwrapping, so a padded map cell like `` ` empty ` `` would normalise to a
-    name that matches the journey's stated set instead of failing the set
-    comparison loudly. Converting those reads would turn a fail-closed check
-    fail-open, which is the opposite of the repair this function exists for.
+    Used for the say-this lane only, where the presence guard and the comparison
+    must agree about what a key is.
+
+    The map-side reads below deliberately do NOT use it, and they are not
+    uniform either: the state-name cells are read `strip().strip("`")` while the
+    tier and flag cells are read with a bare `strip()`. Both are weaker than
+    this normaliser on purpose. It strips again after unwrapping, so a padded
+    map cell like `` ` empty ` `` would normalise into a name that matches the
+    journey's stated set instead of failing the set comparison loudly —
+    converting those reads would turn a fail-closed check fail-open, which is
+    the opposite of what this function exists for.
+
+    The weaker flag read has one traced consequence: backticking a `yes` flag
+    drops that state out of the `protected` set here while the coverage module's
+    `_unbacktick` still accepts it. It changes no verdict today, because the
+    explore band is pinned by set equality below and the coverage module already
+    forbids a `yes` row banded above `explore`, which subsumes `protected`.
 
     Both modules parse the same state-coverage map. The coverage module
     strips, unwraps backticks, then strips again; a cell written with spaces
