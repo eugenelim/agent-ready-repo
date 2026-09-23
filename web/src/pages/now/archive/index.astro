@@ -1,0 +1,260 @@
+---
+// The whole release history as one index, grouped year then month.
+//
+// WHY IT EXISTS. Paginating `/now/` bounded the page but cost archive-wide
+// navigation: the date index on each index page can only see that page's 20
+// releases, and its heading says so. Nothing else could answer "what shipped
+// in August". This is the year-to-month split the survey names as the step
+// that follows pagination (docs/product/research/release-feed-length-survey.md),
+// and it is the pattern Simon Willison's archive and Sentry's month index both
+// use — the two deepest archives the survey found.
+//
+// ONE PAGE, NOT ONE PER MONTH, for now. This is links only, so it costs a
+// fraction of what the same number of releases costs on the index: 156 rows
+// here against 235 KB of highlights there. Per-month routes (`/now/archive/
+// 2026-09/`) are the next step and are wanted when this page's own weight
+// becomes the problem it exists to solve — the trigger is recorded on the
+// survey rather than guessed at here.
+import SiteLayout from '../../../components/layout/SiteLayout.astro';
+import Section from '../../../components/layout/Section.astro';
+import { withBase } from '../../../lib/paths';
+import { releaseLabel, readableDate } from '../../../lib/now-release';
+import projection from '../../../lib/now-highlights.generated.json';
+import type { NowGroup } from '../../../components/now/NowHighlights.astro';
+
+// The same schemaVersion contract the other consumers enforce. A fifth
+// consumer needs its own: a guard living only in the others does not protect
+// it, and an archive that silently renders nothing is the worst of the five
+// places this could fail.
+if (projection.schemaVersion !== 1) {
+  throw new Error(
+    `now-highlights.generated.json is schemaVersion ${projection.schemaVersion}, ` +
+      'but the release archive renders version 1 — regenerate or update the route.'
+  );
+}
+
+const groups = projection.groups as readonly NowGroup[];
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+// Grouped by year, then by month, both preserving the projection's
+// descending-date order. A `Map` keeps insertion order, so first-seen is
+// newest-first without a second sort — and without a sort that could disagree
+// with the order the index pages render.
+type MonthBucket = { key: string; label: string; releases: NowGroup[] };
+type YearBucket = { year: string; months: MonthBucket[] };
+
+const years: YearBucket[] = [];
+const yearIndex = new Map<string, YearBucket>();
+const monthIndex = new Map<string, MonthBucket>();
+
+for (const group of groups) {
+  const [year, month] = group.date.split('-');
+  let yearBucket = yearIndex.get(year);
+  if (!yearBucket) {
+    yearBucket = { year, months: [] };
+    yearIndex.set(year, yearBucket);
+    years.push(yearBucket);
+  }
+  const monthKey = `${year}-${month}`;
+  let monthBucket = monthIndex.get(monthKey);
+  if (!monthBucket) {
+    monthBucket = {
+      key: monthKey,
+      label: `${MONTHS[Number(month) - 1]} ${year}`,
+      releases: [],
+    };
+    monthIndex.set(monthKey, monthBucket);
+    yearBucket.months.push(monthBucket);
+  }
+  monthBucket.releases.push(group);
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+---
+
+<SiteLayout
+  title="Release archive — agent-ready-repo"
+  description="Every release ever published, grouped by month. Each one links to its own page and to the changelog entry that released it."
+>
+  <link
+    slot="head"
+    rel="alternate"
+    type="application/atom+xml"
+    title="agent-ready-repo — Now"
+    href={withBase('/now/feed.xml')}
+  />
+
+  <section class="archive-hero" aria-labelledby="archive-heading">
+    <div class="archive-hero__inner">
+      <span class="archive-hero__eyebrow">
+        <a href={withBase('/now/')}>Now</a>
+      </span>
+      <h1 id="archive-heading" class="archive-hero__heading">Release archive</h1>
+      <p class="archive-hero__body">
+        Every release ever published — {plural(groups.length, 'release')} across
+        {plural(monthIndex.size, 'month')}. Nothing is dropped as it ages. Each
+        entry links to its own page; the
+        <a href={withBase('/now/feed.xml')}>Atom feed</a> carries the same set.
+      </p>
+    </div>
+  </section>
+
+  <Section tone="surface" labelledby="archive-releases-heading">
+    {/* Its own name, not the h1's. Two landmarks sharing one accessible name
+        is an `unique-landmark` failure — html-validate caught it, and to a
+        screen-reader user two regions called "Release archive" are two
+        regions that cannot be told apart. */}
+    <h2 id="archive-releases-heading" class="visually-hidden">All releases by month</h2>
+    {years.map((yearBucket) => (
+      <section class="archive-year" aria-labelledby={`year-${yearBucket.year}`}>
+        <h2 id={`year-${yearBucket.year}`} class="archive-year__label">{yearBucket.year}</h2>
+
+        {yearBucket.months.map((month) => (
+          <section class="archive-month" aria-labelledby={`month-${month.key}`}>
+            <h3 id={`month-${month.key}`} class="archive-month__label">
+              {month.label}
+              <span class="archive-month__count">{plural(month.releases.length, 'release')}</span>
+            </h3>
+
+            <ol class="archive-list" role="list">
+              {month.releases.map((group) => (
+                <li class="archive-row">
+                  <a class="archive-row__link" href={withBase(`/now/${group.changelogAnchor}/`)}
+                    >{releaseLabel(group.packages)}</a>
+                  <time class="archive-row__date" datetime={group.date}>{readableDate(group.date)}</time>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </section>
+    ))}
+  </Section>
+</SiteLayout>
+
+<style>
+  .archive-hero {
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
+    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
+  }
+
+  .archive-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+  }
+
+  .archive-hero__eyebrow {
+    display: block;
+    margin-bottom: var(--ds-space-4);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-field-label);
+  }
+
+  .archive-hero__heading {
+    margin: 0 0 var(--ds-space-5);
+    font-family: var(--ds-font-display);
+    font-size: var(--ds-type-display);
+    font-variation-settings: 'opsz' var(--ds-opsz-display), 'wght' 420;
+    letter-spacing: var(--ds-track-display);
+    color: var(--ds-on-surface);
+  }
+
+  .archive-hero__body {
+    margin: 0;
+    max-width: 62ch;
+    font-size: var(--ds-type-body-lg);
+    line-height: var(--ds-lead-body);
+  }
+
+  .archive-year + .archive-year {
+    margin-top: var(--ds-space-8);
+  }
+
+  .archive-year__label {
+    margin: 0 0 var(--ds-space-5);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-h3);
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface);
+  }
+
+  .archive-month + .archive-month {
+    margin-top: var(--ds-space-7);
+  }
+
+  /* Ruled, not boxed — the containment rule every record surface here follows. */
+  .archive-month__label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    margin: 0 0 var(--ds-space-4);
+    padding-bottom: var(--ds-space-3);
+    border-bottom: 1px solid var(--ds-rule-boundary);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface);
+  }
+
+  .archive-month__count {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-regular);
+    letter-spacing: normal;
+    text-transform: none;
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface-muted);
+  }
+
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .archive-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-2) var(--ds-space-4);
+    padding-block: var(--ds-space-2);
+    border-top: 1px solid var(--ds-rule-hairline);
+  }
+
+  .archive-row:first-child {
+    border-top: 0;
+  }
+
+  /* The row is a target, so it clears the WCAG 2.2 SC 2.5.8 floor by height
+     rather than by padding guesswork. */
+  .archive-row__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--ds-target-min);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface-2);
+    text-underline-offset: 0.2em;
+  }
+
+  .archive-row__date {
+    font-size: var(--ds-type-xs);
+    font-variant-numeric: tabular-nums lining-nums;
+    color: var(--ds-on-surface-muted);
+  }
+</style>

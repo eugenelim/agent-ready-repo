@@ -1072,11 +1072,18 @@ open = [
   # a new --ds-target-min token. Re-measured 0 axe violations on three pages at
   # both widths -- checked directly, because the browser gate runs a fixed
   # route list that does not include the new templates.
-  # STILL OPEN, and recorded on the survey rather than here: the date index is
-  # page-scoped and its heading says so, so archive-wide date navigation does
-  # not exist. That is the year -> month split, and it is wanted before the
-  # history reaches a year or the page count passes roughly a dozen, whichever
-  # comes first.
+  # The year -> month split shipped 2026-09-23 as /now/archive/: every release
+  # grouped year then month, linked from every index page, 156 links that all
+  # resolve. The whole history renders in 10.6 viewport heights at 320 and
+  # 59 KB, against 120 viewport heights for the same content on the old
+  # unpaginated index -- an archive carries links, not highlights. Caught while
+  # building it: two landmarks sharing one accessible name, which html-validate
+  # reported as `unique-landmark` and which would have given a screen-reader
+  # user two regions called "Release archive" that cannot be told apart.
+  # Remaining, and small: the pager lists every page and wants a truncated
+  # window once the count passes roughly a dozen. It is 8 today, growing about
+  # one page every five days at the current cadence. Per-month archive routes
+  # are the step after that.
   # An age-based cutoff was considered and REJECTED on evidence: 0 of 12 public
   # changelog feeds truncate by age, and our own history is 156 releases in 37
   # days, so a rolling 30-day window would cut 9% and leave ~109 viewport

@@ -325,9 +325,17 @@ pagination + feed**, which is Sentry's exact stack:
   feed points at instead. That makes step 3 "permalinks + pagination", not
   "pagination", and it is the reason to decide it deliberately rather than
   treat it as a rendering change.
-- *The date index needs a second level as history grows.* It lists 31 dates
-  today. At a year it would list several hundred, which is a second long page,
-  so it becomes year → month before then.
+- *The date index needed a second level, and got one.* **Shipped 2026-09-23**
+  as `/now/archive/`: every release grouped year then month, linked from every
+  index page. It is the pattern Simon Willison's archive and Sentry's month
+  index both use — the two deepest archives found here. Measured: the complete
+  156-release history renders in **10.6 viewport heights at 320** and 59 KB,
+  against the 120 viewport heights the same content needed on the unpaginated
+  index, because an archive carries links rather than highlights. The
+  page-scoped index on each paginated page keeps its honest heading, "Dates on
+  this page", and now offers the archive beside it. Per-month routes
+  (`/now/archive/2026-09/`) are the step after, wanted when this page's own
+  weight becomes the problem it exists to solve.
 - *Progressive disclosure* keeps one URL and is safe for deep links (finding 8),
   but it does not reduce the 235 KB and it adds a widget with the uneven
   screen-reader behaviour of finding 9.

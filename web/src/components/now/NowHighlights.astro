@@ -68,7 +68,10 @@ const releasesOn = groups.reduce((acc, group) => (
 ) : (
   <Fragment>
     <nav class="now-index" aria-labelledby="now-index-heading">
-      <h3 id="now-index-heading" class="now-index__heading">Dates on this page</h3>
+      <h3 id="now-index-heading" class="now-index__heading">
+        Dates on this page
+        <a class="now-index__all" href={withBase('/now/archive/')}>Full archive</a>
+      </h3>
       <ol class="now-index__list" role="list">
         {dateIndex.map((entry) => (
           <li class="now-index__item">
@@ -211,7 +214,15 @@ const releasesOn = groups.reduce((acc, group) => (
     border-bottom: 1px solid var(--ds-rule-boundary);
   }
 
+  /* The heading admits the index's scope and immediately offers the thing
+     that is not scoped. Without the second half a reader is told what this
+     index cannot do and given nowhere to go. */
   .now-index__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
     margin: 0 0 var(--ds-space-4);
     font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-semibold);
@@ -230,6 +241,15 @@ const releasesOn = groups.reduce((acc, group) => (
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
     gap: var(--ds-space-2) var(--ds-space-5);
+  }
+
+  .now-index__all {
+    font-weight: var(--ds-weight-regular);
+    letter-spacing: normal;
+    text-transform: none;
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+    text-underline-offset: 0.2em;
   }
 
   .now-index__link {

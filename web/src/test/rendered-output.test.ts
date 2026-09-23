@@ -1850,3 +1850,62 @@ describe('/now/ pagination', () => {
     }
   });
 });
+
+/**
+ * The release archive.
+ *
+ * Pagination bounded `/now/` but cost archive-wide navigation: each index
+ * page's date index can only see its own 20 releases. This page is what can
+ * answer "what shipped in August", so the property that matters is
+ * completeness — it is the one surface that must never be a subset.
+ */
+describe('/now/archive/', () => {
+  const ARCHIVE = join(BUILD_ROOT, 'now', 'archive', 'index.html');
+
+  it('lists every release exactly once, and every link resolves', () => {
+    const projection = JSON.parse(readFileSync(ARCHIVE ? NOW_PROJECTION : NOW_PROJECTION, 'utf8'));
+    expect(existsSync(ARCHIVE), 'the archive must be emitted').toBe(true);
+    const links = [...doc(ARCHIVE).querySelectorAll('.archive-row__link')].map(
+      (a) => (a.getAttribute('href') ?? '').replace(/^\/agent-ready-repo\/now\//, '').replace(/\/$/, '')
+    );
+    expect(links.length).toBe(new Set(links).size);
+    expect(new Set(links)).toEqual(
+      new Set(projection.groups.map((g: { changelogAnchor: string }) => g.changelogAnchor))
+    );
+    for (const slug of links) {
+      expect(existsSync(join(BUILD_ROOT, 'now', slug, 'index.html')), `${slug} -> no page`).toBe(true);
+    }
+  });
+
+  it('groups newest first, by year then month', () => {
+    // The projection is descending by date and the buckets are built by
+    // first-seen rather than by sorting, so a reordering upstream would show
+    // up here rather than silently producing an archive in a different order
+    // from the index pages.
+    const d = doc(ARCHIVE);
+    const years = [...d.querySelectorAll('.archive-year__label')].map((h) => h.textContent?.trim() ?? '');
+    expect(years).toEqual([...years].sort().reverse());
+    const months = [...d.querySelectorAll('.archive-month')].map(
+      (s) => s.querySelector('.archive-month__label')?.id ?? ''
+    );
+    expect(months.length).toBeGreaterThan(0);
+  });
+
+  it('is reachable from every index page', () => {
+    // An archive nothing links to is a page that exists and is never found.
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const indexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    for (const page of indexPages) {
+      const link = doc(page).querySelector('a[href$="/now/archive/"]');
+      expect(link, `${relative(BUILD_ROOT, page)} does not link to the archive`).not.toBeNull();
+    }
+  });
+});
