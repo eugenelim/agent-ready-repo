@@ -186,3 +186,42 @@ That last repair reversed part of round 1's fix: the report had just been
 corrected to say the measurement script imports nothing from this repository,
 which the change made false. The method section now states what each artifact
 takes from `build-site.py` and why.
+
+## Review round 3 — adversarial-reviewer, adjudicated
+
+Three source findings; two sustained, one refuted.
+
+- *An unquoted commit-distance figure.* "Two commits before this base" was
+  correct but established by no quoted run, and the traceability rule does not
+  exempt a correct repository fact. The count is removed; the `#1415`
+  provenance link stays, which is what the sentence needed.
+- *The phase decomposition assigned cause the run did not isolate.* This is the
+  substantive one, and it defeats an argument the controller had relied on since
+  round 1. The report treated the docs-site phase as a negative control because
+  its input is identical in both arms. `make site-build` runs the web build and
+  then the docs-site build in one invocation, so the docs phase executes after a
+  web phase that produced fifteen times more pages in the fragment arm; it
+  inherits page cache, memory pressure and thermal state from the treatment and
+  is therefore not treatment-free. Subtracting independently computed medians
+  would not yield a valid split even if the phases were independent. Every
+  "unaffected phase", "noise", "attributable", "remainder" and "cost driver"
+  claim is removed. The per-phase timings are re-derived and recorded as bare
+  observations with their ranges, under an explicit statement that they are not
+  components, and the retained stdout was regenerated to match so that no
+  quoted block still carries the attribution arithmetic.
+
+**Refuted:** the prototype's fifth `heading` envelope field. The plan's Design
+calls its four fields "the minimum that lets T3 answer the anchor question", so
+exceeding the minimum contradicts neither that text nor the pinned `Touches`,
+`Tests` or `Done when` fields, and is not an execution deviation.
+
+## What three review rounds have and have not moved
+
+No measured result changed in any round. Both arms of T1 held at 0 of 190 and
+190 of 190 across three re-runs and two rewrites of the insertion-anchor code;
+T2 held at 1 digest against 5; T3 held at byte-identical parity, 20 of 20, and
+0 of 157; T4's durations were never re-run. Every sustained finding across all
+three rounds was a claim layered on top of those numbers rather than a defect in
+them — first a precision bound, then a causal attribution, then the phase
+decomposition that the attribution rested on. The measurements were sound and
+the prose around them was repeatedly not.

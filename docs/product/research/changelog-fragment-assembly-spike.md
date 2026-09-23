@@ -487,42 +487,32 @@ regression      : +66.08%  (threshold: under 10%)
 
 ### What the instrument can and cannot resolve
 
-The retained build logs decompose each run into its two Astro phases. The
-docs-site build receives **identical input in both arms** — 264 pages either
-way, because fragments never reach it — so any arm difference it shows is
-observed noise in a phase that cannot be affected by the treatment.
+The retained build logs time each run's two Astro phases separately. They are
+recorded here as observations, and deliberately not as a decomposition of the
+whole-build difference.
 
 ```
-$ python3 -c '<medians over the 10 retained t4 build logs>'
-phase                       ctrl med  frag med    delta  input differs?
-web build                      5.76s    10.98s   +5.22s  YES 216 vs 3282 pages
-docs-site build                8.43s    11.92s   +3.49s  NO  264 vs 264 pages
-whole make site-build         27.05s    44.93s  +17.88s  partly
+$ python3 -c '<per-phase medians over the 10 retained t4 build logs>'
+base commit: 93bf9cc9e -- observed per-phase durations, read from the 10 retained t4 build logs
+phases run sequentially inside one `make site-build`; these are observations, not a decomposition
 
-identical-input docs phase, all 10 runs: 6.86s to 18.20s (range 11.34s)
-attributable (web) share of the difference: +5.22s of +17.88s
-unattributed remainder: +12.66s
-page ratio: 3282/216 = 15.2x
+phase                      pages c/f  control median  fragment median   control range   fragment range
+web build                 216 / 3282           5.76s           10.98s      5.49-7.16        9.28-12.54
+docs-site build            264 / 264           8.43s           11.92s      6.86-18.20       7.09-14.05
+whole site-build                   -          27.05s           44.93s     22.92-75.41      31.74-86.88
 ```
 
-Two things follow, and a third does not.
+**Why these are not components.** `site-build` runs the web build and then the
+docs-site build in one invocation. The docs phase therefore executes after a web
+phase that produced fifteen times more pages in the fragment arm. Its input is
+identical either way, but it inherits page cache, memory pressure and thermal
+state from the phase before it, so its timings are not a treatment-free
+baseline and the gap between two phase medians cannot be separated into a part
+caused by the treatment and a part that is not. Subtracting medians computed
+independently would not give a valid split even if the phases were independent.
 
-**The effect is not cleanly attributable.** Only +5.22s of the +17.88s median
-difference falls in the phase whose input changed. The remaining +12.66s is
-unattributed, and a phase that cannot be affected at all still showed a +3.49s
-arm gap.
-
-**The instrument is noisy at the scale of the effect.** The identical-input
-phase alone varied from 6.86s to 18.20s across the ten runs. Dispersion of that
-size in an unaffected phase means the whole-build wall clock does not resolve a
-10% threshold on this machine.
-
-**What does not follow is a confidence claim in either direction.** Five runs
-per arm at this dispersion support no valid uncertainty bound on the whole-build
-difference, and the unaffected phase's spread is an observation about that
-phase, not a computed error bar for the total. So +66.08% is reported as the
-observed point estimate and nothing more. For the record, the two samples
-overlap:
+**What the ten runs do support** is narrow: the whole-build point estimate is
++66.08%, which does not meet the 10% bar, and the two samples overlap.
 
 ```
 $ python3 -c '<dispersion of the 10 retained t4 durations>'
@@ -532,9 +522,10 @@ control-fragment run pairs where the fragment run is slower: 21 of 25
 overlap: max control 75.41s exceeds 4 of 5 fragment runs
 ```
 
-A quiet-machine re-measurement is owed before any threshold is set from this
-number. Until then the figure is one observation that missed the bar, not a
-quantity the delivery spec can calibrate against.
+Five runs per arm at this dispersion support no valid uncertainty bound on the
+whole-build difference, so +66.08% is the observed point estimate and nothing
+more. A quiet-machine re-measurement is owed before any threshold is set from
+this number, and it should time the phases in isolation rather than in sequence.
 
 ### A structural change this measurement does not price
 
@@ -542,17 +533,17 @@ Two facts here come from code and from the retained build logs, with no timing
 inference. First, the fragment arm's web build emits **3,282 pages against the
 control's 216** — both counts are in the logs. Second, the reason is structural:
 `/now/[release].astro` calls `getStaticPaths` over every group in the generated
-payload, so each of the 2,920 fragments becomes one more page. That route was
-added two commits before this base, in
-[#1415](../../../web/src/pages/now/%5Brelease%5D.astro).
+payload, so each of the 2,920 fragments becomes one more page. That route arrived in
+[#1415](../../../web/src/pages/now/%5Brelease%5D.astro), which is in this run's
+base.
 
-What this run does **not** establish is how much of the measured difference
-that accounts for. Only +5.22s of the +17.88s median difference falls in the
-web phase at all, +12.66s is unattributed, and the samples overlap. So the
-page-count growth is a recorded structural fact, and "page generation is what
-makes the fragment build slower" remains an **untested hypothesis** — the most
-plausible one available, and the one the delivery spec should price first, but
-not something these ten runs demonstrate.
+What this run does **not** establish is what that costs. The phases were timed
+in sequence, not in isolation, so nothing here attributes any part of the
+measured difference to page generation. The page-count growth is a recorded
+structural fact; "page generation is what makes the fragment build slower"
+remains an **untested hypothesis** — the most plausible one available, and the
+one the delivery spec should price first, but not something these ten runs
+demonstrate.
 
 The same caution applies to § 7's own framing. Its Build performance row
 anticipates the stimulus "many small files increase scan and parse cost", and
@@ -616,9 +607,9 @@ quiet machine before setting any threshold.
   Ten times the entry count is only 1.36 times the byte volume of the existing
   598,239-byte changelog, because each synthetic body is one short bullet where
   a real entry runs to paragraphs and several. So the run understates
-  per-fragment read and parse cost. That understatement lands on the phase the
-  decomposition showed was not the cost driver, which is why it does not change
-  the verdict — but it does mean this run cannot be cited for parse cost.
+  per-fragment read and parse cost. This run never isolated the parse phase, so
+  the understatement's effect on the figure is unknown; what it does mean is
+  that this run cannot be cited for parse cost at all.
 - **ADR-0123's fifth Confirmation signal** — that regeneration leaves no tracked
   diff — and § 7's rows for Git cleanliness, Failure diagnosability, and
   Dependency and privacy posture. These are delivery verification obligations:
