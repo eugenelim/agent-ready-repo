@@ -131,20 +131,21 @@ packUrl: /packs/experience-design/
 relatedJourneys:
   - architect
   - core
+  - frontend-engineering
 ---
 
-| Say this | What happens |
-|----------|--------------|
-| `experience-status` | Orient — where the design thread is, what's next |
-| `journey-mapping` | Map the user's outcome: stages, emotions, pains |
-| `content-design` | Set surface intent — what this screen says and for whom |
-| `tone-of-voice` | Set the brand-level copy register — cross-surface copy personality all per-surface goals reference |
-| `copy-direction` | Name per-surface copy goals — voice, register, arbitration rules for a specific marketing surface |
-| `user-flow` | Build the screen inventory with per-screen state briefs |
-| `creative-direction` | Anchor the aesthetic in persona and precedent |
-| `design-system` | Derive the token taxonomy from the aesthetic direction |
-| `interaction-design` | Design states, feedback, and animation per screen |
-| `experience-reviewer` | Independent cold review — forked context, read-only |
+| Say this | What happens | Needed? |
+|----------|--------------|---------|
+| `experience-status` | Orient — where the design thread is, what's next | Optional |
+| `journey-mapping` | Map the user's outcome: stages, emotions, pains | Required |
+| `content-design` | Set surface intent — what this screen says and for whom | Required |
+| `tone-of-voice` | Set the brand-level copy register — cross-surface copy personality all per-surface goals reference | Optional |
+| `copy-direction` | Name per-surface copy goals — voice, register, arbitration rules for a specific marketing surface | Optional |
+| `user-flow` | Build the screen inventory with per-screen state briefs | Required |
+| `creative-direction` | Anchor the aesthetic in persona and precedent | Required |
+| `design-system` | Derive the token taxonomy from the aesthetic direction | Optional |
+| `interaction-design` | Design states, feedback, and animation per screen | Required |
+| `experience-reviewer` | Independent cold review — forked context, read-only | Required |
 
 ---
 
@@ -168,6 +169,46 @@ Approve the journey and screen list? ›
 - **Output:** an approved journey map with key failure modes and a derived screen list.
 - **State:** draft
 
+#### The minimal viable thread
+
+Four steps make the output coherent. Everything else in the pack sharpens them.
+
+1. `journey-mapping` — the outcome and the failure modes
+2. `user-flow` — the screen list and the per-screen briefs
+3. one craft pass per screen — at minimum `information-architecture`, then
+   `interaction-design`
+4. `experience-reviewer` — the cold review
+
+`experience-status` tells you where you are on it. Walking the shorter thread
+is a real choice, not a corner cut: what a skipped step costs is that its input
+travels forward as an assumption nobody decided, which is why the four above
+are the ones that stay.
+
+
+#### Pick the depth — `explore` is the default
+
+The surface's `risk-tier` decides how much of the shared experience contract
+the thread owes and how many states each per-screen brief must handle. It is a
+per-run choice: the same thread runs at one depth for a prototype and another
+for a checkout flow.
+
+- **`explore`** — the default. 10 of the contract's 32 fields. States: `loading`, `empty`, `error`, `success`, `content`, `partial`, `disabled`, `keyboard-only`, `reduced-motion`, `high-zoom`.
+- **`pilot`** — 25 fields. Adds `first-run`, `no-results`, `blocked`, `large-data-set`.
+- **`production`** — 32 fields. Adds `offline`, `long-content`.
+
+Two states sit outside the ladder and bind at every tier once their trigger
+fires: `permission/denied` on a surface behind authorization, and
+`destructive-confirmation` on a primary action that is irreversible or destroys
+data the user controls.
+
+**What `explore` drops, and what it never drops.** Against `production`,
+`explore` drops 22 contract fields and 6 states. It drops no state the shared
+state-coverage map records as failing WCAG 2.2 AA when absent: all seven banded
+accessibility-bearing states are already in the `explore` set, and the eighth
+is `destructive-confirmation`, which is conditional. The quality floor's
+accessibility commitments hold at every tier — depth changes how much evidence
+a surface owes, never whether someone can use it.
+
 ---
 
 ### 2. Derive the screen flow
@@ -180,7 +221,7 @@ user-flow
   screens  docs/design/screens/onboarding-flow.md
 
   /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
-  States per screen: default · loading · error · success · empty
+  States per screen: loading · empty · error · success · content · partial · disabled
 ```
 
 - **Output:** a screen inventory with per-screen briefs, ready for the craft sequence.
@@ -217,7 +258,7 @@ Type `information-architecture` (or a genre-direct skill for dashboards, marketi
 interaction-design [/onboarding/welcome]
 
   screen  docs/design/screens/onboarding/welcome.md
-  States: default · loading · error · success · empty ✓
+  States: loading · empty · error · success · content · partial · disabled ✓
   Motion: entrance · field-focus · submit-feedback ✓
 ```
 
@@ -241,3 +282,18 @@ experience-reviewer
 - **You decide:** act on Blockers before design feeds the build loop.
 - **Output:** a review-clean design set ready for build.
 - **State:** confirmed-write
+
+#### What crosses to frontend engineering
+
+Three artifacts leave this pack and are read by the `frontend-engineering`
+pre-flight. Each path is relative to the design output directory this pack is
+configured to write to.
+
+| Artifact | Path | Written by |
+|---|---|---|
+| Aesthetic direction | `direction/<slug>.md` | `creative-direction` |
+| Per-screen brief | `screens/<slug>/<screen>.md` | `user-flow`, enriched by `interaction-design` |
+| Token taxonomy | `tokens/<slug>.md` | `design-system` |
+
+A slot no artifact fills is not an error: the frontend pre-flight falls back to
+its own canonical reference for that slot and records which one it used.

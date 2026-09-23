@@ -62,7 +62,10 @@ Each skill consumes a specific upstream artifact and cannot produce reliable out
 - `interaction-design` needs the per-screen brief produced by `user-flow` — which includes the state matrix — to design behavior for the right set of states.
 - `design-review` and `experience-reviewer` need the completed artifacts to review against something concrete.
 
-Skipping a step doesn't save time — it pushes the missing input forward as an implicit assumption, where it gets designed around rather than decided.
+Skipping a step has a cost: the missing input travels forward as an implicit
+assumption, where it gets designed around rather than decided. That cost is what
+the minimal viable thread below is chosen against — it names the four steps whose
+inputs nothing downstream can reconstruct, not a licence to drop the rest for free.
 
 ### The minimal viable thread
 

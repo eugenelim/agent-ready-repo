@@ -332,3 +332,69 @@ The lesson generalises past this file: a pack `SKILL.md` can sit exactly on the
 tree re-confirms the ledger's third falsified claim: only `core` has declared
 host projections, so these non-core `.apm/` edits owe no `.claude/` or
 `.agents/` delta.
+
+## T5 — the design journey
+
+### The pins, enumerated before the edit
+
+Three, all in `tools/test_journey_editorial_decisions.py`, which globs every
+pack journey: the canonical human-gate mapping (39 gates across all journeys),
+the priority eyebrow and transcript comparison, and the confinement check that
+no other journey gains an eyebrow or transcript.
+
+The transcript pin was the one worth checking before editing the illustrative
+state lists. It compares against a ledger for `PRIORITY = core,
+product-engineering, release-engineering` only, and `experience-design` is not
+in that set; its two illustrative lists are body prose, not frontmatter. So
+realigning them touches no pinned copy. Suite after the edit: 3 passed.
+
+### The edits
+
+`relatedJourneys` gains `frontend-engineering`, making the link reciprocal. Two
+`####` sub-stages were added after their parent stage's `**State:**` label — the
+minimal viable thread and the depth selector — and a third section names the
+three crossing artifacts with their `<output_dir>`-relative paths.
+
+The say-this table gained a `Needed?` column, one value per row, each resolved
+toward the guide that owns it. The three illustrative state lists — two in
+`JOURNEY.md`, one in `README.md` — were realigned from
+`default · loading · error · success · empty` to the seven-state `explore`
+opening set: `default` is not a floor state, and `partial` and `disabled` were
+missing. No shipped lint reads any of the three, which is why the walk reached
+all three rather than only the one the journey edit touched.
+
+`DESIGN.md`'s sentence two lines above the thread argued against shortcuts while
+the section below named one. It now states what a skipped step costs and says
+the thread is chosen against that cost. Both documents name the same four steps.
+
+### Mutation proof — the two say-this assertion groups
+
+| Mutation | Result |
+| --- | --- |
+| a row's optionality blanked | red |
+| a row carrying two values | red |
+| `design-system` flipped against its how-to | red |
+| `content-design` flipped against its how-to | red |
+| baseline, unmutated | green |
+
+The flip mutations matter because both values are read from their tables rather
+than pinned: the assertion is that the two surfaces agree, not that either says
+a particular word today.
+
+| Check | Result |
+| --- | --- |
+| The three journey lints | all exit 0 — 14 files valid, 20 conform, 20 in parity |
+| `tools/test_journey_editorial_decisions.py` | 3 passed |
+| The two roster files | 15 passed |
+| `tools/lint-experience-agnostic.py` | exit 0 |
+| Portability grep over the three edited files | no match |
+
+The module is created here with its two say-this groups only. T7 extends it with
+the ladder and composition groups, which need both journeys to state a ladder.
+
+### A scoping error worth recording
+
+Verification here first ran `pytest tools/... tests/roster/` — the whole roster
+directory, which is the 7–12 minute suite this delivery is explicitly not to run
+locally. It was stopped and re-run against the two named files. Naming a
+directory rather than the files is how that suite gets run by accident.
