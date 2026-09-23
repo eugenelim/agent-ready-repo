@@ -17,12 +17,12 @@
     {
       "id": "research-feeds-the-contract-at-its-tier",
       "prompt": "We've finished stakeholder interviews for an internal pilot tool. Which parts of the experience contract should this synthesis fill, and which can wait?",
-      "expected_output": "The synthesis routes its findings into the contract sections the strategy discipline owns and decides what is owed now by reading the contract's `Required: explore+` and `Required: pilot+` annotations rather than a remembered list. It marks fields owned by other disciplines as provisional rather than filling them, per the contract's ownership rule. It does not claim to decide the frontend state coverage, which the shared state-coverage map and the frontend section own.",
+      "expected_output": "The synthesis fills only the contract sections the product-strategy discipline owns and routes its findings there. For sections owned by other disciplines it follows the contract's ownership rule and marks a provisional entry rather than filling them, naming the pack that owes each. It does not decide the surface's state coverage, which is the frontend section's, and it does not restate what a tier owes.",
       "assertions": [
         "Fills only the sections the product-strategy discipline owns",
-        "Decides what the pilot tier owes from the contract's Required annotations",
-        "Marks other disciplines' fields provisional rather than filling them",
-        "Leaves frontend state coverage to the contract's shared state-coverage map"
+        "Marks other disciplines' sections provisional rather than filling them, naming the owning pack",
+        "Leaves the surface's state coverage to the frontend section",
+        "No interview transcripts or raw research artifacts appear in the output"
       ]
     }
   ]

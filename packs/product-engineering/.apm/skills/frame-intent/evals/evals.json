@@ -4,11 +4,11 @@
     {
       "id": 1,
       "prompt": "Shape the idea the user gave into an intent.",
-      "expected_output": "A level-tagged intent: a clear OUTCOME (what changes, and for whom) plus the OPPORTUNITY/problem behind it — never a solution or a spec. The level is tagged from the open recognized set (product-vision, product-strategy, capability, or feature), Scale (app ↔ business-unit) is resolved, and the artifact stops at the intent: it does not jump ahead to a design, tasks, or de-risking. The outcome is concrete enough to later test as a bet.",
+      "expected_output": "A level-tagged intent: a clear OUTCOME (what changes, and for whom) plus the OPPORTUNITY/problem behind it \u2014 never a solution or a spec. The level is tagged from the open recognized set (product-vision, product-strategy, capability, or feature), Scale (app \u2194 business-unit) is resolved, and the artifact stops at the intent: it does not jump ahead to a design, tasks, or de-risking. The outcome is concrete enough to later test as a bet.",
       "assertions": [
-        "States an outcome (what changes, for whom) — not a solution or an implementation",
+        "States an outcome (what changes, for whom) \u2014 not a solution or an implementation",
         "Names the opportunity / problem behind the outcome",
-        "Is level-tagged from the open recognized set (product-vision / product-strategy / capability / feature) and resolves Scale (app ↔ business-unit)",
+        "Is level-tagged from the open recognized set (product-vision / product-strategy / capability / feature) and resolves Scale (app \u2194 business-unit)",
         "Does NOT jump ahead to a design, a spec, tasks, or de-risking",
         "The outcome is concrete/falsifiable enough to later de-risk as a bet"
       ]
@@ -52,13 +52,13 @@
     },
     {
       "id": "contract-tier-at-intake",
-      "prompt": "We're framing a new checkout redesign. What risk tier should its experience contract declare, and what does that commit the team to?",
-      "expected_output": "The framing names the production tier for a public checkout surface and explains the commitment by pointing at the contract's own `Required: production+` annotations and the shared state-coverage map, rather than enumerating a field list from memory. It notes that `destructive-confirmation` binds regardless of tier once a primary action is irreversible, which a checkout flow's final confirm step is. It states that the tier is declared in the contract frontmatter and can be raised as the product matures.",
+      "prompt": "We're framing a new checkout redesign that will go straight to public release. How should the intent record the experience depth this commits us to?",
+      "expected_output": "The intent names the outcome and the opportunity behind it and stays at the intent altitude. Where it records experience depth, it states the risk tier the surface warrants \u2014 production, for a public checkout \u2014 as a declared value the downstream experience contract carries in its frontmatter, and does not enumerate which fields or states that tier owes. It marks the design and frontend obligations as belonging to those disciplines rather than filling them in.",
       "assertions": [
-        "Selects production tier for a public checkout surface",
-        "Points at the contract's Required annotations rather than restating a field list",
-        "Identifies destructive-confirmation as conditional and binding for an irreversible action",
-        "States that the tier lives in the contract frontmatter and can be raised later"
+        "States an outcome and the opportunity, not a solution or a spec",
+        "Names the risk tier the surface warrants and leaves the tier's obligations to the contract",
+        "Does not enumerate contract fields or surface states in the intent",
+        "Leaves design and frontend obligations to those disciplines"
       ]
     }
   ]

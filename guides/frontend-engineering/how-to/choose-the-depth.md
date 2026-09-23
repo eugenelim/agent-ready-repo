@@ -30,13 +30,14 @@ you start high.
 
 | Tier | Choose it when | It owes |
 |---|---|---|
-| `explore` | A prototype, an internal tool, or a surface still finding its shape | The fields the contract annotates `Required: explore+`, and the ten states in the explore set |
-| `pilot` | A pre-release surface in front of limited real users | Everything in `explore`, plus the fields annotated `Required: pilot+` and the four data-shape states |
-| `production` | A public surface in front of all users | Everything in `pilot`, plus the fields annotated `Required: production+` and the remaining two states |
+| `explore` | A prototype, an internal tool, or a surface still finding its shape | The fields the contract annotates `Required: explore+`, and the states the map assigns to the `explore` band |
+| `pilot` | A pre-release surface in front of limited real users | Everything in `explore`, plus the fields annotated `Required: pilot+` and the states the map assigns to `pilot` |
+| `production` | A public surface in front of all users | Everything in `pilot`, plus the fields annotated `Required: production+` and the states the map assigns to `production` |
 
-The field counts are not repeated here. Read them from the contract's own
-`Required: <tier>+` annotations, which are what the journey and the gates both
-count — a number written in a guide is a number that goes stale.
+Neither the field counts nor the state lists are repeated here. Read the fields
+from the contract's own `Required: <tier>+` annotations and the states from its
+shared state-coverage map, which is what the journey and the gates both read —
+a number written in a guide is a number that goes stale, and so is a list.
 
 ## Two states sit outside the ladder
 

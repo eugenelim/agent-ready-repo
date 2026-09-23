@@ -470,7 +470,13 @@ reports all 21 active packs present.
 
 One case per contract-carrying pack, placed in the skill that reads the contract
 copy: `frontend-engineering`, `design-review`, `frame-intent`, and
-`synthesize-stakeholder-research`. All four diffs are append-only. The
+`synthesize-stakeholder-research`. All four diffs are append-only — after a repair. The first write used
+`ensure_ascii=False`, which rewrote case `id: 1` in two of the four files,
+turning their `\u2014`, `\u2013`, `\u00d7` and `\u2194` escapes into literal
+characters. Round 1 of review caught the ledger claiming append-only while two
+files removed three pre-existing lines each. Both were re-dumped under the
+convention their own bytes already used, and all four now show `removed=0`
+against `origin/main`. The
 obligation is per pack for any non-cosmetic update, and bumping all four is this
 delivery's own declaration that all four are non-cosmetic.
 
@@ -524,3 +530,116 @@ restored tree gives exit 0.
 Its first reading was taken through `| tail -3`, which reported `tail`'s exit
 status rather than the command's and so read a `FAIL` line as exit 0. The exit
 codes above were re-taken unfiltered.
+
+## Post-gates review, round 1
+
+One `adversarial-reviewer` pass over `git diff origin/main...HEAD`, adjudicated
+by `finding-adjudicator`. Raw report and adjudication are under
+`.context/reviews/ce7b491a-3116-4656-8bc7-18b99b2c4477/`.
+
+**Ten findings raised: 7 sustained, 3 refuted.** Recorded as a findings round —
+`review_round_count` 1, seven fingerprints.
+
+### The adjudication needed a second pass
+
+The first adjudication returned `ADJUDICATION-INDETERMINATE` on two findings,
+both for want of a revision-graph fact its envelope cannot read: whether commit
+`150e3656b` is an ancestor of `origin/main`, and whether the eval diffs removed
+pre-existing lines. Both are machine-checkable, so the guarded evidence retry
+applied: the facts were measured, and one complete replacement adjudication ran
+over the unchanged source findings and returned no indeterminates. The
+superseded verdict is retained beside the replacement.
+
+Both facts resolved against the delivery: `150e3656b` is this branch's own
+commit, and two eval files did rewrite case `id: 1`.
+
+### What was refuted, and why it matters that it was
+
+- **Spec still `Implementing`, criteria unticked, workspace entry active.**
+  Refuted on authority: that is the finish checklist, which runs after review is
+  clean. Outstanding-by-schedule, not a defect.
+- **The changelog block breaks AC-0046 after merge.** Refuted on the criterion's
+  reach — AC-0046 is measured against this change's own tree with an
+  `origin/main` baseline, which the branch satisfied. The *merge-ordering fact*
+  was true, and the rebase below acted on it under the freshness gate and owner
+  direction rather than as a finding repair.
+- **Add a blank line after the frozen plan's new `Status` line.** Refuted, and
+  the remedy is forbidden: AC-0005 pins that the diff adds *exactly one* line.
+  A reviewer preference that would have broken a criterion.
+
+### Blocker — AC-0026 had no deciding artifact for two of four allowances
+
+`ALLOWANCES` matched whole-file, case-folded substrings. Two cue sets were
+already satisfied by prose predating this change: the journey's mode summary
+says "a proportional contract", and stage 2 says a retrofit "narrows or expands
+the contract". So `("proportional", "contract")` and `("retrofit", "narrow")`
+were green with T4's allowance sentences deleted — the third can't-fail control
+found in this delivery.
+
+Repaired two ways at once: each cue set now names the phrase its allowance turns
+on, and all of a set's cues must land on **one line**. Per-allowance mutation
+proof, each allowance's own prose deleted alone:
+
+| Allowance | Deleted alone | Present on `origin/main` |
+| --- | --- | --- |
+| a contract proportional to risk | red | absent |
+| omitting inapplicable states | red | absent |
+| a narrowed retrofit state matrix | red | absent |
+| the optional token gate | red | absent |
+
+Baseline green. The right-hand column is the half the old check lacked: every
+cue set is now absent from the pre-change journey, so the assertion measures
+T4's work rather than the file's background vocabulary.
+
+### The other sustained findings
+
+| Finding | Repair |
+| --- | --- |
+| Eval cases asserted contract-reading two skills never instruct | Narrowed both cases to what each skill's body does instruct. Widening `frame-intent` and `synthesize-stakeholder-research` to load the contract was the other option and was declined: AC-0006 and AC-0007 deliberately oblige only the other two skills, so it would expand scope past the accepted intent |
+| Illustrative-state assertions pinned two literal files while AC-0024/AC-0025 quantify over the tree | The file set is now derived from `packs/experience-design/`. Proven: a probe file added under that tree with `default · loading · offline` turns both assertions red, and was silent under the pinned pair |
+| Two how-to tables restated state counts, and "the four data-shape states" mislabelled `first-run` and `blocked` | Both tables now express state obligations by reference to the map, as they already did for fields. No state count remains in either file |
+| Ledger claimed all four eval diffs append-only | Made true rather than annotated: both files re-dumped under their own escaping convention, all four now `removed=0` |
+| Unused `contract` fixture on the ladder assertion | The expected tier set is now derived from the contract's `Required:` annotations, so the fixture is load-bearing |
+
+### Finding 8 — three files outside every task's `Touches:`
+
+Sustained on measured fact: `git merge-base --is-ancestor 150e3656b origin/main`
+exits non-zero, so that commit is this branch's own and its three files are
+inside the review target. No task's `Touches:` names `docs/product/briefs/` or
+`docs/product/intents/`.
+
+The files are `docs/product/briefs/digital-experience-doctrine-completion.md`,
+`docs/product/intents/digital-experience-doctrine.md`, and
+`docs/product/intents/growth-strategy-pack-charter.md`. The last carries a
+separate product decision about measurement operations, pricing doctrine,
+conversion experimentation and SEO that this spec does not reach. The fix is an
+accounting, not an edit: the PR's *what did you not change that you considered*
+answer must name all three, and the growth-charter paragraph is a bundled item
+distinct from this spec rather than part of it. Recorded here so the accounting
+exists whether or not a PR is opened from this session.
+
+## The rebase onto current `origin/main`
+
+`check-base-freshness.py` returned `surface`: 19 commits behind. Owner directed
+the rebase. Run with `rerere.enabled=false`, because rerere replays a
+resolution recorded in another worktree and these conflicts are not that.
+
+Two conflicts, both in files where upstream and this branch added independent
+things at one anchor:
+
+- `web/src/content/journeys/frontend-engineering.md` — a generated file.
+  Resolved by regenerating from the merged source rather than hand-merging
+  generated bytes.
+- `.github/workflows/build-check.yml` — upstream added a
+  backward-traceability roster step at the same anchor as this branch's two.
+  Both kept; a YAML parse confirms this branch's steps sit at indices 47 and 48,
+  below the bulk `pytest tests/ -q` step at 49.
+
+`tools/lint-ci-parity.py` auto-merged; `workspace.toml` and the changelog did
+not conflict. The changelog then needed a move rather than a merge: upstream's
+`## [core][2.26.37]` landed above `2.26.36`, leaving the four pack entries
+following the second-newest core entry. They were moved to follow the newest.
+
+Base-sensitive readings re-taken on the rebased tree — AC-0046, AC-0048,
+AC-0042, AC-0039 and AC-0001 all exit 0. A recovery branch
+`recovery/pre-rebase-fec` marks the pre-rebase head.

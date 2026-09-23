@@ -120,8 +120,12 @@ def test_the_journey_states_the_whole_ladder(contract: str, pack: str) -> None:
     Asserted before the counts: a journey that simply omitted a tier would
     otherwise pass the comparison below over the tiers it happened to mention.
     """
+    # The expected tier set comes from the contract's own annotations, not from
+    # the module's TIERS constant: a tier the contract stops annotating should
+    # stop being owed here, and a tier it starts annotating should start.
+    expected = [tier for tier in TIERS if cumulative_obligations(contract)[tier]]
     ladder = stated_ladder(JOURNEYS[pack].read_text(encoding="utf-8"))
-    missing = [tier for tier in TIERS if tier not in ladder]
+    missing = [tier for tier in expected if tier not in ladder]
     assert not missing, f"{pack}: the journey states no field count for {missing}"
 
 
@@ -218,11 +222,20 @@ CROSSING_ARTIFACTS = (
 
 # The frontend skill already carries these four; the journey has to say so, or an
 # adopter reads a journey stricter than the skill it describes.
+#
+# Each cue set must be distinctive of the allowance's own statement, and all of
+# a set's cues must land on one line. Whole-file cues do not decide this: the
+# journey independently says "a proportional contract" in its mode summary and
+# "narrows or expands the contract" of a retrofit, so the earlier
+# ("proportional", "contract") and ("retrofit", "narrow") sets were satisfied by
+# prose that predates the allowances and stayed green when the allowance
+# sentences were deleted. The cues below name the phrase each allowance turns
+# on, which is what makes deleting it red.
 ALLOWANCES = {
-    "a contract proportional to risk": ("proportional", "contract"),
-    "omitting inapplicable states": ("inapplicable",),
-    "a narrowed retrofit state matrix": ("retrofit", "narrow"),
-    "the optional token gate": ("stylelint",),
+    "a contract proportional to risk": ("proportional", "risk and scope"),
+    "omitting inapplicable states": ("inapplicable", "omitted"),
+    "a narrowed retrofit state matrix": ("narrows the state matrix", "absent or broken"),
+    "the optional token gate": ("optional", "stylelint"),
 }
 
 
@@ -297,12 +310,15 @@ def test_the_frontend_journey_carries_its_four_proportionality_allowances() -> N
 
     Each allowance is matched on the words that carry it rather than on a fixed
     sentence, so rewording the prose does not fail the check and deleting the
-    allowance does.
+    allowance does. The cues for one allowance must co-occur on a single line:
+    matched across the whole file, two of the four sets were satisfied by prose
+    that predates these allowances, and the check stayed green with the
+    allowance deleted.
     """
-    text = JOURNEYS["frontend-engineering"].read_text(encoding="utf-8").lower()
+    lines = JOURNEYS["frontend-engineering"].read_text(encoding="utf-8").lower().splitlines()
     missing = [
         name for name, cues in ALLOWANCES.items()
-        if not all(cue in text for cue in cues)
+        if not any(all(cue in line for cue in cues) for line in lines)
     ]
     assert not missing, (
         f"the frontend journey states no proportionality allowance for: {missing}"
@@ -317,6 +333,27 @@ def test_the_design_journey_names_its_minimal_viable_thread() -> None:
     )
 
 
+def illustrative_state_files() -> list[Path]:
+    """Every Markdown file under `packs/experience-design/` that carries an
+    illustrative state list.
+
+    Derived from the tree rather than a pinned pair, because AC-0024 and AC-0025
+    quantify over `packs/experience-design/` and a transcript added to a third
+    file would otherwise be untested with nothing reporting the gap. The
+    middle-dot shape is still the scoping device: it is what the transcripts
+    use, and it keeps ordinary prose out.
+    """
+    found = [
+        path for path in sorted(XD.rglob("*.md"))
+        if any(
+            "States" in line and "\u00b7" in line
+            for line in path.read_text(encoding="utf-8").splitlines()
+        )
+    ]
+    assert found, "no file under packs/experience-design/ carries a state list"
+    return found
+
+
 def test_no_illustrative_state_list_names_a_state_outside_the_floor() -> None:
     """Verifies: the design pack's worked examples use the floor's vocabulary.
 
@@ -327,7 +364,7 @@ def test_no_illustrative_state_list_names_a_state_outside_the_floor() -> None:
     """
     floor = floor_states()
     offenders: dict[str, list[str]] = {}
-    for path in (XD / "JOURNEY.md", XD / "README.md"):
+    for path in illustrative_state_files():
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "States" not in line or "·" not in line:
                 continue
@@ -439,7 +476,7 @@ def test_every_illustrative_state_list_is_within_the_explore_subset() -> None:
     """
     subset = set(stated_explore_states(JOURNEYS["experience-design"].read_text(encoding="utf-8")))
     offenders: dict[str, list[str]] = {}
-    for path in (XD / "JOURNEY.md", XD / "README.md"):
+    for path in illustrative_state_files():
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "States" not in line or "\u00b7" not in line:
                 continue

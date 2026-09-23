@@ -36,13 +36,15 @@ where you are on the thread.
 
 | Tier | Choose it when | Each per-screen brief owes |
 |---|---|---|
-| `explore` | A prototype or a surface still finding its shape | The ten states in the explore set |
-| `pilot` | A pre-release surface in front of limited real users | The explore set, plus the four data-shape states |
-| `production` | A public surface in front of all users | Everything in `pilot`, plus the remaining two |
+| `explore` | A prototype or a surface still finding its shape | The states the map assigns to the `explore` band |
+| `pilot` | A pre-release surface in front of limited real users | The `explore` band, plus the states the map assigns to `pilot` |
+| `production` | A public surface in front of all users | Everything in `pilot`, plus the states the map assigns to `production` |
 
 Which contract fields each tier owes is recorded once, in the contract's own
-`Required: <tier>+` annotations. Read them there rather than from a list in a
-guide.
+`Required: <tier>+` annotations, and which states it owes is recorded once, in
+the contract's shared state-coverage map. Read both there rather than from a
+list in a guide, which is how the older explanation page came to promise a
+different set than the contract asks for.
 
 ## What no tier drops
 
