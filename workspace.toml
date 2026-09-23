@@ -1086,6 +1086,14 @@ open = [
   # scoped out of the retrofit deliberately rather than half-done.
   # Unblocks when: ready now.
 
+  # STILL OPEN 2026-09-22, re-confirmed rather than closed. Both fields in the
+  # manifest were re-read and still say "not reviewed, handoff open" rather
+  # than implying coverage, which is the property this entry protects. One
+  # input moved: the web suite is 199 tests in 23 files, not 198, and the print
+  # stylesheet is a new untested surface that belongs in quality-engineer's
+  # third uncovered area. The `/now/` clause carried a decaying figure -- 402 KB
+  # for 122 releases -- restated as the unbounded shape, since the count moves
+  # on every release. Nothing here performs either review; that is the handoff.
   # OPEN, OWNER-ROUTED. The evidence manifest's two production fields record a
   # handoff, not a review: security/privacy to security-reviewer and
   # reliability/recovery to quality-engineer. The surface takes no user input,
@@ -1112,6 +1120,30 @@ open = [
   # verification pass recorded them rather than resolving them.
   # ---------------------------------------------------------------------------
 
+  # RESOLVED 2026-09-22. The print stylesheet exists. Page-level rules (the
+  # sheet box, destinations, page breaks) are in web/src/styles/print.css;
+  # rules that override a component sit in that component's own <style> block,
+  # because Astro scopes component selectors with a `data-astro-cid-*`
+  # attribute and a global `.footer` is therefore outranked by
+  # `.footer[data-astro-cid-...]` -- the first attempt put everything in the
+  # global file, shipped it, and measured almost no change. Measured, not
+  # assumed. Re-read on one instrument with `@page` margins passed explicitly
+  # on BOTH sides (without that the before run printed at zero margin and
+  # overstated the cost by a sheet): footer 0.82 -> 0.32 of a sheet on paper
+  # ground at 13.09:1 instead of 1.42:1 with backgrounds off; 63 of 64 links
+  # print a destination, the 64th being an in-page anchor, with the origin
+  # printed once in the footer so a root-relative path resolves; all 4 install
+  # variants print, each under its own label, instead of 1; the hamburger, the
+  # copy button and the footer link columns no longer render. Cost: 9 -> 11
+  # sheets, which is the price of the destinations and the three extra panels.
+  # STILL OPEN, and deliberately not claimed: `break-inside: avoid` is
+  # declared on li, tr, figure, .terminal and .tabs__panel, but the straddle
+  # count used here reads a scrolling viewport, where break-inside has no
+  # effect -- it applies only during pagination. The declaration is present and
+  # the sheet count is measured; "no block is cut" is NOT established, and
+  # proving it needs a rasterised read of the PDF's page boundaries.
+  # Evidence: docs/design/evidence/marketing-home-retrofit.md, print state.
+  # The original entry, for the record:
   # MAJOR ON PAPER, INVISIBLE ON SCREEN. There is no print stylesheet anywhere
   # in web/ — zero `@media print`, zero `@page`. Printed at A4 the home page is
   # 9 sheets and: the dark footer is 0.82 of a sheet in solid ink, and with

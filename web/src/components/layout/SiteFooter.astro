@@ -7,6 +7,10 @@ import marketingChrome from '../../lib/shared-chrome.generated.json';
 import { chromeHref, currentState, type ChromeLink } from '../../lib/shared-chrome';
 
 const year = new Date().getFullYear();
+// Printed only. Every other destination on a sheet is a root-relative path, so
+// without the origin none of them is followable. Read from `site` via Astro
+// rather than retyped, so it cannot drift from the deployed origin.
+const origin = Astro.site ? Astro.site.origin : '';
 
 const columns = marketingChrome.footer;
 const current = (link: ChromeLink) =>
@@ -38,10 +42,17 @@ const current = (link: ChromeLink) =>
     </nav>
 
     <p class="footer__copy">© {year} · agent-ready-repo</p>
+    {origin && <p class="footer__origin">Printed from {origin}</p>}
   </div>
 </footer>
 
 <style>
+  /* Print-only. Revealed by the `@media print` block at the foot of this file;
+     on screen the origin is the address bar's job. */
+  .footer__origin {
+    display: none;
+  }
+
   .footer {
     background-color: var(--ds-hero-bg);
     color: var(--ds-hero-fg-muted);
@@ -142,6 +153,41 @@ const current = (link: ChromeLink) =>
 
     .footer__list {
       gap: 0;
+    }
+  }
+
+  /* Paper. The dark ground is 0.82 of an A4 sheet in solid ink, and with
+     background graphics off -- the print dialog's default -- it does not print
+     while its foreground does, leaving 1.42:1 text on white. The 2026-09-18
+     owner decision composes the SCREEN page; paper ground with ink text is that
+     decision translated to a medium that decides for itself whether to paint a
+     background. The link columns are navigation and go; the brand, tagline and
+     copyright are identity and stay. Scoped here for the specificity reason
+     given in SiteNav.astro. */
+  @media print {
+    .footer {
+      background-color: var(--ds-surface);
+      color: var(--ds-on-surface-2);
+      border-top: 1px solid var(--ds-rule-boundary);
+    }
+
+    .footer__cols {
+      display: none;
+    }
+
+    .footer__brand,
+    .footer__copy {
+      color: var(--ds-on-surface);
+    }
+
+    /* Every other destination on the sheet prints as a root-relative path, so
+       the origin has to appear once for any of them to be followable. */
+    .footer__origin {
+      display: block;
+      margin-top: var(--ds-rule-pitch);
+      font-family: var(--ds-font-mono);
+      font-size: var(--ds-type-mono-xs);
+      color: var(--ds-on-surface-muted);
     }
   }
 </style>

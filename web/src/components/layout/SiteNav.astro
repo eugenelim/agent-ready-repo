@@ -288,4 +288,24 @@ const current = (link: ChromeLink) =>
       margin-top: var(--ds-space-4);
     }
   }
+
+  /* Paper. A4's 717 CSS px is below the 768 breakpoint, so this nav resolves to
+     its mobile form and printed a hamburger: a closed disclosure control that
+     shows the reader nothing and hides the links it holds. None of it can be
+     operated on paper, so the wordmark stays as a masthead and the rest goes.
+     Scoped here rather than in styles/print.css because Astro scopes these
+     selectors with a `data-astro-cid-*` attribute, which outranks any global
+     rule of the same class -- the override has to live at the same specificity
+     or it silently loses. See styles/print.css for the page-level rules. */
+  @media print {
+    .nav__links,
+    .nav__mobile,
+    .nav__cta {
+      display: none;
+    }
+
+    .nav {
+      border-bottom: 1px solid var(--ds-rule-boundary);
+    }
+  }
 </style>
