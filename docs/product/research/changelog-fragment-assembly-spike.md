@@ -106,7 +106,7 @@ exercise the classifier before either figure is taken.
 
 ```
 $ python3 tools/measure-changelog-fragment-merges.py
-base commit: 54df67143a51a5a28ad321c2d0921a7ea328791a
+base commit: a10bd42656b003d2db92f65f8deaa3fd2f89ba7a
 branches per arm: 20   unordered pairs per arm: 190
 
 classifier self-check (runs before either arm's figure is taken):
@@ -130,12 +130,13 @@ in the fragment arm. The error bucket is empty in both, so neither figure is a
 harness artefact. A clean-checkout run exits 0 and leaves `git status
 --porcelain` empty.
 
-The script names the commit it ran against, which is this spike's own head
-rather than the run base in the header. The counts are the same at both:
-`docs/product/changelog.md` is byte-identical at `93bf9cc9e` and
-`54df67143`, because every commit between them touches only
-`docs/specs/changelog-fragment-assembly-spike/`, `tools/measure-changelog-fragment-merges.py`
-and this report.
+**This measurement's base is `a10bd4265`, not the `93bf9cc9e` in the header.**
+The script names whichever commit it ran against, and it was re-run as the
+script itself was corrected during review. The counts above are recorded
+against `a10bd4265` and no equivalent run at `93bf9cc9e` is retained, so no
+claim is made here that they also hold there. The other three measurements were
+taken at `93bf9cc9e`; each figure in this report is recorded beside the base its
+own run names.
 
 **SURVIVE.** § 7 Mergeability requires no changelog-path conflict when fragment
 IDs differ: 0 of 190 conflicting pairs, against a control arm at 190 of 190.
@@ -440,9 +441,11 @@ count. That is the intended reading of § 7's "ten times the current
 release-entry count": ten times the current count *added*, which is the more
 demanding of the two readings.
 
-Arms interleave and each discards one unmeasured warm-up, because page cache,
-tool warm-up and thermal state drift monotonically across a session and a block
-design would put that drift into the median difference the 10% bar reads.
+Arms interleave and each discards one unmeasured warm-up. Nothing here measures
+page cache, tool warm-up or thermal state, so no claim is made about how they
+move; interleaving is protection against time-order effects of any shape, which
+a block design would fold straight into the median difference the 10% bar
+reads.
 
 ```
 $ python3 timeruns.py --clone <clone> --base 93bf9cc9e --runs 5 --corpus 2920

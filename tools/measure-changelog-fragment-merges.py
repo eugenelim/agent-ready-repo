@@ -42,6 +42,7 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import itertools
 import os
@@ -50,8 +51,9 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from collections.abc import Iterator
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = "docs/product/changelog.md"
@@ -66,34 +68,86 @@ class ArmResult(NamedTuple):
     """One arm's 190-pair replay, bucketed by `git merge-tree` exit status."""
 
     name: str
-    commits: int
     pairs: int
     clean: int
     conflicted: int
     errored: int
 
 
-def git(*args: str, index: Path | None = None) -> str:
+# Redirect variables that would silently point git at another repository or
+# index. An inherited GIT_DIR makes `-C` cosmetic, so the run could measure a
+# tree the reader never named.
+_GIT_REDIRECTS = (
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_COMMON_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_NAMESPACE",
+    "GIT_CEILING_DIRECTORIES",
+)
+# Process-local identity and timestamps. `commit-tree` refuses without an
+# identity, so inheriting one makes the procedure fail on a machine that has
+# none configured -- and an ambient clock makes two runs differ. Neither value
+# is written to the reader's configuration, and these commits reach no branch.
+_SYNTHETIC_ENV = {
+    "GIT_AUTHOR_NAME": "changelog-fragment-measurement",
+    "GIT_AUTHOR_EMAIL": "measurement@invalid",
+    "GIT_COMMITTER_NAME": "changelog-fragment-measurement",
+    "GIT_COMMITTER_EMAIL": "measurement@invalid",
+    "GIT_AUTHOR_DATE": "2026-01-01T00:00:00+00:00",
+    "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+00:00",
+}
+
+
+@contextlib.contextmanager
+def git_session() -> Iterator[dict[str, str]]:
+    """Yield a git environment whose writes land in a throwaway object store.
+
+    `hash-object -w`, `commit-tree` and `merge-tree --write-tree` all write
+    objects. Left to the default store those objects are unreachable but
+    permanent, and in a worktree the store belongs to the PARENT repository, so
+    a measurement would deposit them in a tree it never touched and
+    `git status --porcelain` could not reveal it. Writing to a temporary
+    directory with the real store as a read-only alternate keeps every read
+    working and leaves nothing behind when the directory goes.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in _GIT_REDIRECTS}
+    env.update(_SYNTHETIC_ENV)
+    real_objects = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "rev-parse", "--git-path", "objects"],
+        capture_output=True, text=True, env=env, check=True,
+    ).stdout.strip()
+    with tempfile.TemporaryDirectory(prefix="changelog-merge-measure-") as scratch:
+        objects = Path(scratch) / "objects"
+        objects.mkdir()
+        env["GIT_OBJECT_DIRECTORY"] = str(objects)
+        env["GIT_ALTERNATE_OBJECT_DIRECTORIES"] = str(Path(real_objects).resolve())
+        yield env
+
+
+def git(*args: str, env: dict[str, str], index: Path | None = None) -> str:
     """Run git in the repository and return stdout.
 
     Raises on a non-zero exit. This script is an evidence of record, so an
     environment error must not read as "no conflicts found".
     """
-    env = dict(os.environ)
+    run_env = dict(env)
     if index is not None:
-        env["GIT_INDEX_FILE"] = str(index)
+        run_env["GIT_INDEX_FILE"] = str(index)
     done = subprocess.run(
         ["git", "-C", str(REPO_ROOT), *args],
         capture_output=True,
         text=True,
-        env=env,
+        env=run_env,
     )
     if done.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {done.stderr.strip()}")
     return done.stdout
 
 
-def merge_tree(base: str, ours: str, theirs: str) -> int:
+def merge_tree(base: str, ours: str, theirs: str, env: dict[str, str]) -> int:
     """Replay one pair; return `git merge-tree`'s exit status.
 
     0 clean, 1 conflicted, anything else a harness error. The status is returned
@@ -115,24 +169,28 @@ def merge_tree(base: str, ours: str, theirs: str) -> int:
         ],
         capture_output=True,
         text=True,
+        env=env,
     )
     return done.returncode
 
 
-def write_blob(content: str) -> str:
+def write_blob(content: str, env: dict[str, str]) -> str:
     """Write `content` as a loose blob and return its oid."""
     done = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "hash-object", "-w", "--stdin"],
         input=content,
         capture_output=True,
         text=True,
+        env=env,
     )
     if done.returncode != 0:
         raise RuntimeError(f"git hash-object failed: {done.stderr.strip()}")
     return done.stdout.strip()
 
 
-def commit_with(base: str, path_blobs: dict[str, str], message: str) -> str:
+def commit_with(
+    base: str, path_blobs: dict[str, str], message: str, env: dict[str, str]
+) -> str:
     """Build a detached commit over `base` that sets each path to its blob.
 
     Uses a scratch `GIT_INDEX_FILE`, so neither the repository index nor the
@@ -140,11 +198,14 @@ def commit_with(base: str, path_blobs: dict[str, str], message: str) -> str:
     """
     with tempfile.TemporaryDirectory() as scratch:
         index = Path(scratch) / "index"
-        git("read-tree", base, index=index)
+        git("read-tree", base, env=env, index=index)
         for path, blob in path_blobs.items():
-            git("update-index", "--add", "--cacheinfo", f"100644,{blob},{path}", index=index)
-        tree = git("write-tree", index=index).strip()
-    return git("commit-tree", tree, "-p", base, "-m", message).strip()
+            git(
+                "update-index", "--add", "--cacheinfo",
+                f"100644,{blob},{path}", env=env, index=index,
+            )
+        tree = git("write-tree", env=env, index=index).strip()
+    return git("commit-tree", tree, "-p", base, "-m", message, env=env).strip()
 
 
 def fragment_body(identifier: str, ordinal: int) -> str:
@@ -186,26 +247,36 @@ def load_build_site() -> object:
     return module
 
 
-def first_release_line(build_site: object, changelog: str) -> int:
+def first_release_line(build_site: Any, changelog: str) -> int:
     """Zero-based line index of the first free-standing release heading.
 
     Delegates to `parse_changelog_releases` rather than scanning lines. Which
     `##` lines are real headings is decided by that parser's fence and comment
     state machine, and `ParsedChangelog.headings` is exported precisely so a
-    caller needing heading POSITION does not re-derive it. A raw-line regex
-    agrees on today's file and still diverges from the contract: it has no fence
-    or comment state, and it admits identities the parser rejects, such as
-    `[Unreleased][unreleased]` or an entry with no trailing date.
+    caller needing heading POSITION does not re-derive it.
+
+    Selection is by POSITION and release identity, never by heading text.
+    `changelog.md` repeats release headings -- the parser ships a slugger whose
+    only job is disambiguating them -- so matching the first heading whose title
+    equals some chosen release can land on an earlier duplicate and insert where
+    that release does not sit. Scanning headings in source order and asking the
+    parser's own identity predicate cannot pick a different occurrence.
+
+    A level-2 heading carrying a release identity is free-standing by
+    construction: `## [Unreleased]` is itself level 2, so entries beneath it are
+    level 3 or deeper and never satisfy both tests.
     """
+    identity = getattr(build_site, "_parse_release_identity", None)
+    if identity is None:
+        raise RuntimeError(
+            f"{BUILD_SITE} exposes no release-identity predicate; refusing to "
+            "guess which heading a release occupies"
+        )
     parsed = build_site.parse_changelog_releases(changelog)
-    free_standing = [r for r in parsed.releases if not r["unreleased"]]
-    if not free_standing:
-        raise RuntimeError(f"{CHANGELOG} has no free-standing released entry")
-    wanted = free_standing[0]["heading"]
     for heading in parsed.headings:
-        if heading.level == 2 and heading.title == wanted:
+        if heading.level == 2 and identity(heading.title) is not None:
             return heading.lineno - 1
-    raise RuntimeError(f"parser reports release {wanted!r} with no level-2 heading")
+    raise RuntimeError(f"{CHANGELOG} has no free-standing released entry")
 
 
 def prepend_release(changelog: str, section: str, position: int) -> str:
@@ -226,52 +297,59 @@ def identifiers(count: int) -> list[str]:
 
 
 def build_arm(
-    base: str, name: str, changelog_at_base: str, ids: list[str], anchor: int
+    base: str, name: str, changelog_at_base: str, ids: list[str], anchor: int,
+    env: dict[str, str],
 ) -> list[str]:
     """Build one arm's synthetic commits and return their oids."""
     commits = []
     for ordinal, identifier in enumerate(ids, start=1):
         if name == "fragment":
-            blob = write_blob(fragment_body(identifier, ordinal))
+            blob = write_blob(fragment_body(identifier, ordinal), env)
             paths = {f"{FRAGMENT_DIR}/{identifier}.md": blob}
         else:
             updated = prepend_release(
                 changelog_at_base, release_section(identifier, ordinal), anchor
             )
-            paths = {CHANGELOG: write_blob(updated)}
-        commits.append(commit_with(base, paths, f"{name} arm branch {ordinal:02d}"))
+            paths = {CHANGELOG: write_blob(updated, env)}
+        commits.append(
+            commit_with(base, paths, f"{name} arm branch {ordinal:02d}", env)
+        )
     return commits
 
 
-def replay(base: str, name: str, commits: list[str]) -> ArmResult:
+def replay(base: str, name: str, commits: list[str], env: dict[str, str]) -> ArmResult:
     """Replay every unordered pair of `commits` and bucket by exit status."""
     clean = conflicted = errored = 0
     pairs = 0
     for ours, theirs in itertools.combinations(commits, 2):
         pairs += 1
-        status = merge_tree(base, ours, theirs)
+        status = merge_tree(base, ours, theirs, env)
         if status == 0:
             clean += 1
         elif status == 1:
             conflicted += 1
         else:
             errored += 1
-    return ArmResult(name, len(commits), pairs, clean, conflicted, errored)
+    return ArmResult(name, pairs, clean, conflicted, errored)
 
 
-def classifier_self_check(base: str, changelog_at_base: str) -> list[tuple[str, str, bool]]:
+def classifier_self_check(
+    base: str, changelog_at_base: str, env: dict[str, str]
+) -> list[tuple[str, str, bool]]:
     """Bucket one pair known to conflict and one known to be clean.
 
     Without this, an invocation that errors on every pair looks exactly like the
     clean fragment arm, which is the survive threshold.
     """
-    left = commit_with(base, {CHANGELOG: write_blob("left\n" + changelog_at_base)}, "sc left")
-    right = commit_with(base, {CHANGELOG: write_blob("right\n" + changelog_at_base)}, "sc right")
-    conflict_status = merge_tree(base, left, right)
+    left_blob = write_blob("left\n" + changelog_at_base, env)
+    right_blob = write_blob("right\n" + changelog_at_base, env)
+    left = commit_with(base, {CHANGELOG: left_blob}, "sc left", env)
+    right = commit_with(base, {CHANGELOG: right_blob}, "sc right", env)
+    conflict_status = merge_tree(base, left, right, env)
 
-    add_a = commit_with(base, {f"{FRAGMENT_DIR}/self-check-a.md": write_blob("a\n")}, "sc a")
-    add_b = commit_with(base, {f"{FRAGMENT_DIR}/self-check-b.md": write_blob("b\n")}, "sc b")
-    clean_status = merge_tree(base, add_a, add_b)
+    a = commit_with(base, {f"{FRAGMENT_DIR}/self-check-a.md": write_blob("a\n", env)}, "sc a", env)
+    b = commit_with(base, {f"{FRAGMENT_DIR}/self-check-b.md": write_blob("b\n", env)}, "sc b", env)
+    clean_status = merge_tree(base, a, b, env)
 
     return [
         ("known-conflicting pair", f"exit {conflict_status} (want 1)", conflict_status == 1),
@@ -298,21 +376,25 @@ def report(base: str, checks: list[tuple[str, str, bool]], arms: list[ArmResult]
 
 
 def main() -> int:
-    base = git("rev-parse", "HEAD").strip()
-    changelog_at_base = git("show", f"{base}:{CHANGELOG}")
-    anchor = first_release_line(load_build_site(), changelog_at_base)
-    ids = identifiers(BRANCH_COUNT)
+    with git_session() as env:
+        base = git("rev-parse", "HEAD", env=env).strip()
+        changelog_at_base = git("show", f"{base}:{CHANGELOG}", env=env)
+        anchor = first_release_line(load_build_site(), changelog_at_base)
+        ids = identifiers(BRANCH_COUNT)
 
-    checks = classifier_self_check(base, changelog_at_base)
-    if not all(passed for _, _, passed in checks):
-        report(base, checks, [])
-        print("\nclassifier self-check failed; no arm figure is reportable", file=sys.stderr)
-        return 1
+        checks = classifier_self_check(base, changelog_at_base, env)
+        if not all(passed for _, _, passed in checks):
+            report(base, checks, [])
+            print(
+                "\nclassifier self-check failed; no arm figure is reportable",
+                file=sys.stderr,
+            )
+            return 1
 
-    arms = [
-        replay(base, name, build_arm(base, name, changelog_at_base, ids, anchor))
-        for name in ("fragment", "control")
-    ]
+        arms = [
+            replay(base, name, build_arm(base, name, changelog_at_base, ids, anchor, env), env)
+            for name in ("fragment", "control")
+        ]
     report(base, checks, arms)
     return 0
 

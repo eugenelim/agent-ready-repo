@@ -34,7 +34,15 @@ execution observed lands here.
   stdout, and an implementer returns a prose status report from which verbatim
   stdout cannot be quoted. T4 also deletes a disposable clone.
 
-## Observations that bound a figure
+## Observations that bound a figure — SUPERSEDED at round 3
+
+> The attribution arithmetic in the first bullet below (+5.22s attributable,
+> +12.66s remainder, the docs phase as a negative control) was **withdrawn**
+> in review round 3 and no longer appears in the report. `make site-build`
+> runs the docs phase after the treatment-dependent web phase in one
+> invocation, so identical input does not make it treatment-free. This
+> section is retained as the historical record of what was believed at the
+> time; the current position is in *Review round 3* below.
 
 - **T4's whole-build metric cannot resolve its own threshold.** The docs-site
   build receives identical input in both arms (264 pages either way) and still
@@ -225,3 +233,62 @@ three rounds was a claim layered on top of those numbers rather than a defect in
 them — first a precision bound, then a causal attribution, then the phase
 decomposition that the attribution rested on. The measurements were sound and
 the prose around them was repeatedly not.
+
+## Review round 4 — two lanes, adjudicated
+
+The quality lane was added as a stated discretionary second reviewer, not by
+the high-risk trigger: this change is not structural and warrants no
+operational-safety module, but the tracked script is a Durable Output whose
+closeout condition is reproducing the report's counts from a clean checkout,
+and that lens is not adversarial review's. It found four defects the three
+adversarial rounds had not.
+
+**Adversarial — four sustained, none refuted.**
+
+- The T1 counts were quoted from a run at one commit while the prose assigned
+  them to the report's base. No run at that base is retained, so the cross-base
+  equality claim is removed and measurement 1 now names its own base.
+- "Understates per-fragment read and parse cost" asserted a direction the run
+  never measured. The byte-volume mismatch is the measured fact; the effect on
+  read and parse cost is now recorded as unknown in direction and size.
+- `first_release_line` resolved the insertion anchor by matching heading TEXT.
+  `changelog.md` contains two duplicate level-2 titles, including
+  `[core][2.3.0] — 2026-08-07` — the pair the parser's slugger docstring cites —
+  so a duplicate could redirect the anchor to an occurrence the selected release
+  does not sit at. This was a defect introduced by the round-3 repair. Selection
+  is now by source position plus the parser's own release-identity predicate,
+  which cannot pick a different occurrence, and it fails closed if that
+  predicate is unavailable.
+- The interleaving rationale claimed page cache, warm-up and thermal state
+  drift *monotonically*. Nothing measured them. Interleaving is now justified
+  against time-order effects of any shape.
+
+**Quality — three sustained, two refuted.**
+
+- Git subprocesses inherited redirect variables and an ambient identity, so an
+  inherited `GIT_DIR` made `-C` cosmetic and `commit-tree` would fail on a
+  machine with no configured identity. Every invocation now runs under a
+  controlled environment that strips the redirect variables and supplies a
+  process-local synthetic identity and fixed timestamps. The reader's git
+  configuration is not touched.
+- **The run deposited unreachable objects in the shared object store.** This is
+  a worktree, so `.git` redirects to the parent repository: `hash-object -w`,
+  `commit-tree` and `merge-tree --write-tree` were writing into
+  `/Users/.../agent-ready-repo/.git/objects`, a tree the measurement never
+  touched, and `git status --porcelain` cannot reveal it — so the recorded
+  worktree-cleanliness evidence was true but incomplete. Objects now go to a
+  temporary directory with the real store as a read-only alternate. Measured
+  before and after a full run: loose-object count in the shared store 8,297
+  before and 8,297 after, a delta of zero.
+- `ArmResult.commits` was populated and never read. Removed.
+
+**Refuted:** that the procedure cannot replay its recorded fixture because it
+binds to `HEAD` — the retained output records the exact run commit, so a later
+run is distinguishable, and the controller's original decision not to add a
+`--base` flag stands. And that `merge_tree` should preserve stderr and pair
+identity — § 7 assigns Failure diagnosability to the delivery spec, and this
+spike owes only the per-arm error counts. The owner separately bounded that one
+out of scope.
+
+T1 was re-run after every code change in this round and reproduces 0 of 190 and
+190 of 190 with empty error buckets; the anchor still resolves to line 67.
