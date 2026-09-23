@@ -1176,7 +1176,14 @@ def _with_state_lock_targets(tree) -> dict[str, set[str]]:
         if not (isinstance(n, _ast_mod.Call) and "with_state_lock" in _called_names(n)):
             continue
         sites.add(id(n))
-        for arg in n.args:
+        # The body callable is the third positional, or the `body` keyword —
+        # not every `Name` in the call. `with_state_lock(spec_dir, verb, body)`
+        # would otherwise yield `spec_dir` and `verb` as targets, and a module
+        # function that ever shared one of those names would be granted
+        # heldness it never earned.
+        candidates = list(n.args[2:3])
+        candidates += [kw.value for kw in n.keywords if kw.arg == "body"]
+        for arg in candidates:
             if isinstance(arg, _ast_mod.Lambda):
                 targets |= set(_called_names(arg.body))
             elif isinstance(arg, _ast_mod.Name):
@@ -1407,6 +1414,30 @@ def _cohort_acquiring_mutators() -> set[str]:
     return {name for name in called if _reaches_a_cohort_acquisition(name)}
 
 
+def _engine_cohort_acquisitions() -> set[str]:
+    """Functions in `loop-engine.py` that acquire on a COHORT path.
+
+    Recovered, not named. Every `exclusive(...)` call in the module is found
+    and classified by what its argument locks: an argument mentioning the guard
+    layer's `state_path_for` locks cohort state, one mentioning
+    `_engine_state_path` locks the engine's own. Naming the one wrapper we
+    expect would bound the count at 1 by construction, and a second engine-side
+    acquisition would then under-derive the bound by a whole timeout.
+    """
+    tree = _engine_tree()
+    found = set()
+    for fn in _ast_mod.walk(tree):
+        if not isinstance(fn, _ast_mod.FunctionDef):
+            continue
+        for node in _ast_mod.walk(fn):
+            if not (isinstance(node, _ast_mod.Call) and "exclusive" in _called_names(node)):
+                continue
+            arg_src = _ast_mod.dump(node)
+            if "state_path_for" in arg_src and "_engine_state_path" not in arg_src:
+                found.add(fn.name)
+    return found
+
+
 def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     """AC15: the derived bound describes the code, including nested acquisitions.
 
@@ -1423,16 +1454,17 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     engine = _load_module(ENGINE, "_engine_acq_budget")
     sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_acq_budget")
 
-    # Two mutually exclusive acquisition routes out of cmd_transition, each
-    # recovered rather than declared. `contract-amendment` is the only event
-    # that acquires through its effect and the only event exempt from the
-    # identity check, so at most one is live on any single path.
-    engine_routes = {
-        name for name in _called_names(_fn(_engine_tree(), "cmd_transition"))
-        if name == "_cohort_commit_hold"
-    }
+    # Two mutually exclusive groups of acquisition route out of cmd_transition,
+    # both recovered structurally. `contract-amendment` is the only event that
+    # acquires through its effect and the only event exempt from the identity
+    # check, so at most one group is live on any single path.
+    engine_routes = _engine_cohort_acquisitions()
     mutator_routes = _cohort_acquiring_mutators()
-    assert engine_routes, "cmd_transition no longer takes the cohort lock"
+    assert engine_routes, "the engine no longer acquires on a cohort path"
+    assert engine_routes == {"_cohort_commit_hold"}, (
+        f"engine-side cohort acquisitions changed: {sorted(engine_routes)}. "
+        "Re-derive the bound rather than widening this assertion."
+    )
     assert mutator_routes == {"apply_contract_amendment"}, (
         f"the set of engine-called acquiring mutators changed: {sorted(mutator_routes)}. "
         "Re-derive the bound rather than widening this assertion."

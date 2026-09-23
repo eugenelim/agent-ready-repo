@@ -23,9 +23,11 @@ worktrees.
 | AC4 mutual exclusion | acquire on `engine-state.json` instead of the cohort path | `peer_holding` | red |
 | AC20 content class | delete the `ManagedContentError` arm | `discriminates_its_four` | red |
 | AC13 reclaim reported | make the lock handler exit zero | `reclaim_at_the_end` | red |
-| loader fail-open | drop the try around `_guards()` | `guards_loader_failure` | red |
+| loader raises during clause evaluation | drop the try around `_guards()` | `loader_failure`, `while_handling` | red |
 | AC6 unlink exclusion | move the outbox unlink inside the hold | `hold_contains` | red |
 | AC17 shape-3 route | add an unlocked caller of `_schedule_run_impl` | `inside_a_cohort_hold` | red |
+| AC15 cohort route | add a second acquiring `_cohort_mutator()` call | `budget_counts` | red |
+| AC15 engine route | add a second engine-side `exclusive` on a cohort path | `budget_counts` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
@@ -75,6 +77,29 @@ Two others were real holes in checks that had passed:
   means "always called from inside a hold" — the inverse of "reaches a hold".
   It counted a pure argv parser as acquiring. Membership is now downward
   reachability to an acquisition.
+
+## Post-gates review round 3
+
+Two Blockers and two Nits, all on the round-2 repairs. Both Blockers were the
+same fault, and it is worth naming because it has now recurred.
+
+**A repair's stated reason outrunning its source.** Round 2's C4 caught it once:
+the loader fix was correct and its recorded cause was an exception class the
+loader cannot raise. Round 3 caught it again: AC15's engine-side membership was
+described in a comment and a commit message as "recovered rather than declared"
+while the code filtered for one literal function name, so `len(engine_routes)`
+was pinned at 1 and a second engine-side acquisition under-derived the bound by
+a whole timeout.
+
+The self-probe run before that review did not catch it either, and the reason
+is instructive: the probe added a second *cohort-side* route, which the check
+did handle, and the passing result was read as covering both halves. A probe
+exercises the path it picks, not the claim it is quoted against.
+
+Both halves are now recovered structurally — engine-side by finding every
+`exclusive(...)` call whose argument locks a cohort path, cohort-side by
+downward reachability — and the mutation table above carries a falsifying probe
+for each.
 
 ## Observations
 
