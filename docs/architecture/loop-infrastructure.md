@@ -281,7 +281,7 @@ when it moved; the mutator above can no longer land in that window undetected.
 The check covers every event except `contract-amendment`, whose own effect
 writes cohort state. See
 [`loop-parallelism.md` § 2](loop-parallelism.md#2-serialising-a-transition-against-cohort-state)
-for the mechanism and, importantly, for the seven residuals it does not close.
+for the mechanism and, importantly, for the residuals it does not close.
 
 Two of those residuals bear on this section directly. `contract-amendment` is
 exempt, so the transition that rewrites the approved baseline keeps the window
@@ -332,6 +332,7 @@ a backend can do with it are a cross-cutting concern: see
 
 ## 10. Last verified against commit
 
-The merge commit of the change that added the cohort-state identity check
-described in § 6. Verified against the tree at that commit, not against any
-earlier one: `0b81ead34` predates it.
+`8d30c6f6c` for the whole page. §§ 3, 4 and 6 were re-verified against the
+change that added the cohort-state identity check they now describe; the rest
+of the page has not been re-audited since `8d30c6f6c`, so that is what this
+marker records.

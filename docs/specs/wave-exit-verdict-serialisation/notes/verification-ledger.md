@@ -25,6 +25,7 @@ worktrees.
 | AC13 reclaim reported | make the lock handler exit zero | `reclaim_at_the_end` | red |
 | loader fail-open | drop the try around `_guards()` | `guards_loader_failure` | red |
 | AC6 unlink exclusion | move the outbox unlink inside the hold | `hold_contains` | red |
+| AC17 shape-3 route | add an unlocked caller of `_schedule_run_impl` | `inside_a_cohort_hold` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
@@ -38,7 +39,7 @@ Concerns and 1 Nit. The repairs that changed behaviour rather than wording:
 
 | Finding | What was wrong | Repair |
 | --- | --- | --- |
-| sec C2, adv N12 | `_guards()` was called inside the state-read try and in an `except` clause. A missing `_loop_guards.py` raises `FileNotFoundError`, which landed on the ABSENT arm — a fail-open, since absent compares equal at both samples. Evaluating `except _guards().ManagedContentError:` could also raise while handling, escaping the try entirely. | Resolve the module, the path and the exception class before the try; use the resolved class in the handler. New test pins that a loader failure is not reported as an absent state file. |
+| sec C2, adv N12 | `_guards()` was called inside the state-read try and again in an `except` clause, where evaluating it while an exception is in flight can raise and escape the whole try — a later `except Exception` does not catch a raise from clause evaluation. | Resolve the module, the path and the exception class before the try; use the resolved class in the handler. **Correction:** round 1 stated the cause as `FileNotFoundError` landing on the ABSENT arm, and round 2 refuted it — `_guards()` wraps every load failure in `GuardsUnavailable`, a `RuntimeError`, which the catch-all already handled. That fail-open never existed. The clause-evaluation escape is real and is what the restructure closes. The first version of the test drove it with an exception the loader cannot raise. |
 | sec C1, adv C4 | AC20's four-way distinctness never produced `content-unusable`: the 4300+ digit input lands on the catch-all, not the `ManagedContentError` arm. Deleting that arm left the test green. | Five observations, with genuinely malformed JSON as a separate case. Probe confirms the arm's removal now reds. |
 | adv B1 | AC13 had no artifact at all — the suite covered the three acquisition failures but nothing raised `StateLockLost` on hold exit. | A case that makes the hold's exit raise it and asserts non-zero. |
 | adv C7 | AC17's closure marked a helper held as soon as ONE held caller reached it, so a state write reachable from both a held and an unheld verb passed. | Heldness per path: a function counts as held only when it has callers and every one of them is held. |
@@ -51,6 +52,29 @@ missing test (the loader guard had none) and one was a bad probe — the injecte
 call sat before the hold rather than inside it. Both were corrected and both
 now red. A probe that fails to red is not automatically a weak check; it can be
 a weak probe, and the two need telling apart.
+
+## Post-gates review round 2
+
+Security returned `Clean — ready to commit.` Adversarial returned 1 Blocker, 3
+Concerns and 1 Nit, all on the round-1 repairs rather than on the mechanism.
+
+The one worth recording is the correction above. Round 1's Nit 12 asserted a
+specific exception class, that assertion was adopted without checking it at
+source, and it was then restated more confidently in a code comment, a commit
+message, this ledger and a test. The repair was right and its reason was not.
+Verifying the *shape* of a hazard is not verifying the *class*.
+
+Two others were real holes in checks that had passed:
+
+- AC17 seeded a `with_state_lock` body callable as a held root, which exempted
+  it from the every-caller rule. An unlocked second route to
+  `_schedule_run_impl`'s write left the case green. The lock site is now
+  recorded as one held caller and the target earns heldness like anything else;
+  the reviewer's exact probe reds.
+- AC15 decided mutator membership with `held`, which after the per-path repair
+  means "always called from inside a hold" — the inverse of "reaches a hold".
+  It counted a pure argv parser as acquiring. Membership is now downward
+  reachability to an acquisition.
 
 ## Observations
 

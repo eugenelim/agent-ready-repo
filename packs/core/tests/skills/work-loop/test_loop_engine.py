@@ -4606,29 +4606,48 @@ def test_a_reclaim_at_the_end_of_the_hold_exits_non_zero(tmp: Path, capsys, monk
     assert "\n" not in err, err
 
 
-def test_a_guards_loader_failure_reaches_a_sentinel_not_absent(tmp: Path, monkeypatch) -> None:
-    """AC21: the loader is not a state-file class, and must not raise.
+def test_a_guards_loader_failure_reaches_a_sentinel(tmp: Path, monkeypatch) -> None:
+    """AC21: the real loader failure class reaches a sentinel, never a raise.
 
-    `_guards()` loads `_loop_guards.py` by path and raises `FileNotFoundError`
-    when it is missing. Called inside the state-read try, that lands on the
-    ABSENT arm — the wrong sentinel, and a fail-open one, because absent
-    compares equal at both samples and admits the commit. Resolving the module
-    before the try is what keeps a loader failure distinguishable from a
-    missing `state.json`.
+    Driven with `GuardsUnavailable`, which is what `_guards()` actually raises
+    — it wraps every load failure, including `OSError`, in that `RuntimeError`
+    subclass. An earlier version of this case used `FileNotFoundError`, a class
+    the loader cannot emit, so it exercised a failure mode that does not exist.
     """
     d = make_spec_dir(tmp, "fp-loader")
     (d / "state.json").write_text('{"a": 1}', encoding="utf-8")
     healthy = _engine._cohort_fingerprint(d)
 
     def unavailable():
-        raise FileNotFoundError("cannot load _loop_guards.py")
+        raise _engine.GuardsUnavailable("cannot load _loop_guards.py")
 
     monkeypatch.setattr(_engine, "_guards", unavailable)
     value = _engine._cohort_fingerprint(d)
-
-    assert value != healthy
-    assert value != _engine._FP_ABSENT, (
-        "a missing guard module was reported as an absent state.json; that "
-        "sentinel compares equal at both samples and admits the commit"
-    )
     assert value == _engine._FP_OTHER_UNUSABLE
+    assert value != healthy
+
+
+def test_a_loader_failure_while_handling_does_not_escape(tmp: Path, monkeypatch) -> None:
+    """AC21: the hazard the restructure actually closes.
+
+    A handler written `except _guards().ManagedContentError:` re-invokes the
+    loader while an exception is in flight. If that call raises, the new
+    exception escapes the whole `try` — a later `except Exception` does not
+    catch a raise from clause evaluation. Here the loader works for the first
+    call and fails for any later one, which is the shape a lazy loader that
+    fails after first use produces; the fingerprint must still return a value.
+    """
+    d = make_spec_dir(tmp, "fp-loader-handling")
+    (d / "state.json").write_text("not json at all", encoding="utf-8")
+    real = _engine._guards
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return real()
+        raise _engine.GuardsUnavailable("loader lost after first use")
+
+    monkeypatch.setattr(_engine, "_guards", flaky)
+    value = _engine._cohort_fingerprint(d)
+    assert isinstance(value, str) and value

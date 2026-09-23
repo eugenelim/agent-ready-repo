@@ -1165,6 +1165,25 @@ def _decorator_names(fn) -> set[str]:
     return out
 
 
+_WITH_STATE_LOCK = "<with_state_lock>"
+
+
+def _with_state_lock_targets(tree) -> dict[str, set[str]]:
+    """Body callables handed to `with_state_lock(...)`, and the Call nodes doing it."""
+    targets: set[str] = set()
+    sites: set[int] = set()
+    for n in _ast_mod.walk(tree):
+        if not (isinstance(n, _ast_mod.Call) and "with_state_lock" in _called_names(n)):
+            continue
+        sites.add(id(n))
+        for arg in n.args:
+            if isinstance(arg, _ast_mod.Lambda):
+                targets |= set(_called_names(arg.body))
+            elif isinstance(arg, _ast_mod.Name):
+                targets.add(arg.id)
+    return {"targets": targets, "sites": sites}
+
+
 def _cohort_lock_held_functions() -> set[str]:
     """Every `loop-cohort.py` function whose body runs under the cohort lock.
 
@@ -1176,36 +1195,47 @@ def _cohort_lock_held_functions() -> set[str]:
     Shape 3 is why `loop-cohort.py` has just two literal `exclusive(` sites
     while far more code runs held: keying on the literal alone would miss the
     majority.
+
+    Heldness is per PATH. A shape-3 target is NOT seeded as a root: its
+    heldness is a property of the `with_state_lock` call site, not of its own
+    body, so seeding it would exempt it from the every-caller rule and let an
+    unlocked second route to the same write pass unchallenged. The call site is
+    instead recorded as one held caller, and the target must earn heldness like
+    anything else — every caller held, at least one caller.
     """
     tree = _cohort_tree()
     funcs = {n.name: n for n in _ast_mod.walk(tree)
              if isinstance(n, _ast_mod.FunctionDef)}
+    ws = _with_state_lock_targets(tree)
+
     held = {name for name, fn in funcs.items() if "_locked" in _decorator_names(fn)}
     held |= {name for name, fn in funcs.items()
              if any("exclusive" in _called_names(item.context_expr)
                     for w in _ast_mod.walk(fn)
                     if isinstance(w, _ast_mod.With) for item in w.items)}
-    # Shape 3: resolve the callable passed to with_state_lock, lambda or name.
-    for n in _ast_mod.walk(tree):
-        if not (isinstance(n, _ast_mod.Call) and "with_state_lock" in _called_names(n)):
-            continue
-        for arg in n.args:
-            if isinstance(arg, _ast_mod.Lambda):
-                held |= {c for c in _called_names(arg.body) if c in funcs}
-            elif isinstance(arg, _ast_mod.Name) and arg.id in funcs:
-                held.add(arg.id)
-    # Heldness is per PATH, not per reachability. A helper called from one
-    # held verb and one unheld one is not held: "anything a held body calls is
-    # also held" would mark it so and let an unlocked route to a state write
-    # pass. A function therefore counts as held only when it has at least one
-    # caller and EVERY caller is held.
+    held.add(_WITH_STATE_LOCK)
+
     callers: dict[str, set[str]] = {name: set() for name in funcs}
     for name, fn in funcs.items():
-        for callee in _called_names(fn):
+        for node in _ast_mod.walk(fn):
+            if not isinstance(node, _ast_mod.Call):
+                continue
+            f = node.func
+            callee = f.id if isinstance(f, _ast_mod.Name) else (
+                f.attr if isinstance(f, _ast_mod.Attribute) else None)
             if callee in callers:
                 callers[callee].add(name)
+    # Attribute a shape-3 target's invocation to the lock site, not to the
+    # function that merely passes the callable in — the passer is unheld.
+    for target in ws["targets"]:
+        if target in callers:
+            # Keep only callers that reach the target OUTSIDE the lock site —
+            # those are the genuinely unheld routes. The function that merely
+            # hands the callable to `with_state_lock` is not one of them.
+            callers[target] = {c for c in callers[target]
+                               if target in _called_names_outside_ws(funcs.get(c), ws)}
+            callers[target].add(_WITH_STATE_LOCK)
 
-    roots = set(held)
     changed = True
     while changed:
         changed = False
@@ -1216,8 +1246,21 @@ def _cohort_lock_held_functions() -> set[str]:
             if who and who <= held:
                 held.add(name)
                 changed = True
-    held |= roots
     return held
+
+
+def _called_names_outside_ws(fn, ws) -> list[str]:
+    """Calls in `fn` excluding those inside a `with_state_lock(...)` argument."""
+    if fn is None:
+        return []
+    inside: set[int] = set()
+    for n in _ast_mod.walk(fn):
+        if isinstance(n, _ast_mod.Call) and id(n) in ws["sites"]:
+            for sub in _ast_mod.walk(n):
+                inside.add(id(sub))
+    return [c for node in _ast_mod.walk(fn)
+            if isinstance(node, _ast_mod.Call) and id(node) not in inside
+            for c in _called_names(node)]
 
 
 def test_every_cohort_state_write_runs_inside_a_cohort_hold() -> None:
@@ -1313,16 +1356,46 @@ def test_cohort_commit_hold_reaches_no_spawn_and_stays_under_the_timeout() -> No
     )
 
 
+def _reaches_a_cohort_acquisition(name: str) -> bool:
+    """Does this `loop-cohort` function, or anything it calls, take the lock?
+
+    DOWNWARD reachability. Not `held`, which after the per-path repair means
+    "always called from inside a hold" — the inverse relation. Using `held`
+    here counted a pure argv parser as acquiring, and would have kept passing
+    if the one genuinely acquiring mutator stopped acquiring.
+    """
+    tree = _cohort_tree()
+    funcs = {n.name: n for n in _ast_mod.walk(tree)
+             if isinstance(n, _ast_mod.FunctionDef)}
+
+    def acquires_directly(fn) -> bool:
+        if "_locked" in _decorator_names(fn):
+            return True
+        names = _called_names(fn)
+        return "exclusive" in names or "with_state_lock" in names
+
+    seen, frontier = set(), [name]
+    while frontier:
+        current = frontier.pop()
+        fn = funcs.get(current)
+        if fn is None or current in seen:
+            continue
+        seen.add(current)
+        if acquires_directly(fn):
+            return True
+        frontier.extend(c for c in _called_names(fn) if c in funcs)
+    return False
+
+
 def _cohort_acquiring_mutators() -> set[str]:
-    """`loop-cohort` functions the engine calls that reach a cohort hold.
+    """`loop-cohort` functions the engine calls that reach a cohort acquisition.
 
     Decided without naming one: every `_cohort_mutator().<fn>(` site in the
-    engine is recovered syntactically, and `<fn>` counts as acquiring when its
-    definition over in `loop-cohort.py` reaches a hold by any of AC17's three
-    shapes. A mutator that starts acquiring therefore joins the count with no
-    declaration edited.
+    engine is recovered syntactically, and `<fn>` counts when its definition
+    over in `loop-cohort.py` reaches a hold by any of AC17's three shapes. A
+    mutator that starts acquiring joins the count with no declaration edited,
+    and one that stops acquiring leaves it.
     """
-    held = _cohort_lock_held_functions()
     called = set()
     for n in _ast_mod.walk(_engine_tree()):
         if not isinstance(n, _ast_mod.Call):
@@ -1331,7 +1404,7 @@ def _cohort_acquiring_mutators() -> set[str]:
         if (isinstance(f, _ast_mod.Attribute) and isinstance(f.value, _ast_mod.Call)
                 and "_cohort_mutator" in _called_names(f.value)):
             called.add(f.attr)
-    return called & held
+    return {name for name in called if _reaches_a_cohort_acquisition(name)}
 
 
 def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
@@ -1350,22 +1423,22 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     engine = _load_module(ENGINE, "_engine_acq_budget")
     sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_acq_budget")
 
-    acquiring_mutators = _cohort_acquiring_mutators()
-    assert acquiring_mutators, (
-        "no engine-called cohort mutator was recognised as acquiring — the "
-        "recovery rule has stopped describing the code"
+    # Two mutually exclusive acquisition routes out of cmd_transition, each
+    # recovered rather than declared. `contract-amendment` is the only event
+    # that acquires through its effect and the only event exempt from the
+    # identity check, so at most one is live on any single path.
+    engine_routes = {
+        name for name in _called_names(_fn(_engine_tree(), "cmd_transition"))
+        if name == "_cohort_commit_hold"
+    }
+    mutator_routes = _cohort_acquiring_mutators()
+    assert engine_routes, "cmd_transition no longer takes the cohort lock"
+    assert mutator_routes == {"apply_contract_amendment"}, (
+        f"the set of engine-called acquiring mutators changed: {sorted(mutator_routes)}. "
+        "Re-derive the bound rather than widening this assertion."
     )
-    engine_side = "_cohort_commit_hold" in _called_names(_fn(_engine_tree(), "cmd_transition"))
-    assert engine_side, "cmd_transition no longer takes the cohort lock"
 
-    # Derived, not a literal. The engine-side hold and the amendment effect are
-    # the two acquisition routes, and they are mutually exclusive — the one
-    # exempt event is the only one that acquires through its effect — so the
-    # bound takes the maximum of the two rather than their sum. A third route
-    # would raise this without any declaration being edited.
-    routes = [1 if engine_side else 0, 1 if acquiring_mutators else 0]
-    concurrent = max(routes)
-    assert concurrent == 1, f"acquisition routes changed: {routes}"
+    concurrent = max(len(engine_routes), len(mutator_routes))
     max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
                 + sl.DEFAULT_TIMEOUT * concurrent)
     assert sl.DEFAULT_TIMEOUT < max_hold < sl.DEFAULT_STALE_AFTER, (

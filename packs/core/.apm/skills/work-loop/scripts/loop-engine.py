@@ -346,14 +346,16 @@ def _cohort_fingerprint(spec_dir: Path) -> str:
     bytes; an ASCII-only dump cannot. Do not "align" this flag with the
     amendment id.
     """
-    # Resolve the guard module and the state path FIRST, and keep the resolved
-    # exception class. Two reasons, both fail-open if skipped. `_guards()` is a
-    # lazy by-path loader that raises `FileNotFoundError` when `_loop_guards.py`
-    # is missing — inside the try below that lands on the ABSENT arm, a wrong
-    # sentinel that compares equal at both samples and admits the commit. And an
-    # `except _guards().ManagedContentError:` clause re-invokes the loader while
-    # handling an exception, where a failure escapes the try entirely because a
-    # later `except Exception` does not catch a raise from clause evaluation.
+    # Resolve the guard module, the state path and the exception class FIRST.
+    # The hazard is clause evaluation, not the loader's own failure mode: an
+    # `except _guards().ManagedContentError:` handler re-invokes the loader
+    # WHILE handling an exception, and a raise there escapes the whole `try`,
+    # because a later `except Exception` does not catch an exception raised
+    # while evaluating a preceding clause. `_guards()` is a lazy by-path loader
+    # that wraps every load failure in `GuardsUnavailable` (a `RuntimeError`),
+    # so a plain loader failure was always caught by the catch-all below and is
+    # not what this restructure fixes — but it can raise during handling, and
+    # that path had no arm at all.
     try:
         guards = _guards()
         path = guards.state_path_for(spec_dir)
