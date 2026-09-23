@@ -732,6 +732,26 @@ def _is_canonical_local_brief_path(path: object) -> bool:
     )
 
 
+_BRIEF_POINTER_RE = re.compile(r"^brief:(?P<slug>.*)$")
+
+
+def _normalized_brief_pointer(value: str) -> str:
+    """Normalize a well-formed `brief:<slug>` value to its canonical path.
+
+    RFC-0103 D3: `brief:<slug>` is the canonical `Brief:` form. Normalizing
+    here — before `_is_canonical_local_brief_path` runs — is what keeps that
+    helper itself unrelaxed: it also guards `workspace.toml` entry and
+    dependency paths, where a slug is meaningless and must keep failing. A
+    malformed `brief:` value (wrong slug shape, a second colon, a space) is
+    returned unchanged, so it falls through the existing checks and is
+    refused exactly as before.
+    """
+    match = _BRIEF_POINTER_RE.match(value)
+    if match and _SINGLE_SEGMENT_RE.fullmatch(match.group("slug")):
+        return f"docs/product/briefs/{match.group('slug')}.md"
+    return value
+
+
 def _path_finding_or_invalid(path: object, detail: str) -> RoutingFinding:
     code = "invalid_artifact_path" if not _is_repository_relative_path(path) else "invalid_entry"
     return _finding(code, str(path or ""), detail)
@@ -1815,6 +1835,26 @@ def _confined_artifact_path(root: Path, rel_path: str) -> Path | None:
         return None
 
 
+def _confined_briefs_path(root: Path, rel_path: str) -> bool:
+    """Whether `rel_path`, once resolved with symlinks followed, stays
+    beneath the resolved `docs/product/briefs/` directory.
+
+    AC-0022 is stricter than `_confined_artifact_path`'s repository-root
+    confinement: a brief path whose symlink resolves to another directory
+    inside the repository passes repo-root confinement and must still be
+    refused here, because the boundary is the briefs directory, not the
+    repository root.
+    """
+    try:
+        root_resolved = root.resolve()
+        briefs_root = (root_resolved / "docs" / "product" / "briefs").resolve()
+        candidate = (root_resolved / rel_path).resolve()
+        candidate.relative_to(briefs_root)
+        return True
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
 def _parse_preamble_fields(text: str) -> dict[str, str]:
     fields: dict[str, str] = {}
     fence_char: str | None = None
@@ -2633,10 +2673,19 @@ def _provenance_path_is_invalid(
 ) -> bool:
     if path is None:
         return False
-    if not _is_repository_relative_path(path):
+    # `brief:<slug>` is normalized to its canonical path *here*, at the
+    # provenance read, before any lexical check runs — never inside
+    # `_is_canonical_local_brief_path`, which also guards `workspace.toml`
+    # entry and dependency paths where a slug has no meaning (AC-0018).
+    candidate = _normalized_brief_pointer(path) if require_local_brief else path
+    if not _is_repository_relative_path(candidate):
         return True
-    if require_local_brief and not _is_canonical_local_brief_path(path):
-        return True
+    if require_local_brief:
+        if not _is_canonical_local_brief_path(candidate):
+            return True
+        # AC-0022: the boundary is the resolved briefs directory, stricter
+        # than `_confined_artifact_path`'s repository-root confinement.
+        return root is not None and not _confined_briefs_path(root, candidate)
     return root is not None and _confined_artifact_path(root, path) is None
 
 

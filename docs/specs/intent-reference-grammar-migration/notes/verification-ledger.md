@@ -929,3 +929,69 @@ stub to real node rather than being added.
 
 The implementer measured this against the graph rather than inferring it, and
 was right where the brief's prediction was wrong.
+
+## 2026-09-22 — T8 complete: projections, release surface, follow-on record
+
+Recorded command output, as `Done when` requires.
+
+    $ make lint-ruff lint-mypy
+    All checks passed!
+    Success: no issues found in 148 source files
+
+    $ lint-traceability.py --root .                      # AC-0012
+    posture=single-repo, 747 node(s), 123 edge(s)
+    487 structural orphan(s) (informational)
+    exit 0
+
+    $ lint-traceability.py --root . --strict             # AC-0025
+    487 structural orphan(s) — FAIL (--strict)
+    exit 1
+
+    $ lint-spec-status.py --root .
+    spec metadata clean (36 of 503 spec(s) changed against origin/main)
+    exit 0
+
+AC-0012 passes: the default invocation exits 0. AC-0025 passes: 487 orphans
+against the 488 pre-delivery baseline, a decrease. `--strict` exits 1 on
+pre-existing orphans this delivery did not cause and does not claim to fix.
+
+### Projections — AC-0011 and the fourth copy
+
+`make build-self` reprojected after the tree was clean. Byte-identical, verified
+by md5:
+
+| Set | Copies | Distinct hashes |
+| --- | ---: | ---: |
+| `lint-traceability.py` | 3 | 1 |
+| `new-spec` spec template | 3 | 1 |
+| `workspace_status_engine.py` | **4** | 1 |
+
+The engine's fourth copy under `packages/agentbundle/agentbundle/_data/` is why
+AC-0011's three-copy comparison does not cover it, and why T8's tests name it
+separately.
+
+### Release surface
+
+`packs/core/pack.toml` and `.claude-plugin/plugin.json` both bumped
+**2.26.29 → 2.26.30**, one patch, matching. Changelog entry added directly
+beneath `[Unreleased]` as a free-standing release heading; it names the retained
+path and bare-slug fallbacks and says which reader accepts which, not only the
+new canonical form.
+
+### Brief erratum
+
+`docs/product/briefs/intent-identity-and-registration.md` now carries an
+`## Errata` section recording that its collision count depends on reading
+`Slug:` rather than the filename stem, and that the two differ for 5 of the 117
+unclaimed intent files. Measured by `Slug:`: 1 collision slug before, 7 after,
+39 had the kind been registered over the whole directory.
+
+### Follow-on record
+
+`workspace.toml` `["ini-010".shaping_queue].backlog` now holds
+`contract-discovery-reference-grammar`. It is a **shaping** item, not a build
+item: RFC-0103 left both fields ungoverned and the governing decision does not
+exist yet. The entry's comment carries the measured facts a later session needs,
+including that RFC-0103 D1's stated ground for excluding `Contract:` — that
+contract ids carry a version — is false of all 34 contract nodes in this corpus.
+The spec's Follow-ons section cites the slug.

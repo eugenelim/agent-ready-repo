@@ -1861,7 +1861,24 @@ draft = []
 
 ["ini-010".shaping_queue]
 active  = []
-backlog = []
+backlog = [
+  # The Contract:/Discovery: half of the pointer-grammar migration, recorded as
+  # the follow-on docs/specs/intent-reference-grammar-migration names. It is
+  # shaping rather than build work because RFC-0103 deliberately left both
+  # fields ungoverned and the governing decision does not exist yet: a
+  # Discovery: target may be an intent, or a docs/product/research/ artifact
+  # that carries no registered node kind at all, and a canonical form cannot be
+  # declared for a target with no kind. Measured 2026-09-22: 38 Contract: and 25
+  # Discovery: values, all resolving unresolvable. Note for whoever picks this
+  # up — RFC-0103 D1 excludes Contract: because contract ids carry a version,
+  # and zero of the 34 contract nodes actually do; recognize_contracts degrades
+  # to contract:<stem>, so contract:<slug> would express every target today.
+  # Re-measure rather than inheriting that rationale. The surface inventory at
+  # docs/specs/intent-reference-grammar-migration/notes/surface-inventory.md
+  # already covers all four fields, so the consumer set does not need
+  # re-deriving by hand.
+  { slug = "contract-discovery-reference-grammar", type = "shape", source = { mode = "repo-origin", ref = "docs/specs/intent-reference-grammar-migration/spec.md" }, summary = "Decide and migrate a typed reference grammar for the Contract: and Discovery: pointer fields, which RFC-0103 left ungoverned", needs = [] },
+]
 
 ["ini-010".work]
 queue   = []

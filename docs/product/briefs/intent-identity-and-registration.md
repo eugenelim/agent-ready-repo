@@ -130,3 +130,28 @@ The map is confirmed and its slices are dispatchable. A later material change to
 it needs a fresh revision-bound review and explicit owner confirmation before
 they are again.
 
+
+## Errata
+
+- 2026-09-22: the collision count in *Current-state evidence* depends on a
+  measurement method the line does not state, and does not reproduce without it.
+  It records "6 cross-type slug collisions — 2 intent/brief, 4 intent/spec".
+  **A slug is the artifact's `Slug:` field value, not its filename stem**, and
+  the two differ: 5 of the 117 unclaimed intent files carry an ordinal-prefixed
+  filename whose stem is not their slug. Counting by stem and counting by `Slug:`
+  therefore give different sets.
+
+  Measured by `Slug:` against the same corpus on 2026-09-22: the repository held
+  **1** collision slug before this work — `governance-item-record-routing`,
+  carried by an `opportunity:` and a `spec:` node — and **7** after registering
+  the `intent:` kind. Registering the kind over the whole intents directory
+  instead of only the unclaimed files would have given 39, of which 32 would be
+  an artifact colliding with itself.
+
+  The 95 field-occurrence figure in the same line stands, and the line is right
+  that it bounds the sweep rather than naming its population: the delivered
+  cohort was 33 `Parent intent:` values and 34 `Brief:` values.
+
+  Recorded because a later slice that trusts the number without the method will
+  disagree with the corpus, which is what happened here. Evidence:
+  `docs/specs/intent-reference-grammar-migration/notes/verification-ledger.md`.

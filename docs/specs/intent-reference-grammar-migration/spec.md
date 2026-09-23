@@ -304,9 +304,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Follow-ons
 
-- eugenelim: **no durable record yet — to be created through `work-intake`
-  before this spec ships.** Migrate the 38 `Contract:` and 25 `Discovery:`
-  values to the grammar this spec establishes. RFC-0103 deliberately leaves
+- eugenelim: `workspace.toml` `["ini-010".shaping_queue].backlog`, slug
+  `contract-discovery-reference-grammar`. Migrate the 38 `Contract:` and 25
+  `Discovery:` values to the grammar this spec establishes. It is a shaping item
+  rather than a build item because the governing decision does not exist yet. RFC-0103 deliberately leaves
   those two fields ungoverned — `Contract:` ids carry a version and some
   `Discovery:` targets have no registered kind at all — so their migration needs
   the later decision RFC-0103 names, not only an implementation spec. They are

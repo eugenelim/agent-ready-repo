@@ -131,15 +131,16 @@ mechanical rule.
   register or external artifact is the stable pointer. Run `workspace-status`
   to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
-  `- **Brief:**` header naming that brief by its repository-relative path
-  (`docs/product/briefs/<slug>.md` — the brief file's real path, which
-  `workspace-status` reconciliation matches against the queue entry's
-  `source.parent`; a bare slug fails that check and blocks dispatch). It
-  records *product provenance* and is distinct from `Constrained by:` (which
-  cites the ADRs/RFCs that govern the spec). The field is additive and optional
-  — a spec authored directly omits it and stays valid. The brief's coverage map
-  rolls up from these back-links automatically; never hand-write a spec's status
-  into the brief.
+  `- **Brief:**` header naming that brief. `brief:<slug>` is the canonical form
+  (RFC-0103 D3); the repository-relative path (`docs/product/briefs/<slug>.md`
+  — the brief file's real path) is an accepted fallback that `workspace-status`
+  reconciliation matches against the queue entry's `source.parent`. Both forms
+  pass reconciliation; a bare slug fails that check and blocks dispatch, as it
+  always has. It records *product provenance* and is distinct from
+  `Constrained by:` (which cites the ADRs/RFCs that govern the spec). The field
+  is additive and optional — a spec authored directly omits it and stays valid.
+  The brief's coverage map rolls up from these back-links automatically; never
+  hand-write a spec's status into the brief.
 - **Discovery up-edge (optional).** A spec descended from an upstream
   product-discovery artifact (a decision brief or intent produced by an upstream
   discovery process) carries a `- **Discovery:**` header naming that artifact by

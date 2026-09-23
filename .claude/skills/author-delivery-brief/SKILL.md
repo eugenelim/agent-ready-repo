@@ -193,7 +193,8 @@ neither Ready status nor the empty-capable Spec map.
 For each confirmed slice:
 
 1. invoke `new-spec` with the bounded slice context;
-2. set the canonical repository-path `Brief:` back-link;
+2. set the `Brief:` back-link to `brief:<slug>` — the canonical form (the
+   repository-relative path is an accepted fallback);
 3. add the spec to the brief's Spec map; and
 4. leave execution to `work-loop` after the spec and plan gates pass.
 

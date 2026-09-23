@@ -96,9 +96,10 @@ def extract_token(raw: str) -> str:
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
     """Return (status-token, brief-back-link) from a spec's header.
 
-    The back-link is the canonical path form, or a legacy bare slug. A leading
-    `./` is stripped so the path spelling compares equal to the brief's own
-    repository-relative path.
+    `brief:<slug>` is the canonical back-link form (RFC-0103 D3); the
+    repository-relative path and a bare slug are both accepted fallbacks. A
+    leading `./` is stripped so the path spelling compares equal to the
+    brief's own repository-relative path.
 
     A `Brief:` value that is empty, `none`, or the template HTML-comment
     placeholder counts as no back-link (None).
@@ -124,13 +125,12 @@ def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
 def parse_brief_slug(brief_text: str, fallback: str) -> str:
     """Return the brief's canonical slug from its `- **Slug:**` field.
 
-    A derived spec's `Brief:` back-link canonically names the brief's
-    repository-relative path, the form pinned by the owning guide
-    § Spec metadata contract; the bare slug is matched only for backward
-    compatibility. The template pins slug == filename stem, but the join keys
-    off this field (and, for the path spelling, off the file itself), so a
-    hand-edited brief that breaks that invariant still maps correctly. Falls
-    back to `fallback` (the filename stem) only when no usable `Slug:` field is
+    A derived spec's `Brief:` back-link canonically names `brief:<slug>`
+    (RFC-0103 D3); the repository-relative path and the bare slug are both
+    accepted fallbacks — the join keys off this field (and, for the path
+    spelling, off the file itself), so a hand-edited brief that breaks the
+    slug == filename-stem invariant still maps correctly. Falls back to
+    `fallback` (the filename stem) only when no usable `Slug:` field is
     present.
     """
     for line in brief_text.splitlines():
@@ -277,9 +277,12 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         # A back-link makes a spec a child even when the Spec map has not yet
         # been reconciled. Keep the coverage omission informational, but do not
         # let it hide execution evidence from lifecycle validation.
+        # `brief:<slug>` (canonical), the repository-relative path, and the
+        # bare slug all join here — AC-0010 requires the typed form to survive
+        # alongside the two compatibility forms already recognised.
         untracked = sorted(
             slug for slug, (_, back) in specs.items()
-            if back in (brief_slug, rel) and slug not in mapped
+            if back in (brief_slug, rel, f"brief:{brief_slug}") and slug not in mapped
         )
         child_states = set(derived)
         child_states.update(
@@ -315,10 +318,10 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                 out.append(f"  - {spec_slug}: {status if status else 'missing'}")
 
         # Untracked: specs that back-link this brief but aren't in its map.
-        # A back-link names the brief either by its `Slug:` identity or by its
-        # canonical repository-relative path (the form the spec template,
-        # the owning guide, and workspace-status provenance all specify);
-        # both resolve to this brief, so either spelling is recognised here.
+        # A back-link names the brief by `brief:<slug>` (canonical), by its
+        # `Slug:` identity (bare slug), or by its repository-relative path;
+        # all three resolve to this brief, so every spelling is recognised
+        # here.
         for slug in untracked:
             out.append(
                 f"  - {slug}: untracked (back-links this brief, not in Spec map)"
