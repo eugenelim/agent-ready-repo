@@ -96,7 +96,7 @@ def extract_token(raw: str) -> str:
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
     """Return (status-token, brief-back-link) from a spec's header.
 
-    `brief:<slug>` is the canonical back-link form (RFC-0103 D3); the
+    `brief:<slug>` is the canonical back-link form; the
     repository-relative path and a bare slug are both accepted fallbacks. A
     leading `./` is stripped so the path spelling compares equal to the
     brief's own repository-relative path.
@@ -126,7 +126,7 @@ def parse_brief_slug(brief_text: str, fallback: str) -> str:
     """Return the brief's canonical slug from its `- **Slug:**` field.
 
     A derived spec's `Brief:` back-link canonically names `brief:<slug>`
-    (RFC-0103 D3); the repository-relative path and the bare slug are both
+    ; the repository-relative path and the bare slug are both
     accepted fallbacks — the join keys off this field (and, for the path
     spelling, off the file itself), so a hand-edited brief that breaks the
     slug == filename-stem invariant still maps correctly. Falls back to
@@ -278,7 +278,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         # been reconciled. Keep the coverage omission informational, but do not
         # let it hide execution evidence from lifecycle validation.
         # `brief:<slug>` (canonical), the repository-relative path, and the
-        # bare slug all join here — AC-0010 requires the typed form to survive
+        # bare slug all join here — the typed form must survive
         # alongside the two compatibility forms already recognised.
         untracked = sorted(
             slug for slug, (_, back) in specs.items()
