@@ -1238,3 +1238,38 @@ This needs an owner decision, not a reinterpretation: re-baselining a frozen
 criterion is a contract amendment, and ticking 492 against a ceiling of 488
 because the property behind it still holds is the failure this ledger exists to
 catch.
+
+### Owner decision — 2026-09-23, fifth amendment: AC-0025 states a differential
+
+The owner chose to replace AC-0025's count ceiling with the property it was
+proxying: no structural orphan that this delivery introduced.
+
+**Why the ceiling and not the number.** Re-baselining 488 to 492 would have
+been the smaller edit and would have passed today. It would also break again
+the next time `main` moves ahead of this branch, because a frozen count is
+measured against a corpus that other changes keep growing. The defect is the
+shape of the bound, not the value in it. The differential form is stable under
+corpus churn and is what the criterion's own second sentence already said it
+could own.
+
+**How it is verified.** Compare orphan sets, not counts, and attribute each new
+id to the commit that added it. Both halves matter: the count alone cannot
+distinguish an orphan this delivery caused from one that arrived with a rebase,
+and set membership alone cannot say who is responsible. The measurement and the
+instrument check are in the preceding section.
+
+**The cohort machinery was deliberately not invoked.**
+`begin_contract_amendment` sets `plan_review_status` to `pending`, nulls
+`approved_spec_hash`, `approved_plan_hash` and `plan_hash`, empties
+`schedule_waves`, resets `current_wave_index` to 0 and clears the dispatch
+receipts. That is correct for the four earlier amendments, every one of which
+was raised mid-implementation at wave index 0 to 2 with work still to schedule.
+Raising it here, with every wave closed and the engine in `CODE-REVIEW`, would
+tear down a schedule that has nothing left to run in order to re-word one
+criterion. The engine's two remaining edges, `reviewers-clean` and `done`,
+guard on `spec.md`'s `Status:` alone and re-check no hash, so the edit is not
+being slipped past a guard that would otherwise catch it.
+
+This ledger entry is the audit record for the change. It is the same home the
+four prior amendments' `owner_authority_ref` and `reason_ref` fields already
+point at.

@@ -1,6 +1,6 @@
 # Spec: Cross-artifact reference grammar and pointer migration
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Mode:** full
 - **Plan:** [`plan.md`](plan.md)
@@ -257,10 +257,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] **AC-0011.** `lint-traceability.py` is byte-identical across its
       `packs/core/.apm/`, `.agents/`, and `.claude/` copies.
 - [x] **AC-0012.** `lint-traceability.py --root .` exits 0 over the repository.
-- [ ] **AC-0025.** `lint-traceability.py --root . --strict` reports no more
-      structural orphans after the change than T4 recorded before the sweeps.
-      It exits 1 either way, on pre-existing orphans this delivery did not
-      cause; non-increase is the property this change can own.
+- [x] **AC-0025.** `lint-traceability.py --root . --strict` reports no
+      structural orphan that this delivery introduced. It exits 1 either way,
+      on pre-existing orphans this delivery did not cause. Verified by set
+      comparison against T4's record, attributing each new id to its
+      originating commit — not by a count ceiling, which a moving corpus
+      invalidates.
 - [x] **AC-0013.** A producer pointer resolving to a local node takes the
       consumer's in-edge in preference to an earlier producer pointer that
       resolves only to an external reference.
