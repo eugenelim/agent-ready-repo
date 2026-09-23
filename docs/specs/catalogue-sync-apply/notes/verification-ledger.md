@@ -336,3 +336,59 @@ working tree.
 `packages/agentbundle/CHANGELOG.md`. In `docs/product/changelog.md` the order
 is `[Unreleased]`, then the `core` entry adjacent to it, then
 `[agentbundle][0.49.0]` below — the pack entry sits under core, not above it.
+
+## Execution — wave 6
+
+### T10 — an adopter's apply run, exercised end to end
+
+Visual / manual QA, run by the controller against the real built artifact.
+AC-0056 requires the ledger to record **the comparison**, not only the
+observed output, so the comparison is below.
+
+**The invocation had to be pinned, and this is the finding worth keeping.**
+A bare `python3 -m agentbundle.cli` from this worktree resolves to
+`/Users/eu.gene.lim/orca/agent-ready-repo/packages/agentbundle/` — the primary
+checkout — because that is where the editable install points. The first
+invocation reported `agentbundle 0.48.0` and a `sync` help string still
+reading "Read-only: writes nothing.", both of which this delivery had already
+changed. A manual QA run taken at face value would have exercised the wrong
+code and reported a false pass.
+
+The unit suite is unaffected: pytest inserts the worktree's package path ahead
+of the install, verified directly — `agentbundle.__file__` under pytest
+resolves inside this worktree and `select_write_set`, `apply_write_sequence`
+and `safety.Publish` are all present. Every gate run in this ledger is
+therefore against this worktree's code. Manual invocation needs
+`PYTHONPATH=<worktree>/packages/agentbundle`, which reports `0.49.0` and the
+new help text.
+
+**The run.** A 650-file tree derived by `catalogue init --preset self-hosted`
+from a 3,387-file source (`--pack core --guides selected --tooling external
+--attribution white-label`), edited at one recorded path
+(`guides/_shared/README.md`), then synced from a source **moved** to a
+different path than init used. Dry-run first: it classified the edited path
+`would-companion` and everything else `would-update`. Apply run: exit 0,
+`would-update=648 would-companion=1 would-remove=0 deferred-package=0`.
+
+| AC-0056 condition | Result | Evidence |
+| --- | --- | --- |
+| Run exits 0 | PASS | observed exit status |
+| Companion beside the edited file carries the source bytes | PASS | `guides/_shared/README.upstream.md`, bytes equal to the source file, `st_nlink=1`, no staged residue |
+| The adopter's file's digest is unchanged | PASS | `584dfa97c13da1bc650b6cd7` before and after; the `<!-- ADOPTER EDIT` marker is still in the file |
+| No path outside the printed plan is altered | PASS | 650 paths changed, plan 651, **0 outside** |
+
+`st_nlink=1` with no staged residue is the post-publish state AC-0070's third
+outcome requires, measured on the real artifact rather than a fixture. A link
+publish that skipped its unlink would read 2 here, and § Grounding's publish
+probe established that this repository's own confined reader refuses a link
+count above one.
+
+**A harness defect I made, and corrected.** The first run took its before-walk
+*before* the adopter edit, so condition 3 compared a pre-edit digest against a
+post-sync one and reported FAIL. The product was correct throughout — the
+after-digest equalled the post-edit digest exactly. The whole experiment was
+re-run with the baseline taken after the edit and immediately before the sync,
+which is what AC-0056's "unchanged" actually quantifies over. Recorded because
+a mis-timed baseline is the one way this manual check fails against working
+code, and the next person to run it should take the baseline at the same
+moment.
