@@ -219,10 +219,12 @@ remains for any static Inter, then system fallbacks.
 | `--ds-type-h2`       | `clamp(1.875rem, 3.5vw, 2.5rem)` | ~30–40px | Section headings |
 | `--ds-type-h3`       | `clamp(1.25rem, 2vw, 1.5rem)`    | ~20–24px | Card headings, sub-section |
 | `--ds-type-body-lg`  | `1.125rem`                        | 18px     | Lead / intro copy |
+| `--ds-type-read`     | `1.0625rem`                       | 17px     | Editorial reading column |
 | `--ds-type-body`     | `1rem`                            | 16px     | Body text |
 | `--ds-type-sm`       | `0.875rem`                        | 14px     | Captions, metadata |
 | `--ds-type-xs`       | `0.75rem`                         | 12px     | Labels, badges, field labels |
 | `--ds-type-mono-sm`  | `0.8125rem`                       | 13px     | Inline code, skill names, install commands |
+| `--ds-type-mono-xs`  | `0.6875rem`                       | 11px     | Mono micro-labels: eyebrows, badges, figure captions, record fields |
 
 ### Weight scale
 
