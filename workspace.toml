@@ -1086,6 +1086,20 @@ open = [
   # scoped out of the retrofit deliberately rather than half-done.
   # Unblocks when: ready now.
 
+  # MODERATE. /docs/changelog/ is 2.08 MB of HTML with 297 headings -- 9.3x
+  # /now/, the page the entry above worries about. Found 2026-09-22 while
+  # surveying /now/'s length, and registered separately rather than folded in
+  # because it is a different route with a different owner. It matters to that
+  # decision: /now/ carries 157 outbound links into this page, so any remedy
+  # phrased as "send readers to the full changelog for older entries" routes
+  # them somewhere heavier than where they started. Unlike /now/ this page is
+  # not a curated projection -- it is the whole changelog rendered -- so the
+  # fix is probably per-release or per-version routes rather than pagination.
+  # Not a WCAG failure: page length violates no success criterion (1.4.10
+  # Reflow restricts two-dimensional scrolling, not length). Evidence:
+  # docs/product/research/release-feed-length-survey.md.
+  # Unblocks when: ready now; decide alongside the /now/ length remedy.
+
   # STILL OPEN 2026-09-22, re-confirmed rather than closed. Both fields in the
   # manifest were re-read and still say "not reviewed, handoff open" rather
   # than implying coverage, which is the property this entry protects. One
