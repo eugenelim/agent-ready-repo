@@ -9,6 +9,19 @@ directory. `loop-engine.py` advances the finite-state machine.
 The harness does not create requirements or implement work. It consumes approved
 specification and plan artifacts.
 
+The boundary runs the other way too, and it splits by **policy versus
+mechanism** rather than by topic. `work-loop` decides *which* reviewers a change
+warrants, when light or full mode applies, whether a simplify pass runs, and how
+a session manages its context. The harness owns the machinery those decisions
+feed: `loop-cohort.py` parses and classifies reviewer reports
+(`review raw-classify`, `review inspect --adjudication`) and records the
+resulting state.
+
+So a reviewer-selection rule belongs in the `work-loop` skill and this page does
+not restate it, while the classification contract that consumes the report
+belongs here. A second copy of the selection rules would be falsified by the
+next edit to the skill with nothing comparing the two.
+
 ## 2. Entrypoints
 
 - `loop-engine.py`: `init`, `transition`, `status`, and `reset`.
@@ -22,6 +35,27 @@ The parallel-execution verbs — `dispatch-decision`, `auto-parallel`, and
 `loop-cohort.py` but disabled: each exits non-zero with
 `<verb> is disabled in Phase 1` and touches no state. ADR-0061 D5 defers
 parallel-wave orchestration, so the verb surface is carved out and inert.
+
+### How these scripts are invoked
+
+`<skill-dir>` is the installer- or harness-supplied directory holding the active
+`SKILL.md`. It is not a fixed repository path — an adopter's install location
+differs from this repository's, and a harness may supply its own. So every
+invocation resolves it and passes the script as one quoted argument from the
+repository root:
+
+```
+python '<skill-dir>/scripts/loop-engine.py' …
+python '<skill-dir>/scripts/lint-spec-status.py' --root .
+```
+
+A bare-relative `python scripts/loop-engine.py` is rejected by the work-loop
+evaluation contract, because it silently resolves against the caller's working
+directory rather than the installed skill.
+
+These instructions are byte-identical across the generated Codex and Claude
+projections; they are one source projected twice, not two copies to keep in
+step.
 
 ## 3. Owned state and write authority
 

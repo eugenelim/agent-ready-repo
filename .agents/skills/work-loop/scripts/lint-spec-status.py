@@ -262,10 +262,10 @@ def commented_out_ac_heading(spec_text: str) -> tuple[int, str] | None:
     to do.
 
     An opener inside an inline code span does not open a comment. That is not
-    hypothetical: `docs/specs/digital-experience-contract/spec.md` writes
-    ``<!-- Required:`` and a matching closer in backticks 23 lines apart, and a
-    code-span-blind reader pairs those two *mentions* into a false span over
-    that spec's real heading and all 17 of its criteria.
+    hypothetical: a real spec in this corpus writes ``<!-- Required:`` and a
+    matching closer in backticks 23 lines apart, and a code-span-blind reader
+    pairs those two *mentions* into a false span over that spec's real heading
+    and all 17 of its criteria.
     """
     lines = spec_text.splitlines()
     headings = {n for n, line in _unfenced_lines(spec_text)

@@ -2457,7 +2457,7 @@ def test_gplan_ordering_status_approved_before_approve_plan(tmp: Path) -> None:
 # ── runner ────────────────────────────────────────────────────────────────
 
 
-# ── STUBS: docs/specs/loop-tooling-mandated-writes, task T1 ─────────────────
+# ── STUBS: mandated tooling writes, task T1 ─────────────────────────────────
 #
 # They encode the invariant the pin is *supposed* to hold: the loop's own
 # mandated bookkeeping writes must not move the hash, while anything that
@@ -3141,7 +3141,7 @@ def test_ac5_nested_fence_plan_stays_normalizable() -> None:
 
 # ── dispatch-receipt (wave-complete dispatch receipts) ────────────────────
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# Contract: § The
 # `dispatch-receipt` verb. The verb writes one per-task assertion of who the
 # controller says implemented a plan task; every refusal must leave state.json
 # byte-identical, because nothing here has durable side-effect semantics.
@@ -3653,7 +3653,7 @@ def test_a_single_recorded_receipt_reads_as_accounted_for(tmp: Path) -> None:
 
 # ── check --phase wave-exit, and the wave advance coupling ────────────────
 #
-# Spec: docs/specs/wave-complete-dispatch-receipts/spec.md § The
+# Contract: § The
 # `check --phase wave-exit` verdict and § Leaving a wave. The verdict table's
 # partition and per-row verdicts are asserted against the guard API in
 # `test_loop_guards.py`; what these cases add is the real CLI — the exit code and

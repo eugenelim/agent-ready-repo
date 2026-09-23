@@ -1,7 +1,7 @@
 """The admitted intent `intake-intent` renders satisfies the shape contract.
 
 Covers the core half of T7 in
-`docs/specs/intent-metadata-shape-contract/plan.md`. The product-engineering
+the intent metadata shape contract's plan. The product-engineering
 template's half reads two packs and therefore lives in `tests/roster/`, which
 runs on CI.
 

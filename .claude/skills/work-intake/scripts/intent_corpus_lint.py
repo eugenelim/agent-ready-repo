@@ -34,9 +34,9 @@ sys.dont_write_bytecode = True
 CONTRACT_LIVE = "live"
 CONTRACT_TOMBSTONE = "tombstone"
 
-# The tombstone field contract is `intent-renumber-and-reissue`'s: exactly
-# three fields — the slug, unchanged from the retired artifact; the retirement
-# date; and exactly one of the two terminal edges.
+# The tombstone field contract: exactly three fields — the slug, unchanged
+# from the retired artifact; the retirement date; and exactly one of the two
+# terminal edges.
 TOMBSTONE_PARTITION_FIELD = "Tombstone"
 TOMBSTONE_REQUIRED: tuple[str, ...] = ("Slug", "Tombstone")
 TOMBSTONE_EDGES: tuple[str, ...] = ("Reissued as", "Retired")

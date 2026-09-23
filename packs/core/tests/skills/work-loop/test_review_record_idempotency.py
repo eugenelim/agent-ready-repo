@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """`review record --operation-id`: one case per row of the writer case table.
 
-The table lives in `docs/specs/review-record-idempotency/plan.md`; the six rows
+The table lives in this feature's plan; the six rows
 are a total, non-overlapping partition over (recorded id, supplied id, payload
 digest). Each test names its row so a failure points at the case rather than at
 a symptom.

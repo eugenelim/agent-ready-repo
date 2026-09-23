@@ -1278,7 +1278,7 @@ def test_a_commented_draft_beside_a_live_section_is_rejected() -> None:
 def test_backticked_comment_syntax_does_not_trigger_the_rule() -> None:
     """The false-positive that makes a code-span-blind rule unusable.
 
-    `docs/specs/digital-experience-contract/spec.md` documents a template whose
+    A real spec in this repository documents a template whose
     fields carry comment-syntax annotations, writing an opener and a closer in
     backticks 23 lines apart. A reader with no notion of code spans pairs those
     two *mentions* into a span covering that spec's real heading and all 17 of

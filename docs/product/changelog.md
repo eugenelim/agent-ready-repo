@@ -9949,8 +9949,7 @@ project page and the swept docstrings actually reach installers.
   during FIX), each with a portable no-subagent floor, plus a "reduce, never
   lossily transform" guardrail. No verification surface changes: gates, the
   iterate-to-Clean loop, fingerprint stasis detection, the quality-engineer
-  floor, and the iteration cap all behave exactly as before. See
-  [`docs/specs/work-loop-context-hygiene/`](../specs/work-loop-context-hygiene/spec.md).
+  floor, and the iteration cap all behave exactly as before.
 
 - **Codex receives full skill bodies** — the `skill` projection for the
   Codex adapter flips from `managed-block-inline` (one-line teasers

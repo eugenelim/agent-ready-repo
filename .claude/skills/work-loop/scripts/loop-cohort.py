@@ -207,8 +207,7 @@ def write_state_atomic(spec_dir: Path, state: dict) -> None:
 # `write_state_atomic` makes each *write* atomic, but the read-modify-write
 # around it is not: two concurrent verbs each load a snapshot, both decide from
 # it, and the second replace drops the first's update — silently, with both
-# callers exiting 0. Reproduced at 20/20 trials; see
-# docs/specs/loop-cohort-state-lock/notes/reproduction.md.
+# callers exiting 0. Reproduced at 20/20 trials.
 #
 # `_statelock.py` is a work-loop script owned by this skill (ADR-0074):
 # stdlib-only, so it works where `agentbundle` is not installed. `agentbundle`
@@ -519,10 +518,9 @@ def _assert_status_legal(verb: str, *paths: Path) -> int | None:
     return None if reason is None else stop(reason)
 
 # Lazy handle on the sibling lint-spec-status.py. Status and acceptance-criterion
-# recognition has exactly one implementation in this repo — a shipped spec
-# (docs/specs/loop-approved-spec-state, Constrained by ADR-0061) requires every
-# status read to go through its `parse_status`, and a second copy of the AC
-# regexes is how the two silently disagree about what an AC line is.
+# recognition has exactly one implementation in this repo — ADR-0061 requires
+# every status read to go through its `parse_status`, and a second copy of the
+# AC regexes is how the two silently disagree about what an AC line is.
 # The approved baseline pins the *scope a human approved*. It deliberately does
 # not pin the two field families this skill mandates writing after approval —
 # the preamble status token (SKILL.md: `Implementing` before code, `Shipped` at

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-checks for the pre-change golden fixtures (spec/work-loop-in-process-guards T0).
+"""Self-checks for the pre-change golden fixtures (T0).
 
 These do not test the guard extraction — T1a/T1b/T6 do that. They test the
 *fixtures*, because a golden that is stale, self-contradicting, or silently

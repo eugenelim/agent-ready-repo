@@ -1,6 +1,6 @@
 """Construction tests for the intent metadata shape contract.
 
-Covers T1 of `docs/specs/intent-metadata-shape-contract/plan.md`: the contract
+Covers T1 of the intent metadata shape contract's plan: the contract
 table and the preamble reader that together decide every field rule. The fixture
 corpus authored here is reused by T2, T3, T4 and T6, so a rule change has one
 place to break rather than five.
