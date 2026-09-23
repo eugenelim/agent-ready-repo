@@ -109,6 +109,48 @@ product-slug: <replace-with-product-slug>
 <!-- Required: pilot+ -->
 <!-- All states per quality-floor (18-state set); permission matrix per surface -->
 
+#### Shared state-coverage map
+
+One row per state in the frontend quality floor's eighteen-state set, so both
+disciplines name the same states and owe the same ones at the same depth.
+
+- **Screen-brief line** names the line a per-screen brief already carries for
+  that state, or `-` where the state is frontend-owned and no brief line names
+  it. One brief line resolves to two states.
+- **Tier** is the lowest risk tier at which the state is owed, and is
+  cumulative: a tier owes its own states and every lower tier's. `conditional`
+  means the state is owed at every tier whenever its trigger fires, and at no
+  tier otherwise.
+- **Fails WCAG 2.2 AA when absent** records whether leaving the state undesigned
+  breaches the success criterion named beside it. A state marked `yes` is never
+  dropped by a tier: it is assigned to `explore`, or it is conditional and binds
+  at every tier its trigger reaches.
+
+| State | Screen-brief line | Tier | Fails WCAG 2.2 AA when absent | Success criterion, or the trigger that binds it |
+|---|---|---|---|---|
+| loading | `loading` | explore | yes | 4.1.3 Status Messages (AA) - work in flight with no announced status |
+| empty | `empty` | explore | no | - |
+| error | `error` | explore | yes | 3.3.1 Error Identification (A); 3.3.3 Error Suggestion (AA) |
+| success | `success/default` | explore | yes | 4.1.3 Status Messages (AA) - completion with no announced status |
+| content | `success/default` | explore | no | - |
+| partial | `partial` | explore | no | - |
+| disabled | `disabled` | explore | yes | 4.1.2 Name, Role, Value (A) - an unavailable control whose state is not programmatically determinable |
+| keyboard-only | - | explore | yes | 2.1.1 Keyboard (A); 2.4.3 Focus Order (A); 2.4.7 Focus Visible (AA) |
+| reduced-motion | - | explore | yes | 2.2.2 Pause, Stop, Hide (A); 2.3.1 Three Flashes or Below Threshold (A) - motion with no calmed alternative |
+| high-zoom | - | explore | yes | 1.4.4 Resize Text (AA); 1.4.10 Reflow (AA) |
+| first-run | - | pilot | no | - |
+| no-results | - | pilot | no | - |
+| blocked | - | pilot | no | - |
+| large-data-set | - | pilot | no | - |
+| offline | - | production | no | - |
+| long-content | - | production | no | - |
+| permission/denied | `permission/denied (if gated)` | conditional | no | Trigger: the surface is behind authorization. Both the brief line and the quality floor carry it as a gated-screen extension, not a base state. |
+| destructive-confirmation | - | conditional | yes | 3.3.4 Error Prevention (Legal, Financial, Data) (AA). Trigger: the primary action is irreversible or destroys data the user controls. |
+
+Explore owns ten states, pilot adds four, production adds two, and two are
+conditional. Explore therefore drops six of the sixteen banded states and none
+of the eight marked `yes`.
+
 ### Responsive Behavior
 <!-- Required: production+ -->
 <!-- Breakpoint strategy; cross-channel continuity -->
@@ -117,7 +159,7 @@ product-slug: <replace-with-product-slug>
 <!-- Required: pilot+ -->
 <!-- Which token taxonomy and design-system-foundations output this surface uses -->
 
-## Frontend Engineering [owner: core]
+## Frontend Engineering [owner: frontend-engineering]
 
 ### Prototype or Representation
 <!-- Required: explore+ -->
