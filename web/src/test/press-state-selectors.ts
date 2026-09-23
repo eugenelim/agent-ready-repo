@@ -76,11 +76,43 @@ function astroFiles(dir: string, out: string[] = []): string[] {
       // `test/` holds fixtures and specs that quote selectors as data; a
       // quoted selector is not a rule on the surface.
       if (name !== 'test' && name !== 'node_modules') astroFiles(full, out);
-    } else if (name.endsWith('.astro')) {
+    } else if (name.endsWith('.astro') || name.endsWith('.css')) {
+      // `.css` as well as `.astro`: a `:hover` added to `styles/base.css` was
+      // invisible to every assertion here, with no failure. There is none today,
+      // which is exactly what made the boundary safe to cross by accident.
       out.push(full);
     }
   }
   return out;
+}
+
+/**
+ * Split a selector list on the commas that separate selectors, not the ones
+ * inside `:is()`, `:where()`, `:not()` or `:nth-child()`.
+ *
+ * A bare `split(',')` turns `.receipt :is(p, dt, dd, li)` into four fragments,
+ * two of them with unbalanced parentheses. That is harmless only while no
+ * `:hover` sits inside a functional selector; the first one that does would
+ * yield a derived press selector like `.b):active` and an unactionable demand
+ * for a rule nobody could write. The gap is latent in this tree, and latent is
+ * how the last two scope gaps in this file presented as well.
+ */
+function splitSelectors(list: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of list) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === ',' && depth === 0) {
+      out.push(current);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  out.push(current);
+  return out.map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
 }
 
 /**
@@ -96,10 +128,7 @@ function parseRules(css: string, file: string): Rule[] {
   // Flat `selector-list { declarations }` blocks. Nested at-rule bodies are
   // reached because their inner rules match this shape too.
   for (const m of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const selectors = m[1]
-      .split(',')
-      .map((s) => s.replace(/\s+/g, ' ').trim())
-      .filter(Boolean);
+    const selectors = splitSelectors(m[1]);
     if (!selectors.length) continue;
     // An at-rule preamble (`@media (...)`) is not a selector list.
     if (selectors.some((s) => s.startsWith('@'))) continue;
@@ -144,8 +173,8 @@ export function unreachableComponents(): string[] {
   const corpus = sources.join('\n');
   return all
     .map((p) => relative(SRC, p))
-    // A page is an entry point; it needs no importer.
-    .filter((f) => !f.startsWith('pages/'))
+    // A page is an entry point, and a stylesheet is not a component.
+    .filter((f) => !f.startsWith('pages/') && !f.endsWith('.css'))
     .filter((f) => {
       const base = f.split('/').pop()!;
       // Its own file always contains its name in nothing but a comment, so match
@@ -154,14 +183,19 @@ export function unreachableComponents(): string[] {
     });
 }
 
-/** Every rule in every reachable, non-test `.astro` file under `web/src`. */
+/** Every rule in every reachable, non-test `.astro` or `.css` file under `web/src`. */
 export function allRules(): Rule[] {
   const rules: Rule[] = [];
   const unreachable = new Set(unreachableComponents());
   for (const path of astroFiles(SRC)) {
     const file = relative(SRC, path);
     if (unreachable.has(file)) continue;
-    for (const m of readFileSync(path, 'utf8').matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
+    const text = readFileSync(path, 'utf8');
+    if (path.endsWith('.css')) {
+      rules.push(...parseRules(text, file));
+      continue;
+    }
+    for (const m of text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
       rules.push(...parseRules(m[1], file));
     }
   }
