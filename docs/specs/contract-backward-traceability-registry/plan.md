@@ -1,7 +1,7 @@
 # Plan: Contract backward-traceability registry
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - `docs/adr/0008-contract-authoring-seam.md` — D3 (repo-level contract tree)
     and the Consequences clause naming the forward/backward pair.

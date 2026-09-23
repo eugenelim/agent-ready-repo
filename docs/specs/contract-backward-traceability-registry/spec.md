@@ -1,6 +1,6 @@
 # Spec: Contract backward-traceability registry
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0008, RFC-0017
@@ -97,13 +97,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `contracts/REGISTRY.md` contains a row pairing the contract token with the
+- [x] **AC-0001.** `contracts/REGISTRY.md` contains a row pairing the contract token with the
       spec directory for every (token, spec) pair where a `docs/specs/*/spec.md`
       `Contract:` header names a token not ending in `.yaml`, `.yml`, or `.json`.
       The pair set is derived by the lint's `contract_header_refs` parser and
       `_XSPEC_FORMATS`, which is what makes the coverage exhaustive; at the
       revision this spec is approved, that set has 10 pairs across 6 specs.
-- [ ] **AC-0002.** Invariant (v) treats a registry back-reference as present
+- [x] **AC-0002.** Invariant (v) treats a registry back-reference as present
       only when a single row names the contract token exactly and names the
       naming spec's directory as a whole path, not as a prefix of a longer one.
       A registry whose every row fails that test for a token produces an
@@ -111,19 +111,19 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       naming a different spec directory, when a row's spec directory has the
       naming spec's directory as a proper prefix, and when a row's contract
       token has the named token as a proper prefix.
-- [ ] **AC-0003.** `lint-spec-status.py --root . --all --verbose` over this
+- [x] **AC-0003.** `lint-spec-status.py --root . --all --verbose` over this
       repository reports zero invariant (v) backward findings for contract
       tokens that do not end in `.yaml`, `.yml`, or `.json`. At the revision
       this spec is approved, 10 such findings exist across 6 specs. Findings for
       `x-spec`-format tokens are outside this criterion and are recorded under
       Follow-ons.
-- [ ] **AC-0004.** A `tests/roster/` module fails, rather than skipping or
+- [x] **AC-0004.** A `tests/roster/` module fails, rather than skipping or
       passing, when the registry path it is given does not exist.
-- [ ] **AC-0005.** A `tests/roster/` module fails when a registry row names a spec directory
+- [x] **AC-0005.** A `tests/roster/` module fails when a registry row names a spec directory
       that no longer names that contract token.
-- [ ] **AC-0006.** The `contracts/README.md` Files table has a `REGISTRY.md` row recording
+- [x] **AC-0006.** The `contracts/README.md` Files table has a `REGISTRY.md` row recording
       `no` in the CLI data column.
-- [ ] **AC-0007.** `python -m agentbundle catalogue self-host --root . --check` exits zero, so
+- [x] **AC-0007.** `python -m agentbundle catalogue self-host --root . --check` exits zero, so
       the `.claude/` and `.agents/` copies of `lint-spec-status.py` match the
       `packs/core/.apm/` source.
 
