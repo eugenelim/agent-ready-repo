@@ -3641,10 +3641,19 @@ def test_dispatch_brief_predicate_equivalence(tmp_path: Path) -> None:
         return not mod._provenance_path_is_invalid(tmp_path, value, require_local_brief=True)
 
     base = "valid-slug_123"
-    excluded_chars = [" ", "!", "%", ":", ".", "/", "\\", "\x01", "é"]
+    # The whole printable ASCII range, not a hand-picked sample. A sampled set
+    # cannot establish a complement: an implementation whose identifier rule
+    # additionally accepted `@` passed every candidate of the nine-character
+    # set this replaced, because `@` was not among the nine. Anything the
+    # domain omits is a mutant the test cannot see.
+    injected = [chr(c) for c in range(0x20, 0x7F)]
+    injected += ["\x00", "\x01", "\x1f", "\x7f", "\t", "\n", "\r"]
+    # Representative non-ASCII categories: accented Latin, CJK, an astral-plane
+    # character, a zero-width joiner, and a Cyrillic homoglyph of ASCII `a`.
+    injected += ["é", "中", "𝔞", "\u200d", "а"]
     mutated_slugs = {
         base[:pos] + ch + base[pos:]
-        for ch in excluded_chars
+        for ch in injected
         for pos in range(len(base) + 1)
     }
     candidates = {

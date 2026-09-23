@@ -1070,3 +1070,60 @@ That is **two** scoped version-bump rules this contract missed, in two different
 `AGENTS.md` files, both found by review rather than by the plan. The packs rule
 cost a contract amendment; this one was caught before the release surface
 closed.
+
+## 2026-09-22 — findings 5, 6, 7 and 8 closed
+
+### #7 found a real defect in the code it tests
+
+AC-0017's predicate-equivalence test generated mutations from nine hand-picked
+characters. `@` was not among them, so an identifier rule that additionally
+accepted `@` passed every candidate — the reviewer's mutant, and the reason a
+sampled domain cannot establish a complement.
+
+Widened to the whole printable ASCII range, the control bytes, and five
+non-ASCII categories (accented Latin, CJK, astral plane, zero-width joiner, a
+Cyrillic homoglyph of `a`). The first run failed on a value nobody had
+considered: **`brief:valid-slug_123\n` was admitted while a trailing tab, space
+or carriage return was refused.**
+
+`_BRIEF_POINTER_RE` was `^brief:(?P<slug>.*)$`, and in Python `$` also matches
+just before a trailing newline. So exactly one character of the excluded set
+leaked: the newline was silently dropped and the value normalised through to a
+canonical path. Fixed to `\Z` with `re.S`.
+
+The first repair attempt was wrong and is worth recording. The mismatch was read
+as the *predicate* failing to model a `.strip()` the engine performs elsewhere,
+and the predicate was amended to strip. Measuring each whitespace character
+separately refuted that: the implementation refused tab, space and carriage
+return and admitted only the newline, which no strip explains but an anchor
+does. The predicate was restored and the implementation fixed instead.
+
+Verified: the reviewer's `@` mutant now fails the test, where it previously
+passed. 73 passed, 1 skipped.
+
+### #8 — AC-0021 now has a durable assertion
+
+`tools/test_brief_slug_matches_filename.py`. It lives under `tools/` because it
+reads the real corpus and a pack test cannot read above its own pack.
+Mutation-checked: changing one brief's `Slug:` to disagree with its filename
+fails it. A second case asserts the corpus is non-empty, because an empty glob
+would make the first vacuous.
+
+### #6 and #5 — roles, then regenerate
+
+198 of 455 inventory entries were fixtures, eval cases and review transcripts
+labelled as authoring surfaces. Non-surfaces are now excluded; `examples/` is
+deliberately kept, because a shipped example is author-facing and the brief
+sweep repointed one. `generated-copy` was keyed on matching basenames and is now
+keyed on the byte-identical duplicate group, so the evidence for the
+relationship is the relationship.
+
+Test files stay under `reads` and `parses` on purpose: a test that drives the
+resolver is a genuine consumer, and hiding it would hide a surface a later form
+change must update.
+
+Inventory regenerated at 355 entries, all ten known surfaces present under the
+expected role, zero-diff re-run holds. The regeneration had to follow
+`make build-self`, because the tightened derivation refuses to report a
+projection whose copies have drifted — it now fails while the tree is
+mid-reprojection rather than recording a relationship that does not hold.
