@@ -55,6 +55,33 @@ The other four primitives a pack can carry — `agent`, `hook-body`,
 `hook-wiring`, `command` — are our own shapes, tabulated in
 [`pack-layout.md`](pack-layout.md) and specified in the adapter contract.
 
+### One shape worth naming: method in the skill, rules as data
+
+The format says nothing about how a skill is organised inside. One arrangement
+recurs and is worth stating, because reading it wrong is easy.
+
+A **standard-driven** skill keeps the *method* in `SKILL.md` and the *rules the
+method enforces* in `references/`, as a bundle: a manifest, the per-phase rule
+files it points at, and a quality-gate checklist — plus, for events, a named
+envelope component. An organisation swaps the rules by writing a
+base-plus-delta bundle that `extends` the bundled default, rather than forking
+the skill, which is the model Spectral popularised with `extends: spectral:oas`.
+The `contracts` pack ships two skills in this shape, `api-contract` for REST and
+`event-contract` for events, and `event-contract` splits its data along two
+independently swappable axes: the design ruleset, and the message envelope
+format its manifest names under a reserved key.
+
+The part to get right: **no program parses a manifest or resolves an `extends`
+chain.** The skill reads its base and its delta the way it reads any other
+reference file. The build walks and copies these files like any others, but
+nothing interprets them, so there is no runtime resolver — and failing to find
+one is not evidence that the mechanism is absent.
+
+Which skill authors a given contract type is likewise resolved by **runtime
+roster name**, not through a pack manifest. That is what lets `core`'s
+contract-type map name `api-contract` and `event-contract` without `core`
+depending on the `contracts` pack at all.
+
 ## Layer 2 — the pack (the distribution envelope)
 
 In this catalogue a skill ships inside a pack. The pack adds the metadata
