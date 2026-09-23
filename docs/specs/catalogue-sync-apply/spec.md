@@ -246,9 +246,13 @@ call. AC-0075 is goal-based and is counted there, not here.
   from an absent one, so the fixture must violate.
 - **Every write is jailed (AC-0052)** — TDD. Oracle: a planned path resolving
   outside the target root is refused at the write; and, in the helper's own
-  suite, a call passing no mode replaces an existing destination. The second
-  fails the moment the default flips, which the shipped companion test cannot
-  observe because it writes to a path that does not yet exist.
+  suite, a call to each of `write_jailed` and `write_companion` that does not
+  request the non-replacing publish replaces an existing destination. Pinning
+  them separately is what catches a flipped default on the thin forward, and
+  neither case may be written as "passes no `mode`", since `mode` already
+  carries permission bits and `render` supplies them. Both fail the moment a
+  default flips, which the shipped companion test cannot observe because it
+  writes to a path that does not yet exist.
 - **Every target read is confined (AC-0065)** — TDD. Oracle: the hard-link and
   reparse-point cases phase 2's path-confinement criterion fixes, re-driven through the apply
   path's own reads. The criterion is phase 2's; only the caller is new.
@@ -266,6 +270,29 @@ call. AC-0075 is goal-based and is counted there, not here.
   widening derivation measures how many shapes resolve to the source's full
   contents today, so a fixture carrying only valid non-empty lists cannot
   fail.
+- **The companion publish (AC-0070)** — TDD. Oracle: five cases, because a
+  mechanism can satisfy any one and miss the rest.
+  *Occupancy* — an occupied destination carrying adopter edits is
+  byte-identical after the run, absent from the write set, named on the plan
+  and under `companion_occupied`, and the run returns the difference row.
+  *The admission race* — a destination absent at admission and created before
+  the write is byte-identical afterwards and the run takes the write-failed
+  row; a stat-at-admission implementation using the clobbering rename passes
+  the first case and fails this one.
+  *The post-publish state* — after a successful publish the destination's link
+  count is one, no staged sibling remains, and the confinement helpers read it
+  back without refusing; a link-based publish that omits the unlink passes both
+  cases above and fails this one.
+  *The crash residue* — a destination at link count above one with a staged
+  sibling present is reported as `companion_residue` naming that sibling, and
+  one with no identifiable sibling is reported without naming a file. An
+  implementation that reports either as `companion_occupied` passes the
+  occupancy case and fails this one, and is the shape that hands the tool's own
+  bytes back to the adopter as their preserved work.
+  *Failure attribution* — a publish failing for a reason other than an existing
+  destination takes the write-failed row and is not counted as
+  `companion_occupied`; an implementation reading any error as occupancy passes
+  the occupancy case and fails this one.
 
 **Goal-based checks** cover AC-0053, AC-0054, AC-0055, AC-0061 through AC-0063,
 AC-0067 and AC-0075 — eight delivery conditions, each a command whose output is
@@ -302,23 +329,7 @@ the answer.
   the comparison the criterion names, performed against a real derived tree and
   recorded. Recording the output without comparing it is what the criterion's
   wording exists to rule out.
-- **The companion publish (AC-0070)** — TDD. Oracle: four cases, because a
-  mechanism can satisfy any one and miss the rest.
-  *Occupancy* — an occupied destination carrying adopter edits is
-  byte-identical after the run, absent from the write set, named on the plan
-  and under `companion_occupied`, and the run returns the difference row.
-  *The admission race* — a destination absent at admission and created before
-  the write is byte-identical afterwards and the run takes the write-failed
-  row; a stat-at-admission implementation using the clobbering rename passes
-  the first case and fails this one.
-  *The post-publish state* — after a successful publish the destination's link
-  count is one, no staged sibling remains, and the confinement helpers read it
-  back without refusing; a link-based publish that omits the unlink passes both
-  cases above and fails this one.
-  *Failure attribution* — a publish failing for a reason other than an existing
-  destination takes the write-failed row and is not counted as
-  `companion_occupied`; an implementation reading any error as occupancy passes
-  the occupancy case and fails this one.
+
 ## Acceptance Criteria
 
 - [ ] **AC-0030.** `--dry-run`, `--check`, and neither are three mutually
@@ -529,11 +540,14 @@ the answer.
   goes through the jailed write primitive, and a planned path resolving outside
   the target root is refused at that write. This command's companion writes
   pass that primitive's non-replacing mode per AC-0070; there is no second
-  write path. A call to either helper passing no mode publishes by replacing,
-  exactly as it does today. That default is the whole safety argument for
-  editing a blessed helper, so it is verified in the helper's own suite: the
-  shipped companion test writes to a path that does not yet exist, so it
-  passes unchanged if the default flips, and cannot carry this.
+  write path. A call to `safety.write_jailed` that does not request the
+  non-replacing publish replaces, and so does a call to
+  `safety.write_companion` — **each pinned separately**, because the second is
+  a thin forward to the first and a guard written against the first alone stays
+  green while the forward's own default flips. That default is the whole safety
+  argument for editing a blessed helper, so it is verified in the helper's own
+  suite: the shipped companion test writes to a path that does not yet exist,
+  so it passes unchanged if either default flips and cannot carry this.
 - [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
   § Rollout both state that one phase remains.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
@@ -736,10 +750,13 @@ the answer.
   clobbers unconditionally and reports nothing, so a check leaves exactly the
   window an adopter's editor writes into.
 
-  The primitive therefore gains a **non-replacing publish mode**, and the
-  contract is the **default**, not a list of call sites: a call that passes no
-  mode gets the replacing publish it gets today, and only this command's
-  companion writes pass the new one. Stating it as an enumeration would be
+  The primitive therefore gains a **non-replacing publish selector**, named
+  distinctly from the `mode` parameter it already carries for permission bits
+  — which `render` passes today, so a criterion phrased over "passing no mode"
+  would be satisfied by a call supplying permissions. The contract is the
+  selector's **default**, not a list of call sites: a call that does not
+  request the non-replacing publish gets the replacing one it gets today, and
+  only this command's companion writes request it. Stating it as an enumeration would be
   satisfied by an implementation whose default is non-replacing plus explicit
   opt-outs, and a caller added after this delivery would inherit the wrong
   side silently. § Grounding's write-helper derivation counts each helper's
@@ -753,22 +770,35 @@ the answer.
   one and miss another:
 
   1. **Occupancy is the destination-exists condition specifically.** Every
-     other publish failure takes AC-0039's write-failed row. A link reports
-     the same error class for an occupant and for a filesystem carrying no
-     hard links, so an implementation reading any failure as occupancy would,
-     on such a mount, drop every companion in the run while reporting each as
-     a preserved occupant.
+     other publish failure takes AC-0039's write-failed row. The two are
+     separable — a link raises `FileExistsError` for an occupant and a
+     different error for a filesystem carrying no hard links, which
+     § Grounding's publish derivation branches on — so this outcome asks for
+     that classification rather than a pre-stat. An implementation reading any
+     failure as occupancy would, on such a mount, drop every companion in the
+     run while reporting each as a preserved occupant.
   2. **The published destination carries exactly one name, and no staged
      residue remains.** A link does not consume the staged name the way a
      rename does, and until it is unlinked the destination has a link count
      above one — which the confinement helpers AC-0065 binds this command to
      refuse outright. A publish that cannot reach that state fails.
-  3. **A destination left with a link count above one is refused and
-     reported, never silently repaired.** That is what a crash between the
-     link and the unlink leaves. It is reported with its recovery — remove the
-     staged sibling — rather than repaired, because an adopter could in
-     principle have linked their own file there and this command cannot tell
-     the two apart.
+  3. **A destination left with a link count above one is distinguished from an
+     occupant, at the admission check.** That state is what a crash between the
+     link and the unlink leaves, and without this it is absorbed by outcome 1:
+     the destination exists, so the run reports `companion_occupied` and the
+     command's own bytes are returned to the adopter as their preserved work,
+     on that run and every later one. Nothing else reads a companion
+     destination — AC-0059 keeps it out of the recorded set — so the admission
+     check is the only place the condition is observable.
+
+     The run reports it as `companion_residue`, separately from
+     `companion_occupied`, and names the recovery **only when it can identify
+     the second name**: a staged sibling of this command's own staging shape in
+     the destination's directory. Where no such sibling is present the run
+     reports the link count and names no file, because `st_nlink` yields a
+     count rather than the other names, an adopter's link may sit outside the
+     target root entirely, and a recovery naming a file the command has not
+     established it created would tell the adopter to delete their own work.
 - [ ] **AC-0071.** When the replayed source itself plans a path equal to a
   companion destination this run would compute, the run refuses before its
   first write, naming both paths under `companion_collision` on the plan and in
@@ -841,9 +871,11 @@ the answer.
   non-replacing publish AC-0070 fixes uses a link, so on FAT, exFAT and
   several network and FUSE mounts every companion write fails and takes the
   write-failed row. That is safe — it never clobbers, and AC-0070's first
-  outcome stops it being misreported as occupancy — but it means an adopter on
-  such a mount cannot receive a companion at all, and this phase ships no
-  fallback. Owner: unassigned.
+  outcome stops it being misreported as occupancy — but the residual is larger
+  than a missing companion: AC-0038 restores the whole target tree whenever any
+  planned write fails, so one `would-companion` path rolls the entire run back
+  and exits 4. On those filesystems the verb does not degrade, it stops
+  working, and this phase ships no fallback. Owner: unassigned.
 - **A discriminator for the conditions sharing exit 1** — phase 2 left the
   field's shape and which rows carry it to the owner. This phase adds three
   more rows to that code, and one of them is not a refusal at all: a completed

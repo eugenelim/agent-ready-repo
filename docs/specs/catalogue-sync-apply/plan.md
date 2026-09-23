@@ -28,9 +28,11 @@ an edit to `init`'s, and this delivery corrects the sentence.
   `hashlib` alongside phase 2's existing set.
 - No new module. The apply path extends `commands/catalogue_sync.py`. Outside
   it and `cli.py` there are exactly two edits: one exported helper in
-  `catalogue.py`, and a non-replacing publish mode on `safety.write_jailed`
-  and `safety.write_companion` whose **default is the behaviour those helpers
-  have today**, per AC-0070. The second touches a blessed security helper and
+  `catalogue.py`, and a non-replacing publish selector on
+  `safety.write_jailed` and `safety.write_companion` whose **default is the
+  behaviour those helpers have today**, per AC-0070. The selector is named
+  distinctly from the `mode` parameter `write_jailed` already carries for
+  permission bits, which `render.py` passes. The second touches a blessed security helper and
   is an owner decision of record, taken because the primitive's unconditional
   rename makes AC-0070 otherwise unsatisfiable.
 
@@ -391,7 +393,7 @@ filesystem.
 **Done when:** the sequence tests pass, including the injected-failure case
 asserting the tree rather than the return value.
 
-**Touches:** packages/agentbundle/agentbundle/commands/catalogue_sync.py, packages/agentbundle/tests/unit/
+**Touches:** packages/agentbundle/agentbundle/commands/catalogue_sync.py, packages/agentbundle/agentbundle/safety.py, packages/agentbundle/tests/unit/
 
 ### T5: consent gates the first write
 
@@ -622,8 +624,8 @@ invocation arguments stay refinable without an amendment.
 ## Rollout
 
 Additive with one recorded compatibility break, and one shared helper gaining
-an opt-in mode no existing caller passes, so no command outside this feature
-changes behaviour. `init`, `install`, `upgrade`,
+a publish selector whose default is the behaviour it has today — § Approach
+states that argument and this section does not restate it. `init`, `install`, `upgrade`,
 and `adapt` keep their contracts, and every `sync` flag phase 2 shipped keeps
 its meaning when spelled in full. The break is abbreviation: `cli.py` sets no
 `allow_abbrev=False`, so `catalogue sync --guides selected` resolves to
