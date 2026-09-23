@@ -75,27 +75,34 @@ covers the recorded recipe — plus any name `--pack` or `--profile` introduces 
 and the scope predicate filters only the write set. The removal keep-set is the
 full replayed set on every run.
 
-**Rollback holds the prior bytes in memory.** Restoring a partially applied tree
-needs the bytes that were there, and a Tier-1 verdict gives only a digest. The
-apply path reads the prior bytes of every write-set path that exists into a
-snapshot before the first write, then restores from it on failure and unlinks
-what it created. The cost is one extra copy of the write set alongside the
+The write-set filter has a second clause, and it is the one that makes phase 3
+shippable at all: `credential-brokers` is default-selected, so
+`packages/credbroker/**` is in essentially every derived tree's planned set, and
+a vendored tree also plans `.agentbundle/tooling/agentbundle/**`. Refusing an
+apply on such a tree would refuse almost every real tree, so the filter excludes
+those paths from the write set and AC-0057 makes the printed plan show what the
+filter admits. Phase 2's plan vocabulary is untouched: the deferred paths are
+reported as a count, not as a sixth verdict, because a sixth verdict would
+supersede phase 2's five-verdict criterion's closed set for a defect that does not need it.
+
+**Rollback holds the prior walk tuple in memory.** Restoring a partially applied
+tree needs what was there, and a Tier-1 verdict gives only a digest. The apply
+path snapshots every write-set path that exists before the first write — bytes,
+entry kind, mode and symlink target, the same tuple AC-0041 compares — then
+restores from it on failure and unlinks what it created. Bytes alone would
+satisfy AC-0038's digest half and still fail AC-0041 on a changed mode. The cost is one extra copy of the write set alongside the
 replay's own `file_bytes`, and § Grounding's snapshot-bound derivation measures
 that worst-case peak at 34.5 MiB for the largest selection this repository can
 produce. The alternative — a per-path backup file — is a second write set inside
 the jail and a predictable staging path, which § Never do forbids.
 
-**A Tier-3 path never enters the recorded state.** Tier-3 means the path is
-absent from the recorded state, so `sync` leaves it alone. Recording it would
-claim ownership of a file `sync` never wrote and give it a digest that was never
-verified against what is on disk. The state's path set is therefore
-`(recorded − removed) ∪ written`.
-
-**A companion is not recorded either.** `adapt --ci` owns an unresolved
-`.upstream.<ext>` file, and recording it would make the next run's removal guard
-a second, disagreeing owner of when it disappears. The adopter's own file keeps
-its pre-run recorded digest, which is what makes the next run classify it
-Tier-2 again.
+**Why the recorded path set excludes Tier-3 and companion paths.** AC-0059 owns
+the rule; this is why it takes that shape. Recording a Tier-3 path would claim
+ownership of a file `sync` never wrote and give it a digest never verified
+against what is on disk. Recording a companion would make the next run's removal
+guard a second, disagreeing owner of when that companion disappears — while
+leaving the adopter's own file on its pre-run digest is exactly what makes the
+next run classify it Tier-2 again.
 
 **`--pack` amends the recipe by construction.** The apply path resolves
 `cfg.packs` to the recorded recipe's list unioned with the requested names, so
@@ -174,6 +181,9 @@ is reachable until T7 wires the parser.
 - With no scoping flag the predicate admits every planned path. Verifies AC-0042.
 - Under any scope, `catalogue.toml` and every `tests/conformance/**` path is
   excluded. Verifies AC-0044.
+- Under every scope and under none, each `packages/credbroker/**` and
+  `.agentbundle/tooling/agentbundle/**` path is excluded from the write set and
+  reported in the deferred count. Verifies AC-0057's second clause.
 - `--pack core` does not admit `packs/core-extras/pack.toml`. A prefix compared
   without its trailing separator admits the sibling, and no other case in this
   task distinguishes that.
@@ -188,10 +198,10 @@ replay, not a hand-written list.
 **Depends on:** none
 
 **Tests:**
-- The merged path set equals `(recorded − removed) ∪ written`; a written path
-  carries the digest of the bytes written; an untouched recorded path carries
-  its pre-run digest; a removed path is absent; a Tier-3 path is absent.
-  Verifies AC-0036.
+- The merged path set equals `(recorded − removed) ∪ written`, with Tier-3 and
+  companion paths absent. Verifies AC-0059.
+- A written path carries the digest of the bytes written and an untouched
+  recorded path carries its pre-run digest. Verifies AC-0036.
 - The pin builder's four source forms each produce the row AC-0037 states,
   including `source_uri` absent under white-label on every row.
 - The recipe's pack list after a `--pack <new>` run equals the pre-run list plus
@@ -213,12 +223,20 @@ filesystem.
   rows, compared for equality in both directions. Verifies AC-0033.
 - A Tier-2 path's companion carries the replayed source bytes and the adopter's
   file has the same digest after the run as before. Verifies AC-0034.
-- Stale removal runs after the last write and its keep-set is the full replayed
-  set: a `--pack` run over a fixture recording paths outside that pack leaves
-  every one of them present. Verifies AC-0035.
-- With a write injected to fail on the nth path, the tree's path set and every
-  file's digest equal their pre-run values. Verifies AC-0038's restoration half.
-- A planned path resolving outside the target root is refused. Verifies AC-0052.
+- Stale removal runs after the last write and its keep-set argument is the full
+  replayed set. Verifies AC-0035.
+- A `--pack` run over a fixture recording paths outside that pack, and paths
+  under a package subtree, leaves every one of them present. Verifies AC-0064.
+- With a write injected to fail on the nth path, the tree's walk tuple — path,
+  entry kind, mode, symlink target and bytes — equals its pre-run value.
+  Comparing paths and digests alone passes a restore that changed a mode.
+  Verifies AC-0038.
+- With the restore itself injected to fail, every unrestored path is named in
+  the output. Verifies AC-0058.
+- A planned path resolving outside the target root is refused at the write.
+  Verifies AC-0052.
+- The apply path's target reads are refused on the hard-link and reparse-point
+  inputs phase 2's path-confinement criterion fixes. Verifies AC-0065.
 
 **Approach:**
 - Removal after writes, and state after removal, because a crash between them
@@ -238,8 +256,10 @@ asserting the tree rather than the return value.
 - Four inputs — an affirmative at the prompt, a negative, `--yes`, and
   end-of-input with no terminal — drive the gate, and the target tree is the
   oracle in all four. Verifies AC-0031.
-- The prompt names no source URI outside attributed mode. Verifies AC-0050's
-  prompt surface.
+- The prompt names no source URI outside attributed mode. Verifies AC-0050.
+- A recorded value failing the terminal-safe check does not reach the prompt;
+  the observable is a length or whitespace bound, not a control character, which
+  an escaping sink would neutralise either way. Verifies AC-0049.
 
 **Approach:**
 - The gate reads `--yes` and the terminal, and nothing else. Reading a recorded
@@ -255,12 +275,20 @@ asserting the tree rather than the return value.
 **Depends on:** T1, T2, T3, T4, T5
 
 **Tests:**
-- Each apply row of AC-0039's table is driven to its code, including the
-  `--package` row proving no fetch was performed. Verifies AC-0039.
+- Every row of AC-0039's table is driven to its code — the apply rows and the
+  four new `4 — apply-failed` rows are new here; the `--dry-run` and `--check`
+  rows are re-driven rather than inherited, because the table is this spec's and
+  a row phase 2 discharged for a shorter table is not evidence for this one. The
+  `--package` row additionally proves no fetch was performed. Verifies AC-0039.
+- The row set of the plan the run prints equals the row set its write phase acts
+  on, and the deferred count equals the number of planned package paths.
+  Verifies AC-0057.
 - A fault injected at each boundary still reaches a named row; no uncaught
   exception sets the status. Verifies AC-0040.
-- An unshipped `--pack`, `--profile`, or `--package` name refuses and the tree
-  walk shows no write. Verifies AC-0046, AC-0047.
+- An unshipped `--pack` or `--profile` name refuses as malformed and the tree
+  walk shows no write. Verifies AC-0046.
+- Each recognised `--package` name refuses on an apply run and on a `--dry-run`;
+  an unrecognised one is malformed. Verifies AC-0047.
 - Two apply runs with identical flags over trees whose recorded modes differ
   write the same bytes to the same paths. Verifies AC-0048.
 - A recorded value that fails the terminal-safe check reaches no surface; the
@@ -285,6 +313,11 @@ asserting the tree rather than the return value.
 - The three invocation modes and each malformed combination are driven through
   the real parser, not a hand-built namespace, because the defaults a hand-built
   namespace supplies are what the parser decides. Verifies AC-0030.
+- `--guides` resolves to the scoping flag and an abbreviation of
+  `--guides-mode` is rejected. Verifies AC-0060. Asserting only that `--guides`
+  works passes a parser that still abbreviates.
+- Scoping flags restrict a `--dry-run` plan and are malformed on `--check`.
+  Verifies AC-0043's preview half and AC-0030's `--check` clause.
 - The subcommand help no longer claims the command writes nothing. The message
   and its assertion move together, as runtime text in this package is pinned.
 
@@ -299,12 +332,15 @@ outside an apply run each exit 2.
 **Depends on:** T7
 
 **Tests:**
-- The existing walk helper generalises to any root, and every registered case
-  asserts the source tree identical before and after. Verifies AC-0041's
-  source-side rail.
-- The registry gains one case per apply row: declined, refused, rolled back, and
-  applied. The applied case asserts the target differs by exactly the written
-  set, the removed set, and the state — not merely that it differs.
+- The existing walk helper generalises to any root, and the registry covers
+  every row of AC-0039's table, not only the rows this phase adds. Each case
+  walks the subject AC-0041's table names for its source form; the two
+  digest-bearing forms have no source subject and are recorded as discharged by
+  phase 2's deletion obligation rather than skipped silently. Verifies AC-0041.
+- The registry gains one case per apply outcome: declined, refused, rolled back,
+  restore-failed, and applied. The applied case asserts the target differs by
+  exactly the written set, the removed set, and the state — an equality, not a
+  containment.
 
 **Approach:**
 - Generalise the shipped helper rather than adding a second walk. Two walks that
@@ -320,12 +356,23 @@ difference is an equality, not a containment.
 **Depends on:** T7
 
 **Tests:**
-- Every code citation in the edited architecture file resolves to the construct
-  it names, and the rollout's phase count agrees with its own list. Resolution
-  is the oracle; an absence check passes a wrong re-pin. Verifies AC-0053.
+- The banner and § Rollout agree on how many phases remain. Verifies AC-0053.
+- Every code citation in each edited architecture file resolves to the construct
+  it names. Resolution is the oracle; an absence check passes a wrong re-pin.
+  Verifies AC-0061.
+- § Stage 3 states that `sync` classifies where `init` overwrites. Verifies
+  AC-0062.
+- § Granularity names both `--package` destinations and § Rollout item 4 no
+  longer calls them both `packages/` subtrees. Verifies AC-0063.
+- The phase-2 spec's Status line carries a supersession pointer naming its
+  exit-code criterion's first row and its no-write walk criterion as partly
+  superseded. That pointer is the only edit a frozen spec takes. Verifies
+  AC-0030's supersession clause.
 - The guide's new section is present in the authored source and in the projected
   copy, and both site gates pass. Verifies AC-0054.
-- Every derived release surface reads `0.49.0`. Verifies AC-0055.
+- The release-surface derivation reports every surface reading `0.49.0`, and
+  reports agreement. The derivation supplies the closed set, so a surface added
+  upstream appears rather than being silently omitted. Verifies AC-0055.
 
 **Approach:**
 - The projected copy is regenerated inside this task, because a task that edits
@@ -334,17 +381,18 @@ difference is an equality, not a containment.
 
 **Done when:** the three checks pass and the changelog entry is topmost.
 
-**Touches:** docs/architecture/catalogue/upstream-sync.md, guides/_shared/how-to/create-a-self-hosted-catalogue.md, packages/agentbundle/README-pypi.md, packages/agentbundle/CHANGELOG.md, docs/product/changelog.md, packages/agentbundle/agentbundle/version.py, packages/agentbundle/pyproject.toml
+**Touches:** docs/architecture/catalogue/upstream-sync.md, docs/specs/catalogue-sync-dry-run/spec.md, guides/_shared/how-to/create-a-self-hosted-catalogue.md, packages/agentbundle/README-pypi.md, packages/agentbundle/CHANGELOG.md, docs/product/changelog.md, packages/agentbundle/agentbundle/version.py, packages/agentbundle/pyproject.toml
 
 ### T10: an adopter's apply run is exercised end to end
 
 **Depends on:** T9
 
 **Tests:**
-- Visual / manual QA. A real derived tree is built, edited at one path, and
-  synced from a moved source. The recorded evidence is the stdout, the exit
-  code, and the resulting tree — including the companion beside the edited
-  file. Verifies AC-0056.
+- Visual / manual QA. A real derived tree is built, edited at one recorded path,
+  and synced from a moved source. The run exits 0; the companion is present
+  beside the edited file carrying the source bytes; the adopter's file's digest
+  is unchanged; and no path outside the printed plan is altered. The ledger
+  records that comparison, not only the output. Verifies AC-0056.
 
 **Done when:** the observed output and tree are recorded in the verification
 ledger.
@@ -364,14 +412,20 @@ passage that uses it, and this section holds the command that reproduces it.
 | Pin ref | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-pin-ref.py` | The `git+https://` ref is parsed and discarded, and the parse is reusable from the module-level pattern |
 | Jailed-write admission | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-jailed-write-admits-planned-paths.py` | Every planned path is admitted as a direct write and as a companion write, in both tooling modes |
 | Snapshot bound | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-rollback-snapshot-bound.py` | The rollback snapshot's worst-case peak alongside the replay |
+| Release surfaces | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py` | The closed set of surfaces a version bump must move, each read by the form that surface states its version in, and whether they agree |
 
 A derivation's value and its oracle are pinned; a script's location and its
 invocation arguments stay refinable without an amendment.
 
 ## Rollout
 
-Additive. `init`, `install`, `upgrade`, and `adapt` keep their contracts, and
-the `sync` flags phase 2 shipped keep their meanings. Removing the apply branch
+Additive with one recorded compatibility break. `init`, `install`, `upgrade`,
+and `adapt` keep their contracts, and every `sync` flag phase 2 shipped keeps
+its meaning when spelled in full. The break is abbreviation: `cli.py` sets no
+`allow_abbrev=False`, so `catalogue sync --guides selected` resolves to
+`--guides-mode` in 0.48.0. AC-0060 withdraws abbreviation on the `sync`
+subparser, which turns that invocation into a loud error rather than a silent
+change of meaning, and costs every other abbreviation of a `sync` flag. Removing the apply branch
 restores phase 2 exactly. No infrastructure, no external system, no deployment
 sequencing: the change ships in one package release.
 
