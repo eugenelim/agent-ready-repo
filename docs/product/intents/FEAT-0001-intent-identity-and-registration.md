@@ -4,7 +4,7 @@
 - **Level:** feature
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** repository-work-graph — [Repository work graph](CAP-0001-repository-work-graph.md)
+- **Parent intent:** capability:repository-work-graph
 - **Status:** Accepted
 - **Owner:** eugenelim
 - **Accepted:** 2026-09-19 by eugenelim — see [Acceptance record](#acceptance-record)

@@ -88,7 +88,7 @@ Decompose this intent into deliverable slices, each traceable back to the parent
 - **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
 - **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
-- **Parent intent:** <!-- optional: the higher-level intent this was decomposed from; omit at the top of the tree -->
+- **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
 - **De-risked:** <!-- optional: the ISO 8601 date the riskiest assumption was tested, or the literal `no`. Absent means nobody recorded it; `no` means someone decided against de-risking -->
 - **Shaping-reviewed:** <!-- optional: the ISO 8601 date a cold reviewer read this, or the literal `no` -->
 - **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light. A `direct-light` terminus requires each item under ## Decomposition to state its requested outcome -->
@@ -147,7 +147,7 @@ Roll up this intent across the component repos it was sliced into.
 <!-- rung: packs/product-engineering/.apm/skills/align-value-stream/assets/rollup-template.md -->
 
 ```markdown
-- **Parent intent:** `<slug>` <!-- the capability/feature intent this fans out from (docs/product/intents/<slug>.md) -->
+- **Parent intent:** `<kind>:<slug>` <!-- the capability/feature intent this fans out from, e.g. `capability:<slug>` (docs/product/intents/<slug>.md) -->
 - **Last reviewed:** YYYY-MM-DD <!-- when the snapshot below was last reconciled against each component repo -->
 
 ## Why this is a snapshot, not a live feed

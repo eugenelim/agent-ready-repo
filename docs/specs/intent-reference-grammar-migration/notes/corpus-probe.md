@@ -5,7 +5,7 @@ Spec: docs/specs/intent-reference-grammar-migration/spec.md, Task: T4.
 
 - posture: standalone (derived from artifacts)
 - node count: 757
-- edge count: 115
+- edge count: 123
 - structural orphan count: 487
 - pre-delivery baseline (plan.md Design section): 488
 - AC-0025 (--strict orphan non-increase): PASS (487 <= 488)
@@ -32,26 +32,19 @@ Live pointers whose target actually suffix-matched more than one local id.
 
 _none_
 
-## Dangling edges (8)
+## Dangling edges (0)
 
 Every hard violation `check()` reports, ambiguous ones included (a superset of the ambiguous-pointer set above, for full context).
 
-- intent:claude-apps-first-value-entry: producer pointer names missing/malformed target '[Nontechnical-pack'
-- intent:cross-pack-experience-eval: producer pointer names missing/malformed target '[Digital'
-- intent:digital-product-guides-update: producer pointer names missing/malformed target '[Digital'
-- intent:product-engineering-shaping-doctrine: producer pointer names missing/malformed target '[Digital'
-- intent:product-strategy-adoption-doctrine: producer pointer names missing/malformed target '[Digital'
-- intent:xd-design-system-foundations: producer pointer names missing/malformed target '[Digital'
-- intent:xd-ia-archetypes-objects: producer pointer names missing/malformed target '[Digital'
-- intent:xd-state-reviewer-doctrine: producer pointer names missing/malformed target '[Digital'
+_none_
 
 ## Structural orphans (487)
 
 - capability:decision-graph [capability]: no consumer (down-edge)
-- capability:digital-experience-doctrine [capability]: no producer (up-edge); no consumer (down-edge)
+- capability:digital-experience-doctrine [capability]: no producer (up-edge)
 - capability:experience-design-delivery-packet [capability]: no producer (up-edge); no consumer (down-edge)
 - capability:external-tracker-projection [capability]: no consumer (down-edge)
-- capability:nontechnical-pack-first-value-rollout [capability]: no producer (up-edge); no consumer (down-edge)
+- capability:nontechnical-pack-first-value-rollout [capability]: no producer (up-edge)
 - capability:project-knowledge-adoption-closeout [capability]: no producer (up-edge); no consumer (down-edge)
 - capability:project-knowledge-engineering-operational-integrations [capability]: no producer (up-edge); no consumer (down-edge)
 - capability:project-knowledge-measured-follow-ons [capability]: no producer (up-edge); no consumer (down-edge)
@@ -548,19 +541,19 @@ For every consumer wired through `_wire_up` (specs via the four up-fields; brief
 - capability:repository-work-graph: field=Parent intent, state=local, resolved-id=opportunity:graph-powered-sdlc
 - capability:workspace-coordination-reorganization: field=Parent intent, state=local, resolved-id=opportunity:graph-powered-sdlc
 - intent:agent-loop-escalation-recovery: field=Parent intent, state=local, resolved-id=capability:work-loop-delivery-efficiency
-- intent:claude-apps-first-value-entry: field=none, state=dangling-or-ambiguous, resolved-id=—
-- intent:cross-pack-experience-eval: field=none, state=dangling-or-ambiguous, resolved-id=—
-- intent:digital-product-guides-update: field=none, state=dangling-or-ambiguous, resolved-id=—
+- intent:claude-apps-first-value-entry: field=Parent intent, state=local, resolved-id=capability:nontechnical-pack-first-value-rollout
+- intent:cross-pack-experience-eval: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
+- intent:digital-product-guides-update: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
 - intent:intent-delivery-traceability: field=Parent intent, state=local, resolved-id=capability:repository-work-graph
 - intent:intent-graph-navigation: field=Parent intent, state=local, resolved-id=capability:repository-work-graph
 - intent:intent-identity-and-registration: field=Parent intent, state=local, resolved-id=capability:repository-work-graph
 - intent:lifecycle-and-closure: field=Parent intent, state=local, resolved-id=capability:repository-work-graph
-- intent:product-engineering-shaping-doctrine: field=none, state=dangling-or-ambiguous, resolved-id=—
-- intent:product-strategy-adoption-doctrine: field=none, state=dangling-or-ambiguous, resolved-id=—
+- intent:product-engineering-shaping-doctrine: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
+- intent:product-strategy-adoption-doctrine: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
 - intent:single-ladder-migration: field=Parent intent, state=local, resolved-id=capability:repository-work-graph
-- intent:xd-design-system-foundations: field=none, state=dangling-or-ambiguous, resolved-id=—
-- intent:xd-ia-archetypes-objects: field=none, state=dangling-or-ambiguous, resolved-id=—
-- intent:xd-state-reviewer-doctrine: field=none, state=dangling-or-ambiguous, resolved-id=—
+- intent:xd-design-system-foundations: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
+- intent:xd-ia-archetypes-objects: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
+- intent:xd-state-reviewer-doctrine: field=Parent intent, state=local, resolved-id=capability:digital-experience-doctrine
 - opportunity:autonomous-product-team-operating-model: field=Parent intent, state=local, resolved-id=outcome:ai-native-ecosystem
 - opportunity:duplicate-coverage-check: field=Parent intent, state=local, resolved-id=capability:work-item-capture-and-disposition
 - opportunity:governance-item-record-routing: field=Parent intent, state=local, resolved-id=capability:work-item-capture-and-disposition

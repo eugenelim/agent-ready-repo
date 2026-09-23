@@ -7,7 +7,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)
+- **Parent intent:** capability:work-loop-delivery-efficiency
 
 ## Outcome
 

@@ -9,7 +9,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** graph-powered-sdlc — [Graph-powered SDLC](STRAT-0001-graph-powered-sdlc.md)
+- **Parent intent:** opportunity:graph-powered-sdlc
 
 ## Outcome
 

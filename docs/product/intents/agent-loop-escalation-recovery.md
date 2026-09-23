@@ -2,7 +2,7 @@
 
 - **Slug:** `agent-loop-escalation-recovery`
 - **Level:** feature
-- **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)
+- **Parent intent:** capability:work-loop-delivery-efficiency
 - **Status:** Draft
 - **Owner:** Repository maintainers (`ini-002`)
 

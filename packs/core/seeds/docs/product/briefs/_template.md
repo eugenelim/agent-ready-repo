@@ -14,7 +14,7 @@
 - **Status:** Draft <!-- Draft | Ready | Executing | Shipped | Withdrawn | Cancelled -->
 - **Source / provenance:** <!-- LOAD-BEARING. A safe, durable reference to the source and, for tracker-origin work, its reviewed revision. Retain a normalized summary; never copy raw external payload. -->
 - **Epic:** <!-- optional: id/link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. -->
-- **Parent intent:** <!-- optional: when this brief is one per-component slice of a larger product intent, the upstream `intent` it was projected from. Distinct from `Epic:` — `Epic:` names an external *coordinator*; this names the *product intent* upstream. Carried as provenance; never interpreted. Omit when there is none. -->
+- **Parent intent:** `<kind>:<slug>` <!-- optional: when this brief is one per-component slice of a larger product intent, the upstream `intent` it was projected from, typically `intent:<slug>`. Distinct from `Epic:` — `Epic:` names an external *coordinator*; this names the *product intent* upstream. Carried as provenance; never interpreted. Omit when there is none. -->
 
 ## Outcome
 

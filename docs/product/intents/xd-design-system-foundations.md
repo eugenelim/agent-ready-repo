@@ -6,7 +6,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** [Digital experience doctrine](digital-experience-doctrine.md)
+- **Parent intent:** capability:digital-experience-doctrine
 - **Milestone:** M3b in RFC-0071's implementation sequence
 - **Governed by:** [RFC-0071 D3a](../../rfc/0071-digital-experience-doctrine.md)
 

@@ -5,7 +5,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
-- **Parent intent:** [Nontechnical-pack first-value rollout](nontechnical-pack-first-value-rollout.md)
+- **Parent intent:** capability:nontechnical-pack-first-value-rollout
 
 ## Outcome
 

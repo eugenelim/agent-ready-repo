@@ -1,0 +1,187 @@
+{
+  "docs/product/briefs/intent-identity-and-registration.md": {
+    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
+    "status": "failed",
+    "value": "[`intent-identity-and-registration`](../intents/FEAT-0001-intent-identity-and-registration.md)"
+  },
+  "docs/product/briefs/multi-adapter-eval-runner.md": {
+    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
+    "status": "failed",
+    "value": "[`cross-adapter-behavior-enforcement`](../intents/cross-adapter-behavior-enforcement.md)"
+  },
+  "docs/product/briefs/spec-author-agent.md": {
+    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
+    "status": "failed",
+    "value": "[`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)"
+  },
+  "docs/product/briefs/universal-implementer-dispatch.md": {
+    "reason": "unresolvable \u2014 cross-repo shaped, no local resolution; leaving per Agent Rule",
+    "status": "failed",
+    "value": "[`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)"
+  },
+  "docs/product/intents/CAP-0001-repository-work-graph.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "opportunity:graph-powered-sdlc"
+  },
+  "docs/product/intents/CAP-0002-decision-graph.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "opportunity:graph-powered-sdlc"
+  },
+  "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "opportunity:graph-powered-sdlc"
+  },
+  "docs/product/intents/CAP-0004-external-tracker-projection.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "opportunity:graph-powered-sdlc"
+  },
+  "docs/product/intents/FEAT-0001-intent-identity-and-registration.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:repository-work-graph"
+  },
+  "docs/product/intents/FEAT-0002-intent-graph-navigation.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:repository-work-graph"
+  },
+  "docs/product/intents/FEAT-0003-intent-delivery-traceability.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:repository-work-graph"
+  },
+  "docs/product/intents/FEAT-0004-single-ladder-migration.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:repository-work-graph"
+  },
+  "docs/product/intents/FEAT-0005-lifecycle-and-closure.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:repository-work-graph"
+  },
+  "docs/product/intents/FEAT-0006-work-item-capture-contract.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-item-capture-and-disposition"
+  },
+  "docs/product/intents/FEAT-0007-work-item-promotion-routing.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-item-capture-and-disposition"
+  },
+  "docs/product/intents/FEAT-0008-governance-item-record-routing.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-item-capture-and-disposition"
+  },
+  "docs/product/intents/FEAT-0009-duplicate-coverage-check.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-item-capture-and-disposition"
+  },
+  "docs/product/intents/STRAT-0001-graph-powered-sdlc.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "outcome:ai-native-ecosystem"
+  },
+  "docs/product/intents/STRAT-0002-platform-core.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "outcome:ai-native-ecosystem"
+  },
+  "docs/product/intents/STRAT-0003-autonomous-product-team-operating-model.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "outcome:ai-native-ecosystem"
+  },
+  "docs/product/intents/STRAT-0004-trustworthy-org-owned-catalogues.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "outcome:ai-native-ecosystem"
+  },
+  "docs/product/intents/agent-loop-escalation-recovery.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/claude-apps-first-value-entry.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:nontechnical-pack-first-value-rollout"
+  },
+  "docs/product/intents/cross-pack-experience-eval.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  },
+  "docs/product/intents/digital-product-guides-update.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  },
+  "docs/product/intents/grounding-probe-extensions.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/loop-contract-item-identity-mechanism.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/product-engineering-shaping-doctrine.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  },
+  "docs/product/intents/product-strategy-adoption-doctrine.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  },
+  "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "outcome:work-loop-review-economics"
+  },
+  "docs/product/intents/spec-authoring-protocol-measured-before-shipping.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/work-loop-focused-re-review.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/work-loop-repair-correctness.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/work-loop-review-economics.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:work-loop-delivery-efficiency"
+  },
+  "docs/product/intents/xd-design-system-foundations.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  },
+  "docs/product/intents/xd-ia-archetypes-objects.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  },
+  "docs/product/intents/xd-state-reviewer-doctrine.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "capability:digital-experience-doctrine"
+  }
+}

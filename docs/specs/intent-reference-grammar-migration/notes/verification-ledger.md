@@ -775,3 +775,75 @@ tokenize, not the target that fails to exist.
 
 Amended under the owner's standing direction to work through the tasks and adapt
 the contract as code and tests require.
+
+## 2026-09-22 — a measured fact for the Contract/Discovery follow-on
+
+Measured while preparing the follow-on handover:
+
+| Figure | Value |
+| --- | ---: |
+| `Contract:` values on specs | 38, all resolving `unresolvable` |
+| `Discovery:` values on specs | 25, all resolving `unresolvable` |
+| `contract` nodes in the graph | 34 |
+| **Of those, ids carrying `@version`** | **0** |
+
+RFC-0103 D1 excludes `Contract:` from the grammar on the ground that
+`recognize_contracts` types targets as `contract:<name>@<version>`, and "that id
+embeds a version, so `<kind>:<slug>` is not yet the right shape for them".
+
+**No contract node in this repository carries a version.** `recognize_contracts`
+(`lint-traceability.py:513-531`) parses `name.vN` / `name@N` from the filename
+and degrades to `contract:<stem>` when no version is encoded; all 34 take the
+degraded path. The versioned shape is reachable by the code, not present in the
+corpus.
+
+So the exclusion's stated ground is true of the recognizer and false of the
+data. `contract:<slug>` would express all 34 targets today. That does not by
+itself reverse D1 — a future versioned contract would still not fit, and
+`Discovery:`'s unregistered `docs/product/research/` targets are an independent
+and unaffected reason to hold that field back — but it means the follow-on is
+likely smaller than D1 implies, and should re-measure rather than inherit the
+rationale.
+
+RFC-0103 is Accepted and frozen; this belongs in its Errata, which is the
+controller's to add and is not done here because a sweep task is mid-flight.
+
+## 2026-09-22 — T5 complete; the sweep landed on the amended numbers
+
+33 `Parent intent:` values rewritten to `<kind>:<slug>` across
+`docs/product/intents/`; 4 in `docs/product/briefs/` left and reported, because
+they classify `unresolvable` (cross-repo shaped) and already carry an edge to an
+external stub — retyping those would repoint an existing edge, which `Done when`
+forbids. Six writer surfaces repointed, derived from T0's inventory.
+
+| | Before | After |
+| --- | ---: | ---: |
+| Nodes | 757 | 757 |
+| Edges | 115 | **123** |
+| Dangling | 8 | **0** |
+| Structural orphans | 487 | 487 |
+| Default-mode exit | 1 | **0** |
+
+Exactly the fourth amendment's expectation: +1 edge for each formerly dangling
+value, and default exit restored, so AC-0012 can pass. `make lint-ruff
+lint-mypy` passes; no projection was touched.
+
+### Owner decision — the dropped decoration stands
+
+The sweep replaced the entire field value, dropping a human-readable decoration
+that 25 of the 33 values carried:
+
+    - **Parent intent:** graph-powered-sdlc — [Graph-powered SDLC](STRAT-0001-graph-powered-sdlc.md)
+    + **Parent intent:** opportunity:graph-powered-sdlc
+
+Preserving it was possible at zero cost: `field_re` truncates at the first
+space, so `intent:foo — [Title](foo.md)` tokenizes to `intent:foo` and resolves
+identically — verified, not assumed. The contract does not settle the question:
+AC-0008 says the value "is `<kind>:<slug>`", which supports dropping it, while
+the Outcome is satisfied either way.
+
+Surfaced to the owner rather than decided by the loop. **Owner chose: keep as
+swept.** The decisive point is that the dropped links were keyed on
+ordinal-prefixed filenames (`STRAT-0001-…`), the addressing this delivery exists
+to retire; preserving them would have carried the anti-pattern forward into 25
+files and left a second migration behind.
