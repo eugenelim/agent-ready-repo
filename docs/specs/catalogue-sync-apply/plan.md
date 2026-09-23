@@ -432,7 +432,8 @@ filesystem.
   classifies that way and the shipped classifier emits no create verdict.
   Each shape is driven twice, once at each recheck, for six cases.
   - At the gate, before the write phase opens: refuses on AC-0039's
-    `3 — cannot-answer` pre-write-read row with the whole tree identical.
+    gate-recheck row at `3 — cannot-answer`, with the tree identical apart
+    from the divergence the fixture staged.
   - At the rename, after an earlier write has landed: refuses on a `4`
     write-failed row, and AC-0038's restore covers the landed writes.
   Driving only the gate passes an implementation carrying one recheck, and
@@ -519,8 +520,11 @@ assertion, and the gate takes no state argument.
   under that category. This is the consequence of accepting the empty list, and
   the case that would delete a recorded pack tree if coverage's selection axis
   regressed. Verifies AC-0069's selection axis.
-- A run that cannot read a write-set path's pre-write state returns
-  cannot-answer with no write. Verifies AC-0039's pre-write row.
+- A run that cannot read a write-set path's pre-run state while building the
+  rollback snapshot returns cannot-answer with no write. The fault is injected
+  during snapshot construction, before the consent prompt, because that is the
+  row's scope since round 5; injected at the gate or at a rename it reaches
+  AC-0077's rows instead. Verifies AC-0039's snapshot row.
 - A fault injected at each boundary still reaches a named row; no uncaught
   exception sets the status. Verifies AC-0040.
 - An unshipped `--pack` or `--profile` name refuses as malformed and the tree
@@ -838,3 +842,23 @@ sequencing: the change ships in one package release.
     `would-create` was an invented verdict. The classifier emits `would-update`
     for a recorded path absent on disk, which `test_catalogue_sync.py:405-408`
     already pins.
+- 2026-09-23 — Pre-EXECUTE review round 5, same run. Four raw findings, three
+  sustained and one refuted; no indeterminate in either lane, because the
+  briefs recorded that eugenelim's round-4 grant already covers further
+  wording corrections to those two rows, so the remedy was no longer an owner
+  choice. All three sustained findings were in the round-4 amendment:
+  - The narrowed snapshot row still shadowed the gate row. "Before the write
+    phase opened" is true of the gate recheck too, so a changed entry kind at
+    the gate matched the snapshot row first. The scope now lives in the row's
+    own text — "while building the rollback snapshot" — rather than only in
+    AC-0077's prose. AC-0076 builds the snapshot before the prompt, so that
+    row stays above the consent rows and the gate row stays below them.
+  - The gate row now covers a destination the gate cannot read as well as one
+    that diverged, which keeps AC-0040's totality for a gate read failure.
+  - The gate is scoped to write-set destinations carrying a classified row.
+    AC-0033 clause 6's ownership state is in the write set but added after
+    classification and kept off the acted rows by AC-0057, so it had no
+    referent for "the state its row was classified against"; it is the run's
+    own bookkeeping, not adopter work.
+  - The Testing Strategy oracle and T4's gate bullet now name the gate row
+    instead of the superseded pre-write-read row.
