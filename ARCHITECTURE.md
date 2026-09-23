@@ -176,6 +176,9 @@ dependency of pack source or of a target runtime.
 
 ### Planned architecture
 
+- **STATUS: PROPOSED** — [Per-update changelog sources](docs/architecture/changelog-fragment-source.md)
+  replace the shared changelog authoring surface with reviewed fragments and
+  deterministic generated views.
 - **STATUS: PLANNED** — [Binder publishing](docs/architecture/binder-publishing/README.md)
   is designed but not implemented. [ADR-0073](docs/adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.

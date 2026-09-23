@@ -471,6 +471,10 @@ shipped = [
   # A computed digest here would therefore assert a provenance check that
   # nothing performs and that most entries already fail.
   {path = "docs/specs/architect-design-shape-overlay/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/architect-design-conditional-overlays.md"}, summary = "Add a system-shape axis to the architect-design router; the overlay probe ran separately as a spike and returned no verdict", needs = []},
+  # Spike-first: the owner chose a measurement spike before the delivery
+  # spec for ADR-0123. The delivery spec is a Follow-on in this spec rather
+  # than a slice of it, because its thresholds come from this run's figures.
+  {path = "docs/specs/changelog-fragment-assembly-spike/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md"}, summary = "Measure merge independence, deterministic assembly, /now/ parity and site-build cost for the per-update changelog design before its delivery contract pins a threshold", needs = []},
 ]
 queue   = [
   {path = "docs/specs/review-recurrence-family-key/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Expose a position-free review-finding family key beside existing fingerprints without changing storage or review stops", needs = [{type = "local", kind = "spec", path = "docs/specs/stasis-stop-retirement/spec.md"}]},
