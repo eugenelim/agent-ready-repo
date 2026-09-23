@@ -76,8 +76,23 @@ def _unbacktick(cell: str) -> str:
     return cell.strip().strip("`").strip()
 
 
+# The map's five columns: state, screen-brief line, tier, WCAG flag, and the
+# criterion or trigger. Asserted once here rather than in each consumer: the
+# assertions index positionally, and a row that loses its last column is only
+# noticed by a consumer that happens to read that column -- a `no` row sails
+# through, because nothing reads its criterion cell.
+MAP_COLUMNS = 5
+
+
 def map_rows(contract: str) -> list[list[str]]:
-    return _rows(contract, "#### Shared state-coverage map")
+    rows = _rows(contract, "#### Shared state-coverage map")
+    narrow = {r[0]: len(r) for r in rows if len(r) != MAP_COLUMNS}
+    assert not narrow, (
+        f"the state-coverage map must carry {MAP_COLUMNS} columns per row; "
+        f"these do not, so a positional read of a later column would either "
+        f"raise or silently miss: {narrow}"
+    )
+    return rows
 
 
 def floor_states(skill: str) -> list[str]:

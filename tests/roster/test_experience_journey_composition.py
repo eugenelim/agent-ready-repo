@@ -86,6 +86,14 @@ def stated_explore_states(journey: str) -> list[str]:
     return [s.strip().strip("`") for s in m.group(1).split(",")]
 
 
+# The map's five columns: state, screen-brief line, tier, WCAG flag, and the
+# criterion or trigger. Asserted once here rather than in each consumer: the
+# assertions index positionally, and a row that loses its last column is only
+# noticed by a consumer that happens to read that column -- a `no` row sails
+# through, because nothing reads its criterion cell.
+MAP_COLUMNS = 5
+
+
 def map_rows(contract: str) -> list[list[str]]:
     after = contract.split("#### Shared state-coverage map", 1)
     assert len(after) == 2, "the shared state-coverage map is gone"
@@ -105,6 +113,11 @@ def map_rows(contract: str) -> list[list[str]]:
             continue
         rows.append(cells)
     assert rows, "the state-coverage map has no body rows"
+    narrow = {r[0]: len(r) for r in rows if len(r) != MAP_COLUMNS}
+    assert not narrow, (
+        f"the state-coverage map must carry {MAP_COLUMNS} columns per row; "
+        f"these do not: {narrow}"
+    )
     return rows
 
 
@@ -354,14 +367,30 @@ def test_the_design_journey_names_its_minimal_viable_thread() -> None:
     parts = text.split(heading, 1)
     assert len(parts) == 2, f"the design journey has no {heading!r} section"
 
+    # A step's body is its numbered line plus the indented lines that continue
+    # it. Reading only the first physical line left `interaction-design` — on
+    # step 3's continuation — resolved by nothing, and simultaneously failed a
+    # pure re-wrap that renders identically. The list ends at a heading or at
+    # the first unindented line that is not a continuation; terminating only at
+    # the next numbered item would swallow the prose below into step 4 and pull
+    # three more skills into the resolved set.
     steps: list[tuple[int, str]] = []
-    for line in parts[1].splitlines():
-        stripped = line.strip()
+    for raw in parts[1].splitlines():
+        stripped = raw.strip()
         if stripped.startswith("#"):
             break
         m = re.match(r"^(\d+)\. (.+)$", stripped)
         if m:
             steps.append((int(m.group(1)), m.group(2)))
+            continue
+        if not steps:
+            continue
+        if stripped and raw[:1].isspace():
+            number, body = steps[-1]
+            steps[-1] = (number, f"{body} {stripped}")
+            continue
+        if stripped:
+            break
     assert len(steps) >= 4, (
         f"the minimal viable thread names {len(steps)} numbered steps, not the "
         f"path the criterion asks for"
@@ -392,8 +421,10 @@ def illustrative_state_files() -> list[Path]:
     file would otherwise be untested with nothing reporting the gap.
 
     The shape this enforces, stated rather than implied: a line containing the
-    capitalised word `States` and a middle dot. A list written `states:` is out
-    of scope, and so is one separated any other way. That is narrower than the
+    capitalised word `States` and a middle dot. Its consumers additionally
+    require a `:` separating the label from the list, and abort naming the
+    file when a discovered line lacks one. A list written `states:` is out of
+    scope, and so is one separated any other way. That is narrower than the
     criteria's own wording, and it is the scoping device that keeps ordinary
     prose out; widening it means widening this docstring with it.
     """
@@ -455,7 +486,14 @@ HOW_TO = ROOT / "guides" / "experience-design" / "how-to"
 
 
 def _unbacktick(cell: str) -> str:
-    """Normalise a table cell the way the coverage module does.
+    """Normalise a say-this table cell the way the coverage module does.
+
+    Used for the say-this lane only. The map-side reads below deliberately keep
+    the two-step `strip().strip("`")` form: this normaliser strips again after
+    unwrapping, so a padded map cell like `` ` empty ` `` would normalise to a
+    name that matches the journey's stated set instead of failing the set
+    comparison loudly. Converting those reads would turn a fail-closed check
+    fail-open, which is the opposite of the repair this function exists for.
 
     Both modules parse the same state-coverage map. The coverage module
     strips, unwraps backticks, then strips again; a cell written with spaces
@@ -532,7 +570,7 @@ def test_every_say_this_row_carries_exactly_one_optionality() -> None:
     """
     wrong: dict[str, list[str]] = {}
     for row in _say_this_rows():
-        skill = row[0].strip().strip("`")
+        skill = _unbacktick(row[0])
         marks = [v for v in OPTIONALITY if v in row[-1]]
         # `Choose one` contains no other value, and `Required`/`Optional` are
         # disjoint strings, so a row with anything but one match is malformed.
@@ -568,7 +606,7 @@ def test_the_say_this_optionality_agrees_with_the_how_to_guides() -> None:
     )
     disagree = {}
     for row in _say_this_rows():
-        skill = row[0].strip().strip("`")
+        skill = _unbacktick(row[0])
         if skill not in guides:
             continue
         marks = [v for v in OPTIONALITY if v in row[-1]]

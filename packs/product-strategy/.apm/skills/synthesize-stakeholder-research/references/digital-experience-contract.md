@@ -117,13 +117,6 @@ disciplines name the same states and owe the same ones at the same depth.
 - **Screen-brief line** names the line a per-screen brief already carries for
   that state, or `-` where the state is frontend-owned and no brief line names
   it. One brief line resolves to two states.
-This map's **Tier** column is read independently of the tier annotation on the
-section above it. That annotation says when you owe a written
-states-and-permissions *section* in your contract; this column says which
-states the surface itself must handle. A surface at `explore` owes the states
-banded `explore` here even though the section above is annotated `pilot+`, and
-the accessibility rule below is what makes that non-negotiable.
-
 - **Tier** is the lowest risk tier at which the state is owed, and is
   cumulative: a tier owes its own states and every lower tier's. `conditional`
   means the state is owed at every tier whenever its trigger fires, and at no
@@ -132,6 +125,13 @@ the accessibility rule below is what makes that non-negotiable.
   breaches the success criterion named beside it. A state marked `yes` is never
   dropped by a tier: it is assigned to `explore`, or it is conditional and binds
   at every tier its trigger reaches.
+
+This **Tier** column is read independently of the `Required:` annotation on
+the section above. That annotation says when you owe a written
+states-and-permissions *section* in your contract; this column says which
+states the surface itself must handle. A surface owes the states banded for
+its tier here even when the section above is annotated for a higher one, and
+the accessibility rule above is what makes that non-negotiable.
 
 | State | Screen-brief line | Tier | Fails WCAG 2.2 AA when absent | Success criterion, or the trigger that binds it |
 |---|---|---|---|---|

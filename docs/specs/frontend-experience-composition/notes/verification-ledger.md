@@ -921,3 +921,74 @@ corrects in place: the five hand-derived counts that live in eight homes and no
 gate reads, and the absence of any standing comparison between the committed web
 journey copies and their sources once this spec's `Always do` rule stops
 applying. Both were known; neither had an owner until now.
+
+## Post-gates review, round 6 — and the pattern that ended it
+
+Three reviewers ran; all three reports were adjudicated independently. **Ten
+findings raised, 9 sustained, 1 refuted.** `review_round_count` 6, review retry
+**5 of 5 — the cap**.
+
+Two of the sustained findings were controls that could not fail, numbers eight
+and nine, and both were introduced by the round-5 repairs:
+
+| Control | The mutation it survived |
+| --- | --- |
+| AC-0021's agreement, unnormalised comparison key | A say-this cell written `` | ` design-system ` | `` with its verdict flipped — the disagreement AC-0021 forbids — left the suite green |
+| AC-0022's thread parse, line-bound | A skill on step 3's continuation line was resolved by nothing, so deleting it stayed green |
+
+### The pattern, named
+
+Three rounds running, a repair fixed the instance it cited and left its sibling:
+
+1. Round 3 guarded AC-0021's **guide** side and left the journey-side skip.
+2. Round 5 introduced `_unbacktick` and converted **two** of six read sites.
+3. Round 5 read a step's first physical line and left its continuations.
+
+Each repair was recorded as done before the class was walked. This round the
+fix was made against the class and then measured with a 35-case sweep over every
+artifact the two modules read — the record is below, and it is what should have
+existed after round 3.
+
+### One repair the adjudication stopped me making
+
+Converting the *map-side* reads to `_unbacktick` looked like the obvious
+completion of "one normaliser". It would have been a regression:
+`_unbacktick` strips again after unwrapping, so a padded map cell would
+normalise into a matching name instead of failing the set comparison loudly.
+The say-this lane needs the stronger normaliser and the map lane needs the
+weaker one, and the module now says so where the function is defined.
+
+### One finding adjudicated optional that the sweep showed was not
+
+The map's column width was tiered an optional Nit on the stated ground that
+"every column shift lands on a loud failure". The sweep falsified that: dropping
+the criterion column from a `no`-flagged row passes silently, because nothing
+reads that row's last cell. The guard was taken rather than deferred, and both
+map parsers now reject a row that is not five columns wide.
+
+That is the value of running the sweep rather than trusting the tier: an
+adjudicated *advisory* rested on a premise the artifacts contradicted.
+
+### The 35-case sweep
+
+Every defect class the two modules exist to catch, mutated one at a time
+against the real artifacts, each restored afterwards. **35/35 behaved as
+intended**: 32 red, and three green by design —
+
+- a re-wrap of the thread list, which renders identically and must not fail;
+- a flipped WCAG flag, which the spec deliberately makes a review finding
+  rather than a test failure, because a test that judged accessibility could
+  never be made green;
+- a padded map cell, which `_unbacktick` normalises, that normaliser being the
+  reason the say-this lane has one.
+
+### The contract note, repositioned
+
+The round-5 note sat directly under the `Screen-brief line` bullet with no blank
+line, so CommonMark folded it into a bullet about a different column in four
+shipped copies. It is now a paragraph of its own below all three column
+definitions. Its `pilot+` literal is gone too — nothing read that prose copy of
+the annotation, so re-tiering the section would have left it false silently.
+Counts re-measured after the edit: per-tier 10 / 15 / 7, cumulative 10 / 25 / 32,
+and the `<!-- Required: -->` annotation is still the first non-blank line after
+its heading.
