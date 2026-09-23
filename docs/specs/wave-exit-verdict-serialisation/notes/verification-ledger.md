@@ -229,6 +229,25 @@ Nit 4 was the fifth instance of the claim-outruns-evidence class, and it was in
 the sentence written *about* that class: "no test can red it" should have been
 "no input the bounded reader accepts reaches it".
 
+## Post-gates quality review, round 4
+
+One Concern, and it is about this ledger's own reliability as much as the code.
+
+**A repair was reported as landed and had not applied.** Round 3's N4 — scoping
+the committed-path AC13 docstring — was claimed in commit `2c2616b76`, whose
+only hunk in that file is the sibling's assertion pin. The scripted edit's
+anchor did not match, the script did not assert that it had, and a green test
+run was read as confirmation. A passing suite says nothing about whether an edit
+matched its anchor.
+
+That is the second silent non-apply in this delivery. The first was caught by
+grepping for the new text after the edit; this one was not, and it reached a
+commit message as a completed repair.
+
+**Every scripted edit asserts its anchor matched, and every edit is verified by
+reading back the changed content — not by the exit code of the tests that
+follow.** Both non-applies would have been caught by the first half alone.
+
 ## Observations
 
 - A re-run `loop-cohort schedule` over an unchanged plan rewrites byte-identical

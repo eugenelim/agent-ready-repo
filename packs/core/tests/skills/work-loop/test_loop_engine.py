@@ -4583,12 +4583,14 @@ def test_contract_amendment_is_the_only_exempt_event() -> None:
 def test_a_reclaim_at_the_end_of_the_hold_exits_non_zero(tmp: Path, capsys, monkeypatch) -> None:
     """AC13: the reclaim window is reported, not silently exited zero.
 
-    `exclusive` can only detect lost ownership AFTER its body, so by the time
-    this fires the engine-state write has already landed. The transition is
-    durable and the verb still exits non-zero — that asymmetry is a disclosed
-    residual, and what this pins is the half that is not: it must never report
-    success. Bounding it absolutely needs a two-phase commit, which this
-    delivery forbids.
+    This case drives the COMMITTED exit: its fixture writes engine-state and
+    the reclaim is detected afterwards. That is a property of this fixture,
+    not of `exclusive`'s detection timing — the hold's body has a second
+    exit, a refusal that returns before writing, and the sibling case below
+    drives it. On this path the transition is durable and the verb still
+    exits non-zero; that asymmetry is a disclosed residual, and what this
+    pins is the half that is not: it must never report success. Bounding it
+    absolutely needs a two-phase commit, which this delivery forbids.
     """
     spec_dir, _ = _drafting_run(tmp, "fp-reclaim")
     sl = _engine._statelock()
