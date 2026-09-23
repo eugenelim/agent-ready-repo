@@ -36,6 +36,20 @@ an edit to `init`'s, and this delivery corrects the sentence.
   is an owner decision of record, taken because the primitive's unconditional
   rename makes AC-0070 otherwise unsatisfiable.
 
+  AC-0077 is satisfied by a third value on that same selector — publish only
+  when the destination still matches the state the caller classified against —
+  not by a third edit site. The check has to sit where the rename does: a
+  re-read performed in `catalogue_sync.py` before calling the helper leaves the
+  whole staging sequence inside the window, which is the width AC-0077 exists
+  to remove. It narrows that window rather than closing it — recheck and
+  `os.replace` are two operations, so a read-to-rename gap survives, and no
+  portable compare-and-replace primitive is available to close it. What the
+  criterion buys is that the destination is verified microseconds before the
+  rename instead of before an unbounded consent wait; the residual gap is
+  recorded, not eliminated. The default stays today's behaviour across all
+  three values, so the caller-set argument in the paragraph above is unchanged
+  and so is its audit.
+
   The default is what makes it safe, not the caller list. § Grounding's
   write-helper derivation counts the two sets by resolution: `write_companion`
   has 4 call sites in 4 modules, `write_jailed` 16 in 10 — so a list walked for
@@ -158,7 +172,15 @@ tree needs what was there, and a Tier-1 verdict gives only a digest. The apply
 path snapshots the pre-run entry set over every write-set path and its ancestor
 directories — bytes, entry kind, mode and symlink target, the same tuple
 AC-0041 compares — then restores from it on failure, unlinking files it created
-and removing directories the pre-run walk lacked. AC-0076 owns the bound and
+and removing directories the pre-run walk lacked.
+
+The snapshot and the restore have different extents, and conflating them is
+the defect AC-0038 now forecloses. The snapshot spans the whole write set,
+because the run cannot know which path it will fail on. The restore spans only
+the paths it actually wrote, created or removed, so the run needs a record of
+what it acted on, not only of what it planned to. Restoring the whole snapshot
+would rewrite an adopter edit made during the run at a path the command never
+reached. AC-0076 owns the bound and
 the figure; this section does not restate it. Bytes alone would satisfy
 AC-0038's digest half and still fail AC-0041 on a changed mode; files alone
 would fail it on a `--pack <new-name>` run, which creates `packs/<new-name>/`
@@ -357,9 +379,20 @@ filesystem.
 - A publish failing for a reason other than an existing destination takes the
   write-failed row and is not counted as `companion_occupied`. Verifies
   AC-0070's failure attribution.
-- In the write helper's own suite: a call passing no mode replaces an existing
-  destination. Verifies AC-0052's default. It lives there rather than here
-  because that is where a flipped default is observed.
+- In the write helper's own suite, two cases against an occupied destination:
+  a `safety.write_jailed` call that does not request the non-replacing publish
+  replaces it, and a `safety.write_companion` call that does not request it
+  replaces it too. The `write_jailed` case supplies permission bits, so it is
+  not written as "passes no `mode`" — `mode` already carries those bits and
+  `render` supplies them, so a case phrased that way is not the default this
+  criterion pins. The `write_companion` case omits only the new publish
+  selector: that helper takes `root`, `relpath` and `content` and forwards
+  without `mode`, and giving it a permission-bits parameter is a third edit
+  site § Constraints does not permit.
+  Pinning the two separately is what catches a flipped default on the thin
+  forward, which a guard written against `write_jailed` alone stays green
+  through. Verifies AC-0052's default. They live there rather than here because
+  that is where a flipped default is observed.
 - A source planning both `x.md` and `x.upstream.md` against a Tier-2 `x.md`
   refuses the whole run, reports both paths under `companion_collision`,
   returns the cannot-answer code, and leaves the tree identical on AC-0041's
@@ -374,14 +407,33 @@ filesystem.
 - A write-set path that grows past the bound during the prompt wait refuses
   having read no more than the bound. A finished-total implementation passes
   the bullet above and fails this one. Verifies AC-0076's as-built half.
-- With a write injected to fail on the nth path, the tree's walk tuple — path,
-  entry kind, mode, symlink target and bytes — equals its pre-run value.
-  Comparing paths and digests alone passes a restore that changed a mode.
-  Verifies AC-0038.
+- With a write injected to fail on the nth path, the walk tuple — path, entry
+  kind, mode, symlink target and bytes — equals its pre-run value at every path
+  the run wrote or created. Comparing paths and digests alone passes a restore
+  that changed a mode. Verifies AC-0038's restore half.
+- In the same run, a write-set path beyond the nth — one the run never reached
+  — is edited by another writer after the before-walk, and still carries that
+  writer's bytes after the restore. A restore driven off the whole snapshot
+  rather than off what the run acted on passes the bullet above and fails this
+  one, and it is the same rewrite-adopter-work defect AC-0077 refuses a write
+  to avoid. Verifies AC-0038's leave-as-found half and AC-0041's every-row
+  permitted difference.
 - With the restore itself injected to fail, every unrestored path is named in
   the output. Verifies AC-0058.
 - A planned path resolving outside the target root is refused at the write.
   Verifies AC-0052.
+- A `would-update` path diverges between classification and the write, in
+  three shapes, and the three do not share an exit row. Changed digest, and a
+  destination classification found absent, each refuse on a `4` write-failed
+  row with the adopter's bytes byte-identical afterwards. A changed entry kind
+  is refused by AC-0065's confined re-read and so matches AC-0039's earlier
+  `3 — cannot-answer` pre-write-read row; its oracle is AC-0041's walk tuple,
+  because a regular file replaced by a symlink is a difference bytes cannot
+  express. Driving all three to one expected row is the error a first-match
+  reading of AC-0039's table catches. What the adopter left is the first
+  assertion and the code is the second, because a stat-at-classification
+  implementation that refuses only after clobbering passes an exit-code-only
+  check. Verifies AC-0077.
 - The apply path's target reads are refused on the hard-link and reparse-point
   inputs phase 2's path-confinement criterion fixes. Verifies AC-0065.
 
@@ -401,8 +453,13 @@ asserting the tree rather than the return value.
 
 **Tests:**
 - Four inputs — an affirmative at the prompt, a negative, `--yes`, and
-  end-of-input with no terminal — drive the gate, and the target tree is the
-  oracle in all four. Verifies AC-0031.
+  end-of-input with no terminal — drive the gate, and its returned decision is
+  the oracle in all four. AC-0031's own oracle is the target tree, which moves
+  only once `_run_apply` composes this gate with the write sequence; that half
+  is driven in T6, so this task keeps `Depends on: none` and the gate stays the
+  stateless seam § Approach argues for. Building a T5-local composer to reach a
+  tree here would test duplicated test logic rather than the planned
+  implementation.
 - The prompt names no source URI outside attributed mode. Verifies AC-0050.
 - Each of the four source forms produces its own fidelity token on the prompt,
   and a `--yes` run carries it in the printed plan and the `--format json`
@@ -417,7 +474,8 @@ asserting the tree rather than the return value.
   value here is the seam that would reopen phase 2's modes-from-flags invariant,
   which is why the gate takes no state argument at all.
 
-**Done when:** the four-input test passes with the tree as its assertion.
+**Done when:** the four-input test passes with the gate's decision as its
+assertion, and the gate takes no state argument.
 
 **Touches:** packages/agentbundle/agentbundle/commands/catalogue_sync.py, packages/agentbundle/tests/unit/
 
@@ -459,14 +517,27 @@ asserting the tree rather than the return value.
   exception sets the status. Verifies AC-0040.
 - An unshipped `--pack` or `--profile` name refuses as malformed and the tree
   walk shows no write. Verifies AC-0046.
-- Each recognised `--package` name refuses on an apply run and on a `--dry-run`;
-  an unrecognised one is malformed. Verifies AC-0047.
+- Each recognised `--package` name refuses on an apply run, on a `--dry-run`,
+  and on a `--check`; an unrecognised one is malformed. AC-0047 names all three
+  invocations, and no other task drives the `--check` one, so an implementation
+  that ignores a recognised package under `--check` passes every other oracle
+  here. Verifies AC-0047.
 - Two apply runs with identical flags over trees whose recorded modes differ
   write the same bytes to the same paths. Verifies AC-0048.
 - A recorded value that fails the terminal-safe check reaches no surface; the
   observable is a length or whitespace bound, because `json.dumps` escapes a
   control character whether the check runs or not. Verifies AC-0049.
-- A violating leak check leaves the tree untouched. Verifies AC-0051.
+- A violating leak check leaves the tree untouched, and the consent gate T5
+  introduces is never invoked. AC-0051 carries both clauses, and an
+  implementation that prompts and then refuses without writing satisfies the
+  tree half alone — which is also the ordering § Failure, edge cases states as
+  intent and no other oracle checks. Verifies AC-0051.
+- Four inputs — an affirmative at the prompt, a negative, `--yes`, and
+  end-of-input with no terminal — drive a full apply run, and the target tree on
+  AC-0041's walk tuple is the oracle in all four. This oracle lives here rather
+  than in T5 because the tree moves only once `_run_apply` composes the gate
+  with the write sequence, and T5 is the gate's decision seam alone. Verifies
+  AC-0031.
 
 **Approach:**
 - The `--package` refusal and the leak refusal are placed by what they protect,
@@ -656,3 +727,53 @@ sequencing: the change ships in one package release.
   the two review lanes ran 5, 11, 9, 4, 3, 1, 2, 1, with secure-design
   returning no blocker in the final two. `plan-locked` is not taken here: the
   build session's engine init seals the baseline.
+- 2026-09-23 — Pre-EXECUTE review round 1 under run
+  `34823a23-d407-4b5d-997f-1d306358ea18`. Two reviewers, seven raw findings,
+  five sustained by adjudication and two refuted. Revised from the sustained
+  five only, on eugenelim's decisions taken in session:
+  - T4's AC-0052 oracle restated as two occupied-destination cases, one per
+    helper, neither phrased "passes no `mode`" — the phrasing the spec's
+    § Testing Strategy entry for AC-0052 already forbids.
+  - T6's `--package` oracle extended to `--check`, the third invocation
+    AC-0047 names and no task drove.
+  - T6's leak oracle extended with AC-0051's not-prompted clause.
+  - AC-0031's four-input target-tree oracle moved from T5 to T6, where
+    `_run_apply` composes the gate with the write sequence. T5 keeps
+    `Depends on: none` and asserts the gate's returned decision.
+  - **AC-0077 added** — a replacing write rechecks its destination at the
+    moment of the write. Sustained by secure design: AC-0073 binds removals
+    and AC-0065 binds reads, so a replacing write was the one act still
+    trusting a pre-consent verdict, and AC-0076 already records that prompt as
+    an unbounded wait. Criterion counts moved 47 → 48 and the TDD group
+    38 → 39. Round 2 corrected two claims made here: the refusal reaches two
+    exit rows rather than one, and the recheck narrows the window rather than
+    closing it.
+- 2026-09-23 — Pre-EXECUTE review round 2, same run. Two reviewers, seven raw
+  findings, four sustained and three refuted. Round 2 reviewed the round-1
+  repairs rather than the contract, and three of the four sustained findings
+  were introduced by those repairs — the fifth consecutive round in this
+  contract's history where a repair opened the next round's finding. Revised
+  on eugenelim's decision taken in session:
+  - T4's AC-0052 companion case no longer claims to supply permission bits:
+    `safety.write_companion` takes `root`, `relpath` and `content` only, and
+    giving it a `mode` parameter is a third edit site § Constraints forbids.
+  - AC-0077's exit-row mapping split. A changed entry kind is refused by
+    AC-0065's confined re-read and so matches AC-0039's earlier
+    `3 — cannot-answer` pre-write-read row; only a changed digest and a
+    destination found present reach a `4` write-failed row. The blanket
+    write-failed claim was false against a first-match read of that table, and
+    the entry-kind fixture's oracle is now AC-0041's walk tuple rather than
+    bytes.
+  - AC-0077 and § Constraints now state that the recheck narrows the window
+    and does not close it; recheck and rename are two operations and no
+    portable compare-and-replace primitive exists here.
+  - **AC-0038 and AC-0041 amended.** AC-0038's restore spanned "the whole entry
+    set", so a rollback rewrote every write-set path back to the before-walk —
+    including a path the command never touched, destroying an adopter edit made
+    during the run. AC-0077 refused a write to prevent exactly that and the
+    restore then reinstated it, which made the contract unsatisfiable. The
+    restore is now scoped to what the run wrote, created or removed; the
+    snapshot's extent is unchanged. AC-0041 gains an every-row permitted
+    difference for a path another writer changed and the command did not act
+    on. The hole was general, not AC-0077's: every write-failure path carried
+    it. No row of AC-0039's table changed.

@@ -110,11 +110,11 @@ what it left behind.
 
 ## Testing Strategy
 
-Three modes, over 47 criteria. Each entry names the comparison its oracle
+Three modes, over 48 criteria. Each entry names the comparison its oracle
 performs, not the property it hopes to establish.
 
 **TDD** covers AC-0030 through AC-0052, AC-0057 through AC-0060, AC-0064 and
-AC-0065, AC-0066, AC-0068 through AC-0074, and AC-0076 — thirty-eight
+AC-0065, AC-0066, AC-0068 through AC-0074, AC-0076, and AC-0077 — thirty-nine
 criteria, each a compressible invariant over a pure function or a single `sync`
 call. AC-0075 is goal-based and is counted there, not here.
 
@@ -244,6 +244,17 @@ call. AC-0075 is goal-based and is counted there, not here.
 - **A leak violation reaches no write (AC-0051)** — TDD. Oracle: the tree walk
   after a violating run. The pass direction cannot distinguish a working refusal
   from an absent one, so the fixture must violate.
+- **A replacing write rechecks its destination (AC-0077)** — TDD. Oracle: a
+  write-set path classified `would-update` diverges after classification and
+  before the write lands; the run refuses and what the adopter put there
+  survives. Three fixtures, one per divergence the criterion names. Changed
+  digest and a destination found present where classification found none refuse
+  on a `4` write-failed row with the adopter's bytes byte-identical afterwards.
+  A changed entry kind refuses on AC-0039's earlier `3 — cannot-answer`
+  pre-write-read row, and its oracle is AC-0041's walk tuple rather than bytes,
+  because bytes cannot express a regular file replaced by a symlink. Asserting
+  only the exit code passes an implementation that refuses after clobbering, so
+  what the adopter left is the first assertion and the code is the second.
 - **Every write is jailed (AC-0052)** — TDD. Oracle: a planned path resolving
   outside the target root is refused at the write; and, in the helper's own
   suite, a call to each of `write_jailed` and `write_companion` that does not
@@ -323,7 +334,7 @@ the answer.
   reading the same string, and that string is `0.49.0`. The derivation supplies
   the closed set; this criterion does not enumerate it by hand.
 
-**Visual / manual QA** covers AC-0056 — one criterion. That is 38 + 8 + 1 = 47.
+**Visual / manual QA** covers AC-0056 — one criterion. That is 39 + 8 + 1 = 48.
 
 - **The apply run an adopter performs (AC-0056)** — visual / manual QA. Oracle:
   the comparison the criterion names, performed against a real derived tree and
@@ -419,8 +430,17 @@ the answer.
   permanently outside the identity leak check.
 - [ ] **AC-0038.** When any planned write fails, the command restores the target
   tree before returning to the walk tuple AC-0041 compares — relative path,
-  entry kind, mode, symlink target and bytes — over the whole entry set, so a
-  directory the run created and the pre-run walk lacks is removed too. Whether that restore succeeds
+  entry kind, mode, symlink target and bytes — over every path the run wrote,
+  created or removed, so a directory the run created and the pre-run walk lacks
+  is removed too.
+
+  A write-set path the run never acted on is left as it is found, not returned
+  to its pre-run value. The snapshot spans the whole write set, because the run
+  cannot know in advance which paths it will reach; the restore spans only what
+  it reached. Restoring further would undo an edit the adopter made during the
+  run at a path the command never touched — writing over adopter work in the
+  name of unwinding the command's own, which AC-0077 refuses a write precisely
+  to avoid and every other write-failure path would otherwise reinstate. Whether that restore succeeds
   selects between two rows of AC-0039's table, which is the sole authority on
   the resulting code; AC-0058 governs what a restore that does not succeed must
   report.
@@ -485,7 +505,17 @@ the answer.
   consent rows and every `3` refusal leave it identical by never reaching the
   write phase. The `4` row where a planned write failed and the tree **was**
   restored leaves it identical by restoring it, which is what AC-0038
-  obliges:
+  obliges.
+
+  One difference is permitted on **every** row of the table, including the rows
+  this criterion otherwise calls identical: a path another writer changed
+  during the run, at which the command itself neither wrote, created nor
+  removed. AC-0038 scopes the restore to what the run acted on, so such a path
+  is left as found rather than returned to its pre-run value, and the walk
+  differs there without the command having caused it. An AC-0077 refusal is the
+  case that reaches this on a `3` or `4` row; the `1` consent rows and the
+  remaining `3` refusals reach it whenever the wait was long enough. The
+  per-row differences below are the ones the command does cause:
 
   | Row | Permitted difference in the target tree |
   | --- | --- |
@@ -547,7 +577,8 @@ the answer.
   green while the forward's own default flips. That default is the whole safety
   argument for editing a blessed helper, so it is verified in the helper's own
   suite: the shipped companion test writes to a path that does not yet exist,
-  so it passes unchanged if either default flips and cannot carry this.
+  so it passes unchanged if either default flips and cannot carry this. AC-0077
+  binds the same writes at act time.
 - [ ] **AC-0053.** `docs/architecture/catalogue/upstream-sync.md` banner and
   § Rollout both state that one phase remains.
 - [ ] **AC-0054.** `guides/_shared/how-to/create-a-self-hosted-catalogue.md`
@@ -846,6 +877,34 @@ the answer.
   still refuses rather than risks the partial-restore row. `st_size` is named
   because the alternative, allocated blocks, makes the bound unreachable for a
   sparse fixture and forces a quarter-gigabyte write into a unit suite.
+
+- [ ] **AC-0077.** A write that replaces an existing destination re-reads that
+  destination at the moment of the write and refuses when what it finds no
+  longer matches the state its row was classified against — a changed digest, a
+  changed entry kind, or an entry where classification found none.
+
+  The code is AC-0039's first matching row, and the three divergences do not
+  all reach the same one. A changed entry kind makes the destination a
+  non-regular, hard-link or reparse-point input, which AC-0065 obliges the
+  confined re-read to refuse, so that shape matches the earlier `the run could
+  not read the pre-write state of a path it was about to write` row at
+  `3 — cannot-answer`. A changed digest and a destination found present where
+  classification found none are read successfully and refuse as a planned write
+  failing, reaching a `4` write-failed row. This criterion adds no row to that
+  table.
+
+  The recheck narrows the window and does not close it: it and the rename are
+  two operations. What it buys is that the destination is verified immediately
+  before the rename rather than before an unbounded consent wait.
+
+  AC-0073 binds removals at the unlink and AC-0065 binds reads; without this a
+  replacing write is the one act on a target path still trusting a verdict
+  taken before the consent prompt. That prompt is an unbounded wait — AC-0076
+  says so in fixing its own bound — so a path classified `would-update` is
+  Tier-1 at classification and can be edited by the adopter during the wait.
+  Writing over that edit destroys exactly the work AC-0070's companion path
+  exists to preserve, because the Tier-2 verdict that would have routed it
+  there was taken too early to see it.
 
 ## Follow-ons
 
