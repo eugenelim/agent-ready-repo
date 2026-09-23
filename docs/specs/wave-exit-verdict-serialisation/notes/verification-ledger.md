@@ -169,6 +169,13 @@ first, since it subclasses the other — and the reclaim message says the
 transition DID commit and not to re-run. The AC13 case pins that wording,
 including that it must not say "nothing was written".
 
+**Correction (round 2):** "a `StateLockLost` at release means the transition
+already committed" is true only of the path where the body wrote engine-state. A
+staleness refusal returns before writing and still runs the hold's exit, so the
+reclaim can follow a transition that committed nothing — and this repair's own
+handler then reported it as committed. The handler branches on that now, and a
+second AC13 case covers the refused-then-reclaimed path.
+
 Two checks were weaker than they read. The five interleaving cases accepted any
 non-zero exit, so a lock timeout or a child crash satisfied a case written for
 the fingerprint mismatch; they now require the stderr to name it. The cohort-side

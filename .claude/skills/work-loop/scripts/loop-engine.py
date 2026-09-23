@@ -1883,12 +1883,13 @@ def cmd_transition(args: argparse.Namespace) -> int:
             _write_engine_state_atomic(spec_dir, new_state)
             _committed = True
     except _statelock().StateLockLost as exc:
-        # A reclaim detected at RELEASE, which is the opposite situation from a
-        # failed acquisition and needs the opposite response. `exclusive` can
-        # only notice lost ownership after its body, so the engine-state write
-        # has already landed: the transition committed. Re-running it — the
-        # right move after an acquisition failure — is wrong here. Rendering
-        # both through one message is how an operator gets that backwards.
+        # A reclaim detected at RELEASE. `exclusive` only notices lost
+        # ownership after its body, and the body has TWO exits: it may have
+        # written engine-state, or it may have returned a refusal before
+        # writing — a plain `return` inside a `with` still runs the exit. So
+        # this handler cannot assume a commit, and the branch below is not
+        # dead. Assuming one is what told an operator not to re-run a
+        # transition that had written nothing.
         if not _committed:
             # The body refused before writing, and the reclaim then swallowed
             # that refusal. Nothing landed, so the remedy is the refusal's, not

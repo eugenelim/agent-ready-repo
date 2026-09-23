@@ -201,10 +201,13 @@ Eight residuals, each disclosed rather than fixed.
    fingerprint mismatch, because the 10 s acquisition timeout is shorter than a
    cohort verb's own possible hold. The wait extends the engine-lock hold, so
    the whole spec's engine surface stalls for it. See the contended cost above.
-8. **A cohort-lock reclaim mid-hold** leaves a committed transition behind a
-   non-zero exit: `exclusive` can only detect lost ownership after the block,
-   and the skipped outbox finalisation leaves an `events.pending` that
-   `_recover_pending` completes on the next run. Bounding it absolutely needs a
+8. **A cohort-lock reclaim mid-hold** is reported, and what it means depends on
+   which exit the body took. If the engine-state write had landed, the
+   transition is durable behind a non-zero exit and the skipped outbox
+   finalisation leaves an `events.pending` that `_recover_pending` completes on
+   the next run — do not re-run it. If the body had already refused before
+   writing, nothing was committed and it should be re-run. The engine
+   distinguishes the two in its refusal; bounding either absolutely needs a
    two-phase commit, which this phase forbids.
 
 ## 3. Plan width and mode selection

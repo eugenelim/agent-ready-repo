@@ -4702,4 +4702,10 @@ def test_a_reclaim_after_a_refusal_does_not_claim_a_commit(tmp: Path, capsys, mo
         f"a refusal that wrote nothing was reported as a commit: {err}"
     )
     assert "Do NOT re-run" not in err, err
-    assert "re-run" in err, f"the operator must be told to re-run: {err}"
+    # Pinned to the reclaim handler's OWN wording. `re-run` alone cannot fail
+    # here: the staleness refusal prints to the same stderr and already says
+    # "re-run the transition", so the assertion would pass with the reclaim
+    # handler emitting no remedy at all.
+    assert "nothing was committed" in err, (
+        f"the reclaim handler must state that nothing landed: {err}"
+    )

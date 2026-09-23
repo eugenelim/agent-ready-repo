@@ -1921,20 +1921,16 @@ sl = mod._statelock()
 real_exclusive = sl.exclusive
 real_hold = mod._cohort_commit_hold
 
-class Recording:
-    """Records every path the ENGINE locks, and proves the peer's lock excludes.
-
-    Two artifacts, because one does not carry the claim. `acquired-*` records
-    what the engine itself locked, so deleting the hold or pointing it at
-    another path is visible directly rather than inferred. `contended` records a
-    StateLockTimeout against the peer's hold, which is what makes the lock the
-    exclusion it is claimed to be.
-    """
-    def __getattr__(self, name):
-        return getattr(real_exclusive.__self__, name) if hasattr(
-            real_exclusive, "__self__") else getattr(sl, name)
-
 def recording_exclusive(path, **kwargs):
+    """Record every path the ENGINE locks.
+
+    Two artifacts are needed and one does not carry the claim. This one records
+    what the engine itself locked, so a deleted hold or a hold on another path
+    is visible directly. The `contended` marker below records a StateLockTimeout
+    against the PEER's hold, which proves the peer's lock is real and says
+    nothing about the engine's — an earlier version of this case rested on that
+    marker alone and passed with the engine's hold deleted.
+    """
     (probe / ("acquired-" + Path(path).name)).write_text("1", encoding="ascii")
     return real_exclusive(path, **kwargs)
 
