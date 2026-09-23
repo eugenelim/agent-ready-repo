@@ -1567,21 +1567,52 @@ describe('/now/ Atom feed', () => {
     const ids = entries.map((e) => e.getElementsByTagNameNS(ATOM, 'id')[0]?.textContent);
     expect(new Set(ids).size, 'entry ids must be unique').toBe(ids.length);
     for (const id of ids) {
-      expect(id).toMatch(/^https:\/\/[^\s]+\/now\/#.+$/);
+      // A permalink, not an in-page anchor — see the resolvability guard below
+      // for why the identity moved.
+      expect(id).toMatch(/^https:\/\/[^\s#]+\/now\/[^/#]+\/$/);
     }
   });
 
-  it('every entry id resolves to a real anchor on the rendered page', () => {
-    // The feed's whole identity scheme rests on /now/ carrying each release's
-    // `changelogAnchor` as an `id`. If the page ever stops emitting those, the
-    // feed keeps publishing links that scroll nowhere and nothing else notices.
+  it('every entry id resolves to an emitted permalink page', () => {
+    // An Atom `<id>` must be PERMANENT. These pointed at `/now/#<anchor>`
+    // until the permalink route existed, which is only permanent while /now/
+    // shows every release — paginating the index would have moved older
+    // releases off that URL and silently broken every id naming one. This is
+    // the guard that fails if the permalinks ever stop being emitted while the
+    // feed keeps publishing their URLs.
     const d = feedDoc();
-    const page = doc(NOW_PAGE);
     const entries = [...d.getElementsByTagNameNS(ATOM, 'entry')];
+    expect(entries.length).toBeGreaterThan(0);
     for (const e of entries) {
       const id = e.getElementsByTagNameNS(ATOM, 'id')[0]!.textContent!;
-      const fragment = id.slice(id.indexOf('#') + 1);
-      expect(page.getElementById(fragment), `feed entry ${id} has no target on /now/`).not.toBeNull();
+      expect(id, 'a feed id must be a permalink, not an in-page anchor').not.toContain('#');
+      const slug = id.replace(/\/$/, '').split('/now/')[1];
+      expect(
+        existsSync(join(BUILD_ROOT, 'now', slug, 'index.html')),
+        `feed entry ${id} has no emitted page`
+      ).toBe(true);
+    }
+  });
+
+  it('the index links every release to its own page', () => {
+    // Two surfaces, one identity: what the feed calls a release and what /now/
+    // links to must be the same URL, or a reader following either lands
+    // somewhere the other does not know about.
+    const page = doc(NOW_PAGE);
+    const d = feedDoc();
+    const feedIds = new Set(
+      [...d.getElementsByTagNameNS(ATOM, 'entry')].map(
+        (e) => e.getElementsByTagNameNS(ATOM, 'id')[0]!.textContent!.replace(/\/$/, '').split('/now/')[1]
+      )
+    );
+    const linked = new Set(
+      [...page.querySelectorAll('.now-release__link')].map(
+        (a) => (a.getAttribute('href') ?? '').replace(/\/$/, '').split('/now/')[1]
+      )
+    );
+    expect(linked.size).toBe(feedIds.size);
+    for (const slug of feedIds) {
+      expect(linked.has(slug), `${slug} is in the feed but not linked from /now/`).toBe(true);
     }
   });
 

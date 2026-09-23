@@ -7,6 +7,7 @@
 // only be checked by grepping the template for its strings — which cannot catch
 // a broken link.
 import { withBase } from '../../lib/paths';
+import { releaseLabel as releaseLabelOf, readableDate } from '../../lib/now-release';
 
 export interface HighlightSegment {
   readonly type: 'text' | 'strong' | 'code';
@@ -34,21 +35,9 @@ const { groups } = Astro.props;
 
 const changelogHref = withBase('/docs/changelog/');
 
-// "governance-extras 0.9.7", or both names when one entry released two packages.
-const releaseLabel = (group: NowGroup) =>
-  group.packages.map((pkg) => `${pkg.name} ${pkg.version}`).join(' · ');
-
-// 2026-08-16 → "16 August 2026". Built from the ISO parts rather than
-// `new Date(iso)`: parsing a bare date string is UTC while formatting is local,
-// so a timezone behind UTC renders the previous day.
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const readableDate = (iso: string) => {
-  const [year, month, day] = iso.split('-').map(Number);
-  return `${day} ${MONTHS[month - 1]} ${year}`;
-};
+// Shared with the permalink route and the Atom feed — see lib/now-release.ts.
+// They were local consts until the permalink route made this the third caller.
+const releaseLabel = (group: NowGroup) => releaseLabelOf(group.packages);
 
 // One index entry per distinct release date, pointing at the FIRST release of
 // that day. Groups arrive in the contract's descending-date order, so first-seen
@@ -96,7 +85,10 @@ const releasesOn = groups.reduce((acc, group) => (
     {groups.map((group) => (
       <li class="now-release" id={group.changelogAnchor}>
         <div class="now-release__meta">
-          <h3 class="now-release__name">{releaseLabel(group)}</h3>
+          <h3 class="now-release__name">
+            <a class="now-release__link" href={withBase(`/now/${group.changelogAnchor}/`)}
+              >{releaseLabel(group)}</a>
+          </h3>
           <time class="now-release__date" datetime={group.date}>{readableDate(group.date)}</time>
         </div>
         <ul class="now-release__highlights" role="list">
@@ -181,6 +173,15 @@ const releasesOn = groups.reduce((acc, group) => (
      this page, so a screen-reader user could not skim it by heading and nothing
      could be linked to. The element changed; the rendering did not — `margin: 0`
      clears the UA heading default and the size below was already explicit. */
+  /* The heading links to the release's own page. The `id` stays on the <li>
+     as well: it is what the in-page date index jumps to, and dropping it would
+     break that index to gain nothing. */
+  .now-release__link {
+    color: inherit;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
   .now-release__name {
     margin: 0;
     font-family: var(--ds-font-mono);

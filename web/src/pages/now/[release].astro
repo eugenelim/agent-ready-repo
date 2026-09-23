@@ -1,0 +1,130 @@
+---
+// One page per released version: `/now/<changelogAnchor>/`.
+//
+// WHY THESE EXIST. The Atom feed identifies every entry by a permanent IRI, and
+// it used `/now/#<anchor>`. That is only permanent while `/now/` shows every
+// release — the moment the index paginates, an older release moves off that URL
+// and its feed id silently stops resolving. A reader gets no error; the link
+// just scrolls nowhere. So the permalink lands BEFORE pagination, not with it.
+//
+// It is also the shape the survey found in 11 of the 12 products it checked
+// (docs/product/research/release-feed-length-survey.md): an entry gets its own
+// URL, and the index is a view over those entries rather than their only home.
+//
+// The slug is `changelogAnchor` — already unique across every group and already
+// the id the release carries on `/now/` and in the changelog — so a release has
+// ONE name across four surfaces instead of a new one invented here.
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import { withBase } from '../../lib/paths';
+import { releaseLabel, readableDate } from '../../lib/now-release';
+import projection from '../../lib/now-highlights.generated.json';
+import type { NowGroup } from '../../components/now/NowHighlights.astro';
+
+export function getStaticPaths() {
+  // Same schemaVersion contract as the page and the feed. A third consumer
+  // needs its own guard: one that lives only in the others does not protect it.
+  if (projection.schemaVersion !== 1) {
+    throw new Error(
+      `now-highlights.generated.json is schemaVersion ${projection.schemaVersion}, ` +
+        'but the release permalink renders version 1 — regenerate or update the route.'
+    );
+  }
+  return (projection.groups as readonly NowGroup[]).map((group) => ({
+    params: { release: group.changelogAnchor },
+    props: { group },
+  }));
+}
+
+const { group } = Astro.props as { group: NowGroup };
+const label = releaseLabel(group.packages);
+const changelogHref = `${withBase('/docs/changelog/')}#${group.changelogAnchor}`;
+---
+
+<SiteLayout
+  title={`${label} — agent-ready-repo`}
+  description={`Released highlights for ${label}, shipped ${readableDate(group.date)}.`}
+>
+  <Section tone="surface" labelledby="release-heading">
+    <div class="release">
+      <p class="release__eyebrow">
+        <a href={withBase('/now/')}>Now</a>
+      </p>
+      <h1 id="release-heading" class="release__name">{label}</h1>
+      <time class="release__date" datetime={group.date}>{readableDate(group.date)}</time>
+
+      <ul class="release__highlights" role="list">
+        {group.highlights.map((highlight) => (
+          <li class="release__highlight">
+            {highlight.segments.map((segment) => (
+              segment.type === 'strong' ? <strong>{segment.value}</strong>
+              : segment.type === 'code' ? <code>{segment.value}</code>
+              : <Fragment>{segment.value}</Fragment>
+            ))}
+          </li>
+        ))}
+      </ul>
+
+      <p class="release__source">
+        <a href={changelogHref}>Release notes for {label}</a>
+      </p>
+    </div>
+  </Section>
+</SiteLayout>
+
+<style>
+  /* Ruled and flat, like every other record surface here: separation comes
+     from rules, space and alignment, never from a fill or a border box. */
+  .release {
+    max-width: 62ch;
+  }
+
+  .release__eyebrow {
+    margin: 0 0 var(--ds-space-4);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-field-label);
+  }
+
+  .release__name {
+    margin: 0 0 var(--ds-space-2);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-h3);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+  }
+
+  .release__date {
+    display: block;
+    margin-bottom: var(--ds-space-6);
+    padding-bottom: var(--ds-space-5);
+    border-bottom: 1px solid var(--ds-rule-boundary);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-2);
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .release__highlights {
+    margin: 0 0 var(--ds-space-6);
+    padding-left: var(--ds-space-5);
+    display: grid;
+    gap: var(--ds-space-4);
+  }
+
+  .release__highlight {
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .release__source {
+    margin: 0;
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid var(--ds-rule-hairline);
+    font-size: var(--ds-type-sm);
+  }
+</style>

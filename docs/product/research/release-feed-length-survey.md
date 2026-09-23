@@ -293,6 +293,11 @@ pagination + feed**, which is Sentry's exact stack:
   each page self-canonicalises and pages link with ordinary `<a href>`. Cheap
   here, because step 1 gives the anchors and nothing external links into
   per-release fragments.
+- *Permalinks shipped 2026-09-22, ahead of pagination and for this reason.*
+  `/now/<anchor>/`, 156 pages, and the feed's entry ids now name them instead
+  of `/now/#<anchor>`. The build went 51 pages to 207 and stayed under 5s. The
+  dependency below is therefore discharged, and pagination can proceed without
+  breaking a published identity.
 - *Pagination now has a dependency it did not have when this was written.* The
   feed's entry `<id>`s are `/now/#<anchor>`, and an `<id>` must be permanent.
   Paginating `/now/` moves an older release off that URL, so every feed id for

@@ -85,11 +85,14 @@ const releaseLabel = (group: NowGroup) =>
   group.packages.map((pkg) => `${pkg.name} ${pkg.version}`).join(' · ');
 
 function entry(group: NowGroup): string {
-  // The entry URL is the release's anchor on /now/, which the page has carried
-  // as a stable `id` since the navigability change. `<id>` and the alternate
-  // link are the same IRI: it is permanent, and minting a separate identity
-  // scheme would give a reader two ways to refer to one release.
-  const url = `${PAGE_URL}#${group.changelogAnchor}`;
+  // The entry URL is the release's own permalink, NOT an anchor on /now/.
+  // An Atom `<id>` must be permanent, and `/now/#<anchor>` is only permanent
+  // while /now/ shows every release — paginating the index would move older
+  // releases off that URL and silently break every id pointing at one. The
+  // permalink cannot move, so it is the honest identity. `<id>` and the
+  // alternate link are the same IRI: minting a separate identity scheme would
+  // give a reader two ways to refer to one release.
+  const url = `${SITE}/now/${group.changelogAnchor}/`;
   const body = group.highlights
     .map((highlight) => `<li>${highlightHtml(highlight.segments)}</li>`)
     .join('');
