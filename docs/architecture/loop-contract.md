@@ -38,6 +38,21 @@ implement or verify it.** A task cites the design for why; it does not restate
 it. The reverse error is equally live — an acceptance criterion never lives in
 the design, and a criterion's verification mode never does either.
 
+The design section is **shape-pruned, not fixed**. The spec's optional
+`Shape:` field — `ui`, `service`, `data`, `integration` or `mixed` — selects
+which of the plan's nine `## Design (LLD)` sub-sections scaffold; the rest are
+deleted rather than left empty, and an omitted or `mixed` shape scaffolds the
+full set to prune by hand. The field names the *kind* of work and never a
+framework. The plan template carries the shape-to-subsection map, and labels
+it a guide rather than a gate: nothing binds `Shape:` to it and nothing
+enforces the pruning, so the map is a convention the author applies.
+
+One category is deliberately not a design sub-heading. Rollout and deployment
+is realised by `## Rollout`, which sits *after* `## Tasks` rather than in the
+design block, and a design sub-section cross-links to it rather than restating
+it. Keeping it out of the design block is what stops the same rollout
+decision being written twice.
+
 ## 3. Item identity
 
 [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md) decides
