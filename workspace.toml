@@ -1773,29 +1773,73 @@ open = [
   # D2, D3 and D5 were rewritten accordingly. Two Class C topics whose only
   # stale pin was a supporting one had it dropped.
   #
-  # BLOCKED, and this is the finding: the sanctioned write path cannot drop an
-  # owning pin. `validate_topic` accepts `owning_source: null` and 63 topics
-  # carry it, but `_validate_mutation_proposal` and `complete_mutation_proposal`
-  # both call `_validate_source(..., digest_required=True)`, so every proposal
-  # must name an owning source WITH a digest. Verified by executing both routes
-  # against a real topic: `owning_source: null` and omitting the key are each
-  # refused `strict_parse`. The store can therefore represent a state its only
-  # sanctioned writer cannot produce, and the 63 topics in that state are all
-  # legacy imports that never went through the writer.
+  # THE WRITER-GUARD BLOCKER IS CLEARED. The paragraph this replaces recorded
+  # that `_validate_mutation_proposal` and `complete_mutation_proposal` both
+  # called `_validate_source(..., digest_required=True)` unconditionally, so no
+  # proposal could express `owning_source: null` even though `validate_topic`
+  # accepted it and 63 topics carried it. `287421b13` (#1394) made both writer
+  # guards match `validate_topic`'s `is not None`, and its own message says
+  # "This change makes the capability exist; using it is separate work."
   #
-  # A second consequence follows from the same constraint: any mutation
-  # refreshes the owning digest as a side effect, so on a topic whose owning
-  # AND supporting pins are both stale, dropping the supporting pin silently
-  # refreshes the owning one -- the opposite of the disposition. That is why
-  # only the two topics with an already-exact owning pin were touched.
+  # Two claims that paragraph carried are now FALSE and are not merely stale.
+  # (1) It said any mutation refreshes the owning digest as a side effect.
+  # `_topic_from_proposal` writes `proposal["owning_source"]` verbatim and
+  # recomputes nothing, so a proposal now carries whatever owning source it
+  # states, including null. (2) It concluded the 16 blocked topics needed the
+  # guard change. They did need it, and they still cannot be repaired -- for
+  # the different reason below.
   #
-  # Remaining: 28 stale pins across 19 topics -- 3 retired (Class A, correctly
-  # no action) and 16 active, every one carrying a stale OWNING pin. All 16 are
-  # blocked until the writer can express a null owning source. That change is
-  # two small edits mirroring validate_topic's own `is not None` guard, plus
-  # tests, on a published skill's public seam -- so it is its own change with
-  # its own review, not a ride-along here.
-  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 24 of those are stale, one naming a file deleted by #1345, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; dispositioned into no-action, drop-dead-source, drop-the-pin and re-verify classes, with a revision-based pin recommended over a byte digest" },
+  # WHAT ACTUALLY BLOCKS THE DISPOSITION: throughput, not capability. The
+  # skill's helper registry is `_HELPERS` at `project_knowledge.py:98-115`, and
+  # it registers eight names across the three modes: `capture_observation`;
+  # `read_journal`, `read_topic`, `read_source`, `write_knowledge`; and
+  # `read_committed_map`, `read_committed_topic`, `read_freshness_source`.
+  # Exactly one of the eight writes a COMMITTED TOPIC -- `capture_observation`
+  # also persists, but to the pending journal. `call_helper` at
+  # `project_knowledge.py:1551` dispatches `write_knowledge` to
+  # `distill_observation`, which reaches
+  # `apply_guarded_mutation`, whose `_apply_guarded_mutation_body` calls
+  # `_find_capture(validated["capture_id"])` and refuses `postimage_mismatch`
+  # when that capture already carries a disposition. So the one registered
+  # committed-topic write path costs one PENDING captured observation per
+  # mutation, and appends an occurrence to the topic it edits.
+  #
+  # Measured 2026-09-23 over every partition with no scope filter: 53 captures,
+  # 50 dispositioned, 3 pending -- scoped to new-spec, to
+  # docs/product/briefs + author-delivery-brief, and to docs/adr. Against 20
+  # active topics carrying a stale OWNING pin, three rides clear at most three.
+  # Do NOT read a scoped drain as the journal being empty: this entry first
+  # recorded zero pending because `--distill --pending` with
+  # `{"selection_mode":"direct-maintainer-pending","scope":"docs"}` filters on
+  # `project_scope.paths` (`_pending_from_loaded_partitions`), and all three
+  # pending captures fall outside `docs`.
+  #
+  # `knowledge_store.write_topic` does write a topic with no capture, so the
+  # store is not incapable -- but it is not a maintenance route: it is
+  # unreachable through any registered helper, its only
+  # callers are the pack's own tests, and it skips both the topic-map rebuild
+  # and the occurrence/disposition trail. Reaching for it would put the store
+  # and `topics.index.json` out of agreement and leave the edit unattributable.
+  # Manufacturing captures to carry maintenance edits is the other tempting
+  # route and is equally refused: it writes a producer, a semantic gate and an
+  # evidence digest for an edit that is not an observation, into the audit trail
+  # the store exists to keep.
+  #
+  # Unblocks when: the sanctioned surface gains a capture-free maintenance
+  # mutation that also rebuilds the map, or the freshness contract moves off
+  # byte digests. Either is a change to a published skill's public seam with its
+  # own specification and review. A third route exists but does not scale --
+  # ride the next real distill run, which is how the two Class C drops in
+  # `ecba88748` (#1351) landed.
+  #
+  # Re-measured 2026-09-23, superseding every count above; the drift this entry
+  # predicts is visible in the movement. Of 98 topics (93 active, 5 retired), 35
+  # pin at least one source and 41 of those pins are stale, spread over 28
+  # topics: 24 active, of which 20 carry a stale OWNING pin, and 4 retired
+  # (Class A, correctly no action). No pin names a missing file, so Class B
+  # stays done. No topic is `needs_review`, so active here means lifecycle
+  # `active` exactly.
+  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 41 of those pins are stale across 28 topics, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; the recorded drop-the-pin disposition is capable but not affordable, because the skill registers exactly one committed-topic write path and it costs one pending captured observation per topic, of which three remain against 20 active topics with a stale owning pin" },
 
   # Found 2026-09-17 by the pre-EXECUTE review of
   # docs/specs/wave-complete-dispatch-receipts. The entries below are limits
