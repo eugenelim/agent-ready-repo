@@ -15,11 +15,16 @@ monkeypatch them by attribute name on this module without reaching into
 from __future__ import annotations
 
 import ast
+import dataclasses
+import hashlib
 import json
+import os
 import re
 import shutil
+import stat
 import sys
 import tomllib
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
@@ -33,19 +38,29 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _OWNERSHIP_STATE_FILE,
     ReplayError,
     SelfHostedInitConfig,
+    SelfHostOwnershipState,
     SelfHostPin,
+    SelfHostRecipe,
     _is_attributed,
     _is_safe_recipe_text,
     _load_ownership_state,
     _load_self_host_recipe,
     _migrate_managed_paths,
     _plan_stale_owned_paths,
+    _write_ownership_state,
     replay_derivation,
 )
 from agentbundle.commands._common import check_spec_version_gate, confirm_or_refuse
 from agentbundle.config import PackState, State
 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
-from agentbundle.safety import Tier, classify, companion_path
+from agentbundle.safety import (
+    Publish,
+    Tier,
+    classify,
+    companion_path,
+    write_companion,
+    write_jailed,
+)
 
 if TYPE_CHECKING:
     import argparse
@@ -57,6 +72,7 @@ _SUCCESS = 0
 _DIFFERENCE = 1
 _MALFORMED = 2
 _CANNOT_ANSWER = 3
+_APPLY_FAILED = 4
 
 # The two digest-bearing schemes fetch_catalogue_archive_with_provenance
 # handles; every other URI (local path or git+https://) goes through
@@ -274,6 +290,751 @@ def merge_ownership_state(
     new_state["recipe"] = recipe
     new_state["pin"] = pin
     return new_state
+
+
+# ---------------------------------------------------------------------------
+# T4: the write sequence applies a plan or restores the tree.
+#
+# Composes T2's `select_write_set` (scope + deferred-package exclusion) and
+# T3's `merge_ownership_state`/`build_pin` rather than duplicating either.
+# `apply_write_sequence` is the one entry point T6's `_run_apply` calls after
+# consent; every other function here is one of its independently testable
+# pieces (plan.md § Component decomposition names the rollback snapshot as
+# this task's own named seam — the rest is what "applies a plan or restores
+# the tree" requires alongside it).
+# ---------------------------------------------------------------------------
+
+# spec AC-0076 — a chosen ceiling, not a measurement (plan.md's Design
+# decisions "Rollback holds the prior walk tuple in memory").
+_SNAPSHOT_BOUND_BYTES = 256 * 1024 * 1024
+_SNAPSHOT_CHUNK_BYTES = 1024 * 1024
+
+
+class SnapshotBoundExceeded(Exception):
+    """AC-0076 — the write-set paths that exist hold more than the bound."""
+
+    def __init__(self, *, bound: int, measured: int) -> None:
+        super().__init__(
+            f"write-set paths hold {measured} byte(s), which exceeds the "
+            f"{bound}-byte bound"
+        )
+        self.bound = bound
+        self.measured = measured
+
+
+class SnapshotUnreadableError(Exception):
+    """A write-set path's pre-run state could not be read while building the
+    rollback snapshot (an AC-0039 `3 — cannot-answer` row)."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__(f"cannot read pre-run state of {path!r}")
+        self.path = path
+
+
+@dataclass(frozen=True)
+class WalkEntry:
+    """One path's pre-run state — the same tuple AC-0041 compares: entry
+    kind, mode, symlink target, and bytes (regular files only).
+    """
+
+    kind: str  # "absent" | "file" | "dir" | "symlink" | "other"
+    mode: int | None
+    symlink_target: str | None
+    content: bytes | None
+
+
+_ABSENT_ENTRY = WalkEntry(kind="absent", mode=None, symlink_target=None, content=None)
+
+
+def _read_bounded_chunks(path: Path) -> Iterable[bytes]:
+    """Yield *path*'s bytes in fixed-size chunks.
+
+    Split out so a test can force a chunked read to yield more than the
+    file's own ``st_size`` predicted — simulating a path that grew between
+    the pre-prompt ``st_size`` sum and this read, which is the race
+    AC-0076's as-built bound exists to catch (plan.md T4 § Tests).
+    """
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(_SNAPSHOT_CHUNK_BYTES)
+            if not chunk:
+                return
+            yield chunk
+
+
+def _lstat_entry(path: Path) -> WalkEntry:
+    """Non-dereferencing read of *path*'s kind, mode and symlink target.
+
+    Never reads file content — :func:`snapshot_write_set` does that itself,
+    incrementally, so the byte bound holds over bytes actually read.
+    """
+    try:
+        st = path.lstat()
+    except OSError:
+        return _ABSENT_ENTRY
+    if stat.S_ISLNK(st.st_mode):
+        try:
+            target = str(path.readlink())
+        except OSError:
+            target = None
+        return WalkEntry(kind="symlink", mode=stat.S_IMODE(st.st_mode),
+                          symlink_target=target, content=None)
+    if stat.S_ISDIR(st.st_mode):
+        return WalkEntry(kind="dir", mode=stat.S_IMODE(st.st_mode),
+                          symlink_target=None, content=None)
+    if stat.S_ISREG(st.st_mode):
+        return WalkEntry(kind="file", mode=stat.S_IMODE(st.st_mode),
+                          symlink_target=None, content=None)
+    return WalkEntry(kind="other", mode=stat.S_IMODE(st.st_mode),
+                      symlink_target=None, content=None)
+
+
+def _ancestor_relpaths(relpath: str) -> list[str]:
+    """Return *relpath*'s ancestor directories, root-first, as posix strings.
+
+    Excludes the root itself (``"."``) and *relpath* itself.
+    """
+    parts = Path(relpath).parts[:-1]
+    return [
+        "/".join(parts[: i + 1]) for i in range(len(parts))
+    ]
+
+
+def snapshot_write_set(
+    target: Path,
+    paths: Iterable[str],
+    *,
+    bound: int = _SNAPSHOT_BOUND_BYTES,
+) -> dict[str, WalkEntry]:
+    """AC-0038/AC-0076 — the pre-run walk tuple for every *paths* entry and
+    its ancestor directories, taken before the consent prompt.
+
+    Two passes, per AC-0076: first, a fast ``st_size`` sum over every
+    existing path with no content read at all, refusing before any byte is
+    read when the sum alone exceeds *bound* (naming it and the measured
+    sum). Second, the actual snapshot is built, reading each file's bytes in
+    bounded chunks and re-checking the running total as it reads — a bound
+    checked only against a per-file finished total would still read one
+    path that grew past the first pass's sum in full before it could trip
+    (plan.md T4 § Tests, AC-0076's as-built half).
+
+    Raises :class:`SnapshotUnreadableError` when a path that exists cannot
+    be read at all (spec AC-0039's own row for this).
+    """
+    unique_paths = sorted(set(paths))
+
+    total = 0
+    for relpath in unique_paths:
+        entry = _lstat_entry(target / relpath)
+        if entry.kind == "file":
+            try:
+                total += (target / relpath).stat().st_size
+            except OSError as exc:
+                raise SnapshotUnreadableError(relpath) from exc
+    if total > bound:
+        raise SnapshotBoundExceeded(bound=bound, measured=total)
+
+    snapshot: dict[str, WalkEntry] = {}
+    running = 0
+    for relpath in unique_paths:
+        for ancestor in _ancestor_relpaths(relpath):
+            if ancestor in snapshot:
+                continue
+            snapshot[ancestor] = _lstat_entry(target / ancestor)
+
+        full = target / relpath
+        entry = _lstat_entry(full)
+        if entry.kind == "file":
+            buffer = bytearray()
+            try:
+                for chunk in _read_bounded_chunks(full):
+                    buffer.extend(chunk)
+                    running += len(chunk)
+                    if running > bound:
+                        raise SnapshotBoundExceeded(bound=bound, measured=running)
+            except SnapshotBoundExceeded:
+                raise
+            except OSError as exc:
+                raise SnapshotUnreadableError(relpath) from exc
+            entry = dataclasses.replace(entry, content=bytes(buffer))
+        snapshot[relpath] = entry
+    return snapshot
+
+
+def restore_from_snapshot(
+    target: Path,
+    snapshot: dict[str, WalkEntry],
+    acted_paths: Iterable[str],
+) -> list[str]:
+    """AC-0038 — restore every path in *acted_paths* to its *snapshot* state.
+
+    Scoped to *acted_paths* — what the run actually wrote, created or
+    removed — never to the whole snapshot: restoring a path the run never
+    reached would rewrite an adopter edit made at that path during the run
+    (plan.md's Design decisions, "Rollback holds the prior walk tuple in
+    memory"). Best-effort: every path is attempted regardless of an earlier
+    failure, and every path that could not be restored is returned rather
+    than raised (spec AC-0058).
+
+    File content is restored through :func:`agentbundle.safety.write_jailed`
+    — every target-tree write goes through the jailed primitive, restore
+    included (plan.md § Constraints). A directory the run created and the
+    snapshot shows absent is removed once it is empty; a directory removal
+    left non-empty by an unrestorable child is itself reported unrestored.
+    """
+    unrestored: list[str] = []
+    scope: set[str] = set()
+    for relpath in acted_paths:
+        scope.add(relpath)
+        scope.update(_ancestor_relpaths(relpath))
+    # Deepest paths first so a directory's children are gone (or reported
+    # unrestored) before the directory itself is considered for removal.
+    ordered = sorted(scope, key=lambda p: p.count("/"), reverse=True)
+    for relpath in ordered:
+        entry = snapshot.get(relpath, _ABSENT_ENTRY)
+        full = target / relpath
+        try:
+            if entry.kind == "absent":
+                current = _lstat_entry(full)
+                if current.kind in ("file", "symlink"):
+                    full.unlink()
+                elif current.kind == "dir":
+                    # Only ever empty if every child this run created under
+                    # it was itself already restored (deepest-first order);
+                    # an OSError here (non-empty) is reported, not raised
+                    # past this loop, matching every other restore failure.
+                    full.rmdir()
+                # already absent: nothing to do.
+            elif entry.kind == "file":
+                write_jailed(target, relpath, entry.content or b"", mode=entry.mode)
+            else:
+                # A pre-existing ancestor directory: still a directory is a
+                # no-op restore.
+                pass
+        except OSError:
+            unrestored.append(relpath)
+    return unrestored
+
+
+def _write_group(path: str) -> int:
+    """AC-0032 — the order group *path*'s destination sorts into: packs,
+    profiles, guides, then everything else (the derivation-wide paths)."""
+    if path.startswith("packs/"):
+        return 0
+    if path.startswith("profiles/"):
+        return 1
+    if path.startswith(_GUIDES_SCOPE_PREFIX):
+        return 2
+    return 3
+
+
+def write_order(paths: Iterable[str]) -> list[str]:
+    """AC-0032 — *paths* ordered packs, profiles, guides, derivation-wide.
+
+    The ownership state (AC-0033 clause 6) is never passed here — it is
+    always written after every path this returns, by construction of the
+    caller.
+    """
+    return sorted(set(paths), key=lambda p: (_write_group(p), p))
+
+
+def gate_recheck(target: Path, expected: dict[str, str | None]) -> list[str]:
+    """AC-0077's gate recheck — *expected* maps a `would-update` destination
+    to the digest (``None`` for "classification found no entry") its row was
+    classified against. Returns every path whose on-disk state has since
+    diverged — a changed digest, a changed entry kind, or an entry found
+    where none was expected.
+
+    Runs once, after consent and before the write phase opens, over every
+    write-set destination that carries a classified row — never over the
+    ownership state, which has none. An ordinary confined read; needs no
+    change to the write helpers (plan.md § Constraints).
+    """
+    diverged: list[str] = []
+    for path in sorted(expected):
+        full = target / path
+        try:
+            full.lstat()
+            exists = True
+        except OSError:
+            exists = False
+
+        expected_sha = expected[path]
+        if not exists:
+            if expected_sha is not None:
+                diverged.append(path)
+            continue
+        if expected_sha is None:
+            diverged.append(path)
+            continue
+        try:
+            actual = sha256_confined_regular_file(target, full)
+        except UnsafeContentError:
+            diverged.append(path)
+            continue
+        if actual != expected_sha:
+            diverged.append(path)
+    return diverged
+
+
+def _staged_sibling_name(directory: Path, destination_name: str) -> str | None:
+    """Find a staged temp file of this command's own staging shape.
+
+    Mirrors ``safety.write_jailed``'s staging pattern:
+    ``tempfile.mkstemp(prefix=target.name + ".", suffix=".tmp", dir=...)``.
+    """
+    prefix = destination_name + "."
+    try:
+        candidates = sorted(
+            entry.name for entry in directory.iterdir()
+            if entry.name.startswith(prefix) and entry.name.endswith(".tmp")
+        )
+    except OSError:
+        return None
+    return candidates[0] if candidates else None
+
+
+def classify_companion_destinations(
+    target: Path, companions: dict[str, str]
+) -> tuple[dict[str, str], dict[str, str], dict[str, str | None]]:
+    """AC-0070's admission check — classify every computed companion
+    destination in *companions* (``original path -> companion path``).
+
+    Returns ``(admitted, occupied, residue)``. ``admitted`` and ``occupied``
+    map ``original -> companion``; ``residue`` maps ``original -> sibling``
+    (``None`` when no staged sibling of this command's own staging shape is
+    found). A destination absent on disk is admitted. A present destination
+    with a link count of one is an ordinary occupant. A present destination
+    with a link count above one is the crash residue AC-0070's third outcome
+    names, reported separately from an occupant.
+
+    A plain ``lstat`` — never an attempted link — decides admission: the
+    non-replacing publish's own atomic mechanism (not this check) is what
+    actually protects against a destination that appears *after* this run
+    (spec AC-0070's admission race), so this function never itself writes.
+    """
+    admitted: dict[str, str] = {}
+    occupied: dict[str, str] = {}
+    residue: dict[str, str | None] = {}
+    for original in sorted(companions):
+        companion = companions[original]
+        full = target / companion
+        try:
+            st = full.lstat()
+        except OSError:
+            admitted[original] = companion
+            continue
+        if st.st_nlink > 1:
+            residue[original] = _staged_sibling_name(full.parent, full.name)
+        else:
+            occupied[original] = companion
+    return admitted, occupied, residue
+
+
+def detect_companion_collisions(
+    companions: dict[str, str], planned_paths: set[str]
+) -> dict[str, str]:
+    """AC-0071 — every ``original -> companion`` pair whose companion
+    destination the replayed source itself plans, refusing the whole run.
+    """
+    return {
+        original: companion
+        for original, companion in companions.items()
+        if companion in planned_paths
+    }
+
+
+def _resolves_within(target: Path, path: str, protected_prefixes: tuple[str, ...]) -> bool:
+    """AC-0069's spelling clause — True when *path* resolves, by directory
+    identity rather than a string prefix, inside one of *protected_prefixes*.
+
+    A string prefix comparison is defeated by a traversal
+    (``packs/../.agentbundle/tooling/x``) and, on a case-insensitive
+    filesystem, by a differing-case spelling
+    (``.agentbundle/Tooling/x``) — both resolve to the same on-disk entry a
+    plain prefix comparison misses. ``os.path.samestat`` compares the
+    resolved ancestor's device/inode against each protected directory's own,
+    which the OS itself folds case on when the filesystem does.
+    """
+    try:
+        resolved = (target / path).resolve(strict=True)
+    except OSError:
+        return False
+    protected_stats = []
+    for prefix in protected_prefixes:
+        try:
+            protected_stats.append((target / prefix).stat())
+        except OSError:
+            continue
+    if not protected_stats:
+        return False
+    try:
+        root_resolved = target.resolve(strict=True)
+    except OSError:
+        return False
+    current = resolved.parent
+    while True:
+        try:
+            current_stat = current.stat()
+        except OSError:
+            break
+        if any(os.path.samestat(current_stat, ps) for ps in protected_stats):
+            return True
+        if current == root_resolved or current.parent == current:
+            break
+        current = current.parent
+    return False
+
+
+def _in_coverage(
+    target: Path,
+    path: str,
+    *,
+    pack_names: list[str],
+    profile_names: list[str],
+    guides_mode: str,
+    scope: tuple[frozenset[str], frozenset[str]] | None,
+) -> bool:
+    """AC-0069 — True when *path* lies inside this run's coverage.
+
+    Coverage is a positive set (this run's resolved packs/profiles, guides
+    under a selecting mode, and every path the scope AC-0043 fixes admits),
+    narrowed by the exclusions AC-0069 names — never the exclusions alone,
+    which would re-admit every axis nobody enumerated.
+    """
+    if _resolves_within(target, path, _DEFERRED_PACKAGE_PREFIXES):
+        return False
+    if guides_mode == "none" and path.startswith(_GUIDES_SCOPE_PREFIX):
+        return False
+    if not _in_scope(path, scope):
+        return False
+    if path.startswith("packs/"):
+        return any(path.startswith(f"packs/{name}/") for name in pack_names)
+    if path.startswith("profiles/"):
+        return any(path == f"profiles/{name}.toml" for name in profile_names)
+    return True
+
+
+def select_removal_set(
+    target: Path,
+    old_state: dict[str, Any],
+    full_replayed_paths: set[str],
+    *,
+    pack_names: list[str],
+    profile_names: list[str],
+    guides_mode: str,
+    scope: tuple[frozenset[str], frozenset[str]] | None,
+) -> tuple[set[str], set[str]]:
+    """AC-0035/AC-0064/AC-0069 — the paths this run actually removes, and the
+    recorded-but-protected paths reported as ``out_of_coverage``.
+
+    The keep-set passed to the shipped removal guard is *full_replayed_paths*
+    unconditionally — never scope-narrowed, per plan.md's Design decisions
+    ("The removal set needs its own filter, and it is not the keep-set").
+    Coverage narrows the guard's *returned* removable list instead, which is
+    the § Never do boundary: passing a narrowed keep-set into
+    ``_plan_stale_owned_paths`` would mark every out-of-scope recipe path
+    stale.
+    """
+    removable, _reasons = _plan_stale_owned_paths(
+        target, old_state, full_replayed_paths
+    )
+    removal_set: set[str] = set()
+    out_of_coverage: set[str] = set()
+    for path in removable:
+        if _in_coverage(
+            target, path,
+            pack_names=pack_names, profile_names=profile_names,
+            guides_mode=guides_mode, scope=scope,
+        ):
+            removal_set.add(path)
+        else:
+            out_of_coverage.add(path)
+    return removal_set, out_of_coverage
+
+
+def _confined_unlink(target: Path, path: str) -> bool:
+    """AC-0073 — remove *path*, refusing at the unlink (not only at the plan)
+    if it is no longer a confined, non-link-like regular file.
+
+    Reuses the exact confinement helper the removal planner itself applies
+    (``_plan_stale_owned_paths``'s own sha guard), so "the same confinement"
+    is one implementation rather than a second copy.
+    """
+    full = target / path
+    try:
+        sha256_confined_regular_file(target, full)
+    except (UnsafeContentError, OSError):
+        return False
+    try:
+        full.unlink()
+    except OSError:
+        return False
+    return True
+
+
+def _dataclass_from_dict(cls: type, data: dict[str, Any]) -> Any:
+    """Build *cls* from *data*, dropping any key *cls* does not declare."""
+    field_names = {f.name for f in dataclasses.fields(cls)}
+    return cls(**{k: v for k, v in data.items() if k in field_names})
+
+
+def write_merged_state(target: Path, merged_state: dict[str, Any]) -> None:
+    """AC-0033 clause 6 — persist *merged_state* through ``init``'s own state
+    writer, so its symlink refusal and random ``O_EXCL`` staging name stay
+    one implementation (plan.md § Constraints) rather than a second one.
+    """
+    state = SelfHostOwnershipState(
+        schema_version=merged_state.get("schema_version", "3"),
+        managed_paths=merged_state.get("managed_paths", []),
+        adapters=merged_state.get("adapters", []),
+        managed_target_path=merged_state.get("managed_target_path", ""),
+        source_pack_identity=merged_state.get("source_pack_identity", ""),
+        source_root_kind=merged_state.get("source_root_kind", "self-hosted-source"),
+        recipe=_dataclass_from_dict(SelfHostRecipe, merged_state.get("recipe") or {}),
+        pin=_dataclass_from_dict(SelfHostPin, merged_state.get("pin") or {}),
+    )
+    _write_ownership_state(target, state)
+
+
+@dataclass
+class WriteSequenceResult:
+    """T6's own material for mapping onto AC-0039's rows and for building
+    :func:`merge_ownership_state`'s arguments. At most one failure field is
+    ever populated; ``ok`` says which shape this is.
+    """
+
+    ok: bool
+    written: dict[str, str] = field(default_factory=dict)
+    removed: set[str] = field(default_factory=set)
+    out_of_coverage: set[str] = field(default_factory=set)
+    companion_occupied: dict[str, str] = field(default_factory=dict)
+    companion_residue: dict[str, str | None] = field(default_factory=dict)
+    companion_collision: dict[str, str] | None = None
+    snapshot_bound_exceeded: tuple[int, int] | None = None
+    snapshot_unreadable: str | None = None
+    gate_diverged: list[str] | None = None
+    write_failed_path: str | None = None
+    restored: bool | None = None
+    unrestored: list[str] = field(default_factory=list)
+    removal_failed: bool = False
+    state_write_failed: bool = False
+
+
+def apply_write_sequence(
+    target: Path,
+    *,
+    old_state: dict[str, Any] | None,
+    verdict_rows: list[tuple[str, str, str | None]],
+    file_bytes: dict[str, bytes],
+    planned_paths: set[str],
+    pack_names: list[str],
+    profile_names: list[str],
+    scope_packs: Iterable[str] = (),
+    scope_profiles: Iterable[str] = (),
+    guides_scope: bool = False,
+    guides_mode: str,
+    pin: dict[str, Any],
+    snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
+) -> WriteSequenceResult:
+    """AC-0032/AC-0033/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0070/
+    AC-0071/AC-0073/AC-0076/AC-0077 — apply the plan *verdict_rows* classified
+    (spec AC-0033 clauses 3-6), or restore the tree.
+
+    *pack_names*/*profile_names* are AC-0033 clause 1's already-resolved
+    effective selection (the recorded recipe unioned with any name a scoping
+    flag introduces) — used for introduced-pack/profile detection and for
+    AC-0069's coverage selection axis. *scope_packs*/*scope_profiles*/
+    *guides_scope* are the raw scoping **flags** AC-0043 names — a narrower,
+    usually-empty list distinct from the resolved selection, forwarded to
+    T2's `select_write_set` unchanged; conflating the two would scope every
+    write to only the flag's own names even on an unscoped run, since the
+    resolved selection is never empty in practice.
+
+    Removal after every write, and the state after removal, because a crash
+    between the two must leave a recorded state that under-claims rather
+    than over-claims what it owns (plan.md T4 § Approach): only a write-phase
+    failure is rolled back (AC-0038); a removal or state-write failure after
+    every write has landed leaves those writes and any completed removal in
+    place, reporting `4 — apply-failed` (spec AC-0039/AC-0041's own rows for
+    each).
+    """
+    old_state = old_state or {}
+    old_recipe = old_state.get("recipe")
+    old_packs = set(old_recipe.get("packs", []) or []) if isinstance(old_recipe, dict) else set()
+    old_profiles = (
+        set(old_recipe.get("profiles", []) or []) if isinstance(old_recipe, dict) else set()
+    )
+    introduced_packs = set(pack_names) - old_packs
+    introduced_profiles = set(profile_names) - old_profiles
+
+    recorded: dict[str, str | None] = {}
+    for entry in _migrate_managed_paths(old_state):
+        path = entry.get("path", "")
+        if path:
+            sha = entry.get("sha256")
+            recorded[path] = sha if isinstance(sha, str) else None
+
+    would_update: set[str] = set()
+    companions: dict[str, str] = {}
+    admitted_new: set[str] = set()
+    for path, verdict, companion in verdict_rows:
+        if verdict == "would-update":
+            would_update.add(path)
+        elif verdict == "would-companion" and companion:
+            companions[path] = companion
+        elif verdict == "untouched":
+            introduced_pack_path = any(
+                path.startswith(f"packs/{name}/") for name in introduced_packs
+            )
+            introduced_profile_path = any(
+                path == f"profiles/{name}.toml" for name in introduced_profiles
+            )
+            if introduced_pack_path or introduced_profile_path:
+                admitted_new.add(path)
+
+    collisions = detect_companion_collisions(companions, planned_paths)
+    if collisions:
+        return WriteSequenceResult(ok=False, companion_collision=collisions)
+
+    admitted_companions, occupied, residue = classify_companion_destinations(
+        target, companions
+    )
+
+    scope_packs = list(scope_packs)
+    scope_profiles = list(scope_profiles)
+    scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope)
+    raw_admitted = would_update | set(admitted_companions.values()) | admitted_new
+    admitted, _deferred = select_write_set(
+        raw_admitted, pack_names=scope_packs, profile_names=scope_profiles,
+        guides=guides_scope,
+    )
+    would_update_admitted = would_update & admitted
+    companion_destination_to_original = {
+        companion: original for original, companion in admitted_companions.items()
+        if companion in admitted
+    }
+
+    try:
+        snapshot = snapshot_write_set(target, admitted, bound=snapshot_bound_bytes)
+    except SnapshotBoundExceeded as exc:
+        return WriteSequenceResult(
+            ok=False, snapshot_bound_exceeded=(exc.bound, exc.measured),
+            companion_occupied=occupied, companion_residue=residue,
+        )
+    except SnapshotUnreadableError as exc:
+        return WriteSequenceResult(
+            ok=False, snapshot_unreadable=exc.path,
+            companion_occupied=occupied, companion_residue=residue,
+        )
+
+    expected_would_update: dict[str, str | None] = {
+        path: (
+            hashlib.sha256(snapshot[path].content).hexdigest()
+            if snapshot[path].kind == "file" else None
+        )
+        for path in would_update_admitted
+    }
+    diverged = gate_recheck(target, expected_would_update)
+    if diverged:
+        return WriteSequenceResult(
+            ok=False, gate_diverged=sorted(diverged),
+            companion_occupied=occupied, companion_residue=residue,
+        )
+
+    ordered = write_order(admitted)
+    written: dict[str, str] = {}
+    acted: list[str] = []
+    write_failed_path: str | None = None
+    for path in ordered:
+        is_companion = path in companion_destination_to_original
+        try:
+            if is_companion:
+                original = companion_destination_to_original[path]
+                content = file_bytes[original]
+                # `write_companion` computes the `.upstream.<ext>` suffix
+                # itself from *original* — passing the already-suffixed
+                # destination here would suffix it a second time.
+                write_companion(target, original, content, publish=Publish.NEVER_REPLACE)
+            elif path in would_update_admitted:
+                content = file_bytes[path]
+                write_jailed(
+                    target, path, content,
+                    publish=Publish.REPLACE_IF_UNCHANGED,
+                    expected_sha256=expected_would_update[path],
+                )
+            else:
+                content = file_bytes[path]
+                write_jailed(target, path, content)
+        except Exception:
+            write_failed_path = path
+            break
+        acted.append(path)
+        # A companion destination is never a key in `written` — its
+        # *original* path's digest does not change (AC-0034), and AC-0059
+        # keeps the companion path itself out of the recorded state; T3's
+        # `merge_ownership_state` has no argument through which either could
+        # arrive, and this is the one seam that must not hand it one.
+        if not is_companion:
+            written[path] = hashlib.sha256(content).hexdigest()
+
+    if write_failed_path is not None:
+        # `write_jailed`/`write_companion` create the destination's parent
+        # directory before the write that then fails, so the failed path's
+        # own ancestor is a restore candidate too — but never the failed
+        # path's own content: it was never actually written (a divergence
+        # refuses before the rename, every other failure cleans up its own
+        # staged tempfile), so whatever is at that path is either untouched
+        # or another writer's edit, and AC-0041 requires either to be left
+        # exactly as found rather than restored to the pre-run snapshot.
+        restore_scope = [*acted, *_ancestor_relpaths(write_failed_path)]
+        unrestored = restore_from_snapshot(target, snapshot, restore_scope)
+        return WriteSequenceResult(
+            ok=False,
+            write_failed_path=write_failed_path,
+            restored=not unrestored,
+            unrestored=unrestored,
+            companion_occupied=occupied,
+            companion_residue=residue,
+        )
+
+    removal_set, out_of_coverage = select_removal_set(
+        target, old_state, planned_paths,
+        pack_names=pack_names, profile_names=profile_names,
+        guides_mode=guides_mode, scope=scope,
+    )
+    removed: set[str] = set()
+    removal_failed = False
+    for path in sorted(removal_set):
+        if _confined_unlink(target, path):
+            removed.add(path)
+        else:
+            removal_failed = True
+
+    if removal_failed:
+        return WriteSequenceResult(
+            ok=False, removal_failed=True,
+            written=written, removed=removed, out_of_coverage=out_of_coverage,
+            companion_occupied=occupied, companion_residue=residue,
+        )
+
+    merged = merge_ownership_state(
+        old_state, recorded=recorded, written=written, removed=removed,
+        pack_names=pack_names, profile_names=profile_names, pin=pin,
+    )
+    try:
+        write_merged_state(target, merged)
+    except Exception:
+        return WriteSequenceResult(
+            ok=False, state_write_failed=True,
+            written=written, removed=removed, out_of_coverage=out_of_coverage,
+            companion_occupied=occupied, companion_residue=residue,
+        )
+
+    return WriteSequenceResult(
+        ok=True, written=written, removed=removed, out_of_coverage=out_of_coverage,
+        companion_occupied=occupied, companion_residue=residue,
+    )
 
 
 def _synthesize_state(recorded: dict[str, str | None]) -> State:

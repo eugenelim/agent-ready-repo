@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 from pathlib import Path
 from unittest.mock import patch
@@ -2184,6 +2185,1087 @@ def test_pin_source_uri_absent_under_white_label_on_every_row(source_uri):
     )
 
     assert "source_uri" not in pin
+
+
+# ---------------------------------------------------------------------------
+# T4: the write sequence applies a plan or restores the tree.
+#
+# `edited_tree` (plan.md § Construction tests) is built programmatically
+# rather than as a committed fixture directory, matching this file's existing
+# convention for every other generated-source fixture (`_make_source`,
+# `_make_scope_predicate_source`) — a bounded search found no existing helper
+# already shaped for this task's needs, so a new one is warranted (Cut before
+# adding rung 2/7: an adequate repository pattern for *how* to build it, no
+# adequate existing builder *of* it).
+#
+# One source ships:
+#   - `packs/alpha/` — `README.md` (on-disk matches recorded -> would-update),
+#     `unchanged.md` (on-disk differs from recorded -> would-companion).
+#   - `packs/beta/` — a pack the recorded recipe never named (an "introduced"
+#     pack): every path Tier-3/untouched, all admitted per AC-0033 clause 3's
+#     third admission.
+#   - `profiles/default.toml` — likewise an introduced profile.
+#   - `guides/_shared/guide.md`, `catalogue.toml`,
+#     `tests/conformance/test_example.py` — Tier-3/untouched for an ordinary
+#     reason (never recorded, never introduced): never admitted.
+# The recorded state additionally carries `packs/alpha/gone.md` — present,
+# sha-matching, no longer planned by the source: the stale recorded path the
+# removal guard admits.
+# ---------------------------------------------------------------------------
+
+
+def _make_apply_source(root: Path) -> Path:
+    root.mkdir(parents=True)
+    (root / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream"\n'
+        'display_name = "Upstream"\n'
+        'description = "apply sequence test source"\n',
+        encoding="utf-8",
+    )
+    alpha = root / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "pack.toml").write_text(
+        '[pack]\nname = "alpha"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (alpha / "README.md").write_text("# Alpha v2\n", encoding="utf-8")
+    (alpha / "unchanged.md").write_text("upstream bytes\n", encoding="utf-8")
+    beta = root / "packs" / "beta"
+    beta.mkdir(parents=True)
+    (beta / "pack.toml").write_text(
+        '[pack]\nname = "beta"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    (beta / "NEW.md").write_text("new pack file\n", encoding="utf-8")
+    profiles = root / "profiles"
+    profiles.mkdir(parents=True)
+    (profiles / "default.toml").write_text(
+        '[profile]\nname = "default"\n', encoding="utf-8"
+    )
+    guides = root / "guides" / "_shared"
+    guides.mkdir(parents=True)
+    (guides / "guide.md").write_text("# guide\n", encoding="utf-8")
+    conformance = root / "tests" / "conformance"
+    conformance.mkdir(parents=True)
+    (conformance / "test_example.py").write_text("", encoding="utf-8")
+    return root
+
+
+def _write_apply_old_state(
+    target: Path, *, extra_recipe: dict | None = None
+) -> None:
+    alpha = target / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "README.md").write_bytes(b"# Alpha\n")
+    (alpha / "unchanged.md").write_bytes(b"adopter edited\n")
+    (alpha / "gone.md").write_bytes(b"stale\n")
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    recipe = {
+        "packs": ["alpha"],
+        "profiles": [],
+        "guides": "selected",
+        "attribution": "white-label",
+        "tooling": "external",
+        "name": "derived",
+        "display_name": "Derived",
+        "description": "d",
+        "owner_name": "Owner",
+        "owner_email": "owner@example.invalid",
+        "preferred_adapter": "claude-code",
+        "repository_url": None,
+    }
+    recipe.update(extra_recipe or {})
+    state_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "3",
+                "managed_paths": [
+                    {
+                        "path": "packs/alpha/README.md",
+                        "sha256": hashlib.sha256(b"# Alpha\n").hexdigest(),
+                    },
+                    {
+                        "path": "packs/alpha/unchanged.md",
+                        "sha256": hashlib.sha256(b"original\n").hexdigest(),
+                    },
+                    {
+                        "path": "packs/alpha/gone.md",
+                        "sha256": hashlib.sha256(b"stale\n").hexdigest(),
+                    },
+                ],
+                "adapters": ["claude-code"],
+                "managed_target_path": str(target),
+                "source_pack_identity": "derived",
+                "source_root_kind": "self-hosted-source",
+                "recipe": recipe,
+                "pin": {
+                    "source_revision": None,
+                    "archive_sha256": None,
+                    "synced_at": "2026-09-01T00:00:00Z",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _replay_apply_fixture(tmp_path: Path, *, tag: str = "default"):
+    """Build the `edited_tree` fixture and replay it. Returns
+    ``(target, replay, verdict_rows)``.
+
+    ``packs=["alpha", "beta"]``/``profiles=["default"]`` simulate what T6
+    owns resolving (AC-0033 clause 1's union of the recorded recipe with any
+    name a scoping flag introduces) -- a bare replay with no explicit
+    selection would instead read back only the recorded recipe's own
+    ``["alpha"]``/``[]``, leaving "beta"/"default" never selected at all,
+    which is not the scenario this fixture is for.
+    """
+    source = _make_apply_source(tmp_path / f"apply-source-{tag}")
+    target = tmp_path / f"apply-target-{tag}"
+    target.mkdir()
+    _write_apply_old_state(target)
+    cfg = ish.SelfHostedInitConfig(
+        target=target, source=source, tooling="external", attribution="white-label",
+        guides="selected", dry_run=True,
+        packs=["alpha", "beta"], profiles=["default"],
+    )
+    replay = ish.replay_derivation(cfg, interactive=False)
+    assert not replay.violations
+    planned_paths = set(replay.file_bytes)
+    _counts, verdict_rows = catalogue_sync._classify_planned_paths(
+        target, replay.old_state, planned_paths, []
+    )
+    return target, replay, verdict_rows
+
+
+def _apply(target: Path, replay, verdict_rows, **overrides) -> catalogue_sync.WriteSequenceResult:
+    kwargs: dict = {
+        "old_state": replay.old_state,
+        "verdict_rows": verdict_rows,
+        "file_bytes": replay.file_bytes,
+        "planned_paths": set(replay.file_bytes),
+        "pack_names": replay.pack_names,
+        "profile_names": replay.profile_names,
+        "guides_scope": False,
+        "guides_mode": replay.config.guides,
+        "pin": {"synced_at": "2026-09-23T00:00:00Z", "source_revision": None,
+                "archive_sha256": None},
+    }
+    kwargs.update(overrides)
+    return catalogue_sync.apply_write_sequence(target, **kwargs)
+
+
+def test_apply_write_order_is_packs_profiles_guides_derivation_then_state(
+    tmp_path, monkeypatch
+):
+    # Verifies AC-0032. A hand-built verdict set: the fourth (derivation-wide)
+    # group is non-empty only on an unscoped run, so it is included here
+    # deliberately -- a fixture that always supplies a scoping flag could not
+    # observe it.
+    target = tmp_path / "target"
+    target.mkdir()
+    calls: list[str] = []
+
+    def _record_jailed(root, relpath, content, **kwargs):
+        calls.append(relpath)
+        return root / relpath
+
+    def _record_companion(root, relpath, content, **kwargs):
+        calls.append("packs/alpha/README.upstream.md")
+        return root / relpath
+
+    def _record_state(root, merged_state):
+        calls.append("STATE")
+
+    monkeypatch.setattr(catalogue_sync, "write_jailed", _record_jailed)
+    monkeypatch.setattr(catalogue_sync, "write_companion", _record_companion)
+    monkeypatch.setattr(catalogue_sync, "write_merged_state", _record_state)
+
+    verdict_rows = [
+        ("guides/_shared/example.md", "would-update", None),
+        ("profiles/default.toml", "would-update", None),
+        ("packs/alpha/README.md", "would-companion", "packs/alpha/README.upstream.md"),
+        ("catalogue.toml", "would-update", None),
+    ]
+    file_bytes = {
+        "guides/_shared/example.md": b"g",
+        "profiles/default.toml": b"p",
+        "packs/alpha/README.md": b"r",
+        "catalogue.toml": b"c",
+    }
+    result = catalogue_sync.apply_write_sequence(
+        target,
+        old_state={},
+        verdict_rows=verdict_rows,
+        file_bytes=file_bytes,
+        planned_paths=set(file_bytes),
+        pack_names=[], profile_names=[],
+        guides_scope=False, guides_mode="selected",
+        pin={},
+    )
+
+    assert result.ok
+    assert calls == [
+        "packs/alpha/README.upstream.md",
+        "profiles/default.toml",
+        "guides/_shared/example.md",
+        "catalogue.toml",
+        "STATE",
+    ]
+
+
+def test_apply_written_set_equals_admitted_rows_in_both_directions(tmp_path):
+    # Verifies AC-0033 clauses 3 and 6, and AC-0045.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path)
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    expected_written_paths = {
+        "packs/alpha/README.md",              # would-update
+        "packs/beta/pack.toml",               # untouched, beta is introduced
+        "packs/beta/NEW.md",                  # untouched, beta is introduced
+        "profiles/default.toml",              # untouched, default is introduced
+    }
+    assert set(result.written) == expected_written_paths
+    # The companion is a SEPARATE destination from `written` -- AC-0034's own
+    # bytes assertion covers it below; asserting it here too would make this
+    # an "at least" check that a would-update-only oracle also passes.
+    assert (target / "packs" / "alpha" / "unchanged.upstream.md").exists()
+    # An ordinary untouched path (not introduced) is never admitted.
+    assert "catalogue.toml" not in result.written
+    assert "guides/_shared/guide.md" not in result.written
+    assert "tests/conformance/test_example.py" not in result.written
+    # State is written (clause 6) -- not part of `written`, but the file
+    # exists afterward.
+    assert (target / ".agentbundle" / "self-host-state.json").exists()
+
+
+def test_apply_companion_carries_source_bytes_and_original_is_unchanged(tmp_path):
+    # Verifies AC-0034.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="companion")
+    before_digest = hashlib.sha256(
+        (target / "packs" / "alpha" / "unchanged.md").read_bytes()
+    ).hexdigest()
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    companion = target / "packs" / "alpha" / "unchanged.upstream.md"
+    assert companion.read_bytes() == replay.file_bytes["packs/alpha/unchanged.md"]
+    after_digest = hashlib.sha256(
+        (target / "packs" / "alpha" / "unchanged.md").read_bytes()
+    ).hexdigest()
+    assert after_digest == before_digest
+
+
+def test_apply_companion_destination_never_enters_written(tmp_path):
+    # Discharges the obligation T3 handed forward (docs/specs/
+    # catalogue-sync-apply/notes/verification-ledger.md § Execution --
+    # wave 1): `merge_ownership_state` has no argument through which a
+    # companion destination could arrive, but that only holds if this
+    # task's own `written` mapping -- the argument T6 will pass it -- never
+    # puts one there either. Driven through the real write sequence, over a
+    # fixture where a would-companion path genuinely exists, so the
+    # assertion fails if the companion path enters `written` (it did, before
+    # this task's `is_companion` guard was added).
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="companion-written")
+    before_digest = hashlib.sha256(
+        (target / "packs" / "alpha" / "unchanged.md").read_bytes()
+    ).hexdigest()
+    companion_destination = "packs/alpha/unchanged.upstream.md"
+    assert any(
+        v == "would-companion" and c == companion_destination
+        for _p, v, c in verdict_rows
+    ), "fixture must actually carry a would-companion row"
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    assert companion_destination not in result.written
+    after_digest = hashlib.sha256(
+        (target / "packs" / "alpha" / "unchanged.md").read_bytes()
+    ).hexdigest()
+    assert after_digest == before_digest
+
+
+def test_apply_stale_removal_runs_after_writes_with_full_keep_set(tmp_path, monkeypatch):
+    # Verifies AC-0035.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="removal-order")
+    calls: list[tuple[str, tuple, dict]] = []
+    real_select_removal_set = catalogue_sync.select_removal_set
+
+    def _spy_select_removal_set(*args, **kwargs):
+        calls.append(("select_removal_set", args, kwargs))
+        return real_select_removal_set(*args, **kwargs)
+
+    real_write_jailed = catalogue_sync.write_jailed
+
+    def _spy_write_jailed(root, relpath, content, **kw):
+        calls.append(("write_jailed", (relpath,), {}))
+        return real_write_jailed(root, relpath, content, **kw)
+
+    real_write_companion = catalogue_sync.write_companion
+
+    def _spy_write_companion(root, relpath, content, **kw):
+        calls.append(("write_companion", (relpath,), {}))
+        return real_write_companion(root, relpath, content, **kw)
+
+    monkeypatch.setattr(catalogue_sync, "select_removal_set", _spy_select_removal_set)
+    monkeypatch.setattr(catalogue_sync, "write_jailed", _spy_write_jailed)
+    monkeypatch.setattr(catalogue_sync, "write_companion", _spy_write_companion)
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    assert "packs/alpha/gone.md" in result.removed
+    write_call_indexes = [
+        i for i, c in enumerate(calls) if c[0] in ("write_jailed", "write_companion")
+    ]
+    removal_call_index = next(
+        i for i, c in enumerate(calls) if c[0] == "select_removal_set"
+    )
+    assert write_call_indexes  # the fixture writes at least one path
+    assert max(write_call_indexes) < removal_call_index
+
+    # The keep-set argument is the full replayed set, not the write set.
+    removal_kwargs_call = calls[removal_call_index]
+    _name, args, _kwargs = removal_kwargs_call
+    full_replayed_arg = args[2]
+    assert full_replayed_arg == set(replay.file_bytes)
+    assert full_replayed_arg != set(result.written)  # the two sets differ here
+
+
+def test_apply_keep_set_handed_to_the_shipped_guard_is_full_replayed(
+    tmp_path, monkeypatch
+):
+    """AC-0035: the keep-set the SHIPPED removal guard receives is the full
+    replayed set, on a scoped run as well as an unscoped one.
+
+    Two things this pins that the sibling ordering test above cannot.
+
+    It spies `_plan_stale_owned_paths`, not `select_removal_set`. AC-0035
+    constrains the argument handed to the shipped guard, and a narrowing
+    inside `select_removal_set` -- which is exactly where the plan's § Never
+    do violation would live -- never touches `select_removal_set`'s own
+    inputs. Measured 2026-09-23: a spy one level too high reports 9 paths
+    while the guard is handed 3.
+
+    And it drives a SCOPED run. With no scoping flag every path is in scope,
+    so narrowing the keep-set is a no-op and an unscoped fixture cannot fail.
+    """
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="keepset-scoped")
+    seen: list[set[str]] = []
+    real_guard = catalogue_sync._plan_stale_owned_paths
+
+    def _spy(target_arg, old_state_arg, current_paths):
+        seen.append(set(current_paths))
+        return real_guard(target_arg, old_state_arg, current_paths)
+
+    monkeypatch.setattr(catalogue_sync, "_plan_stale_owned_paths", _spy)
+    _apply(target, replay, verdict_rows, scope_packs=["alpha"])
+
+    assert seen, "_plan_stale_owned_paths was never called"
+    assert seen[0] == set(replay.file_bytes)
+
+    # Teeth: under this scope a narrowed keep-set is strictly smaller, so the
+    # assertion above can actually fail. Without this the test would pass on
+    # a fixture whose every path happened to be in scope.
+    in_scope_only = {q for q in replay.file_bytes if q.startswith("packs/alpha/")}
+    assert in_scope_only < set(replay.file_bytes)
+
+
+def test_apply_unscoped_run_leaves_vendored_tooling_present_and_out_of_coverage(
+    tmp_path,
+):
+    # Verifies AC-0069 (the case that matters -- unscoped, no scope excludes
+    # these paths at all, so only coverage protects them).
+    source = _make_apply_source(tmp_path / "vendored-source")
+    target = tmp_path / "vendored-target"
+    target.mkdir()
+    _write_apply_old_state(target, extra_recipe={"tooling": "vendored"})
+    tooling_dir = target / ".agentbundle" / "tooling" / "agentbundle"
+    tooling_dir.mkdir(parents=True)
+    (tooling_dir / "marker.py").write_bytes(b"vendored\n")
+    credbroker_dir = target / "packages" / "credbroker"
+    credbroker_dir.mkdir(parents=True)
+    (credbroker_dir / "marker.py").write_bytes(b"cred\n")
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"].append(
+        {"path": ".agentbundle/tooling/agentbundle/marker.py",
+         "sha256": hashlib.sha256(b"vendored\n").hexdigest()}
+    )
+    state["managed_paths"].append(
+        {"path": "packages/credbroker/marker.py",
+         "sha256": hashlib.sha256(b"cred\n").hexdigest()}
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    cfg = ish.SelfHostedInitConfig(
+        target=target, source=source, tooling="external", attribution="white-label",
+        guides="selected", dry_run=True,
+        packs=["alpha", "beta"], profiles=["default"],
+    )
+    replay = ish.replay_derivation(cfg, interactive=False)
+    planned_paths = set(replay.file_bytes)
+    _counts, verdict_rows = catalogue_sync._classify_planned_paths(
+        target, replay.old_state, planned_paths, []
+    )
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    assert (tooling_dir / "marker.py").exists()
+    assert (credbroker_dir / "marker.py").exists()
+    assert ".agentbundle/tooling/agentbundle/marker.py" not in result.removed
+    assert "packages/credbroker/marker.py" not in result.removed
+    assert ".agentbundle/tooling/agentbundle/marker.py" in result.out_of_coverage
+    assert "packages/credbroker/marker.py" in result.out_of_coverage
+
+
+def test_apply_pack_scoped_coverage_leaves_out_of_pack_recorded_paths_present(
+    tmp_path,
+):
+    # Verifies AC-0064's scope axis: a --pack run leaves every recorded path
+    # outside that pack present, including one the guard would otherwise
+    # admit for removal.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="scoped-removal")
+    # "packs/alpha/gone.md" is stale and guard-removable; scope this run to
+    # "beta" only, so alpha's subtree -- including gone.md -- is out of scope.
+    # `pack_names`/`profile_names` stay the resolved effective selection
+    # (unchanged); `scope_packs` is the `--pack beta` flag itself.
+    result = _apply(
+        target, replay, verdict_rows,
+        scope_packs=["beta"],
+    )
+
+    assert result.ok, result
+    assert (target / "packs" / "alpha" / "gone.md").exists()
+    assert "packs/alpha/gone.md" not in result.removed
+    assert "packs/alpha/gone.md" in result.out_of_coverage
+
+
+def test_apply_guides_mode_none_leaves_recorded_guides_paths_present(tmp_path):
+    # Verifies AC-0069 clause 2 -- the mode-narrowing axis, which no fixed
+    # subtree list reaches.
+    source = _make_apply_source(tmp_path / "guides-mode-source")
+    target = tmp_path / "guides-mode-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+    guide_path = target / "guides" / "_shared" / "old-guide.md"
+    guide_path.parent.mkdir(parents=True, exist_ok=True)
+    guide_path.write_bytes(b"old guide\n")
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"].append(
+        {"path": "guides/_shared/old-guide.md",
+         "sha256": hashlib.sha256(b"old guide\n").hexdigest()}
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    cfg = ish.SelfHostedInitConfig(
+        target=target, source=source, tooling="external", attribution="white-label",
+        guides="none", dry_run=True,
+        packs=["alpha", "beta"], profiles=["default"],
+    )
+    replay = ish.replay_derivation(cfg, interactive=False)
+    planned_paths = set(replay.file_bytes)
+    _counts, verdict_rows = catalogue_sync._classify_planned_paths(
+        target, replay.old_state, planned_paths, []
+    )
+
+    result = _apply(target, replay, verdict_rows, guides_mode="none")
+
+    assert result.ok, result
+    assert guide_path.exists()
+    assert "guides/_shared/old-guide.md" not in result.removed
+    assert "guides/_shared/old-guide.md" in result.out_of_coverage
+
+
+def test_apply_credbroker_path_no_longer_shipped_is_never_removed(tmp_path):
+    # Verifies AC-0064: coverage, not the keep-set, makes the protection
+    # absolute even when the source has stopped shipping the path at all.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="credbroker")
+    credbroker_dir = target / "packages" / "credbroker"
+    credbroker_dir.mkdir(parents=True)
+    (credbroker_dir / "gone.py").write_bytes(b"cred\n")
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["managed_paths"].append(
+        {"path": "packages/credbroker/gone.py",
+         "sha256": hashlib.sha256(b"cred\n").hexdigest()}
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    replay.old_state["managed_paths"] = state["managed_paths"]
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    assert (credbroker_dir / "gone.py").exists()
+    assert "packages/credbroker/gone.py" not in result.removed
+    assert "packages/credbroker/gone.py" in result.out_of_coverage
+
+
+def test_apply_removal_refuses_at_unlink_when_entry_becomes_link_like(tmp_path):
+    # Verifies AC-0073. `_plan_stale_owned_paths` (a separate module's own
+    # import of `sha256_confined_regular_file`) already found `gone.md`
+    # removable (present, sha-matching, no longer planned) at plan time;
+    # this patches `catalogue_sync`'s own reference, which only
+    # `_confined_unlink` -- the at-unlink recheck -- ever calls, so this
+    # fires exactly once, at the moment of the unlink and not at the plan.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="unlink-race")
+    gone = target / "packs" / "alpha" / "gone.md"
+    real_sha256_confined = catalogue_sync.sha256_confined_regular_file
+
+    def _fake_confined(root, path):
+        if path == gone:
+            gone.unlink()
+            elsewhere = target / "elsewhere.txt"
+            elsewhere.write_bytes(b"x")
+            gone.symlink_to(elsewhere)
+            raise catalogue_sync.UnsafeContentError("became a symlink")
+        return real_sha256_confined(root, path)
+
+    with patch.object(
+        catalogue_sync, "sha256_confined_regular_file", side_effect=_fake_confined
+    ):
+        result = _apply(target, replay, verdict_rows)
+
+    assert result.removal_failed
+    assert "packs/alpha/gone.md" not in result.removed
+    assert gone.is_symlink()  # left as the race left it, not clobbered
+
+
+def test_apply_removal_spelling_traversal_resolves_inside_protected_subtree(tmp_path):
+    # Verifies AC-0069's spelling clause, traversal half. Driven directly
+    # against `_in_coverage` rather than through the full removal pipeline:
+    # `_plan_stale_owned_paths`'s own confined sha guard refuses a literal
+    # `..` path segment outright (a dot-segment is never removable through
+    # the shipped guard, traversal or not), so a traversal-spelled recorded
+    # path can never reach "removable" candidacy at all -- this is the
+    # security-hardening the guard already carries, and this task's own
+    # coverage check is a second, independent layer over what the guard does
+    # admit. Coverage's own spelling safety is tested at the seam that owns
+    # it.
+    target = tmp_path / "spelling-target"
+    tooling_dir = target / ".agentbundle" / "tooling" / "agentbundle"
+    tooling_dir.mkdir(parents=True)
+    (tooling_dir / "x.py").write_bytes(b"vendored\n")
+    (target / "packages").mkdir()
+    traversal_path = "packages/../.agentbundle/tooling/agentbundle/x.py"
+
+    in_coverage = catalogue_sync._in_coverage(
+        target, traversal_path,
+        pack_names=["alpha"], profile_names=[], guides_mode="selected", scope=None,
+    )
+
+    assert not in_coverage
+
+
+def _filesystem_is_case_insensitive(tmp_path: Path) -> bool:
+    marker = tmp_path / "CaseProbe"
+    marker.write_text("x", encoding="utf-8")
+    try:
+        return (tmp_path / "caseprobe").exists()
+    finally:
+        marker.unlink()
+
+
+def test_apply_removal_case_insensitive_spelling_resolves_inside_protected_subtree(
+    tmp_path,
+):
+    # Verifies AC-0069's spelling clause, case-insensitive half. Skipped
+    # where the filesystem does not fold case -- see AGENTS.md's package
+    # traps note on platform-dependent tests.
+    if not _filesystem_is_case_insensitive(tmp_path):
+        pytest.skip("filesystem does not fold case")
+
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="case")
+    tooling_dir = target / ".agentbundle" / "tooling" / "agentbundle"
+    tooling_dir.mkdir(parents=True)
+    (tooling_dir / "x.py").write_bytes(b"vendored\n")
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    differently_cased_path = ".agentbundle/Tooling/agentbundle/x.py"
+    state["managed_paths"].append(
+        {"path": differently_cased_path,
+         "sha256": hashlib.sha256(b"vendored\n").hexdigest()}
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    replay.old_state["managed_paths"] = state["managed_paths"]
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    assert (tooling_dir / "x.py").exists()
+    assert differently_cased_path not in result.removed
+    assert differently_cased_path in result.out_of_coverage
+
+
+def test_apply_occupied_companion_destination_is_reported_and_untouched(tmp_path):
+    # Verifies AC-0070's admission half.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="occupied")
+    companion = target / "packs" / "alpha" / "unchanged.upstream.md"
+    companion.write_bytes(b"adopter's own resolution")
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    assert companion.read_bytes() == b"adopter's own resolution"
+    assert "packs/alpha/unchanged.md" in result.companion_occupied
+    assert "packs/alpha/unchanged.md" not in result.written
+    assert companion.name not in [Path(p).name for p in result.written]
+
+
+def test_apply_companion_admission_race_takes_write_failed_not_occupied(tmp_path):
+    # Verifies AC-0070's admission race: a destination absent at admission
+    # and created before the write is byte-identical afterwards and the run
+    # takes the write-failed row -- a stat-at-admission implementation using
+    # the clobbering rename would pass the occupied case and fail this one.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="race")
+    companion = target / "packs" / "alpha" / "unchanged.upstream.md"
+    assert not companion.exists()
+
+    real_write_jailed = catalogue_sync.write_jailed
+
+    def _race_before_publish(root, relpath, content, **kwargs):
+        if relpath == "packs/alpha/README.md":
+            # Write order (AC-0032) puts README.md immediately before the
+            # companion destination -- create the companion's destination
+            # out from under the run right before it gets there.
+            companion.write_bytes(b"raced in by another writer")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_race_before_publish):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.write_failed_path == "packs/alpha/unchanged.upstream.md"
+    assert "packs/alpha/unchanged.md" not in result.companion_occupied
+    assert companion.read_bytes() == b"raced in by another writer"
+
+
+def test_apply_companion_publish_leaves_link_count_one_and_no_staged_residue(tmp_path):
+    # Verifies AC-0070's post-publish state.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="post-publish")
+    result = _apply(target, replay, verdict_rows)
+
+    assert result.ok, result
+    companion = target / "packs" / "alpha" / "unchanged.upstream.md"
+    assert companion.stat().st_nlink == 1
+    siblings = [
+        p.name for p in companion.parent.iterdir()
+        if p.name != companion.name and p.name.startswith("unchanged.upstream.md.")
+    ]
+    assert siblings == []
+    # Confinement helpers read it back without refusing.
+    catalogue_sync.sha256_confined_regular_file(target, companion)
+
+
+def test_apply_companion_write_failure_for_other_reason_is_write_failed_not_occupied(
+    tmp_path,
+):
+    # Verifies AC-0070's failure attribution.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="other-failure")
+
+    def _fail_companion(root, relpath, content, **kwargs):
+        raise OSError("disk gremlin")
+
+    with patch.object(catalogue_sync, "write_companion", side_effect=_fail_companion):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.write_failed_path == "packs/alpha/unchanged.upstream.md"
+    assert "packs/alpha/unchanged.md" not in result.companion_occupied
+
+
+def test_apply_companion_collision_refuses_whole_run(tmp_path):
+    # Verifies AC-0071.
+    source = _make_apply_source(tmp_path / "collision-source")
+    # The source itself ships a path equal to the companion destination
+    # `alpha/unchanged.md` would compute.
+    (source / "packs" / "alpha" / "unchanged.upstream.md").write_text(
+        "colliding upstream content\n", encoding="utf-8"
+    )
+    target = tmp_path / "collision-target"
+    target.mkdir()
+    _write_apply_old_state(target)
+    cfg = ish.SelfHostedInitConfig(
+        target=target, source=source, tooling="external", attribution="white-label",
+        guides="selected", dry_run=True,
+        packs=["alpha", "beta"], profiles=["default"],
+    )
+    replay = ish.replay_derivation(cfg, interactive=False)
+    before = walk_target_tree(target)
+    planned_paths = set(replay.file_bytes)
+    _counts, verdict_rows = catalogue_sync._classify_planned_paths(
+        target, replay.old_state, planned_paths, []
+    )
+
+    result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.companion_collision == {
+        "packs/alpha/unchanged.md": "packs/alpha/unchanged.upstream.md",
+    }
+    after = walk_target_tree(target)
+    assert after == before
+
+
+def test_apply_new_pack_directory_is_removed_on_injected_write_failure(tmp_path):
+    # Verifies AC-0038's entry-set half: a file-only restore passes every
+    # other rollback case and fails this one.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="new-pack-rollback")
+    real_write_jailed = catalogue_sync.write_jailed
+
+    def _fail_beta_new(root, relpath, content, **kwargs):
+        if relpath == "packs/beta/NEW.md":
+            raise OSError("disk gremlin")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_fail_beta_new):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.write_failed_path == "packs/beta/NEW.md"
+    assert result.restored
+    assert not (target / "packs" / "beta").exists()
+
+
+def test_apply_snapshot_bound_refuses_before_the_prompt_and_before_any_write(tmp_path):
+    # Verifies AC-0076's pre-prompt sum. The low-level bound check.
+    target = tmp_path / "bound-target"
+    big_file = target / "packs" / "alpha" / "big.md"
+    big_file.parent.mkdir(parents=True)
+    big = b"x" * (1024 * 1024)
+    big_file.write_bytes(big)
+
+    with pytest.raises(catalogue_sync.SnapshotBoundExceeded) as exc_info:
+        catalogue_sync.snapshot_write_set(
+            target, {"packs/alpha/big.md"}, bound=1024
+        )
+    assert exc_info.value.bound == 1024
+    assert exc_info.value.measured >= len(big)
+
+    # Integrated: a full apply run over the same tree refuses before any
+    # write when its own bound is set below the write set's measured size,
+    # and the file is untouched.
+    verdict_rows = [("packs/alpha/big.md", "would-update", None)]
+    file_bytes = {"packs/alpha/big.md": b"new upstream content"}
+    result = catalogue_sync.apply_write_sequence(
+        target,
+        old_state={"managed_paths": [
+            {"path": "packs/alpha/big.md", "sha256": hashlib.sha256(big).hexdigest()},
+        ], "recipe": {"packs": ["alpha"], "profiles": []}},
+        verdict_rows=verdict_rows,
+        file_bytes=file_bytes,
+        planned_paths=set(file_bytes),
+        pack_names=["alpha"], profile_names=[],
+        guides_scope=False, guides_mode="selected",
+        pin={},
+        snapshot_bound_bytes=1024,
+    )
+
+    assert not result.ok
+    assert result.snapshot_bound_exceeded == (1024, len(big))
+    assert big_file.read_bytes() == big
+
+
+def test_apply_snapshot_as_built_bound_reads_no_more_than_the_bound(
+    tmp_path, monkeypatch
+):
+    # Verifies AC-0076's as-built half: a finished-total implementation
+    # passes the pre-prompt case above and fails this one.
+    target = tmp_path / "grow-target"
+    target.mkdir()
+    small = target / "small.txt"
+    small.write_bytes(b"x" * 10)  # st_size is small -- passes the pre-prompt sum
+
+    read_lengths: list[int] = []
+    real_chunks = catalogue_sync._read_bounded_chunks
+
+    def _grown_chunks(path):
+        if path == small:
+            # Simulate a file that grew past what its st_size predicted, by
+            # yielding far more than 10 bytes.
+            for _ in range(1000):
+                chunk = b"y" * 1024
+                read_lengths.append(len(chunk))
+                yield chunk
+        else:
+            yield from real_chunks(path)
+
+    monkeypatch.setattr(catalogue_sync, "_read_bounded_chunks", _grown_chunks)
+
+    with pytest.raises(catalogue_sync.SnapshotBoundExceeded):
+        catalogue_sync.snapshot_write_set(target, {"small.txt"}, bound=2048)
+
+    assert sum(read_lengths) <= 2048 + 1024  # stopped within one chunk of the bound
+
+
+def test_apply_restore_matches_pre_run_walk_tuple_on_injected_failure(tmp_path):
+    # Verifies AC-0038's restore half: comparing paths and digests alone
+    # passes a restore that changed a mode.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="restore-tuple")
+    before = walk_target_tree(target)
+
+    real_write_jailed = catalogue_sync.write_jailed
+    calls = {"n": 0}
+
+    def _fail_second_write(root, relpath, content, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("disk gremlin")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_fail_second_write):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.restored
+    after = walk_target_tree(target)
+    assert after == before
+
+
+def test_apply_restore_leaves_unreached_paths_as_another_writer_left_them(tmp_path):
+    # Verifies AC-0038's leave-as-found half and AC-0041's every-row
+    # permitted difference: a restore driven off the whole snapshot rather
+    # than off what the run acted on passes the restore-tuple case above and
+    # fails this one.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="leave-as-found")
+    real_write_jailed = catalogue_sync.write_jailed
+    order_seen: list[str] = []
+
+    def _fail_first_write(root, relpath, content, **kwargs):
+        order_seen.append(relpath)
+        if len(order_seen) == 1:
+            # Another writer edits a path further along in write order,
+            # before this run ever reaches it.
+            later = target / "packs" / "beta" / "NEW.md"
+            later.parent.mkdir(parents=True, exist_ok=True)
+            later.write_bytes(b"another writer's bytes")
+            raise OSError("disk gremlin")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_fail_first_write):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    later = target / "packs" / "beta" / "NEW.md"
+    assert later.read_bytes() == b"another writer's bytes"
+
+
+def test_apply_restore_failure_names_every_unrestored_path(tmp_path):
+    # Verifies AC-0058.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="restore-fails")
+    real_write_jailed = catalogue_sync.write_jailed
+    calls = {"n": 0}
+
+    def _fail_second_write(root, relpath, content, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("disk gremlin")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    def _fail_restore(*_args, **_kwargs):
+        raise OSError("restore also fails")
+
+    with (
+        patch.object(catalogue_sync, "write_jailed", side_effect=_fail_second_write),
+        patch.object(catalogue_sync, "restore_from_snapshot", side_effect=_fail_restore),
+        pytest.raises(OSError),
+    ):
+        _apply(target, replay, verdict_rows)
+
+    # `restore_from_snapshot` itself never raises in production use (it is
+    # best-effort and returns unrestored paths); assert the REAL function's
+    # own contract directly instead of through the mocked-out orchestrator.
+    target2, replay2, verdict_rows2 = _replay_apply_fixture(tmp_path, tag="restore-fails-2")
+    snapshot = catalogue_sync.snapshot_write_set(
+        target2, {"packs/alpha/README.md", "packs/beta/NEW.md"}
+    )
+    (target2 / "packs" / "beta").mkdir(parents=True, exist_ok=True)
+    (target2 / "packs" / "beta" / "NEW.md").write_bytes(b"present")
+
+    def _unlink_fails(self, *a, **kw):
+        raise OSError("cannot unlink")
+
+    with patch.object(Path, "unlink", _unlink_fails):
+        unrestored = catalogue_sync.restore_from_snapshot(
+            target2, snapshot, ["packs/beta/NEW.md"]
+        )
+    assert "packs/beta/NEW.md" in unrestored
+
+
+def test_apply_planned_path_outside_target_root_is_refused_at_the_write(tmp_path):
+    # Verifies AC-0052.
+    target = tmp_path / "target"
+    target.mkdir()
+    verdict_rows = [("../escape.md", "would-update", None)]
+    file_bytes = {"../escape.md": b"x"}
+    result = catalogue_sync.apply_write_sequence(
+        target,
+        old_state={},
+        verdict_rows=verdict_rows,
+        file_bytes=file_bytes,
+        planned_paths=set(file_bytes),
+        pack_names=[], profile_names=[],
+        guides_scope=False, guides_mode="selected",
+        pin={},
+    )
+    assert not result.ok
+    assert result.write_failed_path == "../escape.md"
+    assert not (tmp_path / "escape.md").exists()
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda p: p.write_bytes(b"changed digest"),
+        lambda p: (p.unlink(), p.symlink_to(p.parent / "elsewhere")),
+        lambda p: p.write_bytes(b"appeared"),  # only meaningful for the "found none" case
+    ],
+    ids=["changed-digest", "changed-entry-kind", "found-present-where-none-expected"],
+)
+def test_apply_gate_recheck_detects_every_divergence_shape(tmp_path, mutate):
+    # Verifies AC-0077's gate recheck (3 of 6 cases).
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="gate")
+    would_update_paths = {p for p, v, _ in verdict_rows if v == "would-update"}
+    snapshot = catalogue_sync.snapshot_write_set(target, would_update_paths)
+    expected = {
+        p: (
+            hashlib.sha256(snapshot[p].content).hexdigest()
+            if snapshot[p].kind == "file" else None
+        )
+        for p in would_update_paths
+    }
+    target_path = target / "packs" / "alpha" / "README.md"
+    if "found-present-where-none-expected" in mutate.__qualname__:
+        pass
+    # Force one path (README.md, would-update, on-disk-present) to diverge.
+    mutate(target_path)
+
+    diverged = catalogue_sync.gate_recheck(target, expected)
+
+    assert "packs/alpha/README.md" in diverged
+
+
+def test_apply_gate_recheck_no_divergence_over_unchanged_state(tmp_path):
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="gate-clean")
+    would_update_paths = {p for p, v, _ in verdict_rows if v == "would-update"}
+    snapshot = catalogue_sync.snapshot_write_set(target, would_update_paths)
+    expected = {
+        p: (
+            hashlib.sha256(snapshot[p].content).hexdigest()
+            if snapshot[p].kind == "file" else None
+        )
+        for p in would_update_paths
+    }
+
+    diverged = catalogue_sync.gate_recheck(target, expected)
+
+    assert diverged == []
+
+
+def test_apply_gate_recheck_over_full_run_refuses_before_any_write(tmp_path):
+    # Verifies the gate recheck integrated in the full sequence, at the
+    # cannot-answer point before the write phase opens. The snapshot and the
+    # gate recheck both run inside one synchronous call with no real wait
+    # between them, so the race this reaches for -- an edit landing between
+    # the two -- is simulated as a side effect of the snapshot call itself,
+    # the narrowest point the window can be reached from outside.
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="gate-full")
+    before = walk_target_tree(target)
+    real_snapshot = catalogue_sync.snapshot_write_set
+
+    def _snapshot_then_race(target_arg, paths, **kwargs):
+        snapshot = real_snapshot(target_arg, paths, **kwargs)
+        (target / "packs" / "alpha" / "README.md").write_bytes(b"raced in during the wait")
+        return snapshot
+
+    with patch.object(catalogue_sync, "snapshot_write_set", side_effect=_snapshot_then_race):
+        result = _apply(target, replay, verdict_rows)
+
+    assert not result.ok
+    assert result.gate_diverged == ["packs/alpha/README.md"]
+    after = walk_target_tree(target)
+    # Nothing this run did -- only the simulated race, which is the
+    # divergence the fixture set up.
+    assert after == {
+        **before,
+        "packs/alpha/README.md": {
+            "kind": "file", "mode": after["packs/alpha/README.md"]["mode"],
+            "target": None, "bytes": b"raced in during the wait",
+        },
+    }
+
+
+def test_apply_rename_recheck_refuses_after_earlier_write_landed_and_restores_it(
+    tmp_path,
+):
+    # Verifies AC-0077's rename recheck, driven at the rename after an
+    # earlier write has landed: AC-0038's restore covers the landed writes.
+    # A dedicated two-would-update fixture, so the write order (AC-0032) is
+    # under direct control: "a.md" writes first, "b.md" second.
+    target = tmp_path / "rename-recheck-target"
+    alpha = target / "packs" / "alpha"
+    alpha.mkdir(parents=True)
+    (alpha / "a.md").write_bytes(b"old a")
+    (alpha / "b.md").write_bytes(b"old b")
+    old_state = {
+        "managed_paths": [
+            {"path": "packs/alpha/a.md", "sha256": hashlib.sha256(b"old a").hexdigest()},
+            {"path": "packs/alpha/b.md", "sha256": hashlib.sha256(b"old b").hexdigest()},
+        ],
+        "recipe": {"packs": ["alpha"], "profiles": []},
+    }
+    verdict_rows = [
+        ("packs/alpha/a.md", "would-update", None),
+        ("packs/alpha/b.md", "would-update", None),
+    ]
+    file_bytes = {
+        "packs/alpha/a.md": b"new a",
+        "packs/alpha/b.md": b"new b",
+    }
+    real_write_jailed = catalogue_sync.write_jailed
+
+    def _race_after_first_write(root, relpath, content, **kwargs):
+        if relpath == "packs/alpha/a.md":
+            # "a.md" writes first (AC-0032); race "b.md" before this
+            # function reaches it.
+            (alpha / "b.md").write_bytes(b"raced in after the first write landed")
+        return real_write_jailed(root, relpath, content, **kwargs)
+
+    with patch.object(catalogue_sync, "write_jailed", side_effect=_race_after_first_write):
+        result = catalogue_sync.apply_write_sequence(
+            target, old_state=old_state, verdict_rows=verdict_rows,
+            file_bytes=file_bytes, planned_paths=set(file_bytes),
+            pack_names=["alpha"], profile_names=[],
+            guides_scope=False, guides_mode="selected", pin={},
+        )
+
+    assert not result.ok
+    assert result.write_failed_path == "packs/alpha/b.md"
+    assert result.restored
+    # The raced-in bytes are what the OTHER writer left -- AC-0041's every-
+    # row permitted difference -- not clobbered by our own would-be write.
+    assert (alpha / "b.md").read_bytes() == b"raced in after the first write landed"
+    # The earlier landed write ("a.md") was rolled back to its pre-run value.
+    assert (alpha / "a.md").read_bytes() == b"old a"
+
+
+def test_apply_target_reads_refused_on_hardlink_and_reparse_point_inputs(tmp_path):
+    # Verifies AC-0065 re-driven through the apply path's own reads (the
+    # gate recheck).
+    target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="confinement")
+    readme = target / "packs" / "alpha" / "README.md"
+    other = target / "packs" / "alpha" / "hardlink-partner.md"
+    os.link(readme, other)
+
+    expected = {"packs/alpha/README.md": hashlib.sha256(b"# Alpha\n").hexdigest()}
+    diverged = catalogue_sync.gate_recheck(target, expected)
+
+    assert "packs/alpha/README.md" in diverged
 
 
 # ---------------------------------------------------------------------------

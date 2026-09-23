@@ -86,3 +86,59 @@ seam that knows which paths were companion destinations. **T4 and T6 must
 assert that no companion destination ever enters `written`.** Without it,
 AC-0059's two absolute clauses have no fail-able check anywhere in the
 delivery.
+
+## Execution — wave 2
+
+### T4 — the write sequence
+
+`safety.py` gains the `Publish` selector (`REPLACE` default, `NEVER_REPLACE`,
+`REPLACE_IF_UNCHANGED`) and `DestinationDivergedError`, spending this
+delivery's second and last out-of-module edit. `catalogue_sync.py` gains the
+rollback snapshot, write ordering, both AC-0077 rechecks, companion
+admission/collision classification, coverage-scoped removal, the at-unlink
+confinement recheck and `apply_write_sequence`. Gates: lint exit 0, full
+`packages/agentbundle/tests/unit` suite exit 0 over 3,213 tests.
+
+The primitive deliberately does **not** classify a link failure as occupancy.
+§ Grounding's publish probe measured that `os.link` reports `EEXIST` for an
+occupant but `EPERM`/`EOPNOTSUPP` where the filesystem has no hard links, so
+a primitive that read any link failure as occupancy would misreport a dropped
+companion as a preserved one. Classification stays at the caller's
+admission-time check.
+
+**Mutation proof, three guards.**
+
+| Mutation | Result |
+| --- | --- |
+| `Publish` default flipped to `NEVER_REPLACE` | `test_safety.py` red and full suite red — AC-0052's two pins fire |
+| `_in_coverage` always `True` | suite red — the 240-path deletion on a vendored-derived tree is guarded |
+| keep-set narrowed to the scope before the shipped guard | **survived** — see below |
+
+### Defect found by mutation: AC-0035's keep-set was asserted one level too high
+
+The third mutation is the plan's § Never do violation exactly: narrowing the
+keep-set handed to `_plan_stale_owned_paths`. It left the suite green.
+
+Two reasons, both worth recording. On an **unscoped** run `_in_scope` admits
+everything, so the narrowing is a no-op — and an unscoped fixture is what the
+shipped AC-0035 test drove. On a **scoped** run the narrowing is real, but
+`select_removal_set`'s downstream coverage filter removes the same paths
+again and masks the difference in behaviour.
+
+The shipped test spied `select_removal_set` and read its third positional
+argument. AC-0035 constrains the keep-set handed to the **shipped guard**,
+and the narrowing happens *inside* `select_removal_set`, so that spy sits one
+level above the thing the criterion names. Instrumented 2026-09-23: the spy
+reports 9 paths while `_plan_stale_owned_paths` is handed 3.
+
+Repaired by `test_apply_keep_set_handed_to_the_shipped_guard_is_full_replayed`,
+which spies `_plan_stale_owned_paths` itself and drives a scoped run. It
+carries an explicit teeth assertion — the in-scope subset must be a proper
+subset — so it cannot pass on a fixture where narrowing would be a no-op.
+Re-run against the same mutation: the suite is now red, and that test is the
+one that fails.
+
+**Generalisation for the remaining tasks.** A spy proves the call it watches,
+not the call downstream of it. When a criterion names an argument to a
+specific function, spy that function — not a wrapper that happens to take a
+similarly-shaped argument.
