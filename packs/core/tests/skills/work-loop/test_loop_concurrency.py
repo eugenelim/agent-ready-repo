@@ -1093,9 +1093,12 @@ def test_cohort_hold_contains_the_commit_and_nothing_that_decides_it() -> None:
     # All six AC6 names, not the four that were easy: the FSM table lookup and
     # the outbox unlink were missing, and a check that omits an exclusion the
     # criterion states cannot fail on the case the criterion was written for.
+    # Each name identifies one excluded operation. `get` and a bare `unlink`
+    # were here for the FSM lookup and the outbox unlink; both are common enough
+    # that an unrelated edit reds with a message that misdescribes it.
     for excluded in ("_schedule_check_current", "guard_fn", "_append_events_jsonl",
                      "apply_contract_amendment", "_run_id_preflight",
-                     "unlink", "_events_pending_path", "get"):
+                     "_TRANSITIONS_BY_MODE", "_events_pending_path"):
         assert excluded not in inside, (
             f"{excluded} is inside the cohort hold; the hold must cover the "
             "commit only"
@@ -1304,7 +1307,6 @@ def test_loop_cohort_never_reaches_the_engine_lock_or_engine_state() -> None:
     which is this property, not the ordering. The ordering rests on the call
     sites alone, so it needs a check that reds when one moves.
     """
-    src = COHORT.read_text(encoding="utf-8")
     tree = _cohort_tree()
     for n in _ast_mod.walk(tree):
         if isinstance(n, _ast_mod.Call) and "exclusive" in _called_names(n):
@@ -1312,12 +1314,24 @@ def test_loop_cohort_never_reaches_the_engine_lock_or_engine_state() -> None:
             assert "engine" not in locked.lower(), (
                 f"loop-cohort acquires a lock on an engine path: {locked[:200]}"
             )
-    code_lines = [
-        line for line in src.splitlines()
-        if "engine-state" in line and not line.lstrip().startswith("#")
+    # AST, not a grep. The property is that no CODE names the engine-state
+    # file; a docstring or a variable name mentioning it breaks no invariant,
+    # and a text scan that reds on those reports a violation that is not one.
+    literals = [
+        node.value for node in _ast_mod.walk(tree)
+        if isinstance(node, _ast_mod.Constant) and isinstance(node.value, str)
+        and "engine-state" in node.value
     ]
-    assert not code_lines, (
-        f"loop-cohort reads or names engine-state outside a comment: {code_lines}"
+    docstrings = {
+        n.body[0].value.value for n in _ast_mod.walk(tree)
+        if isinstance(n, (_ast_mod.FunctionDef, _ast_mod.ClassDef, _ast_mod.Module))
+        and n.body and isinstance(n.body[0], _ast_mod.Expr)
+        and isinstance(n.body[0].value, _ast_mod.Constant)
+        and isinstance(n.body[0].value.value, str)
+    }
+    offenders = [lit for lit in literals if lit not in docstrings]
+    assert not offenders, (
+        f"loop-cohort names an engine-state path in code: {offenders}"
     )
 
 
@@ -1530,6 +1544,13 @@ def test_engine_lock_budget_counts_its_cohort_acquisitions() -> None:
     concurrent = max(len(engine_fns), len(acquiring))
     max_hold = (engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
                 + sl.DEFAULT_TIMEOUT * concurrent)
+    # The inequality is slack by design and is NOT this case's discriminator:
+    # 10 < 40 + 10 x concurrent < 300 holds for any `concurrent` from 1 to 25,
+    # so it cannot red on a realistic change. What reds are the pinned site
+    # counts above. The inequality is kept because it is the property
+    # `_statelock` actually requires, and a change that broke it — a much larger
+    # subprocess timeout, a smaller `stale_after` — would not be caught by the
+    # pins.
     assert sl.DEFAULT_TIMEOUT < max_hold < sl.DEFAULT_STALE_AFTER, (
         f"engine-lock budget broken: timeout={sl.DEFAULT_TIMEOUT}s "
         f"max_hold={max_hold}s stale_after={sl.DEFAULT_STALE_AFTER}s"
@@ -1560,11 +1581,12 @@ def test_cohort_lock_holders_are_bounded_below_stale_after() -> None:
     funcs_all = {n.name: n for n in _ast_mod.walk(tree)
                  if isinstance(n, _ast_mod.FunctionDef)}
     unbounded = []
-    spawn_edges = 0
+    worst_verb_spawns = 0
     for name in sorted(held):
         fn = funcs_all.get(name)
         if fn is None:
             continue
+        this_verb = 0
         for node in _ast_mod.walk(fn):
             if not (isinstance(node, _ast_mod.Call)
                     and isinstance(node.func, _ast_mod.Attribute)
@@ -1572,19 +1594,24 @@ def test_cohort_lock_holders_are_bounded_below_stale_after() -> None:
                     and node.func.value.id == "subprocess"
                     and node.func.attr in SPAWN_ATTRS):
                 continue
-            spawn_edges += 1
+            this_verb += 1
             if not any(kw.arg == "timeout" for kw in node.keywords):
                 unbounded.append(f"{name}: subprocess.{node.func.attr}")
+        worst_verb_spawns = max(worst_verb_spawns, this_verb)
     assert not unbounded, (
         f"unbounded spawn under the cohort lock: {unbounded}. An unbounded "
         f"call here makes the maximum hold unprovable, and a hold past "
         f"`stale_after` gets the lock reclaimed while a live writer is inside."
     )
 
-    engine = _load_module(ENGINE, "_engine_cohort_budget")
-    cohort_max_hold = cohort.GIT_TIMEOUT_S * spawn_edges + engine.COHORT_COMMIT_HOLD_MAX_S
+    # Cohort-side only, and the MAXIMUM over verbs rather than their sum. The
+    # engine's own inner-hold ceiling belongs to a different process taking the
+    # same lock exclusively, so adding it here measures nothing; and the held
+    # verbs are mutually exclusive, so summing their spawn edges is the
+    # branch-collapse failure in the over-count direction.
+    cohort_max_hold = cohort.GIT_TIMEOUT_S * worst_verb_spawns
     assert cohort_max_hold < sl.DEFAULT_STALE_AFTER, (
-        f"cohort holders can run {cohort_max_hold}s against a "
+        f"a cohort holder can run {cohort_max_hold}s against a "
         f"{sl.DEFAULT_STALE_AFTER}s staleness budget"
     )
 
@@ -1631,7 +1658,11 @@ sys.exit(mod.main(argv))
 _MUTATOR_CHILD_SRC = '''
 import importlib.util, sys, time
 from pathlib import Path
-probe = Path(sys.argv[1]); target = sys.argv[2]; argv = sys.argv[3:]
+probe = Path(sys.argv[1]); target = sys.argv[2]
+# One argv string carrying every step: steps split on \\x1f, args within a step
+# on \\x1e. The driver lives HERE rather than being patched into this source by
+# the launcher, so what runs is what you read.
+steps = [step.split("\\x1e") for step in sys.argv[3].split("\\x1f")]
 
 spec = importlib.util.spec_from_file_location("_subject", target)
 mod = importlib.util.module_from_spec(spec)
@@ -1643,7 +1674,17 @@ while not (probe / "guarded").exists():
         raise RuntimeError("timed out waiting for the engine to reach its commit")
     time.sleep(0.005)
 
-rc = mod.main(argv)
+rc = 0
+for step in steps:
+    # Not a cohort verb: repartition the plan so a following `schedule` changes
+    # cohort state for real. A re-run schedule over an unchanged plan rewrites
+    # byte-identical content and the case would prove nothing.
+    if step[0] == "__write_plan__":
+        Path(step[1]).write_text(step[2], encoding="utf-8")
+        continue
+    rc = mod.main(step)
+    if rc != 0:
+        break
 (probe / "mutated").write_text(str(rc), encoding="utf-8")
 sys.exit(rc)
 '''
@@ -1674,24 +1715,8 @@ def _run_interleaved(repo: Path, engine_argv: list[str], mutator_argvs: list[lis
     )
     # Every mutation runs in ONE child, in order, so a multi-step mutation
     # (reset, init, schedule) lands entirely inside the window rather than
-    # racing itself. `__write_plan__` is not a cohort verb: it repartitions the
-    # plan so a following `schedule` genuinely changes cohort state, which is
-    # what makes the schedule cases non-vacuous.
-    mut.write_text(
-        _MUTATOR_CHILD_SRC.replace(
-            "rc = mod.main(argv)",
-            "rc = 0\n"
-            "for _step in argv[0].split('\\x1f'):\n"
-            "    _a = _step.split('\\x1e')\n"
-            "    if _a[0] == '__write_plan__':\n"
-            "        Path(_a[1]).write_text(_a[2], encoding='utf-8')\n"
-            "        continue\n"
-            "    rc = mod.main(_a)\n"
-            "    if rc != 0:\n"
-            "        break",
-        ),
-        encoding="utf-8",
-    )
+    # racing itself.
+    mut.write_text(_MUTATOR_CHILD_SRC, encoding="utf-8")
     script = mut
     mutator_args = ["\x1f".join("\x1e".join(a) for a in mutator_argvs)]
 
@@ -1753,6 +1778,12 @@ def _assert_refused_without_writing(engine_res, mutator_res, probe, spec_dir,
         "the mutator left cohort state unchanged, so this case exercises no race"
     )
     assert rc != 0, f"the transition committed against moved cohort state: {out}{err}"
+    # Name the mechanism, not just the exit code. A cohort-lock timeout, a guard
+    # refusal or a child crash all exit non-zero and would otherwise stand in
+    # for the fingerprint mismatch this case exists to prove.
+    assert "cohort state changed" in err, (
+        f"refused, but not by the fingerprint check: {err.strip()[:300]}"
+    )
     assert (spec_dir / "engine-state.json").read_bytes() == before, (
         "engine-state.json changed on a refused transition"
     )

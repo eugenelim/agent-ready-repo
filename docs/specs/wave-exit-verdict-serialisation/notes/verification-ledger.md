@@ -31,6 +31,8 @@ worktrees.
 | AC15 engine route | add a second cohort `exclusive` *inside the same* function | `budget_counts` | red |
 | AC15 attribution | acquire via a local variable the classifier cannot attribute | `budget_counts` | red |
 | AC15 site count | add a cohort `exclusive` in a new function *reachable from* `cmd_transition` | `budget_counts` | red |
+| AC13 reclaim wording | render the reclaim through the acquisition handler | `reclaim_at_the_end` | red |
+| AC11 mechanism | refuse from a lock timeout instead of the fingerprint | `commit_window` | red |
 
 The AC4 probe is the one worth keeping in mind. Every interleaving case forces
 the mutator to commit *before* the engine commits, so all five still pass with
@@ -147,6 +149,38 @@ alias — `acquire = sl.exclusive` — is genuinely invisible, and no static mat
 resolves that without dataflow. The docstring said "every `exclusive(...)` site";
 it now says which form it matches and why the pinned site counts are what covers
 the rest.
+
+## Post-gates quality review
+
+Six Concerns and three Nits, no Blockers. One was an operability defect in
+shipped code and the rest were in the verification layer.
+
+**The reclaim refusal read like an acquisition refusal, and the two need
+opposite responses.** A failed acquisition wrote nothing, so retry is right. A
+`StateLockLost` at release means the transition already committed and a pending
+record survives, so retry is wrong. Both rendered through the same
+`cohort state lock:` prefix. They are separate handlers now — `StateLockLost`
+first, since it subclasses the other — and the reclaim message says the
+transition DID commit and not to re-run. The AC13 case pins that wording,
+including that it must not say "nothing was written".
+
+Two checks were weaker than they read. The five interleaving cases accepted any
+non-zero exit, so a lock timeout or a child crash satisfied a case written for
+the fingerprint mismatch; they now require the stderr to name it. The cohort-side
+budget added the engine's own hold ceiling — a different process on the same
+lock — to a sum of spawn edges across mutually exclusive verbs; it takes the
+maximum over verbs and drops the engine term.
+
+Two findings are recorded rather than repaired, because repairing them would
+mean claiming something untrue:
+
+- The canonicalise catch-all in `_cohort_fingerprint` is **unfalsifiable against
+  the current reader**. Deep nesting raises inside `read_state` and is caught
+  earlier; a lone surrogate cannot fail `encode` under `ensure_ascii=True`. It
+  is kept as a contract guard, not an input guard, and the code says so.
+- AC15's inequality is **slack by 25x** and is not its own discriminator; the
+  pinned site counts are. The test says so rather than implying the arithmetic
+  is load-bearing.
 
 ## Observations
 

@@ -389,7 +389,16 @@ def _cohort_fingerprint(spec_dir: Path) -> str:
             state, ensure_ascii=True, sort_keys=True, separators=(",", ":")
         )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-    except Exception:  # noqa: BLE001 - RecursionError is neither ValueError nor OSError
+    except Exception:  # noqa: BLE001 - totality is the contract
+        # Unfalsifiable against the current reader, and deliberately kept.
+        # `RecursionError` from deep nesting is raised by `json.loads` inside
+        # `read_state` and caught by the arm above; a lone surrogate cannot fail
+        # `encode` under `ensure_ascii=True`. So no input reaches this arm today
+        # and no test can red it. It stays because it guards the contract rather
+        # than a known input: this runs inside the cohort-lock hold, where the
+        # cost of an escape is a traceback from a doubly-held lock, and a future
+        # change to the reader or to the canonical form reopens the path with no
+        # other net beneath it.
         return _FP_OTHER_UNUSABLE
 
 
@@ -1866,11 +1875,28 @@ def cmd_transition(args: argparse.Namespace) -> int:
 
             # Write engine-state.json atomically (critical — not wrapped).
             _write_engine_state_atomic(spec_dir, new_state)
+    except _statelock().StateLockLost as exc:
+        # A reclaim detected at RELEASE, which is the opposite situation from a
+        # failed acquisition and needs the opposite response. `exclusive` can
+        # only notice lost ownership after its body, so the engine-state write
+        # has already landed: the transition committed. Re-running it — the
+        # right move after an acquisition failure — is wrong here. Rendering
+        # both through one message is how an operator gets that backwards.
+        return stop(
+            f"transition: cohort state lock lost at release: {exc}. The "
+            "transition DID commit and engine-state.json is updated; the "
+            "events.pending record is finished by the next run. Do NOT re-run "
+            "this transition — check the current state first."
+        )
     except _statelock().StateLockError as exc:
-        # Named as the COHORT lock. `_locked`'s own handler renders an
+        # An acquisition failure: nothing was written, so retrying is correct.
+        # Named as the COHORT lock because `_locked`'s own handler renders an
         # engine-lock failure through the same `stop()`, and an operator who
         # cannot tell the two apart cannot tell which verb to wait for.
-        return stop(f"transition: cohort state lock: {exc}")
+        return stop(
+            f"transition: cohort state lock: {exc}; nothing was written — "
+            "retry once the competing cohort verb finishes"
+        )
 
     # Outbox steps 3–4: append events.jsonl + delete pending (graceful).
     if _pending_written and _repo_root is not None:

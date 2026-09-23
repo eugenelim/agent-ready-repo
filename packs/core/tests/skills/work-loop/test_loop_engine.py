@@ -4604,6 +4604,13 @@ def test_a_reclaim_at_the_end_of_the_hold_exits_non_zero(tmp: Path, capsys, monk
     err = capsys.readouterr().err.strip()
     assert rc != 0, "a reclaim mid-hold must not report success"
     assert "\n" not in err, err
+    # And it must not read like an acquisition failure. The two carry
+    # OPPOSITE remedies: a failed acquisition wrote nothing and should be
+    # retried, while this one already committed and must not be. One shared
+    # message is how an operator does the wrong thing confidently.
+    assert "DID commit" in err, err
+    assert "Do NOT re-run" in err, err
+    assert "nothing was written" not in err, err
 
 
 def test_a_guards_loader_failure_reaches_a_sentinel(tmp: Path, monkeypatch) -> None:
