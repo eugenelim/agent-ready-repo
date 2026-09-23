@@ -212,6 +212,40 @@ Eight residuals, each disclosed rather than fixed.
 
 ## 3. Plan width and mode selection
 
+### What the scheduler already does
+
+Two properties of the shipped scheduler are easy to get wrong, and both bound
+the levers below.
+
+**A cycle and a forward-reference are different defects, and only one is a
+defect.** A cycle among the unfinished tasks refuses `schedule` outright. A
+forward-reference — a task whose declared dependency is authored later in the
+file — is a warning on stderr, and the layering reorders it so the dependency
+runs first. Where the graph is acyclic a forward-reference is just an edge
+written out of order, and refusing it would refuse plans that are fine. The
+cycle check runs first, so a forward-reference that happens to sit inside a
+cycle is neither warned about nor reordered — it is part of what the refusal
+rejects. And the refusal has to be a refusal rather than a warning: the
+layering places only zero-indegree tasks and stops, so letting it through would
+persist a wave list with the cycle's members, and everything blocked behind
+them, silently missing.
+
+Both checks read the *unfinished* set, which bounds what they can say. The
+refusal reports the tasks the layering could not place, which is not the same
+as the cycle: a task merely blocked by one appears in that list too. And an
+amended schedule drops completed tasks and prunes their edges before either
+check runs, so a forward-reference with a completed endpoint is neither warned
+about nor present in the layering.
+
+**Two forms never become an intra-plan edge, and one expands asymmetrically.**
+`_local_dep_ids` strips both cross-spec forms — `spec:<slug>/T<n>` and the
+legacy backticked `` `<slug>` T<n> `` — before extracting local IDs, so a
+cross-spec dependency is recorded but never scheduled against. What survives
+yields a plain `T3`, a letter-suffixed `T1a`, or an inclusive `T1-T6` range.
+Only a range's *first* endpoint has to be unsuffixed, and neither asymmetry is
+announced: `T1a-T3` matches no range and falls through to its two endpoints,
+while `T1-T3a` expands `T1-T3` and then adds `T3a` alongside.
+
 ### Mode selection comes first
 
 Parallelism mode is offerable only when the plan DAG asks for it. A plan whose
@@ -290,6 +324,19 @@ false "independent" ships a break.
 
 A wider wave changes nothing until D5 is lifted: execution is sequential on every
 adapter by RFC-0015 decision 1, and every dispatch verb is inert.
+
+Inert at the *verb*, though, not deleted at the decision.
+`dispatch_decision` survives in `loop-cohort.py` as a pure predicate: given a
+merge-tree verdict and a list of category names, it answers `parallel` when the
+verdict is clean and every name is a safe category, and `serial` otherwise.
+Three things bound what that survival is worth. It never obtains the merge-tree
+verdict — it is passed one, and no shipped script produces it. It takes
+category *strings*, not a wave, so it answers `parallel` for an empty list. And
+its two refusal reasons are indistinguishable in its output.
+
+No CLI verb reaches it: `cmd_dispatch_decision` returns the disabled stub.
+Read it as a decision written down and held in place by its unit tests, not as
+something the loop does.
 
 ## Verification and risk
 
