@@ -1013,6 +1013,16 @@
         "Response does NOT claim the lens or the force-load set was deleted or that guidance was lost",
         "Response does NOT tell the reader to look for the depth in `work-loop` SKILL.md"
       ]
+    },
+    {
+      "id": "repo-root-resolved-once-per-invocation",
+      "prompt": "Does `loop-engine.py` run `git rev-parse --show-toplevel` every time it needs the repository root?",
+      "expected_output": "No. `_get_repo_root()` caches the resolved root per process working directory, so one invocation runs `git rev-parse` once however many times the root is needed. Only successful resolutions are cached: a failure re-runs `git` on the next call, and the working directory is part of the key so a process that changes directory gets the new directory's root rather than a stale one.",
+      "assertions": [
+        "Response says the resolved root is cached per process working directory",
+        "Response says a failed resolution is not cached and re-runs `git`",
+        "Response does not claim the cache is shared across different working directories"
+      ]
     }
   ]
 }

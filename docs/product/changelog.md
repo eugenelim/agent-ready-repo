@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.34] — 2026-09-22
+## [core][2.26.35] — 2026-09-22
 
 ### Changed
 
@@ -88,6 +88,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `repair-rollback` each need a confirmation the authorized person writes out
   of band, and a guard that arrives only once the mutate reference has loaded
   would be guarding a decision already taken.
+
+## [core][2.26.34] — 2026-09-22
+
+### Changed
+
+- The work-loop engine resolves the repository root once per invocation instead
+  of once per use. A `wave-complete` transition now starts a single `git`
+  process where it previously started three.
+
+### Fixed
+
+- The `docs/AGENTS.md` seed carries the Mermaid authoring constraints, so an
+  adopter receives them and they survive a projection rebuild. They previously
+  existed only in this repository's generated copy, where every self-host run
+  removed them.
 
 ## [core][2.26.33] — 2026-09-22
 
