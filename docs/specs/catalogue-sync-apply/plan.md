@@ -93,7 +93,7 @@ which is what stops a scoped run treating the rest of the recipe as stale; and
 a scoped run additionally confines removal to its own scope, so a genuinely
 stale path outside the scope survives until a full sync. Composed:
 
-    removal set = (recorded − full replayed set) ∩ scope
+    removal set = (recorded − full replayed set) ∩ coverage
 
 The shipped guard takes only the keep-set argument, so the scope half has no
 seam in it and the apply path filters the returned removable list before acting
@@ -115,19 +115,17 @@ tree needs what was there, and a Tier-1 verdict gives only a digest. The apply
 path snapshots the pre-run entry set over every write-set path and its ancestor
 directories — bytes, entry kind, mode and symlink target, the same tuple
 AC-0041 compares — then restores from it on failure, unlinking files it created
-and removing directories the pre-run walk lacked. Bytes alone would satisfy
+and removing directories the pre-run walk lacked. AC-0076 owns the bound and
+the figure; this section does not restate it. Bytes alone would satisfy
 AC-0038's digest half and still fail AC-0041 on a changed mode; files alone
 would fail it on a `--pack <new-name>` run, which creates `packs/<new-name>/`
 and leaves a `dir` entry the before-walk does not carry.
 
 The snapshot's bound is on the **adopter** axis, not the source axis.
-§ Grounding's snapshot-bound derivation measures the source tree at 34.5 MiB
-worst case, but what is held is the adopter's prior bytes at each write-set
-path, and an adopter file at a planned path is unbounded. AC-0076 therefore
-caps the snapshot and makes the run refuse before its first write when the cap
-is exceeded — refusing is a different contract from failing into rollback, and
-an out-of-memory landing mid-write hands the run to AC-0058's partial-restore
-row, which is the outcome § Never do calls absolute. The alternative — a per-path backup file — is a second write set inside
+What is held is the adopter's prior bytes at each write-set path, and an
+adopter file at a planned path is unbounded, so the source-side figure
+§ Grounding measures bounds nothing here. AC-0076 owns the cap and states that
+its value is a chosen ceiling rather than a measurement. The alternative — a per-path backup file — is a second write set inside
 the jail and a predictable staging path, which § Never do forbids.
 
 **Why the recorded path set excludes Tier-3 and companion paths.** AC-0059 owns
@@ -286,12 +284,23 @@ filesystem.
 - A `--pack` run over a fixture recording paths outside that pack leaves every
   one present — including a path the guard would otherwise admit for removal.
   Verifies AC-0064's scope axis.
+- A `--guides-mode none` run over a default-derived tree leaves its recorded
+  `guides/**` paths present. This is the case that separates a flag-derived
+  coverage rule from a hardcoded never-remove list: `guides/` is on no such
+  list, so an implementation carrying two fixed prefixes passes every other
+  case here and fails only this one.
+- A recorded path under `packages/credbroker/` that the source has stopped
+  shipping — so the keep-set no longer protects it — is still not removed, in
+  either tooling mode. Coverage, not the keep-set, is what makes that absolute,
+  and no other case distinguishes the two.
 - A recorded entry that becomes link-like between planning and acting is
   refused at the unlink. Verifies AC-0073.
-- An occupied companion destination carrying adopter edits survives the run and
-  is named on the printed plan. Verifies AC-0070.
+- An occupied companion destination carrying adopter edits is byte-identical
+  after the run, absent from the write set, and named on the plan and under
+  `companion_occupied` in the JSON summary. Verifies AC-0070.
 - A source planning both `x.md` and `x.upstream.md` against a Tier-2 `x.md`
-  writes neither and reports the collision. Verifies AC-0071.
+  writes neither, reports both paths under `companion_collision`, and returns
+  the cannot-answer code. Verifies AC-0071.
 - A `--pack <new-name>` run whose write is injected to fail leaves no
   `packs/<new-name>/` directory behind. A file-only restore passes every other
   rollback case and fails this one. Verifies AC-0038's entry-set half.
@@ -359,8 +368,11 @@ asserting the tree rather than the return value.
   phase 2's seven counts over the same run match a phase-2 classification of the
   full replayed selection. Verifies AC-0066.
 - A recorded selection of each invalid type, and one carrying a single name the
-  source does not ship, each return the cannot-answer code naming the field.
-  The unshipped-name case is the one a presence-and-emptiness fixture misses.
+  source does not ship, each return the cannot-answer code naming the field —
+  driven independently for `packs` and for `profiles`, since both carry the
+  same falsy widening and a packs-only fixture prices only half the criterion.
+  An absent field selects nothing from its category and does not refuse. The
+  unshipped-name case is the one a presence-and-emptiness fixture misses.
   Verifies AC-0068.
 - A run that cannot read a write-set path's pre-write state returns
   cannot-answer with no write. Verifies AC-0039's pre-write row.

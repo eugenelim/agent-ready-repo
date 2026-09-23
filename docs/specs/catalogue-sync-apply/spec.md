@@ -51,7 +51,7 @@ what it left behind.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Current architecture | Applicable — this delivers phase 3 of that rollout; § Rollout item 4 calls both `--package` targets `packages/` subtrees, and only one is | [`docs/architecture/catalogue/upstream-sync.md`](../../architecture/catalogue/upstream-sync.md) | eugenelim | Banner and § Rollout mark phase 3 done and one phase remaining; § Rollout item 4's subtree claim corrected; § Stage 3 says `sync` classifies where `init` overwrites rather than that the overwrite is replaced; § Granularity, which today names no destination for either subtree, gains one | AC-0053, AC-0061, AC-0062 and AC-0063 pass |
+| Current architecture | Applicable — this delivers phase 3 of that rollout; § Rollout item 4 calls both `--package` targets `packages/` subtrees, and only one is | [`docs/architecture/catalogue/upstream-sync.md`](../../architecture/catalogue/upstream-sync.md) | eugenelim | Banner and § Rollout mark phase 3 done and one phase remaining; § Rollout item 4's subtree claim corrected; § Stage 3 says `sync` classifies where `init` overwrites rather than that the overwrite is replaced; § Granularity, which today names no destination for either subtree, gains one | AC-0053, AC-0061, AC-0062, AC-0063, AC-0067 and AC-0075 pass |
 | User-facing promise | Applicable — apply is the reason the verb exists, and this guide is projected into the docs site | `guides/_shared/how-to/create-a-self-hosted-catalogue.md` | eugenelim | A section covering the apply run, consent, the scoping flags, and what a companion file obliges | AC-0054 passes, including its projected-surface half |
 | Interface compatibility | Applicable — the PyPI readme is a pinned release surface | `packages/agentbundle/README-pypi.md` | eugenelim | A "What's new in" section naming the version AC-0055 fixes | AC-0055 passes |
 | Release history | Applicable — new flag semantics and a new write path are release-coupling triggers | [`packages/agentbundle/CHANGELOG.md`](../../../packages/agentbundle/CHANGELOG.md), [`docs/product/changelog.md`](../../product/changelog.md) | eugenelim | A topmost entry naming the version AC-0055 fixes, written adopter-first | AC-0055 passes |
@@ -113,8 +113,9 @@ Three modes, over 47 criteria. Each entry names the comparison its oracle
 performs, not the property it hopes to establish.
 
 **TDD** covers AC-0030 through AC-0052, AC-0057 through AC-0060, AC-0064 and
-AC-0065, AC-0066, and AC-0068 through AC-0076 — thirty-eight criteria, each a
-compressible invariant over a pure function or a single `sync` call.
+AC-0065, AC-0066, AC-0068 through AC-0074, and AC-0076 — thirty-eight
+criteria, each a compressible invariant over a pure function or a single `sync`
+call. AC-0075 is goal-based and is counted there, not here.
 
 - **Invocation grammar (AC-0030)** — TDD. Oracle: the parser's exit status and
   the handler's returned code across the three modes and each malformed
@@ -190,9 +191,10 @@ compressible invariant over a pure function or a single `sync` call.
 - **A failed restore is named (AC-0058)** — TDD. Oracle: with both the write and
   its restore injected to fail, the reported output names each unrestored path.
 - **The snapshot bound (AC-0076)** — TDD. Oracle: a fixture whose adopter-side
-  write-set paths exceed the bound refuses with no write, and the tree walk
-  proves it. A fixture sized from the source tree cannot reach the bound, which
-  is the measurement error the criterion exists to correct.
+  write-set paths exceed the bound by `st_size` refuses with no write and
+  before the prompt, and the tree walk proves it. A fixture sized from the
+  source tree cannot reach the bound, which is the measurement error the
+  criterion exists to correct.
   This is the one outcome § Never do forbids absolutely, so the criterion exists
   to make it legible rather than to permit it.
 - **Exit codes and totality (AC-0039, AC-0040)** — TDD. Oracle: every row of the
@@ -241,11 +243,14 @@ compressible invariant over a pure function or a single `sync` call.
 - **Every target read is confined (AC-0065)** — TDD. Oracle: the hard-link and
   reparse-point cases phase 2's path-confinement criterion fixes, re-driven through the apply
   path's own reads. The criterion is phase 2's; only the caller is new.
-- **The selection never widens (AC-0068)** — TDD. Oracle: the selected packs
-  and profiles, over all nine recorded shapes, compared against the recorded
-  lists. § Grounding's widening derivation establishes that five of the nine
-  resolve to the source's full contents today, so a fixture carrying only the
-  non-empty shapes cannot fail.
+- **The selection never widens (AC-0068)** — TDD. Oracle: the selection
+  resolved for each recorded value, over the type-and-validity domain the
+  criterion fixes, driven independently for `packs` and for `profiles` because
+  both fields carry the same falsy widening. A present-but-invalid value
+  refuses; an absent one selects nothing from its category. § Grounding's
+  widening derivation measures how many shapes resolve to the source's full
+  contents today, so a fixture carrying only valid non-empty lists cannot
+  fail.
 
 **Goal-based checks** cover AC-0053, AC-0054, AC-0055, AC-0061 through AC-0063,
 AC-0067 and AC-0075 — eight delivery conditions, each a command whose output is
@@ -318,10 +323,13 @@ the answer.
   2. **Replay and classify.** Replay that selection and classify every planned
      path by the verdicts phase 2's five-verdict criterion fixes.
   3. **Admit** a path that is `would-update`; the path
-     `safety.companion_path` computes for a path that is `would-companion`; and
-     a path that is `untouched` only because it belongs to a pack or profile
-     clause 1 introduced. A path `untouched` for any other reason is not
-     admitted, which is what keeps an adopter's unrecorded file untouched.
+     `safety.companion_path` computes for a path that is `would-companion`,
+     unless AC-0070 finds that destination already occupied or AC-0071 finds it
+     equal to a path the replay itself plans, in which case neither that
+     companion nor the colliding planned path is admitted; and a path that is
+     `untouched` only because it belongs to a pack or profile clause 1
+     introduced. A path `untouched` for any other reason is not admitted, which
+     is what keeps an adopter's unrecorded file untouched.
   4. **Exclude** every admitted path outside the scope AC-0043 fixes. That
      scope contains no derivation-wide path, so a scoped run excludes
      `catalogue.toml` and every path under `tests/conformance/` by this clause
@@ -334,9 +342,10 @@ the answer.
 
   No other path under the target tree is created, modified, moved, or has its
   mode changed.
-- [ ] **AC-0034.** A `would-companion` path receives `safety.companion_path`'s
-  computed path carrying the replayed source bytes, and the adopter's own file
-  at that path has the same sha256 after the run as before it.
+- [ ] **AC-0034.** A `would-companion` path whose computed companion
+  destination AC-0033 clause 3 admits receives that path carrying the replayed
+  source bytes, and the adopter's own file at the original path has the same
+  sha256 after the run as before it.
 - [ ] **AC-0035.** Stale removal runs only after every planned write has landed,
   keeps its sha256 guard unchanged, and computes its keep-set from the full
   replayed planned set rather than from the write set.
@@ -380,12 +389,14 @@ the answer.
   | any | `--package` was supplied with a recognised name | 3 — `cannot-answer` |
   | any | the source could not be resolved or its integrity could not be verified | 3 — `cannot-answer` |
   | apply or `--dry-run` | a `--pack` or `--profile` name the resolved source does not ship | 2 — `malformed` |
-  | apply or `--dry-run` | the recorded recipe carries no derivable selection, read before any name a scoping flag introduces is unioned in | 3 — `cannot-answer` |
+  | apply or `--dry-run` | a recorded selection field is present and invalid per AC-0068, or the recipe carries no derivable selection at all, read before any name a scoping flag introduces is unioned in | 3 — `cannot-answer` |
   | apply, `--dry-run`, or `--check --compare-tree` | the recorded-path container is not an array | 3 — `cannot-answer` |
   | apply or `--dry-run` | the identity leak check reported a violation | 1 — `difference` |
   | apply or `--dry-run` | a selected pack's adapter-contract major differs from the CLI's | 1 — `difference` |
-  | apply | consent was not given | 1 — `difference` |
+  | apply | the write set's paths hold more on disk than AC-0076's bound | 3 — `cannot-answer` |
   | apply | the run could not read the pre-write state of a path it was about to write | 3 — `cannot-answer` |
+  | apply | a companion destination collides with a path the replay plans | 3 — `cannot-answer` |
+  | apply | the operator reached the consent prompt and did not give consent | 1 — `difference` |
   | apply | a planned write failed and the tree could not be fully restored | 4 — `apply-failed` |
   | apply | a planned write failed and the tree was restored | 4 — `apply-failed` |
   | apply | every planned write landed and stale removal failed | 4 — `apply-failed` |
@@ -402,7 +413,10 @@ the answer.
 
   The `--package` row sits above source resolution so a run that will refuse
   performs no fetch. The unshipped-name row sits below it because whether the
-  source ships a name is not decidable until the source resolves.
+  source ships a name is not decidable until the source resolves. Every apply
+  refusal that lands before the prompt sits above the consent row, because
+  "consent was not given" is otherwise true of a run that never reached the
+  prompt and would shadow the row its own criterion names.
 - [ ] **AC-0040.** Every invocation and every failure reaches a named row of
   AC-0039's table at the command boundary. No uncaught exception sets the
   process exit status.
@@ -518,10 +532,9 @@ the answer.
   § Granularity, and § Rollout item 4 no longer describes both as `packages/`
   subtrees.
 - [ ] **AC-0064.** No invocation removes a recorded path outside the coverage
-  AC-0069 fixes. In particular a run supplying a scoping flag removes no
-  recorded path outside that scope, and no invocation — scoped or unscoped —
-  removes a recorded path under `packages/credbroker/` or
-  `.agentbundle/tooling/`.
+  AC-0069 fixes. This holds when the source has stopped shipping that path, so
+  the keep-set no longer protects it: coverage, not the keep-set, is what makes
+  the protection absolute.
 - [ ] **AC-0065.** Every read or hash of a target path the apply path performs
   goes through the confinement helpers phase 2's path-confinement criterion names, and is refused on
   the same hard-link, non-regular and reparse-point inputs that criterion fixes.
@@ -537,24 +550,43 @@ the answer.
   contents the recorded recipe did not name. The domain this quantifies over is
   the recorded value's **type and validity**, because that is what the
   resolution branches on: a recorded selection is admitted only when it is a
-  list every one of whose entries is a name the source ships. Every other
-  value — absent, an empty list, a null, a string, a number, a boolean, an
-  object, a list of non-strings, or a list carrying one name the source does
-  not ship — makes the run return the cannot-answer code naming the field, and
-  never resolves to every pack or profile the source ships.
+  list every one of whose entries is a name the source ships. The rule is per
+  selection field — `packs` and `profiles` each decide separately:
+
+  - A **valid** list narrows that category to the names it carries.
+  - An **absent** field selects nothing from that category. It is not a
+    refusal, because a recipe naming packs and no profiles is an ordinary
+    derived tree.
+  - A **present but invalid** value — an empty list, a null, a string, a
+    number, a boolean, an object, a list of non-strings, or a list carrying one
+    name the source does not ship — refuses the run, naming that field. The
+    code is AC-0039's first matching row, which owns every code this command
+    returns.
+
+  No value resolves to every pack or profile the source ships.
 
   Quantifying over presence and emptiness instead is what hides the sharp case:
   a recorded selection that fails its own read-time constraint reads as a
   well-formed non-empty list, and the shipped resolution collapses it to "no
-  narrowing requested". § Grounding's widening derivation measures 14 of 16
-  shapes resolving to the source's full contents today.
+  narrowing requested". § Grounding's widening derivation measures the figure
+  over both selection fields, since `profiles` carries the identical widening
+  and a packs-only sweep prices it as covered.
 - [ ] **AC-0069.** A recorded path is a removal candidate only when it lies
-  inside the run's **coverage**: the set of path prefixes this run's own flags
-  could have planned. Coverage is derived from the flags and their defaults,
-  never from recorded state. It excludes `.agentbundle/tooling/` entirely under
-  `--tooling external`, `guides/` under `--guides-mode none`, and everything
-  outside the scope AC-0043 fixes. A recorded path outside coverage is reported
-  as an out-of-coverage count and left in place.
+  inside the run's **coverage**. Coverage is derived from the run's own flags
+  and their defaults, never from recorded state, and excludes:
+
+  1. `packages/credbroker/` and `.agentbundle/tooling/`, on every invocation and
+     in every mode. These are the subtrees AC-0033 clause 5 keeps out of the
+     write set, and a run that may not write a subtree may not delete from it
+     either.
+  2. `.agentbundle/tooling/` under `--tooling external` and `guides/` under
+     `--guides-mode none` — the mode-narrowing axis, already covered for the
+     first by clause 1 above and load-bearing for the second.
+  3. Everything outside the scope AC-0043 fixes.
+
+  A recorded path outside coverage is left in place and reported as an
+  `out_of_coverage` count, on the printed plan and in the `--format json`
+  document's `summary` object.
 
   This criterion exists because the replayed set is mode-dependent while the
   recorded set is not. A tree derived with `--tooling vendored` records every
@@ -565,19 +597,27 @@ the answer.
   paths. Naming those subtrees as exclusions would repair the measured instance
   and leave the class, which is any mode whose replay plans more paths than the
   running mode's.
-- [ ] **AC-0070.** A companion destination that is already occupied is decided
-  before it is written, and the decision is visible on the plan the operator
-  consents against. An occupant whose sha256 matches what a previous run of this
-  command wrote there is replaced; any other occupant is left untouched and its
-  path is reported. Without this the companion destination is the one path in
-  the write set outside the Tier contract, and an adopter part-way through
-  resolving a companion loses that work silently.
+- [ ] **AC-0070.** A companion destination that already exists is never
+  written. The run leaves the occupant byte-identical, is the condition AC-0033
+  clause 3 reads when it declines to admit that companion, and names it on the
+  plan the operator consents against and in the
+  `--format json` document's `summary` object under `companion_occupied`.
+  Nothing records what a previous run wrote to a companion destination — AC-0059
+  keeps companion paths out of the recorded state — so no rule that asks whether
+  an occupant is the command's own output is decidable from what the run holds.
+  Never overwriting is the fail-safe reading, and it is what stops an adopter
+  part-way through resolving a companion losing that work.
 - [ ] **AC-0071.** When the replayed source itself plans a path equal to a
-  companion destination this run would compute, the run reports the collision
-  and writes neither, rather than letting AC-0033's set collapse the duplicate
-  and AC-0032's order decide which content wins.
-- [ ] **AC-0072.** The consent prompt names the source fidelity, including whose
-  word a digest rests on. Fidelity is what separates a `git+https://` sync —
+  companion destination this run would compute, AC-0033 clause 3 admits
+  neither, and the run names both paths on the plan and in the `--format json`
+  document's `summary` object under `companion_collision`. Letting the set
+  collapse the duplicate would leave AC-0032's order deciding which content
+  wins.
+- [ ] **AC-0072.** Every apply run names the source fidelity, including whose
+  word a digest rests on, on the consent prompt when it prompts and in the
+  printed plan and the `--format json` document on every apply run including
+  `--yes`. Scoping it to the prompt alone would put it exactly where a human is
+  already reading and leave it absent from every automated path. Fidelity is what separates a `git+https://` sync —
   TLS only, no content integrity, a force-pushable ref — from a digest-verified
   one, and on this verb it is the basis on which an operator authorises writes
   rather than reads.
@@ -593,14 +633,19 @@ the answer.
   form affording a resolved ref or a digest first reaches the pin when `sync`
   resolves it in phase 2. Phase 2 shipped with no write path and wrote no pin;
   AC-0037 assigns that value to this phase.
-- [ ] **AC-0076.** The rollback snapshot is bounded, and the bound is measured
-  on the adopter tree the run reads rather than on the source it replays. An
-  apply run whose write-set paths hold more than 256 MiB on disk refuses before
-  its first write with the cannot-answer code, naming the bound. The figure is
-  an order of magnitude above the 34.5 MiB § Grounding measures for the largest
-  selection this repository produces, and the refusal is before the first write
-  because exhausting memory mid-write lands on AC-0058's partial-restore row,
-  which § Never do calls absolute.
+- [ ] **AC-0076.** The rollback snapshot is bounded on the adopter tree the run
+  reads, not on the source it replays. Before the consent prompt and before the
+  first write, the run sums `st_size` over every write-set path that exists; if
+  that sum exceeds 256 MiB it refuses, naming the bound and the measured sum.
+
+  The figure is a **chosen ceiling, not a measurement**. No adopter-axis
+  measurement exists: § Grounding measures the source tree, and an adopter file
+  at a planned path is unbounded, so nothing here establishes the headroom a
+  256 MiB resident snapshot leaves beside the replay's own bytes. The ceiling is
+  set where a tree an order of magnitude past anything this repository produces
+  still refuses rather than risks the partial-restore row. `st_size` is named
+  because the alternative, allocated blocks, makes the bound unreachable for a
+  sparse fixture and forces a quarter-gigabyte write into a unit suite.
 
 ## Follow-ons
 

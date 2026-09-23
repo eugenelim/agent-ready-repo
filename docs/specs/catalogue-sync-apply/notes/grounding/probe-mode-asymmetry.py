@@ -52,15 +52,25 @@ def main() -> int:
     print(f"a default sync run plans {len(default)} paths")
     print("(sync defaults: attribution=white-label, tooling=external, guides=selected)\n")
 
-    for label, modes in (
-        ("--tooling vendored", {"tooling": "vendored"}),
-        ("--guides-mode none", {"guides": "none"}),
-        ("--guides-mode selected", {"guides": "selected"}),
+    # Both directions matter. Varying only the derivation reports 0 for the
+    # guides axis and reads as evidence of no asymmetry there; the hazard on
+    # that axis runs the other way, when the RUN's own mode narrows below the
+    # recorded tree's.
+    for label, derived_modes, run_modes in (
+        ("derived --tooling vendored, run at defaults",
+         {"tooling": "vendored"}, {}),
+        ("derived at defaults, run --tooling vendored",
+         {}, {"tooling": "vendored"}),
+        ("derived at defaults, run --guides-mode none",
+         {}, {"guides": "none"}),
+        ("derived --guides-mode none, run at defaults",
+         {"guides": "none"}, {}),
     ):
-        built = planned(**modes)
-        orphaned = built - default
-        print(f"tree derived with {label}: {len(built)} recorded")
-        print(f"  orphaned by a default sync run: {len(orphaned)}")
+        built = planned(**derived_modes)
+        run = planned(**run_modes) if run_modes else default
+        orphaned = built - run
+        print(f"{label}: {len(built)} recorded, run plans {len(run)}")
+        print(f"  orphaned by that run: {len(orphaned)}")
         if orphaned:
             covered = {
                 path for path in orphaned if path.startswith(NAMED_EXCLUSIONS)
