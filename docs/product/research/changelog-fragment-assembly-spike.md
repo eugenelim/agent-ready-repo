@@ -417,6 +417,18 @@ anchors: byte-identical at `72305605…`, with 0 of 157 historical anchors absen
 or changed. § 7 Content integrity requires every Highlights item to appear
 exactly once with unchanged bytes: 20 of 20.
 
+**The anchor form recorded here is superseded; the property is not.** Commit
+`0ab3de273` changed § 7's Stable links row after this run. A new update's anchor
+is now the slugger's package-and-date slug, a hyphen, then the fragment's UUID
+as 32 lowercase hexadecimal digits — because `/now/` gained a per-release
+permalink and an Atom feed in #1415, which turned the anchor into a published
+URL segment and a syndication id. The `change-<uuidhex>` form this run measured
+is no longer the design. What the 20-of-20 figure demonstrates survives the
+change: an anchor derived from the fragment's own identity is distinct per
+fragment and needs no lookup against its neighbours, which is why neither form
+can race across branches. The new form's own check is unmeasured here and
+belongs to the delivery spec.
+
 ## Measurement 4 — site-build cost at ten times the released-entry count
 
 Five timed `make site-build` runs per arm in a disposable clone of `93bf9cc9e`,
@@ -561,11 +573,43 @@ anticipates the stimulus "many small files increase scan and parse cost", and
 this run neither confirms nor refutes that: it did not isolate the parse phase,
 and it never measured what a realistic fragment body weighs.
 
-**KILL.** § 7 Build performance requires less than 10% site-build regression at
-ten times the current release-entry count. The observed point estimate is
-+66.08%, which does not meet it. The measurement does not support a precision
-claim on that number — see above — so the kill rests on the recorded figure
-against the recorded threshold, and the figure itself is owed a re-measurement.
+**KILL, against the bar § 7 carried when this ran.** That row then required
+less than 10% site-build regression at ten times the current release-entry
+count, measured as a fragment arm against today's build. The observed point
+estimate is +66.08%, which does not meet it. The measurement does not support a
+precision claim on that number — see above — so the kill rests on the recorded
+figure against the recorded threshold, and the figure itself is owed a
+re-measurement.
+
+### That row has since been rewritten, and this figure cannot be re-judged
+
+Commit `0ab3de273` replaced § 7's Build performance row after this run. The bar
+is now **three** interleaved arms, each discarding a warm-up: today's corpus, a
+monolith carrying ten times the released entries, and the same corpus as
+fragments. The two large arms are generated from one canonical set of records
+and differ only in physical layout, so the fragment arm's median minus the
+**monolith** arm's, over the monolith arm's, is what must stay under 10%. The
+monolith-versus-today difference is booked separately, as release-growth cost
+the fragment design does not own.
+
+**+66.08% is not a stale pass or a stale fail. It is unusable for the new bar
+in either direction.** It is the sum of two deltas — fragment-versus-monolith
+and monolith-versus-today — that the new row assigns to different owners, and
+this run never built a monolith-at-scale arm to separate them. So it neither
+passes nor fails the new bar. It answers a question § 7 no longer asks, and the
+new bar is unmeasured.
+
+Read the KILL above as a record of what was measured against the bar of the
+day, not as evidence against the design. Nothing here revises a figure, a base
+commit or a verdict; the rewrite happened after the run, and the run is reported
+as it was.
+
+The rewrite also added a **Published page count** row, requiring page count to
+be recorded per arm and the fragment and monolith arms at equal release count to
+emit the same number. That is where
+[the structural observation below](#a-structural-change-this-measurement-does-not-price)
+landed: this run recorded 216 pages against 3,282 without pricing the
+difference, and § 7 now makes the coupling a measured requirement.
 
 Per this spec's Durable Outputs, a build-cost figure at or above the § 7 bar is
 neither a survive nor a kill for the architecture delta: it leaves
@@ -580,16 +624,17 @@ whether it blocks delivery.
 | 1 | Merge independence | 0 conflicting pairs, § 7 Mergeability | 0 of 190, control 190 of 190 | **survive** |
 | 2 | Deterministic assembly | 1 digest from 5 shuffles, § 7 Determinism | 1, mutation arm 5 | **survive** |
 | 3 | `/now/` parity and anchors | byte-identical, § 7 Historical compatibility | identical; 20/20; 0 of 157 moved | **survive** |
-| 4 | Site-build cost | under 10%, § 7 Build performance | +66.08% | **kill** |
+| 4 | Site-build cost | under 10% vs today's build, § 7 Build performance **as it then stood** | +66.08% | **kill**, and not re-judgeable against the rewritten row |
 
 **Overall: survive.** The aggregation rule is kill when merge independence,
 determinism or parity is kill, and survive otherwise; build cost does not enter
 it. All three aggregating measurements cleared their thresholds, two of them
 against an arm that failed when the invariant was removed.
 
-The design is not refuted. What the run changes is the delivery spec's shape.
-The build-cost figure misses its threshold, and the run also records that
-release count now drives page count through `/now/[release]`. Which of those
+The design is not refuted, and § 7's rewritten Build performance row now asks a
+question this run did not answer. What the run changes is the delivery spec's
+shape. The build-cost figure misses the bar of the day, and the run also records
+that release count now drives page count through `/now/[release]`. Which of those
 two facts explains the other is not settled here, so the delivery spec inherits
 a measurement to redo rather than a cause to fix — and it should redo it on a
 quiet machine before setting any threshold.

@@ -384,3 +384,52 @@ triggered one, closed clean after a single repair round and found the four
 defects that mattered most to the tracked script — including that every run had
 been depositing unreachable objects in the parent repository's shared object
 store while `git status --porcelain` reported the worktree clean.
+
+## Architecture moved under the report after the run
+
+Commit `0ab3de273`, authored by the peer session writing the delivery spec,
+rewrote `docs/architecture/changelog-fragment-source.md` on this branch after
+every measurement was taken. Nine § 4 and § 7 rows were modified and three
+added. Three of them reach this report.
+
+**§ 7 Build performance was rewritten, and it is the consequential one.** The
+bar the run was judged against — a fragment arm against today's build, under
+10% at ten times the released-entry count — is gone. It is now three
+interleaved arms, and the quantity under the bar is the fragment arm's median
+minus a **monolith-at-scale** arm's, over the monolith arm's, with the
+monolith-versus-today difference booked separately as release-growth cost the
+fragment design does not own.
+
+The spec's Acceptance Criteria state that § 7 wins where the two disagree, so
+the new row governs and the report's quotation of the old one had to go. But
+the figure is not simply stale: +66.08% is the sum of the two deltas the new
+row assigns to different owners, and this run never built a monolith-at-scale
+arm to separate them. It neither passes nor fails the new bar. Measurement 4
+now says so in those terms, because "superseded" alone would read to a later
+reader as evidence against the design.
+
+No figure, base commit or verdict was revised. The run is reported as it ran,
+against the bar of the day, with the rewrite recorded beside it.
+
+**§ 7 Stable links changed the anchor form.** A new update's anchor is now the
+package-and-date slug plus the fragment's UUID, not `change-<uuidhex>`, because
+#1415 turned the anchor into a published URL segment and an Atom entry id.
+Measurement 3's 20-of-20 figure stands as a record of the model it tested, and
+the property it demonstrates — an identity-derived anchor is distinct per
+fragment and needs no neighbour lookup — survives the change. The new form's
+check is unmeasured here.
+
+**A § 7 row was added because of this report.** Published page count requires
+page count recorded per arm, and the fragment and monolith arms at equal release
+count to emit the same number. That is where this run's unpriced structural
+observation — 216 pages against 3,282 — landed.
+
+`Status` stays `Draft`, which this spec's Durable Outputs requires for a
+build-cost figure at or above the bar.
+
+**Process note.** The peer's first message disclosed only the anchor change.
+The § 7 Build performance rewrite was found by diffing the commit, which is the
+wrong way round: a report's citations can be invalidated by a change to the
+document it cites, and nothing in this repository detects that. Both sessions
+now treat a change to a cited authority as owing the citing session a complete
+list rather than the consequence the author happened to have in mind.
