@@ -335,3 +335,50 @@ own reasoning.
 T1 re-run after the change: 0 of 190 and 190 of 190, empty error buckets,
 anchor still at line 67, and the shared object store measured 8,309 loose
 objects before and 8,309 after.
+
+## Review round 6 — one finding, adjudication indeterminate, owner-directed fix
+
+The adversarial lane returned a single finding: the report said the synthetic
+corpus "understates byte volume by design" and "badly", while the retained
+evidence compares 812,466 synthetic bytes only against the current
+598,239-byte monolith and never measures what a realistic future fragment body
+weighs. The observation is correct.
+
+Adjudication returned the indeterminate stop signal rather than a verdict. It
+agreed the claims are unsupported but held that the severity downgrade from
+blocker to advisory is an owner decision, on the grounds that both cited
+locations are working material.
+
+**The controller disagrees with that ground and records the disagreement.** The
+spec's tier note classifies sections of the *spec* — `Outcome`, `What Changes`,
+`Durable Outputs`, `Follow-ons`, `Assumptions`. The flagged text is in the
+research report, which that note does not govern. The report answers to the
+spec's `Agent Rules`, which the same note names as contract, and whose Never-do
+rule forbids reporting what the retained stdout does not contain. On that
+reading the finding blocks. The disagreement changes no action: the neutral
+wording is more accurate either way.
+
+Disposition: the scope owner directed the correction. Because adjudication
+produced no sustained findings, no findings round was recorded and the retry-cap
+override the owner had authorised was not consumed; `review_retry_count` stays
+at 5 of 5. The text now records the measured comparison against today's
+monolith, states that the corpus's relationship to realistic fragment bodies
+was not measured, and claims no direction in either place.
+
+## The one defect class this review found
+
+Across six adversarial rounds and two quality rounds, twenty-one findings were
+sustained and five refuted. Every sustained adversarial finding was one class: a
+claim reaching past its evidence. Sustained counts per adversarial round ran
+4, 3, 2, 4, 4, 1. The measurements never moved — T1 held at 0 of 190 and 190 of
+190 through five re-runs and four rewrites of its insertion-anchor code, T2 at
+1 digest against 5, T3 at byte-identical parity with 20 of 20 and 0 of 157, and
+T4's durations were never re-run. What kept failing was the prose around the
+numbers, and twice the controller's own reasoning about them: the docs-site
+phase as a negative control, and heading level as a free-standing test.
+
+The quality lane, added as a discretionary second reviewer rather than a
+triggered one, closed clean after a single repair round and found the four
+defects that mattered most to the tracked script — including that every run had
+been depositing unreachable objects in the parent repository's shared object
+store while `git status --porcelain` reported the worktree clean.

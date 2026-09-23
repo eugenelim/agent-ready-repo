@@ -559,7 +559,7 @@ demonstrate.
 The same caution applies to § 7's own framing. Its Build performance row
 anticipates the stimulus "many small files increase scan and parse cost", and
 this run neither confirms nor refutes that: it did not isolate the parse phase,
-and its corpus understates byte volume by design.
+and it never measured what a realistic fragment body weighs.
 
 **KILL.** § 7 Build performance requires less than 10% site-build regression at
 ten times the current release-entry count. The observed point estimate is
@@ -605,7 +605,8 @@ quiet machine before setting any threshold.
   `_Slugger`'s duplicate-suffix renumbering is the arm that could fail, and it was
   not run. It is the cheapest remaining check and belongs in the delivery spec.
 - **Per-fragment parse cost at realistic body sizes.** The corpus models group
-  and page counts faithfully and understates byte volume badly:
+  and page counts faithfully. Its byte volume was measured only against the
+  current monolith:
 
   ```
   $ python3 -c '<regenerate the staged corpus from the same seeded generator>'
@@ -615,12 +616,14 @@ quiet machine before setting any threshold.
   Highlights bullets per fragment: 1
   ```
 
-  Ten times the entry count is only 1.36 times the byte volume of the existing
-  598,239-byte changelog, because each synthetic body is one short bullet where
-  a real entry runs to paragraphs and several. That byte-volume mismatch is
-  what was measured. Its effect on read and parse cost is unknown in both
-  direction and size, because the run never isolated the parse phase, so this
-  run cannot be cited for parse cost.
+  Ten times the entry count is 1.36 times the byte volume of the existing
+  598,239-byte changelog, and each synthetic body is one short bullet. That
+  comparison against today's monolith is the whole of the measurement. How the
+  corpus relates to realistic future fragment bodies was not measured, so its
+  volume is neither established as representative nor as an under- or
+  over-statement; and because the run never isolated the parse phase, its
+  effect on read and parse cost is unknown in direction and size. This run
+  cannot be cited for parse cost.
 - **ADR-0123's fifth Confirmation signal** — that regeneration leaves no tracked
   diff — and § 7's rows for Git cleanliness, Failure diagnosability, and
   Dependency and privacy posture. These are delivery verification obligations:
