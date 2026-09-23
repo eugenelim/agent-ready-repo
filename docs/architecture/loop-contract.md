@@ -194,8 +194,49 @@ and no source converges on a universal one.
 - A rule that governs criterion authoring appears in exactly one of the skill's
   four authoring surfaces; the pack-local discipline suite enforces this per
   pinned sentence.
+- `workspace.toml` `[backlog].open` is the sole authoritative register for a
+  historical deferred marker; `docs/backlog.md` is not consulted. A marker
+  resolves through either a legacy `slug` field or a canonical artifact path
+  reduced to its canonical anchor.
 
-## 8. Relevant records
+## 8. Present-tense bodies
+
+A body is *written* in the present tense, as built. It carries no future-tense
+promise, no previously-X-now-Y narration, no deprecation timeline and no
+version-stamped history; decision history belongs in the ADR that owns it.
+`plan.md` is not exempt — its changelog records approvals rather than evolving
+strategy.
+
+The rule governs authoring, not the whole lifetime. Freezing pins a body at the
+moment it shipped, and § 9 admits only two narrow edits afterwards — neither of
+which re-tenses prose — so a frozen body states what was true when it froze and
+is not rewritten to track a later decision. The `Status` annotation, not the
+prose, carries that news.
+
+The failure the rule prevents is context poisoning: confident error caused by
+stale or self-contradictory documentation. Duplication is the separate concern
+§ 2 owns.
+
+## 9. Editing a frozen contract
+
+A shipped spec directory freezes as a unit, covering `spec.md` and `plan.md`
+together. Two allowances survive the freeze, and nothing else does.
+
+**A parenthetical on the existing `Status` token is the only edit the frozen
+body accepts**, in exactly two licensed shapes: a supersession pointer
+(`Shipped (superseded in part by ADR-NNNN — …)`), and a pointer recording that a
+`[backlog].open` anchor the body names has been closed. The linter truncates at
+the first ` (`, so an annotated status still satisfies the vocabulary rule.
+There is no `Superseded` token, and `Archived` is not a substitute — a
+superseded spec usually shipped and is still live.
+
+**Meaning-preserving mechanical rewrites are the carve-out** — a path or link
+rename, a moved file's reference, a repository-wide identifier change. The
+reason is stated as a trade: a frozen document with dangling links is a worse
+outcome than one whose references were mechanically corrected. A rewrite that
+changes what was decided is not mechanical and is not covered.
+
+## 10. Relevant records
 
 - [Identifier comparison matrix](../product/research/item-id-management-comparison-matrix.md)
   — the identifier decision and its alternatives.
