@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
-- **Brief:** docs/product/briefs/agent-authoring-input-quality.md
+- **Brief:** brief:agent-authoring-input-quality
 - **Contract:** none
 
 > **Spec contract:** this document defines what "done" means. The implementing

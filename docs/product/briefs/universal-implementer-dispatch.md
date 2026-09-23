@@ -5,7 +5,7 @@
 - **Owner:** Repository maintainers
 - **Status:** Executing
 - **Source / provenance:** [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
-- **Parent intent:** [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
+- **Parent intent:** intent:cross-adapter-behavior-enforcement
 
 ## Outcome
 

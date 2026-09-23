@@ -64,6 +64,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.36] — 2026-09-22
+
+### Highlights
+
+- **A reference from one artifact to another now names exactly one target, and
+  an ambiguous name is refused rather than guessed.** A pointer written as a
+  bare name used to be resolved by picking the alphabetically first match when
+  several fitted. Nothing told the author a choice had been made. Such a name
+  is now reported with every candidate it matched, so the author decides rather
+  than the sort order.
+
+### Added
+
+- `intent:` is a recognized node kind, covering the 117 intent files no ladder
+  rung already types. Their ids come from each file's `Slug:` field, never the
+  filename, so an ordinal never becomes part of an address.
+- `resolve_endpoint` gained a refusal state for a name matching more than one
+  artifact, routed at all three of its call sites.
+
+### Changed
+
+- `brief:<slug>` is the canonical `Brief:` value, replacing the
+  repository-relative path. **The path form still works everywhere it worked
+  before**, and a unique bare slug is still accepted by the traceability
+  resolver and the coverage join — dispatch continues to refuse a bare slug,
+  as it always has. Nothing written under the old convention breaks.
+- `<kind>:<slug>` is the canonical form for `Parent intent:` too, and the
+  existing values in both fields have been migrated. `Contract:` and
+  `Discovery:` are deliberately unchanged: see RFC-0103 for why their target
+  kinds have to be settled first.
+- The templates and guides that stamp these fields now emit the canonical form,
+  so a new artifact starts correct rather than needing a later sweep.
+- The copy of the workspace-status engine packaged with the `agentbundle` CLI is
+  synchronized with this change. The CLI's own contract is unchanged, so it takes
+  no release of its own.
+
 ## [core][2.26.35] — 2026-09-22
 
 ### Changed

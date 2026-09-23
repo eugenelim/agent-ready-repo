@@ -7,7 +7,7 @@
   its 2026-09-01 § *Errata* narrowing of D3 and its 2026-09-04 § *Errata*
   runtime-profile de-scope;
   [`Agent Skill Engineering Composition Floors`](../agent-skill-engineering-composition-floors/spec.md)
-- **Brief:** docs/product/briefs/agent-skill-engineering.md
+- **Brief:** brief:agent-skill-engineering
 - **Discovery:** none
 - **Contract:** none. This slice touches no provider seam. The router's per-claim
   state reporting and the provider response-contract change it needs belong to

@@ -7,7 +7,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** work-loop-review-economics — [Work-loop review economics](work-loop-review-economics.md)
+- **Parent intent:** outcome:work-loop-review-economics
 
 ## Outcome
 

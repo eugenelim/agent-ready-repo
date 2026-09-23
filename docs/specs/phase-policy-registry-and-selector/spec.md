@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, ADR-0093
-- **Brief:** docs/product/briefs/phase-scoped-policy-delivery.md
+- **Brief:** brief:phase-scoped-policy-delivery
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** data

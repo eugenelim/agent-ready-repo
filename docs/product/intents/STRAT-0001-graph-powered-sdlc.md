@@ -10,7 +10,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** ai-native-ecosystem — [AI-native ecosystem](VISION-0001-ai-native-ecosystem.md)
+- **Parent intent:** outcome:ai-native-ecosystem
 
 ## Outcome
 

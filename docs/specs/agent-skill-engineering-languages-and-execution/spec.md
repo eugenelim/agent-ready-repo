@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
   [`Agent Skill Engineering Corpus`](../agent-skill-engineering-corpus/spec.md)
-- **Brief:** docs/product/briefs/agent-skill-engineering.md
+- **Brief:** brief:agent-skill-engineering
 - **Discovery:** none
 - **Contract:** none — the foundation semantic provider request/response
   contract remains unchanged.

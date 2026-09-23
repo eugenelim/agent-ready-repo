@@ -7,7 +7,7 @@
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
-- **Parent intent:** work-item-capture-and-disposition — [Work-item capture and disposition](CAP-0005-work-item-capture-and-disposition.md)
+- **Parent intent:** capability:work-item-capture-and-disposition
 - **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; the enforceable edge is a typed `needs` entry on the workspace registration, which does not exist yet -->
 
 ## Outcome

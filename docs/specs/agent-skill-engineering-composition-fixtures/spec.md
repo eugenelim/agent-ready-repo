@@ -6,7 +6,7 @@
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md)
   § *Experiment / validation*, Gate 2's M2 expanded measure;
   [`Agent Skill Engineering Composition Floors`](../agent-skill-engineering-composition-floors/spec.md)
-- **Brief:** docs/product/briefs/agent-skill-engineering.md
+- **Brief:** brief:agent-skill-engineering
 - **Discovery:** none
 - **Contract:** none — the semantic provider request/response contract is
   untouched.

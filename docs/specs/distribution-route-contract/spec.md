@@ -6,7 +6,7 @@
 - **Constrained by:**
   - [RFC-0092](../../rfc/0092-first-class-distribution-routes.md)
   - [ADR-0090](../../adr/0090-distribution-routes-separate-from-runtime-adapters.md)
-- **Brief:** docs/product/briefs/distribution-routes-programme.md
+- **Brief:** brief:distribution-routes-programme
 - **Discovery:** none
 - **Contract:** `contracts/distribution-routes.toml`; `contracts/distribution-routes.schema.json`; removes route ownership from `contracts/adapter.toml` and `contracts/adapter.schema.json`
 - **Shape:** mixed

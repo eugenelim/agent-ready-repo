@@ -732,6 +732,30 @@ def _is_canonical_local_brief_path(path: object) -> bool:
     )
 
 
+# `\Z`, not `$`: in Python `$` also matches just before a trailing newline,
+# so `brief:slug\n` matched and normalised through with the newline silently
+# dropped, while a trailing tab, space or carriage return was refused. One
+# character of the excluded set leaked because of the anchor.
+_BRIEF_POINTER_RE = re.compile(r"^brief:(?P<slug>.*)\Z", re.S)
+
+
+def _normalized_brief_pointer(value: str) -> str:
+    """Normalize a well-formed `brief:<slug>` value to its canonical path.
+
+    `brief:<slug>` is the canonical `Brief:` form. Normalizing
+    here — before `_is_canonical_local_brief_path` runs — is what keeps that
+    helper itself unrelaxed: it also guards `workspace.toml` entry and
+    dependency paths, where a slug is meaningless and must keep failing. A
+    malformed `brief:` value (wrong slug shape, a second colon, a space) is
+    returned unchanged, so it falls through the existing checks and is
+    refused exactly as before.
+    """
+    match = _BRIEF_POINTER_RE.match(value)
+    if match and _SINGLE_SEGMENT_RE.fullmatch(match.group("slug")):
+        return f"docs/product/briefs/{match.group('slug')}.md"
+    return value
+
+
 def _path_finding_or_invalid(path: object, detail: str) -> RoutingFinding:
     code = "invalid_artifact_path" if not _is_repository_relative_path(path) else "invalid_entry"
     return _finding(code, str(path or ""), detail)
@@ -1815,6 +1839,46 @@ def _confined_artifact_path(root: Path, rel_path: str) -> Path | None:
         return None
 
 
+def _confined_briefs_path(root: Path, rel_path: str) -> bool:
+    """Whether `rel_path`, once resolved with symlinks followed, stays
+    beneath the resolved `docs/product/briefs/` directory, which must itself
+    stay beneath the resolved repository root.
+
+    This boundary is stricter than `_confined_artifact_path`'s repository-root
+    confinement: a brief path whose symlink resolves to another directory
+    inside the repository passes repo-root confinement and must still be
+    refused here, because the boundary is the briefs directory, not the
+    repository root.
+
+    Both halves are load-bearing, and neither replaces the other. Confining
+    the candidate alone leaves the boundary itself unanchored: make
+    `docs/product/briefs/` a symlink to an external directory and every
+    target under it is correctly beneath the resolved briefs root while the
+    root has escaped the repository.
+
+    Both halves are strict. `relative_to` succeeds on equal paths, so each
+    comparison rejects its equal case separately: a briefs root symlinked to
+    the repository root would otherwise admit any file in the repository, and
+    a target symlinked to the briefs directory is not a file beneath it.
+    """
+    try:
+        root_resolved = root.resolve()
+        briefs_root = (root_resolved / "docs" / "product" / "briefs").resolve()
+        # The briefs root is confined before the candidate is resolved, so a
+        # briefs root that already escaped never sends resolution walking
+        # through an untrusted tree.
+        if briefs_root == root_resolved:
+            return False
+        briefs_root.relative_to(root_resolved)
+        candidate = (root_resolved / rel_path).resolve()
+        if candidate == briefs_root:
+            return False
+        candidate.relative_to(briefs_root)
+        return True
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
 def _parse_preamble_fields(text: str) -> dict[str, str]:
     fields: dict[str, str] = {}
     fence_char: str | None = None
@@ -2190,6 +2254,36 @@ def _normalized_optional_artifact_value(value: str | None) -> str | None:
     if stripped.lower() in {"", "none"}:
         return None
     return stripped
+
+
+def _resolved_provenance_parent(
+    value: str | None, *, require_local_brief: bool
+) -> str | None:
+    """The one resolved form of a provenance parent value.
+
+    Every consumer of a provenance parent reads it through this function --
+    the path check, the source-vs-artifact equality comparison, and the brief
+    child-state attribution. Resolving inside the path check alone is what
+    caused the defect this replaces: the raw `brief:<slug>` value stayed in
+    scope, and the equality check a few lines below compared a typed header
+    against a path-form `source.parent`, reporting `provenance_mismatch` for
+    every migrated spec. Handing the caller a resolved value is what stops the
+    next consumer reaching for an unresolved one -- there is none left in scope
+    to reach for.
+
+    `require_local_brief` is the spec-provenance gate. Only there does
+    `brief:<slug>` denote a path. At the shared helper's other call sites --
+    `workspace.toml` entry, dependency, legacy-queue and receipt paths -- a
+    slug is meaningless, so the value is returned untouched and
+    `_is_canonical_local_brief_path` keeps refusing it.
+
+    A value that is neither admitted form is returned unchanged, so it still
+    mismatches and is still refused by the path check.
+    """
+    normalized = _normalized_optional_artifact_value(value)
+    if normalized is None or not require_local_brief:
+        return normalized
+    return _normalized_brief_pointer(normalized)
 
 
 def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata | None:
@@ -2633,10 +2727,24 @@ def _provenance_path_is_invalid(
 ) -> bool:
     if path is None:
         return False
-    if not _is_repository_relative_path(path):
+    # `brief:<slug>` is normalized to its canonical path *here*, at the
+    # provenance read, before any lexical check runs — never inside
+    # `_is_canonical_local_brief_path`, which also guards `workspace.toml`
+    # entry and dependency paths where a slug has no meaning.
+    #
+    # Callers inside this module pass a value already resolved by
+    # `_resolved_provenance_parent`, and resolving is idempotent — a path form
+    # has no `brief:` prefix to match. This line is kept so the helper stays
+    # correct for a direct caller that holds only the declared value.
+    candidate = _normalized_brief_pointer(path) if require_local_brief else path
+    if not _is_repository_relative_path(candidate):
         return True
-    if require_local_brief and not _is_canonical_local_brief_path(path):
-        return True
+    if require_local_brief:
+        if not _is_canonical_local_brief_path(candidate):
+            return True
+        # The boundary is the resolved briefs directory, stricter
+        # than `_confined_artifact_path`'s repository-root confinement.
+        return root is not None and not _confined_briefs_path(root, candidate)
     return root is not None and _confined_artifact_path(root, path) is None
 
 
@@ -3120,7 +3228,9 @@ def _brief_child_spec_states(
             # tell "this spec has no parent" from "nobody recorded whether it
             # has one".
             raw_parent = entry.source.parent
-            source_parent = _normalized_optional_artifact_value(raw_parent)
+            source_parent = _resolved_provenance_parent(
+                raw_parent, require_local_brief=True
+            )
             if source_parent is not None:
                 if source_parent in brief_membership_paths:
                     briefs_affected.add(source_parent)
@@ -3135,10 +3245,18 @@ def _brief_child_spec_states(
                 scope_unknown.add(entry.path)
             continue
         metadata = _artifact_metadata(workspace, entry, root)
+        # Both sides resolved through the same function the routing checks
+        # use. Read raw, a typed header would key `states` by `brief:<slug>`,
+        # which no brief path lookup matches.
         parent_paths = {
             path for path in (
-                _normalized_optional_artifact_value(entry.source.parent),
-                metadata.parent if metadata is not None else None,
+                _resolved_provenance_parent(
+                    entry.source.parent, require_local_brief=True
+                ),
+                _resolved_provenance_parent(
+                    metadata.parent if metadata is not None else None,
+                    require_local_brief=True,
+                ),
             )
             if path is not None
         }
@@ -3344,8 +3462,10 @@ def _structural_findings(
         findings.append(_finding("dependency_cycle", entry.path, "dependency cycle"))
     if membership.ini_slug and membership.initiative_status not in ("active",):
         findings.append(_finding("inactive_initiative", entry.path, "initiative is inactive"))
-    source_parent = _normalized_optional_artifact_value(entry.source.parent)
     require_local_brief_parent = entry.kind == "spec"
+    source_parent = _resolved_provenance_parent(
+        entry.source.parent, require_local_brief=require_local_brief_parent
+    )
     if _provenance_path_is_invalid(
         root,
         source_parent,
@@ -3379,15 +3499,18 @@ def _structural_findings(
         )
     if metadata.refresh_conflict:
         findings.append(_finding("refresh_conflict", entry.path, "unresolved refresh conflict"))
+    artifact_parent = _resolved_provenance_parent(
+        metadata.parent, require_local_brief=require_local_brief_parent
+    )
     if _provenance_path_is_invalid(
         root,
-        metadata.parent,
+        artifact_parent,
         require_local_brief=require_local_brief_parent,
     ):
         findings.append(
-            _finding("invalid_artifact_path", metadata.parent or "", "artifact parent")
+            _finding("invalid_artifact_path", artifact_parent or "", "artifact parent")
         )
-    if source_parent != metadata.parent:
+    if source_parent != artifact_parent:
         findings.append(_finding("provenance_mismatch", entry.path, "parent mismatch"))
     if (
         entry.source.mode == "tracker-origin"
@@ -4010,7 +4133,12 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
 
 # ── DAG / needs resolution ────────────────────────────────────────────────────
 
-_CROSS_INI_RE = re.compile(r'^(ini-[^:]+):work:(.+)$')
+# `\Z`, not `$`: this validates a whole dependency token, not a line, and `$`
+# also matches just before a trailing newline. `ini-002:work:spec/foo\n` matched
+# and yielded the clean `spec/foo`, so a malformed token compared equal to a
+# shipped entry's path and the dependency reported satisfied. A trailing tab was
+# already fail-closed; only the newline leaked, and only because of the anchor.
+_CROSS_INI_RE = re.compile(r'^(ini-[^:]+):work:(.+)\Z')
 
 
 def is_need_satisfied(

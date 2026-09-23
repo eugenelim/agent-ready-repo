@@ -7,7 +7,7 @@
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
-- **Parent intent:** work-item-capture-and-disposition — [Work-item capture and disposition](CAP-0005-work-item-capture-and-disposition.md)
+- **Parent intent:** capability:work-item-capture-and-disposition
 
 ## Outcome
 

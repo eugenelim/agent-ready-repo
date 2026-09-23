@@ -1,0 +1,172 @@
+{
+  "docs/specs/acceptance-criteria-set-construction/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-authoring-input-quality"
+  },
+  "docs/specs/agent-skill-engineering-composition-fixtures/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/agent-skill-engineering-composition-floors/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/agent-skill-engineering-consumer-integrations/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/agent-skill-engineering-corpus/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/agent-skill-engineering-foundation/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/agent-skill-engineering-languages-and-execution/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-skill-engineering"
+  },
+  "docs/specs/desk-research-build-handover/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:sdlc-guide-uplift-and-learning-paths"
+  },
+  "docs/specs/distribution-route-contract/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:distribution-routes-programme"
+  },
+  "docs/specs/distribution-route-registry/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:distribution-routes-programme"
+  },
+  "docs/specs/docs-site-build-contract-hardening/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/frame-intent-escape-verdicts/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:intent-identity-and-registration"
+  },
+  "docs/specs/guide-invocation-outcome-coverage/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:sdlc-guide-uplift-and-learning-paths"
+  },
+  "docs/specs/guide-metadata-completion/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/guide-title-clarity/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/how-to-sample-output-coverage/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:sdlc-guide-uplift-and-learning-paths"
+  },
+  "docs/specs/install-to-ship-walkthrough/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:sdlc-guide-uplift-and-learning-paths"
+  },
+  "docs/specs/intent-metadata-shape-contract/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:intent-identity-and-registration"
+  },
+  "docs/specs/intent-reference-grammar-migration/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:intent-identity-and-registration"
+  },
+  "docs/specs/intent-renumber-and-reissue/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:intent-identity-and-registration"
+  },
+  "docs/specs/journey-page-completion/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/load-bearing-claim-grounding/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:agent-authoring-input-quality"
+  },
+  "docs/specs/pack-guidebook-walkability/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:sdlc-guide-uplift-and-learning-paths"
+  },
+  "docs/specs/phase-policy-registry-and-selector/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:phase-scoped-policy-delivery"
+  },
+  "docs/specs/portable-agent-plugin-projection/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:distribution-routes-programme"
+  },
+  "docs/specs/sequential-implementer-dispatch/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:universal-implementer-dispatch"
+  },
+  "docs/specs/site-browser-quality-gate/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/site-ci-contract-closure/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/site-contract-provenance-cleanup/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/site-now-surface/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/site-shared-chrome/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:tech-site-completion"
+  },
+  "docs/specs/tutorial-worked-examples/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:sdlc-guide-uplift-and-learning-paths"
+  },
+  "docs/specs/typed-intent-ordinal-allocator/spec.md": {
+    "reason": "already-typed",
+    "status": "done",
+    "value": "brief:intent-identity-and-registration"
+  }
+}

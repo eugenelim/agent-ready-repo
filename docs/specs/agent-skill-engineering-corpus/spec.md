@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
-- **Brief:** docs/product/briefs/agent-skill-engineering.md
+- **Brief:** brief:agent-skill-engineering
 - **Discovery:** none
 - **Contract:** none — the semantic provider request/response contract is unchanged by this slice and remains transport-independent with no standalone JSON Schema.
 - **Shape:** mixed

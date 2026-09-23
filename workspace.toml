@@ -1369,7 +1369,7 @@ open = [
   # can exist until portfolio-pack-first-value-contract's owner decides the
   # vocabulary. Then run one dated Claude-apps install-to-first-value probe before
   # scoping the smallest guide consumer.
-  {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/nontechnical-pack-first-value-rollout.md"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; both Desktop surfaces are admitted, with the Code tab recommended because nothing degrades there and the chat surface's sub-agent gap disclosed rather than repaired", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
+  {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; both Desktop surfaces are admitted, with the Code tab recommended because nothing degrades there and the chat surface's sub-agent gap disclosed rather than repaired", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
   # The Draft slice of the intent directly above, carrying 22 criteria and 6
   # tasks. It was authored and reviewed but never registered, so nothing
   # scheduled it and any amendment would have landed on an untracked spec.
@@ -1689,7 +1689,6 @@ open = [
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
   { path = "docs/specs/frame-intent-escape-verdicts/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Three out-of-root escape forms get three verdicts: a symlink refuses, a dot-dot segment refuses under ADR-0030 D6, and an absolute-only external path keeps D7 Ask-first", needs = [] },
-  { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
   { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
@@ -1862,11 +1861,30 @@ draft = []
 
 ["ini-010".shaping_queue]
 active  = []
-backlog = []
+backlog = [
+  # The Contract:/Discovery: half of the pointer-grammar migration, recorded as
+  # the follow-on docs/specs/intent-reference-grammar-migration names. It is
+  # shaping rather than build work because RFC-0103 deliberately left both
+  # fields ungoverned and the governing decision does not exist yet: a
+  # Discovery: target may be an intent, or a docs/product/research/ artifact
+  # that carries no registered node kind at all, and a canonical form cannot be
+  # declared for a target with no kind. Measured 2026-09-22: 38 Contract: and 25
+  # Discovery: values, all resolving unresolvable. Note for whoever picks this
+  # up — RFC-0103 D1 excludes Contract: because contract ids carry a version,
+  # and zero of the 34 contract nodes actually do; recognize_contracts degrades
+  # to contract:<stem>, so contract:<slug> would express every target today.
+  # Re-measure rather than inheriting that rationale. The surface inventory at
+  # docs/specs/intent-reference-grammar-migration/notes/surface-inventory.md
+  # already covers all four fields, so the consumer set does not need
+  # re-deriving by hand.
+  { slug = "contract-discovery-reference-grammar", type = "shape", source = { mode = "repo-origin", ref = "docs/specs/intent-reference-grammar-migration/spec.md" }, summary = "Decide and migrate a typed reference grammar for the Contract: and Discovery: pointer fields, which RFC-0103 left ungoverned", needs = [] },
+]
 
 ["ini-010".work]
 queue   = []
-active  = []
+active  = [
+]
 shipped = [
+  { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
   { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
 ]

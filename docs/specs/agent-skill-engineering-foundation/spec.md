@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
-- **Brief:** docs/product/briefs/agent-skill-engineering.md
+- **Brief:** brief:agent-skill-engineering
 - **Discovery:** none
 - **Contract:** [`okf-pack-profile-v1.schema.json`](../../../contracts/jsonschema/okf-pack-profile-v1.schema.json) governs the optional build-time provider capability declaration; the semantic provider request/response remains transport-independent and has no standalone schema in this slice.
 - **Shape:** mixed

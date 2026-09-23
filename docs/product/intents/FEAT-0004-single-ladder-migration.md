@@ -6,7 +6,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** repository-work-graph — [Repository work graph](CAP-0001-repository-work-graph.md)
+- **Parent intent:** capability:repository-work-graph
 
 ## Outcome
 

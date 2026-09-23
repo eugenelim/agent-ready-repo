@@ -533,8 +533,9 @@ def test_dangling_local_target() -> None:
 
 def test_up_field_fallthrough_reference() -> None:
     """A cross-repo-shaped (unresolvable) `Contract:` must not shadow a valid
-    `Brief:` up-edge: up-fields are alternatives, the first that resolves wins,
-    and a well-formed cross-repo reference is not a defect."""
+    `Brief:` up-edge: up-fields are alternatives and a well-formed cross-repo
+    reference is not a defect, so the spec is parented either way — regardless
+    of which of the two resolving candidates wins the edge."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -545,6 +546,74 @@ def test_up_field_fallthrough_reference() -> None:
         expect("DANGLING" not in err, f"cross-repo ref is not dangling: {err}")
         expect("ORPHAN spec:alpha" not in out,
                f"spec parented via Brief is not an orphan: {out}")
+
+
+# STUB: AC-0013 — a local producer candidate must win the in-edge over an
+# earlier one that resolves only to an external reference.
+def test_local_candidate_wins_over_earlier_external_only_producer() -> None:
+    """AC-0013: a later candidate resolving `local` outranks an earlier one
+    that resolves only to an external reference — a typed `Brief:` must take
+    the in-edge from an earlier path-shaped `Contract:` or `Discovery:` that
+    resolves only to an external stub."""
+    spec = importlib.util.spec_from_file_location("_trace_local_wins_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    g = mod.Graph()
+    mod._wire_up(
+        g, consumer="spec:alpha",
+        candidates=["cat:ns/external-contract", "b"],
+        local_ids={"brief:b"}, rollup={},
+    )
+
+    expect(("brief:b", "spec:alpha") in g.edges,
+           f"the local candidate must win the in-edge, got edges={g.edges!r}")
+    expect(("cat:ns/external-contract", "spec:alpha") not in g.edges,
+           f"the earlier external-only candidate must not win, got edges={g.edges!r}")
+
+
+def test_external_only_candidate_still_wires_when_none_resolve_local() -> None:
+    """A consumer whose only resolving candidate is external still carries the
+    external in-edge — the existing orphan behaviour is unchanged."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_external_only_still_wires_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    g = mod.Graph()
+    mod._wire_up(
+        g, consumer="spec:alpha",
+        candidates=["cat:ns/external-contract"],
+        local_ids=set(), rollup={},
+    )
+
+    expect(("cat:ns/external-contract", "spec:alpha") in g.edges,
+           f"the sole external candidate must still wire, got edges={g.edges!r}")
+
+
+def test_dangling_candidate_reported_regardless_of_candidate_order() -> None:
+    """A dangling candidate is a hard violation in every mode regardless of
+    where it sits in the candidate order — the local-over-external preference
+    pass must not swallow a trailing dangling sibling."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_dangling_order_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    g = mod.Graph()
+    mod._wire_up(
+        g, consumer="spec:alpha",
+        candidates=["b", "ghost-local"],  # resolving candidate first, dangling trailing
+        local_ids={"brief:b"}, rollup={},
+    )
+
+    expect(any("ghost-local" in d for d in g.dangling),
+           f"a trailing dangling candidate must still be reported, got {g.dangling!r}")
+    expect(("brief:b", "spec:alpha") in g.edges,
+           f"the resolving sibling still wires despite the trailing dangling one, "
+           f"got edges={g.edges!r}")
 
 
 def test_dangling_up_field_still_fires() -> None:
@@ -583,6 +652,114 @@ def test_annotated_none_up_fields_are_placeholders() -> None:
         expect("DANGLING" not in err, f"annotated placeholders stay unset: {err}")
         expect("ORPHAN spec:em-dash" in out and "no producer" in out,
                f"the canonical first field remains authoritative: {out}")
+
+
+# --------------------------------------------------------------------------
+# Ambiguous bare-slug refusal — the fifth endpoint state
+# --------------------------------------------------------------------------
+
+# STUB: AC-0003 — the first test in the suite to call resolve_endpoint.
+def test_resolve_endpoint_ambiguous_bare_slug_refuses() -> None:
+    """A bare slug that suffix-matches more than one local node id refuses —
+    its own state, not a reuse of `dangling` — and the message names every
+    candidate."""
+    spec = importlib.util.spec_from_file_location("_trace_ambiguous_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    local_ids = {"spec:foo", "brief:foo"}
+    state, pinned, resolved = mod.resolve_endpoint("foo", local_ids, {})
+
+    expect(state == "ambiguous", f"a slug matching two ids must refuse, got {state!r}")
+    expect("spec:foo" in resolved and "brief:foo" in resolved,
+           f"the refusal must name every candidate, got {resolved!r}")
+
+
+def test_resolve_endpoint_unique_bare_slug_still_resolves_local() -> None:
+    """AC-0002: a bare slug matching exactly one node id still resolves — the
+    fallback is not collateral damage from the ambiguity refusal."""
+    spec = importlib.util.spec_from_file_location("_trace_unique_slug_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    state, pinned, resolved = mod.resolve_endpoint("foo", {"spec:foo"}, {})
+
+    expect(state == "local", f"a uniquely-matching slug must still resolve, got {state!r}")
+    expect(resolved == "spec:foo", f"resolves to the canonical id, got {resolved!r}")
+
+
+def test_resolve_endpoint_exact_id_skips_suffix_scan() -> None:
+    """AC-0001: a target equal to a node id takes the fast path without
+    entering the suffix scan — pinned with a fixture where the scan alone
+    would answer with a different id."""
+    spec = importlib.util.spec_from_file_location("_trace_exact_id_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    # Without the fast path, "widget:x/spec:foo" is the only suffix match for
+    # "spec:foo" (it ends in "/spec:foo"), so a refactor that dropped the fast
+    # path would answer with the wrong node instead of failing loudly.
+    local_ids = {"spec:foo", "widget:x/spec:foo"}
+    state, pinned, resolved = mod.resolve_endpoint("spec:foo", local_ids, {})
+
+    expect(state == "local" and resolved == "spec:foo",
+           f"exact id must resolve to itself via the fast path, got {state!r} {resolved!r}")
+
+
+def test_resolve_endpoint_ordinal_and_ordinal_prefixed_stem_refuse() -> None:
+    """AC-0005: an ordinal, or an ordinal-prefixed filename stem, refuses even
+    where it would otherwise suffix-match a local id — never accepted as a
+    pointer value."""
+    spec = importlib.util.spec_from_file_location("_trace_ordinal_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    ordinal_state, _, _ = mod.resolve_endpoint("FEAT-0001", {"strat:FEAT-0001"}, {})
+    stem_state, _, _ = mod.resolve_endpoint(
+        "FEAT-0001-intent-identity-and-registration",
+        {"intent:FEAT-0001-intent-identity-and-registration"}, {},
+    )
+
+    expect(ordinal_state == "dangling", f"a bare ordinal must refuse, got {ordinal_state!r}")
+    expect(stem_state == "dangling",
+           f"an ordinal-prefixed stem must refuse, got {stem_state!r}")
+
+
+def test_ambiguous_producer_pointer_exits_nonzero_in_both_modes() -> None:
+    """AC-0004: an ambiguous producer pointer is a hard violation in both the
+    default and `--strict` invocations — the closed set of modes that affect
+    the exit code."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "dup")
+        write_spec(root, "dup")
+        write_spec(root, "consumer", contract="dup")
+        rc, out, err = run(root)
+        expect(rc == 1, f"ambiguous producer pointer → exit 1 default, got {rc}: {err}")
+        expect("brief:dup" in err and "spec:dup" in err,
+               f"both candidates named in the report: {err}")
+        expect("ORPHAN spec:consumer" not in out,
+               f"ambiguous producer already reported dangling, not also an orphan: {out}")
+        rc2, _, err2 = run(root, "--strict")
+        expect(rc2 == 1, f"ambiguous producer pointer → exit 1 --strict, got {rc2}: {err2}")
+
+
+def test_sidecar_ambiguous_endpoint_names_every_candidate() -> None:
+    """AC-0003 / AC-0004 at the third call site: a sidecar edge endpoint that
+    suffix-matches more than one local node id refuses and names every
+    candidate, rather than degrading to a bare `sidecar_dangling` message."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = [{"id": "spec:foo", "kind": "spec"},
+                 {"id": "brief:foo", "kind": "brief"},
+                 {"id": "comp", "kind": "component"}]
+        edges = [{"from": "spec:foo", "to": "comp"},
+                 {"from": "comp", "to": "foo"}]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="spec:foo")
+        rc, out, err = run(root)
+        expect(rc == 1, f"ambiguous sidecar endpoint → exit 1 always, got {rc}")
+        expect("brief:foo" in err and "spec:foo" in err,
+               f"both candidates named in the report: {err}")
 
 
 # --------------------------------------------------------------------------
@@ -971,6 +1148,177 @@ def test_component_alias_uses_canonical_id() -> None:
                f"canonical component id missing: {graph.nodes}")
         expect("component:alias" not in graph.nodes,
                f"symlink alias became a distinct component id: {graph.nodes}")
+
+
+# --------------------------------------------------------------------------
+# `intent:` recognition — the fourth recognizer (RFC-0103 D2)
+# --------------------------------------------------------------------------
+
+# STUB: AC-0006 — an unclaimed intent file becomes an `intent:` node keyed on
+# its own `Slug:` field; a ladder-typed sibling (recognize_ladder already
+# claims it) must not double-register.
+def test_unclaimed_intent_file_becomes_intent_node() -> None:
+    spec = importlib.util.spec_from_file_location("_trace_intent_node_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "o.md", "# I\n\n- **Slug:** `o`\n- **Kind:** outcome\n")
+        write(base / "plain.md", "# I\n\n- **Slug:** `plain-intent`\n")
+
+        g = mod.Graph()
+        ladder_paths = mod.recognize_ladder(base, root, g)
+        found = mod.recognize_intents(base, root, g, claimed=set(ladder_paths.values()))
+
+        expect(list(found.keys()) == ["intent:plain-intent"],
+               f"only the unclaimed file is recognized, keyed on its Slug: {found!r}")
+        expect(g.nodes.get("intent:plain-intent") == "intent",
+               f"the node is registered under kind 'intent': {g.nodes!r}")
+        expect("intent:o" not in g.nodes,
+               f"the ladder-typed file must not also be an intent: node "
+               f"(RFC-0103 D2's exclusion): {g.nodes!r}")
+
+
+def test_ordinal_prefixed_intent_filename_uses_slug_field_not_stem() -> None:
+    """The slug is the `Slug:` field value, never the filename stem — 5 of the
+    117 real intent filenames carry an ordinal prefix, and a stem-derived id
+    would put that ordinal inside a pointer value (AC-0005 refuses it)."""
+    spec = importlib.util.spec_from_file_location("_trace_intent_ordinal_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "FEAT-0001-intent-identity-and-registration.md",
+              "# I\n\n- **Slug:** `intent-identity-and-registration`\n")
+
+        g = mod.Graph()
+        found = mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(list(found.keys()) == ["intent:intent-identity-and-registration"],
+               f"the id must come from Slug:, not the ordinal-prefixed stem: {found!r}")
+        expect(not any("FEAT-0001" in nid for nid in g.nodes),
+               f"no id may contain the ordinal: {g.nodes!r}")
+
+
+def test_intent_file_without_slug_is_reported() -> None:
+    """AC-0014: an intent file carrying no `Slug:` field is reported."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_intent_no_slug_report_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "no-slug.md", "# I\n\nNo slug field here.\n")
+
+        g = mod.Graph()
+        mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(any("no-slug.md" in n and "Slug" in n for n in g.notes),
+               f"a file with no Slug: field must be reported: {g.notes!r}")
+
+
+def test_intent_file_without_slug_contributes_no_node() -> None:
+    """AC-0015: that same fixture contributes no node — asserted separately
+    from AC-0014 because an implementation can emit the report and still
+    register a node, falling back to the filename stem, which AC-0005 refuses
+    as a pointer value."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_intent_no_slug_node_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "no-slug.md", "# I\n\nNo slug field here.\n")
+
+        g = mod.Graph()
+        found = mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(found == {}, f"no node should be returned for edge wiring: {found!r}")
+        expect("intent:no-slug" not in g.nodes,
+               f"must not fall back to the filename stem: {g.nodes!r}")
+        expect(len(g.nodes) == 0, f"no node registered at all: {g.nodes!r}")
+
+
+def test_duplicate_derived_intent_id_caught_over_pre_insertion_sequence() -> None:
+    """AC-0007: no two nodes share an id. `Graph.add` (`:352`) assigns into
+    `self.nodes`, so a second registration silently overwrites the first — the
+    assertion must read the id sequence as it is *derived*, not the built node
+    set, which would be true for every corpus including a colliding one."""
+    spec = importlib.util.spec_from_file_location("_trace_intent_dup_stub", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        base = root / "docs" / "product" / "intents"
+        write(base / "a.md", "# I\n\n- **Slug:** `dup`\n")
+        write(base / "b.md", "# I\n\n- **Slug:** `dup`\n")
+
+        g = mod.Graph()
+        derived: list[str] = []
+        original_add = g.add
+
+        def spy_add(node_id: str, kind: str) -> None:
+            derived.append(node_id)
+            original_add(node_id, kind)
+
+        g.add = spy_add
+        mod.recognize_intents(base, root, g, claimed=set())
+
+        expect(len(derived) == 2 and len(set(derived)) == 1,
+               f"two artifacts derive the same id — the pre-insertion sequence "
+               f"must carry the duplicate: {derived!r}")
+        expect(len(g.nodes) == 1,
+               f"the built node set alone hides the collision (Graph.add "
+               f"overwrites), which is exactly why the sequence is asserted "
+               f"instead: {g.nodes!r}")
+        # The two assertions above observe the overwrite; neither refuses it,
+        # and both pass against an implementation that silently overwrites.
+        # AC-0007 is "no two nodes share an id", so the collision has to be
+        # *reported*, not merely visible to a spy the production path does not
+        # have.
+        expect(len(g.duplicate_ids) == 1,
+               f"the collision must be recorded at insertion, so it survives "
+               f"into the report without a test spy: {g.duplicate_ids!r}")
+        expect(derived[0] in g.duplicate_ids[0],
+               f"the record must name the colliding id: {g.duplicate_ids!r}")
+
+
+def test_unclaimed_intent_parent_pointer_wires_the_in_edge() -> None:
+    """Registration alone is not enough: the edge builder wires
+    `Parent intent:` from the brief and ladder path maps, so a recognizer that
+    returns nodes without joining that wiring leaves 14 real pointers unbuilt
+    in the live corpus. This fixture proves an `intent:` node gains its
+    in-edge."""
+    spec = importlib.util.spec_from_file_location(
+        "_trace_intent_wiring_stub", str(LINTER)
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        write(root / "docs" / "product" / "intents" / "o.md",
+              "# I\n\n- **Slug:** `o`\n- **Kind:** outcome\n")
+        write(root / "docs" / "product" / "intents" / "child.md",
+              "# I\n\n- **Slug:** `child`\n- **Parent intent:** o\n")
+
+        g = mod.Graph()
+        mod.build_standalone(root, {}, g, {})
+
+        expect(("outcome:o", "intent:child") in g.edges,
+               f"the unclaimed intent's own Parent intent: pointer must wire "
+               f"the in-edge, got edges={g.edges!r}")
 
 
 # --------------------------------------------------------------------------

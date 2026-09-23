@@ -14,7 +14,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
-- **Brief:** docs/product/briefs/tech-site-completion.md
+- **Brief:** brief:tech-site-completion
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** ui

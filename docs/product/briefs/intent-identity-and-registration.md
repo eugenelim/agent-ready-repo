@@ -4,7 +4,7 @@
 - **Received:** 2026-09-18
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Executing
-- **Parent intent:** [`intent-identity-and-registration`](../intents/FEAT-0001-intent-identity-and-registration.md)
+- **Parent intent:** intent:intent-identity-and-registration
 - **Ready confirmed:** 2026-09-20 by eugenelim, bound to revision `sha256:62c26b6c92f56952`, which returned `Clean` from an independent delivery-brief shaping review. Five slices confirmed; each is a `Draft` spec.
 - **Amended 2026-09-21 by eugenelim**, after the Ready confirmation above: the reuse bullet's "renumbered at admission" became "numbered at admission". Wording only — it changes no slice, no scope and no confirmation, and the parent intent's A1′ and validation hook took the same change. The older phrase said *when* an ordinal is assigned, but read as a requirement that admission rename files, which this brief's own forward-only non-goal forbids and which the delivery slice then found no admission surface can do. Renaming belongs to `intent-renumber-and-reissue`.
 - **Executing from 2026-09-21.** `typed-intent-ordinal-allocator` moved to `Implementing`, and `lint-brief-coverage` holds that a `Ready` brief cannot have a child carrying execution evidence — the brief's lifecycle and its children's have to agree. The Ready confirmation above stands as the record of that gate; this line records the transition off it.
@@ -130,3 +130,28 @@ The map is confirmed and its slices are dispatchable. A later material change to
 it needs a fresh revision-bound review and explicit owner confirmation before
 they are again.
 
+
+## Errata
+
+- 2026-09-22: the collision count in *Current-state evidence* depends on a
+  measurement method the line does not state, and does not reproduce without it.
+  It records "6 cross-type slug collisions — 2 intent/brief, 4 intent/spec".
+  **A slug is the artifact's `Slug:` field value, not its filename stem**, and
+  the two differ: 5 of the 117 unclaimed intent files carry an ordinal-prefixed
+  filename whose stem is not their slug. Counting by stem and counting by `Slug:`
+  therefore give different sets.
+
+  Measured by `Slug:` against the same corpus on 2026-09-22: the repository held
+  **1** collision slug before this work — `governance-item-record-routing`,
+  carried by an `opportunity:` and a `spec:` node — and **7** after registering
+  the `intent:` kind. Registering the kind over the whole intents directory
+  instead of only the unclaimed files would have given 39, of which 32 would be
+  an artifact colliding with itself.
+
+  The 95 field-occurrence figure in the same line stands, and the line is right
+  that it bounds the sweep rather than naming its population: the delivered
+  cohort was 33 `Parent intent:` values and 34 `Brief:` values.
+
+  Recorded because a later slice that trusts the number without the method will
+  disagree with the corpus, which is what happened here. Evidence:
+  `docs/specs/intent-reference-grammar-migration/notes/verification-ledger.md`.
