@@ -1047,7 +1047,16 @@ open = [
   # closed note rather than deleted, so the third-instance count stays legible
   # if the same contradiction appears a fourth time.
 
-  # PARTIALLY ADDRESSED 2026-09-22, still open on the length itself.
+  # CLOSED 2026-09-23. Superseded lead lines follow; read this one.
+  # All three named absences are gone, the page is bounded at 20 releases across
+  # eight pages, the pager window and the archive budget are both assertions
+  # rather than notes, and the year -> month archive shipped. The paragraphs
+  # below record how that happened and are kept for the reasoning, not for the
+  # status. Two of them still open with a status this line supersedes, and one
+  # `Unblocks when:` below named a pagination decision that has since been taken
+  # and shipped; both are struck here rather than edited in place, so the record
+  # of what was believed when stays legible.
+  # PARTIALLY ADDRESSED 2026-09-22 (SUPERSEDED), still open on the length itself.
   # The finding named three absences: no pagination, no in-page contents, no
   # return-to-top. Two are closed. /now/ now carries a heading and a stable id
   # per release (2 headings -> 162, 0 release ids -> 156), a 31-entry date
@@ -1102,9 +1111,10 @@ open = [
   # architecture, not compliance. And the date index needs a second level,
   # year -> month, before the history reaches a year or it becomes the long
   # page it exists to fix.
-  # Unblocks when: ready now -- the remaining decision is numbered pagination,
-  # for which the survey records the current SEO shape (each page
-  # self-canonicalises; rel=next/prev has been dead to Google since 2019).
+  # Unblocks when: NOTHING -- closed. The numbered-pagination decision this line
+  # waited on was taken and shipped on 2026-09-23. The survey's SEO note stands:
+  # each page self-canonicalises, and rel=next/prev has been dead to Google
+  # since 2019.
   # The original entry, for the record:
   # MODERATE. /now/ renders every released entry on one unpaginated page and is
   # tens of viewport heights long. The list grows monotonically -- the page
@@ -1135,7 +1145,11 @@ open = [
   # payload and request counts instead and says LCP/INP/CLS are unmeasured.
   # Unblocks when: 28 days of field data after the retrofit deploys.
 
-  # HALF DONE 2026-09-22; the other half needs a decision, not effort.
+  # CLOSED 2026-09-22. Superseded lead line follows; read this one.
+  # /packs/* carries SoftwareApplication on all 22 pages, and the /journeys/*
+  # half was DECIDED rather than deferred: do not emit HowTo. The decision and
+  # the two conditions that would reopen it are in the paragraphs below.
+  # HALF DONE 2026-09-22 (SUPERSEDED); the other half needs a decision, not effort.
   # All 22 /packs/* pages now carry SoftwareApplication, verified on the built
   # output: type, absolute self-URL, an Offer at price 0 (the software rich
   # result needs one of offers / aggregateRating / review, and a free price is
@@ -1253,11 +1267,32 @@ open = [
   # from its body. Nothing here is caught by any screen gate.
   # Unblocks when: ready now.
 
+  # CLOSED 2026-09-23 by docs/specs/marketing-site-press-state, registered below.
+  # Every hover-styled control now shifts its ground under a press, through one
+  # of three tokens picked from the control's own carrier. The owner decision,
+  # the refused alternatives and the two measured exceptions are in
+  # docs/design/direction/marketing-site.md, Owner decisions 2026-09-23.
+  # THE COUNT IN THE ORIGINAL ENTRY WAS WRONG, which is the durable lesson here:
+  # "28 interactive classes" was stale when written and a later re-count said 33
+  # selectors, which also counted comments and test files. The real figure is 33
+  # hover-styled controls across 18 files, and nothing states it -- the guard
+  # derives the set from the sources on every run, so the next control added is
+  # covered without editing a list. Two earlier CI failures on this surface came
+  # from hardcoded lists going stale the same way.
+  # Two measured exceptions, both recorded rather than smoothed over: the dark
+  # close band gets 1.94:1 of ground shift, the most that ramp affords while
+  # keeping footer link text above 4.5:1; and the two controls on the warn panel
+  # have no headroom for any ground shift, so they raise their ink as well.
+  # Neither axe nor the browser quality gate can see a press, so the proof is
+  # web/src/test/e2e/press-state.spec.ts plus the static companion
+  # web/src/test/press-state-coverage.test.ts. Both mutation-checked six ways.
+  # The original entry, for the record:
   # MINOR. 0 of 28 interactive classes distinguish `:active` from `:hover`, so a
   # press produces no feedback distinct from a pointer resting. All 28 do have a
   # focus style, and all 12 hover changes are colour-only with nothing disclosed
   # on hover alone — so this is a polish gap, not an accessibility one.
   # Unblocks when: ready now.
+  { path = "docs/specs/marketing-site-press-state/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Give every hover-styled control on the marketing site a derived, uniform :active ground shift, with the control set computed from the sources rather than listed", needs = [] },
 
   # RESOLVED 2026-09-22. The type scale gained the two steps it was missing and
   # all 11 literals are tokens. Grouped by role the 11 were three things:
@@ -1289,8 +1324,12 @@ open = [
   # Unblocks when: someone decides whether the type scale gains an 11px step and
   # whether --ds-type-mono-sm may be used on a sans element.
 
-  # MINOR x1 remaining, route-level, found in the 80-capture matrix. Registered
-  # as x3. Two are closed:
+  # CLOSED 2026-09-22, x0 remaining. Superseded lead line follows; read this one.
+  # All three are closed: two were fixed and the third was refuted on measured
+  # evidence. The "x1 remaining" below was written before (a) was adjudicated
+  # and never updated when it was.
+  # MINOR x1 remaining (SUPERSEDED), route-level, found in the 80-capture matrix.
+  # Registered as x3. Two are closed:
   # -- 7 of 22 /packs/* pages emitting `...above.<a>Browse the catalogue</a>`
   #    with no space, fixed by #1395; the string returns no hits in web/src.
   # -- /journeys/* wrapping its hero meta line after a plain-text separator,
@@ -1317,7 +1356,7 @@ open = [
   #     1140px container should hold a 700px measure at all. That is a
   #     direction-sheet question about the editorial grid, and it belongs with
   #     the owner's other axis decisions, not in a route-level defect.
-  # Unblocks when: ready now.
+  # Unblocks when: NOTHING -- closed, all three dispositioned.
 
   # RESOLVED 2026-09-22. web/AGENTS.md is 77 lines against the 80-line cap in
   # tools/lint-agents-md.py (MAX_SCOPED_LINES), so there is headroom again. The

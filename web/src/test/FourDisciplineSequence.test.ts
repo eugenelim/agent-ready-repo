@@ -37,6 +37,31 @@ const built = existsSync(JOURNEYS_INDEX);
 
 const dom = () => new JSDOM(readFileSync(JOURNEYS_INDEX, 'utf8')).window.document;
 
+/**
+ * Every rule the page applies, inline `<style>` blocks and linked stylesheets
+ * together.
+ *
+ * Reading only the HTML was wrong, and silently: Astro inlines a page's CSS
+ * while it is small and LINKS it once it grows past the threshold, so a page
+ * that gained a few rules moved its whole stylesheet out of the document and
+ * this file's rule lookups started finding nothing. The failure read as "the
+ * card has no at-rest style" when the style was present the whole time.
+ * Following the links removes the size dependency rather than restoring the
+ * page to the side of the threshold it happened to be on.
+ */
+const styles = (): string => {
+  const doc = dom();
+  const inline = [...doc.querySelectorAll('style')].map((s) => s.textContent ?? '');
+  const linked = [...doc.querySelectorAll('link[rel="stylesheet"]')].map((l) => {
+    const href = l.getAttribute('href') ?? '';
+    // Base-qualified at build time; the file sits under build/ at that path.
+    const rel = href.replace(/^\/[^/]+\//, '');
+    const path = join(REPO_ROOT, 'build', rel);
+    return existsSync(path) ? readFileSync(path, 'utf8') : '';
+  });
+  return [...inline, ...linked].join('\n');
+};
+
 /** Slug of every journey card inside `root`, in document order. */
 const slugsIn = (root: Element | Document): string[] =>
   [...root.querySelectorAll('a.journey-card__link')].map((a) => {
@@ -132,7 +157,7 @@ describe.skipIf(!built)('four-discipline sequence on the journeys index', () => 
 
   it('AC-0023: each group carries its own signature, and the three differ', () => {
     const doc = dom();
-    const html = readFileSync(JOURNEYS_INDEX, 'utf8');
+    const css = styles();
     // Scoped to the group, not to the page. A page-wide check passes when two
     // groups swap modifiers, which is the relationship collapsing.
     const expected: [string, string][] = [
@@ -160,7 +185,7 @@ describe.skipIf(!built)('four-discipline sequence on the journeys index', () => 
     // card identical when nobody is pointing at it — and the three rules must
     // not be the same, or the groups are distinguishable only by their headings.
     const baseRule = (modifier: string): string => {
-      const m = [...html.matchAll(new RegExp(`\\.${modifier}([^{,]*)\\{([^}]*)\\}`, 'g'))]
+      const m = [...css.matchAll(new RegExp(`\\.${modifier}([^{,]*)\\{([^}]*)\\}`, 'g'))]
         .find((x) => !x[1].includes(':'));
       expect(m, `${modifier} has no at-rest style rule`).toBeTruthy();
       return m![2].trim();

@@ -404,6 +404,10 @@ const structuredData = {
     color: var(--ds-hero-fg);
   }
 
+  .install-copy-btn:active {
+    background-color: var(--ds-surface-pressed-dk);
+  }
+
   /* Confirmed copy. The button's own label swaps to "Copied!" in the click
      handler, so the state is announced in words; the visual channel here is a
      filled inversion — record ground behind machine ink — which hover never
@@ -446,6 +450,10 @@ const structuredData = {
   .journey-link:hover {
     border-color: var(--ds-on-surface);
     border-left-color: var(--ds-on-surface);
+  }
+
+  .journey-link:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   .journey-link__label {

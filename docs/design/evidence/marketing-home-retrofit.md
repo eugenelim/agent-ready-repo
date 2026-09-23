@@ -305,12 +305,54 @@ Transitions were frozen with `reduce` so every sample is a settled value.
   `opacity` — so nothing is disclosed on hover that a keyboard or touch reader
   cannot reach. The affordance itself is carried at rest by the `:where(a)`
   underline baseline or by the button's fill and border.
-- **`:active` is never distinguished from `:hover`. 0 of 28** classes have an
-  active delta that differs from their hover delta, so a pointer user gets no
-  press feedback distinct from the pre-press state. Finding class: a missing
-  state, not a broken one. **Severity: Minor** — no WCAG criterion requires a
-  press state and every control still shows hover and focus. Recorded, not
-  fixed: adding one is a design decision.
+- **`:active` is distinguished from `:hover` on every control. Closed
+  2026-09-23.** As recorded in 2026-09-18 this read "0 of 28 classes have an
+  active delta", and the design decision it was waiting on was taken on
+  2026-09-23: a ground shift, one idiom across the surface. The count was
+  also wrong, which is why the remedy derives its set instead of listing it —
+  the real figure is **33 hover-styled controls in 18 files**, computed from
+  the sources by `web/src/test/press-state-selectors.ts` and recomputed on
+  every run.
+
+  Each control now moves its ground under a press, through one of three
+  tokens chosen by its own carrier: `--ds-cta-primary-bg-active` where the
+  hover ground is already ink, `--ds-surface-pressed-dk` on the single dark
+  close band, `--ds-surface-pressed` everywhere else. The direction sheet
+  leaves no other idiom available — Containment is `[ruled]`, Material
+  `[flat]`, Ornament `[none]`, so transform, scale and shadow are all out.
+
+  Measured in Chromium at 1440 across six routes with the paper-ground sanity
+  assertion passing first, reading each control at rest, under `:hover` and
+  while held with `mouse.down()`:
+
+  | Carrier | Pressed ground | Text on it | Ground shift |
+  | --- | --- | --- | --- |
+  | ink-filled control | `#413c34` | 10.03:1 | from `#2e2a24` hover |
+  | paper | `#ddd8cd` | 10.03–13.16:1 | 1.24:1 from `--ds-surface` |
+  | dark close band | `#4a443c` | 6.76:1 | 1.94:1 from `#14120f` |
+
+  **The dark band is the weak case and it is deliberate.** 1.94:1 is the
+  strongest ground shift that ramp affords while keeping footer link text
+  above 4.5:1; `--prim-record-600` would give 3.24:1 against the ground but
+  drops the text to 4.06:1, under the floor.
+
+  **Two controls take a floor-driven ink raise.** The two buttons on
+  `--ds-state-warn-bg` have no contrast headroom: every candidate pressed
+  ground spends what is left (`record-200` 3.64:1, `orange-300` 3.07:1) and
+  the only ground that keeps the label legible is the panel's own colour,
+  which is no press at all. They take the paper ground with the ink raised,
+  to `--ds-on-surface` (13.16:1) and `--ds-state-warn-fg-pressed` (6.59:1).
+  Which controls those are is computed from the resolved token values, never
+  listed.
+
+  **Neither existing gate covers this.** axe scans the resting DOM and never
+  enters `:active`; the site quality gate asserts focus and hover. The proof
+  is `web/src/test/e2e/press-state.spec.ts`, and the static companion
+  `web/src/test/press-state-coverage.test.ts`. Both are mutation-checked:
+  deleting a press rule, pointing one at the wrong carrier's token, dropping a
+  required ink raise, adding an unnecessary one, reaching `--ds-clearance`,
+  and equalising the press and hover tokens each red, and each names the file
+  and the control.
 - **One expected non-match.** `label.tabs__label` reports
   `:focus-visible` false because a `<label>` is not focusable. It still shows
   an indicator, through `.tabs__radio:focus-visible + .tabs__label`, which is
@@ -319,7 +361,9 @@ Transitions were frozen with `reduce` so every sample is a settled value.
 Not exercised, with the reason: loading, error, disabled and pressed. This
 surface is static HTML with no client-side data fetching and no form controls,
 so none of the four has a rendered representation to exercise. That is the
-whole remainder of the 18-state matrix.
+whole remainder of the 18-state matrix. `pressed` here is a toggle control's
+persistent state, which `aria-pressed` carries; it is not the transient
+`:active` closed above, and no control on this surface toggles.
 
 ## screenshots
 

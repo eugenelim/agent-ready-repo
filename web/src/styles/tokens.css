@@ -33,6 +33,11 @@
   --prim-record-500: #8a8172;  /* boundary rule — 3.53:1 on record-50, 3.26:1 on record-100,
                                   4.86:1 on ink-950. Clears WCAG 1.4.11 on all three. */
   --prim-record-600: #6b655b;  /* field label, muted — 5.30:1 on record-50, 4.89:1 on record-100 */
+  --prim-record-700: #413c34;  /* pressed fill — 10.03:1 on record-50, 9.27:1 on record-100.
+                                  Added 2026-09-23 for the press state: the ramp jumped
+                                  600 → 800, so an ink-filled control had no step beyond
+                                  its hover fill. See the Owner decisions entry of that
+                                  date in docs/design/direction/marketing-site.md. */
   --prim-record-800: #2e2a24;  /* body ink — 13.09:1 on record-50, 12.09:1 on record-100 */
   --prim-record-900: #14120f;  /* display ink — 17.16:1 on record-50, 15.85:1 on record-100 */
 
@@ -196,6 +201,14 @@
   --ds-cta-primary-bg:    var(--prim-record-900);
   --ds-cta-primary-fg:    var(--prim-record-50);
   --ds-cta-primary-bg-hover: var(--prim-record-800);
+  /* Press continues the direction hover established — rest 900, hover 800,
+     press 700 — so the fill lightens monotonically under the pointer.
+       press fill #413c34 on --ds-surface #f7f5f0 .... 10.03:1
+       text #f7f5f0 on press fill #413c34 ............ 10.03:1
+     Clears 1.4.11 (3:1) and 1.4.3 (4.5:1). The direction sheet commits to
+     [flat] material and [none] ornament, so a ground shift is the whole
+     idiom: no transform, no scale, no shadow anywhere in a press rule. */
+  --ds-cta-primary-bg-active: var(--prim-record-700);
 
   /* There is NO dark-band primary pair. There was one — `--ds-cta-primary-dk-*`
      — and it had exactly one consumer, `.org__cta` on the dark close band. The
@@ -224,6 +237,27 @@
      `--ds-surface-alt`, so it clears WCAG 1.4.11 for a control edge on both. */
   --ds-cta-ghost-light-border: var(--prim-record-500);
   --ds-cta-ghost-light-fg:     var(--prim-record-900);
+
+  /* ── Pressed ground ─────────────────────────────────────────────── */
+  /* The press state for every control that is not an ink-filled primary.
+     One idiom across the surface: press shifts the control's GROUND and
+     nothing else. --ds-clearance is NOT reachable from here — the mark
+     means a refusal, a hold or a block, and a press is none of those.
+
+     Two tokens, because the single dark band cannot take the paper one:
+       text #2e2a24 on pressed #ddd8cd ............... 10.03:1 (paper)
+       text #14120f on pressed #ddd8cd ............... 13.16:1 (paper)
+       text #dcd8ce on pressed #ddd8cd ............... 1.00:1  (dark band —
+         which is why --ds-surface-pressed must never reach the footer)
+       text #dcd8ce on pressed-dk #4a443c ............ 6.76:1
+       pressed-dk #4a443c vs --ds-hero-bg #14120f .... 1.94:1
+     1.94:1 is the strongest ground shift the dark ramp affords while
+     keeping link text above 4.5:1: record-600 would give 3.24:1 against
+     the ground but drops the text to 4.06:1, under the floor. The press
+     is therefore quieter on the close band than on paper, deliberately
+     and measurably, rather than illegible. */
+  --ds-surface-pressed:    var(--prim-record-200);
+  --ds-surface-pressed-dk: var(--prim-ink-700);
 
   /* ── Type family ────────────────────────────────────────────────── */
   /* 'Inter Variable' is the family name Fontsource registers for the variable
@@ -359,6 +393,16 @@
 
   --ds-state-warn-bg:        var(--prim-orange-100);
   --ds-state-warn-fg:        var(--prim-orange-700);
+  /* The warn foreground under a press, and only there. Its two carriers sit
+     on --ds-state-warn-bg and have no contrast headroom: at rest the warn fg
+     measures 4.75:1 on paper, and every candidate pressed ground spends what
+     is left — record-200 gives 3.64:1, orange-300 gives 3.07:1, and the only
+     ground that keeps the text legible is the panel's own colour, which is no
+     press at all. Raising the ink is what buys the press back:
+       #7c2d12 on --ds-surface-pressed #ddd8cd ....... 6.59:1
+     The direction sheet settles the principle — when a goal conflicts with
+     the quality floor, the floor wins. */
+  --ds-state-warn-fg-pressed: var(--prim-orange-900);
   --ds-state-warn-border:    var(--prim-orange-300);
 
   --ds-state-info-bg:        var(--prim-blue-100);

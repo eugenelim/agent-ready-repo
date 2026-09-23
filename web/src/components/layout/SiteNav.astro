@@ -88,6 +88,10 @@ const current = (link: ChromeLink) =>
     color: var(--ds-on-surface-2);
   }
 
+  .nav__logo:active {
+    background-color: var(--ds-surface-pressed);
+  }
+
   .nav__links {
     display: flex;
     align-items: center;
@@ -109,6 +113,10 @@ const current = (link: ChromeLink) =>
   .nav__link:hover {
     color: var(--ds-on-surface);
     text-decoration: none;
+  }
+
+  .nav__link:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   .nav__link[aria-current] {
@@ -147,6 +155,10 @@ const current = (link: ChromeLink) =>
     background-color: var(--ds-cta-primary-bg-hover);
     border-color: var(--ds-cta-primary-bg-hover);
     text-decoration: none;
+  }
+
+  .nav__cta:active {
+    background-color: var(--ds-cta-primary-bg-active);
   }
 
   /* ── Mobile disclosure — hidden on desktop ─────────────────────────── */

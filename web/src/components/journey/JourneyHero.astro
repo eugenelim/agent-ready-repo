@@ -139,6 +139,10 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
     background-color: var(--ds-cta-primary-bg-hover);
   }
 
+  .btn-primary:active {
+    background-color: var(--ds-cta-primary-bg-active);
+  }
+
   .btn-ghost {
     display: inline-flex;
     align-items: center;
@@ -157,6 +161,10 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
 
   .btn-ghost:hover {
     background-color: var(--ds-border);
+  }
+
+  .btn-ghost:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -110,6 +110,10 @@ const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.pr
     background-color: var(--ds-cta-primary-bg-hover);
   }
 
+  .decision-band__action--primary:active {
+    background-color: var(--ds-cta-primary-bg-active);
+  }
+
   .decision-band__action--secondary {
     background-color: transparent;
     color: var(--ds-on-surface-2);
@@ -119,6 +123,10 @@ const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.pr
   .decision-band__action--secondary:hover {
     border-color: var(--ds-on-surface);
     color: var(--ds-on-surface);
+  }
+
+  .decision-band__action--secondary:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   @media (prefers-reduced-motion: reduce) {

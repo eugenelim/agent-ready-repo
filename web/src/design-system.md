@@ -46,7 +46,7 @@ Three-tier architecture: **Tier 1 primitives** (`--prim-*`) define raw scale val
 **Tier 2 semantics** (`--ds-*`) map primitives to roles. **Component CSS** references
 semantic tokens only — never primitives directly.
 
-This section lists the 99 colour-valued tokens in `tokens.css`.
+This section lists the 104 colour-valued tokens in `tokens.css`.
 Non-colour tokens are in §2 and §3.
 
 ### Tier 1 — Primitive color scale
@@ -68,6 +68,7 @@ Non-colour tokens are in §2 and §3.
 | `--prim-record-400` | `#9c9384` | placeholder, disabled — 2.79:1 on record-50 |
 | `--prim-record-500` | `#8a8172` | — |
 | `--prim-record-600` | `#6b655b` | field label, muted — 5.30:1 on record-50, 4.89:1 on record-100 |
+| `--prim-record-700` | `#413c34` | — |
 | `--prim-record-800` | `#2e2a24` | body ink — 13.09:1 on record-50, 12.09:1 on record-100 |
 | `--prim-record-900` | `#14120f` | display ink — 17.16:1 on record-50, 15.85:1 on record-100 |
 | `--prim-stamp-500` | `#c8654f` | mark on the dark close band — 4.83:1 on ink-950 |
@@ -164,11 +165,19 @@ retyping a hex.
 | `--ds-cta-primary-bg` | `--prim-record-900` | `#14120f` | — |
 | `--ds-cta-primary-fg` | `--prim-record-50` | `#f7f5f0` | — |
 | `--ds-cta-primary-bg-hover` | `--prim-record-800` | `#2e2a24` | — |
+| `--ds-cta-primary-bg-active` | `--prim-record-700` | `#413c34` | — |
 | `--ds-cta-ghost-border` | `--prim-record-500` | `#8a8172` | — |
 | `--ds-cta-ghost-fg` | `--prim-ink-200` | `#b8b2a6` | — |
 | `--ds-cta-ghost-bg-hover` | `--prim-white-10` | `rgba(255, 255, 255, 0.10)` | — |
 | `--ds-cta-ghost-light-border` | `--prim-record-500` | `#8a8172` | — |
 | `--ds-cta-ghost-light-fg` | `--prim-record-900` | `#14120f` | — |
+
+**Pressed ground**
+
+| Token | Maps to | Resolves to | Note (from `tokens.css`) |
+| --- | --- | --- | --- |
+| `--ds-surface-pressed` | `--prim-record-200` | `#ddd8cd` | — |
+| `--ds-surface-pressed-dk` | `--prim-ink-700` | `#4a443c` | — |
 
 **State roles — functional only; not identity colors**
 
@@ -182,6 +191,7 @@ retyping a hex.
 | `--ds-state-danger-border` | `--prim-red-300` | `#fca5a5` | — |
 | `--ds-state-warn-bg` | `--prim-orange-100` | `#ffedd5` | — |
 | `--ds-state-warn-fg` | `--prim-orange-700` | `#c2410c` | — |
+| `--ds-state-warn-fg-pressed` | `--prim-orange-900` | `#7c2d12` | — |
 | `--ds-state-warn-border` | `--prim-orange-300` | `#fdba74` | — |
 | `--ds-state-info-bg` | `--prim-blue-100` | `#dbeafe` | — |
 | `--ds-state-info-fg` | `--prim-blue-700` | `#1d4ed8` | — |

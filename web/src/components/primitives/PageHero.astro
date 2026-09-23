@@ -113,6 +113,10 @@ const { title, outcome, primaryAction, secondaryAction, badge, proof } = Astro.p
     background-color: var(--ds-cta-primary-bg-hover);
   }
 
+  .page-hero__action--primary:active {
+    background-color: var(--ds-cta-primary-bg-active);
+  }
+
   .page-hero__action--secondary {
     color: var(--ds-cta-ghost-light-fg);
     border: 1px solid var(--ds-cta-ghost-light-border);
@@ -120,6 +124,10 @@ const { title, outcome, primaryAction, secondaryAction, badge, proof } = Astro.p
 
   .page-hero__action--secondary:hover {
     background-color: var(--ds-border);
+  }
+
+  .page-hero__action--secondary:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   .page-hero__proof {

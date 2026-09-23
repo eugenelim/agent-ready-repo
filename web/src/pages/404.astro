@@ -90,6 +90,10 @@ import { withBase } from '../lib/paths';
     text-decoration: none;
   }
 
+  .notfound__cta:active {
+    background-color: var(--ds-surface-pressed);
+  }
+
   .notfound__cta--primary {
     background-color: var(--ds-cta-primary-bg);
     color: var(--ds-cta-primary-fg);
@@ -99,6 +103,10 @@ import { withBase } from '../lib/paths';
   .notfound__cta--primary:hover {
     background-color: var(--ds-cta-primary-bg-hover);
     border-color: var(--ds-cta-primary-bg-hover);
+  }
+
+  .notfound__cta--primary:active {
+    background-color: var(--ds-cta-primary-bg-active);
   }
 
   /* The ghost pair is re-derived for paper, not inherited: --ds-cta-ghost-fg
@@ -113,5 +121,9 @@ import { withBase } from '../lib/paths';
 
   .notfound__cta--ghost:hover {
     border-color: var(--ds-on-surface);
+  }
+
+  .notfound__cta--ghost:active {
+    background-color: var(--ds-surface-pressed);
   }
 </style>

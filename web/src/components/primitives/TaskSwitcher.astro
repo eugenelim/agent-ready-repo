@@ -135,6 +135,11 @@ const switcherId = id ?? `ts-${items.map((i) => i.id ?? i.label).join('-').repla
     color: var(--ds-on-surface);
   }
 
+  .task-switcher__item:active,
+  .task-switcher__tab:active {
+    background-color: var(--ds-surface-pressed);
+  }
+
   /* Active tab. The accent is withdrawn, so the state is carried by three
      non-chromatic channels at once: a 2px SOLID bottom rule where every
      inactive sibling has a transparent one, a weight step from medium to

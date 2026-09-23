@@ -217,6 +217,10 @@ const transcriptGates = [
     text-decoration: none;
   }
 
+  .hero__cta:active {
+    background-color: var(--ds-surface-pressed);
+  }
+
   /* Ink fill on paper: 17.16:1 for the control against the ground and 17.16:1
      for the label against the fill. Before stage 2 this exact pair painted an
      ink fill on an ink ground at 1.00:1 — the control was invisible and no
@@ -230,6 +234,10 @@ const transcriptGates = [
   .hero__cta--primary:hover {
     background-color: var(--ds-cta-primary-bg-hover);
     border-color: var(--ds-cta-primary-bg-hover);
+  }
+
+  .hero__cta--primary:active {
+    background-color: var(--ds-cta-primary-bg-active);
   }
 
   /* Secondary reads as a ruled link, not a second primary. Two filled controls
@@ -250,6 +258,10 @@ const transcriptGates = [
   .hero__cta--ghost:hover {
     text-decoration: underline;
     color: var(--ds-on-surface);
+  }
+
+  .hero__cta--ghost:active {
+    background-color: var(--ds-surface-pressed);
   }
 
   /* ── The three lines under the CTAs, ranked ────────────────────────────
