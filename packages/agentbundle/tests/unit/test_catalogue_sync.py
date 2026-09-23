@@ -1752,6 +1752,663 @@ def test_sync_no_invocation_produces_a_code_outside_the_four(
 
 
 # ---------------------------------------------------------------------------
+# T2: the scope predicate that selects the write set (spec AC-0033 clauses
+# 4-5, AC-0042, AC-0043, AC-0066).
+#
+# The planned-path set every test below drives the predicate against comes
+# from a real `replay_derivation` call over an on-disk fixture source, never
+# from a hand-written `planned_paths = {...}` literal — the fixture ships a
+# `core` pack and a `core-extras` sibling (the prefix trap AC-0043 names), a
+# `credential-brokers` pack (which pulls `packages/credbroker/**` into the
+# plan), a `packages/agentbundle/` tree (collected under
+# `.agentbundle/tooling/agentbundle/**` in vendored mode), a
+# `packs/catalogue-curation/` tree (collected under
+# `.agentbundle/tooling/packs/catalogue-curation/**` — the subtree a
+# narrower "only agentbundle/" reading would wrongly admit), a profile, a
+# shared guide, and a conformance test, so every clause this task verifies
+# has a real planned path to exercise it.
+# ---------------------------------------------------------------------------
+
+def _make_scope_predicate_source(root: Path) -> Path:
+    """Build a real, on-disk source catalogue naming every subtree T2's tests
+    need, so `replay_derivation` produces the planned-path set those tests
+    drive the scope predicate against."""
+    root.mkdir(parents=True)
+    (root / "catalogue.toml").write_text(
+        '[catalogue]\n'
+        'name = "upstream-catalogue"\n'
+        'display_name = "Upstream Catalogue"\n'
+        'description = "A source catalogue for scope-predicate tests."\n',
+        encoding="utf-8",
+    )
+    for pack_name in ("core", "core-extras", "credential-brokers"):
+        pack_dir = root / "packs" / pack_name
+        pack_dir.mkdir(parents=True)
+        (pack_dir / "pack.toml").write_text(
+            f'[pack]\nname = "{pack_name}"\nversion = "1.0.0"\n', encoding="utf-8"
+        )
+    curation_dir = root / "packs" / "catalogue-curation"
+    curation_dir.mkdir(parents=True)
+    (curation_dir / "marker.txt").write_text("curation\n", encoding="utf-8")
+    credbroker_pkg = root / "packages" / "credbroker" / "credbroker"
+    credbroker_pkg.mkdir(parents=True)
+    (credbroker_pkg / "__init__.py").write_text("", encoding="utf-8")
+    agentbundle_pkg = root / "packages" / "agentbundle"
+    agentbundle_pkg.mkdir(parents=True)
+    (agentbundle_pkg / "marker.py").write_text("", encoding="utf-8")
+    profiles_dir = root / "profiles"
+    profiles_dir.mkdir(parents=True)
+    (profiles_dir / "default.toml").write_text(
+        '[profile]\nname = "default"\n', encoding="utf-8"
+    )
+    guides_dir = root / "guides" / "_shared"
+    guides_dir.mkdir(parents=True)
+    (guides_dir / "example.md").write_text("# guide\n", encoding="utf-8")
+    conformance_dir = root / "tests" / "conformance"
+    conformance_dir.mkdir(parents=True)
+    (conformance_dir / "example_test.py").write_text("", encoding="utf-8")
+    return root
+
+
+def _replay_scope_predicate_source(
+    tmp_path: Path, *, tooling: str = "vendored", packs: list[str] | None = None
+) -> set[str]:
+    """Return the real planned-path set a `replay_derivation` call produces
+    over :func:`_make_scope_predicate_source`."""
+    source = _make_scope_predicate_source(tmp_path / "source")
+    cfg = ish.SelfHostedInitConfig(
+        target=tmp_path / "derived",
+        source=source,
+        tooling=tooling,
+        attribution="white-label",
+        guides="selected",
+        name="probe",
+        display_name="Probe",
+        description="probe",
+        owner_name="Probe",
+        owner_email="probe@example.invalid",
+        packs=packs,
+        dry_run=True,
+    )
+    replay = ish.replay_derivation(cfg, interactive=False)
+    return set(replay.file_bytes)
+
+
+def test_scope_predicate_admits_named_subtrees_and_unions_repeated_pack(tmp_path):
+    planned = _replay_scope_predicate_source(tmp_path)
+
+    admitted, _ = catalogue_sync.select_write_set(
+        planned, pack_names=["core"], profile_names=["default"], guides=True
+    )
+
+    assert "packs/core/pack.toml" in admitted
+    assert "profiles/default.toml" in admitted
+    assert "guides/_shared/example.md" in admitted
+
+    admitted_union, _ = catalogue_sync.select_write_set(
+        planned, pack_names=["core", "core-extras"], profile_names=[], guides=False
+    )
+    assert "packs/core/pack.toml" in admitted_union
+    assert "packs/core-extras/pack.toml" in admitted_union
+
+
+def test_scope_predicate_excludes_nothing_with_no_scoping_flag(tmp_path):
+    # tooling=external and no credential-brokers pack selected: this fixture's
+    # planned set carries no deferred-package path, so "excludes nothing" is
+    # observable as an exact-equality, not merely a superset check.
+    planned = _replay_scope_predicate_source(
+        tmp_path, tooling="external", packs=["core", "core-extras"]
+    )
+
+    admitted, deferred = catalogue_sync.select_write_set(
+        planned, pack_names=[], profile_names=[], guides=False
+    )
+
+    assert admitted == planned
+    assert deferred == 0
+
+
+def test_scope_predicate_excludes_catalogue_toml_and_conformance_under_any_scope(
+    tmp_path,
+):
+    planned = _replay_scope_predicate_source(tmp_path)
+
+    admitted, _ = catalogue_sync.select_write_set(
+        planned, pack_names=["core"], profile_names=[], guides=False
+    )
+
+    assert "catalogue.toml" in planned
+    assert "catalogue.toml" not in admitted
+    conformance_paths = {p for p in planned if p.startswith("tests/conformance/")}
+    assert conformance_paths  # the fixture actually ships one
+    assert not (conformance_paths & admitted)
+
+
+@pytest.mark.parametrize(
+    "pack_names,profile_names,guides",
+    [
+        ([], [], False),
+        (["core"], [], False),
+        ([], ["default"], False),
+        ([], [], True),
+    ],
+)
+def test_scope_predicate_defers_vendored_and_credbroker_paths_under_every_scope(
+    tmp_path, pack_names, profile_names, guides
+):
+    planned = _replay_scope_predicate_source(tmp_path)
+    deferred_paths = {
+        p for p in planned
+        if p.startswith(("packages/credbroker/", ".agentbundle/tooling/"))
+    }
+    # The whole vendored tooling root is the extent, not only its
+    # `agentbundle/` subdirectory — the fixture's `packs/catalogue-curation/`
+    # copy is exactly the subtree a narrower reading would wrongly admit.
+    assert any(
+        p.startswith(".agentbundle/tooling/packs/catalogue-curation/")
+        for p in deferred_paths
+    )
+    assert any(
+        p.startswith(".agentbundle/tooling/agentbundle/") for p in deferred_paths
+    )
+    assert deferred_paths  # the fixture actually ships every deferred subtree
+
+    admitted, deferred_count = catalogue_sync.select_write_set(
+        planned,
+        pack_names=pack_names,
+        profile_names=profile_names,
+        guides=guides,
+    )
+
+    assert not (deferred_paths & admitted)
+    assert deferred_count == len(deferred_paths)
+
+
+def test_scope_predicate_pack_core_does_not_admit_core_extras_sibling(tmp_path):
+    planned = _replay_scope_predicate_source(tmp_path)
+    assert "packs/core-extras/pack.toml" in planned  # the fixture ships the sibling
+
+    admitted, _ = catalogue_sync.select_write_set(
+        planned, pack_names=["core"], profile_names=[], guides=False
+    )
+
+    assert "packs/core-extras/pack.toml" not in admitted
+
+
+# ---------------------------------------------------------------------------
+# T3: the state merge and the pin (spec AC-0033 clause 1, AC-0036, AC-0037,
+# AC-0044, AC-0045, AC-0059). Both functions are pure over their arguments —
+# no test in this section touches a filesystem.
+# ---------------------------------------------------------------------------
+
+
+def _base_old_state(
+    *, packs: list[str], profiles: list[str] | None = None, **recipe_extra: object
+) -> dict:
+    return {
+        "schema_version": "3",
+        "managed_paths": [],
+        "adapters": ["claude-code"],
+        "managed_target_path": "",
+        "source_pack_identity": "",
+        "source_root_kind": "self-hosted-source",
+        "recipe": {
+            "packs": list(packs),
+            "profiles": list(profiles) if profiles is not None else [],
+            "guides": "selected",
+            "attribution": "white-label",
+            "tooling": "external",
+            "name": "acme",
+            "display_name": "Acme",
+            "description": "an acme catalogue",
+            "owner_name": "Acme Team",
+            "owner_email": "team@acme.example.invalid",
+            "preferred_adapter": "claude-code",
+            "repository_url": None,
+            **recipe_extra,
+        },
+        "pin": {
+            "source_revision": None,
+            "archive_sha256": None,
+            "synced_at": "2026-09-01T00:00:00Z",
+        },
+    }
+
+
+def test_merge_path_set_equals_recorded_minus_removed_union_written():
+    old_state = _base_old_state(packs=["alpha"])
+    recorded = {
+        "packs/alpha/README.md": "sha-untouched",
+        "packs/alpha/stale.md": "sha-stale",
+        "packs/alpha/edited.md": "sha-adopter-edited",
+    }
+    # "packs/alpha/new.md" simulates a Tier-1 write; "packs/alpha/stale.md"
+    # is stale-removed this run; "packs/alpha/edited.md" is would-companion —
+    # its *original* path is untouched (no key in `written`) and its
+    # companion destination is never a key in either mapping, so neither
+    # this function's signature nor its logic has anywhere for a companion
+    # path to enter the merged set. "packs/other/untouched.md" is a Tier-3
+    # planned path this run never admits at all — absent from every input.
+    written = {
+        "packs/alpha/new.md": "sha-new",
+    }
+    removed = {"packs/alpha/stale.md"}
+
+    merged = catalogue_sync.merge_ownership_state(
+        old_state,
+        recorded=recorded,
+        written=written,
+        removed=removed,
+        pack_names=["alpha"],
+        profile_names=[],
+        pin=old_state["pin"],
+    )
+
+    merged_paths = {
+        entry["path"]: entry["sha256"] for entry in merged["managed_paths"]
+    }
+    assert merged_paths == {
+        "packs/alpha/README.md": "sha-untouched",
+        "packs/alpha/edited.md": "sha-adopter-edited",
+        "packs/alpha/new.md": "sha-new",
+    }
+    assert "packs/alpha/stale.md" not in merged_paths  # removed
+    # AC-0059's two absolute clauses are NOT asserted here, deliberately.
+    # Asserting that a Tier-3 path or a companion destination is absent, when
+    # neither was supplied in `recorded` or `written`, holds whatever this
+    # function does -- it is a check that cannot fail. Measured 2026-09-23:
+    # feeding "packs/alpha/README.upstream.md" in via `recorded` leaves it in
+    # the merged set, so the exclusion is not a property of this function.
+    #
+    # Under the contribution reading the owner took, that is correct: AC-0059
+    # says "a path THE RUN CLASSIFIED Tier-3", and this run classifies nothing
+    # that arrives through `recorded`. The clauses bind the caller, which is
+    # the only seam that knows which paths were companion destinations -- and
+    # a suffix filter here would be wrong outright, since AC-0071 shows a
+    # source may legitimately ship `x.upstream.md`. T4/T6 own the assertion
+    # that no companion destination ever enters `written`; the verification
+    # ledger records that hand-off.
+
+
+def test_merge_digests_are_written_bytes_or_pre_run_value():
+    old_state = _base_old_state(packs=["alpha"])
+    recorded = {
+        "packs/alpha/updated.md": "sha-pre-run",
+        "packs/alpha/untouched.md": "sha-pre-run-untouched",
+    }
+    written = {"packs/alpha/updated.md": "sha-post-write"}
+
+    merged = catalogue_sync.merge_ownership_state(
+        old_state,
+        recorded=recorded,
+        written=written,
+        removed=[],
+        pack_names=["alpha"],
+        profile_names=[],
+        pin=old_state["pin"],
+    )
+
+    merged_paths = {
+        entry["path"]: entry["sha256"] for entry in merged["managed_paths"]
+    }
+    assert merged_paths["packs/alpha/updated.md"] == "sha-post-write"
+    assert merged_paths["packs/alpha/untouched.md"] == "sha-pre-run-untouched"
+
+
+def test_merge_carries_the_effective_selection_ac0033_clause1_produced():
+    old_state = _base_old_state(packs=["alpha"], profiles=["default"])
+
+    merged = catalogue_sync.merge_ownership_state(
+        old_state,
+        recorded={},
+        written={},
+        removed=[],
+        pack_names=["alpha", "beta"],
+        profile_names=["default", "extra"],
+        pin=old_state["pin"],
+    )
+
+    assert merged["recipe"]["packs"] == ["alpha", "beta"]
+    assert merged["recipe"]["profiles"] == ["default", "extra"]
+
+
+def test_merge_pack_list_after_new_pack_is_pre_run_list_plus_the_name():
+    old_state = _base_old_state(packs=["alpha", "beta"])
+
+    merged = catalogue_sync.merge_ownership_state(
+        old_state,
+        recorded={},
+        written={},
+        removed=[],
+        # T6 owns resolving this union; this task asserts only that the
+        # merge records whatever effective selection it is handed.
+        pack_names=["alpha", "beta", "gamma"],
+        profile_names=[],
+        pin=old_state["pin"],
+    )
+
+    assert set(merged["recipe"]["packs"]) == {"alpha", "beta", "gamma"}
+    assert "alpha" in merged["recipe"]["packs"]
+    assert "beta" in merged["recipe"]["packs"]  # no pre-run entry is dropped
+
+
+def test_merge_scoped_run_leaves_every_recorded_identity_field_at_pre_run_value():
+    old_state = _base_old_state(
+        packs=["alpha"],
+        guides="selected",
+        attribution="attributed",
+        tooling="vendored",
+    )
+    old_recipe = dict(old_state["recipe"])
+
+    # A `--pack alpha` scoped run: the effective selection is unchanged
+    # (alpha was already recorded), but the scope predicate (T2) narrowed
+    # what was *written*, not what this merge records for every other field.
+    merged = catalogue_sync.merge_ownership_state(
+        old_state,
+        recorded={},
+        written={},
+        removed=[],
+        pack_names=["alpha"],
+        profile_names=[],
+        pin=old_state["pin"],
+    )
+
+    identity_fields = set(old_recipe) - {"packs", "profiles"}
+    for field in identity_fields:
+        assert merged["recipe"][field] == old_recipe[field], field
+
+
+@pytest.mark.parametrize(
+    "source_uri,archive_sha256,source_revision,expected_revision,expected_archive",
+    [
+        ("/local/clone/path", None, None, None, None),
+        ("git+https://github.com/owner/repo@v1.2.3", None, None, "v1.2.3", None),
+        ("git+https://github.com/owner/repo", None, None, "main", None),
+        (
+            "archive+https://example.test/archive.tar.gz#sha256=deadbeef",
+            "deadbeef" * 8,
+            None,
+            None,
+            "deadbeef" * 8,
+        ),
+        (
+            "catalogue+https://example.test/catalogue.tar.gz#sha256=deadbeef",
+            "deadbeef" * 8,
+            "v9.9.9",
+            "v9.9.9",
+            "deadbeef" * 8,
+        ),
+        (
+            "catalogue+https://example.test/catalogue.tar.gz#sha256=deadbeef",
+            "deadbeef" * 8,
+            None,
+            None,
+            "deadbeef" * 8,
+        ),
+    ],
+)
+def test_pin_per_source_form_under_attributed(
+    source_uri, archive_sha256, source_revision, expected_revision, expected_archive
+):
+    pin = catalogue_sync.build_pin(
+        source_uri,
+        archive_sha256=archive_sha256,
+        source_revision=source_revision,
+        attributed=True,
+        synced_at="2026-09-23T00:00:00Z",
+    )
+
+    assert pin["source_uri"] == source_uri
+    assert pin["source_revision"] == expected_revision
+    assert pin["archive_sha256"] == expected_archive
+    assert pin["synced_at"] == "2026-09-23T00:00:00Z"
+
+
+@pytest.mark.parametrize(
+    "source_uri",
+    [
+        "/local/clone/path",
+        "git+https://github.com/owner/repo@v1.2.3",
+        "archive+https://example.test/archive.tar.gz#sha256=deadbeef",
+        "catalogue+https://example.test/catalogue.tar.gz#sha256=deadbeef",
+    ],
+)
+def test_pin_source_uri_absent_under_white_label_on_every_row(source_uri):
+    pin = catalogue_sync.build_pin(
+        source_uri,
+        archive_sha256="deadbeef" * 8,
+        source_revision="v9.9.9",
+        attributed=False,
+        synced_at="2026-09-23T00:00:00Z",
+    )
+
+    assert "source_uri" not in pin
+
+
+# ---------------------------------------------------------------------------
+# T5: consent gates the first write (spec AC-0031, AC-0049, AC-0050, AC-0072).
+#
+# The gate's returned decision is the oracle throughout. AC-0031's own oracle
+# is the target tree, but that only moves once T6's `_run_apply` composes
+# this gate with the write sequence — driving a tree here would test
+# duplicated test logic rather than the planned implementation (plan.md T5
+# § Tests), so every case below asserts the boolean decision or the prompt
+# text `_consent_gate` builds, never a filesystem effect.
+# ---------------------------------------------------------------------------
+
+# The four fidelity tokens `_resolve_source` returns, one per source form
+# (see the module-level comment above `_DIGEST_BEARING_PREFIXES`).
+_FIDELITY_TOKENS = [
+    "local-path",
+    "git-tls",
+    "digest-adopter-pinned",
+    "digest-publisher-asserted",
+]
+
+
+def test_consent_gate_yes_flag_proceeds_without_touching_stdin(monkeypatch):
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called with yes=True")
+
+    monkeypatch.setattr("builtins.input", _boom)
+    # isatty must not even be consulted under yes=True, but patch it
+    # defensively so a regression that does consult it still fails loudly.
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+
+    assert catalogue_sync._consent_gate(
+        yes=True,
+        attributed=False,
+        source_raw="/local/source",
+        fidelity_token="local-path",
+    ) is True
+
+
+def test_consent_gate_affirmative_reply_proceeds(monkeypatch):
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "y")
+
+    assert catalogue_sync._consent_gate(
+        yes=False,
+        attributed=False,
+        source_raw="/local/source",
+        fidelity_token="local-path",
+    ) is True
+
+
+def test_consent_gate_negative_reply_declines(monkeypatch):
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "n")
+
+    assert catalogue_sync._consent_gate(
+        yes=False,
+        attributed=False,
+        source_raw="/local/source",
+        fidelity_token="local-path",
+    ) is False
+
+
+def test_consent_gate_end_of_input_with_no_terminal_declines_without_prompting(
+    monkeypatch,
+):
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called on a non-TTY")
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+    monkeypatch.setattr("builtins.input", _boom)
+
+    assert catalogue_sync._consent_gate(
+        yes=False,
+        attributed=False,
+        source_raw="/local/source",
+        fidelity_token="local-path",
+    ) is False
+
+
+def test_consent_gate_names_no_source_uri_outside_attributed_mode(monkeypatch):
+    captured: dict[str, str] = {}
+
+    def _capture(prompt=""):
+        captured["prompt"] = prompt
+        return "y"
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", _capture)
+
+    catalogue_sync._consent_gate(
+        yes=False,
+        attributed=False,
+        source_raw="https://example.test/should-not-appear",
+        fidelity_token="local-path",
+    )
+
+    assert "https://example.test/should-not-appear" not in captured["prompt"]
+
+
+def test_consent_gate_names_the_source_uri_under_attributed_mode(monkeypatch):
+    captured: dict[str, str] = {}
+
+    def _capture(prompt=""):
+        captured["prompt"] = prompt
+        return "y"
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", _capture)
+
+    catalogue_sync._consent_gate(
+        yes=False,
+        attributed=True,
+        source_raw="https://example.test/should-appear",
+        fidelity_token="local-path",
+    )
+
+    assert "https://example.test/should-appear" in captured["prompt"]
+
+
+@pytest.mark.parametrize("fidelity_token", _FIDELITY_TOKENS)
+def test_consent_gate_names_the_fidelity_token_on_the_prompt(
+    monkeypatch, fidelity_token
+):
+    captured: dict[str, str] = {}
+
+    def _capture(prompt=""):
+        captured["prompt"] = prompt
+        return "y"
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", _capture)
+
+    catalogue_sync._consent_gate(
+        yes=False,
+        attributed=False,
+        source_raw="/local/source",
+        fidelity_token=fidelity_token,
+    )
+
+    assert fidelity_token in captured["prompt"]
+
+
+@pytest.mark.parametrize("fidelity_token", _FIDELITY_TOKENS)
+def test_plan_document_and_render_carry_each_source_forms_fidelity_token(
+    capsys, fidelity_token
+):
+    # AC-0072's `--yes`-run half: a `--yes` run never prompts, so this drives
+    # the printed plan and the `--format json` document directly rather than
+    # through the prompt, over the same four tokens the prompt test above
+    # covers — a prompt-only fixture would leave this half unverified.
+    doc = catalogue_sync._plan_document(
+        target=Path("/tmp/target"),
+        dry_run=True,
+        check=False,
+        fidelity_token=fidelity_token,
+        archive_sha256=None,
+        source_revision=None,
+        attribution="white-label",
+        tooling="external",
+        guides="selected",
+        source_raw="/local/source",
+        attributed=False,
+        pack_names=[],
+        profile_names=[],
+        summary={
+            "would_update": 0,
+            "would_companion": 0,
+            "untouched": 0,
+            "would_remove": 0,
+            "schema_1_inert": 0,
+            "compared": 0,
+            "uncompared": 0,
+        },
+        verdict_rows=[],
+        compatibility=[],
+        violations=0,
+        rejections=[],
+    )
+    assert doc["fidelity"] == fidelity_token
+
+    catalogue_sync._render_plan(doc, fmt="table")
+    assert f"fidelity: {fidelity_token}" in capsys.readouterr().out
+
+    catalogue_sync._render_plan(doc, fmt="json")
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["fidelity"] == fidelity_token
+
+
+def test_consent_gate_recorded_value_failing_terminal_safe_check_is_not_prompted(
+    monkeypatch,
+):
+    captured: dict[str, str] = {}
+
+    def _capture(prompt=""):
+        captured["prompt"] = prompt
+        return "y"
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", _capture)
+
+    # Fails only the whitespace bound (a trailing space) — never a control
+    # character, which an escaping sink (e.g. `json.dumps`) would neutralise
+    # whether or not the check runs, making a control-character assertion
+    # vacuous (spec AC-0049; plan.md T5 § Tests).
+    unsafe_source = "https://example.test/repo "
+    # Pin which bound trips: the trailing space fails `_is_safe_recipe_text`
+    # (whitespace), and the stripped value alone would pass it — proving this
+    # case is not also rejected on length or on a control character.
+    assert not ish._is_safe_recipe_text(unsafe_source)
+    assert ish._is_safe_recipe_text(unsafe_source.strip())
+
+    catalogue_sync._consent_gate(
+        yes=False,
+        attributed=True,
+        source_raw=unsafe_source,
+        fidelity_token="local-path",
+    )
+
+    assert unsafe_source not in captured["prompt"]
+    assert "rejected source" in captured["prompt"]
+
+
+# ---------------------------------------------------------------------------
 # The whole-tree walk (spec AC-0015), reusing T4's helper rather than a copy.
 # T5's rows: a dry-run success and a resolution refusal reached via sync's
 # own dispatch, over-and-above T4's replay_derivation-level rows.

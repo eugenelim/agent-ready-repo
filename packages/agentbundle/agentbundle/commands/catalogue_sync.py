@@ -21,9 +21,9 @@ import shutil
 import sys
 import tomllib
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Iterable
 
-from agentbundle.catalogue import CatalogueError, resolve_catalogue
+from agentbundle.catalogue import CatalogueError, resolve_catalogue, resolve_git_ref
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
@@ -33,6 +33,7 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _OWNERSHIP_STATE_FILE,
     ReplayError,
     SelfHostedInitConfig,
+    SelfHostPin,
     _is_attributed,
     _is_safe_recipe_text,
     _load_ownership_state,
@@ -41,7 +42,7 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _plan_stale_owned_paths,
     replay_derivation,
 )
-from agentbundle.commands._common import check_spec_version_gate
+from agentbundle.commands._common import check_spec_version_gate, confirm_or_refuse
 from agentbundle.config import PackState, State
 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
 from agentbundle.safety import Tier, classify, companion_path
@@ -77,6 +78,202 @@ _UNDECIDED_DECLINE_TOKENS = frozenset(
 # `archive_sha256` must be exactly a 64-character lowercase hex string, or it
 # is treated as absent/malformed and the row reads cannot-answer.
 _HEX64 = re.compile(r"[0-9a-f]{64}")
+
+# spec AC-0043 — `--guides` names the whole `guides/_shared/` subtree.
+_GUIDES_SCOPE_PREFIX = "guides/_shared/"
+
+# spec AC-0033 clause 5 / AC-0063 — the whole vendored tooling root, not only
+# its `agentbundle/` subdirectory: the engine and the vendored
+# `catalogue-curation` copy are installed as a pair, so phase 4 owns both
+# under one extent. Compared as a prefix, like the pack scope below, so
+# every path under either root is caught regardless of depth.
+_DEFERRED_PACKAGE_PREFIXES = ("packages/credbroker/", ".agentbundle/tooling/")
+
+
+def _is_deferred_package_path(path: str) -> bool:
+    """AC-0033 clause 5 — ``True`` when *path* belongs to a `--package`
+    subtree phase 4, not this phase, owns.
+    """
+    return path.startswith(_DEFERRED_PACKAGE_PREFIXES)
+
+
+def _scope_subtrees(
+    pack_names: list[str], profile_names: list[str], guides: bool
+) -> tuple[frozenset[str], frozenset[str]] | None:
+    """Return AC-0043's scope as ``(dir_prefixes, exact_paths)``.
+
+    ``dir_prefixes`` each carry their trailing separator — comparing without
+    it would let ``--pack core`` also admit the sibling
+    ``packs/core-extras/``, which shares the prefix ``"packs/core"`` but not
+    ``"packs/core/"``. ``--profile <name>`` names one exact file rather than
+    a directory, so it is matched in ``exact_paths`` instead of as a prefix.
+
+    Returns ``None`` when no scoping flag was supplied at all — AC-0043's
+    "the scope is every path", which AC-0042 uses to assert clause 4 excludes
+    nothing.
+    """
+    if not pack_names and not profile_names and not guides:
+        return None
+    dir_prefixes = {f"packs/{name}/" for name in pack_names}
+    if guides:
+        dir_prefixes.add(_GUIDES_SCOPE_PREFIX)
+    exact_paths = {f"profiles/{name}.toml" for name in profile_names}
+    return frozenset(dir_prefixes), frozenset(exact_paths)
+
+
+def _in_scope(
+    path: str, scope: tuple[frozenset[str], frozenset[str]] | None
+) -> bool:
+    """AC-0033 clause 4 — ``True`` when *path* is inside the scope AC-0043
+    fixes. ``scope is None`` means no scoping flag was supplied, which admits
+    every path.
+    """
+    if scope is None:
+        return True
+    dir_prefixes, exact_paths = scope
+    if path in exact_paths:
+        return True
+    return any(path.startswith(prefix) for prefix in dir_prefixes)
+
+
+def select_write_set(
+    planned_paths: Iterable[str],
+    *,
+    pack_names: list[str],
+    profile_names: list[str],
+    guides: bool,
+) -> tuple[set[str], int]:
+    """AC-0033 clauses 4 and 5 — narrow *planned_paths* to the write set.
+
+    *planned_paths* is the full replayed set (e.g. ``set(replay.file_bytes)``)
+    — AC-0033 clause 3's admission, never narrowed by this function. See
+    plan.md § Design decisions "The scope filter selects what is written,
+    never what is replayed": narrowing the replay itself would mark the rest
+    of the adopter's tree stale.
+
+    Returns ``(admitted, deferred_package)``. ``deferred_package`` is AC-0066's
+    count, computed over *planned_paths* exactly as given rather than over
+    the scope-narrowed subset — AC-0066 fixes that this count "stay[s]
+    computed over the full replayed selection" regardless of which scoping
+    flags this run supplies, so a `--pack` run still reports how many
+    deferred paths the *full* replay carries.
+    """
+    scope = _scope_subtrees(pack_names, profile_names, guides)
+    deferred = 0
+    admitted: set[str] = set()
+    for path in planned_paths:
+        if _is_deferred_package_path(path):
+            deferred += 1
+            continue
+        if _in_scope(path, scope):
+            admitted.add(path)
+    return admitted, deferred
+
+
+def build_pin(
+    source_uri: str,
+    *,
+    archive_sha256: str | None,
+    source_revision: str | None,
+    attributed: bool,
+    synced_at: str,
+) -> dict[str, Any]:
+    """AC-0037 — the recorded pin row for *source_uri*'s source form.
+
+    Reuses ``SelfHostPin`` (``init``'s own pin record) rather than a second
+    dict shape, so "``source_uri`` present only under ``attributed``" stays
+    one implementation. *archive_sha256* and *source_revision* are the
+    values ``_resolve_source`` already returns for the two digest-bearing
+    forms — ``archive_sha256`` absent and ``source_revision`` absent for
+    ``archive+https://``, ``source_revision`` the descriptor's value or
+    absent for ``catalogue+https://`` — and *pass through unchanged* for
+    those two forms and for a local path.
+
+    A ``git+https://`` URI is the one row phase 2's resolver can't supply:
+    ``_resolve_source`` computes the ref only to fetch against it and
+    discards the value (plan.md § Interfaces & contracts). This function
+    reads the same ref through :func:`agentbundle.catalogue.resolve_git_ref`
+    — the one parse T1 exported — rather than re-deriving it, so the fetch
+    and the pin can never disagree. *source_revision* is ignored for this
+    one form.
+    """
+    revision = (
+        resolve_git_ref(source_uri)
+        if source_uri.startswith("git+https://")
+        else source_revision
+    )
+    pin = SelfHostPin(
+        source_uri=source_uri if attributed else None,
+        source_revision=revision,
+        archive_sha256=archive_sha256,
+        synced_at=synced_at,
+    )
+    return pin.to_dict()
+
+
+def merge_ownership_state(
+    old_state: dict[str, Any],
+    *,
+    recorded: dict[str, str | None],
+    written: dict[str, str],
+    removed: Iterable[str],
+    pack_names: list[str],
+    profile_names: list[str],
+    pin: dict[str, Any],
+) -> dict[str, Any]:
+    """AC-0059/AC-0036/AC-0033 clause 1/AC-0044/AC-0045 — the post-run state.
+
+    Touches no filesystem: every value comes from an argument, never from a
+    read of *target*. Callers (T4's write phase, T6's ``_run_apply``) own
+    building each argument from what they actually did.
+
+    ``recorded`` is the pre-run ``path -> sha256`` mapping (``None`` for a
+    schema-1 null-sha entry) — the same shape ``_classify_planned_paths``
+    already builds from ``managed_paths``. ``written`` is ``path ->
+    sha256`` for exactly the paths this run wrote *to their recorded
+    identity* — a ``would-update`` path, or a path admitted only because it
+    belongs to a pack or profile this run introduced (AC-0033 clause 3's
+    last admission). A ``would-companion`` path's original path is not in
+    ``written`` (its digest does not change — that is what keeps it
+    classified Tier-2 next time) and its *companion destination* is never a
+    key in either mapping, so the merged path set excludes Tier-3 and
+    companion paths structurally: the merge has no argument through which
+    either could ever arrive, rather than a runtime filter over one that
+    could.
+
+    The merged set is ``(recorded - removed) | written`` exactly — clause
+    ordering matters: ``written`` is applied last so a path both stale (no
+    longer planned) and freshly written (e.g. re-admitted this run) lands
+    on its new digest, never its pre-run one.
+
+    ``pack_names``/``profile_names`` are AC-0033 clause 1's already-resolved
+    effective selection; T6 owns resolving them and AC-0068's validity
+    domain. Every other recipe field — ``name``, ``display_name``,
+    ``guides``, ``attribution``, ``tooling``, and the rest — is carried
+    forward from ``old_state`` unchanged: AC-0033's write-set definition
+    reaches no state-file field, so nothing here has a mandate to update
+    one, and carrying every field forward unconditionally is what keeps a
+    scoped run's recorded identity untouched (AC-0044) without a second,
+    scope-aware code path.
+    """
+    removed_set = set(removed)
+    merged_paths: dict[str, str | None] = {
+        path: sha for path, sha in recorded.items() if path not in removed_set
+    }
+    merged_paths.update(written)
+
+    old_recipe = old_state.get("recipe")
+    recipe: dict[str, Any] = dict(old_recipe) if isinstance(old_recipe, dict) else {}
+    recipe["packs"] = list(pack_names)
+    recipe["profiles"] = list(profile_names)
+
+    new_state = dict(old_state)
+    new_state["managed_paths"] = [
+        {"path": path, "sha256": sha} for path, sha in merged_paths.items()
+    ]
+    new_state["recipe"] = recipe
+    new_state["pin"] = pin
+    return new_state
 
 
 def _synthesize_state(recorded: dict[str, str | None]) -> State:
@@ -933,6 +1130,58 @@ def _refuse(
                 for line in rejections:
                     print(f"  {line}", file=sys.stderr)
     return code
+
+
+def _consent_gate(
+    *,
+    yes: bool,
+    attributed: bool,
+    source_raw: str,
+    fidelity_token: str,
+) -> bool:
+    """AC-0031 — ask an operator for consent before the apply path's first write.
+
+    Composes ``commands._common.confirm_or_refuse`` — the shared
+    confirm/refuse/``--yes`` mechanics ``uninstall``, ``install --force`` and
+    ``upgrade`` already share (plan.md's Cut-before-adding search: an adequate
+    repository solution for the yes/terminal/EOF mechanics already exists, so
+    this function adds only the two prompt obligations apply introduces) —
+    with what the prompt itself must and must not say: AC-0072 names the
+    source fidelity on every prompt, and AC-0050 forbids naming the source URI
+    outside ``attributed`` mode. *source_raw* is unauthored input, so AC-0049
+    routes it through the terminal-safe check first; a value that fails is
+    reported by field name and reason, never reproduced.
+
+    Returns ``True`` on an affirmative reply or *yes*. Returns ``False`` on a
+    negative reply, an end-of-input, or an absent terminal with no *yes* —
+    ``confirm_or_refuse``'s non-TTY branch refuses before ever calling
+    ``input()``, so "end-of-input" and "no terminal" reach the same decision
+    without a separate branch here.
+
+    Reads only *yes* and the terminal — never a recorded value. Passing one in
+    is the seam plan.md's "Consent drift" risk names: it would reopen phase
+    2's modes-from-flags invariant (AC-0048), so this function takes no state
+    argument at all.
+    """
+    rejections: list[str] = []
+    safe_source = (
+        _safe_scalar("source", source_raw, rejections) if attributed else None
+    )
+    lines = [f"fidelity: {fidelity_token}"]
+    if attributed:
+        if safe_source is not None:
+            lines.append(f"source: {safe_source}")
+        else:
+            lines.extend(rejections)
+    lines.append("Apply this plan? [y/N] ")
+    return confirm_or_refuse(
+        yes=yes,
+        question="\n".join(lines),
+        refuse_message=(
+            "catalogue sync: refusing to apply without a terminal; use --yes"
+        ),
+        abort_message="catalogue sync: aborted; no changes made",
+    )
 
 
 def _run_dry_run(

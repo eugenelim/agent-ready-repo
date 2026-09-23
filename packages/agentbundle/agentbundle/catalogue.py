@@ -124,6 +124,23 @@ def resolve_catalogue(uri: str) -> Path:
     return Path(uri)
 
 
+def resolve_git_ref(uri: str) -> str | None:
+    """Return the ref a ``git+https://`` URI names, or ``None`` for any other form.
+
+    A missing ``@<ref>`` suffix resolves to ``"main"`` — the same default
+    ``_resolve_https`` fetches against, so this is the one parse both the
+    fetch and the AC-0037 pin read, rather than two parses that could
+    disagree. A local path and the digest-bearing ``archive+https://`` and
+    ``catalogue+https://`` schemes don't name a ref at all, so each of those
+    resolves to ``None``.
+    """
+    m = _HTTPS_RE.match(uri)
+    if not m:
+        return None
+    ref = m.group(3)
+    return ref if ref else "main"
+
+
 def _resolve_https(uri: str) -> Path:
     m = _HTTPS_RE.match(uri)
     if not m:
@@ -131,9 +148,9 @@ def _resolve_https(uri: str) -> Path:
             f"Cannot parse git+https URI: {uri!r}. "
             "Expected format: git+https://github.com/<owner>/<repo>[@<ref>]"
         )
-    owner, repo, ref = m.group(1), m.group(2), m.group(3)
-    if not ref:
-        ref = "main"
+    owner, repo = m.group(1), m.group(2)
+    ref = resolve_git_ref(uri)
+    assert ref is not None  # uri already matched _HTTPS_RE above
 
     tarball_url = _github_archive_url(owner, repo, ref)
     tmpdir = Path(tempfile.mkdtemp(prefix="agentbundle-catalogue-"))
