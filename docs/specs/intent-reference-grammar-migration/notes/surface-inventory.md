@@ -10,11 +10,13 @@ pack source that reads or writes it.
 
 ## `Parent intent:`
 
-### reads (6)
+### reads (8)
 
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
+- `docs/specs/intent-reference-grammar-migration/notes/corpus-probe.py`
 - `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
+- `docs/specs/intent-reference-grammar-migration/notes/sweep-parent-intent.py`
 - `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
 - `packs/core/tests/skills/work-intake/test_intent_shape.py`
 - `packs/core/tests/skills/work-loop/test_lint_traceability.py`
@@ -79,21 +81,9 @@ pack source that reads or writes it.
 - `packs/product-engineering/.apm/skills/align-value-stream/assets/rollup-template.md`
 - `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`
 
-### states (16)
+### states (4)
 
-- `.context/reviews/amend-adversarial-prompt.md`
-- `.context/reviews/amend-r1-adversarial.md`
-- `.context/reviews/amend-r2-adversarial.md`
-- `.context/reviews/amend-r4-adversarial.md`
-- `.context/reviews/amend-r5-adversarial.md`
-- `.context/reviews/amend2-adversarial.md`
-- `.context/reviews/amend2-r2.md`
-- `.context/reviews/r1-contract-adjudication.md`
-- `.context/reviews/r2-contract-adjudication.md`
-- `.context/reviews/r2-contract.md`
-- `.context/reviews/rfc0103-r1-adversarial.md`
-- `.context/reviews/rfc0103-r2-adversarial.md`
-- `.context/reviews/rfc0103-r3-adversarial.md`
+- `docs/product/changelog.md`
 - `guides/product-engineering/how-to/shape-a-product-strategy.md`
 - `packs/product-engineering/.apm/skills/decompose-intent/SKILL.md`
 - `packs/product-engineering/.apm/skills/decompose-intent/references/recursive-decomposition.md`
@@ -109,7 +99,7 @@ pack source that reads or writes it.
 
 ## `Brief:`
 
-### reads (17)
+### reads (19)
 
 - `.agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
@@ -117,7 +107,9 @@ pack source that reads or writes it.
 - `.claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
 - `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
+- `docs/specs/intent-reference-grammar-migration/notes/corpus-probe.py`
 - `docs/specs/intent-reference-grammar-migration/notes/derive-surfaces.py`
+- `docs/specs/intent-reference-grammar-migration/notes/sweep-brief.py`
 - `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
 - `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
 - `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`
@@ -169,62 +161,27 @@ pack source that reads or writes it.
 - `tools/bench-workspace-status.py`
 - `tools/test_pack_test_compatibility.py`
 
-### writes (19)
+### writes (4)
 
 - `.agents/skills/new-spec/assets/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
 - `.claude/skills/new-spec/assets/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
 - `guides/core/how-to/write-the-contract.md`
 - `packs/core/.apm/skills/new-spec/assets/spec.md`
-- `packs/core/.apm/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `packs/core/.apm/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `packs/core/.apm/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/001-m2-frame-situation/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/004-agentbundle-first-value-handoff/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/007-queue-add/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/014-build-check-single-verify/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/022-architect-design-reviewer/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/023-author-brief-docs/spec.md`
 
-### states (51)
+### states (31)
 
 - `.agents/skills/author-delivery-brief/SKILL.md`
 - `.agents/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
 - `.agents/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
 - `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/references/spec-and-plan-contract.md`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/product/briefs/brief-1.md`
 - `.agents/skills/workspace-status/references/agentbundle-layout.md`
 - `.claude/skills/author-delivery-brief/SKILL.md`
 - `.claude/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
 - `.claude/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
 - `.claude/skills/new-spec/SKILL.md`
 - `.claude/skills/new-spec/references/spec-and-plan-contract.md`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/product/briefs/brief-1.md`
 - `.claude/skills/workspace-status/references/agentbundle-layout.md`
-- `.context/reviews/amend-adversarial-prompt.md`
-- `.context/reviews/amend-r1-adversarial.md`
-- `.context/reviews/amend-r2-adversarial.md`
-- `.context/reviews/amend-r4-adversarial.md`
-- `.context/reviews/amend-r5-adversarial.md`
-- `.context/reviews/amend-security-prompt.md`
-- `.context/reviews/amend2-r2.md`
-- `.context/reviews/r1-adversarial-adjudication.md`
-- `.context/reviews/r1-adversarial.md`
-- `.context/reviews/r1-contract-adjudication.md`
-- `.context/reviews/r1-contract.md`
-- `.context/reviews/r2-adversarial-adjudication.md`
-- `.context/reviews/r2-adversarial.md`
-- `.context/reviews/r2-contract-adjudication.md`
-- `.context/reviews/r2-contract.md`
-- `.context/reviews/rfc0103-r2-adversarial.md`
-- `.context/reviews/rfc0103-r3-adversarial.md`
-- `.context/reviews/rfc0103-r4-adversarial.md`
 - `docs/architecture/loop-contract.md`
 - `docs/architecture/work-intake-and-artifact-routing.md`
 - `docs/product/changelog.md`
@@ -235,39 +192,37 @@ pack source that reads or writes it.
 - `guides/core/how-to/run-a-live-demo.md`
 - `guides/core/reference/product-brief-fields.md`
 - `guides/core/reference/spec-shape-and-lld.md`
+- `packages/agentbundle/CHANGELOG.md`
 - `packs/core/.apm/skills/author-delivery-brief/SKILL.md`
 - `packs/core/.apm/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
 - `packs/core/.apm/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
 - `packs/core/.apm/skills/new-spec/SKILL.md`
 - `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`
-- `packs/core/.apm/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/product/briefs/brief-1.md`
 - `packs/core/.apm/skills/workspace-status/references/agentbundle-layout.md`
 - `packs/core/seeds/docs/product/briefs/_template.md`
 - `packs/product-engineering/.apm/skills/align-value-stream/references/cross-component-rollup.md`
 
-### generated-copy (23)
+### generated-copy (21)
 
+- `.agents/skills/author-delivery-brief/SKILL.md`
+- `.agents/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
+- `.agents/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
 - `.agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
+- `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/assets/spec.md`
+- `.agents/skills/new-spec/references/spec-and-plan-contract.md`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md`
-- `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
-- `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `.agents/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
+- `.agents/skills/workspace-status/references/agentbundle-layout.md`
 - `.agents/skills/workspace-status/scripts/workspace_status_engine.py`
+- `.claude/skills/author-delivery-brief/SKILL.md`
+- `.claude/skills/author-delivery-brief/examples/shape-a-outcome-brief.md`
+- `.claude/skills/author-delivery-brief/examples/shape-b-story-list-brief.md`
 - `.claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py`
+- `.claude/skills/new-spec/SKILL.md`
 - `.claude/skills/new-spec/assets/spec.md`
+- `.claude/skills/new-spec/references/spec-and-plan-contract.md`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md`
-- `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
-- `.claude/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `.claude/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
+- `.claude/skills/workspace-status/references/agentbundle-layout.md`
 - `.claude/skills/workspace-status/scripts/workspace_status_engine.py`
 - `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`
 
@@ -335,7 +290,7 @@ pack source that reads or writes it.
 - `tools/test_workspace_status.py`
 - `tools/test_workspace_status_cli.py`
 
-### writes (23)
+### writes (6)
 
 - `.agents/skills/new-spec/assets/spec.md`
 - `.claude/skills/new-spec/assets/spec.md`
@@ -343,25 +298,8 @@ pack source that reads or writes it.
 - `guides/core/how-to/write-the-contract.md`
 - `packages/agentbundle/agentbundle/_data/catalogue-scaffold/guides/_shared/reference/catalogue-authoring-standards.md`
 - `packs/core/.apm/skills/new-spec/assets/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/001-m2-frame-situation/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/005-catalogue-wave1-contract-convergence/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/007-queue-add/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/008-adapter-support-accuracy/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/009-agentbundle-statelock-hardening/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/010-binder-publishing-gate-propagation/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/011-loop-cohort-state-lock/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/012-core-path-confinement/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/014-build-check-single-verify/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/016-bandit-nosec-form-lint/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/017-capture-evidence-repo-dot-segments/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/018-nonjson-guard-all-read-paths/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/019-local-scope-install-guards/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/020-adopter-grounding-surface/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/022-architect-design-reviewer/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/023-author-brief-docs/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/024-agentbundle-engine-stragglers/spec.md`
 
-### states (35)
+### states (25)
 
 - `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/references/contract-types.md`
@@ -371,16 +309,6 @@ pack source that reads or writes it.
 - `.claude/skills/new-spec/references/contract-types.md`
 - `.claude/skills/new-spec/references/spec-and-plan-contract.md`
 - `.claude/skills/work-loop/references/tdd-stubs.md`
-- `.context/reviews/amend-adversarial-prompt.md`
-- `.context/reviews/amend-r3-adversarial.md`
-- `.context/reviews/amend-r4-adversarial.md`
-- `.context/reviews/r1-adversarial-adjudication.md`
-- `.context/reviews/r1-adversarial.md`
-- `.context/reviews/r2-contract-adjudication.md`
-- `.context/reviews/r2-contract.md`
-- `.context/reviews/rfc0103-r1-adversarial.md`
-- `.context/reviews/rfc0103-r3-adversarial.md`
-- `.context/reviews/rfc0103-r4-adversarial.md`
 - `docs/product/changelog.md`
 - `docs/product/initiatives/ini-009-agent-skill-engineering.md`
 - `guides/core/reference/product-brief-fields.md`
@@ -399,28 +327,22 @@ pack source that reads or writes it.
 - `packs/product-engineering/DESIGN.md`
 - `packs/product-strategy/.apm/skills/synthesize-stakeholder-research/references/digital-experience-contract.md`
 
-### generated-copy (20)
+### generated-copy (14)
 
+- `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/assets/spec.md`
+- `.agents/skills/new-spec/references/contract-types.md`
+- `.agents/skills/new-spec/references/spec-and-plan-contract.md`
+- `.agents/skills/work-loop/references/tdd-stubs.md`
 - `.agents/skills/work-loop/scripts/lint-spec-status.py`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md`
-- `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
-- `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `.agents/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
+- `.claude/skills/new-spec/SKILL.md`
 - `.claude/skills/new-spec/assets/spec.md`
+- `.claude/skills/new-spec/references/contract-types.md`
+- `.claude/skills/new-spec/references/spec-and-plan-contract.md`
+- `.claude/skills/work-loop/references/tdd-stubs.md`
 - `.claude/skills/work-loop/scripts/lint-spec-status.py`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md`
-- `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
-- `.claude/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `.claude/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
 
 ## `Discovery:`
 
@@ -480,53 +402,31 @@ pack source that reads or writes it.
 - `tools/test_workspace_status.py`
 - `tools/test_workspace_status_cli.py`
 
-### writes (8)
+### writes (4)
 
 - `.agents/skills/new-spec/assets/spec.md`
 - `.claude/skills/new-spec/assets/spec.md`
 - `guides/core/how-to/write-the-contract.md`
 - `packs/core/.apm/skills/new-spec/assets/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/004-agentbundle-first-value-handoff/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/007-queue-add/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/014-build-check-single-verify/spec.md`
-- `packs/core/tests/skills/work-loop/fixtures/corpus/023-author-brief-docs/spec.md`
 
-### states (16)
+### states (8)
 
 - `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/references/spec-and-plan-contract.md`
 - `.claude/skills/new-spec/SKILL.md`
 - `.claude/skills/new-spec/references/spec-and-plan-contract.md`
-- `.context/reviews/amend-adversarial-prompt.md`
-- `.context/reviews/amend-r3-adversarial.md`
-- `.context/reviews/r1-adversarial-adjudication.md`
-- `.context/reviews/r1-adversarial.md`
-- `.context/reviews/r2-contract-adjudication.md`
-- `.context/reviews/r2-contract.md`
-- `.context/reviews/rfc0103-r3-adversarial.md`
-- `.context/reviews/rfc0103-r4-adversarial.md`
 - `docs/product/changelog.md`
 - `packs/core/.apm/skills/new-spec/SKILL.md`
 - `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`
 - `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md`
 
-### generated-copy (18)
+### generated-copy (8)
 
+- `.agents/skills/new-spec/SKILL.md`
 - `.agents/skills/new-spec/assets/spec.md`
+- `.agents/skills/new-spec/references/spec-and-plan-contract.md`
 - `.agents/skills/work-loop/scripts/lint-traceability.py`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md`
-- `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md`
-- `.agents/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
-- `.agents/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `.agents/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
+- `.claude/skills/new-spec/SKILL.md`
 - `.claude/skills/new-spec/assets/spec.md`
+- `.claude/skills/new-spec/references/spec-and-plan-contract.md`
 - `.claude/skills/work-loop/scripts/lint-traceability.py`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md`
-- `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md`
-- `.claude/skills/workspace-status/evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md`
-- `.claude/skills/workspace-status/evals/files/refresh/docs/specs/tracker-backed/spec.md`
-- `.claude/skills/workspace-status/evals/files/residue/docs/specs/example-shipped/spec.md`
