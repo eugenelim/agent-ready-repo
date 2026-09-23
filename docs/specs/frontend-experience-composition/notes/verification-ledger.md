@@ -181,8 +181,12 @@ job's bulk `pytest tests/ -q` step; until then it runs but attributes no failure
 ## T8 — the ADR and the supersession pointer
 
 Ordinal allocated from current repository state, not from the staged draft's
-assumption: `0122` is the highest record in the tree, so this one is `0123` —
-`docs/adr/0123-experience-contract-frontend-section-owned-by-frontend-engineering.md`.
+assumption: `0122` was the highest record in the tree, so this one took `0123`.
+**It no longer holds that ordinal.** `origin/main` later shipped its own
+ADR-0123 and this record was reallocated to `0124` — see *Post-gates review,
+round 7* below. The record is
+`docs/adr/0124-experience-contract-frontend-section-owned-by-frontend-engineering.md`,
+and allocating from a snapshot is exactly how the collision happened.
 
 Shipped `Status: Accepted` rather than the `new-adr` procedure's default
 `Proposed`. The owner has settled the decision, and the shape lint's
