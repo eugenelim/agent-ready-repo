@@ -264,9 +264,25 @@ verbs alone and no direct state write.
 
 The interleaving needs two concurrent processes against one spec directory, so
 it is unreachable from the sequential single-controller flow that Phase 1
-supports. Any design that admits a second concurrent process against one spec
-directory has to address it — see [`loop-parallelism.md`](loop-parallelism.md)
-(planned, not implemented).
+supports.
+
+**This is now serialised, and the diagram above shows the pre-serialisation
+behaviour.** `cmd_transition` fingerprints cohort `state.json` before its first
+cohort read and re-reads it under the cohort lock before committing, refusing
+when it moved; the mutator above can no longer land in that window undetected.
+The check covers every event except `contract-amendment`, whose own effect
+writes cohort state. See
+[`loop-parallelism.md` § 2](loop-parallelism.md#2-serialising-a-transition-against-cohort-state)
+for the mechanism and, importantly, for the seven residuals it does not close.
+
+Two of those residuals bear on this section directly. `contract-amendment` is
+exempt, so the transition that rewrites the approved baseline keeps the window
+described above. And the consequence this section names — `gates-clean` asking
+only whether the current wave is the last, so a wave is entered and exited with
+no guard reading its receipts — is **not** closed by serialisation: it needs no
+interleaving at all. An advance that lands before the `gates-clean` guard runs
+produces it with every read consistent. That is a missing check rather than a
+lost race, and it remains open.
 
 ## 7. Observability and evidence
 
@@ -308,4 +324,5 @@ a backend can do with it are a cross-cutting concern: see
 
 ## 10. Last verified against commit
 
-`8d30c6f6c`
+`0b81ead34`, plus the cohort-state identity check this
+document's § 6 describes, which is unmerged at the time of writing.
