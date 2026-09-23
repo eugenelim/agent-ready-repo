@@ -409,7 +409,11 @@ recorded for every consumer T7 will assert over.
   repointing them the swept values are re-emitted in the old form and the
   migration does not converge.
 - The sweep leaves a value whose target the corpus cannot resolve untouched and
-  names it in its report.
+  names it in its report. The 8 markdown-link values are not such a case: the
+  corpus resolves both their link targets to existing `capability:` nodes, and
+  it is the value's tokenization that fails, not the target's existence. They
+  are swept, and AC-0012 depends on it — default-mode exit cannot return to 0
+  while they dangle.
 - Each rewritten value's resolved node id equals the id it resolved to before
   the sweep, so the sweep preserves every edge rather than repointing one.
 
@@ -421,8 +425,18 @@ recorded for every consumer T7 will assert over.
   `Parent intent:` pointers builder-visible and takes the cohort from 23 to 37
   — AC-0023.
 
-**Done when:** the cohort re-derivation reports an empty remainder and the
-repository run's edge count is unchanged from T4's recorded figure.
+**Done when:** the cohort re-derivation reports an empty remainder, the
+repository run's edge count is **123** — T4's recorded 115 plus one edge for
+each of the 8 previously dangling values — and the default invocation exits 0
+because nothing dangles any more.
+
+An earlier revision required the edge count to be *unchanged* from T4's figure.
+That holds only for a value that already resolved, which is what the plan
+assumed the cohort was: 19 bare slugs. T3 exposed 14 more, 8 of them dangling,
+and `_wire_up` routes a dangling candidate to `g.dangling` without adding an
+edge — verified by checking each of the 8 against the built edge set, none of
+which holds an in-edge. A correct sweep therefore *raises* the count, and an
+unchanged count would mean the 8 were skipped.
 
 ### T6: `brief:<slug>` is the canonical `Brief:` form
 
@@ -660,3 +674,5 @@ command output is in the ledger.
 - 2026-09-22: second amendment — plan approved by eugenelim
 - 2026-09-22: third amendment (version bump placed in T8) — spec approved by eugenelim
 - 2026-09-22: third amendment (version bump placed in T8) — plan approved by eugenelim
+- 2026-09-22: fourth amendment (T5 edge expectation) — spec approved by eugenelim
+- 2026-09-22: fourth amendment (T5 edge expectation) — plan approved by eugenelim

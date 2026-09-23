@@ -751,3 +751,27 @@ is 34 and the movement is **26 → 34: eight specs flip**. The 38 `Contract:` an
 That is exactly the bound the owner measured when granting T2a under `Ask first`:
 brief in-edges 26 to 34, and no spec's in-edge moving to a field other than
 `Brief:`. T7 asserts against 34, not 86.
+
+### Owner decision — 2026-09-22 (fourth amendment: T5's edge expectation)
+
+T5's `Done when` requires "the repository run's edge count is unchanged from
+T4's recorded figure", i.e. 115. Measurement shows that is impossible for a
+correct sweep.
+
+None of the 8 dangling consumers holds an in-edge today — verified by checking
+each against the built edge set — because `_wire_up` routes a dangling candidate
+to `g.dangling` without calling `add_edge`. Sweeping each one to its resolving
+target therefore *adds* an edge: **115 → 123**.
+
+The clause was written when the plan believed the `Parent intent:` cohort was 19
+bare slugs that already resolved, where a sweep genuinely moves no edge. T3 made
+14 further values visible, 8 of them dangling, and the clause did not follow.
+
+The sweep is required rather than optional: AC-0012 needs default-mode exit 0,
+which cannot happen while those 8 dangle. The Agent Rule against sweeping an
+unresolvable target does not bar it — the corpus resolves both link targets to
+existing `capability:` nodes; it is the markdown-link *value* that fails to
+tokenize, not the target that fails to exist.
+
+Amended under the owner's standing direction to work through the tasks and adapt
+the contract as code and tests require.
