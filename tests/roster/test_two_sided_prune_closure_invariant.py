@@ -1805,8 +1805,13 @@ def test_every_emitted_refusal_code_is_documented() -> None:
     emitted = set(re.findall(r"""_prune_error\(\s*["']([a-z_]+)["']""", prune_source))
     assert emitted, "no refusal codes found - the pattern stopped matching"
 
+    # The prune workflow moved out of SKILL.md when the skill became a
+    # dispatcher: its depth loads only when the agent routes to the mutating
+    # mode. The anchor travelled verbatim, so this control is unchanged apart
+    # from the file it opens.
     skill = (
-        REPO_ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
+        REPO_ROOT
+        / "packs/core/.apm/skills/workspace-status/references/mutate.md"
     ).read_text(encoding="utf-8")
     anchor = "A non-zero result names a stable refusal code:"
     assert anchor in skill, "refusal-list anchor moved; this control cannot bound itself"

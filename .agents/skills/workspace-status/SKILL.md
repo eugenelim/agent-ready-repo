@@ -42,18 +42,49 @@ Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it
 
 Progress — Report progress inline as done/total (e.g. 3/8). Only draw a bar if you're animating in a terminal.
 
-## When to invoke
+## Mode selection
 
 Any time you need to orient: which initiative is active, what specs are ready to start, what is blocked and why, what signals the strategist has flagged. Also the right skill if workspace.toml does not yet exist and you want to initialise it.
 
-## Prerequisites
+Pick one mode, then load only that mode's reference.
+
+| Mode | Subcommand | When to use | Type 1 walk | Writes |
+|------|-----------|-------------|-------------|--------|
+| status | `status` (default) | Session start, queue check — fast bounded scan | No | — |
+| reconcile | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
+| explain | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
+| mutate | `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
+| mutate | `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
+| mutate | `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
+| mutate | `repair-plan --migration-selection <path>` | Validate one human-selected legacy route and emit a deterministic migration proposal | No | — |
+| mutate | `repair-apply --migration-selection <path> --operation-id <id> --confirmation-file <path>` | Apply one authorized ledger-first legacy migration | No | `.workspace-migrations.json`, `workspace.toml` |
+| mutate | `repair-rollback --operation-id <id> --confirmation-file <path>` | Restore one exact legacy representation without deleting its artifact | No | `.workspace-migrations.json`, `workspace.toml` |
+| mutate | `prune --select docs/specs/<slug> [--select ...] --preview` | Emit an unsigned challenge for an explicit selection | No | — |
+| mutate | `prune --select docs/specs/<slug> [--select ...] --confirmation-file <path>` | Remove the confirmed artifact directories and all memberships resolving to them | No | Selected directories, `workspace.toml` |
+
+Cooling context is excluded from ordinary orientation. `status` and `reconcile`
+carry a `cooling` block — `due_count`, the named due list, every loaded record,
+and the retention exceptions — and a `closeout` block whenever an initiative is active or paused; with
+every initiative closed the `closeout` key is absent rather than empty. `explain` and
+`repair-plan` carry neither. An artifact named by a `Cooling`, `Retired`, or
+`Reclassified` lifecycle record is neither scanned nor dispatchable, and its
+body is never opened; `Retained` and `ExternalAdvisory` artifacts stay visible
+because someone still owes work against them. Read `closeout.cooling_context_visible` before
+trusting that exclusion happened: it is `false` only when the cooled set
+resolved cleanly, and `true` when any lifecycle record or the cooling module
+could not be read. `true` means the exclusion is *incomplete*, not that it did
+not happen — which of the two depends on the finding. A
+`cooling_state_unavailable` finding means the cooled set could not be
+established at all, including when the resolved cooling module cannot load its
+confinement authority, and nothing was excluded this run. An
+`invalid_lifecycle_record` finding names one record that cooled nothing. When
+no `cooling_state_unavailable` finding is present, every record that did load
+still cooled its artifact; otherwise no artifact was excluded.
+
+## Invocation contract
 
 - **Python 3.11+** — the backend uses `tomllib` (stdlib from 3.11). Confirm with `python3 --version` (macOS/Linux) or `python --version` (Windows). If Python is absent or below 3.11, the backend exits with a load error; install or upgrade before invoking this skill.
 - **tomlkit** (for `repair-apply` only) — comment-preserving TOML writer. Detect: `python3 -c "import tomlkit"`. If absent, `repair-apply` exits 2 with `reason: "tomlkit_unavailable"` — surface to the user; install only with consent: `pip install tomlkit==0.15.1`. `repair-plan` does not require it.
-
-## Procedure
-
-### 1. Invoke the backend
 
 Run the production backend via **argument vector** (the canonical and only safe invocation):
 
@@ -61,7 +92,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 ["<python>", "<skill-dir>/scripts/workspace_status.py", "status", "--root", "<repo-root>"]
 ```
 
-The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit that also finds untracked live specs (Type 1). Use `explain` to investigate a specific item. See **§1a. Subcommand guidance** below.
+The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit that also finds untracked live specs (Type 1). Use `explain` to investigate a specific item. See **Mode selection** above.
 
 To inspect workspace membership for an explicit selection of spec directories,
 repeat `--spec-dir` once per directory:
@@ -71,7 +102,10 @@ repeat `--spec-dir` once per directory:
 ```
 
 To preview or execute an explicitly selected prune, use the `prune` subcommand.
-The full authority flow is documented in **§1d. Prune workflow**.
+That is a `mutate`-mode operation: load `references/mutate.md` and follow its
+prune workflow before invoking it. The selector rules, the independent
+authorization requirement, the confirmation contract, the refusal codes, and
+the interrupted-run recovery all live there.
 
 `<python>` is the Python 3.11+ interpreter available in your environment: `python3` on macOS/Linux; `python` on Windows. `<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, `$VAR`, and other metacharacters — the values are never interpreted by a shell.
 
@@ -85,31 +119,8 @@ Any path with special characters requires the argv form.
 
 **Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
-```toml
-# workspace.toml
-#
-# Repository coordination index. Canonical artifacts own requirements; this
-# file records lifecycle membership, source provenance, display summaries, and
-# hard dependencies.
-#
-# Target entries are inline tables with exactly:
-#   path, kind, source, summary, needs
-#
-# Example:
-#   { path = "docs/specs/<slug>/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Example spec", needs = [] }
-#
-# Comments, summaries, list order, tracker labels, and profile hints are
-# non-semantic. They must not determine routing, dependency satisfaction,
-# processor selection, or dispatch.
-#
-# Paths are repository-relative POSIX paths. Consumers must reject absolute
-# paths, backslashes, ".." segments, and any symlink-resolved target outside the
-# repository root.
-
-[backlog]
-open = []
-closed = []
-```
+The blank file is `assets/workspace.toml.template`, shipped beside this skill.
+Write it out unchanged; it carries the schema documentation in its comments.
 
 **Exit 2 — unexpected error:** surface the stderr message and stop — do not proceed with partial data.
 
@@ -174,7 +185,7 @@ is not proof that refresh or write-back is available. Status projects only the
 facts needed for orientation and never copies field ownership, decisions,
 receipts, approver identity, or raw source values into its output.
 
-### 1a. Canonical findings
+## Status rendering contract
 
 Every canonical refusal carries a stable code, `dispatchable:false`, one safe
 next action, and an identifier: a repository-relative path, or — for
@@ -215,262 +226,9 @@ For an unsupported object that carries a safe single-segment `slug`, the
 manual-routing inventories attributable without treating the object as
 supported or dispatchable.
 
-### 1b. Coordination receipts
+### Surface results
 
-Cross-repository dependencies that reference a containing brief require exactly
-one fenced block in that local brief with info string
-`toml coordination-receipts`. The block is TOML; surrounding prose and other
-fences are ignored.
-
-Valid receipt block:
-
-```toml coordination-receipts
-[[coordination_receipts]]
-id = "remote-prereq"
-remote_kind = "brief"
-remote_ref = "example-service://projects/example-artifact"
-accepted_revision = "remote-rev-9"
-required_status = "Shipped"
-reported_status = "Shipped"
-reviewed_by = "Example Reviewer"
-reviewed_at = "2026-08-10T00:00:00Z"
-refresh_conflict = false
-```
-
-Representative invalid receipt block:
-
-```toml coordination-receipts
-[[coordination_receipts]]
-id = "remote-prereq"
-remote_kind = "brief"
-remote_ref = "example-service://projects/example-artifact"
-accepted_revision = "remote-rev-8"
-required_status = "Shipped"
-reported_status = "Shipped"
-reviewed_by = "Example Reviewer"
-reviewed_at = "2026-08-10T00:00:00Z"
-refresh_conflict = false
-```
-
-Recovery for `invalid_receipt`: replace it with a reviewed receipt matching the
-pinned dependency.
-
-### 1c. Subcommand guidance
-
-| Subcommand | When to use | Type 1 walk | Writes |
-|------------|-------------|-------------|--------|
-| `status` (default) | Session start, queue check — fast bounded scan | No | — |
-| `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
-| `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
-| `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
-| `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
-| `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
-| `repair-plan --migration-selection <path>` | Validate one human-selected legacy route and emit a deterministic migration proposal | No | — |
-| `repair-apply --migration-selection <path> --operation-id <id> --confirmation-file <path>` | Apply one authorized ledger-first legacy migration | No | `.workspace-migrations.json`, `workspace.toml` |
-| `repair-rollback --operation-id <id> --confirmation-file <path>` | Restore one exact legacy representation without deleting its artifact | No | `.workspace-migrations.json`, `workspace.toml` |
-| `prune --select docs/specs/<slug> [--select ...] --preview` | Emit an unsigned challenge for an explicit selection | No | — |
-| `prune --select docs/specs/<slug> [--select ...] --confirmation-file <path>` | Remove the confirmed artifact directories and all memberships resolving to them | No | Selected directories, `workspace.toml` |
-
-**`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
-
-**`selected-membership`** — requires at least one repository-relative
-`docs/specs/<slug>` directory and evaluates only the supplied selection. Each
-ordered result contains `selected_directory`, `canonical_artifact_path`,
-`membership_present`, and `occurrences`. An occurrence identifies its
-initiative when present, lifecycle collection, zero-based entry position, and
-canonical, legacy, or parse-blocked form. The selected artifact need not exist.
-The command reads `workspace.toml` and reports facts only: it never changes a
-file, chooses an artifact for deletion, or turns presence or absence into an
-operation exit gate. Invalid selectors and invalid workspace data return a
-structured reason with a concise diagnostic.
-
-**`explain`** — pass a slug or `spec/` path to get the item's current classification, dependencies, blocking needs, and which downstream items would become unblocked if this item shipped. Lookup is restricted to **active initiatives' work queues** (queue/active/shipped); shaping items and items in paused or closed initiatives return `selector_status: "not_found"`.
-
-For closeout orientation, project only current pause, closeout blockers,
-all-specs-shipped initiative eligibility, cooling-context visibility, and the next
-action to invoke `close-work`. Never infer semantic freshness, choose a disposition,
-confirm authority, distil content, record a closeout result, compact coordination,
-remove an entry, or delete. A paused item remains visible as paused.
-
-Cooling context is excluded from ordinary orientation. `status` and `reconcile`
-carry a `cooling` block — `due_count`, the named due list, every loaded record,
-and the retention exceptions — and a `closeout` block whenever an initiative is active or paused; with
-every initiative closed the `closeout` key is absent rather than empty. `explain` and
-`repair-plan` carry neither. An artifact named by a `Cooling`, `Retired`, or
-`Reclassified` lifecycle record is neither scanned nor dispatchable, and its
-body is never opened; `Retained` and `ExternalAdvisory` artifacts stay visible
-because someone still owes work against them. Read `closeout.cooling_context_visible` before
-trusting that exclusion happened: it is `false` only when the cooled set
-resolved cleanly, and `true` when any lifecycle record or the cooling module
-could not be read. `true` means the exclusion is *incomplete*, not that it did
-not happen — which of the two depends on the finding. A
-`cooling_state_unavailable` finding means the cooled set could not be
-established at all, including when the resolved cooling module cannot load its
-confinement authority, and nothing was excluded this run. An
-`invalid_lifecycle_record` finding names one record that cooled nothing. When
-no `cooling_state_unavailable` finding is present, every record that did load
-still cooled its artifact; otherwise no artifact was excluded.
-
-**`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
-
-**`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Immediately before replacing `workspace.toml`, it revalidates every spec whose operation would be applied and aborts the whole write if any status or status-line fingerprint changed. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
-
-**Legacy migration planning** — when a retained legacy membership includes a
-`migration` finding, show its exact observed source representation, lifecycle
-membership, candidate route classes, and `next_action`. Never choose among the
-candidates. A human must author the closed selection JSON out of band and pass
-its repository-relative path with `--migration-selection`. Do not create,
-edit, prefill, or suggest substantive values for a selection or confirmation
-file. Migration planning is read-only and rejects `--plan-file`; a missing
-canonical artifact returns the selected owning processor as `next_action`
-without writing an artifact, ledger, repair plan, or workspace change.
-
-**Legacy migration effects** — pause while the human authors each confirmation
-file out of band. Never create, edit, or prefill it. The confirmation must be
-fresh, single-use, and bound to the exact action, operation ID, and digest shown
-by the reviewed plan or ledger. If the human needs opaque test-safe identifiers,
-tell them to run `python3 -c 'import secrets; print("confirmation-" +
-secrets.token_hex(16)); print("subject-" + secrets.token_hex(16))'` themselves;
-do not run it for them. Apply requires all three migration arguments and rejects
-`--plan-file` or `--yes`. Rollback requires a new confirmation and never reads,
-changes, or deletes the canonical artifact. A `pending` or `rollback_pending`
-ledger operation is recoverable only with another fresh confirmation. Surface
-the closed migration result code and `next_action`; never echo source content on
-credential, unsafe-context, authorization, or write refusals.
-
-### 1d. Prune workflow
-
-The prune executes a selection supplied by an authorized caller. It does not
-choose, rank, or discover deletion candidates. Supply each repository-relative
-directory as a separate `--select docs/specs/<slug>` argument. The selection
-must be non-empty; selectors must use that exact one-directory shape and must
-not contain absolute paths, drive prefixes, backslashes, dot segments, nested
-paths, file paths, duplicates, or links that escape the repository.
-
-First obtain the unsigned challenge. Preview takes the shared writer lock while
-it reads repository state, but it does not change any file:
-
-```
-["<python>", "<skill-dir>/scripts/workspace_status.py", "prune", "--root", "<repo-root>", "--select", "docs/specs/<slug>", "--preview"]
-```
-
-The binding fields in the output are `operation_id` and `operation_digest`.
-The output also reports the canonical `selection` and target facts for review.
-It never supplies `subject`, `role`, or `confirming_identity`; those three
-authorization fields must come from an independent human-authority source.
-A confirmation copied from preview output alone is invalid.
-
-Pause while the authorized person creates a confined JSON file out of band.
-Do not create, edit, or prefill it. It must contain exactly the two binding
-fields from the preview plus the three independently supplied authorization
-fields:
-
-```json
-{
-  "operation_id": "<operation identity from preview>",
-  "operation_digest": "<operation digest from preview>",
-  "subject": "<independently supplied subject>",
-  "role": "<independently supplied role>",
-  "confirming_identity": "<independently supplied identity>"
-}
-```
-
-Then execute the same selection with that file:
-
-```
-["<python>", "<skill-dir>/scripts/workspace_status.py", "prune", "--root", "<repo-root>", "--select", "docs/specs/<slug>", "--confirmation-file", "<repository-relative-confirmation.json>"]
-```
-
-The command uses the same confined confirmation-file reader as
-`repair-apply`. A missing confirmation, malformed confirmation, stale
-challenge, mismatched binding, or changed baseline refuses without mutation.
-The repository-root `.workspace-prune-protected.toml` file may name selectors
-that must never be pruned; an absent file means no selectors are protected, and
-a malformed file fails closed.
-
-Exit 0 means one observation under the held shared lock proved that every
-selected artifact directory was absent and that no canonical, supported
-legacy, or parse-blocked membership resolving to it survived. The two writes
-are sequential, not atomic. A non-zero result names a stable refusal code:
-
-- Selection and routing: `empty_selection`, `invalid_selector`, `unknown_subcommand`.
-- Coordination and protection: `lock_busy`, `protected_target`, `nothing_to_remove`.
-- Confirmation: `confirmation_missing`, `confirmation_invalid`, `confirmation_stale`, `confirmation_binding_mismatch`.
-- Baseline and closure: `baseline_stale`, `closure_failed`.
-- Repository input: `invalid_workspace`, `malformed_toml`.
-- Platform capability: `unsupported_platform`, when the host offers no no-follow
-  directory primitive. Confined removal depends on it, so the command declines
-  rather than deleting with weaker protection. Nothing was attempted and nothing
-  about the repository is wrong.
-
-### Recovering an interrupted prune
-
-The two writes are sequential, so an interrupted run can leave the artifact
-removed and its memberships present, and the shared lock file behind. Recover in
-this order, and read rather than guess at each step.
-
-1. `lock_busy` reports the lock file name and the process id recorded in it.
-   Check whether that process is still running. If it is, wait — another writer
-   holds the lock legitimately. Only if it is gone is the lock stale.
-2. Remove a stale lock file by hand. Nothing removes it for you, because a tool
-   cannot distinguish a crashed holder from a slow one.
-3. `closure_failed` reports the selection and the last phase that completed.
-   `artifacts_removed` means the directories are gone and their memberships are
-   not; `memberships_removed` means both writes landed but the closure
-   observation could not be established.
-4. Re-run the prune for the same selection. It refuses `nothing_to_remove` when
-   the artifact is already gone, because it will not report success for a run
-   that removed nothing. Finish that case by removing the surviving memberships
-   through the repair route, which reports them, rather than by editing the
-   register by hand.
-
-A re-run is safe: it re-derives its own baseline and confirmation, and refuses
-rather than acting on a stale one.
-
-Two residual limits remain. The shared lock excludes only writers that also
-take it. A valid confirmation can be replayed if the exact same repository
-state is reconstructed; no durable replay receipt is written.
-
-### 1e. Repair workflow
-
-Use `repair-plan` + `repair-apply` to deterministically clean up stale queue entries without manual `workspace.toml` editing:
-
-```
-# Step 1 — inspect the plan (no writes to workspace.toml)
-["<python>", "<skill-dir>/scripts/workspace_status.py", "repair-plan", "--root", "<repo-root>"]
-
-# Step 2 — review the plan JSON; then apply (--yes is required to confirm the write)
-["<python>", "<skill-dir>/scripts/workspace_status.py", "repair-apply", "--root", "<repo-root>", "--yes"]
-```
-
-**When to use:** after `reconcile` or `status` shows Type 2 stale-queue findings and you want automated cleanup without manual editing. The two-step design lets you review the plan before committing.
-
-**`--plan-file <path>`** — override the plan file location for both subcommands. The path must resolve inside `<repo-root>`; symlinks that escape the root are rejected (exit 2, `plan_file_outside_root`).
-
-**`tomlkit` availability** — `repair-apply` requires `tomlkit` (comment-preserving TOML writer). If absent, `repair-apply` exits 2 with `reason: "tomlkit_unavailable"`; surface to the user and install only with consent: `pip install tomlkit==0.15.1`. See `## Prerequisites` above. `repair-plan` does not require it.
-
-**`repair-apply` result JSON key fields:**
-
-```
-schema_version     — 1
-mode               — "repair-apply"
-applied            — true if write succeeded; false on any structural error
-operations_applied — count of operations actually written (0 when all skipped or empty plan)
-per_operation      — list of {path, applied, reason?} for all operations
-reason             — error reason string when applied:false (top-level field, structural errors)
-```
-
-**Interpreting `per_operation`:** each entry records `"applied": true` (written) or `"applied": false` with a `reason`:
-- `spec_status_changed` — spec Status changed between plan and apply; human review needed
-- `spec_status_unreadable` — spec.md not found or Status field missing
-- `initiative_not_found` — ini_slug absent from workspace.toml
-- `entry_not_found_in_queue` — path no longer in the queue (already removed or never present)
-
-**`.workspace-repair-plan.json` and temp files** — both are written inside the repo root. Add them to `.gitignore` to avoid accidental commits (the temp files are cleaned up automatically on success).
-
-### 2. Surface results
-
-**When `mode == "explain"`:** render the focused lookup result below and stop — skip §§3–5. The explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`; those fields must not be read.
+**When `mode == "explain"`:** render the focused lookup result below and stop — skip **Skill prompts by type**, **Missing fields**, and **Next-actions**. The explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`; those fields must not be read.
 
 If `canonical.findings` contains any record for the explained path, surface the
 canonical `code`, `path`, and `next_action` first and do not describe the item
@@ -499,7 +257,8 @@ Let N = total count across all three finding types. When N > 0, output before th
   Untracked live specs (Approved or Implementing, not in any initiative list):
   [Gate: render this subsection only when 1 is in reconciliation.types_performed.
    When absent: omit this subsection — the global Type 1 audit notice at the top
-   of §2 already informs the user; do not emit a second notice here.]
+   of **Surface results** already informs the user; do not emit a second notice
+   here.]
   - `spec/<slug>` (Status: Approved) — add to [work].queue through `work-intake`
 
   Stale queue/active entries (spec shows Shipped or Archived):
@@ -526,8 +285,13 @@ Stale entries found — clean up now?
 
 **Cleanup write — after Y confirmation (Type 2 only):**
 
-Invoke `repair-plan` using the argv form in §1 and show its
-`automatic_operations` and `manual_findings`. Apply nothing if the user does not
+The cleanup write is a `mutate`-mode operation even when a `status` run
+surfaced the finding. Load `references/mutate.md` before invoking either
+subcommand; arriving here from orientation does not exempt the write from the
+rules that govern it.
+
+Invoke `repair-plan` using the argv form in the invocation contract and show
+its `automatic_operations` and `manual_findings`. Apply nothing if the user does not
 confirm that exact plan. After confirmation, invoke `repair-apply --yes`; it is
 the only cleanup writer. It preserves the complete structured entry when moving
 Shipped queue work, removes only explicitly eligible Archived queue work, keeps
@@ -622,7 +386,7 @@ empty.
 
 ---
 
-### 3. Skill prompts by type
+### Skill prompts by type
 
 When surfacing shaping_queue entries, append the right skill invocation based on what's installed:
 
@@ -636,11 +400,11 @@ When surfacing shaping_queue entries, append the right skill invocation based on
 
 If the required pack is not installed, surface: "requires `<pack-name>` pack — install to work this item."
 
-### 4. Missing fields
+### Missing fields
 
 `workspace.toml` evolves: older entries may lack a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
 
-### 5. Next-actions
+### Next-actions
 
 Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute the DAG:
 
@@ -690,6 +454,33 @@ Emit the following choices in order. Omit any whose source is empty; renumber se
 - **Next queue item:** `work-loop docs/specs/<slug>/` — next unblocked queue item. Present when `next_queue` is non-empty.
 - **First shaping item:** skill command per Step 3 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
 - **Start or remember work (always — final choice):** `work-intake`
+
+## Never
+
+- Infer dispatchability. `canonical.ready` is the only queue-ready set and
+  `canonical.active` the only resumable one; never derive either from raw
+  `[work]` membership.
+- Mutate the workspace during `status`, `reconcile`, or `explain`. Every
+  mutating subcommand — `prune`, `repair-apply`, `repair-rollback` — needs
+  explicit human confirmation first, and reaching one from an orientation run
+  does not waive that. `repair-apply` needs the user to confirm the exact plan
+  it will apply; `prune`, `repair-rollback`, and migration apply each need a
+  confirmation file the authorized person writes out of band. Never author,
+  prefill, or suggest one. Load `references/mutate.md` before invoking any of
+  them.
+- Trust comments, summaries, list order, tracker labels, or profile hints. They
+  are non-semantic and must never decide routing, dependency satisfaction,
+  processor selection, or dispatch.
+
+## Conditional references
+
+Load the one your mode needs; do not load the others.
+
+| Mode | Reference |
+|------|-----------|
+| `reconcile` | `references/reconcile.md` |
+| `explain` | `references/explain.md` |
+| `mutate` | `references/mutate.md` |
 
 ## See also
 
