@@ -130,12 +130,48 @@ Common requests:
 - **Output:** a mode decision with the work boundary: contract, brownfield inspection, audit report, or verification manifest.
 - **State:** decision-required
 
+#### Pick the depth first — `explore` is the default
+
+The surface's `risk-tier` decides how much of the shared experience contract
+you owe and which states the surface must handle. It is a per-run choice, not a
+property of the pack: a tooltip and a checkout flow walk the same six stages at
+different depths. Raise the tier as the surface matures; nothing makes you
+start high.
+
+- **`explore`** — the default, and the right choice for a prototype, an internal tool, or a surface still finding its shape. 10 of the contract's 32 fields. States: `loading`, `empty`, `error`, `success`, `content`, `partial`, `disabled`, `keyboard-only`, `reduced-motion`, `high-zoom`.
+- **`pilot`** — 25 fields. Adds `first-run`, `no-results`, `blocked`, `large-data-set`.
+- **`production`** — 32 fields. Adds `offline`, `long-content`, and the evidence manifest's two production fields.
+
+**Gates at `explore`.** Four of the five run: structural HTML validation, the
+accessibility audit, the visual QA checklist, and the rendered-page inspection.
+Token enforcement runs only where stylelint is already configured, at every
+tier.
+
+**Captures do not thin with the tier.** A route owes four captures per channel —
+a short and a tall viewport, each at rest and scrolled — at every tier. A
+surface declaring no breakpoints and no minimum width has two channels, so
+eight captures per route; declared breakpoints change the channel count, never
+the four each channel owes.
+
+**Two states sit outside the ladder** and bind at every tier once their trigger
+fires: `permission/denied` on a surface behind authorization, and
+`destructive-confirmation` on a primary action that is irreversible or destroys
+data the user controls.
+
+**What `explore` drops, and what it never drops.** Measured against
+`production`, `explore` drops 22 contract fields and 6 states. It drops no
+state the shared state-coverage map records as failing WCAG 2.2 AA when absent:
+all seven banded accessibility-bearing states are already in the `explore` set,
+and the eighth is `destructive-confirmation`, which is conditional and binds
+wherever its trigger fires. The accessibility audit runs at every tier. Depth
+buys evidence and completeness; it never buys a surface someone cannot use.
+
 ---
 
 ### 2. Write or confirm the page/screen contract
 
-- **You provide:** the surface brief, target user, primary job, first-screen requirements, existing design constraints, and any measurement event already known.
-- **Agent does:** for create mode, drafts the proportional page/screen contract before significant UI code. For retrofit mode, runs brownfield inspection first and then narrows or expands the contract only if the surface is being substantially rebuilt.
+- **You provide:** the surface brief, target user, primary job, first-screen requirements, existing design constraints, and any measurement event already known. When a design pack produced the work, the brief is not from nowhere: the pre-flight reads `direction/<slug>.md` for the aesthetic direction, `screens/<slug>/<screen>.md` for this screen, and `tokens/<slug>.md` for the token taxonomy, each relative to the design output directory the adopter configures.
+- **Agent does:** for create mode, drafts the page/screen contract proportional to the surface's risk and scope — a new route or a feature-gating screen warrants the full twelve fields; a single form field, a tooltip, or a minor component variant does not. For retrofit mode, runs brownfield inspection first and then narrows or expands the contract only if the surface is being substantially rebuilt.
 - **You do:** read the contract as the product owner: can you tell what the surface must show, what action it supports, what state coverage applies, and whether the primary action reads or writes data?
 - **You decide:** approve the contract or send it back with the missing product, state, responsive, a11y, or measurement detail.
 - **Output:** an approved contract or brownfield inspection that constrains implementation.
@@ -146,7 +182,7 @@ Common requests:
 ### 3. Implement or audit the surface
 
 - **You provide:** repository access, the route or component location, design-system constraints, and any existing token, a11y, performance, or rendering requirements.
-- **Agent does:** follows the implementation sequence for create or retrofit: reads the design handoff the adopter's `[design] output_dir` names when one resolves, then the aesthetic reference it carries or a canonical one, optional genre routing through the co-installed design pack, seed token block, state matrix, semantic HTML, CSS token discipline, responsive behavior, and public-surface checks where applicable. In audit mode, it reads the surface and reports findings without writing code.
+- **Agent does:** follows the implementation sequence for create or retrofit: reads the design handoff the adopter's `[design] output_dir` names when one resolves, then the aesthetic reference it carries or a canonical one, optional genre routing through the co-installed design pack, seed token block, state matrix, semantic HTML, CSS token discipline, responsive behavior, and public-surface checks where applicable. States that are genuinely inapplicable to the surface are omitted with the reason recorded, and a retrofit narrows the state matrix to what is absent or broken rather than re-enumerating all eighteen. In audit mode, it reads the surface and reports findings without writing code.
 - **You do:** answer any product decision that changes the contract, such as what to preserve in a retrofit or which known debt is allowed as a ride-along.
 - **You decide:** accept scoped implementation decisions or keep them out of this change.
 - **Output:** implemented frontend work for create/retrofit, or an audit report for audit mode.
@@ -157,7 +193,7 @@ Common requests:
 ### 4. Run verification gates
 
 - **You provide:** a runnable local route, static file, or completed surface, plus any browser or environment constraints, and the routes you want inspected.
-- **Agent does:** runs the verification gates in order: structural HTML validation, accessibility audit, CSS token enforcement when configured, and visual QA against applicable states. It then runs the **rendered-page inspection**: it opens each route you named at two viewport heights, at rest and scrolled, and judges what the page actually looks like — content covering other content, text running out of its container, a control too small to hit.
+- **Agent does:** runs the verification gates in order: structural HTML validation, accessibility audit, the optional CSS token enforcement gate where stylelint is already configured, and visual QA against applicable states. It then runs the **rendered-page inspection**: it opens each route you named at two viewport heights, at rest and scrolled, and judges what the page actually looks like — content covering other content, text running out of its container, a control too small to hit.
 - **You do:** provide access or manual evidence for any browser-only check the agent cannot run, and decide whether any signed-in or sensitive view should be captured at all.
 - **Output:** gate results with pass, fail, or unverified status for each required check, plus the inspection's **observations** — what was seen in the captures, the result state, and the verdict (`pass`, or `fail` when a blocking reader-visible failure is unresolved) — which carry into the evidence manifest. A filename is not an observation. When no browser is reachable the inspection takes its named skip, recording `skipped-no-browser` and naming the missing capability; a skip stays visibly different from a completed inspection everywhere the result is read, so it reaches you as a decision rather than passing as a pass.
 - **State:** read-only

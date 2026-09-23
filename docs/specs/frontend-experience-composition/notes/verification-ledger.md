@@ -246,3 +246,51 @@ name `tools/repo/check_contract_drift.py`.
 | AC-0016 negated grep, run verbatim | exit 0 — no per-tier field count remains |
 | `tools/check-guide-index.py` | exit 0 — 21 active packs present |
 | AC-0017 | Review-only; the column references and no longer enumerates |
+
+## T4 — the frontend journey
+
+### The pins, enumerated before the edit
+
+The `Always do` rule requires enumerating every existing assertion over
+`packs/frontend-engineering/JOURNEY.md` before editing it. **Sixteen**, across
+the four suites AC-0035 names:
+
+| Suite | Journey-reading assertions |
+| --- | --- |
+| `test_rendered_page_journey_promise.py` | 8 — skip-cost unchanged, unverified-items reason, step names the inspection, its output, the named skip, gate checks the observations field, breakpoint input, minimum input |
+| `test_rendered_page_reviewer_sight.py` | 2 — reviewer reads the page; metadata no longer advertises a diff-only reviewer |
+| `test_rendered_page_verdict.py` | 3 — gate told to check the verdict, verdict reaches all three result surfaces, the pin spares the sentences that must survive |
+| `tools/test_journey_editorial_decisions.py` | 3 — canonical human gates, approved eyebrow and transcript, editorial copy confined |
+
+No edit landed in a stage carrying the byte-exact `PINNED_SKIP_COST` block, so
+the spec's `Ask first` route was not needed.
+
+### The edits
+
+Five anchored single-match replacements, each asserting its anchor occurs
+exactly once, so a drifted anchor stops the run rather than matching something
+adjacent:
+
+1. The depth sub-stage, placed after stage 1's `**State:**` label so both
+   journey lints' per-stage label scan still reads the parent's labels.
+2. The three crossing artifacts named in stage 2, which previously asked for
+   "the surface brief" as if from nowhere.
+3. Allowance 1 — a contract proportional to the surface's risk and scope.
+4. Allowances 2 and 3 — inapplicable states omitted with a reason, and a
+   retrofit narrowing the state matrix.
+5. Allowance 4 — the CSS token gate as optional where stylelint is configured.
+
+The sub-stage states the ladder as 10 / 25 / 32 and writes the `explore` state
+subset as one backticked comma-separated line, the form T7's parser reads. Its
+ten states are exactly the map's `explore` band.
+
+| Check | Result |
+| --- | --- |
+| AC-0035 — the four suites, all 16 pins | 358 passed in 1.51s |
+| `tools/lint-pack-journeys.py` | exit 0 — 14 files valid |
+| `tools/lint-journey-contract.py` | exit 0 — 20 journeys conform |
+| `tools/lint-web-journey-parity.py` | exit 0 — 20 in parity |
+| Portability grep over the edited journey | no match |
+
+The web copy was regenerated in this task rather than at the end, per the
+`Always do` rule: no lint compares the source and the committed copy.
