@@ -1080,10 +1080,21 @@ open = [
   # building it: two landmarks sharing one accessible name, which html-validate
   # reported as `unique-landmark` and which would have given a screen-reader
   # user two regions called "Release archive" that cannot be told apart.
-  # Remaining, and small: the pager lists every page and wants a truncated
-  # window once the count passes roughly a dozen. It is 8 today, growing about
-  # one page every five days at the current cadence. Per-month archive routes
-  # are the step after that.
+  # THREAD CLOSED 2026-09-23. The pager is windowed and both growth bounds are
+  # assertions rather than notes -- a "revisit when..." note is the shape of
+  # trigger this surface kept finding stale.
+  # The pager bound was MET, not approaching: measured at 320 the list track is
+  # 248px and each target is 24px with an 8px gap, so exactly 8 slots fit one
+  # row, and there were 8 pages. "Roughly a dozen" was a guess; 8 was the
+  # derived number and page 9 would have wrapped. The window shows first, last
+  # and the current page with one either side -- at most 5 numbers and 2 gaps,
+  # verified one row on all 8 pages at 320, 0 axe violations.
+  # The archive bound is not met: 59 KB against a 200 KB budget whose origin is
+  # this thread's own defect, the 235 KB unpaginated page. About 3x headroom,
+  # roughly 500 releases. When it fires the remedy is per-month routes, and the
+  # assertion message says so rather than inviting a bigger number.
+  # Both mutation-checked: WINDOW = 2 reds the first, a lowered budget reds the
+  # second, each naming the file and the remedy.
   # An age-based cutoff was considered and REJECTED on evidence: 0 of 12 public
   # changelog feeds truncate by age, and our own history is 156 releases in 37
   # days, so a rolling 30-day window would cut 9% and leave ~109 viewport

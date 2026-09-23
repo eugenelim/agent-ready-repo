@@ -1909,3 +1909,64 @@ describe('/now/archive/', () => {
     }
   });
 });
+
+/**
+ * The two growth bounds on `/now/`.
+ *
+ * Both were notes saying "revisit when…", which is the shape of trigger this
+ * surface keeps finding stale — the page reached 120 viewport heights because
+ * nobody re-checked one. They are assertions now, so the build reports the
+ * threshold instead of a reader remembering it.
+ */
+describe('/now/ growth bounds', () => {
+  it('the pager stays on one row at the supported minimum', () => {
+    // Derived, not chosen: measured at 320 the pager list track is 248px and
+    // each target is --ds-target-min (24px) with an 8px gap, so 8 slots fit
+    // one row — fewer on a middle page, where both step links take room from
+    // the same track. The window emits at most 5 numbers and 2 gaps.
+    //
+    // This fails if someone widens WINDOW. That is the point: WINDOW = 2
+    // reaches 9 slots and wraps the pager at 320, which is the defect the
+    // window exists to prevent, and it would look fine on a desktop review.
+    const MAX_SLOTS = 7;
+    const pageDir = join(BUILD_ROOT, 'now', 'page');
+    const indexPages = [
+      NOW_PAGE,
+      ...(existsSync(pageDir)
+        ? readdirSync(pageDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => join(pageDir, e.name, 'index.html'))
+            .filter((f) => existsSync(f))
+        : []),
+    ];
+    for (const page of indexPages) {
+      const slots = doc(page).querySelectorAll('.pager__list > li').length;
+      expect(
+        slots,
+        `${relative(BUILD_ROOT, page)}: ${slots} pager slots exceeds the ${MAX_SLOTS} that fit ` +
+          'one row at 320. Narrow WINDOW in NowPagination.astro rather than letting it wrap.'
+      ).toBeLessThanOrEqual(MAX_SLOTS);
+    }
+  });
+
+  it('the archive stays under its weight budget', () => {
+    // 200 KB, with an origin rather than a guess: the unpaginated /now/ was
+    // 235 KB at 120 viewport heights, and that WAS the defect this whole
+    // thread repaired. The archive carries links rather than highlights, so
+    // it holds far more releases per byte — 59 KB at 156 releases, roughly
+    // 3x headroom.
+    //
+    // When this fails, the remedy is per-month routes (`/now/archive/2026-09/`),
+    // NOT a bigger budget. Raising the number would retire the only thing
+    // watching the growth this page exists to absorb.
+    const BUDGET_BYTES = 200 * 1024;
+    const archive = join(BUILD_ROOT, 'now', 'archive', 'index.html');
+    expect(existsSync(archive)).toBe(true);
+    const bytes = statSync(archive).size;
+    expect(
+      bytes,
+      `the release archive is ${Math.round(bytes / 1024)} KB, over its ${BUDGET_BYTES / 1024} KB ` +
+        'budget. Split it into per-month routes; do not raise the budget.'
+    ).toBeLessThanOrEqual(BUDGET_BYTES);
+  });
+});

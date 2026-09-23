@@ -30,11 +30,33 @@ interface Props {
 
 const { current, total } = Astro.props;
 
-// Every page is listed. At 8 pages that is a complete, scannable set; a
-// truncated "1 … 5 6 7 … 32" window is what this needs when the count grows
-// past roughly a dozen, and that is a change to make WITH the year-to-month
-// index split rather than before it.
-const pages = Array.from({ length: total }, (_, i) => i + 1);
+// A WINDOWED set, not every page. The bound is derived, not guessed: measured
+// at the supported 320 minimum the list track is 248px, each target is
+// --ds-target-min (24px) with an 8px gap, so exactly 8 fit on one row — and
+// fewer on a middle page, where both step links take room from the same track.
+// Page 9 wraps the pager to a second row. At the current cadence that is days
+// away, so the window is here rather than armed as a note.
+//
+// First, last, and the current page with one either side: at most five
+// numbers and two gaps, which fits the row at every page count. Widening the
+// window to two either side would reach nine slots and wrap at 320, which is
+// the whole defect it exists to avoid.
+const WINDOW = 1;
+const shown = [...new Set([
+  1,
+  total,
+  ...Array.from({ length: WINDOW * 2 + 1 }, (_, i) => current - WINDOW + i),
+])]
+  .filter((n) => n >= 1 && n <= total)
+  .sort((a, b) => a - b);
+
+// A gap stands where the sequence skips, so "1 … 5" never reads as "1, 5".
+type Slot = { kind: 'page'; page: number } | { kind: 'gap' };
+const slots: Slot[] = [];
+for (const [index, page] of shown.entries()) {
+  if (index > 0 && page - shown[index - 1] > 1) slots.push({ kind: 'gap' });
+  slots.push({ kind: 'page', page });
+}
 ---
 
 {total > 1 && (
@@ -44,16 +66,27 @@ const pages = Array.from({ length: total }, (_, i) => i + 1);
     )}
 
     <ol class="pager__list" role="list">
-      {pages.map((page) => (
-        <li>
-          <a
-            class="pager__page"
-            href={withBase(pagePath(page))}
-            aria-current={page === current ? 'page' : undefined}
-          >{page}</a>
-        </li>
+      {slots.map((slot) => (
+        slot.kind === 'gap' ? (
+          /* Decorative: the numbers either side already say a range was
+             skipped, and an announced ellipsis adds nothing a screen-reader
+             user can act on. */
+          <li class="pager__gap" aria-hidden="true">…</li>
+        ) : (
+          <li>
+            <a
+              class="pager__page"
+              href={withBase(pagePath(slot.page))}
+              aria-current={slot.page === current ? 'page' : undefined}
+            >{slot.page}</a>
+          </li>
+        )
       ))}
     </ol>
+
+    {/* The windowed set no longer shows the count, so it is stated. Visually
+        hidden because the numbers carry it for a sighted reader. */}
+    <p class="visually-hidden">Page {current} of {total}</p>
 
     {current < total && (
       <a class="pager__step" href={withBase(pagePath(current + 1))} rel="next">Older</a>
@@ -110,5 +143,13 @@ const pages = Array.from({ length: total }, (_, i) => i + 1);
 
   .pager__step {
     font-weight: var(--ds-weight-medium);
+  }
+
+  /* Not a target, so it is deliberately NOT given the 24px floor — sizing a
+     non-interactive mark to the interactive minimum would imply it can be
+     pressed. */
+  .pager__gap {
+    color: var(--ds-on-surface-muted);
+    font-size: var(--ds-type-sm);
   }
 </style>

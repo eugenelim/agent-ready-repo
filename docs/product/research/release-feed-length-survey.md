@@ -347,6 +347,28 @@ Prefer pagination over disclosure if step 2 is needed at all. Disclosure hides
 the symptom and keeps the payload; pagination fixes both and matches what
 comparable products do.
 
+**Thread closed 2026-09-23.** Steps 1 to 3 shipped, plus the archive and the
+two growth bounds. The bounds are assertions rather than notes, because a
+"revisit when…" note is the shape of trigger this surface kept finding stale —
+`/now/` reached 120 viewport heights because nobody re-checked one.
+
+The pager bound turned out to be MET on measurement, not approaching. At 320
+the pager list track is 248px and each target is 24px with an 8px gap, so
+exactly 8 slots fit one row — and the page count was 8. The earlier "revisit
+past roughly a dozen" was a guess; the derived number was 8 and page 9 would
+have wrapped. So the windowed pager shipped now: first, last, and the current
+page with one either side, at most 5 numbers and 2 gaps, verified one row on
+all 8 pages at 320 with 0 axe violations.
+
+The archive bound is genuinely not met — 59 KB against a 200 KB budget, about
+3x headroom, roughly 500 releases. Its origin is the defect this thread
+repaired: the unpaginated page was 235 KB. When it fails the remedy is
+per-month routes, not a bigger number, and the assertion says so.
+
+Both were mutation-checked rather than assumed: widening the window to two
+either side reds the pager guard naming the file and the constant, and
+lowering the archive budget reds the other with the remedy in the message.
+
 **The trade-off, stated.** Pagination splits one URL's accumulated signals
 across N and adds a click between a reader and older evidence, on a page whose
 purpose is to make the volume of shipped work visible at a glance. That cost is
