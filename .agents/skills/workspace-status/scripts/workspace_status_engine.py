@@ -738,7 +738,7 @@ _BRIEF_POINTER_RE = re.compile(r"^brief:(?P<slug>.*)$")
 def _normalized_brief_pointer(value: str) -> str:
     """Normalize a well-formed `brief:<slug>` value to its canonical path.
 
-    RFC-0103 D3: `brief:<slug>` is the canonical `Brief:` form. Normalizing
+    `brief:<slug>` is the canonical `Brief:` form. Normalizing
     here — before `_is_canonical_local_brief_path` runs — is what keeps that
     helper itself unrelaxed: it also guards `workspace.toml` entry and
     dependency paths, where a slug is meaningless and must keep failing. A
@@ -1840,7 +1840,7 @@ def _confined_briefs_path(root: Path, rel_path: str) -> bool:
     beneath the resolved `docs/product/briefs/` directory, which must itself
     stay beneath the resolved repository root.
 
-    AC-0022 is stricter than `_confined_artifact_path`'s repository-root
+    This boundary is stricter than `_confined_artifact_path`'s repository-root
     confinement: a brief path whose symlink resolves to another directory
     inside the repository passes repo-root confinement and must still be
     refused here, because the boundary is the briefs directory, not the
@@ -2259,10 +2259,10 @@ def _resolved_provenance_parent(
     `brief:<slug>` denote a path. At the shared helper's other call sites --
     `workspace.toml` entry, dependency, legacy-queue and receipt paths -- a
     slug is meaningless, so the value is returned untouched and
-    `_is_canonical_local_brief_path` keeps refusing it (AC-0018).
+    `_is_canonical_local_brief_path` keeps refusing it.
 
     A value that is neither admitted form is returned unchanged, so it still
-    mismatches and is still refused by the path check (AC-0017).
+    mismatches and is still refused by the path check.
     """
     normalized = _normalized_optional_artifact_value(value)
     if normalized is None or not require_local_brief:
@@ -2714,7 +2714,7 @@ def _provenance_path_is_invalid(
     # `brief:<slug>` is normalized to its canonical path *here*, at the
     # provenance read, before any lexical check runs — never inside
     # `_is_canonical_local_brief_path`, which also guards `workspace.toml`
-    # entry and dependency paths where a slug has no meaning (AC-0018).
+    # entry and dependency paths where a slug has no meaning.
     #
     # Callers inside this module pass a value already resolved by
     # `_resolved_provenance_parent`, and resolving is idempotent — a path form
@@ -2726,7 +2726,7 @@ def _provenance_path_is_invalid(
     if require_local_brief:
         if not _is_canonical_local_brief_path(candidate):
             return True
-        # AC-0022: the boundary is the resolved briefs directory, stricter
+        # The boundary is the resolved briefs directory, stricter
         # than `_confined_artifact_path`'s repository-root confinement.
         return root is not None and not _confined_briefs_path(root, candidate)
     return root is not None and _confined_artifact_path(root, path) is None
