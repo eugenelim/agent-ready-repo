@@ -299,6 +299,9 @@ filesystem.
   and no other case distinguishes the two.
 - A recorded entry that becomes link-like between planning and acting is
   refused at the unlink. Verifies AC-0073.
+- A recorded path spelled with a traversal, and on a case-insensitive
+  filesystem one spelled with differing case, both resolve inside the protected
+  subtree and are not removed. Verifies AC-0069's spelling clause.
 - An occupied companion destination carrying adopter edits is byte-identical
   after the run, absent from the write set, and named on the plan and under
   `companion_occupied` in the JSON summary. Verifies AC-0070.
@@ -379,9 +382,14 @@ asserting the tree rather than the return value.
   source does not ship, each return the cannot-answer code naming the field —
   driven independently for `packs` and for `profiles`, since both carry the
   same falsy widening and a packs-only fixture prices only half the criterion.
-  An absent field selects nothing from its category and does not refuse. The
-  unshipped-name case is the one a presence-and-emptiness fixture misses.
-  Verifies AC-0068.
+  An absent field, and separately an empty list, each select nothing from that
+  category and do not refuse — the empty list is named because it moved out of
+  the refusing bucket and no oracle followed it. The unshipped-name case is the
+  one a presence-and-emptiness fixture misses. Verifies AC-0068.
+- An empty recorded category over a non-empty recorded path set removes nothing
+  under that category. This is the consequence of accepting the empty list, and
+  the case that would delete a recorded pack tree if coverage's selection axis
+  regressed. Verifies AC-0069's selection axis.
 - A run that cannot read a write-set path's pre-write state returns
   cannot-answer with no write. Verifies AC-0039's pre-write row.
 - A fault injected at each boundary still reaches a named row; no uncaught
@@ -542,6 +550,7 @@ passage that uses it, and this section holds the command that reproduces it.
 | Snapshot bound | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-rollback-snapshot-bound.py` | The rollback snapshot's worst-case peak alongside the replay |
 | Release surfaces | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-release-surfaces.py` | The closed set of surfaces a version bump must move, each read by the form that surface states its version in, and whether they agree |
 | Mode asymmetry | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-mode-asymmetry.py` | How many recorded paths a run's own modes fail to plan, per mode, and which of them any named exclusion covers |
+| Recorded recipe shapes | `python3 docs/specs/catalogue-sync-apply/notes/grounding/derive-recorded-recipe-shapes.py` | Which selection shapes `init` actually writes, read from the state file after real runs rather than from a hand-built dataclass |
 | Selection widening | `python3 docs/specs/catalogue-sync-apply/notes/grounding/probe-empty-recipe-widening.py` | Which recorded selection values, over the type-and-validity domain and across both `packs` and `profiles`, resolve to the source's full contents, and whether the existing underivable check fires on each |
 
 A derivation's value and its oracle are pinned; a script's location and its

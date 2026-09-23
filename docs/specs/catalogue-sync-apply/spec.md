@@ -176,7 +176,9 @@ call. AC-0075 is goal-based and is counted there, not here.
   **unscoped** run over a tree whose recorded state was written by a
   `--tooling vendored` derivation leaves every `.agentbundle/tooling/**` path
   present, and the `summary` object carries them under `out_of_coverage` on
-  both the printed plan and the `--format json` document. The unscoped run is the oracle
+  both the printed plan and the `--format json` document. A second case spells
+  a recorded path with a traversal and, where the platform allows, a differing
+  case, and asserts the protected path still resolves inside the exclusion. The unscoped run is the oracle
   that matters: a `--pack` run excludes those paths by scope alone, so a
   scoped-only fixture passes against an implementation carrying no coverage
   rule at all. A second case covers the scoped axis.
@@ -256,8 +258,14 @@ call. AC-0075 is goal-based and is counted there, not here.
 - **The selection never widens (AC-0068)** — TDD. Oracle: the selection
   resolved for each recorded value, over the type-and-validity domain the
   criterion fixes, driven independently for `packs` and for `profiles` because
-  both fields carry the same falsy widening. A present-but-invalid value
-  refuses; an absent one selects nothing from its category. § Grounding's
+  both fields carry the same falsy widening. Three outcomes, each named: a
+  present-but-invalid value refuses; an absent field selects nothing; **an
+  empty list selects nothing**. The empty list is the case whose regression
+  deletes a recorded category, and it moved out of the refusing bucket without
+  an oracle following it, so it is named here rather than left inside "each
+  invalid type". A fourth case pairs an empty recorded category with a
+  non-empty recorded path set and asserts nothing under that category is
+  removed, which is AC-0069's selection axis. § Grounding's
   widening derivation measures how many shapes resolve to the source's full
   contents today, so a fixture carrying only valid non-empty lists cannot
   fail.
@@ -449,9 +457,10 @@ the answer.
 
   **The target.** The walk is identical across those two moments on every row of
   AC-0039's table except the four below, each of which may differ only as
-  stated. Every other apply row leaves the tree identical, because none of them
-  reaches the write phase: both `1 — difference` consent rows, and every `3`
-  refusal including the bound, the collision and the pre-write read failure:
+  stated. Every other apply row leaves the tree identical. Both `1 — difference`
+  consent rows and every `3` refusal do so by never reaching the write phase;
+  the `4` row where a planned write failed and the tree **was** restored does
+  so by restore, which AC-0038 is what obliges:
 
   | Row | Permitted difference in the target tree |
   | --- | --- |
@@ -532,9 +541,14 @@ the answer.
   against.
 
   Its **reported entries** name what the run declined to act on and why — an
-  occupied companion destination per AC-0070, an out-of-coverage recorded path
-  per AC-0069, and the paths deferred per AC-0066. They are not acted rows and
-  are never counted as such.
+  occupied companion destination per AC-0070, a colliding companion pair per
+  AC-0071, an out-of-coverage recorded path per AC-0069, and the paths deferred
+  per AC-0066. They are not acted rows and are never counted as such. Every
+  entry another criterion requires on this plan is one of these kinds; a
+  criterion adding a fifth amends this one.
+
+  On a run that refuses before its first write, the acted-rows part is empty
+  and the reported entries carry the refusal's own paths.
 - [ ] **AC-0058.** When a restore cannot return the tree to its pre-run walk
   tuple, the command names every path it could not restore before returning.
 - [ ] **AC-0059.** The ownership state's recorded path set after an apply run
@@ -551,10 +565,15 @@ the answer.
   being absent from the recorded state when it belongs to a pack or profile the
   run introduces, which is what § Granularity's "`--pack <new-name>` both syncs
   that pack and amends the recipe" requires.
-- [ ] **AC-0063.** `upstream-sync.md` names `.agentbundle/tooling/agentbundle/`
-  and `packages/credbroker/` as the two `--package` destinations in
-  § Granularity, and § Rollout item 4 no longer describes both as `packages/`
-  subtrees.
+- [ ] **AC-0063.** `upstream-sync.md` § Granularity names
+  `.agentbundle/tooling/agentbundle/` and `packages/credbroker/` as the two
+  `--package` destinations, and § Rollout item 4 neither describes both as
+  `packages/` subtrees nor scopes phase 4 to those two destinations alone: it
+  records that phase 4 owns the whole `.agentbundle/tooling/` root, including
+  the vendored `packs/catalogue-curation/` copy. The engine and the curation
+  pack are installed as a pair, so they move as a pair; scoping phase 4 to
+  `agentbundle/` alone would leave that copy written by no verb while this
+  phase reports it as deferred.
 - [ ] **AC-0064.** No invocation removes a recorded path outside the coverage
   AC-0069 fixes. This holds when the source has stopped shipping that path, so
   the keep-set no longer protects it: coverage, not the keep-set, is what makes
@@ -579,11 +598,16 @@ the answer.
 
   - A **valid** list narrows that category to the names it carries.
   - An **absent field or an empty list** selects nothing from that category.
-    Both are the narrowing outcome, not the widening one. `SelfHostRecipe`'s
-    writer emits both keys unconditionally and defaults each to `[]`, so a tree
-    derived with packs and no profiles records `"profiles": []`; refusing that
-    would refuse a tree `init` routinely produces, and the absent branch would
-    be reachable only from a hand-edited state file.
+    Both are the narrowing outcome, not the widening one, and AC-0069 bounds
+    what an empty category can cost: it puts no path in that category inside
+    coverage, so nothing there becomes a removal candidate.
+
+    The state writer records the **resolved** lists, not the flags: an `init`
+    that omits `--profile` records every profile the source ships, because the
+    selector widens a falsy argument. § Grounding's recorded-shape derivation
+    shows an empty list is what `init` writes when the source ships no such
+    directory at all — so it is producible, and refusing it would refuse a
+    real tree, but it does not mean "the adopter selected none".
   - A **present but invalid** value — a null, a string, a number, a boolean, an
     object, a list of non-strings, or a list carrying one name the source does
     not ship — refuses the run, naming that field. The code is AC-0039's first
@@ -598,11 +622,24 @@ the answer.
   over both selection fields, since `profiles` carries the identical widening
   and a packs-only sweep prices it as covered.
 - [ ] **AC-0069.** A recorded path is a removal candidate only when it lies
-  inside the run's **coverage**: the set of path prefixes this run's own flags
-  and their defaults could have planned. Coverage is that positive set, narrowed
-  by the exclusions below — it is not the exclusions themselves, because a
-  coverage defined only by what it excludes re-admits every axis nobody
-  enumerated. It is never derived from recorded state. The exclusions:
+  inside the run's **coverage**: the set of path prefixes this run could have
+  planned, given its own flags and defaults and the effective selection AC-0033
+  clause 1 resolved. Coverage is that positive set, narrowed by the exclusions
+  below — it is not the exclusions themselves, because a coverage defined only
+  by what it excludes re-admits every axis nobody enumerated.
+
+  On the selection axis, coverage holds `packs/<name>/` for each pack in the
+  effective selection and `profiles/<name>.toml` for each profile, and nothing
+  else under either prefix. An effective selection that is empty for a category
+  therefore puts no path in that category inside coverage, which is what stops
+  a recorded `packs` list of `[]` making the whole recorded pack tree a removal
+  candidate — the keep-set cannot protect those paths, because a run that
+  selected no packs replays none of them.
+
+  Coverage reads the recorded recipe's selection, which is what a recipe is
+  for. It never reads a recorded **mode** — `attribution`, `tooling` or
+  `guides` — which is the rule phase 2 fixes and AC-0048 carries. The
+  exclusions:
 
   1. `packages/credbroker/` and `.agentbundle/tooling/`, on every invocation and
      in every mode. These are the subtrees AC-0033 clause 5 keeps out of the
@@ -615,10 +652,13 @@ the answer.
      run over a default-derived tree.
   3. Everything outside the scope AC-0043 fixes.
 
-  Coverage membership is decided against the confined, normalised path the
-  removal would act on, not against the recorded string: a recorded entry such
-  as `.agentbundle/tooling/../tooling/agentbundle/x` does not match the prefix
-  textually and resolves inside the protected subtree.
+  Coverage membership is decided against the confined, resolved path the
+  removal would act on, by a comparison that holds for every spelling naming
+  the same path on the platforms this command supports — not by a
+  case-sensitive string prefix. Two spellings defeat a textual test: a
+  traversal such as `.agentbundle/tooling/../tooling/agentbundle/x`, and, on a
+  case-insensitive filesystem, `.agentbundle/Tooling/agentbundle/x`, which
+  resolves to the protected file while a prefix comparison misses.
 
   A recorded path outside coverage is left in place and reported as an
   `out_of_coverage` count, on the printed plan and in the `--format json`
@@ -644,11 +684,14 @@ the answer.
   Never overwriting is the fail-safe reading, and it is what stops an adopter
   part-way through resolving a companion losing that work.
 
-  The check runs at the instant of the write as well as at admission. A
-  destination that comes into existence between the two was admitted, and a
-  jailed write truncates it; AC-0073 gives removals the same at-action check for
-  the same reason. A companion write that finds its destination occupied fails
-  rather than replaces, and the run takes AC-0039's write-failed row.
+  A companion write cannot replace an existing destination — there is no
+  interval in which an occupant can appear and be overwritten. Stating this as
+  a check performed at some moment would not close it: the repository's atomic
+  write finishes with a rename that clobbers unconditionally and reports
+  nothing, so a stat before that rename leaves exactly the window an adopter's
+  editor writes into. The obligation is on the write's outcome, not on a check
+  preceding it, and a write that finds its destination occupied fails, taking
+  AC-0039's write-failed row.
 - [ ] **AC-0071.** When the replayed source itself plans a path equal to a
   companion destination this run would compute, the run refuses before its
   first write, naming both paths under `companion_collision` on the plan and in
@@ -682,9 +725,11 @@ the answer.
   reads, not on the source it replays. Before the consent prompt and before the
   first write, the run sums `st_size` over every write-set path that exists; if
   that sum exceeds 256 MiB it refuses, naming the bound and the measured sum.
-  The bound also holds over the bytes the snapshot actually holds, enforced as
-  it is built: the pre-prompt sum is taken before an unbounded wait at the
-  prompt, during which another writer in the adopter's tree can grow them.
+  The bound also holds over the bytes already read at every point during
+  snapshot construction, not only over the finished total. The pre-prompt sum
+  is taken before an unbounded wait at the prompt, during which another writer
+  can grow a write-set file; a bound checked only against the running total
+  still reads one grown path in full before it can trip.
 
   The figure is a **chosen ceiling, not a measurement**. No adopter-axis
   measurement exists: § Grounding measures the source tree, and an adopter file
@@ -715,9 +760,14 @@ the answer.
 - **A ceiling on the recorded path set and the total bytes hashed** — carried
   forward from phase 2 unchanged, and now reached on a writing verb rather than
   a read-only one. Owner: unassigned.
-- **A discriminator for the refusal conditions sharing exit 1** — phase 2 left
-  the field's shape and which rows carry it to the owner; this phase adds a
-  third condition to that code without taking the decision. Owner: unassigned.
+- **A discriminator for the conditions sharing exit 1** — phase 2 left the
+  field's shape and which rows carry it to the owner. This phase adds three
+  more rows to that code, and one of them is not a refusal at all: a completed
+  run with a non-zero `companion_occupied` returns 1 over a tree it fully
+  rewrote, while the two consent rows return 1 over a tree AC-0041 requires to
+  be identical. A caller reading only the exit code cannot tell whether the
+  tree was modified, so retrying a run it believes wrote nothing re-enters the
+  write path over a mutated tree. Owner: unassigned.
 
 ## Assumptions
 
