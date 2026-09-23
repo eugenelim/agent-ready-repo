@@ -6,18 +6,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [0.48.1] — 2026-09-22
-
-### Changed
-
-- The bundled workspace-status engine accepts `brief:<slug>` as a spec's
-  `Brief:` provenance value, alongside the repository-relative path it already
-  accepted. The typed value is reduced to its path form once, before every
-  check that reads it — both the path validation and the comparison against the
-  registered `source.parent`, so a spec whose header and registration use
-  different forms of the same brief no longer blocks dispatch. Confinement is
-  unchanged, and a value that is neither form still blocks dispatch.
-
 ## [0.48.0] — 2026-09-22
 
 ### Added

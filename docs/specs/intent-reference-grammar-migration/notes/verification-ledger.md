@@ -1292,3 +1292,51 @@ finding cites is not evidence about the rule the finding is an instance of.
 Fixed by stating the supersession directly instead of naming the record, which
 is what the rule asks for. `tools/lint-guides-no-repo-only-refs.py` now reports
 `OK — no repo-only governance references in guides/`.
+
+### 2026-09-23 — the roster caught three release-surface defects the local gate cannot see
+
+`test-corpus` and `test-roster` both failed. All three causes are mine, and none
+is reachable from `make lint-ruff lint-mypy` or the pack suites.
+
+**1. The core bump must be exactly one patch above the base, not merely unused.**
+`tests/roster/test_two_sided_prune_closure_invariant.py:1559` reads
+`packs/core/pack.toml` at the merge base and asserts
+`core_version == f"{b_major}.{b_minor}.{b_patch + 1}"`. Base is `origin/main`'s
+`2.26.35`, so the only admissible value is `2.26.36`. I chose `2.26.37` to clear
+a number a peer session said it was holding — reasoning that has no basis in the
+rule. An unmerged peer branch is not the base. Whichever branch merges second
+rebases and re-bumps; reserving ahead only breaks the invariant. Corrected to
+`2.26.36`, and the changelog heading with it.
+
+**2. The agentbundle bump should never have happened.** The only change under
+`packages/agentbundle/` is `_data/workspace_status_engine.py`, a byte-identical
+re-projection of the core skill script. A re-projection takes no agentbundle
+release. Bumping it broke
+`tests/roster/test_okf_catalogue_discovery.py::test_release_metadata_moves_together_for_okf_catalogue_discovery`,
+which pins one literal `expected = "0.48.0"` and then asserts a whole cluster
+moves together: the `pyproject` version, `What's new in {expected}` as the
+*topmost* heading in `README-pypi.md`, `## [{expected}]` as the topmost heading
+in the package changelog, and `## [agentbundle][{expected}]` as the topmost in
+`docs/product/changelog.md`. Advancing the pin would have obliged me to author a
+full release surface for a release that should not exist.
+
+Review finding 9 asserted that `packages/AGENTS.md:7` obliged the bump because
+the bundled engine changed. I accepted it without testing it against the
+re-projection case, and the rule's own next sentence — "CLI-surface changes may
+require release" — is the qualifier that decides it. A `_data/` sync is not a
+CLI-surface change. The bump and its changelog entry are reverted to `0.48.0`;
+the user-visible note moved to the core entry, which says the packaged copy is
+synchronized and the CLI contract is unchanged.
+
+**3. A digest pin that main added while this branch was in flight.**
+`tests/roster/test_workspace_status_progressive_disclosure.py` froze
+`workspace_status_engine.py` at `b99ad663…`, arriving with main's PR #1412 during
+the rebase. Its own failure message assigns the duty: "if a later change edits it
+deliberately, that change owns updating this." Re-pinned to `68c16e98…`, which is
+the value CI reported as actual.
+
+**What the local gate cannot tell you.** All three are release-surface and
+cross-tree invariants living in `tests/roster/`, which is dispatch-only and must
+not be run locally. `make lint-ruff lint-mypy` and the three pack suites were
+green through every one of them. A version bump is not verified until the roster
+has seen it.

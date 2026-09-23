@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.26.37] — 2026-09-22
+## [core][2.26.36] — 2026-09-22
 
 ### Highlights
 
@@ -96,6 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   kinds have to be settled first.
 - The templates and guides that stamp these fields now emit the canonical form,
   so a new artifact starts correct rather than needing a later sweep.
+- The copy of the workspace-status engine packaged with the `agentbundle` CLI is
+  synchronized with this change. The CLI's own contract is unchanged, so it takes
+  no release of its own.
 
 ## [core][2.26.35] — 2026-09-22
 
