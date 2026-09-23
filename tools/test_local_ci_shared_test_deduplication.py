@@ -98,9 +98,20 @@ CORE_COLLECTIONS = {
     # the test-name set against origin/main shows two additions, no removal and
     # no rename, and the `lint-brief-coverage` entry below still reproduces,
     # which confirms the recomputation method rather than assuming it.
+    # Re-pinned 2026-09-23 for the contract backward-traceability registry:
+    # 87 -> 91. Dispositioned against `origin/main` before re-pinning: 4
+    # additions, 0 removals, 0 renames. The four are the AC-0002 cases —
+    # `test_v_registry_pairing_is_per_row`,
+    # `test_v_registry_rejects_spec_dir_prefix_match`,
+    # `test_v_registry_rejects_contract_token_prefix_match` and
+    # `test_v_registry_table_row_satisfies_backref` — which pin that a registry
+    # back-reference counts only when one row names the contract token exactly
+    # and the spec directory as a whole path. The last of the four is the
+    # positive control: without it, tightening the check to reject everything
+    # would satisfy the other three.
     SHARED_TESTS[0]: (
-        87,
-        "ba7a01f5b92da41e2f6ba0b2a51c2d57d7edef9b3630f9e88d4418969b3546e1",
+        91,
+        "0d8bd4b911c50348a4173bee57c35d7f10d9633f3909bade5ef94a5ff1030dc4",
     ),
     # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
     # from cancellation") added the six-state lifecycle coverage without

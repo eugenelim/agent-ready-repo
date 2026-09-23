@@ -1246,7 +1246,18 @@ def check(
                     ctext = _read(contract_file) or ""
                     backward = "x-spec" in ctext and feature_dir in ctext
                 if not backward:
-                    backward = token in registry_text and feature_dir in registry_text
+                    # Per row, and neither half by containment. Testing the whole
+                    # file let any token satisfy any spec directory, and testing a
+                    # row by substring still pairs `docs/specs/foo` with a row
+                    # naming `docs/specs/foo-bar/`. `feature_dir` carries no
+                    # trailing delimiter, so the trailing `/` supplies the
+                    # boundary; the token is compared against the row's own
+                    # extracted tokens so `a.toml` cannot match `a.toml.bak`.
+                    backward = any(
+                        token in _CONTRACT_TOKEN_RE.findall(row)
+                        and f"{feature_dir}/" in row
+                        for row in registry_text.splitlines()
+                    )
                 if not backward:
                     warn.append(
                         f"{rel}:{lineno}: invariant (v) — contract '{token}' lacks a "
