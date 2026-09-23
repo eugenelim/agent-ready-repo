@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108
-- **Brief:** docs/product/briefs/agent-authoring-input-quality.md
+- **Brief:** brief:agent-authoring-input-quality
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** mixed

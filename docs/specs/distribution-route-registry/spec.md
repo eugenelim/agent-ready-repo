@@ -8,7 +8,7 @@
   - [ADR-0090](../../adr/0090-distribution-routes-separate-from-runtime-adapters.md)
   - [`distribution-route-contract`](../distribution-route-contract/spec.md) (Shipped)
   - [`portable-agent-plugin-projection`](../portable-agent-plugin-projection/spec.md) (Shipped)
-- **Brief:** docs/product/briefs/distribution-routes-programme.md
+- **Brief:** brief:distribution-routes-programme
 - **Intent:** docs/product/intents/distribution-route-registry.md
 - **Discovery:** none
 - **Contract:** `contracts/distribution-routes.toml` (read; not modified)

@@ -3,7 +3,7 @@
 - **Status:** Shipped (2026-09-21) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Mode:** full
-- **Brief:** docs/product/briefs/intent-identity-and-registration.md
+- **Brief:** brief:intent-identity-and-registration
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098
 

@@ -847,3 +847,85 @@ swept.** The decisive point is that the dropped links were keyed on
 ordinal-prefixed filenames (`STRAT-0001-…`), the addressing this delivery exists
 to retire; preserving them would have carried the anti-pattern forward into 25
 files and left a second migration behind.
+
+## 2026-09-22 — T7 complete; every `Brief:` value is typed
+
+Before-state recorded first (`sweep-brief.py` did not exist yet and this
+recording is what the "rollup verdict is unchanged" test compares against):
+`lint-brief-coverage.py --root .` output, byte-captured pre-sweep, and
+`corpus-probe.md`'s pre-sweep snapshot (both untouched by the sweep — the
+repository was clean except for the new script before either ran).
+
+34 specs carry a `Brief:` value, all repository-relative-path shaped
+(`docs/product/briefs/<slug>.md`); `sweep-brief.py` rewrote all 34 to
+`brief:<slug>`, left 0, reported an empty remainder. Re-running the script
+against the swept tree rewrites 0 and reports the same empty remainder — the
+zero-diff proof.
+
+| | Before | After |
+| --- | ---: | ---: |
+| Edges | 123 | 123 |
+| Structural orphans (`--strict`) | 487 | 487 |
+| Default-mode exit | 0 | 0 |
+| `--strict` exit | 1 | 1 |
+| Specs winning their in-edge on `Brief:` | 26 | **34** |
+| Specs winning on a field other than `Brief:` (of the 34-spec cohort) | 8 (4 `Contract:`, 4 `Discovery:`) | **0** |
+| `lint-brief-coverage.py` exit | 0 | 0 |
+| `lint-brief-coverage.py` rollup verdict | — | **byte-identical to the before-recording** |
+
+Exactly the fourth amendment's / T2a's owner-granted expectation: brief
+in-edges 26 to 34, no spec's in-edge moving to a field other than `Brief:`.
+The 8 flips are `agent-skill-engineering-foundation`,
+`distribution-route-contract`, `distribution-route-registry`,
+`portable-agent-plugin-projection` (all previously won on `Contract:`) and
+`intent-metadata-shape-contract`, `intent-reference-grammar-migration`,
+`intent-renumber-and-reissue`, `typed-intent-ordinal-allocator` (all
+previously won on `Discovery:`) — verified per-consumer against
+`corpus-probe.py`'s winning-field oracle, not inferred.
+
+### Node count moved (757 → 747), not held — measured and explained
+
+The task brief's own expectation stated nodes would stay at 757. They did not;
+747 is correct and the mechanism is fully accounted for, not a defect.
+`_wire_up` registers an external-reference stub node
+(`g.nodes.setdefault(resolved, "external")`) **only for the winning
+candidate**, keyed by its raw target string. Before the sweep, 10 distinct raw
+strings each won at least one consumer's in-edge while resolving
+`unresolvable` (7 `docs/product/briefs/<slug>.md` path strings across the 26
+already-Brief-winning specs, 1 shared `docs/product/intents/FEAT-0001-…` string
+across the 4 `Discovery:` flips, 1 shared `contracts/distribution-routes.toml`
+string across 3 of the `Contract:` flips, and 1
+`.../okf-pack-profile-v1.schema.json` string for the fourth) — ten external
+stub nodes. After the sweep every one of those specs' winning candidate
+resolves `local` to an *already-recognized* `brief:<slug>` node (`recognize_briefs`
+registers all 17 briefs regardless of whether any spec references them, so no
+new local node is added), so none of the ten raw strings is registered as a
+stub any more. 757 − 10 = 747, confirmed directly against the graph's node
+kinds (`kind == "external"`), not inferred from the count alone. Edges hold at
+123 for the same reason the plan anticipated for the field-form change: a
+typed `Brief:` repoints an existing edge from the stub to the real node rather
+than adding one; it also, as a side effect the plan did not name, deletes the
+stub node that edge no longer needs.
+
+### T7 controller verification
+
+All 34 `Brief:` values typed; no untyped value remains. `lint-brief-coverage.py`
+exits 0 and its rollup output is byte-identical to the pre-sweep capture.
+`lint-traceability.py --root .` exits 0. 127 tests pass across the two suites.
+`make lint-ruff lint-mypy` passes.
+
+Winning field, within the 34-spec cohort: **26 → 34**, exactly the bound the
+owner measured when granting T2a under `Ask first`. The 8 flips are named
+individually in T7's report — 4 from `Contract:`, 4 from `Discovery:`.
+
+**The node count moved and the explanation checks out.** The controller's brief
+predicted 757 would hold; it fell to 747. Verified: local nodes are unchanged at
+**711** and external stubs fell **46 → 36**. `_wire_up` registers an external
+stub only for a *winning* candidate, keyed on its raw target string. Ten such
+strings won before the sweep and resolve `local` after it, to brief nodes
+`recognize_briefs` already registers regardless of reference — so those ten
+stubs are no longer created. Edges hold at 123 because an edge repoints from
+stub to real node rather than being added.
+
+The implementer measured this against the graph rather than inferring it, and
+was right where the brief's prediction was wrong.

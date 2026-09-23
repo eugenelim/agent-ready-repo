@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md), [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md)
-- **Brief:** docs/product/briefs/tech-site-completion.md
+- **Brief:** brief:tech-site-completion
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration

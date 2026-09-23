@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`documentation-entry-navigation`](../documentation-entry-navigation/spec.md) (Shipped; AC10 makes `guides/README.md` the portable hub, AC14 forbids a new top-level route or design-system expansion)
-- **Brief:** docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md
+- **Brief:** brief:sdlc-guide-uplift-and-learning-paths
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** mixed

@@ -6,7 +6,7 @@
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
   [`Agent Skill Engineering Corpus`](../agent-skill-engineering-corpus/spec.md);
   [`Agent Skill Engineering Languages and Execution`](../agent-skill-engineering-languages-and-execution/spec.md)
-- **Brief:** docs/product/briefs/agent-skill-engineering.md
+- **Brief:** brief:agent-skill-engineering
 - **Discovery:** none
 - **Contract:** none. This slice touches no provider seam. RFC-0097 D3 requires
   the router to return each selected claim's state and the profile roll-up; the

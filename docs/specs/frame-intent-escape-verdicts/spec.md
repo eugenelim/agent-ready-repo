@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Mode:** full
 - **Plan:** [`plan.md`](plan.md)
-- **Brief:** docs/product/briefs/intent-identity-and-registration.md
+- **Brief:** brief:intent-identity-and-registration
 - **Constrained by:** ADR-0030
 
 ## Objective

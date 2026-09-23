@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0082](../../rfc/0082-test-ownership-boundaries-and-inclusion.md), [ADR-0086](../../adr/0086-split-the-sast-gate-into-its-own-ci-job.md), [`spec/ci-gate-parallelization`](../ci-gate-parallelization/spec.md) AC16
-- **Brief:** docs/product/briefs/tech-site-completion.md
+- **Brief:** brief:tech-site-completion
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration

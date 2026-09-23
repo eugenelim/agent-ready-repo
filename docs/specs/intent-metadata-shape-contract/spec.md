@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111; ADR-0121
-- **Brief:** docs/product/briefs/intent-identity-and-registration.md
+- **Brief:** brief:intent-identity-and-registration
 - **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
 - **Contract:** none
 - **Shape:** data
