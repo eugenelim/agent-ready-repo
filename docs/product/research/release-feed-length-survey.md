@@ -293,6 +293,14 @@ pagination + feed**, which is Sentry's exact stack:
   each page self-canonicalises and pages link with ordinary `<a href>`. Cheap
   here, because step 1 gives the anchors and nothing external links into
   per-release fragments.
+- *Pagination now has a dependency it did not have when this was written.* The
+  feed's entry `<id>`s are `/now/#<anchor>`, and an `<id>` must be permanent.
+  Paginating `/now/` moves an older release off that URL, so every feed id for
+  it silently stops resolving. The fix is the shape 11 of the 12 surveyed
+  products already use — a per-release permalink, `/now/<anchor>/`, which the
+  feed points at instead. That makes step 3 "permalinks + pagination", not
+  "pagination", and it is the reason to decide it deliberately rather than
+  treat it as a rendering change.
 - *The date index needs a second level as history grows.* It lists 31 dates
   today. At a year it would list several hundred, which is a second long page,
   so it becomes year → month before then.

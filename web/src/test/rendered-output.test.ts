@@ -1627,3 +1627,77 @@ describe('the feed escaper', () => {
     expect(xmlEscape('already &amp; escaped')).toBe('already &amp;amp; escaped');
   });
 });
+
+/**
+ * Per-pack structured data.
+ *
+ * The homepage shipped `SoftwareApplication` and recorded that /packs/* and
+ * /journeys/* were a separate piece of work. This guards the /packs/* half.
+ * /journeys/* is deliberately NOT covered: Google's rich-results gallery no
+ * longer lists `HowTo`, so whether that markup is worth carrying is a decision
+ * and not an omission.
+ */
+describe('/packs/<pack>/ structured data', () => {
+  const packPages = existsSync(join(BUILD_ROOT, 'packs'))
+    ? readdirSync(join(BUILD_ROOT, 'packs'), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => join(BUILD_ROOT, 'packs', e.name, 'index.html'))
+        .filter((f) => existsSync(f))
+    : [];
+
+  const ldOf = (page: string) => {
+    const node = doc(page).querySelector('script[type="application/ld+json"]');
+    expect(node, `${relative(BUILD_ROOT, page)} carries no ld+json`).not.toBeNull();
+    return JSON.parse(node!.textContent ?? '{}');
+  };
+
+  it('every emitted pack page carries one', () => {
+    // Derived from what the build emitted, never a hardcoded count: two CI
+    // failures on the retrofit were stale hardcoded lists, and both were
+    // repaired by deriving instead.
+    expect(packPages.length).toBeGreaterThan(0);
+    for (const page of packPages) {
+      expect(ldOf(page)['@type']).toBe('SoftwareApplication');
+    }
+  });
+
+  it('its url is the page it sits on, absolute', () => {
+    for (const page of packPages) {
+      const slug = relative(BUILD_ROOT, page).replace(/[/\\]index\.html$/, '');
+      const url = ldOf(page).url as string;
+      expect(url).toMatch(/^https:\/\//);
+      expect(url, `${slug}: structured-data url must name its own page`)
+        .toContain(`/${slug.split(/[/\\]/).join('/')}/`);
+    }
+  });
+
+  it('featureList matches the skills the page actually renders', () => {
+    // The failure this catches is drift: a skill added to the pack that never
+    // reaches the structured data, or a featureList left behind after a rename.
+    // Compared against the RENDERED list rather than against the source
+    // frontmatter, so it also fails if the page stops showing what it claims.
+    for (const page of packPages) {
+      const d = doc(page);
+      const rendered = [...d.querySelectorAll('.skill-item')].length;
+      const featureList = ldOf(page).featureList as string[];
+      expect(Array.isArray(featureList)).toBe(true);
+      expect(featureList.length, `${relative(BUILD_ROOT, page)}: featureList vs rendered skills`)
+        .toBe(rendered);
+      const text = d.body.textContent ?? '';
+      for (const feature of featureList) {
+        expect(text, `${feature} is in featureList but not on the page`).toContain(feature);
+      }
+    }
+  });
+
+  it('declares the offer the software rich result requires', () => {
+    // Google's software rich result needs one of offers / aggregateRating /
+    // review. A free price is the only one of the three this repository can
+    // state as fact, so if it ever disappears the markup stops qualifying.
+    for (const page of packPages) {
+      const offers = ldOf(page).offers;
+      expect(offers?.['@type']).toBe('Offer');
+      expect(offers?.price).toBe('0');
+    }
+  });
+});

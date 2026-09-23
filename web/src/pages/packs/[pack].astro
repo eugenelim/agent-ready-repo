@@ -22,12 +22,62 @@ const hasJourney = !!data.journeyUrl;
 const MARKETPLACE = 'agent-ready-repo';
 const packSlug = entry.id.replace(/\.md$/, '');
 const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
+
+// Per-pack structured data. The homepage's own note said /packs/* and
+// /journeys/* were "a separate piece of work"; this is the /packs/* half.
+//
+// `SoftwareApplication` for the same reason the homepage uses it: a pack is a
+// thing you install and run, not an organisation. It is the type Google still
+// supports — its rich-results gallery lists "Software app" and no longer lists
+// `HowTo`, which is why the /journeys/* half is NOT done here and is left as a
+// decision rather than assumed to be worth the markup.
+//
+// `featureList` carries the skills. That is the property's actual meaning — the
+// capabilities the application offers — and it keeps the claim derived from
+// `data.skills` rather than restated, so a skill added to the pack cannot leave
+// the structured data behind.
+//
+// `offers` at price 0 is declared for the same reason as the homepage: the
+// software rich result needs one of offers / aggregateRating / review, and a
+// free price is the only one of the three this repository can state as fact.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: data.name,
+  applicationCategory: 'DeveloperApplication',
+  applicationSubCategory: 'Agent skill pack',
+  operatingSystem: 'macOS, Linux, Windows',
+  url: new URL(Astro.url.pathname, Astro.site).href,
+  description: data.tagline,
+  featureList: data.skills,
+  softwareHelp: {
+    '@type': 'WebPage',
+    name: `${data.name} documentation`,
+    url: new URL(withBase(data.docsUrl), Astro.site).href,
+  },
+  isPartOf: {
+    '@type': 'SoftwareApplication',
+    name: 'agent-ready-repo',
+    url: new URL(withBase('/'), Astro.site).href,
+  },
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+};
 ---
 
 <SiteLayout
   title={`${data.name} pack — agent-ready-repo`}
   description={data.tagline}
 >
+  <script
+    slot="head"
+    type="application/ld+json"
+    set:html={JSON.stringify(structuredData)}
+    is:inline
+  />
   <PackHero
     name={data.name}
     scope={data.scope}

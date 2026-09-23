@@ -1104,11 +1104,29 @@ open = [
   # payload and request counts instead and says LCP/INP/CLS are unmeasured.
   # Unblocks when: 28 days of field data after the retrofit deploys.
 
+  # HALF DONE 2026-09-22; the other half needs a decision, not effort.
+  # All 22 /packs/* pages now carry SoftwareApplication, verified on the built
+  # output: type, absolute self-URL, an Offer at price 0 (the software rich
+  # result needs one of offers / aggregateRating / review, and a free price is
+  # the only one this repository can state as fact), and featureList derived
+  # from the skills the page renders rather than restated.
+  # /journeys/* IS NOT DONE, and the reason is external: Google's rich-results
+  # gallery (checked 2026-09-22, doc updated 2026-06-15) lists "Software app"
+  # and NO LONGER LISTS HowTo. So the 20 journey pages would carry markup that
+  # produces no rich result. It may still be worth emitting for non-Google
+  # consumers, and the journey stages are derivable from the rendered numbered
+  # headings, but that is a judgement about who the markup is for.
+  # A second reason to decide rather than default to yes: journey stages live
+  # in markdown bodies, not in the frontmatter schema, so deriving steps means
+  # parsing rendered content — the drift risk is real, and structured data that
+  # misdescribes a page is worse than none.
+  # Unblocks when: someone decides whether HowTo is worth emitting with no
+  # Google rich result behind it.
+  # The original entry, for the record:
   # OPEN. JSON-LD covers the homepage only (SoftwareApplication). /packs/* and
   # /journeys/* are 44 further pages wanting per-page types — SoftwareApplication
   # and HowTo respectively. Template-level work with its own schema decisions;
   # scoped out of the retrofit deliberately rather than half-done.
-  # Unblocks when: ready now.
 
   # MODERATE. /docs/changelog/ is 2.08 MB of HTML with 297 headings -- 9.3x
   # /now/, the page the entry above worries about. Found 2026-09-22 while
