@@ -158,7 +158,7 @@ Owned by: T2, T3, T4.
 **Touches:** none tracked
 
 **Tests:**
-- Zero-fragment arm: the prototype's payload serialized canonically and compared byte-for-byte against the same serialization of `project_now_highlights` on the live changelog at the named base. Verifies the parity criterion. The counts stay in the output as diagnostics — the live payload at `5b379c51f` is 156 groups and 280 bullets — but they are not the comparison, because a reworded, reordered or regrouped payload holds all three counts.
+- Zero-fragment arm: the prototype's payload serialized canonically and compared byte-for-byte against the same serialization of `project_now_highlights` on the live changelog at the named base. Verifies the parity criterion. The counts stay in the output as diagnostics — the live payload at `93bf9cc9e` is 157 groups and 281 bullets — but they are not the comparison, because a reworded, reordered or regrouped payload holds all three counts.
 - Twenty-fragment arm: each authored Highlights bullet located in the payload, counting exact-once byte-for-byte matches out of the total. Verifies the Highlights criterion.
 - Anchor arm: how many of the 20 fragments produce a group at all, and how many of those groups carry an anchor matching `change-` plus exactly 32 lowercase hexadecimal digits; both counts reported against the fixed denominator of 20, so an assembler emitting no fragment group reports 0 of 20 rather than 0 of 0. Verifies the anchor criterion.
 - Historical-anchor arm: every anchor present in the zero-fragment payload located in the twenty-fragment payload, counting those absent or changed. Verifies the historical-anchor criterion.
@@ -173,8 +173,8 @@ Owned by: T2, T3, T4.
 **Touches:** none tracked — the timed runs happen in a disposable clone outside this repository
 
 **Tests:**
-- Control arm: five timed `make site-build` runs in a disposable clone at `5b379c51f`, unmodified, so the control is today's build reading only `docs/product/changelog.md`. Verifies the control half of the build-cost criterion.
-- Fragment arm: five timed `make site-build` runs in the same clone with the T2 prototype wired into the site build and a staged corpus of 2,910 fragments present, so the timed path actually enumerates, reads, parses, assembles and projects them. Verifies the treatment half.
+- Control arm: five timed `make site-build` runs in a disposable clone at `93bf9cc9e`, unmodified, so the control is today's build reading only `docs/product/changelog.md`. Verifies the control half of the build-cost criterion.
+- Fragment arm: five timed `make site-build` runs in the same clone with the T2 prototype wired into the site build and a staged corpus of 2,920 fragments present, so the timed path actually enumerates, reads, parses, assembles and projects them. Verifies the treatment half.
 - The figure recorded is the fragment median minus the control median, divided by the control median. Verifies the percentage criterion, whose denominator is the control arm.
 - The interleaved run order, the discarded warm-up run per arm, and the ten retained durations are all captured. Verifies the run-order criterion.
 - This repository's own `git status --porcelain` is empty throughout, and the disposable clone is deleted before the figure is recorded.
@@ -223,3 +223,9 @@ either. Rollback is deleting them.
 
 - 2026-09-23: spec approved by eugenelim
 - 2026-09-23: plan approved by eugenelim
+- 2026-09-23: T3 and T4 base repointed from `5b379c51f` to `93bf9cc9e` and the
+  T4 corpus from 2,910 to 2,920 fragments, by eugenelim, after an authorized
+  rebase onto `origin/main` rewrote the pinned commit and moved the
+  free-standing released-entry count from 291 to 292. Amended before
+  `approve-plan` recorded this run's baseline; the 10 x entry-count
+  arithmetic and every other task row are unchanged.

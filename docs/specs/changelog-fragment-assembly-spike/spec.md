@@ -1,6 +1,6 @@
 # Spec: Changelog fragment assembly — measurement spike
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0123
@@ -120,5 +120,5 @@ row that owns it; § 7 wins where the two ever disagree.
 
 ## Assumptions
 
-- Technical: 2,910 fragments is ten times the 291 free-standing released entries the current parser reports at `5b379c51f`, so the fragment arm's model carries 3,201 entries — 11.0 times the current count, not 10.0. Which of the two readings § 7's "ten times the current release-entry count" intends is unsettled, and it would change how a borderline figure is read (settled by: Platform Core maintainers, on reading the run).
+- Technical: 2,920 fragments is ten times the 292 free-standing released entries the current parser reports at `93bf9cc9e`, so the fragment arm's model carries 3,212 entries — 11.0 times the current count, not 10.0. Which of the two readings § 7's "ten times the current release-entry count" intends is unsettled, and it would change how a borderline figure is read (settled by: Platform Core maintainers, on reading the run).
 - Technical: whether a synthetic corpus of repeated bodies stands in for real prose at that scale is unsettled — it would change how much weight the build-cost figure carries (settled by: the owner, on reading the run).
